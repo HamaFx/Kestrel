@@ -9,10 +9,8 @@
 
 set -euo pipefail
 
-if [[ -f /opt/kestrel/.env ]]; then
-  # shellcheck disable=SC1091
-  source /opt/kestrel/.env
-fi
+# shellcheck source=./_load-env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/_load-env.sh" /opt/kestrel/.env
 
 : "${DATABASE_URL:?DATABASE_URL must be set}"
 : "${GCS_BACKUP_BUCKET:?GCS_BACKUP_BUCKET must be set}"
