@@ -82,14 +82,30 @@ export const PUT = withAuth<void>(async (req, { user }) => {
   const bareModelId = body.modelId.includes('/')
     ? body.modelId.split('/').slice(1).join('/')
     : body.modelId;
-  const known = (spec.models ?? []).some(
-    (m: { modelId: string }) => m.modelId === bareModelId,
+  // Phase D2 — defense in depth. The picker UI filters out tier:
+  // 'embedding' models, but a direct API call could still store one.
+  // Chat turns can't consume an embedding model (different capability,
+  // different dimension space) so reject the save up front.
+  const pickedModel = (spec.models ?? []).find(
+    (m: { modelId: string; tier?: string }) => m.modelId === bareModelId,
   );
-  if (!known) {
+  if (!pickedModel) {
     return Response.json(
       {
         error: {
           message: `Model ${body.modelId} is not in the ${body.providerId} catalog`,
+        },
+      },
+      { status: 400 },
+    );
+  }
+  if (pickedModel.tier === 'embedding') {
+    return Response.json(
+      {
+        error: {
+          message:
+            `${body.modelId} is an embedding-only model and can't be used as a chat model. ` +
+            `Pick a chat-capable model (flagship / pro / fast / lite) instead.`,
         },
       },
       { status: 400 },
