@@ -21,3 +21,12 @@ export { getDb, getAdminDb, closeAdminDb, closeDb, withTenantDb, schema } from '
 export { withUserScope } from './with-user-scope';
 export { withRateLimit, type RateLimitResult } from './rate-limit';
 export { getActiveUserIds } from './active-users';
+export {
+  getSubscription,
+  isSubscriptionActive,
+  getEffectiveFeatures,
+  getEffectiveTokenCap,
+  countActiveAlerts,
+  countJournalEntriesThisMonth,
+  type SubscriptionWithPlan,
+} from './queries/billing';
