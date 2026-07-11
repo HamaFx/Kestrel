@@ -47,7 +47,7 @@ export default function SignalsError({
       <button
         type="button"
         onClick={reset}
-        className="bg-fg text-black hover:bg-fg-muted inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-semibold transition-colors"
+        className="bg-fg text-bg hover:bg-fg-muted inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-semibold transition-colors"
       >
         <IconRefresh className="size-4" />
         Try again
