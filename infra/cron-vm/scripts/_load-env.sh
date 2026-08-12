@@ -8,7 +8,7 @@
 #   readonly HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   source "$HERE/_load-env.sh" /opt/kestrel/.env
 
-_load_hamafx_env() {
+_load_kestrel_env() {
   local file="${1:-/opt/kestrel/.env}"
   [[ -f "$file" ]] || return 0
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -32,4 +32,4 @@ _load_hamafx_env() {
   done < "$file"
 }
 
-_load_hamafx_env "$@"
+_load_kestrel_env "$@"

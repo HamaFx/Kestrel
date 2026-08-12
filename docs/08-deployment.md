@@ -4,7 +4,7 @@
 > — zero-config native (`pnpm dev:local`) or one-command Docker (`docker compose up`).
 > This document covers the hosted deployment topology and operator procedures; the public OSS release itself is single-user self-hosted.
 
-> **OSS boundary:** Shared PostgreSQL deployments, open registration, `MULTI_USER_ENABLED=1`, and `HAMAFX_ENABLE_RLS=1` are not supported by this release. The hosted multi-user topology described below is maintained separately from the OSS self-hosting path.
+> **OSS boundary:** Shared PostgreSQL deployments, open registration, `MULTI_USER_ENABLED=1`, and `KESTREL_ENABLE_RLS=1` are not supported by this release. The hosted multi-user topology described below is maintained separately from the OSS self-hosting path.
 
 ## Topology
 
@@ -19,8 +19,8 @@ flowchart LR
     REPO -->|push to main| VC[Vercel — apps/web]
     REPO -.5-min self-update.-> VM
 
-    subgraph VM["GCE — hamafx-cron (e2-medium, us-central1-a)"]
-        Worker["hamafx-worker Docker container<br/>(BiQuote SignalR + internal scheduler)"]
+    subgraph VM["GCE — kestrel-cron (e2-medium, us-central1-a)"]
+        Worker["kestrel-worker Docker container<br/>(BiQuote SignalR + internal scheduler)"]
         Timers["systemd timers<br/>(light Vercel pokes + maintenance)"]
     end
 
@@ -43,7 +43,7 @@ flowchart LR
     Timers -.HTTP.-> VC
 ```
 
-The web app is one Vercel deploy and the worker is one Docker container on one VM. Both pull from the same `main` branch. Vercel rebuilds on push; the VM's `hamafx-update.timer` pulls and rebuilds worker-relevant changes every 5 minutes.
+The web app is one Vercel deploy and the worker is one Docker container on one VM. Both pull from the same `main` branch. Vercel rebuilds on push; the VM's `kestrel-update.timer` pulls and rebuilds worker-relevant changes every 5 minutes.
 
 ## Vercel project
 
@@ -89,12 +89,12 @@ We do **not** ship a `crons` block in `vercel.json` — Vercel Hobby caps cron a
 
 ## VM project
 
-- **Instance**: `hamafx-cron` (`e2-medium`, `us-central1-a`, project `gen-lang-client-REDACTED`, Ubuntu 24.04 LTS).
-- **System user**: `hamafx` (system, `nologin`, owns `/opt/hamafx`).
-- **Always-on**: Docker container `hamafx-worker`, with Docker health checks and restart-on-failure.
+- **Instance**: `kestrel-cron` (`e2-medium`, `us-central1-a`, project `gen-lang-client-REDACTED`, Ubuntu 24.04 LTS).
+- **System user**: `kestrel` (system, `nologin`, owns `/opt/kestrel`).
+- **Always-on**: Docker container `kestrel-worker`, with Docker health checks and restart-on-failure.
 - **Timers**: Light HTTP pokes, cleanup, maintenance, backup placeholders, updates, and Docker housekeeping in `infra/cron-vm/units/`.
 - **Worker jobs**: Heavy jobs run inside the Docker worker's internal scheduler. Separate heavy-job systemd timers were intentionally removed and must not be restored.
-- **Self-update**: `hamafx-update.timer` pulls `origin/main`, rebuilds only when worker-relevant files change, and rolls back if the new container fails health checks.
+- **Self-update**: `kestrel-update.timer` pulls `origin/main`, rebuilds only when worker-relevant files change, and rolls back if the new container fails health checks.
 - **Cost**: approximately $8–$17/mo depending on GCP billing discounts.
 
 Bootstrap is `infra/cron-vm/_provision-docker.sh` (installs Docker, copies the worker and maintenance units, enables timers, masks the legacy `cron` daemon, installs sudoers, and configures journald). Recovery is `infra/cron-vm/RECOVERY.md` — read-only-first scenarios with paste-ready commands.
@@ -124,7 +124,7 @@ ENCRYPTION_SECRET=               # random 32-byte hex for data encryption
 
 # --- Feature Flags ---
 MULTI_USER_ENABLED=false
-HAMAFX_ENABLE_RLS=false
+KESTREL_ENABLE_RLS=false
 BYOK_ENABLED=true
 UNLIMITED_SYMBOLS=false                 # deprecated; the canonical 18-symbol catalog is always enforced
 PER_USER_BRIEFINGS=true
@@ -209,11 +209,11 @@ node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 
 ### Seeding the VM
 
-`/opt/kestrel/.env` should be hand-written from a secure paste, mode `600`, owned by `hamafx`. Vercel CLI's `vercel env pull` redacts encrypted values, so you can't migrate them automatically — paste from the Vercel dashboard instead. `infra/cron-vm/RECOVERY.md` § Pre-flight has the full list.
+`/opt/kestrel/.env` should be hand-written from a secure paste, mode `600`, owned by `kestrel`. Vercel CLI's `vercel env pull` redacts encrypted values, so you can't migrate them automatically — paste from the Vercel dashboard instead. `infra/cron-vm/RECOVERY.md` § Pre-flight has the full list.
 
 ## CI
 
-`.github/workflows/ci.yml` runs `pnpm turbo run lint typecheck test` on every PR + push to main. **No deploy step**; Vercel handles the web deploy and the VM's `hamafx-update.timer` handles the worker update. The legacy `.github/workflows/cron-*.yml` files were retired in Phase 8 PR-21. Host maintenance and lightweight Vercel pokes use systemd timers; heavy worker jobs use the Docker worker's internal scheduler.
+`.github/workflows/ci.yml` runs `pnpm turbo run lint typecheck test` on every PR + push to main. **No deploy step**; Vercel handles the web deploy and the VM's `kestrel-update.timer` handles the worker update. The legacy `.github/workflows/cron-*.yml` files were retired in Phase 8 PR-21. Host maintenance and lightweight Vercel pokes use systemd timers; heavy worker jobs use the Docker worker's internal scheduler.
 
 ## Supabase setup (one-time)
 
@@ -256,7 +256,7 @@ installed but skipped safely; they do not report false success.
 ## Logging & monitoring
 
 - **Web logs**: Vercel function logs.
-- **Worker logs**: `sudo docker logs hamafx-worker` plus `journalctl -u hamafx-update.service` and light/maintenance units. JSON-structured worker logs carry the deployed commit.
+- **Worker logs**: `sudo docker logs kestrel-worker` plus `journalctl -u kestrel-update.service` and light/maintenance units. JSON-structured worker logs carry the deployed commit.
 - **Healthchecks.io**: every heartbeat / job emits a `start` + `success`/`fail` ping. A stale check pages immediately.
 - **Sentry**: server-side errors from both `apps/web` and `apps/worker` flow into the same project. The worker's heavy-job runner adds `{ job: <name> }` to every event.
 - **Cost telemetry**: `chat_telemetry` table → `/settings/usage` UI.
@@ -266,15 +266,15 @@ If something feels slow or expensive, look at Vercel function logs + `chat_telem
 ## Rollback
 
 - **Web**: instant via Vercel "Rollback to deployment" in the dashboard.
-- **VM**: `hamafx-update.timer` pulls every 5 min. To pin to an older commit:
+- **VM**: `kestrel-update.timer` pulls every 5 min. To pin to an older commit:
   ```bash
-  sudo systemctl mask hamafx-update.timer  # stop the auto-update
-  sudo -u hamafx git -C /opt/hamafx/app fetch origin
-  sudo -u hamafx git -C /opt/hamafx/app reset --hard <good-sha>
-  sudo -u hamafx pnpm -C /opt/hamafx/app install --frozen-lockfile
-  sudo -u hamafx pnpm -C /opt/hamafx/app --filter @kestrel/worker build
-  echo <good-sha> | sudo tee /opt/hamafx/.deployed-sha
-  sudo docker compose -f /opt/hamafx/docker-compose.yml up -d --force-recreate worker
+  sudo systemctl mask kestrel-update.timer  # stop the auto-update
+  sudo -u kestrel git -C /opt/kestrel/app fetch origin
+  sudo -u kestrel git -C /opt/kestrel/app reset --hard <good-sha>
+  sudo -u kestrel pnpm -C /opt/kestrel/app install --frozen-lockfile
+  sudo -u kestrel pnpm -C /opt/kestrel/app --filter @kestrel/worker build
+  echo <good-sha> | sudo tee /opt/kestrel/.deployed-sha
+  sudo docker compose -f /opt/kestrel/docker-compose.yml up -d --force-recreate worker
   ```
   Then push the fix to `main` and unmask the timer.
 - **DB**: forward-only migrations. For emergencies, restore from the latest B2 backup after it is configured, per `infra/cron-vm/RECOVERY.md` § Scenario 1.

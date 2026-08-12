@@ -5,13 +5,13 @@
 # (DATABASE_URL, CRON_SECRET, 18+ HC_*_UUID values) must be recoverable.
 # This script pushes the current env file to GCP Secret Manager daily.
 #
-# Runs daily at 02:00 UTC via hamafx-backup-env.timer.
+# Runs daily at 02:00 UTC via kestrel-backup-env.timer.
 # Requires: gcloud SDK installed, VM service account has roles/secretmanager.secretVersionAdder
 #
 # First-time setup (on the VM, as root or a user with gcloud access):
-#   gcloud secrets create hamafx-vm-env --replication-policy=automatic
-#   gcloud secrets add-iam-policy-binding hamafx-vm-env \
-#     --member="serviceAccount:$(gcloud compute instances describe hamafx-cron \
+#   gcloud secrets create kestrel-vm-env --replication-policy=automatic
+#   gcloud secrets add-iam-policy-binding kestrel-vm-env \
+#     --member="serviceAccount:$(gcloud compute instances describe kestrel-cron \
 #       --zone=us-central1-a --format='get(serviceAccounts[0].email)')" \
 #     --role=roles/secretmanager.secretVersionAdder
 
@@ -20,7 +20,7 @@ set -euo pipefail
 # shellcheck source=./_load-env.sh
 source "$(dirname "${BASH_SOURCE[0]}")/_load-env.sh" /opt/kestrel/.env
 
-readonly SECRET_NAME="hamafx-vm-env"
+readonly SECRET_NAME="kestrel-vm-env"
 readonly ENV_FILE="/opt/kestrel/.env"
 
 HC_UUID="${HC_ENV_BACKUP_UUID:-}"

@@ -40,7 +40,7 @@ DB_URL="${ADMIN_DATABASE_URL:-${DIRECT_URL:-${POSTGRES_URL_NON_POOLING:-${DATABA
 HC_UUID="${HC_TENANT_EXPORT_UUID:-}"
 DATE_UTC="$(date -u +%Y-%m-%d)"
 TARGET="tenant-exports/${USER_ID}/${DATE_UTC}.json"
-TMP_EXPORT="$(mktemp -t hamafx-tenant-export-XXXXXX.json)"
+TMP_EXPORT="$(mktemp -t kestrel-tenant-export-XXXXXX.json)"
 trap 'rm -f "$TMP_EXPORT"' EXIT
 
 ping_hc() {

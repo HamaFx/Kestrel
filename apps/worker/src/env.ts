@@ -86,7 +86,7 @@ const WorkerEnvSchema = z.object({
   SENTRY_DSN: optionalUrl,
 
   /**
-   * Deployed commit SHA, written by `update.sh` to /opt/hamafx/.deployed-sha.
+   * Deployed commit SHA, written by `update.sh` to /opt/kestrel/.deployed-sha.
    * The bootstrap script reads the file and exports it before exec.
    * Used as a Sentry tag and embedded in healthcheck POST bodies so we can
    * pinpoint a regression to a specific deploy.
