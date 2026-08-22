@@ -17,9 +17,9 @@
 // Shared types for worker jobs. Kept minimal — adding more here makes
 // every job file harder to skim.
 
+import type { WorkerEnv } from '../env.js';
 import type { Logger } from '../log.js';
 import type { TenantRouter } from '../tenant-router.js';
-import type { WorkerEnv } from '../env.js';
 
 // -----------------------------------------------------------------------
 // PF-09 — ISP-compliant job context split.

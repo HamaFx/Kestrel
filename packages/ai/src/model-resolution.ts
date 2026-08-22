@@ -20,10 +20,11 @@
 // the multi-agent orchestrator. Keeping them here avoids duplication
 // and makes the fallback chain logic independently testable.
 
+import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
+
+import { BYOK_PROVIDERS } from './byok-providers';
 import type { ModelDomain } from './model';
 import type { RoutingDomain } from './routing';
-import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
-import { BYOK_PROVIDERS } from './byok-providers';
 
 // ---------------------------------------------------------------------------
 // P2-6 — Domain-to-model-tier mapping.

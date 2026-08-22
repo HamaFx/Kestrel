@@ -1,4 +1,22 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runMastraXauusdResearch } from '@/lib/services/mastra-xauusd';
 
 const mocks = vi.hoisted(() => ({
   getThread: vi.fn(),
@@ -17,8 +35,6 @@ vi.mock('@kestrel/ai/mastra', () => ({
 vi.mock('@/lib/env', () => ({
   getServerEnv: mocks.getServerEnv,
 }));
-
-import { runMastraXauusdResearch } from '@/lib/services/mastra-xauusd';
 
 const input = {
   userId: 'user-1',
@@ -42,13 +58,15 @@ describe('Mastra XAUUSD service', () => {
 
     expect(mocks.getThread).toHaveBeenCalledWith(input.userId, input.threadId);
     expect(mocks.getUserWithSettings).toHaveBeenCalledWith(input.userId);
-    expect(mocks.runXauusdMastra).toHaveBeenCalledWith(expect.objectContaining({
-      userId: input.userId,
-      threadId: input.threadId,
-      runId: input.runId,
-      settings: expect.objectContaining({ chatModel: 'google:gemini-2.5-flash' }),
-      env: expect.objectContaining({ AI_DEFAULT_MODEL: 'google/gemini-2.5-flash' }),
-    }));
+    expect(mocks.runXauusdMastra).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: input.userId,
+        threadId: input.threadId,
+        runId: input.runId,
+        settings: expect.objectContaining({ chatModel: 'google:gemini-2.5-flash' }),
+        env: expect.objectContaining({ AI_DEFAULT_MODEL: 'google/gemini-2.5-flash' }),
+      }),
+    );
   });
 
   it('fails closed for a thread owned by another user', async () => {

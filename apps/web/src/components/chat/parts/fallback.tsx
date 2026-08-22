@@ -30,7 +30,6 @@
  * (which mean "the AI may have hallucinated") and the brand tone of
  * success / informational chips.
  */
-
 import { IconAlertTriangle } from '@tabler/icons-react';
 
 export interface FallbackPartViewProps {
@@ -59,19 +58,14 @@ export function FallbackPartView({ part }: FallbackPartViewProps) {
     <div
       role="status"
       aria-live="polite"
-      className="border-warn/30 bg-warn/10 text-fg mt-2 flex items-start gap-2 rounded-sm border p-3 text-body-sm"
+      className="border-warn/30 bg-warn/10 text-fg text-body-sm mt-2 flex items-start gap-2 rounded-sm border p-3"
     >
-      <IconAlertTriangle
-        className="text-warn mt-0.5 size-4 shrink-0"
-        aria-hidden="true"
-      />
+      <IconAlertTriangle className="text-warn mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <div className="min-w-0 flex-1 leading-snug">
         <p className="text-warn font-semibold">Override unavailable</p>
-        <p className="text-fg-muted mt-0.5">
-          {message}. Used the default domain model instead.
-        </p>
+        <p className="text-fg-muted mt-0.5">{message}. Used the default domain model instead.</p>
         {override ? (
-          <p className="text-fg-subtle mt-1 font-mono text-caption break-all">
+          <p className="text-fg-subtle text-caption mt-1 font-mono break-all">
             Override: <span className="text-fg-muted">{override}</span>
           </p>
         ) : null}

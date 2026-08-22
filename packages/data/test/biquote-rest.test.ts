@@ -21,8 +21,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { _resetThrottle } from '../src/cache/throttle';
-import { fetchLatest, fetchOhlc, fetchTick } from '../src/providers/biquote/rest';
 import { ProviderError } from '../src/errors';
+import { fetchLatest, fetchOhlc, fetchTick } from '../src/providers/biquote/rest';
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -164,12 +164,11 @@ describe('biquote fetchLatest', () => {
   });
 
   it('joins symbols with commas and parses the array body', async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      jsonResponse([
-        VALID_TICK,
-        { ...VALID_TICK, symbol: 'EURUSD', last: 1.085 },
-      ]),
-    );
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse([VALID_TICK, { ...VALID_TICK, symbol: 'EURUSD', last: 1.085 }]),
+      );
     globalThis.fetch = fetchSpy as unknown as typeof fetch;
 
     const ticks = await fetchLatest(['XAUUSD', 'EURUSD']);
@@ -192,15 +191,17 @@ describe('biquote fetchOhlc', () => {
   it('drops the live unfinished bar by default', async () => {
     // Note: BiQuote returns bars NEWEST-first (descending). Tests
     // mirror that and assert the adapter ascends + filters correctly.
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      jsonResponse(
-        ohlcEnvelope([
-          bar('2026-05-27T18:02:00Z', { isOpen: true }),
-          bar('2026-05-27T18:01:00Z'),
-          bar('2026-05-27T18:00:00Z'),
-        ]),
-      ),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          ohlcEnvelope([
+            bar('2026-05-27T18:02:00Z', { isOpen: true }),
+            bar('2026-05-27T18:01:00Z'),
+            bar('2026-05-27T18:00:00Z'),
+          ]),
+        ),
+      ) as unknown as typeof fetch;
 
     const out = await fetchOhlc({ symbol: 'XAUUSD', tf: '1m', count: 100 });
     expect(out).toHaveLength(2);
@@ -211,14 +212,16 @@ describe('biquote fetchOhlc', () => {
   });
 
   it('keeps the live bar when includeOpenBar=true', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      jsonResponse(
-        ohlcEnvelope([
-          bar('2026-05-27T18:01:00Z', { isOpen: true }),
-          bar('2026-05-27T18:00:00Z'),
-        ]),
-      ),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          ohlcEnvelope([
+            bar('2026-05-27T18:01:00Z', { isOpen: true }),
+            bar('2026-05-27T18:00:00Z'),
+          ]),
+        ),
+      ) as unknown as typeof fetch;
 
     const out = await fetchOhlc({
       symbol: 'XAUUSD',
@@ -234,20 +237,20 @@ describe('biquote fetchOhlc', () => {
     const fetchSpy = vi.fn();
     globalThis.fetch = fetchSpy as unknown as typeof fetch;
 
-    await expect(
-      fetchOhlc({ symbol: 'XAUUSD', tf: '1w', count: 100 }),
-    ).rejects.toThrow(/biquote does not provide weekly/);
+    await expect(fetchOhlc({ symbol: 'XAUUSD', tf: '1w', count: 100 })).rejects.toThrow(
+      /biquote does not provide weekly/,
+    );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('throws on empty candle response (lets failover try the next provider)', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      jsonResponse(ohlcEnvelope([])),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(ohlcEnvelope([]))) as unknown as typeof fetch;
 
-    await expect(
-      fetchOhlc({ symbol: 'XAUUSD', tf: '1m', count: 100 }),
-    ).rejects.toMatchObject({ code: 'PROVIDER_HTTP_ERROR' });
+    await expect(fetchOhlc({ symbol: 'XAUUSD', tf: '1m', count: 100 })).rejects.toMatchObject({
+      code: 'PROVIDER_HTTP_ERROR',
+    });
   });
 
   it('caps `count` at 1000 to match the documented BiQuote limit', async () => {
@@ -274,7 +277,9 @@ describe('biquote throttle', () => {
     // get a fresh Response. Use mockImplementation, not mockResolvedValue.
     globalThis.fetch = vi
       .fn()
-      .mockImplementation(() => Promise.resolve(jsonResponse(VALID_TICK))) as unknown as typeof fetch;
+      .mockImplementation(() =>
+        Promise.resolve(jsonResponse(VALID_TICK)),
+      ) as unknown as typeof fetch;
 
     // 50 calls succeed; the 51st must throw without hitting fetch.
     for (let i = 0; i < 50; i += 1) {

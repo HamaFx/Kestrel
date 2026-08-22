@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -32,10 +48,10 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { MastraCompositeStore, RetentionConfig } from '@mastra/core/storage';
 import { LibSQLStore } from '@mastra/libsql';
 import { PostgresStore } from '@mastra/pg';
-import type { MastraCompositeStore, RetentionConfig } from '@mastra/core/storage';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 const mlog = createCategorizedLogger('ai', { component: 'mastra-storage' });
 
@@ -49,11 +65,7 @@ export interface MastraStorageResult {
 /** Direct (non-pooling) connection string in the same order as the migration scripts. */
 export function mastraDirectConnectionString(env: NodeJS.ProcessEnv = process.env): string | null {
   return (
-    env.DIRECT_URL ??
-    env.POSTGRES_URL_NON_POOLING ??
-    env.DATABASE_URL ??
-    env.POSTGRES_URL ??
-    null
+    env.DIRECT_URL ?? env.POSTGRES_URL_NON_POOLING ?? env.DATABASE_URL ?? env.POSTGRES_URL ?? null
   );
 }
 
@@ -66,8 +78,7 @@ export function mastraSslOptions(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean | { rejectUnauthorized: boolean; ca?: string } {
   if (env.DB_DISABLE_SSL === 'true') {
-    const localDocker =
-      (env.KESTREL_LOCAL_DOCKER ?? env.HAMAFX_LOCAL_DOCKER) === 'true';
+    const localDocker = (env.KESTREL_LOCAL_DOCKER ?? env.HAMAFX_LOCAL_DOCKER) === 'true';
     if (env.NODE_ENV !== 'production' || localDocker) return false;
     throw new Error(
       '[mastra] DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; ' +

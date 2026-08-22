@@ -156,6 +156,11 @@ export {
   type UpdateJournalInput,
 } from './journal/persistence';
 export { reviewTrade, type ReviewTradeArgs, type TradeReviewResult } from './journal/review';
+export {
+  getCoachInsights,
+  type CoachInsightsArgs,
+  type CoachInsightsResult,
+} from './journal/coach-insights';
 
 // Usage
 export {
@@ -232,7 +237,12 @@ export {
 export { sendWebPush, type SendWebPushResult, type VapidEnv } from './push/send';
 
 // Phase 7a — domain routing + rolling thread summary
-export { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision, type RoutingDomain } from './routing';
+export {
+  resolveSemanticRoutingConfig,
+  routeTurn,
+  type RoutingDecision,
+  type RoutingDomain,
+} from './routing';
 
 // Phase 7b — memory index
 export {

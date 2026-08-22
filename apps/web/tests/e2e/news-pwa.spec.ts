@@ -23,7 +23,7 @@
 // Retry affordance is keyboard-accessible.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('News page', () => {
   test('renders the page header and toolbar search', async ({ authedPage }) => {
@@ -39,13 +39,13 @@ test.describe('News page', () => {
     await expect(search).toBeAttached();
 
     // Either the empty state or loaded articles render — never a blank page.
-    const emptyOrArticles = page
-      .getByText('No news yet')
-      .or(page.locator('article').first());
+    const emptyOrArticles = page.getByText('No news yet').or(page.locator('article').first());
     await expect(emptyOrArticles.first()).toBeAttached();
   });
 
-  test('sentiment filter chips announce state via aria-checked', async ({ authedPage }, testInfo) => {
+  test('sentiment filter chips announce state via aria-checked', async ({
+    authedPage,
+  }, testInfo) => {
     const page = authedPage;
     await page.goto('/news');
 
@@ -62,7 +62,10 @@ test.describe('News page', () => {
     const bullish = group.getByRole('radio', { name: /bullish/i });
     await bullish.click();
     await expect(bullish).toHaveAttribute('aria-checked', 'true');
-    await expect(group.getByRole('radio', { name: 'All', exact: true })).toHaveAttribute('aria-checked', 'false');
+    await expect(group.getByRole('radio', { name: 'All', exact: true })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
   });
 
   test('refresh button is available for manual sync', async ({ authedPage }) => {

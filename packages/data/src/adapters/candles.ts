@@ -25,26 +25,21 @@
 // that want to surface staleness.
 //
 // Symbol routing:
-  //   Crypto (BTCUSDT, ETHUSDT, etc.) → binance → biquote → finnhub
-  //   Forex/Gold (EURUSD, XAUUSD)     → biquote → finnhub
-  //   1m:                              candles-1m (pinned) → above
-  //   1w:                              finnhub (biquote unsupported)
+//   Crypto (BTCUSDT, ETHUSDT, etc.) → binance → biquote → finnhub
+//   Forex/Gold (EURUSD, XAUUSD)     → biquote → finnhub
+//   1m:                              candles-1m (pinned) → above
+//   1w:                              finnhub (biquote unsupported)
 
-import {
-  SymbolSchema,
-  type Candle,
-  type Symbol,
-  type Timeframe,
-} from '@kestrel/shared';
+import { SymbolSchema, type Candle, type Symbol, type Timeframe } from '@kestrel/shared';
 
 import { cacheKey, cacheTag, candleTtl, getDefaultCache } from '../cache';
 import { ProviderError } from '../errors';
 import { runWithFailover, type ProviderAttempt } from '../failover';
-
 // P2-2 — Build provider attempts from the plugin registry instead of
 // hardcoded imports. Adding a new provider means registering a plugin
 // — no adapter code changes (OCP).
 import '../providers/provider-adapters'; // side-effect: register providers
+
 import { marketDataProviders } from '../providers/provider-registry';
 
 export interface GetCandlesOptions {
@@ -124,7 +119,12 @@ export async function getCandlesWithMeta(
               apiKey: keys.finnhub,
               baseUrl: keys.biquoteBaseUrl,
             });
-            if (!c) throw new ProviderError('PROVIDER_HTTP_ERROR', p.name, 'provider returned null for symbol/tf');
+            if (!c)
+              throw new ProviderError(
+                'PROVIDER_HTTP_ERROR',
+                p.name,
+                'provider returned null for symbol/tf',
+              );
             return c;
           },
         }));

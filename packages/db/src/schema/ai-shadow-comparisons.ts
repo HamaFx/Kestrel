@@ -6,7 +6,16 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { boolean, doublePrecision, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  doublePrecision,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 import { chatThreads } from './chat';
@@ -23,12 +32,16 @@ export const aiShadowComparisons = pgTable(
   'ai_shadow_comparisons',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     tenantId: text('tenant_id')
       .notNull()
       .default(sql`current_setting('app.current_tenant', true)`)
       .references(() => organization.id, { onDelete: 'cascade' }),
-    threadId: uuid('thread_id').notNull().references(() => chatThreads.id, { onDelete: 'cascade' }),
+    threadId: uuid('thread_id')
+      .notNull()
+      .references(() => chatThreads.id, { onDelete: 'cascade' }),
     promptSha256: text('prompt_sha256').notNull(),
     primaryAgent: text('primary_agent').$type<ShadowComparisonAgent>().notNull(),
     outcome: text('outcome').$type<ShadowComparisonOutcome>().notNull(),

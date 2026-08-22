@@ -18,15 +18,15 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Import AFTER mock so the module sees the mocked getDb.
+import { acquireCronLock } from '../src/cron-lock';
+
 // Mock @kestrel/db to avoid a real DB connection in unit tests.
 const mockExecute = vi.fn();
 vi.mock('@kestrel/db', () => ({
   getDb: vi.fn(() => ({ execute: mockExecute })),
   schema: {},
 }));
-
-// Import AFTER mock so the module sees the mocked getDb.
-import { acquireCronLock } from '../src/cron-lock';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -36,7 +36,7 @@ describe('acquireCronLock', () => {
   it('returns a CronLock when INSERT succeeds (row returned)', async () => {
     // M-8: reclaim check first, then INSERT.
     mockExecute
-      .mockResolvedValueOnce([])                       // reclaim: no stale lock
+      .mockResolvedValueOnce([]) // reclaim: no stale lock
       .mockResolvedValueOnce([{ job_name: 'snapshots' }]); // INSERT: succeeded
 
     const db = { execute: mockExecute } as unknown as Parameters<typeof acquireCronLock>[1];
@@ -50,7 +50,7 @@ describe('acquireCronLock', () => {
   it('returns null when INSERT conflicts (no row returned)', async () => {
     // M-8: reclaim check first, then INSERT.
     mockExecute
-      .mockResolvedValueOnce([])  // reclaim: no stale lock
+      .mockResolvedValueOnce([]) // reclaim: no stale lock
       .mockResolvedValueOnce([]); // insert: conflict, nothing returned
 
     const db = { execute: mockExecute } as unknown as Parameters<typeof acquireCronLock>[1];
@@ -62,9 +62,9 @@ describe('acquireCronLock', () => {
   it('lock.done() executes an UPDATE setting status=done', async () => {
     // M-8: reclaim + INSERT + UPDATE done
     mockExecute
-      .mockResolvedValueOnce([])                       // reclaim: no stale lock
+      .mockResolvedValueOnce([]) // reclaim: no stale lock
       .mockResolvedValueOnce([{ job_name: 'briefings' }]) // INSERT
-      .mockResolvedValueOnce([]);                      // UPDATE done
+      .mockResolvedValueOnce([]); // UPDATE done
 
     const db = { execute: mockExecute } as unknown as Parameters<typeof acquireCronLock>[1];
     const lock = await acquireCronLock('briefings', db);
@@ -77,9 +77,9 @@ describe('acquireCronLock', () => {
 
   it('lock.fail() executes an UPDATE setting status=error', async () => {
     mockExecute
-      .mockResolvedValueOnce([])                       // reclaim: no stale lock
-      .mockResolvedValueOnce([{ job_name: 'cot' }])    // INSERT
-      .mockResolvedValueOnce([]);                      // UPDATE error
+      .mockResolvedValueOnce([]) // reclaim: no stale lock
+      .mockResolvedValueOnce([{ job_name: 'cot' }]) // INSERT
+      .mockResolvedValueOnce([]); // UPDATE error
 
     const db = { execute: mockExecute } as unknown as Parameters<typeof acquireCronLock>[1];
     const lock = await acquireCronLock('cot', db);
@@ -90,7 +90,7 @@ describe('acquireCronLock', () => {
 
   it('note is truncated to 500 chars in done()', async () => {
     mockExecute
-      .mockResolvedValueOnce([])                       // reclaim: no stale lock
+      .mockResolvedValueOnce([]) // reclaim: no stale lock
       .mockResolvedValueOnce([{ job_name: 'fred-actuals' }])
       .mockResolvedValueOnce([]);
 

@@ -1,19 +1,31 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // /settings/portfolio — Portfolio Management page.
 // Shows open positions with live P&L, risk dashboard, and account settings.
 
-import {
-  getOpenPositionsWithPnL,
-  getPortfolioRiskReport,
-  getPortfolioSettings,
-} from '@kestrel/ai';
-import type { PortfolioSettings, PortfolioRiskReport, PositionWithPnL } from '@kestrel/shared';
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
+import { getOpenPositionsWithPnL, getPortfolioRiskReport, getPortfolioSettings } from '@kestrel/ai';
+import type { PortfolioRiskReport, PortfolioSettings, PositionWithPnL } from '@kestrel/shared';
+import { IconAlertTriangle, IconShield, IconTrendingUp, IconWallet } from '@tabler/icons-react';
 import type { Metadata } from 'next';
-import {IconWallet, IconTrendingUp, IconAlertTriangle, IconShield} from '@tabler/icons-react';
+import { redirect } from 'next/navigation';
 
+import { auth } from '@/auth';
 import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/cn';
 
@@ -51,8 +63,8 @@ function PortfolioContent({
         <div className="flex flex-col gap-1">
           <h2 className="text-fg text-lg font-semibold tracking-tight">Portfolio</h2>
           <p className="text-fg-subtle text-sm">
-            Track your forex and gold positions with live P&amp;L, risk analysis, and
-            AI-aware position sizing advice.
+            Track your forex and gold positions with live P&amp;L, risk analysis, and AI-aware
+            position sizing advice.
           </p>
         </div>
         <EmptyState
@@ -68,13 +80,11 @@ function PortfolioContent({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Portfolio</h2>
-        <p className="text-fg-subtle text-sm">
-          Open positions, live P&amp;L, and risk analysis.
-        </p>
+        <p className="text-fg-subtle text-sm">Open positions, live P&amp;L, and risk analysis.</p>
       </div>
 
       {/* Risk Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
           icon={IconWallet}
           label="Open Positions"
@@ -102,23 +112,16 @@ function PortfolioContent({
 
       {/* Alerts */}
       {riskReport.alerts.length > 0 && (
-        <div className="rounded-sm border border-warn/30 bg-warn/10 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <IconAlertTriangle className="size-4 text-warn" />
-            <h3 className="text-sm font-semibold text-warn">
-              Risk Alerts
-            </h3>
+        <div className="border-warn/30 bg-warn/10 rounded-sm border p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <IconAlertTriangle className="text-warn size-4" />
+            <h3 className="text-warn text-sm font-semibold">Risk Alerts</h3>
           </div>
           <ul className="space-y-1">
             {riskReport.alerts.map((alert, i) => (
               <li
                 key={i}
-                className={cn(
-                  'text-sm',
-                  alert.level === 'danger'
-                    ? 'text-bear'
-                    : 'text-warn',
-                )}
+                className={cn('text-sm', alert.level === 'danger' ? 'text-bear' : 'text-warn')}
               >
                 • {alert.message}
               </li>
@@ -129,52 +132,50 @@ function PortfolioContent({
 
       {/* Positions Table */}
       {positions.length > 0 && (
-        <div className="rounded-sm border border-border bg-bg-elev-1 overflow-hidden">
-          <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold text-fg">Open Positions</h3>
+        <div className="border-border bg-bg-elev-1 overflow-hidden rounded-sm border">
+          <div className="border-border border-b px-4 py-3">
+            <h3 className="text-fg text-sm font-semibold">Open Positions</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-bg-elev-1">
-                  <th className="text-left py-2 px-4 text-fg-muted font-medium">Symbol</th>
-                  <th className="text-left py-2 px-4 text-fg-muted font-medium">Direction</th>
-                  <th className="text-right py-2 px-4 text-fg-muted font-medium">Lots</th>
-                  <th className="text-right py-2 px-4 text-fg-muted font-medium">Entry</th>
-                  <th className="text-right py-2 px-4 text-fg-muted font-medium">Current</th>
-                  <th className="text-right py-2 px-4 text-fg-muted font-medium">P&amp;L ($)</th>
-                  <th className="text-right py-2 px-4 text-fg-muted font-medium">P&amp;L (%)</th>
-                  <th className="text-right py-2 px-4 text-fg-muted font-medium">R:R</th>
+                <tr className="border-border bg-bg-elev-1 border-b">
+                  <th className="text-fg-muted px-4 py-2 text-left font-medium">Symbol</th>
+                  <th className="text-fg-muted px-4 py-2 text-left font-medium">Direction</th>
+                  <th className="text-fg-muted px-4 py-2 text-right font-medium">Lots</th>
+                  <th className="text-fg-muted px-4 py-2 text-right font-medium">Entry</th>
+                  <th className="text-fg-muted px-4 py-2 text-right font-medium">Current</th>
+                  <th className="text-fg-muted px-4 py-2 text-right font-medium">P&amp;L ($)</th>
+                  <th className="text-fg-muted px-4 py-2 text-right font-medium">P&amp;L (%)</th>
+                  <th className="text-fg-muted px-4 py-2 text-right font-medium">R:R</th>
                 </tr>
               </thead>
               <tbody>
                 {positions.map((p) => (
-                  <tr key={p.id} className="border-b border-border/50 last:border-0">
-                    <td className="py-3 px-4 text-fg font-medium">{p.symbol}</td>
-                    <td className="py-3 px-4">
+                  <tr key={p.id} className="border-border/50 border-b last:border-0">
+                    <td className="text-fg px-4 py-3 font-medium">{p.symbol}</td>
+                    <td className="px-4 py-3">
                       <span
                         className={cn(
-                          'text-xs font-medium px-2 py-0.5 rounded-sm',
-                          p.direction === 'long'
-                            ? 'bg-bull/10 text-bull'
-                            : 'bg-bear/10 text-bear',
+                          'rounded-sm px-2 py-0.5 text-xs font-medium',
+                          p.direction === 'long' ? 'bg-bull/10 text-bull' : 'bg-bear/10 text-bear',
                         )}
                       >
                         {p.direction.toUpperCase()}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right text-fg">{p.lotSize.toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right text-fg">{p.entryPrice.toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right text-fg">
+                    <td className="text-fg px-4 py-3 text-right">{p.lotSize.toFixed(2)}</td>
+                    <td className="text-fg px-4 py-3 text-right">{p.entryPrice.toFixed(2)}</td>
+                    <td className="text-fg px-4 py-3 text-right">
                       {p.stale ? (
                         <span className="text-fg-muted italic">stale</span>
                       ) : (
-                        p.currentPrice?.toFixed(2) ?? '—'
+                        (p.currentPrice?.toFixed(2) ?? '—')
                       )}
                     </td>
                     <td
                       className={cn(
-                        'py-3 px-4 text-right font-medium',
+                        'px-4 py-3 text-right font-medium',
                         p.unrealizedPnlUsd === null
                           ? 'text-fg-muted'
                           : p.unrealizedPnlUsd >= 0
@@ -188,7 +189,7 @@ function PortfolioContent({
                     </td>
                     <td
                       className={cn(
-                        'py-3 px-4 text-right',
+                        'px-4 py-3 text-right',
                         p.unrealizedPnlPct === null
                           ? 'text-fg-muted'
                           : p.unrealizedPnlPct >= 0
@@ -200,7 +201,7 @@ function PortfolioContent({
                         ? '—'
                         : `${p.unrealizedPnlPct >= 0 ? '+' : ''}${p.unrealizedPnlPct.toFixed(2)}%`}
                     </td>
-                    <td className="py-3 px-4 text-right text-fg">
+                    <td className="text-fg px-4 py-3 text-right">
                       {p.riskRewardRatio?.toFixed(2) ?? '—'}
                     </td>
                   </tr>
@@ -213,24 +214,21 @@ function PortfolioContent({
 
       {/* Concentration */}
       {riskReport.concentration.length > 0 && (
-        <div className="rounded-sm border border-border bg-bg-elev-1 p-4">
-          <h3 className="text-sm font-semibold text-fg mb-3">Concentration</h3>
+        <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
+          <h3 className="text-fg mb-3 text-sm font-semibold">Concentration</h3>
           <div className="space-y-2">
             {riskReport.concentration.map((c) => (
               <div key={c.symbol} className="flex items-center gap-3">
-                <span className="text-sm text-fg w-20">{c.symbol}</span>
-                <div className="flex-1 h-2 bg-bg-elev-1 rounded-sm overflow-hidden">
+                <span className="text-fg w-20 text-sm">{c.symbol}</span>
+                <div className="bg-bg-elev-1 h-2 flex-1 overflow-hidden rounded-sm">
                   <div
-                    className={cn(
-                      'h-full rounded-sm',
-                      c.alert ? 'bg-warn' : 'bg-fg',
-                    )}
+                    className={cn('h-full rounded-sm', c.alert ? 'bg-warn' : 'bg-fg')}
                     style={{ width: `${Math.min(c.pct, 100)}%` }}
                   />
                 </div>
                 <span
                   className={cn(
-                    'text-sm w-16 text-right',
+                    'w-16 text-right text-sm',
                     c.alert ? 'text-warn font-medium' : 'text-fg-muted',
                   )}
                 >
@@ -243,16 +241,16 @@ function PortfolioContent({
       )}
 
       {/* Account Settings */}
-      <div className="rounded-sm border border-border bg-bg-elev-1 p-4">
-        <h3 className="text-sm font-semibold text-fg mb-3">Account Settings</h3>
-        <p className="text-xs text-fg-subtle mb-3">Set your account balance and risk preferences below.</p>
+      <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
+        <h3 className="text-fg mb-3 text-sm font-semibold">Account Settings</h3>
+        <p className="text-fg-subtle mb-3 text-xs">
+          Set your account balance and risk preferences below.
+        </p>
         <dl className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <dt className="text-fg-muted">Account Balance</dt>
             <dd className="text-fg font-medium">
-              {settings.accountBalance
-                ? `$${settings.accountBalance.toLocaleString()}`
-                : 'Not set'}
+              {settings.accountBalance ? `$${settings.accountBalance.toLocaleString()}` : 'Not set'}
             </dd>
           </div>
           <div>
@@ -287,13 +285,13 @@ function StatCard({
   valueClass?: string;
 }) {
   return (
-    <div className="rounded-sm border border-border bg-bg-elev-1 p-4">
-      <div className="flex items-center gap-2 text-fg-subtle">
+    <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
+      <div className="text-fg-subtle flex items-center gap-2">
         <Icon className="size-4" />
         <span className="text-xs font-medium">{label}</span>
       </div>
-      <p className={cn('mt-2 text-2xl font-bold text-fg', valueClass)}>{value}</p>
-      {subValue && <p className="mt-0.5 text-xs text-fg-muted">{subValue}</p>}
+      <p className={cn('text-fg mt-2 text-2xl font-bold', valueClass)}>{value}</p>
+      {subValue && <p className="text-fg-muted mt-0.5 text-xs">{subValue}</p>}
     </div>
   );
 }

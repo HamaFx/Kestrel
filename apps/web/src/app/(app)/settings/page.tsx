@@ -1,12 +1,38 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
+import {
+  IconBell,
+  IconChevronRight,
+  IconDatabase,
+  IconInfoCircle,
+  IconKey,
+  IconPalette,
+  IconRobot,
+  IconShield,
+} from '@tabler/icons-react';
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-import {IconKey, IconBell, IconRobot, IconDatabase, IconInfoCircle, IconShield, IconChevronRight, IconPalette} from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
+import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { checkIsAdmin } from '@/lib/admin-check';
+
 import { AboutCard } from './_components/about-card';
 import { OnboardingResetCard } from './_components/onboarding-reset-card';
 import { SettingsSection } from './_components/settings-section';
@@ -34,7 +60,7 @@ export default async function SettingsPage() {
       <UsageGlance userId={userId} />
 
       {/* Quick-link cards to the new subpages */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <QuickLink
           href="/settings/security"
           icon={<IconShield className="size-4" />}
@@ -73,12 +99,20 @@ export default async function SettingsPage() {
         />
       </div>
 
-      <SettingsSection icon={<IconInfoCircle className="size-4" />} title="About" description="App info and system status">
+      <SettingsSection
+        icon={<IconInfoCircle className="size-4" />}
+        title="About"
+        description="App info and system status"
+      >
         <AboutCard />
       </SettingsSection>
 
       {isAdmin ? (
-        <SettingsSection icon={<IconShield className="size-4" />} title="Admin" description="Debug and testing tools">
+        <SettingsSection
+          icon={<IconShield className="size-4" />}
+          title="Admin"
+          description="Debug and testing tools"
+        >
           <OnboardingResetCard />
         </SettingsSection>
       ) : null}
@@ -100,13 +134,13 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="border border-border bg-bg-elev-1 rounded-sm group flex items-center gap-3 p-4 transition-colors md:hover:bg-bg-elev-2/40"
+      className="border-border bg-bg-elev-1 group md:hover:bg-bg-elev-2/40 flex items-center gap-3 rounded-sm border p-4 transition-colors"
     >
-      <span className="text-fg-muted inline-flex size-9 shrink-0 items-center justify-center rounded-sm bg-bg-elev-2">
+      <span className="text-fg-muted bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-sm">
         {icon}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-fg text-sm font-semibold leading-tight">{title}</span>
+        <span className="text-fg text-sm leading-tight font-semibold">{title}</span>
         <span className="text-fg-subtle text-xs leading-snug">{description}</span>
       </div>
       <IconChevronRight className="text-fg-subtle size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />

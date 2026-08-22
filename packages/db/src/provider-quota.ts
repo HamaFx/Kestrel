@@ -27,6 +27,7 @@
 // the feature degrades rather than crashing.
 
 import { sql } from 'drizzle-orm';
+
 import { getDb } from './client';
 
 export interface DailyQuotaResult {
@@ -63,7 +64,7 @@ export async function checkAndIncrementDailyQuota(
           RETURNING count`,
     );
 
-    const rows = (result as unknown as Array<{ count: number }>);
+    const rows = result as unknown as Array<{ count: number }>;
     const count = Number(rows[0]?.count ?? 0);
 
     return { allowed: count <= maxPerDay, count };
@@ -71,8 +72,10 @@ export async function checkAndIncrementDailyQuota(
     // DB unavailable (PGlite dev mode, connection error, etc.).
     // Fail-open: let the request through; the provider's own 429
     // response is the backstop.
-    console.warn('[provider-quota] DB unavailable — daily quota bypassed',
-      { provider, err: (err as Error)?.message ?? String(err) });
+    console.warn('[provider-quota] DB unavailable — daily quota bypassed', {
+      provider,
+      err: (err as Error)?.message ?? String(err),
+    });
     return { allowed: true, count: 0 };
   }
 }

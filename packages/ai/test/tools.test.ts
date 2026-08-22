@@ -1,4 +1,22 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, expect, it, vi } from 'vitest';
+
+import { toolRegistry } from '../src/tools/index';
 
 vi.mock('server-only', () => ({}));
 
@@ -54,8 +72,6 @@ vi.mock('@kestrel/data', () => ({
   getPrice: vi.fn(() => ({ bid: 1.08, ask: 1.0802, mid: 1.0801, timestamp: Date.now() })),
   ProviderError: class ProviderError extends Error {},
 }));
-
-import { toolRegistry } from '../src/tools/index';
 
 describe('tools registry', () => {
   it('contains all expected tool entries', () => {
@@ -122,7 +138,9 @@ describe('tools registry', () => {
 
   it('get_price tool has correct input schema', () => {
     const allTools = toolRegistry.resolve();
-    const schema = (allTools.get_price as { inputSchema: unknown }).inputSchema as unknown as { describe: () => string };
+    const schema = (allTools.get_price as { inputSchema: unknown }).inputSchema as unknown as {
+      describe: () => string;
+    };
     expect(schema.describe()).toBeTruthy();
   });
 

@@ -1,13 +1,31 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Per-iteration VU function: hits the five market_read GET endpoints in a
 // weighted mix, with randomized think-time between calls.
+import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { sleep } from 'k6';
 import { SharedArray } from 'k6/data';
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
-import { getJson, postJson } from '../lib/http.js';
-import type { SessionCtx } from '../config/environments.js';
 
-const symbols = new SharedArray('symbols', () =>
-  JSON.parse(open('../lib/data/symbols.json') as string) as string[],
+import type { SessionCtx } from '../config/environments.js';
+import { getJson, postJson } from '../lib/http.js';
+
+const symbols = new SharedArray(
+  'symbols',
+  () => JSON.parse(open('../lib/data/symbols.json') as string) as string[],
 );
 
 export function marketRead(_ctx: SessionCtx): void {

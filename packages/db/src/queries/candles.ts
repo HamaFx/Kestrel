@@ -16,7 +16,8 @@
 
 // Candle query helpers — market data and alert simulation.
 
-import { and, eq, desc } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 /** A candle row from candles_1m (subset of relevant fields). */
@@ -32,10 +33,7 @@ export interface CandleRow {
  * Fetch the most recent N candles for a symbol from candles_1m.
  * Used by the alert simulator and market data routes.
  */
-export async function getRecentCandles(
-  symbol: string,
-  limit: number = 1500,
-): Promise<CandleRow[]> {
+export async function getRecentCandles(symbol: string, limit: number = 1500): Promise<CandleRow[]> {
   const db = getDb();
   return db
     .select()
@@ -53,9 +51,8 @@ export async function listActiveSymbols() {
   return db
     .select()
     .from(schema.symbolCatalog)
-    .where(and(
-      eq(schema.symbolCatalog.isActive, true),
-      eq(schema.symbolCatalog.tenantId, '__system__'),
-    ))
+    .where(
+      and(eq(schema.symbolCatalog.isActive, true), eq(schema.symbolCatalog.tenantId, '__system__')),
+    )
     .orderBy(schema.symbolCatalog.sortOrder);
 }

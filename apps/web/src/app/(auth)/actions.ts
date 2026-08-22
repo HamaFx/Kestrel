@@ -1,7 +1,31 @@
 'use server';
 
-import * as Sentry from '@sentry/nextjs';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { createHmac } from 'node:crypto';
+
+import { getDb } from '@kestrel/ai';
+import {
+  createUserWithSettings,
+  createVerificationToken,
+  schema,
+  userExistsByEmail,
+  withRateLimit,
+} from '@kestrel/db';
+import * as Sentry from '@sentry/nextjs';
 import bcrypt from 'bcryptjs';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { AuthError } from 'next-auth';
@@ -9,13 +33,12 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
-import { schema, withRateLimit, userExistsByEmail, createUserWithSettings, createVerificationToken } from '@kestrel/db'
-import { getDb } from '@kestrel/ai';
 import { signIn } from '@/auth';
-import { createScopedLoggerWithContext } from '@/lib/logger';
 import { recordAuthEvent } from '@/lib/auth-anomaly';
 import { generateToken, hashToken } from '@/lib/auth-tokens';
 import { getServerEnv } from '@/lib/env';
+import { createScopedLoggerWithContext } from '@/lib/logger';
+import { passwordSchema } from '@/lib/validation';
 
 const BCRYPT_COST = 12;
 const SYSTEM_USER_ID = '__system__';
@@ -23,7 +46,8 @@ const SYSTEM_USER_ID = '__system__';
 /** Keep unauthenticated rate-limit subjects out of the user_id FK and avoid
  * storing raw IP addresses or email addresses in the rate_limits table. */
 function unauthenticatedRateLimitKey(kind: string, value: string): string {
-  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? 'dev-only-rate-limit-key';
+  const secret =
+    process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? 'dev-only-rate-limit-key';
   const digest = createHmac('sha256', secret).update(value).digest('hex');
   return `${kind}:${digest}`;
 }
@@ -73,116 +97,122 @@ const loginSchema = z.object({
   next: z.string().optional(),
 });
 
-export async function loginAction(prevState: AuthActionState, formData: FormData): Promise<AuthActionState> {
+export async function loginAction(
+  prevState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
   return Sentry.withServerActionInstrumentation('loginAction', { formData }, async () => {
-  const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
-  const parsed = loginSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? 'Validation failed' };
-  }
-
-  const { email, password, next } = parsed.data;
-  const normalizedEmail = email.trim().toLowerCase();
-
-  // HIGH-02: Rate limit login attempts
-  const headersList = await headers();
-  const clientIp =
-    headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    headersList.get('x-real-ip') ||
-    'unknown';
-  const rl = await withRateLimit(
-    SYSTEM_USER_ID,
-    unauthenticatedRateLimitKey('login-ip', clientIp),
-    10,
-  );
-  if (!rl.allowed) {
-    return { error: 'Too many login attempts. Please try again later.' };
-  }
-
-  const rlEmail = await withRateLimit(
-    SYSTEM_USER_ID,
-    unauthenticatedRateLimitKey('login-email', normalizedEmail),
-    5,
-  );
-  if (!rlEmail.allowed) {
-    return { error: 'Too many login attempts for this email. Please try again later.' };
-  }
-
-  // P2-7: Centralized redirect sanitizer
-  const safeNext = await sanitizeNext(next);
-
-  // P0-4: Capture device info for session management.
-  // L-7: User-Agent is truncated to 255 chars and only stored in the
-  // session DB row. It is NOT rendered unsanitized in any UI — admin
-  // dashboards use React's built-in escaping. If a raw-html rendering
-  // path is added, it must encode this value first.
-  const ua = headersList.get('user-agent')?.slice(0, 255) || undefined;
-
-  try {
-    const result = await signIn('credentials', {
-      email: normalizedEmail,
-      password,
-      totpCode: formData.get('totpCode') as string || undefined,
-      rememberMe: formData.get('rememberMe') as string || undefined,
-      deviceName: ua,
-      ip: clientIp !== 'unknown' ? clientIp : undefined,
-      redirectTo: safeNext,
-      redirect: false,
-    });
-    if (isFailedSignIn(result)) {
-      return invalidCredentialsState();
+    const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
+    const parsed = loginSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { error: parsed.error.errors[0]?.message ?? 'Validation failed' };
     }
-  } catch (error) {
-    const errStr = String(error);
-    // P3-2: isRedirectError from next/navigation unavailable in this
-    // Next.js version — fall back to string check for NEXT_REDIRECT.
-    if (errStr.includes('NEXT_REDIRECT')) {
-      recordAuthEvent('login_success');
-      throw error;
-    }
-    if (error instanceof AuthError) {
-      const message = error.message;
-      if (message === 'ACCOUNT_LOCKED') {
-        // recorded in authorize() — no duplicate
-        return { error: 'Account temporarily locked due to too many failed attempts. Try again later.' };
-      }
-      if (message === '2FA_REQUIRED') {
-        return { requires2FA: true, email: normalizedEmail };
-      }
-      if (message === 'INVALID_2FA_CODE') {
-        // recorded in authorize() — no duplicate
-        return { error: 'Invalid 2FA code', requires2FA: true };
-      }
-      if (message === '2FA_LOCKED') {
-        return { error: 'Too many failed 2FA attempts. Try again in 15 minutes.', requires2FA: true };
-      }
-      if (message === '2FA_RATE_LIMITED') {
-        return { error: 'Too many 2FA attempts. Please try again shortly.', requires2FA: true };
-      }
-      if (message === '2FA_SYSTEM_ERROR') {
-        return { error: 'Unable to verify 2FA right now. Please try again.', requires2FA: true };
-      }
-      if (message === 'AUTH_SYSTEM_ERROR' || message === 'SESSION_SYSTEM_ERROR') {
-        return { error: 'Unable to sign in right now. Please try again.' };
-      }
-      return invalidCredentialsState();
-    }
-    Sentry.captureException(error, {
-      tags: { component: 'auth-actions', action: 'login' },
-      extra: { email: normalizedEmail },
-    });
-    return { error: 'Unable to sign in right now. Please try again.' };
-  }
 
-  // P1-1: Record login success only after signIn resolves without throwing.
-  recordAuthEvent('login_success');
-  // Keep the Next.js redirect outside the catch block so its control-flow
-  // exception is never mistaken for an authentication failure.
-  redirect(safeNext);
+    const { email, password, next } = parsed.data;
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // HIGH-02: Rate limit login attempts
+    const headersList = await headers();
+    const clientIp =
+      headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      headersList.get('x-real-ip') ||
+      'unknown';
+    const rl = await withRateLimit(
+      SYSTEM_USER_ID,
+      unauthenticatedRateLimitKey('login-ip', clientIp),
+      10,
+    );
+    if (!rl.allowed) {
+      return { error: 'Too many login attempts. Please try again later.' };
+    }
+
+    const rlEmail = await withRateLimit(
+      SYSTEM_USER_ID,
+      unauthenticatedRateLimitKey('login-email', normalizedEmail),
+      5,
+    );
+    if (!rlEmail.allowed) {
+      return { error: 'Too many login attempts for this email. Please try again later.' };
+    }
+
+    // P2-7: Centralized redirect sanitizer
+    const safeNext = await sanitizeNext(next);
+
+    // P0-4: Capture device info for session management.
+    // L-7: User-Agent is truncated to 255 chars and only stored in the
+    // session DB row. It is NOT rendered unsanitized in any UI — admin
+    // dashboards use React's built-in escaping. If a raw-html rendering
+    // path is added, it must encode this value first.
+    const ua = headersList.get('user-agent')?.slice(0, 255) || undefined;
+
+    try {
+      const result = await signIn('credentials', {
+        email: normalizedEmail,
+        password,
+        totpCode: (formData.get('totpCode') as string) || undefined,
+        rememberMe: (formData.get('rememberMe') as string) || undefined,
+        deviceName: ua,
+        ip: clientIp !== 'unknown' ? clientIp : undefined,
+        redirectTo: safeNext,
+        redirect: false,
+      });
+      if (isFailedSignIn(result)) {
+        return invalidCredentialsState();
+      }
+    } catch (error) {
+      const errStr = String(error);
+      // P3-2: isRedirectError from next/navigation unavailable in this
+      // Next.js version — fall back to string check for NEXT_REDIRECT.
+      if (errStr.includes('NEXT_REDIRECT')) {
+        recordAuthEvent('login_success');
+        throw error;
+      }
+      if (error instanceof AuthError) {
+        const message = error.message;
+        if (message === 'ACCOUNT_LOCKED') {
+          // recorded in authorize() — no duplicate
+          return {
+            error: 'Account temporarily locked due to too many failed attempts. Try again later.',
+          };
+        }
+        if (message === '2FA_REQUIRED') {
+          return { requires2FA: true, email: normalizedEmail };
+        }
+        if (message === 'INVALID_2FA_CODE') {
+          // recorded in authorize() — no duplicate
+          return { error: 'Invalid 2FA code', requires2FA: true };
+        }
+        if (message === '2FA_LOCKED') {
+          return {
+            error: 'Too many failed 2FA attempts. Try again in 15 minutes.',
+            requires2FA: true,
+          };
+        }
+        if (message === '2FA_RATE_LIMITED') {
+          return { error: 'Too many 2FA attempts. Please try again shortly.', requires2FA: true };
+        }
+        if (message === '2FA_SYSTEM_ERROR') {
+          return { error: 'Unable to verify 2FA right now. Please try again.', requires2FA: true };
+        }
+        if (message === 'AUTH_SYSTEM_ERROR' || message === 'SESSION_SYSTEM_ERROR') {
+          return { error: 'Unable to sign in right now. Please try again.' };
+        }
+        return invalidCredentialsState();
+      }
+      Sentry.captureException(error, {
+        tags: { component: 'auth-actions', action: 'login' },
+        extra: { email: normalizedEmail },
+      });
+      return { error: 'Unable to sign in right now. Please try again.' };
+    }
+
+    // P1-1: Record login success only after signIn resolves without throwing.
+    recordAuthEvent('login_success');
+    // Keep the Next.js redirect outside the catch block so its control-flow
+    // exception is never mistaken for an authentication failure.
+    redirect(safeNext);
   });
 }
-
-import { passwordSchema } from '@/lib/validation';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -190,109 +220,111 @@ const registerSchema = z.object({
   password: passwordSchema,
 });
 
-export async function registerAction(prevState: AuthActionState, formData: FormData): Promise<AuthActionState> {
+export async function registerAction(
+  prevState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
   return Sentry.withServerActionInstrumentation('registerAction', { formData }, async () => {
-  const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
-  const parsed = registerSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? 'Validation failed' };
-  }
-
-  const { name, email, password } = parsed.data;
-  const normalizedEmail = email.trim().toLowerCase();
-  const registrationMode = getServerEnv().REGISTRATION_MODE;
-  if (registrationMode === 'disabled') {
-    return { error: 'Registration is disabled by the instance owner.' };
-  }
-
-  // INFRA-08: Rate limit registrations per IP — 5 per minute per IP.
-  // This prevents automated account-creation spam.
-  const headersList = await headers();
-  const clientIp =
-    headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    headersList.get('x-real-ip') ||
-    'unknown';
-  const rl = await withRateLimit(
-    SYSTEM_USER_ID,
-    unauthenticatedRateLimitKey('register-ip', clientIp),
-    5,
-  );
-  if (!rl.allowed) {
-    return { error: 'Too many registration attempts. Please try again later.' };
-  }
-
-  const existingUser = await userExistsByEmail(normalizedEmail);
-  if (existingUser) {
-    return { error: 'An account with this email already exists' };
-  }
-
-  const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
-  const newUserId = crypto.randomUUID();
-
-  // STAB-10: Wrap the users + userSettings insert in a single transaction
-  // so a partial failure (e.g. userSettings FK violation) rolls back the user row.
-  try {
-    await createUserWithSettings({
-      id: newUserId,
-      email: normalizedEmail,
-      name,
-      hashedPassword,
-      initialUserOnly: registrationMode === 'owner-first',
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'INITIAL_USER_ALREADY_EXISTS') {
-      return { error: 'Registration is closed. Ask the instance owner to invite you.' };
+    const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
+    const parsed = registerSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { error: parsed.error.errors[0]?.message ?? 'Validation failed' };
     }
-    throw error;
-  }
 
-  // HIGH-04: Generate email verification token
-  try {
-    const baseUrl = getAuthEmailBaseUrl();
-    const { raw, hashed } = generateToken();
-    const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    await createVerificationToken(normalizedEmail, hashed, 'email_verify', verifyExpires);
-    const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(raw)}`;
-    // P0-5: Actually send the verification email
-    await sendVerificationEmail(normalizedEmail, verifyUrl);
-  } catch (err) {
-    Sentry.captureException(err, {
-      tags: { component: 'auth-actions', action: 'register-verification-token' },
-      extra: { email: normalizedEmail },
-    });
-    createScopedLoggerWithContext({ component: 'auth-actions', action: 'register-verification-token' }).errorContext(
-      err,
-      'createVerificationToken',
-      { email: normalizedEmail },
+    const { name, email, password } = parsed.data;
+    const normalizedEmail = email.trim().toLowerCase();
+    const registrationMode = getServerEnv().REGISTRATION_MODE;
+    if (registrationMode === 'disabled') {
+      return { error: 'Registration is disabled by the instance owner.' };
+    }
+
+    // INFRA-08: Rate limit registrations per IP — 5 per minute per IP.
+    // This prevents automated account-creation spam.
+    const headersList = await headers();
+    const clientIp =
+      headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      headersList.get('x-real-ip') ||
+      'unknown';
+    const rl = await withRateLimit(
+      SYSTEM_USER_ID,
+      unauthenticatedRateLimitKey('register-ip', clientIp),
+      5,
     );
-  }
-
-  try {
-    const result = await signIn('credentials', {
-      email: normalizedEmail,
-      password,
-      rememberMe: 'true', // new registrations get remembered by default
-      redirectTo: '/onboarding',
-      redirect: false,
-    });
-    if (isFailedSignIn(result)) {
-      return registrationSignInFailureState();
+    if (!rl.allowed) {
+      return { error: 'Too many registration attempts. Please try again later.' };
     }
-  } catch (error) {
-    const errStr = String(error);
-    if (errStr.includes('NEXT_REDIRECT')) throw error;
-    if (error instanceof AuthError) {
-      return registrationSignInFailureState();
-    }
-    Sentry.captureException(error, {
-      tags: { component: 'auth-actions', action: 'register' },
-      extra: { email: normalizedEmail },
-    });
-    return { error: 'Unable to finish registration right now. Please try again.' };
-  }
 
-  // Redirect only after the authentication call has completed successfully.
-  redirect('/onboarding');
+    const existingUser = await userExistsByEmail(normalizedEmail);
+    if (existingUser) {
+      return { error: 'An account with this email already exists' };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
+    const newUserId = crypto.randomUUID();
+
+    // STAB-10: Wrap the users + userSettings insert in a single transaction
+    // so a partial failure (e.g. userSettings FK violation) rolls back the user row.
+    try {
+      await createUserWithSettings({
+        id: newUserId,
+        email: normalizedEmail,
+        name,
+        hashedPassword,
+        initialUserOnly: registrationMode === 'owner-first',
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'INITIAL_USER_ALREADY_EXISTS') {
+        return { error: 'Registration is closed. Ask the instance owner to invite you.' };
+      }
+      throw error;
+    }
+
+    // HIGH-04: Generate email verification token
+    try {
+      const baseUrl = getAuthEmailBaseUrl();
+      const { raw, hashed } = generateToken();
+      const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      await createVerificationToken(normalizedEmail, hashed, 'email_verify', verifyExpires);
+      const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(raw)}`;
+      // P0-5: Actually send the verification email
+      await sendVerificationEmail(normalizedEmail, verifyUrl);
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { component: 'auth-actions', action: 'register-verification-token' },
+        extra: { email: normalizedEmail },
+      });
+      createScopedLoggerWithContext({
+        component: 'auth-actions',
+        action: 'register-verification-token',
+      }).errorContext(err, 'createVerificationToken', { email: normalizedEmail });
+    }
+
+    try {
+      const result = await signIn('credentials', {
+        email: normalizedEmail,
+        password,
+        rememberMe: 'true', // new registrations get remembered by default
+        redirectTo: '/onboarding',
+        redirect: false,
+      });
+      if (isFailedSignIn(result)) {
+        return registrationSignInFailureState();
+      }
+    } catch (error) {
+      const errStr = String(error);
+      if (errStr.includes('NEXT_REDIRECT')) throw error;
+      if (error instanceof AuthError) {
+        return registrationSignInFailureState();
+      }
+      Sentry.captureException(error, {
+        tags: { component: 'auth-actions', action: 'register' },
+        extra: { email: normalizedEmail },
+      });
+      return { error: 'Unable to finish registration right now. Please try again.' };
+    }
+
+    // Redirect only after the authentication call has completed successfully.
+    redirect('/onboarding');
   });
 }
 
@@ -300,7 +332,8 @@ export async function registerAction(prevState: AuthActionState, formData: FormD
 
 function getAuthEmailBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const candidate = configured || (process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : '');
+  const candidate =
+    configured || (process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : '');
   if (!candidate) throw new Error('NEXT_PUBLIC_APP_URL must be configured in production');
 
   let url: URL;
@@ -309,15 +342,26 @@ function getAuthEmailBaseUrl(): string {
   } catch {
     throw new Error('NEXT_PUBLIC_APP_URL must be a valid HTTP(S) URL');
   }
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash || url.search) {
-    throw new Error('NEXT_PUBLIC_APP_URL must be a public HTTP(S) URL without credentials, queries, or fragments');
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.hash ||
+    url.search
+  ) {
+    throw new Error(
+      'NEXT_PUBLIC_APP_URL must be a public HTTP(S) URL without credentials, queries, or fragments',
+    );
   }
   return candidate.replace(/\/+$/, '');
 }
 
 function logEmailLinkForDevelopment(action: string, url: string): void {
-  if (process.env.NODE_ENV === 'production' || process.env.AUTH_DEBUG_EMAIL_LINKS !== 'true') return;
-  createScopedLoggerWithContext({ component: 'auth-actions', action }).info(`development email link: ${url}`);
+  if (process.env.NODE_ENV === 'production' || process.env.AUTH_DEBUG_EMAIL_LINKS !== 'true')
+    return;
+  createScopedLoggerWithContext({ component: 'auth-actions', action }).info(
+    `development email link: ${url}`,
+  );
 }
 
 async function sendPasswordResetEmail(to: string, resetUrl: string) {
@@ -328,11 +372,16 @@ async function sendPasswordResetEmail(to: string, resetUrl: string) {
       logEmailLinkForDevelopment('send-reset-email', resetUrl);
     } else {
       const error = new Error('Password reset email is not configured');
-      createScopedLoggerWithContext({ component: 'auth-actions', action: 'send-reset-email' }).errorContext(
+      createScopedLoggerWithContext({
+        component: 'auth-actions',
+        action: 'send-reset-email',
+      }).errorContext(
         error,
         'Password reset email is not configured; refusing to log the reset token.',
       );
-      Sentry.captureException(error, { tags: { component: 'auth-actions', action: 'send-reset-email' } });
+      Sentry.captureException(error, {
+        tags: { component: 'auth-actions', action: 'send-reset-email' },
+      });
     }
     return;
   }
@@ -352,9 +401,10 @@ async function sendPasswordResetEmail(to: string, resetUrl: string) {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      createScopedLoggerWithContext({ component: 'auth-actions', action: 'send-reset-email' }).error(
-        `Failed to send reset email: HTTP ${res.status} ${text.slice(0, 200)}`,
-      );
+      createScopedLoggerWithContext({
+        component: 'auth-actions',
+        action: 'send-reset-email',
+      }).error(`Failed to send reset email: HTTP ${res.status} ${text.slice(0, 200)}`);
     }
   } catch (err) {
     createScopedLoggerWithContext({ component: 'auth-actions', action: 'send-reset-email' }).error(
@@ -372,11 +422,16 @@ async function sendVerificationEmail(to: string, verifyUrl: string) {
       logEmailLinkForDevelopment('send-verify-email', verifyUrl);
     } else {
       const error = new Error('Verification email is not configured');
-      createScopedLoggerWithContext({ component: 'auth-actions', action: 'send-verify-email' }).errorContext(
+      createScopedLoggerWithContext({
+        component: 'auth-actions',
+        action: 'send-verify-email',
+      }).errorContext(
         error,
         'Verification email is not configured; refusing to log the verification token.',
       );
-      Sentry.captureException(error, { tags: { component: 'auth-actions', action: 'send-verify-email' } });
+      Sentry.captureException(error, {
+        tags: { component: 'auth-actions', action: 'send-verify-email' },
+      });
     }
     return;
   }
@@ -396,9 +451,10 @@ async function sendVerificationEmail(to: string, verifyUrl: string) {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      createScopedLoggerWithContext({ component: 'auth-actions', action: 'send-verify-email' }).error(
-        `Failed to send verify email: HTTP ${res.status} ${text.slice(0, 200)}`,
-      );
+      createScopedLoggerWithContext({
+        component: 'auth-actions',
+        action: 'send-verify-email',
+      }).error(`Failed to send verify email: HTTP ${res.status} ${text.slice(0, 200)}`);
     }
   } catch (err) {
     createScopedLoggerWithContext({ component: 'auth-actions', action: 'send-verify-email' }).error(
@@ -421,7 +477,8 @@ export async function forgotPasswordAction(prevState: unknown, formData: FormDat
     if (!rl.allowed) return { error: 'Too many requests. Try again later.' };
 
     const db = getDb();
-    const [user] = await db.select({ id: schema.users.id })
+    const [user] = await db
+      .select({ id: schema.users.id })
       .from(schema.users)
       .where(eq(schema.users.email, email))
       .limit(1);
@@ -441,9 +498,10 @@ export async function forgotPasswordAction(prevState: unknown, formData: FormDat
         const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(raw)}`;
         await sendPasswordResetEmail(email, resetUrl);
       } catch (err) {
-        createScopedLoggerWithContext({ component: 'auth-actions', action: 'forgot-password' }).error(
-          'Failed to create reset token: ' + String(err),
-        );
+        createScopedLoggerWithContext({
+          component: 'auth-actions',
+          action: 'forgot-password',
+        }).error('Failed to create reset token: ' + String(err));
       }
     }
 
@@ -483,13 +541,16 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
     const db = getDb();
     // P0-6: Hash the incoming raw token and filter by purpose
     const hashedToken = hashToken(token);
-    const [vt] = await db.select()
+    const [vt] = await db
+      .select()
       .from(schema.verificationTokens)
-      .where(and(
-        eq(schema.verificationTokens.token, hashedToken),
-        eq(schema.verificationTokens.purpose, 'password_reset'),
-        gt(schema.verificationTokens.expires, new Date()),
-      ))
+      .where(
+        and(
+          eq(schema.verificationTokens.token, hashedToken),
+          eq(schema.verificationTokens.purpose, 'password_reset'),
+          gt(schema.verificationTokens.expires, new Date()),
+        ),
+      )
       .limit(1);
 
     if (!vt) {
@@ -497,7 +558,10 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
       // Using a pre-computed hash (same pattern as auth.ts) is much
       // faster than a full bcrypt.hash() while providing the same
       // constant-time guarantee against token enumeration.
-      await bcrypt.compare('dummy-timing-defense', '$2b$12$LyYuAYJhLrPU7mAIQPzVNu5HBJ/neEmE2uZZDD5ayPPROn5ruSaJ2');
+      await bcrypt.compare(
+        'dummy-timing-defense',
+        '$2b$12$LyYuAYJhLrPU7mAIQPzVNu5HBJ/neEmE2uZZDD5ayPPROn5ruSaJ2',
+      );
       return { error: 'Invalid or expired reset link' };
     }
 
@@ -505,16 +569,20 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
 
     let userId: string | null = null;
     await db.transaction(async (tx) => {
-      const [u] = await tx.update(schema.users)
+      const [u] = await tx
+        .update(schema.users)
         .set({ hashedPassword, tokenVersion: sql`${schema.users.tokenVersion} + 1` })
         .where(eq(schema.users.email, vt.identifier))
         .returning({ id: schema.users.id });
       if (u) userId = u.id;
-      await tx.delete(schema.verificationTokens)
-        .where(and(
-          eq(schema.verificationTokens.token, hashedToken),
-          eq(schema.verificationTokens.purpose, 'password_reset'),
-        ));
+      await tx
+        .delete(schema.verificationTokens)
+        .where(
+          and(
+            eq(schema.verificationTokens.token, hashedToken),
+            eq(schema.verificationTokens.purpose, 'password_reset'),
+          ),
+        );
     });
 
     // FEAT-03: Audit log for password reset
@@ -525,7 +593,9 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
           action: 'password_reset',
           metadata: {},
         });
-      } catch { /* fail open */ }
+      } catch {
+        /* fail open */
+      }
     }
 
     return { success: true, message: 'Password has been reset. You can now sign in.' };
@@ -560,7 +630,10 @@ export async function resendVerificationAction(email: string) {
 
   // Don't reveal whether the email exists or is already verified
   if (!user || user.emailVerified) {
-    return { success: true, message: 'If the email is unverified, a new verification link has been sent.' };
+    return {
+      success: true,
+      message: 'If the email is unverified, a new verification link has been sent.',
+    };
   }
 
   try {
@@ -581,5 +654,8 @@ export async function resendVerificationAction(email: string) {
     );
   }
 
-  return { success: true, message: 'If the email is unverified, a new verification link has been sent.' };
+  return {
+    success: true,
+    message: 'If the email is unverified, a new verification link has been sent.',
+  };
 }

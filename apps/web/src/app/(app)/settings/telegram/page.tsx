@@ -1,10 +1,27 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
+import { IconMessageCircle } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { IconMessageCircle } from '@tabler/icons-react';
 
 import { auth } from '@/auth';
+
 import { TelegramLinkCard } from '../_components/telegram/telegram-link-card';
 import { TestTelegramButton } from '../_components/telegram/test-telegram-button';
 
@@ -22,41 +39,49 @@ export default async function TelegramSettingsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Telegram Bot</h2>
-        <p className="text-fg-subtle text-sm">Link your Telegram to control Kestrel with bot commands.</p>
+        <p className="text-fg-subtle text-sm">
+          Link your Telegram to control Kestrel with bot commands.
+        </p>
       </div>
 
-      <section className="rounded-sm border border-border bg-bg-elev-1 p-6 space-y-4">
+      <section className="border-border bg-bg-elev-1 space-y-4 rounded-sm border p-6">
         <div className="flex items-center gap-2">
-          <IconMessageCircle className="size-5 text-fg" />
+          <IconMessageCircle className="text-fg size-5" />
           <h3 className="text-base font-semibold">Bot Linking</h3>
         </div>
 
         <TelegramLinkCard />
       </section>
 
-      <section className="rounded-sm border border-border bg-bg-elev-1 p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-fg-subtle">Test Notification</h3>
-        <p className="text-sm text-fg-subtle">
+      <section className="border-border bg-bg-elev-1 space-y-4 rounded-sm border p-6">
+        <h3 className="text-fg-subtle text-sm font-semibold">Test Notification</h3>
+        <p className="text-fg-subtle text-sm">
           Send a test message to verify your Telegram bot is configured correctly.
         </p>
         <TestTelegramButton />
       </section>
 
-      <section className="rounded-sm border border-border bg-bg-elev-1 p-6 space-y-3">
-        <h3 className="text-sm font-semibold text-fg-subtle">Available Commands</h3>
+      <section className="border-border bg-bg-elev-1 space-y-3 rounded-sm border p-6">
+        <h3 className="text-fg-subtle text-sm font-semibold">Available Commands</h3>
         <div className="grid gap-2 text-sm">
           {[
             { cmd: '/price <symbol>', desc: 'Get current price (e.g. /price XAUUSD)' },
             { cmd: '/analyze <symbol>', desc: 'Full AI analysis (e.g. /analyze EURUSD)' },
             { cmd: '/ask <question>', desc: 'Ask a question (e.g. /ask is gold bullish?)' },
             { cmd: '/chart <symbol>', desc: 'Chart snapshot link (e.g. /chart XAUUSD)' },
-            { cmd: '/alert <symbol> > <price>', desc: 'Create price alert (e.g. /alert XAUUSD > 2700)' },
+            {
+              cmd: '/alert <symbol> > <price>',
+              desc: 'Create price alert (e.g. /alert XAUUSD > 2700)',
+            },
             { cmd: '/positions', desc: 'Show your open positions' },
             { cmd: '/status', desc: 'System status and overview' },
             { cmd: '/help', desc: 'List all commands' },
           ].map((item) => (
-            <div key={item.cmd} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-              <code className="rounded-sm bg-bg-elev-2 px-2 py-0.5 font-mono text-xs whitespace-nowrap sm:w-64">
+            <div
+              key={item.cmd}
+              className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
+            >
+              <code className="bg-bg-elev-2 rounded-sm px-2 py-0.5 font-mono text-xs whitespace-nowrap sm:w-64">
                 {item.cmd}
               </code>
               <span className="text-fg-subtle">{item.desc}</span>

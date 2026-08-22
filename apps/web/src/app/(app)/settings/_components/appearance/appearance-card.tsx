@@ -1,6 +1,22 @@
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { useCallback, useState } from 'react';
+
 import { updateLocaleAction } from '../../actions';
 import { SettingsRow } from '../settings-row';
 
@@ -24,10 +40,15 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
   }, []);
 
   return (
-    <section className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-1 p-4" aria-labelledby="appearance-heading">
+    <section
+      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
+      aria-labelledby="appearance-heading"
+    >
       <div className="flex items-center justify-between">
-        <h2 id="appearance-heading" className="text-fg text-base font-semibold tracking-tight">Appearance</h2>
-        <p className="text-fg-subtle text-caption uppercase tracking-wider">Locale</p>
+        <h2 id="appearance-heading" className="text-fg text-base font-semibold tracking-tight">
+          Appearance
+        </h2>
+        <p className="text-fg-subtle text-caption tracking-wider uppercase">Locale</p>
       </div>
       <SettingsRow
         label="Locale"
@@ -37,10 +58,12 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
             value={locale}
             onChange={handleLocaleChange}
             aria-label="Locale"
-            className="border border-border bg-bg-elev-2 text-fg rounded-sm px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fg"
+            className="border-border bg-bg-elev-2 text-fg focus:ring-fg rounded-sm border px-3 py-1.5 text-sm focus:ring-2 focus:outline-none"
           >
             {LOCALES.map((l) => (
-              <option key={l.value} value={l.value}>{l.label}</option>
+              <option key={l.value} value={l.value}>
+                {l.label}
+              </option>
             ))}
           </select>
         }
@@ -50,7 +73,7 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
           label="Theme"
           description="Kestrel is currently dark-only. A light theme may be offered in the future."
           action={
-            <span className="inline-flex items-center rounded-sm border border-border bg-bg-elev-2 px-3 py-1.5 text-sm text-fg-subtle">
+            <span className="border-border bg-bg-elev-2 text-fg-subtle inline-flex items-center rounded-sm border px-3 py-1.5 text-sm">
               Dark
             </span>
           }

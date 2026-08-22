@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
-
 import { metrics } from '@kestrel/shared';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { emitEvalMetrics, isEvalCaseOk } from '../src/eval/eval-metrics';
 import type { PromptResult } from '../src/eval/runner';
@@ -33,9 +32,13 @@ function makeResult(ok: boolean, assertionCount = 0): PromptResult {
     metadata: {},
     terminalStatus: ok ? 'complete' : null,
     ok,
-    assertions: assertionCount > 0
-      ? Array.from({ length: assertionCount }, () => ({ kind: 'missing_tool' as const, detail: 'x' }))
-      : [],
+    assertions:
+      assertionCount > 0
+        ? Array.from({ length: assertionCount }, () => ({
+            kind: 'missing_tool' as const,
+            detail: 'x',
+          }))
+        : [],
   };
 }
 

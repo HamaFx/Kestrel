@@ -1,3 +1,29 @@
+// ---------------------------------------------------------------------------
+// DB-backed idempotency (for multi-instance Vercel deployments)
+//
+// The in-memory Map above works for single-instance deployments but is
+// ineffective when Vercel runs multiple serverless instances — each
+// instance has its own Map, so a retried update_id can land on a
+// different instance and bypass dedup.
+//
+// For multi-instance production use, create a `telegram_updates` table:
+//
+//   CREATE TABLE IF NOT EXISTS telegram_updates (
+//     update_id BIGINT PRIMARY KEY,
+//     processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+//   );
+//
+// Then use the DbTelegramIdempotency class below, which uses
+// INSERT ... ON CONFLICT DO NOTHING for atomic dedup.
+//
+// Cron cleanup (runs daily, deletes rows older than 1 hour):
+//   DELETE FROM telegram_updates WHERE processed_at < NOW() - INTERVAL '1 hour';
+// ---------------------------------------------------------------------------
+
+import { sql } from 'drizzle-orm';
+
+import { getDb } from '../db';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -78,31 +104,6 @@ export function _resetForTesting(): void {
   processed.clear();
   lastCleanup = Date.now();
 }
-
-// ---------------------------------------------------------------------------
-// DB-backed idempotency (for multi-instance Vercel deployments)
-//
-// The in-memory Map above works for single-instance deployments but is
-// ineffective when Vercel runs multiple serverless instances — each
-// instance has its own Map, so a retried update_id can land on a
-// different instance and bypass dedup.
-//
-// For multi-instance production use, create a `telegram_updates` table:
-//
-//   CREATE TABLE IF NOT EXISTS telegram_updates (
-//     update_id BIGINT PRIMARY KEY,
-//     processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-//   );
-//
-// Then use the DbTelegramIdempotency class below, which uses
-// INSERT ... ON CONFLICT DO NOTHING for atomic dedup.
-//
-// Cron cleanup (runs daily, deletes rows older than 1 hour):
-//   DELETE FROM telegram_updates WHERE processed_at < NOW() - INTERVAL '1 hour';
-// ---------------------------------------------------------------------------
-
-import { getDb } from '../db';
-import { sql } from 'drizzle-orm';
 
 /**
  * DB-backed idempotency guard for Telegram webhook updates.

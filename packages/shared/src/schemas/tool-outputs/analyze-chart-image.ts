@@ -52,9 +52,7 @@ export const AnalyzeChartImageOutputSchema = z.object({
   symbol: SymbolSchema.nullable(),
   tf: TimeframeSchema.nullable(),
   trend: z.union([z.literal('up'), z.literal('down'), z.literal('range')]).nullable(),
-  bias: z
-    .union([z.literal('bullish'), z.literal('bearish'), z.literal('neutral')])
-    .nullable(),
+  bias: z.union([z.literal('bullish'), z.literal('bearish'), z.literal('neutral')]).nullable(),
   levels: z.array(AnalyzedLevelSchema),
   /** One- to three-paragraph English observation. */
   observed: z.string(),

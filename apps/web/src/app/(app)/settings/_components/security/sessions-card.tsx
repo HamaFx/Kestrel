@@ -1,14 +1,31 @@
 'use client';
 
-import {IconLogout, IconDeviceMobile, IconDeviceDesktop, IconTrash} from '@tabler/icons-react';
-import { useCallback, useEffect, useState, useTransition } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconDeviceDesktop, IconDeviceMobile, IconLogout, IconTrash } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
+
 import { listSessionsAction, revokeSessionAction, signOutEverywhereAction } from '../../actions';
-import { SettingsRow } from '../settings-row';
 import { RowDivider } from '../row-divider';
+import { SettingsRow } from '../settings-row';
 
 interface Session {
   id: string;
@@ -37,34 +54,37 @@ export function SessionsCard() {
     });
   }, []);
 
-  const handleRevoke = useCallback(async (sessionId: string) => {
-    const ok = await confirm({
-      title: 'Revoke this session?',
-      description: 'The device will be signed out on its next request.',
-      confirmLabel: 'Revoke',
-      tone: 'danger',
-    });
-    if (!ok) return;
+  const handleRevoke = useCallback(
+    async (sessionId: string) => {
+      const ok = await confirm({
+        title: 'Revoke this session?',
+        description: 'The device will be signed out on its next request.',
+        confirmLabel: 'Revoke',
+        tone: 'danger',
+      });
+      if (!ok) return;
 
-    setRevokingSessions((prev) => new Set(prev).add(sessionId));
-    startRevokeTransition(async () => {
-      try {
-        const res = await revokeSessionAction(sessionId);
-        if (res.ok) {
-          setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-          toast.success('Session revoked');
-        } else {
-          toast.error(res.error || 'Failed to revoke session');
+      setRevokingSessions((prev) => new Set(prev).add(sessionId));
+      startRevokeTransition(async () => {
+        try {
+          const res = await revokeSessionAction(sessionId);
+          if (res.ok) {
+            setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+            toast.success('Session revoked');
+          } else {
+            toast.error(res.error || 'Failed to revoke session');
+          }
+        } finally {
+          setRevokingSessions((prev) => {
+            const next = new Set(prev);
+            next.delete(sessionId);
+            return next;
+          });
         }
-      } finally {
-        setRevokingSessions((prev) => {
-          const next = new Set(prev);
-          next.delete(sessionId);
-          return next;
-        });
-      }
-    });
-  }, [confirm]);
+      });
+    },
+    [confirm],
+  );
 
   const handleSignOutEverywhere = useCallback(async () => {
     const ok = await confirm({
@@ -96,40 +116,43 @@ export function SessionsCard() {
   };
 
   return (
-    <section className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-1 p-4" aria-labelledby="active-sessions-heading">
+    <section
+      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
+      aria-labelledby="active-sessions-heading"
+    >
       <div className="flex items-center gap-3 pb-2">
         <h2 id="active-sessions-heading" className="text-fg text-base font-semibold tracking-tight">
           Active sessions
         </h2>
-        <span className="text-fg-subtle ml-auto text-caption uppercase tracking-wider">
+        <span className="text-fg-subtle text-caption ml-auto tracking-wider uppercase">
           {sessions.length} session{sessions.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {loading ? (
-        <p className="text-fg-subtle text-sm py-2">Loading sessions...</p>
+        <p className="text-fg-subtle py-2 text-sm">Loading sessions...</p>
       ) : sessions.length === 0 ? (
-        <p className="text-fg-subtle text-sm py-2">No active sessions</p>
+        <p className="text-fg-subtle py-2 text-sm">No active sessions</p>
       ) : (
         <ul className="flex flex-col gap-1">
           {sessions.map((s) => (
-            <li key={s.id} className="flex items-center justify-between py-1.5 gap-2">
-              <div className="flex items-center gap-2 min-w-0">
+            <li key={s.id} className="flex items-center justify-between gap-2 py-1.5">
+              <div className="flex min-w-0 items-center gap-2">
                 {s.deviceName?.startsWith('Mobile') ? (
-                  <IconDeviceMobile className="size-4 shrink-0 text-fg-muted" />
+                  <IconDeviceMobile className="text-fg-muted size-4 shrink-0" />
                 ) : (
-                  <IconDeviceDesktop className="size-4 shrink-0 text-fg-muted" />
+                  <IconDeviceDesktop className="text-fg-muted size-4 shrink-0" />
                 )}
                 <div className="min-w-0">
-                  <p className="text-sm text-fg truncate flex items-center gap-1.5">
+                  <p className="text-fg flex items-center gap-1.5 truncate text-sm">
                     {s.deviceName ?? 'Unknown device'}
                     {s.id === currentSessionId && (
-                      <span className="inline-flex items-center rounded-sm bg-bg-elev-2 text-fg px-1.5 py-0.5 text-caption font-bold uppercase tracking-wider">
+                      <span className="bg-bg-elev-2 text-fg text-caption inline-flex items-center rounded-sm px-1.5 py-0.5 font-bold tracking-wider uppercase">
                         Current session
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-fg-subtle">
+                  <p className="text-fg-subtle text-xs">
                     {s.ip ? `${s.ip} · ` : ''}
                     {formatDate(s.lastActiveAt)}
                   </p>

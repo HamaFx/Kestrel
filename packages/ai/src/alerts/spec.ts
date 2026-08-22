@@ -28,6 +28,7 @@
 //   const combined = new AndSpec([spec1, spec2]);
 
 import type { AlertRule } from '@kestrel/shared';
+
 import { alertRuleRegistry } from './rule-registry';
 
 // ── Core types ─────────────────────────────────────────────────────────────
@@ -74,16 +75,16 @@ export interface AlertSpec {
 /** Fires when `value >= level` (above) or `value <= level` (below). */
 export class LevelSpec implements AlertSpec {
   readonly name = 'level';
+  private readonly direction: 'above' | 'below';
+  private readonly level: number;
 
-  constructor(
-    private readonly direction: 'above' | 'below',
-    private readonly level: number,
-  ) {}
+  constructor(direction: 'above' | 'below', level: number) {
+    this.direction = direction;
+    this.level = level;
+  }
 
   isSatisfiedBy(reading: RuleReading): boolean {
-    return this.direction === 'above'
-      ? reading.value >= this.level
-      : reading.value <= this.level;
+    return this.direction === 'above' ? reading.value >= this.level : reading.value <= this.level;
   }
 }
 
@@ -95,11 +96,13 @@ export class LevelSpec implements AlertSpec {
  */
 export class CrossingSpec implements AlertSpec {
   readonly name = 'crossing';
+  private readonly direction: 'above' | 'below';
+  private readonly level: number;
 
-  constructor(
-    private readonly direction: 'above' | 'below',
-    private readonly level: number,
-  ) {}
+  constructor(direction: 'above' | 'below', level: number) {
+    this.direction = direction;
+    this.level = level;
+  }
 
   isSatisfiedBy(reading: RuleReading, cross?: CrossContext): boolean {
     const prev = cross?.previousValue;
@@ -115,8 +118,10 @@ export class CrossingSpec implements AlertSpec {
 /** All child specs must be satisfied (logical AND). */
 export class AndSpec implements AlertSpec {
   name: string;
+  private readonly specs: AlertSpec[];
 
-  constructor(private readonly specs: AlertSpec[]) {
+  constructor(specs: AlertSpec[]) {
+    this.specs = specs;
     this.name = `and(${this.specs.map((s) => s.name).join(',')})`;
   }
 
@@ -131,8 +136,10 @@ export class AndSpec implements AlertSpec {
 /** Any child spec must be satisfied (logical OR). */
 export class OrSpec implements AlertSpec {
   name: string;
+  private readonly specs: AlertSpec[];
 
-  constructor(private readonly specs: AlertSpec[]) {
+  constructor(specs: AlertSpec[]) {
+    this.specs = specs;
     this.name = `or(${this.specs.map((s) => s.name).join(',')})`;
   }
 
@@ -167,11 +174,7 @@ export class OrSpec implements AlertSpec {
  * PF-08 — Legacy function. Use `new LevelSpec(direction, level)` instead.
  * Kept for backward compatibility with tests and external consumers.
  */
-export function decideMatch(
-  direction: 'above' | 'below',
-  value: number,
-  level: number,
-): boolean {
+export function decideMatch(direction: 'above' | 'below', value: number, level: number): boolean {
   return new LevelSpec(direction, level).isSatisfiedBy({ value, source: 'compat' });
 }
 

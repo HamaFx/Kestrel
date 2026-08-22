@@ -11,5 +11,11 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["config/**/*.ts", "lib/**/*.ts", "scenarios/**/*.ts", "tests/**/*.ts", "types/**/*.d.ts"]
+  "include": [
+    "config/**/*.ts",
+    "lib/**/*.ts",
+    "scenarios/**/*.ts",
+    "tests/**/*.ts",
+    "types/**/*.d.ts"
+  ]
 }

@@ -1,4 +1,21 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+
 import { z } from 'zod';
 
 export const MastraMutationNameSchema = z.enum([
@@ -25,7 +42,12 @@ export type MastraMutationDecision =
   | {
       allowed: false;
       mutation: MastraMutationName;
-      reason: 'disabled' | 'confirmation-required' | 'invalid-context' | 'token-expired' | 'token-invalid';
+      reason:
+        | 'disabled'
+        | 'confirmation-required'
+        | 'invalid-context'
+        | 'token-expired'
+        | 'token-invalid';
     };
 
 /**
@@ -78,7 +100,10 @@ export function assertMastraMutationAllowed(request: MastraMutationRequest): voi
 }
 
 function mutationPolicyError(
-  reason: Extract<MastraMutationDecision, { allowed: false }>['reason'] | 'token-expired' | 'token-invalid',
+  reason:
+    | Extract<MastraMutationDecision, { allowed: false }>['reason']
+    | 'token-expired'
+    | 'token-invalid',
 ): Error {
   const error = new Error(
     reason === 'disabled'
@@ -150,7 +175,10 @@ export function storedConfirmationForToken(
 ): StoredMutationConfirmation {
   const secret = confirmationSecret(options.secret);
   return {
-    digest: hmacDigest(secret, `${token}:${options.mutation}:${options.userId}:${options.expiresAt}`),
+    digest: hmacDigest(
+      secret,
+      `${token}:${options.mutation}:${options.userId}:${options.expiresAt}`,
+    ),
     expiresAt: options.expiresAt,
   };
 }
@@ -171,9 +199,7 @@ export interface VerifyConfirmationTokenOptions {
  * stored digest + expiry. Returns false for any mismatch (never throws), so
  * the resume step fails closed on replay, expiry, or cross-run token reuse.
  */
-export function verifyMutationConfirmationToken(
-  options: VerifyConfirmationTokenOptions,
-): boolean {
+export function verifyMutationConfirmationToken(options: VerifyConfirmationTokenOptions): boolean {
   const secret = confirmationSecret(options.secret);
   const now = options.now ?? Date.now();
   if (now > options.stored.expiresAt) return false;

@@ -21,15 +21,27 @@
 
 /** Tools that can support a numeric price claim (mirrors the eval runner). */
 export const NUMERIC_SUPPORT_TOOLS: ReadonlySet<string> = new Set([
-  'get_price', 'get_candles', 'get_indicators', 'get_market_structure',
-  'forecast_volatility', 'analyze_technical', 'analyze_fundamental',
-  'get_session_levels', 'get_intermarket', 'compute_position_health',
-  'compute_risk', 'replay_setup',
+  'get_price',
+  'get_candles',
+  'get_indicators',
+  'get_market_structure',
+  'forecast_volatility',
+  'analyze_technical',
+  'analyze_fundamental',
+  'get_session_levels',
+  'get_intermarket',
+  'compute_position_health',
+  'compute_risk',
+  'replay_setup',
 ]);
 
 /** Tools that can support an event claim (mirrors the eval runner). */
 export const EVENT_SUPPORT_TOOLS: ReadonlySet<string> = new Set([
-  'get_news', 'get_calendar', 'analyze_fundamental', 'web_search', 'search_knowledge',
+  'get_news',
+  'get_calendar',
+  'analyze_fundamental',
+  'web_search',
+  'search_knowledge',
 ]);
 
 /** Price claims: instrument token within 100 chars of a numeric quote. */

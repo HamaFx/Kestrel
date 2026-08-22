@@ -1,5 +1,30 @@
-import { IconBolt, IconBuildingBank, IconChartCandle, IconCheck, IconChevronRight, IconWaveSine } from '@tabler/icons-react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import {
+  IconBolt,
+  IconBuildingBank,
+  IconChartCandle,
+  IconCheck,
+  IconChevronRight,
+  IconWaveSine,
+} from '@tabler/icons-react';
+
 import { Button } from '@/components/ui/button';
+
 import type { TradingStyle } from './wizard-types';
 
 interface WizardStepStyleProps {
@@ -47,12 +72,14 @@ export function WizardStepStyle({
   onBack,
 }: WizardStepStyleProps) {
   return (
-    <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4">
+    <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 flex flex-col gap-6">
       <div>
-        <h2 className="text-xl font-semibold text-fg mb-1">Choose your Trading Style</h2>
-        <p className="text-sm text-fg-subtle">This configures default timeframes and shapes AI suggestions.</p>
+        <h2 className="text-fg mb-1 text-xl font-semibold">Choose your Trading Style</h2>
+        <p className="text-fg-subtle text-sm">
+          This configures default timeframes and shapes AI suggestions.
+        </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {STYLES.map((style) => {
           const active = tradingStyle === style.id;
           const Icon = style.icon;
@@ -62,26 +89,24 @@ export function WizardStepStyle({
               type="button"
               onClick={() => setTradingStyle(style.id)}
               aria-pressed={active}
-              className={`min-h-11 text-left rounded-sm border p-4 transition-all hover:bg-bg-elev-2 flex flex-col gap-1.5 cursor-pointer relative ${
+              className={`hover:bg-bg-elev-2 relative flex min-h-11 cursor-pointer flex-col gap-1.5 rounded-sm border p-4 text-left transition-all ${
                 active
-                  ? 'border-brand bg-bg-elev-1 ring-1 ring-brand'
+                  ? 'border-brand bg-bg-elev-1 ring-brand ring-1'
                   : 'border-border bg-bg-elev-1 hover:border-fg-muted'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-2 font-semibold text-fg text-sm sm:text-base">
+                <span className="text-fg inline-flex items-center gap-2 text-sm font-semibold sm:text-base">
                   <Icon className={active ? 'text-brand size-4' : 'text-fg-subtle size-4'} />
                   <span>{style.title}</span>
                 </span>
-                <span className="text-xs font-mono font-medium px-2 py-0.5 rounded-sm bg-bg-elev-2 text-fg-subtle border border-border">
+                <span className="bg-bg-elev-2 text-fg-subtle border-border rounded-sm border px-2 py-0.5 font-mono text-xs font-medium">
                   {style.timeframe}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-fg-subtle leading-[1.4]">
-                {style.desc}
-              </p>
+              <p className="text-fg-subtle text-xs leading-[1.4] sm:text-sm">{style.desc}</p>
               {active && (
-                <span className="absolute bottom-3 right-3 text-brand">
+                <span className="text-brand absolute right-3 bottom-3">
                   <IconCheck className="size-4" />
                 </span>
               )}

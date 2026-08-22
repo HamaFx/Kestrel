@@ -22,7 +22,6 @@ import {
   CFTC_SUPPORTED_SYMBOLS,
   DEFAULT_STREAM_SYMBOLS,
   DEFAULT_WATCHLIST_SYMBOLS,
-  SymbolSchema,
   formatPips,
   getSymbolDefinition,
   isKnownSymbol,
@@ -30,6 +29,7 @@ import {
   normalizeSymbol,
   SYMBOL_MAP,
   symbolsByCategory,
+  SymbolSchema,
 } from '../src';
 
 describe('canonical symbol catalog', () => {
@@ -80,13 +80,7 @@ describe('canonical symbol catalog', () => {
   });
 
   it('keeps the product defaults inside the canonical catalog', () => {
-    expect(DEFAULT_WATCHLIST_SYMBOLS).toEqual([
-      'XAUUSD',
-      'EURUSD',
-      'GBPUSD',
-      'BTCUSDT',
-      'ETHUSDT',
-    ]);
+    expect(DEFAULT_WATCHLIST_SYMBOLS).toEqual(['XAUUSD', 'EURUSD', 'GBPUSD', 'BTCUSDT', 'ETHUSDT']);
     expect(DEFAULT_WATCHLIST_SYMBOLS.every(isKnownSymbol)).toBe(true);
     expect(DEFAULT_STREAM_SYMBOLS).toEqual(ALL_SYMBOLS);
     expect(CFTC_SUPPORTED_SYMBOLS).toEqual(['XAUUSD', 'EURUSD', 'GBPUSD']);

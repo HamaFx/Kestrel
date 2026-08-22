@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Usage at a glance — shows today's spend + 7d/30d totals + a daily-budget
@@ -8,8 +24,8 @@ import { computeUsage } from '@kestrel/ai';
 import { IconChevronRight } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
-import { getServerEnv } from '@/lib/env';
 import { cn } from '@/lib/cn';
+import { getServerEnv } from '@/lib/env';
 
 export async function UsageGlance({ userId }: { userId?: string }) {
   if (!userId) return null;
@@ -36,10 +52,10 @@ export async function UsageGlance({ userId }: { userId?: string }) {
     <Link
       href="/settings/usage"
       aria-label="Open detailed usage"
-      className="border border-border bg-bg-elev-1 rounded-sm group flex flex-col gap-3 p-4 transition-colors md:hover:bg-bg-elev-2/40"
+      className="border-border bg-bg-elev-1 group md:hover:bg-bg-elev-2/40 flex flex-col gap-3 rounded-sm border p-4 transition-colors"
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-fg-subtle text-caption font-semibold uppercase tracking-wider">
+        <h2 className="text-fg-subtle text-caption font-semibold tracking-wider uppercase">
           Today (UTC)
         </h2>
         <span className="text-fg-subtle text-xs tabular-nums">
@@ -75,7 +91,7 @@ export async function UsageGlance({ userId }: { userId?: string }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-fg-subtle text-caption uppercase tracking-wide">{label}</dt>
+      <dt className="text-fg-subtle text-caption tracking-wide uppercase">{label}</dt>
       <dd className="text-fg font-semibold">{value}</dd>
     </div>
   );

@@ -16,8 +16,9 @@
 
 // Onboarding query helpers — admin reset operations.
 
-import { eq } from 'drizzle-orm';
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
+import { eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type ResetMode = 'full' | 'soft';
@@ -31,10 +32,7 @@ export type ResetMode = 'full' | 'soft';
  *
  * Both modes run inside a single transaction.
  */
-export async function resetOnboarding(
-  userId: string,
-  mode: ResetMode = 'soft',
-): Promise<void> {
+export async function resetOnboarding(userId: string, mode: ResetMode = 'soft'): Promise<void> {
   const db = getDb();
 
   await db.transaction(async (tx) => {
@@ -47,14 +45,9 @@ export async function resetOnboarding(
       update.defaultSymbol = DEFAULT_WATCHLIST_SYMBOLS[0];
       update.timezone = 'UTC';
       update.aiApiKeys = null;
-      await tx
-        .delete(schema.userSymbols)
-        .where(eq(schema.userSymbols.userId, userId));
+      await tx.delete(schema.userSymbols).where(eq(schema.userSymbols.userId, userId));
     }
 
-    await tx
-      .update(schema.userSettings)
-      .set(update)
-      .where(eq(schema.userSettings.userId, userId));
+    await tx.update(schema.userSettings).set(update).where(eq(schema.userSettings.userId, userId));
   });
 }

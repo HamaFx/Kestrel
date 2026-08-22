@@ -15,18 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import type { Symbol, Timeframe } from '@kestrel/shared';
 
 import { TradingViewWidget } from './tradingview-widget';
 
-export function ProChartView({
-  symbol,
-  tf,
-}: {
-  symbol: Symbol;
-  tf: Timeframe;
-}) {
+export function ProChartView({ symbol, tf }: { symbol: Symbol; tf: Timeframe }) {
   return (
     <div className="animate-in fade-in duration-300">
       <TradingViewWidget symbol={symbol} tf={tf} theme="dark" />

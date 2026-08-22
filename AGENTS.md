@@ -18,29 +18,28 @@
 
 > Production operations note: the worker runs in Docker on the GCE VM with its internal scheduler. Host systemd timers are reserved for light Vercel pokes and maintenance. Backups are prepared for Backblaze B2 but intentionally remain skipped until the operator configures the account.
 
-
-| Question | Answer |
-|----------|--------|
-| Package manager | pnpm 9.15.4 |
-| Node | >= 22.13.0 |
-| Monorepo tool | Turborepo 2 |
-| Framework | Next.js 16 App Router + React 19 |
-| Styling | Tailwind CSS v4 + shadcn/ui (Radix) |
-| AI SDK | Vercel AI SDK v5 (`ai` package) |
-| Models | Google Vertex AI + 10-provider BYOK registry |
-| DB | Postgres (Supabase) + pgvector. Drizzle ORM (50 tables across 35 schema definition files) |
-| Local DB | PGlite (embedded Postgres, zero setup) |
-| Charts | TradingView lightweight-charts v5 |
-| Tests | Vitest (233 test files). Playwright E2E (16 spec files). |
-| Lint | ESLint flat config in `packages/config/eslint` |
-| TypeScript | Strict mode with `noUncheckedIndexedAccess`; the web app currently opts out of `exactOptionalPropertyTypes` for compatibility |
-| AI Tools | 31 registered tool definitions in `packages/ai/src/tools/` (read-only; mutations run through the gated Mastra confirmation workflows) |
-| Semantic routing | Default on (`AI_SEMANTIC_ROUTING_ENABLED=false` to disable); LLM classification with keyword fallback |
-| Guardrails | UnicodeNormalizer + PromptInjectionDetector on all agents incl. text-runner (extraction/routing) |
-| Custom scorers | Grounding + citation scorers always-on (deterministic, no LLM judge); prebuilt scorers sampled (5% conversation, 10% research) |
-| Advisory lock | Postgres advisory lock on full-analysis claim path for multi-worker safety |
-| Architecture snapshot | `docs/architecture-explorer.html` + `docs/architecture-explorer.json` — static reference artifacts |
-| Request proxy | 190 lines. Handles auth, CSRF, CSP, request-id |
+| Question              | Answer                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Package manager       | pnpm 9.15.4                                                                                                                           |
+| Node                  | >= 22.13.0                                                                                                                            |
+| Monorepo tool         | Turborepo 2                                                                                                                           |
+| Framework             | Next.js 16 App Router + React 19                                                                                                      |
+| Styling               | Tailwind CSS v4 + shadcn/ui (Radix)                                                                                                   |
+| AI SDK                | Vercel AI SDK v5 (`ai` package)                                                                                                       |
+| Models                | Google Vertex AI + 10-provider BYOK registry                                                                                          |
+| DB                    | Postgres (Supabase) + pgvector. Drizzle ORM (50 tables across 35 schema definition files)                                             |
+| Local DB              | PGlite (embedded Postgres, zero setup)                                                                                                |
+| Charts                | TradingView lightweight-charts v5                                                                                                     |
+| Tests                 | Vitest (233 test files). Playwright E2E (16 spec files).                                                                              |
+| Lint                  | ESLint flat config in `packages/config/eslint`                                                                                        |
+| TypeScript            | Strict mode with `noUncheckedIndexedAccess`; the web app currently opts out of `exactOptionalPropertyTypes` for compatibility         |
+| AI Tools              | 31 registered tool definitions in `packages/ai/src/tools/` (read-only; mutations run through the gated Mastra confirmation workflows) |
+| Semantic routing      | Default on (`AI_SEMANTIC_ROUTING_ENABLED=false` to disable); LLM classification with keyword fallback                                 |
+| Guardrails            | UnicodeNormalizer + PromptInjectionDetector on all agents incl. text-runner (extraction/routing)                                      |
+| Custom scorers        | Grounding + citation scorers always-on (deterministic, no LLM judge); prebuilt scorers sampled (5% conversation, 10% research)        |
+| Advisory lock         | Postgres advisory lock on full-analysis claim path for multi-worker safety                                                            |
+| Architecture snapshot | `docs/architecture-explorer.html` + `docs/architecture-explorer.json` — static reference artifacts                                    |
+| Request proxy         | 190 lines. Handles auth, CSRF, CSP, request-id                                                                                        |
 
 ## Commands
 
@@ -122,6 +121,7 @@ vercel list hamafx-ai --scope mahamad-ahmads-projects
 ```
 
 **Common gotchas for AI agents:**
+
 - The `.env.local` file is **gitignored** — do NOT commit it. It contains secrets (DB creds, API keys).
 - Auth tokens are stored via the Vercel CLI credential helper (not in `~/.vercel/config.json`). If auth breaks, run `vercel logout && vercel login`.
 - Env vars pulled include DB creds (`POSTGRES_URL`, `POSTGRES_HOST`), Supabase (`NEXT_PUBLIC_SUPABASE_URL`), AI model config, API secrets, and Google Vertex credentials.
@@ -220,12 +220,17 @@ For fundamental/technical turns: cheap model generates JSON plan, persisted as s
 
 ```ts
 // packages/ai — use the container
-import { DB, LLM_CLIENT } from './tokens';
-const db = container.resolve(DB); // typed as DbClient
-const client = container.resolve(LLM_CLIENT); // typed as LlmClient
+
+// typed as LlmClient
 
 // apps/web, apps/worker — direct imports
 import { getDb } from '@kestrel/db';
+
+import { DB, LLM_CLIENT } from './tokens';
+
+const db = container.resolve(DB); // typed as DbClient
+const client = container.resolve(LLM_CLIENT);
+
 const db = getDb();
 ```
 
@@ -241,38 +246,43 @@ CSP exception or deployment-specific route.
 
 ## File Naming Conventions
 
-| Pattern | Example |
-|---------|---------|
-| `kebab-case.ts` for modules | `get-candles.ts`, `memory-index.ts` |
-| `PascalCase` for React components | `ChatScreen.tsx`, `NavDrawer.tsx` |
+| Pattern                           | Example                                  |
+| --------------------------------- | ---------------------------------------- |
+| `kebab-case.ts` for modules       | `get-candles.ts`, `memory-index.ts`      |
+| `PascalCase` for React components | `ChatScreen.tsx`, `NavDrawer.tsx`        |
 | `_prefix.ts` for private/internal | `_extensions.ts`, `_provision-docker.sh` |
-| `.test.ts` for test files | `candle-1m.test.ts` |
-| `route.ts` for API route handlers | `api/chat/route.ts` |
-| `page.tsx` for Next.js pages | `(app)/chat/page.tsx` |
+| `.test.ts` for test files         | `candle-1m.test.ts`                      |
+| `route.ts` for API route handlers | `api/chat/route.ts`                      |
+| `page.tsx` for Next.js pages      | `(app)/chat/page.tsx`                    |
 
 ## Common Pitfalls
 
 ### Request Proxy Constraints
+
 - The proxy runs on Node.js by default: keep direct database work out of the request boundary
 - `@kestrel/db` is not imported by the proxy; keep the auth/security boundary lightweight
 - Auth env is split: `getAuthEnv()` (Edge-safe) vs `getServerEnv()` (full)
 
 ### PGlite vs Postgres
+
 - PGlite runs embedded Postgres via WASM, stored in `.kestrel/data/`
 - pgvector NOT available in PGlite — vector tables use `real[]` fallback
 - When adding new DB features: ensure they work without pgvector
 - **drizzle-orm ≥0.45.2 error wrapping:** PGlite errors thrown through drizzle are wrapped with a `"Failed query: {SQL}"` prefix. The original PGlite error is stored in `err.cause`. Any code that inspects PGlite error messages (e.g., checking for `"already exists"`, `"does not exist"`, `"cannot insert multiple commands"`) must extract the underlying message via `err instanceof Error && err.cause instanceof Error ? err.cause.message : err.message`. See `packages/db/src/pglite-client.ts` (both `executeWithFallback()` and `applyMigrations()`) and the test files `schema-drift.test.ts` / `full-migration-chain.test.ts` for the canonical pattern.
 
 ### Supabase Pooler
+
 - Uses transaction mode: `prepare: false` on Postgres client
 - Pool sizes: 5 (web), 3 (worker). Controlled via `DB_POOL_MAX` / `WORKER_DB_POOL_MAX`
 
 ### Test Commands
+
 - Always use `-- --run` flag with vitest to avoid watch mode
 - `pnpm turbo run test -- --run` runs all packages
 - Individual: `pnpm --filter @kestrel/worker test -- --run`
 
 ### CSP & Nonce System
+
 - The proxy sets a `'strict-dynamic'` CSP with a per-request nonce.
 - Scripts in application routes must carry a matching `nonce` attribute.
 - The architecture snapshot is documentation-only and is not copied into `public/`.
@@ -305,6 +315,7 @@ A dedicated `/admin` page is available for admin users. It provides a centralize
 An **Onboarding Reset** card is also available in `/settings` for quick access.
 
 Admin access is determined by `apps/web/src/lib/admin-auth.ts`:
+
 - A user with `role = 'admin'` is always an admin.
 - In single-user deployments (no users with `role = 'admin'`), the sole authenticated user is treated as admin for self-hosting convenience.
 
@@ -323,35 +334,36 @@ The project uses a single pino logger from `packages/shared/src/logger.ts` acros
 
 ### Useful Admin/Debug Env Vars
 
-| Variable | Purpose |
-|----------|---------|
-| `LOG_LEVEL` | `trace`, `debug`, `info`, `warn`, `error` |
-| `DEBUG_TRACE_PATH` | Optional directory to write diagnostic trace JSON files |
-| `ENABLE_LOG_STREAM` | Set to `true` in dev to enable `/api/admin/logs/stream` |
-| `ENABLE_IMPERSONATION` | Set to `true` in dev to enable user impersonation |
+| Variable               | Purpose                                                 |
+| ---------------------- | ------------------------------------------------------- |
+| `LOG_LEVEL`            | `trace`, `debug`, `info`, `warn`, `error`               |
+| `DEBUG_TRACE_PATH`     | Optional directory to write diagnostic trace JSON files |
+| `ENABLE_LOG_STREAM`    | Set to `true` in dev to enable `/api/admin/logs/stream` |
+| `ENABLE_IMPERSONATION` | Set to `true` in dev to enable user impersonation       |
 
 ## Documentation Index
 
 The project keeps procedural documentation alongside a small static architecture snapshot. The snapshot is not generated during builds and should be treated as informational.
 
-| Artifact | Description |
-|----------|-------------|
+| Artifact                          | Description                                      |
+| --------------------------------- | ------------------------------------------------ |
 | `docs/architecture-explorer.html` | Self-contained interactive architecture snapshot |
-| `docs/architecture-explorer.json` | Machine-readable architecture snapshot |
+| `docs/architecture-explorer.json` | Machine-readable architecture snapshot           |
 
 ### Manual (procedural — kept because they describe HOW to do things, not WHAT exists)
 
-| Doc | Description |
-|-----|-------------|
-| `docs/13-first-run-setup.md` | Step-by-step setup instructions |
-| `docs/14-nextjs-16-architecture-guide.md` | Next.js 16 & React 19 architecture guide, best practices & gap analysis |
-| `docs/11-self-hosting.md` | Docker/self-hosting guide |
-| `docs/08-deployment.md` | Deploy procedures |
-| `docs/09-testing.md` | Test conventions & patterns |
-| `docs/10-security.md` | Security practices & rationale |
-| `docs/INCIDENT-RESPONSE.md` | Incident runbook |
-| `docs/BILLING-WEBHOOK-SAFETY-GATE.md` | Operational safety procedure |
-| `docs/AI-AGENT-ARCHITECTURE.md` | Current AI and Mastra implementation boundary |
-| `docs/AI-AGENT-MASTRA-ROADMAP.md` | Active AI/Mastra migration plan and decision gates |
-| `docs/AI-AGENT-VALIDATION-LOG.md` | Dated AI/Mastra validation and deployment evidence |
-| `cleanup-audit.md` | Historical audit record |
+| Doc                                                     | Description                                                             |
+| ------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `docs/13-first-run-setup.md`                            | Step-by-step setup instructions                                         |
+| `docs/14-nextjs-16-architecture-guide.md`               | Next.js 16 & React 19 architecture guide, best practices & gap analysis |
+| `docs/15-typescript-architecture-and-upgrade-report.md` | TypeScript architecture, modern compiler research & upgrade report      |
+| `docs/11-self-hosting.md`                               | Docker/self-hosting guide                                               |
+| `docs/08-deployment.md`                                 | Deploy procedures                                                       |
+| `docs/09-testing.md`                                    | Test conventions & patterns                                             |
+| `docs/10-security.md`                                   | Security practices & rationale                                          |
+| `docs/INCIDENT-RESPONSE.md`                             | Incident runbook                                                        |
+| `docs/BILLING-WEBHOOK-SAFETY-GATE.md`                   | Operational safety procedure                                            |
+| `docs/AI-AGENT-ARCHITECTURE.md`                         | Current AI and Mastra implementation boundary                           |
+| `docs/AI-AGENT-MASTRA-ROADMAP.md`                       | Active AI/Mastra migration plan and decision gates                      |
+| `docs/AI-AGENT-VALIDATION-LOG.md`                       | Dated AI/Mastra validation and deployment evidence                      |
+| `cleanup-audit.md`                                      | Historical audit record                                                 |

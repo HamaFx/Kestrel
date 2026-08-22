@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -19,23 +35,29 @@
 
 import { metrics } from '@kestrel/shared';
 import type { Mastra } from '@mastra/core';
-import type { Agent } from '@mastra/core/agent';
-import type { AgentMemoryOption } from '@mastra/core/agent';
+import type { Agent, AgentMemoryOption } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
-import { Workflow, createStep } from '@mastra/core/workflows';
+import { createStep, Workflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 
-import { generateXauusdReport, repairPrompt, verificationFindings } from '../../mastra/report-generation';
+import {
+  generateXauusdReport,
+  repairPrompt,
+  verificationFindings,
+} from '../../mastra/report-generation';
 import { patchTimeframeConflictDisclosure } from '../../mastra/report-repair';
 import { blockedXauusdResearchText } from '../../mastra/report-text';
 import { XauusdResearchReportSchema, type XauusdResearchReport } from '../../mastra/report-types';
-import { requireVerifiedXauusdReport, XauusdReportVerificationError } from '../../mastra/report-verifier';
+import {
+  requireVerifiedXauusdReport,
+  XauusdReportVerificationError,
+} from '../../mastra/report-verifier';
 import { collectXauusdResearchPacket } from '../../mastra/research-packet';
 import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../../mastra/research-types';
 import type { MastraGenerationResultLike } from '../../mastra/stats';
 import { getMastraGenerationStats, type MastraGenerationStats } from '../../mastra/telemetry';
-import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../mastra/types';
 import type { xauusdMastraTools } from '../../mastra/tools';
+import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../mastra/types';
 
 const StatsSchema = z.object({
   inputTokens: z.number(),
@@ -95,7 +117,9 @@ function isAbort(error: unknown, signal?: AbortSignal): boolean {
   return (
     signal?.aborted === true ||
     (error instanceof Error && error.name === 'AbortError') ||
-    (typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError')
+    (typeof DOMException !== 'undefined' &&
+      error instanceof DOMException &&
+      error.name === 'AbortError')
   );
 }
 
@@ -164,7 +188,13 @@ async function generateAndVerify(
     if (isAbort(error, signal)) throw error;
     const findings = verificationFindings(error);
     if (!findings) throw error;
-    return { verified: false, report: null, result: null, findings: findings.slice(), stats: zeroStats() };
+    return {
+      verified: false,
+      report: null,
+      result: null,
+      findings: findings.slice(),
+      stats: zeroStats(),
+    };
   }
 }
 
@@ -174,9 +204,7 @@ async function generateAndVerify(
  * surface immediately); the repair loop is the bounded, observable retry
  * for verification/structured-output failures.
  */
-export function createXauusdReportWorkflow(
-  deps: XauusdReportWorkflowDeps,
-): Workflow<any, any, string, unknown, unknown, unknown> {
+export function createXauusdReportWorkflow(deps: XauusdReportWorkflowDeps): Workflow {
   const collectPacketStep = createStep({
     id: 'collect-packet',
     inputSchema: XauusdReportWorkflowInputSchema,
@@ -247,7 +275,14 @@ export function createXauusdReportWorkflow(
         // Another repair is still scheduled (the loop condition allows it).
         metrics.increment('mastra_report_repair_total', { tags: { result: 'requested' } });
       }
-      return { verified, report, result, findings, attempt: inputData.attempt + 1, stats: nextStats };
+      return {
+        verified,
+        report,
+        result,
+        findings,
+        attempt: inputData.attempt + 1,
+        stats: nextStats,
+      };
     },
   });
 
@@ -287,23 +322,21 @@ export function createXauusdReportWorkflow(
     },
   });
 
-  const workflow = (
-    new Workflow({
-      id: 'xauusd-research',
-      inputSchema: XauusdReportWorkflowInputSchema,
-      outputSchema: XauusdReportWorkflowOutputSchema,
-      requestContextSchema: XauusdRequestContextSchema,
-      ...(deps.mastra ? { mastra: deps.mastra } : {}),
+  const workflow = new Workflow({
+    id: 'xauusd-research',
+    inputSchema: XauusdReportWorkflowInputSchema,
+    outputSchema: XauusdReportWorkflowOutputSchema,
+    requestContextSchema: XauusdRequestContextSchema,
+    ...(deps.mastra ? { mastra: deps.mastra } : {}),
+  })
+    .then(collectPacketStep)
+    .then(generateStep)
+    .dowhile(repairStep, async ({ getStepResult, iterationCount }) => {
+      const repair = getStepResult('repair') as { verified?: boolean };
+      return repair?.verified !== true && iterationCount < REPORT_REPAIR_LIMIT;
     })
-      .then(collectPacketStep)
-      .then(generateStep)
-      .dowhile(repairStep, async ({ getStepResult, iterationCount }) => {
-        const repair = getStepResult('repair') as { verified?: boolean };
-        return repair?.verified !== true && iterationCount < REPORT_REPAIR_LIMIT;
-      })
-      .then(finalizeStep)
-      .commit()
-  ) as unknown as Workflow<any, any, string, unknown, unknown, unknown>;
+    .then(finalizeStep)
+    .commit() as unknown as Workflow;
 
   return workflow;
 }

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > The upcoming public OSS release is a single-user, self-hosted BYOK preview. Shared multi-user/RLS mode and hosted billing are not part of this release.
 
 ### Added
+
 - **Documentation overhaul:** current procedural docs for the single-user OSS release, replacing the old 15-doc set:
   - `docs/01-architecture.md` — system design and deployment modes
   - `docs/02-data-flows.md` — provider flows and licensing responsibilities
@@ -31,11 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Legacy documentation references were removed from the public guide; the current procedural docs live in `docs/`.
 
 ### Changed
+
 - `AGENTS.md` deleted — replaced by `docs/07-agent-understanding.md` + `docs/08-agent-setup-run.md`
 - Old numbered and review/audit docs were replaced by the current procedural documentation set.
 - Community security and contribution guides were refreshed for the OSS release.
 
 ### Security
+
 - Documented known auth bugs in `docs/05-security-auth-compliance.md` §4:
   - Token version not checked in JWT callback (Critical)
   - `__system__` user assumption in cron jobs (Critical)
@@ -68,13 +71,13 @@ HamaFX-Ai is in pre-release development. The project has shipped through Phases 
 
 ### Release boundary and remaining considerations
 
-| Area | Current OSS status |
-|-----|--------------------|
+| Area                       | Current OSS status                                                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Shared RLS/multi-user mode | Intentionally blocked until every user-data query establishes tenant context and the PostgreSQL isolation suite passes |
-| Hosted billing | Separate hosted-product track; not enabled as a self-hosted OSS service |
-| Data provider licensing | Each operator must review provider terms and obtain any required redistribution rights |
-| Disaster recovery | Docker backup/restore is smoke-tested; operators must still configure off-host copies and rehearse recovery |
-| Secret rotation | Guarded maintenance utility exists; operators must stop writers and retain recovery material |
+| Hosted billing             | Separate hosted-product track; not enabled as a self-hosted OSS service                                                |
+| Data provider licensing    | Each operator must review provider terms and obtain any required redistribution rights                                 |
+| Disaster recovery          | Docker backup/restore is smoke-tested; operators must still configure off-host copies and rehearse recovery            |
+| Secret rotation            | Guarded maintenance utility exists; operators must stop writers and retain recovery material                           |
 
 ---
 

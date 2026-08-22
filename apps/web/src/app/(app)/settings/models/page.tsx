@@ -1,18 +1,34 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import { redirect } from 'next/navigation';
+import { getUserWithSettings } from '@kestrel/db';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { buildCatalogForUser } from '@/lib/catalog-server';
-import { getUserWithSettings } from '@kestrel/db';
 
+import { FallbackChainPicker } from './_components/fallback-chain-picker';
 import {
   ChatModelPicker,
   EmbeddingModelPicker,
   VisionModelPicker,
 } from './_components/model-picker';
-import { FallbackChainPicker } from './_components/fallback-chain-picker';
 
 export const revalidate = 60;
 
@@ -65,18 +81,18 @@ export default async function ModelsSettingsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold text-fg">Models</h2>
-          <p className="text-sm text-fg-subtle max-w-2xl">
-            Pick the model that handles every chat turn. Per-turn
-            overrides via the chat toolbar still work.
+          <h2 className="text-fg text-lg font-semibold">Models</h2>
+          <p className="text-fg-subtle max-w-2xl text-sm">
+            Pick the model that handles every chat turn. Per-turn overrides via the chat toolbar
+            still work.
           </p>
         </div>
         <Link
           href="/settings/api-keys"
-          className="text-sm font-medium text-fg hover:underline shrink-0"
+          className="text-fg shrink-0 text-sm font-medium hover:underline"
         >
           Manage API keys →
         </Link>
@@ -86,71 +102,82 @@ export default async function ModelsSettingsPage() {
 
       <FallbackChainPicker initialChain={initialChain} configuredProviders={configured} />
 
-      <details className="border border-border bg-bg-elev-1 rounded-sm overflow-hidden">
-        <summary aria-label="Toggle advanced model settings" className="cursor-pointer select-none px-4 py-3 flex items-center justify-between gap-3 hover:bg-bg-elev-2 transition-colors">
+      <details className="border-border bg-bg-elev-1 overflow-hidden rounded-sm border">
+        <summary
+          aria-label="Toggle advanced model settings"
+          className="hover:bg-bg-elev-2 flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors select-none"
+        >
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-fg">
-              Advanced
-            </span>
+            <span className="text-fg text-sm font-medium">Advanced</span>
             <span className="text-caption text-fg-subtle">
               Pick vision + embedding models independently of chat.
             </span>
           </div>
           <span className="text-caption text-fg-subtle">▾</span>
         </summary>
-        <div className="border-t border-border p-4 flex flex-col gap-4">
+        <div className="border-border flex flex-col gap-4 border-t p-4">
           <VisionModelPicker initialValue={initialVisionModel} providers={configured} />
           <EmbeddingModelPicker initialValue={initialEmbeddingModel} providers={configured} />
         </div>
       </details>
 
-      <details className="border border-border bg-bg-elev-1 rounded-sm overflow-hidden">
-        <summary aria-label="Toggle model comparison table" className="cursor-pointer select-none px-4 py-3 flex items-center justify-between gap-3 hover:bg-bg-elev-2 transition-colors">
+      <details className="border-border bg-bg-elev-1 overflow-hidden rounded-sm border">
+        <summary
+          aria-label="Toggle model comparison table"
+          className="hover:bg-bg-elev-2 flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors select-none"
+        >
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-fg">
-              Model Comparison
-            </span>
+            <span className="text-fg text-sm font-medium">Model Comparison</span>
             <span className="text-caption text-fg-subtle">
               Compare prices, capabilities, and tiers across all configured providers.
             </span>
           </div>
           <span className="text-caption text-fg-subtle">▾</span>
         </summary>
-        <div className="border-t border-border overflow-x-auto">
+        <div className="border-border overflow-x-auto border-t">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-4 py-2.5 text-fg-muted font-medium">Provider</th>
-                <th className="text-left px-4 py-2.5 text-fg-muted font-medium">Model</th>
-                <th className="text-left px-4 py-2.5 text-fg-muted font-medium">Tier</th>
-                <th className="text-right px-4 py-2.5 text-fg-muted font-medium">Input / 1M tok</th>
-                <th className="text-right px-4 py-2.5 text-fg-muted font-medium">Output / 1M tok</th>
-                <th className="text-center px-4 py-2.5 text-fg-muted font-medium">Capabilities</th>
+              <tr className="border-border border-b">
+                <th className="text-fg-muted px-4 py-2.5 text-left font-medium">Provider</th>
+                <th className="text-fg-muted px-4 py-2.5 text-left font-medium">Model</th>
+                <th className="text-fg-muted px-4 py-2.5 text-left font-medium">Tier</th>
+                <th className="text-fg-muted px-4 py-2.5 text-right font-medium">Input / 1M tok</th>
+                <th className="text-fg-muted px-4 py-2.5 text-right font-medium">
+                  Output / 1M tok
+                </th>
+                <th className="text-fg-muted px-4 py-2.5 text-center font-medium">Capabilities</th>
               </tr>
             </thead>
             <tbody>
               {allModels.map((m) => (
-                <tr key={`${m.providerName}:${m.modelId}`} className="border-b border-border/50 last:border-0 hover:bg-bg-elev-2/40">
-                  <td className="px-4 py-2.5 text-fg font-medium">{m.providerName}</td>
-                  <td className="px-4 py-2.5 text-fg font-mono text-xs">{m.label ?? m.modelId}</td>
+                <tr
+                  key={`${m.providerName}:${m.modelId}`}
+                  className="border-border/50 hover:bg-bg-elev-2/40 border-b last:border-0"
+                >
+                  <td className="text-fg px-4 py-2.5 font-medium">{m.providerName}</td>
+                  <td className="text-fg px-4 py-2.5 font-mono text-xs">{m.label ?? m.modelId}</td>
                   <td className="px-4 py-2.5">
-                    <span className="inline-flex items-center rounded-sm bg-bg-elev-2 px-2 py-0.5 text-caption font-medium text-fg-subtle border border-border">
+                    <span className="bg-bg-elev-2 text-caption text-fg-subtle border-border inline-flex items-center rounded-sm border px-2 py-0.5 font-medium">
                       {m.tier ?? 'flagship'}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-right text-fg tabular-nums">
+                  <td className="text-fg px-4 py-2.5 text-right tabular-nums">
                     {m.inputPerMTokUsd != null ? `$${m.inputPerMTokUsd.toFixed(2)}` : '—'}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-fg tabular-nums">
+                  <td className="text-fg px-4 py-2.5 text-right tabular-nums">
                     {m.outputPerMTokUsd != null ? `$${m.outputPerMTokUsd.toFixed(2)}` : '—'}
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       {m.tier !== 'embedding' ? (
-                        <span className="inline-flex items-center rounded-sm bg-success/10 text-success px-1.5 py-0.5 text-caption font-medium">Chat</span>
+                        <span className="bg-success/10 text-success text-caption inline-flex items-center rounded-sm px-1.5 py-0.5 font-medium">
+                          Chat
+                        </span>
                       ) : null}
                       {m.tier === 'embedding' ? (
-                        <span className="inline-flex items-center rounded-sm bg-bg-elev-3 text-fg-muted px-1.5 py-0.5 text-caption font-medium">Embed</span>
+                        <span className="bg-bg-elev-3 text-fg-muted text-caption inline-flex items-center rounded-sm px-1.5 py-0.5 font-medium">
+                          Embed
+                        </span>
                       ) : null}
                     </div>
                   </td>
@@ -158,7 +185,7 @@ export default async function ModelsSettingsPage() {
               ))}
               {allModels.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-fg-subtle">
+                  <td colSpan={6} className="text-fg-subtle px-4 py-6 text-center text-sm">
                     No models available. Configure an API key first.
                   </td>
                 </tr>
@@ -169,8 +196,7 @@ export default async function ModelsSettingsPage() {
       </details>
 
       <p className="text-caption text-fg-subtle text-center">
-        {catalog.total} providers · {catalog.totalModels} models in
-        the registry
+        {catalog.total} providers · {catalog.totalModels} models in the registry
       </p>
     </div>
   );

@@ -41,7 +41,9 @@ describe('ping', () => {
 
   it('GETs the bare UUID URL on a success ping', async () => {
     await ping('abc-123');
-    const url = String((globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0]);
+    const url = String(
+      (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0],
+    );
     expect(url).toBe('https://hc-ping.com/abc-123');
   });
 
@@ -56,14 +58,15 @@ describe('ping', () => {
   it('POSTs when a body is provided', async () => {
     await ping('abc', 'success', 'duration=42ms');
     const init = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as
-      | RequestInit
-      | undefined;
+      RequestInit | undefined;
     expect(init?.method).toBe('POST');
     expect(init?.body).toBe('duration=42ms');
   });
 
   it('swallows fetch failures (heartbeat never throws)', async () => {
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error('network down')) as unknown as typeof fetch;
+    globalThis.fetch = vi
+      .fn()
+      .mockRejectedValue(new Error('network down')) as unknown as typeof fetch;
     let captured: unknown = null;
     await ping('abc', 'success', undefined, (e) => {
       captured = e;

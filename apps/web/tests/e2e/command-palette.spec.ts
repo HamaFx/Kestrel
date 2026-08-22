@@ -22,7 +22,7 @@
 // Enter to run a command, and Escape to close.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Command palette', () => {
   test('opens with Ctrl+K and shows the search input', async ({ authedPage }) => {

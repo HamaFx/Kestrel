@@ -19,15 +19,10 @@
 // Tests the pure noise evaluation logic: dedup, cooldown, quiet hours,
 // and severity filtering.
 
-import { describe, expect, it, beforeEach } from 'vitest';
-
-import {
-  evaluateNoise,
-  hashContent,
-  isQuietHours,
-  InMemoryNoiseState,
-} from './noise-control';
 import { DEFAULT_NOISE_CONFIG } from '@kestrel/shared';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { evaluateNoise, hashContent, InMemoryNoiseState, isQuietHours } from './noise-control';
 
 describe('hashContent', () => {
   it('produces a stable hash for the same content + route', () => {
@@ -107,38 +102,20 @@ describe('evaluateNoise', () => {
   it('allows different content within dedup TTL', async () => {
     const config = { ...DEFAULT_NOISE_CONFIG, cooldownSeconds: 0 };
     await evaluateNoise('XAUUSD price alert', 'alert', 'warning', config, state);
-    const decision = await evaluateNoise(
-      'EURUSD price alert',
-      'alert',
-      'warning',
-      config,
-      state,
-    );
+    const decision = await evaluateNoise('EURUSD price alert', 'alert', 'warning', config, state);
     expect(decision.shouldSend).toBe(true);
   });
 
   it('suppresses below min severity', async () => {
     const config = { ...DEFAULT_NOISE_CONFIG, minSeverity: 'error' as const };
-    const decision = await evaluateNoise(
-      'Info message',
-      'report',
-      'info',
-      config,
-      state,
-    );
+    const decision = await evaluateNoise('Info message', 'report', 'info', config, state);
     expect(decision.shouldSend).toBe(false);
     expect(decision.reasonCode).toBe('below_min_severity');
   });
 
   it('allows at or above min severity', async () => {
     const config = { ...DEFAULT_NOISE_CONFIG, minSeverity: 'error' as const };
-    const decision = await evaluateNoise(
-      'Error message',
-      'report',
-      'error',
-      config,
-      state,
-    );
+    const decision = await evaluateNoise('Error message', 'report', 'error', config, state);
     expect(decision.shouldSend).toBe(true);
   });
 
@@ -148,13 +125,7 @@ describe('evaluateNoise', () => {
       quietHours: { start: '00:00', end: '23:59' }, // All day quiet hours
       minSeverityDuringQuietHours: 'critical' as const,
     };
-    const decision = await evaluateNoise(
-      'Warning message',
-      'alert',
-      'warning',
-      config,
-      state,
-    );
+    const decision = await evaluateNoise('Warning message', 'alert', 'warning', config, state);
     expect(decision.shouldSend).toBe(false);
     expect(decision.reasonCode).toBe('quiet_hours');
   });
@@ -165,13 +136,7 @@ describe('evaluateNoise', () => {
       quietHours: { start: '00:00', end: '23:59' },
       minSeverityDuringQuietHours: 'critical' as const,
     };
-    const decision = await evaluateNoise(
-      'Critical message',
-      'alert',
-      'critical',
-      config,
-      state,
-    );
+    const decision = await evaluateNoise('Critical message', 'alert', 'critical', config, state);
     expect(decision.shouldSend).toBe(true);
   });
 

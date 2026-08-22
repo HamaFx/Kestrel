@@ -132,25 +132,26 @@ export function withDiagnostics<T>(
 
   // Set correlation values in AsyncLocalStorage so the logger auto-injects
   // them into every log line inside this diagnostic scope.
-  const runBody = () => diagnosticStore.run(ctx, async () => {
-    try {
-      const result = await fn();
-      if (!options.deferCompletion) await maybePersistTrace(ctx);
-      return result;
-    } catch (err) {
-      recordError(err);
-      await maybePersistTrace(ctx, 'failed');
-      if (err instanceof Error) {
-        try {
-          (err as Error & { diagnosticContext?: unknown }).diagnosticContext =
-            exportDiagnosticContextInternal(ctx, 'failed');
-        } catch {
-          // Read-only error object — preserve the original failure.
+  const runBody = () =>
+    diagnosticStore.run(ctx, async () => {
+      try {
+        const result = await fn();
+        if (!options.deferCompletion) await maybePersistTrace(ctx);
+        return result;
+      } catch (err) {
+        recordError(err);
+        await maybePersistTrace(ctx, 'failed');
+        if (err instanceof Error) {
+          try {
+            (err as Error & { diagnosticContext?: unknown }).diagnosticContext =
+              exportDiagnosticContextInternal(ctx, 'failed');
+          } catch {
+            // Read-only error object — preserve the original failure.
+          }
         }
+        throw err;
       }
-      throw err;
-    }
-  });
+    });
 
   const runWithOptionalRunId = () =>
     options.runId ? runIdStorage.run(options.runId, runBody) : runBody();
@@ -215,10 +216,7 @@ export function getDiagnosticContext(): RunDiagnosticContext | null {
  *
  * If no diagnostic context is active, this is a no-op.
  */
-export function recordStep(
-  name: string,
-  metadata?: Record<string, unknown>,
-): void {
+export function recordStep(name: string, metadata?: Record<string, unknown>): void {
   const ctx = diagnosticStore.getStore();
   if (!ctx) return;
 

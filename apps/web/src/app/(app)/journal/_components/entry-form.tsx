@@ -19,12 +19,17 @@
 // New journal-entry form. Mobile-first: stacked, all tap targets ≥ 44px,
 // CTA is the size-lg primary button so it sits in the thumb zone of the
 // drawer.
-
-import { JournalEntrySchema, SYMBOLS, type Symbol, type TradeSide } from '@kestrel/shared';
-import type { JournalEntry } from '@kestrel/shared';
+import {
+  JournalEntrySchema,
+  SYMBOLS,
+  type JournalEntry,
+  type Symbol,
+  type TradeSide,
+} from '@kestrel/shared';
+import { IconCamera, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -33,15 +38,17 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { TagInput } from '@/components/ui/tag-input';
-import { cn } from '@/lib/cn';
 import { apiFetch } from '@/lib/api-client';
-import { IconCamera, IconX } from '@tabler/icons-react';
+import { cn } from '@/lib/cn';
+
 import { createJournalEntryAction } from '../actions';
 
 const entrySchema = z.object({
   symbol: z.string().min(1, 'Symbol is required'),
   side: z.enum(['long', 'short']),
-  entry: z.number({ invalid_type_error: 'Entry price must be a number' }).positive('Entry price must be positive'),
+  entry: z
+    .number({ invalid_type_error: 'Entry price must be a number' })
+    .positive('Entry price must be positive'),
   stop: z.number().positive('Stop loss must be positive').nullable().optional(),
   target: z.number().positive('Target must be positive').nullable().optional(),
   size: z.number().positive('Size must be positive').nullable().optional(),
@@ -227,44 +234,40 @@ export function EntryForm({ onCreated }: EntryFormProps) {
       />
 
       <div className="grid grid-cols-2 gap-3">
-        <Field
-          label="Entry"
-          htmlFor="entry"
-          required
-          error={fieldErrors.entry ?? null}
-        >
+        <Field label="Entry" htmlFor="entry" required error={fieldErrors.entry ?? null}>
           <Input
             id="entry"
             value={entry}
-            onChange={(e) => { setEntry(e.target.value); setFieldError('entry', null); }}
+            onChange={(e) => {
+              setEntry(e.target.value);
+              setFieldError('entry', null);
+            }}
             onBlur={() => setFieldError('entry', validateEntry(entry))}
             inputMode="decimal"
             error={!!fieldErrors.entry}
           />
         </Field>
-        <Field
-          label="Stop (optional)"
-          htmlFor="stop"
-          error={fieldErrors.stop ?? null}
-        >
+        <Field label="Stop (optional)" htmlFor="stop" error={fieldErrors.stop ?? null}>
           <Input
             id="stop"
             value={stop}
-            onChange={(e) => { setStop(e.target.value); setFieldError('stop', null); }}
+            onChange={(e) => {
+              setStop(e.target.value);
+              setFieldError('stop', null);
+            }}
             onBlur={() => setFieldError('stop', validateStop(stop))}
             inputMode="decimal"
             error={!!fieldErrors.stop}
           />
         </Field>
-        <Field
-          label="Target (optional)"
-          htmlFor="target"
-          error={fieldErrors.target ?? null}
-        >
+        <Field label="Target (optional)" htmlFor="target" error={fieldErrors.target ?? null}>
           <Input
             id="target"
             value={target}
-            onChange={(e) => { setTarget(e.target.value); setFieldError('target', null); }}
+            onChange={(e) => {
+              setTarget(e.target.value);
+              setFieldError('target', null);
+            }}
             onBlur={() => setFieldError('target', validateTarget(target))}
             inputMode="decimal"
             error={!!fieldErrors.target}
@@ -281,7 +284,7 @@ export function EntryForm({ onCreated }: EntryFormProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="text-fg-subtle text-body-sm uppercase tracking-wide" htmlFor="notes">
+        <label className="text-fg-subtle text-body-sm tracking-wide uppercase" htmlFor="notes">
           Notes (optional)
         </label>
         <textarea
@@ -291,16 +294,16 @@ export function EntryForm({ onCreated }: EntryFormProps) {
           placeholder="thesis, news context, levels of interest…"
           maxLength={5000}
           rows={4}
-          className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle border-border focus:bg-bg-elev-1/80 w-full resize-y rounded-sm border px-4 py-3 text-base leading-[1.4] transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-fg/30"
+          className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle border-border focus:bg-bg-elev-1/80 focus:ring-fg/30 w-full resize-y rounded-sm border px-4 py-3 text-base leading-[1.4] transition-all duration-150 ease-in-out focus:ring-2 focus:outline-none"
         />
-        <p className="text-fg-subtle text-caption tabular-nums text-right">
+        <p className="text-fg-subtle text-caption text-right tabular-nums">
           {notes.length.toLocaleString()} / 5,000
         </p>
       </div>
 
       {/* Screenshot attachment */}
       <div className="flex flex-col gap-2">
-        <label className="text-fg-subtle text-body-sm uppercase tracking-wide">
+        <label className="text-fg-subtle text-body-sm tracking-wide uppercase">
           Chart Screenshot
         </label>
         {screenshotUrl ? (
@@ -310,13 +313,13 @@ export function EntryForm({ onCreated }: EntryFormProps) {
               alt="Trade chart"
               width={80}
               height={80}
-              className="h-20 rounded-md object-cover border border-border"
+              className="border-border h-20 rounded-md border object-cover"
               unoptimized
             />
             <button
               type="button"
               onClick={() => setScreenshotUrl(null)}
-              className="absolute -top-2 -right-2 rounded-sm bg-bg-elev-3 border border-border p-0.5 text-fg-muted hover:text-fg"
+              className="bg-bg-elev-3 border-border text-fg-muted hover:text-fg absolute -top-2 -right-2 rounded-sm border p-0.5"
               aria-label="Remove screenshot"
             >
               <IconX className="size-3.5" />
@@ -325,8 +328,8 @@ export function EntryForm({ onCreated }: EntryFormProps) {
         ) : (
           <label
             className={cn(
-              'flex items-center justify-center gap-2 rounded-sm border border-dashed border-border p-3 text-xs text-fg-subtle hover:border-border hover:text-fg transition-colors cursor-pointer',
-              uploadingScreenshot && 'opacity-60 pointer-events-none',
+              'border-border text-fg-subtle hover:border-border hover:text-fg flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed p-3 text-xs transition-colors',
+              uploadingScreenshot && 'pointer-events-none opacity-60',
             )}
           >
             <IconCamera className="size-4" />
@@ -344,7 +347,7 @@ export function EntryForm({ onCreated }: EntryFormProps) {
 
       {/* Mindset & Trader Psychology Quick Selection */}
       <div className="flex flex-col gap-2">
-        <label className="text-fg-subtle text-caption uppercase tracking-wide">
+        <label className="text-fg-subtle text-caption tracking-wide uppercase">
           Trader Mindset / Execution Psychology
         </label>
         <div className="flex flex-wrap gap-1.5">
@@ -369,7 +372,7 @@ export function EntryForm({ onCreated }: EntryFormProps) {
                   }
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-caption font-medium transition-all border select-none',
+                  'text-caption inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 font-medium transition-all select-none',
                   isSelected
                     ? p.tone === 'bull'
                       ? 'bg-bull/20 text-bull border-bull/50'
@@ -394,15 +397,13 @@ export function EntryForm({ onCreated }: EntryFormProps) {
         label="Tags"
       />
 
-      {error ? <p className="text-danger text-sm" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="text-danger text-sm" role="alert">
+          {error}
+        </p>
+      ) : null}
 
-      <Button
-        type="submit"
-        size="lg"
-        disabled={busy || !entry}
-        loading={busy}
-        className="mt-2"
-      >
+      <Button type="submit" size="lg" disabled={busy || !entry} loading={busy} className="mt-2">
         {busy ? 'Saving…' : 'Save entry'}
       </Button>
     </form>

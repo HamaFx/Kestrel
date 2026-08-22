@@ -18,22 +18,21 @@
 
 // /calendar interactive view. Owns filter state and groups events into
 // today / tomorrow / this-week / later-this-month / past sections.
-
 import type { EconomicEvent } from '@kestrel/shared';
-import {IconFilter, IconRefresh, IconCalendarX} from '@tabler/icons-react';
-import { useEffect, useMemo, useState, useTransition } from 'react';
-import { toast } from 'sonner';
+import { IconCalendarX, IconFilter, IconRefresh } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { parseAsBoolean, parseAsStringLiteral, useQueryState } from 'nuqs';
+import { useEffect, useMemo, useState, useTransition } from 'react';
+import { toast } from 'sonner';
 
 import { EventCard } from '@/components/calendar/event-card';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
 import { startOfDay } from '@/lib/datetime';
+import { formatRelative } from '@/lib/format';
 
 import { CalendarToolbar } from './calendar-toolbar';
 
@@ -58,7 +57,13 @@ export function CalendarView({ initialEvents }: CalendarViewProps) {
   const [showPast, setShowPast] = useQueryState('showPast', showPastParser);
   const [lastRefreshed, setLastRefreshed] = useState(Date.now());
 
-  const { data: events = initialEvents, isLoading, isError, error, refetch } = useQuery<EconomicEvent[]>({
+  const {
+    data: events = initialEvents,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<EconomicEvent[]>({
     queryKey: ['calendar'],
     queryFn: async () => {
       return apiFetch<EconomicEvent[]>('/api/calendar');
@@ -104,7 +109,7 @@ export function CalendarView({ initialEvents }: CalendarViewProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-3 mt-4">
+      <div className="mt-4 space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-20 w-full" />
         ))}
@@ -164,7 +169,7 @@ export function CalendarView({ initialEvents }: CalendarViewProps) {
           {sections.map(([label, items]) => (
             <section key={label} className="flex flex-col gap-3">
               <h2
-                className="bg-bg-elev-1/95 text-fg-subtle sticky z-10 -mx-4 flex items-baseline gap-2 px-5 py-2 text-caption font-semibold uppercase tracking-wider"
+                className="bg-bg-elev-1/95 text-fg-subtle text-caption sticky z-10 -mx-4 flex items-baseline gap-2 px-5 py-2 font-semibold tracking-wider uppercase"
                 style={{ top: 'calc(var(--topbar-h) + env(safe-area-inset-top))' }}
               >
                 {label}
@@ -172,10 +177,7 @@ export function CalendarView({ initialEvents }: CalendarViewProps) {
               </h2>
               <ul className="flex flex-col gap-3">
                 {items.map((e) => (
-                  <li
-                    key={e.id}
-                    className={e.date < Date.now() ? 'opacity-60' : ''}
-                  >
+                  <li key={e.id} className={e.date < Date.now() ? 'opacity-60' : ''}>
                     <EventCard event={e} />
                   </li>
                 ))}
@@ -222,4 +224,3 @@ function bucket(events: readonly EconomicEvent[]): Section[] {
   if (past.length) sections.push(['Past', past]);
   return sections;
 }
-

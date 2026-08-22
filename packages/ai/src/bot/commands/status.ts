@@ -17,10 +17,10 @@
 // F7 — /status command: system status and quick overview.
 // /status → shows system health, market phase, and user's open positions count.
 
-import type { BotCommand, BotResponse, BotContext } from '../types';
-import { listOpenPositions } from '@kestrel/db';
-import { countActiveAlerts } from '@kestrel/db';
+import { countActiveAlerts, listOpenPositions } from '@kestrel/db';
 import { getMarketPhase, isForexWeekend } from '@kestrel/shared';
+
+import type { BotCommand, BotContext, BotResponse } from '../types';
 
 export const statusCommand: BotCommand = {
   name: 'status',
@@ -44,7 +44,9 @@ export const statusCommand: BotCommand = {
         '',
         '📊 Your Overview',
         `Open Positions: ${positions.length}`,
-        `Active Alerts: ${alertsCount}`,        '','System operational',
+        `Active Alerts: ${alertsCount}`,
+        '',
+        'System operational',
       ];
 
       return {

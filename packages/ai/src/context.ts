@@ -22,12 +22,12 @@
 // Missing entries silently drop out of the snapshot.
 
 import { getPrice } from '@kestrel/data';
-import { schema, listUserSymbols } from '@kestrel/db';
-import { getDb } from './db';
-import { SYMBOLS, type Symbol, type Tick, getMarketPhase } from '@kestrel/shared';
-import { desc } from 'drizzle-orm';
+import { listUserSymbols, schema } from '@kestrel/db';
+import { getMarketPhase, SYMBOLS, type Symbol, type Tick } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { desc } from 'drizzle-orm';
 
+import { getDb } from './db';
 import type { LiveSnapshot } from './prompt/system';
 
 const clog = createCategorizedLogger('ai', { component: 'context' });
@@ -54,7 +54,6 @@ function inferSession(now: Date): LiveSnapshot['session'] {
 export async function buildLiveSnapshot(
   opts: { signal?: AbortSignal | undefined; userId?: string | undefined } = {},
 ): Promise<LiveSnapshot> {
-
   const now = new Date();
   const prices: Partial<Record<Symbol, Tick>> = {};
   let copilotHealth: LiveSnapshot['copilotHealth'] = undefined;
@@ -115,7 +114,7 @@ export async function buildLiveSnapshot(
         const timeoutMs = 800;
         const fetchPromise = getPrice(s, opts.signal ? { signal: opts.signal } : {});
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('timeout')), timeoutMs)
+          setTimeout(() => reject(new Error('timeout')), timeoutMs),
         );
         prices[s] = await Promise.race([fetchPromise, timeoutPromise]);
       } catch (err) {
@@ -129,7 +128,7 @@ export async function buildLiveSnapshot(
           err: err instanceof Error ? err.message : String(err),
         });
       }
-    })
+    }),
   );
 
   if (missingPriceSymbols.length > 0) {
@@ -150,4 +149,3 @@ export async function buildLiveSnapshot(
     marketPhase: getMarketPhase(now),
   };
 }
-

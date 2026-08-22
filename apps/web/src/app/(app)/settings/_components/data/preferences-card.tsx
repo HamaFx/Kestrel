@@ -15,19 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { DEFAULT_WATCHLIST_SYMBOLS, isKnownSymbol, type Symbol } from '@kestrel/shared';
-import {IconClock, IconBolt, IconTrendingUp} from '@tabler/icons-react';
+import { IconBolt, IconClock, IconTrendingUp } from '@tabler/icons-react';
 import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+
 import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
-
-import { SettingsRow } from '../settings-row';
-import { RowDivider } from '../row-divider';
-import { updateUIPrefsAction } from '../../actions';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { migrateLocalStorageKey } from '@/lib/storage';
+
+import { updateUIPrefsAction } from '../../actions';
+import { RowDivider } from '../row-divider';
+import { SettingsRow } from '../settings-row';
 
 interface Prefs {
   defaultSymbol: Symbol;
@@ -48,7 +48,11 @@ export function PreferencesCard({
   initialPrefs,
 }: {
   watchlist?: string[];
-  initialPrefs?: { defaultSymbol?: string | null; timeFormat?: string | null; reduceMotion?: boolean | null };
+  initialPrefs?: {
+    defaultSymbol?: string | null;
+    timeFormat?: string | null;
+    reduceMotion?: boolean | null;
+  };
 }) {
   // Migrate from the legacy unversioned key once.
   useEffect(() => {
@@ -77,20 +81,23 @@ export function PreferencesCard({
     }
   }, [hydrated, initialPrefs, prefs, setPrefs]);
 
-  const update = useCallback(<K extends keyof Prefs>(key: K, value: Prefs[K]) => {
-    setPrefs((prev) => ({ ...prev, [key]: value }));
-  }, [setPrefs]);
+  const update = useCallback(
+    <K extends keyof Prefs>(key: K, value: Prefs[K]) => {
+      setPrefs((prev) => ({ ...prev, [key]: value }));
+    },
+    [setPrefs],
+  );
 
   // Apply on mount and updates so a hard refresh and cross-tab sync respect the saved value.
   useEffect(() => {
     if (hydrated) {
       document.documentElement.dataset.reduceMotion = prefs.reduceMotion ? 'force' : 'auto';
-      
+
       // Sanitize defaultSymbol from localStorage using isSymbol and ensuring it is present in the watchlist
       if (!isKnownSymbol(prefs.defaultSymbol) || !watchlist.includes(prefs.defaultSymbol)) {
         const defaultSym = watchlist.includes(DEFAULT_WATCHLIST_SYMBOLS[0])
           ? DEFAULT_WATCHLIST_SYMBOLS[0]
-          : (watchlist[0] || DEFAULTS.defaultSymbol);
+          : watchlist[0] || DEFAULTS.defaultSymbol;
         // Avoid infinite updates if it is already matching
         if (prefs.defaultSymbol !== defaultSym) {
           update('defaultSymbol', defaultSym);
@@ -109,16 +116,13 @@ export function PreferencesCard({
   return (
     <section
       aria-labelledby="prefs-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-1 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
     >
       <header className="flex items-center gap-3 pb-2">
-        <h2
-          id="prefs-heading"
-          className="text-fg text-base font-semibold tracking-tight"
-        >
+        <h2 id="prefs-heading" className="text-fg text-base font-semibold tracking-tight">
           Preferences
         </h2>
-        <p className="text-fg-subtle ml-auto text-caption uppercase tracking-wider">
+        <p className="text-fg-subtle text-caption ml-auto tracking-wider uppercase">
           Saved to account
         </p>
       </header>

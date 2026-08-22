@@ -17,10 +17,15 @@
 // Tests for the upgraded Telegram bot system.
 // Run: pnpm --filter @kestrel/ai test -- --run telegram
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { isDuplicateUpdate, markProcessed, _resetForTesting } from '../src/telegram/idempotency';
-import { checkRateLimit, getRateLimitStatus, _resetRateLimitsForTesting } from '../src/telegram/rate-limiter';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { chunkText } from '../src/telegram/client';
+import { _resetForTesting, isDuplicateUpdate, markProcessed } from '../src/telegram/idempotency';
+import {
+  _resetRateLimitsForTesting,
+  checkRateLimit,
+  getRateLimitStatus,
+} from '../src/telegram/rate-limiter';
 
 // ── Idempotency Guard ──
 

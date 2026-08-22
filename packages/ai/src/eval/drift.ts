@@ -83,10 +83,7 @@ function buildBucket(key: string, results: PromptResult[]): DriftBucket {
   const total = mean(results.map((r) => r.totalMs));
   const cost = mean(results.map((r) => r.metadata.totalCostUsd));
   const citation = mean(results.map((r) => r.citationScore));
-  const assertionFailures = results.reduce(
-    (sum, r) => sum + (r.assertions?.length ?? 0),
-    0,
-  );
+  const assertionFailures = results.reduce((sum, r) => sum + (r.assertions?.length ?? 0), 0);
 
   return {
     key,

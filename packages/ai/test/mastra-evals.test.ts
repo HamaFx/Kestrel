@@ -1,5 +1,30 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, expect, it, vi } from 'vitest';
 
+import { computeCitationScore } from '../src/eval/citation-oracle';
+import type { PromptResult } from '../src/eval/runner';
+import { buildTrainingRecords } from '../src/eval/training-export';
+import { createCitationScorer, createGroundingScorer } from '../src/mastra-v2/evals/custom';
+import {
+  createMastraEvalGate,
+  createScoreThresholdGate,
+  recordsToGateObserved,
+} from '../src/mastra-v2/evals/gate';
 import {
   buildConversationScorers,
   buildPrebuiltScorers,
@@ -7,16 +32,7 @@ import {
   createDeterministicScorer,
   resolveJudgeModel,
 } from '../src/mastra-v2/evals/scorers';
-import { createCitationScorer, createGroundingScorer } from '../src/mastra-v2/evals/custom';
-import {
-  createMastraEvalGate,
-  createScoreThresholdGate,
-  recordsToGateObserved,
-} from '../src/mastra-v2/evals/gate';
 import type { ScoreRecord } from '../src/mastra-v2/evals/scores';
-import { buildTrainingRecords } from '../src/eval/training-export';
-import type { PromptResult } from '../src/eval/runner';
-import { computeCitationScore } from '../src/eval/citation-oracle';
 
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
@@ -96,7 +112,10 @@ describe('mastra evals — scorers', () => {
       'toxicity',
     ]);
     // Prebuilt scorers carry sampling; custom scorers do not.
-    expect(conversation.entries['answer-relevancy']?.sampling).toEqual({ type: 'ratio', rate: 0.05 });
+    expect(conversation.entries['answer-relevancy']?.sampling).toEqual({
+      type: 'ratio',
+      rate: 0.05,
+    });
     expect(conversation.entries['kestrel-grounding']?.sampling).toBeUndefined();
     expect(conversation.entries['kestrel-citation']?.sampling).toBeUndefined();
 
@@ -205,11 +224,14 @@ describe('mastra evals — gate', () => {
   });
 
   it('fails when a scorer falls below the pass threshold', () => {
-    const result = recordsToGateObserved([
-      record({ scorerId: 'faithfulness', score: 0.4 }),
-      record({ scorerId: 'hallucination', score: 0 }),
-      record({ scorerId: 'kestrel-citation', score: 1 }),
-    ], { minOverallPassRate: 0.95 } as never);
+    const result = recordsToGateObserved(
+      [
+        record({ scorerId: 'faithfulness', score: 0.4 }),
+        record({ scorerId: 'hallucination', score: 0 }),
+        record({ scorerId: 'kestrel-citation', score: 1 }),
+      ],
+      { minOverallPassRate: 0.95 } as never,
+    );
     expect(result.passed).toBe(false);
     expect(result.failures.length).toBeGreaterThan(0);
   });

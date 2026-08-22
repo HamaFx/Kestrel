@@ -2,6 +2,22 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Phase 1.8 — P&L calendar heatmap.
 //
 // TradeZella-style grid of daily realized R. Each closed day is coloured
@@ -12,11 +28,11 @@
 //
 // Pure client component — receives entries as props (the dashboard page
 // already does the `Promise.all` fetch).
-
-import { useMemo, useState } from 'react';
-import {IconChevronLeft, IconChevronRight} from '@tabler/icons-react';
 import type { JournalEntry } from '@kestrel/shared';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { useMemo, useState } from 'react';
 
+import { EntryList } from '@/app/(app)/journal/_components/entry-list';
 import { Card } from '@/components/ui/card';
 import {
   Drawer,
@@ -26,7 +42,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { EntryList } from '@/app/(app)/journal/_components/entry-list';
 import { cn } from '@/lib/cn';
 import { formatRelative } from '@/lib/format';
 
@@ -153,9 +168,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
     let count = 0;
     for (const [, b] of bucketsByKey) {
       // Only include buckets within the two visible months.
-      const visible = months.some((m) =>
-        m.weeks.flat().some((cell) => cell?.key === b.key),
-      );
+      const visible = months.some((m) => m.weeks.flat().some((cell) => cell?.key === b.key));
       if (!visible) continue;
       r += b.totalR;
       count += b.count;
@@ -211,10 +224,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
           {/* Day-of-week header */}
           <div className="grid grid-cols-7 gap-1.5">
             {DOW_LABELS.map((d) => (
-              <span
-                key={d}
-                className="text-fg-subtle text-caption uppercase tracking-wider"
-              >
+              <span key={d} className="text-fg-subtle text-caption tracking-wider uppercase">
                 {d}
               </span>
             ))}
@@ -242,7 +252,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
                     cell.totalR < 0 && 'text-bear',
                     cell.totalR === 0 && 'text-fg-muted',
                     'transition-transform active:scale-95',
-                    isToday && 'ring-2 ring-fg ring-offset-1 ring-offset-bg-elev-1',
+                    isToday && 'ring-fg ring-offset-bg-elev-1 ring-2 ring-offset-1',
                   )}
                   style={heatCellStyle(cell.totalR)}
                 >
@@ -306,26 +316,28 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
 
 function Legend() {
   return (
-    <div className="text-fg-subtle flex items-center gap-2 text-caption">
+    <div className="text-fg-subtle text-caption flex items-center gap-2">
       <span>Less</span>
       <div className="flex items-center gap-1">
         {[0.2, 0.4, 0.6, 0.85].map((a) => (
           <span
             key={a}
-            className="size-3 rounded-sm"              style={{
-                backgroundColor: 'var(--color-bull)',
-                opacity: a,
-              }}
+            className="size-3 rounded-sm"
+            style={{
+              backgroundColor: 'var(--color-bull)',
+              opacity: a,
+            }}
             aria-hidden="true"
           />
         ))}
         {[0.85, 0.6, 0.4, 0.2].map((a) => (
           <span
             key={a}
-            className="size-3 rounded-sm"              style={{
-                backgroundColor: 'var(--color-bear)',
-                opacity: a,
-              }}
+            className="size-3 rounded-sm"
+            style={{
+              backgroundColor: 'var(--color-bear)',
+              opacity: a,
+            }}
             aria-hidden="true"
           />
         ))}

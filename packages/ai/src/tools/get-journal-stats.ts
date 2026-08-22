@@ -21,7 +21,6 @@
 // all-zero stats block + empty breakdown arrays — never throws.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import {
   GetJournalStatsInputSchema,
   type GetJournalStatsOutput,
@@ -31,6 +30,7 @@ import { tool } from 'ai';
 import { and, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { getDb } from '../db';
 import { computeStats } from '../journal/persistence';
 import { getToolContext, maybeGetToolContext } from '../tool-context';
 
@@ -61,10 +61,7 @@ export const getJournalStatsTool = tool({
     if (side !== undefined) filters.push(eq(schema.journalEntries.side, side));
     const where = filters.length > 0 ? and(...filters) : undefined;
 
-    const [bySymbol, byTag] = await Promise.all([
-      breakdownBySymbol(where),
-      breakdownByTag(where),
-    ]);
+    const [bySymbol, byTag] = await Promise.all([breakdownBySymbol(where), breakdownByTag(where)]);
 
     return { stats, bySymbol, byTag };
   },
@@ -88,9 +85,18 @@ async function breakdownBySymbol(where: SQL | undefined): Promise<StatBreakdown[
     .select({
       key: schema.journalEntries.symbol,
       count: sql<number>`count(*)`.as('count'),
-      wins: sql<number>`sum(case when ${schema.journalEntries.outcome} = 'win' then 1 else 0 end)`.as('wins'),
-      closed: sql<number>`sum(case when ${schema.journalEntries.outcome} <> 'open' then 1 else 0 end)`.as('closed'),
-      avg_r: sql<number | null>`avg(${schema.journalEntries.rMultiple}) filter (where ${schema.journalEntries.rMultiple} is not null)`.as('avg_r'),
+      wins: sql<number>`sum(case when ${schema.journalEntries.outcome} = 'win' then 1 else 0 end)`.as(
+        'wins',
+      ),
+      closed:
+        sql<number>`sum(case when ${schema.journalEntries.outcome} <> 'open' then 1 else 0 end)`.as(
+          'closed',
+        ),
+      avg_r: sql<
+        number | null
+      >`avg(${schema.journalEntries.rMultiple}) filter (where ${schema.journalEntries.rMultiple} is not null)`.as(
+        'avg_r',
+      ),
     })
     .from(schema.journalEntries)
     .where(where)
@@ -107,9 +113,18 @@ async function breakdownByTag(where: SQL | undefined): Promise<StatBreakdown[]> 
     .select({
       key: sql<string>`unnest(${schema.journalEntries.tags})`.as('key'),
       count: sql<number>`count(*)`.as('count'),
-      wins: sql<number>`sum(case when ${schema.journalEntries.outcome} = 'win' then 1 else 0 end)`.as('wins'),
-      closed: sql<number>`sum(case when ${schema.journalEntries.outcome} <> 'open' then 1 else 0 end)`.as('closed'),
-      avg_r: sql<number | null>`avg(${schema.journalEntries.rMultiple}) filter (where ${schema.journalEntries.rMultiple} is not null)`.as('avg_r'),
+      wins: sql<number>`sum(case when ${schema.journalEntries.outcome} = 'win' then 1 else 0 end)`.as(
+        'wins',
+      ),
+      closed:
+        sql<number>`sum(case when ${schema.journalEntries.outcome} <> 'open' then 1 else 0 end)`.as(
+          'closed',
+        ),
+      avg_r: sql<
+        number | null
+      >`avg(${schema.journalEntries.rMultiple}) filter (where ${schema.journalEntries.rMultiple} is not null)`.as(
+        'avg_r',
+      ),
     })
     .from(schema.journalEntries)
     .where(where)

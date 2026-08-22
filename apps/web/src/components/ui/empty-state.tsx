@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // <EmptyState> — shared empty/zero-data placeholder. Mobile-first vertical
@@ -47,7 +63,7 @@ export function EmptyState({
       aria-label={title}
       className={cn(
         'flex flex-col items-center gap-5 px-6 py-10 text-center',
-        !bare && 'border border-border bg-bg-elev-1 rounded-sm',
+        !bare && 'border-border bg-bg-elev-1 rounded-sm border',
         className,
       )}
     >
@@ -55,7 +71,9 @@ export function EmptyState({
         aria-hidden="true"
         className={cn(
           'inline-flex items-center justify-center rounded-sm',
-          tone === 'brand' ? 'text-fg bg-bg-elev-2 h-20 w-20' : 'text-fg-muted bg-bg-elev-2 h-16 w-16',
+          tone === 'brand'
+            ? 'text-fg bg-bg-elev-2 h-20 w-20'
+            : 'text-fg-muted bg-bg-elev-2 h-16 w-16',
         )}
       >
         {icon}

@@ -37,8 +37,8 @@
 // is considered expired after LOCK_TTL_MS (default 2h). A new run can
 // acquire the lock by updating the expired row instead of skipping.
 
-import { sql } from 'drizzle-orm';
 import { type getDb } from '@kestrel/ai';
+import { sql } from 'drizzle-orm';
 
 type DbClient = ReturnType<typeof getDb>;
 
@@ -62,10 +62,7 @@ export interface CronLock {
  * @returns A `CronLock` on success, or `null` when the job was already
  *          recorded for today (caller should skip).
  */
-export async function acquireCronLock(
-  jobName: string,
-  db: DbClient,
-): Promise<CronLock | null> {
+export async function acquireCronLock(jobName: string, db: DbClient): Promise<CronLock | null> {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
   const staleThreshold = new Date(Date.now() - LOCK_TTL_MS);
 

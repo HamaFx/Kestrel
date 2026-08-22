@@ -5,7 +5,13 @@
  * you may not use this file except in compliance with the License.
  */
 
+import { metrics } from '@kestrel/shared';
+import { flushMetrics } from '@kestrel/shared/metrics-export';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runMetricsFlush } from '../src/jobs/metrics-flush';
+import { createLogger } from '../src/log';
+import { TenantRouter } from '../src/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   getDb: () => mockDb,
@@ -36,13 +42,6 @@ const mockDb = {
   }),
 };
 
-import { metrics } from '@kestrel/shared';
-import { flushMetrics } from '@kestrel/shared/metrics-export';
-
-import { runMetricsFlush } from '../src/jobs/metrics-flush';
-import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
-
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
 
@@ -54,7 +53,11 @@ beforeEach(() => {
 
 describe('runMetricsFlush', () => {
   it('records tick freshness and pushes the registry', async () => {
-    const result = await runMetricsFlush({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const result = await runMetricsFlush({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
 
     expect(metrics.increment).toHaveBeenCalledWith('worker_flush_total');
     const [, freshness] = vi.mocked(metrics.observe).mock.calls[0] ?? [];
@@ -73,7 +76,11 @@ describe('runMetricsFlush', () => {
       }),
     });
 
-    const result = await runMetricsFlush({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const result = await runMetricsFlush({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     expect(result.note).toContain('no-ticks');
     expect(metrics.observe).not.toHaveBeenCalled();
   });

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,11 +32,19 @@ beforeEach(() => {
   vi.stubGlobal('window', {});
   vi.stubGlobal('localStorage', {
     getItem: vi.fn((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
-    removeItem: vi.fn((key: string) => { delete store[key]; }),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
     key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
-    clear: vi.fn(() => { for (const k in store) delete store[k]; }),
-    get length() { return Object.keys(store).length; },
+    clear: vi.fn(() => {
+      for (const k in store) delete store[k];
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
   });
 });
 
@@ -30,7 +54,9 @@ afterEach(() => {
 
 describe('safeGetItem', () => {
   it('returns the fallback when localStorage throws', () => {
-    localStorage.getItem = vi.fn(() => { throw new Error('storage error'); });
+    localStorage.getItem = vi.fn(() => {
+      throw new Error('storage error');
+    });
     expect(safeGetItem('key', 'default')).toBe('default');
   });
 
@@ -66,7 +92,9 @@ describe('safeSetItem', () => {
   });
 
   it('returns false when localStorage throws', () => {
-    localStorage.setItem = vi.fn(() => { throw new Error('QuotaExceededError'); });
+    localStorage.setItem = vi.fn(() => {
+      throw new Error('QuotaExceededError');
+    });
     expect(safeSetItem('key', 'value')).toBe(false);
   });
 
@@ -126,40 +154,38 @@ describe('uploadChatImage — validation', () => {
   };
 
   it('throws when body is empty', async () => {
-    await expect(
-      uploadChatImage(env, { ...validInput, body: new Uint8Array(0) }),
-    ).rejects.toThrow('upload payload is empty');
+    await expect(uploadChatImage(env, { ...validInput, body: new Uint8Array(0) })).rejects.toThrow(
+      'upload payload is empty',
+    );
   });
 
   it('throws when body exceeds max upload size', async () => {
     const tooBig = new Uint8Array(6 * 1024 * 1024);
-    await expect(
-      uploadChatImage(env, { ...validInput, body: tooBig }),
-    ).rejects.toThrow('upload exceeds');
+    await expect(uploadChatImage(env, { ...validInput, body: tooBig })).rejects.toThrow(
+      'upload exceeds',
+    );
   });
 
   it('throws when media type is not an image', async () => {
-    await expect(
-      uploadChatImage(env, { ...validInput, mediaType: 'text/plain' }),
-    ).rejects.toThrow('media type text/plain is not an image');
+    await expect(uploadChatImage(env, { ...validInput, mediaType: 'text/plain' })).rejects.toThrow(
+      'media type text/plain is not an image',
+    );
   });
 
   it('accepts various image media types', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
     const types = ['image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'];
     for (const mediaType of types) {
-      await expect(
-        uploadChatImage(env, { ...validInput, mediaType }),
-      ).resolves.toBeDefined();
+      await expect(uploadChatImage(env, { ...validInput, mediaType })).resolves.toBeDefined();
     }
     vi.restoreAllMocks();
   });
 
   it('throws when Supabase returns non-2xx', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('Unauthorized', { status: 401 }),
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('Unauthorized', { status: 401 }));
+    await expect(uploadChatImage(env, validInput)).rejects.toThrow(
+      'Supabase Storage upload failed: HTTP 401',
     );
-    await expect(uploadChatImage(env, validInput)).rejects.toThrow('Supabase Storage upload failed: HTTP 401');
     vi.restoreAllMocks();
   });
 

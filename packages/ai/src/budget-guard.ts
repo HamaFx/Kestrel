@@ -22,12 +22,13 @@
 // and independently testable.
 
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+
 import {
   applyBudgetDelta,
   BudgetExceededError,
   DEFAULT_MAX_DAILY_USD,
-  releaseBudgetReservation,
   DEFAULT_TURN_ESTIMATE_USD,
+  releaseBudgetReservation,
   tryReserveBudget,
 } from './cost';
 
@@ -103,16 +104,13 @@ export async function reconcileBudget(
  * Release an unused budget reservation (e.g., on non-retryable error or
  * client disconnect). Idempotent — safe to call multiple times.
  */
-export async function releaseBudget(
-  reservation: BudgetReservation,
-  userId: string,
-): Promise<void> {
+export async function releaseBudget(reservation: BudgetReservation, userId: string): Promise<void> {
   if (reservation.released) return;
   try {
     if (reservation.reservationId) {
       await releaseBudgetReservation(reservation.reservationId);
     } else {
-      await applyBudgetDelta(userId, -(reservation.reservedUsd));
+      await applyBudgetDelta(userId, -reservation.reservedUsd);
     }
     (reservation as { released: boolean }).released = true;
   } catch (err) {

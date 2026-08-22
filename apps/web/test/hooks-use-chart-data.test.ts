@@ -1,9 +1,27 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
-import { createElement } from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { renderHook, waitFor } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { fetchCandles, fetchChartData } from '@/lib/market-client';
+
 import { useChartData } from '../src/hooks/use-chart-data';
 
 vi.mock('@/lib/market-client', () => ({
@@ -11,7 +29,6 @@ vi.mock('@/lib/market-client', () => ({
   fetchChartData: vi.fn(),
 }));
 
-import { fetchCandles, fetchChartData } from '@/lib/market-client';
 const mockFetchCandles = vi.mocked(fetchCandles);
 const mockFetchChartData = vi.mocked(fetchChartData);
 
@@ -24,7 +41,16 @@ function createWrapper() {
 }
 
 const mockCandle = (overrides = {}) => ({
-  symbol: 'XAUUSD', tf: '1h', t: 1, o: 100, h: 110, l: 99, c: 105, v: 1000, source: 'test', fetchedAt: 1,
+  symbol: 'XAUUSD',
+  tf: '1h',
+  t: 1,
+  o: 100,
+  h: 110,
+  l: 99,
+  c: 105,
+  v: 1000,
+  source: 'test',
+  fetchedAt: 1,
   ...overrides,
 });
 
@@ -35,10 +61,9 @@ describe('useChartData', () => {
   });
 
   it('returns empty candles array when data is not loaded', () => {
-    const { result } = renderHook(
-      () => useChartData('XAUUSD', '1h', [], 300),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useChartData('XAUUSD', '1h', [], 300), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.candles).toEqual([]);
     expect(result.current.indicatorResults).toBeNull();
@@ -49,10 +74,9 @@ describe('useChartData', () => {
     const candles = [mockCandle()];
     mockFetchCandles.mockResolvedValue(candles);
 
-    const { result } = renderHook(
-      () => useChartData('XAUUSD', '1h', [], 300),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useChartData('XAUUSD', '1h', [], 300), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.candles).toEqual(candles));
     expect(result.current.indicatorResults).toBeNull();
@@ -62,7 +86,14 @@ describe('useChartData', () => {
   it('fetches chart data when indicators are requested', async () => {
     const candles = [mockCandle()];
     const results = [
-      { symbol: 'XAUUSD', tf: '1h', kind: 'rsi', params: { period: 14 }, values: [{ t: 1, v: 50 }], fetchedAt: 1 },
+      {
+        symbol: 'XAUUSD',
+        tf: '1h',
+        kind: 'rsi',
+        params: { period: 14 },
+        values: [{ t: 1, v: 50 }],
+        fetchedAt: 1,
+      },
     ];
     mockFetchChartData.mockResolvedValue({ candles, results });
 
@@ -77,10 +108,9 @@ describe('useChartData', () => {
   });
 
   it('does not fetch when enabled is false', () => {
-    const { result } = renderHook(
-      () => useChartData('XAUUSD', '1h', [], 300, { enabled: false }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useChartData('XAUUSD', '1h', [], 300, { enabled: false }), {
+      wrapper: createWrapper(),
+    });
 
     expect(mockFetchCandles).not.toHaveBeenCalled();
     expect(mockFetchChartData).not.toHaveBeenCalled();
@@ -90,10 +120,9 @@ describe('useChartData', () => {
   it('surfaces errors from fetchCandles', async () => {
     mockFetchCandles.mockRejectedValue(new Error('Candle fetch failed'));
 
-    const { result } = renderHook(
-      () => useChartData('XAUUSD', '1h', [], 300),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useChartData('XAUUSD', '1h', [], 300), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.error).toBeDefined());
     expect(result.current.candles).toEqual([]);
@@ -115,10 +144,7 @@ describe('useChartData', () => {
     vi.useFakeTimers();
     mockFetchCandles.mockResolvedValue([mockCandle()]);
 
-    renderHook(
-      () => useChartData('XAUUSD', '1h', [], 300),
-      { wrapper: createWrapper() },
-    );
+    renderHook(() => useChartData('XAUUSD', '1h', [], 300), { wrapper: createWrapper() });
 
     // M5: Prefetch is now debounced by 2s — advance timers to trigger it.
     await vi.advanceTimersByTimeAsync(2_500);

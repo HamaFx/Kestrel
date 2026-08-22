@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { TextPart } from '@/components/chat/parts/text';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { PasswordField } from '@/app/(auth)/_components/password-field';
+import { TextPart } from '@/components/chat/parts/text';
 
 afterEach(cleanup);
 
@@ -30,39 +31,27 @@ const read = (relativePath: string) => readFileSync(resolve(root, relativePath),
 
 describe('Phase 7 — chat message reading', () => {
   it('preserves line breaks while streaming (no layout jump on finish)', () => {
-    render(
-      <TextPart
-        role="assistant"
-        isStreaming
-        text={'First paragraph\n\nSecond paragraph'}
-      />,
-    );
+    render(<TextPart role="assistant" isStreaming text={'First paragraph\n\nSecond paragraph'} />);
     const el = screen.getByText(/First paragraph/);
     expect(el.className).toContain('whitespace-pre-line');
   });
 
   it('does not attach a live region to the visible streaming text', () => {
-    const { container } = render(
-      <TextPart role="assistant" isStreaming text="streaming…" />,
-    );
+    const { container } = render(<TextPart role="assistant" isStreaming text="streaming…" />);
     // The debounced sr-only StreamingLiveRegion owns announcements; a live
     // region here would re-announce the entire history on re-render.
     expect(container.querySelector('[aria-live]')).toBeNull();
   });
 
   it('marks the streaming caret as decorative', () => {
-    const { container } = render(
-      <TextPart role="assistant" isStreaming text="hello" />,
-    );
+    const { container } = render(<TextPart role="assistant" isStreaming text="hello" />);
     const caret = container.querySelector('.animate-pulse');
     expect(caret).not.toBeNull();
     expect(caret?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('renders raw text (no markdown processing) while streaming', () => {
-    render(
-      <TextPart role="assistant" isStreaming text="**bold** not parsed yet" />,
-    );
+    render(<TextPart role="assistant" isStreaming text="**bold** not parsed yet" />);
     // The literal asterisks stay visible until the finished markdown render.
     expect(screen.getByText('**bold** not parsed yet')).toBeTruthy();
     expect(screen.queryByRole('strong')).toBeNull();
@@ -85,7 +74,9 @@ describe('Phase 9 — auth components', () => {
     expect(toggle.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(toggle);
     expect(passwordInput.type).toBe('text');
-    expect(screen.getByRole('button', { name: 'Hide password' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Hide password' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
   });
 });
 
@@ -133,11 +124,12 @@ describe('Phase 7–9 source contracts', () => {
   it('nav drawer content carries the id referenced by the trigger', () => {
     expect(navDrawerSource).toContain('id="sidebar-nav"');
     expect(navTriggerSource).toContain('aria-controls="sidebar-nav"');
-    expect(navDrawerSource).toMatch(/focus-visible:ring-2 focus-visible:ring-brand/);
+    expect(navDrawerSource).toContain('focus-visible:ring-2');
+    expect(navDrawerSource).toContain('focus-visible:ring-brand');
   });
 
   it('auth forms link inputs to their error messages', () => {
     expect(loginSource).toContain("aria-describedby={state?.error ? 'form-error' : undefined}");
-    expect(registerSource).toContain('aria-describedby={confirmTouched && !passwordsMatch ?');
+    expect(registerSource).toMatch(/aria-describedby=\{\s*confirmTouched && !passwordsMatch/);
   });
 });

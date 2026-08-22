@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { ChatStreamEventSchema } from '@kestrel/shared';
@@ -21,7 +37,9 @@ export interface MastraStreamResponseOptions {
 }
 
 function encode(event: unknown): Uint8Array {
-  return new TextEncoder().encode(`data: ${JSON.stringify(ChatStreamEventSchema.parse(event))}\n\n`);
+  return new TextEncoder().encode(
+    `data: ${JSON.stringify(ChatStreamEventSchema.parse(event))}\n\n`,
+  );
 }
 
 /**
@@ -39,24 +57,31 @@ export function mastraStreamResponse(
       let started = false;
       let ended = false;
       try {
-        if (options.signal?.aborted) throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
+        if (options.signal?.aborted)
+          throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
         controller.enqueue(encode({ type: 'text-start', id: messageId }));
         started = true;
         for await (const chunk of text) {
-          if (options.signal?.aborted) throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
-          if (chunk) controller.enqueue(encode({ type: 'text-delta', id: messageId, delta: chunk }));
+          if (options.signal?.aborted)
+            throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
+          if (chunk)
+            controller.enqueue(encode({ type: 'text-delta', id: messageId, delta: chunk }));
         }
         if (options.meta) {
-          controller.enqueue(encode({ type: 'data-multi-agent-meta', id: options.meta.id, data: options.meta.data }));
+          controller.enqueue(
+            encode({ type: 'data-multi-agent-meta', id: options.meta.id, data: options.meta.data }),
+          );
         }
         controller.enqueue(encode({ type: 'text-end', id: messageId }));
         ended = true;
       } catch (error) {
         if (!options.signal?.aborted) {
-          controller.enqueue(encode({
-            type: 'error',
-            errorText: error instanceof Error ? error.message : 'Mastra stream failed.',
-          }));
+          controller.enqueue(
+            encode({
+              type: 'error',
+              errorText: error instanceof Error ? error.message : 'Mastra stream failed.',
+            }),
+          );
         }
         // When the stream is aborted before completion, fire the onAbort
         // callback so the service layer can persist an interrupted marker.

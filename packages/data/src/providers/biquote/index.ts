@@ -21,9 +21,5 @@
 // in `apps/worker/src/signalr/` (Phase 8 PR-6).
 
 export { fetchTick, fetchLatest, fetchOhlc, type FetchOhlcArgs } from './rest';
-export {
-  toBiquoteSymbol,
-  toBiquoteTimeframe,
-  parseBiquoteDate,
-} from './map';
+export { toBiquoteSymbol, toBiquoteTimeframe, parseBiquoteDate } from './map';
 export { assertSupportedSymbol } from './filter';

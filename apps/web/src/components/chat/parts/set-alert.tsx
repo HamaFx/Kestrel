@@ -27,7 +27,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import type { SetAlertOutput } from '@kestrel/shared';
 import { Link } from 'next-view-transitions';
 
@@ -58,7 +57,7 @@ export function SetAlertPart({ output, state, errorMessage }: SetAlertPartProps)
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-fg-muted text-xs">Alert created</div>
-          <div className="text-fg mt-0.5 break-words text-sm font-medium">{output.describes}</div>
+          <div className="text-fg mt-0.5 text-sm font-medium break-words">{output.describes}</div>
         </div>
       </div>
       <Link
@@ -68,7 +67,7 @@ export function SetAlertPart({ output, state, errorMessage }: SetAlertPartProps)
           'focus-visible:ring-fg mt-2 inline-flex min-h-[44px] min-w-[44px]',
           'items-center justify-center rounded-sm px-3 text-sm font-medium',
           'text-fg underline-offset-2 hover:underline',
-          'focus-visible:outline-none focus-visible:ring-2',
+          'focus-visible:ring-2 focus-visible:outline-none',
         )}
       >
         View in Alerts →

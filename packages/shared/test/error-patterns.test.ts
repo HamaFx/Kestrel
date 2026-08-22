@@ -16,8 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { findErrorPattern, ERROR_PATTERNS } from '../src';
-import { AppError } from '../src';
+import { AppError, ERROR_PATTERNS, findErrorPattern } from '../src';
 
 describe('ERROR_PATTERNS', () => {
   it('contains patterns for common operational errors', () => {

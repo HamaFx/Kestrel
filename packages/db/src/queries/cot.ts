@@ -17,6 +17,7 @@
 // PF-01 Phase 2 — COT report query helpers.
 
 import { desc, eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type CotReportRow = typeof schema.cotReports.$inferSelect;

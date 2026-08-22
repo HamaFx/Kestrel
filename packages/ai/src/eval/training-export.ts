@@ -19,8 +19,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 import { redactString } from '../diagnostics/redact';
-import type { PromptResult } from './runner';
 import type { ScoreRecord } from '../mastra-v2/evals/scores';
+import type { PromptResult } from './runner';
 
 export const TRAINING_RECORD_SCHEMA = 'kestrel.eval-record.v1' as const;
 export const DATASET_MANIFEST_SCHEMA = 'kestrel.eval-manifest.v1' as const;
@@ -158,7 +158,10 @@ export function buildTrainingRecords(
     return record;
   });
 
-  if (options.requireApprovedAnnotations && records.some((record) => record.annotation.label === 'needs_review')) {
+  if (
+    options.requireApprovedAnnotations &&
+    records.some((record) => record.annotation.label === 'needs_review')
+  ) {
     throw new Error('Every record must have an approved reviewer label before export');
   }
   return records;
@@ -220,6 +223,7 @@ function sha256(value: string): string {
 function findSensitiveTrainingContent(value: string): 'email' | 'phone' | 'credential' | null {
   if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(value)) return 'email';
   if (/(?:\+?\d[\d\s().-]{8,}\d)/.test(value)) return 'phone';
-  if (/(?:api[_ -]?key|access[_ -]?token|bearer)\s*[:=]\s*(?!<redacted>)(?:\S+)/i.test(value)) return 'credential';
+  if (/(?:api[_ -]?key|access[_ -]?token|bearer)\s*[:=]\s*(?!<redacted>)(?:\S+)/i.test(value))
+    return 'credential';
   return null;
 }

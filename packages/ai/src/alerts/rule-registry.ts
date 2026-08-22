@@ -25,7 +25,8 @@
 // and IndicatorRegistry (packages/indicators/src/indicator-registry.ts).
 
 import type { AlertRule } from '@kestrel/shared';
-import { LevelSpec, CrossingSpec, type AlertSpec } from './spec';
+
+import { CrossingSpec, LevelSpec, type AlertSpec } from './spec';
 
 // --- Plugin definition --------------------------------------------------
 
@@ -67,7 +68,7 @@ export class AlertRuleRegistry {
     if (!plugin) {
       throw new Error(
         `Unknown alert rule type: "${type}". Registered types: ${this.listTypes().join(', ')}. ` +
-        `Add it via alertRuleRegistry.register().`,
+          `Add it via alertRuleRegistry.register().`,
       );
     }
     return plugin;
@@ -115,5 +116,6 @@ alertRuleRegistry.register({
   label: 'Indicator Cross',
   specFactory: (rule) => new CrossingSpec(rule.direction, rule.level),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  describe: (rule: any) => `${rule.symbol} ${rule.tf} ${rule.indicator} ${rule.direction} ${rule.level}`,
+  describe: (rule: any) =>
+    `${rule.symbol} ${rule.tf} ${rule.indicator} ${rule.direction} ${rule.level}`,
 });

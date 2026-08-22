@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { mkdtemp, readFile as readFileAsync, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
-
-import { readFile as readFileAsync } from 'node:fs/promises';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { runEvals } from '../src/eval/runner';
 
@@ -115,7 +114,8 @@ describe('eval offline — Phase 0.7', () => {
       JSON.stringify([
         {
           id: 'offline-p1',
-          prompt: 'Size a 1% risk long on XAUUSD from 2400 stop 2390 target 2420 with $10k account.',
+          prompt:
+            'Size a 1% risk long on XAUUSD from 2400 stop 2390 target 2420 with $10k account.',
           expectedTools: ['compute_risk'],
           forbiddenTools: ['verify_call'],
           mustContainSubstrings: ['XAUUSD'],
@@ -186,22 +186,28 @@ describe('eval offline — Phase 0.7', () => {
       results: Array<{ id: string; ok: boolean }>;
     };
     expect(parsed.schemaVersion).toBe('kestrel.eval-report.v1');
-    expect(parsed.qualityGate).toMatchObject({ schemaVersion: 'kestrel.eval-gate.v1', passed: true });
+    expect(parsed.qualityGate).toMatchObject({
+      schemaVersion: 'kestrel.eval-gate.v1',
+      passed: true,
+    });
     expect(parsed.results).toHaveLength(1);
     expect(parsed.results[0]).toMatchObject({ id: 'offline-p1', ok: true });
   });
 
   it('fails when a structured numeric output misses the expected value', async () => {
     const numericPromptPath = join(tmpDir, 'numeric-mismatch.json');
-    await writeFile(numericPromptPath, JSON.stringify([
-      {
-        id: 'offline-numeric-mismatch',
-        prompt: 'Check the risk ratio.',
-        expectedToolOutputs: [
-          { tool: 'compute_risk', path: 'rrRatio', value: 3, tolerance: 0.01 },
-        ],
-      },
-    ]));
+    await writeFile(
+      numericPromptPath,
+      JSON.stringify([
+        {
+          id: 'offline-numeric-mismatch',
+          prompt: 'Check the risk ratio.',
+          expectedToolOutputs: [
+            { tool: 'compute_risk', path: 'rrRatio', value: 3, tolerance: 0.01 },
+          ],
+        },
+      ]),
+    );
 
     const { results } = await runEvals({
       baseUrl: 'http://localhost:9999',
@@ -212,9 +218,7 @@ describe('eval offline — Phase 0.7', () => {
       onProgress: () => {},
     });
 
-    expect(results[0]?.assertions).toEqual([
-      expect.objectContaining({ kind: 'numeric_mismatch' }),
-    ]);
+    expect(results[0]?.assertions).toEqual([expect.objectContaining({ kind: 'numeric_mismatch' })]);
   });
 
   it('scores citation: unsupported numeric/event claims pull the score down', async () => {
@@ -224,7 +228,11 @@ describe('eval offline — Phase 0.7', () => {
         // market-data or news tool call — the citation score should be 0.
         const stream = makeStream([
           JSON.stringify({ type: 'text-start', id: 't0' }),
-          JSON.stringify({ type: 'text-delta', id: 't0', delta: 'XAUUSD is at 2400.25 ahead of the FOMC decision.' }),
+          JSON.stringify({
+            type: 'text-delta',
+            id: 't0',
+            delta: 'XAUUSD is at 2400.25 ahead of the FOMC decision.',
+          }),
           JSON.stringify({ type: 'text-end', id: 't0' }),
           JSON.stringify({ type: 'finish', finishReason: 'stop' }),
         ]);
@@ -261,23 +269,30 @@ describe('eval offline — Phase 0.7', () => {
 
   it('fails grounding and safety quality gates for unsupported claims', async () => {
     const qualityPromptPath = join(tmpDir, 'quality-failure.json');
-    await writeFile(qualityPromptPath, JSON.stringify([
-      {
-        id: 'offline-quality-failure',
-        prompt: 'Give an ungrounded answer.',
-        quality: {
-          requireNumericToolSupport: true,
-          requireEventToolSupport: true,
-          forbiddenOutputSubstrings: ['guaranteed profit'],
-          requiredOutputSubstrings: ['not financial advice'],
+    await writeFile(
+      qualityPromptPath,
+      JSON.stringify([
+        {
+          id: 'offline-quality-failure',
+          prompt: 'Give an ungrounded answer.',
+          quality: {
+            requireNumericToolSupport: true,
+            requireEventToolSupport: true,
+            forbiddenOutputSubstrings: ['guaranteed profit'],
+            requiredOutputSubstrings: ['not financial advice'],
+          },
         },
-      },
-    ]));
+      ]),
+    );
     server.use(
       http.post('http://localhost:9999/api/chat', () => {
         const stream = makeStream([
           JSON.stringify({ type: 'text-start', id: 't0' }),
-          JSON.stringify({ type: 'text-delta', id: 't0', delta: 'XAUUSD is at 2400.25. FOMC: guaranteed profit.' }),
+          JSON.stringify({
+            type: 'text-delta',
+            id: 't0',
+            delta: 'XAUUSD is at 2400.25. FOMC: guaranteed profit.',
+          }),
           JSON.stringify({ type: 'text-end', id: 't0' }),
           JSON.stringify({ type: 'finish', finishReason: 'stop' }),
         ]);
@@ -295,28 +310,38 @@ describe('eval offline — Phase 0.7', () => {
     });
 
     const kinds = results[0]?.assertions?.map((assertion) => assertion.kind) ?? [];
-    expect(kinds).toEqual(expect.arrayContaining([
-      'unsupported_numeric_claim',
-      'unsupported_event_claim',
-      'unsafe_output',
-      'missing_safety_text',
-    ]));
+    expect(kinds).toEqual(
+      expect.arrayContaining([
+        'unsupported_numeric_claim',
+        'unsupported_event_claim',
+        'unsafe_output',
+        'missing_safety_text',
+      ]),
+    );
     expect(qualityGate.passed).toBe(false);
   });
 
   it('scores streamed multi-agent cost and latency metadata', async () => {
     const qualityPromptPath = join(tmpDir, 'quality-pass.json');
-    await writeFile(qualityPromptPath, JSON.stringify([
-      {
-        id: 'offline-quality-pass',
-        prompt: 'Run a fast grounded committee read.',
-        quality: { maxTtftMs: 1000, maxTotalMs: 1000, maxCostUsd: 0.05 },
-      },
-    ]));
+    await writeFile(
+      qualityPromptPath,
+      JSON.stringify([
+        {
+          id: 'offline-quality-pass',
+          prompt: 'Run a fast grounded committee read.',
+          quality: { maxTtftMs: 1000, maxTotalMs: 1000, maxCostUsd: 0.05 },
+        },
+      ]),
+    );
     server.use(
       http.post('http://localhost:9999/api/chat', () => {
         const stream = makeStream([
-          JSON.stringify({ type: 'data-multi-agent-meta', id: 'm0', data: { totalCostUsd: 0.012, totalLatencyMs: 12, ttfbMs: 4 }, transient: true }),
+          JSON.stringify({
+            type: 'data-multi-agent-meta',
+            id: 'm0',
+            data: { totalCostUsd: 0.012, totalLatencyMs: 12, ttfbMs: 4 },
+            transient: true,
+          }),
           JSON.stringify({ type: 'text-start', id: 't0' }),
           JSON.stringify({ type: 'text-delta', id: 't0', delta: 'Grounded response.' }),
           JSON.stringify({ type: 'text-end', id: 't0' }),
@@ -335,7 +360,11 @@ describe('eval offline — Phase 0.7', () => {
       onProgress: () => {},
     });
 
-    expect(results[0]?.metadata).toMatchObject({ totalCostUsd: 0.012, totalLatencyMs: 12, ttfbMs: 4 });
+    expect(results[0]?.metadata).toMatchObject({
+      totalCostUsd: 0.012,
+      totalLatencyMs: 12,
+      ttfbMs: 4,
+    });
     expect(results[0]?.assertions).toEqual([]);
   });
 
@@ -388,7 +417,9 @@ describe('eval offline — Phase 0.7', () => {
     if (!r) return;
 
     expect(r.ok).toBe(true);
-    expect(r.assertions?.some((a) => a.kind === 'forbidden_tool' && a.detail === 'verify_call')).toBe(true);
+    expect(
+      r.assertions?.some((a) => a.kind === 'forbidden_tool' && a.detail === 'verify_call'),
+    ).toBe(true);
   });
 
   it('fails when an expected tool is missing from the recorded trace', async () => {
@@ -422,24 +453,33 @@ describe('eval offline — Phase 0.7', () => {
     if (!r) return;
 
     expect(r.ok).toBe(true);
-    expect(r.assertions?.some((a) => a.kind === 'missing_tool' && a.detail === 'compute_risk')).toBe(true);
+    expect(
+      r.assertions?.some((a) => a.kind === 'missing_tool' && a.detail === 'compute_risk'),
+    ).toBe(true);
   });
 
   it('scores Full-mode agent lifecycle coverage from streamed progress', async () => {
     const fullPromptPath = join(tmpDir, 'full-mode.json');
-    await writeFile(fullPromptPath, JSON.stringify([
-      {
-        id: 'offline-full',
-        prompt: 'Run Full mode on XAUUSD.',
-        analysisMode: 'full',
-        expectedAgents: ['technical', 'fundamental', 'risk', 'sentiment', 'decision'],
-        expectedAgentStatuses: {
-          technical: 'done', fundamental: 'done', risk: 'done', sentiment: 'error', decision: 'error',
+    await writeFile(
+      fullPromptPath,
+      JSON.stringify([
+        {
+          id: 'offline-full',
+          prompt: 'Run Full mode on XAUUSD.',
+          analysisMode: 'full',
+          expectedAgents: ['technical', 'fundamental', 'risk', 'sentiment', 'decision'],
+          expectedAgentStatuses: {
+            technical: 'done',
+            fundamental: 'done',
+            risk: 'done',
+            sentiment: 'error',
+            decision: 'error',
+          },
+          expectedTerminalStatus: 'failed',
+          mustContainSubstrings: [],
         },
-        expectedTerminalStatus: 'failed',
-        mustContainSubstrings: [],
-      },
-    ]));
+      ]),
+    );
     server.use(
       http.post('http://localhost:9999/api/chat', () => {
         const agents = [
@@ -450,8 +490,19 @@ describe('eval offline — Phase 0.7', () => {
           { agentName: 'decision', status: 'error', error: 'Full analysis stopped.' },
         ];
         const stream = makeStream([
-          JSON.stringify({ type: 'data-agent-progress', data: { mode: 'full', status: 'failed', error: 'No partial answer was returned.', agents } }),
-          JSON.stringify({ type: 'error', errorText: 'Full analysis could not be completed. No partial answer was returned.' }),
+          JSON.stringify({
+            type: 'data-agent-progress',
+            data: {
+              mode: 'full',
+              status: 'failed',
+              error: 'No partial answer was returned.',
+              agents,
+            },
+          }),
+          JSON.stringify({
+            type: 'error',
+            errorText: 'Full analysis could not be completed. No partial answer was returned.',
+          }),
         ]);
         return new HttpResponse(stream, { headers: { 'content-type': 'text/event-stream' } });
       }),

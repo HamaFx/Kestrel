@@ -137,18 +137,18 @@ The wizard will:
 
 The wizard accepts several flags for scripting and non-interactive use:
 
-| Flag                        | What it does                                                                        |
-| --------------------------- | ----------------------------------------------------------------------------------- |
-| `--mode=simple\|docker`     | Skip the mode question                                                              |
-| `--market=ID,ID`            | Configure market providers (`finnhub`, `marketaux`, `fred`, `alphavantage`)          |
-| `--fresh`                   | Regenerate config (the previous config is backed up first)                           |
-| `--skip-install`            | Do not install dependencies                                                         |
-| `--no-launch`               | Do not start the app afterwards                                                     |
-| `--yes`                     | Accept defaults; never prompt                                                       |
-| `--dry-run`                 | Print exactly what would change, write nothing                                      |
-| `--json`                    | Machine-readable result on stdout (for CI/scripts)                                  |
-| `--no-color`                | Plain output (equivalent to setting `NO_COLOR`)                                     |
-| `--help`, `-h`              | Show all options                                                                   |
+| Flag                    | What it does                                                                |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `--mode=simple\|docker` | Skip the mode question                                                      |
+| `--market=ID,ID`        | Configure market providers (`finnhub`, `marketaux`, `fred`, `alphavantage`) |
+| `--fresh`               | Regenerate config (the previous config is backed up first)                  |
+| `--skip-install`        | Do not install dependencies                                                 |
+| `--no-launch`           | Do not start the app afterwards                                             |
+| `--yes`                 | Accept defaults; never prompt                                               |
+| `--dry-run`             | Print exactly what would change, write nothing                              |
+| `--json`                | Machine-readable result on stdout (for CI/scripts)                          |
+| `--no-color`            | Plain output (equivalent to setting `NO_COLOR`)                             |
+| `--help`, `-h`          | Show all options                                                            |
 
 ```bash
 pnpm setup                      # interactive (recommended)
@@ -242,15 +242,15 @@ The agent routes work to typed tools instead of relying on free-form model guess
 <details>
 <summary><strong>View the tool catalogue</strong></summary>
 
-| Area                              | Tools                                                                                                                                               |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Live market data**              | `get_price`, `get_candles`, `get_indicators`, `get_market_structure`, `get_session_levels`                                                          |
-| **Technical analysis**            | `analyze_technical`, `annotate_chart`, `forecast_volatility`, `replay_setup`                                                                        |
+| Area                              | Tools                                                                                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Live market data**              | `get_price`, `get_candles`, `get_indicators`, `get_market_structure`, `get_session_levels`                                                                        |
+| **Technical analysis**            | `analyze_technical`, `annotate_chart`, `forecast_volatility`, `replay_setup`                                                                                      |
 | **Macro and cross-market**        | `get_news`, `get_calendar`, `get_cot`, `get_correlation`, `get_intermarket`, `get_intermarket_resonance`, `get_seasonality`, `get_social_sentiment`, `web_search` |
-| **Risk and verification**         | `compute_risk`, `compute_position_health`, `verify_call`, `get_portfolio_snapshot`                                                                  |
-| **Journal and memory**            | `log_journal`, `get_journal_stats`, `search_knowledge`                                                                                              |
-| **Actions and sharing**           | `set_alert`, `share_snapshot`                                                                                                                       |
-| **Research modes and operations** | `analyze_fundamental`, `analyze_chart_image`, `get_system_diagnostics`, `run_system_action`                                    |
+| **Risk and verification**         | `compute_risk`, `compute_position_health`, `verify_call`, `get_portfolio_snapshot`                                                                                |
+| **Journal and memory**            | `log_journal`, `get_journal_stats`, `search_knowledge`                                                                                                            |
+| **Actions and sharing**           | `set_alert`, `share_snapshot`                                                                                                                                     |
+| **Research modes and operations** | `analyze_fundamental`, `analyze_chart_image`, `get_system_diagnostics`, `run_system_action`                                                                       |
 
 The exact catalogue is maintained in [`packages/ai/src/tools/`](packages/ai/src/tools/).
 
@@ -449,19 +449,19 @@ See the [testing guide](docs/09-testing.md) for test patterns, database isolatio
 
 ## 📚 Documentation map
 
-| If you want to…                       | Start here                                                                                                 |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Install without guessing              | [`pnpm setup`](#-quick-start) and [First-run setup](docs/13-first-run-setup.md)                            |
-| Run the complete Docker stack         | [Self-hosting guide](docs/11-self-hosting.md)                                                              |
-| Understand the system                 | [Architecture guide](docs/01-architecture.md) and [Architecture Explorer snapshot](docs/architecture-explorer.html) |
+| If you want to…                       | Start here                                                                                                                                          |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Install without guessing              | [`pnpm setup`](#-quick-start) and [First-run setup](docs/13-first-run-setup.md)                                                                     |
+| Run the complete Docker stack         | [Self-hosting guide](docs/11-self-hosting.md)                                                                                                       |
+| Understand the system                 | [Architecture guide](docs/01-architecture.md) and [Architecture Explorer snapshot](docs/architecture-explorer.html)                                 |
 | Understand the AI/Mastra design       | [AI architecture](docs/AI-AGENT-ARCHITECTURE.md), [roadmap](docs/AI-AGENT-MASTRA-ROADMAP.md), and [validation log](docs/AI-AGENT-VALIDATION-LOG.md) |
-| Understand AI tools and flows         | [AI tool source](packages/ai/src/tools/)                                                                   |
-| Understand security and secrets       | [Security guide](docs/10-security.md)                                                                      |
-| Run or write tests                    | [Testing guide](docs/09-testing.md)                                                                        |
-| Deploy the maintainer-hosted topology | [Deployment guide](docs/08-deployment.md)                                                                  |
-| Contribute code                       | [CONTRIBUTING.md](CONTRIBUTING.md)                                                                         |
-| Report a vulnerability                | [SECURITY.md](SECURITY.md)                                                                                 |
-| See project changes                   | [CHANGELOG.md](CHANGELOG.md)                                                                               |
+| Understand AI tools and flows         | [AI tool source](packages/ai/src/tools/)                                                                                                            |
+| Understand security and secrets       | [Security guide](docs/10-security.md)                                                                                                               |
+| Run or write tests                    | [Testing guide](docs/09-testing.md)                                                                                                                 |
+| Deploy the maintainer-hosted topology | [Deployment guide](docs/08-deployment.md)                                                                                                           |
+| Contribute code                       | [CONTRIBUTING.md](CONTRIBUTING.md)                                                                                                                  |
+| Report a vulnerability                | [SECURITY.md](SECURITY.md)                                                                                                                          |
+| See project changes                   | [CHANGELOG.md](CHANGELOG.md)                                                                                                                        |
 
 The repository includes a checked-in Architecture Explorer HTML/JSON snapshot for reference. It is intentionally not part of the build or runtime and may become stale as the codebase evolves.
 

@@ -37,16 +37,16 @@ The project is technically strong and heavily tested, but it needs a clearer sup
 
 ## Validation results
 
-| Check | Result |
-|---|---|
-| Typecheck | Passed |
-| Lint | Passed with 52 warnings |
-| Unit/integration tests | Passed; all 14 Turbo tasks successful |
-| AI tests | 111 files, 1,166 tests passed |
-| Web tests | 96 files, 943 tests passed |
-| Database tests | 22 files, 166 tests passed |
-| Production web build | Failed during `/news` prerender |
-| Bundle-size guard | Could not run because build artifacts were unavailable |
+| Check                    | Result                                                          |
+| ------------------------ | --------------------------------------------------------------- |
+| Typecheck                | Passed                                                          |
+| Lint                     | Passed with 52 warnings                                         |
+| Unit/integration tests   | Passed; all 14 Turbo tasks successful                           |
+| AI tests                 | 111 files, 1,166 tests passed                                   |
+| Web tests                | 96 files, 943 tests passed                                      |
+| Database tests           | 22 files, 166 tests passed                                      |
+| Production web build     | Failed during `/news` prerender                                 |
+| Bundle-size guard        | Could not run because build artifacts were unavailable          |
 | Knip dependency analysis | Failed with one unlisted dependency and unresolved test imports |
 
 The test suite is a major strength. The primary failures identified during the audit are build/configuration and architecture issues rather than broad code instability.
@@ -344,13 +344,13 @@ The same job can be triggered twice, retried by two systems, locked differently,
 
 Define one owner for each job category:
 
-| Job | Recommended owner |
-|---|---|
-| Live ticks and candle aggregation | Worker |
-| Heavy AI analysis | Worker queue |
-| Lightweight HTTP maintenance | One external scheduler |
-| Database backups | Backup container or managed database |
-| Health alert delivery | One scheduler only |
+| Job                               | Recommended owner                    |
+| --------------------------------- | ------------------------------------ |
+| Live ticks and candle aggregation | Worker                               |
+| Heavy AI analysis                 | Worker queue                         |
+| Lightweight HTTP maintenance      | One external scheduler               |
+| Database backups                  | Backup container or managed database |
+| Health alert delivery             | One scheduler only                   |
 
 Keep database idempotency as protection, not as the primary scheduling design.
 
@@ -673,14 +673,14 @@ Move historical audit notes into an archive. Remove phase labels from normal pro
 
 # Final assessment
 
-| Area | Assessment |
-|---|---|
-| Technical quality | Good |
-| Security intent | Strong, but complicated by legacy paths |
-| Test quality | Strong |
-| Production readiness | Blocked by build reproducibility and runtime mismatches |
-| Maintainability | Below average because of accumulated modes and compatibility layers |
-| Framework choices | Mostly appropriate; wholesale replacement is not recommended |
-| Main risk | Scope and duplicated infrastructure, not TypeScript or framework quality |
+| Area                 | Assessment                                                               |
+| -------------------- | ------------------------------------------------------------------------ |
+| Technical quality    | Good                                                                     |
+| Security intent      | Strong, but complicated by legacy paths                                  |
+| Test quality         | Strong                                                                   |
+| Production readiness | Blocked by build reproducibility and runtime mismatches                  |
+| Maintainability      | Below average because of accumulated modes and compatibility layers      |
+| Framework choices    | Mostly appropriate; wholesale replacement is not recommended             |
+| Main risk            | Scope and duplicated infrastructure, not TypeScript or framework quality |
 
 The best next move is not to rewrite Kestrel. Make the supported product boundary explicit, fix the build/auth/storage issues, then remove dormant infrastructure aggressively.

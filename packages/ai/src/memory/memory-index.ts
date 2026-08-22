@@ -32,12 +32,12 @@
 // can't burn embedding spend in a side-effect.
 
 import { schema, withTenantDb } from '@kestrel/db';
-import { getDb } from '../db';
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ServerEnv, Symbol, ThreadInsight } from '@kestrel/shared';
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 
 import { dailySpendUsd } from '../cost';
+import { getDb } from '../db';
 import { embedTexts, vectorLiteral } from '../embeddings';
 
 export type MemoryKind = 'journal' | 'briefing' | 'thread_synopsis';
@@ -198,7 +198,12 @@ export async function rememberJournalEntry(
   const rows = await getDb()
     .select()
     .from(schema.journalEntries)
-    .where(and(eq(schema.journalEntries.id, args.entryId), eq(schema.journalEntries.userId, args.userId)))
+    .where(
+      and(
+        eq(schema.journalEntries.id, args.entryId),
+        eq(schema.journalEntries.userId, args.userId),
+      ),
+    )
     .limit(1);
   const row = rows[0];
   if (!row) return { stored: false, reason: 'not_found' };
@@ -369,7 +374,7 @@ export async function searchMemory(args: SearchMemoryArgs): Promise<MemoryRow[]>
 
   // db.execute() returns a RowList in drizzle-orm v0.40+.
   // Cast through unknown to access the underlying postgres-js result rows.
-  const rows = (result as unknown as MemoryRow[]);
+  const rows = result as unknown as MemoryRow[];
   return (rows as Array<MemoryRow & { occurredAt: Date | string }>).map((r) => {
     const occurredMs =
       r.occurredAt instanceof Date ? r.occurredAt.getTime() : Date.parse(String(r.occurredAt));

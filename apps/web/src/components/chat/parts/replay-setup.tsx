@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `replay_setup` tool part.
@@ -7,11 +23,7 @@
 
 import type { ToolPartProps } from './registry';
 
-export function ReplaySetupPart({
-  output,
-  state,
-  errorMessage,
-}: ToolPartProps<'replay_setup'>) {
+export function ReplaySetupPart({ output, state, errorMessage }: ToolPartProps<'replay_setup'>) {
   if (state === 'error') return <ErrorCard message={errorMessage} />;
   if (state === 'loading' || !output) return <SkeletonCard />;
 
@@ -24,7 +36,7 @@ export function ReplaySetupPart({
         <span className="text-fg-subtle text-caption">{output.ruleLabel}</span>
       </header>
 
-      <dl className="grid grid-cols-4 gap-2 text-body-sm tabular-nums">
+      <dl className="text-body-sm grid grid-cols-4 gap-2 tabular-nums">
         <Stat k="Trades" v={String(output.count)} />
         <Stat
           k="Win rate"
@@ -46,7 +58,7 @@ export function ReplaySetupPart({
       {output.thin ? (
         <p
           role="note"
-          className="text-warn border-warn/30 bg-warn/5 rounded-sm border px-2 py-1 text-body-sm"
+          className="text-warn border-warn/30 bg-warn/5 text-body-sm rounded-sm border px-2 py-1"
         >
           Thin sample — fewer than 5 trades. Treat as illustrative.
         </p>
@@ -54,14 +66,14 @@ export function ReplaySetupPart({
 
       {output.trades.length > 0 ? (
         <div className="text-body-sm tabular-nums">
-          <div className="text-fg-subtle grid grid-cols-5 px-2 py-1 text-caption uppercase tracking-wide">
+          <div className="text-fg-subtle text-caption grid grid-cols-5 px-2 py-1 tracking-wide uppercase">
             <span>Side</span>
             <span>Entry</span>
             <span>Exit</span>
             <span>R</span>
             <span>Reason</span>
           </div>
-          <ul className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
+          <ul className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
             {output.trades.slice(0, 25).map((t, i) => (
               <li key={i} className="border-divider grid grid-cols-5 rounded-sm border px-2 py-1">
                 <span className={t.side === 'long' ? 'text-bull' : 'text-bear'}>
@@ -88,7 +100,7 @@ export function ReplaySetupPart({
 function Stat({ k, v, tone }: { k: string; v: string; tone?: string }) {
   return (
     <div className="border-divider flex flex-col rounded-sm border p-2">
-      <span className="text-fg-subtle text-caption uppercase tracking-wide">{k}</span>
+      <span className="text-fg-subtle text-caption tracking-wide uppercase">{k}</span>
       <span className={`text-fg font-semibold ${tone ?? ''}`}>{v}</span>
     </div>
   );

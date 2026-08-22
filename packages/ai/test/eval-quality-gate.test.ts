@@ -88,15 +88,17 @@ describe('evaluation quality gate', () => {
     );
 
     expect(gate.passed).toBe(false);
-    expect(gate.failures).toEqual(expect.arrayContaining([
-      expect.stringContaining('transport pass rate'),
-      expect.stringContaining('overall pass rate'),
-      expect.stringContaining('assertion pass rate'),
-      expect.stringContaining('average citation score'),
-      expect.stringContaining('average TTFT'),
-      expect.stringContaining('average total latency'),
-      expect.stringContaining('average cost'),
-    ]));
+    expect(gate.failures).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('transport pass rate'),
+        expect.stringContaining('overall pass rate'),
+        expect.stringContaining('assertion pass rate'),
+        expect.stringContaining('average citation score'),
+        expect.stringContaining('average TTFT'),
+        expect.stringContaining('average total latency'),
+        expect.stringContaining('average cost'),
+      ]),
+    );
   });
 
   it('fails an empty run instead of treating missing evidence as success', () => {
@@ -108,29 +110,31 @@ describe('evaluation quality gate', () => {
   });
 
   it('fails a run that is too small to be a release-quality sample', () => {
-    const gate = evaluateEvalQualityGate(
-      [result({ id: 'one' })],
-      { ...DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS, minCaseCount: 5, minSuccessfulCaseCount: 3 },
-    );
+    const gate = evaluateEvalQualityGate([result({ id: 'one' })], {
+      ...DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
+      minCaseCount: 5,
+      minSuccessfulCaseCount: 3,
+    });
     expect(gate.passed).toBe(false);
-    expect(gate.failures).toEqual(expect.arrayContaining([
-      'case count 1 is below 5',
-      'successful case count 1 is below 3',
-    ]));
+    expect(gate.failures).toEqual(
+      expect.arrayContaining(['case count 1 is below 5', 'successful case count 1 is below 3']),
+    );
   });
 
   it('reads bounded thresholds from environment values', () => {
-    expect(thresholdsFromEnv({
-      EVAL_MIN_CASES: '20',
-      EVAL_MIN_SUCCESSFUL_CASES: '18',
-      EVAL_MIN_TRANSPORT_PASS_RATE: '0.99',
-      EVAL_MIN_OVERALL_PASS_RATE: '0.8',
-      EVAL_MIN_ASSERTION_PASS_RATE: '0.85',
-      EVAL_MIN_CITATION_SCORE: '0.75',
-      EVAL_MAX_AVG_TTFT_MS: '1500',
-      EVAL_MAX_AVG_TOTAL_MS: 'disabled',
-      EVAL_MAX_AVG_COST_USD: '0.2',
-    })).toEqual({
+    expect(
+      thresholdsFromEnv({
+        EVAL_MIN_CASES: '20',
+        EVAL_MIN_SUCCESSFUL_CASES: '18',
+        EVAL_MIN_TRANSPORT_PASS_RATE: '0.99',
+        EVAL_MIN_OVERALL_PASS_RATE: '0.8',
+        EVAL_MIN_ASSERTION_PASS_RATE: '0.85',
+        EVAL_MIN_CITATION_SCORE: '0.75',
+        EVAL_MAX_AVG_TTFT_MS: '1500',
+        EVAL_MAX_AVG_TOTAL_MS: 'disabled',
+        EVAL_MAX_AVG_COST_USD: '0.2',
+      }),
+    ).toEqual({
       minCaseCount: 20,
       minSuccessfulCaseCount: 18,
       minTransportPassRate: 0.99,

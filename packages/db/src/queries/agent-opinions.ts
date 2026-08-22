@@ -17,6 +17,7 @@
 // Agent opinions query helpers — cost/latency breakdown by agent and mode.
 
 import { and, eq, gte } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export interface AgentOpinionRow {
@@ -44,9 +45,6 @@ export async function listMtdAgentOpinions(
     })
     .from(schema.agentOpinions)
     .where(
-      and(
-        eq(schema.agentOpinions.userId, userId),
-        gte(schema.agentOpinions.createdAt, since),
-      ),
+      and(eq(schema.agentOpinions.userId, userId), gte(schema.agentOpinions.createdAt, since)),
     );
 }

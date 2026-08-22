@@ -83,8 +83,9 @@ describe('simulateAlert — priceCross', () => {
   });
 
   it('caps the fires array at maxFires', () => {
-    const candles: SimCandle[] = Array.from({ length: 100 }, (_, i) =>
-      c(i, 100, 200, 50, 150), // always fires
+    const candles: SimCandle[] = Array.from(
+      { length: 100 },
+      (_, i) => c(i, 100, 200, 50, 150), // always fires
     );
     const r = simulateAlert(
       { type: 'priceCross', symbol: 'XAUUSD', level: 110, direction: 'above' },

@@ -22,18 +22,15 @@
 // We use 3 s polling when the tab is visible; TanStack Query auto-pauses
 // when offline / hidden. (Phase 7 task 7.7 — aligned comment with actual
 // POLL_MS value; docs/06-frontend.md updated to match.)
-import { useMemo } from 'react';
 import type { Symbol, Tick } from '@kestrel/shared';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 import { fetchPrices } from '@/lib/market-client';
 
 const POLL_MS = 3_000;
 
-export function usePrices(
-  symbols: readonly Symbol[],
-  options?: { enabled?: boolean },
-) {
+export function usePrices(symbols: readonly Symbol[], options?: { enabled?: boolean }) {
   // L1: memoize sorted key to avoid new array reference on every render.
   const key = useMemo(() => [...symbols].sort(), [symbols]);
   return useQuery<Tick[]>({
@@ -47,10 +44,7 @@ export function usePrices(
 }
 
 /** Convenience for a single symbol. */
-export function usePrice(
-  symbol: Symbol,
-  options?: { enabled?: boolean },
-) {
+export function usePrice(symbol: Symbol, options?: { enabled?: boolean }) {
   const q = usePrices([symbol], options);
   const tick: Tick | undefined = q.data?.find((t) => t.symbol === symbol);
   return { ...q, tick };

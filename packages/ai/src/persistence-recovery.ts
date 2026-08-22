@@ -18,16 +18,20 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { sql } from 'drizzle-orm';
-import type { UIMessage } from 'ai';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { UIMessage } from 'ai';
+import { sql } from 'drizzle-orm';
 
 import { getDb } from './db';
-import { appendAssistantMessage, appendUserMessage } from './persistence/message-persistence';
-import type { TelemetryInput, ToolTelemetryInput } from './persistence/telemetry-persistence';
-import { recordTelemetry, recordToolTelemetry } from './persistence/telemetry-persistence';
-import { saveAgentOpinions, type SaveOpinionsArgs } from './multi-agent/persistence';
 import { persistTraceStrict, type PersistedTrace } from './diagnostics/trace-persistence';
+import { saveAgentOpinions, type SaveOpinionsArgs } from './multi-agent/persistence';
+import { appendAssistantMessage, appendUserMessage } from './persistence/message-persistence';
+import {
+  recordTelemetry,
+  recordToolTelemetry,
+  type TelemetryInput,
+  type ToolTelemetryInput,
+} from './persistence/telemetry-persistence';
 
 const rlog = createCategorizedLogger('ai', { component: 'persistence-recovery' });
 const LOCK_TTL_MS = 5 * 60 * 1000;
@@ -46,7 +50,7 @@ function resultRows<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
   if (typeof result === 'object' && result !== null && 'rows' in result) {
     const rows = (result as { rows?: unknown }).rows;
-    return Array.isArray(rows) ? rows as T[] : [];
+    return Array.isArray(rows) ? (rows as T[]) : [];
   }
   return [];
 }
@@ -59,7 +63,8 @@ function asRecord(value: unknown, field: string): Record<string, unknown> {
 }
 
 function asString(value: unknown, field: string): string {
-  if (typeof value !== 'string' || value.length === 0) throw new Error(`outbox payload field ${field} is invalid`);
+  if (typeof value !== 'string' || value.length === 0)
+    throw new Error(`outbox payload field ${field} is invalid`);
   return value;
 }
 
@@ -73,7 +78,8 @@ async function claimOne(): Promise<ClaimedFailure | null> {
       payload: Record<string, unknown>;
       attempt_count: number | string;
       max_attempts: number | string;
-    }>(await tx.execute(sql`
+    }>(
+      await tx.execute(sql`
       SELECT id, operation, payload, attempt_count, max_attempts
       FROM persistence_outbox
       WHERE (
@@ -86,12 +92,14 @@ async function claimOne(): Promise<ClaimedFailure | null> {
       ORDER BY next_attempt_at ASC, created_at ASC
       LIMIT 1
       FOR UPDATE SKIP LOCKED
-    `));
+    `),
+    );
     const row = rows[0];
     if (!row) return null;
 
     const nextAttempt = Number(row.attempt_count) + 1;
-    const updated = resultRows<{ id: string }>(await tx.execute(sql`
+    const updated = resultRows<{ id: string }>(
+      await tx.execute(sql`
       UPDATE persistence_outbox
       SET status = 'processing',
           attempt_count = ${nextAttempt},
@@ -104,7 +112,8 @@ async function claimOne(): Promise<ClaimedFailure | null> {
           OR (status = 'processing' AND locked_until < now())
         )
       RETURNING id
-    `));
+    `),
+    );
     if (updated.length === 0) return null;
 
     return {

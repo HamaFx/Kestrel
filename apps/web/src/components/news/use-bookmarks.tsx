@@ -23,7 +23,6 @@
 // Storage key: kestrel:news:bookmarks → JSON array of article ids.
 // Cross-tab sync via the `storage` event so toggling on one tab updates
 // the badge on another.
-
 import { useBookmarksContext } from './bookmarks-context';
 
 export function useBookmarks() {

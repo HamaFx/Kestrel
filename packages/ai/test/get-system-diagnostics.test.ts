@@ -15,7 +15,11 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { GetSystemDiagnosticsOutput } from '@kestrel/shared';
 import { describe, expect, it, vi } from 'vitest';
+
+import { withToolContext } from '../src/tool-context';
+import { getSystemDiagnosticsTool } from '../src/tools/get-system-diagnostics';
 
 process.env['FRED_API_KEY'] = 'test-fred-key';
 process.env['GOOGLE_GENERATIVE_AI_API_KEY'] = 'test-ai-key';
@@ -60,10 +64,6 @@ vi.mock('@kestrel/db', () => ({
   },
 }));
 
-import { getSystemDiagnosticsTool } from '../src/tools/get-system-diagnostics';
-import { withToolContext } from '../src/tool-context';
-import type { GetSystemDiagnosticsOutput } from '@kestrel/shared';
-
 describe('Diagnostics Tools', () => {
   it('correctly reports system diagnostics stats', async () => {
     const result = (await withToolContext(
@@ -76,7 +76,10 @@ describe('Diagnostics Tools', () => {
         budget: { spent: 0.15, max: 10.0 },
         userSettings: {} as any,
       },
-      () => Promise.resolve(getSystemDiagnosticsTool.execute!({ verbose: true, forceProbe: false }, {} as any)),
+      () =>
+        Promise.resolve(
+          getSystemDiagnosticsTool.execute!({ verbose: true, forceProbe: false }, {} as any),
+        ),
     )) as GetSystemDiagnosticsOutput;
 
     expect(result.status).toBe('healthy');

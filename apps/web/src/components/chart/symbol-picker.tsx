@@ -19,15 +19,13 @@
 // Symbol picker with typeahead search. Shows the user's watchlist first,
 // then all available symbols from @kestrel/shared. The search input filters
 // across ALL symbols so users can navigate to a symbol not in their watchlist.
-
+import { BUILTIN_SYMBOLS, type Symbol } from '@kestrel/shared';
 import { IconSearch } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 
-import { BUILTIN_SYMBOLS, type Symbol } from '@kestrel/shared';
-
+import { Segmented } from '@/components/ui/segmented';
 import { useTimeframe } from '@/hooks/use-tf';
 import { cn } from '@/lib/cn';
-import { Segmented } from '@/components/ui/segmented';
 
 export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist: string[] }) {
   const [tf] = useTimeframe();
@@ -37,12 +35,11 @@ export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist:
     const q = query.trim().toLowerCase();
     if (!q) return [];
     // IconSearch all BUILTIN_SYMBOLS (not just the old 3) by internal symbol or display name
-    return BUILTIN_SYMBOLS
-      .filter((s) =>
+    return BUILTIN_SYMBOLS.filter(
+      (s) =>
         !watchlist.includes(s.internal) &&
         (s.internal.toLowerCase().includes(q) || s.display.toLowerCase().includes(q)),
-      )
-      .map((s) => s.internal);
+    ).map((s) => s.internal);
   }, [query, watchlist]);
 
   const showSearch = watchlist.length > 0 || query.length > 0;
@@ -53,14 +50,14 @@ export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist:
         <div className="relative">
           <IconSearch
             aria-hidden="true"
-            className="text-fg-subtle absolute left-3 top-1/2 size-4 -translate-y-1/2"
+            className="text-fg-subtle absolute top-1/2 left-3 size-4 -translate-y-1/2"
           />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search symbols…"
-            className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pl-10 pr-4 text-sm focus:outline-none"
+            className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-4 pl-10 text-sm focus:outline-none"
           />
         </div>
       ) : null}
@@ -94,7 +91,9 @@ export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist:
         </div>
       ) : null}
 
-      {query && filteredAll.length === 0 && watchlist.every((s) => !s.toLowerCase().includes(query.trim().toLowerCase())) ? (
+      {query &&
+      filteredAll.length === 0 &&
+      watchlist.every((s) => !s.toLowerCase().includes(query.trim().toLowerCase())) ? (
         <p className="text-fg-subtle px-3 py-2 text-center text-sm">No symbols match.</p>
       ) : null}
     </div>

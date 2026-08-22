@@ -18,9 +18,10 @@
 // Thread CRUD + fork logic. Messages and telemetry live in their own modules.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import type { Symbol } from '@kestrel/shared';
 import { and, asc, desc, eq, lt, or, sql } from 'drizzle-orm';
+
+import { getDb } from '../db';
 
 // ---------------------------------------------------------------------------
 // Threads
@@ -113,7 +114,8 @@ export async function listThreads(
   const pageRows = hasMore ? rows.slice(0, boundedLimit) : rows;
   const threads = pageRows.map(rowToThread);
   const last = threads[threads.length - 1];
-  const nextCursor = hasMore && last ? encodeThreadCursor({ updatedAt: last.updatedAt, id: last.id }) : null;
+  const nextCursor =
+    hasMore && last ? encodeThreadCursor({ updatedAt: last.updatedAt, id: last.id }) : null;
   return { threads, nextCursor };
 }
 
@@ -194,9 +196,7 @@ export async function deleteThread(userId: string, id: string): Promise<void> {
 }
 
 export async function deleteAllThreads(userId: string): Promise<void> {
-  await getDb()
-    .delete(schema.chatThreads)
-    .where(eq(schema.chatThreads.userId, userId));
+  await getDb().delete(schema.chatThreads).where(eq(schema.chatThreads.userId, userId));
 }
 
 function rowToThread(row: typeof schema.chatThreads.$inferSelect): DbThread {
@@ -269,7 +269,8 @@ export async function forkThread(input: ForkThreadInput): Promise<ForkThreadResu
   );
   if (editIdx === -1) throw new Error(`message not found: ${atMessageId}`);
   const target = sourceMessages[editIdx]!;
-  if (target.role !== 'user') throw new Error(`can only edit user messages, got role=${target.role}`);
+  if (target.role !== 'user')
+    throw new Error(`can only edit user messages, got role=${target.role}`);
 
   const newTitle = deriveForkedTitle(newText);
   return getDb().transaction(async (tx) => {
@@ -292,10 +293,11 @@ export async function forkThread(input: ForkThreadInput): Promise<ForkThreadResu
       parts: m.parts ?? null,
       createdAt: m.createdAt,
     }));
-    const inserted = await tx
-      .insert(schema.chatMessages)
-      .values(rows)
-      .returning({ id: schema.chatMessages.id, role: schema.chatMessages.role, content: schema.chatMessages.content });
+    const inserted = await tx.insert(schema.chatMessages).values(rows).returning({
+      id: schema.chatMessages.id,
+      role: schema.chatMessages.role,
+      content: schema.chatMessages.content,
+    });
     const targetInserted = inserted[editIdx];
     if (!targetInserted || targetInserted.role !== 'user') {
       throw new Error('fork did not return the replacement user message');
@@ -305,6 +307,9 @@ export async function forkThread(input: ForkThreadInput): Promise<ForkThreadResu
       .set({ updatedAt: new Date() })
       .where(and(eq(schema.chatThreads.id, newThreadId), eq(schema.chatThreads.userId, userId)));
 
-    return { newThreadId, firstMessage: { id: targetInserted.id, role: 'user' as const, content: newText } };
+    return {
+      newThreadId,
+      firstMessage: { id: targetInserted.id, role: 'user' as const, content: newText },
+    };
   });
 }

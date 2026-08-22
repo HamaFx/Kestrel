@@ -27,24 +27,28 @@
 //   - Keyboard hint "Enter to send · Shift+Enter for new line" surfaces
 //     on focus (desktop only — hidden on touch).
 //   - Image thumbnail rail is keyboard-focusable for delete.
-
-import {IconArrowUp, IconPhotoPlus, IconMicrophone, IconSquare, IconChartBar, IconNotebook, IconSettings, IconTerminal2} from '@tabler/icons-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import Image from 'next/image';
+import {
+  IconArrowUp,
+  IconChartBar,
+  IconMicrophone,
+  IconNotebook,
+  IconPhotoPlus,
+  IconSettings,
+  IconSquare,
+  IconTerminal2,
+} from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
+import Image from 'next/image';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
-import { useVoiceInput } from '@/hooks/use-voice-input';
 import { useSlashCommands } from '@/hooks/use-slash-commands';
+import { useVoiceInput } from '@/hooks/use-voice-input';
 import { cn } from '@/lib/cn';
 import { fetchCsrf } from '@/lib/csrf';
-import { ComposerSlashMenu, type SlashMenuCommand } from './composer-slash-menu';
 
-import {
-  MAX_TEXT_CHARS,
-  formatCharCount,
-  getCharCountTone,
-} from './composer-helpers';
+import { formatCharCount, getCharCountTone, MAX_TEXT_CHARS } from './composer-helpers';
+import { ComposerSlashMenu, type SlashMenuCommand } from './composer-slash-menu';
 
 export interface ComposerImage {
   id: string;
@@ -179,10 +183,14 @@ export function Composer({
       placeholder: c.placeholder,
       action: c.action,
       href: c.href,
-    })) as readonly { command: string; description: string; placeholder: string; action?: 'navigate'; href?: string }[],
+    })) as readonly {
+      command: string;
+      description: string;
+      placeholder: string;
+      action?: 'navigate';
+      href?: string;
+    }[],
   });
-
-
 
   function send() {
     const trimmed = value.trim();
@@ -224,7 +232,7 @@ export function Composer({
     }
 
     const chosenFiles = Array.from(files).slice(0, remaining);
-    
+
     // Create upload promises
     const uploadPromises = chosenFiles.map(async (file) => {
       if (!file.type.startsWith('image/')) {
@@ -233,7 +241,7 @@ export function Composer({
       if (file.size > MAX_IMAGE_BYTES) {
         throw new Error(`"${file.name}" exceeds 5 MB`);
       }
-      
+
       const fd = new FormData();
       fd.append('file', file, file.name);
       const res = await fetchCsrf('/api/upload', { method: 'POST', body: fd });
@@ -246,7 +254,7 @@ export function Composer({
       if (!url) {
         throw new Error(`Upload returned no URL for "${file.name}"`);
       }
-      
+
       return {
         id:
           typeof crypto !== 'undefined' && crypto.randomUUID
@@ -259,18 +267,20 @@ export function Composer({
     });
 
     const results = await Promise.allSettled(uploadPromises);
-    
+
     const succeeded: ComposerImage[] = [];
     const uploadErrors: string[] = [];
-    
+
     for (const result of results) {
       if (result.status === 'fulfilled') {
         succeeded.push(result.value);
       } else {
-        uploadErrors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+        uploadErrors.push(
+          result.reason instanceof Error ? result.reason.message : String(result.reason),
+        );
       }
     }
-    
+
     if (succeeded.length > 0) {
       setImages((prev) => [...prev, ...succeeded]);
     }
@@ -316,7 +326,7 @@ export function Composer({
         e.preventDefault();
         setValue(next.slice(0, MAX_TEXT_CHARS));
         setError(`Message clipped to ${MAX_TEXT_CHARS} chars`);
-        
+
         const cursorPosition = Math.min(start + pasted.length, MAX_TEXT_CHARS);
         requestAnimationFrame(() => {
           if (ref.current) {
@@ -352,12 +362,12 @@ export function Composer({
         : 'text-fg-subtle';
 
   return (
-    <div className="sticky bottom-0 px-3 pb-[max(env(safe-area-inset-bottom),12px)] transition-all duration-300 w-full max-w-4xl mx-auto z-20">
+    <div className="sticky bottom-0 z-20 mx-auto w-full max-w-4xl px-3 pb-[max(env(safe-area-inset-bottom),12px)] transition-all duration-300">
       <form
         className={cn(
-          'bg-bg-elev-1 border border-border relative flex w-full flex-col overflow-hidden rounded-sm shadow-md transition-all duration-150 ease-in-out',
+          'bg-bg-elev-1 border-border relative flex w-full flex-col overflow-hidden rounded-sm border shadow-md transition-all duration-150 ease-in-out',
           focused && 'border-brand-border',
-          dragOver && 'ring-2 ring-inset ring-brand/25',
+          dragOver && 'ring-brand/25 ring-2 ring-inset',
         )}
         onSubmit={(e) => {
           e.preventDefault();
@@ -375,16 +385,16 @@ export function Composer({
           <div
             role="status"
             aria-live="polite"
-            className="text-danger border border-danger/30 mx-auto mt-3 inline-flex items-center gap-2 self-center rounded-sm bg-danger/10 px-3 py-1 text-body-sm font-medium"
+            className="text-danger border-danger/30 bg-danger/10 text-body-sm mx-auto mt-3 inline-flex items-center gap-2 self-center rounded-sm border px-3 py-1 font-medium"
           >
-            <span className="bg-danger motion-safe:animate-pulse size-1.5 rounded-sm" />
+            <span className="bg-danger size-1.5 rounded-sm motion-safe:animate-pulse" />
             Listening…
           </div>
         ) : null}
 
         {/* Attached Images */}
         {images.length > 0 ? (
-          <ul className="flex flex-wrap gap-2 px-5 pb-1 pt-4" aria-label="Attached images">
+          <ul className="flex flex-wrap gap-2 px-5 pt-4 pb-1" aria-label="Attached images">
             {images.map((img, idx) => (
               <li key={img.id} className="relative">
                 <Image
@@ -399,7 +409,7 @@ export function Composer({
                   type="button"
                   aria-label={`Remove ${img.name}`}
                   onClick={() => removeImage(img.id)}
-                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg absolute -right-2 -top-2 inline-flex size-6 items-center justify-center rounded-sm border text-caption leading-none focus:outline-none focus-visible:ring-2"
+                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg text-caption absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-sm border leading-none focus:outline-none focus-visible:ring-2"
                 >
                   ×
                 </button>
@@ -424,7 +434,7 @@ export function Composer({
         />
 
         {/* Textarea & Actions Row */}
-        <div className="flex items-end gap-2 px-2 pb-2 pt-2 min-w-0">
+        <div className="flex min-w-0 items-end gap-2 px-2 pt-2 pb-2">
           {/* Left Actions (Attach, Voice) */}
           <div className="flex shrink-0 items-center gap-1 pb-0.5">
             <button
@@ -495,7 +505,7 @@ export function Composer({
               disabled={disabled}
               maxLength={MAX_TEXT_CHARS}
               className={cn(
-                'text-fg placeholder:text-fg-subtle w-full resize-none bg-transparent px-2 py-2.5 text-body leading-[1.4] focus:outline-none',
+                'text-fg placeholder:text-fg-subtle text-body w-full resize-none bg-transparent px-2 py-2.5 leading-[1.4] focus:outline-none',
                 'max-h-[40dvh] min-h-[44px] transition-colors duration-150',
                 '[field-sizing:content]',
               )}
@@ -514,7 +524,7 @@ export function Composer({
           </div>
 
           {/* Right Actions (Submit, Stop, Char Count) */}
-          <div className="flex shrink-0 items-center gap-2 pb-0.5 pr-1 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-2 pr-1 pb-0.5 sm:gap-3">
             {/*
               Char count — visible always per UX_UPGRADE_PLAN.md item 2.
               Tone shifts at the SOFT_LIMIT_CHARS threshold so the
@@ -525,14 +535,14 @@ export function Composer({
             <span
               aria-live="polite"
               aria-label={`${charCount} of ${MAX_TEXT_CHARS} characters used`}
-              className={cn('tabular-nums text-body-sm', charCountClass)}
+              className={cn('text-body-sm tabular-nums', charCountClass)}
             >
               {formatCharCount(charCount)}
             </span>
 
             {focused && !isTouch && !isStreaming ? (
-              <p className="text-fg-subtle hidden pr-1 text-caption tabular-nums sm:block">
-                <kbd className="bg-bg-elev-2 border border-border rounded-sm px-1.5 font-mono">
+              <p className="text-fg-subtle text-caption hidden pr-1 tabular-nums sm:block">
+                <kbd className="bg-bg-elev-2 border-border rounded-sm border px-1.5 font-mono">
                   Enter
                 </kbd>{' '}
                 to send
@@ -550,7 +560,7 @@ export function Composer({
                   type="button"
                   onClick={onStop}
                   aria-label="Stop generating"
-                  className="text-danger border border-danger/40 inline-flex size-[44px] shrink-0 items-center justify-center rounded-sm bg-danger/15 focus:outline-none focus-visible:ring-2"
+                  className="text-danger border-danger/40 bg-danger/15 inline-flex size-[44px] shrink-0 items-center justify-center rounded-sm border focus:outline-none focus-visible:ring-2"
                 >
                   <IconSquare className="size-[14px] fill-current" strokeWidth={0} />
                 </m.button>
@@ -566,9 +576,9 @@ export function Composer({
                   disabled={!canSend}
                   aria-label="Send message"
                   className={cn(
-                    'text-black bg-fg hover:bg-fg-muted inline-flex size-[44px] shrink-0 items-center justify-center rounded-sm font-semibold',
+                    'bg-fg hover:bg-fg-muted inline-flex size-[44px] shrink-0 items-center justify-center rounded-sm font-semibold text-black',
                     'disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale',
-                    'focus-visible:ring-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                    'focus-visible:ring-fg focus-visible:ring-offset-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                   )}
                 >
                   <IconArrowUp className="size-[18px]" strokeWidth={2.5} />

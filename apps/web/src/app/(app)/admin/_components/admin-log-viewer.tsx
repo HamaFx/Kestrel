@@ -2,19 +2,34 @@
 
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import {
-  IconPlayerPlay,
-  IconPlayerPause,
-  IconTrash,
   IconDownload,
+  IconPlayerPause,
+  IconPlayerPlay,
   IconSearch,
+  IconTrash,
 } from '@tabler/icons-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { cn } from '@/lib/cn';
 
 type LogStatus = 'idle' | 'connecting' | 'connected' | 'not_enabled' | 'production' | 'error';
@@ -76,90 +91,103 @@ export function AdminLogViewer() {
     if (updateStatus && mountedRef.current) setStatus('idle');
   }, []);
 
-  const connect = useCallback(async (resetBackoff = true) => {
-    disconnect();
-    const generation = connectGenerationRef.current;
-    if (resetBackoff) reconnectAttempt.current = 0;
-    setNotEnabledMsg('');
-    setStatus('connecting');
+  const connect = useCallback(
+    async (resetBackoff = true) => {
+      disconnect();
+      const generation = connectGenerationRef.current;
+      if (resetBackoff) reconnectAttempt.current = 0;
+      setNotEnabledMsg('');
+      setStatus('connecting');
 
-    // Pre-flight: fetch to distinguish 503 (not enabled) / 403 (production) from network errors.
-    const probeController = new AbortController();
-    probeAbortRef.current = probeController;
-    try {
-      const res = await fetch('/api/admin/logs/stream?probe=1', {
-        method: 'GET',
-        signal: probeController.signal,
-      });
-      if (res.status === 403) {
-        if (!mountedRef.current || generation !== connectGenerationRef.current) return;
-        setNotEnabledMsg(
-          'Log streaming is disabled in production. Run locally with ENABLE_LOG_STREAM=true to view live logs.',
-        );
-        setStatus('production');
-        return;
-      }
-      if (res.status === 503) {
-        let message = 'Log streaming is not enabled.';
-        try {
-          const body = await res.json();
-          if (typeof body?.error?.message === 'string') message = body.error.message;
-        } catch {
-          // Use the generic disabled message when the response is not JSON.
+      // Pre-flight: fetch to distinguish 503 (not enabled) / 403 (production) from network errors.
+      const probeController = new AbortController();
+      probeAbortRef.current = probeController;
+      try {
+        const res = await fetch('/api/admin/logs/stream?probe=1', {
+          method: 'GET',
+          signal: probeController.signal,
+        });
+        if (res.status === 403) {
+          if (!mountedRef.current || generation !== connectGenerationRef.current) return;
+          setNotEnabledMsg(
+            'Log streaming is disabled in production. Run locally with ENABLE_LOG_STREAM=true to view live logs.',
+          );
+          setStatus('production');
+          return;
         }
-        if (!mountedRef.current || generation !== connectGenerationRef.current) return;
-        setNotEnabledMsg(message);
-        setStatus('not_enabled');
-        return;
+        if (res.status === 503) {
+          let message = 'Log streaming is not enabled.';
+          try {
+            const body = await res.json();
+            if (typeof body?.error?.message === 'string') message = body.error.message;
+          } catch {
+            // Use the generic disabled message when the response is not JSON.
+          }
+          if (!mountedRef.current || generation !== connectGenerationRef.current) return;
+          setNotEnabledMsg(message);
+          setStatus('not_enabled');
+          return;
+        }
+        if (!res.ok) {
+          if (!mountedRef.current || generation !== connectGenerationRef.current) return;
+          setNotEnabledMsg(`Log stream unavailable (HTTP ${res.status}).`);
+          setStatus('error');
+          return;
+        }
+      } catch {
+        // network error — EventSource will also fail, handled by onerror below.
+      } finally {
+        if (probeAbortRef.current === probeController) probeAbortRef.current = null;
       }
-      if (!res.ok) {
-        if (!mountedRef.current || generation !== connectGenerationRef.current) return;
-        setNotEnabledMsg(`Log stream unavailable (HTTP ${res.status}).`);
+
+      if (!mountedRef.current || generation !== connectGenerationRef.current) return;
+
+      const source = new EventSource('/api/admin/logs/stream');
+      sourceRef.current = source;
+
+      source.onopen = () => {
+        if (
+          !mountedRef.current ||
+          generation !== connectGenerationRef.current ||
+          sourceRef.current !== source
+        )
+          return;
+        setStatus('connected');
+        reconnectAttempt.current = 0;
+      };
+
+      source.onmessage = (event) => {
+        if (!mountedRef.current || sourceRef.current !== source || pausedRef.current) return;
+        const line = typeof event.data === 'string' ? event.data : String(event.data);
+        setLines((prev) => {
+          const next = [...prev, line];
+          return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
+        });
+      };
+
+      source.onerror = () => {
+        if (
+          !mountedRef.current ||
+          generation !== connectGenerationRef.current ||
+          sourceRef.current !== source
+        )
+          return;
+        source.close();
+        sourceRef.current = null;
         setStatus('error');
-        return;
-      }
-    } catch {
-      // network error — EventSource will also fail, handled by onerror below.
-    } finally {
-      if (probeAbortRef.current === probeController) probeAbortRef.current = null;
-    }
-
-    if (!mountedRef.current || generation !== connectGenerationRef.current) return;
-
-    const source = new EventSource('/api/admin/logs/stream');
-    sourceRef.current = source;
-
-    source.onopen = () => {
-      if (!mountedRef.current || generation !== connectGenerationRef.current || sourceRef.current !== source) return;
-      setStatus('connected');
-      reconnectAttempt.current = 0;
-    };
-
-    source.onmessage = (event) => {
-      if (!mountedRef.current || sourceRef.current !== source || pausedRef.current) return;
-      const line = typeof event.data === 'string' ? event.data : String(event.data);
-      setLines((prev) => {
-        const next = [...prev, line];
-        return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
-      });
-    };
-
-    source.onerror = () => {
-      if (!mountedRef.current || generation !== connectGenerationRef.current || sourceRef.current !== source) return;
-      source.close();
-      sourceRef.current = null;
-      setStatus('error');
-      // Exponential backoff reconnect
-      const delay = Math.min(
-        RECONNECT_MAX_MS,
-        RECONNECT_BASE_MS * Math.pow(2, reconnectAttempt.current),
-      );
-      reconnectAttempt.current++;
-      reconnectTimeout.current = setTimeout(() => {
-        if (mountedRef.current) void connect(false);
-      }, delay);
-    };
-  }, [disconnect]);
+        // Exponential backoff reconnect
+        const delay = Math.min(
+          RECONNECT_MAX_MS,
+          RECONNECT_BASE_MS * Math.pow(2, reconnectAttempt.current),
+        );
+        reconnectAttempt.current++;
+        reconnectTimeout.current = setTimeout(() => {
+          if (mountedRef.current) void connect(false);
+        }, delay);
+      };
+    },
+    [disconnect],
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -233,7 +261,7 @@ export function AdminLogViewer() {
             </Button>
           )}
 
-          <div className="flex items-center gap-1.5 border-border border-l pl-2 ml-1">
+          <div className="border-border ml-1 flex items-center gap-1.5 border-l pl-2">
             <Button
               variant="ghost"
               size="sm"
@@ -267,8 +295,8 @@ export function AdminLogViewer() {
             </Button>
           </div>
 
-          <div className="flex items-center gap-1.5 border-border border-l pl-2 ml-1">
-            <IconSearch className="size-4 text-fg-subtle" aria-hidden="true" />
+          <div className="border-border ml-1 flex items-center gap-1.5 border-l pl-2">
+            <IconSearch className="text-fg-subtle size-4" aria-hidden="true" />
             <Input
               type="text"
               placeholder="Filter…"
@@ -278,7 +306,7 @@ export function AdminLogViewer() {
             />
           </div>
 
-          <div className="flex items-center gap-1.5 ml-auto">
+          <div className="ml-auto flex items-center gap-1.5">
             <span className="text-fg-subtle text-xs">Auto-scroll</span>
             <Switch checked={autoScroll} onCheckedChange={setAutoScroll} srLabel="Auto-scroll" />
           </div>
@@ -288,7 +316,9 @@ export function AdminLogViewer() {
         <div className="border-border bg-bg-elev-1 flex h-[400px] flex-col overflow-hidden rounded-sm border font-mono text-xs">
           {status === 'not_enabled' || status === 'production' ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-4">
-              <p className="text-fg-subtle text-sm">{notEnabledMsg || 'Log streaming is not enabled.'}</p>
+              <p className="text-fg-subtle text-sm">
+                {notEnabledMsg || 'Log streaming is not enabled.'}
+              </p>
             </div>
           ) : status === 'idle' ? (
             <div className="flex h-full items-center justify-center">
@@ -305,7 +335,7 @@ export function AdminLogViewer() {
                   {filteredLines.map((line, i) => (
                     <pre
                       key={`${status}-${i}`}
-                      className={cn('whitespace-pre-wrap break-all py-px', severityClass(line))}
+                      className={cn('py-px break-all whitespace-pre-wrap', severityClass(line))}
                     >
                       {line}
                     </pre>

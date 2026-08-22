@@ -1,14 +1,32 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { GET } from '@/app/api/admin/logs/stream/route';
 
 const mockSubscribe = vi.hoisted(() => vi.fn());
 const mockUnsubscribe = vi.hoisted(() => vi.fn());
 const mockIsEnabled = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/admin-auth', () => ({
-  withAdminAuth: (handler: (req: Request) => Promise<Response>) =>
-    async (req: Request) => handler(req),
+  withAdminAuth: (handler: (req: Request) => Promise<Response>) => async (req: Request) =>
+    handler(req),
 }));
 
 vi.mock('@/lib/services/api-boundary', () => ({
@@ -18,8 +36,6 @@ vi.mock('@/lib/services/api-boundary', () => ({
     unsubscribe: mockUnsubscribe,
   },
 }));
-
-import { GET } from '@/app/api/admin/logs/stream/route';
 
 describe('GET /api/admin/logs/stream', () => {
   beforeEach(() => {

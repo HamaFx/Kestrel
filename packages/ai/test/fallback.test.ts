@@ -16,11 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  classifyStreamError,
-  makeFallbackPart,
-  shouldFallback,
-} from '../src/fallback';
+import { classifyStreamError, makeFallbackPart, shouldFallback } from '../src/fallback';
 
 describe('classifyStreamError — recoverable errors (fallback = true)', () => {
   it('falls back on a plain HTTP 401 object', () => {

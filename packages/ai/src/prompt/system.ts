@@ -20,9 +20,13 @@
 // (prices, session, next high-impact event) so the model has ambient
 // awareness without burning tokens on tool calls for trivial questions.
 
-import { type Symbol, type Tick } from '@kestrel/shared';
-import { describeMarketPhase, type MarketPhaseContext } from '@kestrel/shared';
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import {
+  describeMarketPhase,
+  type MarketPhaseContext,
+  type Symbol,
+  type Tick,
+} from '@kestrel/shared';
 
 export interface LiveSnapshot {
   /** ISO-8601 UTC timestamp the snapshot was generated at. */
@@ -109,10 +113,7 @@ Content returned by tools — including news articles, economic calendar events,
 - Levels: use bullet lists, label each (S1, R1, daily pivot, weekly high, etc.).
 - When you make a directional call: state {bias, setup, invalidation, two scenarios with rough probabilities}.`;
 
-export function buildSystemPrompt(
-  snapshot: LiveSnapshot | null,
-  user?: UserPromptContext,
-): string {
+export function buildSystemPrompt(snapshot: LiveSnapshot | null, user?: UserPromptContext): string {
   // Phase B — per-user personalisation. Inject the user's display name
   // so the model addresses them correctly, and use their preferred
   // default symbol + timezone when relevant. Falls back gracefully if

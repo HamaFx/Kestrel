@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // GET /api/cron/news — pulls latest from Marketaux + Finnhub, upserts
@@ -17,12 +33,11 @@
 //   - Hobby: external scheduler (Fly.io worker, GitHub Actions, etc.) hits
 //     this URL with `Authorization: Bearer ${CRON_SECRET}`.
 
-import { latestArticleTimestampMs, upsertArticles } from '@/lib/services/api-boundary';
-import { fetchNews } from '@/lib/services/api-boundary';
 import * as Sentry from '@sentry/nextjs';
 
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext, type CategorizedLogger } from '@/lib/logger';
+import { fetchNews, latestArticleTimestampMs, upsertArticles } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

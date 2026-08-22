@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // PF-22 — Settings service layer.
@@ -9,11 +25,9 @@
 // Pattern: Service (PF-22). Controllers remain thin: parse request →
 // call service → format Response.
 
-import { testProviderKey } from '@kestrel/ai';
-import { schema, getUserWithSettings, updateUserSettingsField, withRateLimit } from '@kestrel/db'
-import { getDb } from '@kestrel/ai';
-import { decryptByok, PROVIDER_IDS } from '@kestrel/shared/encryption';
-import type { ProviderId } from '@kestrel/shared/encryption';
+import { getDb, testProviderKey } from '@kestrel/ai';
+import { getUserWithSettings, schema, updateUserSettingsField, withRateLimit } from '@kestrel/db';
+import { decryptByok, PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -22,13 +36,15 @@ import { z } from 'zod';
 export const AnalysisModePatchSchema = z.object({
   defaultAnalysisMode: z.enum(['single', 'quick', 'standard', 'full', 'auto']).optional(),
   showAgentOpinions: z.boolean().optional(),
-  agentModelOverrides: z.object({
-    technical: z.string().optional(),
-    fundamental: z.string().optional(),
-    risk: z.string().optional(),
-    sentiment: z.string().optional(),
-    decision: z.string().optional(),
-  }).optional(),
+  agentModelOverrides: z
+    .object({
+      technical: z.string().optional(),
+      fundamental: z.string().optional(),
+      risk: z.string().optional(),
+      sentiment: z.string().optional(),
+      decision: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const FallbackChainPutSchema = z.object({
@@ -107,10 +123,7 @@ export async function updateAnalysisModeService(
   }
 
   const db = getDb();
-  await db
-    .update(schema.userSettings)
-    .set(updates)
-    .where(eq(schema.userSettings.userId, userId));
+  await db.update(schema.userSettings).set(updates).where(eq(schema.userSettings.userId, userId));
 }
 
 export async function getFallbackChainService(
@@ -136,19 +149,16 @@ export async function updateFallbackChainService(
  * returns a stream instead of a typed DTO, because the HTTP response
  * format (NDJSON) is intrinsic to the feature.
  */
-export function bulkTestKeysService(
-  userId: string,
-): Promise<{
+export function bulkTestKeysService(userId: string): Promise<{
   stream: ReadableStream<Uint8Array>;
   testedAt: Date;
 }> {
   return (async () => {
     const rate = await withRateLimit(userId, 'bulk_test', 2);
     if (!rate.allowed) {
-      throw Object.assign(
-        new Error('Bulk test rate-limited. Try again in a few minutes.'),
-        { statusCode: 429 },
-      );
+      throw Object.assign(new Error('Bulk test rate-limited. Try again in a few minutes.'), {
+        statusCode: 429,
+      });
     }
 
     const db = getDb();
@@ -217,13 +227,11 @@ export function bulkTestKeysService(
               userId,
               providerId: r.provider,
               ok: r.status === 'ok',
-              error: r.status === 'failed' ? r.error ?? 'unknown error' : null,
+              error: r.status === 'failed' ? (r.error ?? 'unknown error') : null,
               testedAt: testedAt.toISOString(),
             }));
           if (rows.length > 0) {
-            await db
-              .delete(schema.providerTests)
-              .where(eq(schema.providerTests.userId, userId));
+            await db.delete(schema.providerTests).where(eq(schema.providerTests.userId, userId));
             await db.insert(schema.providerTests).values(rows);
           }
 
@@ -236,7 +244,13 @@ export function bulkTestKeysService(
               JSON.stringify({
                 type: 'done' as const,
                 results,
-                summary: { ok, failed, missing, total: results.length, testedAt: testedAt.toISOString() },
+                summary: {
+                  ok,
+                  failed,
+                  missing,
+                  total: results.length,
+                  testedAt: testedAt.toISOString(),
+                },
               }) + '\n',
             ),
           );

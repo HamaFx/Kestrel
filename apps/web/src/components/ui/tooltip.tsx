@@ -33,7 +33,6 @@
 //   <Tooltip label="Pause alert">
 //     <button aria-label="Pause alert">…</button>
 //   </Tooltip>
-
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
@@ -50,9 +49,7 @@ interface TooltipProps {
 
 export function Tooltip({ label, side = 'top', children, className }: TooltipProps) {
   return (
-    <span
-      className={cn('group/tooltip relative inline-flex items-center', className)}
-    >
+    <span className={cn('group/tooltip relative inline-flex items-center', className)}>
       {children}
       <span
         role="tooltip"
@@ -61,8 +58,8 @@ export function Tooltip({ label, side = 'top', children, className }: TooltipPro
         // because the trigger already has an accessible name.
         aria-hidden="true"
         className={cn(
-          'pointer-events-none absolute left-1/2 -translate-x-1/2 z-50',
-          'whitespace-nowrap rounded-sm px-2 py-1 text-body-sm font-medium',
+          'pointer-events-none absolute left-1/2 z-50 -translate-x-1/2',
+          'text-body-sm rounded-sm px-2 py-1 font-medium whitespace-nowrap',
           'surface-elevated text-fg shadow-lg',
           'opacity-0 transition-opacity duration-150',
           'group-hover/tooltip:opacity-100 group-hover/tooltip:delay-300',

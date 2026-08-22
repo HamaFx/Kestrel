@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Shared handleSummary that every test file re-exports.
 // Produces:
 //   - results/<testname>-<timestamp>.summary.json  (machine-readable)
@@ -25,12 +41,11 @@ export function handleSummary(data: any): Record<string, string> {
   };
 }
 
-function generateJunitXml(
-  data: Record<string, unknown>,
-  testName: string,
-  ts: string,
-): string {
-  const metrics = (data.metrics ?? {}) as Record<string, { thresholds?: Record<string, { ok?: boolean }> }>;
+function generateJunitXml(data: Record<string, unknown>, testName: string, ts: string): string {
+  const metrics = (data.metrics ?? {}) as Record<
+    string,
+    { thresholds?: Record<string, { ok?: boolean }> }
+  >;
   const failures: string[] = [];
 
   // Check threshold breaches
@@ -42,7 +57,9 @@ function generateJunitXml(
   }
 
   // Check check failures
-  const rootGroup = (data.root_group ?? {}) as { checks?: { passes: boolean; fails: number; name: string }[] };
+  const rootGroup = (data.root_group ?? {}) as {
+    checks?: { passes: boolean; fails: number; name: string }[];
+  };
   const checks = rootGroup.checks ?? [];
   const checksFailed = checks.filter((c: { passes: boolean }) => !c.passes).length;
 

@@ -30,7 +30,6 @@
 //
 // Items can render as buttons (default) or links (Symbol picker on /chart
 // keeps URL state). Pass `as="link"` + `hrefFor` to opt into Link mode.
-
 import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -129,7 +128,7 @@ export function Segmented<T extends string>(props: SegmentedProps<T>) {
   const focusIndex = (index: number) => {
     setFocusedIndex(index);
     const items = containerRef.current?.querySelectorAll<HTMLButtonElement | HTMLAnchorElement>(
-      'button, a'
+      'button, a',
     );
     items?.[index]?.focus();
   };
@@ -173,7 +172,7 @@ export function Segmented<T extends string>(props: SegmentedProps<T>) {
       {label ? (
         <span
           className={cn(
-            'text-fg-subtle text-body-sm uppercase tracking-wide',
+            'text-fg-subtle text-body-sm tracking-wide uppercase',
             srLabel && 'sr-only',
           )}
         >
@@ -210,14 +209,12 @@ export function Segmented<T extends string>(props: SegmentedProps<T>) {
             active && variant === 'accent' ? (
               <m.span
                 layoutId={layoutId}
-                className="absolute inset-0 -z-0 rounded-sm bg-brand"
+                className="bg-brand absolute inset-0 -z-0 rounded-sm"
                 transition={{ type: 'spring', stiffness: 380, damping: 30 }}
               />
             ) : null;
 
-          const labelEl = (
-            <span className="relative z-10 leading-none">{opt.label}</span>
-          );
+          const labelEl = <span className="relative z-10 leading-none">{opt.label}</span>;
 
           if (props.as === 'link') {
             return (

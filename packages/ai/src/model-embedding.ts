@@ -20,18 +20,11 @@
 // envFallbackKeys).
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import {
-  decryptByok,
-  configuredProviders,
-  type ByokPayload,
-} from '@kestrel/shared/encryption';
+import { configuredProviders, decryptByok, type ByokPayload } from '@kestrel/shared/encryption';
+
 import { BYOK_PROVIDERS } from './byok-providers';
+import { envFallbackKeys, parsePickedModelId, PROVIDER_PRIORITY } from './model-helpers';
 import type { ResolveModelEnv } from './vertex-factory';
-import {
-  PROVIDER_PRIORITY,
-  envFallbackKeys,
-  parsePickedModelId,
-} from './model-helpers';
 
 /**
  * Phase D2 — result of resolving the user's default embedding model.
@@ -68,10 +61,7 @@ export function resolveEmbeddingModel(
   };
 
   // 1. User's explicit pick.
-  if (
-    typeof userSettings.embeddingModel === 'string' &&
-    userSettings.embeddingModel.length > 0
-  ) {
+  if (typeof userSettings.embeddingModel === 'string' && userSettings.embeddingModel.length > 0) {
     const parsed = parsePickedModelId(userSettings.embeddingModel, keys);
     if (parsed && parsed.spec.supports.embedding) {
       return `${parsed.spec.id}/${parsed.bareModelId}`;
@@ -85,9 +75,9 @@ export function resolveEmbeddingModel(
   }
 
   // 3. Highest-priority configured provider that declares an embedding model.
-  const priority = configuredProviders(keys).slice().sort(
-    (a, b) => PROVIDER_PRIORITY.indexOf(a) - PROVIDER_PRIORITY.indexOf(b),
-  );
+  const priority = configuredProviders(keys)
+    .slice()
+    .sort((a, b) => PROVIDER_PRIORITY.indexOf(a) - PROVIDER_PRIORITY.indexOf(b));
   for (const providerId of priority) {
     const spec = BYOK_PROVIDERS[providerId];
     if (!spec?.supports.embedding) continue;

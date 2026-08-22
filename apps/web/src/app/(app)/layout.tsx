@@ -1,29 +1,45 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
+import { getUserWithSettings } from '@kestrel/db';
 import { redirect } from 'next/navigation';
 import { cache, Suspense } from 'react';
+
 import { auth } from '@/auth';
-import { getUserWithSettings } from '@kestrel/db';
+import { AppShellContainer } from '@/components/layout/app-shell-container';
+import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
+import { CommandPalette, InstallNudge } from '@/components/layout/lazy-chrome';
+import { MarketSessionBar } from '@/components/layout/market-session-bar';
+import { NavDrawer } from '@/components/layout/nav-drawer';
+import { NavDrawerProvider } from '@/components/layout/nav-drawer-context';
+import { OfflineBanner } from '@/components/layout/offline-banner';
+import { SidebarStateProvider } from '@/components/layout/sidebar-state-context';
+import { SkipToContent } from '@/components/layout/skip-to-content';
+import { TickerTape } from '@/components/layout/ticker-tape';
+import { TopBar } from '@/components/layout/top-bar';
+import { MotionRoot } from '@/components/ui/motion-config';
+import { Toaster } from '@/components/ui/toaster';
 import { checkIsAdmin } from '@/lib/admin-check';
 
 const getOnboardingStatus = cache(async (userId: string) => {
   const { settings } = await getUserWithSettings(userId);
   return settings?.onboardingCompleted ?? false;
 });
-
-import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
-import { SidebarStateProvider } from '@/components/layout/sidebar-state-context';
-import { AppShellContainer } from '@/components/layout/app-shell-container';
-import { MarketSessionBar } from '@/components/layout/market-session-bar';
-import { NavDrawer } from '@/components/layout/nav-drawer';
-import { NavDrawerProvider } from '@/components/layout/nav-drawer-context';
-import { OfflineBanner } from '@/components/layout/offline-banner';
-import { SkipToContent } from '@/components/layout/skip-to-content';
-import { TopBar } from '@/components/layout/top-bar';
-import { TickerTape } from '@/components/layout/ticker-tape';
-import { CommandPalette, InstallNudge } from '@/components/layout/lazy-chrome';
-import { MotionRoot } from '@/components/ui/motion-config';
-import { Toaster } from '@/components/ui/toaster';
 
 /**
  * Mobile-first & Desktop-adaptive shell shared by all authenticated pages.
@@ -77,36 +93,44 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <TopBar />
               <TickerTape />
               <MarketSessionBar />
-            <main
-              id="main-content"
-              tabIndex={-1}
-              className="mx-auto w-full max-w-2xl px-4 pt-4 xl:max-w-7xl xl:px-6 focus:outline-none"
-              style={{ viewTransitionName: 'main-content', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}
-            >
-              {/* Phase B — UX_UPGRADE_PLAN.md item 12. PWA install hint. */}
-              <InstallNudge />
-              {/* H1: Suspense boundary for route-level streaming. */}
-              <Suspense
-                fallback={
-                  <div className="flex min-h-[40svh] items-center justify-center">
-                    <div className="shimmer h-32 w-full max-w-md rounded-sm" />
-                  </div>
-                }
+              <main
+                id="main-content"
+                tabIndex={-1}
+                className="mx-auto w-full max-w-2xl px-4 pt-4 focus:outline-none xl:max-w-7xl xl:px-6"
+                style={{
+                  viewTransitionName: 'main-content',
+                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+                }}
               >
-                {children}
-              </Suspense>
-            </main>
-          </AppShellContainer>
-          <NavDrawer {...(userName !== undefined ? { userName } : {})} {...(userEmail !== undefined ? { userEmail } : {})} {...(userId !== undefined ? { userId } : {})} isAdmin={isAdmin} />
-          <OfflineBanner />
-          {/* Phase B — UX_UPGRADE_PLAN.md item 11. Global ⌘K / Ctrl-K
+                {/* Phase B — UX_UPGRADE_PLAN.md item 12. PWA install hint. */}
+                <InstallNudge />
+                {/* H1: Suspense boundary for route-level streaming. */}
+                <Suspense
+                  fallback={
+                    <div className="flex min-h-[40svh] items-center justify-center">
+                      <div className="shimmer h-32 w-full max-w-md rounded-sm" />
+                    </div>
+                  }
+                >
+                  {children}
+                </Suspense>
+              </main>
+            </AppShellContainer>
+            <NavDrawer
+              {...(userName !== undefined ? { userName } : {})}
+              {...(userEmail !== undefined ? { userEmail } : {})}
+              {...(userId !== undefined ? { userId } : {})}
+              isAdmin={isAdmin}
+            />
+            <OfflineBanner />
+            {/* Phase B — UX_UPGRADE_PLAN.md item 11. Global ⌘K / Ctrl-K
               launcher. Self-contained: keyboard listener, vaul drawer,
               floating touch button. */}
-          <CommandPalette />
-          <Toaster />
-        </div>
-      </NavDrawerProvider>
-    </SidebarStateProvider>
-  </MotionRoot>
+            <CommandPalette />
+            <Toaster />
+          </div>
+        </NavDrawerProvider>
+      </SidebarStateProvider>
+    </MotionRoot>
   );
 }

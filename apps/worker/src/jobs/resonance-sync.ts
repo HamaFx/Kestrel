@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import { schema } from '@kestrel/db';
 import { getDb } from '@kestrel/ai';
 import { fred } from '@kestrel/data';
-import { and, eq, gte, lte } from 'drizzle-orm';
-import { sql } from 'drizzle-orm';
+import { schema } from '@kestrel/db';
+import { and, eq, gte, lte, sql } from 'drizzle-orm';
 
 import type { JobContext, JobResult } from './types.js';
 
@@ -78,8 +77,8 @@ export async function runResonanceSync(ctx: JobContext): Promise<JobResult> {
         eq(schema.snapshots.symbol, 'XAUUSD'),
         eq(schema.snapshots.kind, 'daily'),
         gte(schema.snapshots.asOf, startDate),
-        lte(schema.snapshots.asOf, today)
-      )
+        lte(schema.snapshots.asOf, today),
+      ),
     );
 
   const goldMap = new Map<string, number>();

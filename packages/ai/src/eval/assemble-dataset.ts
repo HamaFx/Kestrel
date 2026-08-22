@@ -23,6 +23,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
+import { resolveEvaluationAnnotations, type FeedbackAnnotationInput } from './annotation-resolver';
+import type { PromptResult } from './runner';
 import {
   buildDatasetManifest,
   buildTrainingRecords,
@@ -31,11 +33,6 @@ import {
   type TrainingExportOptions,
   type TrainingExportRecord,
 } from './training-export';
-import type { PromptResult } from './runner';
-import {
-  resolveEvaluationAnnotations,
-  type FeedbackAnnotationInput,
-} from './annotation-resolver';
 
 export interface AssembleDatasetInput {
   results: readonly PromptResult[];
@@ -77,7 +74,9 @@ export function assembleTrainingDataset(input: AssembleDatasetInput): AssembledD
     datasetVersion: input.datasetVersion,
     annotations,
     requireApprovedAnnotations: input.requireApprovedAnnotations ?? true,
-    ...(input.includeAssistantText !== undefined ? { includeAssistantText: input.includeAssistantText } : {}),
+    ...(input.includeAssistantText !== undefined
+      ? { includeAssistantText: input.includeAssistantText }
+      : {}),
     ...(input.approvedBy ? { approvedBy: input.approvedBy } : {}),
     ...(input.splitByCaseId ? { splitByCaseId: input.splitByCaseId } : {}),
     ...(input.source ? { source: input.source } : {}),

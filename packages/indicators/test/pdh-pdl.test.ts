@@ -1,6 +1,23 @@
-import { describe, expect, it } from 'vitest';
-import { computePdhPdl } from '../src/smc/pdh-pdl';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import type { Candle } from '@kestrel/shared';
+import { describe, expect, it } from 'vitest';
+
+import { computePdhPdl } from '../src/smc/pdh-pdl';
 
 function makeCandle(h: number, l: number, t: number): Candle {
   return {
@@ -26,10 +43,7 @@ describe('computePdhPdl', () => {
   });
 
   it('returns null when only one day of data exists', () => {
-    const candles = [
-      makeCandle(2010, 2000, BASE_TS),
-      makeCandle(2015, 2005, BASE_TS + 3600000),
-    ];
+    const candles = [makeCandle(2010, 2000, BASE_TS), makeCandle(2015, 2005, BASE_TS + 3600000)];
     expect(computePdhPdl(candles)).toBeNull();
   });
 
@@ -42,7 +56,7 @@ describe('computePdhPdl', () => {
     const candles = [
       makeCandle(2005, 2000, day1 + 2 * 3600000), // day 1, low at 2000
       makeCandle(2015, 2008, day1 + 5 * 3600000), // day 1, high at 2015
-      makeCandle(2010, 2003, day2),                // day 2
+      makeCandle(2010, 2003, day2), // day 2
       makeCandle(2020, 2007, day2 + 2 * 3600000), // day 2
     ];
 

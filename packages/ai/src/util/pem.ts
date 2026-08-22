@@ -57,10 +57,7 @@ export function normalizePemPrivateKey(raw: string): string {
   const footer = footerMatch[0]!;
 
   // Remove header, footer, and all whitespace to get the raw base64 body.
-  const body = key
-    .replace(header, '')
-    .replace(footer, '')
-    .replace(/\s+/g, '');
+  const body = key.replace(header, '').replace(footer, '').replace(/\s+/g, '');
 
   if (body.length === 0) return raw;
 

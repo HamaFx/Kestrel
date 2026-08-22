@@ -3,8 +3,8 @@
 > Backend HTTP load & performance testing using [Grafana k6](https://grafana.com/docs/k6/).
 >
 > This suite fills the gap between Vitest (correctness), Playwright (UX), and
-> Lighthouse (front-end vitals). It answers: *how many concurrent users can the
-> API sustain, at what latency percentiles, before errors climb?*
+> Lighthouse (front-end vitals). It answers: _how many concurrent users can the
+> API sustain, at what latency percentiles, before errors climb?_
 
 ## Prerequisites
 
@@ -39,11 +39,13 @@ Set `AUTH_MODE=legacy` in the SUT (development only) and all requests are
 treated as a single `__system__` user. No cookies or CSRF needed.
 
 **SUT setup:**
+
 ```bash
 docker compose -f loadtest/docker-compose.loadtest.yml up -d --wait
 ```
 
 **Run tests:**
+
 ```bash
 k6 run -e K6_BASE_URL=http://localhost:3000 -e K6_AUTH_MODE=legacy tests/smoke-read-mix.ts
 k6 run -e K6_BASE_URL=http://localhost:3000 -e K6_AUTH_MODE=legacy tests/load-read-mix.ts
@@ -71,15 +73,15 @@ k6 run -e K6_BASE_URL=http://localhost:3000 -e K6_AUTH_MODE=session \
 
 ## Test Types
 
-| Type | Script | Purpose | CI |
-|---|---|---|---|
-| **Smoke** | `tests/smoke-market-read.ts`, `tests/smoke-read-mix.ts` | Validate script + SUT wiring | Nightly |
-| **Average-load** | `tests/load-market-read.ts`, `tests/load-read-mix.ts` | Baseline for regression comparison | Nightly |
-| **Stress** | `tests/stress-market-read.ts` | Find the throughput ceiling | Manual only |
-| **Spike** | `tests/spike-read-mix.ts` | Sudden surge → recovery | Manual only |
-| **Soak** | `tests/soak-read-mix.ts` | Detect memory leaks over hours | Manual only |
-| **Chat** | `tests/load-chat.ts` | LLM streaming latency (guarded) | Manual only |
-| **Full mode** | `tests/load-full-mode.ts` | Queue/worker completion and polling recovery (guarded) | Manual only |
+| Type             | Script                                                  | Purpose                                                | CI          |
+| ---------------- | ------------------------------------------------------- | ------------------------------------------------------ | ----------- |
+| **Smoke**        | `tests/smoke-market-read.ts`, `tests/smoke-read-mix.ts` | Validate script + SUT wiring                           | Nightly     |
+| **Average-load** | `tests/load-market-read.ts`, `tests/load-read-mix.ts`   | Baseline for regression comparison                     | Nightly     |
+| **Stress**       | `tests/stress-market-read.ts`                           | Find the throughput ceiling                            | Manual only |
+| **Spike**        | `tests/spike-read-mix.ts`                               | Sudden surge → recovery                                | Manual only |
+| **Soak**         | `tests/soak-read-mix.ts`                                | Detect memory leaks over hours                         | Manual only |
+| **Chat**         | `tests/load-chat.ts`                                    | LLM streaming latency (guarded)                        | Manual only |
+| **Full mode**    | `tests/load-full-mode.ts`                               | Queue/worker completion and polling recovery (guarded) | Manual only |
 
 ## npm Scripts
 
@@ -97,31 +99,31 @@ npm run seed           # Seed users for Strategy B
 
 ### k6 test env (`-e KEY=val`)
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `K6_BASE_URL` | `http://localhost:3000` | SUT base URL |
-| `K6_AUTH_MODE` | `legacy` | `legacy` or `session` |
-| `K6_USER_COUNT` | `10` | Number of seeded users (Strategy B) |
-| `K6_TEST_PASSWORD` | `LoadTest!123` | Shared password for seeded users |
-| `K6_TARGET_RPS` | varies | Target requests/sec for load profiles |
-| `K6_SOAK_DURATION` | `1h` | Duration for soak test |
-| `K6_ENABLE_CHAT` | unset | Must be `true` to run chat load test |
-| `K6_ENABLE_FULL_MODE` | unset | Must be `true` to run Full-mode queue load; requires session auth |
-| `K6_FULL_MODE_VUS` | `2` | Concurrent Full-mode virtual users |
-| `K6_FULL_MODE_ITERS` | `2` | Full-mode iterations per VU |
-| `K6_FULL_MODE_MAX_POLLS` | `30` | Maximum 2-second worker polls per job |
-| `K6_LOADTEST_RELAXED` | `true` for Docker SUT | Relax p95/p99 thresholds 2-4× (POST endpoints slower w/o cache) |
-| `K6_CRON_SECRET` | unset | For cron endpoint tests |
+| Variable                 | Default                 | Purpose                                                           |
+| ------------------------ | ----------------------- | ----------------------------------------------------------------- |
+| `K6_BASE_URL`            | `http://localhost:3000` | SUT base URL                                                      |
+| `K6_AUTH_MODE`           | `legacy`                | `legacy` or `session`                                             |
+| `K6_USER_COUNT`          | `10`                    | Number of seeded users (Strategy B)                               |
+| `K6_TEST_PASSWORD`       | `LoadTest!123`          | Shared password for seeded users                                  |
+| `K6_TARGET_RPS`          | varies                  | Target requests/sec for load profiles                             |
+| `K6_SOAK_DURATION`       | `1h`                    | Duration for soak test                                            |
+| `K6_ENABLE_CHAT`         | unset                   | Must be `true` to run chat load test                              |
+| `K6_ENABLE_FULL_MODE`    | unset                   | Must be `true` to run Full-mode queue load; requires session auth |
+| `K6_FULL_MODE_VUS`       | `2`                     | Concurrent Full-mode virtual users                                |
+| `K6_FULL_MODE_ITERS`     | `2`                     | Full-mode iterations per VU                                       |
+| `K6_FULL_MODE_MAX_POLLS` | `30`                    | Maximum 2-second worker polls per job                             |
+| `K6_LOADTEST_RELAXED`    | `true` for Docker SUT   | Relax p95/p99 thresholds 2-4× (POST endpoints slower w/o cache)   |
+| `K6_CRON_SECRET`         | unset                   | For cron endpoint tests                                           |
 
 ### SUT env (for the throwaway SUT)
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `MARKET_READ_RATE_LIMIT` | `100000` | Lifted for Strategy A |
-| `AUTH_MODE` | `legacy` | Skip auth for k6 |
-| `NODE_ENV` | `development` | Required for legacy auth bypass |
-| `LIVE_TICKS_MAX_AGE_MS` | `86400000` | 24h freshness window for seeded live_ticks |
-| `DB_DISABLE_SSL` | `true` | Skip TLS for local Docker Postgres |
+| Variable                 | Default       | Purpose                                    |
+| ------------------------ | ------------- | ------------------------------------------ |
+| `MARKET_READ_RATE_LIMIT` | `100000`      | Lifted for Strategy A                      |
+| `AUTH_MODE`              | `legacy`      | Skip auth for k6                           |
+| `NODE_ENV`               | `development` | Required for legacy auth bypass            |
+| `LIVE_TICKS_MAX_AGE_MS`  | `86400000`    | 24h freshness window for seeded live_ticks |
+| `DB_DISABLE_SSL`         | `true`        | Skip TLS for local Docker Postgres         |
 
 Auto-seeding: the `seed-ticks` service in docker-compose.loadtest.yml seeds
 the core gold/forex fixture symbols (XAUUSD, EURUSD, GBPUSD) into the
@@ -132,6 +134,7 @@ catalog.
 ## Output
 
 Every run produces:
+
 - `results/<testname>-<timestamp>.summary.json` — full k6 JSON summary
 - `results/<testname>-<timestamp>.junit.xml` — CI test report
 - stdout text summary
@@ -158,7 +161,7 @@ enqueue failures, worker poll counts, completion rate, and terminal failures.
 ## Out of Scope
 
 - **The worker** (`apps/worker`) is not an end-user HTTP server and cannot be
-  load-tested via k6. Worker load is *indirect* (DB write pressure from tick
+  load-tested via k6. Worker load is _indirect_ (DB write pressure from tick
   volume). A separate harness would be needed.
 
 - **Cron endpoints** (`/api/cron/*`) are bearer-token-protected background jobs.

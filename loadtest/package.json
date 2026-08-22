@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@types/k6": "^0.57.0",
+    "@types/node": "^22.13.0",
     "typescript": "^7.0.2"
   }
 }

@@ -1,10 +1,28 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it, vi } from 'vitest';
 
 import { computeHealthSloService } from '@/lib/services/admin-health';
 
-function createMockDb(scenario: 'healthy' | 'missing-live-ticks' | 'stale-tick' | 'silent' = 'healthy') {
+function createMockDb(
+  scenario: 'healthy' | 'missing-live-ticks' | 'stale-tick' | 'silent' = 'healthy',
+) {
   // The service always issues queries in the same order:
   // 1) DB probe, 2) live_ticks, 3) cron_runs, 4) chat_tool_telemetry,
   // 5) chat_telemetry, 6) full-analysis workflow runs (stale/stuck),
@@ -42,9 +60,7 @@ function createMockDb(scenario: 'healthy' | 'missing-live-ticks' | 'stale-tick' 
       }
 
       if (callIndex === 5) {
-        return scenario === 'silent'
-          ? { rows: [{ turns: '0' }] }
-          : { rows: [{ turns: '50' }] };
+        return scenario === 'silent' ? { rows: [{ turns: '0' }] } : { rows: [{ turns: '50' }] };
       }
 
       if (callIndex === 6) {
@@ -53,13 +69,23 @@ function createMockDb(scenario: 'healthy' | 'missing-live-ticks' | 'stale-tick' 
 
       if (callIndex === 7) {
         return {
-          rows: [{
-            full_total: '10', full_completed: '10', full_failed: '0',
-            sentiment_total: '10', sentiment_succeeded: '9',
-            outbox_terminal: '10', outbox_completed: '10', outbox_dead: '0',
-            budget_terminal: '10', budget_errors: '0',
-            trace_total: '10', trace_failed: '0', provider_fallback_traces: '1',
-          }],
+          rows: [
+            {
+              full_total: '10',
+              full_completed: '10',
+              full_failed: '0',
+              sentiment_total: '10',
+              sentiment_succeeded: '9',
+              outbox_terminal: '10',
+              outbox_completed: '10',
+              outbox_dead: '0',
+              budget_terminal: '10',
+              budget_errors: '0',
+              trace_total: '10',
+              trace_failed: '0',
+              provider_fallback_traces: '1',
+            },
+          ],
         };
       }
 
@@ -91,7 +117,9 @@ describe('computeHealthSloService', () => {
     expect(result.dbOk).toBe(true);
     expect(result.slis.find((s) => s.key === 'worker_ticks')?.current).toBeNull();
     expect(result.overall).toBe('degraded');
-    expect(result.anomalies).toContain('Tick telemetry is unavailable — worker health cannot be verified');
+    expect(result.anomalies).toContain(
+      'Tick telemetry is unavailable — worker health cannot be verified',
+    );
     expect(result.slis.find((s) => s.key === 'cron_jobs')?.total).toBe(10);
     expect(result.slis.find((s) => s.key === 'ai_gateway')?.total).toBe(100);
   });
@@ -145,8 +173,14 @@ describe('computeHealthSloService', () => {
     const result = await computeHealthSloService(db, { hours: 1 });
 
     expect(result.overall).toBe('degraded');
-    expect(result.anomalies).toContain('No AI tool calls in the selected window — gateway health cannot be verified');
-    expect(result.anomalies).toContain('No chat turns in the selected window — chat health cannot be verified');
-    expect(result.anomalies).toContain('No cron runs in the selected window — cron health cannot be verified');
+    expect(result.anomalies).toContain(
+      'No AI tool calls in the selected window — gateway health cannot be verified',
+    );
+    expect(result.anomalies).toContain(
+      'No chat turns in the selected window — chat health cannot be verified',
+    );
+    expect(result.anomalies).toContain(
+      'No cron runs in the selected window — cron health cannot be verified',
+    );
   });
 });

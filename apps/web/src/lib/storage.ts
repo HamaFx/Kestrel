@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Phase 3 hardening §7 — thin Supabase Storage client for chat image
@@ -73,9 +89,7 @@ export async function uploadChatImage(
     throw new Error('upload payload is empty');
   }
   if (bytes.byteLength > MAX_UPLOAD_BYTES) {
-    throw new Error(
-      `upload exceeds ${MAX_UPLOAD_BYTES} bytes (got ${bytes.byteLength})`,
-    );
+    throw new Error(`upload exceeds ${MAX_UPLOAD_BYTES} bytes (got ${bytes.byteLength})`);
   }
   if (!input.mediaType.startsWith('image/')) {
     throw new Error(`media type ${input.mediaType} is not an image`);
@@ -120,9 +134,7 @@ export async function uploadChatImage(
  * good enough for personal-mode at our upload rate.
  */
 function buildObjectPath(userId: string, filename: string): string {
-  const safeBase = filename
-    .replace(/[^a-zA-Z0-9_.-]/g, '_')
-    .slice(0, 64);
+  const safeBase = filename.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 64);
   const prefix = bytesToHex(crypto.getRandomValues(new Uint8Array(6)));
   // YYYY-MM-DD partition so a future cleanup cron can target one day
   // at a time without scanning the whole bucket.

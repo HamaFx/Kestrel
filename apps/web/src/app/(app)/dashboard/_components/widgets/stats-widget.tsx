@@ -2,15 +2,35 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Phase 1.6 — Stats widget (4-cell stat grid).
 //
 // Computes win rate, total R, average R, and active position count from
 // journal entries and renders them via the existing StatCard surface so
 // styling stays consistent across the app.
-
-import { useMemo } from 'react';
-import {IconActivity, IconCurrencyDollar, IconPercentage, IconTrendingUp} from '@tabler/icons-react';
 import type { JournalEntry } from '@kestrel/shared';
+import {
+  IconActivity,
+  IconCurrencyDollar,
+  IconPercentage,
+  IconTrendingUp,
+} from '@tabler/icons-react';
+import { useMemo } from 'react';
 
 import { StatCard, type StatCardProps } from '@/components/ui/stat-card';
 
@@ -70,10 +90,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
   }, [entries]);
 
   return (
-    <section
-      aria-label="Trading stats"
-      className="grid grid-cols-2 gap-3"
-    >
+    <section aria-label="Trading stats" className="grid grid-cols-2 gap-3">
       {metrics.map((m) => (
         <StatCard
           key={m.label}
@@ -81,9 +98,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
           value={m.value}
           tone={m.tone ?? 'fg'}
           icon={m.icon}
-          {...(m.sparkline && m.sparkline.length >= 2
-            ? { sparkline: m.sparkline }
-            : {})}
+          {...(m.sparkline && m.sparkline.length >= 2 ? { sparkline: m.sparkline } : {})}
         />
       ))}
     </section>

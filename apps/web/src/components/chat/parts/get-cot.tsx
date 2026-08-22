@@ -9,6 +9,21 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import type { CoTSample } from '@kestrel/shared';
 import { m } from 'motion/react';
 
@@ -55,7 +70,10 @@ export function GetCoTPart({ output, state, errorMessage }: ToolPartProps<'get_c
 
       <ul className="flex flex-col gap-1.5">
         {nets.map((row) => (
-          <li key={row.dateIso} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-body-sm">
+          <li
+            key={row.dateIso}
+            className="text-body-sm grid grid-cols-[auto_1fr_auto] items-center gap-2"
+          >
             <span className="text-fg-subtle w-16 tabular-nums">{row.dateIso.slice(5)}</span>
             <Bar value={row.leveraged} max={max} />
             <span
@@ -80,9 +98,12 @@ function Bar({ value, max }: { value: number | null; max: number }) {
   const positive = value >= 0;
   const tone = positive ? 'bg-bull' : 'bg-bear';
   return (
-    <div className="relative h-[3px] w-full rounded-sm bg-bg-elev-2">
+    <div className="bg-bg-elev-2 relative h-[3px] w-full rounded-sm">
       {/* center zero-line */}
-      <span aria-hidden className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-divider" />
+      <span
+        aria-hidden
+        className="bg-divider absolute top-0 left-1/2 h-full w-px -translate-x-1/2"
+      />
       <m.div
         className={cn('absolute top-0 h-full rounded-sm', tone)}
         style={positive ? { left: '50%' } : { right: '50%' }}
@@ -100,7 +121,10 @@ interface NetRow {
 }
 
 function netRow(s: CoTSample): NetRow {
-  const lev = s.leveragedLong !== null && s.leveragedShort !== null ? s.leveragedLong - s.leveragedShort : null;
+  const lev =
+    s.leveragedLong !== null && s.leveragedShort !== null
+      ? s.leveragedLong - s.leveragedShort
+      : null;
   return {
     dateIso: new Date(s.reportDate).toISOString().slice(0, 10),
     leveraged: lev,

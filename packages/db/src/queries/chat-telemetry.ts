@@ -17,6 +17,7 @@
 // Chat tool telemetry query helpers — admin diagnostic views.
 
 import { desc, eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 /**

@@ -24,12 +24,13 @@
 // signal is threaded into JobContext so individual jobs can short-circuit
 // long loops.
 
-import cron from 'node-cron';
 import { getDb } from '@kestrel/ai';
 import { sql } from 'drizzle-orm';
-import type { Logger } from './log.js';
-import { JOBS } from './jobs/index.js';
+import cron from 'node-cron';
+
 import { acquireCronLock } from './cron-lock.js';
+import { JOBS } from './jobs/index.js';
+import type { Logger } from './log.js';
 import { tenantRouter } from './tenant-router.js';
 
 // STAB-02: Maximum wall-clock time any scheduled job may run.
@@ -81,15 +82,19 @@ export function startScheduler(log: Logger): () => void {
   // PF-04 — Schedule all jobs from the JOBS registry.
   // Iterates the registry and sets up cron for every entry with a
   // non-null schedule. Multi-agent-analysis uses setTimeout below.
-  const jobEntries = Object.entries(JOBS) as Array<[keyof typeof JOBS, (typeof JOBS)[keyof typeof JOBS]]>;
+  const jobEntries = Object.entries(JOBS) as Array<
+    [keyof typeof JOBS, (typeof JOBS)[keyof typeof JOBS]]
+  >;
   for (const [name, job] of jobEntries) {
     if (job.schedule === null) {
       log.info(`Job ${name} has no cron schedule — skipping cron registration`);
       continue;
     }
-    tasks.push(cron.schedule(job.schedule, () => {
-      void runJobSafely(name, log);
-    }));
+    tasks.push(
+      cron.schedule(job.schedule, () => {
+        void runJobSafely(name, log);
+      }),
+    );
     log.info(`Scheduled job ${name} at "${job.schedule}"`);
   }
 
@@ -131,7 +136,10 @@ export function startScheduler(log: Logger): () => void {
   return () => {
     log.info('scheduler: stopping all tasks');
     clearInterval(stuckCleanupTimer);
-    if (multiAgentTimer) { clearTimeout(multiAgentTimer); multiAgentTimer = null; }
+    if (multiAgentTimer) {
+      clearTimeout(multiAgentTimer);
+      multiAgentTimer = null;
+    }
     for (const t of tasks) t.stop();
   };
 }
@@ -158,7 +166,9 @@ async function cleanupStaleCronRuns(log: Logger): Promise<void> {
 
     // In drizzle-orm, execute() returns RowList which may have .length
     // as an array-like property. Cast to access count of affected rows.
-    const count = Array.isArray(result) ? result.length : (result as { length?: number }).length ?? 0;
+    const count = Array.isArray(result)
+      ? result.length
+      : ((result as { length?: number }).length ?? 0);
     if (count > 0) {
       log.warn(`Cleaned up ${count} stale cron_runs row(s) from previous run`);
     }
@@ -217,9 +227,12 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
         }
       } catch (retryErr) {
         // Both attempts failed — proceed without the lock.
-        jobLog.warn('Failed to acquire cron lock after retry, proceeding without idempotency guard', {
-          err: String(retryErr),
-        });
+        jobLog.warn(
+          'Failed to acquire cron lock after retry, proceeding without idempotency guard',
+          {
+            err: String(retryErr),
+          },
+        );
       }
     }
   }

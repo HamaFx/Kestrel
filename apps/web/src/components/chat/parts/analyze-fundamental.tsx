@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `analyze_fundamental` tool part.
@@ -36,10 +52,8 @@ export function AnalyzeFundamentalPart({
   return (
     <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
       <header className="mb-2 flex items-baseline justify-between gap-2">
-        <h3 className="text-fg text-sm font-semibold">
-          {output.symbol} · fundamental
-        </h3>
-        <span className="text-fg-muted font-mono text-caption tabular-nums">
+        <h3 className="text-fg text-sm font-semibold">{output.symbol} · fundamental</h3>
+        <span className="text-fg-muted text-caption font-mono tabular-nums">
           {output.currencies.join(' · ')}
         </span>
       </header>
@@ -67,7 +81,7 @@ export function AnalyzeFundamentalPart({
                   </span>
                 </div>
                 <span
-                  className={`shrink-0 rounded-sm px-2 py-0.5 text-caption font-medium uppercase tracking-wide ${impactClass(e.importance)}`}
+                  className={`text-caption shrink-0 rounded-sm px-2 py-0.5 font-medium tracking-wide uppercase ${impactClass(e.importance)}`}
                 >
                   {e.importance}
                 </span>
@@ -79,7 +93,7 @@ export function AnalyzeFundamentalPart({
 
       <Link
         href={`/calendar?symbol=${output.symbol}`}
-        className="text-fg focus-visible:ring-fg mt-3 block min-h-[24px] text-right text-body-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2"
+        className="text-fg focus-visible:ring-fg text-body-sm mt-3 block min-h-[24px] text-right font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2"
       >
         open calendar →
       </Link>
@@ -87,16 +101,12 @@ export function AnalyzeFundamentalPart({
   );
 }
 
-function SentimentStrip({
-  sentiment,
-}: {
-  sentiment: AnalyzeFundamentalOutput['sentiment'];
-}) {
+function SentimentStrip({ sentiment }: { sentiment: AnalyzeFundamentalOutput['sentiment'] }) {
   const total = sentiment.positive + sentiment.negative + sentiment.neutral;
   if (total === 0) return null;
   const pct = (n: number) => Math.round((n / total) * 100);
   return (
-    <div className="flex items-center gap-2 text-caption tabular-nums">
+    <div className="text-caption flex items-center gap-2 tabular-nums">
       <span className="text-bull bg-bull/10 rounded-sm px-2 py-0.5 font-medium">
         ↑ {sentiment.positive} ({pct(sentiment.positive)}%)
       </span>

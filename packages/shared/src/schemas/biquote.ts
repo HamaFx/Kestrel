@@ -165,14 +165,6 @@ export const BiquoteSymbolSchema = z.object({
 export type BiquoteSymbol = z.infer<typeof BiquoteSymbolSchema>;
 
 /** Convenience: the supported timeframe codes BiQuote accepts on `/ohlc`. */
-export const BiquoteTimeframeSchema = z.enum([
-  '1m',
-  '5m',
-  '15m',
-  '30m',
-  '1h',
-  '4h',
-  '1d',
-]);
+export const BiquoteTimeframeSchema = z.enum(['1m', '5m', '15m', '30m', '1h', '4h', '1d']);
 
 export type BiquoteTimeframe = z.infer<typeof BiquoteTimeframeSchema>;

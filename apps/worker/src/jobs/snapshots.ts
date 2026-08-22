@@ -25,9 +25,8 @@
 // writes one row per minute per symbol; left unbounded the table grows
 // ~4 MB/month — we don't need it to. (Spec §4.3 retention.)
 
-import { computeDailySnapshot, previousUtcMidnight, upsertSnapshot } from '@kestrel/ai';
+import { computeDailySnapshot, getDb, previousUtcMidnight, upsertSnapshot } from '@kestrel/ai';
 import { getCandles } from '@kestrel/data';
-import { getDb } from '@kestrel/ai';
 import { candles1m } from '@kestrel/db/schema';
 import { SYMBOLS } from '@kestrel/shared';
 import { lt, sql } from 'drizzle-orm';
@@ -85,7 +84,9 @@ export async function runSnapshots(ctx: JobContext): Promise<JobResult> {
   // already authoritative — log a sanity row count from a fast query.
   let total = 0;
   try {
-    const [row] = await getDb().select({ n: sql<number>`count(*)::int` }).from(candles1m);
+    const [row] = await getDb()
+      .select({ n: sql<number>`count(*)::int` })
+      .from(candles1m);
     total = row?.n ?? 0;
   } catch {
     /* best-effort */

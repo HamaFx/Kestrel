@@ -1,4 +1,22 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { collectSymbolResearchPacket } from '../src/mastra/symbol-research';
 
 const mocks = vi.hoisted(() => ({
   getPriceWithMeta: vi.fn(),
@@ -11,8 +29,6 @@ vi.mock('@kestrel/data', () => ({
   getCandlesWithMeta: mocks.getCandlesWithMeta,
 }));
 vi.mock('@kestrel/indicators', () => ({ computeIndicator: mocks.computeIndicator }));
-
-import { collectSymbolResearchPacket } from '../src/mastra/symbol-research';
 
 function candles(symbol: string, timeframe: string, count = 200) {
   return Array.from({ length: count }, (_, index) => ({
@@ -42,14 +58,26 @@ beforeEach(() => {
     stale: false,
     producedAt: Date.now(),
   }));
-  mocks.computeIndicator.mockImplementation(({ symbol, tf, kind, params }: { symbol: string; tf: string; kind: string; params: Record<string, number> }) => ({
-    symbol,
-    tf,
-    kind,
-    params,
-    values: [1, 2, 3],
-    fetchedAt: Date.now(),
-  }));
+  mocks.computeIndicator.mockImplementation(
+    ({
+      symbol,
+      tf,
+      kind,
+      params,
+    }: {
+      symbol: string;
+      tf: string;
+      kind: string;
+      params: Record<string, number>;
+    }) => ({
+      symbol,
+      tf,
+      kind,
+      params,
+      values: [1, 2, 3],
+      fetchedAt: Date.now(),
+    }),
+  );
 });
 
 describe('generalized symbol research packet', () => {
@@ -71,16 +99,22 @@ describe('generalized symbol research packet', () => {
 
   it('blocks when required price or timeframe data is unavailable', async () => {
     mocks.getPriceWithMeta.mockRejectedValueOnce(new Error('price unavailable'));
-    mocks.getCandlesWithMeta.mockImplementationOnce(async () => ({ candles: [], stale: false, producedAt: Date.now() }));
+    mocks.getCandlesWithMeta.mockImplementationOnce(async () => ({
+      candles: [],
+      stale: false,
+      producedAt: Date.now(),
+    }));
 
     const packet = await collectSymbolResearchPacket('BTCUSDT');
 
     expect(packet.status).toBe('blocked');
     expect(packet.dataQuality).toBe('degraded');
-    expect(packet.missingData).toEqual(expect.arrayContaining([
-      'Current BTCUSDT price is unavailable.',
-      'BTCUSDT 1d returned no candles.',
-    ]));
+    expect(packet.missingData).toEqual(
+      expect.arrayContaining([
+        'Current BTCUSDT price is unavailable.',
+        'BTCUSDT 1d returned no candles.',
+      ]),
+    );
   });
 
   it('forwards cancellation to every data request and fails closed', async () => {

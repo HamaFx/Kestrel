@@ -15,7 +15,11 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { RunSystemActionOutput } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { withToolContext } from '../src/tool-context';
+import { runSystemActionTool } from '../src/tools/run-system-action';
 
 const mocks = vi.hoisted(() => ({
   fetchResonanceInputsMock: vi.fn(),
@@ -69,10 +73,6 @@ vi.mock('@kestrel/data', () => ({
   },
 }));
 
-import { runSystemActionTool } from '../src/tools/run-system-action';
-import { withToolContext } from '../src/tool-context';
-import type { RunSystemActionOutput } from '@kestrel/shared';
-
 function makeContext(latestUserMessageText: string) {
   return {
     threadId: 'thread-1',
@@ -111,9 +111,8 @@ describe('run_system_action', () => {
   });
 
   it('runs the resonance sync for an admin on an explicit request', async () => {
-    const result = (await withToolContext(
-      makeContext('Please run the resonance sync now.'),
-      () => Promise.resolve(runSystemActionTool.execute!({ action: 'resonance_sync' }, {} as any)),
+    const result = (await withToolContext(makeContext('Please run the resonance sync now.'), () =>
+      Promise.resolve(runSystemActionTool.execute!({ action: 'resonance_sync' }, {} as any)),
     )) as RunSystemActionOutput;
 
     expect(result.action).toBe('resonance_sync');
@@ -128,7 +127,8 @@ describe('run_system_action', () => {
 
     await expect(
       withToolContext(makeContext('Run the resonance sync now.'), () =>
-        Promise.resolve(runSystemActionTool.execute!({ action: 'resonance_sync' }, {} as any))),
+        Promise.resolve(runSystemActionTool.execute!({ action: 'resonance_sync' }, {} as any)),
+      ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
 
     expect(mocks.fetchResonanceInputsMock).not.toHaveBeenCalled();
@@ -138,7 +138,8 @@ describe('run_system_action', () => {
   it('rejects implicit or ambient-health-triggered requests', async () => {
     await expect(
       withToolContext(makeContext('How stale is the resonance data right now?'), () =>
-        Promise.resolve(runSystemActionTool.execute!({ action: 'resonance_sync' }, {} as any))),
+        Promise.resolve(runSystemActionTool.execute!({ action: 'resonance_sync' }, {} as any)),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
 
     expect(mocks.fetchResonanceInputsMock).not.toHaveBeenCalled();

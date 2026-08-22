@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // POST /api/billing/checkout — create a NOWPayments invoice and return
@@ -6,6 +22,9 @@
 
 import { z } from 'zod';
 
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { getServerEnv } from '@/lib/env';
+import { createInvoice } from '@/lib/nowpayments';
 import {
   claimCheckoutAttempt,
   completeCheckoutAttempt,
@@ -15,9 +34,6 @@ import {
   saveCheckoutInvoice,
   upsertSubscription,
 } from '@/lib/services/api-boundary';
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
-import { getServerEnv } from '@/lib/env';
-import { createInvoice } from '@/lib/nowpayments';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,15 +59,24 @@ export const POST = withAuth<void>(async (req, { user }) => {
     const plan = await getPlan(body.planId);
 
     if (!plan) {
-      return Response.json({ error: { code: 'NOT_FOUND', message: 'Plan not found' } }, { status: 404 });
+      return Response.json(
+        { error: { code: 'NOT_FOUND', message: 'Plan not found' } },
+        { status: 404 },
+      );
     }
 
     if (plan.priceUsdCents === 0) {
-      return Response.json({ error: { code: 'BAD_REQUEST', message: 'Free plan does not require checkout' } }, { status: 400 });
+      return Response.json(
+        { error: { code: 'BAD_REQUEST', message: 'Free plan does not require checkout' } },
+        { status: 400 },
+      );
     }
 
     if (!env.NOWPAYMENTS_API_KEY) {
-      return Response.json({ error: { code: 'NOT_CONFIGURED', message: 'Billing is not configured' } }, { status: 503 });
+      return Response.json(
+        { error: { code: 'NOT_CONFIGURED', message: 'Billing is not configured' } },
+        { status: 503 },
+      );
     }
 
     const claim = await claimCheckoutAttempt({
@@ -69,13 +94,20 @@ export const POST = withAuth<void>(async (req, { user }) => {
     }
     if (claim.kind === 'in_progress') {
       return Response.json(
-        { error: { code: 'CONFLICT', message: 'Checkout is already being created for this Idempotency-Key' } },
+        {
+          error: {
+            code: 'CONFLICT',
+            message: 'Checkout is already being created for this Idempotency-Key',
+          },
+        },
         { status: 409 },
       );
     }
     if (claim.kind === 'conflict') {
       return Response.json(
-        { error: { code: 'CONFLICT', message: 'Idempotency-Key was already used for another plan' } },
+        {
+          error: { code: 'CONFLICT', message: 'Idempotency-Key was already used for another plan' },
+        },
         { status: 409 },
       );
     }
@@ -86,23 +118,23 @@ export const POST = withAuth<void>(async (req, { user }) => {
 
     try {
       const recoveredInvoice =
-        claim.kind === 'claimed' &&
-        claim.attempt.invoiceId &&
-        claim.attempt.checkoutUrl
+        claim.kind === 'claimed' && claim.attempt.invoiceId && claim.attempt.checkoutUrl
           ? {
               id: claim.attempt.invoiceId,
               invoice_url: claim.attempt.checkoutUrl,
             }
           : null;
-      const invoice = recoveredInvoice ?? (await createInvoice({
-        price_amount: priceAmount,
-        price_currency: 'usd',
-        pay_currency: plan.payCurrency ?? 'usdt',
-        order_id: orderId,
-        order_description: `${plan.name} subscription — Kestrel`,
-        success_url: `${appUrl}/settings/billing?status=success`,
-        cancelled_url: `${appUrl}/settings/billing?status=cancelled`,
-      }));
+      const invoice =
+        recoveredInvoice ??
+        (await createInvoice({
+          price_amount: priceAmount,
+          price_currency: 'usd',
+          pay_currency: plan.payCurrency ?? 'usdt',
+          order_id: orderId,
+          order_description: `${plan.name} subscription — Kestrel`,
+          success_url: `${appUrl}/settings/billing?status=success`,
+          cancelled_url: `${appUrl}/settings/billing?status=cancelled`,
+        }));
 
       if (!recoveredInvoice) {
         await saveCheckoutInvoice({

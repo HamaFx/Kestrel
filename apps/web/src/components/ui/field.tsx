@@ -1,6 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import { Children, type ReactElement, type ReactNode, cloneElement } from 'react';
+import { Children, cloneElement, type ReactElement, type ReactNode } from 'react';
+
 import { cn } from '@/lib/cn';
 
 interface FieldProps {
@@ -25,7 +42,15 @@ interface FieldProps {
  * The child is cloned so it receives the correct `id` and an
  * `aria-describedby` pointer when an error is present.
  */
-export function Field({ label, htmlFor, error, required, helper, children, className }: FieldProps) {
+export function Field({
+  label,
+  htmlFor,
+  error,
+  required,
+  helper,
+  children,
+  className,
+}: FieldProps) {
   const hasError = error !== undefined && error !== null && error.length > 0;
   const errorId = `${htmlFor}-error`;
 
@@ -37,10 +62,7 @@ export function Field({ label, htmlFor, error, required, helper, children, class
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <label
-        htmlFor={htmlFor}
-        className="text-fg-subtle text-body-sm uppercase tracking-wide"
-      >
+      <label htmlFor={htmlFor} className="text-fg-subtle text-body-sm tracking-wide uppercase">
         {label}
         {required ? <span className="text-danger ml-1">*</span> : null}
       </label>

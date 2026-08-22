@@ -19,7 +19,6 @@
 // row → DTO mapping.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import {
   AlertChannelSchema,
   AlertRuleSchema,
@@ -27,8 +26,10 @@ import {
   type AlertChannel,
   type AlertRule,
 } from '@kestrel/shared';
-import { and, asc, desc, eq, isNull, lt, or } from 'drizzle-orm';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { and, asc, desc, eq, isNull, lt, or } from 'drizzle-orm';
+
+import { getDb } from '../db';
 
 const plog = createCategorizedLogger('ai', { component: 'alerts-persistence' });
 
@@ -112,7 +113,11 @@ export async function listEvaluable(): Promise<Alert[]> {
 }
 
 export async function getAlert(userId: string, id: string): Promise<Alert | null> {
-  const rows = await getDb().select().from(schema.alerts).where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId))).limit(1);
+  const rows = await getDb()
+    .select()
+    .from(schema.alerts)
+    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)))
+    .limit(1);
   const row = rows[0];
   return row ? rowToAlert(row) : null;
 }
@@ -158,7 +163,11 @@ export interface UpdateAlertInput {
   snoozeHours?: number | undefined;
 }
 
-export async function updateAlert(userId: string, id: string, input: UpdateAlertInput): Promise<Alert | null> {
+export async function updateAlert(
+  userId: string,
+  id: string,
+  input: UpdateAlertInput,
+): Promise<Alert | null> {
   const patch: Partial<typeof schema.alerts.$inferInsert> = {};
   if (input.rule !== undefined) patch.rule = AlertRuleSchema.parse(input.rule);
   if (input.channels !== undefined)
@@ -205,7 +214,10 @@ export async function claimAlertDelivery(
         eq(schema.alerts.userId, userId),
         eq(schema.alerts.active, true),
         isNull(schema.alerts.firedAt),
-        or(isNull(schema.alerts.deliveryClaimedAt), lt(schema.alerts.deliveryClaimedAt, staleBefore)),
+        or(
+          isNull(schema.alerts.deliveryClaimedAt),
+          lt(schema.alerts.deliveryClaimedAt, staleBefore),
+        ),
       ),
     )
     .returning({ id: schema.alerts.id });
@@ -316,7 +328,12 @@ export async function markFiredForAlert(
  * preserve the discriminated-union shape — Drizzle's JSONB column doesn't
  * support partial paths.
  */
-export async function setRulePreviousValue(userId: string, id: string, rule: AlertRule, value: number): Promise<void> {
+export async function setRulePreviousValue(
+  userId: string,
+  id: string,
+  rule: AlertRule,
+  value: number,
+): Promise<void> {
   if (rule.type !== 'indicatorCross') return;
   const next = { ...rule, previousValue: value };
   // Re-validate: if the rule was edited concurrently, the in-memory copy
@@ -330,7 +347,9 @@ export async function setRulePreviousValue(userId: string, id: string, rule: Ale
 }
 
 export async function deleteAlert(userId: string, id: string): Promise<void> {
-  await getDb().delete(schema.alerts).where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)));
+  await getDb()
+    .delete(schema.alerts)
+    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)));
 }
 
 function rowToAlert(row: typeof schema.alerts.$inferSelect): Alert {

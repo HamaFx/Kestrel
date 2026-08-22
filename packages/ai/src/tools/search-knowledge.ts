@@ -32,13 +32,11 @@
 // surfaced via `pipelinePending: true` so the chat part can show a helpful
 // status line instead of a misleading "no results".
 
-import {
-  SearchKnowledgeInputSchema,
-  type SearchKnowledgeOutput,
-} from '@kestrel/shared';
+import { SearchKnowledgeInputSchema, type SearchKnowledgeOutput } from '@kestrel/shared';
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { countMemory, type MemoryKind } from '../memory/memory-index';
 import {
   countEmbeddings,
   embedQuery,
@@ -47,16 +45,13 @@ import {
   runMemoryQuery,
   runRagQuery,
 } from '../rag';
-import { countMemory, type MemoryKind } from '../memory/memory-index';
 import { maybeGetToolContext } from '../tool-context';
 
 // We extend the published input schema with the optional `kinds` filter
 // without breaking existing callers — the original input parses fine
 // because the new field is optional. The DSL enum is restricted to the
 // stable `MemoryKind` set so the agent can't ask for arbitrary buckets.
-const SearchKindsSchema = z.array(
-  z.enum(['news', 'journal', 'briefing', 'thread_synopsis']),
-);
+const SearchKindsSchema = z.array(z.enum(['news', 'journal', 'briefing', 'thread_synopsis']));
 
 const InputSchema = SearchKnowledgeInputSchema.extend({
   kinds: SearchKindsSchema.optional(),
@@ -90,8 +85,9 @@ export const searchKnowledgeTool = tool({
   }): Promise<SearchKnowledgeOutput> => {
     const kindSet = new Set<string>(kinds ?? ['news']);
     const wantsNews = kindSet.has('news');
-    const memoryKinds: MemoryKind[] = (kinds ?? [])
-      .filter((k): k is MemoryKind => k === 'journal' || k === 'briefing' || k === 'thread_synopsis');
+    const memoryKinds: MemoryKind[] = (kinds ?? []).filter(
+      (k): k is MemoryKind => k === 'journal' || k === 'briefing' || k === 'thread_synopsis',
+    );
 
     if (!wantsNews && memoryKinds.length === 0) {
       // Nothing to search — defensive default, the input schema's enum
@@ -126,9 +122,7 @@ export const searchKnowledgeTool = tool({
             },
           }
         : {}),
-      ...(ctx?.env?.AI_EMBEDDING_MODEL
-        ? { aiEmbeddingModel: ctx.env.AI_EMBEDDING_MODEL }
-        : {}),
+      ...(ctx?.env?.AI_EMBEDDING_MODEL ? { aiEmbeddingModel: ctx.env.AI_EMBEDDING_MODEL } : {}),
       ...(ctx?.signal ? { signal: ctx.signal } : {}),
     });
 
@@ -156,10 +150,9 @@ export const searchKnowledgeTool = tool({
         : Promise.resolve([]),
     ]);
 
-    const merged = [
-      ...newsRows.map(ragRowToItem),
-      ...memoryRows.map(memoryRowToItem),
-    ].sort((a, b) => b.similarity - a.similarity);
+    const merged = [...newsRows.map(ragRowToItem), ...memoryRows.map(memoryRowToItem)].sort(
+      (a, b) => b.similarity - a.similarity,
+    );
 
     return {
       items: merged.slice(0, limit),

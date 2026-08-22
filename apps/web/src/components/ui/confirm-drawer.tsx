@@ -36,7 +36,6 @@
 // 2. Imperative via the `useConfirm()` hook — returns a `confirm(opts)`
 //    promise that resolves `true` on confirm, `false` otherwise. Renders
 //    its own portal-mounted drawer.
-
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -141,7 +140,10 @@ interface ConfirmOptions {
  * Returns `[confirmEl, confirm]` — render `confirmEl` once near the root,
  * call `await confirm({ ... })` anywhere to prompt and await user choice.
  */
-export function useConfirm(): readonly [React.ReactNode, (opts: ConfirmOptions) => Promise<boolean>] {
+export function useConfirm(): readonly [
+  React.ReactNode,
+  (opts: ConfirmOptions) => Promise<boolean>,
+] {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [options, setOptions] = useState<ConfirmOptions>({ title: '' });

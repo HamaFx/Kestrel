@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // NextAuth v5 — full configuration (Node.js runtime only).
@@ -11,23 +27,25 @@
 // bare `authConfig` via `NextAuth(authConfig).auth`, while route handlers
 // and server actions use the full config exported here.
 
-import bcrypt from 'bcryptjs';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+
+import { getDb } from '@kestrel/ai';
+import { schema, withRateLimit } from '@kestrel/db';
+import { decryptSecret } from '@kestrel/shared/encryption';
+import { logErrorContext } from '@kestrel/shared/logger';
+import bcrypt from 'bcryptjs';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import NextAuth from 'next-auth';
-import { AuthError } from 'next-auth';
+import NextAuth, { AuthError } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { verifySync } from 'otplib';
-import { decryptSecret } from '@kestrel/shared/encryption';
-import { authConfig } from './auth.config';
-import { schema, withRateLimit } from '@kestrel/db';
-import { getDb } from '@kestrel/ai';
-import { logErrorContext } from '@kestrel/shared/logger';
-import { getAuthEnv } from '@/lib/env';
+
 import { recordAuthEvent } from '@/lib/auth-anomaly';
 import { provisionUserOnSignIn } from '@/lib/auth/provision-user';
 import { validateSession } from '@/lib/auth/session-validators';
+import { getAuthEnv } from '@/lib/env';
+
+import { authConfig } from './auth.config';
 
 // `NextAuth()` returns a value whose inferred type carries deep paths into
 // `@auth/core/providers`. That inferred type isn't portable across pnpm
@@ -45,9 +63,7 @@ function assertProductionSecurity(): void {
     !process.env.AUTH_SECRET &&
     !process.env.NEXTAUTH_SECRET
   ) {
-    throw new Error(
-      '[SECURITY] AUTH_SECRET (or NEXTAUTH_SECRET) must be set in production.',
-    );
+    throw new Error('[SECURITY] AUTH_SECRET (or NEXTAUTH_SECRET) must be set in production.');
   }
   if (process.env.AUTH_MODE === 'legacy' && process.env.NODE_ENV === 'production') {
     throw new Error('[SECURITY] AUTH_MODE=legacy is forbidden in production.');
@@ -57,17 +73,21 @@ function assertProductionSecurity(): void {
 const IMPERSONATION_ENABLED =
   process.env.NODE_ENV !== 'production' && process.env.ENABLE_IMPERSONATION === 'true';
 
-const _authEnv = (() => { try { return getAuthEnv(); } catch { return {} as Record<string, string | undefined>; } })();
-const GOOGLE_ENABLED =
-  !!(_authEnv.AUTH_GOOGLE_ID && _authEnv.AUTH_GOOGLE_SECRET);
+const _authEnv = (() => {
+  try {
+    return getAuthEnv();
+  } catch {
+    return {} as Record<string, string | undefined>;
+  }
+})();
+const GOOGLE_ENABLED = !!(_authEnv.AUTH_GOOGLE_ID && _authEnv.AUTH_GOOGLE_SECRET);
 
 /**
  * Known bcrypt hash used for constant-time comparison when no user is found.
  * Prevents timing-based user enumeration (P2-1).
  * Hash of 'dummy-password-for-timing-defense' at cost 12.
  */
-const DUMMY_HASH =
-  '$2b$12$LyYuAYJhLrPU7mAIQPzVNu5HBJ/neEmE2uZZDD5ayPPROn5ruSaJ2';
+const DUMMY_HASH = '$2b$12$LyYuAYJhLrPU7mAIQPzVNu5HBJ/neEmE2uZZDD5ayPPROn5ruSaJ2';
 
 // ── H-1: Impersonation challenge verification ────────────────────────
 
@@ -131,29 +151,30 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
         assertProductionSecurity();
         const email =
           typeof credentials?.email === 'string' ? credentials.email.toLowerCase().trim() : '';
-        const password =
-          typeof credentials?.password === 'string' ? credentials.password : '';
+        const password = typeof credentials?.password === 'string' ? credentials.password : '';
         if (!email || !password) return null;
 
         const db = getDb();
 
         // ── Step 1: Fetch user (with 2FA fields + lockout state) ──────
-        let user: {
-          id: string;
-          email: string;
-          name: string | null;
-          image: string | null;
-          hashedPassword: string | null;
-          tokenVersion: number;
-          twoFactorEnabled: boolean;
-          twoFactorSecret: string | null;
-          lockedUntil: Date | null;
-          failedLoginAttempts: number;
-          twoFactorBackupCodes: string[] | null;
-          failed2faAttempts: number;
-          twoFactorLockedUntil: Date | null;
-          emailVerified: Date | null;
-        } | undefined;
+        let user:
+          | {
+              id: string;
+              email: string;
+              name: string | null;
+              image: string | null;
+              hashedPassword: string | null;
+              tokenVersion: number;
+              twoFactorEnabled: boolean;
+              twoFactorSecret: string | null;
+              lockedUntil: Date | null;
+              failedLoginAttempts: number;
+              twoFactorBackupCodes: string[] | null;
+              failed2faAttempts: number;
+              twoFactorLockedUntil: Date | null;
+              emailVerified: Date | null;
+            }
+          | undefined;
         try {
           [user] = await db
             .select({
@@ -165,18 +186,15 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
               tokenVersion: schema.users.tokenVersion,
               twoFactorEnabled: schema.users.twoFactorEnabled,
               twoFactorSecret: schema.users.twoFactorSecret,
-          lockedUntil: schema.users.lockedUntil,
-          failedLoginAttempts: schema.users.failedLoginAttempts,
-          twoFactorBackupCodes: schema.users.twoFactorBackupCodes,
-          failed2faAttempts: schema.users.failed2faAttempts,
-          twoFactorLockedUntil: schema.users.twoFactorLockedUntil,
-          emailVerified: schema.users.emailVerified,
+              lockedUntil: schema.users.lockedUntil,
+              failedLoginAttempts: schema.users.failedLoginAttempts,
+              twoFactorBackupCodes: schema.users.twoFactorBackupCodes,
+              failed2faAttempts: schema.users.failed2faAttempts,
+              twoFactorLockedUntil: schema.users.twoFactorLockedUntil,
+              emailVerified: schema.users.emailVerified,
             })
             .from(schema.users)
-            .where(and(
-              eq(schema.users.email, email),
-              isNull(schema.users.deletedAt),
-            ))
+            .where(and(eq(schema.users.email, email), isNull(schema.users.deletedAt)))
             .limit(1);
         } catch (err) {
           logErrorContext(err, 'auth/db_fetch_user_failed', {}, 'auth');
@@ -246,9 +264,7 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
         // ── P0-1 / P2-6: Enforce 2FA at login with backup-code fallback ─────────────────────────────────
         if (user.twoFactorEnabled) {
           const totpCode =
-            typeof credentials?.totpCode === 'string'
-              ? credentials.totpCode.trim()
-              : '';
+            typeof credentials?.totpCode === 'string' ? credentials.totpCode.trim() : '';
           if (!totpCode) {
             throw new AuthError('2FA_REQUIRED');
           }
@@ -274,9 +290,7 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
             throw new AuthError('2FA_RATE_LIMITED');
           }
 
-          const secret = user.twoFactorSecret
-            ? decryptSecret(user.twoFactorSecret)
-            : null;
+          const secret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : null;
 
           let valid2FA = false;
 
@@ -298,10 +312,12 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
                     .set({
                       twoFactorBackupCodes: sql`array_remove(${schema.users.twoFactorBackupCodes}, ${hashed})`,
                     })
-                        .where(and(
-                      eq(schema.users.id, user.id),
-                      sql`${schema.users.twoFactorBackupCodes} @> ARRAY[${hashed}]::text[]`,
-                    ))
+                    .where(
+                      and(
+                        eq(schema.users.id, user.id),
+                        sql`${schema.users.twoFactorBackupCodes} @> ARRAY[${hashed}]::text[]`,
+                      ),
+                    )
                     .returning({ id: schema.users.id });
                   if (!updated) throw new Error('Backup-code consumption updated no user');
                   valid2FA = true;
@@ -322,8 +338,7 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
                 .update(schema.users)
                 .set({
                   failed2faAttempts: sql`${schema.users.failed2faAttempts} + 1`,
-                  twoFactorLockedUntil:
-                    sql`CASE WHEN ${schema.users.failed2faAttempts} + 1 >= 5 THEN NOW() + INTERVAL '15 minutes' ELSE NULL END`,
+                  twoFactorLockedUntil: sql`CASE WHEN ${schema.users.failed2faAttempts} + 1 >= 5 THEN NOW() + INTERVAL '15 minutes' ELSE NULL END`,
                 })
                 .where(eq(schema.users.id, user.id))
                 .returning({ id: schema.users.id });
@@ -361,10 +376,7 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
           typeof credentials?.deviceName === 'string'
             ? credentials.deviceName.slice(0, 255) || null
             : null;
-        const ip =
-          typeof credentials?.ip === 'string'
-            ? credentials.ip || null
-            : null;
+        const ip = typeof credentials?.ip === 'string' ? credentials.ip || null : null;
 
         return {
           id: user.id,
@@ -410,7 +422,8 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
             },
             async authorize(credentials) {
               const userId = typeof credentials?.userId === 'string' ? credentials.userId : '';
-              const challenge = typeof credentials?.challenge === 'string' ? credentials.challenge : '';
+              const challenge =
+                typeof credentials?.challenge === 'string' ? credentials.challenge : '';
               if (!userId || !challenge) return null;
 
               // H-1: Verify the admin-signed challenge token. Only the
@@ -544,4 +557,3 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
     },
   },
 });
-

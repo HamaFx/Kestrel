@@ -25,11 +25,7 @@
 // concept. Other callers (planner, title, verification, etc.) can be
 // migrated incrementally.
 
-import {
-  generateText as aiGenerateText,
-  streamText as aiStreamText,
-  type LanguageModel,
-} from 'ai';
+import { generateText as aiGenerateText, streamText as aiStreamText, type LanguageModel } from 'ai';
 
 // ── Abstractions ───────────────────────────────────────────────────────────
 
@@ -104,11 +100,19 @@ export class VercelLlmClient implements LlmClient {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (aiGenerateText as any)(callArgs);
-    const raw = result as { text: string; usage?: { promptTokens?: number; completionTokens?: number } };
+    const raw = result as {
+      text: string;
+      usage?: { promptTokens?: number; completionTokens?: number };
+    };
     return {
       text: raw.text,
       ...(raw.usage
-        ? { usage: { inputTokens: raw.usage.promptTokens ?? 0, outputTokens: raw.usage.completionTokens ?? 0 } }
+        ? {
+            usage: {
+              inputTokens: raw.usage.promptTokens ?? 0,
+              outputTokens: raw.usage.completionTokens ?? 0,
+            },
+          }
         : {}),
     };
   }

@@ -25,7 +25,7 @@
 import { appendUserMessage } from '@kestrel/ai/persistence';
 import type { UIMessage } from 'ai';
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 import { ensureTestUser } from './test-utils';
 
 test.describe('Message edit mode', () => {
@@ -48,10 +48,7 @@ test.describe('Message edit mode', () => {
     await expect(editBox).toHaveValue('Original question');
   });
 
-  test('Escape cancels the edit without submitting', async ({
-    authedPage,
-    mockChatApi,
-  }) => {
+  test('Escape cancels the edit without submitting', async ({ authedPage, mockChatApi }) => {
     const page = authedPage;
     await mockChatApi(page);
 
@@ -79,7 +76,8 @@ test.describe('Message edit mode', () => {
     // test exercises the real fork route and its idempotency-key lookup.
     let submittedUserMessage: UIMessage | undefined;
     page.on('request', (request) => {
-      if (request.method() !== 'POST' || !/\/api\/chat$/.test(new URL(request.url()).pathname)) return;
+      if (request.method() !== 'POST' || !/\/api\/chat$/.test(new URL(request.url()).pathname))
+        return;
       try {
         const body = request.postDataJSON() as { messages?: UIMessage[] };
         const last = body.messages?.at(-1);

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 interface Payment {
@@ -38,11 +54,11 @@ export function PaymentHistory({ payments }: { payments: Payment[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-fg-subtle">
-              <th className="pb-2 pr-4 font-medium">Date</th>
-              <th className="pb-2 pr-4 font-medium">Status</th>
-              <th className="pb-2 pr-4 font-medium">Amount</th>
-              <th className="pb-2 pr-4 font-medium">Currency</th>
+            <tr className="border-border text-fg-subtle border-b text-left">
+              <th className="pr-4 pb-2 font-medium">Date</th>
+              <th className="pr-4 pb-2 font-medium">Status</th>
+              <th className="pr-4 pb-2 font-medium">Amount</th>
+              <th className="pr-4 pb-2 font-medium">Currency</th>
               <th className="pb-2 font-medium">Tx Hash</th>
             </tr>
           </thead>
@@ -51,20 +67,18 @@ export function PaymentHistory({ payments }: { payments: Payment[] }) {
               const date = new Date(payment.createdAt);
               const statusColor = STATUS_COLORS[payment.status] ?? 'text-fg-subtle';
               return (
-                <tr key={payment.id} className="border-b border-border/50">
-                  <td className="py-2 pr-4 text-fg">
-                    {date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                <tr key={payment.id} className="border-border/50 border-b">
+                  <td className="text-fg py-2 pr-4">
+                    {date.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
                   </td>
-                  <td className={`py-2 pr-4 capitalize ${statusColor}`}>
-                    {payment.status}
-                  </td>
-                  <td className="py-2 pr-4 text-fg">
-                    {payment.payAmount ?? '—'}
-                  </td>
-                  <td className="py-2 pr-4 text-fg uppercase">
-                    {payment.payCurrency ?? '—'}
-                  </td>
-                  <td className="py-2 text-fg-subtle font-mono text-xs">
+                  <td className={`py-2 pr-4 capitalize ${statusColor}`}>{payment.status}</td>
+                  <td className="text-fg py-2 pr-4">{payment.payAmount ?? '—'}</td>
+                  <td className="text-fg py-2 pr-4 uppercase">{payment.payCurrency ?? '—'}</td>
+                  <td className="text-fg-subtle py-2 font-mono text-xs">
                     {payment.txHash ? `${payment.txHash.slice(0, 12)}…` : '—'}
                   </td>
                 </tr>

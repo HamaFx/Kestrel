@@ -19,9 +19,8 @@
 // News page toolbar — search + sentiment filter + symbol filter, all
 // sticky under the page header. Mobile-first: chip rails scroll
 // horizontally so we never wrap onto two rows on narrow screens.
-
 import type { NewsSentiment, SymbolOrCurrencyTag } from '@kestrel/shared';
-import {IconSearch, IconX} from '@tabler/icons-react';
+import { IconSearch, IconX } from '@tabler/icons-react';
 
 import { cn } from '@/lib/cn';
 import { handleRadioKeyDown } from '@/lib/datetime';
@@ -67,7 +66,7 @@ export function NewsToolbar({
       <div className="relative">
         <IconSearch
           aria-hidden="true"
-          className="text-fg-subtle absolute left-3 top-1/2 size-4 -translate-y-1/2"
+          className="text-fg-subtle absolute top-1/2 left-3 size-4 -translate-y-1/2"
         />
         <input
           type="search"
@@ -75,14 +74,14 @@ export function NewsToolbar({
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Search headlines…"
           aria-label="Search headlines"
-          className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pl-10 pr-10 text-sm focus:outline-none"
+          className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-10 pl-10 text-sm focus:outline-none"
         />
         {query ? (
           <button
             type="button"
             aria-label="Clear search"
             onClick={() => onQuery('')}
-            className="text-fg-subtle hover:text-fg absolute right-2 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:ring-fg focus-visible:outline-none"
+            className="text-fg-subtle hover:text-fg focus-visible:ring-fg absolute top-1/2 right-2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <IconX className="size-4" />
           </button>
@@ -107,9 +106,9 @@ export function NewsToolbar({
               tabIndex={active ? 0 : -1}
               onClick={() => onSentiment(s.value)}
               className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-sm border px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-fg focus-visible:outline-none',
+                'focus-visible:ring-fg inline-flex h-10 shrink-0 items-center gap-1.5 rounded-sm border px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none',
                 active
-                  ? 'bg-fg text-black border-border'
+                  ? 'bg-fg border-border text-black'
                   : 'border-border bg-bg-elev-1/60 text-fg-muted hover:text-fg',
               )}
             >
@@ -130,7 +129,12 @@ export function NewsToolbar({
           onKeyDown={handleRadioKeyDown}
           className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4"
         >
-          <SymbolChip label="All" active={symbol === 'all'} tabIndex={symbol === 'all' ? 0 : -1} onClick={() => onSymbol('all')} />
+          <SymbolChip
+            label="All"
+            active={symbol === 'all'}
+            tabIndex={symbol === 'all' ? 0 : -1}
+            onClick={() => onSymbol('all')}
+          />
           {symbolOptions.map((s) => (
             <SymbolChip
               key={s}
@@ -170,7 +174,7 @@ function SymbolChip({
       tabIndex={tabIndex ?? -1}
       onClick={onClick}
       className={cn(
-        'inline-flex h-10 shrink-0 items-center rounded-sm border px-3 text-body-sm font-semibold uppercase tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-fg focus-visible:outline-none',
+        'text-body-sm focus-visible:ring-fg inline-flex h-10 shrink-0 items-center rounded-sm border px-3 font-semibold uppercase tabular-nums transition-colors focus-visible:ring-2 focus-visible:outline-none',
         active
           ? 'bg-bg-elev-3 text-fg border-border'
           : 'border-border bg-bg-elev-1/60 text-fg-muted hover:text-fg',

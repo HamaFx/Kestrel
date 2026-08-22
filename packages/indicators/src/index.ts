@@ -23,7 +23,11 @@ export { classicPivots, pivotsAligned, type ClassicPivots } from './pivots';
 export { computeIndicator, parseIndicatorParams, type ComputeArgs } from './registry';
 
 // P0-3 — Plugin-based indicator registry (replaces switch dispatch)
-export { indicatorRegistry, type IndicatorRegistry, type IndicatorPlugin } from './indicator-registry';
+export {
+  indicatorRegistry,
+  type IndicatorRegistry,
+  type IndicatorPlugin,
+} from './indicator-registry';
 
 // Smart Money Concepts (Phase 2)
 export {

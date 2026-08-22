@@ -19,11 +19,9 @@
 // JSONL + DB registration are the source of truth; B2 is a replica.
 
 import { execFile } from 'node:child_process';
-import { readFile, readdir, mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-
-import { eq } from 'drizzle-orm';
 
 import {
   assembleTrainingDataset,
@@ -34,6 +32,7 @@ import {
   type PromptResult,
 } from '@kestrel/ai';
 import { listReviewedTrainingPairs, registerEvalDataset, schema } from '@kestrel/db';
+import { eq } from 'drizzle-orm';
 
 import type { JobContext, JobResult } from './types.js';
 
@@ -57,10 +56,7 @@ function utcStamp(d: Date): string {
 }
 
 /** Load the newest JSON eval reports; a missing dir is not an error. */
-async function loadLatestEvalReports(
-  dir: string,
-  count: number,
-): Promise<EvalReport[]> {
+async function loadLatestEvalReports(dir: string, count: number): Promise<EvalReport[]> {
   let entries: string[];
   try {
     entries = await readdir(dir);
@@ -108,15 +104,19 @@ async function uploadToB2(sourceDir: string, version: string): Promise<void> {
   if (!bucket || !keyId || !appKey) {
     throw new Error('B2 env (B2_BUCKET/B2_KEY_ID/B2_APPLICATION_KEY) not configured');
   }
-  await execFileAsync('rclone', ['copyto', join(sourceDir, version), `kestrel:${bucket}/datasets/${version}`], {
-    env: {
-      ...process.env,
-      RCLONE_CONFIG_KESTREL_TYPE: 'b2',
-      RCLONE_CONFIG_KESTREL_ACCOUNT: keyId,
-      RCLONE_CONFIG_KESTREL_KEY: appKey,
+  await execFileAsync(
+    'rclone',
+    ['copyto', join(sourceDir, version), `kestrel:${bucket}/datasets/${version}`],
+    {
+      env: {
+        ...process.env,
+        RCLONE_CONFIG_KESTREL_TYPE: 'b2',
+        RCLONE_CONFIG_KESTREL_ACCOUNT: keyId,
+        RCLONE_CONFIG_KESTREL_KEY: appKey,
+      },
+      timeout: 120_000,
     },
-    timeout: 120_000,
-  });
+  );
 }
 
 export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
@@ -170,7 +170,10 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
   }));
   const allResults = [...evalResults, ...feedbackResults];
   if (allResults.length === 0) {
-    return { processed: 0, note: 'nothing to export: no eval reports and no reviewer-approved feedback' };
+    return {
+      processed: 0,
+      note: 'nothing to export: no eval reports and no reviewer-approved feedback',
+    };
   }
 
   // 4 — Resolve annotations and keep only approved labels (the assembler
@@ -210,7 +213,11 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
   const outDir = join(datasetsDir, version);
   await mkdir(outDir, { recursive: true });
   await writeFile(join(outDir, 'dataset.jsonl'), assembled.jsonlContent, 'utf8');
-  await writeFile(join(outDir, 'manifest.json'), `${JSON.stringify(assembled.manifest, null, 2)}\n`, 'utf8');
+  await writeFile(
+    join(outDir, 'manifest.json'),
+    `${JSON.stringify(assembled.manifest, null, 2)}\n`,
+    'utf8',
+  );
 
   // 6 — Register the content-addressed version (needs a real users.id).
   let registered = false;
@@ -256,7 +263,9 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
     langfuseStatus = publishResult.status;
   } catch (err) {
     langfuseStatus = 'failed';
-    log.warn('Langfuse dataset publish skipped or failed (dataset stays local)', { err: String(err) });
+    log.warn('Langfuse dataset publish skipped or failed (dataset stays local)', {
+      err: String(err),
+    });
   }
 
   return {

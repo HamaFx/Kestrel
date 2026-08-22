@@ -16,8 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { generateBugReport, redactDiagnosticPayload } from '../src';
-import { AppError } from '../src';
+import { AppError, generateBugReport, redactDiagnosticPayload } from '../src';
 
 describe('generateBugReport', () => {
   it('generates a report from a plain Error', () => {
@@ -46,7 +45,8 @@ describe('generateBugReport', () => {
 
   it('extracts file and line from stack trace', () => {
     const err = new Error('Stack trace test');
-    err.stack = 'Error: Stack trace test\n    at foo (/path/to/file.ts:42:10)\n    at bar (/path/to/other.ts:10:5)';
+    err.stack =
+      'Error: Stack trace test\n    at foo (/path/to/file.ts:42:10)\n    at bar (/path/to/other.ts:10:5)';
 
     const report = generateBugReport(err, { operation: 'op', module: 'mod' });
     expect(report.error.file).toBe('/path/to/file.ts');
@@ -55,7 +55,8 @@ describe('generateBugReport', () => {
 
   it('extracts related files from stack trace', () => {
     const err = new Error('Stack trace test');
-    err.stack = 'Error: Stack trace test\n    at foo (/path/to/file.ts:42:10)\n    at bar (/path/to/other.ts:10:5)';
+    err.stack =
+      'Error: Stack trace test\n    at foo (/path/to/file.ts:42:10)\n    at bar (/path/to/other.ts:10:5)';
 
     const report = generateBugReport(err, { operation: 'op', module: 'mod' });
     expect(report.relatedFiles).toContain('/path/to/file.ts');
@@ -64,7 +65,8 @@ describe('generateBugReport', () => {
 
   it('excludes node_modules from related files', () => {
     const err = new Error('Stack trace test');
-    err.stack = 'Error: Stack trace test\n    at foo (/app/src/index.ts:1:1)\n    at bar (/app/node_modules/lib/index.js:1:1)';
+    err.stack =
+      'Error: Stack trace test\n    at foo (/app/src/index.ts:1:1)\n    at bar (/app/node_modules/lib/index.js:1:1)';
 
     const report = generateBugReport(err, { operation: 'op', module: 'mod' });
     expect(report.relatedFiles).toContain('/app/src/index.ts');
@@ -97,7 +99,7 @@ describe('generateBugReport', () => {
     });
 
     expect(report.user).toEqual({ userId: 'u-123' });
-    expect(report.user?.email).toBeUndefined();
+    expect(report.user).not.toHaveProperty('email');
   });
 
   it('includes optional suggested fix', () => {
@@ -135,12 +137,14 @@ describe('generateBugReport', () => {
         userId: 'u-123',
         threadId: 'th-456',
         durationMs: 100,
-        steps: [{
-          name: 'get_price',
-          status: 'failed',
-          metadata: { input: { accountId: 'private' }, tool: 'get_price', durationMs: 12 },
-          timestamp: Date.now(),
-        }],
+        steps: [
+          {
+            name: 'get_price',
+            status: 'failed',
+            metadata: { input: { accountId: 'private' }, tool: 'get_price', durationMs: 12 },
+            timestamp: Date.now(),
+          },
+        ],
         errors: [],
       },
     });

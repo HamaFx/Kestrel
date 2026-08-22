@@ -32,12 +32,11 @@
  * inside a card-button does not trigger the parent card's select
  * handler.
  */
-
+import type { ProviderMeta } from '@kestrel/shared';
 import { IconInfoCircle } from '@tabler/icons-react';
 import type { ReactElement } from 'react';
 
 import { Tooltip } from '@/components/ui/tooltip';
-import type { ProviderMeta } from '@kestrel/shared';
 
 /**
  * Pure text-builder for the tooltip. Exported for unit tests so

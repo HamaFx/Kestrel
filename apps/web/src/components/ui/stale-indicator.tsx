@@ -22,7 +22,6 @@
 //
 // Use as a pill next to a timestamp or a header. Renders nothing when
 // neither `isStale` nor `isFetching` are true.
-
 import { IconRefresh } from '@tabler/icons-react';
 
 import { cn } from '@/lib/cn';
@@ -42,7 +41,7 @@ export function StaleIndicator({ isFetching, label, className }: StaleIndicatorP
       role="status"
       aria-live="polite"
       className={cn(
-        'text-fg-subtle stale-pulse inline-flex items-center gap-1 text-xs font-medium tabular-nums uppercase tracking-wide',
+        'text-fg-subtle stale-pulse inline-flex items-center gap-1 text-xs font-medium tracking-wide uppercase tabular-nums',
         className,
       )}
     >

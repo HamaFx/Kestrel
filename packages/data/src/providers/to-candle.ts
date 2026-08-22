@@ -18,13 +18,12 @@
 // Replaces the four near-identical CandleSchema.parse blocks that were
 // inlined in candles.ts and the old market-data-providers.ts (SRP-2).
 
-import { CandleSchema, type Candle } from '@kestrel/shared';
-import type { Symbol, Timeframe } from '@kestrel/shared';
+import { CandleSchema, type Candle, type Symbol, type Timeframe } from '@kestrel/shared';
 
 // ── Standard shape (binance, finnhub, candles-1m) ─────────────────────
 
 export interface StandardBar {
-  t: number;       // ms epoch UTC
+  t: number; // ms epoch UTC
   o: number;
   h: number;
   l: number;
@@ -57,7 +56,7 @@ export function toCandle(
 // ── BiQuote shape ─────────────────────────────────────────────────────
 
 export interface BiquoteOhlcBar {
-  openTime: string;   // ISO date string
+  openTime: string; // ISO date string
   open: number;
   high: number;
   low: number;

@@ -1,25 +1,39 @@
-import { getUserWithSettings } from '@kestrel/db';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { container, getMessageText, pickAiEnv } from '@kestrel/shared';
-import { Agent } from '@mastra/core/agent';
-import { RequestContext } from '@mastra/core/request-context';
-import type { AgentMemoryOption } from '@mastra/core/agent';
-import type { MastraMemory } from '@mastra/core/memory';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { Agent, type AgentMemoryOption } from '@mastra/core/agent';
+import type { MastraMemory } from '@mastra/core/memory';
+import { RequestContext } from '@mastra/core/request-context';
 import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
 import { estimateCostUsd } from '../cost';
+import { prepareKestrelMemory } from '../mastra-v2/context';
+import { buildConversationScorers, type BuiltScorers } from '../mastra-v2/evals/scorers';
+import { buildConversationGuardrails } from '../mastra-v2/guardrails';
+import { createKestrelMemory, type CreateKestrelMemoryArgs } from '../mastra-v2/memory';
+import { runTracingOptions } from '../mastra-v2/telemetry';
 import { resolveChatModel, type ChatModelResolution } from '../model';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../routing';
 import { DB } from '../tokens';
 import { withToolContext, type ToolContext } from '../tool-context';
 import { domainToolFilter } from '../tools/by-domain';
 import { adaptLegacyReadOnlyTool } from './legacy-tool-adapter';
-import { createKestrelMemory, type CreateKestrelMemoryArgs } from '../mastra-v2/memory';
-import { prepareKestrelMemory } from '../mastra-v2/context';
-import { buildConversationGuardrails } from '../mastra-v2/guardrails';
-import { buildConversationScorers, type BuiltScorers } from '../mastra-v2/evals/scorers';
-import { runTracingOptions } from '../mastra-v2/telemetry';
 import {
   beginMastraRun,
   finishMastraRun,
@@ -147,7 +161,7 @@ interface CanonicalChatSetup {
   routing: RoutingDecision;
   resolution: ChatModelResolution;
   callMemory: AgentMemoryOption | null;
-  requestContext: RequestContext<any>;
+  requestContext: RequestContext<Record<string, unknown>>;
   context: ToolContext;
   messages: ModelMessage[];
   scorers: BuiltScorers;
@@ -202,7 +216,7 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     });
   }
 
-  const requestContext = new RequestContext([
+  const requestContext = new RequestContext<Record<string, unknown>>([
     ['userId', args.userId],
     ['threadId', args.threadId],
     ['runId', runId],
@@ -264,7 +278,8 @@ export async function runMastraCanonicalChat(
   const startedAt = Date.now();
   const runId = args.runId ?? crypto.randomUUID();
   const setup = await setupCanonicalChat(args);
-  const { agent, routing, resolution, callMemory, requestContext, context, messages, scorers } = setup;
+  const { agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
+    setup;
 
   try {
     const result = await withToolContext(context, () =>
@@ -353,7 +368,8 @@ export async function runMastraCanonicalChatStream(
   const startedAt = Date.now();
   const runId = args.runId ?? crypto.randomUUID();
   const setup = await setupCanonicalChat(args);
-  const { agent, routing, resolution, callMemory, requestContext, context, messages, scorers } = setup;
+  const { agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
+    setup;
 
   const output = await withToolContext(context, () =>
     agent.stream(messages, {

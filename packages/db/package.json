@@ -4,7 +4,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "drizzle"],
+  "files": [
+    "dist",
+    "drizzle"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -52,7 +55,7 @@
   },
   "devDependencies": {
     "@kestrel/config": "workspace:*",
-    "@types/node": "^20.14.10",
+    "@types/node": "^22.13.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.17.0",
     "tsx": "^4.22.4",

@@ -2,6 +2,21 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import {
   IconBell,
   IconBook,
@@ -16,9 +31,9 @@ import {
   IconSettings,
   IconShield,
 } from '@tabler/icons-react';
+import { signOut } from 'next-auth/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
 import { toast } from 'sonner';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
@@ -74,8 +89,8 @@ export function DesktopSidebar({
     <aside
       aria-label="Desktop navigation sidebar"
       className={cn(
-        'hidden lg:flex fixed top-0 bottom-0 left-0 z-40 flex-col justify-between',
-        'border-r border-border bg-bg-elev-1 transition-all duration-200 select-none',
+        'fixed top-0 bottom-0 left-0 z-40 hidden flex-col justify-between lg:flex',
+        'border-border bg-bg-elev-1 border-r transition-all duration-200 select-none',
         collapsed ? 'w-16' : 'w-56',
       )}
       style={{
@@ -85,7 +100,7 @@ export function DesktopSidebar({
     >
       {/* Top Header / Brand */}
       <div className="flex flex-col gap-4 px-2">
-        <div className="flex items-center justify-between px-2 pt-1 h-10">
+        <div className="flex h-10 items-center justify-between px-2 pt-1">
           <KestrelBrand
             variant={collapsed ? 'mark' : 'lockup'}
             markSize="sm"
@@ -99,7 +114,11 @@ export function DesktopSidebar({
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {collapsed ? <IconChevronRight className="size-4" /> : <IconChevronLeft className="size-4" />}
+            {collapsed ? (
+              <IconChevronRight className="size-4" />
+            ) : (
+              <IconChevronLeft className="size-4" />
+            )}
           </button>
         </div>
 
@@ -114,14 +133,19 @@ export function DesktopSidebar({
                 href={item.href}
                 prefetch={true}
                 className={cn(
-                  'flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors relative group',
+                  'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
                   active
-                    ? 'bg-bg-elev-2 text-fg border-l-2 border-brand'
+                    ? 'bg-bg-elev-2 text-fg border-brand border-l-2'
                     : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/60 border-l-2 border-transparent',
                 )}
                 title={collapsed ? item.label : undefined}
               >
-                <Icon className={cn('size-5 shrink-0', active ? 'text-brand' : 'text-fg-subtle group-hover:text-fg')} />
+                <Icon
+                  className={cn(
+                    'size-5 shrink-0',
+                    active ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
+                  )}
+                />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
@@ -130,20 +154,25 @@ export function DesktopSidebar({
       </div>
 
       {/* Bottom Footer Items */}
-      <div className="flex flex-col gap-1 px-2 border-t border-border/60 pt-3">
+      <div className="border-border/60 flex flex-col gap-1 border-t px-2 pt-3">
         {isAdmin && (
           <Link
             href="/admin"
             prefetch={true}
             className={cn(
-              'flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors relative group',
+              'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
               pathname.startsWith('/admin')
-                ? 'bg-bg-elev-2 text-fg border-l-2 border-brand'
+                ? 'bg-bg-elev-2 text-fg border-brand border-l-2'
                 : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/60 border-l-2 border-transparent',
             )}
             title={collapsed ? 'Admin' : undefined}
           >
-            <IconShield className={cn('size-5 shrink-0', pathname.startsWith('/admin') ? 'text-brand' : 'text-fg-subtle group-hover:text-fg')} />
+            <IconShield
+              className={cn(
+                'size-5 shrink-0',
+                pathname.startsWith('/admin') ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
+              )}
+            />
             {!collapsed && <span className="truncate">Admin</span>}
           </Link>
         )}
@@ -152,27 +181,36 @@ export function DesktopSidebar({
           href="/settings"
           prefetch={true}
           className={cn(
-            'flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors relative group',
+            'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
             pathname.startsWith('/settings')
-              ? 'bg-bg-elev-2 text-fg border-l-2 border-brand'
+              ? 'bg-bg-elev-2 text-fg border-brand border-l-2'
               : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/60 border-l-2 border-transparent',
           )}
           title={collapsed ? 'Settings' : undefined}
         >
-          <IconSettings className={cn('size-5 shrink-0', pathname.startsWith('/settings') ? 'text-brand' : 'text-fg-subtle group-hover:text-fg')} />
+          <IconSettings
+            className={cn(
+              'size-5 shrink-0',
+              pathname.startsWith('/settings')
+                ? 'text-brand'
+                : 'text-fg-subtle group-hover:text-fg',
+            )}
+          />
           {!collapsed && <span className="truncate">Settings</span>}
         </Link>
 
         {/* User profile & Logout */}
-        <div className="flex items-center justify-between gap-2 px-2 py-2 mt-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="size-7 rounded-sm bg-bg-elev-3 text-fg font-mono text-xs font-bold flex items-center justify-center border border-border shrink-0">
+        <div className="mt-1 flex items-center justify-between gap-2 px-2 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="bg-bg-elev-3 text-fg border-border flex size-7 shrink-0 items-center justify-center rounded-sm border font-mono text-xs font-bold">
               {initial}
             </div>
             {!collapsed && (
-              <div className="flex flex-col min-w-0">
-                <span className="text-fg text-xs font-semibold truncate">{userName || 'Trader'}</span>
-                <span className="text-fg-subtle text-[10px] truncate">{userEmail || ''}</span>
+              <div className="flex min-w-0 flex-col">
+                <span className="text-fg truncate text-xs font-semibold">
+                  {userName || 'Trader'}
+                </span>
+                <span className="text-fg-subtle truncate text-[10px]">{userEmail || ''}</span>
               </div>
             )}
           </div>

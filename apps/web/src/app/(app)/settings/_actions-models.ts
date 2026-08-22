@@ -6,18 +6,19 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-
 import 'server-only';
 
-import { auth } from '@/auth';
+import { getDb, schema } from '@kestrel/db';
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+
+import { auth } from '@/auth';
 import {
   BYOK_PROVIDERS,
   updateUserSettingsField,
   type ProviderId,
 } from '@/lib/services/api-boundary';
-import { getDb, schema } from '@kestrel/db';
-import { eq } from 'drizzle-orm';
+
 import type { ActionResult } from './_actions-shared';
 
 export async function updateChatModelAction(

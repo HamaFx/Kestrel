@@ -16,6 +16,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getDiagnosticContext, withDiagnostics } from '../src/diagnostics/run-context';
+import { recordTelemetry, recordToolTelemetry } from '../src/persistence/telemetry-persistence';
+
 const { insertValues, db } = vi.hoisted(() => {
   const insertValues = vi.fn();
   const insertBuilder = {
@@ -33,9 +36,6 @@ const { insertValues, db } = vi.hoisted(() => {
 vi.mock('../src/db', () => ({
   getDb: () => db,
 }));
-
-import { recordTelemetry, recordToolTelemetry } from '../src/persistence/telemetry-persistence';
-import { getDiagnosticContext, withDiagnostics } from '../src/diagnostics/run-context';
 
 describe('telemetry persistence correlation', () => {
   beforeEach(() => {

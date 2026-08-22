@@ -32,12 +32,6 @@
 // thread top-level. System messages with only `text` (e.g. rolling-summary
 // system notes used internally) are NOT rendered to the user — they're
 // internal context.
-
-import type { UIMessage } from 'ai';
-import {IconCheck, IconChevronDown, IconCopy, IconEdit, IconArrowBackUp} from '@tabler/icons-react';
-import { useReducedMotion } from 'motion/react';
-import { memo, useEffect, useMemo, useState, type ReactNode, type CSSProperties } from 'react';
-import { m } from 'motion/react';
 import {
   CitationWarningPartSchema,
   FallbackPartSchema,
@@ -49,24 +43,34 @@ import {
   type FallbackPart,
   type StreamToolState,
 } from '@kestrel/shared';
-import { useCopied } from '@/hooks/use-copied';
+import {
+  IconArrowBackUp,
+  IconCheck,
+  IconChevronDown,
+  IconCopy,
+  IconEdit,
+} from '@tabler/icons-react';
+import type { UIMessage } from 'ai';
+import { m, useReducedMotion } from 'motion/react';
+import { memo, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/cn';
-import { MAX_TEXT_CHARS } from './composer-helpers';
 
+import { FollowUpSuggestions } from './_components/follow-up-suggestions';
+import { MessageFeedback } from './_components/message-feedback';
+import { MessageFooter } from './_components/message-footer';
+import { RegenModelPicker } from './_components/regen-model-picker';
+import { MAX_TEXT_CHARS } from './composer-helpers';
 import { CitationWarningPartView } from './parts/citation-warning';
 import { FallbackPartView } from './parts/fallback';
-import { ChatToolPart, type ToolPartState } from './parts/registry';
+import { MastraReportPart } from './parts/mastra-report';
 import { MutationConfirmationCard } from './parts/mutation-confirmation';
 import { PlanPart } from './parts/plan';
-import { MastraReportPart } from './parts/mastra-report';
+import { ChatToolPart, type ToolPartState } from './parts/registry';
 import { TextPart } from './parts/text';
-import { MessageFooter } from './_components/message-footer';
-import { MessageFeedback } from './_components/message-feedback';
-import { RegenModelPicker } from './_components/regen-model-picker';
-import { FollowUpSuggestions } from './_components/follow-up-suggestions';
 
 interface MessageProps {
   message: UIMessage;
@@ -156,10 +160,7 @@ function MessageImpl({
   // anything else (rolling-summary notes are internal context only).
   if (isSystem) {
     const rawPlan = (message.parts ?? []).find(
-      (p) =>
-        p !== null &&
-        typeof p === 'object' &&
-        (p as { type?: string }).type === 'data-plan',
+      (p) => p !== null && typeof p === 'object' && (p as { type?: string }).type === 'data-plan',
     );
     const planParse = rawPlan ? UserPlanPartSchema.safeParse(rawPlan) : null;
     if (planParse?.success) {
@@ -185,10 +186,10 @@ function MessageImpl({
 
   if (isUser && isEditing) {
     return (
-      <div className="mb-2 mt-1 flex w-full justify-end">
-        <div className="flex w-full max-w-[88%] flex-col gap-2 rounded-sm border border-border bg-bg-elev-2 p-3 focus-within:ring-2 focus-within:ring-fg">
+      <div className="mt-1 mb-2 flex w-full justify-end">
+        <div className="border-border bg-bg-elev-2 focus-within:ring-fg flex w-full max-w-[88%] flex-col gap-2 rounded-sm border p-3 focus-within:ring-2">
           <textarea
-            className="w-full resize-none bg-transparent text-sm text-fg outline-none [field-sizing:content]"
+            className="text-fg [field-sizing:content] w-full resize-none bg-transparent text-sm outline-none"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             maxLength={MAX_TEXT_CHARS}
@@ -210,7 +211,7 @@ function MessageImpl({
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              className="rounded-sm bg-bg-elev-2 px-3 py-1 text-xs text-fg-muted transition-colors hover:text-fg"
+              className="bg-bg-elev-2 text-fg-muted hover:text-fg rounded-sm px-3 py-1 text-xs transition-colors"
             >
               Cancel
             </button>
@@ -220,8 +221,10 @@ function MessageImpl({
                 setIsEditing(false);
                 onEdit?.(message.id, editValue);
               }}
-              className="rounded-sm bg-fg px-3 py-1 text-xs text-black transition-colors hover:bg-fg-muted"
-            >Save</button>
+              className="bg-fg hover:bg-fg-muted rounded-sm px-3 py-1 text-xs text-black transition-colors"
+            >
+              Save
+            </button>
           </div>
         </div>
       </div>
@@ -232,7 +235,9 @@ function MessageImpl({
     <m.div
       initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
+      transition={
+        prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }
+      }
       data-message-role={message.role}
       className={cn('group flex w-full flex-col gap-2', isUser ? 'items-end' : 'items-start')}
     >
@@ -242,7 +247,7 @@ function MessageImpl({
         {!isUser && !isSystem ? (
           <span
             aria-hidden="true"
-            className="mt-1 shrink-0 inline-flex size-4 items-center justify-center"
+            className="mt-1 inline-flex size-4 shrink-0 items-center justify-center"
           >
             <KestrelBrand
               variant="mark"
@@ -252,12 +257,14 @@ function MessageImpl({
             />
           </span>
         ) : null}
-        <div className={cn('flex flex-col gap-2', !isUser && !isSystem ? 'min-w-0 flex-1' : 'w-full')}>
+        <div
+          className={cn('flex flex-col gap-2', !isUser && !isSystem ? 'min-w-0 flex-1' : 'w-full')}
+        >
           <div
             className={cn(
               'relative flex flex-col gap-2',
               isUser
-                ? 'max-w-[85%] ml-auto bg-bg-elev-2 text-fg rounded-sm px-4 py-2 font-medium'
+                ? 'bg-bg-elev-2 text-fg ml-auto max-w-[85%] rounded-sm px-4 py-2 font-medium'
                 : 'w-full',
               !isUser && !isSystem ? 'py-1' : 'py-3',
             )}
@@ -266,40 +273,40 @@ function MessageImpl({
                 debounced sr-only <StreamingLiveRegion> in message-list.tsx;
                 a live region here would re-announce the entire history. */}
             <div>
-            {message.parts.map((part, idx) => {
-              if (part.type === 'text') {
-                return (
-                  <MemoizedTextPart
-                    key={idx}
-                    text={part.text}
-                    role={message.role === 'user' ? 'user' : 'assistant'}
-                    isStreaming={!!isStreaming}
-                  />
-                );
-              }
-              if (part.type.startsWith('tool-')) {
-                const toolParse = StreamToolPartSchema.safeParse(part);
-                if (!toolParse.success) {
-                  // Defensive: malformed tool parts are dropped rather than
-                  // crashing the chat surface.
-                  return null;
+              {message.parts.map((part, idx) => {
+                if (part.type === 'text') {
+                  return (
+                    <MemoizedTextPart
+                      key={idx}
+                      text={part.text}
+                      role={message.role === 'user' ? 'user' : 'assistant'}
+                      isStreaming={!!isStreaming}
+                    />
+                  );
                 }
-                const p = toolParse.data;
-                const name = part.type.slice('tool-'.length);
-                const streamState = p.state ?? 'output-available';
-                const errorMessage = p.errorText;
-                return (
-                  <MemoizedToolPart
-                    key={idx}
-                    name={name}
-                    output={p.output ?? null}
-                    state={toPartState(streamState)}
-                    errorMessage={errorMessage}
-                  />
-                );
-              }
-              return renderPart(part, idx, message.role);
-            })}
+                if (part.type.startsWith('tool-')) {
+                  const toolParse = StreamToolPartSchema.safeParse(part);
+                  if (!toolParse.success) {
+                    // Defensive: malformed tool parts are dropped rather than
+                    // crashing the chat surface.
+                    return null;
+                  }
+                  const p = toolParse.data;
+                  const name = part.type.slice('tool-'.length);
+                  const streamState = p.state ?? 'output-available';
+                  const errorMessage = p.errorText;
+                  return (
+                    <MemoizedToolPart
+                      key={idx}
+                      name={name}
+                      output={p.output ?? null}
+                      state={toPartState(streamState)}
+                      errorMessage={errorMessage}
+                    />
+                  );
+                }
+                return renderPart(part, idx, message.role);
+              })}
             </div>
           </div>
 
@@ -313,7 +320,9 @@ function MessageImpl({
 
           {/* Action row — only assistant messages, only when there's something
               to do. Visible on hover/focus, accessible via keyboard. */}
-          {!isUser && !isStreaming ? <MessageFeedback threadId={threadId} messageId={message.id} /> : null}
+          {!isUser && !isStreaming ? (
+            <MessageFeedback threadId={threadId} messageId={message.id} />
+          ) : null}
           {hasActions ? (
             <div
               className={cn(
@@ -327,7 +336,7 @@ function MessageImpl({
                     type="button"
                     onClick={copy}
                     aria-label={copied ? 'Copied' : 'Copy message'}
-                    className="bg-bg-elev-1 border border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm transition-colors focus:outline-none focus-visible:ring-2"
+                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
                   >
                     {copied ? (
                       <IconCheck className="text-success size-3.5" />
@@ -346,7 +355,7 @@ function MessageImpl({
                       setIsEditing(true);
                     }}
                     aria-label="Edit prompt"
-                    className="bg-bg-elev-1 border border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm transition-colors focus:outline-none focus-visible:ring-2"
+                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
                   >
                     <IconEdit className="size-3.5" />
                   </button>
@@ -359,7 +368,7 @@ function MessageImpl({
                       type="button"
                       onClick={() => onRegenerate()}
                       aria-label="Regenerate response"
-                      className="bg-bg-elev-1 border border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm transition-colors focus:outline-none focus-visible:ring-2"
+                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
                     >
                       <IconArrowBackUp className="size-3.5" />
                     </button>
@@ -368,10 +377,12 @@ function MessageImpl({
                     <button
                       type="button"
                       popoverTarget={hasPopoverSupport ? `regen-menu-${message.id}` : undefined}
-                      onClick={hasPopoverSupport ? undefined : () => setIsOpenFallback(!isOpenFallback)}
+                      onClick={
+                        hasPopoverSupport ? undefined : () => setIsOpenFallback(!isOpenFallback)
+                      }
                       aria-label="Regenerate with a different model"
                       data-action={REGEN_MENU_TRIGGER}
-                      className="bg-bg-elev-1 border border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm border-l border-divider transition-colors focus:outline-none focus-visible:ring-2"
+                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg border-divider inline-flex size-8 items-center justify-center rounded-sm border border-l transition-colors focus:outline-none focus-visible:ring-2"
                       style={
                         hasPopoverSupport
                           ? ({ anchorName: `--regen-btn-${message.id}` } as CSSProperties)
@@ -383,21 +394,21 @@ function MessageImpl({
                   </Tooltip>
                   <div
                     id={`regen-menu-${message.id}`}
-                    popover={hasPopoverSupport ? "auto" : undefined}
+                    popover={hasPopoverSupport ? 'auto' : undefined}
                     role="menu"
                     className={cn(
-                      "bg-bg-elev-1 border border-border m-0 rounded-sm p-1 shadow-xl",
-                      !hasPopoverSupport && "absolute bottom-full right-0 mb-2 z-50",
-                      !hasPopoverSupport && !isOpenFallback && "hidden"
+                      'bg-bg-elev-1 border-border m-0 rounded-sm border p-1 shadow-xl',
+                      !hasPopoverSupport && 'absolute right-0 bottom-full z-50 mb-2',
+                      !hasPopoverSupport && !isOpenFallback && 'hidden',
                     )}
                     style={
                       hasPopoverSupport
-                        ? ({ 
+                        ? ({
                             minWidth: '12rem',
                             positionAnchor: `--regen-btn-${message.id}`,
                             bottom: 'calc(anchor(top) + 8px)',
                             right: 'anchor(right)',
-                            position: 'fixed'
+                            position: 'fixed',
                           } as CSSProperties)
                         : { minWidth: '12rem' }
                     }
@@ -486,24 +497,14 @@ function renderPart(
   if (part.type === 'data-citation-warning') {
     const parsed = CitationWarningPartSchema.safeParse(part);
     if (!parsed.success) {
-      return (
-        <FallbackPartView
-          key={idx}
-          part={malformedFallback('citation warning')}
-        />
-      );
+      return <FallbackPartView key={idx} part={malformedFallback('citation warning')} />;
     }
     return <CitationWarningPartView key={idx} part={parsed.data} />;
   }
   if (part.type === 'data-verify-warning') {
     const parsed = VerifyWarningPartSchema.safeParse(part);
     if (!parsed.success) {
-      return (
-        <FallbackPartView
-          key={idx}
-          part={malformedFallback('verify warning')}
-        />
-      );
+      return <FallbackPartView key={idx} part={malformedFallback('verify warning')} />;
     }
     // For now reuse the citation warning's tone-styled card with a custom
     // header; a bespoke verify-warning component can graduate later.
@@ -514,12 +515,7 @@ function renderPart(
     // system message and this branch is unreachable in practice.
     const parsed = UserPlanPartSchema.safeParse(part);
     if (!parsed.success) {
-      return (
-        <FallbackPartView
-          key={idx}
-          part={malformedFallback('plan')}
-        />
-      );
+      return <FallbackPartView key={idx} part={malformedFallback('plan')} />;
     }
     return <PlanPart key={idx} plan={parsed.data} />;
   }
@@ -546,7 +542,10 @@ function malformedFallback(label: string): FallbackPart {
   };
 }
 
-function citationWarningFromVerify(verify: { caveats: string[]; createdAt: number }): CitationWarningPart {
+function citationWarningFromVerify(verify: {
+  caveats: string[];
+  createdAt: number;
+}): CitationWarningPart {
   return {
     type: 'data-citation-warning',
     unsupportedClaims: verify.caveats,
@@ -559,12 +558,7 @@ function citationWarningFromVerify(verify: { caveats: string[]; createdAt: numbe
 
 function getMessageModel(message: UIMessage): string | null {
   const meta = message.metadata;
-  if (
-    meta &&
-    typeof meta === 'object' &&
-    'model' in meta &&
-    typeof meta.model === 'string'
-  ) {
+  if (meta && typeof meta === 'object' && 'model' in meta && typeof meta.model === 'string') {
     return meta.model;
   }
   return null;
@@ -601,12 +595,5 @@ const MemoizedToolPart = memo(function MemoizedToolPart({
   state: ToolPartState;
   errorMessage?: string;
 }) {
-  return (
-    <ChatToolPart
-      name={name}
-      output={output}
-      state={state}
-      errorMessage={errorMessage}
-    />
-  );
+  return <ChatToolPart name={name} output={output} state={state} errorMessage={errorMessage} />;
 });

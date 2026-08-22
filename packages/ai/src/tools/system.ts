@@ -18,13 +18,13 @@
 // Imported by tools/index.ts for self-registration and also exposed
 // as a sub-path export: @kestrel/ai/tools/system
 
-import { getSystemDiagnosticsTool } from './get-system-diagnostics';
-import { runSystemActionTool } from './run-system-action';
 import { getPortfolioSnapshotTool } from './get-portfolio-snapshot';
 import { getSocialSentimentTool } from './get-social-sentiment';
-import { verifyCallTool } from './verify-call';
-import { replaySetupTool } from './replay-setup';
+import { getSystemDiagnosticsTool } from './get-system-diagnostics';
 import { toolRegistry } from './registry';
+import { replaySetupTool } from './replay-setup';
+import { runSystemActionTool } from './run-system-action';
+import { verifyCallTool } from './verify-call';
 
 const systemTools = [
   ['get_system_diagnostics', getSystemDiagnosticsTool],

@@ -37,8 +37,8 @@ import {
   pgTable,
   text,
   timestamp,
-  uuid,
   uniqueIndex,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 import { organization } from './auth';
@@ -205,7 +205,9 @@ export const ipnEvents = pgTable(
 export const billingWebhookDlq = pgTable(
   'billing_webhook_dlq',
   {
-    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+    id: text('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()::text`),
     provider: text('provider').notNull().default('nowpayments'),
     eventType: text('event_type').notNull(),
     eventId: text('event_id').notNull(),

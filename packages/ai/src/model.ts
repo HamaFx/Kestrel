@@ -38,18 +38,11 @@ export { resolveModel, getVertexGoogleSearchTool, type ResolveModelEnv } from '.
 export { testProviderKey } from './provider-tester';
 
 // ── BYOK registry re-exports ─────────────────────────────────────────
-export {
-  BYOK_PROVIDERS,
-  BYOK_PROVIDERS_LIST,
-  defaultModelFor,
-} from './byok-providers';
+export { BYOK_PROVIDERS, BYOK_PROVIDERS_LIST, defaultModelFor } from './byok-providers';
 export type { ModelDomain, ByokProviderSpec } from './byok-providers';
 
 // ── Helpers (pure utilities) ─────────────────────────────────────────
-export {
-  PROVIDER_PRIORITY,
-  supportsPromptCaching,
-} from './model-helpers';
+export { PROVIDER_PRIORITY, supportsPromptCaching } from './model-helpers';
 // Note: envFallbackKeys and parsePickedModelId are internal —
 // imported directly by sibling resolver modules (model-chat.ts,
 // model-vision.ts, etc.) but NOT re-exported from the public barrel.
@@ -64,15 +57,8 @@ export {
 export type { ChatModelResolution } from './model-chat';
 
 // ── Strategy map (domain routing) ────────────────────────────────────
-export {
-  MODEL_ROUTER,
-  TIER_TO_DOMAIN,
-  routeModelByDomain,
-} from './model-strategy';
-export type {
-  DomainRoutingContext,
-  DomainRoutingStrategy,
-} from './model-strategy';
+export { MODEL_ROUTER, TIER_TO_DOMAIN, routeModelByDomain } from './model-strategy';
+export type { DomainRoutingContext, DomainRoutingStrategy } from './model-strategy';
 
 // ── Vision model resolution ──────────────────────────────────────────
 export { resolveVisionModel } from './model-vision';

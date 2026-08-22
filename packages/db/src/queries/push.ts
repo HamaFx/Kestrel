@@ -17,6 +17,7 @@
 // PF-01 Phase 2 — Push subscription query helpers.
 
 import { and, eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type PushSubscriptionRow = typeof schema.pushSubscriptions.$inferSelect;
@@ -30,7 +31,10 @@ export async function listPushSubscriptions(userId: string): Promise<PushSubscri
     .where(eq(schema.pushSubscriptions.userId, userId));
 }
 
-export async function getPushSubscriptionByEndpoint(userId: string, endpoint: string): Promise<PushSubscriptionRow | undefined> {
+export async function getPushSubscriptionByEndpoint(
+  userId: string,
+  endpoint: string,
+): Promise<PushSubscriptionRow | undefined> {
   const db = getDb();
   const rows = await db
     .select()
@@ -45,7 +49,9 @@ export async function getPushSubscriptionByEndpoint(userId: string, endpoint: st
   return rows[0];
 }
 
-export async function createPushSubscription(input: CreatePushSubscriptionInput): Promise<PushSubscriptionRow> {
+export async function createPushSubscription(
+  input: CreatePushSubscriptionInput,
+): Promise<PushSubscriptionRow> {
   const db = getDb();
   const rows = await db.insert(schema.pushSubscriptions).values(input).returning();
   return rows[0]!;
@@ -58,7 +64,10 @@ export async function deletePushSubscription(id: string, userId: string): Promis
     .where(and(eq(schema.pushSubscriptions.id, id), eq(schema.pushSubscriptions.userId, userId)));
 }
 
-export async function deletePushSubscriptionByEndpoint(userId: string, endpoint: string): Promise<void> {
+export async function deletePushSubscriptionByEndpoint(
+  userId: string,
+  endpoint: string,
+): Promise<void> {
   const db = getDb();
   await db
     .delete(schema.pushSubscriptions)

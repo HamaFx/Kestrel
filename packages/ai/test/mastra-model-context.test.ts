@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -25,7 +41,7 @@ function packetFixture(): XauusdResearchPacket {
   const results = Array.from({ length: 6 }, (_, index) => ({
     symbol: 'XAUUSD' as const,
     tf: '1h' as const,
-    kind: index === 0 ? 'ema' as const : 'rsi' as const,
+    kind: index === 0 ? ('ema' as const) : ('rsi' as const),
     params: { period: index === 0 ? 20 : 14 },
     values: Array.from({ length: 30 }, (_, valueIndex) => valueIndex + index),
     fetchedAt: 1_700_000_000_000,
@@ -40,32 +56,36 @@ function packetFixture(): XauusdResearchPacket {
     dataQuality: 'partial',
     timeframes: ['1h'],
     price: null,
-    candles: [{
-      evidenceId: 'candles-1h',
-      kind: 'candles',
-      symbol: 'XAUUSD',
-      timeframe: '1h',
-      source: 'fixture-provider',
-      fetchedAt: timestamp,
-      dataAsOf: timestamp,
-      freshness: 'fresh',
-      quality: 'complete',
-      warnings: [],
-      data: { candles, stale: false, count: candles.length },
-    }],
-    indicators: [{
-      evidenceId: 'indicators-1h',
-      kind: 'indicators',
-      symbol: 'XAUUSD',
-      timeframe: '1h',
-      source: 'fixture-provider',
-      fetchedAt: timestamp,
-      dataAsOf: timestamp,
-      freshness: 'fresh',
-      quality: 'complete',
-      warnings: [],
-      data: { results, candleCount: candles.length, stale: false },
-    }],
+    candles: [
+      {
+        evidenceId: 'candles-1h',
+        kind: 'candles',
+        symbol: 'XAUUSD',
+        timeframe: '1h',
+        source: 'fixture-provider',
+        fetchedAt: timestamp,
+        dataAsOf: timestamp,
+        freshness: 'fresh',
+        quality: 'complete',
+        warnings: [],
+        data: { candles, stale: false, count: candles.length },
+      },
+    ],
+    indicators: [
+      {
+        evidenceId: 'indicators-1h',
+        kind: 'indicators',
+        symbol: 'XAUUSD',
+        timeframe: '1h',
+        source: 'fixture-provider',
+        fetchedAt: timestamp,
+        dataAsOf: timestamp,
+        freshness: 'fresh',
+        quality: 'complete',
+        warnings: [],
+        data: { results, candleCount: candles.length, stale: false },
+      },
+    ],
     macro: null,
     missingData: ['Macro context is unavailable.'],
     warnings: ['Macro context is unavailable.'],

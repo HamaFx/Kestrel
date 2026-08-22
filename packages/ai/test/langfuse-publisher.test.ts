@@ -18,10 +18,10 @@
 // deterministic item ids, publish lifecycle (skip/ok/partial/failed/dry-run),
 // and the env-config + SDK adapter.
 
+import { metrics } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { metrics } from '@kestrel/shared';
-
+import type { AssembledDataset } from '../src/eval/assemble-dataset';
 import {
   createLangfuseClientFromEnv,
   LangfuseSdkClient,
@@ -30,9 +30,8 @@ import {
   stableDatasetItemId,
   type LangfuseDatasetClient,
 } from '../src/eval/langfuse-publisher';
-import { buildDatasetManifest, buildTrainingRecords } from '../src/eval/training-export';
 import type { PromptResult } from '../src/eval/runner';
-import type { AssembledDataset } from '../src/eval/assemble-dataset';
+import { buildDatasetManifest, buildTrainingRecords } from '../src/eval/training-export';
 
 const mockLangfuseCtor = vi.fn();
 const mockApiDatasetsCreate = vi.fn();
@@ -116,7 +115,9 @@ afterEach(() => {
 
 describe('stableDatasetItemId', () => {
   it('is deterministic', () => {
-    expect(stableDatasetItemId('kestrel-eval', 'case-1')).toBe(stableDatasetItemId('kestrel-eval', 'case-1'));
+    expect(stableDatasetItemId('kestrel-eval', 'case-1')).toBe(
+      stableDatasetItemId('kestrel-eval', 'case-1'),
+    );
   });
 
   it('differs across dataset name and case id', () => {
@@ -163,7 +164,11 @@ describe('publishTrainingDatasetToLangfuse', () => {
       datasetName: 'kestrel-eval',
       client: null,
     });
-    expect(result).toEqual({ status: 'skipped', reason: 'not-configured', datasetName: 'kestrel-eval' });
+    expect(result).toEqual({
+      status: 'skipped',
+      reason: 'not-configured',
+      datasetName: 'kestrel-eval',
+    });
     expect(metrics.snapshot().counters['dataset_publish_total{result=skipped}']).toBe(1);
   });
 
@@ -260,7 +265,9 @@ describe('LangfuseSdkClient', () => {
     const client = new LangfuseSdkClient();
     mockApiDatasetsCreate.mockRejectedValueOnce({ status: 409, message: 'already exists' });
 
-    await expect(client.ensureDataset('kestrel-eval', undefined, undefined)).resolves.toBeUndefined();
+    await expect(
+      client.ensureDataset('kestrel-eval', undefined, undefined),
+    ).resolves.toBeUndefined();
     expect(mockApiDatasetsCreate).toHaveBeenCalledWith({ name: 'kestrel-eval' });
   });
 

@@ -59,7 +59,7 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     pattern: /pgvector extension not installed/i,
     description: 'pgvector extension missing from database',
     suggestedFix:
-      "Run: CREATE EXTENSION IF NOT EXISTS vector; on the database. Check docker/postgres/init-langfuse-db.sh.",
+      'Run: CREATE EXTENSION IF NOT EXISTS vector; on the database. Check docker/postgres/init-langfuse-db.sh.',
     relatedFiles: ['apps/web/src/app/api/health/route.ts', 'docker/postgres/init-langfuse-db.sh'],
     retryable: false,
   },
@@ -67,7 +67,7 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     pattern: /ENCRYPTION_SECRET/i,
     description: 'Encryption secret not configured',
     suggestedFix:
-      'Set ENCRYPTION_SECRET env var to a 32-byte hex string. Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"',
+      "Set ENCRYPTION_SECRET env var to a 32-byte hex string. Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
     relatedFiles: ['packages/shared/src/encryption.ts', 'packages/shared/src/env.ts'],
     retryable: false,
   },

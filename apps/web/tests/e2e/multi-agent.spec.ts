@@ -22,7 +22,14 @@
 // verification that the correct mode is sent in the request body.
 // ---------------------------------------------------------------------------
 
-import { test, expect, FULL_MODE_SSE, QUICK_MODE_SSE, SINGLE_MODE_SSE, STANDARD_MODE_SSE } from './fixtures';
+import {
+  expect,
+  FULL_MODE_SSE,
+  QUICK_MODE_SSE,
+  SINGLE_MODE_SSE,
+  STANDARD_MODE_SSE,
+  test,
+} from './fixtures';
 
 test.describe('Multi-Agent Chat', () => {
   test('full mode shows 4 agent progress indicators', async ({ authedPage, mockChatApi }) => {
@@ -75,7 +82,9 @@ test.describe('Multi-Agent Chat', () => {
     await expect(page.getByText('Bottom Line')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('full mode queued worker path polls until all four specialists and Decision complete', async ({ authedPage }) => {
+  test('full mode queued worker path polls until all four specialists and Decision complete', async ({
+    authedPage,
+  }) => {
     const page = authedPage;
     let modeSeen: string | undefined;
     let pollCount = 0;
@@ -83,10 +92,46 @@ test.describe('Multi-Agent Chat', () => {
     await page.route('**/api/chat/analysis-jobs/full-e2e-job', (route) => {
       pollCount += 1;
       const agents = [
-        { agentName: 'technical', status: 'done', opinion: { agentName: 'technical', bias: 'bullish', confidence: 0.8, reasoning: 'Trend aligned' } },
-        { agentName: 'fundamental', status: 'done', opinion: { agentName: 'fundamental', bias: 'bullish', confidence: 0.7, reasoning: 'Macro supportive' } },
-        { agentName: 'risk', status: 'done', opinion: { agentName: 'risk', bias: 'neutral', confidence: 0.5, reasoning: 'Risk contained' } },
-        { agentName: 'sentiment', status: 'done', opinion: { agentName: 'sentiment', bias: 'bullish', confidence: 0.6, reasoning: 'Positioning positive' } },
+        {
+          agentName: 'technical',
+          status: 'done',
+          opinion: {
+            agentName: 'technical',
+            bias: 'bullish',
+            confidence: 0.8,
+            reasoning: 'Trend aligned',
+          },
+        },
+        {
+          agentName: 'fundamental',
+          status: 'done',
+          opinion: {
+            agentName: 'fundamental',
+            bias: 'bullish',
+            confidence: 0.7,
+            reasoning: 'Macro supportive',
+          },
+        },
+        {
+          agentName: 'risk',
+          status: 'done',
+          opinion: {
+            agentName: 'risk',
+            bias: 'neutral',
+            confidence: 0.5,
+            reasoning: 'Risk contained',
+          },
+        },
+        {
+          agentName: 'sentiment',
+          status: 'done',
+          opinion: {
+            agentName: 'sentiment',
+            bias: 'bullish',
+            confidence: 0.6,
+            reasoning: 'Positioning positive',
+          },
+        },
         { agentName: 'decision', status: 'done' },
       ];
       if (pollCount === 1) {
@@ -141,16 +186,45 @@ test.describe('Multi-Agent Chat', () => {
     expect(pollCount).toBeGreaterThanOrEqual(2);
   });
 
-  test('full mode stops without a partial result when a required specialist fails', async ({ authedPage }) => {
+  test('full mode stops without a partial result when a required specialist fails', async ({
+    authedPage,
+  }) => {
     const page = authedPage;
     let pollCount = 0;
 
     await page.route('**/api/chat/analysis-jobs/full-degraded-job', (route) => {
       pollCount += 1;
       const agents = [
-        { agentName: 'technical', status: 'done', opinion: { agentName: 'technical', bias: 'bullish', confidence: 0.8, reasoning: 'Trend aligned' } },
-        { agentName: 'fundamental', status: 'done', opinion: { agentName: 'fundamental', bias: 'neutral', confidence: 0.5, reasoning: 'Mixed macro' } },
-        { agentName: 'risk', status: 'done', opinion: { agentName: 'risk', bias: 'neutral', confidence: 0.5, reasoning: 'Risk contained' } },
+        {
+          agentName: 'technical',
+          status: 'done',
+          opinion: {
+            agentName: 'technical',
+            bias: 'bullish',
+            confidence: 0.8,
+            reasoning: 'Trend aligned',
+          },
+        },
+        {
+          agentName: 'fundamental',
+          status: 'done',
+          opinion: {
+            agentName: 'fundamental',
+            bias: 'neutral',
+            confidence: 0.5,
+            reasoning: 'Mixed macro',
+          },
+        },
+        {
+          agentName: 'risk',
+          status: 'done',
+          opinion: {
+            agentName: 'risk',
+            bias: 'neutral',
+            confidence: 0.5,
+            reasoning: 'Risk contained',
+          },
+        },
         { agentName: 'sentiment', status: 'error', error: 'Required agent failed.' },
         { agentName: 'decision', status: 'error', error: 'Full analysis stopped.' },
       ];
@@ -166,21 +240,29 @@ test.describe('Multi-Agent Chat', () => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(pollCount === 1
-          ? { status: 'running', progress: [progress] }
-          : {
-              status: 'failed',
-              progress: [progress],
-              error: 'Full analysis could not be completed. No partial answer was returned.',
-            }),
+        body: JSON.stringify(
+          pollCount === 1
+            ? { status: 'running', progress: [progress] }
+            : {
+                status: 'failed',
+                progress: [progress],
+                error: 'Full analysis could not be completed. No partial answer was returned.',
+              },
+        ),
       });
     });
 
-    await page.route('**/api/chat', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ type: 'analysis-queued', jobId: 'full-degraded-job', status: 'queued' }),
-    }));
+    await page.route('**/api/chat', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'analysis-queued',
+          jobId: 'full-degraded-job',
+          status: 'queued',
+        }),
+      }),
+    );
 
     await page.getByRole('button', { name: /analysis mode/i }).click();
     await page.getByRole('menuitem', { name: /full/i }).click();
@@ -291,7 +373,11 @@ test.describe('Multi-Agent Chat', () => {
     await page.route('**/api/chat/analysis-jobs/full-retry-job', (route) => {
       pollCount += 1;
       if (pollCount === 1) {
-        return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'worker restarting' }) });
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'worker restarting' }),
+        });
       }
       return route.fulfill({
         status: 200,
@@ -309,18 +395,26 @@ test.describe('Multi-Agent Chat', () => {
         }),
       });
     });
-    await page.route('**/api/chat', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ type: 'analysis-queued', jobId: 'full-retry-job', status: 'queued' }),
-    }));
+    await page.route('**/api/chat', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'analysis-queued',
+          jobId: 'full-retry-job',
+          status: 'queued',
+        }),
+      }),
+    );
 
     await page.getByRole('button', { name: /analysis mode/i }).click();
     await page.getByRole('menuitem', { name: /full/i }).click();
     await page.getByRole('textbox').fill('Run Full mode while the worker restarts.');
     await page.getByRole('textbox').press('Enter');
 
-    await expect(page.getByText(/worker recovered and completed/i)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/worker recovered and completed/i)).toBeVisible({
+      timeout: 20_000,
+    });
     await expect.poll(() => pollCount, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
   });
 });

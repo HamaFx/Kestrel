@@ -18,13 +18,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getCalendarTool } from '../src/tools/get-calendar';
 
-const exec = getCalendarTool.execute as unknown as (
-  input: { from?: number; to?: number; currencies?: string[]; minImportance?: string },
-) => Promise<{
+const exec = getCalendarTool.execute as unknown as (input: {
+  from?: number;
+  to?: number;
+  currencies?: string[];
+  minImportance?: string;
+}) => Promise<{
   items: Array<{
-    id: string; title: string; country: string; currency: string;
-    importance: string; date: number; actual: string | null;
-    forecast: string | null; previous: string | null; unit: string | null;
+    id: string;
+    title: string;
+    country: string;
+    currency: string;
+    importance: string;
+    date: number;
+    actual: string | null;
+    forecast: string | null;
+    previous: string | null;
+    unit: string | null;
     source: string | null;
   }>;
   pipelinePending: boolean;
@@ -57,8 +67,8 @@ describe('get_calendar — Phase 0.10', () => {
   });
 
   it('returns pipelinePending: true when table is empty', async () => {
-    mockLimit.mockResolvedValueOnce([]);  // main query empty
-    mockLimit.mockResolvedValueOnce([]);  // probe query empty
+    mockLimit.mockResolvedValueOnce([]); // main query empty
+    mockLimit.mockResolvedValueOnce([]); // probe query empty
 
     const result = await exec({});
 
@@ -67,12 +77,16 @@ describe('get_calendar — Phase 0.10', () => {
   });
 
   it('validates input schema — accepts empty input (all defaults)', () => {
-    const schema = getCalendarTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getCalendarTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({}).success).toBe(true);
   });
 
   it('validates input schema — minImportance accepts low/medium/high', () => {
-    const schema = getCalendarTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getCalendarTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ minImportance: 'low' }).success).toBe(true);
     expect(schema.safeParse({ minImportance: 'medium' }).success).toBe(true);
     expect(schema.safeParse({ minImportance: 'high' }).success).toBe(true);
@@ -80,14 +94,18 @@ describe('get_calendar — Phase 0.10', () => {
   });
 
   it('validates input schema — minImportance defaults to medium', () => {
-    const schema = getCalendarTool.inputSchema as { safeParse: (v: unknown) => { success: boolean; data?: { minImportance: string } } };
+    const schema = getCalendarTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean; data?: { minImportance: string } };
+    };
     const parsed = schema.safeParse({});
     expect(parsed.success).toBe(true);
     if (parsed.data) expect(parsed.data.minImportance).toBe('medium');
   });
 
   it('validates input schema — currencies accepts USD/EUR/GBP', () => {
-    const schema = getCalendarTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getCalendarTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ currencies: ['USD'] }).success).toBe(true);
     expect(schema.safeParse({ currencies: ['USD', 'EUR'] }).success).toBe(true);
     expect(schema.safeParse({ currencies: ['USD', 'EUR', 'GBP'] }).success).toBe(true);
@@ -95,7 +113,9 @@ describe('get_calendar — Phase 0.10', () => {
   });
 
   it('validates input schema — from/to must be integers', () => {
-    const schema = getCalendarTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getCalendarTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ from: 1_700_000_000_000 }).success).toBe(true);
     expect(schema.safeParse({ to: 1_800_000_000_000 }).success).toBe(true);
     expect(schema.safeParse({ from: 1.5 }).success).toBe(false);

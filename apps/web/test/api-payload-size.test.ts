@@ -1,11 +1,27 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-vi.mock('@/auth', () => ({ auth: vi.fn() }));
-
 import { parseJsonBody } from '../src/lib/api';
+
+vi.mock('@/auth', () => ({ auth: vi.fn() }));
 
 const Schema = z.object({ payload: z.string() });
 
@@ -40,9 +56,10 @@ describe('parseJsonBody — payload cap', () => {
     process.env.MAX_JSON_BODY_BYTES = '256';
     const huge = 'x'.repeat(2_000);
     const body = JSON.stringify({ payload: huge });
-    await expect(
-      parseJsonBody(reqWithBody(body, body.length), Schema),
-    ).rejects.toMatchObject({ code: 'VALIDATION', status: 400 });
+    await expect(parseJsonBody(reqWithBody(body, body.length), Schema)).rejects.toMatchObject({
+      code: 'VALIDATION',
+      status: 400,
+    });
   });
 
   it('rejects via streamed byte count when no Content-Length is sent', async () => {
@@ -58,8 +75,9 @@ describe('parseJsonBody — payload cap', () => {
 
   it('returns a clean validation error on malformed JSON', async () => {
     const body = '{not-json';
-    await expect(
-      parseJsonBody(reqWithBody(body, body.length), Schema),
-    ).rejects.toMatchObject({ code: 'VALIDATION', status: 400 });
+    await expect(parseJsonBody(reqWithBody(body, body.length), Schema)).rejects.toMatchObject({
+      code: 'VALIDATION',
+      status: 400,
+    });
   });
 });

@@ -16,14 +16,15 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { computePositionHealthTool } from '../src/tools/compute-position-health';
 import { withToolContext } from '../src/tool-context';
+import { computePositionHealthTool } from '../src/tools/compute-position-health';
 
 // The raw tool factory exposes `.execute` directly. The registry wraps it
 // with telemetry, but for behavioral tests we want the pure logic.
-const exec = computePositionHealthTool.execute as unknown as (
-  input: { symbol?: string; limit?: number },
-) => Promise<{
+const exec = computePositionHealthTool.execute as unknown as (input: {
+  symbol?: string;
+  limit?: number;
+}) => Promise<{
   asOf: number;
   rows: Array<{
     entryId: string;
@@ -143,9 +144,21 @@ describe('compute_position_health — Phase 0.9', () => {
 
   it('computes pips and R for a EURUSD long', async () => {
     mockListEntries.mockResolvedValue([
-      makeEntry({ id: 'e1', symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 }),
+      makeEntry({
+        id: 'e1',
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: 1.075,
+        target: 1.09,
+      }),
     ]);
-    mockGetPrice.mockResolvedValue({ bid: 1.085, ask: 1.0851, mid: 1.08505, timestamp: Date.now() });
+    mockGetPrice.mockResolvedValue({
+      bid: 1.085,
+      ask: 1.0851,
+      mid: 1.08505,
+      timestamp: Date.now(),
+    });
 
     const result = await runWithContext(() => exec({}));
 
@@ -195,10 +208,22 @@ describe('compute_position_health — Phase 0.9', () => {
 
   it('flags aboutToHit when within 5 pips of stop', async () => {
     mockListEntries.mockResolvedValue([
-      makeEntry({ id: 'e2', symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 }),
+      makeEntry({
+        id: 'e2',
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: 1.075,
+        target: 1.09,
+      }),
     ]);
     // mid is 1.07504 → 0.4 pips from stop (signed distance)
-    mockGetPrice.mockResolvedValue({ bid: 1.075, ask: 1.07508, mid: 1.07504, timestamp: Date.now() });
+    mockGetPrice.mockResolvedValue({
+      bid: 1.075,
+      ask: 1.07508,
+      mid: 1.07504,
+      timestamp: Date.now(),
+    });
 
     const result = await runWithContext(() => exec({}));
 
@@ -212,10 +237,22 @@ describe('compute_position_health — Phase 0.9', () => {
 
   it('flags aboutToHit when within 5 pips of target', async () => {
     mockListEntries.mockResolvedValue([
-      makeEntry({ id: 'e3', symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 }),
+      makeEntry({
+        id: 'e3',
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: 1.075,
+        target: 1.09,
+      }),
     ]);
     // mid is 1.08996 → 0.4 pips from target (signed distance)
-    mockGetPrice.mockResolvedValue({ bid: 1.0899, ask: 1.09002, mid: 1.08996, timestamp: Date.now() });
+    mockGetPrice.mockResolvedValue({
+      bid: 1.0899,
+      ask: 1.09002,
+      mid: 1.08996,
+      timestamp: Date.now(),
+    });
 
     const result = await runWithContext(() => exec({}));
 
@@ -229,9 +266,21 @@ describe('compute_position_health — Phase 0.9', () => {
 
   it('returns null R when stop is missing', async () => {
     mockListEntries.mockResolvedValue([
-      makeEntry({ id: 'e4', symbol: 'EURUSD', side: 'long', entry: 1.08, stop: null, target: 1.09 }),
+      makeEntry({
+        id: 'e4',
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: null,
+        target: 1.09,
+      }),
     ]);
-    mockGetPrice.mockResolvedValue({ bid: 1.085, ask: 1.0851, mid: 1.08505, timestamp: Date.now() });
+    mockGetPrice.mockResolvedValue({
+      bid: 1.085,
+      ask: 1.0851,
+      mid: 1.08505,
+      timestamp: Date.now(),
+    });
 
     const result = await runWithContext(() => exec({}));
 
@@ -245,9 +294,21 @@ describe('compute_position_health — Phase 0.9', () => {
 
   it('returns null target distance when target is missing', async () => {
     mockListEntries.mockResolvedValue([
-      makeEntry({ id: 'e5', symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: null }),
+      makeEntry({
+        id: 'e5',
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: 1.075,
+        target: null,
+      }),
     ]);
-    mockGetPrice.mockResolvedValue({ bid: 1.085, ask: 1.0851, mid: 1.08505, timestamp: Date.now() });
+    mockGetPrice.mockResolvedValue({
+      bid: 1.085,
+      ask: 1.0851,
+      mid: 1.08505,
+      timestamp: Date.now(),
+    });
 
     const result = await runWithContext(() => exec({}));
 
@@ -260,11 +321,26 @@ describe('compute_position_health — Phase 0.9', () => {
 
   it('sets partial: true when a price fetch fails', async () => {
     mockListEntries.mockResolvedValue([
-      makeEntry({ id: 'e6', symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 }),
-      makeEntry({ id: 'e7', symbol: 'GBPUSD', side: 'long', entry: 1.27, stop: 1.265, target: 1.28 }),
+      makeEntry({
+        id: 'e6',
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: 1.075,
+        target: 1.09,
+      }),
+      makeEntry({
+        id: 'e7',
+        symbol: 'GBPUSD',
+        side: 'long',
+        entry: 1.27,
+        stop: 1.265,
+        target: 1.28,
+      }),
     ]);
     mockGetPrice.mockImplementation(async (symbol: string) => {
-      if (symbol === 'EURUSD') return { bid: 1.085, ask: 1.0851, mid: 1.08505, timestamp: Date.now() };
+      if (symbol === 'EURUSD')
+        return { bid: 1.085, ask: 1.0851, mid: 1.08505, timestamp: Date.now() };
       throw new Error('provider down');
     });
 
@@ -277,10 +353,29 @@ describe('compute_position_health — Phase 0.9', () => {
 
   it('caches price per symbol', async () => {
     mockListEntries.mockResolvedValue([
-      makeEntry({ id: 'e8', symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 }),
-      makeEntry({ id: 'e9', symbol: 'EURUSD', side: 'short', entry: 1.09, stop: 1.095, target: 1.08 }),
+      makeEntry({
+        id: 'e8',
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: 1.075,
+        target: 1.09,
+      }),
+      makeEntry({
+        id: 'e9',
+        symbol: 'EURUSD',
+        side: 'short',
+        entry: 1.09,
+        stop: 1.095,
+        target: 1.08,
+      }),
     ]);
-    mockGetPrice.mockResolvedValue({ bid: 1.085, ask: 1.0851, mid: 1.08505, timestamp: Date.now() });
+    mockGetPrice.mockResolvedValue({
+      bid: 1.085,
+      ask: 1.0851,
+      mid: 1.08505,
+      timestamp: Date.now(),
+    });
 
     await runWithContext(() => exec({}));
 
@@ -290,9 +385,21 @@ describe('compute_position_health — Phase 0.9', () => {
 
   it('filters by symbol when provided', async () => {
     mockListEntries.mockResolvedValue([
-      makeEntry({ id: 'e10', symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 }),
+      makeEntry({
+        id: 'e10',
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: 1.075,
+        target: 1.09,
+      }),
     ]);
-    mockGetPrice.mockResolvedValue({ bid: 1.085, ask: 1.0851, mid: 1.08505, timestamp: Date.now() });
+    mockGetPrice.mockResolvedValue({
+      bid: 1.085,
+      ask: 1.0851,
+      mid: 1.08505,
+      timestamp: Date.now(),
+    });
 
     await runWithContext(() => exec({ symbol: 'EURUSD' }));
 

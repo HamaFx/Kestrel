@@ -19,8 +19,8 @@
 // Per-segment error boundary for the (app) group. Keeps the chrome (top bar
 // + bottom nav) intact while showing an inline failure card — better than
 // the root error.tsx which hides everything.
-import { useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -35,7 +35,10 @@ export default function AppError({ error, reset }: AppErrorProps) {
   }, [error]);
 
   return (
-    <div className="border-danger/30 bg-danger/5 flex flex-col gap-3 rounded-sm border p-4" role="alert">
+    <div
+      className="border-danger/30 bg-danger/5 flex flex-col gap-3 rounded-sm border p-4"
+      role="alert"
+    >
       <h1 className="text-danger text-base font-semibold">Couldn&apos;t load this page</h1>
       <p className="text-fg-muted text-sm">
         Something went wrong while rendering. Please try again.

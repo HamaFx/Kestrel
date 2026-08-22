@@ -28,12 +28,12 @@ import {
   StructureKindSchema,
   SymbolSchema,
   TimeframeSchema,
+  type Candle,
   type GetMarketStructureOutput,
   type StructureResult,
 } from '@kestrel/shared';
 import { tool } from 'ai';
 import { z } from 'zod';
-
 
 const InputSchema = z.object({
   symbol: SymbolSchema,
@@ -43,10 +43,11 @@ const InputSchema = z.object({
   /**
    * Which kinds to compute. Skip the ones you don't need to keep the
    * payload small in the chat history.
+   * Default: all 5 structure kinds.
    */
-  kinds: z.array(StructureKindSchema).min(1).max(5).optional(),
-  /** Swing-pivot strictness (k bars on each side). Higher = fewer, cleaner. */
-  lookback: z.number().int().min(2).max(10).default(3),
+  kinds: z.array(StructureKindSchema).optional(),
+  /** How many most recent events per kind to return. Default 5. */
+  lookback: z.number().int().min(2).max(10).default(5),
 });
 
 declare module '@kestrel/shared' {
@@ -63,7 +64,7 @@ export interface MarketStructureComputationArgs {
   count: number;
   kinds?: z.infer<typeof StructureKindSchema>[];
   lookback: number;
-  candles: import('@kestrel/shared').Candle[];
+  candles: Candle[];
 }
 
 /** Pure projection shared by the legacy AI SDK tool and Mastra adapter. */

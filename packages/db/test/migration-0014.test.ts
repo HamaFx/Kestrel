@@ -17,24 +17,20 @@
 // Phase D2 — migration 0014 adds user_settings.vision_model +
 // user_settings.embedding_model. Both nullable, no backfill.
 
-import { readFileSync } from 'node:fs';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { closePGliteDb, getPGliteDb, sanitizeStatement } from '../src/pglite-client';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
 
-async function applyOne(
-  db: Awaited<ReturnType<typeof getPGliteDb>>,
-  tag: string,
-): Promise<void> {
+async function applyOne(db: Awaited<ReturnType<typeof getPGliteDb>>, tag: string): Promise<void> {
   const rawSql = readFileSync(join(DRIZZLE_DIR, `${tag}.sql`), 'utf-8');
   for (const stmt of rawSql.split('--> statement-breakpoint')) {
     const trimmed = stripComments(stmt.trim());
@@ -47,19 +43,16 @@ async function applyOne(
 
 function stripComments(sql: string): string {
   const lines = sql.split('\n');
-  while (
-    lines.length > 0 &&
-    (lines[0]!.trim() === '' || lines[0]!.trim().startsWith('--'))
-  ) {
+  while (lines.length > 0 && (lines[0]!.trim() === '' || lines[0]!.trim().startsWith('--'))) {
     lines.shift();
   }
   return lines.join('\n').trim();
 }
 
 async function applyAllExcept(db: Awaited<ReturnType<typeof getPGliteDb>>, exceptTag: string) {
-  const journal = JSON.parse(
-    readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8'),
-  ) as { entries: Array<{ tag: string }> };
+  const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8')) as {
+    entries: Array<{ tag: string }>;
+  };
   for (const entry of journal.entries) {
     if (entry.tag === exceptTag) break;
     await applyOne(db, entry.tag);
@@ -122,9 +115,7 @@ describe('Phase D2 — migration 0014_vision_embedding_model', () => {
     await applyOne(db, '0014_vision_embedding_model');
 
     // user_settings.user_id FKs to "user".id — insert a user first.
-    await db.execute(
-      `INSERT INTO "user" (id, email) VALUES ('u-test', 'u-test@localhost')`,
-    );
+    await db.execute(`INSERT INTO "user" (id, email) VALUES ('u-test', 'u-test@localhost')`);
 
     await db.execute(
       `INSERT INTO "user_settings" (user_id, vision_model, embedding_model)
@@ -146,17 +137,13 @@ describe('Phase D2 — migration 0014_vision_embedding_model', () => {
     await applyAllExcept(db, '0014_vision_embedding_model');
     await applyOne(db, '0014_vision_embedding_model');
 
-    await db.execute(
-      `INSERT INTO "user" (id, email) VALUES ('u-null', 'u-null@localhost')`,
-    );
+    await db.execute(`INSERT INTO "user" (id, email) VALUES ('u-null', 'u-null@localhost')`);
     await db.execute(`INSERT INTO "user_settings" (user_id) VALUES ('u-null')`);
 
     const result = await db.execute<{
       vision_model: string | null;
       embedding_model: string | null;
-    }>(
-      `SELECT vision_model, embedding_model FROM "user_settings" WHERE user_id = 'u-null'`,
-    );
+    }>(`SELECT vision_model, embedding_model FROM "user_settings" WHERE user_id = 'u-null'`);
     expect(result.rows[0]).toEqual({
       vision_model: null,
       embedding_model: null,
@@ -197,9 +184,7 @@ describe('Phase D2 — migration 0014_vision_embedding_model', () => {
     const db = await getPGliteDb(dir);
     await applyAllExcept(db, '0014_vision_embedding_model');
     await applyOne(db, '0014_vision_embedding_model');
-    await db.execute(
-      `INSERT INTO "user" (id, email) VALUES ('u-schema', 'u-schema@localhost')`,
-    );
+    await db.execute(`INSERT INTO "user" (id, email) VALUES ('u-schema', 'u-schema@localhost')`);
 
     // Use the Drizzle select() builder rather than raw SQL — this
     // proves the schema/auth.ts update is in sync with the migration.

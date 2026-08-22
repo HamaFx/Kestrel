@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // /share/[id] — public read route for analysis snapshots.
@@ -59,8 +75,8 @@ export default async function ShareSnapshotPage({ params, searchParams }: PagePr
   const expiry = new Date(snap.expiresAt).toISOString().slice(0, 16).replace('T', ' ');
 
   return (
-    <div className="min-h-svh bg-bg-elev-1 text-fg flex flex-col">
-      <header className="border-b border-border px-6 py-4 flex items-center gap-3">
+    <div className="bg-bg-elev-1 text-fg flex min-h-svh flex-col">
+      <header className="border-border flex items-center gap-3 border-b px-6 py-4">
         <Image
           src="/brand/kestrel-logo.png"
           alt="Kestrel"
@@ -73,19 +89,17 @@ export default async function ShareSnapshotPage({ params, searchParams }: PagePr
           <p className="text-fg-subtle text-caption">AI Trading Analysis</p>
         </div>
       </header>
-      <main className="mx-auto max-w-2xl w-full px-4 py-6 flex flex-col gap-4">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-6">
         <h2 className="text-fg text-lg font-semibold">{snap.title}</h2>
 
         <article className="md-prose max-w-none text-sm leading-[1.4]">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {snap.body}
-          </ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{snap.body}</ReactMarkdown>
         </article>
 
         {snap.overlay && snap.symbol && snap.tf ? (
           <section
             aria-label="Chart annotations"
-            className="border border-border bg-bg-elev-1 rounded-sm p-3"
+            className="border-border bg-bg-elev-1 rounded-sm border p-3"
           >
             <header className="mb-2 flex items-baseline justify-between">
               <h3 className="text-fg-muted text-sm font-medium">
@@ -96,22 +110,34 @@ export default async function ShareSnapshotPage({ params, searchParams }: PagePr
               </span>
             </header>
             {snap.overlay.priceLines.length > 0 && (
-              <div className="relative h-12 w-full bg-bg-elev-2 rounded-sm border border-border mb-3 overflow-hidden">
+              <div className="bg-bg-elev-2 border-border relative mb-3 h-12 w-full overflow-hidden rounded-sm border">
                 {(() => {
                   const lines = snap.overlay.priceLines;
-                  const prices = lines.map(l => typeof l.price === 'number' ? l.price : parseFloat(l.price as string)).filter(p => !isNaN(p));
+                  const prices = lines
+                    .map((l) =>
+                      typeof l.price === 'number' ? l.price : parseFloat(l.price as string),
+                    )
+                    .filter((p) => !isNaN(p));
                   if (prices.length === 0) return null;
                   const min = Math.min(...prices);
                   const max = Math.max(...prices);
                   const range = max - min || 1;
                   return (
-                    <svg className="size-full" viewBox="0 0 100 48" preserveAspectRatio="none" aria-label="Price lines visualization">
+                    <svg
+                      className="size-full"
+                      viewBox="0 0 100 48"
+                      preserveAspectRatio="none"
+                      aria-label="Price lines visualization"
+                    >
                       {lines.slice(0, 20).map((line, i) => {
-                        const y = 100 - (((parseFloat(String(line.price)) - min) / range) * 100);
+                        const y = 100 - ((parseFloat(String(line.price)) - min) / range) * 100;
                         return (
                           <line
                             key={i}
-                            x1="0" y1={`${y}%`} x2="100" y2={`${y}%`}
+                            x1="0"
+                            y1={`${y}%`}
+                            x2="100"
+                            y2={`${y}%`}
                             stroke={line.color || '#F0F0F0'}
                             strokeWidth="1.5"
                             strokeDasharray={i % 2 === 0 ? 'none' : '4 2'}
@@ -123,11 +149,11 @@ export default async function ShareSnapshotPage({ params, searchParams }: PagePr
                 })()}
               </div>
             )}
-            <ul className="text-fg-muted flex flex-wrap gap-1.5 text-body-sm">
+            <ul className="text-fg-muted text-body-sm flex flex-wrap gap-1.5">
               {snap.overlay.priceLines.slice(0, 8).map((line, i) => (
                 <li
                   key={`${line.title}-${i}`}
-                  className="border border-border bg-bg-elev-2 rounded-sm px-2 py-0.5"
+                  className="border-border bg-bg-elev-2 rounded-sm border px-2 py-0.5"
                   style={{ borderColor: line.color }}
                 >
                   {line.title}: {String(line.price)}
@@ -137,10 +163,8 @@ export default async function ShareSnapshotPage({ params, searchParams }: PagePr
           </section>
         ) : null}
       </main>
-      <footer className="border-t border-border px-6 py-4 text-center">
-        <p className="text-fg-subtle text-caption">
-          Generated by Kestrel · expires {expiry}Z
-        </p>
+      <footer className="border-border border-t px-6 py-4 text-center">
+        <p className="text-fg-subtle text-caption">Generated by Kestrel · expires {expiry}Z</p>
       </footer>
     </div>
   );

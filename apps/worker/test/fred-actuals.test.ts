@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
+import * as ai from '@kestrel/ai';
+import { fred } from '@kestrel/data';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runFredActuals } from '../src/jobs/fred-actuals';
+import { createLogger } from '../src/log';
+import { TenantRouter } from '../src/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   listFredEventsMissingActual: vi.fn(),
@@ -32,13 +38,6 @@ vi.mock('@kestrel/data', () => ({
     fredMeta: vi.fn(),
   },
 }));
-
-import * as ai from '@kestrel/ai';
-import { fred } from '@kestrel/data';
-
-import { runFredActuals } from '../src/jobs/fred-actuals';
-import { TenantRouter } from '../src/tenant-router';
-import { createLogger } from '../src/log';
 
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
@@ -61,9 +60,15 @@ afterEach(() => {
 describe('runFredActuals', () => {
   it('short-circuits when FRED_API_KEY is missing', async () => {
     delete process.env['FRED_API_KEY'];
-    vi.mocked(ai.listFredEventsMissingActual).mockResolvedValue([{ id: 'fred:50:2026-05-01' } as never]);
+    vi.mocked(ai.listFredEventsMissingActual).mockResolvedValue([
+      { id: 'fred:50:2026-05-01' } as never,
+    ]);
 
-    const r = await runFredActuals({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const r = await runFredActuals({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     expect(r.processed).toBe(0);
     expect(r.note).toBe('FRED_API_KEY missing');
     expect(ai.listFredEventsMissingActual).not.toHaveBeenCalled();
@@ -90,7 +95,11 @@ describe('runFredActuals', () => {
     ]);
     vi.mocked(ai.patchEventActual).mockResolvedValue(undefined as never);
 
-    const r = await runFredActuals({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const r = await runFredActuals({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     expect(r.processed).toBe(2);
     expect(r.note).toMatch(/filled=2/);
     expect(ai.patchEventActual).toHaveBeenCalledWith(
@@ -112,7 +121,11 @@ describe('runFredActuals', () => {
     // missing-meta branch — skip seriesId.
     vi.mocked(fred.fredMeta).mockReturnValue(null);
 
-    const r = await runFredActuals({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const r = await runFredActuals({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     expect(r.note).toMatch(/skipped=2/);
   });
 });

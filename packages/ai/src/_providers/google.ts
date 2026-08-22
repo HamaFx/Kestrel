@@ -15,6 +15,7 @@
  */
 
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
 import { CAPS_FULL, defineProvider } from './helpers';
 
 export const GOOGLE = defineProvider({
@@ -55,8 +56,8 @@ export const GOOGLE = defineProvider({
       label: 'Gemini 3.5 Flash',
       description: 'Stable Flash — strong agentic + multimodal (3.x line; 2.5 retired).',
       tier: 'flagship',
-      inputPerMTokUsd: 1.50,
-      outputPerMTokUsd: 9.00,
+      inputPerMTokUsd: 1.5,
+      outputPerMTokUsd: 9.0,
       contextTokens: 1_000_000,
       capabilities: CAPS_FULL,
       released: '2026-06',
@@ -66,8 +67,8 @@ export const GOOGLE = defineProvider({
       label: 'Gemini 3.5 Flash-Lite',
       description: 'Fastest 3.5 — optimized for high-throughput agentic tasks.',
       tier: 'lite',
-      inputPerMTokUsd: 0.30,
-      outputPerMTokUsd: 2.50,
+      inputPerMTokUsd: 0.3,
+      outputPerMTokUsd: 2.5,
       contextTokens: 1_000_000,
       capabilities: CAPS_FULL,
       released: '2026-06',
@@ -77,8 +78,8 @@ export const GOOGLE = defineProvider({
       label: 'Gemini 3.1 Flash-Lite',
       description: 'Newest cheap/fast Gemini for high-volume turns.',
       tier: 'lite',
-      inputPerMTokUsd: 0.10,
-      outputPerMTokUsd: 0.40,
+      inputPerMTokUsd: 0.1,
+      outputPerMTokUsd: 0.4,
       contextTokens: 1_000_000,
       capabilities: CAPS_FULL,
       released: '2026-05',
@@ -99,8 +100,8 @@ export const GOOGLE = defineProvider({
       label: 'Gemini 2.5 Flash',
       description: 'RETIRED for new keys (404) — use gemini-3.5-flash instead.',
       tier: 'pro',
-      inputPerMTokUsd: 0.30,
-      outputPerMTokUsd: 2.50,
+      inputPerMTokUsd: 0.3,
+      outputPerMTokUsd: 2.5,
       contextTokens: 1_000_000,
       capabilities: CAPS_FULL,
       released: '2025-04',
@@ -110,8 +111,8 @@ export const GOOGLE = defineProvider({
       label: 'Gemini 2.5 Flash-Lite',
       description: 'RETIRED for new keys (404) — use gemini-3.5-flash-lite instead.',
       tier: 'lite',
-      inputPerMTokUsd: 0.10,
-      outputPerMTokUsd: 0.40,
+      inputPerMTokUsd: 0.1,
+      outputPerMTokUsd: 0.4,
       contextTokens: 1_000_000,
       capabilities: CAPS_FULL,
       released: '2025-07',

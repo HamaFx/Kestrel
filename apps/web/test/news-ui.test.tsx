@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { NewsToolbar } from '@/app/(app)/news/_components/news-toolbar';
 
@@ -43,8 +44,8 @@ describe('News toolbar (Phase 10)', () => {
 
   it('announces the filtered result count via a polite live region', () => {
     render(<NewsToolbar {...baseProps} />);
-    const strip = screen.getByText((content, el) =>
-      el?.tagName === 'P' && content.includes('Showing') && content.includes('of'),
+    const strip = screen.getByText(
+      (content, el) => el?.tagName === 'P' && content.includes('Showing') && content.includes('of'),
     );
     expect(strip.getAttribute('aria-live')).toBe('polite');
   });
@@ -78,7 +79,8 @@ describe('News page source contracts (Phase 10)', () => {
     const source = read('apps/web/src/app/(app)/news/_components/news-view.tsx');
     expect(source).toContain('aria-label="Refresh now"');
     expect(source).toContain('aria-pressed={savedOnly}');
-    expect(source).toContain('focus-visible:ring-2 focus-visible:ring-fg');
+    expect(source).toContain('focus-visible:ring-2');
+    expect(source).toContain('focus-visible:ring-fg');
     // The redundant identical-icon ternary was replaced by a single aria-hidden icon.
     expect(source).not.toContain('savedOnly ? <IconBookmark');
   });

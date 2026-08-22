@@ -18,9 +18,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { analyzeFundamentalTool } from '../src/tools/analyze-fundamental';
 
-const exec = analyzeFundamentalTool.execute as unknown as (
-  input: { symbol: string; horizonHours?: number },
-) => Promise<{
+const exec = analyzeFundamentalTool.execute as unknown as (input: {
+  symbol: string;
+  horizonHours?: number;
+}) => Promise<{
   symbol: string;
   windowFromMs: number;
   windowToMs: number;
@@ -183,19 +184,25 @@ describe('analyze_fundamental — Phase 0.10', () => {
   });
 
   it('validates input schema — horizonHours min 1', () => {
-    const schema = analyzeFundamentalTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = analyzeFundamentalTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', horizonHours: 0 }).success).toBe(false);
     expect(schema.safeParse({ symbol: 'EURUSD', horizonHours: 1 }).success).toBe(true);
   });
 
   it('validates input schema — horizonHours max 168', () => {
-    const schema = analyzeFundamentalTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = analyzeFundamentalTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', horizonHours: 168 }).success).toBe(true);
     expect(schema.safeParse({ symbol: 'EURUSD', horizonHours: 169 }).success).toBe(false);
   });
 
   it('validates input schema — required symbol', () => {
-    const schema = analyzeFundamentalTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = analyzeFundamentalTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({}).success).toBe(false);
     expect(schema.safeParse({ symbol: 'EURUSD' }).success).toBe(true);
   });

@@ -86,7 +86,8 @@ async function call<T>(
   const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
   if (opts.signal) {
     if (opts.signal.aborted) ctrl.abort(opts.signal.reason);
-    else opts.signal.addEventListener('abort', () => ctrl.abort(opts.signal!.reason), { once: true });
+    else
+      opts.signal.addEventListener('abort', () => ctrl.abort(opts.signal!.reason), { once: true });
   }
 
   let res: Response;
@@ -196,7 +197,7 @@ async function fetchNative(args: FetchCandlesArgs): Promise<FinnhubCandle[]> {
       h: raw.h![i]!,
       l: raw.l![i]!,
       c: raw.c![i]!,
-      v: raw.v ? raw.v[i] ?? null : null,
+      v: raw.v ? (raw.v[i] ?? null) : null,
     });
   }
   return out.slice(-args.count);
@@ -272,7 +273,6 @@ function secondsForCount(tf: Timeframe, count: number): number {
   };
   return Math.ceil(TF_SEC[tf] * count * 1.25);
 }
-
 
 // ---------------------------------------------------------------------------
 // News (Phase 4 — primary news source)

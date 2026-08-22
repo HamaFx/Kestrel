@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Per-iteration VU function: write-path endpoint mix resembling a power user
 // creating alerts, threads, journal entries, portfolio positions, and other
 // stateful operations on the trading copilot surface.
@@ -16,16 +32,18 @@
 // All POST bodies use stock parameters that match each endpoint's Zod schema
 // (verified against route.ts source files).
 
-import { sleep } from 'k6';
-import http from 'k6/http';
-import { SharedArray } from 'k6/data';
 import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
-import { getJson, postJson, patchJson } from '../lib/http.js';
-import { expectStatus, record429, recordAuthFailure } from '../lib/checks.js';
-import { env, type SessionCtx } from '../config/environments.js';
+import { sleep } from 'k6';
+import { SharedArray } from 'k6/data';
+import http from 'k6/http';
 
-const symbols = new SharedArray('symbols', () =>
-  JSON.parse(open('../lib/data/symbols.json') as string) as string[],
+import { env, type SessionCtx } from '../config/environments.js';
+import { expectStatus, record429, recordAuthFailure } from '../lib/checks.js';
+import { getJson, patchJson, postJson } from '../lib/http.js';
+
+const symbols = new SharedArray(
+  'symbols',
+  () => JSON.parse(open('../lib/data/symbols.json') as string) as string[],
 );
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -118,9 +136,14 @@ export function writeMix(ctx: SessionCtx): void {
   } else if (roll < 0.31 && ctx.threadId) {
     // GET /api/chat/threads/[id]/summary — thread summary (4%, needs threadId)
     // May return 404 if no summarize_thread tool call exists — that's fine
-    getJson(`/api/chat/threads/${ctx.threadId}/summary`, 'thread_summary', {}, {
-      tags: {},
-    });
+    getJson(
+      `/api/chat/threads/${ctx.threadId}/summary`,
+      'thread_summary',
+      {},
+      {
+        tags: {},
+      },
+    );
   } else if (roll < 0.35 && ctx.threadId) {
     // GET /api/chat/threads/[id]/opinions — agent opinions (4%, needs threadId)
     getJson(`/api/chat/threads/${ctx.threadId}/opinions`, 'thread_opinions');
@@ -135,7 +158,10 @@ export function writeMix(ctx: SessionCtx): void {
         atMessageId: '00000000-0000-0000-0000-000000000000',
         newText: 'Can you elaborate on that analysis?',
       }),
-      { headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken }, tags: { group: 'thread_fork' } },
+      {
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
+        tags: { group: 'thread_fork' },
+      },
     );
     expectStatus(forkRes, [200, 201, 400]);
     record429(forkRes);
@@ -165,7 +191,8 @@ export function writeMix(ctx: SessionCtx): void {
     const alertType = randomAlertType();
     const rule: Record<string, unknown> = {
       type: alertType,
-      symbol,        direction: randomDirection(),
+      symbol,
+      direction: randomDirection(),
       level: Math.round(entryPrice * 1.02 * 100) / 100,
     };
     if (alertType === 'candleClose') rule.tf = '1h';
@@ -175,7 +202,7 @@ export function writeMix(ctx: SessionCtx): void {
       note: 'k6 load test',
       snoozeHours: 0,
     });
-  } else if (roll < 0.60) {
+  } else if (roll < 0.6) {
     // GET /api/alerts — list alerts (5%)
     getJson('/api/alerts', 'alert_read');
   }
@@ -193,7 +220,7 @@ export function writeMix(ctx: SessionCtx): void {
       notes: 'k6 load test entry',
       tags: ['k6', 'loadtest'],
     });
-  } else if (roll < 0.70) {
+  } else if (roll < 0.7) {
     // GET /api/journal — list journal entries (5%)
     getJson('/api/journal', 'journal_read');
   } else if (roll < 0.75) {
@@ -269,7 +296,10 @@ export function writeMix(ctx: SessionCtx): void {
           auth: 'k6-test-auth-token-abcdef1234567890',
         },
       }),
-      { headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken }, tags: { group: 'push_subscribe' } },
+      {
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
+        tags: { group: 'push_subscribe' },
+      },
     );
     expectStatus(pushRes, [200, 201, 400, 401, 503]);
     record429(pushRes);

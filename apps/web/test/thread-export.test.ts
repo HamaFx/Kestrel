@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from 'vitest';
@@ -46,11 +62,9 @@ describe('renderThreadToMarkdown — header', () => {
   });
 
   it('omits the symbol suffix when no symbol is pinned', () => {
-    const md = renderThreadToMarkdown(
-      { ...THREAD, pinnedSymbol: null },
-      [],
-      { exportedAt: NOW_ISO },
-    );
+    const md = renderThreadToMarkdown({ ...THREAD, pinnedSymbol: null }, [], {
+      exportedAt: NOW_ISO,
+    });
     expect(md).toContain('_Exported');
     expect(md).not.toContain('· XAUUSD');
   });
@@ -129,9 +143,7 @@ describe('renderThreadToMarkdown — messages', () => {
   });
 
   it('marks empty messages with an (empty) placeholder', () => {
-    const msgs: ExportMessage[] = [
-      { id: 'm1', role: 'assistant', createdAt: NOW_ISO, parts: [] },
-    ];
+    const msgs: ExportMessage[] = [{ id: 'm1', role: 'assistant', createdAt: NOW_ISO, parts: [] }];
     const md = renderThreadToMarkdown(THREAD, msgs, { exportedAt: NOW_ISO });
     expect(md).toContain('_(empty)_');
   });
@@ -185,9 +197,7 @@ describe('renderThreadToMarkdown — tool parts', () => {
         id: 'm1',
         role: 'assistant',
         createdAt: NOW_ISO,
-        parts: [
-          { type: 'data-citation-warning', reason: 'fabricated price' },
-        ],
+        parts: [{ type: 'data-citation-warning', reason: 'fabricated price' }],
       },
     ];
     const md = renderThreadToMarkdown(THREAD, msgs, { exportedAt: NOW_ISO });

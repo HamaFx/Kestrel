@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // GET /api/cron/embedding-backfill — finds news_articles without embeddings
@@ -16,9 +32,8 @@
 // The cap stays low (256 rows) because the route still has the 60s ceiling.
 // The worker job ramps to 1024 rows per run — see apps/worker/src/jobs/embedding-backfill.ts.
 
-import { backfillEmbeddings, countPendingEmbeddings } from '@/lib/services/api-boundary';
-
 import { withCronAuth } from '@/lib/cron';
+import { backfillEmbeddings, countPendingEmbeddings } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

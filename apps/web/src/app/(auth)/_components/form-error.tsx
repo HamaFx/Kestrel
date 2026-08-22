@@ -18,7 +18,6 @@
 
 // §5: Shared form error component with aria-live for screen readers.
 // Used by all auth pages for consistent error presentation.
-
 import { cn } from '@/lib/cn';
 
 interface FormErrorProps {
@@ -41,12 +40,7 @@ export function FormError({
   if (!message) return null;
 
   return (
-    <p
-      id={id}
-      role="alert"
-      aria-live={ariaLive}
-      className={cn('text-danger text-sm', className)}
-    >
+    <p id={id} role="alert" aria-live={ariaLive} className={cn('text-danger text-sm', className)}>
       {message}
     </p>
   );

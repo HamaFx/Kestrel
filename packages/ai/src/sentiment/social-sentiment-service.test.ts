@@ -19,10 +19,10 @@
 // Tests the sentiment service with and without API key configured,
 // and the shared helper functions (scoreToLabel, detectContrarianSignal).
 
+import { detectContrarianSignal, scoreToLabel } from '@kestrel/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { SocialSentimentService, resetSentimentService } from './social-sentiment-service';
-import { scoreToLabel, detectContrarianSignal } from '@kestrel/shared';
+import { resetSentimentService, SocialSentimentService } from './social-sentiment-service';
 
 afterEach(() => {
   resetSentimentService();

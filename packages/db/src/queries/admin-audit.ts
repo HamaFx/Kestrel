@@ -17,8 +17,8 @@
 // Admin audit log helpers — record privileged actions taken via the admin panel.
 
 import { desc } from 'drizzle-orm';
-import { getDb } from '../client';
-import { schema } from '../client';
+
+import { getDb, schema } from '../client';
 
 /**
  * Record a privileged admin action.
@@ -47,7 +47,7 @@ export async function recordAdminAudit(
 export async function listAdminAuditLogs(
   limit: number,
   offset: number,
-): Promise<typeof schema.adminAuditLogs.$inferSelect[]> {
+): Promise<(typeof schema.adminAuditLogs.$inferSelect)[]> {
   const db = getDb();
   return db
     .select()

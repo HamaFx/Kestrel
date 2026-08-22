@@ -25,8 +25,13 @@
 //
 // Reference: https://biquote.io/docs
 
-import type { BiquoteTimeframe } from '@kestrel/shared';
-import { getSymbolDefinition, isKnownSymbol, type Symbol, type Timeframe } from '@kestrel/shared';
+import {
+  getSymbolDefinition,
+  isKnownSymbol,
+  type BiquoteTimeframe,
+  type Symbol,
+  type Timeframe,
+} from '@kestrel/shared';
 
 /**
  * BiQuote uses our concatenated symbol codes verbatim (`XAUUSD`,

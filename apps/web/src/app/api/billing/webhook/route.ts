@@ -1,12 +1,32 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // POST /api/billing/webhook — NOWPayments IPN receiver.
 // PUBLIC route — auth via HMAC-SHA512 signature, not user session.
 
-import * as Sentry from '@sentry/nextjs';
 import { createHash } from 'node:crypto';
+
+import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
+import { getServerEnv } from '@/lib/env';
+import { createScopedLoggerWithContext } from '@/lib/logger';
+import { verifyIpnSignature } from '@/lib/nowpayments';
 import {
   claimIpnEvent,
   getPaymentByNowpaymentsId,
@@ -16,9 +36,6 @@ import {
   updatePaymentStatus,
   updateSubscriptionFromPayment,
 } from '@/lib/services/api-boundary';
-import { getServerEnv } from '@/lib/env';
-import { verifyIpnSignature } from '@/lib/nowpayments';
-import { createScopedLoggerWithContext } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,23 +50,42 @@ const optionalProviderIdentifier = z.preprocess(
   z.string().min(1).nullable().optional(),
 );
 
-export const IpnPayloadSchema = z.object({
-  payment_id: providerIdentifier,
-  invoice_id: optionalProviderIdentifier.transform((value) => value ?? undefined),
-  payment_status: z.enum(['waiting', 'confirming', 'confirmed', 'sending', 'finished', 'failed', 'expired', 'refunded']),
-  pay_amount: z.string().optional(),
-  pay_currency: z.string().optional(),
-  price_amount: z.number().optional(),
-  price_currency: z.string().optional(),
-  order_id: z.string().optional(),
-  order_description: z.string().optional(),
-  txid: z.string().optional(),
-}).passthrough();
+export const IpnPayloadSchema = z
+  .object({
+    payment_id: providerIdentifier,
+    invoice_id: optionalProviderIdentifier.transform((value) => value ?? undefined),
+    payment_status: z.enum([
+      'waiting',
+      'confirming',
+      'confirmed',
+      'sending',
+      'finished',
+      'failed',
+      'expired',
+      'refunded',
+    ]),
+    pay_amount: z.string().optional(),
+    pay_currency: z.string().optional(),
+    price_amount: z.number().optional(),
+    price_currency: z.string().optional(),
+    order_id: z.string().optional(),
+    order_description: z.string().optional(),
+    txid: z.string().optional(),
+  })
+  .passthrough();
 
 export interface IpnPayload {
   payment_id: string;
   invoice_id?: string;
-  payment_status: 'waiting' | 'confirming' | 'confirmed' | 'sending' | 'finished' | 'failed' | 'expired' | 'refunded';
+  payment_status:
+    | 'waiting'
+    | 'confirming'
+    | 'confirmed'
+    | 'sending'
+    | 'finished'
+    | 'failed'
+    | 'expired'
+    | 'refunded';
   pay_amount?: string;
   pay_currency?: string;
   price_amount?: number;
@@ -174,7 +210,10 @@ export async function POST(req: Request): Promise<Response> {
         tags: { component: 'billing-webhook', kind: 'dlq-failure' },
         extra: { eventId: payment_id, eventType: payment_status },
       });
-      logger.error({ err: String(dlqError), payment_id }, 'Failed to persist billing webhook DLQ entry');
+      logger.error(
+        { err: String(dlqError), payment_id },
+        'Failed to persist billing webhook DLQ entry',
+      );
       return new Response('Internal Server Error', { status: 500 });
     }
     // The event is authenticated and safely recorded for replay. A 200
@@ -183,11 +222,34 @@ export async function POST(req: Request): Promise<Response> {
   }
 }
 
-function mapPaymentStatus(npStatus: string): 'waiting' | 'confirming' | 'confirmed' | 'sending' | 'finished' | 'failed' | 'expired' | 'refunded' {
+function mapPaymentStatus(
+  npStatus: string,
+):
+  | 'waiting'
+  | 'confirming'
+  | 'confirmed'
+  | 'sending'
+  | 'finished'
+  | 'failed'
+  | 'expired'
+  | 'refunded' {
   const map: Record<string, string> = {
-    waiting: 'waiting', confirming: 'confirming', confirmed: 'confirmed',
-    sending: 'sending', finished: 'finished', failed: 'failed',
-    expired: 'expired', refunded: 'refunded',
+    waiting: 'waiting',
+    confirming: 'confirming',
+    confirmed: 'confirmed',
+    sending: 'sending',
+    finished: 'finished',
+    failed: 'failed',
+    expired: 'expired',
+    refunded: 'refunded',
   };
-  return (map[npStatus] ?? 'waiting') as 'waiting' | 'confirming' | 'confirmed' | 'sending' | 'finished' | 'failed' | 'expired' | 'refunded';
+  return (map[npStatus] ?? 'waiting') as
+    | 'waiting'
+    | 'confirming'
+    | 'confirmed'
+    | 'sending'
+    | 'finished'
+    | 'failed'
+    | 'expired'
+    | 'refunded';
 }

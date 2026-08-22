@@ -11,12 +11,11 @@
 // have happened in a while. Fail-closed: without credentials the flush is a
 // no-op and this job only produces the freshness observation.
 
-import { desc } from 'drizzle-orm';
-
 import { getDb } from '@kestrel/ai';
 import { liveTicks } from '@kestrel/db/schema';
 import { metrics } from '@kestrel/shared';
 import { flushMetrics } from '@kestrel/shared/metrics-export';
+import { desc } from 'drizzle-orm';
 
 import type { JobContext, JobResult } from './types.js';
 

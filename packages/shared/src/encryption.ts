@@ -37,7 +37,9 @@
 
 import 'server-only';
 
-import { createCipheriv, createDecipheriv, randomBytes, pbkdf2Sync } from 'node:crypto';
+import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'node:crypto';
+
+import { PROVIDER_IDS, type ByokPayload, type ProviderId } from './byok';
 import { internalError } from './errors';
 import { logErrorContext } from './logger';
 
@@ -55,7 +57,6 @@ const AUTH_TAG_LENGTH = 16; // 128 bits
  * Re-exported here for the existing import path.
  */
 export { PROVIDER_IDS, type ByokPayload, type ProviderId } from './byok';
-import { PROVIDER_IDS, type ByokPayload, type ProviderId } from './byok';
 
 function getEncryptionKey(): Buffer {
   const secret = process.env.ENCRYPTION_SECRET;

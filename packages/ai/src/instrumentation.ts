@@ -20,9 +20,9 @@
 // point). AI SDK telemetry is opt-in per call; `telemetryConfig()` provides
 // that call-level setting. This module only owns exporter lifecycle.
 
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { LangfuseSpanProcessor } from '@langfuse/otel';
+import { NodeSDK } from '@opentelemetry/sdk-node';
 
 import { redactSecrets } from './diagnostics/redact';
 
@@ -59,8 +59,10 @@ export function initLangfuse(options: { service?: LangfuseService } = {}): void 
   const service = options.service ?? 'worker';
   // Keep release/environment in operator configuration so Langfuse traces
   // remain correctly grouped across Vercel and the worker deployment.
-  const release = process.env.LANGFUSE_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.DEPLOYED_SHA;
-  const environment = process.env.LANGFUSE_TRACING_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development';
+  const release =
+    process.env.LANGFUSE_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.DEPLOYED_SHA;
+  const environment =
+    process.env.LANGFUSE_TRACING_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development';
   const nextProcessor = new LangfuseSpanProcessor({
     publicKey,
     secretKey,

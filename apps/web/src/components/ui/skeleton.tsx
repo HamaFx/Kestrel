@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // <Skeleton> — single placeholder primitive. All loading.tsx files and
@@ -39,7 +55,7 @@ export function SkeletonCard({ className, lines = 2, ...rest }: SkeletonCardProp
       aria-busy="true"
       aria-label="Loading content"
       className={cn(
-        'border-border bg-bg-elev-1/60 flex flex-col gap-2 overflow-hidden rounded-sm border p-4 fade-in',
+        'border-border bg-bg-elev-1/60 fade-in flex flex-col gap-2 overflow-hidden rounded-sm border p-4',
         className,
       )}
       {...rest}

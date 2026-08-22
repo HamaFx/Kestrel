@@ -28,18 +28,27 @@
 //   - Sectioned destinations (Markets / Personal) + identity strip and
 //     a footer "Sign out" action.
 //   - User identity display + nav item badges.
-
-import { IconBell,  IconBook,  IconCalendar,  IconSettings,  IconLayoutDashboard,  IconChartLine,  IconLogout,  IconMessageCircle,  IconNews,  IconShield } from '@tabler/icons-react';
-import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import {
+  IconBell,
+  IconBook,
+  IconCalendar,
+  IconChartLine,
+  IconLayoutDashboard,
+  IconLogout,
+  IconMessageCircle,
+  IconNews,
+  IconSettings,
+  IconShield,
+} from '@tabler/icons-react';
+import { signOut } from 'next-auth/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Drawer as DrawerPrimitive } from 'vaul';
 
-import { toast } from 'sonner';
-
+import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { cn } from '@/lib/cn';
-import { signOut } from 'next-auth/react';
 
 import { useNavDrawer } from './nav-drawer-context';
 
@@ -88,14 +97,24 @@ const PRIMARY: readonly NavItem[] = [
 const SECONDARY: readonly NavItem[] = [
   { href: '/alerts', label: 'Alerts', icon: IconBell, description: 'Price triggers' },
   { href: '/journal', label: 'Journal', icon: IconBook, description: 'Trades & R-multiples' },
-  { href: '/settings', label: 'Settings',    icon: IconSettings, description: 'Notifications, usage' },
+  { href: '/settings', label: 'Settings', icon: IconSettings, description: 'Notifications, usage' },
 ];
 
 const ADMIN: readonly NavItem[] = [
   { href: '/admin', label: 'Admin', icon: IconShield, description: 'Debug & system' },
 ];
 
-export function NavDrawer({ userName, userEmail, userId: _userId, isAdmin }: { userName?: string; userEmail?: string; userId?: string; isAdmin?: boolean }) {
+export function NavDrawer({
+  userName,
+  userEmail,
+  userId: _userId,
+  isAdmin,
+}: {
+  userName?: string;
+  userEmail?: string;
+  userId?: string;
+  isAdmin?: boolean;
+}) {
   const { open, setOpen } = useNavDrawer();
   const pathname = usePathname();
 
@@ -120,18 +139,18 @@ export function NavDrawer({ userName, userEmail, userId: _userId, isAdmin }: { u
     }
   }
 
-  const initial = useMemo(() => (userName?.charAt(0)?.toUpperCase() || 'K'), [userName]);
+  const initial = useMemo(() => userName?.charAt(0)?.toUpperCase() || 'K', [userName]);
 
   return (
     <DrawerPrimitive.Root open={open} onOpenChange={setOpen} direction="left">
       <DrawerPrimitive.Portal>
-        <DrawerPrimitive.Overlay className="bg-overlay fixed inset-0 z-[60] " />
+        <DrawerPrimitive.Overlay className="bg-overlay fixed inset-0 z-[60]" />
         <DrawerPrimitive.Content
           id="sidebar-nav"
           aria-label="Primary navigation"
           className={cn(
             'surface-elevated fixed inset-y-0 left-0 z-[60] flex w-[88vw] max-w-[340px] flex-col',
-            'border-r border-border rounded-sm',
+            'border-border rounded-sm border-r',
             'paint-isolated',
             'focus-visible:outline-none',
           )}
@@ -147,27 +166,24 @@ export function NavDrawer({ userName, userEmail, userId: _userId, isAdmin }: { u
           {/* Vaul drag handle (vertical edge). */}
           <div
             aria-hidden="true"
-            className="absolute right-2 top-1/2 h-12 w-1 -translate-y-1/2 rounded-sm bg-fg-subtle/30"
+            className="bg-fg-subtle/30 absolute top-1/2 right-2 h-12 w-1 -translate-y-1/2 rounded-sm"
           />
 
           {/* Brand */}
           <div className="flex items-center px-5 pt-6 pb-3">
-            <KestrelBrand
-              variant="lockup"
-              className="w-32"
-            />
+            <KestrelBrand variant="lockup" className="w-32" />
           </div>
 
           {/* Identity strip */}
           <div className="flex items-center gap-3 px-5 pt-6 pb-5">
-            <div className="size-11 rounded-sm bg-bg-elev-2 text-fg flex items-center justify-center text-sm font-bold ">
+            <div className="bg-bg-elev-2 text-fg flex size-11 items-center justify-center rounded-sm text-sm font-bold">
               <span className="text-lg font-bold">{initial}</span>
             </div>
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-fg text-base font-bold tracking-tight truncate">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-fg truncate text-base font-bold tracking-tight">
                 {userName ?? 'Kestrel User'}
               </span>
-              <span className="text-fg-subtle text-xs truncate">
+              <span className="text-fg-subtle truncate text-xs">
                 {userEmail ?? 'Personal trading copilot'}
               </span>
             </div>
@@ -177,10 +193,7 @@ export function NavDrawer({ userName, userEmail, userId: _userId, isAdmin }: { u
             Navigate between chat, chart, news, calendar, alerts, journal, and settings.
           </DrawerPrimitive.Description>
 
-          <nav
-            aria-label="Primary"
-            className="scrollbar-hide flex-1 overflow-y-auto px-3 pb-4"
-          >
+          <nav aria-label="Primary" className="scrollbar-hide flex-1 overflow-y-auto px-3 pb-4">
             <Section label="Markets">
               {PRIMARY.map((item) => (
                 <NavLink key={item.href} item={item} active={isActive(item)} />
@@ -207,15 +220,15 @@ export function NavDrawer({ userName, userEmail, userId: _userId, isAdmin }: { u
             <button
               type="button"
               onClick={() => void logout()}
-              className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 flex min-h-[48px] w-full items-center gap-3 rounded-sm px-3 text-left text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+              className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 focus-visible:ring-brand flex min-h-[48px] w-full items-center gap-3 rounded-sm px-3 text-left text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
-            <span
-              aria-hidden="true"
-              className="text-fg-muted bg-bg-elev-3 inline-flex size-9 items-center justify-center rounded-sm"
-            >
-              <IconLogout className="size-4" strokeWidth={2} />
-            </span>
-            Sign out
+              <span
+                aria-hidden="true"
+                className="text-fg-muted bg-bg-elev-3 inline-flex size-9 items-center justify-center rounded-sm"
+              >
+                <IconLogout className="size-4" strokeWidth={2} />
+              </span>
+              Sign out
             </button>
           </div>
         </DrawerPrimitive.Content>
@@ -224,14 +237,12 @@ export function NavDrawer({ userName, userEmail, userId: _userId, isAdmin }: { u
   );
 }
 
-
-
 // ---------------------------------------------------------------------------
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1 pt-3 first:pt-0">
-      <p className="text-fg-subtle px-3 pb-1 text-xs font-semibold uppercase tracking-wider">
+      <p className="text-fg-subtle px-3 pb-1 text-xs font-semibold tracking-wider uppercase">
         {label}
       </p>
       <ul className="flex flex-col gap-0.5">{children}</ul>
@@ -248,9 +259,9 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         prefetch={true}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'group/nav relative flex min-h-[56px] items-center gap-3 rounded-sm px-3 transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none',
+          'group/nav focus-visible:ring-brand relative flex min-h-[56px] items-center gap-3 rounded-sm px-3 transition-all focus-visible:ring-2 focus-visible:outline-none',
           active
-            ? 'bg-brand/8 ring-1 ring-brand/22 text-brand'
+            ? 'bg-brand/8 ring-brand/22 text-brand ring-1'
             : 'text-fg-muted hover:bg-bg-elev-2 hover:text-fg',
         )}
       >
@@ -264,14 +275,13 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
           <Icon className="size-5" strokeWidth={active ? 2 : 1.75} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-sm font-semibold leading-tight">{item.label}</span>
+          <span className="text-sm leading-tight font-semibold">{item.label}</span>
           {item.description ? (
             <span className="text-fg-subtle truncate text-xs leading-tight">
               {item.description}
             </span>
           ) : null}
         </div>
-
       </Link>
     </li>
   );

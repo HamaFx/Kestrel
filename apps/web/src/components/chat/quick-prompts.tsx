@@ -31,10 +31,15 @@
  * Prompts are deterministic given (session, pin) so server-rendered
  * and client-rendered copies match exactly.
  */
-
-import { useMemo, memo } from 'react';
 import type { Symbol } from '@kestrel/shared';
-import {IconChartBar, IconBell, IconCalendarEvent, IconChartLine, IconTrendingUp} from '@tabler/icons-react';
+import {
+  IconBell,
+  IconCalendarEvent,
+  IconChartBar,
+  IconChartLine,
+  IconTrendingUp,
+} from '@tabler/icons-react';
+import { memo, useMemo } from 'react';
 
 import { cn } from '@/lib/cn';
 import { getSessionInfo, type TradingSession } from '@/lib/session';
@@ -67,14 +72,14 @@ const NO_PIN_PROMPTS: Record<TradingSession, readonly Prompt[]> = {
     { icon: IconTrendingUp, label: 'London open — bias on majors?', fg: 'text-fg' },
     { icon: IconChartLine, label: 'Top-down EURUSD 4H→15M', fg: 'text-info' },
     { icon: IconChartBar, label: 'Show me the structure', fg: 'text-info' },
-    { icon: IconCalendarEvent, label: "London session calendar", fg: 'text-brand' },
+    { icon: IconCalendarEvent, label: 'London session calendar', fg: 'text-brand' },
     { icon: IconBell, label: 'Alert EURUSD above 1.0900', fg: 'text-warn' },
   ],
   ny: [
     { icon: IconTrendingUp, label: 'NY session plan for XAUUSD', fg: 'text-fg' },
     { icon: IconChartLine, label: 'Top-down XAUUSD 4H→15M', fg: 'text-info' },
     { icon: IconChartBar, label: 'Show me the structure', fg: 'text-info' },
-    { icon: IconCalendarEvent, label: "NY session calendar", fg: 'text-brand' },
+    { icon: IconCalendarEvent, label: 'NY session calendar', fg: 'text-brand' },
     { icon: IconBell, label: 'Alert gold above 2400', fg: 'text-warn' },
   ],
   closed: [
@@ -147,10 +152,14 @@ export const QuickPrompts = memo(function QuickPrompts({
 }: QuickPromptsProps) {
   const sessionInfo = useMemo(() => getSessionInfo(now ?? new Date()), [now]);
   const session = sessionInfo.session;
-  const sessionPrefix = session === 'london' ? 'London session is live — '
-    : session === 'ny' ? 'NY session is live — '
-    : session === 'asian' ? 'Asian session is live — '
-    : '';
+  const sessionPrefix =
+    session === 'london'
+      ? 'London session is live — '
+      : session === 'ny'
+        ? 'NY session is live — '
+        : session === 'asian'
+          ? 'Asian session is live — '
+          : '';
   const prompts = useMemo(() => {
     const base = pinnedSymbol
       ? generatePinnedPrompts(pinnedSymbol, session)
@@ -162,7 +171,6 @@ export const QuickPrompts = memo(function QuickPrompts({
     }));
   }, [pinnedSymbol, session, sessionPrefix]);
 
-
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {prompts.map((p) => {
@@ -173,11 +181,11 @@ export const QuickPrompts = memo(function QuickPrompts({
             type="button"
             disabled={disabled}
             onClick={() => onSelect(p.label)}
-            className="border border-border bg-bg-elev-1 text-fg hover:bg-bg-elev-3 focus-visible:ring-fg flex h-14 items-center gap-3 rounded-sm px-4 py-3 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-50"
+            className="border-border bg-bg-elev-1 text-fg hover:bg-bg-elev-3 focus-visible:ring-fg flex h-14 items-center gap-3 rounded-sm border px-4 py-3 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-50"
           >
             <span
               className={cn(
-                'shrink-0 inline-flex size-8 items-center justify-center rounded-sm border border-border bg-bg-elev-2',
+                'border-border bg-bg-elev-2 inline-flex size-8 shrink-0 items-center justify-center rounded-sm border',
                 p.fg,
               )}
             >

@@ -1,9 +1,28 @@
-export const SETUP_INSTRUCTIONS: Record<string, {
-  dashboardUrl: string;
-  freeTier: string;
-  rateLimits: string;
-  howToGet: string;
-}> = {
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+export const SETUP_INSTRUCTIONS: Record<
+  string,
+  {
+    dashboardUrl: string;
+    freeTier: string;
+    rateLimits: string;
+    howToGet: string;
+  }
+> = {
   google: {
     dashboardUrl: 'https://aistudio.google.com/',
     freeTier: 'Yes, generous free tier for Gemini Flash, Pro, and Flash-Lite models.',
@@ -14,7 +33,8 @@ export const SETUP_INSTRUCTIONS: Record<string, {
     dashboardUrl: 'https://console.cloud.google.com/vertex-ai',
     freeTier: 'No free tier. Billed directly to your Google Cloud Project Project.',
     rateLimits: 'Determined by your GCP project quota limits.',
-    howToGet: 'Create a Service Account in your GCP console, grant it the "Vertex AI User" role, create a JSON private key, and paste the entire JSON file content here.',
+    howToGet:
+      'Create a Service Account in your GCP console, grant it the "Vertex AI User" role, create a JSON private key, and paste the entire JSON file content here.',
   },
   anthropic: {
     dashboardUrl: 'https://console.anthropic.com/',
@@ -26,7 +46,8 @@ export const SETUP_INSTRUCTIONS: Record<string, {
     dashboardUrl: 'https://platform.openai.com/api-keys',
     freeTier: 'No free tier, requires a funded developer account.',
     rateLimits: 'Varies by tier. Tier 1 starts at 500 RPM / 20k TPM.',
-    howToGet: 'Go to OpenAI Developer Platform, navigate to API Keys, and click "Create new secret key".',
+    howToGet:
+      'Go to OpenAI Developer Platform, navigate to API Keys, and click "Create new secret key".',
   },
   groq: {
     dashboardUrl: 'https://console.groq.com/keys',
@@ -56,18 +77,23 @@ export const SETUP_INSTRUCTIONS: Record<string, {
     dashboardUrl: 'https://platform.deepseek.com/api_keys',
     freeTier: 'No free tier, but extremely low pricing (under $0.30 per 1M tokens).',
     rateLimits: 'Standard limits are very generous.',
-    howToGet: 'Create a DeepSeek account, go to API Keys in the developer dashboard, and create a key.',
+    howToGet:
+      'Create a DeepSeek account, go to API Keys in the developer dashboard, and create a key.',
   },
   iamhc: {
     dashboardUrl: 'https://api.iamhc.cn/',
     freeTier: 'Paid proxy service — aggregated pricing across 25+ models.',
     rateLimits: 'Varies by plan. Contact provider for details.',
-    howToGet: 'Visit api.iamhc.cn, register an account, and generate an API key from your dashboard.',
+    howToGet:
+      'Visit api.iamhc.cn, register an account, and generate an API key from your dashboard.',
   },
   hcnsec: {
     dashboardUrl: 'https://api.hcnsec.cn/console',
-    freeTier: '公益/free quota is documented, but limits and model access depend on your account and token group.',
-    rateLimits: 'Varies by token group and model. Check the HCNSEC console for current limits and usage.',
-    howToGet: 'Register at the HCNSEC console, create a token under 令牌管理, and copy the full sk-... key when it is shown.',
+    freeTier:
+      '公益/free quota is documented, but limits and model access depend on your account and token group.',
+    rateLimits:
+      'Varies by token group and model. Check the HCNSEC console for current limits and usage.',
+    howToGet:
+      'Register at the HCNSEC console, create a token under 令牌管理, and copy the full sk-... key when it is shown.',
   },
 };

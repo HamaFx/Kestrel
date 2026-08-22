@@ -15,7 +15,17 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { index, integer, jsonb, pgTable, real, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  real,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 import { chatMessages, chatThreads } from './chat';

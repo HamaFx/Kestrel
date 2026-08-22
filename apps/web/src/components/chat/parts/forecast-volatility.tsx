@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `forecast_volatility` tool part.
@@ -22,13 +38,13 @@ export function ForecastVolatilityPart({
           {output.symbol} · {output.horizonHours}h forward vol
         </h3>
         {output.eventAdjusted ? (
-          <span className="bg-warn/15 text-warn rounded-sm px-2 py-0.5 text-caption font-semibold">
+          <span className="bg-warn/15 text-warn text-caption rounded-sm px-2 py-0.5 font-semibold">
             Event-adjusted ×{output.eventMultiplier.toFixed(1)}
           </span>
         ) : null}
       </header>
 
-      <dl className="grid grid-cols-3 gap-2 text-body-sm tabular-nums">
+      <dl className="text-body-sm grid grid-cols-3 gap-2 tabular-nums">
         <Stat k={`ATR (${output.tf})`} v={`${output.atrPips.toFixed(1)} pips`} />
         <Stat
           k="ATR · 30d avg"
@@ -67,7 +83,7 @@ export function ForecastVolatilityPart({
 function Stat({ k, v }: { k: string; v: string }) {
   return (
     <div className="border-divider flex flex-col rounded-sm border p-2">
-      <span className="text-fg-subtle text-caption uppercase tracking-wide">{k}</span>
+      <span className="text-fg-subtle text-caption tracking-wide uppercase">{k}</span>
       <span className="text-fg font-semibold">{v}</span>
     </div>
   );

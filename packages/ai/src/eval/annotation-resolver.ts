@@ -33,8 +33,8 @@
  */
 
 import { redactString } from '../diagnostics/redact';
-import type { EvaluationAnnotation } from './training-export';
 import type { PromptResult } from './runner';
+import type { EvaluationAnnotation } from './training-export';
 
 /** Structural subset of `ai_message_feedback` rows the resolver needs. */
 export interface FeedbackAnnotationInput {
@@ -106,10 +106,13 @@ function resolveOne(
   };
 }
 
-function annotationNote(feedback: FeedbackAnnotationInput): Pick<EvaluationAnnotation, 'note'> | Record<never, never> {
+function annotationNote(
+  feedback: FeedbackAnnotationInput,
+): Pick<EvaluationAnnotation, 'note'> | Record<never, never> {
   const userNote = feedback.userNote ? `user: ${redactString(feedback.userNote)}` : null;
   const reviewerNote = feedback.reviewerNote ? redactString(feedback.reviewerNote) : null;
-  if (userNote && reviewerNote) return { note: [userNote, `reviewer: ${reviewerNote}`].join(String.fromCharCode(10)) };
+  if (userNote && reviewerNote)
+    return { note: [userNote, `reviewer: ${reviewerNote}`].join(String.fromCharCode(10)) };
   if (reviewerNote) return { note: reviewerNote };
   if (userNote) return { note: userNote };
   return {};

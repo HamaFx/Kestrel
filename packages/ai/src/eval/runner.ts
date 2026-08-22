@@ -36,15 +36,20 @@ import { dirname, isAbsolute, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 
+import { flushMetrics } from '@kestrel/shared/metrics-export';
+
+// Citation oracle lives in the pure module so the Mastra custom scorers can
+// reuse it without pulling this runner (fs, crypto, network client) into the
+// web bundle. Re-exported here for backward compatibility.
+import { computeCitationScore } from './citation-oracle';
+import { computeDrift } from './drift';
+import { emitEvalMetrics } from './eval-metrics';
 import {
   consumeUIMessageStream,
   type AgentProgressSnapshot,
   type ParsedStreamMetadata,
   type ParsedToolCall,
 } from './parse-stream';
-import { computeDrift } from './drift';
-import { emitEvalMetrics } from './eval-metrics';
-import { flushMetrics } from '@kestrel/shared/metrics-export';
 import {
   DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
   evaluateEvalQualityGate,
@@ -208,9 +213,15 @@ export async function runEvals(args: RunEvalsArgs): Promise<RunEvalsResult> {
     });
     if (
       result.ok &&
-      (prompt.expectedTools || prompt.forbiddenTools || prompt.mustContainSubstrings ||
-        prompt.analysisMode || prompt.expectedAgents || prompt.expectedAgentStatuses ||
-        prompt.expectedTerminalStatus || prompt.expectedToolOutputs || prompt.quality)
+      (prompt.expectedTools ||
+        prompt.forbiddenTools ||
+        prompt.mustContainSubstrings ||
+        prompt.analysisMode ||
+        prompt.expectedAgents ||
+        prompt.expectedAgentStatuses ||
+        prompt.expectedTerminalStatus ||
+        prompt.expectedToolOutputs ||
+        prompt.quality)
     ) {
       result.assertions = evaluateAssertions(prompt, result);
     }
@@ -364,7 +375,9 @@ async function runOnePrompt(args: RunOnePromptArgs): Promise<PromptResult> {
       terminalStatus,
       ok: true,
       citationScore: computeCitationScore(parsed.text, parsed.toolCalls),
-      ...(parsed.errors.length > 0 ? { error: `expected terminal failure: ${parsed.errors.join('; ')}` } : {}),
+      ...(parsed.errors.length > 0
+        ? { error: `expected terminal failure: ${parsed.errors.join('; ')}` }
+        : {}),
       assistantMessageId: parsed.assistantMessageId,
     };
   } catch (err) {
@@ -487,7 +500,13 @@ async function loadPrompts(path: string): Promise<PromptDef[]> {
           (s): s is string => typeof s === 'string',
         );
       }
-      if (obj.analysisMode === 'single' || obj.analysisMode === 'quick' || obj.analysisMode === 'standard' || obj.analysisMode === 'full' || obj.analysisMode === 'auto') {
+      if (
+        obj.analysisMode === 'single' ||
+        obj.analysisMode === 'quick' ||
+        obj.analysisMode === 'standard' ||
+        obj.analysisMode === 'full' ||
+        obj.analysisMode === 'auto'
+      ) {
         def.analysisMode = obj.analysisMode;
       }
       if (Array.isArray(obj.expectedAgents)) {
@@ -495,10 +514,17 @@ async function loadPrompts(path: string): Promise<PromptDef[]> {
       }
       if (obj.expectedAgentStatuses && typeof obj.expectedAgentStatuses === 'object') {
         def.expectedAgentStatuses = Object.fromEntries(
-          Object.entries(obj.expectedAgentStatuses).filter((entry): entry is [string, string] => typeof entry[0] === 'string' && typeof entry[1] === 'string'),
+          Object.entries(obj.expectedAgentStatuses).filter(
+            (entry): entry is [string, string] =>
+              typeof entry[0] === 'string' && typeof entry[1] === 'string',
+          ),
         );
       }
-      if (obj.expectedTerminalStatus === 'complete' || obj.expectedTerminalStatus === 'failed' || obj.expectedTerminalStatus === 'retrying') {
+      if (
+        obj.expectedTerminalStatus === 'complete' ||
+        obj.expectedTerminalStatus === 'failed' ||
+        obj.expectedTerminalStatus === 'retrying'
+      ) {
         def.expectedTerminalStatus = obj.expectedTerminalStatus;
       }
       if (Array.isArray(obj.expectedToolOutputs)) {
@@ -523,9 +549,16 @@ function evaluateAssertions(prompt: PromptDef, result: PromptResult): AssertionF
   const failures: AssertionFailure[] = [];
   const calledTools = new Set(result.toolCalls.map((t) => t.name));
   if (prompt.analysisMode && prompt.analysisMode !== 'auto') {
-    const observedModes = new Set(result.agentProgress.map((snapshot) => snapshot.mode).filter((mode): mode is string => Boolean(mode)));
+    const observedModes = new Set(
+      result.agentProgress
+        .map((snapshot) => snapshot.mode)
+        .filter((mode): mode is string => Boolean(mode)),
+    );
     if (observedModes.size > 0 && !observedModes.has(prompt.analysisMode)) {
-      failures.push({ kind: 'wrong_mode', detail: `expected ${prompt.analysisMode}, observed ${[...observedModes].join(', ')}` });
+      failures.push({
+        kind: 'wrong_mode',
+        detail: `expected ${prompt.analysisMode}, observed ${[...observedModes].join(', ')}`,
+      });
     }
   }
   const latestAgents = new Map<string, string>();
@@ -537,7 +570,10 @@ function evaluateAssertions(prompt: PromptDef, result: PromptResult): AssertionF
   }
   for (const [agent, expectedStatus] of Object.entries(prompt.expectedAgentStatuses ?? {})) {
     if (latestAgents.get(agent) !== expectedStatus) {
-      failures.push({ kind: 'wrong_agent_status', detail: `${agent}: expected ${expectedStatus}, observed ${latestAgents.get(agent) ?? 'missing'}` });
+      failures.push({
+        kind: 'wrong_agent_status',
+        detail: `${agent}: expected ${expectedStatus}, observed ${latestAgents.get(agent) ?? 'missing'}`,
+      });
     }
   }
   if (prompt.expectedTerminalStatus && result.terminalStatus !== prompt.expectedTerminalStatus) {
@@ -587,7 +623,8 @@ function evaluateAssertions(prompt: PromptDef, result: PromptResult): AssertionF
     if (quality.requireNumericToolSupport && hasUnsupportedNumericClaim(result.text, calledTools)) {
       failures.push({
         kind: 'unsupported_numeric_claim',
-        detail: 'price-like instrument claim was not accompanied by a numeric market-data tool call',
+        detail:
+          'price-like instrument claim was not accompanied by a numeric market-data tool call',
       });
     }
     if (quality.requireEventToolSupport && hasUnsupportedEventClaim(result.text, calledTools)) {
@@ -606,16 +643,26 @@ function evaluateAssertions(prompt: PromptDef, result: PromptResult): AssertionF
         failures.push({ kind: 'missing_safety_text', detail: required });
       }
     }
-    if (quality.maxTtftMs !== undefined && (result.ttftMs === null || result.ttftMs > quality.maxTtftMs)) {
+    if (
+      quality.maxTtftMs !== undefined &&
+      (result.ttftMs === null || result.ttftMs > quality.maxTtftMs)
+    ) {
       failures.push({
         kind: 'ttft_exceeded',
         detail: `expected ≤ ${quality.maxTtftMs}ms, observed ${result.ttftMs === null ? 'missing' : `${result.ttftMs}ms`}`,
       });
     }
     if (quality.maxTotalMs !== undefined && result.totalMs > quality.maxTotalMs) {
-      failures.push({ kind: 'latency_exceeded', detail: `expected ≤ ${quality.maxTotalMs}ms, observed ${result.totalMs}ms` });
+      failures.push({
+        kind: 'latency_exceeded',
+        detail: `expected ≤ ${quality.maxTotalMs}ms, observed ${result.totalMs}ms`,
+      });
     }
-    if (quality.maxCostUsd !== undefined && (result.metadata.totalCostUsd === undefined || result.metadata.totalCostUsd > quality.maxCostUsd)) {
+    if (
+      quality.maxCostUsd !== undefined &&
+      (result.metadata.totalCostUsd === undefined ||
+        result.metadata.totalCostUsd > quality.maxCostUsd)
+    ) {
       failures.push({
         kind: 'cost_exceeded',
         detail: `expected ≤ $${quality.maxCostUsd.toFixed(4)}, observed ${result.metadata.totalCostUsd === undefined ? 'missing' : `$${result.metadata.totalCostUsd.toFixed(4)}`}`,
@@ -652,8 +699,16 @@ function isQualityConfig(value: unknown): value is NonNullable<PromptDef['qualit
   const numbers = ['maxTtftMs', 'maxTotalMs', 'maxCostUsd'];
   return (
     booleans.every((key) => config[key] === undefined || typeof config[key] === 'boolean') &&
-    arrays.every((key) => config[key] === undefined || (Array.isArray(config[key]) && config[key].every((item) => typeof item === 'string'))) &&
-    numbers.every((key) => config[key] === undefined || (typeof config[key] === 'number' && Number.isFinite(config[key]) && config[key] >= 0))
+    arrays.every(
+      (key) =>
+        config[key] === undefined ||
+        (Array.isArray(config[key]) && config[key].every((item) => typeof item === 'string')),
+    ) &&
+    numbers.every(
+      (key) =>
+        config[key] === undefined ||
+        (typeof config[key] === 'number' && Number.isFinite(config[key]) && config[key] >= 0),
+    )
   );
 }
 
@@ -667,13 +722,28 @@ function readPath(value: unknown, path: string): unknown {
 }
 
 const NUMERIC_SUPPORT_TOOLS = new Set([
-  'get_price', 'get_candles', 'get_indicators', 'get_market_structure',
-  'forecast_volatility', 'analyze_technical', 'analyze_fundamental',
-  'get_session_levels', 'get_intermarket', 'compute_position_health',
-  'compute_risk', 'replay_setup',
+  'get_price',
+  'get_candles',
+  'get_indicators',
+  'get_market_structure',
+  'forecast_volatility',
+  'analyze_technical',
+  'analyze_fundamental',
+  'get_session_levels',
+  'get_intermarket',
+  'compute_position_health',
+  'compute_risk',
+  'replay_setup',
 ]);
-const EVENT_SUPPORT_TOOLS = new Set(['get_news', 'get_calendar', 'analyze_fundamental', 'web_search', 'search_knowledge']);
-const INSTRUMENT_PRICE_CLAIM = /\b(?:xauusd|gold|eurusd|gbpusd|usdjpy|btcusdt)\b[^.!?\n]{0,100}\b(?:\d{1,5}\.\d{2,5}|0\.\d{3,6})\b/i;
+const EVENT_SUPPORT_TOOLS = new Set([
+  'get_news',
+  'get_calendar',
+  'analyze_fundamental',
+  'web_search',
+  'search_knowledge',
+]);
+const INSTRUMENT_PRICE_CLAIM =
+  /\b(?:xauusd|gold|eurusd|gbpusd|usdjpy|btcusdt)\b[^.!?\n]{0,100}\b(?:\d{1,5}\.\d{2,5}|0\.\d{3,6})\b/i;
 const EVENT_CLAIM = /\b(?:cpi|nfp|fomc|ecb|boe|federal reserve|rate decision|central bank)\b/i;
 
 function hasUnsupportedNumericClaim(text: string, calledTools: Set<string>): boolean {
@@ -689,10 +759,6 @@ function hasAnyTool(calledTools: Set<string>, supportedTools: ReadonlySet<string
   return false;
 }
 
-// Citation oracle lives in the pure module so the Mastra custom scorers can
-// reuse it without pulling this runner (fs, crypto, network client) into the
-// web bundle. Re-exported here for backward compatibility.
-import { computeCitationScore } from './citation-oracle';
 export { computeCitationScore };
 // --- report writing --------------------------------------------------------
 
@@ -714,7 +780,11 @@ async function writeReport(args: WriteReportArgs): Promise<string> {
     : resolve(process.cwd(), outDir, `${stamp}.md`);
 
   await mkdir(dirname(reportPath), { recursive: true });
-  await writeFile(reportPath, buildMarkdown({ baseUrl, results, stamp, score, qualityGate }), 'utf-8');
+  await writeFile(
+    reportPath,
+    buildMarkdown({ baseUrl, results, stamp, score, qualityGate }),
+    'utf-8',
+  );
   return reportPath;
 }
 
@@ -757,7 +827,6 @@ async function writeJsonReport(args: WriteJsonReportArgs): Promise<string> {
   return jsonPath;
 }
 
-
 interface BuildMarkdownArgs {
   baseUrl: string;
   results: PromptResult[];
@@ -771,7 +840,9 @@ function buildMarkdown(args: BuildMarkdownArgs): string {
   const total = results.length;
   const failed = results.filter((r) => !r.ok).length;
   const ok = total - failed;
-  const assertionsClean = results.filter((r) => r.ok && (!r.assertions || r.assertions.length === 0)).length;
+  const assertionsClean = results.filter(
+    (r) => r.ok && (!r.assertions || r.assertions.length === 0),
+  ).length;
   const assertionsDirty = ok - assertionsClean;
   const ttftValues = results.filter((r) => r.ttftMs !== null).map((r) => r.ttftMs as number);
   const avgTtft = ttftValues.length > 0 ? Math.round(avg(ttftValues)) : null;
@@ -792,7 +863,9 @@ function buildMarkdown(args: BuildMarkdownArgs): string {
   lines.push(`- Avg total: ${avgTotal === null ? 'n/a' : `${avgTotal}ms`}`);
   lines.push(`- Transport pass rate: ${(score.transportPassRate * 100).toFixed(1)}%`);
   lines.push(`- Assertion pass rate: ${(score.assertionPassRate * 100).toFixed(1)}%`);
-  lines.push(`- Agent coverage: ${score.agentCoverageRate === null ? 'n/a' : `${(score.agentCoverageRate * 100).toFixed(1)}%`}`);
+  lines.push(
+    `- Agent coverage: ${score.agentCoverageRate === null ? 'n/a' : `${(score.agentCoverageRate * 100).toFixed(1)}%`}`,
+  );
   lines.push(`- Overall pass rate: ${(score.overallPassRate * 100).toFixed(1)}%`);
   lines.push(`- Quality gate: ${qualityGate.passed ? 'PASS' : 'FAIL'}`);
   for (const failure of qualityGate.failures) lines.push(`- Gate failure: ${failure}`);
@@ -815,9 +888,12 @@ function buildMarkdown(args: BuildMarkdownArgs): string {
     lines.push('');
     lines.push(`- TTFT: ${r.ttftMs === null ? 'n/a' : `${r.ttftMs}ms`}`);
     lines.push(`- Total: ${r.totalMs}ms`);
-    if (r.metadata.totalCostUsd !== undefined) lines.push(`- Reported cost: $${r.metadata.totalCostUsd.toFixed(4)}`);
-    if (r.metadata.totalLatencyMs !== undefined) lines.push(`- Server latency: ${r.metadata.totalLatencyMs}ms`);
-    if (r.metadata.ttfbMs !== undefined) lines.push(`- Server TTFB: ${r.metadata.ttfbMs === null ? 'n/a' : `${r.metadata.ttfbMs}ms`}`);
+    if (r.metadata.totalCostUsd !== undefined)
+      lines.push(`- Reported cost: $${r.metadata.totalCostUsd.toFixed(4)}`);
+    if (r.metadata.totalLatencyMs !== undefined)
+      lines.push(`- Server latency: ${r.metadata.totalLatencyMs}ms`);
+    if (r.metadata.ttfbMs !== undefined)
+      lines.push(`- Server TTFB: ${r.metadata.ttfbMs === null ? 'n/a' : `${r.metadata.ttfbMs}ms`}`);
     if (r.citationScore !== undefined && r.citationScore !== null) {
       lines.push(`- Citation score: ${(r.citationScore * 100).toFixed(0)}%`);
     }
@@ -859,8 +935,10 @@ function buildMarkdown(args: BuildMarkdownArgs): string {
       lines.push('');
       for (const a of r.assertions) {
         if (a.kind === 'missing_tool') lines.push(`- expected tool not called: \`${a.detail}\``);
-        else if (a.kind === 'forbidden_tool') lines.push(`- forbidden tool was called: \`${a.detail}\``);
-        else if (a.kind === 'wrong_terminal_status') lines.push(`- terminal status mismatch: ${a.detail}`);
+        else if (a.kind === 'forbidden_tool')
+          lines.push(`- forbidden tool was called: \`${a.detail}\``);
+        else if (a.kind === 'wrong_terminal_status')
+          lines.push(`- terminal status mismatch: ${a.detail}`);
         else lines.push(`- ${a.kind}: ${a.detail}`);
       }
       lines.push('');
@@ -885,12 +963,29 @@ function buildMarkdown(args: BuildMarkdownArgs): string {
 function calculateScore(results: PromptResult[]): EvaluationScore {
   const total = results.length;
   if (total === 0) {
-    return { total: 0, transportPassRate: 0, assertionPassRate: 0, agentCoverageRate: null, overallPassRate: 0 };
+    return {
+      total: 0,
+      transportPassRate: 0,
+      assertionPassRate: 0,
+      agentCoverageRate: null,
+      overallPassRate: 0,
+    };
   }
   const transportPassed = results.filter((result) => result.ok).length;
-  const assertionPassed = results.filter((result) => result.ok && (result.assertions?.length ?? 0) === 0).length;
-  const agentCases = results.filter((result) => result.agentProgress.length > 0 || result.assertions?.some((a) => a.kind === 'missing_agent' || a.kind === 'wrong_agent_status'));
-  const agentClean = agentCases.filter((result) => !result.assertions?.some((a) => a.kind === 'missing_agent' || a.kind === 'wrong_agent_status')).length;
+  const assertionPassed = results.filter(
+    (result) => result.ok && (result.assertions?.length ?? 0) === 0,
+  ).length;
+  const agentCases = results.filter(
+    (result) =>
+      result.agentProgress.length > 0 ||
+      result.assertions?.some((a) => a.kind === 'missing_agent' || a.kind === 'wrong_agent_status'),
+  );
+  const agentClean = agentCases.filter(
+    (result) =>
+      !result.assertions?.some(
+        (a) => a.kind === 'missing_agent' || a.kind === 'wrong_agent_status',
+      ),
+  ).length;
   return {
     total,
     transportPassRate: transportPassed / total,
@@ -1039,8 +1134,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const promptsPath = f.promptsPath
-    ?? (f.useCases
+  const promptsPath =
+    f.promptsPath ??
+    (f.useCases
       ? fileURLToPath(new URL('./cases.json', import.meta.url))
       : fileURLToPath(new URL('./prompts.json', import.meta.url)));
 
@@ -1057,7 +1153,9 @@ async function main(): Promise<void> {
   const dirty = results.filter((r) => r.ok && (r.assertions?.length ?? 0) > 0).length;
   process.stdout.write(`\nReport: ${reportPath}\n`);
   process.stdout.write(`JSON:   ${jsonPath}\n`);
-  process.stdout.write(`Score: ${(score.overallPassRate * 100).toFixed(1)}% overall, ${(score.transportPassRate * 100).toFixed(1)}% transport\n`);
+  process.stdout.write(
+    `Score: ${(score.overallPassRate * 100).toFixed(1)}% overall, ${(score.transportPassRate * 100).toFixed(1)}% transport\n`,
+  );
   process.stdout.write(
     `Done. ${results.length - failed}/${results.length} succeeded, ${failed} failed${dirty > 0 ? `, ${dirty} with assertion failures` : ''}.\n`,
   );

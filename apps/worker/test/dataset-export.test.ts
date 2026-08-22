@@ -5,46 +5,61 @@
  * you may not use this file except in compliance with the License.
  */
 
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { runDatasetExport } from '../src/jobs/dataset-export';
+import { createLogger } from '../src/log';
+import { TenantRouter } from '../src/tenant-router';
+
 // Hoisted mock controllers — vi.mock factories are hoisted above all other
 // statements, so shared mock fns must live here to avoid TDZ failures.
-const { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse } = vi.hoisted(() => {
-  const mockPublishLangfuse = vi.fn(async () => ({
-    status: 'ok' as const,
-    datasetName: 'kestrel-training',
-    published: 3,
-    failed: 0,
-    total: 3,
-    errors: [],
-  }));
-  const mockAssemble = vi.fn((input: { results: unknown[]; datasetVersion: string; source?: string; provenance?: Record<string, unknown> }) => ({
-    jsonlContent: input.results.map((r) => JSON.stringify({ id: (r as { id: string }).id })).join('\n') + '\n',
-    manifest: {
-      datasetVersion: input.datasetVersion,
-      recordCount: input.results.length,
-      contentSha256: 'ab'.repeat(32),
-      source: input.source ?? '',
-      provenance: input.provenance ?? {},
-    },
-  }));
-  const mockListPairs = vi.fn();
-  const mockRegister = vi.fn(async (input: { version: string }) => ({ version: input.version }));
-  const mockDb = {
-    select: () => ({
-      from: () => ({
-        where: () => ({
-          limit: async () => [{ id: 'admin-1' }],
+const { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse } = vi.hoisted(
+  () => {
+    const mockPublishLangfuse = vi.fn(async () => ({
+      status: 'ok' as const,
+      datasetName: 'kestrel-training',
+      published: 3,
+      failed: 0,
+      total: 3,
+      errors: [],
+    }));
+    const mockAssemble = vi.fn(
+      (input: {
+        results: unknown[];
+        datasetVersion: string;
+        source?: string;
+        provenance?: Record<string, unknown>;
+      }) => ({
+        jsonlContent:
+          input.results.map((r) => JSON.stringify({ id: (r as { id: string }).id })).join('\n') +
+          '\n',
+        manifest: {
+          datasetVersion: input.datasetVersion,
+          recordCount: input.results.length,
+          contentSha256: 'ab'.repeat(32),
+          source: input.source ?? '',
+          provenance: input.provenance ?? {},
+        },
+      }),
+    );
+    const mockListPairs = vi.fn();
+    const mockRegister = vi.fn(async (input: { version: string }) => ({ version: input.version }));
+    const mockDb = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ id: 'admin-1' }],
+          }),
         }),
       }),
-    }),
-  };
-  return { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse };
-});
+    };
+    return { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse };
+  },
+);
 
 vi.mock('@kestrel/ai', () => ({
   getDb: () => mockDb,
@@ -75,10 +90,6 @@ vi.mock('@kestrel/db', () => ({
   registerEvalDataset: mockRegister,
   schema: { users: {} },
 }));
-
-import { runDatasetExport } from '../src/jobs/dataset-export';
-import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
 
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
@@ -139,20 +150,25 @@ describe('runDatasetExport', () => {
 
   it('links eval cases to feedback, filters pending review, writes files and registers', async () => {
     // Eval report with one case whose assistant message has feedback (fail).
-    writeFileSync(join(reportsDir, '2026-08-17T00-00-00Z.json'), JSON.stringify({
-      schemaVersion: 'kestrel.eval-report.v1',
-      results: [{
-        id: 'case-1',
-        prompt: 'eval prompt',
-        text: 'eval answer',
-        toolCalls: [],
-        agentProgress: [],
-        metadata: {},
-        terminalStatus: 'complete',
-        ok: true,
-        assistantMessageId: msg1,
-      }],
-    }));
+    writeFileSync(
+      join(reportsDir, '2026-08-17T00-00-00Z.json'),
+      JSON.stringify({
+        schemaVersion: 'kestrel.eval-report.v1',
+        results: [
+          {
+            id: 'case-1',
+            prompt: 'eval prompt',
+            text: 'eval answer',
+            toolCalls: [],
+            agentProgress: [],
+            metadata: {},
+            terminalStatus: 'complete',
+            ok: true,
+            assistantMessageId: msg1,
+          },
+        ],
+      }),
+    );
 
     mockListPairs.mockResolvedValue([
       pair(msg1, 'fail'),
@@ -160,7 +176,11 @@ describe('runDatasetExport', () => {
       pair(msg3, 'needs_review'), // must be filtered out
     ]);
 
-    const result = await runDatasetExport({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const result = await runDatasetExport({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
 
     // Assembler received the 3 approved records (case-1 + msg1 + msg2).
     expect(mockAssemble).toHaveBeenCalledTimes(1);
@@ -181,11 +201,13 @@ describe('runDatasetExport', () => {
     expect(jsonl.split('\n')).toHaveLength(4); // 3 records + trailing newline
 
     // Registered with the admin user as the createdBy FK.
-    expect(mockRegister).toHaveBeenCalledWith(expect.objectContaining({
-      version,
-      recordCount: 3,
-      createdBy: 'admin-1',
-    }));
+    expect(mockRegister).toHaveBeenCalledWith(
+      expect.objectContaining({
+        version,
+        recordCount: 3,
+        createdBy: 'admin-1',
+      }),
+    );
 
     expect(result.processed).toBe(3);
     expect(result.note).toContain('feedback=3');
@@ -204,7 +226,11 @@ describe('runDatasetExport', () => {
 
   it('returns a no-op note when there is nothing to export', async () => {
     mockListPairs.mockResolvedValue([]);
-    const result = await runDatasetExport({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const result = await runDatasetExport({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     expect(result.processed).toBe(0);
     expect(result.note).toContain('nothing to export');
   });

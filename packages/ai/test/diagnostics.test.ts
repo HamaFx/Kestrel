@@ -17,13 +17,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  withDiagnostics,
-  getDiagnosticContext,
-  recordStep,
-  recordLifecycleStep,
   completeStep,
-  recordError,
   exportDiagnosticContext,
+  getDiagnosticContext,
+  recordError,
+  recordLifecycleStep,
+  recordStep,
+  withDiagnostics,
 } from '../src/diagnostics/run-context';
 
 describe('withDiagnostics — context propagation', () => {
@@ -67,8 +67,10 @@ describe('withDiagnostics — context propagation', () => {
   });
 
   it('preserves request and worker run correlation in the exported trace', async () => {
-    const exported = await withDiagnostics('user-3', 'thread-3', async () =>
-      exportDiagnosticContext(),
+    const exported = await withDiagnostics(
+      'user-3',
+      'thread-3',
+      async () => exportDiagnosticContext(),
       { requestId: 'request-1', runId: 'worker-run-1' },
     );
     expect(exported?.requestId).toBe('request-1');

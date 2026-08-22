@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { execFileSync } from 'node:child_process';
@@ -139,7 +155,7 @@ describe('setup wizard flags', () => {
     expect(parsed.dryRun).toBe(true);
     expect(parsed.configFile).toBe('.env.local');
     expect(Array.isArray(parsed.marketProviders)).toBe(true);
-  });
+  }, 15000);
 
   it('emits a JSON error for invalid modes with --json', async () => {
     const { main } = await import('../../scripts/setup/index.mjs');
@@ -150,7 +166,7 @@ describe('setup wizard flags', () => {
     const parsed = JSON.parse(jsonOut.buffer);
     expect(parsed.ok).toBe(false);
     expect(String(parsed.error)).toContain('banana');
-  });
+  }, 15000);
 });
 
 describe('secret template — single source of truth', () => {

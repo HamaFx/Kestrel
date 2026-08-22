@@ -17,31 +17,33 @@
  */
 
 // Security domain actions: 2FA, sessions, password change, sign-out-everywhere, account deletion.
+import { randomBytes } from 'node:crypto';
 
-import bcrypt from 'bcryptjs';
-import { auth, signOut } from '@/auth';
-import { eq, sql } from 'drizzle-orm';
 import {
-  withRateLimit,
-  getDb,
-  schema,
-  updateTwoFactorSecret,
-  getTwoFactorSecret,
-  setTwoFactorEnabled,
   createAuditLog,
+  deleteUserSessions as dbDeleteUserSessions,
   listUserSessions as dbListUserSessions,
   revokeUserSession as dbRevokeUserSession,
-  deleteUserSessions as dbDeleteUserSessions,
+  getDb,
+  getTwoFactorSecret,
   incrementTokenVersion,
+  schema,
+  setTwoFactorEnabled,
+  updateTwoFactorSecret,
+  withRateLimit,
 } from '@kestrel/db';
-import { randomBytes } from 'node:crypto';
+import { decryptSecret, encryptSecret } from '@kestrel/shared/encryption';
 import * as Sentry from '@sentry/nextjs';
+import bcrypt from 'bcryptjs';
+import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import QRCode from 'qrcode';
-import { encryptSecret, decryptSecret } from '@kestrel/shared/encryption';
+
+import { auth, signOut } from '@/auth';
 import { passwordSchema } from '@/lib/validation';
-import { type ActionResult, verifyAccountPassword } from './_actions-shared';
+
+import { verifyAccountPassword, type ActionResult } from './_actions-shared';
 
 // Visually distinct alphabet: excludes , O, I, l and ambiguous characters.
 const BACKUP_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -68,7 +70,9 @@ async function generateBackupCodes(): Promise<{ raw: string; hashed: string }[]>
 /**
  * Server action to generate a TOTP secret and return QR code data URL.
  */
-export async function setupTwoFactorAction(): Promise<ActionResult<{ secret: string; qrDataUrl: string; backupCodes: string[] }>> {
+export async function setupTwoFactorAction(): Promise<
+  ActionResult<{ secret: string; qrDataUrl: string; backupCodes: string[] }>
+> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false, error: 'Unauthorized' };
@@ -82,7 +86,11 @@ export async function setupTwoFactorAction(): Promise<ActionResult<{ secret: str
   try {
     const secret = generateSecret();
     const service = 'Kestrel';
-    const otpauth = generateURI({ secret, issuer: service, label: session.user.email ?? session.user.id });
+    const otpauth = generateURI({
+      secret,
+      issuer: service,
+      label: session.user.email ?? session.user.id,
+    });
     const qrDataUrl = await QRCode.toDataURL(otpauth);
 
     const codes = await generateBackupCodes();
@@ -108,7 +116,9 @@ export async function setupTwoFactorAction(): Promise<ActionResult<{ secret: str
  * P2-6: Regenerate TOTP backup codes for an existing 2FA-enabled user.
  * Returns the new raw codes so they can be displayed once.
  */
-export async function regenerateBackupCodesAction(): Promise<ActionResult<{ backupCodes: string[] }>> {
+export async function regenerateBackupCodesAction(): Promise<
+  ActionResult<{ backupCodes: string[] }>
+> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false, error: 'Unauthorized' };
@@ -231,16 +241,18 @@ export async function disableTwoFactorAction(token: string): Promise<ActionResul
   }
 }
 
-export async function listSessionsAction(): Promise<ActionResult<{
-  sessions: Array<{
-    id: string;
-    deviceName: string | null;
-    ip: string | null;
-    createdAt: Date;
-    lastActiveAt: Date;
-  }>;
-  currentSessionId: string | null;
-}>> {
+export async function listSessionsAction(): Promise<
+  ActionResult<{
+    sessions: Array<{
+      id: string;
+      deviceName: string | null;
+      ip: string | null;
+      createdAt: Date;
+      lastActiveAt: Date;
+    }>;
+    currentSessionId: string | null;
+  }>
+> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
@@ -317,10 +329,13 @@ export async function changePasswordAction(
   if (!passwordValid) return { ok: false, error: 'Current password is incorrect' };
 
   const db = getDb();
-  const [user] = await db.select({
-    twoFactorEnabled: schema.users.twoFactorEnabled,
-    twoFactorSecret: schema.users.twoFactorSecret,
-  }).from(schema.users).where(eq(schema.users.id, session.user.id));
+  const [user] = await db
+    .select({
+      twoFactorEnabled: schema.users.twoFactorEnabled,
+      twoFactorSecret: schema.users.twoFactorSecret,
+    })
+    .from(schema.users)
+    .where(eq(schema.users.id, session.user.id));
 
   if (user?.twoFactorEnabled) {
     if (!totpCode) return { ok: false, error: '2FA code is required' };
@@ -336,7 +351,8 @@ export async function changePasswordAction(
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 12);
-  await db.update(schema.users)
+  await db
+    .update(schema.users)
     .set({ hashedPassword, tokenVersion: sql`${schema.users.tokenVersion} + 1` })
     .where(eq(schema.users.id, session.user.id));
 
@@ -347,7 +363,9 @@ export async function changePasswordAction(
       action: 'password_changed',
       metadata: {},
     });
-  } catch { /* fail open */ }
+  } catch {
+    /* fail open */
+  }
 
   revalidatePath('/settings');
   return { ok: true };
@@ -359,7 +377,10 @@ export async function changePasswordAction(
  * Requires password + 2FA confirmation. A purge job handles permanent
  * deletion later.
  */
-export async function deleteAccountAction(password: string, totpCode?: string): Promise<ActionResult> {
+export async function deleteAccountAction(
+  password: string,
+  totpCode?: string,
+): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
@@ -371,10 +392,13 @@ export async function deleteAccountAction(password: string, totpCode?: string): 
 
   // Check 2FA if enabled
   const db = getDb();
-  const [user] = await db.select({
-    twoFactorEnabled: schema.users.twoFactorEnabled,
-    twoFactorSecret: schema.users.twoFactorSecret,
-  }).from(schema.users).where(eq(schema.users.id, session.user.id));
+  const [user] = await db
+    .select({
+      twoFactorEnabled: schema.users.twoFactorEnabled,
+      twoFactorSecret: schema.users.twoFactorSecret,
+    })
+    .from(schema.users)
+    .where(eq(schema.users.id, session.user.id));
 
   if (user?.twoFactorEnabled) {
     if (!totpCode) {
@@ -398,7 +422,8 @@ export async function deleteAccountAction(password: string, totpCode?: string): 
 
   try {
     const now = new Date();
-    await db.update(schema.users)
+    await db
+      .update(schema.users)
       .set({
         deletedAt: now,
         tokenVersion: sql`${schema.users.tokenVersion} + 1`,
@@ -410,8 +435,7 @@ export async function deleteAccountAction(password: string, totpCode?: string): 
         twoFactorEnabled: false,
       })
       .where(eq(schema.users.id, session.user.id));
-    await db.delete(schema.userSessions)
-      .where(eq(schema.userSessions.userId, session.user.id));
+    await db.delete(schema.userSessions).where(eq(schema.userSessions.userId, session.user.id));
     await signOut({ redirectTo: '/' });
     return { ok: true as const };
   } catch (err) {

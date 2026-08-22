@@ -1,4 +1,35 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  BudgetExceededError,
+  dailySpendUsd,
+  DEFAULT_TURN_ESTIMATE_USD,
+  enforceDailyBudget,
+  estimateCostUsd,
+  getMonthlySpend,
+  getProviderMonthlySpend,
+  reconcileBudgetReservation,
+  recoverStaleBudgetReservations,
+  releaseBudgetReservation,
+  reservedSpendUsd,
+  tryReserveBudget,
+} from '../src/cost';
 
 vi.mock('server-only', () => ({}));
 
@@ -39,8 +70,9 @@ vi.mock('@kestrel/db', () => ({
       }),
     }),
     execute: () => Promise.resolve(mockExecuteResult),
-    transaction: async (callback: (tx: { execute: (query: unknown) => Promise<unknown> }) => Promise<unknown>) =>
-      callback({ execute: (query: unknown) => mockTransactionExecute(query) }),
+    transaction: async (
+      callback: (tx: { execute: (query: unknown) => Promise<unknown> }) => Promise<unknown>,
+    ) => callback({ execute: (query: unknown) => mockTransactionExecute(query) }),
   }),
   schema: {
     chatTelemetry: {},
@@ -53,21 +85,6 @@ vi.mock('@kestrel/db', () => ({
 vi.mock('../src/alerts/delivery', () => ({
   sendDirectNotification: vi.fn(() => Promise.resolve()),
 }));
-
-import {
-  BudgetExceededError,
-  DEFAULT_TURN_ESTIMATE_USD,
-  dailySpendUsd,
-  enforceDailyBudget,
-  estimateCostUsd,
-  getMonthlySpend,
-  getProviderMonthlySpend,
-  reconcileBudgetReservation,
-  recoverStaleBudgetReservations,
-  releaseBudgetReservation,
-  reservedSpendUsd,
-  tryReserveBudget,
-} from '../src/cost';
 
 describe('estimateCostUsd', () => {
   it('returns 0 for zero tokens', () => {
@@ -233,7 +250,9 @@ describe('durable budget reservation terminal transitions', () => {
 
     mockTransactionResults = [
       {
-        rows: [{ user_id: 'user-1', day: '2026-08-14', reserved_usd_cents: 5, status: 'reconciled' }],
+        rows: [
+          { user_id: 'user-1', day: '2026-08-14', reserved_usd_cents: 5, status: 'reconciled' },
+        ],
       },
     ];
     await expect(
@@ -285,9 +304,7 @@ describe('enforceDailyBudget', () => {
 
   it('throws BudgetExceededError when over budget', async () => {
     mockSelectResult = [{ cents: 600 }];
-    await expect(enforceDailyBudget('user-1', 5.0)).rejects.toThrow(
-      BudgetExceededError,
-    );
+    await expect(enforceDailyBudget('user-1', 5.0)).rejects.toThrow(BudgetExceededError);
   });
 });
 

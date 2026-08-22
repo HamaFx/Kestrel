@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { describe, expect, it, vi } from 'vitest';
 import { uncompress as snappyUncompress } from 'snappyjs';
+import { describe, expect, it, vi } from 'vitest';
 
+import { metrics, type MetricsSnapshot } from '../src/metrics';
 import {
   buildMetricsUrl,
   exportMetricsToOtlp,
@@ -28,8 +29,6 @@ import {
   snapshotToOtlpJson,
   snapshotToPromRemoteWrite,
 } from '../src/metrics-export';
-import { metrics } from '../src/metrics';
-import type { MetricsSnapshot } from '../src/metrics';
 
 function snapshot(): MetricsSnapshot {
   return {
@@ -56,10 +55,12 @@ describe('grafanaOtlpConfigFromEnv', () => {
   });
 
   it('trims and returns a config when both values are present', () => {
-    expect(grafanaOtlpConfigFromEnv({
-      GRAFANA_CLOUD_OTLP_ENDPOINT: ' https://x/otlp ',
-      GRAFANA_CLOUD_API_KEY: ' key ',
-    })).toEqual({ endpoint: 'https://x/otlp', apiKey: 'key' });
+    expect(
+      grafanaOtlpConfigFromEnv({
+        GRAFANA_CLOUD_OTLP_ENDPOINT: ' https://x/otlp ',
+        GRAFANA_CLOUD_API_KEY: ' key ',
+      }),
+    ).toEqual({ endpoint: 'https://x/otlp', apiKey: 'key' });
   });
 });
 
@@ -98,7 +99,11 @@ describe('snapshotToOtlpJson', () => {
     ]);
 
     const counter = metrics.find((m) => m.name === 'chat_turn_total') as {
-      sum: { isMonotonic: boolean; aggregationTemporality: number; dataPoints: Array<{ asInt: string }> };
+      sum: {
+        isMonotonic: boolean;
+        aggregationTemporality: number;
+        dataPoints: Array<{ asInt: string }>;
+      };
     };
     expect(counter.sum.isMonotonic).toBe(true);
     expect(counter.sum.aggregationTemporality).toBe(2);
@@ -129,13 +134,21 @@ describe('snapshotToOtlpJson', () => {
 describe('exportMetricsToOtlp + flushMetrics', () => {
   it('posts JSON with the bearer token to the metrics endpoint', async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: true });
-    await exportMetricsToOtlp(snapshot(), {
-      endpoint: 'https://host/otlp',
-      apiKey: 'secret',
-    }, fetchFn as unknown as typeof fetch, '1700000000000000000');
+    await exportMetricsToOtlp(
+      snapshot(),
+      {
+        endpoint: 'https://host/otlp',
+        apiKey: 'secret',
+      },
+      fetchFn as unknown as typeof fetch,
+      '1700000000000000000',
+    );
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchFn.mock.calls[0] as [string, { headers: Record<string, string>; body: string }];
+    const [url, init] = fetchFn.mock.calls[0] as [
+      string,
+      { headers: Record<string, string>; body: string },
+    ];
     expect(url).toBe('https://host/otlp/v1/metrics');
     expect(init.headers.authorization).toBe('Bearer secret');
     expect(JSON.parse(init.body).resourceMetrics).toHaveLength(1);
@@ -143,10 +156,16 @@ describe('exportMetricsToOtlp + flushMetrics', () => {
 
   it('throws on a non-2xx response', async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 401 });
-    await expect(exportMetricsToOtlp(snapshot(), {
-      endpoint: 'https://host/otlp',
-      apiKey: 'bad',
-    }, fetchFn as unknown as typeof fetch)).rejects.toThrow('HTTP 401');
+    await expect(
+      exportMetricsToOtlp(
+        snapshot(),
+        {
+          endpoint: 'https://host/otlp',
+          apiKey: 'bad',
+        },
+        fetchFn as unknown as typeof fetch,
+      ),
+    ).rejects.toThrow('HTTP 401');
   });
 
   it('flushMetrics no-ops when credentials are absent', async () => {
@@ -157,10 +176,15 @@ describe('exportMetricsToOtlp + flushMetrics', () => {
 
   it('flushMetrics swallows transport errors (fail-closed)', async () => {
     const fetchFn = vi.fn().mockRejectedValue(new Error('network down'));
-    await expect(flushMetrics({
-      GRAFANA_CLOUD_OTLP_ENDPOINT: 'https://host/otlp',
-      GRAFANA_CLOUD_API_KEY: 'key',
-    }, fetchFn as unknown as typeof fetch)).resolves.toBeUndefined();
+    await expect(
+      flushMetrics(
+        {
+          GRAFANA_CLOUD_OTLP_ENDPOINT: 'https://host/otlp',
+          GRAFANA_CLOUD_API_KEY: 'key',
+        },
+        fetchFn as unknown as typeof fetch,
+      ),
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -171,11 +195,20 @@ describe('exportMetricsToOtlp + flushMetrics', () => {
 /* encoder is verified against the real on-the-wire bytes, not just itself.   */
 /* --------------------------------------------------------------------------- */
 
-interface RwLabel { name: string; value: string }
+interface RwLabel {
+  name: string;
+  value: string;
+}
 
-interface RwSample { value: number; timestampMs: number }
+interface RwSample {
+  value: number;
+  timestampMs: number;
+}
 
-interface RwSeries { labels: RwLabel[]; samples: RwSample[] }
+interface RwSeries {
+  labels: RwLabel[];
+  samples: RwSample[];
+}
 
 function readVarint(bytes: Uint8Array, pos: { i: number }): number {
   let result = 0n;
@@ -274,21 +307,27 @@ function parseWriteRequest(buffer: Uint8Array): RwSeries[] {
 describe('grafanaRemoteWriteConfigFromEnv', () => {
   it('returns null when any required value is missing', () => {
     expect(grafanaRemoteWriteConfigFromEnv({})).toBeNull();
-    expect(grafanaRemoteWriteConfigFromEnv({
-      GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
-    })).toBeNull();
-    expect(grafanaRemoteWriteConfigFromEnv({
-      GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
-      GRAFANA_CLOUD_METRICS_INSTANCE_ID: '42',
-    })).toBeNull();
+    expect(
+      grafanaRemoteWriteConfigFromEnv({
+        GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
+      }),
+    ).toBeNull();
+    expect(
+      grafanaRemoteWriteConfigFromEnv({
+        GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
+        GRAFANA_CLOUD_METRICS_INSTANCE_ID: '42',
+      }),
+    ).toBeNull();
   });
 
   it('returns a config when endpoint, instance id and api key are present', () => {
-    expect(grafanaRemoteWriteConfigFromEnv({
-      GRAFANA_CLOUD_RW_ENDPOINT: ' https://x/api/prom/push ',
-      GRAFANA_CLOUD_METRICS_INSTANCE_ID: ' 3508468 ',
-      GRAFANA_CLOUD_API_KEY: ' glc_x ',
-    })).toEqual({
+    expect(
+      grafanaRemoteWriteConfigFromEnv({
+        GRAFANA_CLOUD_RW_ENDPOINT: ' https://x/api/prom/push ',
+        GRAFANA_CLOUD_METRICS_INSTANCE_ID: ' 3508468 ',
+        GRAFANA_CLOUD_API_KEY: ' glc_x ',
+      }),
+    ).toEqual({
       endpoint: 'https://x/api/prom/push',
       instanceId: '3508468',
       apiKey: 'glc_x',
@@ -320,17 +359,22 @@ describe('snapshotToPromRemoteWrite', () => {
     }
 
     const counter = series.find((s) =>
-      s.labels.some((l) => l.name === '__name__' && l.value === 'chat_turn_total'))!;
+      s.labels.some((l) => l.name === '__name__' && l.value === 'chat_turn_total'),
+    )!;
     expect(counter.samples[0]!.value).toBe(3);
 
     const sum = series.find((s) =>
-      s.labels.some((l) => l.name === '__name__' && l.value === 'total_latency_ms_sum'))!;
+      s.labels.some((l) => l.name === '__name__' && l.value === 'total_latency_ms_sum'),
+    )!;
     expect(sum.samples[0]!.value).toBe(600);
 
     // Bucket series follow the Prometheus convention: cumulative `le` labels.
-    const bucket = (le: string) => series.find((s) =>
-      s.labels.some((l) => l.name === '__name__' && l.value === 'total_latency_ms_bucket') &&
-      s.labels.some((l) => l.name === 'le' && l.value === le))!;
+    const bucket = (le: string) =>
+      series.find(
+        (s) =>
+          s.labels.some((l) => l.name === '__name__' && l.value === 'total_latency_ms_bucket') &&
+          s.labels.some((l) => l.name === 'le' && l.value === le),
+      )!;
     expect(bucket('100').samples[0]!.value).toBe(1);
     expect(bucket('500').samples[0]!.value).toBe(1);
     expect(bucket('1000').samples[0]!.value).toBe(2);
@@ -339,10 +383,16 @@ describe('snapshotToPromRemoteWrite', () => {
 
   it('splits tagged registry keys into proper name + labels (regression: literal {k=v} in __name__)', () => {
     const ts = 1_700_000_000_000;
-    const series = parseWriteRequest(snapshotToPromRemoteWrite({
-      counters: { 'chat_turn_total{result=ok}': 7 },
-      histograms: {},
-    }, 'kestrel', ts));
+    const series = parseWriteRequest(
+      snapshotToPromRemoteWrite(
+        {
+          counters: { 'chat_turn_total{result=ok}': 7 },
+          histograms: {},
+        },
+        'kestrel',
+        ts,
+      ),
+    );
 
     expect(series).toHaveLength(1);
     const s = series[0]!;
@@ -365,11 +415,16 @@ describe('snapshotToPromRemoteWrite', () => {
 describe('exportMetricsToRemoteWrite + flushMetrics', () => {
   it('posts snappy protobuf with basic auth to the push endpoint', async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: true });
-    await exportMetricsToRemoteWrite(snapshot(), {
-      endpoint: 'https://metrics.example/api/prom/push/',
-      instanceId: '3508468',
-      apiKey: 'glc_secret',
-    }, fetchFn as unknown as typeof fetch, 1_700_000_000_000);
+    await exportMetricsToRemoteWrite(
+      snapshot(),
+      {
+        endpoint: 'https://metrics.example/api/prom/push/',
+        instanceId: '3508468',
+        apiKey: 'glc_secret',
+      },
+      fetchFn as unknown as typeof fetch,
+      1_700_000_000_000,
+    );
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
     const [url, init] = fetchFn.mock.calls[0] as [
@@ -387,22 +442,29 @@ describe('exportMetricsToRemoteWrite + flushMetrics', () => {
 
   it('does not POST when the snapshot is empty', async () => {
     const fetchFn = vi.fn();
-    await exportMetricsToRemoteWrite({ counters: {}, histograms: {} }, {
-      endpoint: 'https://metrics.example/api/prom/push',
-      instanceId: '42',
-      apiKey: 'glc_x',
-    }, fetchFn as unknown as typeof fetch);
+    await exportMetricsToRemoteWrite(
+      { counters: {}, histograms: {} },
+      {
+        endpoint: 'https://metrics.example/api/prom/push',
+        instanceId: '42',
+        apiKey: 'glc_x',
+      },
+      fetchFn as unknown as typeof fetch,
+    );
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it('flushMetrics pushes over remote write when only RW is configured', async () => {
     metrics.increment('chat_turn_total', { by: 2 });
     const fetchFn = vi.fn().mockResolvedValue({ ok: true });
-    await flushMetrics({
-      GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
-      GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
-      GRAFANA_CLOUD_API_KEY: 'glc_x',
-    }, fetchFn as unknown as typeof fetch);
+    await flushMetrics(
+      {
+        GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
+        GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
+        GRAFANA_CLOUD_API_KEY: 'glc_x',
+      },
+      fetchFn as unknown as typeof fetch,
+    );
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
     const [url] = fetchFn.mock.calls[0] as [string];
@@ -413,12 +475,15 @@ describe('exportMetricsToRemoteWrite + flushMetrics', () => {
     metrics.increment('chat_turn_total', { by: 2 });
     metrics.observe('total_latency_ms', 250);
     const fetchFn = vi.fn().mockResolvedValue({ ok: true });
-    await flushMetrics({
-      GRAFANA_CLOUD_OTLP_ENDPOINT: 'https://host/otlp',
-      GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
-      GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
-      GRAFANA_CLOUD_API_KEY: 'glc_x',
-    }, fetchFn as unknown as typeof fetch);
+    await flushMetrics(
+      {
+        GRAFANA_CLOUD_OTLP_ENDPOINT: 'https://host/otlp',
+        GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
+        GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
+        GRAFANA_CLOUD_API_KEY: 'glc_x',
+      },
+      fetchFn as unknown as typeof fetch,
+    );
 
     expect(fetchFn).toHaveBeenCalledTimes(2);
     const urls = (fetchFn.mock.calls as Array<[string]>).map(([url]) => url);
@@ -428,26 +493,37 @@ describe('exportMetricsToRemoteWrite + flushMetrics', () => {
 
   it('flushMetrics swallows remote-write errors (fail-closed)', async () => {
     const fetchFn = vi.fn().mockRejectedValue(new Error('network down'));
-    await expect(flushMetrics({
-      GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
-      GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
-      GRAFANA_CLOUD_API_KEY: 'glc_x',
-    }, fetchFn as unknown as typeof fetch)).resolves.toBeUndefined();
+    await expect(
+      flushMetrics(
+        {
+          GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
+          GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
+          GRAFANA_CLOUD_API_KEY: 'glc_x',
+        },
+        fetchFn as unknown as typeof fetch,
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it('counts transport failures so the flush SLI can surface outages', async () => {
     const before = metrics.snapshot().counters['metrics_flush_failed_total'] ?? 0;
     const fetchFn = vi.fn().mockRejectedValue(new Error('network down'));
     // One failing transport each — both must be counted without throwing.
-    await flushMetrics({
-      GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
-      GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
-      GRAFANA_CLOUD_API_KEY: 'glc_x',
-    }, fetchFn as unknown as typeof fetch);
-    await flushMetrics({
-      GRAFANA_CLOUD_OTLP_ENDPOINT: 'https://host/otlp',
-      GRAFANA_CLOUD_API_KEY: 'glc_x',
-    }, fetchFn as unknown as typeof fetch);
+    await flushMetrics(
+      {
+        GRAFANA_CLOUD_RW_ENDPOINT: 'https://x/api/prom/push',
+        GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
+        GRAFANA_CLOUD_API_KEY: 'glc_x',
+      },
+      fetchFn as unknown as typeof fetch,
+    );
+    await flushMetrics(
+      {
+        GRAFANA_CLOUD_OTLP_ENDPOINT: 'https://host/otlp',
+        GRAFANA_CLOUD_API_KEY: 'glc_x',
+      },
+      fetchFn as unknown as typeof fetch,
+    );
     const after = metrics.snapshot().counters['metrics_flush_failed_total'] ?? 0;
     expect(after - before).toBe(2);
   });

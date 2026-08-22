@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { and, desc, eq, gte, lte, type SQL } from 'drizzle-orm';
@@ -76,10 +92,13 @@ export async function listAiShadowComparisons(
   const conditions: SQL[] = [];
   if (options.from) conditions.push(gte(schema.aiShadowComparisons.createdAt, options.from));
   if (options.to) conditions.push(lte(schema.aiShadowComparisons.createdAt, options.to));
-  if (options.primaryAgent) conditions.push(eq(schema.aiShadowComparisons.primaryAgent, options.primaryAgent));
+  if (options.primaryAgent)
+    conditions.push(eq(schema.aiShadowComparisons.primaryAgent, options.primaryAgent));
   if (options.outcome) conditions.push(eq(schema.aiShadowComparisons.outcome, options.outcome));
-  if (options.mastraVerified === true) conditions.push(eq(schema.aiShadowComparisons.mastraVerified, true));
-  if (options.mastraVerified === false) conditions.push(eq(schema.aiShadowComparisons.mastraVerified, false));
+  if (options.mastraVerified === true)
+    conditions.push(eq(schema.aiShadowComparisons.mastraVerified, true));
+  if (options.mastraVerified === false)
+    conditions.push(eq(schema.aiShadowComparisons.mastraVerified, false));
 
   return getDb()
     .select()
@@ -195,7 +214,8 @@ export function summarizeAiShadowComparisons(
     legacyPrimary: rows.filter((row) => row.primaryAgent === 'legacy').length,
     verifiedReports: rows.filter((row) => row.mastraVerified === true).length,
     averageSharedTokenRatio: ratioCount > 0 ? ratioSum / ratioCount : null,
-    averagePrimaryLatencyMs: primaryLatencyCount > 0 ? primaryLatencySum / primaryLatencyCount : null,
+    averagePrimaryLatencyMs:
+      primaryLatencyCount > 0 ? primaryLatencySum / primaryLatencyCount : null,
     averageShadowLatencyMs: shadowLatencyCount > 0 ? shadowLatencySum / shadowLatencyCount : null,
     averagePrimaryCostUsd: primaryCostCount > 0 ? primaryCostSum / primaryCostCount : null,
     averageShadowCostUsd: shadowCostCount > 0 ? shadowCostSum / shadowCostCount : null,
@@ -209,8 +229,7 @@ export function summarizeAiShadowComparisons(
         completed: bucket.completed,
         failed: bucket.failed,
         verifiedReports: bucket.verifiedReports,
-        averageSharedTokenRatio:
-          bucket.ratioCount > 0 ? bucket.ratioSum / bucket.ratioCount : null,
+        averageSharedTokenRatio: bucket.ratioCount > 0 ? bucket.ratioSum / bucket.ratioCount : null,
       })),
   };
 }

@@ -27,8 +27,8 @@
 // throttle here. If we later need to cap spend on embeddings specifically,
 // add a counter alongside `chat_telemetry`.
 
-import type { ServerEnv } from '@kestrel/shared';
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import type { ServerEnv } from '@kestrel/shared';
 import { embedMany } from 'ai';
 
 import { resolveEmbeddingModel } from './model';

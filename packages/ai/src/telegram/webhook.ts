@@ -301,7 +301,7 @@ async function handleFreeFormMessage(
   text: string,
   chatId: number,
   botToken: string,
-  env: ServerEnv,
+  _env: ServerEnv,
 ): Promise<void> {
   // SECURITY FIX: resolve the linked user instead of using __system__
   const userId = await resolveBotUser(chatId, 'telegram');

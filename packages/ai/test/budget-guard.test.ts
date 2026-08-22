@@ -1,5 +1,28 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { BudgetExceededError } from '../src/budget-guard';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  BudgetExceededError,
+  reconcileBudget,
+  releaseBudget,
+  reserveBudget,
+} from '../src/budget-guard';
+import { applyBudgetDelta, tryReserveBudget } from '../src/cost';
 
 // Mock the cost module BEFORE importing the module under test
 vi.mock('../src/cost', () => ({
@@ -18,9 +41,6 @@ vi.mock('../src/cost', () => ({
     }
   },
 }));
-
-import { reserveBudget, reconcileBudget, releaseBudget } from '../src/budget-guard';
-import { tryReserveBudget, applyBudgetDelta } from '../src/cost';
 
 const mockTryReserve = vi.mocked(tryReserveBudget);
 const mockApplyDelta = vi.mocked(applyBudgetDelta);
@@ -77,7 +97,7 @@ describe('reconcileBudget', () => {
   });
 
   it('applies positive delta when actual cost exceeds reserved', async () => {
-    await reconcileBudget('user-1', 0.10, 0.05);
+    await reconcileBudget('user-1', 0.1, 0.05);
 
     expect(mockApplyDelta).toHaveBeenCalledWith('user-1', 0.05);
   });
@@ -104,7 +124,7 @@ describe('reconcileBudget', () => {
     mockApplyDelta.mockRejectedValueOnce(new Error('DB down'));
 
     // Should not throw
-    await expect(reconcileBudget('user-1', 0.10, 0.05)).resolves.toBeUndefined();
+    await expect(reconcileBudget('user-1', 0.1, 0.05)).resolves.toBeUndefined();
   });
 });
 

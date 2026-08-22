@@ -22,7 +22,7 @@
 // and surface tokens apply the expected computed CSS values.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Theme tokens — semantic colors', () => {
   test('bear token renders as red accent', async ({ authedPage }) => {
@@ -73,9 +73,7 @@ test.describe('Theme tokens — surface tokens', () => {
     const page = authedPage;
     await page.goto('/chat');
 
-    const bodyBg = await page.evaluate(() =>
-      getComputedStyle(document.body).backgroundColor,
-    );
+    const bodyBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     // Should be rgb(10, 10, 10) = #0A0A0A
     expect(bodyBg).toBe('rgb(10, 10, 10)');
   });

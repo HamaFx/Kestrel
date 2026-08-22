@@ -26,18 +26,27 @@ export const aiMessageFeedback = pgTable(
   'ai_message_feedback',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     tenantId: text('tenant_id')
       .notNull()
       .default(sql`current_setting('app.current_tenant', true)`)
       .references(() => organization.id, { onDelete: 'cascade' }),
-    threadId: uuid('thread_id').notNull().references(() => chatThreads.id, { onDelete: 'cascade' }),
-    messageId: uuid('message_id').notNull().references(() => chatMessages.id, { onDelete: 'cascade' }),
+    threadId: uuid('thread_id')
+      .notNull()
+      .references(() => chatThreads.id, { onDelete: 'cascade' }),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => chatMessages.id, { onDelete: 'cascade' }),
     /** Distributed trace correlation for incident review. */
     traceId: text('trace_id'),
     rating: text('rating').$type<FeedbackRating>().notNull(),
     userNote: text('user_note'),
-    reviewStatus: text('review_status').$type<FeedbackReviewStatus>().notNull().default('unreviewed'),
+    reviewStatus: text('review_status')
+      .$type<FeedbackReviewStatus>()
+      .notNull()
+      .default('unreviewed'),
     reviewerId: text('reviewer_id').references(() => users.id, { onDelete: 'set null' }),
     reviewerLabel: text('reviewer_label').$type<FeedbackLabel>(),
     issueCodes: jsonb('issue_codes').$type<string[]>(),

@@ -26,9 +26,10 @@
 // code changes. SRP benefit: agent.ts no longer wires tools.
 // Extensibility benefit: resolve(names) enables per-tenant gating.
 
-import type { Tool } from 'ai';
-import { withTelemetry } from './with-telemetry';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { Tool } from 'ai';
+
+import { withTelemetry } from './with-telemetry';
 
 /**
  * ToolPlugin — metadata about a registered tool.
@@ -108,9 +109,7 @@ export class ToolRegistry {
       });
     }
     return Object.fromEntries(
-      names
-        .filter((n) => this.tools.has(n))
-        .map((n) => [n, this.tools.get(n)!.tool]),
+      names.filter((n) => this.tools.has(n)).map((n) => [n, this.tools.get(n)!.tool]),
     );
   }
 

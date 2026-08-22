@@ -74,17 +74,15 @@ describe('fetchCandles1m', () => {
 
   it('throws ProviderEmptyError when no rows exist', async () => {
     const db = makeFakeDb([]);
-    await expect(
-      fetchCandles1m({ symbol: 'XAUUSD', count: 100, db }),
-    ).rejects.toBeInstanceOf(ProviderEmptyError);
+    await expect(fetchCandles1m({ symbol: 'XAUUSD', count: 100, db })).rejects.toBeInstanceOf(
+      ProviderEmptyError,
+    );
   });
 
   it('throws ProviderEmptyError when the freshest bar is older than the freshness window', async () => {
     const stale = bar(new Date(Date.now() - 5 * 60_000).toISOString(), 2390);
     const db = makeFakeDb([stale]);
-    await expect(
-      fetchCandles1m({ symbol: 'XAUUSD', count: 100, db }),
-    ).rejects.toMatchObject({
+    await expect(fetchCandles1m({ symbol: 'XAUUSD', count: 100, db })).rejects.toMatchObject({
       provider: 'candles-1m',
       message: expect.stringContaining('stale') as unknown as string,
     });

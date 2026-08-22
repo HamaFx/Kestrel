@@ -1,11 +1,23 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import {IconPlus, IconTrash, IconGripVertical, IconAlertTriangle, IconLoader2} from '@tabler/icons-react';
-import { toast } from 'sonner';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import {
-  DndContext,
   closestCenter,
+  DndContext,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -13,18 +25,26 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
+  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import type { ProviderMeta } from '@kestrel/shared';
+import {
+  IconAlertTriangle,
+  IconGripVertical,
+  IconLoader2,
+  IconPlus,
+  IconTrash,
+} from '@tabler/icons-react';
+import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { apiMutate } from '@/lib/api-client';
-import type { ProviderMeta } from '@kestrel/shared';
-
 
 interface FallbackChainPickerProps {
   initialChain: string[];
@@ -44,14 +64,9 @@ function SortableItem({
   disabled: boolean;
   onRemove: () => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -62,26 +77,24 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between gap-3 border bg-bg-elev-2 rounded-sm p-2.5 transition-all ${
-        isDragging
-          ? 'border-border shadow-lg z-10 opacity-90'
-          : 'border-border hover:border-border'
+      className={`bg-bg-elev-2 flex items-center justify-between gap-3 rounded-sm border p-2.5 transition-all ${
+        isDragging ? 'border-border z-10 opacity-90 shadow-lg' : 'border-border hover:border-border'
       }`}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
-          className="size-6 flex items-center justify-center text-fg-muted hover:text-fg cursor-grab active:cursor-grabbing touch-none shrink-0"
+          className="text-fg-muted hover:text-fg flex size-6 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
           aria-label={`Drag to reorder ${displayName}`}
           {...attributes}
           {...listeners}
         >
           <IconGripVertical className="size-3.5" />
         </button>
-        <span className="text-caption font-semibold bg-bg-elev-3 border border-border size-5 rounded-sm inline-flex items-center justify-center text-fg-muted shrink-0">
+        <span className="text-caption bg-bg-elev-3 border-border text-fg-muted inline-flex size-5 shrink-0 items-center justify-center rounded-sm border font-semibold">
           {index + 1}
         </span>
-        <span className="text-sm font-medium text-fg truncate">{displayName}</span>
+        <span className="text-fg truncate text-sm font-medium">{displayName}</span>
       </div>
       <Button
         type="button"
@@ -89,7 +102,7 @@ function SortableItem({
         size="sm"
         onClick={onRemove}
         disabled={disabled}
-        className="size-7 p-0 flex items-center justify-center text-danger hover:bg-danger/10 hover:text-danger shrink-0"
+        className="text-danger hover:bg-danger/10 hover:text-danger flex size-7 shrink-0 items-center justify-center p-0"
         aria-label={`Remove ${displayName} from chain`}
       >
         <IconTrash className="size-3.5" />
@@ -152,32 +165,24 @@ export function FallbackChainPicker({
     saveChain(newChain);
   };
 
-  const availableToAdd = configuredProviders.filter(
-    (p) => !chain.includes(p.id)
-  );
+  const availableToAdd = configuredProviders.filter((p) => !chain.includes(p.id));
 
   return (
-    <div className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-4">
+    <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4">
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-fg flex items-center gap-1.5">
-          <IconAlertTriangle className="size-4 text-fg" />
+        <span className="text-fg flex items-center gap-1.5 text-sm font-medium">
+          <IconAlertTriangle className="text-fg size-4" />
           Provider Fallback Chain
         </span>
         <span className="text-caption text-fg-subtle">
-          Drag to reorder. Configure the order in which providers are tried if your primary choice encounters a rate limit, timeout, or upstream failure.
+          Drag to reorder. Configure the order in which providers are tried if your primary choice
+          encounters a rate limit, timeout, or upstream failure.
         </span>
       </div>
 
       {chain.length > 0 ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={chain}
-            strategy={verticalListSortingStrategy}
-          >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={chain} strategy={verticalListSortingStrategy}>
             <div className="flex flex-col gap-2">
               {chain.map((providerId, index) => {
                 const provider = configuredProviders.find((p) => p.id === providerId);
@@ -197,19 +202,19 @@ export function FallbackChainPicker({
           </SortableContext>
         </DndContext>
       ) : (
-        <div className="text-center py-6 border border-dashed border-border bg-bg-elev-2/40 rounded-sm text-caption text-fg-subtle">
+        <div className="border-border bg-bg-elev-2/40 text-caption text-fg-subtle rounded-sm border border-dashed py-6 text-center">
           No fallback chain configured. If a model call fails, the request will immediately fail.
         </div>
       )}
 
       {availableToAdd.length > 0 && (
-        <div className="flex items-center gap-2 mt-1">
+        <div className="mt-1 flex items-center gap-2">
           <select
             value={selectedToAdd}
             onChange={(e) => setSelectedToAdd(e.target.value)}
             disabled={pending}
             aria-label="Select a provider to add to fallback chain"
-            className="flex-1 appearance-none border border-border bg-bg-elev-2 text-fg rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fg disabled:opacity-60"
+            className="border-border bg-bg-elev-2 text-fg focus:ring-fg flex-1 appearance-none rounded-sm border px-3 py-2 text-sm focus:ring-2 focus:outline-none disabled:opacity-60"
           >
             <option value="" disabled>
               Select a provider to append...
@@ -231,7 +236,7 @@ export function FallbackChainPicker({
             {pending ? (
               <IconLoader2 className="size-3.5 animate-spin" />
             ) : (
-              <IconPlus className="size-3.5 mr-1" />
+              <IconPlus className="mr-1 size-3.5" />
             )}
             Add
           </Button>

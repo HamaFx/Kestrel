@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import {IconBolt, IconX} from '@tabler/icons-react';
+import { IconBolt, IconX } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useConfirm } from '@/components/ui/confirm-drawer';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { migrateLocalStorageKey } from '@/lib/storage';
+
 import { updateAiPrefsAction } from '../../actions';
 
 export interface AIPrefs {
@@ -69,8 +69,7 @@ export const INSTRUCTION_PRESETS: readonly InstructionPreset[] = [
   {
     id: 'sources',
     label: 'Cite sources inline',
-    prompt:
-      'After every factual claim, cite the tool or data point that supports it.',
+    prompt: 'After every factual claim, cite the tool or data point that supports it.',
   },
   {
     id: 'risk',
@@ -116,7 +115,11 @@ const DEFAULTS: AIPrefs = {
  *      Removing the misleading selectors here; users who want to
  *      change the chat model follow the "Manage models →" link below.
  */
-export function AIPrefsCard({ initialCustomInstructions }: { initialCustomInstructions?: string | null }) {
+export function AIPrefsCard({
+  initialCustomInstructions,
+}: {
+  initialCustomInstructions?: string | null;
+}) {
   // Migrate from the legacy unversioned key once.
   useEffect(() => {
     migrateLocalStorageKey('hamafx:ai-prefs', AI_PREFS_STORAGE_KEY);
@@ -167,18 +170,15 @@ export function AIPrefsCard({ initialCustomInstructions }: { initialCustomInstru
   return (
     <section
       aria-labelledby="ai-prefs-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-3 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
     >
       <header className="flex items-center gap-3 pb-1">
-        <h2
-          id="ai-prefs-heading"
-          className="text-fg text-base font-semibold tracking-tight"
-        >
+        <h2 id="ai-prefs-heading" className="text-fg text-base font-semibold tracking-tight">
           AI Preferences
         </h2>
         <Link
           href="/settings/models"
-          className="text-fg-subtle hover:text-fg ml-auto inline-flex items-center gap-1 text-caption font-medium transition-colors"
+          className="text-fg-subtle hover:text-fg text-caption ml-auto inline-flex items-center gap-1 font-medium transition-colors"
         >
           Manage models
           <span aria-hidden="true">→</span>
@@ -186,19 +186,17 @@ export function AIPrefsCard({ initialCustomInstructions }: { initialCustomInstru
       </header>
 
       <p className="text-fg-muted text-xs">
-        Model choices are server-side and apply to every chat turn. Use the header link above to manage which models handle each kind of analysis.
+        Model choices are server-side and apply to every chat turn. Use the header link above to
+        manage which models handle each kind of analysis.
       </p>
 
       <div className="flex flex-col gap-2 pt-1 pb-1">
-        <label
-          htmlFor="custom-instructions"
-          className="text-fg text-sm font-medium"
-        >
+        <label htmlFor="custom-instructions" className="text-fg text-sm font-medium">
           Custom instructions
         </label>
         <p className="text-fg-muted text-xs">
-          Appended to the AI&rsquo;s core instructions on every turn.
-          Use this to change formatting, personality, or behaviour.
+          Appended to the AI&rsquo;s core instructions on every turn. Use this to change formatting,
+          personality, or behaviour.
         </p>
 
         {/* Phase A — UX_UPGRADE_PLAN.md item 6.
@@ -209,7 +207,7 @@ export function AIPrefsCard({ initialCustomInstructions }: { initialCustomInstru
           {INSTRUCTION_PRESETS.map((preset) => (
             <div
               key={preset.id}
-              className="border-border bg-bg-elev-2 inline-flex items-center overflow-hidden rounded-sm border text-caption"
+              className="border-border bg-bg-elev-2 text-caption inline-flex items-center overflow-hidden rounded-sm border"
             >
               <button
                 type="button"
@@ -234,8 +232,11 @@ export function AIPrefsCard({ initialCustomInstructions }: { initialCustomInstru
           {customInstructions.length > 0 ? (
             <button
               type="button"
-              onClick={() => { update('customInstructions', ''); updateAiPrefsAction(''); }}
-              className="text-fg-subtle hover:text-fg ml-1 inline-flex items-center gap-1 px-2 py-1 text-caption transition-colors"
+              onClick={() => {
+                update('customInstructions', '');
+                updateAiPrefsAction('');
+              }}
+              className="text-fg-subtle hover:text-fg text-caption ml-1 inline-flex items-center gap-1 px-2 py-1 transition-colors"
               aria-label="Clear custom instructions"
             >
               <IconX className="size-3" aria-hidden="true" />
@@ -250,13 +251,11 @@ export function AIPrefsCard({ initialCustomInstructions }: { initialCustomInstru
           onChange={(e) => handleInstructionsChange(e.target.value)}
           placeholder="e.g. Always respond in bullet points. Do not use emojis."
           rows={3}
-          className="border-border bg-bg-elev-2 text-fg placeholder:text-fg-muted rounded-sm border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-fg resize-none"
+          className="border-border bg-bg-elev-2 text-fg placeholder:text-fg-muted focus:ring-fg resize-none rounded-sm border p-3 text-sm focus:ring-2 focus:outline-none"
         />
       </div>
 
-      <p className="text-fg-subtle text-caption uppercase tracking-wider">
-        Saved to account
-      </p>
+      <p className="text-fg-subtle text-caption tracking-wider uppercase">Saved to account</p>
       {confirmEl}
     </section>
   );

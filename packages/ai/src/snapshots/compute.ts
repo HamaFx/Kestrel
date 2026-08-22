@@ -25,12 +25,8 @@
 // All math is deterministic — no clock reads, no env reads — so this is
 // the right place to property-test if we want to.
 
+import { atr, classicPivots, computeAsianRange, computePdhPdl } from '@kestrel/indicators';
 import type { Candle } from '@kestrel/shared';
-
-import { computeAsianRange } from '@kestrel/indicators';
-import { computePdhPdl } from '@kestrel/indicators';
-import { atr } from '@kestrel/indicators';
-import { classicPivots } from '@kestrel/indicators';
 
 export interface DailySnapshot {
   /** UTC ms of midnight starting the SUBJECT day. */
@@ -89,9 +85,7 @@ export function computeDailySnapshot(args: ComputeDailySnapshotArgs): DailySnaps
   // Pivots derived from the subject day's HLC. classicPivots needs the
   // (prevHigh, prevLow, prevClose) tuple as positional args.
   const piv =
-    high !== null && low !== null && close !== null
-      ? classicPivots(high, low, close)
-      : null;
+    high !== null && low !== null && close !== null ? classicPivots(high, low, close) : null;
 
   // ATR over the full candle window — most recent value.
   const atrSeries = atr(args.candles, 14);

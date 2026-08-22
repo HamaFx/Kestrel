@@ -1,4 +1,20 @@
 /**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
  * H3 — Domain-based tool subsetting.
  *
  * Maps each routing domain to the subset of tools relevant to that domain.
@@ -17,6 +33,7 @@
  */
 
 import type { Tool } from 'ai';
+
 import { toolRegistry } from './index';
 
 export type RoutingDomain = 'fundamental' | 'technical' | 'summary' | 'vision' | 'generic';
@@ -90,13 +107,8 @@ const DOMAIN_TOOLS: Record<Exclude<RoutingDomain, 'generic'>, ReadonlySet<string
  *   tools allowed for that plan are returned. Falls back to all tools when
  *   plan is undefined.
  */
-export function domainToolFilter(
-  domain: RoutingDomain,
-  plan?: string,
-): Record<string, Tool> {
-  const allTools = plan
-    ? toolRegistry.resolveForPlan(undefined, plan)
-    : toolRegistry.resolve();
+export function domainToolFilter(domain: RoutingDomain, plan?: string): Record<string, Tool> {
+  const allTools = plan ? toolRegistry.resolveForPlan(undefined, plan) : toolRegistry.resolve();
 
   if (domain === 'generic') return allTools;
 

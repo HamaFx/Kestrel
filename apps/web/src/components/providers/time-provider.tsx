@@ -19,15 +19,7 @@
 // Shared ticking clock for the whole app. Updates every 30s — enough for
 // relative timestamps and countdowns without per-component intervals.
 // Also exposes a reduced-motion flag for motion-sensitive components.
-
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { formatRelative } from '@/lib/format';
 
@@ -52,8 +44,7 @@ export function TimeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const checkMotion = () => {
-      const isForced =
-        document.documentElement.dataset.reduceMotion === 'force';
+      const isForced = document.documentElement.dataset.reduceMotion === 'force';
       setReducedMotion(mq.matches || isForced);
     };
     checkMotion();

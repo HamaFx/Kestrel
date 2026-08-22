@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { forwardRef, type InputHTMLAttributes } from 'react';
@@ -24,7 +40,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         'bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle',
         'h-12 w-full rounded-sm border px-4 text-base',
         error
-          ? 'border-danger/60 focus:ring-2 focus:ring-danger/30 focus-visible:outline-none'
+          ? 'border-danger/60 focus:ring-danger/30 focus:ring-2 focus-visible:outline-none'
           : 'border-border',
         'transition-all duration-150 ease-in-out',
         'focus:bg-bg-elev-1/80',

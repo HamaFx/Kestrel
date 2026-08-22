@@ -17,7 +17,6 @@
  */
 
 // Calendar toolbar — importance + currency filters + "show past" toggle.
-
 import type { EventCurrency, Importance } from '@kestrel/shared';
 
 import { cn } from '@/lib/cn';
@@ -88,7 +87,7 @@ export function CalendarToolbar({
               className={cn(
                 'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-sm border px-3 text-xs font-semibold transition-colors',
                 active
-                  ? 'bg-fg text-black border-border'
+                  ? 'bg-fg border-border text-black'
                   : 'border-border bg-bg-elev-1/60 text-fg-muted hover:text-fg',
               )}
             >
@@ -120,7 +119,7 @@ export function CalendarToolbar({
                 tabIndex={active ? 0 : -1}
                 onClick={() => onCurrency(c.value)}
                 className={cn(
-                  'inline-flex h-10 shrink-0 items-center rounded-sm border px-3 text-body-sm font-semibold uppercase tabular-nums transition-colors',
+                  'text-body-sm inline-flex h-10 shrink-0 items-center rounded-sm border px-3 font-semibold uppercase tabular-nums transition-colors',
                   active
                     ? 'bg-bg-elev-3 text-fg border-border'
                     : 'border-border bg-bg-elev-1/60 text-fg-muted hover:text-fg',
@@ -137,7 +136,7 @@ export function CalendarToolbar({
           onClick={() => onShowPast(!showPast)}
           aria-pressed={showPast}
           className={cn(
-            'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-sm border px-3 text-body-sm font-semibold transition-colors',
+            'text-body-sm inline-flex h-10 shrink-0 items-center gap-1.5 rounded-sm border px-3 font-semibold transition-colors',
             showPast
               ? 'bg-bg-elev-3 text-fg border-border'
               : 'border-border bg-bg-elev-1/60 text-fg-muted hover:text-fg',
@@ -148,8 +147,7 @@ export function CalendarToolbar({
       </div>
 
       <p className="text-fg-subtle text-body-sm tabular-nums">
-        Showing <span className="text-fg-muted font-semibold">{visibleCount}</span> of{' '}
-        {totalCount}
+        Showing <span className="text-fg-muted font-semibold">{visibleCount}</span> of {totalCount}
       </p>
     </div>
   );

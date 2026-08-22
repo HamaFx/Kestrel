@@ -1,4 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { metrics } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { collectXauusdResearchPacket } from '../src/mastra/research-packet';
 
 const mocks = vi.hoisted(() => ({
   getPriceWithMeta: vi.fn(),
@@ -24,9 +43,6 @@ vi.mock('@kestrel/shared/logger', () => ({
   createCategorizedLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
   logErrorContext: mocks.logErrorContext,
 }));
-
-import { metrics } from '@kestrel/shared';
-import { collectXauusdResearchPacket } from '../src/mastra/research-packet';
 
 function candlesFor(tf: string, count = 40) {
   return Array.from({ length: count }, (_, index) => ({
@@ -93,24 +109,26 @@ describe('bounded XAUUSD research packet', () => {
     expect(packet.candles).toHaveLength(4);
     expect(packet.indicators).toHaveLength(4);
     expect(packet.indicators[0]?.data.results).toHaveLength(6);
-    expect(packet.missingData).toEqual(expect.arrayContaining([
-      'Dollar-strength data is unavailable.',
-      'US real-yield and inflation-expectation data is unavailable.',
-      'No macro evidence was returned by the configured providers.',
-    ]));
+    expect(packet.missingData).toEqual(
+      expect.arrayContaining([
+        'Dollar-strength data is unavailable.',
+        'US real-yield and inflation-expectation data is unavailable.',
+        'No macro evidence was returned by the configured providers.',
+      ]),
+    );
     expect(mocks.getPriceWithMeta).toHaveBeenCalledOnce();
     expect(mocks.getCandlesWithMeta).toHaveBeenCalledTimes(4);
-    expect(metrics.snapshot().counters['mastra_research_packet_total{status=ready,symbol=XAUUSD}']).toBe(1);
+    expect(
+      metrics.snapshot().counters['mastra_research_packet_total{status=ready,symbol=XAUUSD}'],
+    ).toBe(1);
   });
 
   it('blocks the packet when one required timeframe is unavailable', async () => {
     configureSuccessfulData();
-    mocks.getCandlesWithMeta
-      .mockReset()
-      .mockImplementation(async (_symbol: string, tf: string) => {
-        if (tf === '1h') throw new Error('provider unavailable');
-        return { candles: candlesFor(tf), stale: false, producedAt: Date.now() };
-      });
+    mocks.getCandlesWithMeta.mockReset().mockImplementation(async (_symbol: string, tf: string) => {
+      if (tf === '1h') throw new Error('provider unavailable');
+      return { candles: candlesFor(tf), stale: false, producedAt: Date.now() };
+    });
 
     const packet = await collectXauusdResearchPacket();
 
@@ -124,7 +142,9 @@ describe('bounded XAUUSD research packet', () => {
       expect.objectContaining({ timeframe: '1h' }),
       'ai',
     );
-    expect(metrics.snapshot().counters['mastra_research_packet_blocked_total{symbol=XAUUSD}']).toBe(1);
+    expect(metrics.snapshot().counters['mastra_research_packet_blocked_total{symbol=XAUUSD}']).toBe(
+      1,
+    );
   });
 
   it('propagates cancellation instead of returning a misleading packet', async () => {

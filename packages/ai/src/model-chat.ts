@@ -19,24 +19,21 @@
 //
 // Dependency: model-helpers.ts (PROVIDER_PRIORITY, envFallbackKeys).
 
-import type { LanguageModel } from 'ai';
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import { PROVIDER_IDS } from '@kestrel/shared/byok';
 import {
-  decryptByok,
   configuredProviders,
+  decryptByok,
   type ByokPayload,
   type ProviderId,
 } from '@kestrel/shared/encryption';
-import { PROVIDER_IDS } from '@kestrel/shared/byok';
-import { isCircuitOpen } from './model-circuit-breaker';
-import { BYOK_PROVIDERS } from './byok-providers';
-import type { ModelDomain } from './byok-providers';
-import type { ResolveModelEnv } from './vertex-factory';
-import {
-  PROVIDER_PRIORITY,
-  envFallbackKeys,
-} from './model-helpers';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { LanguageModel } from 'ai';
+
+import { BYOK_PROVIDERS, type ModelDomain } from './byok-providers';
+import { isCircuitOpen } from './model-circuit-breaker';
+import { envFallbackKeys, PROVIDER_PRIORITY } from './model-helpers';
+import type { ResolveModelEnv } from './vertex-factory';
 
 const modelChatLog = createCategorizedLogger('ai', { component: 'model-chat' });
 
@@ -97,9 +94,7 @@ export function resolveChatModel(
   // fallback (e.g. Google Vertex from server env vars) is a safety net for
   // users who haven't configured their own key yet. Once a user has chosen
   // a provider, that choice should be respected.
-  const keys: ByokPayload = hasStoredKeys
-    ? stored
-    : { ...envFallbackKeys(env), ...(stored ?? {}) };
+  const keys: ByokPayload = hasStoredKeys ? stored : { ...envFallbackKeys(env), ...(stored ?? {}) };
   const configured = configuredProviders(keys);
   if (configured.length === 0) {
     throw new Error(
@@ -153,9 +148,9 @@ export function resolveChatModel(
   // provider's model for the requested domain. Defaults to 'technical'
   // when no domain is specified (backward-compatible).
   const tier: ModelDomain = domain ?? 'technical';
-  const priority = configured.slice().sort(
-    (a, b) => PROVIDER_PRIORITY.indexOf(a) - PROVIDER_PRIORITY.indexOf(b),
-  );
+  const priority = configured
+    .slice()
+    .sort((a, b) => PROVIDER_PRIORITY.indexOf(a) - PROVIDER_PRIORITY.indexOf(b));
 
   // M4 (RELIABILITY_AUDIT_REPORT.md) — skip providers whose circuit is
   // open (3+ consecutive failures within 60s window). Falls through to
@@ -174,9 +169,7 @@ export function resolveChatModel(
   const apiKey = keys[providerId]!;
   const bareModelId = spec.defaultModels[tier];
   if (!bareModelId) {
-    throw new Error(
-      `Provider ${providerId} has no default ${tier} model configured.`,
-    );
+    throw new Error(`Provider ${providerId} has no default ${tier} model configured.`);
   }
   return {
     model: spec.factory(apiKey)(bareModelId),
@@ -202,9 +195,7 @@ export function resolveModelForProvider(
   domain: ModelDomain = 'technical',
 ): ChatModelResolution {
   if (isCircuitOpen(providerId)) {
-    throw new Error(
-      `Provider ${providerId} is temporarily unavailable (circuit open).`,
-    );
+    throw new Error(`Provider ${providerId} is temporarily unavailable (circuit open).`);
   }
   const stored = decryptByok(userSettings.aiApiKeys);
   const keys: ByokPayload = {
@@ -221,11 +212,12 @@ export function resolveModelForProvider(
   }
   const bareModelId = requestedModelId ?? spec.defaultModels[domain];
   if (!bareModelId) {
-    throw new Error(
-      `Provider ${providerId} has no default technical model configured.`,
-    );
+    throw new Error(`Provider ${providerId} has no default technical model configured.`);
   }
-  if (requestedModelId && !(spec.models ?? []).some((model) => model.modelId === requestedModelId)) {
+  if (
+    requestedModelId &&
+    !(spec.models ?? []).some((model) => model.modelId === requestedModelId)
+  ) {
     throw new Error(`Unknown model for provider ${providerId}: ${requestedModelId}`);
   }
   return {

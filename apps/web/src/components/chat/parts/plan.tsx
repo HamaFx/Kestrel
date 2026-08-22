@@ -27,12 +27,10 @@
 // expands and shows a pulsing "Thinking…" indicator. When streaming
 // completes, it auto-collapses after a 2s delay and the header fades
 // back to the domain label.
-
-import {IconCpu, IconChevronRight, IconChevronDown, IconLoader2} from '@tabler/icons-react';
+import type { UserPlanPart } from '@kestrel/shared';
+import { IconChevronDown, IconChevronRight, IconCpu, IconLoader2 } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useId, useRef, useState } from 'react';
-
-import type { UserPlanPart } from '@kestrel/shared';
 
 import { cn } from '@/lib/cn';
 
@@ -71,16 +69,14 @@ export function PlanPart({ plan, streaming = false }: PlanPartProps) {
 
   return (
     <div
-      className={cn(
-        'border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border px-3 py-2',
-      )}
+      className={cn('border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border px-3 py-2')}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={contentId}
-        className="text-fg-muted hover:text-fg focus-visible:ring-2 focus-visible:ring-fg rounded-sm flex items-center gap-2 text-left text-body-sm font-medium tabular-nums focus:outline-none"
+        className="text-fg-muted hover:text-fg focus-visible:ring-fg text-body-sm flex items-center gap-2 rounded-sm text-left font-medium tabular-nums focus:outline-none focus-visible:ring-2"
       >
         {open ? (
           <IconChevronDown className="size-3.5" />
@@ -88,21 +84,21 @@ export function PlanPart({ plan, streaming = false }: PlanPartProps) {
           <IconChevronRight className="size-3.5" />
         )}
         {streaming ? (
-          <IconLoader2 className="size-3.5 text-fg motion-safe:animate-spin" />
+          <IconLoader2 className="text-fg size-3.5 motion-safe:animate-spin" />
         ) : (
           <IconCpu className="size-3.5" />
         )}
-        <span className="text-fg-muted">
-          {streaming ? 'Thinking…' : DOMAIN_LABEL[plan.domain]}
-        </span>
+        <span className="text-fg-muted">{streaming ? 'Thinking…' : DOMAIN_LABEL[plan.domain]}</span>
         <span className="text-fg-subtle">·</span>
         <span className="text-fg-subtle line-clamp-1 flex-1">{plan.rationale}</span>
-        {streaming ? <span className="text-brand ml-auto shrink-0 text-caption uppercase">working</span> : null}
+        {streaming ? (
+          <span className="text-brand text-caption ml-auto shrink-0 uppercase">working</span>
+        ) : null}
       </button>
 
       {/* Streaming progress bar */}
       {streaming ? (
-        <div className="bg-bg-elev-3 motion-safe:animate-pulse h-0.5 w-full rounded-sm" />
+        <div className="bg-bg-elev-3 h-0.5 w-full rounded-sm motion-safe:animate-pulse" />
       ) : null}
 
       <AnimatePresence initial={false}>
@@ -120,7 +116,7 @@ export function PlanPart({ plan, streaming = false }: PlanPartProps) {
                 <ol className="text-fg-muted ml-6 flex flex-col gap-1 text-xs">
                   {plan.steps.map((s, i) => (
                     <li key={i} className="flex items-baseline gap-2">
-                      <span className="text-fg-subtle font-mono text-caption tabular-nums">
+                      <span className="text-fg-subtle text-caption font-mono tabular-nums">
                         {String(i + 1).padStart(2, '0')}
                       </span>
                       <span>{s}</span>
@@ -132,12 +128,12 @@ export function PlanPart({ plan, streaming = false }: PlanPartProps) {
               )}
 
               {plan.expectedTools.length > 0 ? (
-                <p className="text-fg-subtle ml-6 text-caption">
+                <p className="text-fg-subtle text-caption ml-6">
                   Expected tools:{' '}
                   {plan.expectedTools.map((t, i) => (
                     <span
                       key={`${t}-${i}`}
-                      className="bg-bg-elev-2 text-fg-muted ml-1 rounded-sm px-1.5 py-0.5 font-mono text-caption"
+                      className="bg-bg-elev-2 text-fg-muted text-caption ml-1 rounded-sm px-1.5 py-0.5 font-mono"
                     >
                       {t}
                     </span>

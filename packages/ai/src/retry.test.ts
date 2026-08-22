@@ -17,7 +17,8 @@
 // Tests for STAB-06: withRetry exponential backoff helper.
 
 import { describe, expect, it, vi } from 'vitest';
-import { withRetry, getRetryAfterMs } from './retry';
+
+import { getRetryAfterMs, withRetry } from './retry';
 import type * as RetryModule from './retry';
 
 // Speed up: make the retry helper skip real timer delays.

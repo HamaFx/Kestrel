@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import type { UIMessage } from 'ai';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { UIMessage } from 'ai';
 
 const mlog = createCategorizedLogger('ai', { component: 'message-text' });
 
@@ -32,24 +32,39 @@ const INJECTION_PATTERNS: ReadonlyArray<{ rx: RegExp; label: string }> = [
   // Classic "ignore all instructions" jailbreaks. Allows stacked
   // modifiers like "ignore all previous instructions" or "ignore the above
   // instructions". Narrowed to require "instructions" specifically.
-  { rx: /ignore\s+(the\s+)?(all\s+)?(previous\s+)?(above\s+)?instructions\b/i, label: 'ignore-instructions' },
+  {
+    rx: /ignore\s+(the\s+)?(all\s+)?(previous\s+)?(above\s+)?instructions\b/i,
+    label: 'ignore-instructions',
+  },
   // "You are now a/an [adjective] AI" — role override attacks.
   // Pattern A: "you are no longer [a/an] AI/assistant" (no adjective needed).
-  { rx: /you\s+(are|have become|are now)\s+no\s+longer\s+(an?\s+)?(ai|assistant|model|bot|system)\b/i, label: 'role-override' },
+  {
+    rx: /you\s+(are|have become|are now)\s+no\s+longer\s+(an?\s+)?(ai|assistant|model|bot|system)\b/i,
+    label: 'role-override',
+  },
   // Pattern B: "you are [a/an] ADJECTIVE AI/assistant" (adjective required
   // to avoid false-positives on "you are an AI assistant").
-  { rx: /you\s+(are|have become|are now)\s+(an?\s+)?(different|another|unrestricted|uncensored|evil|malicious)\s+(ai|assistant|model|bot|system)\b/i, label: 'role-override' },
+  {
+    rx: /you\s+(are|have become|are now)\s+(an?\s+)?(different|another|unrestricted|uncensored|evil|malicious)\s+(ai|assistant|model|bot|system)\b/i,
+    label: 'role-override',
+  },
   // DAN mode jailbreaks — only match the specific "DAN mode" phrase.
   // Dropped the loose is/can/will patterns that false-positive on "Dan is".
   { rx: /DAN\s+mode\b/i, label: 'dan-jailbreak' },
   // Impersonating a system message.
-  { rx: /^(system|developer|admin)\s*:\s*(forget|ignore|override|you\s+(are|must|should|will))/im, label: 'system-impersonation' },
+  {
+    rx: /^(system|developer|admin)\s*:\s*(forget|ignore|override|you\s+(are|must|should|will))/im,
+    label: 'system-impersonation',
+  },
   // "Forget everything you know" — complete reset attacks. Narrowed
   // to the specific jailbreak phrase to avoid matching legitimate
   // requests like "forget about the last trade" or "forget prior analysis".
   { rx: /forget\s+(everything|all)\s+you\s+know\b/i, label: 'forget-attack' },
   // Base64-encoded injection payloads (detect the wrapper pattern).
-  { rx: /(decode|eval|parse|execute)\s+(this|the\s+following)\s+(base64|encoded|payload)/i, label: 'encoded-payload' },
+  {
+    rx: /(decode|eval|parse|execute)\s+(this|the\s+following)\s+(base64|encoded|payload)/i,
+    label: 'encoded-payload',
+  },
 ];
 
 /**

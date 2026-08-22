@@ -15,17 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import { useActionState, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { IconCheck } from '@tabler/icons-react';
+import Link from 'next/link';
+import { useActionState, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { registerAction } from '../actions';
+
+import { FormError } from '../_components/form-error';
 import { OAuthButtons } from '../_components/oauth-buttons';
 import { PasswordField } from '../_components/password-field';
-import { FormError } from '../_components/form-error';
+import { registerAction } from '../actions';
 
 export default function RegisterPage() {
   const [state, action, pending] = useActionState(registerAction, { error: '' });
@@ -48,55 +48,89 @@ export default function RegisterPage() {
 
       <form action={action} className="flex w-full flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <label htmlFor="name" className="text-fg text-sm font-semibold">Full Name</label>
-          <Input id="name" name="name" type="text" autoComplete="name"
-            autoFocus required disabled={pending || success} />
+          <label htmlFor="name" className="text-fg text-sm font-semibold">
+            Full Name
+          </label>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            autoFocus
+            required
+            disabled={pending || success}
+          />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="email" className="text-fg text-sm font-semibold">Email</label>
-          <Input id="email" name="email" type="email" autoComplete="email"
-            required disabled={pending || success} />
+          <label htmlFor="email" className="text-fg text-sm font-semibold">
+            Email
+          </label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            disabled={pending || success}
+          />
         </div>
 
-        <PasswordField value={password} onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password" minLength={8} required
-          disabled={pending || success} showStrengthMeter />
+        <PasswordField
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+          minLength={8}
+          required
+          disabled={pending || success}
+          showStrengthMeter
+        />
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="confirm-password" className="text-fg text-sm font-semibold">Confirm Password</label>
-          <Input id="confirm-password" name="confirmPassword"
-            type="password" autoComplete="new-password" required
+          <label htmlFor="confirm-password" className="text-fg text-sm font-semibold">
+            Confirm Password
+          </label>
+          <Input
+            id="confirm-password"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            required
             disabled={pending || success}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             error={confirmTouched && !passwordsMatch}
-            aria-describedby={confirmTouched && !passwordsMatch ? 'confirm-password-error' : undefined} />
+            aria-describedby={
+              confirmTouched && !passwordsMatch ? 'confirm-password-error' : undefined
+            }
+          />
           {confirmTouched && !passwordsMatch && (
-            <p id="confirm-password-error" role="alert" className="text-danger text-xs mt-1">Passwords do not match</p>
+            <p id="confirm-password-error" role="alert" className="text-danger mt-1 text-xs">
+              Passwords do not match
+            </p>
           )}
         </div>
 
         <FormError message={state?.error ?? ''} />
 
-          <Button
-            type="submit"
-            size="lg"
-            loading={pending}
-            disabled={submitDisabled}
-            variant={success ? 'success' : 'primary'}
-          >
-            {success ? (
-              <>
-                <IconCheck className="size-5" /> Account created
-              </>
-            ) : pending ? (
-              'Creating account…'
-            ) : (
-              'Create account'
-            )}
-          </Button>
-        </form>
+        <Button
+          type="submit"
+          size="lg"
+          loading={pending}
+          disabled={submitDisabled}
+          variant={success ? 'success' : 'primary'}
+        >
+          {success ? (
+            <>
+              <IconCheck className="size-5" /> Account created
+            </>
+          ) : pending ? (
+            'Creating account…'
+          ) : (
+            'Create account'
+          )}
+        </Button>
+      </form>
 
       <p className="text-fg-subtle text-center text-sm">
         Already have an account?{' '}

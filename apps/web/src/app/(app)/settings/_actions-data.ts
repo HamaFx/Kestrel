@@ -17,16 +17,16 @@
  */
 
 // Data actions: clear chat history, data export.
-
-import { deleteAllThreads } from '@kestrel/ai';
-import { auth } from '@/auth';
-import { schema, withRateLimit } from '@kestrel/db'
-import { getDb } from '@kestrel/ai';
-import { eq, inArray } from 'drizzle-orm';
-import * as Sentry from '@sentry/nextjs';
-import { verifySync } from 'otplib';
+import { deleteAllThreads, getDb } from '@kestrel/ai';
+import { schema, withRateLimit } from '@kestrel/db';
 import { decryptSecret } from '@kestrel/shared/encryption';
-import { type ActionResult, verifyAccountPassword } from './_actions-shared';
+import * as Sentry from '@sentry/nextjs';
+import { eq, inArray } from 'drizzle-orm';
+import { verifySync } from 'otplib';
+
+import { auth } from '@/auth';
+
+import { verifyAccountPassword, type ActionResult } from './_actions-shared';
 
 /**
  * Server action to delete all chat history.
@@ -57,7 +57,10 @@ export async function clearChatHistoryAction(): Promise<ActionResult> {
   }
 }
 
-export async function exportDataAction(password?: string, totpCode?: string): Promise<ActionResult<string>> {
+export async function exportDataAction(
+  password?: string,
+  totpCode?: string,
+): Promise<ActionResult<string>> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
@@ -70,10 +73,13 @@ export async function exportDataAction(password?: string, totpCode?: string): Pr
 
   // Check 2FA if enabled
   const db = getDb();
-  const [user] = await db.select({
-    twoFactorEnabled: schema.users.twoFactorEnabled,
-    twoFactorSecret: schema.users.twoFactorSecret,
-  }).from(schema.users).where(eq(schema.users.id, session.user.id));
+  const [user] = await db
+    .select({
+      twoFactorEnabled: schema.users.twoFactorEnabled,
+      twoFactorSecret: schema.users.twoFactorSecret,
+    })
+    .from(schema.users)
+    .where(eq(schema.users.id, session.user.id));
 
   if (user?.twoFactorEnabled) {
     if (!totpCode) {
@@ -100,28 +106,66 @@ export async function exportDataAction(password?: string, totpCode?: string): Pr
     const userId = session.user.id;
 
     const [profile] = await db.select().from(schema.users).where(eq(schema.users.id, userId));
-    const settings = await db.select().from(schema.userSettings).where(eq(schema.userSettings.userId, userId));
-    const threads = await db.select().from(schema.chatThreads).where(eq(schema.chatThreads.userId, userId));
+    const settings = await db
+      .select()
+      .from(schema.userSettings)
+      .where(eq(schema.userSettings.userId, userId));
+    const threads = await db
+      .select()
+      .from(schema.chatThreads)
+      .where(eq(schema.chatThreads.userId, userId));
     const threadIds = threads.map((t) => t.id);
     const messages = threadIds.length
-      ? await db.select().from(schema.chatMessages).where(inArray(schema.chatMessages.threadId, threadIds))
+      ? await db
+          .select()
+          .from(schema.chatMessages)
+          .where(inArray(schema.chatMessages.threadId, threadIds))
       : [];
 
-    const journalEntries = await db.select().from(schema.journalEntries).where(eq(schema.journalEntries.userId, userId));
+    const journalEntries = await db
+      .select()
+      .from(schema.journalEntries)
+      .where(eq(schema.journalEntries.userId, userId));
     const alerts = await db.select().from(schema.alerts).where(eq(schema.alerts.userId, userId));
-    const symbols = await db.select().from(schema.userSymbols).where(eq(schema.userSymbols.userId, userId));
-    const pushSubscriptions = await db.select().from(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.userId, userId));
-    const memories = await db.select().from(schema.memoryEmbeddings).where(eq(schema.memoryEmbeddings.userId, userId));
-    const sharedSnapshots = await db.select().from(schema.sharedSnapshots).where(eq(schema.sharedSnapshots.userId, userId));
-    const telemetry = await db.select().from(schema.chatTelemetry).where(eq(schema.chatTelemetry.userId, userId));
-    const spend = await db.select().from(schema.dailyAiSpend).where(eq(schema.dailyAiSpend.userId, userId));
-    const briefings = await db.select().from(schema.briefingsEmitted).where(eq(schema.briefingsEmitted.userId, userId));
-    const auditLogs = await db.select().from(schema.auditLogs).where(eq(schema.auditLogs.userId, userId));
+    const symbols = await db
+      .select()
+      .from(schema.userSymbols)
+      .where(eq(schema.userSymbols.userId, userId));
+    const pushSubscriptions = await db
+      .select()
+      .from(schema.pushSubscriptions)
+      .where(eq(schema.pushSubscriptions.userId, userId));
+    const memories = await db
+      .select()
+      .from(schema.memoryEmbeddings)
+      .where(eq(schema.memoryEmbeddings.userId, userId));
+    const sharedSnapshots = await db
+      .select()
+      .from(schema.sharedSnapshots)
+      .where(eq(schema.sharedSnapshots.userId, userId));
+    const telemetry = await db
+      .select()
+      .from(schema.chatTelemetry)
+      .where(eq(schema.chatTelemetry.userId, userId));
+    const spend = await db
+      .select()
+      .from(schema.dailyAiSpend)
+      .where(eq(schema.dailyAiSpend.userId, userId));
+    const briefings = await db
+      .select()
+      .from(schema.briefingsEmitted)
+      .where(eq(schema.briefingsEmitted.userId, userId));
+    const auditLogs = await db
+      .select()
+      .from(schema.auditLogs)
+      .where(eq(schema.auditLogs.userId, userId));
 
     // Strip userId from all exported records for security (3.6.2)
     const data = {
       exportedAt: new Date().toISOString(),
-      profile: profile ? { ...profile, hashedPassword: undefined, twoFactorSecret: undefined } : null,
+      profile: profile
+        ? { ...profile, hashedPassword: undefined, twoFactorSecret: undefined }
+        : null,
       settings: settings.map((s) => ({ ...s, userId: undefined, aiApiKeys: undefined })),
       threads: threads.map((t) => ({ ...t, userId: undefined })),
       messages: messages.map((m) => ({ ...m, userId: undefined })),

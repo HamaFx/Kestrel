@@ -19,20 +19,28 @@
 // Data & cache card — local-storage management. The personal app keeps
 // bookmarks and prefs in localStorage; this card lets the user clear
 // individual keys or wipe everything stored on this device.
-
-import {IconBookmark, IconDownload, IconMessage, IconArrowBackUp, IconTrash, IconUserX, IconEye, IconEyeOff} from '@tabler/icons-react';
-import { useEffect, useState, useTransition } from 'react';
+import {
+  IconArrowBackUp,
+  IconBookmark,
+  IconDownload,
+  IconEye,
+  IconEyeOff,
+  IconMessage,
+  IconTrash,
+  IconUserX,
+} from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
+import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/components/ui/confirm-drawer';
+import { Input } from '@/components/ui/input';
+import { migrateLegacyStorageNamespace } from '@/lib/storage';
 
 import { clearChatHistoryAction, deleteAccountAction, exportDataAction } from '../../actions';
-import { SettingsRow } from '../settings-row';
 import { RowDivider } from '../row-divider';
-import { migrateLegacyStorageNamespace } from '@/lib/storage';
+import { SettingsRow } from '../settings-row';
 
 const KEY_BOOKMARKS = 'kestrel:news:bookmarks';
 const KEY_PREFS = 'kestrel:prefs:v1';
@@ -84,7 +92,8 @@ export function DataCard() {
   async function clearChatHistory() {
     const ok = await confirm({
       title: 'Clear chat history?',
-      description: 'This will permanently delete all conversations from the server. This action cannot be undone.',
+      description:
+        'This will permanently delete all conversations from the server. This action cannot be undone.',
       confirmLabel: 'Delete all',
       tone: 'danger',
     });
@@ -171,7 +180,7 @@ export function DataCard() {
   return (
     <section
       aria-labelledby="data-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-1 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
     >
       <header className="flex items-center gap-3 pb-2">
         <h2 id="data-heading" className="text-fg text-base font-semibold tracking-tight">
@@ -224,12 +233,7 @@ export function DataCard() {
         label="Reset preferences"
         description="Clear local theme + default symbol overrides"
         action={
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={() => void resetPrefs()}
-          >
+          <Button type="button" size="sm" variant="secondary" onClick={() => void resetPrefs()}>
             Reset
           </Button>
         }
@@ -268,7 +272,10 @@ export function DataCard() {
             variant="secondary"
             onClick={async () => {
               const pwd = window.prompt('Enter your account password to export data:');
-              if (!pwd) { toast.error('Password is required to export your data'); return; }
+              if (!pwd) {
+                toast.error('Password is required to export your data');
+                return;
+              }
               const result = await exportDataAction(pwd);
               if (result.ok && result.data) {
                 const blob = new Blob([result.data], { type: 'application/json' });
@@ -280,7 +287,9 @@ export function DataCard() {
                 URL.revokeObjectURL(url);
                 toast.success('Data export ready');
               } else {
-                toast.error('error' in result ? (result.error ?? 'Export failed') : 'Export failed');
+                toast.error(
+                  'error' in result ? (result.error ?? 'Export failed') : 'Export failed',
+                );
               }
             }}
           >
@@ -295,17 +304,16 @@ export function DataCard() {
       {/* Delete account */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <IconUserX className="size-4 text-danger" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-fg-muted">
+          <IconUserX className="text-danger size-4" />
+          <h3 className="text-fg-muted text-xs font-bold tracking-wider uppercase">
             Delete account
           </h3>
         </div>
-        <p className="text-xs text-fg-subtle">
-          Permanently delete your account and all associated data. This action
-          cannot be undone.
+        <p className="text-fg-subtle text-xs">
+          Permanently delete your account and all associated data. This action cannot be undone.
         </p>
-        <div className="flex items-end gap-2 flex-wrap">
-          <div className="flex flex-col gap-1 flex-1 max-w-64">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex max-w-64 flex-1 flex-col gap-1">
             <label htmlFor="delete-pwd" className="text-caption text-fg-muted">
               Confirm your password
             </label>
@@ -321,15 +329,19 @@ export function DataCard() {
               <button
                 type="button"
                 onClick={() => setShowDeletePassword(!showDeletePassword)}
-                className="text-fg-muted hover:text-fg absolute right-2 top-1/2 -translate-y-1/2"
+                className="text-fg-muted hover:text-fg absolute top-1/2 right-2 -translate-y-1/2"
                 tabIndex={-1}
                 aria-label={showDeletePassword ? 'Hide password' : 'Show password'}
               >
-                {showDeletePassword ? <IconEyeOff className="size-3.5" /> : <IconEye className="size-3.5" />}
+                {showDeletePassword ? (
+                  <IconEyeOff className="size-3.5" />
+                ) : (
+                  <IconEye className="size-3.5" />
+                )}
               </button>
             </div>
           </div>
-          <div className="flex flex-col gap-1 w-28">
+          <div className="flex w-28 flex-col gap-1">
             <label htmlFor="delete-totp" className="text-caption text-fg-muted">
               2FA code (if enabled)
             </label>

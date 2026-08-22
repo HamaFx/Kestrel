@@ -41,35 +41,33 @@
 //   - Initial scroll uses an instant `scrollTop = scrollHeight`, never
 //     `behavior: 'smooth'` — smooth-scroll on mount is the source of the
 //     "drift" feeling.
-
 import { useChat } from '@ai-sdk/react';
-import { KestrelBrand } from '@/components/brand/kestrel-brand';
-import type { Symbol } from '@kestrel/shared';
+import type { Symbol, Timeframe } from '@kestrel/shared';
+import { IconArrowBackUp, IconArrowDown, IconX } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
-import {IconArrowDown, IconArrowBackUp, IconX} from '@tabler/icons-react';
+import { AnimatePresence, m } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { AnimatePresence, m } from 'motion/react';
-
-import { cn } from '@/lib/cn';
-import { getCsrfToken } from '@/lib/csrf';
-import { apiFetch, apiMutate } from '@/lib/api-client';
-import { useConfirm } from '@/components/ui/confirm-drawer';
-import { useAutoScroll } from '@/hooks/use-auto-scroll';
-import { useThreadTitle } from '@/hooks/use-thread-title';
-import { createKestrelChatTransport, type AgentProgress } from '@/lib/chat-transport';
 
 import { TradingViewWidget } from '@/app/(app)/chart/[symbol]/_components/tradingview-widget';
+import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import { useConfirm } from '@/components/ui/confirm-drawer';
 import { Segmented } from '@/components/ui/segmented';
-import type { Timeframe } from '@kestrel/shared';
-import { ChatTopBar, type ThreadSummary, type AnalysisMode } from './chat-top-bar';
+import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useThreadTitle } from '@/hooks/use-thread-title';
+import { apiFetch, apiMutate } from '@/lib/api-client';
+import { createKestrelChatTransport, type AgentProgress } from '@/lib/chat-transport';
+import { cn } from '@/lib/cn';
+import { getCsrfToken } from '@/lib/csrf';
+
+import { ThreadSummaryHeader } from './_components/thread-summary-header';
+import { ChatTopBar, type AnalysisMode, type ThreadSummary } from './chat-top-bar';
 import { Composer } from './composer';
 import { ComposerActionChips } from './composer-action-chips';
 import { MessageList } from './message-list';
-import { QuickPrompts } from './quick-prompts';
 import { AgentDeliberation } from './parts/agent-deliberation';
-import { ThreadSummaryHeader } from './_components/thread-summary-header';
+import { QuickPrompts } from './quick-prompts';
 
 interface ChatScreenProps {
   threadId: string;
@@ -133,7 +131,10 @@ export function ChatScreen({
   const customInstructions = initialCustomInstructions ?? '';
 
   // Phase 1.5 — thread summary header state.
-  const [summary, setSummary] = useState<{ synopsis: string; insights: Array<{ text: string; symbol?: string | null }> } | null>(null);
+  const [summary, setSummary] = useState<{
+    synopsis: string;
+    insights: Array<{ text: string; symbol?: string | null }>;
+  } | null>(null);
 
   const [splitMode, setSplitMode] = useState(false);
   const [splitTf, setSplitTf] = useState<Timeframe>('15m');
@@ -172,9 +173,7 @@ export function ChatScreen({
           if (csrf) headers['X-CSRF-Token'] = csrf;
           if (prefsJson) headers['X-AI-Prefs'] = prefsJson;
 
-          return Object.keys(headers).length > 0
-            ? { headers, body: reqBody }
-            : { body: reqBody };
+          return Object.keys(headers).length > 0 ? { headers, body: reqBody } : { body: reqBody };
         },
         onAgentProgress: (p) => onAgentProgressRef.current(p),
       }),
@@ -282,10 +281,13 @@ export function ChatScreen({
     toast.success('Copied');
   }, []);
 
-  const handleRegenerate = useCallback((opts?: { modelOverride?: string }) => {
-    if (opts?.modelOverride) modelOverrideRef.current = opts.modelOverride;
-    void regenerate();
-  }, [regenerate]);
+  const handleRegenerate = useCallback(
+    (opts?: { modelOverride?: string }) => {
+      if (opts?.modelOverride) modelOverrideRef.current = opts.modelOverride;
+      void regenerate();
+    },
+    [regenerate],
+  );
 
   const handleChatModelChange = useCallback((nextModel: string) => {
     const separator = nextModel.indexOf(':');
@@ -325,70 +327,76 @@ export function ChatScreen({
       .finally(() => setModelSelectionPending(false));
   }, []);
 
-  const handleAnalysisModeChange = useCallback((nextMode: AnalysisMode) => {
-    const previousMode = analysisModeRef.current;
-    // Update the ref before state so an immediately-submitted turn uses the
-    // mode the user just selected, even before React re-renders.
-    analysisModeRef.current = nextMode;
-    setAnalysisMode(nextMode);
-    void apiMutate(`/api/chat/threads/${threadId}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ analysisMode: nextMode }),
-    }).catch((err) => {
-      analysisModeRef.current = previousMode;
-      setAnalysisMode(previousMode);
-      toast.error('Could not save analysis mode', {
-        description: err instanceof Error ? err.message : 'Please try again.',
-      });
-    });
-  }, [threadId]);
-
-  const handleEdit = useCallback(async (messageId: string, newText: string) => {
-    // Read messages from the ref so this callback is stable across stream tokens
-    // (avoids recreating it on every token, which would defeat MessageList's memo).
-    const cur = messagesRef.current;
-    const idx = cur.findIndex((m) => m.id === messageId);
-    if (idx === -1) return;
-    const isLastMessage = idx === cur.length - 1;
-    if (!isLastMessage) {
-      const ok = await confirm({
-        title: 'Edit earlier message?',
-        description: 'Editing this message will create a new thread branch. The current thread will be preserved.',
-        confirmLabel: 'Create branch',
-        tone: 'default',
-      });
-      if (!ok) return;
-      try {
-        const { threadId: newThreadId } = await apiMutate<{ threadId: string }>('/api/chat/threads/fork', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            sourceThreadId: threadId,
-            atMessageId: messageId,
-            newText,
-          }),
+  const handleAnalysisModeChange = useCallback(
+    (nextMode: AnalysisMode) => {
+      const previousMode = analysisModeRef.current;
+      // Update the ref before state so an immediately-submitted turn uses the
+      // mode the user just selected, even before React re-renders.
+      analysisModeRef.current = nextMode;
+      setAnalysisMode(nextMode);
+      void apiMutate(`/api/chat/threads/${threadId}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ analysisMode: nextMode }),
+      }).catch((err) => {
+        analysisModeRef.current = previousMode;
+        setAnalysisMode(previousMode);
+        toast.error('Could not save analysis mode', {
+          description: err instanceof Error ? err.message : 'Please try again.',
         });
-        toast.success('Forked into a new thread');
-        // Match newChat(): refresh the server component so the forked
-        // thread's messages hydrate into useChat, then navigate. Without
-        // the refresh, useChat keeps the source thread's state and the
-        // forked thread renders stale messages.
-        router.refresh();
-        router.push(`/chat/${newThreadId}`);
-      } catch (err) {
-        toast.error(
-          err instanceof Error
-            ? err.message
-            : 'Could not fork thread',
-        );
+      });
+    },
+    [threadId],
+  );
+
+  const handleEdit = useCallback(
+    async (messageId: string, newText: string) => {
+      // Read messages from the ref so this callback is stable across stream tokens
+      // (avoids recreating it on every token, which would defeat MessageList's memo).
+      const cur = messagesRef.current;
+      const idx = cur.findIndex((m) => m.id === messageId);
+      if (idx === -1) return;
+      const isLastMessage = idx === cur.length - 1;
+      if (!isLastMessage) {
+        const ok = await confirm({
+          title: 'Edit earlier message?',
+          description:
+            'Editing this message will create a new thread branch. The current thread will be preserved.',
+          confirmLabel: 'Create branch',
+          tone: 'default',
+        });
+        if (!ok) return;
+        try {
+          const { threadId: newThreadId } = await apiMutate<{ threadId: string }>(
+            '/api/chat/threads/fork',
+            {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                sourceThreadId: threadId,
+                atMessageId: messageId,
+                newText,
+              }),
+            },
+          );
+          toast.success('Forked into a new thread');
+          // Match newChat(): refresh the server component so the forked
+          // thread's messages hydrate into useChat, then navigate. Without
+          // the refresh, useChat keeps the source thread's state and the
+          // forked thread renders stale messages.
+          router.refresh();
+          router.push(`/chat/${newThreadId}`);
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Could not fork thread');
+        }
+        return;
       }
-      return;
-    }
-    const sliced = cur.slice(0, idx);
-    setMessages(sliced);
-    void sendMessage({ text: newText });
-  }, [threadId, router, sendMessage, setMessages, confirm]);
+      const sliced = cur.slice(0, idx);
+      setMessages(sliced);
+      void sendMessage({ text: newText });
+    },
+    [threadId, router, sendMessage, setMessages, confirm],
+  );
 
   const isEmpty = messages.length === 0;
 
@@ -418,13 +426,13 @@ export function ChatScreen({
         onToggleSplitMode={() => setSplitMode((v) => !v)}
       />
 
-      <div className="flex flex-1 min-h-0 w-full overflow-hidden">
+      <div className="flex min-h-0 w-full flex-1 overflow-hidden">
         {/* Left Split Pane: Live TradingView Pro Chart */}
         {splitMode && (
-          <div className="hidden xl:flex xl:w-1/2 2xl:w-[54%] flex-col border-r border-border bg-bg h-full overflow-hidden shrink-0">
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/60 bg-bg-elev-1 text-xs">
+          <div className="border-border bg-bg hidden h-full shrink-0 flex-col overflow-hidden border-r xl:flex xl:w-1/2 2xl:w-[54%]">
+            <div className="border-border/60 bg-bg-elev-1 flex items-center justify-between border-b px-3 py-1.5 text-xs">
               <div className="flex items-center gap-2 font-mono">
-                <span className="font-bold text-fg tracking-tight">{activeChartSymbol}</span>
+                <span className="text-fg font-bold tracking-tight">{activeChartSymbol}</span>
                 <span className="text-fg-subtle text-[11px]">TradingView</span>
               </div>
               <div className="flex items-center gap-1">
@@ -442,16 +450,24 @@ export function ChatScreen({
                 />
               </div>
             </div>
-            <div className="flex-1 w-full min-h-0 relative">
+            <div className="relative min-h-0 w-full flex-1">
               <TradingViewWidget symbol={activeChartSymbol} tf={splitTf} theme="dark" />
             </div>
           </div>
         )}
 
         {/* Right Pane / Full Chat View */}
-        <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative">
-          <div ref={setScrollContainer} className="scrollbar-hide no-overscroll relative flex-1 overflow-y-auto">
-            <div className={cn('mx-auto py-4 px-4', splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-2xl')}>
+        <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+          <div
+            ref={setScrollContainer}
+            className="scrollbar-hide no-overscroll relative flex-1 overflow-y-auto"
+          >
+            <div
+              className={cn(
+                'mx-auto px-4 py-4',
+                splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-2xl',
+              )}
+            >
               {summary ? (
                 <div className="px-3 pt-2">
                   <ThreadSummaryHeader
@@ -507,11 +523,11 @@ export function ChatScreen({
                     transition={{ duration: 0.2 }}
                     role="alert"
                     className={cn(
-                      'bg-danger/10 text-danger border border-danger/30 mx-3 mb-2 flex items-center justify-between gap-2 rounded-sm p-3 text-xs',
+                      'bg-danger/10 text-danger border-danger/30 mx-3 mb-2 flex items-center justify-between gap-2 rounded-sm border p-3 text-xs',
                     )}
                   >
                     <span className="line-clamp-2 flex-1">{error.message}</span>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => {
@@ -520,7 +536,7 @@ export function ChatScreen({
                           }
                         }}
                         aria-label="Retry"
-                        className="bg-danger/20 hover:bg-danger/30 border border-danger/30 inline-flex items-center gap-1 rounded-sm px-3 py-1.5 text-body-sm font-medium"
+                        className="bg-danger/20 hover:bg-danger/30 border-danger/30 text-body-sm inline-flex items-center gap-1 rounded-sm border px-3 py-1.5 font-medium"
                       >
                         <IconArrowBackUp className="size-3.5" /> Retry
                       </button>
@@ -549,7 +565,7 @@ export function ChatScreen({
                   transition={{ duration: 0.2 }}
                   onClick={scrollToBottom}
                   aria-label="Scroll to latest"
-                  className="scroll-fab surface-elevated text-fg absolute left-1/2 z-30 inline-flex h-11 -translate-x-1/2 items-center gap-1.5 rounded-sm px-4 text-body-sm font-medium transition-all"
+                  className="scroll-fab surface-elevated text-fg text-body-sm absolute left-1/2 z-30 inline-flex h-11 -translate-x-1/2 items-center gap-1.5 rounded-sm px-4 font-medium transition-all"
                   style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
                 >
                   <IconArrowDown className="size-3.5" />
@@ -559,7 +575,12 @@ export function ChatScreen({
             </AnimatePresence>
           </div>
 
-          <div className={cn('mx-auto w-full px-4 flex flex-col', splitMode ? 'max-w-2xl xl:max-w-3xl' : 'max-w-2xl')}>
+          <div
+            className={cn(
+              'mx-auto flex w-full flex-col px-4',
+              splitMode ? 'max-w-2xl xl:max-w-3xl' : 'max-w-2xl',
+            )}
+          >
             {!isEmpty && (
               <ComposerActionChips
                 pinnedSymbol={pinnedSymbol}
@@ -574,7 +595,9 @@ export function ChatScreen({
               onSubmit={(text, images) => {
                 lastUserTextRef.current = text;
                 if (analysisMode !== 'single' && images.length > 0) {
-                  toast('Image analysis runs in single-agent mode. Switching to single-agent for this turn.');
+                  toast(
+                    'Image analysis runs in single-agent mode. Switching to single-agent for this turn.',
+                  );
                   singleTurnOverrideRef.current = 'single';
                 }
                 if (images.length === 0) {
@@ -618,24 +641,17 @@ interface EmptyChatStateProps {
 function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProps) {
   return (
     <div className="flex min-h-[60svh] flex-col items-center justify-center gap-6 px-4 py-10 text-center">
-      <KestrelBrand
-        variant="lockup"
-        decorative
-        priority
-        className="w-44 opacity-95"
-      />
+      <KestrelBrand variant="lockup" decorative priority className="w-44 opacity-95" />
 
       <div className="flex max-w-sm flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">What are you watching?</h2>
-        <p className="text-fg-muted text-sm leading-relaxed">Ask Kestrel about price action, macro risk, news, or your trading journal.</p>
+        <p className="text-fg-muted text-sm leading-relaxed">
+          Ask Kestrel about price action, macro risk, news, or your trading journal.
+        </p>
       </div>
 
       <div className="w-full max-w-md">
-        <QuickPrompts
-          onSelect={onSelect}
-          pinnedSymbol={pinnedSymbol}
-          disabled={disabled}
-        />
+        <QuickPrompts onSelect={onSelect} pinnedSymbol={pinnedSymbol} disabled={disabled} />
       </div>
     </div>
   );

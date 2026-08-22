@@ -2,8 +2,24 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconCheck, IconLoader2 } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
-import {IconCheck, IconLoader2} from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import { fetchCsrf } from '@/lib/csrf';
 
@@ -17,7 +33,13 @@ interface Plan {
   monthlyTokenCap: number | null;
 }
 
-export function BillingPlans({ plans, currentPlanId }: { plans: Plan[]; currentPlanId: string | null }) {
+export function BillingPlans({
+  plans,
+  currentPlanId,
+}: {
+  plans: Plan[];
+  currentPlanId: string | null;
+}) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const checkoutKeys = useRef(new Map<string, string>());
@@ -56,14 +78,17 @@ export function BillingPlans({ plans, currentPlanId }: { plans: Plan[]; currentP
     <div className="flex flex-col gap-3">
       <h3 className="text-fg text-sm font-semibold">Available Plans</h3>
       {error && (
-        <div className="rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <div className="border-danger/30 bg-danger/10 text-danger rounded-sm border px-3 py-2 text-sm">
           {error}
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
         {plans.map((plan) => {
           const isCurrent = plan.id === currentPlanId;
-          const price = plan.priceUsdCents === 0 ? 'Free' : `$${(plan.priceUsdCents / 100).toFixed(0)}/${plan.interval}`;
+          const price =
+            plan.priceUsdCents === 0
+              ? 'Free'
+              : `$${(plan.priceUsdCents / 100).toFixed(0)}/${plan.interval}`;
           return (
             <div
               key={plan.id}
@@ -77,16 +102,16 @@ export function BillingPlans({ plans, currentPlanId }: { plans: Plan[]; currentP
               <div className="flex items-center justify-between">
                 <h4 className="text-fg font-semibold">{plan.name}</h4>
                 {isCurrent && (
-                  <span className="rounded-sm bg-bg-elev-2 px-2 py-0.5 text-xs font-medium text-fg">
+                  <span className="bg-bg-elev-2 text-fg rounded-sm px-2 py-0.5 text-xs font-medium">
                     Current
                   </span>
                 )}
               </div>
-              <p className="text-2xl font-bold text-fg">{price}</p>
-              <ul className="flex flex-col gap-1.5 text-sm text-fg-subtle">
+              <p className="text-fg text-2xl font-bold">{price}</p>
+              <ul className="text-fg-subtle flex flex-col gap-1.5 text-sm">
                 {(plan.features ?? []).map((feat) => (
                   <li key={feat} className="flex items-center gap-2">
-                    <IconCheck className="size-3.5 text-fg" />
+                    <IconCheck className="text-fg size-3.5" />
                     {feat.replace(/_/g, ' ')}
                   </li>
                 ))}
@@ -95,7 +120,7 @@ export function BillingPlans({ plans, currentPlanId }: { plans: Plan[]; currentP
                 <button
                   onClick={() => handleCheckout(plan.id)}
                   disabled={loading !== null}
-                  className="mt-auto inline-flex items-center justify-center gap-2 rounded-sm bg-fg px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-fg/90 disabled:opacity-50"
+                  className="bg-fg hover:bg-fg/90 mt-auto inline-flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
                 >
                   {loading === plan.id ? (
                     <IconLoader2 className="size-4 animate-spin" />
@@ -105,7 +130,9 @@ export function BillingPlans({ plans, currentPlanId }: { plans: Plan[]; currentP
                 </button>
               )}
               {!isCurrent && plan.priceUsdCents === 0 && (
-                <span className="mt-auto text-sm text-fg-subtle">Free tier — no payment needed</span>
+                <span className="text-fg-subtle mt-auto text-sm">
+                  Free tier — no payment needed
+                </span>
               )}
             </div>
           );

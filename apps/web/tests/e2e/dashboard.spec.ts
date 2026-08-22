@@ -22,7 +22,7 @@
 // should not break the page.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Dashboard', () => {
   test('dashboard page loads without errors', async ({ authedPage }) => {

@@ -35,6 +35,8 @@ export function isEvalCaseOk(result: PromptResult): boolean {
  */
 export function emitEvalMetrics(results: readonly PromptResult[]): void {
   for (const result of results) {
-    metrics.increment('eval_case_total', { tags: { result: isEvalCaseOk(result) ? 'ok' : 'fail' } });
+    metrics.increment('eval_case_total', {
+      tags: { result: isEvalCaseOk(result) ? 'ok' : 'fail' },
+    });
   }
 }

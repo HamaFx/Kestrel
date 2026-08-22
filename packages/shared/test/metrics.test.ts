@@ -16,23 +16,20 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  METRIC_NAMES,
-  MetricsRegistry,
-  isMetricName,
-  metrics,
-} from '../src/metrics';
+import { isMetricName, METRIC_NAMES, metrics, MetricsRegistry } from '../src/metrics';
 
 describe('metrics registry', () => {
   it('exposes the AI + worker SLI metric names', () => {
-    expect(METRIC_NAMES).toEqual(expect.arrayContaining([
-      'chat_request_total',
-      'tool_call_total',
-      'provider_fallback_total',
-      'budget_release_failed_total',
-      'ttft_ms',
-      'turn_cost_usd',
-    ]));
+    expect(METRIC_NAMES).toEqual(
+      expect.arrayContaining([
+        'chat_request_total',
+        'tool_call_total',
+        'provider_fallback_total',
+        'budget_release_failed_total',
+        'ttft_ms',
+        'turn_cost_usd',
+      ]),
+    );
     expect(isMetricName('ttft_ms')).toBe(true);
     expect(isMetricName('not_a_metric')).toBe(false);
   });
@@ -73,8 +70,16 @@ describe('metrics registry', () => {
     registry.observe('total_latency_ms', 20, { tags: { mode: 'quick' } });
 
     const snap = registry.snapshot();
-    expect(snap.histograms['total_latency_ms{mode=quick}']).toMatchObject({ count: 2, min: 10, max: 20 });
-    expect(snap.histograms['total_latency_ms{mode=full}']).toMatchObject({ count: 1, min: 40, max: 40 });
+    expect(snap.histograms['total_latency_ms{mode=quick}']).toMatchObject({
+      count: 2,
+      min: 10,
+      max: 20,
+    });
+    expect(snap.histograms['total_latency_ms{mode=full}']).toMatchObject({
+      count: 1,
+      min: 40,
+      max: 40,
+    });
   });
 
   it('ignores non-finite histogram observations', () => {

@@ -1,11 +1,28 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // SEC-1: Matcher-coverage test — ensure every withAuth-protected route
 // is covered by the middleware matcher regex.
 
-import { describe, it, expect } from 'vitest';
-import { readdirSync, statSync, readFileSync, existsSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join, relative } from 'path';
+
+import { describe, expect, it } from 'vitest';
 
 const WEB_DIR = join(import.meta.dirname, '..', 'src');
 
@@ -19,10 +36,24 @@ const MATCHER_REGEX =
 
 /** Exclusion prefixes — routes intentionally NOT covered by middleware. */
 const EXCLUDED_PREFIXES = [
-  'auth', 'share', 'api/auth', 'api/dev/login', 'api/cron', 'api/telegram',
-  'api/billing/webhook', 'api/health/public',
-  'debug', 'sw.js', 'sw-precache.json', '_next/static', '_next/image',
-  'favicon.ico', 'manifest.webmanifest', 'icons', 'robots.txt', 'sitemap.xml',
+  'auth',
+  'share',
+  'api/auth',
+  'api/dev/login',
+  'api/cron',
+  'api/telegram',
+  'api/billing/webhook',
+  'api/health/public',
+  'debug',
+  'sw.js',
+  'sw-precache.json',
+  '_next/static',
+  '_next/image',
+  'favicon.ico',
+  'manifest.webmanifest',
+  'icons',
+  'robots.txt',
+  'sitemap.xml',
 ];
 
 /** Find all route.ts files recursively. */
@@ -54,9 +85,7 @@ function importsWithAuth(filePath: string): boolean {
 /** Map route.ts path to URL path. */
 function filePathToUrlPath(filePath: string): string {
   const rel = relative(WEB_DIR, filePath);
-  let urlPath = rel
-    .replace(/^app\//, '/')
-    .replace(/\/route\.tsx?$/, '');
+  let urlPath = rel.replace(/^app\//, '/').replace(/\/route\.tsx?$/, '');
   urlPath = urlPath.replace(/\/\([^)]+\)/g, '');
   urlPath = urlPath.replace(/\/+/g, '/');
   return urlPath;

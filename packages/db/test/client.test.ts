@@ -1,4 +1,23 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Re-import withDbRetry after mocks. Other functions need env vars.
+import { withDbRetry } from '../src/client';
 
 // Mock postgres before importing client
 const mockEnd = vi.fn().mockResolvedValue(undefined);
@@ -16,9 +35,6 @@ vi.mock('drizzle-orm/postgres-js', () => ({
     execute: vi.fn(),
   })),
 }));
-
-// Re-import withDbRetry after mocks. Other functions need env vars.
-import { withDbRetry } from '../src/client';
 
 describe('withDbRetry', () => {
   it('returns the result of a successful function', async () => {
@@ -44,9 +60,7 @@ describe('withDbRetry', () => {
       throw new Error('Connection terminated unexpectedly');
     });
 
-    await expect(withDbRetry(fn, 2, 1)).rejects.toThrow(
-      'Connection terminated unexpectedly',
-    );
+    await expect(withDbRetry(fn, 2, 1)).rejects.toThrow('Connection terminated unexpectedly');
     // maxRetries=2 means attempts 0,1,2 (3 total) then throws
     expect(fn).toHaveBeenCalledTimes(3);
   });

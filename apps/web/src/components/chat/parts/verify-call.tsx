@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `verify_call` tool part.
@@ -8,7 +24,7 @@
 //   - agree=false — amber ring (warning, not error), one row per caveat
 //                   with a glyph keyed off `caveat.code`.
 
-import {IconAlertTriangle, IconCircleCheck} from '@tabler/icons-react';
+import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 
 import type { ToolPartProps } from './registry';
 
@@ -34,7 +50,9 @@ export function VerifyCallPart({ output, state, errorMessage }: ToolPartProps<'v
     <div className={`bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3 ${tone}`}>
       <header className={`flex items-center gap-2 text-sm font-semibold ${headerTone}`}>
         <Icon className="size-4" />
-        {output.agree ? 'Setup verified' : `${output.caveats.length} caveat${output.caveats.length === 1 ? '' : 's'}`}
+        {output.agree
+          ? 'Setup verified'
+          : `${output.caveats.length} caveat${output.caveats.length === 1 ? '' : 's'}`}
       </header>
 
       <p className="text-fg text-xs tabular-nums">{output.rationale}</p>
@@ -44,7 +62,7 @@ export function VerifyCallPart({ output, state, errorMessage }: ToolPartProps<'v
           {output.caveats.map((c, i) => (
             <li
               key={i}
-              className="border-warn/30 bg-warn/5 flex items-baseline gap-2 rounded-sm border px-2 py-1.5 text-body-sm"
+              className="border-warn/30 bg-warn/5 text-body-sm flex items-baseline gap-2 rounded-sm border px-2 py-1.5"
             >
               <span className="text-warn font-semibold">{CAVEAT_GLYPH[c.code] ?? '!'}</span>
               <span className="text-fg flex-1">{c.message}</span>

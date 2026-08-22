@@ -56,18 +56,14 @@ describe('fetchLiveTick', () => {
   });
 
   it('forwards the worker-recorded source string to consumers', async () => {
-    const db = makeFakeDb([
-      { mid: 1.27, ts: new Date(), source: 'biquote-rest' },
-    ]);
+    const db = makeFakeDb([{ mid: 1.27, ts: new Date(), source: 'biquote-rest' }]);
     const r = await fetchLiveTick({ symbol: 'GBPUSD', db });
     expect(r.provider).toBe('biquote-rest');
   });
 
   it('honours a custom maxAgeMs (test injection point)', async () => {
     const db = makeFakeDb([]);
-    await expect(
-      fetchLiveTick({ symbol: 'EURUSD', db, maxAgeMs: 1_000 }),
-    ).rejects.toMatchObject({
+    await expect(fetchLiveTick({ symbol: 'EURUSD', db, maxAgeMs: 1_000 })).rejects.toMatchObject({
       provider: 'live-ticks',
       message: expect.stringContaining('1000ms') as unknown as string,
     });

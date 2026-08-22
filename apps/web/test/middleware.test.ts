@@ -1,7 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock next-auth so the middleware's auth() wrapper calls the inner handler
 // with a controlled req.auth, letting us test CSRF + header injection in
@@ -21,7 +37,10 @@ async function loadMiddleware(): Promise<MiddlewareFn> {
   return mw as MiddlewareFn;
 }
 
-type MiddlewareFn = (req: NextRequest, ctx: { params: Promise<Record<string, string | string[]>> }) => Promise<Response>;
+type MiddlewareFn = (
+  req: NextRequest,
+  ctx: { params: Promise<Record<string, string | string[]>> },
+) => Promise<Response>;
 
 function makeRequest(
   pathname: string,
@@ -61,7 +80,9 @@ describe('middleware — Phase 0.9', () => {
   });
 
   it('mints a CSRF cookie when one is absent', async () => {
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/chat', { method: 'GET' });
     const middleware = await loadMiddleware();
@@ -73,9 +94,14 @@ describe('middleware — Phase 0.9', () => {
   });
 
   it('preserves an existing CSRF cookie', async () => {
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
-    const req = makeRequest('/api/chat', { method: 'GET', cookies: { hfx_csrf: 'existing-token' } });
+    const req = makeRequest('/api/chat', {
+      method: 'GET',
+      cookies: { hfx_csrf: 'existing-token' },
+    });
     const middleware = await loadMiddleware();
     const res = (await middleware(req, ctx)) as NextResponse;
 
@@ -84,7 +110,9 @@ describe('middleware — Phase 0.9', () => {
   });
 
   it('rejects state-changing API requests without CSRF cookie', async () => {
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/chat', {
       method: 'POST',
@@ -99,7 +127,9 @@ describe('middleware — Phase 0.9', () => {
   });
 
   it('rejects state-changing API requests when CSRF header does not match cookie', async () => {
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/chat', {
       method: 'POST',
@@ -113,7 +143,9 @@ describe('middleware — Phase 0.9', () => {
   });
 
   it('allows state-changing API requests with matching CSRF tokens', async () => {
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/chat', {
       method: 'POST',
@@ -130,7 +162,10 @@ describe('middleware — Phase 0.9', () => {
     const userId = '00000000-0000-0000-0000-000000000001';
     mockAuth.mockImplementation(
       (handler: MiddlewareFn) => async (req: NextRequest) =>
-        handler(Object.assign(req, { auth: { user: { id: userId, email: 'test@example.com' } } }), ctx),
+        handler(
+          Object.assign(req, { auth: { user: { id: userId, email: 'test@example.com' } } }),
+          ctx,
+        ),
     );
 
     const req = makeRequest('/api/chat', { method: 'GET' });
@@ -145,7 +180,9 @@ describe('middleware — Phase 0.9', () => {
   });
 
   it('does not inject x-user-id when session is missing', async () => {
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/chat', { method: 'GET' });
     const middleware = await loadMiddleware();
@@ -158,7 +195,9 @@ describe('middleware — Phase 0.9', () => {
   it('allows legacy bypass in non-production', async () => {
     process.env.AUTH_MODE = 'legacy';
     (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/chat', { method: 'GET' });
     const middleware = await loadMiddleware();
@@ -171,7 +210,9 @@ describe('middleware — Phase 0.9', () => {
   it('blocks legacy bypass when NODE_ENV is production', async () => {
     process.env.AUTH_MODE = 'legacy';
     (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/chat', { method: 'GET' });
     const middleware = await loadMiddleware();
@@ -182,7 +223,9 @@ describe('middleware — Phase 0.9', () => {
   });
 
   it('stamps every response with x-request-id', async () => {
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/chat', { method: 'GET' });
     const middleware = await loadMiddleware();
@@ -193,7 +236,9 @@ describe('middleware — Phase 0.9', () => {
   });
 
   it('skips CSRF enforcement for /api/auth routes', async () => {
-    mockAuth.mockImplementation((handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx));
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
 
     const req = makeRequest('/api/auth/signin', {
       method: 'POST',

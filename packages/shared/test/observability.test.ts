@@ -17,28 +17,30 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  OBSERVABILITY_EVENTS,
-  OBSERVABILITY_TERMINAL_STATUSES,
   isObservabilityEventName,
   isObservabilityTerminalStatus,
+  OBSERVABILITY_EVENTS,
+  OBSERVABILITY_TERMINAL_STATUSES,
   parseObservabilityEvent,
   parseObservabilitySpan,
 } from '../src/observability';
 
 describe('observability contracts', () => {
   it('contains the lifecycle events required by the AI and worker flows', () => {
-    expect(OBSERVABILITY_EVENTS).toEqual(expect.arrayContaining([
-      'job_queued',
-      'job_claimed',
-      'provider_fallback',
-      'agent_started',
-      'agent_failed',
-      'tool_failed',
-      'fusion_failed',
-      'budget_release_failed',
-      'run_completed',
-      'run_failed',
-    ]));
+    expect(OBSERVABILITY_EVENTS).toEqual(
+      expect.arrayContaining([
+        'job_queued',
+        'job_claimed',
+        'provider_fallback',
+        'agent_started',
+        'agent_failed',
+        'tool_failed',
+        'fusion_failed',
+        'budget_release_failed',
+        'run_completed',
+        'run_failed',
+      ]),
+    );
   });
 
   it('defines degraded completion separately from failure', () => {

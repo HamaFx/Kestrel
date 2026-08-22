@@ -6,6 +6,7 @@
  */
 
 import { and, asc, desc, eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 import type { EvalDatasetStatus } from '../schema/eval-datasets';
 
@@ -47,11 +48,7 @@ export async function getEvalDataset(version: string) {
   return row ?? null;
 }
 
-export async function listEvalDatasets(
-  limit = 50,
-  offset = 0,
-  status?: EvalDatasetStatus,
-) {
+export async function listEvalDatasets(limit = 50, offset = 0, status?: EvalDatasetStatus) {
   const db = getDb();
   return db
     .select()
@@ -81,11 +78,13 @@ export async function approveEvalDataset(input: {
       approvedBy: input.status === 'approved' ? input.reviewerId : null,
       approvedAt: input.status === 'approved' ? new Date() : null,
     })
-    .where(and(
-      eq(schema.evalDatasets.version, input.version),
-      // Content-addressed versions are immutable; only lifecycle metadata may change.
-      eq(schema.evalDatasets.status, expectedCurrentStatus[input.status]),
-    ))
+    .where(
+      and(
+        eq(schema.evalDatasets.version, input.version),
+        // Content-addressed versions are immutable; only lifecycle metadata may change.
+        eq(schema.evalDatasets.status, expectedCurrentStatus[input.status]),
+      ),
+    )
     .returning();
   return row ?? null;
 }

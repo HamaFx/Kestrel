@@ -1,15 +1,37 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import {
+  IconCheck,
+  IconLoader2,
+  IconMessages,
+  IconPlus,
+  IconSearch,
+  IconTrash,
+} from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import { IconSearch, IconPlus, IconLoader2, IconTrash, IconCheck, IconMessages } from '@tabler/icons-react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
-import { cn } from '@/lib/cn';
 import { apiMutate } from '@/lib/api-client';
+import { cn } from '@/lib/cn';
 import { formatRelative } from '@/lib/format';
 
 import type { ThreadSummary } from '../chat-top-bar';
@@ -22,7 +44,13 @@ interface ThreadSwitcherProps {
   onPickNew: () => void;
 }
 
-export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNew }: ThreadSwitcherProps) {
+export function ThreadSwitcher({
+  open,
+  onOpenChange,
+  threadId,
+  threads,
+  onPickNew,
+}: ThreadSwitcherProps) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   // Phase A — UX_UPGRADE_PLAN.md item 5.
@@ -129,7 +157,7 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
                 type="button"
                 onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
                 aria-pressed={selectMode}
-                className="text-fg-muted hover:text-fg border-border/60 hover:bg-bg-elev-2 inline-flex h-10 items-center gap-1.5 rounded-sm border px-3 text-caption font-medium"
+                className="text-fg-muted hover:text-fg border-border/60 hover:bg-bg-elev-2 text-caption inline-flex h-10 items-center gap-1.5 rounded-sm border px-3 font-medium"
               >
                 {selectMode ? 'Cancel' : 'Select'}
               </button>
@@ -145,7 +173,7 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
             <div className="relative">
               <IconSearch
                 aria-hidden="true"
-                className="text-fg-subtle absolute left-3 top-1/2 size-4 -translate-y-1/2"
+                className="text-fg-subtle absolute top-1/2 left-3 size-4 -translate-y-1/2"
               />
               <input
                 id="thread-search"
@@ -153,7 +181,7 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search…"
-                className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pl-10 pr-4 text-sm focus:outline-none"
+                className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-4 pl-10 text-sm focus:outline-none"
               />
             </div>
           </div>
@@ -175,7 +203,7 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
           </button>
         </div>
         <div className="border-border border-t" />
-        <ul className="scrollbar-hide flex max-h-[60svh] flex-col gap-1 overflow-y-auto px-2 pb-4 pt-2">
+        <ul className="scrollbar-hide flex max-h-[60svh] flex-col gap-1 overflow-y-auto px-2 pt-2 pb-4">
           {filtered.length === 0 ? (
             <li className="px-1">
               <EmptyState
@@ -215,11 +243,11 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
                     aria-checked={selectMode ? isSelected : undefined}
                     role={selectMode ? 'checkbox' : undefined}
                     className={cn(
-                      'flex min-h-14 w-full items-center gap-3 rounded-sm px-3 py-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none',
+                      'focus-visible:ring-brand flex min-h-14 w-full items-center gap-3 rounded-sm px-3 py-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none',
                       isActive && !selectMode
                         ? 'bg-bg-elev-3 text-fg'
                         : 'text-fg-muted hover:bg-bg-elev-2 hover:text-fg',
-                      isSelected && 'ring-1 ring-border bg-bg-elev-2 text-fg',
+                      isSelected && 'ring-border bg-bg-elev-2 text-fg ring-1',
                     )}
                   >
                     {selectMode ? (
@@ -227,10 +255,12 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
                         aria-hidden="true"
                         className={cn(
                           'inline-flex size-11 shrink-0 items-center justify-center rounded-sm border',
-                          isSelected ? 'bg-fg border-border text-black' : 'border-border/80 bg-bg-elev-1',
+                          isSelected
+                            ? 'bg-fg border-border text-black'
+                            : 'border-border/80 bg-bg-elev-1',
                         )}
                       >
-                        <span className="inline-flex size-5 items-center justify-center rounded-sm border border-border/80 bg-bg-elev-1">
+                        <span className="border-border/80 bg-bg-elev-1 inline-flex size-5 items-center justify-center rounded-sm border">
                           {isSelected ? <IconCheck className="size-3" strokeWidth={3} /> : null}
                         </span>
                       </span>
@@ -239,12 +269,12 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
                       <span className="block truncate font-semibold">
                         {t.title ?? 'New conversation'}
                       </span>
-                      <span className="text-fg-subtle mt-0.5 block text-body-sm tabular-nums">
+                      <span className="text-fg-subtle text-body-sm mt-0.5 block tabular-nums">
                         {formatRelative(t.updatedAt, now)}
                       </span>
                     </div>
                     {t.pinnedSymbol ? (
-                      <span className="bg-bg-elev-3 text-fg ring-border shrink-0 rounded-sm px-2 py-0.5 text-caption font-bold tabular-nums ring-1">
+                      <span className="bg-bg-elev-3 text-fg ring-border text-caption shrink-0 rounded-sm px-2 py-0.5 font-bold tabular-nums ring-1">
                         {t.pinnedSymbol}
                       </span>
                     ) : null}
@@ -261,14 +291,12 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
             aria-label="Bulk actions"
             className="border-border bg-bg-elev-1 sticky bottom-0 flex items-center justify-between gap-2 border-t p-3"
           >
-            <span className="text-fg-muted text-caption">
-              {selectedIds.size} selected
-            </span>
+            <span className="text-fg-muted text-caption">{selectedIds.size} selected</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={exitSelectMode}
-                className="text-fg-muted hover:text-fg border-border/60 hover:bg-bg-elev-2 inline-flex h-10 items-center rounded-sm border px-3 text-caption font-medium"
+                className="text-fg-muted hover:text-fg border-border/60 hover:bg-bg-elev-2 text-caption inline-flex h-10 items-center rounded-sm border px-3 font-medium"
               >
                 Cancel
               </button>
@@ -277,7 +305,7 @@ export function ThreadSwitcher({ open, onOpenChange, threadId, threads, onPickNe
                 onClick={() => void bulkDelete()}
                 disabled={selectedIds.size === 0 || deleting}
                 aria-label={`Delete ${selectedIds.size} selected conversation${selectedIds.size === 1 ? '' : 's'}`}
-                className="text-danger border-danger/40 hover:bg-danger/15 inline-flex h-10 items-center gap-1.5 rounded-sm border px-3 text-caption font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                className="text-danger border-danger/40 hover:bg-danger/15 text-caption inline-flex h-10 items-center gap-1.5 rounded-sm border px-3 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleting ? (
                   <IconLoader2 className="size-3 animate-spin" aria-hidden="true" />

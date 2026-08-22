@@ -27,10 +27,10 @@
 // making them uncancelable.
 
 import cron from 'node-cron';
+
 import { JOBS } from '../jobs/index.js';
+import { createLogger, type Logger } from '../log.js';
 import { tenantRouter } from '../tenant-router.js';
-import type { Logger } from '../log.js';
-import { createLogger } from '../log.js';
 
 /** Raw job definition — what we write in the registry. */
 interface ScheduleDef {

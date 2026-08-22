@@ -19,7 +19,6 @@
 // The nav-drawer trigger button used inside <ChatTopBar>. Extracted so the
 // chat top bar can pass it as `<NavDrawer trigger={...}>` without the
 // drawer having to be aware of chat-specific styling.
-
 import { IconMenu2 } from '@tabler/icons-react';
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
@@ -33,7 +32,7 @@ export const NavTrigger = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTM
           ref={ref}
           type="button"
           aria-label="Open menu"
-          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:scale-95 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-all"
+          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-all active:scale-95"
           {...props}
         >
           <IconMenu2 className="size-5" />

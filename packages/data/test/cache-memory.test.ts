@@ -140,8 +140,8 @@ describe('MemoryCache — Phase 7a SWR', () => {
 
     // No prior cached value at all → should throw on miss + fail.
     mode = 'fail';
-    await expect(
-      cache.fetchWithMeta('cold-k', producer, { ttlSeconds: 5 }),
-    ).rejects.toThrow('cold');
+    await expect(cache.fetchWithMeta('cold-k', producer, { ttlSeconds: 5 })).rejects.toThrow(
+      'cold',
+    );
   });
 });

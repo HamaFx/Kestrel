@@ -22,9 +22,10 @@
 // renders title + body + (optional) overlay.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import type { AnnotateChartOutput, Symbol, Timeframe } from '@kestrel/shared';
 import { eq } from 'drizzle-orm';
+
+import { getDb } from '../db';
 
 export interface CreateSnapshotArgs {
   userId: string;

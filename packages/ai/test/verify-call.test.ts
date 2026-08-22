@@ -57,7 +57,13 @@ vi.mock('@kestrel/indicators', () => ({
   computeStructure: (...args: unknown[]) => mockComputeStructure(...args),
 }));
 
-function makeCandle(overrides: { time?: number; open?: number; high?: number; low?: number; close?: number }) {
+function makeCandle(overrides: {
+  time?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+}) {
   return {
     t: overrides.time ?? Date.now(),
     o: overrides.open ?? 1.08,
@@ -89,9 +95,21 @@ describe('verify_call — Phase 0.9', () => {
 
   it('agrees with a clean long setup and no opposing liquidity', async () => {
     mockGetCandles.mockResolvedValue([makeCandle({})]);
-    mockComputeStructure.mockReturnValue({ symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [] });
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [],
+    });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.09,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'thin_structure')).toBe(true);
@@ -101,9 +119,21 @@ describe('verify_call — Phase 0.9', () => {
 
   it('flags invalid stop for a long', async () => {
     mockGetCandles.mockResolvedValue([makeCandle({})]);
-    mockComputeStructure.mockReturnValue({ symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [] });
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [],
+    });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.085, target: 1.09 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.085,
+      target: 1.09,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'invalid_stop_side')).toBe(true);
@@ -111,9 +141,21 @@ describe('verify_call — Phase 0.9', () => {
 
   it('flags invalid stop for a short', async () => {
     mockGetCandles.mockResolvedValue([makeCandle({})]);
-    mockComputeStructure.mockReturnValue({ symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [] });
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [],
+    });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'short', entry: 1.08, stop: 1.075, target: 1.07 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'short',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.07,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'invalid_stop_side')).toBe(true);
@@ -121,9 +163,21 @@ describe('verify_call — Phase 0.9', () => {
 
   it('flags invalid target for a long', async () => {
     mockGetCandles.mockResolvedValue([makeCandle({})]);
-    mockComputeStructure.mockReturnValue({ symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [] });
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [],
+    });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.075 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.075,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'invalid_target_side')).toBe(true);
@@ -131,9 +185,21 @@ describe('verify_call — Phase 0.9', () => {
 
   it('flags invalid target for a short', async () => {
     mockGetCandles.mockResolvedValue([makeCandle({})]);
-    mockComputeStructure.mockReturnValue({ symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [] });
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [],
+    });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'short', entry: 1.08, stop: 1.085, target: 1.085 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'short',
+      entry: 1.08,
+      stop: 1.085,
+      target: 1.085,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'invalid_target_side')).toBe(true);
@@ -141,7 +207,13 @@ describe('verify_call — Phase 0.9', () => {
 
   it('warns when no target is supplied', async () => {
     mockGetCandles.mockResolvedValue([makeCandle({})]);
-    mockComputeStructure.mockReturnValue({ symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [] });
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [],
+    });
 
     const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075 });
 
@@ -155,14 +227,23 @@ describe('verify_call — Phase 0.9', () => {
       makeCandle({ high: 1.089, low: 1.071 }),
     ]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 2, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 2,
+      fetchedAt: Date.now(),
       swings: [
         { type: 'high', price: 1.088, index: 1 },
         { type: 'high', price: 1.086, index: 0 },
       ],
     });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.09,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'opposing_liquidity_in_path')).toBe(true);
@@ -179,14 +260,23 @@ describe('verify_call — Phase 0.9', () => {
       makeCandle({ high: 1.089, low: 1.074 }),
     ]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 2, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 2,
+      fetchedAt: Date.now(),
       swings: [
         { type: 'low', price: 1.072, index: 1 },
         { type: 'low', price: 1.074, index: 0 },
       ],
     });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'short', entry: 1.08, stop: 1.085, target: 1.07 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'short',
+      entry: 1.08,
+      stop: 1.085,
+      target: 1.07,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'opposing_liquidity_in_path')).toBe(true);
@@ -200,11 +290,20 @@ describe('verify_call — Phase 0.9', () => {
   it('does not flag liquidity outside the path for a long', async () => {
     mockGetCandles.mockResolvedValue([makeCandle({})]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
       swings: [{ type: 'high', price: 1.095, index: 0 }],
     });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.09,
+    });
 
     expect(result.agree).toBe(true);
     expect(result.caveats).toHaveLength(0);
@@ -213,9 +312,21 @@ describe('verify_call — Phase 0.9', () => {
 
   it('warns on thin structure when no swings are found', async () => {
     mockGetCandles.mockResolvedValue([makeCandle({})]);
-    mockComputeStructure.mockReturnValue({ symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [] });
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [],
+    });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.09,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'thin_structure')).toBe(true);
@@ -224,7 +335,13 @@ describe('verify_call — Phase 0.9', () => {
   it('warns when candle fetch fails', async () => {
     mockGetCandles.mockRejectedValue(new Error('provider down'));
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.09,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.caveats.some((c) => c.code === 'thin_structure')).toBe(true);
@@ -237,14 +354,23 @@ describe('verify_call — Phase 0.9', () => {
       makeCandle({ high: 1.087, low: 1.072 }),
     ]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 3, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 3,
+      fetchedAt: Date.now(),
       swings: [
         { type: 'high', price: 1.088, index: 0 },
         { type: 'high', price: 1.087, index: 2 },
       ],
     });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.09,
+    });
 
     expect(result.nearestOpposingLiquidity).toEqual({
       price: 1.087,
@@ -260,14 +386,23 @@ describe('verify_call — Phase 0.9', () => {
       makeCandle({ high: 1.088, low: 1.071 }),
     ]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 3, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 3,
+      fetchedAt: Date.now(),
       swings: [
         { type: 'low', price: 1.072, index: 0 },
         { type: 'low', price: 1.071, index: 2 },
       ],
     });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'short', entry: 1.08, stop: 1.085, target: 1.07 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'short',
+      entry: 1.08,
+      stop: 1.085,
+      target: 1.07,
+    });
 
     expect(result.nearestOpposingLiquidity).toEqual({
       price: 1.071,
@@ -280,10 +415,20 @@ describe('verify_call — Phase 0.9', () => {
     mockGetPrice.mockRejectedValue(new Error('price provider down'));
     mockGetCandles.mockResolvedValue([makeCandle({})]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [{ type: 'high', price: 1.095, index: 0 }],
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [{ type: 'high', price: 1.095, index: 0 }],
     });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.09,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.marketPrice).toBeNull();
@@ -301,10 +446,20 @@ describe('verify_call — Phase 0.9', () => {
     });
     mockGetCandles.mockResolvedValue([makeCandle({})]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(), swings: [{ type: 'high', price: 1.13, index: 0 }],
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [{ type: 'high', price: 1.13, index: 0 }],
     });
 
-    const result = await exec({ symbol: 'EURUSD', side: 'long', entry: 1.085, stop: 1.08, target: 1.095 });
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.085,
+      stop: 1.08,
+      target: 1.095,
+    });
 
     expect(result.agree).toBe(false);
     expect(result.marketPrice).toBe(1.12);

@@ -24,13 +24,11 @@
 // guarantees one dedicated briefing thread per user.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
-import { and, desc, eq, gte as dgte, lte as dlte, isNotNull as disNotNull } from 'drizzle-orm';
-
-import type { DbThread } from '../persistence';
 import type { Symbol } from '@kestrel/shared';
+import { and, desc, gte as dgte, isNotNull as disNotNull, lte as dlte, eq } from 'drizzle-orm';
 
-
+import { getDb } from '../db';
+import type { DbThread } from '../persistence';
 
 /**
  * Returns the singleton `Briefings_Thread`, creating one if absent. Cron
@@ -138,7 +136,6 @@ export async function recordEmitted(
       ],
     });
 }
-
 
 // ---------------------------------------------------------------------------
 // Cron-handler queries
@@ -259,10 +256,14 @@ export async function getLatestBriefing(userId: string): Promise<LatestBriefing 
     const parts = row.parts;
     if (!Array.isArray(parts)) continue;
     const bp = parts.find(
-      (p): p is { type: string; eventId: string | null; kind: 'pre' | 'post' | 'weekly_review'; summary: string } =>
-        p !== null &&
-        typeof p === 'object' &&
-        (p as { type?: string }).type === 'briefing',
+      (
+        p,
+      ): p is {
+        type: string;
+        eventId: string | null;
+        kind: 'pre' | 'post' | 'weekly_review';
+        summary: string;
+      } => p !== null && typeof p === 'object' && (p as { type?: string }).type === 'briefing',
     );
     if (!bp) continue;
     // The text part always lives at index 0 alongside the briefing marker.

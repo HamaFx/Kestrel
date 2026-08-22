@@ -101,9 +101,10 @@ export function scoreToLabel(score: number): SentimentLabel {
  * When >75% of retail traders are long, it's a contrarian bearish signal.
  * When <25% are long, it's a contrarian bullish signal.
  */
-export function detectContrarianSignal(
-  retailLongPct: number | null,
-): { signal: boolean; note: string | null } {
+export function detectContrarianSignal(retailLongPct: number | null): {
+  signal: boolean;
+  note: string | null;
+} {
   if (retailLongPct === null) return { signal: false, note: null };
   if (retailLongPct >= 75) {
     return {

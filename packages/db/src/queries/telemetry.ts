@@ -17,6 +17,7 @@
 // PF-01 Phase 2 — Chat telemetry query helpers.
 
 import { and, between, desc, eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type TelemetryRow = typeof schema.chatTelemetry.$inferSelect;
@@ -26,7 +27,8 @@ export async function listTelemetry(
   opts?: { from?: Date; to?: Date; limit?: number },
 ): Promise<TelemetryRow[]> {
   const conditions = [eq(schema.chatTelemetry.userId, userId)];
-  if (opts?.from && opts?.to) conditions.push(between(schema.chatTelemetry.createdAt, opts.from, opts.to));
+  if (opts?.from && opts?.to)
+    conditions.push(between(schema.chatTelemetry.createdAt, opts.from, opts.to));
   const db = getDb();
   return db
     .select()

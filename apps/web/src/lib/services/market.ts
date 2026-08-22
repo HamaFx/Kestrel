@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // PF-22 — Market data service layer.
@@ -8,17 +24,12 @@
 // Pattern: Service (PF-22). Controllers remain thin: parse request →
 // call service → format Response.
 
-import { getCandlesWithMeta, getPriceWithMeta, getCandles, getDefaultCache } from '@kestrel/data';
-import { computeIndicator } from '@kestrel/indicators';
-import {
-  BUILTIN_SYMBOLS,
-  type IndicatorResult,
-  type Tick,
-} from '@kestrel/shared';
+import { getCandles, getCandlesWithMeta, getDefaultCache, getPriceWithMeta } from '@kestrel/data';
 import { schema, withRateLimit, withTenantDbRO } from '@kestrel/db';
+import { computeIndicator } from '@kestrel/indicators';
+import { BUILTIN_SYMBOLS, type Candle, type IndicatorResult, type Tick } from '@kestrel/shared';
 import { decryptByok } from '@kestrel/shared/encryption';
 import { eq } from 'drizzle-orm';
-import type { Candle } from '@kestrel/shared';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -113,10 +124,7 @@ export async function getCandlesService(
   return { symbol, tf, candles: r.candles, stale: r.stale, producedAt: r.producedAt };
 }
 
-export async function getPriceService(
-  userId: string,
-  symbols: string[],
-): Promise<PriceResultDTO> {
+export async function getPriceService(userId: string, symbols: string[]): Promise<PriceResultDTO> {
   const { finnhubKey, marketDataProvider } = await loadUserMarketPrefs(userId);
 
   const results = await Promise.all(
@@ -141,8 +149,9 @@ export async function getPriceService(
 
 export function searchSymbolsService(query: string, limit: number): SearchResultDTO {
   const q = query.toUpperCase();
-  const results = BUILTIN_SYMBOLS
-    .filter((s) => s.internal.includes(q) || s.display.toUpperCase().includes(q))
+  const results = BUILTIN_SYMBOLS.filter(
+    (s) => s.internal.includes(q) || s.display.toUpperCase().includes(q),
+  )
     .slice(0, limit)
     .map((s) => ({ symbol: s.internal, display: s.display, category: s.category }));
 
@@ -161,7 +170,9 @@ export async function getIndicatorsService(
   const { finnhubKey, marketDataProvider } = await loadUserMarketPrefs(userId);
 
   // Build a stable cache key from the full request signature.
-  const key = ['indicator', symbol, tf, String(count), ...indicatorList.map((i) => i.kind)].join(':');
+  const key = ['indicator', symbol, tf, String(count), ...indicatorList.map((i) => i.kind)].join(
+    ':',
+  );
   const cache = await getDefaultCache();
 
   const { value } = await cache.fetchWithMeta<{ candles: Candle[]; results: IndicatorResult[] }>(

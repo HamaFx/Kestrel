@@ -1,18 +1,31 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconCircleCheck, IconDeviceFloppy, IconLoader2 } from '@tabler/icons-react';
 import Link from 'next/link';
-import {IconCircleCheck, IconLoader2, IconDeviceFloppy} from '@tabler/icons-react';
-import { Button } from '@/components/ui/button';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
 
 import type { SaveKeysResult } from '../../actions';
 
 interface SaveBarProps {
-  action: (
-    prevState: SaveKeysResult,
-    formData: FormData,
-  ) => Promise<SaveKeysResult>;
+  action: (prevState: SaveKeysResult, formData: FormData) => Promise<SaveKeysResult>;
   /**
    * When the user landed here from /chat with `?prompt=…`, show a
    * "Skip and continue" link alongside the Save button.
@@ -27,10 +40,9 @@ interface SaveBarProps {
 }
 
 export function SaveBar({ action, preservedPrompt, children }: SaveBarProps) {
-  const [state, formAction, isPending] = useActionState<SaveKeysResult, FormData>(
-    action,
-    { status: 'idle' },
-  );
+  const [state, formAction, isPending] = useActionState<SaveKeysResult, FormData>(action, {
+    status: 'idle',
+  });
   const lastSeenAt = useRef<number | null>(null);
   const lastErrorSeen = useRef<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -86,15 +98,11 @@ export function SaveBar({ action, preservedPrompt, children }: SaveBarProps) {
   };
 
   return (
-    <form
-      action={formAction}
-      onChange={handleFormChange}
-      className="flex flex-col gap-8"
-    >
+    <form action={formAction} onChange={handleFormChange} className="flex flex-col gap-8">
       {children}
-      <div className="flex items-center gap-3 justify-end">
-        {('ok' in state && state.ok) ? (
-          <span className="flex items-center gap-1.5 text-caption text-success">
+      <div className="flex items-center justify-end gap-3">
+        {'ok' in state && state.ok ? (
+          <span className="text-caption text-success flex items-center gap-1.5">
             <IconCircleCheck size={14} aria-hidden="true" />
             Saved
           </span>
@@ -113,7 +121,7 @@ export function SaveBar({ action, preservedPrompt, children }: SaveBarProps) {
         {preservedPrompt ? (
           <Link
             href={`/chat?prompt=${encodeURIComponent(preservedPrompt)}`}
-            className="border border-border bg-bg-elev-2 text-fg hover:bg-bg-elev-3 inline-flex h-12 items-center justify-center rounded-sm px-4 text-sm font-medium"
+            className="border-border bg-bg-elev-2 text-fg hover:bg-bg-elev-3 inline-flex h-12 items-center justify-center rounded-sm border px-4 text-sm font-medium"
           >
             Skip and continue to chat
           </Link>

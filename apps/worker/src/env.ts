@@ -115,9 +115,9 @@ const WorkerEnvSchema = z.object({
   DEPLOYED_SHA: coerceEmptyToUndefined.pipe(z.string().min(1).optional()).default('unknown'),
 
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  
-  /** 
-   * 'systemd' relies on external cron for jobs. 
+
+  /**
+   * 'systemd' relies on external cron for jobs.
    * 'docker' starts an internal node-cron scheduler.
    */
   WORKER_MODE: z.enum(['systemd', 'docker']).default('systemd'),

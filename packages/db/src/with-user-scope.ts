@@ -53,10 +53,7 @@ import { eq, type SQL } from 'drizzle-orm';
  * @example
  *   await db.select().from(alerts).where(withUserScope(alerts, userId))
  */
-export function withUserScope<T extends { userId: unknown }>(
-  table: T,
-  userId: string,
-): SQL {
+export function withUserScope<T extends { userId: unknown }>(table: T, userId: string): SQL {
   // Cast: drizzle's column types are complex unions but `eq(table.userId, value)`
   // is the canonical usage in the codebase. We trust the caller to pass a
   // table with a userId column (TS won't catch a structural mismatch since

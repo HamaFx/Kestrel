@@ -66,21 +66,17 @@ export async function sendWebPush(
   };
 
   try {
-    const result = await webpush.sendNotification(
-      subscription,
-      payload,
-      {
-        TTL: 60,
-        // Bound the underlying HTTPS request so an unreachable push service
-        // cannot hold an alert claim indefinitely.
-        timeout: 30_000,
-        vapidDetails: {
-          subject: env.VAPID_SUBJECT ?? 'mailto:owner@kestrel.local',
-          publicKey: env.VAPID_PUBLIC_KEY,
-          privateKey: env.VAPID_PRIVATE_KEY,
-        },
+    const result = await webpush.sendNotification(subscription, payload, {
+      TTL: 60,
+      // Bound the underlying HTTPS request so an unreachable push service
+      // cannot hold an alert claim indefinitely.
+      timeout: 30_000,
+      vapidDetails: {
+        subject: env.VAPID_SUBJECT ?? 'mailto:owner@kestrel.local',
+        publicKey: env.VAPID_PUBLIC_KEY,
+        privateKey: env.VAPID_PRIVATE_KEY,
       },
-    );
+    });
 
     return {
       ok: true,

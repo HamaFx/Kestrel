@@ -17,7 +17,9 @@
 // IPN (NOWPayments) webhook and checkout safety query helpers.
 
 import { randomUUID } from 'node:crypto';
+
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type IpnClaim =
@@ -274,7 +276,11 @@ export async function markBillingWebhookReplayed(id: string, replayToken: string
 }
 
 /** Release a failed replay owned by this replay lease back to the queue. */
-export async function releaseBillingWebhookReplay(id: string, error: string, replayToken: string): Promise<void> {
+export async function releaseBillingWebhookReplay(
+  id: string,
+  error: string,
+  replayToken: string,
+): Promise<void> {
   const db = getDb();
   await db
     .update(schema.billingWebhookDlq)
@@ -305,7 +311,8 @@ export async function updatePaymentStatus(
     status: data.status,
     updatedAt: new Date(),
   };
-  if (data.nowpaymentsPaymentId !== undefined) updateData.nowpaymentsPaymentId = data.nowpaymentsPaymentId;
+  if (data.nowpaymentsPaymentId !== undefined)
+    updateData.nowpaymentsPaymentId = data.nowpaymentsPaymentId;
   if (data.txHash !== undefined) updateData.txHash = data.txHash;
   if (data.payAmount !== undefined) updateData.payAmount = data.payAmount;
   if (data.payCurrency !== undefined) updateData.payCurrency = data.payCurrency;

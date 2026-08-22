@@ -17,8 +17,8 @@
  */
 
 // Phase 7 task 7.8 — scoped error boundary for the chart view.
-import { useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 

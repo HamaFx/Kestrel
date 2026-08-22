@@ -63,10 +63,7 @@ export async function listUsersWithSettings(
   const db = getDb();
   const filter = q?.trim();
   const whereClause = filter
-    ? or(
-        ilike(schema.users.email, `%${filter}%`),
-        ilike(schema.users.name, `%${filter}%`),
-      )
+    ? or(ilike(schema.users.email, `%${filter}%`), ilike(schema.users.name, `%${filter}%`))
     : undefined;
 
   return db
@@ -79,10 +76,7 @@ export async function listUsersWithSettings(
       onboardingCompleted: schema.userSettings.onboardingCompleted,
     })
     .from(schema.users)
-    .leftJoin(
-      schema.userSettings,
-      sql`${schema.userSettings.userId} = ${schema.users.id}`,
-    )
+    .leftJoin(schema.userSettings, sql`${schema.userSettings.userId} = ${schema.users.id}`)
     .where(whereClause)
     .orderBy(desc(schema.users.createdAt))
     .limit(limit)
@@ -106,10 +100,7 @@ export async function countUsers(q?: string): Promise<number> {
   const db = getDb();
   const filter = q?.trim();
   const whereClause = filter
-    ? or(
-        ilike(schema.users.email, `%${filter}%`),
-        ilike(schema.users.name, `%${filter}%`),
-      )
+    ? or(ilike(schema.users.email, `%${filter}%`), ilike(schema.users.name, `%${filter}%`))
     : undefined;
 
   const [row] = await db

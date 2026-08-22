@@ -1,13 +1,31 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // /api/sentiment — get aggregated social sentiment for a symbol.
 // GET /api/sentiment?symbol=XAUUSD
 
-import { getSentimentService } from '@/lib/services/api-boundary';
-import { SymbolSchema, AppError } from '@/lib/services/api-boundary';
-import { withRateLimit } from '@/lib/services/api-boundary';
-
 import { errorResponse, withAuth } from '@/lib/api';
+import {
+  AppError,
+  getSentimentService,
+  SymbolSchema,
+  withRateLimit,
+} from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,7 +38,12 @@ export const GET = withAuth<void>(async (req, { user: _user }) => {
     const rl = await withRateLimit(_user.userId, 'sentiment_read', SENTIMENT_RATE_LIMIT);
     if (!rl.allowed) {
       return Response.json(
-        { error: { code: 'RATE_LIMITED', message: `Too many requests (${rl.count}/${rl.limit} per minute).` } },
+        {
+          error: {
+            code: 'RATE_LIMITED',
+            message: `Too many requests (${rl.count}/${rl.limit} per minute).`,
+          },
+        },
         { status: 429, headers: { 'Retry-After': '60' } },
       );
     }
@@ -32,7 +55,9 @@ export const GET = withAuth<void>(async (req, { user: _user }) => {
 
     const parsed = SymbolSchema.safeParse(symbol.toUpperCase());
     if (!parsed.success) {
-      return errorResponse(new AppError('VALIDATION', 'Invalid symbol', 400, { issues: parsed.error.issues }));
+      return errorResponse(
+        new AppError('VALIDATION', 'Invalid symbol', 400, { issues: parsed.error.issues }),
+      );
     }
 
     const service = getSentimentService();

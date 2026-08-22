@@ -1,5 +1,18 @@
-import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 import {
   getLatestBriefing,
@@ -10,15 +23,19 @@ import {
   listRecentArticles,
   listUpcomingEvents,
 } from '@kestrel/ai';
+import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+
 import { DashboardCanvas } from './_components/dashboard-canvas';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
-  description: 'Real-time overview of active alerts, market briefings, upcoming economic events, and portfolio risk.',
+  description:
+    'Real-time overview of active alerts, market briefings, upcoming economic events, and portfolio risk.',
 };
 
 export default async function DashboardPage() {
@@ -58,8 +75,7 @@ export default async function DashboardPage() {
   const portfolioSettings = unwrap(settingsR, null);
 
   // Compute margin usage for the leverage gauge
-  const marginUsagePct =
-    portfolioRisk?.totalExposurePct ?? 0;
+  const marginUsagePct = portfolioRisk?.totalExposurePct ?? 0;
   const marginDetail =
     portfolioSettings?.accountBalance != null
       ? `$${portfolioRisk?.totalExposureUsd?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'} / $${portfolioSettings.accountBalance.toLocaleString()} account`

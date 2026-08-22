@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Helpers for Vercel-Cron-triggered route handlers.
@@ -23,12 +39,13 @@
 // back to the async path anyway. One canonical entry point keeps the
 // auth contract obvious.
 
-import * as Sentry from '@sentry/nextjs';
 import { timingSafeEqual } from 'node:crypto';
 
+import * as Sentry from '@sentry/nextjs';
+
+import { getUserFromRequest } from './api';
 import { getAuthEnv } from './env';
 import { createScopedLoggerWithContext } from './logger';
-import { getUserFromRequest } from './api';
 
 // Keep-alive for the legacy signed-cookie auth used by the admin-UI
 // cron trigger path. The crypto primitives live here to avoid dragging
@@ -196,13 +213,19 @@ function routeTag(req: Request): string {
   }
 }
 
-export async function runCronJob(name: string, fn: () => Promise<void>, options: { timeout?: number } = {}): Promise<Response> {
+export async function runCronJob(
+  name: string,
+  fn: () => Promise<void>,
+  options: { timeout?: number } = {},
+): Promise<Response> {
   const startTime = Date.now();
   try {
     const timeout = options.timeout ?? 30_000;
     await Promise.race([
       fn(),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Cron job ${name} timed out`)), timeout)),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Cron job ${name} timed out`)), timeout),
+      ),
     ]);
     return Response.json({ ok: true, duration: Date.now() - startTime });
   } catch (error) {
@@ -213,6 +236,9 @@ export async function runCronJob(name: string, fn: () => Promise<void>, options:
       { err: String(error) },
       `cron job ${name} failed`,
     );
-    return Response.json({ error: { code: 'INTERNAL', message: 'Internal error' } }, { status: 500 });
+    return Response.json(
+      { error: { code: 'INTERNAL', message: 'Internal error' } },
+      { status: 500 },
+    );
   }
 }

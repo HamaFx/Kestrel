@@ -27,12 +27,14 @@
 import { SYMBOLS, TIMEFRAMES, type Symbol, type Timeframe } from '@kestrel/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { AlertCreateSchema } from '@/lib/services/alerts.schema';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { apiMutate } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
+import { AlertCreateSchema } from '@/lib/services/alerts.schema';
+
 import { createAlertAction } from '../actions';
 
 type RuleType = 'priceCross' | 'candleClose' | 'indicatorCross';
@@ -60,8 +62,21 @@ function buildRuleObject(
   direction: 'above' | 'below',
 ):
   | { type: 'priceCross'; symbol: Symbol; level: number; direction: 'above' | 'below' }
-  | { type: 'candleClose'; symbol: Symbol; tf: Timeframe; level: number; direction: 'above' | 'below' }
-  | { type: 'indicatorCross'; symbol: Symbol; tf: Timeframe; indicator: string; level: number; direction: 'above' | 'below' }
+  | {
+      type: 'candleClose';
+      symbol: Symbol;
+      tf: Timeframe;
+      level: number;
+      direction: 'above' | 'below';
+    }
+  | {
+      type: 'indicatorCross';
+      symbol: Symbol;
+      tf: Timeframe;
+      indicator: string;
+      level: number;
+      direction: 'above' | 'below';
+    }
   | null {
   const numericLevel = level ? Number(level) : NaN;
   if (!Number.isFinite(numericLevel)) return null;
@@ -91,7 +106,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const touch = (field: string) => setTouched((prev) => new Set(prev).add(field));
 
-  const [channels, setChannels] = useState<('email'|'telegram')[]>(['email']);
+  const [channels, setChannels] = useState<('email' | 'telegram')[]>(['email']);
   // Phase C — UX_UPGRADE_PLAN.md item 17. Snooze window in hours
   // (0 = one-shot). Stored as a string so the input can show an
   // empty placeholder; parsed at submit time.
@@ -102,7 +117,8 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
     const levelNum = Number(level);
     if (touched.has('level')) {
       if (!level) errs.level = 'Level is required';
-      else if (!Number.isFinite(levelNum) || levelNum <= 0) errs.level = 'Enter a valid positive number';
+      else if (!Number.isFinite(levelNum) || levelNum <= 0)
+        errs.level = 'Enter a valid positive number';
     }
     if (type === 'indicatorCross' && touched.has('indicator')) {
       if (!indicator.trim()) errs.indicator = 'Indicator is required';
@@ -138,11 +154,14 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
       return;
     }
     try {
-      const data = await apiMutate<{ count?: number; unsupported?: boolean }>('/api/alerts/preview', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ rule: validation.data.rule, lookbackDays: 90 }),
-      });
+      const data = await apiMutate<{ count?: number; unsupported?: boolean }>(
+        '/api/alerts/preview',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ rule: validation.data.rule, lookbackDays: 90 }),
+        },
+      );
       if (data.unsupported) {
         toast.success('Configuration valid', {
           description: 'Rule syntax is correct (preview not available for indicator rules)',
@@ -150,9 +169,10 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
       } else {
         const count = data.count ?? 0;
         toast.success('Configuration valid', {
-          description: count > 0
-            ? `Rule verified — would have triggered ${count} time${count === 1 ? '' : 's'} in 90 days`
-            : 'Rule is valid (no historical triggers in 90-day lookback)',
+          description:
+            count > 0
+              ? `Rule verified — would have triggered ${count} time${count === 1 ? '' : 's'} in 90 days`
+              : 'Rule is valid (no historical triggers in 90-day lookback)',
         });
       }
     } catch (err) {
@@ -256,7 +276,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
         <div className="flex flex-col gap-2">
           <label
             htmlFor="alert-indicator"
-            className="text-fg-subtle text-body-sm uppercase tracking-wide"
+            className="text-fg-subtle text-body-sm tracking-wide uppercase"
           >
             Indicator
           </label>
@@ -269,7 +289,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
                 className={cn(
                   'border-border inline-flex min-h-[44px] items-center justify-center rounded-sm border px-4 text-xs font-medium transition-colors',
                   indicator === ind
-                    ? 'bg-fg text-black border-border'
+                    ? 'bg-fg border-border text-black'
                     : 'bg-bg-elev-2 text-fg-muted hover:text-fg',
                 )}
               >
@@ -285,7 +305,11 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
             placeholder="rsi:14, ema:50, macd:12,26,9"
             {...(fieldErrors.indicator ? { 'aria-describedby': 'alert-indicator-error' } : {})}
           />
-          {fieldErrors.indicator ? <p id="alert-indicator-error" role="alert" className="text-danger text-xs">{fieldErrors.indicator}</p> : null}
+          {fieldErrors.indicator ? (
+            <p id="alert-indicator-error" role="alert" className="text-danger text-xs">
+              {fieldErrors.indicator}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -303,7 +327,10 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
       />
 
       <div className="flex flex-col gap-2">
-        <label className="text-fg-subtle text-body-sm uppercase tracking-wide" htmlFor="alert-level">
+        <label
+          className="text-fg-subtle text-body-sm tracking-wide uppercase"
+          htmlFor="alert-level"
+        >
           Level
         </label>
         <Input
@@ -315,7 +342,11 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           placeholder={symbol === 'XAUUSD' ? 'e.g. 2400' : 'e.g. 1.0850'}
           {...(fieldErrors.level ? { 'aria-describedby': 'alert-level-error' } : {})}
         />
-        {fieldErrors.level ? <p id="alert-level-error" role="alert" className="text-danger text-xs">{fieldErrors.level}</p> : null}
+        {fieldErrors.level ? (
+          <p id="alert-level-error" role="alert" className="text-danger text-xs">
+            {fieldErrors.level}
+          </p>
+        ) : null}
       </div>
 
       {/* Phase B — UX_UPGRADE_PLAN.md item 10. Live preview of how
@@ -323,18 +354,14 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           400ms so a power user typing the level doesn't spam the
           preview endpoint. The preview is informational only — it
           never blocks the create button. */}
-      <PreviewCallout
-        type={type}
-        symbol={symbol}
-        tf={tf}
-        direction={direction}
-        level={level}
-      />
+      <PreviewCallout type={type} symbol={symbol} tf={tf} direction={direction} level={level} />
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-fg-subtle text-body-sm uppercase tracking-wide">Delivery Methods</legend>
+        <legend className="text-fg-subtle text-body-sm tracking-wide uppercase">
+          Delivery Methods
+        </legend>
         <div className="flex gap-4">
-          <label className="flex items-center gap-2 text-sm text-fg cursor-pointer">
+          <label className="text-fg flex cursor-pointer items-center gap-2 text-sm">
             <input
               type="checkbox"
               className="accent-brand size-4 cursor-pointer"
@@ -347,7 +374,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
             />
             Email
           </label>
-          <label className="flex items-center gap-2 text-sm text-fg cursor-pointer">
+          <label className="text-fg flex cursor-pointer items-center gap-2 text-sm">
             <input
               type="checkbox"
               className="accent-brand size-4 cursor-pointer"
@@ -361,11 +388,15 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
             Telegram
           </label>
         </div>
-        {fieldErrors.channels ? <p id="alert-channels-error" role="alert" className="text-danger text-xs">{fieldErrors.channels}</p> : null}
+        {fieldErrors.channels ? (
+          <p id="alert-channels-error" role="alert" className="text-danger text-xs">
+            {fieldErrors.channels}
+          </p>
+        ) : null}
       </fieldset>
 
       <div className="flex flex-col gap-2">
-        <label className="text-fg-subtle text-body-sm uppercase tracking-wide" htmlFor="alert-note">
+        <label className="text-fg-subtle text-body-sm tracking-wide uppercase" htmlFor="alert-note">
           Note (optional)
         </label>
         <Input
@@ -377,7 +408,11 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           maxLength={280}
           {...(fieldErrors.note ? { 'aria-describedby': 'alert-note-error' } : {})}
         />
-        {fieldErrors.note ? <p id="alert-note-error" role="alert" className="text-danger text-xs">{fieldErrors.note}</p> : null}
+        {fieldErrors.note ? (
+          <p id="alert-note-error" role="alert" className="text-danger text-xs">
+            {fieldErrors.note}
+          </p>
+        ) : null}
       </div>
 
       {/*
@@ -389,7 +424,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
       */}
       <div className="flex flex-col gap-2">
         <label
-          className="text-fg-subtle text-body-sm uppercase tracking-wide"
+          className="text-fg-subtle text-body-sm tracking-wide uppercase"
           htmlFor="alert-snooze"
         >
           Re-arm after (hours, 0 = one-shot)
@@ -406,9 +441,13 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
         />
       </div>
 
-      {error ? <p id="alert-form-error" role="alert" className="text-danger text-sm">{error}</p> : null}
+      {error ? (
+        <p id="alert-form-error" role="alert" className="text-danger text-sm">
+          {error}
+        </p>
+      ) : null}
 
-      <div className="flex flex-col gap-2 mt-2">
+      <div className="mt-2 flex flex-col gap-2">
         <Button
           type="submit"
           disabled={submitting || !level}
@@ -526,7 +565,7 @@ function PreviewCallout(props: PreviewCalloutProps) {
       role="status"
       aria-live="polite"
       className={cn(
-        'rounded-sm border p-3 text-body-sm',
+        'text-body-sm rounded-sm border p-3',
         state.kind === 'ok'
           ? 'border-info/30 bg-info/10 text-fg-muted'
           : 'border-border bg-bg-elev-1/40 text-fg-subtle',
@@ -538,17 +577,13 @@ function PreviewCallout(props: PreviewCalloutProps) {
         <p>No historical fires in the last 90 days for this level.</p>
       ) : (
         <p>
-          Would have fired{' '}
-          <span className="text-fg font-semibold tabular-nums">{state.count}</span>{' '}
+          Would have fired <span className="text-fg font-semibold tabular-nums">{state.count}</span>{' '}
           time{state.count === 1 ? '' : 's'} in the last 90 days.
           {state.avgHoldMs > 0 ? (
             <>
               {' '}
               Average hold:{' '}
-              <span className="text-fg tabular-nums">
-                {formatDuration(state.avgHoldMs)}
-              </span>
-              .
+              <span className="text-fg tabular-nums">{formatDuration(state.avgHoldMs)}</span>.
             </>
           ) : null}
         </p>

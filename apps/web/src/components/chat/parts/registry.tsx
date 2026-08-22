@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Tool-part registry: dispatches a streamed `tool-<name>` chat part to the
@@ -33,30 +49,30 @@ import {
   GetIndicatorsOutputSchema,
   GetIntermarketOutputSchema,
   GetIntermarketResonanceOutputSchema,
-  GetSystemDiagnosticsOutputSchema,
-  RunSystemActionOutputSchema,
   GetJournalStatsOutputSchema,
   GetMarketStructureOutputSchema,
   GetNewsOutputSchema,
+  GetPortfolioSnapshotOutputSchema,
   GetPriceOutputSchema,
   GetSeasonalityOutputSchema,
   GetSessionLevelsOutputSchema,
+  GetSocialSentimentOutputSchema,
+  GetSystemDiagnosticsOutputSchema,
   LogJournalOutputSchema,
   ReplaySetupOutputSchema,
+  RunSystemActionOutputSchema,
   SearchKnowledgeOutputSchema,
   SetAlertOutputSchema,
   ShareSnapshotOutputSchema,
   SummarizeThreadOutputSchema,
   TOOL_NAMES,
   VerifyCallOutputSchema,
-  GetPortfolioSnapshotOutputSchema,
-  GetSocialSentimentOutputSchema,
   WebSearchOutputSchema,
   type ToolName,
   type ToolOutput,
 } from '@kestrel/shared';
-import type { ComponentType, ReactElement } from 'react';
 import dynamic from 'next/dynamic';
+import type { ComponentType, ReactElement } from 'react';
 import type { z } from 'zod';
 
 import { AnalyzeFundamentalPart } from './analyze-fundamental';
@@ -71,19 +87,19 @@ import { GetNewsPart } from './get-news';
 import { GetPricePart } from './get-price';
 import { GetSessionLevelsPart } from './get-session-levels';
 import { LogJournalPart } from './log-journal';
+import { RunSystemActionPart } from './run-system-action';
 import { SearchKnowledgePart } from './search-knowledge';
 import { SetAlertPart } from './set-alert';
 import { ShareSnapshotPart } from './share-snapshot';
 import { SummarizeThreadPart } from './summarize-thread';
 import { ToolCard } from './tool-card';
 import { VerifyCallPart } from './verify-call';
-import { RunSystemActionPart } from './run-system-action';
 
 function PartSkeletonFallback() {
   return (
-    <div className="bg-bg-elev-1 border border-border rounded-sm p-3 flex items-center gap-3 animate-pulse">
-      <div className="size-4 bg-bg-elev-3 rounded-xs" />
-      <div className="h-3 w-28 bg-bg-elev-3 rounded-xs" />
+    <div className="bg-bg-elev-1 border-border flex animate-pulse items-center gap-3 rounded-sm border p-3">
+      <div className="bg-bg-elev-3 size-4 rounded-xs" />
+      <div className="bg-bg-elev-3 h-3 w-28 rounded-xs" />
     </div>
   );
 }
@@ -99,10 +115,9 @@ const ComputePositionHealthPart = dynamic(
   { loading: PartSkeletonFallback },
 ) as ComponentType<ToolPartProps<'compute_position_health'>>;
 
-const ComputeRiskPart = dynamic(
-  () => import('./compute-risk').then((m) => m.ComputeRiskPart),
-  { loading: PartSkeletonFallback },
-) as ComponentType<ToolPartProps<'compute_risk'>>;
+const ComputeRiskPart = dynamic(() => import('./compute-risk').then((m) => m.ComputeRiskPart), {
+  loading: PartSkeletonFallback,
+}) as ComponentType<ToolPartProps<'compute_risk'>>;
 
 const ConveneCommitteePart = dynamic(
   () => import('./convene-committee').then((m) => m.ConveneCommitteePart),
@@ -119,10 +134,9 @@ const GetCorrelationPart = dynamic(
   { loading: PartSkeletonFallback },
 ) as ComponentType<ToolPartProps<'get_correlation'>>;
 
-const GetCoTPart = dynamic(
-  () => import('./get-cot').then((m) => m.GetCoTPart),
-  { loading: PartSkeletonFallback },
-) as ComponentType<ToolPartProps<'get_cot'>>;
+const GetCoTPart = dynamic(() => import('./get-cot').then((m) => m.GetCoTPart), {
+  loading: PartSkeletonFallback,
+}) as ComponentType<ToolPartProps<'get_cot'>>;
 
 const GetIntermarketPart = dynamic(
   () => import('./get-intermarket').then((m) => m.GetIntermarketPart),
@@ -154,15 +168,13 @@ const GetSystemDiagnosticsPart = dynamic(
   { loading: PartSkeletonFallback },
 ) as ComponentType<ToolPartProps<'get_system_diagnostics'>>;
 
-const ReplaySetupPart = dynamic(
-  () => import('./replay-setup').then((m) => m.ReplaySetupPart),
-  { loading: PartSkeletonFallback },
-) as ComponentType<ToolPartProps<'replay_setup'>>;
+const ReplaySetupPart = dynamic(() => import('./replay-setup').then((m) => m.ReplaySetupPart), {
+  loading: PartSkeletonFallback,
+}) as ComponentType<ToolPartProps<'replay_setup'>>;
 
-const WebSearchPart = dynamic(
-  () => import('./web-search').then((m) => m.WebSearchPart),
-  { loading: PartSkeletonFallback },
-) as ComponentType<ToolPartProps<'web_search'>>;
+const WebSearchPart = dynamic(() => import('./web-search').then((m) => m.WebSearchPart), {
+  loading: PartSkeletonFallback,
+}) as ComponentType<ToolPartProps<'web_search'>>;
 
 /** State a part is in for the duration of a streamed tool call. */
 export type ToolPartState = 'loading' | 'done' | 'error';

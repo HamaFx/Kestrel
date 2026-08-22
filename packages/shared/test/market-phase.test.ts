@@ -17,11 +17,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  getMarketPhase,
-  isForexWeekend,
-  isComexOpen,
   describeMarketPhase,
+  getMarketPhase,
   getSignalTtlMinutes,
+  isComexOpen,
+  isForexWeekend,
 } from '../src/market-phase';
 
 // Helper: create a Date at a specific UTC day/hour/minute.

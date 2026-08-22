@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -12,9 +28,8 @@
  * run's origin (legacy eval runner or Mastra experiment).
  */
 
-import type { MastraScorer } from '@mastra/core/evals';
-import { createScorer } from '@mastra/core/evals';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { createScorer, type MastraScorer } from '@mastra/core/evals';
 
 import {
   DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
@@ -60,7 +75,6 @@ export function recordsToGateObserved(
   records: readonly ScoreRecord[],
   thresholds: EvalQualityGateThresholds = DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
 ): EvalQualityGateResult {
-  const total = records.length;
   const pass = (record: ScoreRecord): boolean => {
     // Grounding is a strict boolean; citation uses the citation minimum;
     // inverted scorers (hallucination/bias/toxicity) pass when low;
@@ -70,7 +84,6 @@ export function recordsToGateObserved(
     if (INVERTED_SCORERS.has(record.scorerId)) return record.score <= INVERTED_PASS_CEILING;
     return record.score >= thresholds.minOverallPassRate;
   };
-  const successfulCaseCount = records.filter(pass).length;
   const citationScores = records
     .filter((record) => record.scorerId === 'kestrel-citation')
     .map((record) => record.score);
@@ -97,7 +110,12 @@ export function recordsToGateObserved(
       citationScore: record.scorerId === 'kestrel-citation' ? record.score : null,
       assertions:
         record.scorerId === 'kestrel-grounding' && record.score < 1
-          ? [{ kind: 'unsupported_numeric_claim', detail: record.reason ?? 'report failed grounding' }]
+          ? [
+              {
+                kind: 'unsupported_numeric_claim',
+                detail: record.reason ?? 'report failed grounding',
+              },
+            ]
           : [],
       // Gate-only projection: agent progress and terminal status are not part
       // of the score domain; the runner's `ok` is derived from scorer pass.
@@ -109,7 +127,9 @@ export function recordsToGateObserved(
       minCaseCount: Math.max(effectiveThresholds.minCaseCount, 1),
       // Override the runner-specific citation minimum with the mean of the
       // citation records (allows the gate to run with only score records).
-      ...(citationScores.length > 0 ? { minCitationScore: effectiveThresholds.minCitationScore } : {}),
+      ...(citationScores.length > 0
+        ? { minCitationScore: effectiveThresholds.minCitationScore }
+        : {}),
     },
   );
 }
@@ -122,7 +142,12 @@ export function recordsToGateObserved(
  */
 export function createMastraEvalGate(
   options: MastraGateScoreInput = { records: [] },
-): MastraScorer<string, any, any, Record<'preprocessStepResult', { passed: boolean; failures: string[] }>> {
+): MastraScorer<
+  string,
+  unknown,
+  unknown,
+  Record<'preprocessStepResult', { passed: boolean; failures: string[] }>
+> {
   return createScorer({
     id: 'kestrel-eval-gate',
     name: 'Kestrel Eval Quality Gate',
@@ -131,7 +156,7 @@ export function createMastraEvalGate(
     type: 'agent',
   })
     .preprocess(async ({ run }) => {
-      const input = (run.input ?? {}) as MastraGateScoreInput;
+      const input = (run.input ?? options) as MastraGateScoreInput;
       const records = input.records ?? [];
       if (records.length === 0) {
         glog.warn('Eval gate ran with no score records; failing', { runId: run.runId });
@@ -150,7 +175,12 @@ export function createMastraEvalGate(
         glog.warn('Eval gate failed', { failures: step.failures.slice(0, 5) });
       }
       return step.passed ? 1 : 0;
-    });
+    }) as unknown as MastraScorer<
+    string,
+    unknown,
+    unknown,
+    Record<'preprocessStepResult', { passed: boolean; failures: string[] }>
+  >;
 }
 
 /**
@@ -160,7 +190,12 @@ export function createMastraEvalGate(
 export function createScoreThresholdGate(
   scorerId: string,
   options: { min?: number; max?: number; description?: string } = {},
-): MastraScorer<string, any, any, Record<'preprocessStepResult', { passed: boolean; score: number }>> {
+): MastraScorer<
+  string,
+  unknown,
+  unknown,
+  Record<'preprocessStepResult', { passed: boolean; score: number }>
+> {
   const { min = 0.5, max = null, description } = options;
   return createScorer({
     id: `kestrel-gate-${scorerId}`,
@@ -171,7 +206,8 @@ export function createScoreThresholdGate(
     type: 'agent',
   })
     .preprocess(async ({ run }) => {
-      const records = ((run.input as { records?: ScoreRecord[] } | undefined)?.records ?? []) as ScoreRecord[];
+      const records = ((run.input as { records?: ScoreRecord[] } | undefined)?.records ??
+        []) as ScoreRecord[];
       const record = records.find((candidate) => candidate.scorerId === scorerId);
       if (!record) return { passed: false, score: 0 };
       const passed = record.score >= min && (max === null || record.score <= max);
@@ -179,5 +215,10 @@ export function createScoreThresholdGate(
     })
     .generateScore(({ results }) => {
       return results.preprocessStepResult?.passed ? 1 : 0;
-    });
+    }) as unknown as MastraScorer<
+    string,
+    unknown,
+    unknown,
+    Record<'preprocessStepResult', { passed: boolean; score: number }>
+  >;
 }

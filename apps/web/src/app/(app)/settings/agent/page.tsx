@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Phase 7c — schema-driven tool catalogue page. Lists every registered
@@ -7,16 +23,17 @@
 
 import { buildToolCatalogue, BYOK_PROVIDERS_LIST } from '@kestrel/ai';
 import { getUserWithSettings } from '@kestrel/db';
-import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
 import { TOOL_NAMES, type ToolName } from '@kestrel/shared';
 import { IconSettings } from '@tabler/icons-react';
+import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import { DisabledToolsForm } from './_components/disabled-tools-form';
-import { AnalysisModeForm } from './_components/analysis-mode-form';
-import { AgentModelOverrideForm } from './_components/agent-model-override-form';
+import { auth } from '@/auth';
+
 import { AIPrefsCard } from '../_components/agent/ai-prefs-card';
+import { AgentModelOverrideForm } from './_components/agent-model-override-form';
+import { AnalysisModeForm } from './_components/analysis-mode-form';
+import { DisabledToolsForm } from './_components/disabled-tools-form';
 
 export const revalidate = 60;
 
@@ -32,11 +49,17 @@ export default async function AgentCataloguePage() {
   const { settings } = await getUserWithSettings(session.user.id);
 
   const disabledTools = settings?.disabledTools ?? [];
-  const analysisMode = (settings?.defaultAnalysisMode ?? 'auto') as 'single' | 'quick' | 'standard' | 'full' | 'auto';
+  const analysisMode = (settings?.defaultAnalysisMode ?? 'auto') as
+    'single' | 'quick' | 'standard' | 'full' | 'auto';
   const showOpinions = settings?.showAgentOpinions ?? true;
-  const agentModelOverrides = (settings?.agentModelOverrides as {
-    technical?: string; fundamental?: string; risk?: string; sentiment?: string; decision?: string;
-  } | null) ?? {};
+  const agentModelOverrides =
+    (settings?.agentModelOverrides as {
+      technical?: string;
+      fundamental?: string;
+      risk?: string;
+      sentiment?: string;
+      decision?: string;
+    } | null) ?? {};
 
   const customInstructions = settings?.customInstructions ?? null;
 
@@ -55,7 +78,7 @@ export default async function AgentCataloguePage() {
   const totalFailures = entries.reduce((s, e) => s + e.failures24h, 0);
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Agent</h2>
         <p className="text-fg-subtle text-sm">
@@ -82,14 +105,10 @@ export default async function AgentCataloguePage() {
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <code className="text-fg font-mono text-sm font-semibold">{e.name}</code>
-              <div className="flex items-center gap-1.5 text-caption tabular-nums">
+              <div className="text-caption flex items-center gap-1.5 tabular-nums">
                 <Pill label={`${e.invocations24h}×`} tone="muted" />
-                {e.failures24h > 0 ? (
-                  <Pill label={`${e.failures24h} fail`} tone="danger" />
-                ) : null}
-                {e.invocations24h > 0 ? (
-                  <Pill label={`p50 ${e.medianMs}ms`} tone="muted" />
-                ) : null}
+                {e.failures24h > 0 ? <Pill label={`${e.failures24h} fail`} tone="danger" /> : null}
+                {e.invocations24h > 0 ? <Pill label={`p50 ${e.medianMs}ms`} tone="muted" /> : null}
                 {e.invocations24h > 0 ? <Pill label={`p95 ${e.p95Ms}ms`} tone="muted" /> : null}
               </div>
             </div>
@@ -100,20 +119,23 @@ export default async function AgentCataloguePage() {
 
       <AnalysisModeForm initialMode={analysisMode} showOpinions={showOpinions} />
 
-      <AgentModelOverrideForm initialOverrides={agentModelOverrides} providers={providerModelList} />
+      <AgentModelOverrideForm
+        initialOverrides={agentModelOverrides}
+        providers={providerModelList}
+      />
 
       <AIPrefsCard initialCustomInstructions={customInstructions} />
 
       <section aria-labelledby="disabled-tools-heading" className="flex flex-col gap-3">
         <header className="flex items-center gap-2">
-          <IconSettings className="size-4 text-fg-muted" />
+          <IconSettings className="text-fg-muted size-4" />
           <h2 id="disabled-tools-heading" className="text-fg-muted text-sm font-medium">
             Disabled Tools
           </h2>
         </header>
         <p className="text-fg-muted text-xs">
-          Toggle tools off to prevent the agent from calling them. Disabled tools still appear in the
-          catalogue but are excluded from the agent&apos;s available toolset.
+          Toggle tools off to prevent the agent from calling them. Disabled tools still appear in
+          the catalogue but are excluded from the agent&apos;s available toolset.
         </p>
         <DisabledToolsForm
           allTools={TOOL_NAMES as unknown as ToolName[]}
@@ -132,6 +154,6 @@ function Pill({ label, tone }: { label: string; tone: 'muted' | 'danger' | 'succ
         ? 'bg-success/15 text-success'
         : 'bg-bg-elev-2 text-fg-muted';
   return (
-    <span className={`rounded-sm px-1.5 py-0.5 text-caption font-medium ${cls}`}>{label}</span>
+    <span className={`text-caption rounded-sm px-1.5 py-0.5 font-medium ${cls}`}>{label}</span>
   );
 }

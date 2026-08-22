@@ -1,10 +1,30 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { GET as usersGet } from '@/app/api/admin/users/route';
 
 vi.mock('@/lib/admin-auth', () => ({
-  withAdminAuth: (handler: (req: Request, ctx: { user: { userId: string } }) => Promise<Response>) =>
-    async (req: Request) => handler(req, { user: { userId: 'admin-123' } }),
+  withAdminAuth:
+    (handler: (req: Request, ctx: { user: { userId: string } }) => Promise<Response>) =>
+    async (req: Request) =>
+      handler(req, { user: { userId: 'admin-123' } }),
 }));
 
 const mockListUsers = vi.hoisted(() => vi.fn());
@@ -20,8 +40,6 @@ vi.mock('@kestrel/db', () => ({
   schema: { users: {}, userSettings: {} },
 }));
 
-import { GET as usersGet } from '@/app/api/admin/users/route';
-
 describe('GET /api/admin/users', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,8 +48,22 @@ describe('GET /api/admin/users', () => {
 
   it('returns paginated user list with limit and offset', async () => {
     const users = [
-      { id: 'u-1', email: 'a@example.com', name: 'A', role: 'user', createdAt: new Date().toISOString(), onboardingCompleted: true },
-      { id: 'u-2', email: 'b@example.com', name: 'B', role: 'admin', createdAt: new Date().toISOString(), onboardingCompleted: false },
+      {
+        id: 'u-1',
+        email: 'a@example.com',
+        name: 'A',
+        role: 'user',
+        createdAt: new Date().toISOString(),
+        onboardingCompleted: true,
+      },
+      {
+        id: 'u-2',
+        email: 'b@example.com',
+        name: 'B',
+        role: 'admin',
+        createdAt: new Date().toISOString(),
+        onboardingCompleted: false,
+      },
     ];
     mockListUsers.mockResolvedValue(users);
 

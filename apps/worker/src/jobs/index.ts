@@ -19,21 +19,21 @@
 // (a) writing a `<name>.ts` file with `runX(ctx)`, (b) listing it here,
 // and (c) extending `JobName` in ./types.ts.
 
+import { runAlerts } from './alerts.js';
 import { runBriefings } from './briefings.js';
+import { runBudgetRecovery } from './budget-recovery.js';
 import { runCoT } from './cot.js';
+import { runDatasetExport } from './dataset-export.js';
 import { runEmbeddingBackfill } from './embedding-backfill.js';
 import { runFredActuals } from './fred-actuals.js';
-import { runSnapshots } from './snapshots.js';
-import { runWeeklyReview } from './weekly-review.js';
-import { runResonanceSync } from './resonance-sync.js';
-import { runAlerts } from './alerts.js';
-import { runMultiAgentAnalysis } from './multi-agent-analysis.js';
-import { runBudgetRecovery } from './budget-recovery.js';
-import { runPersistenceRecovery } from './persistence-recovery.js';
-import { runRetention } from './retention.js';
 import { runMetricsFlush } from './metrics-flush.js';
-import { runDatasetExport } from './dataset-export.js';
-import type { JobRegistration, JobName } from './types.js';
+import { runMultiAgentAnalysis } from './multi-agent-analysis.js';
+import { runPersistenceRecovery } from './persistence-recovery.js';
+import { runResonanceSync } from './resonance-sync.js';
+import { runRetention } from './retention.js';
+import { runSnapshots } from './snapshots.js';
+import type { JobName, JobRegistration } from './types.js';
+import { runWeeklyReview } from './weekly-review.js';
 
 /**
  * PF-04 — Job command registry.
@@ -100,21 +100,24 @@ export const JOBS: Record<JobName, JobRegistration> = {
   'weekly-review': {
     name: 'weekly-review',
     run: runWeeklyReview,
-    description: 'Sunday weekly review — emits a single agent-authored journal review. Phase 8 PR-14.',
+    description:
+      'Sunday weekly review — emits a single agent-authored journal review. Phase 8 PR-14.',
     schedule: '0 18 * * 0',
     hcUuidEnvVar: 'HC_JOB_WEEKLY_REVIEW_UUID',
   },
   'resonance-sync': {
     name: 'resonance-sync',
     run: runResonanceSync,
-    description: 'Daily intermarket resonance sync — computes and stores real yield and DXY gold divergences.',
+    description:
+      'Daily intermarket resonance sync — computes and stores real yield and DXY gold divergences.',
     schedule: '0 23 * * *',
     hcUuidEnvVar: 'HC_JOB_RESONANCE_SYNC_UUID',
   },
   'multi-agent-analysis': {
     name: 'multi-agent-analysis',
     run: runMultiAgentAnalysis,
-    description: 'U2 — Claims Mastra durable full-analysis workflow runs (replacing analysis_jobs), executes the Full committee, writes terminal results back into the run records.',
+    description:
+      'U2 — Claims Mastra durable full-analysis workflow runs (replacing analysis_jobs), executes the Full committee, writes terminal results back into the run records.',
     // Uses setTimeout-based scheduling, not cron.
     schedule: null,
   },
@@ -133,21 +136,31 @@ export const JOBS: Record<JobName, JobRegistration> = {
   retention: {
     name: 'retention',
     run: runRetention,
-    description: 'DB-1 — Daily retention cleanup of telemetry, traces, rate_limits, and provider_daily_quota.',
+    description:
+      'DB-1 — Daily retention cleanup of telemetry, traces, rate_limits, and provider_daily_quota.',
     schedule: '15 3 * * *',
   },
   'metrics-flush': {
     name: 'metrics-flush',
     run: runMetricsFlush,
-    description: 'Pushes the in-process metrics registry to Grafana Cloud every minute with live-tick freshness.',
+    description:
+      'Pushes the in-process metrics registry to Grafana Cloud every minute with live-tick freshness.',
     schedule: '* * * * *',
   },
   'dataset-export': {
     name: 'dataset-export',
     run: runDatasetExport,
-    description: 'Nightly governed training-dataset export (eval reports + reviewed feedback → JSONL + manifest → B2).',
+    description:
+      'Nightly governed training-dataset export (eval reports + reviewed feedback → JSONL + manifest → B2).',
     schedule: '30 3 * * *',
   },
 };
 
-export type { JobRegistration, JobName, JobContext, JobCoreContext, JobCancellableContext, JobResult } from './types.js';
+export type {
+  JobRegistration,
+  JobName,
+  JobContext,
+  JobCoreContext,
+  JobCancellableContext,
+  JobResult,
+} from './types.js';

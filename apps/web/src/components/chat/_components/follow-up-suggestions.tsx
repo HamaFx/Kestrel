@@ -2,10 +2,25 @@
 
 'use client';
 
-import { useMemo } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { IconArrowRight, IconSparkles } from '@tabler/icons-react';
-import { m } from 'motion/react';
 import type { UIMessage } from 'ai';
+import { m } from 'motion/react';
+import { useMemo } from 'react';
 
 import { cn } from '@/lib/cn';
 
@@ -15,19 +30,21 @@ interface FollowUpSuggestionsProps {
   disabled?: boolean;
 }
 
-export function FollowUpSuggestions({
-  message,
-  onSelect,
-  disabled,
-}: FollowUpSuggestionsProps) {
+export function FollowUpSuggestions({ message, onSelect, disabled }: FollowUpSuggestionsProps) {
   const suggestions = useMemo(() => {
-    const rawText = message.parts
-      ?.filter((p) => p.type === 'text')
-      .map((p) => ('text' in p ? p.text : ''))
-      .join(' ')
-      .toLowerCase() ?? '';
+    const rawText =
+      message.parts
+        ?.filter((p) => p.type === 'text')
+        .map((p) => ('text' in p ? p.text : ''))
+        .join(' ')
+        .toLowerCase() ?? '';
 
-    if (rawText.includes('cpi') || rawText.includes('nfp') || rawText.includes('fomc') || rawText.includes('news')) {
+    if (
+      rawText.includes('cpi') ||
+      rawText.includes('nfp') ||
+      rawText.includes('fomc') ||
+      rawText.includes('news')
+    ) {
       return [
         'What is the historical price reaction during this release?',
         'What levels would invalidate this news bias?',
@@ -65,11 +82,13 @@ export function FollowUpSuggestions({
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
-      className="mt-3 pt-2 border-t border-border/40 flex flex-col gap-1.5"
+      className="border-border/40 mt-3 flex flex-col gap-1.5 border-t pt-2"
     >
-      <div className="flex items-center gap-1.5 text-caption text-fg-subtle">
-        <IconSparkles className="size-3 text-brand" />
-        <span className="font-semibold uppercase tracking-wider text-[10px]">Suggested Follow-ups</span>
+      <div className="text-caption text-fg-subtle flex items-center gap-1.5">
+        <IconSparkles className="text-brand size-3" />
+        <span className="text-[10px] font-semibold tracking-wider uppercase">
+          Suggested Follow-ups
+        </span>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
@@ -80,14 +99,14 @@ export function FollowUpSuggestions({
             disabled={disabled}
             onClick={() => onSelect(prompt)}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs text-left transition-all border',
+              'inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-left text-xs transition-all',
               'border-border/70 bg-bg-elev-1 text-fg-muted hover:text-fg hover:border-brand/40 hover:bg-bg-elev-2 active:scale-95',
-              'disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-1 focus-visible:ring-brand',
+              'focus-visible:ring-brand focus:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50',
             )}
             title={prompt}
           >
             <span>{prompt}</span>
-            <IconArrowRight className="size-3 text-fg-subtle group-hover:text-brand shrink-0" />
+            <IconArrowRight className="text-fg-subtle group-hover:text-brand size-3 shrink-0" />
           </button>
         ))}
       </div>

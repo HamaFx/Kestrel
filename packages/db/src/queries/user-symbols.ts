@@ -17,14 +17,13 @@
 // User symbol watchlist query helpers.
 
 import { and, asc, eq, sql } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type UserSymbolRow = typeof schema.userSymbols.$inferSelect;
 export type UserSymbolInsert = typeof schema.userSymbols.$inferInsert;
 
-export async function listUserSymbols(
-  userId: string,
-): Promise<UserSymbolRow[]> {
+export async function listUserSymbols(userId: string): Promise<UserSymbolRow[]> {
   const db = getDb();
   return db
     .select()
@@ -38,15 +37,9 @@ export async function listDistinctSymbols(): Promise<string[]> {
   const rows = await db
     .selectDistinct({ symbol: schema.userSymbols.symbol })
     .from(schema.userSymbols)
-    .innerJoin(
-      schema.symbolCatalog,
-      eq(schema.userSymbols.symbol, schema.symbolCatalog.symbol),
-    )
+    .innerJoin(schema.symbolCatalog, eq(schema.userSymbols.symbol, schema.symbolCatalog.symbol))
     .where(
-      and(
-        eq(schema.symbolCatalog.isActive, true),
-        eq(schema.symbolCatalog.tenantId, '__system__'),
-      ),
+      and(eq(schema.symbolCatalog.isActive, true), eq(schema.symbolCatalog.tenantId, '__system__')),
     );
   return rows.map((r) => r.symbol);
 }
@@ -61,9 +54,7 @@ export async function addUserSymbol(
     // Serialize automatic order allocation per user. The caller may still
     // provide an explicit order for imports/onboarding, but normal additions
     // compute max+1 while holding this transaction-scoped advisory lock.
-    await tx.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`,
-    );
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`);
     let nextOrder = displayOrder;
     if (nextOrder === undefined) {
       const [row] = await tx
@@ -79,19 +70,11 @@ export async function addUserSymbol(
   });
 }
 
-export async function removeUserSymbol(
-  userId: string,
-  symbol: string,
-): Promise<void> {
+export async function removeUserSymbol(userId: string, symbol: string): Promise<void> {
   const db = getDb();
   await db
     .delete(schema.userSymbols)
-    .where(
-      and(
-        eq(schema.userSymbols.userId, userId),
-        eq(schema.userSymbols.symbol, symbol),
-      ),
-    );
+    .where(and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.symbol, symbol)));
 }
 
 export async function countUserSymbols(userId: string): Promise<number> {

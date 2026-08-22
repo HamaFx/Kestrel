@@ -8,12 +8,12 @@ Thank you for considering a contribution to Kestrel. This document is the defini
 
 ## 1. Prerequisites
 
-| Requirement | Version | Verify |
-|-------------|---------|--------|
-| Node.js | ≥ 20.11 | `node --version` |
-| pnpm | 9.15.4 (pinned via `packageManager`) | `pnpm --version` |
-| Git | any | `git --version` |
-| Docker | optional, for full-feature dev with pgvector | `docker --version` |
+| Requirement | Version                                      | Verify             |
+| ----------- | -------------------------------------------- | ------------------ |
+| Node.js     | ≥ 20.11                                      | `node --version`   |
+| pnpm        | 9.15.4 (pinned via `packageManager`)         | `pnpm --version`   |
+| Git         | any                                          | `git --version`    |
+| Docker      | optional, for full-feature dev with pgvector | `docker --version` |
 
 No database installation required for local dev — PGlite (embedded Postgres) boots automatically.
 
@@ -66,17 +66,17 @@ Kestrel is a Turborepo monorepo with a strict dependency chain:
 config → shared → db + indicators → data → ai → web + worker
 ```
 
-| Package | Path | Responsibility |
-|---------|------|----------------|
-| `@kestrel/config` | `packages/config/` | Shared ESLint, Prettier, TypeScript configs |
-| `@kestrel/shared` | `packages/shared/` | Zod schemas, env validation, encryption, billing types |
-| `@kestrel/db` | `packages/db/` | Drizzle ORM schema (46 tables), Postgres/PGlite client, migrations |
-| `@kestrel/indicators` | `packages/indicators/` | Technical indicators (RSI, MACD, ATR, Bollinger, SMC) |
-| `@kestrel/data` | `packages/data/` | Market data providers (BiQuote, Finnhub, Marketaux, FRED, etc.) with failover |
-| `@kestrel/ai` | `packages/ai/` | AI agent core — Mastra agents/workflows, 31 read-only tools, model routing, memory, persistence |
-| `@kestrel/test-utils` | `packages/test-utils/` | Shared test factories, mocks, vitest helpers |
-| `@kestrel/web` | `apps/web/` | Next.js 16 PWA — 29 pages, 78 API routes, auth, chat, charts |
-| `@kestrel/worker` | `apps/worker/` | Node.js daemon — SignalR consumer, tick processing, scheduled jobs |
+| Package               | Path                   | Responsibility                                                                                  |
+| --------------------- | ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `@kestrel/config`     | `packages/config/`     | Shared ESLint, Prettier, TypeScript configs                                                     |
+| `@kestrel/shared`     | `packages/shared/`     | Zod schemas, env validation, encryption, billing types                                          |
+| `@kestrel/db`         | `packages/db/`         | Drizzle ORM schema (46 tables), Postgres/PGlite client, migrations                              |
+| `@kestrel/indicators` | `packages/indicators/` | Technical indicators (RSI, MACD, ATR, Bollinger, SMC)                                           |
+| `@kestrel/data`       | `packages/data/`       | Market data providers (BiQuote, Finnhub, Marketaux, FRED, etc.) with failover                   |
+| `@kestrel/ai`         | `packages/ai/`         | AI agent core — Mastra agents/workflows, 31 read-only tools, model routing, memory, persistence |
+| `@kestrel/test-utils` | `packages/test-utils/` | Shared test factories, mocks, vitest helpers                                                    |
+| `@kestrel/web`        | `apps/web/`            | Next.js 16 PWA — 29 pages, 78 API routes, auth, chat, charts                                    |
+| `@kestrel/worker`     | `apps/worker/`         | Node.js daemon — SignalR consumer, tick processing, scheduled jobs                              |
 
 **Rule:** No package may import upstream of itself in the dependency chain. `shared` is the foundation — everything depends on it, it depends on nothing but `config`.
 
@@ -88,14 +88,14 @@ See [docs/01-architecture.md](docs/01-architecture.md) for the full architecture
 
 ### 4.1 File Naming
 
-| Pattern | Example | Where |
-|---------|---------|-------|
-| `kebab-case.ts` | `get-candles.ts`, `memory-index.ts` | Modules, tools, utilities |
-| `PascalCase.tsx` | `ChatScreen.tsx`, `NavDrawer.tsx` | React components |
-| `_prefix.ts` | `_extensions.ts`, `_provision.sh` | Private/internal files |
-| `*.test.ts` | `candle-1m.test.ts` | Test files (co-located) |
-| `route.ts` | `api/chat/route.ts` | Next.js API route handlers |
-| `page.tsx` | `(app)/chat/page.tsx` | Next.js pages |
+| Pattern          | Example                             | Where                      |
+| ---------------- | ----------------------------------- | -------------------------- |
+| `kebab-case.ts`  | `get-candles.ts`, `memory-index.ts` | Modules, tools, utilities  |
+| `PascalCase.tsx` | `ChatScreen.tsx`, `NavDrawer.tsx`   | React components           |
+| `_prefix.ts`     | `_extensions.ts`, `_provision.sh`   | Private/internal files     |
+| `*.test.ts`      | `candle-1m.test.ts`                 | Test files (co-located)    |
+| `route.ts`       | `api/chat/route.ts`                 | Next.js API route handlers |
+| `page.tsx`       | `(app)/chat/page.tsx`               | Next.js pages              |
 
 ### 4.2 TypeScript
 
@@ -150,14 +150,14 @@ git checkout -b feat/your-feature-name
 
 **Branch naming conventions:**
 
-| Prefix | Use |
-|--------|-----|
-| `feat/` | New feature |
-| `fix/` | Bug fix |
-| `docs/` | Documentation only |
-| `refactor/` | Code refactoring |
-| `test/` | Test improvements |
-| `chore/` | Tooling, deps, config |
+| Prefix      | Use                   |
+| ----------- | --------------------- |
+| `feat/`     | New feature           |
+| `fix/`      | Bug fix               |
+| `docs/`     | Documentation only    |
+| `refactor/` | Code refactoring      |
+| `test/`     | Test improvements     |
+| `chore/`    | Tooling, deps, config |
 
 ### 5.2 Committing
 
@@ -174,6 +174,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 **Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`
 
 **Examples:**
+
 ```
 feat(ai): add get_social_sentiment tool for retail positioning
 fix(auth): check tokenVersion in JWT callback
@@ -220,11 +221,11 @@ All four must pass. CI will run them again but catching locally saves time.
 
 ### 6.1 Test Stack
 
-| Runner | Scope | Files |
-|--------|-------|-------|
-| Vitest | Unit + integration | 173 test files, 590+ test cases |
-| Playwright | E2E | 16 spec files in `apps/web/tests/e2e/` |
-| AI Eval Harness | AI quality | `packages/ai/src/eval/` (manual, nightly in CI) |
+| Runner          | Scope              | Files                                           |
+| --------------- | ------------------ | ----------------------------------------------- |
+| Vitest          | Unit + integration | 173 test files, 590+ test cases                 |
+| Playwright      | E2E                | 16 spec files in `apps/web/tests/e2e/`          |
+| AI Eval Harness | AI quality         | `packages/ai/src/eval/` (manual, nightly in CI) |
 
 ### 6.2 Running Tests
 
@@ -266,26 +267,27 @@ pnpm --filter @kestrel/indicators test
 
 E2E tests use Playwright with a real app instance:
 
-| Spec | Tests |
-|------|-------|
-| `auth.spec.ts` | Login, register, logout |
-| `chat.spec.ts` | Chat flow, tool rendering |
-| `chat-ui.spec.ts` | Chat UI component testing |
-| `isolation.spec.ts` | Ownership/isolation coverage (shared mode remains disabled in OSS) |
-| `multi-agent.spec.ts` | Committee deliberation |
-| `service-worker.spec.ts` | PWA service worker |
-| `settings.spec.ts` | Settings pages |
-| `navigation.spec.ts` | All routes load without errors |
-| `dashboard.spec.ts` | Dashboard widget rendering |
-| `responsive.spec.ts` | Mobile viewport, no horizontal scroll |
-| `accessibility.spec.ts` | Labels, landmarks, headings, skip link |
-| `api-health.spec.ts` | API endpoint smoke tests |
-| `theme-tokens.spec.ts` | Theme and design tokens |
-| `admin-dashboard.spec.ts` | Admin dashboard pages |
-| `nav-drawer.spec.ts` | Navigation drawer functionality |
-| `onboarding-replay.spec.ts` | Onboarding wizard replay |
+| Spec                        | Tests                                                              |
+| --------------------------- | ------------------------------------------------------------------ |
+| `auth.spec.ts`              | Login, register, logout                                            |
+| `chat.spec.ts`              | Chat flow, tool rendering                                          |
+| `chat-ui.spec.ts`           | Chat UI component testing                                          |
+| `isolation.spec.ts`         | Ownership/isolation coverage (shared mode remains disabled in OSS) |
+| `multi-agent.spec.ts`       | Committee deliberation                                             |
+| `service-worker.spec.ts`    | PWA service worker                                                 |
+| `settings.spec.ts`          | Settings pages                                                     |
+| `navigation.spec.ts`        | All routes load without errors                                     |
+| `dashboard.spec.ts`         | Dashboard widget rendering                                         |
+| `responsive.spec.ts`        | Mobile viewport, no horizontal scroll                              |
+| `accessibility.spec.ts`     | Labels, landmarks, headings, skip link                             |
+| `api-health.spec.ts`        | API endpoint smoke tests                                           |
+| `theme-tokens.spec.ts`      | Theme and design tokens                                            |
+| `admin-dashboard.spec.ts`   | Admin dashboard pages                                              |
+| `nav-drawer.spec.ts`        | Navigation drawer functionality                                    |
+| `onboarding-replay.spec.ts` | Onboarding wizard replay                                           |
 
 E2E tests require:
+
 - Running app (`pnpm dev:local`)
 - PGlite or Postgres
 - At least one AI provider key
@@ -341,14 +343,14 @@ E2E tests require:
 
 Read [docs/07-agent-understanding.md](docs/07-agent-understanding.md) for the full list. Summary:
 
-| Area | Risk | Rule |
-|------|------|------|
-| Auth code | Session validation, user isolation | Do NOT regress to single-password gate. The current OSS runtime is single-user; preserve ownership scoping and the explicit shared-mode safety gate. |
-| BYOK encryption | User API keys at rest | Never log decrypted keys. Use `redactSecrets()` in all diagnostic output. |
-| Live-money paths | Risk calculations affect trading | All risk math must be tested. Never round or simplify without instruction. |
-| RLS policies | Tenant isolation | Shared mode is blocked in this OSS release. New user-data tables still need RLS policies + `tenant_id`; the single-user runtime removes them because tenant context is not yet complete. |
-| Billing webhook | Real money | HMAC-SHA512 verification before any business logic. |
-| Request proxy | Node.js runtime | No direct DB calls; keep auth/security boundary logic small and request-scoped in `proxy.ts`. |
+| Area             | Risk                               | Rule                                                                                                                                                                                     |
+| ---------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth code        | Session validation, user isolation | Do NOT regress to single-password gate. The current OSS runtime is single-user; preserve ownership scoping and the explicit shared-mode safety gate.                                     |
+| BYOK encryption  | User API keys at rest              | Never log decrypted keys. Use `redactSecrets()` in all diagnostic output.                                                                                                                |
+| Live-money paths | Risk calculations affect trading   | All risk math must be tested. Never round or simplify without instruction.                                                                                                               |
+| RLS policies     | Tenant isolation                   | Shared mode is blocked in this OSS release. New user-data tables still need RLS policies + `tenant_id`; the single-user runtime removes them because tenant context is not yet complete. |
+| Billing webhook  | Real money                         | HMAC-SHA512 verification before any business logic.                                                                                                                                      |
+| Request proxy    | Node.js runtime                    | No direct DB calls; keep auth/security boundary logic small and request-scoped in `proxy.ts`.                                                                                            |
 
 ---
 
@@ -357,9 +359,11 @@ Read [docs/07-agent-understanding.md](docs/07-agent-understanding.md) for the fu
 Releases are managed via [Changesets](https://github.com/changesets/changesets):
 
 1. **Add a changeset** when you make a user-facing change:
+
    ```bash
    pnpm changeset
    ```
+
    This creates a file in `.changeset/` describing the change and version bump.
 
 2. **Release PR:** When changesets accumulate, the `release.yml` GitHub Action creates a "Version Packages" PR that bumps versions and updates `CHANGELOG.md`.
@@ -372,15 +376,15 @@ Releases are managed via [Changesets](https://github.com/changesets/changesets):
 
 ## 10. CI/CD
 
-| Workflow | Trigger | What it does |
-|----------|---------|-------------|
-| `ci-fast` | Pull request | Lint + typecheck + build + unit tests + coverage + test file guard |
-| `ci-slow` | Push to main + nightly | Lint + typecheck + unit tests + E2E (Playwright) + nightly AI eval |
-| `docker-publish` | Release published | Build + Trivy scan + push to GHCR |
-| `release` | Push to main | Changesets release PR |
-| `codeql` | Push/PR + weekly | CodeQL security analysis |
-| `stale` | Daily | Mark stale issues (30d) and PRs (45d) |
-| `pr-labeler` | PR opened | Auto-label based on changed files |
+| Workflow         | Trigger                | What it does                                                       |
+| ---------------- | ---------------------- | ------------------------------------------------------------------ |
+| `ci-fast`        | Pull request           | Lint + typecheck + build + unit tests + coverage + test file guard |
+| `ci-slow`        | Push to main + nightly | Lint + typecheck + unit tests + E2E (Playwright) + nightly AI eval |
+| `docker-publish` | Release published      | Build + Trivy scan + push to GHCR                                  |
+| `release`        | Push to main           | Changesets release PR                                              |
+| `codeql`         | Push/PR + weekly       | CodeQL security analysis                                           |
+| `stale`          | Daily                  | Mark stale issues (30d) and PRs (45d)                              |
+| `pr-labeler`     | PR opened              | Auto-label based on changed files                                  |
 
 CI must pass before merge. E2E and AI evals run only on `main` and nightly (not on PRs).
 

@@ -18,9 +18,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMarketStructureTool } from '../src/tools/get-market-structure';
 
-const exec = getMarketStructureTool.execute as unknown as (
-  input: { symbol: string; tf: string; count?: number; kinds?: string[]; lookback?: number },
-) => Promise<{
+const exec = getMarketStructureTool.execute as unknown as (input: {
+  symbol: string;
+  tf: string;
+  count?: number;
+  kinds?: string[];
+  lookback?: number;
+}) => Promise<{
   symbol: string;
   tf: string;
   bars: number;
@@ -45,9 +49,16 @@ vi.mock('@kestrel/indicators', () => ({
 
 function makeCandle(time: number, close: number) {
   return {
-    t: time, o: close - 0.001, h: close + 0.005, l: close - 0.005,
-    c: close, symbol: 'EURUSD', tf: '1h',
-    v: null, source: 'test', fetchedAt: Date.now(),
+    t: time,
+    o: close - 0.001,
+    h: close + 0.005,
+    l: close - 0.005,
+    c: close,
+    symbol: 'EURUSD',
+    tf: '1h',
+    v: null,
+    source: 'test',
+    fetchedAt: Date.now(),
   };
 }
 
@@ -60,10 +71,15 @@ describe('get_market_structure — Phase 0.10', () => {
   it('returns structure data for a symbol and timeframe', async () => {
     mockGetCandles.mockResolvedValue([makeCandle(Date.now(), 1.085)]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
       swings: [{ type: 'high', price: 1.09, index: 0 }],
       events: [{ kind: 'bos', direction: 'bullish', index: 0, level: 1.085 }],
-      fvg: [], orderBlocks: [], liquidity: [],
+      fvg: [],
+      orderBlocks: [],
+      liquidity: [],
     });
 
     const result = await exec({ symbol: 'EURUSD', tf: '1h' });
@@ -78,7 +94,10 @@ describe('get_market_structure — Phase 0.10', () => {
   it('generates a summary with unmitigated counts', async () => {
     mockGetCandles.mockResolvedValue([makeCandle(Date.now(), 1.085)]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
       swings: [{ type: 'high', price: 1.09, index: 0 }],
       events: [{ kind: 'bos', direction: 'bullish', index: 0, level: 1.085 }],
       fvg: [
@@ -98,7 +117,10 @@ describe('get_market_structure — Phase 0.10', () => {
   it('calls getCandles with correct parameters', async () => {
     mockGetCandles.mockResolvedValue([]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '4h', bars: 0, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '4h',
+      bars: 0,
+      fetchedAt: Date.now(),
     });
 
     await exec({ symbol: 'EURUSD', tf: '4h', count: 300 });
@@ -107,26 +129,34 @@ describe('get_market_structure — Phase 0.10', () => {
   });
 
   it('validates input schema — count min 50', () => {
-    const schema = getMarketStructureTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getMarketStructureTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 49 }).success).toBe(false);
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 50 }).success).toBe(true);
   });
 
   it('validates input schema — count max 1000', () => {
-    const schema = getMarketStructureTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getMarketStructureTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 1000 }).success).toBe(true);
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 1001 }).success).toBe(false);
   });
 
   it('validates input schema — count defaults to 300', () => {
-    const schema = getMarketStructureTool.inputSchema as { safeParse: (v: unknown) => { success: boolean; data?: { count: number } } };
+    const schema = getMarketStructureTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean; data?: { count: number } };
+    };
     const parsed = schema.safeParse({ symbol: 'EURUSD', tf: '1h' });
     expect(parsed.success).toBe(true);
     if (parsed.data) expect(parsed.data.count).toBe(300);
   });
 
   it('validates input schema — lookback range 2 to 10', () => {
-    const schema = getMarketStructureTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getMarketStructureTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 1 }).success).toBe(false);
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 2 }).success).toBe(true);
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 10 }).success).toBe(true);
@@ -136,7 +166,10 @@ describe('get_market_structure — Phase 0.10', () => {
   it('passes kinds and lookback through to computeStructure', async () => {
     mockGetCandles.mockResolvedValue([makeCandle(Date.now(), 1.085)]);
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(),
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
     });
 
     await exec({ symbol: 'EURUSD', tf: '1h', kinds: ['swings', 'fvg'], lookback: 5 });

@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
+import type { Candle } from '@kestrel/shared';
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-
-import type { Candle } from '@kestrel/shared';
 
 import { atr } from '../src/atr';
 import { bollinger } from '../src/bollinger';
@@ -213,16 +212,14 @@ describe('ema (property)', () => {
   it('seed matches SMA of first period values', () =>
     fc.assert(
       fc.property(
-        fc
-          .integer({ min: 2, max: 30 })
-          .chain((period) =>
-            fc
-              .array(candleArb, {
-                minLength: sufficientLength(period),
-                maxLength: 100,
-              })
-              .map((candles) => ({ candles, period })),
-          ),
+        fc.integer({ min: 2, max: 30 }).chain((period) =>
+          fc
+            .array(candleArb, {
+              minLength: sufficientLength(period),
+              maxLength: 100,
+            })
+            .map((candles) => ({ candles, period })),
+        ),
         ({ candles, period }) => {
           const emaOut = ema(candles, period);
           const smaOut = sma(candles, period);
@@ -292,24 +289,18 @@ describe('macd (property)', () => {
   it('hist = macd - signal for all non-null points', () =>
     fc.assert(
       fc.property(
-        fc
-          .integer({ min: 3, max: 20 })
-          .chain((fast) =>
-            fc
-              .integer({ min: fast + 1, max: 40 })
-              .chain((slow) =>
-                fc
-                  .integer({ min: 2, max: 15 })
-                  .chain((signal) =>
-                    fc
-                      .array(candleArb, {
-                        minLength: slow + signal + 10,
-                        maxLength: 150,
-                      })
-                      .map((candles) => ({ candles, fast, slow, signal })),
-                  ),
-              ),
+        fc.integer({ min: 3, max: 20 }).chain((fast) =>
+          fc.integer({ min: fast + 1, max: 40 }).chain((slow) =>
+            fc.integer({ min: 2, max: 15 }).chain((signal) =>
+              fc
+                .array(candleArb, {
+                  minLength: slow + signal + 10,
+                  maxLength: 150,
+                })
+                .map((candles) => ({ candles, fast, slow, signal })),
+            ),
           ),
+        ),
         ({ candles, fast, slow, signal }) => {
           const out = macd(candles, fast, slow, signal);
           let seenNonNull = false;
@@ -438,14 +429,17 @@ describe('util (property)', () => {
 
   it('mean is within [min, max] of its inputs', () =>
     fc.assert(
-      fc.property(fc.array(fc.double({ min: -1e6, max: 1e6, noNaN: true }), { minLength: 1, maxLength: 100 }), (xs) => {
-        const m = mean(xs);
-        expect(Number.isNaN(m)).toBe(false);
-        const lo = Math.min(...xs);
-        const hi = Math.max(...xs);
-        expect(m).toBeGreaterThanOrEqual(lo);
-        expect(m).toBeLessThanOrEqual(hi);
-      }),
+      fc.property(
+        fc.array(fc.double({ min: -1e6, max: 1e6, noNaN: true }), { minLength: 1, maxLength: 100 }),
+        (xs) => {
+          const m = mean(xs);
+          expect(Number.isNaN(m)).toBe(false);
+          const lo = Math.min(...xs);
+          const hi = Math.max(...xs);
+          expect(m).toBeGreaterThanOrEqual(lo);
+          expect(m).toBeLessThanOrEqual(hi);
+        },
+      ),
     ));
 
   it('stdev is always non-negative', () =>

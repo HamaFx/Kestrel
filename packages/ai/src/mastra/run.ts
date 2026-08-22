@@ -1,24 +1,36 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { RequestContext } from '@mastra/core/request-context';
-import type { AgentMemoryOption } from '@mastra/core/agent';
 import type { LanguageModel } from 'ai';
 
 import { getDiagnosticContext, withDiagnostics } from '../diagnostics';
+import { prepareKestrelMemory } from '../mastra-v2/context';
+import { buildConversationScorers } from '../mastra-v2/evals/scorers';
+import { buildConversationGuardrails } from '../mastra-v2/guardrails';
+import { getKestrelMastra } from '../mastra-v2/instance';
+import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../mastra-v2/logger';
+import { createKestrelMemory, type CreateKestrelMemoryArgs } from '../mastra-v2/memory';
+import { runTracingOptions } from '../mastra-v2/telemetry';
+import { createXauusdReportWorkflow } from '../mastra-v2/workflows/xauusd-report';
 import { resolveChatModel, type ChatModelResolution } from '../model';
 import { telemetryConfig } from '../telemetry';
-import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../mastra-v2/logger';
-import { runTracingOptions } from '../mastra-v2/telemetry';
 import type { ResolveModelEnv } from '../vertex-factory';
 import { createXauusdMastraAgent } from './agent';
-import { buildConversationGuardrails } from '../mastra-v2/guardrails';
-import { buildConversationScorers } from '../mastra-v2/evals/scorers';
-import {
-  createKestrelMemory,
-  type CreateKestrelMemoryArgs,
-} from '../mastra-v2/memory';
-import { prepareKestrelMemory } from '../mastra-v2/context';
-import { getKestrelMastra } from '../mastra-v2/instance';
-import { createXauusdReportWorkflow } from '../mastra-v2/workflows/xauusd-report';
 import { generateXauusdFollowup } from './report-generation';
 import { blockedXauusdResearchText } from './report-text';
 import type { XauusdResearchReport } from './report-types';
@@ -280,9 +292,9 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       if (args.signal?.aborted) {
         throw args.signal.reason ?? new DOMException('Aborted', 'AbortError');
       }
-      throw (runResult.status === 'failed' && runResult.error
+      throw runResult.status === 'failed' && runResult.error
         ? runResult.error
-        : new Error('Mastra XAUUSD report workflow failed'));
+        : new Error('Mastra XAUUSD report workflow failed');
     }
     logWorkflowEnd({
       runId: args.runId,
@@ -302,9 +314,7 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
     };
     if (output.status === 'blocked' || !output.report) {
       const stats = output.stats ?? blockedStats();
-      const text =
-        output.blockedText ??
-        blockedXauusdResearchText(output.packet);
+      const text = output.blockedText ?? blockedXauusdResearchText(output.packet);
       await finishMastraRun({
         userId: args.userId,
         threadId: args.threadId,

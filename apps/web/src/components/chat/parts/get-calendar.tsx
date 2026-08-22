@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `get_calendar` tool part.
@@ -10,12 +26,12 @@
 //
 // Server component on purpose — purely presentational, no state or events.
 
-import Link from 'next/link';
-import { IconAlertTriangle, IconCalendarEvent } from '@tabler/icons-react';
 import type { GetCalendarOutput, ToolCalendarItem } from '@kestrel/shared';
+import { IconAlertTriangle, IconCalendarEvent } from '@tabler/icons-react';
+import Link from 'next/link';
 
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 interface GetCalendarPartProps {
   /** Tool output, or `null` while streaming / before completion. */
@@ -48,8 +64,15 @@ export function GetCalendarPart({ output, state, errorMessage }: GetCalendarPart
 
   if (output.pipelinePending) {
     return (
-      <Card as="section" aria-label="Calendar status" className="p-3 text-body-sm">
-        <p className="text-fg-muted flex items-start gap-2"><IconCalendarEvent className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> Calendar pipeline hasn&apos;t populated the DB yet. Trigger the <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-caption">/api/cron/calendar</code> cron once and try again.</p>
+      <Card as="section" aria-label="Calendar status" className="text-body-sm p-3">
+        <p className="text-fg-muted flex items-start gap-2">
+          <IconCalendarEvent className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> Calendar
+          pipeline hasn&apos;t populated the DB yet. Trigger the{' '}
+          <code className="bg-bg-elev-2 text-caption rounded-sm px-1 py-0.5">
+            /api/cron/calendar
+          </code>{' '}
+          cron once and try again.
+        </p>
       </Card>
     );
   }
@@ -58,17 +81,25 @@ export function GetCalendarPart({ output, state, errorMessage }: GetCalendarPart
 
   if (items.length === 0) {
     return (
-      <Card as="section" aria-label="Calendar status" className="p-3 text-body-sm">
-        <p className="text-fg-muted flex items-center gap-2"><IconCalendarEvent className="size-4" aria-hidden="true" /> No calendar events in the requested window.</p>
+      <Card as="section" aria-label="Calendar status" className="text-body-sm p-3">
+        <p className="text-fg-muted flex items-center gap-2">
+          <IconCalendarEvent className="size-4" aria-hidden="true" /> No calendar events in the
+          requested window.
+        </p>
       </Card>
     );
   }
 
   return (
     <Card as="section" aria-label={`Calendar results: ${items.length} events`} className="p-0">
-      <header className="flex items-center justify-between gap-2 border-b border-divider px-3 py-3">
-        <div className="flex items-center gap-2"><IconCalendarEvent className="text-fg-subtle size-4" aria-hidden="true" /><h3 className="text-fg text-body-sm font-semibold">Economic calendar</h3></div>
-        <Badge tone="neutral">{items.length} event{items.length === 1 ? '' : 's'}</Badge>
+      <header className="border-divider flex items-center justify-between gap-2 border-b px-3 py-3">
+        <div className="flex items-center gap-2">
+          <IconCalendarEvent className="text-fg-subtle size-4" aria-hidden="true" />
+          <h3 className="text-fg text-body-sm font-semibold">Economic calendar</h3>
+        </div>
+        <Badge tone="neutral">
+          {items.length} event{items.length === 1 ? '' : 's'}
+        </Badge>
       </header>
       <ul className="divide-border divide-y">
         {items.map((item) => (
@@ -88,7 +119,7 @@ function CalendarRow({ item }: { item: ToolCalendarItem }) {
   return (
     <Link
       href={`/calendar?id=${encodeURIComponent(item.id)}`}
-      className="focus-visible:ring-fg-muted hover:bg-bg-elev-2 flex min-h-[44px] items-center gap-2.5 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+      className="focus-visible:ring-fg-muted hover:bg-bg-elev-2 flex min-h-[44px] items-center gap-2.5 px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
     >
       <time dateTime={iso} className="text-fg-muted w-12 shrink-0 text-xs tabular-nums">
         {formatHHmmUtc(item.date)}
@@ -101,7 +132,9 @@ function CalendarRow({ item }: { item: ToolCalendarItem }) {
       <span className="text-fg min-w-0 flex-1 truncate font-medium">{item.title}</span>
 
       <Badge
-        tone={item.importance === 'high' ? 'danger' : item.importance === 'medium' ? 'warn' : 'neutral'}
+        tone={
+          item.importance === 'high' ? 'danger' : item.importance === 'medium' ? 'warn' : 'neutral'
+        }
         className={`shrink-0 ${IMPACT_TEXT[item.importance]}`}
       >
         {IMPACT_LABEL[item.importance]}
@@ -129,13 +162,7 @@ function CalendarRow({ item }: { item: ToolCalendarItem }) {
 
 function CalendarSkeleton() {
   return (
-    <Card
-      as="section"
-      role="status"
-      className="p-0"
-      aria-busy="true"
-      aria-label="Loading calendar"
-    >
+    <Card as="section" role="status" className="p-0" aria-busy="true" aria-label="Loading calendar">
       <ul className="divide-border divide-y">
         {[0, 1, 2].map((i) => (
           <li key={i} className="flex min-h-[44px] items-center gap-2.5 px-3 py-2">
@@ -151,8 +178,19 @@ function CalendarSkeleton() {
 
 function CalendarError({ message }: { message?: string }) {
   return (
-    <Card as="section" role="alert" aria-label={message ? `Calendar unavailable: ${message}` : 'Calendar unavailable'} className="border-danger/30 p-3 text-sm">
-      <p className="text-danger flex items-start gap-2"><IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><span><span className="font-semibold">Calendar unavailable</span>{message ? <span className="text-fg-muted"> · {message}</span> : null}</span></p>
+    <Card
+      as="section"
+      role="alert"
+      aria-label={message ? `Calendar unavailable: ${message}` : 'Calendar unavailable'}
+      className="border-danger/30 p-3 text-sm"
+    >
+      <p className="text-danger flex items-start gap-2">
+        <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <span>
+          <span className="font-semibold">Calendar unavailable</span>
+          {message ? <span className="text-fg-muted"> · {message}</span> : null}
+        </span>
+      </p>
     </Card>
   );
 }

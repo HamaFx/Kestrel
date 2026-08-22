@@ -38,9 +38,8 @@
 // Per PLAN.md §2.4 + §2.6 — sharpen radii, adopt R1 typography tokens,
 // kill the ring-1 chip pattern, surface-align with ArticleCard refactor
 // (commit 1992755) so news and calendar read as one design system.
-
 import type { EconomicEvent } from '@kestrel/shared';
-import {IconBell, IconBolt} from '@tabler/icons-react';
+import { IconBell, IconBolt } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -89,8 +88,8 @@ export function EventCard({ event }: EventCardProps) {
     <article
       className={cn(
         'group relative overflow-hidden rounded-sm',
-        'border border-border bg-bg-elev-1',
-        'transition-colors duration-200 md:hover:bg-bg-elev-2',
+        'border-border bg-bg-elev-1 border',
+        'md:hover:bg-bg-elev-2 transition-colors duration-200',
         isImminent && 'border-warn/40',
       )}
     >
@@ -104,9 +103,9 @@ export function EventCard({ event }: EventCardProps) {
         />
       ) : null}
 
-      <div className="flex flex-col gap-2.5 px-4 py-3.5 pl-5 pb-5">
+      <div className="flex flex-col gap-2.5 px-4 py-3.5 pb-5 pl-5">
         {/* Meta strip — currency glyph + country + time + countdown */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body-sm tabular-nums">
+        <div className="text-body-sm flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
           <span
             className="text-fg font-bold uppercase tabular-nums"
             title={importance.label}
@@ -117,29 +116,35 @@ export function EventCard({ event }: EventCardProps) {
             </span>
             {event.currency ?? event.country}
           </span>
-          <span aria-hidden className="text-fg-subtle opacity-50">·</span>
+          <span aria-hidden className="text-fg-subtle opacity-50">
+            ·
+          </span>
           <span className="text-fg-muted">{event.country}</span>
-          <span aria-hidden className="text-fg-subtle opacity-50">·</span>
+          <span aria-hidden className="text-fg-subtle opacity-50">
+            ·
+          </span>
           <time dateTime={date.toISOString()} className="text-fg-muted">
             {timeLabel(date)}
           </time>
           {isFuture ? (
             <>
-              <span aria-hidden className="text-fg-subtle opacity-50">·</span>
+              <span aria-hidden className="text-fg-subtle opacity-50">
+                ·
+              </span>
               <Countdown ms={event.date - now} imminent={isImminent} />
             </>
           ) : event.actual !== null ? (
             <>
-              <span aria-hidden className="text-fg-subtle opacity-50">·</span>
+              <span aria-hidden className="text-fg-subtle opacity-50">
+                ·
+              </span>
               <span className="text-fg-subtle">released</span>
             </>
           ) : null}
         </div>
 
         {/* Title */}
-        <h3 className="text-fg line-clamp-2 text-body font-semibold leading-snug">
-          {event.title}
-        </h3>
+        <h3 className="text-fg text-body line-clamp-2 leading-snug font-semibold">{event.title}</h3>
 
         {/* Data row — actual / forecast / previous + beat/miss */}
         {(event.actual !== null || event.forecast !== null || event.previous !== null) && (
@@ -152,14 +157,14 @@ export function EventCard({ event }: EventCardProps) {
       {isFuture ? (
         <div
           className={cn(
-            'flex items-center justify-between gap-2 border-t border-border/70 px-3 py-2',
+            'border-border/70 flex items-center justify-between gap-2 border-t px-3 py-2',
             'bg-bg-elev-1 transition-colors duration-150',
             'hover:bg-bg-elev-2',
           )}
         >
           <Link
             href={`/chat?prompt=${askPrompt}`}
-            className="bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-8 items-center gap-1 rounded-sm px-3 py-1.5 text-body-sm font-medium transition-colors"
+            className="bg-bg-elev-2 text-fg-muted hover:text-fg text-body-sm inline-flex min-h-8 items-center gap-1 rounded-sm px-3 py-1.5 font-medium transition-colors"
           >
             <IconBolt className="size-3.5" />
             Ask AI
@@ -176,20 +181,18 @@ export function EventCard({ event }: EventCardProps) {
 function DataRow({ event }: { event: EconomicEvent }) {
   const beat = beatMiss(event);
   return (
-    <dl className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-body-sm tabular-nums">
+    <dl className="text-body-sm flex flex-wrap items-center gap-x-4 gap-y-1.5 tabular-nums">
       {event.actual !== null && (
         <Stat label="actual" value={event.actual} unit={event.unit} emphasis />
       )}
       {event.forecast !== null && (
         <Stat label="forecast" value={event.forecast} unit={event.unit} />
       )}
-      {event.previous !== null && (
-        <Stat label="prev" value={event.previous} unit={event.unit} />
-      )}
+      {event.previous !== null && <Stat label="prev" value={event.previous} unit={event.unit} />}
       {beat ? (
         <span
           className={cn(
-            'ml-auto inline-flex items-center gap-1 px-1.5 text-caption font-bold uppercase tabular-nums',
+            'text-caption ml-auto inline-flex items-center gap-1 px-1.5 font-bold uppercase tabular-nums',
             beat === 'beat' ? 'text-bull' : 'text-bear',
           )}
         >
@@ -213,14 +216,10 @@ function Stat({
 }) {
   return (
     <span className="flex items-baseline gap-1">
-      <dt className="text-fg-subtle text-caption uppercase tracking-wide">
-        {label}
-      </dt>
+      <dt className="text-fg-subtle text-caption tracking-wide uppercase">{label}</dt>
       <dd className={cn('font-semibold', emphasis ? 'text-fg' : 'text-fg-muted')}>
         {value}
-        {unit ? (
-          <span className="text-fg-subtle ml-0.5 font-normal">{unit}</span>
-        ) : null}
+        {unit ? <span className="text-fg-subtle ml-0.5 font-normal">{unit}</span> : null}
       </dd>
     </span>
   );
@@ -230,9 +229,10 @@ function beatMiss(event: EconomicEvent): 'beat' | 'miss' | null {
   if (event.actual === null || event.forecast === null) return null;
   const delta = event.actual - event.forecast;
   if (delta === 0) return null;
-  const isSignificant = event.forecast !== 0
-    ? Math.abs(delta) / Math.abs(event.forecast) > 0.01
-    : Math.abs(delta) > 0.01;
+  const isSignificant =
+    event.forecast !== 0
+      ? Math.abs(delta) / Math.abs(event.forecast) > 0.01
+      : Math.abs(delta) > 0.01;
   if (!isSignificant) return null;
   return delta > 0 ? 'beat' : 'miss';
 }
@@ -242,13 +242,8 @@ function Countdown({ ms, imminent }: { ms: number; imminent: boolean }) {
   const d = Math.floor(ms / (24 * 60 * 60_000));
   const h = Math.floor((ms % (24 * 60 * 60_000)) / (60 * 60_000));
   const m = Math.floor((ms % (60 * 60_000)) / 60_000);
-  const text =
-    d > 0 ? `in ${d}d ${h}h` : h > 0 ? `in ${h}h ${m}m` : `in ${m}m`;
-  return (
-    <span className={cn('font-semibold', imminent ? 'text-warn' : 'text-fg')}>
-      {text}
-    </span>
-  );
+  const text = d > 0 ? `in ${d}d ${h}h` : h > 0 ? `in ${h}h ${m}m` : `in ${m}m`;
+  return <span className={cn('font-semibold', imminent ? 'text-warn' : 'text-fg')}>{text}</span>;
 }
 
 function timeLabel(d: Date): string {
@@ -317,10 +312,8 @@ function RemindButton({ event }: { event: EconomicEvent }) {
       disabled={armed}
       aria-pressed={armed}
       className={cn(
-        'pointer-events-auto inline-flex items-center gap-1 rounded-sm px-3 py-1.5 text-body-sm font-medium transition-colors',
-        armed
-          ? 'text-fg bg-bg-elev-2'
-          : 'text-fg-muted hover:text-fg bg-bg-elev-2',
+        'text-body-sm pointer-events-auto inline-flex items-center gap-1 rounded-sm px-3 py-1.5 font-medium transition-colors',
+        armed ? 'text-fg bg-bg-elev-2' : 'text-fg-muted hover:text-fg bg-bg-elev-2',
       )}
     >
       <IconBell className={cn('size-3.5', armed && 'fill-current')} />

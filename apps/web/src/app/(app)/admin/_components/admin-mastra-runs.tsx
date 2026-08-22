@@ -2,22 +2,34 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconExternalLink, IconRefresh, IconStethoscope } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  IconExternalLink,
-  IconRefresh,
-  IconStethoscope,
-} from '@tabler/icons-react';
 
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
-import { AdminErrorBlock } from './admin-error-block';
 import { apiFetch } from '@/lib/api-client';
+import { formatAbsoluteTime, formatNumber, formatRelativeTime } from '@/lib/format-number';
 import { toastApiError } from '@/lib/toast-api-error';
-import { formatRelativeTime, formatAbsoluteTime, formatNumber } from '@/lib/format-number';
+
+import { AdminErrorBlock } from './admin-error-block';
 
 interface MastraRunScore {
   scorerId: string;
@@ -84,7 +96,9 @@ export function AdminMastraRuns() {
     setLoading(true);
     setFetchError(null);
     try {
-      const data = await apiFetch<MastraRunsResponse>(`/api/admin/mastra-runs?hours=${windowHours}&limit=200`);
+      const data = await apiFetch<MastraRunsResponse>(
+        `/api/admin/mastra-runs?hours=${windowHours}&limit=200`,
+      );
       setRuns(data.runs);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load Mastra runs';
@@ -105,7 +119,10 @@ export function AdminMastraRuns() {
 
   if (fetchError) {
     return (
-      <SettingsSection title="Mastra Runs" description="Unified Mastra run observability (telemetry + workflow state + scores).">
+      <SettingsSection
+        title="Mastra Runs"
+        description="Unified Mastra run observability (telemetry + workflow state + scores)."
+      >
         <AdminErrorBlock message={fetchError} onRetry={() => void fetchRuns(hours)} />
       </SettingsSection>
     );
@@ -132,7 +149,7 @@ export function AdminMastraRuns() {
           Refresh
         </Button>
       </div>
-      <div className="border-border overflow-x-auto overflow-hidden rounded-sm border">
+      <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
         <table className="w-full text-sm">
           <thead className="bg-bg-elev-2 text-fg-subtle">
             <tr>
@@ -193,7 +210,9 @@ export function AdminMastraRuns() {
                   <td className="px-4 py-2">
                     {run.scores.length > 0 ? (
                       <div className="flex flex-col gap-1">
-                        <Badge tone={run.scoreMean !== null && run.scoreMean >= 0.8 ? 'success' : 'warn'}>
+                        <Badge
+                          tone={run.scoreMean !== null && run.scoreMean >= 0.8 ? 'success' : 'warn'}
+                        >
                           {run.scoreMean !== null ? formatNumber(run.scoreMean) : '—'}
                         </Badge>
                         <span className="text-fg-subtle text-xs">

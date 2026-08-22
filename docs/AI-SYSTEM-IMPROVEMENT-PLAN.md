@@ -27,17 +27,22 @@
 ### Files to change
 
 #### `apps/web/src/instrumentation.ts`
+
 Add eager Mastra storage initialization after Langfuse init:
 
 ```ts
 // After initLangfuse({ service: 'web' });
 const { initializeKestrelMastra } = await import('@kestrel/ai/mastra');
 await initializeKestrelMastra().catch((err) => {
-  console.warn('[instrumentation] Mastra storage init failed (non-fatal; lazy init will retry)', err);
+  console.warn(
+    '[instrumentation] Mastra storage init failed (non-fatal; lazy init will retry)',
+    err,
+  );
 });
 ```
 
 #### `apps/worker/src/index.ts`
+
 Add after `initLangfuse({ service: 'worker' })`:
 
 ```ts
@@ -48,6 +53,7 @@ await initializeKestrelMastra().catch((err) => {
 ```
 
 ### Tests
+
 - Existing tests unaffected (they inject instances via `_setKestrelMastraForTest`).
 - Add an integration test that asserts `initializeKestrelMastra` is idempotent (call twice, no error).
 
@@ -72,6 +78,7 @@ onShutdown(() => {
 ```
 
 ### Notes
+
 - The web (Vercel) doesn't need this — serverless functions flush on freeze.
 - `flushMastraObservability` is already best-effort (never throws).
 
@@ -85,6 +92,7 @@ onShutdown(() => {
 ### File to change
 
 #### `packages/ai/src/mastra-v2/storage.ts`
+
 Export a helper that calls `storage.prune()`:
 
 ```ts
@@ -114,6 +122,7 @@ export async function pruneMastraStorage(): Promise<{
 Export from `mastra-v2/index.ts` and `mastra/index.ts`.
 
 #### `apps/worker/src/jobs/retention.ts`
+
 Add after the Drizzle retention cleanup:
 
 ```ts
@@ -125,6 +134,7 @@ ctx.log.info('Mastra storage pruning', mastraRetention);
 ```
 
 ### Tests
+
 - Unit test: mock storage with a `prune()` spy, assert it's called.
 - Unit test: mock storage without `prune()`, assert graceful degradation.
 
@@ -138,9 +148,9 @@ ctx.log.info('Mastra storage pruning', mastraRetention);
 ### New file: `packages/ai/src/mastra-v2/advisory-lock.ts`
 
 ```ts
-import { sql } from 'drizzle-orm';
 import { getDb } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { sql } from 'drizzle-orm';
 
 const alog = createCategorizedLogger('ai', { component: 'mastra-advisory-lock' });
 
@@ -154,24 +164,19 @@ const alog = createCategorizedLogger('ai', { component: 'mastra-advisory-lock' }
  * (connection) is returned to the pool, so even a worker crash
  * releases the lock.
  */
-export async function tryWorkflowClaimLock(
-  workflowName: string,
-): Promise<() => void> {
+export async function tryWorkflowClaimLock(workflowName: string): Promise<() => void> {
   try {
     const db = getDb();
     // Hash the workflow name into a 32-bit int for the lock key.
     const key = hashTo32Bit(workflowName);
-    const result = await db.execute(
-      sql.raw(`SELECT pg_try_advisory_lock(${key}) AS acquired`),
-    );
+    const result = await db.execute(sql.raw(`SELECT pg_try_advisory_lock(${key}) AS acquired`));
     const acquired = (result as unknown as [{ acquired: boolean }])[0]?.acquired;
     if (!acquired) {
       alog.debug('advisory lock not acquired', { workflowName });
       return () => {};
     }
     return () => {
-      db.execute(sql.raw(`SELECT pg_advisory_unlock(${key})`))
-        .catch(() => {});
+      db.execute(sql.raw(`SELECT pg_advisory_unlock(${key})`)).catch(() => {});
     };
   } catch (error) {
     alog.warn('advisory lock failed; using read-verify-write fallback', {
@@ -228,6 +233,7 @@ if (process.env.WORKER_COUNT && Number(process.env.WORKER_COUNT) > 1) {
 ```
 
 ### Tests
+
 - Unit test: mock `getDb().execute()`, assert `pg_try_advisory_lock` is called.
 - Unit test: when lock not acquired, claim returns null without listing.
 - Integration test: two concurrent claims on real PGlite (no advisory lock support → graceful fallback to read-verify-write).
@@ -248,8 +254,7 @@ if (process.env.WORKER_COUNT && Number(process.env.WORKER_COUNT) > 1) {
 Add a helper that resolves the semantic routing config:
 
 ```ts
-const SEMANTIC_ROUTING_ENABLED =
-  (process.env.AI_SEMANTIC_ROUTING_ENABLED ?? 'true') !== 'false';
+const SEMANTIC_ROUTING_ENABLED = (process.env.AI_SEMANTIC_ROUTING_ENABLED ?? 'true') !== 'false';
 
 /**
  * Build the semantic routing config for routeTurn when enabled.
@@ -287,6 +292,7 @@ const routing = await routeTurn({
 ```
 
 ### Tests
+
 - Existing `routing.test.ts` covers keyword fallback when semantic routing returns null.
 - Add test: when `AI_SEMANTIC_ROUTING_ENABLED=false`, `resolveSemanticRoutingConfig` returns null.
 - Add test: when no planner model is resolvable, returns null (degrades to keyword).
@@ -328,7 +334,13 @@ export function buildCustomScorers(): BuiltScorers {
       warnings: [],
     };
   } catch (error) {
-    return { scorers: [], entries: {}, judgeModel: null, skipped: [], warnings: ['custom scorers failed to build'] };
+    return {
+      scorers: [],
+      entries: {},
+      judgeModel: null,
+      skipped: [],
+      warnings: ['custom scorers failed to build'],
+    };
   }
 }
 ```
@@ -342,7 +354,8 @@ export function buildConversationScorers(
   sampling: ScorerSampling = { type: 'ratio', rate: 0.05 },
 ): BuiltScorers {
   const prebuilt = buildPrebuiltScorers({
-    settings, env,
+    settings,
+    env,
     enabled: ['faithfulness', 'answer-relevancy', 'toxicity'],
     sampling,
   });
@@ -364,6 +377,7 @@ function mergeScorers(a: BuiltScorers, b: BuiltScorers): BuiltScorers {
 Do the same for `buildResearchScorers`.
 
 ### Tests
+
 - Assert `buildConversationScorers()` includes `kestrel-grounding` and `kestrel-citation` in entries.
 - Assert custom scorers have no `sampling` property (always-on).
 
@@ -390,18 +404,21 @@ const agent = new Agent({
   description: 'Bounded structured Kestrel generation executed through Mastra.',
   model: args.model,
   instructions: args.system,
-  inputProcessors: [new UnicodeNormalizer({
-    stripControlChars: true,
-    preserveEmojis: true,
-    collapseWhitespace: true,
-    trim: true,
-  })],
+  inputProcessors: [
+    new UnicodeNormalizer({
+      stripControlChars: true,
+      preserveEmojis: true,
+      collapseWhitespace: true,
+      trim: true,
+    }),
+  ],
 });
 ```
 
 Also add to `runMastraText()` for consistency.
 
 ### Tests
+
 - Unit test: pass text with control characters to `runMastraStructured`, assert the model receives normalized text (via mock model).
 
 ---
@@ -450,6 +467,7 @@ const draft = await startMutationDraft({
 ```
 
 ### Tests
+
 - Existing tests should pass unchanged (the `kind` param is optional).
 
 ---
@@ -475,24 +493,25 @@ const draft = await startMutationDraft({
 4. Search for and remove any imports of `runMastraStream` across the codebase.
 
 ### Tests
+
 - Run `pnpm typecheck` to confirm no broken imports.
 
 ---
 
 ## Summary Table
 
-| # | Gap | Severity | Effort | Files |
-|---|-----|----------|--------|-------|
-| 1 | Semantic routing not wired | Medium | Small | routing.ts, canonical-chat.ts |
-| 2 | Storage retention pruning | Low | Small | storage.ts, retention.ts |
-| 3 | initializeKestrelMastra at boot | Low | Small | instrumentation.ts, worker/index.ts |
-| 4 | Mastra observability flush | Medium | Small | worker/index.ts |
-| 5 | Custom scorers not attached | Low | Small | scorers.ts |
-| 6 | Extraction path unguarded | Low | Small | text-runner.ts |
-| 7 | Remove stream-runner.ts | Trivial | Trivial | delete + cleanup |
-| 8 | Multi-worker advisory lock | Low/Medium | Medium | new advisory-lock.ts, full-analysis.ts |
-| 9 | Deduplicate mutation classification | Trivial | Trivial | mastra-mutation-draft.ts, route.ts |
-| 10 | Runtime WORKER_COUNT warning | — | Trivial | folded into #8 |
+| #   | Gap                                 | Severity   | Effort  | Files                                  |
+| --- | ----------------------------------- | ---------- | ------- | -------------------------------------- |
+| 1   | Semantic routing not wired          | Medium     | Small   | routing.ts, canonical-chat.ts          |
+| 2   | Storage retention pruning           | Low        | Small   | storage.ts, retention.ts               |
+| 3   | initializeKestrelMastra at boot     | Low        | Small   | instrumentation.ts, worker/index.ts    |
+| 4   | Mastra observability flush          | Medium     | Small   | worker/index.ts                        |
+| 5   | Custom scorers not attached         | Low        | Small   | scorers.ts                             |
+| 6   | Extraction path unguarded           | Low        | Small   | text-runner.ts                         |
+| 7   | Remove stream-runner.ts             | Trivial    | Trivial | delete + cleanup                       |
+| 8   | Multi-worker advisory lock          | Low/Medium | Medium  | new advisory-lock.ts, full-analysis.ts |
+| 9   | Deduplicate mutation classification | Trivial    | Trivial | mastra-mutation-draft.ts, route.ts     |
+| 10  | Runtime WORKER_COUNT warning        | —          | Trivial | folded into #8                         |
 
 ## Estimated total effort: ~1-2 days
 

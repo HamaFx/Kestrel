@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Sentiment overview at the top of /news. Shows the proportional split
@@ -32,24 +48,19 @@ export function SentimentSummary({ articles }: SentimentSummaryProps) {
   const rawScore = total > 0 ? (counts.positive - counts.negative) / total : 0;
   const score = Math.max(-1, Math.min(1, rawScore));
 
-  const leanLabel =
-    score > 0.15
-      ? 'Bullish'
-      : score < -0.15
-        ? 'Bearish'
-        : 'Neutral';
+  const leanLabel = score > 0.15 ? 'Bullish' : score < -0.15 ? 'Bearish' : 'Neutral';
   const leanTone = score > 0.15 ? 'text-bull' : score < -0.15 ? 'text-bear' : 'text-fg-muted';
 
   return (
     <section
       aria-labelledby="news-pulse-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm relative flex flex-col gap-3 p-4"
+      className="border-border bg-bg-elev-1 relative flex flex-col gap-3 rounded-sm border p-4"
     >
       <header className="flex items-baseline justify-between gap-3">
         <div className="flex flex-col gap-0.5">
           <h2
             id="news-pulse-heading"
-            className="text-fg-subtle text-caption font-semibold uppercase tracking-wider"
+            className="text-fg-subtle text-caption font-semibold tracking-wider uppercase"
           >
             News pulse
           </h2>
@@ -57,9 +68,7 @@ export function SentimentSummary({ articles }: SentimentSummaryProps) {
             {total} <span className="text-fg-muted text-sm font-normal">headlines</span>
           </p>
         </div>
-        <span
-          className={cn('text-body-sm font-semibold uppercase tracking-wide', leanTone)}
-        >
+        <span className={cn('text-body-sm font-semibold tracking-wide uppercase', leanTone)}>
           {leanLabel}
         </span>
       </header>
@@ -72,7 +81,7 @@ export function SentimentSummary({ articles }: SentimentSummaryProps) {
       {/* Counts row */}
       <ul
         aria-label="Sentiment breakdown"
-        className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body-sm tabular-nums"
+        className="text-body-sm flex flex-wrap items-center gap-x-4 gap-y-1 tabular-nums"
       >
         <Count tone="bull" label="Bullish" count={counts.positive} pct={pct(counts.positive)} />
         <Count tone="bear" label="Bearish" count={counts.negative} pct={pct(counts.negative)} />
@@ -110,8 +119,14 @@ function SentimentGauge({
 
   // Segments along the 180° arc, left (bear) → right (bull).
   const arc = (from: number, to: number, color: string, opacity = 1) => {
-    const start = { x: cx + r * Math.cos(((180 - from) * Math.PI) / 180), y: cy - r * Math.sin(((180 - from) * Math.PI) / 180) };
-    const end = { x: cx + r * Math.cos(((180 - to) * Math.PI) / 180), y: cy - r * Math.sin(((180 - to) * Math.PI) / 180) };
+    const start = {
+      x: cx + r * Math.cos(((180 - from) * Math.PI) / 180),
+      y: cy - r * Math.sin(((180 - from) * Math.PI) / 180),
+    };
+    const end = {
+      x: cx + r * Math.cos(((180 - to) * Math.PI) / 180),
+      y: cy - r * Math.sin(((180 - to) * Math.PI) / 180),
+    };
     const largeArc = to - from > 180 ? 1 : 0;
     return (
       <path
@@ -138,11 +153,7 @@ function SentimentGauge({
 
   return (
     <div className="flex justify-center" aria-hidden="true">
-      <svg
-        viewBox="0 0 240 76"
-        className="h-16 w-48 max-w-full"
-        focusable="false"
-      >
+      <svg viewBox="0 0 240 76" className="h-16 w-48 max-w-full" focusable="false">
         {/* Bullish segment (right) — score +1 needle lands here. */}
         {arc(180, 180 - bullDeg, 'var(--color-bull)')}
         {/* Neutral segment (middle) */}
@@ -186,11 +197,7 @@ function Count({
           ? 'bg-fg-subtle'
           : 'bg-bg-elev-3';
   const labelClass =
-    tone === 'bull'
-      ? 'text-bull'
-      : tone === 'bear'
-        ? 'text-bear'
-        : 'text-fg-muted';
+    tone === 'bull' ? 'text-bull' : tone === 'bear' ? 'text-bear' : 'text-fg-muted';
   return (
     <li className="inline-flex items-center gap-1.5">
       <span aria-hidden className={cn('size-2 rounded-sm', dotClass)} />

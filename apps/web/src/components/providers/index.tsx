@@ -23,8 +23,8 @@
 // M7: Lazy-load SwRegister — it returns null and defers internally via
 // requestIdleCallback. TimeProvider is kept synchronous because it wraps
 // {children} and lazy-loading it would flash a blank app for ~50-200ms.
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import dynamic from 'next/dynamic';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
 import { QueryProvider } from './query-provider';
 import { TimeProvider } from './time-provider';

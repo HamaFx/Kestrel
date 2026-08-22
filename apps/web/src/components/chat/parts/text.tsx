@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import {IconCheck, IconCopy} from '@tabler/icons-react';
+import { IconCheck, IconCopy } from '@tabler/icons-react';
 import DOMPurify from 'dompurify';
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -35,9 +34,7 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
   // User bubbles never need markdown formatting — the user typed it
   // verbatim and we should render it the same way they typed it.
   if (role === 'user') {
-    return (
-      <p className="whitespace-pre-line text-sm leading-[1.4]">{text}</p>
-    );
+    return <p className="text-sm leading-[1.4] whitespace-pre-line">{text}</p>;
   }
 
   // While streaming, skip expensive ReactMarkdown + Shiki parsing.
@@ -46,35 +43,43 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
   // the layout doesn't jump when the finished markdown render swaps in.
   if (isStreaming) {
     return (
-      <div className="md-prose text-sm leading-[1.4] tracking-tight space-y-2 text-fg whitespace-pre-line">
+      <div className="md-prose text-fg space-y-2 text-sm leading-[1.4] tracking-tight whitespace-pre-line">
         {text}
         <span
           aria-hidden="true"
-          className="inline-block w-[2px] h-[1em] bg-fg animate-pulse ml-[1px] align-middle"
+          className="bg-fg ml-[1px] inline-block h-[1em] w-[2px] animate-pulse align-middle"
         />
       </div>
     );
   }
 
   return (
-    <div className="md-prose text-sm leading-[1.4] tracking-tight space-y-2 text-fg">
+    <div className="md-prose text-fg space-y-2 text-sm leading-[1.4] tracking-tight">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          h1: ({ children }) => <h1 className="text-base font-bold mt-4 mb-2 text-fg tracking-tight">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-sm font-semibold mt-3 mb-1.5 text-fg tracking-tight">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-sm font-medium mt-2 mb-1 text-fg">{children}</h3>,
+          h1: ({ children }) => (
+            <h1 className="text-fg mt-4 mb-2 text-base font-bold tracking-tight">{children}</h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="text-fg mt-3 mb-1.5 text-sm font-semibold tracking-tight">{children}</h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="text-fg mt-2 mb-1 text-sm font-medium">{children}</h3>
+          ),
           blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-border text-fg-muted my-2 pl-3 italic text-sm leading-[1.4]">
+            <blockquote className="border-border text-fg-muted my-2 border-l-2 pl-3 text-sm leading-[1.4] italic">
               {children}
             </blockquote>
           ),
           hr: () => <hr className="border-divider my-4" />,
-          p: ({ children }) => <p className="leading-[1.4] whitespace-pre-line my-1.5 text-fg text-sm">{children}</p>,
-          ul: ({ children }) => <ul className="pl-0 list-none my-2 space-y-1">{children}</ul>,
-          ol: ({ children }) => <ol className="pl-0 list-none my-2 space-y-1">{children}</ol>,
+          p: ({ children }) => (
+            <p className="text-fg my-1.5 text-sm leading-[1.4] whitespace-pre-line">{children}</p>
+          ),
+          ul: ({ children }) => <ul className="my-2 list-none space-y-1 pl-0">{children}</ul>,
+          ol: ({ children }) => <ol className="my-2 list-none space-y-1 pl-0">{children}</ol>,
           li: ({ children }) => (
-            <li className="text-fg text-sm leading-[1.4] flex gap-2">
+            <li className="text-fg flex gap-2 text-sm leading-[1.4]">
               <span className="text-fg-subtle select-none">›</span>
               <span className="flex-1">{children}</span>
             </li>
@@ -84,35 +89,50 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-fg underline underline-offset-2 decoration-border hover:decoration-fg-subtle"
+              className="text-fg decoration-border hover:decoration-fg-subtle underline underline-offset-2"
             >
               {children}
             </a>
           ),
           table: ({ children }) => (
-            <div className="my-3 overflow-x-auto border border-divider rounded-sm">
-              <table className="table-auto font-mono text-xs text-right border-divider w-full">
+            <div className="border-divider my-3 overflow-x-auto rounded-sm border">
+              <table className="border-divider w-full table-auto text-right font-mono text-xs">
                 {children}
               </table>
             </div>
           ),
-          thead: ({ children }) => <thead className="bg-bg-elev-2 border-b border-border">{children}</thead>,
-          tbody: ({ children }) => <tbody className="divide-y divide-divider">{children}</tbody>,
-          tr: ({ children }) => <tr className="border-divider hover:bg-bg-elev-1 transition-colors">{children}</tr>,
-          th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold text-fg-subtle uppercase tracking-wider border-r border-divider last:border-r-0">{children}</th>,
-          td: ({ children }) => <td className="px-3 py-1.5 text-fg tabular-nums border-r border-divider last:border-r-0">{children}</td>,
+          thead: ({ children }) => (
+            <thead className="bg-bg-elev-2 border-border border-b">{children}</thead>
+          ),
+          tbody: ({ children }) => <tbody className="divide-divider divide-y">{children}</tbody>,
+          tr: ({ children }) => (
+            <tr className="border-divider hover:bg-bg-elev-1 transition-colors">{children}</tr>
+          ),
+          th: ({ children }) => (
+            <th className="text-fg-subtle border-divider border-r px-3 py-1.5 text-left font-semibold tracking-wider uppercase last:border-r-0">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="text-fg border-divider border-r px-3 py-1.5 tabular-nums last:border-r-0">
+              {children}
+            </td>
+          ),
           code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             const codeStr = String(children).replace(/\n$/, '');
             if (!match) {
               return (
-                <code className="bg-bg-elev-2 text-fg-muted font-mono text-xs border border-border rounded-sm px-1.5 py-0.5" {...props}>
+                <code
+                  className="bg-bg-elev-2 text-fg-muted border-border rounded-sm border px-1.5 py-0.5 font-mono text-xs"
+                  {...props}
+                >
                   {children}
                 </code>
               );
             }
             return <CodeBlock lang={match[1]!} code={codeStr} />;
-          }
+          },
         }}
       >
         {text}
@@ -193,7 +213,7 @@ function ShikiCode({ code, lang }: { code: string; lang: string }) {
   }
 
   return (
-    <pre className="scrollbar-hide overflow-x-auto p-3 font-mono text-body-sm leading-[1.4]">
+    <pre className="scrollbar-hide text-body-sm overflow-x-auto p-3 font-mono leading-[1.4]">
       <code>{code}</code>
     </pre>
   );
@@ -218,19 +238,17 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
 
   return (
     <div
-      className={cn(
-        'border-border bg-bg-elev-1 relative my-2 overflow-hidden rounded-sm border',
-      )}
+      className={cn('border-border bg-bg-elev-1 relative my-2 overflow-hidden rounded-sm border')}
     >
       <div className="border-border bg-bg-elev-2 flex items-center justify-between border-b px-3 py-2">
-        <span className="text-fg-subtle font-mono text-caption uppercase tracking-wider">
+        <span className="text-fg-subtle text-caption font-mono tracking-wider uppercase">
           {lang || 'code'}
         </span>
         <button
           type="button"
           onClick={copy}
           aria-label={copied ? 'Copied' : 'Copy code'}
-          className="text-fg-muted hover:text-fg inline-flex items-center gap-1 rounded-sm px-2 py-1 text-caption font-medium transition-colors cursor-pointer"
+          className="text-fg-muted hover:text-fg text-caption inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-1 font-medium transition-colors"
         >
           {copied ? (
             <>
@@ -243,7 +261,7 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
           )}
         </button>
       </div>
-      
+
       <ShikiCode code={displayCode} lang={lang} />
 
       {shouldTruncate && (
@@ -251,7 +269,7 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="text-fg hover:text-fg-muted text-caption font-semibold transition-colors cursor-pointer"
+            className="text-fg hover:text-fg-muted text-caption cursor-pointer font-semibold transition-colors"
           >
             {expanded ? 'Collapse code' : `Show all ${lines.length} lines`}
           </button>

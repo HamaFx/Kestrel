@@ -25,7 +25,22 @@
 // production. Runs in Node, no Next.js context needed — these are pure
 // persistence-layer functions.
 
-import { vi } from 'vitest';
+import type * as DbModule from '@kestrel/db';
+import * as dbModule from '@kestrel/db';
+import { schema } from '@kestrel/db';
+import { ensureMigrations, getLocalDb } from '@kestrel/db/local-db';
+import type { UIMessage } from 'ai';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  appendAssistantMessage,
+  appendUserMessage,
+  createThread,
+  deleteThread,
+  getThread,
+  listMessages,
+  updateThreadPinnedSymbol,
+} from '../src/persistence';
 
 vi.hoisted(() => {
   // The IDOR test runs against PGlite via `getLocalDb()` below. But the
@@ -35,11 +50,9 @@ vi.hoisted(() => {
   // doesn't throw on first read; the mock below redirects the calls to
   // the PGlite instance for actual queries.
   process.env.DATABASE_URL = '';
-  process.env.NEXTAUTH_SECRET='idor-t...hars';
-  process.env.CRON_SECRET='idor-t...-min';
+  process.env.NEXTAUTH_SECRET = 'idor-t...hars';
+  process.env.CRON_SECRET = 'idor-t...-min';
 });
-
-import type * as DbModule from '@kestrel/db';
 
 // Replace `getDb()` with a function that returns the active PGlite
 // instance. The test sets up PGlite in `beforeAll`, then swaps the
@@ -51,9 +64,7 @@ vi.mock('@kestrel/db', async () => {
     ...actual,
     getDb: () => {
       if (!activeDb) {
-        throw new Error(
-          'Test must call `setDb()` before invoking code that calls getDb()',
-        );
+        throw new Error('Test must call `setDb()` before invoking code that calls getDb()');
       }
       return activeDb as ReturnType<typeof actual.getDb>;
     },
@@ -65,22 +76,6 @@ vi.mock('@kestrel/db', async () => {
     },
   } as typeof actual;
 });
-
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { UIMessage } from 'ai';
-
-import { getLocalDb, ensureMigrations } from '@kestrel/db/local-db';
-import * as dbModule from '@kestrel/db';
-import { schema } from '@kestrel/db';
-import {
-  createThread,
-  deleteThread,
-  getThread,
-  listMessages,
-  updateThreadPinnedSymbol,
-  appendUserMessage,
-  appendAssistantMessage,
-} from '../src/persistence';
 
 // The mock in the hoisted block exposes `__setDb` so we can register
 // the active PGlite instance after beforeAll creates it.
@@ -127,22 +122,29 @@ describe('Phase 8 durable message idempotency', () => {
       parts: [{ type: 'text', text: 'Gold is consolidating.' }],
     } as UIMessage;
 
-    await appendUserMessage(USER_A, thread.id, userMessage, { idempotencyKey: 'analysis-job:test:user' });
-    await appendUserMessage(USER_A, thread.id, {
-      ...userMessage,
-      parts: [{ type: 'text', text: 'different retry payload' }],
-    } as UIMessage, { idempotencyKey: 'analysis-job:test:user' });
-
-    const first = await appendAssistantMessage(
+    await appendUserMessage(USER_A, thread.id, userMessage, {
+      idempotencyKey: 'analysis-job:test:user',
+    });
+    await appendUserMessage(
       USER_A,
       thread.id,
-      assistantMessage,
-      { idempotencyKey: 'analysis-job:test:assistant' },
+      {
+        ...userMessage,
+        parts: [{ type: 'text', text: 'different retry payload' }],
+      } as UIMessage,
+      { idempotencyKey: 'analysis-job:test:user' },
     );
+
+    const first = await appendAssistantMessage(USER_A, thread.id, assistantMessage, {
+      idempotencyKey: 'analysis-job:test:assistant',
+    });
     const second = await appendAssistantMessage(
       USER_A,
       thread.id,
-      { ...assistantMessage, parts: [{ type: 'text', text: 'different retry output' }] } as UIMessage,
+      {
+        ...assistantMessage,
+        parts: [{ type: 'text', text: 'different retry output' }],
+      } as UIMessage,
       { idempotencyKey: 'analysis-job:test:assistant' },
     );
 
@@ -157,7 +159,7 @@ describe('Phase 8 durable message idempotency', () => {
 });
 
 describe('Phase B IDOR fix — getThread / listMessages / deleteThread', () => {
-  it('blocks User B from reading User A\'s thread (returns null, not 403)', async () => {
+  it("blocks User B from reading User A's thread (returns null, not 403)", async () => {
     await seedUser(USER_A, 'a@example.com');
     await seedUser(USER_B, 'b@example.com');
     const aThread = await createThread(USER_A);
@@ -173,7 +175,7 @@ describe('Phase B IDOR fix — getThread / listMessages / deleteThread', () => {
     expect(bReads).toBeNull();
   });
 
-  it('blocks User B from listing User A\'s messages', async () => {
+  it("blocks User B from listing User A's messages", async () => {
     await seedUser(USER_A, 'a@example.com');
     await seedUser(USER_B, 'b@example.com');
     const aThread = await createThread(USER_A);
@@ -195,7 +197,7 @@ describe('Phase B IDOR fix — getThread / listMessages / deleteThread', () => {
     expect(bMessages).toEqual([]);
   });
 
-  it('User B cannot delete User A\'s thread (no-op, not an error)', async () => {
+  it("User B cannot delete User A's thread (no-op, not an error)", async () => {
     await seedUser(USER_A, 'a@example.com');
     await seedUser(USER_B, 'b@example.com');
     const aThread = await createThread(USER_A);
@@ -245,7 +247,7 @@ describe('Phase A item 1 — updateThreadPinnedSymbol IDOR + behavior', () => {
     expect(after?.pinnedSymbol).toBeNull();
   });
 
-  it('User B cannot change User A\'s thread pin (returns false, no mutation)', async () => {
+  it("User B cannot change User A's thread pin (returns false, no mutation)", async () => {
     await seedUser(USER_A, 'a@example.com');
     await seedUser(USER_B, 'b@example.com');
     const aThread = await createThread(USER_A, { pinnedSymbol: 'XAUUSD' });

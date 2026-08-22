@@ -1,16 +1,33 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
-import { createElement } from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { renderHook, waitFor } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { fetchCandles } from '@/lib/market-client';
+
 import { useCandles } from '../src/hooks/use-candles';
 
 vi.mock('@/lib/market-client', () => ({
   fetchCandles: vi.fn(),
 }));
 
-import { fetchCandles } from '@/lib/market-client';
 const mockFetchCandles = vi.mocked(fetchCandles);
 
 function createWrapper() {
@@ -28,7 +45,18 @@ describe('useCandles', () => {
 
   it('fetches and returns candles for a symbol and timeframe', async () => {
     const candles = [
-      { symbol: 'XAUUSD', tf: '1h', t: 1, o: 100, h: 110, l: 99, c: 105, v: 1000, source: 'test', fetchedAt: 1 },
+      {
+        symbol: 'XAUUSD',
+        tf: '1h',
+        t: 1,
+        o: 100,
+        h: 110,
+        l: 99,
+        c: 105,
+        v: 1000,
+        source: 'test',
+        fetchedAt: 1,
+      },
     ];
     mockFetchCandles.mockResolvedValue(candles);
 
@@ -38,7 +66,9 @@ describe('useCandles', () => {
 
     await waitFor(() => expect(result.current.data).toEqual(candles));
     expect(mockFetchCandles).toHaveBeenCalledWith(
-      'XAUUSD', '1h', 300,
+      'XAUUSD',
+      '1h',
+      300,
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
@@ -50,9 +80,9 @@ describe('useCandles', () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(mockFetchCandles).toHaveBeenCalledWith(
-      'EURUSD', '5m', 100, expect.any(Object),
-    ));
+    await waitFor(() =>
+      expect(mockFetchCandles).toHaveBeenCalledWith('EURUSD', '5m', 100, expect.any(Object)),
+    );
   });
 
   it('does not fetch when enabled is false', () => {

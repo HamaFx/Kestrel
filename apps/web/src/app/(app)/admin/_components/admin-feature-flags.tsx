@@ -2,17 +2,33 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { Switch } from '@/components/ui/switch';
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
-import { AdminErrorBlock } from './admin-error-block';
+import { Switch } from '@/components/ui/switch';
 import { apiFetch, apiMutate } from '@/lib/api-client';
-import { toastApiError } from '@/lib/toast-api-error';
 import type { FeatureFlagsDTO } from '@/lib/services/admin-dtos';
+import { toastApiError } from '@/lib/toast-api-error';
+
+import { AdminErrorBlock } from './admin-error-block';
 
 interface FlagMeta {
   label: string;
@@ -22,9 +38,20 @@ interface FlagMeta {
 
 const FLAG_META: Record<string, FlagMeta> = {
   newDashboard: { label: 'New Dashboard', description: 'Enables the redesigned dashboard layout.' },
-  betaChat: { label: 'Beta Chat', description: 'Enables experimental chat features.', danger: true },
-  multiAgent: { label: 'Multi-Agent', description: 'Enables multi-agent committee deliberation.', danger: true },
-  advancedTools: { label: 'Advanced Tools', description: 'Enables advanced AI tools (risk assessment, COT analysis).' },
+  betaChat: {
+    label: 'Beta Chat',
+    description: 'Enables experimental chat features.',
+    danger: true,
+  },
+  multiAgent: {
+    label: 'Multi-Agent',
+    description: 'Enables multi-agent committee deliberation.',
+    danger: true,
+  },
+  advancedTools: {
+    label: 'Advanced Tools',
+    description: 'Enables advanced AI tools (risk assessment, COT analysis).',
+  },
 };
 
 function flagLabel(key: string): string {
@@ -91,7 +118,7 @@ export function AdminFeatureFlags() {
       });
       toast.success(`${flagLabel(key)} ${next ? 'enabled' : 'disabled'}`);
     } catch (err) {
-      setFeatures((prev) => ({ ...prev, [key]: prevValue } as Record<string, boolean>));
+      setFeatures((prev) => ({ ...prev, [key]: prevValue }) as Record<string, boolean>);
       toastApiError(err, 'Failed to update feature flag');
     } finally {
       setPending((s) => {

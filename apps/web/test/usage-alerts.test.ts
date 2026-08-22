@@ -1,6 +1,24 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { checkAllUsageAlerts, resetSentAlerts } from '../src/lib/usage-alerts';
 
 const mockGetUserWithSettings = vi.hoisted(() => vi.fn());
 const mockListAllUserSettings = vi.hoisted(() => vi.fn());
@@ -25,8 +43,6 @@ vi.mock('drizzle-orm', () => ({
   eq: (a: unknown, b: unknown) => ({ a, b, op: 'eq' }),
   sql: (strings: TemplateStringsArray, ..._values: unknown[]) => ({ sql: strings.join('?') }),
 }));
-
-import { checkAllUsageAlerts, resetSentAlerts } from '../src/lib/usage-alerts';
 
 function makeSettings(overrides: Record<string, unknown> = {}) {
   return {
@@ -68,13 +84,17 @@ describe('checkAllUsageAlerts', () => {
   });
 
   it('skips users without alert config channels', async () => {
-    mockListAllUserSettings.mockResolvedValue([makeSettings({ monthlyBudgetLimit: 100, spendAlertsConfig: {} })] as never);
+    mockListAllUserSettings.mockResolvedValue([
+      makeSettings({ monthlyBudgetLimit: 100, spendAlertsConfig: {} }),
+    ] as never);
     const result = await checkAllUsageAlerts();
     expect(result).toEqual({ alertsSent: 0, checkedUsers: 0 });
   });
 
   it('sends alert when monthly spend exceeds limit (100%)', async () => {
-    mockListAllUserSettings.mockResolvedValue([makeSettings({ monthlyBudgetLimit: 100, spendAlertsConfig: { email: true } })] as never);
+    mockListAllUserSettings.mockResolvedValue([
+      makeSettings({ monthlyBudgetLimit: 100, spendAlertsConfig: { email: true } }),
+    ] as never);
     mockGetUserWithSettings.mockResolvedValue({
       settings: makeSettings({ alertEmail: 'user@example.com' }),
       user: makeUser({ email: 'user@example.com' }),
@@ -87,7 +107,9 @@ describe('checkAllUsageAlerts', () => {
   });
 
   it('does not send alerts when spend is below all thresholds', async () => {
-    mockListAllUserSettings.mockResolvedValue([makeSettings({ monthlyBudgetLimit: 100, spendAlertsConfig: { email: true } })] as never);
+    mockListAllUserSettings.mockResolvedValue([
+      makeSettings({ monthlyBudgetLimit: 100, spendAlertsConfig: { email: true } }),
+    ] as never);
     mockGetUserWithSettings.mockResolvedValue({
       settings: makeSettings({ alertEmail: 'user@example.com' }),
       user: makeUser({ email: 'user@example.com' }),

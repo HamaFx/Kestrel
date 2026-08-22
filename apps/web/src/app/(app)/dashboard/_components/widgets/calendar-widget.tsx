@@ -2,6 +2,22 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Phase 1.6 — Calendar widget.
 //
 // Next 3 high-impact economic events with live countdowns. Uses the
@@ -11,18 +27,17 @@
 // Enhanced with:
 // - 1-Click "Ask AI Copilot" pre-event gameplan prompt
 // - Automatic background synchronization via React Query
-
-import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { IconBolt, IconCalendar } from '@tabler/icons-react';
 import type { EconomicEvent } from '@kestrel/shared';
+import { IconBolt, IconCalendar } from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 
+import { useTime } from '@/components/providers/time-provider';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { useTime } from '@/components/providers/time-provider';
-import { formatCountdown } from '@/lib/datetime';
 import { apiFetch } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
+import { formatCountdown } from '@/lib/datetime';
 
 interface CalendarWidgetProps {
   events: readonly EconomicEvent[];
@@ -93,12 +108,10 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
             return (
               <li
                 key={e.id}
-                className="border-divider flex items-center justify-between gap-2 border-b py-2 last:border-0 group"
+                className="border-divider group flex items-center justify-between gap-2 border-b py-2 last:border-0"
               >
                 <div className="flex min-w-0 flex-col">
-                  <span className="text-fg text-body-sm font-semibold truncate">
-                    {e.title}
-                  </span>
+                  <span className="text-fg text-body-sm truncate font-semibold">{e.title}</span>
                   <span className="text-fg-subtle text-caption tabular-nums">
                     {date.toLocaleDateString(undefined, {
                       month: 'short',
@@ -113,10 +126,10 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex shrink-0 items-center gap-1.5">
                   <span
                     className={cn(
-                      'text-caption font-bold px-1.5 py-0.5 rounded-sm',
+                      'text-caption rounded-sm px-1.5 py-0.5 font-bold',
                       importanceTone,
                     )}
                   >
@@ -130,7 +143,7 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                     title={`Get AI event gameplan for ${e.title}`}
                     aria-label={`Get AI event gameplan for ${e.title}`}
                   >
-                    <IconBolt className="size-3.5 text-brand" />
+                    <IconBolt className="text-brand size-3.5" />
                   </Link>
                 </div>
               </li>

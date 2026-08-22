@@ -21,7 +21,6 @@
 //
 // Mobile (≤767px): bottom-center, above the home indicator using
 // --toast-bottom (= safe-area-inset + 16px). Desktop (≥768px): bottom-right.
-
 import { useEffect, useState } from 'react';
 import { Toaster as SonnerToaster, useSonner } from 'sonner';
 

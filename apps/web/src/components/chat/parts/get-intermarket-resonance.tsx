@@ -20,8 +20,8 @@
 //
 // Client component. Renders an elegant intermarket gauge mapping the gold/yield
 // divergence z-score alongside a historical timeline.
+import { IconHelpCircle, IconTrendingDown, IconTrendingUp } from '@tabler/icons-react';
 
-import {IconTrendingDown, IconTrendingUp, IconHelpCircle} from '@tabler/icons-react';
 import type { ToolPartProps } from './registry';
 
 export function GetIntermarketResonancePart({
@@ -71,17 +71,19 @@ export function GetIntermarketResonancePart({
   const needlePercent = ((clampedDiv + 3) / 6) * 100;
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4 shadow-md ">
-      <header className="flex items-center justify-between border-b border-divider pb-2">
+    <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4 shadow-md">
+      <header className="border-divider flex items-center justify-between border-b pb-2">
         <div className="flex flex-col">
-          <span className="text-fg-subtle text-caption uppercase font-bold tracking-wider">
+          <span className="text-fg-subtle text-caption font-bold tracking-wider uppercase">
             Intermarket resonance radar
           </span>
-          <h3 className="text-fg text-sm font-bold mt-0.5">
+          <h3 className="text-fg mt-0.5 text-sm font-bold">
             {output.symbol} Opportunity Cost Divergence
           </h3>
         </div>
-        <span className={`inline-flex items-center gap-1 rounded-sm px-2.5 py-0.5 text-xs font-bold ${regimeBg} ${regimeColor}`}>
+        <span
+          className={`inline-flex items-center gap-1 rounded-sm px-2.5 py-0.5 text-xs font-bold ${regimeBg} ${regimeColor}`}
+        >
           <Icon className="size-3" />
           {regimeLabel}
         </span>
@@ -89,63 +91,92 @@ export function GetIntermarketResonancePart({
 
       {/* Main Stats Block */}
       <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="bg-bg-elev-2/50 rounded-sm p-2 border border-border/25">
-          <span className="text-fg-subtle text-xs block uppercase font-medium">10Y Real Yield</span>
-          <span className="text-fg text-base font-extrabold tabular-nums mt-0.5 block">{roundedYield}%</span>
+        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-2">
+          <span className="text-fg-subtle block text-xs font-medium uppercase">10Y Real Yield</span>
+          <span className="text-fg mt-0.5 block text-base font-extrabold tabular-nums">
+            {roundedYield}%
+          </span>
         </div>
-        <div className="bg-bg-elev-2/50 rounded-sm p-2 border border-border/25">
-          <span className="text-fg-subtle text-xs block uppercase font-medium">10Y Breakeven</span>
-          <span className="text-fg text-base font-extrabold tabular-nums mt-0.5 block">{roundedInflation}%</span>
+        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-2">
+          <span className="text-fg-subtle block text-xs font-medium uppercase">10Y Breakeven</span>
+          <span className="text-fg mt-0.5 block text-base font-extrabold tabular-nums">
+            {roundedInflation}%
+          </span>
         </div>
-        <div className="bg-bg-elev-2/50 rounded-sm p-2 border border-border/25">
-          <span className="text-fg-subtle text-xs block uppercase font-medium">z-score divergence</span>
-          <span className={`text-base font-extrabold tabular-nums mt-0.5 block ${regimeColor}`}>
+        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-2">
+          <span className="text-fg-subtle block text-xs font-medium uppercase">
+            z-score divergence
+          </span>
+          <span className={`mt-0.5 block text-base font-extrabold tabular-nums ${regimeColor}`}>
             {roundedDivergence >= 0 ? `+${roundedDivergence}` : roundedDivergence} SD
           </span>
         </div>
       </div>
 
       {/* Gauge Needle Visual */}
-      <div className="flex flex-col gap-1.5 px-1 mt-1">
-        <div className="flex justify-between text-xs text-fg-subtle">
+      <div className="mt-1 flex flex-col gap-1.5 px-1">
+        <div className="text-fg-subtle flex justify-between text-xs">
           <span>-3.0 SD (Discount)</span>
           <span className="font-bold">0.0 (Fair Value)</span>
           <span>+3.0 SD (Premium)</span>
         </div>
-        <div className="relative w-full h-2.5 bg-bg-elev-3 rounded-sm overflow-hidden border border-divider">
+        <div className="bg-bg-elev-3 border-divider relative h-2.5 w-full overflow-hidden rounded-sm border">
           {/* Neutral range center bar */}
-          <div className="absolute left-[25%] right-[25%] top-0 bottom-0 bg-fg-subtle/10" />
+          <div className="bg-fg-subtle/10 absolute top-0 right-[25%] bottom-0 left-[25%]" />
           {/* Needle indicator */}
-          <div 
+          <div
             className={`absolute top-0 bottom-0 w-1.5 rounded-sm shadow-lg transition-all duration-500 ${
-              output.regime === 'divergent_hedging' ? 'bg-bull' : output.regime === 'divergent_discount' ? 'bg-bear' : 'bg-fg'
+              output.regime === 'divergent_hedging'
+                ? 'bg-bull'
+                : output.regime === 'divergent_discount'
+                  ? 'bg-bear'
+                  : 'bg-fg'
             }`}
             style={{ left: `calc(${needlePercent}% - 3px)` }}
           />
         </div>
       </div>
 
-      <p className="text-fg-muted text-xs leading-[1.4] leading-normal mt-0.5">
+      <p className="text-fg-muted mt-0.5 text-xs leading-[1.4] leading-normal">
         {output.narrative}
       </p>
 
       {/* Historical observations list */}
-      <div className="flex flex-col gap-2 mt-1">
-        <h4 className="text-fg text-body-sm font-bold uppercase tracking-wider">Historical Resonance Log</h4>
-        <ul className="flex flex-col gap-1 border-t border-divider/50 pt-2">
-          {output.observations.slice(-5).reverse().map((obs) => (
-            <li key={obs.date} className="flex items-center justify-between text-body-sm py-0.5">
-              <span className="text-fg-subtle tabular-nums">{obs.date}</span>
-              <div className="flex items-center gap-4">
-                <span className="text-fg-muted tabular-nums">Yield: {obs.realYieldPct?.toFixed(2)}%</span>
-                <span className={`tabular-nums font-medium min-w-[50px] text-right ${
-                  obs.divergenceScore === null ? 'text-fg-subtle' : obs.divergenceScore >= 1.5 ? 'text-bull' : obs.divergenceScore <= -1.5 ? 'text-bear' : 'text-fg'
-                }`}>
-                  {obs.divergenceScore === null ? '—' : obs.divergenceScore >= 0 ? `+${obs.divergenceScore.toFixed(2)} SD` : `${obs.divergenceScore.toFixed(2)} SD`}
-                </span>
-              </div>
-            </li>
-          ))}
+      <div className="mt-1 flex flex-col gap-2">
+        <h4 className="text-fg text-body-sm font-bold tracking-wider uppercase">
+          Historical Resonance Log
+        </h4>
+        <ul className="border-divider/50 flex flex-col gap-1 border-t pt-2">
+          {output.observations
+            .slice(-5)
+            .reverse()
+            .map((obs) => (
+              <li key={obs.date} className="text-body-sm flex items-center justify-between py-0.5">
+                <span className="text-fg-subtle tabular-nums">{obs.date}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-fg-muted tabular-nums">
+                    Yield: {obs.realYieldPct?.toFixed(2)}%
+                  </span>
+                  <span
+                    className={`min-w-[50px] text-right font-medium tabular-nums ${
+                      obs.divergenceScore === null
+                        ? 'text-fg-subtle'
+                        : obs.divergenceScore >= 1.5
+                          ? 'text-bull'
+                          : obs.divergenceScore <= -1.5
+                            ? 'text-bear'
+                            : 'text-fg'
+                    }`}
+                  >
+                    {obs.divergenceScore === null
+                      ? '—'
+                      : obs.divergenceScore >= 0
+                        ? `+${obs.divergenceScore.toFixed(2)} SD`
+                        : `${obs.divergenceScore.toFixed(2)} SD`}
+                  </span>
+                </div>
+              </li>
+            ))}
         </ul>
       </div>
     </div>
@@ -154,27 +185,34 @@ export function GetIntermarketResonancePart({
 
 function SkeletonCard() {
   return (
-    <div className="border-border bg-bg-elev-1 rounded-sm border p-4" aria-busy="true" aria-label="Loading Intermarket Resonance">
+    <div
+      className="border-border bg-bg-elev-1 rounded-sm border p-4"
+      aria-busy="true"
+      aria-label="Loading Intermarket Resonance"
+    >
       <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1 w-2/3">
+        <div className="flex w-2/3 flex-col gap-1">
           <div className="bg-bg-elev-2 h-3 w-1/3 animate-pulse rounded-sm" />
-          <div className="bg-bg-elev-2 h-4 w-2/3 animate-pulse rounded-sm mt-1" />
+          <div className="bg-bg-elev-2 mt-1 h-4 w-2/3 animate-pulse rounded-sm" />
         </div>
         <div className="bg-bg-elev-2 h-5 w-24 animate-pulse rounded-sm" />
       </div>
-      <div className="grid grid-cols-3 gap-3 mt-4">
+      <div className="mt-4 grid grid-cols-3 gap-3">
         {[0, 1, 2].map((i) => (
           <div key={i} className="bg-bg-elev-2 h-12 animate-pulse rounded-sm" />
         ))}
       </div>
-      <div className="bg-bg-elev-2 h-8 w-full animate-pulse rounded-sm mt-4" />
+      <div className="bg-bg-elev-2 mt-4 h-8 w-full animate-pulse rounded-sm" />
     </div>
   );
 }
 
 function ErrorCard({ message }: { message?: string }) {
   return (
-    <div role="alert" className="border-danger/30 bg-bg-elev-1 text-danger rounded-sm border p-4 text-sm font-semibold">
+    <div
+      role="alert"
+      className="border-danger/30 bg-bg-elev-1 text-danger rounded-sm border p-4 text-sm font-semibold"
+    >
       Intermarket resonance radar failed {message ? ` · ${message}` : ''}
     </div>
   );

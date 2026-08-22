@@ -30,12 +30,12 @@
 //   1. registration.pushManager.getSubscription()
 //   2. subscription.unsubscribe()
 //   3. POST /api/push/unsubscribe { endpoint }
-
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { fetchCsrf } from '@/lib/csrf';
+
 type Status =
   | { kind: 'idle' }
   | { kind: 'subscribed' }
@@ -173,7 +173,7 @@ export function EnableWebPushButton(): React.JSX.Element {
         onClick={isSubscribed ? disable : enable}
         loading={pending}
         aria-busy={pending}
-        className="focus-visible:ring-fg focus-visible:ring-offset-bg min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        className="focus-visible:ring-fg focus-visible:ring-offset-bg min-h-[44px] min-w-[44px] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         {pending
           ? isSubscribed

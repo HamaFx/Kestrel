@@ -1,13 +1,32 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // /api/notifications/noise-config — get or update noise control config.
 // GET  /api/notifications/noise-config
 // PUT  /api/notifications/noise-config
 
-import { getNoiseConfig, saveNoiseConfig } from '@/lib/services/api-boundary';
-import { NoiseConfigSchema, type NoiseConfig } from '@/lib/services/api-boundary';
-
 import { errorResponse, withAuth } from '@/lib/api';
+import {
+  getNoiseConfig,
+  NoiseConfigSchema,
+  saveNoiseConfig,
+  type NoiseConfig,
+} from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,7 +48,7 @@ export const PUT = withAuth<void>(async (req, { user }) => {
 
     // Clean undefined values to prevent overwriting existing settings with undefined during spread merges
     const cleaned = Object.fromEntries(
-      Object.entries(partial).filter(([_, v]) => v !== undefined)
+      Object.entries(partial).filter(([_, v]) => v !== undefined),
     ) as Partial<NoiseConfig>;
 
     const config = await saveNoiseConfig(user.userId, cleaned);

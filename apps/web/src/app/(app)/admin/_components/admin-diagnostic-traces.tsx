@@ -2,45 +2,61 @@
 
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import {
-  IconStethoscope,
-  IconCopy,
-  IconX,
-  IconTimeline,
   IconBug,
-  IconUser,
-  IconHash,
+  IconCopy,
   IconDownload,
-  IconSearch,
+  IconHash,
   IconRefresh,
+  IconSearch,
+  IconStethoscope,
+  IconTimeline,
+  IconUser,
+  IconX,
 } from '@tabler/icons-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
-  DrawerDescription,
 } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Input } from '@/components/ui/input';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
-import { AdminErrorBlock } from './admin-error-block';
 import { apiFetch } from '@/lib/api-client';
-import { toastApiError } from '@/lib/toast-api-error';
-import { formatRelativeTime, formatAbsoluteTime, formatMs, downloadCSV } from '@/lib/format-number';
+import { downloadCSV, formatAbsoluteTime, formatMs, formatRelativeTime } from '@/lib/format-number';
 import type {
   DiagnosticTraceDetail,
   TraceExplorerEvent,
   TraceExplorerResponse,
 } from '@/lib/services/admin-dtos';
+import { toastApiError } from '@/lib/toast-api-error';
+
+import { AdminErrorBlock } from './admin-error-block';
 
 interface ExplorerFilters {
   traceId?: string;
@@ -94,7 +110,7 @@ async function copyToClipboard(text: string) {
 function DetailItem({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-fg-subtle text-xs font-medium uppercase tracking-wide">{label}</span>
+      <span className="text-fg-subtle text-xs font-medium tracking-wide uppercase">{label}</span>
       <div className="text-fg text-sm">{children}</div>
     </div>
   );
@@ -104,14 +120,22 @@ function StepRow({ step, index }: { step: DiagnosticTraceDetail['steps'][number]
   return (
     <div className="border-border border-l-2 pl-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-fg text-sm font-medium">{index + 1}. {step.name}</span>
-        <Badge tone={step.status === 'failed' ? 'danger' : step.status === 'completed' ? 'success' : 'warn'}>
+        <span className="text-fg text-sm font-medium">
+          {index + 1}. {step.name}
+        </span>
+        <Badge
+          tone={
+            step.status === 'failed' ? 'danger' : step.status === 'completed' ? 'success' : 'warn'
+          }
+        >
           {step.status}
         </Badge>
       </div>
-      {typeof step.durationMs === 'number' && <p className="text-fg-subtle text-xs">{step.durationMs} ms</p>}
+      {typeof step.durationMs === 'number' && (
+        <p className="text-fg-subtle text-xs">{step.durationMs} ms</p>
+      )}
       {step.metadata && Object.keys(step.metadata).length > 0 && (
-        <pre className="mt-1 overflow-x-auto rounded-sm bg-bg-elev-1 p-2 text-xs text-fg-subtle">
+        <pre className="bg-bg-elev-1 text-fg-subtle mt-1 overflow-x-auto rounded-sm p-2 text-xs">
           {JSON.stringify(step.metadata, null, 2)}
         </pre>
       )}
@@ -128,20 +152,32 @@ function ErrorRow({ error }: { error: DiagnosticTraceDetail['errors'][number] })
         <span className="text-danger text-sm font-medium">{error.name}</span>
       </div>
       <p className="text-fg text-sm">{error.message}</p>
-      {error.stack && <pre className="mt-1 overflow-x-auto rounded-sm bg-bg-elev-1 p-2 text-xs text-fg-subtle">{error.stack}</pre>}
-      <p className="text-fg-subtle mt-1 text-xs" title={formatAbsoluteTime(ts.toISOString())}>{formatRelativeTime(ts.toISOString())}</p>
+      {error.stack && (
+        <pre className="bg-bg-elev-1 text-fg-subtle mt-1 overflow-x-auto rounded-sm p-2 text-xs">
+          {error.stack}
+        </pre>
+      )}
+      <p className="text-fg-subtle mt-1 text-xs" title={formatAbsoluteTime(ts.toISOString())}>
+        {formatRelativeTime(ts.toISOString())}
+      </p>
     </div>
   );
 }
 
-function EventRow({ event, onOpen }: { event: TraceExplorerEvent; onOpen: (event: TraceExplorerEvent) => void }) {
+function EventRow({
+  event,
+  onOpen,
+}: {
+  event: TraceExplorerEvent;
+  onOpen: (event: TraceExplorerEvent) => void;
+}) {
   const correlation = primaryCorrelation(event);
   return (
     <tr
       tabIndex={0}
       role="button"
       aria-label={`Inspect ${event.name} ${event.status}`}
-      className="border-border hover:bg-bg-elev-1 cursor-pointer border-t outline-none focus-visible:bg-bg-elev-2 focus-visible:ring-2 focus-visible:ring-brand/50"
+      className="border-border hover:bg-bg-elev-1 focus-visible:bg-bg-elev-2 focus-visible:ring-brand/50 cursor-pointer border-t outline-none focus-visible:ring-2"
       onClick={() => onOpen(event)}
       onKeyDown={(keyboardEvent) => {
         if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
@@ -150,12 +186,25 @@ function EventRow({ event, onOpen }: { event: TraceExplorerEvent; onOpen: (event
         }
       }}
     >
-      <td className="px-3 py-2"><Badge tone={sourceTone(event.source)}>{event.source}</Badge></td>
+      <td className="px-3 py-2">
+        <Badge tone={sourceTone(event.source)}>{event.source}</Badge>
+      </td>
       <td className="text-fg px-3 py-2 font-mono text-xs">{event.name}</td>
-      <td className="px-3 py-2"><Badge tone={statusTone(event.status)}>{event.status}</Badge></td>
-      <td className="text-fg-subtle max-w-36 truncate px-3 py-2 font-mono text-xs" title={correlation ?? undefined}>{correlation ?? '—'}</td>
-      <td className="text-fg-subtle px-3 py-2 tabular-nums">{event.durationMs === null ? '—' : formatMs(event.durationMs)}</td>
-      <td className="text-fg-subtle px-3 py-2" title={formatAbsoluteTime(event.timestamp)}>{formatRelativeTime(event.timestamp)}</td>
+      <td className="px-3 py-2">
+        <Badge tone={statusTone(event.status)}>{event.status}</Badge>
+      </td>
+      <td
+        className="text-fg-subtle max-w-36 truncate px-3 py-2 font-mono text-xs"
+        title={correlation ?? undefined}
+      >
+        {correlation ?? '—'}
+      </td>
+      <td className="text-fg-subtle px-3 py-2 tabular-nums">
+        {event.durationMs === null ? '—' : formatMs(event.durationMs)}
+      </td>
+      <td className="text-fg-subtle px-3 py-2" title={formatAbsoluteTime(event.timestamp)}>
+        {formatRelativeTime(event.timestamp)}
+      </td>
     </tr>
   );
 }
@@ -178,7 +227,11 @@ export function AdminDiagnosticTraces() {
     messageId: messageIdQuery ?? undefined,
   }));
   const [events, setEvents] = useState<TraceExplorerEvent[]>([]);
-  const [stats, setStats] = useState<TraceExplorerResponse['stats']>({ total: 0, bySource: {}, failures: 0 });
+  const [stats, setStats] = useState<TraceExplorerResponse['stats']>({
+    total: 0,
+    bySource: {},
+    failures: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -196,7 +249,9 @@ export function AdminDiagnosticTraces() {
       for (const [key, value] of Object.entries(query)) {
         if (value) params.set(key, value);
       }
-      const data = await apiFetch<TraceExplorerResponse>(`/api/admin/diagnostics/explorer?${params.toString()}`);
+      const data = await apiFetch<TraceExplorerResponse>(
+        `/api/admin/diagnostics/explorer?${params.toString()}`,
+      );
       setEvents(data.events);
       setStats(data.stats);
     } catch (err) {
@@ -215,7 +270,9 @@ export function AdminDiagnosticTraces() {
     try {
       const [detailResponse, explorerResponse] = await Promise.all([
         apiFetch<{ trace: DiagnosticTraceDetail }>(`/api/admin/diagnostics/trace/${id}`),
-        apiFetch<TraceExplorerResponse>(`/api/admin/diagnostics/explorer?traceId=${encodeURIComponent(id)}&limit=100`),
+        apiFetch<TraceExplorerResponse>(
+          `/api/admin/diagnostics/explorer?traceId=${encodeURIComponent(id)}&limit=100`,
+        ),
       ]);
       if (requestId === detailRequestRef.current) {
         setDetail(detailResponse.trace);
@@ -253,32 +310,38 @@ export function AdminDiagnosticTraces() {
     }
   }, [traceIdFromUrl, fetchDetail]);
 
-  const submitSearch = useCallback((event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const params = new URLSearchParams({ tab: 'traces' });
-    for (const [key, value] of Object.entries(filters)) {
-      if (value?.trim()) params.set(key, value.trim());
-    }
-    router.push(`/admin?${params.toString()}`);
-  }, [filters, router]);
+  const submitSearch = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const params = new URLSearchParams({ tab: 'traces' });
+      for (const [key, value] of Object.entries(filters)) {
+        if (value?.trim()) params.set(key, value.trim());
+      }
+      router.push(`/admin?${params.toString()}`);
+    },
+    [filters, router],
+  );
 
   const clearSearch = useCallback(() => {
     setFilters({});
     router.push('/admin?tab=traces');
   }, [router]);
 
-  const openEvent = useCallback((event: TraceExplorerEvent) => {
-    if (event.traceId) {
-      router.push(`/admin?tab=traces&trace=${encodeURIComponent(event.traceId)}`);
-      return;
-    }
-    const params = new URLSearchParams({ tab: 'traces' });
-    if (event.runId) params.set('runId', event.runId);
-    if (event.jobId) params.set('jobId', event.jobId);
-    if (event.threadId) params.set('threadId', event.threadId);
-    if (event.messageId) params.set('messageId', event.messageId);
-    router.push(`/admin?${params.toString()}`);
-  }, [router]);
+  const openEvent = useCallback(
+    (event: TraceExplorerEvent) => {
+      if (event.traceId) {
+        router.push(`/admin?tab=traces&trace=${encodeURIComponent(event.traceId)}`);
+        return;
+      }
+      const params = new URLSearchParams({ tab: 'traces' });
+      if (event.runId) params.set('runId', event.runId);
+      if (event.jobId) params.set('jobId', event.jobId);
+      if (event.threadId) params.set('threadId', event.threadId);
+      if (event.messageId) params.set('messageId', event.messageId);
+      router.push(`/admin?${params.toString()}`);
+    },
+    [router],
+  );
 
   const closeTrace = useCallback(() => {
     router.push('/admin?tab=traces');
@@ -320,8 +383,15 @@ export function AdminDiagnosticTraces() {
 
   return (
     <>
-      <SettingsSection title="Trace Explorer" description="Search routing, agents, tools, budgets, persistence, and terminal status by correlation ID.">
-        <form onSubmit={submitSearch} className="border-border bg-bg-elev-1 grid grid-cols-1 gap-3 rounded-sm border p-3 sm:grid-cols-2 lg:grid-cols-5" aria-label="Trace search">
+      <SettingsSection
+        title="Trace Explorer"
+        description="Search routing, agents, tools, budgets, persistence, and terminal status by correlation ID."
+      >
+        <form
+          onSubmit={submitSearch}
+          className="border-border bg-bg-elev-1 grid grid-cols-1 gap-3 rounded-sm border p-3 sm:grid-cols-2 lg:grid-cols-5"
+          aria-label="Trace search"
+        >
           {FILTER_FIELDS.map(({ key, label, placeholder }) => (
             <label key={key} className="flex flex-col gap-1">
               <span className="text-fg-subtle text-xs font-medium">{label}</span>
@@ -329,30 +399,70 @@ export function AdminDiagnosticTraces() {
                 aria-label={label}
                 placeholder={placeholder}
                 value={filters[key] ?? ''}
-                onChange={(inputEvent) => setFilters((current) => ({ ...current, [key]: inputEvent.target.value }))}
+                onChange={(inputEvent) =>
+                  setFilters((current) => ({ ...current, [key]: inputEvent.target.value }))
+                }
               />
             </label>
           ))}
           <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
-            <Button type="submit" size="sm"><IconSearch className="size-4" aria-hidden="true" />Search</Button>
-            <Button type="button" variant="ghost" size="sm" onClick={clearSearch}>Clear</Button>
-            <Button type="button" variant="secondary" size="sm" className="ml-auto" onClick={() => void fetchExplorer(filters)}>
-              <IconRefresh className="size-4" aria-hidden="true" />Refresh
+            <Button type="submit" size="sm">
+              <IconSearch className="size-4" aria-hidden="true" />
+              Search
             </Button>
-            {events.length > 0 && <Button type="button" variant="ghost" size="sm" onClick={handleExport}><IconDownload className="size-4" aria-hidden="true" />CSV</Button>}
+            <Button type="button" variant="ghost" size="sm" onClick={clearSearch}>
+              Clear
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="ml-auto"
+              onClick={() => void fetchExplorer(filters)}
+            >
+              <IconRefresh className="size-4" aria-hidden="true" />
+              Refresh
+            </Button>
+            {events.length > 0 && (
+              <Button type="button" variant="ghost" size="sm" onClick={handleExport}>
+                <IconDownload className="size-4" aria-hidden="true" />
+                CSV
+              </Button>
+            )}
           </div>
         </form>
 
-        {error && <div className="border-warn/25 bg-warn/5 text-warn rounded-sm border px-3 py-2 text-xs" role="status">Refresh failed; showing the last successful timeline.</div>}
+        {error && (
+          <div
+            className="border-warn/25 bg-warn/5 text-warn rounded-sm border px-3 py-2 text-xs"
+            role="status"
+          >
+            Refresh failed; showing the last successful timeline.
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="border-border rounded-sm border p-3"><p className="text-fg-subtle text-xs">Events</p><p className="text-fg text-xl font-semibold tabular-nums">{stats.total}</p></div>
-          <div className="border-border rounded-sm border p-3"><p className="text-fg-subtle text-xs">Failures</p><p className="text-danger text-xl font-semibold tabular-nums">{stats.failures}</p></div>
-          <div className="border-border rounded-sm border p-3"><p className="text-fg-subtle text-xs">Agents</p><p className="text-fg text-xl font-semibold tabular-nums">{stats.bySource.agent ?? 0}</p></div>
-          <div className="border-border rounded-sm border p-3"><p className="text-fg-subtle text-xs">Tools</p><p className="text-fg text-xl font-semibold tabular-nums">{stats.bySource.tool ?? 0}</p></div>
+          <div className="border-border rounded-sm border p-3">
+            <p className="text-fg-subtle text-xs">Events</p>
+            <p className="text-fg text-xl font-semibold tabular-nums">{stats.total}</p>
+          </div>
+          <div className="border-border rounded-sm border p-3">
+            <p className="text-fg-subtle text-xs">Failures</p>
+            <p className="text-danger text-xl font-semibold tabular-nums">{stats.failures}</p>
+          </div>
+          <div className="border-border rounded-sm border p-3">
+            <p className="text-fg-subtle text-xs">Agents</p>
+            <p className="text-fg text-xl font-semibold tabular-nums">
+              {stats.bySource.agent ?? 0}
+            </p>
+          </div>
+          <div className="border-border rounded-sm border p-3">
+            <p className="text-fg-subtle text-xs">Tools</p>
+            <p className="text-fg text-xl font-semibold tabular-nums">{stats.bySource.tool ?? 0}</p>
+          </div>
         </div>
 
-        <div className="border-border overflow-x-auto overflow-hidden rounded-sm border">
+        <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
           <table className="w-full text-sm">
             <caption className="sr-only">AI execution timeline</caption>
             <thead className="bg-bg-elev-2 text-fg-subtle">
@@ -367,8 +477,19 @@ export function AdminDiagnosticTraces() {
             </thead>
             <tbody>
               {events.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8"><EmptyState icon={<IconStethoscope className="size-6" />} title="No timeline events" description="Try a trace, run, job, thread, or message ID." bare /></td></tr>
-              ) : events.map((event) => <EventRow key={event.id} event={event} onOpen={openEvent} />)}
+                <tr>
+                  <td colSpan={6} className="px-4 py-8">
+                    <EmptyState
+                      icon={<IconStethoscope className="size-6" />}
+                      title="No timeline events"
+                      description="Try a trace, run, job, thread, or message ID."
+                      bare
+                    />
+                  </td>
+                </tr>
+              ) : (
+                events.map((event) => <EventRow key={event.id} event={event} onOpen={openEvent} />)
+              )}
             </tbody>
           </table>
         </div>
@@ -378,36 +499,151 @@ export function AdminDiagnosticTraces() {
         <DrawerContent className="max-h-[92vh] overflow-y-auto">
           <DrawerHeader className="flex items-start justify-between">
             <div>
-              <DrawerTitle className="flex items-center gap-2"><IconTimeline className="size-5" aria-hidden="true" />Trace detail</DrawerTitle>
-              <DrawerDescription>Steps, timings, correlated events, and errors for this chat turn.</DrawerDescription>
+              <DrawerTitle className="flex items-center gap-2">
+                <IconTimeline className="size-5" aria-hidden="true" />
+                Trace detail
+              </DrawerTitle>
+              <DrawerDescription>
+                Steps, timings, correlated events, and errors for this chat turn.
+              </DrawerDescription>
             </div>
-            <DrawerClose asChild><Button variant="ghost" size="sm" className="h-10 w-10 p-0" aria-label="Close trace detail"><IconX className="size-4" aria-hidden="true" /></Button></DrawerClose>
+            <DrawerClose asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 p-0"
+                aria-label="Close trace detail"
+              >
+                <IconX className="size-4" aria-hidden="true" />
+              </Button>
+            </DrawerClose>
           </DrawerHeader>
 
           <div className="flex flex-col gap-4 px-4 pb-6">
-            {detailLoading ? <SkeletonCard lines={5} /> : detailError ? (
-              <div className="border-border bg-bg-elev-1 rounded-sm border p-4"><p className="text-danger text-sm">{detailError}</p></div>
+            {detailLoading ? (
+              <SkeletonCard lines={5} />
+            ) : detailError ? (
+              <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
+                <p className="text-danger text-sm">{detailError}</p>
+              </div>
             ) : !detail ? (
-              <EmptyState icon={<IconStethoscope className="size-6" />} title="No trace selected" description="Select a trace event from the timeline." bare />
+              <EmptyState
+                icon={<IconStethoscope className="size-6" />}
+                title="No trace selected"
+                description="Select a trace event from the timeline."
+                bare
+              />
             ) : (
               <>
                 <div className="bg-bg-elev-1 border-border grid grid-cols-1 gap-3 rounded-sm border p-3 sm:grid-cols-2">
-                  <DetailItem label="Trace ID"><div className="flex items-center gap-2"><span className="font-mono text-xs break-all">{detail.id}</span><Button variant="ghost" size="sm" className="h-10 w-10 p-0" aria-label="Copy trace ID" onClick={() => void handleCopy(detail.id, 'Trace ID')}><IconCopy className="size-4" aria-hidden="true" /></Button></div></DetailItem>
-                  <DetailItem label="Thread ID"><div className="flex items-center gap-2"><IconHash className="size-3 text-fg-subtle" aria-hidden="true" /><span className="font-mono text-xs break-all">{detail.threadId}</span><Button variant="ghost" size="sm" className="h-10 w-10 p-0" aria-label="Copy thread ID" onClick={() => void handleCopy(detail.threadId, 'Thread ID')}><IconCopy className="size-4" aria-hidden="true" /></Button></div></DetailItem>
-                  <DetailItem label="User ID"><div className="flex items-center gap-2"><IconUser className="size-3 text-fg-subtle" aria-hidden="true" /><span className="font-mono text-xs break-all">{detail.userId}</span></div></DetailItem>
-                  <DetailItem label="Status"><Badge tone={statusTone(detail.status)}>{detail.status}</Badge></DetailItem>
-                  <DetailItem label="Started"><span className="text-xs" title={formatAbsoluteTime(detail.startedAt)}>{formatRelativeTime(detail.startedAt)}</span></DetailItem>
-                  {typeof detail.durationMs === 'number' && <DetailItem label="Duration"><span className="text-xs">{formatMs(detail.durationMs)}</span></DetailItem>}
+                  <DetailItem label="Trace ID">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs break-all">{detail.id}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-10 w-10 p-0"
+                        aria-label="Copy trace ID"
+                        onClick={() => void handleCopy(detail.id, 'Trace ID')}
+                      >
+                        <IconCopy className="size-4" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  </DetailItem>
+                  <DetailItem label="Thread ID">
+                    <div className="flex items-center gap-2">
+                      <IconHash className="text-fg-subtle size-3" aria-hidden="true" />
+                      <span className="font-mono text-xs break-all">{detail.threadId}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-10 w-10 p-0"
+                        aria-label="Copy thread ID"
+                        onClick={() => void handleCopy(detail.threadId, 'Thread ID')}
+                      >
+                        <IconCopy className="size-4" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  </DetailItem>
+                  <DetailItem label="User ID">
+                    <div className="flex items-center gap-2">
+                      <IconUser className="text-fg-subtle size-3" aria-hidden="true" />
+                      <span className="font-mono text-xs break-all">{detail.userId}</span>
+                    </div>
+                  </DetailItem>
+                  <DetailItem label="Status">
+                    <Badge tone={statusTone(detail.status)}>{detail.status}</Badge>
+                  </DetailItem>
+                  <DetailItem label="Started">
+                    <span className="text-xs" title={formatAbsoluteTime(detail.startedAt)}>
+                      {formatRelativeTime(detail.startedAt)}
+                    </span>
+                  </DetailItem>
+                  {typeof detail.durationMs === 'number' && (
+                    <DetailItem label="Duration">
+                      <span className="text-xs">{formatMs(detail.durationMs)}</span>
+                    </DetailItem>
+                  )}
                 </div>
 
-                <div className="border-border rounded-sm border bg-bg-elev-1 p-3">
-                  <h4 className="mb-2 text-sm font-semibold">Correlated timeline ({detailEvents.length})</h4>
-                  {detailEvents.length === 0 ? <p className="text-fg-subtle text-sm">No correlated rows found.</p> : <div className="flex flex-col gap-2">{detailEvents.map((event) => <div key={event.id} className="border-border flex items-center justify-between gap-2 border-l-2 pl-3"><div className="min-w-0"><div className="flex items-center gap-2"><Badge tone={sourceTone(event.source)}>{event.source}</Badge><span className="text-fg truncate font-mono text-xs">{event.name}</span></div>{event.error && <p className="text-danger mt-1 text-xs">{event.error}</p>}</div><Badge tone={statusTone(event.status)}>{event.status}</Badge></div>)}</div>}
+                <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
+                  <h4 className="mb-2 text-sm font-semibold">
+                    Correlated timeline ({detailEvents.length})
+                  </h4>
+                  {detailEvents.length === 0 ? (
+                    <p className="text-fg-subtle text-sm">No correlated rows found.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {detailEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="border-border flex items-center justify-between gap-2 border-l-2 pl-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Badge tone={sourceTone(event.source)}>{event.source}</Badge>
+                              <span className="text-fg truncate font-mono text-xs">
+                                {event.name}
+                              </span>
+                            </div>
+                            {event.error && (
+                              <p className="text-danger mt-1 text-xs">{event.error}</p>
+                            )}
+                          </div>
+                          <Badge tone={statusTone(event.status)}>{event.status}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {detail.errors.length > 0 && <div className="border-danger/20 rounded-sm border bg-bg-elev-1 p-3"><h4 className="mb-2 text-sm font-semibold text-danger">Errors ({detail.errors.length})</h4><div className="flex flex-col gap-3">{detail.errors.map((err, i) => <ErrorRow key={i} error={err} />)}</div></div>}
+                {detail.errors.length > 0 && (
+                  <div className="border-danger/20 bg-bg-elev-1 rounded-sm border p-3">
+                    <h4 className="text-danger mb-2 text-sm font-semibold">
+                      Errors ({detail.errors.length})
+                    </h4>
+                    <div className="flex flex-col gap-3">
+                      {detail.errors.map((err, i) => (
+                        <ErrorRow key={i} error={err} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                <div className="border-border rounded-sm border bg-bg-elev-1 p-3"><h4 className="mb-2 text-sm font-semibold">Diagnostic steps ({detail.steps.length})</h4>{detail.steps.length === 0 ? <p className="text-fg-subtle text-sm">No steps recorded.</p> : <div className="flex flex-col gap-3">{detail.steps.map((step, i) => <StepRow key={i} step={step} index={i} />)}</div>}</div>
+                <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
+                  <h4 className="mb-2 text-sm font-semibold">
+                    Diagnostic steps ({detail.steps.length})
+                  </h4>
+                  {detail.steps.length === 0 ? (
+                    <p className="text-fg-subtle text-sm">No steps recorded.</p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {detail.steps.map((step, i) => (
+                        <StepRow key={i} step={step} index={i} />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>

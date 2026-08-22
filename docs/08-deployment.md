@@ -367,15 +367,15 @@ Deployment acceptance checklist:
 
 ## Cost ceiling (your own usage)
 
-| Component                | Estimate / month |
-| ------------------------ | ---------------- |
-| Vercel Hobby             | $0               |
-| GCE `e2-medium` VM       | ~$8              |
-| Backblaze B2 backup storage (deferred)       | $0–$1            |
-| Supabase Free            | $0               |
-| Data providers           | $0 (BiQuote + Finnhub free tiers cover it) |
-| AI Gateway / models      | $3–$15 (your usage) |
-| Sentry / healthchecks.io | $0 (free tiers)  |
-| **Total**                | **$11–$25 / month** |
+| Component                              | Estimate / month                           |
+| -------------------------------------- | ------------------------------------------ |
+| Vercel Hobby                           | $0                                         |
+| GCE `e2-medium` VM                     | ~$8                                        |
+| Backblaze B2 backup storage (deferred) | $0–$1                                      |
+| Supabase Free                          | $0                                         |
+| Data providers                         | $0 (BiQuote + Finnhub free tiers cover it) |
+| AI Gateway / models                    | $3–$15 (your usage)                        |
+| Sentry / healthchecks.io               | $0 (free tiers)                            |
+| **Total**                              | **$11–$25 / month**                        |
 
 Designed so a hobby personal run sits comfortably under $25/mo.

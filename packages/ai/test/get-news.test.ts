@@ -18,21 +18,37 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getNewsTool } from '../src/tools/get-news';
 
-const exec = getNewsTool.execute as unknown as (
-  input: { symbol?: string; since?: number; limit?: number; minSentiment?: number },
-) => Promise<{
+const exec = getNewsTool.execute as unknown as (input: {
+  symbol?: string;
+  since?: number;
+  limit?: number;
+  minSentiment?: number;
+}) => Promise<{
   items: Array<{
-    id: string; title: string; summary: string | null; url: string;
-    source: string; publisher: string | null; publishedAt: number;
-    sentiment: string | null; sentimentScore: number | null;
+    id: string;
+    title: string;
+    summary: string | null;
+    url: string;
+    source: string;
+    publisher: string | null;
+    publishedAt: number;
+    sentiment: string | null;
+    sentimentScore: number | null;
   }>;
   pipelinePending: boolean;
 }>;
 
 const mockNewsRows: Array<{
-  id: string; title: string; summary: string | null; url: string;
-  source: string; publisher: string | null; publishedAt: Date;
-  sentiment: string | null; sentimentScore: number | null; symbols: string[];
+  id: string;
+  title: string;
+  summary: string | null;
+  url: string;
+  source: string;
+  publisher: string | null;
+  publishedAt: Date;
+  sentiment: string | null;
+  sentimentScore: number | null;
+  symbols: string[];
 }> = [];
 
 // The tool calls getDb() twice:
@@ -64,8 +80,8 @@ describe('get_news — Phase 0.10', () => {
   });
 
   it('returns pipelinePending: true when table is empty', async () => {
-    mockLimit.mockResolvedValueOnce([]);  // main query empty
-    mockLimit.mockResolvedValueOnce([]);  // probe query empty
+    mockLimit.mockResolvedValueOnce([]); // main query empty
+    mockLimit.mockResolvedValueOnce([]); // probe query empty
 
     const result = await exec({});
 
@@ -86,7 +102,9 @@ describe('get_news — Phase 0.10', () => {
   });
 
   it('validates input schema — limit defaults to 8', () => {
-    const schema = getNewsTool.inputSchema as { safeParse: (v: unknown) => { success: boolean; data?: { limit: number } } };
+    const schema = getNewsTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean; data?: { limit: number } };
+    };
     const parsed = schema.safeParse({});
     expect(parsed.success).toBe(true);
     if (parsed.data) expect(parsed.data.limit).toBe(8);

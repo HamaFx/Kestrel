@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `get_intermarket` tool part.
@@ -37,15 +53,13 @@ export function GetIntermarketPart({
     <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-fg text-sm font-semibold">Intermarket · {output.tf}</h3>
-        <span
-          className={`rounded-sm px-2 py-0.5 text-caption font-semibold ${tone.bg} ${tone.fg}`}
-        >
+        <span className={`text-caption rounded-sm px-2 py-0.5 font-semibold ${tone.bg} ${tone.fg}`}>
           {tone.label}
           {output.regimeBreak ? ' · regime break' : ''}
         </span>
       </header>
 
-      <dl className="grid grid-cols-3 gap-2 text-body-sm tabular-nums">
+      <dl className="text-body-sm grid grid-cols-3 gap-2 tabular-nums">
         <Stat
           k="DXY proxy"
           v={output.dxyProxy.value.toFixed(4)}
@@ -75,7 +89,7 @@ export function GetIntermarketPart({
       </dl>
 
       <p className="text-fg-muted text-xs">{output.notes}</p>
-      <p className="text-fg-subtle font-mono text-caption">{output.dxyProxy.formula}</p>
+      <p className="text-fg-subtle text-caption font-mono">{output.dxyProxy.formula}</p>
     </div>
   );
 }
@@ -83,7 +97,7 @@ export function GetIntermarketPart({
 function Stat({ k, v, sub, tone }: { k: string; v: string; sub?: string; tone?: string }) {
   return (
     <div className="border-divider flex flex-col rounded-sm border p-2">
-      <span className="text-fg-subtle text-caption uppercase tracking-wide">{k}</span>
+      <span className="text-fg-subtle text-caption tracking-wide uppercase">{k}</span>
       <span className={`text-fg font-semibold ${tone ?? ''}`}>{v}</span>
       {sub ? <span className="text-fg-subtle text-caption">{sub}</span> : null}
     </div>

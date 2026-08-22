@@ -25,11 +25,11 @@
 // See DSA_FEATURE_EXPANSION_PLAN.md §F4 for the full design.
 
 import {
+  severityRank,
   type NoiseConfig,
   type NoiseDecision,
   type RouteType,
   type Severity,
-  severityRank,
 } from '@kestrel/shared';
 
 // ---------------------------------------------------------------------------
@@ -166,7 +166,7 @@ export async function evaluateNoise(
 
   // 4. Cooldown per route type
   const cooldownKey = routeType;
-  if (config.cooldownSeconds > 0 && await state.inCooldown(cooldownKey, config.cooldownSeconds)) {
+  if (config.cooldownSeconds > 0 && (await state.inCooldown(cooldownKey, config.cooldownSeconds))) {
     return {
       shouldSend: false,
       reasonCode: 'cooldown',

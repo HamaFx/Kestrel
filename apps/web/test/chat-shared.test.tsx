@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import { afterEach, describe, it, expect } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { PartSkeletonCard, PartErrorCard } from '@/components/chat/parts/_shared';
+import React from 'react';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { PartErrorCard, PartSkeletonCard } from '@/components/chat/parts/_shared';
 
 afterEach(cleanup);
 

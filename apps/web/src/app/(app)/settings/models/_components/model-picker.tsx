@@ -15,16 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+import type { ProviderMeta } from '@kestrel/shared';
+import { IconCheck, IconChevronDown, IconLoader2 } from '@tabler/icons-react';
 import { useEffect, useState, useTransition } from 'react';
-import {IconCheck, IconChevronDown, IconLoader2} from '@tabler/icons-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { apiFetch, apiMutate } from '@/lib/api-client';
-
-import type { ProviderMeta } from '@kestrel/shared';
 
 /**
  * Phase D2 — generic per-domain model picker. One component powers
@@ -57,10 +55,7 @@ interface ModelPickerProps {
   helper?: string;
 }
 
-type SaveState =
-  | { kind: 'idle' }
-  | { kind: 'pending' }
-  | { kind: 'error'; message: string };
+type SaveState = { kind: 'idle' } | { kind: 'pending' } | { kind: 'error'; message: string };
 
 const ENDPOINTS: Record<ModelPickerKind, string> = {
   chat: '/api/settings/chat-model',
@@ -214,16 +209,13 @@ export function ModelPicker({
 
   if (providers.length === 0 || options.length === 0) {
     return (
-      <div className="border border-border bg-bg-elev-1 rounded-sm p-6 flex flex-col items-center text-center gap-3">
+      <div className="border-border bg-bg-elev-1 flex flex-col items-center gap-3 rounded-sm border p-6 text-center">
         <div className="text-3xl">{NO_PROVIDERS_EMOJI[kind]}</div>
         <div>
-          <h3 className="text-sm font-semibold text-fg">No providers available</h3>
+          <h3 className="text-fg text-sm font-semibold">No providers available</h3>
           <p className="text-caption text-fg-subtle mt-1 max-w-md">
             Add an API key in{' '}
-            <a
-              href="/settings/api-keys"
-              className="text-fg hover:underline"
-            >
+            <a href="/settings/api-keys" className="text-fg hover:underline">
               Settings → API Keys
             </a>{' '}
             {NO_PROVIDERS_COPY[kind]}.
@@ -239,18 +231,14 @@ export function ModelPicker({
     : 'Use fallback (operator env / spec default)';
 
   return (
-    <div className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-3">
+    <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4">
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-fg">
-            {title ?? TITLES[kind]}
-          </span>
-          <span className="text-caption text-fg-subtle tabular-nums">
-            {currentLabel}
-          </span>
+          <span className="text-fg text-sm font-medium">{title ?? TITLES[kind]}</span>
+          <span className="text-caption text-fg-subtle tabular-nums">{currentLabel}</span>
         </div>
         {value ? (
-          <span className="inline-flex items-center gap-1 text-caption text-success">
+          <span className="text-caption text-success inline-flex items-center gap-1">
             <IconCheck size={12} aria-hidden="true" />
             Saved
           </span>
@@ -260,26 +248,26 @@ export function ModelPicker({
       </div>
 
       <label className="flex flex-col gap-2">
-        <span className="text-caption uppercase tracking-wide text-fg-subtle">
-          Pick a model
-        </span>
+        <span className="text-caption text-fg-subtle tracking-wide uppercase">Pick a model</span>
         <div className="relative">
           <select
             value={value ?? ''}
             onChange={(e) => pick(e.target.value)}
             disabled={pending || save.kind === 'pending'}
-            className="w-full appearance-none border border-border bg-bg-elev-2 text-fg rounded-sm pl-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fg disabled:opacity-60"
+            className="border-border bg-bg-elev-2 text-fg focus:ring-fg w-full appearance-none rounded-sm border py-2 pr-9 pl-3 text-sm focus:ring-2 focus:outline-none disabled:opacity-60"
           >
             <option value="" disabled>
               Use fallback ({options[0]?.label ?? '—'})
             </option>
             {options.map((o) => {
-              const priceLabel = (o.inputPrice != null && o.outputPrice != null)
-                ? ` · $${o.inputPrice.toFixed(2)}/$${o.outputPrice.toFixed(2)}/1M tok`
-                : '';
+              const priceLabel =
+                o.inputPrice != null && o.outputPrice != null
+                  ? ` · $${o.inputPrice.toFixed(2)}/$${o.outputPrice.toFixed(2)}/1M tok`
+                  : '';
               return (
                 <option key={o.value} value={o.value}>
-                  {o.providerLabel} · {o.label} ({o.tier}{priceLabel})
+                  {o.providerLabel} · {o.label} ({o.tier}
+                  {priceLabel})
                 </option>
               );
             })}
@@ -287,13 +275,13 @@ export function ModelPicker({
           {pending || save.kind === 'pending' ? (
             <IconLoader2
               size={14}
-              className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-fg-subtle"
+              className="text-fg-subtle absolute top-1/2 right-3 -translate-y-1/2 animate-spin"
               aria-hidden="true"
             />
           ) : (
             <IconChevronDown
               size={14}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle pointer-events-none"
+              className="text-fg-subtle pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
               aria-hidden="true"
             />
           )}
@@ -348,20 +336,14 @@ function isModelAllowedForKind(
 
 /* ---------- Thin wrappers that pin the `kind` prop ---------- */
 
-export function ChatModelPicker(
-  props: Omit<ModelPickerProps, 'kind'>,
-) {
+export function ChatModelPicker(props: Omit<ModelPickerProps, 'kind'>) {
   return <ModelPicker {...props} kind="chat" />;
 }
 
-export function VisionModelPicker(
-  props: Omit<ModelPickerProps, 'kind'>,
-) {
+export function VisionModelPicker(props: Omit<ModelPickerProps, 'kind'>) {
   return <ModelPicker {...props} kind="vision" />;
 }
 
-export function EmbeddingModelPicker(
-  props: Omit<ModelPickerProps, 'kind'>,
-) {
+export function EmbeddingModelPicker(props: Omit<ModelPickerProps, 'kind'>) {
   return <ModelPicker {...props} kind="embedding" />;
 }

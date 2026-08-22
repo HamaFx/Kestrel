@@ -16,8 +16,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { fetchTickerPrice } from '../src/providers/binance/rest';
 import { isCryptoSymbol, toBinanceInterval } from '../src/providers/binance/map';
+import { fetchTickerPrice } from '../src/providers/binance/rest';
 
 describe('Binance symbol boundary', () => {
   it('accepts every canonical crypto symbol', () => {

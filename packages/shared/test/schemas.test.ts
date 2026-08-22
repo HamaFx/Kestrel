@@ -17,28 +17,28 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AggregatedSentimentSchema,
+  AlertSchema,
+  BriefingMessagePartSchema,
   CandleSchema,
-  TickSchema,
-  NewsArticleSchema,
+  ChatMessageSchema,
+  ChatThreadSchema,
+  ClosePositionInputSchema,
+  CreatePositionInputSchema,
   EconomicEventSchema,
   IndicatorRequestSchema,
   IndicatorResultSchema,
-  StructureResultSchema,
-  ChatThreadSchema,
-  ChatMessageSchema,
-  AlertSchema,
   JournalEntrySchema,
   JournalStatsSchema,
-  PortfolioPositionSchema,
-  PortfolioSettingsSchema,
-  PortfolioRiskReportSchema,
-  CreatePositionInputSchema,
-  ClosePositionInputSchema,
-  SocialSentimentSchema,
-  AggregatedSentimentSchema,
+  NewsArticleSchema,
   NoiseConfigSchema,
   NoiseDecisionSchema,
-  BriefingMessagePartSchema,
+  PortfolioPositionSchema,
+  PortfolioRiskReportSchema,
+  PortfolioSettingsSchema,
+  SocialSentimentSchema,
+  StructureResultSchema,
+  TickSchema,
   UserPlanPartSchema,
 } from '../src';
 
@@ -50,7 +50,7 @@ function validCandle(overrides?: Record<string, unknown>) {
     o: 1.1628,
     h: 1.1661,
     l: 1.1622,
-    c: 1.1650,
+    c: 1.165,
     v: 0,
     source: 'twelve-data',
     fetchedAt: 1748378102000,
@@ -353,11 +353,15 @@ describe('StructureResultSchema', () => {
   });
 
   it('rejects invalid swing type', () => {
-    expect(() => StructureResultSchema.parse({ ...valid, swings: [{ ...valid.swings![0], type: 'mid' }] })).toThrow();
+    expect(() =>
+      StructureResultSchema.parse({ ...valid, swings: [{ ...valid.swings![0], type: 'mid' }] }),
+    ).toThrow();
   });
 
   it('rejects invalid structure event kind', () => {
-    expect(() => StructureResultSchema.parse({ ...valid, events: [{ ...valid.events![0], kind: 'invalid' }] })).toThrow();
+    expect(() =>
+      StructureResultSchema.parse({ ...valid, events: [{ ...valid.events![0], kind: 'invalid' }] }),
+    ).toThrow();
   });
 });
 
@@ -593,7 +597,15 @@ describe('JournalStatsSchema', () => {
       longestLossStreak: 3,
       profitFactor: 2.1,
       avgHoldMs: 3600000,
-      perDayOfWeek: { sunday: 0, monday: 5, tuesday: 3, wednesday: 4, thursday: 2, friday: 1, saturday: 0 },
+      perDayOfWeek: {
+        sunday: 0,
+        monday: 5,
+        tuesday: 3,
+        wednesday: 4,
+        thursday: 2,
+        friday: 1,
+        saturday: 0,
+      },
     });
     expect(parsed.maxDrawdown).toBe(-500);
     expect(parsed.longestWinStreak).toBe(8);
@@ -710,7 +722,7 @@ describe('CreatePositionInputSchema', () => {
       symbol: 'EURUSD',
       direction: 'long',
       lotSize: 1.5,
-      entryPrice: 1.1650,
+      entryPrice: 1.165,
     });
     expect(parsed.symbol).toBe('EURUSD');
   });
@@ -826,9 +838,7 @@ describe('NoiseConfigSchema', () => {
   });
 
   it('rejects quiet hours with invalid format', () => {
-    expect(() =>
-      NoiseConfigSchema.parse({ quietHours: { start: '10pm', end: '7am' } }),
-    ).toThrow();
+    expect(() => NoiseConfigSchema.parse({ quietHours: { start: '10pm', end: '7am' } })).toThrow();
   });
 
   it('rejects dedupTtlSeconds over max', () => {
@@ -917,7 +927,10 @@ describe('UserPlanPartSchema', () => {
 
   it('rejects too many steps (max 8)', () => {
     expect(() =>
-      UserPlanPartSchema.parse({ ...valid, steps: Array.from({ length: 9 }, (_, i) => `Step ${i}`) }),
+      UserPlanPartSchema.parse({
+        ...valid,
+        steps: Array.from({ length: 9 }, (_, i) => `Step ${i}`),
+      }),
     ).toThrow();
   });
 });

@@ -30,9 +30,9 @@
 //   pnpm --filter @kestrel/db test -- --run migration-hash-stability
 // and commit the regenerated _hashes.json.
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { join, dirname } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
@@ -51,9 +51,9 @@ interface HashesFile {
 }
 
 function computeCurrentHashes(): Record<string, string> {
-  const journal = JSON.parse(
-    readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8'),
-  ) as { entries: Array<{ tag: string }> };
+  const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8')) as {
+    entries: Array<{ tag: string }>;
+  };
 
   const hashes: Record<string, string> = {};
   for (const entry of journal.entries) {

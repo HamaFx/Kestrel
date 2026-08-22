@@ -15,17 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import { useEffect, useRef, useState } from 'react';
-import {IconCircleCheck, IconLoader2} from '@tabler/icons-react';
-
 import type { CatalogResponse } from '@kestrel/shared';
+import { IconCircleCheck, IconLoader2 } from '@tabler/icons-react';
+import { useEffect, useRef, useState } from 'react';
+
 import { apiFetch } from '@/lib/api-client';
-import {
-  modelSelectionMatches,
-  toChatModelValue,
-  toQualifiedModelId,
-} from './model-picker-utils';
+
+import { modelSelectionMatches, toChatModelValue, toQualifiedModelId } from './model-picker-utils';
 
 interface CacheData {
   catalog: CatalogResponse | null;
@@ -115,7 +111,7 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
   useEffect(() => {
     if (!loading && containerRef.current) {
       const items = Array.from(
-        containerRef.current.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]')
+        containerRef.current.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'),
       );
       const activeItem = items.find((item) => item.getAttribute('data-model-id') === activeModelId);
       if (activeItem) {
@@ -129,7 +125,7 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const items = Array.from(
-      containerRef.current.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]')
+      containerRef.current.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'),
     );
     if (items.length === 0) return;
 
@@ -164,7 +160,9 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
         const popover = document.getElementById(popoverId);
         (popover as HTMLElement | null)?.hidePopover?.();
         // Return focus to the trigger button if it exists
-        const trigger = document.querySelector(`[popovertarget="${popoverId}"]`) as HTMLElement | null;
+        const trigger = document.querySelector(
+          `[popovertarget="${popoverId}"]`,
+        ) as HTMLElement | null;
         trigger?.focus();
         break;
       }
@@ -181,7 +179,7 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 text-xs text-fg-subtle">
+      <div className="text-fg-subtle flex items-center gap-2 px-3 py-2 text-xs">
         <IconLoader2 size={12} className="animate-spin" aria-hidden="true" />
         Loading models…
       </div>
@@ -190,7 +188,7 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
 
   if (!catalog || catalog.providers.length === 0) {
     return (
-      <div className="px-3 py-2 text-xs text-fg-subtle">
+      <div className="text-fg-subtle px-3 py-2 text-xs">
         Add a key in Settings → API Keys to see model options.
       </div>
     );
@@ -199,7 +197,7 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
   const configured = catalog.providers.filter((p) => p.hasKey);
   if (configured.length === 0) {
     return (
-      <div className="px-3 py-2 text-xs text-fg-subtle">
+      <div className="text-fg-subtle px-3 py-2 text-xs">
         Add a key in Settings → API Keys to see model options.
       </div>
     );
@@ -226,27 +224,28 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
       onKeyDown={handleKeyDown}
       role="menu"
       tabIndex={-1}
-      className="flex flex-col gap-2 max-h-96 overflow-y-auto min-w-72 focus:outline-none"
+      className="flex max-h-96 min-w-72 flex-col gap-2 overflow-y-auto focus:outline-none"
     >
       {/* My default — the chat_model the user saved in /settings/models */}
       <section className="flex flex-col gap-0.5">
-        <div className="px-2 py-1 text-caption uppercase tracking-wide text-fg-subtle">
+        <div className="text-caption text-fg-subtle px-2 py-1 tracking-wide uppercase">
           My default
         </div>
         {chatProvider && chatCatalogModel && chatFullyQualified ? (
           <RegenRow
             label={`${chatProvider.displayName} · ${chatCatalogModel.label ?? chatCatalogModel.modelId}`}
             fullyQualified={chatFullyQualified}
-            isActive={modelSelectionMatches(activeModelId, chatProvider.id, chatCatalogModel.modelId)}
+            isActive={modelSelectionMatches(
+              activeModelId,
+              chatProvider.id,
+              chatCatalogModel.modelId,
+            )}
             onClick={() => pick(toChatModelValue(chatProvider.id, chatCatalogModel.modelId))}
           />
         ) : (
-          <div className="px-2 py-1 text-caption text-fg-subtle italic">
+          <div className="text-caption text-fg-subtle px-2 py-1 italic">
             No default set.{' '}
-            <a
-              href="/settings/models"
-              className="text-fg hover:underline not-italic"
-            >
+            <a href="/settings/models" className="text-fg not-italic hover:underline">
               Pick one in Settings → Models
             </a>
             .
@@ -256,14 +255,12 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
 
       {/* Per-provider model list */}
       <section className="flex flex-col gap-0.5">
-        <div className="px-2 py-1 text-caption uppercase tracking-wide text-fg-subtle">
+        <div className="text-caption text-fg-subtle px-2 py-1 tracking-wide uppercase">
           All configured models
         </div>
         {configured.map((p) => (
           <div key={p.id} className="flex flex-col gap-0.5">
-            <div className="px-2 pt-1.5 pb-0.5 text-caption text-fg-muted">
-              {p.displayName}
-            </div>
+            <div className="text-caption text-fg-muted px-2 pt-1.5 pb-0.5">{p.displayName}</div>
             {p.models.map((m) => {
               const fullyQualified = toQualifiedModelId(p.id, m.modelId);
               return (
@@ -304,11 +301,7 @@ function RegenRow({
     >
       <span className="truncate">{label}</span>
       {isActive ? (
-        <IconCircleCheck
-          size={14}
-          className="text-success shrink-0"
-          aria-hidden="true"
-        />
+        <IconCircleCheck size={14} className="text-success shrink-0" aria-hidden="true" />
       ) : null}
     </button>
   );

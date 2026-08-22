@@ -18,8 +18,8 @@
 // /positions → lists all open positions with P&L.
 // Depends on F2 (Portfolio Management).
 
-import type { BotCommand, BotResponse, BotContext } from '../types';
 import { getOpenPositionsWithPnL } from '../../portfolio';
+import type { BotCommand, BotContext, BotResponse } from '../types';
 
 export const positionsCommand: BotCommand = {
   name: 'positions',
@@ -35,16 +35,14 @@ export const positionsCommand: BotCommand = {
         };
       }
 
-      const lines: string[] = [
-        `📊 Open Positions (${positions.length})`,
-        '',
-      ];
+      const lines: string[] = [`📊 Open Positions (${positions.length})`, ''];
 
       for (const pos of positions) {
         const dirIcon = pos.direction === 'long' ? '🟢' : '🔴';
-        const pnlStr = pos.unrealizedPnlUsd !== null
-          ? `${pos.unrealizedPnlUsd >= 0 ? '🟢' : '🔴'} $${pos.unrealizedPnlUsd.toFixed(2)}`
-          : 'N/A';
+        const pnlStr =
+          pos.unrealizedPnlUsd !== null
+            ? `${pos.unrealizedPnlUsd >= 0 ? '🟢' : '🔴'} $${pos.unrealizedPnlUsd.toFixed(2)}`
+            : 'N/A';
         const stale = pos.stale ? ' (stale)' : '';
 
         lines.push(

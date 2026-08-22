@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Generic renderer for tool-call parts. The AI SDK v5 streams parts of
@@ -7,9 +23,9 @@
 // crisp on mobile. Bespoke renderers can land per-tool later without
 // touching the message-list code.
 
-import { useState, useId } from 'react';
-import { motion } from 'motion/react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
+import { motion } from 'motion/react';
+import { useId, useState } from 'react';
 
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
@@ -56,18 +72,27 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 border-b border-divider px-3 py-2 text-left text-xs"
+        className="border-divider flex w-full items-center justify-between gap-2 border-b px-3 py-2 text-left text-xs"
         aria-expanded={expanded}
         aria-controls={contentId}
       >
         <span className="text-fg-muted flex items-center gap-1.5 font-medium">
           <span>{label}</span>
-          <span className={cn('text-fg-subtle truncate font-mono tabular-nums', running && 'animate-pulse')}>
+          <span
+            className={cn(
+              'text-fg-subtle truncate font-mono tabular-nums',
+              running && 'animate-pulse',
+            )}
+          >
             · {summary}
           </span>
         </span>
         <span className="text-fg-subtle">
-          {expanded ? <IconChevronDown className="size-4" /> : <IconChevronRight className="size-4" />}
+          {expanded ? (
+            <IconChevronDown className="size-4" />
+          ) : (
+            <IconChevronRight className="size-4" />
+          )}
         </span>
       </button>
 
@@ -78,7 +103,7 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
           animate={{ opacity: 1, height: 'auto' }}
           transition={{ duration: 0.2 }}
           id={contentId}
-          className="border-divider mt-0 space-y-2 px-3 py-3 font-mono tabular-nums text-sm overflow-hidden"
+          className="border-divider mt-0 space-y-2 overflow-hidden px-3 py-3 font-mono text-sm tabular-nums"
         >
           <Section label="input" data={input} />
           {failed ? (
@@ -95,8 +120,8 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
 function Section({ label, data }: { label: string; data: unknown }) {
   return (
     <div>
-      <div className="text-fg-subtle mb-0.5 text-xs uppercase tracking-wide">{label}</div>
-      <pre className="bg-bg-elev-2 max-h-40 overflow-auto rounded-sm p-2 text-caption leading-tight">
+      <div className="text-fg-subtle mb-0.5 text-xs tracking-wide uppercase">{label}</div>
+      <pre className="bg-bg-elev-2 text-caption max-h-40 overflow-auto rounded-sm p-2 leading-tight">
         {safeStringify(data)}
       </pre>
     </div>

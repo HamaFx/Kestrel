@@ -25,8 +25,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ProviderError } from '../src/errors';
-import { _resetHealth } from '../src/health';
 import { runWithFailover } from '../src/failover';
+import { _resetHealth } from '../src/health';
 
 beforeEach(() => {
   _resetHealth();
@@ -42,7 +42,12 @@ describe('chaos: failover on HTTP 500', () => {
       {
         name: 'twelve-data',
         run: async () => {
-          throw new ProviderError('PROVIDER_HTTP_ERROR', 'twelve-data', 'HTTP 500 Internal Server Error', { status: 500 });
+          throw new ProviderError(
+            'PROVIDER_HTTP_ERROR',
+            'twelve-data',
+            'HTTP 500 Internal Server Error',
+            { status: 500 },
+          );
         },
       },
       {
@@ -60,7 +65,9 @@ describe('chaos: failover on HTTP 500', () => {
         {
           name: 'twelve-data',
           run: async () => {
-            throw new ProviderError('PROVIDER_HTTP_ERROR', 'twelve-data', 'HTTP 500', { status: 500 });
+            throw new ProviderError('PROVIDER_HTTP_ERROR', 'twelve-data', 'HTTP 500', {
+              status: 500,
+            });
           },
         },
         {
@@ -79,13 +86,17 @@ describe('chaos: failover on HTTP 500', () => {
         {
           name: 'twelve-data',
           run: async () => {
-            throw new ProviderError('PROVIDER_HTTP_ERROR', 'twelve-data', 'primary-500', { status: 500 });
+            throw new ProviderError('PROVIDER_HTTP_ERROR', 'twelve-data', 'primary-500', {
+              status: 500,
+            });
           },
         },
         {
           name: 'finnhub',
           run: async () => {
-            throw new ProviderError('PROVIDER_HTTP_ERROR', 'finnhub', 'secondary-500', { status: 502 });
+            throw new ProviderError('PROVIDER_HTTP_ERROR', 'finnhub', 'secondary-500', {
+              status: 502,
+            });
           },
         },
       ]),
@@ -205,5 +216,3 @@ describe('chaos: failover on timeout', () => {
     ).rejects.toThrow('timeout');
   });
 });
-
-

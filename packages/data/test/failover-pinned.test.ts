@@ -224,11 +224,7 @@ describe('runWithFailover — ProviderEmptyError (Phase 2 §2)', () => {
       {
         name: 'live-ticks',
         run: async () => {
-          throw new ProviderError(
-            'PROVIDER_HTTP_ERROR',
-            'live-ticks',
-            'db connection refused',
-          );
+          throw new ProviderError('PROVIDER_HTTP_ERROR', 'live-ticks', 'db connection refused');
         },
       },
       {

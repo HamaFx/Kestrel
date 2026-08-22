@@ -16,8 +16,8 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { applyMigrations, closePGliteDb, getPGliteDb } from '../src/pglite-client';
 import type * as ClientModule from '../src/client';
+import { applyMigrations, closePGliteDb, getPGliteDb } from '../src/pglite-client';
 
 // The query module resolves getDb() through the client singleton; point it at
 // the PGlite instance created per-test. The factory only reads the binding at
@@ -48,7 +48,9 @@ describe('listReviewedTrainingPairs (PGlite integration)', { timeout: 60_000 }, 
   async function seed(): Promise<void> {
     const db = pglite;
     await db.execute(`INSERT INTO "organization" ("id", "name") VALUES ('org-1', 'Test Org')`);
-    await db.execute(`INSERT INTO "user" ("id", "email", "name", "role") VALUES ('u-1', 'u@example.com', 'U', 'user')`);
+    await db.execute(
+      `INSERT INTO "user" ("id", "email", "name", "role") VALUES ('u-1', 'u@example.com', 'U', 'user')`,
+    );
 
     // Thread 1 — approved (fail) with a preceding user prompt.
     await db.execute(

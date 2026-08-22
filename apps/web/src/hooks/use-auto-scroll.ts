@@ -23,8 +23,7 @@
 //   - Auto-scroll on new messages (only when user is near bottom, ≤240px)
 //   - Scroll-to-bottom FAB visibility tracking
 //   - Instant scroll during streaming, smooth after streaming stops
-
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UseAutoScrollOptions {
   /** External ref to the scroll container element. */

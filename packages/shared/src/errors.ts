@@ -105,7 +105,7 @@ export const internalError = (message = 'Internal error', details?: unknown): Ap
 
 export function formatErrorResponse(
   error: unknown,
-  options?: { requestId?: string; headers?: Record<string, string> }
+  options?: { requestId?: string; headers?: Record<string, string> },
 ) {
   const baseHeaders = { 'Content-Type': 'application/json', ...(options?.headers || {}) };
 
@@ -122,7 +122,7 @@ export function formatErrorResponse(
       { status: error.status, headers: baseHeaders },
     );
   }
-  
+
   // Fallback for unhandled errors. Never leak raw error messages to clients.
   return new Response(
     JSON.stringify({

@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { metrics } from '@kestrel/shared';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import { metrics } from '@kestrel/shared';
+import { getDiagnosticContext, withDiagnostics } from '../src/diagnostics/run-context';
 import { withTelemetry } from '../src/tools/with-telemetry';
-import {
-  getDiagnosticContext,
-  withDiagnostics,
-} from '../src/diagnostics/run-context';
 
 // Mock persistence so we can verify recordToolTelemetry was called.
 const mockRecordToolTelemetry = vi.fn();
@@ -53,7 +50,10 @@ describe('withTelemetry — diagnostics integration', () => {
   });
 
   it('records a diagnostic step on execute', async () => {
-    const tool = withTelemetry('test_tool', makeTool(async () => 'ok'));
+    const tool = withTelemetry(
+      'test_tool',
+      makeTool(async () => 'ok'),
+    );
     await withDiagnostics('user-1', 'thread-1', async () => {
       await tool.execute!({ foo: 'bar' }, { toolCallId: 'test', messages: [] });
 
@@ -92,7 +92,10 @@ describe('withTelemetry — diagnostics integration', () => {
   });
 
   it('calls recordToolTelemetry on success', async () => {
-    const tool = withTelemetry('ok_tool', makeTool(async () => 'done'));
+    const tool = withTelemetry(
+      'ok_tool',
+      makeTool(async () => 'done'),
+    );
 
     mockMaybeGetToolContext.mockReturnValue({
       threadId: 'tid-1',
@@ -165,14 +168,19 @@ describe('withTelemetry — diagnostics integration', () => {
       }),
     );
 
-    await expect(tool.execute!({}, { toolCallId: 'test', messages: [] })).rejects.toBe('just a string');
+    await expect(tool.execute!({}, { toolCallId: 'test', messages: [] })).rejects.toBe(
+      'just a string',
+    );
     expect(mockRecordToolTelemetry).toHaveBeenCalledWith(
       expect.objectContaining({ errorCode: 'unknown', ok: false }),
     );
   });
 
   it('passes through the tool result unchanged', async () => {
-    const tool = withTelemetry('passthrough', makeTool(async () => ({ data: [1, 2, 3] })));
+    const tool = withTelemetry(
+      'passthrough',
+      makeTool(async () => ({ data: [1, 2, 3] })),
+    );
     const result = await tool.execute!({}, { toolCallId: 'test', messages: [] });
     expect(result).toEqual({ data: [1, 2, 3] });
   });
@@ -262,7 +270,10 @@ describe('withTelemetry — diagnostics integration', () => {
   });
 
   it('increments tool_call_total on success', async () => {
-    const tool = withTelemetry('counted_tool', makeTool(async () => 'ok'));
+    const tool = withTelemetry(
+      'counted_tool',
+      makeTool(async () => 'ok'),
+    );
     await tool.execute!({}, { toolCallId: 'test', messages: [] });
     expect(metrics.snapshot().counters.tool_call_total).toBe(1);
     expect(metrics.snapshot().counters.tool_fail_total ?? 0).toBe(0);

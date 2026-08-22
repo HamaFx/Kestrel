@@ -25,7 +25,7 @@
 //   import { traceQuery } from '../tracing';
 //   const result = await traceQuery('queries.threads.getThread', () => db.select()...);
 
-import { trace, SpanStatusCode, type Span } from '@opentelemetry/api';
+import { SpanStatusCode, trace, type Span } from '@opentelemetry/api';
 
 const TRACER_NAME = 'kestrel-db';
 

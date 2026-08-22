@@ -1,6 +1,22 @@
 'use client';
 
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
+
 import { useLocalStorage } from '@/hooks/use-local-storage';
 
 interface BookmarksState {
@@ -24,33 +40,31 @@ export function BookmarksProvider({ children }: { children: React.ReactNode }) {
 
   const isBookmarked = useCallback((id: string) => bookmarkSet.has(id), [bookmarkSet]);
 
-  const toggleBookmark = useCallback((id: string) => {
-    setBookmarkIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return [...next];
-    });
-  }, [setBookmarkIds]);
+  const toggleBookmark = useCallback(
+    (id: string) => {
+      setBookmarkIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return [...next];
+      });
+    },
+    [setBookmarkIds],
+  );
 
   const state = useMemo(
     () => ({ bookmarks: bookmarkIds, isBookmarked }),
     [bookmarkIds, isBookmarked],
   );
 
-  const actions = useMemo(
-    () => ({ toggleBookmark }),
-    [toggleBookmark],
-  );
+  const actions = useMemo(() => ({ toggleBookmark }), [toggleBookmark]);
 
   return (
     <StateContext.Provider value={state}>
-      <ActionsContext.Provider value={actions}>
-        {children}
-      </ActionsContext.Provider>
+      <ActionsContext.Provider value={actions}>{children}</ActionsContext.Provider>
     </StateContext.Provider>
   );
 }

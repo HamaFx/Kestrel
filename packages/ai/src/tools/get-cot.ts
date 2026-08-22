@@ -20,12 +20,7 @@
 // symbol. Cron handler `/api/cron/cot` populates the table; the tool is
 // a thin read with a templated summary string.
 
-import {
-  GetCoTInputSchema,
-  type CoTSample,
-  type GetCoTOutput,
-  type Symbol,
-} from '@kestrel/shared';
+import { GetCoTInputSchema, type CoTSample, type GetCoTOutput, type Symbol } from '@kestrel/shared';
 import { tool } from 'ai';
 import type { z } from 'zod';
 

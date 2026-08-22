@@ -24,19 +24,27 @@
 // user_settings table (notificationPreferences field).
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
+import {
+  DEFAULT_NOISE_CONFIG,
+  DEFAULT_ROUTE_CONFIG,
+  type NoiseConfig,
+  type RouteConfig,
+} from '@kestrel/shared';
 import { and, eq, lt } from 'drizzle-orm';
 
+import { getDb } from '../db';
 import type { NoiseState } from './noise-control';
-import type { NoiseConfig, RouteConfig } from '@kestrel/shared';
-import { DEFAULT_NOISE_CONFIG, DEFAULT_ROUTE_CONFIG } from '@kestrel/shared';
 
 // ---------------------------------------------------------------------------
 // DB-backed noise state
 // ---------------------------------------------------------------------------
 
 export class DbNoiseState implements NoiseState {
-  constructor(private userId: string) {}
+  private userId: string;
+
+  constructor(userId: string) {
+    this.userId = userId;
+  }
 
   async hasSeen(dedupKey: string, _ttlSeconds: number): Promise<boolean> {
     const db = getDb();

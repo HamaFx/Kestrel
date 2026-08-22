@@ -97,15 +97,11 @@ export function estimateContextUsage(
   messageCount: number,
   totalContentChars: number,
 ): TokenEstimateResult {
-  const estimatedTokens = Math.ceil(
-    (systemPromptChars + totalContentChars) / CHARS_PER_TOKEN,
-  );
+  const estimatedTokens = Math.ceil((systemPromptChars + totalContentChars) / CHARS_PER_TOKEN);
 
   // Extract the bare model name from the qualified id.
   const bareModel = extractBareModel(modelId);
-  const contextLimit = bareModel
-    ? (MODEL_CONTEXT_LIMITS[bareModel] ?? null)
-    : null;
+  const contextLimit = bareModel ? (MODEL_CONTEXT_LIMITS[bareModel] ?? null) : null;
 
   if (!contextLimit) {
     // Unknown model — can't estimate. Return safe defaults.
@@ -114,9 +110,10 @@ export function estimateContextUsage(
       contextLimit: null,
       shouldWarn: estimatedTokens > 100_000,
       shouldTruncate: estimatedTokens > 500_000,
-      warningNote: estimatedTokens > 100_000
-        ? `⚠️ This conversation is large (~${Math.round(estimatedTokens / 1000)}K tokens). Responses may be truncated.`
-        : null,
+      warningNote:
+        estimatedTokens > 100_000
+          ? `⚠️ This conversation is large (~${Math.round(estimatedTokens / 1000)}K tokens). Responses may be truncated.`
+          : null,
       suggestedKeepCount: null,
     };
   }

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `search_knowledge` tool part.
@@ -10,6 +26,7 @@
 import { Link } from 'next-view-transitions';
 
 import { formatStamp } from '@/lib/datetime';
+
 import type { ToolPartProps } from './registry';
 
 const MAX_ROWS = 8;
@@ -46,7 +63,7 @@ export function SearchKnowledgePart({
 
   return (
     <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
-      <header className="text-fg-muted mb-2 flex items-baseline justify-between text-body-sm">
+      <header className="text-fg-muted text-body-sm mb-2 flex items-baseline justify-between">
         <span>Top {items.length} matches</span>
         <span className="font-mono">{output.model}</span>
       </header>
@@ -73,7 +90,7 @@ export function SearchKnowledgePart({
                   </div>
                 </div>
                 <span
-                  className="bg-bg-elev-2 text-fg-muted shrink-0 rounded-sm px-2 py-1 text-caption font-semibold tabular-nums"
+                  className="bg-bg-elev-2 text-fg-muted text-caption shrink-0 rounded-sm px-2 py-1 font-semibold tabular-nums"
                   aria-label={`similarity ${sim} percent`}
                 >
                   {sim}%

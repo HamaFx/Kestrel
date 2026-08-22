@@ -20,13 +20,23 @@
 //
 // Client component for configuring notification noise control:
 // quiet hours, min severity, cooldown, dedup TTL, and daily digest mode.
-
-import {IconBell, IconMoon, IconClock, IconFilter, IconBolt, IconMail, IconDeviceMobile, IconInfoCircle, IconChartBar} from '@tabler/icons-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/cn';
 import type { NoiseConfig, Severity } from '@kestrel/shared';
+import {
+  IconBell,
+  IconBolt,
+  IconChartBar,
+  IconClock,
+  IconDeviceMobile,
+  IconFilter,
+  IconInfoCircle,
+  IconMail,
+  IconMoon,
+} from '@tabler/icons-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { Switch } from '@/components/ui/switch';
 import { apiFetch, apiMutate } from '@/lib/api-client';
+import { cn } from '@/lib/cn';
 
 const SEVERITY_OPTIONS: { value: Severity; label: string }[] = [
   { value: 'info', label: 'Info' },
@@ -111,7 +121,8 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
 
   // Debounced preview fetch (only after saves, not on every keystroke)
   const fetchPreview = useCallback(() => {
-    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);      previewTimerRef.current = setTimeout(() => {
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(() => {
       setPreviewLoading(true);
       apiFetch<DigestPreview | null>('/api/alerts/preview-digest')
         .then((data) => setPreview(data))
@@ -130,56 +141,54 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const update = useCallback(
-    (updates: Partial<NoiseConfig>) => {
-      setConfig((prev) => ({ ...prev, ...updates }));
-    },
-    [],
-  );
+  const update = useCallback((updates: Partial<NoiseConfig>) => {
+    setConfig((prev) => ({ ...prev, ...updates }));
+  }, []);
 
   return (
     <section
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-4 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4"
       aria-labelledby="noise-control-heading"
     >
       <div className="flex items-center gap-3 pb-2">
-        <h2
-          id="noise-control-heading"
-          className="text-fg text-base font-semibold tracking-tight"
-        >
+        <h2 id="noise-control-heading" className="text-fg text-base font-semibold tracking-tight">
           Notification noise control
         </h2>
-        {saving && <span className="text-xs text-fg-muted">Saving…</span>}
+        {saving && <span className="text-fg-muted text-xs">Saving…</span>}
       </div>
 
-      <p className="text-sm text-fg-subtle">
+      <p className="text-fg-subtle text-sm">
         Reduce notification fatigue with dedup, cooldown, quiet hours, and severity filtering.
       </p>
 
       {/* Alert Preview */}
       {preview && (
-        <div className="rounded-sm border border-border bg-bg-elev-2 p-4 flex flex-col gap-3">
+        <div className="border-border bg-bg-elev-2 flex flex-col gap-3 rounded-sm border p-4">
           <div className="flex items-center gap-2">
-            <IconChartBar className="size-4 text-fg" />
-            <span className="text-sm font-semibold text-fg">Alert preview</span>
-            <span className="text-xs text-fg-subtle">(based on saved settings)</span>
-            {previewLoading && <span className="text-xs text-fg-muted">Refreshing…</span>}
+            <IconChartBar className="text-fg size-4" />
+            <span className="text-fg text-sm font-semibold">Alert preview</span>
+            <span className="text-fg-subtle text-xs">(based on saved settings)</span>
+            {previewLoading && <span className="text-fg-muted text-xs">Refreshing…</span>}
           </div>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold tabular-nums text-fg">{preview.breakdown.total}</p>
-              <p className="text-xs text-fg-subtle">Total</p>
+              <p className="text-fg text-2xl font-bold tabular-nums">{preview.breakdown.total}</p>
+              <p className="text-fg-subtle text-xs">Total</p>
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-success">{preview.breakdown.allowed}</p>
-              <p className="text-xs text-fg-subtle">Allowed</p>
+              <p className="text-success text-2xl font-bold tabular-nums">
+                {preview.breakdown.allowed}
+              </p>
+              <p className="text-fg-subtle text-xs">Allowed</p>
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-danger">{preview.breakdown.blocked}</p>
-              <p className="text-xs text-fg-subtle">Blocked</p>
+              <p className="text-danger text-2xl font-bold tabular-nums">
+                {preview.breakdown.blocked}
+              </p>
+              <p className="text-fg-subtle text-xs">Blocked</p>
             </div>
           </div>
-          <div className="flex h-3 w-full overflow-hidden rounded-sm bg-bg-elev-3">
+          <div className="bg-bg-elev-3 flex h-3 w-full overflow-hidden rounded-sm">
             <div
               className="bg-fg transition-all duration-300"
               style={{ width: `${preview.allowedPct}%` }}
@@ -189,7 +198,7 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
               style={{ width: `${preview.blockedPct}%` }}
             />
           </div>
-          <div className="grid grid-cols-4 gap-1 text-center text-caption tabular-nums">
+          <div className="text-caption grid grid-cols-4 gap-1 text-center tabular-nums">
             {SEVERITY_OPTIONS.map((sev) => {
               const b = preview.breakdown.bySeverity.find((s) => s.severity === sev.value);
               if (!b) return null;
@@ -197,28 +206,28 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
               return (
                 <div key={sev.value} className="flex flex-col">
                   <span className="text-fg-subtle">{sev.label}</span>
-                  <span className="font-medium text-fg">{actPct}%</span>
+                  <span className="text-fg font-medium">{actPct}%</span>
                 </div>
               );
             })}
           </div>
-          <p className="text-xs text-fg-subtle">
+          <p className="text-fg-subtle text-xs">
             ~{preview.dailyEstimate} alerts/day with current filters.
           </p>
         </div>
       )}
 
       {/* Smart Alert Digest */}
-      <div className="rounded-sm border border-border/20 bg-bg-elev-1 p-3 flex flex-col gap-3">
+      <div className="border-border/20 bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3">
         <div className="flex items-start gap-3">
-          <div className="rounded-sm bg-bg-elev-2 p-2 text-fg">
+          <div className="bg-bg-elev-2 text-fg rounded-sm p-2">
             <IconMail className="size-4" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-fg">Smart alert digest</h3>
-            <p className="text-xs text-fg-subtle mt-1">
-              When daily digest is on, non-critical alerts are batched into a single summary
-              instead of interrupting you one-by-one.
+            <h3 className="text-fg text-sm font-semibold">Smart alert digest</h3>
+            <p className="text-fg-subtle mt-1 text-xs">
+              When daily digest is on, non-critical alerts are batched into a single summary instead
+              of interrupting you one-by-one.
             </p>
           </div>
           <Switch
@@ -227,7 +236,7 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
             srLabel="Toggle daily digest mode"
           />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-fg-subtle">
+        <div className="text-fg-subtle grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
           <div className="flex items-center gap-1.5">
             <IconInfoCircle className="size-3.5" />
             <span>Info & warning batched</span>
@@ -246,15 +255,13 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
       {/* Quiet Hours */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <IconMoon className="size-4 text-fg-muted" />
-          <span className="text-sm font-medium text-fg">Quiet hours</span>
+          <IconMoon className="text-fg-muted size-4" />
+          <span className="text-fg text-sm font-medium">Quiet hours</span>
           <Switch
             checked={config.quietHours !== null}
             onCheckedChange={(enabled) =>
               update({
-                quietHours: enabled
-                  ? { start: '22:00', end: '07:00' }
-                  : null,
+                quietHours: enabled ? { start: '22:00', end: '07:00' } : null,
               })
             }
             srLabel="Toggle quiet hours"
@@ -262,30 +269,30 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
         </div>
         {config.quietHours && (
           <div className="flex items-center gap-2 pl-6">
-            <IconClock className="size-3.5 text-fg-muted" />
-        <input
-          type="time"
-          value={config.quietHours.start}
-          onChange={(e) =>
-            update({
-              quietHours: { ...config.quietHours!, start: e.target.value },
-            })
-          }
-          aria-label="Quiet hours start time"
-          className="rounded-sm border border-border bg-bg-elev-1 px-2 py-1 text-sm text-fg"
-        />
+            <IconClock className="text-fg-muted size-3.5" />
+            <input
+              type="time"
+              value={config.quietHours.start}
+              onChange={(e) =>
+                update({
+                  quietHours: { ...config.quietHours!, start: e.target.value },
+                })
+              }
+              aria-label="Quiet hours start time"
+              className="border-border bg-bg-elev-1 text-fg rounded-sm border px-2 py-1 text-sm"
+            />
             <span className="text-fg-muted text-sm">to</span>
-        <input
-          type="time"
-          value={config.quietHours.end}
-          onChange={(e) =>
-            update({
-              quietHours: { ...config.quietHours!, end: e.target.value },
-            })
-          }
-          aria-label="Quiet hours end time"
-          className="rounded-sm border border-border bg-bg-elev-1 px-2 py-1 text-sm text-fg"
-        />
+            <input
+              type="time"
+              value={config.quietHours.end}
+              onChange={(e) =>
+                update({
+                  quietHours: { ...config.quietHours!, end: e.target.value },
+                })
+              }
+              aria-label="Quiet hours end time"
+              className="border-border bg-bg-elev-1 text-fg rounded-sm border px-2 py-1 text-sm"
+            />
           </div>
         )}
       </div>
@@ -293,8 +300,8 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
       {/* Min Severity */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <IconFilter className="size-4 text-fg-muted" />
-          <span className="text-sm font-medium text-fg">Minimum severity</span>
+          <IconFilter className="text-fg-muted size-4" />
+          <span className="text-fg text-sm font-medium">Minimum severity</span>
         </div>
         <div className="flex gap-2 pl-6">
           {SEVERITY_OPTIONS.map((opt) => (
@@ -318,8 +325,8 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
       {config.quietHours && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <IconMoon className="size-4 text-fg-muted" />
-            <span className="text-sm font-medium text-fg">Min severity during quiet hours</span>
+            <IconMoon className="text-fg-muted size-4" />
+            <span className="text-fg text-sm font-medium">Min severity during quiet hours</span>
           </div>
           <div className="flex gap-2 pl-6">
             {SEVERITY_OPTIONS.map((opt) => (
@@ -343,8 +350,8 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
       {/* Cooldown */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <IconBolt className="size-4 text-fg-muted" />
-          <span className="text-sm font-medium text-fg">Cooldown (seconds)</span>
+          <IconBolt className="text-fg-muted size-4" />
+          <span className="text-fg text-sm font-medium">Cooldown (seconds)</span>
         </div>
         <input
           type="number"
@@ -353,15 +360,15 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
           value={config.cooldownSeconds}
           onChange={(e) => update({ cooldownSeconds: Number(e.target.value) })}
           aria-label="Cooldown in seconds"
-          className="ml-6 w-32 rounded-sm border border-border bg-bg-elev-1 px-2 py-1 text-sm text-fg"
+          className="border-border bg-bg-elev-1 text-fg ml-6 w-32 rounded-sm border px-2 py-1 text-sm"
         />
       </div>
 
       {/* Dedup TTL */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <IconBell className="size-4 text-fg-muted" />
-          <span className="text-sm font-medium text-fg">Dedup window (seconds)</span>
+          <IconBell className="text-fg-muted size-4" />
+          <span className="text-fg text-sm font-medium">Dedup window (seconds)</span>
         </div>
         <input
           type="number"
@@ -370,10 +377,9 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
           value={config.dedupTtlSeconds}
           onChange={(e) => update({ dedupTtlSeconds: Number(e.target.value) })}
           aria-label="Dedup window in seconds"
-          className="ml-6 w-32 rounded-sm border border-border bg-bg-elev-1 px-2 py-1 text-sm text-fg"
+          className="border-border bg-bg-elev-1 text-fg ml-6 w-32 rounded-sm border px-2 py-1 text-sm"
         />
       </div>
-
     </section>
   );
 }

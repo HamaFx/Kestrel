@@ -20,12 +20,12 @@
 // Combines candle series and technical indicators loading into a single synchronized request
 // to prevent index misalignment/race conditions, and runs background prefetching for adjacent
 // timeframes to enable instant zero-latency timeframe switching.
-
-import { useEffect, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Candle, IndicatorResult, Symbol, Timeframe } from '@kestrel/shared';
-import { fetchCandles, fetchChartData, type IndicatorRequest } from '@/lib/market-client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
+
 import { refetchIntervalFor } from '@/lib/datetime';
+import { fetchCandles, fetchChartData, type IndicatorRequest } from '@/lib/market-client';
 
 function getAdjacentTimeframes(tf: Timeframe): Timeframe[] {
   switch (tf) {
@@ -124,9 +124,10 @@ export function useChartData(
     const timer = setTimeout(() => {
       const adjacent = getAdjacentTimeframes(tf);
       for (const adjTf of adjacent) {
-        const prefetchKey = indicators.length === 0
-          ? ['market', 'candles', symbol, adjTf, count]
-          : ['market', 'chartData', symbol, adjTf, count, indicatorsKey];
+        const prefetchKey =
+          indicators.length === 0
+            ? ['market', 'candles', symbol, adjTf, count]
+            : ['market', 'chartData', symbol, adjTf, count, indicatorsKey];
 
         // Skip prefetch if fresh data already exists in cache.
         const existing = queryClient.getQueryData(prefetchKey);

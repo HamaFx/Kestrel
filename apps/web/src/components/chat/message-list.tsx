@@ -18,10 +18,10 @@
 
 // Message scroll body. Virtualized using @tanstack/react-virtual to handle
 // large threads efficiently, rendering only the visible messages in the DOM.
-
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { UIMessage } from 'ai';
 import { memo, useEffect, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+
 import { Message } from './message';
 
 // Phase 7 task 7.3 — sr-only polite live region so screen readers announce
@@ -121,8 +121,8 @@ export const MessageList = memo(function MessageList({
                   role="status"
                   aria-label="Assistant is responding"
                 >
-                  <span className="inline-block h-4 w-0.5 bg-fg motion-safe:animate-pulse" />
-                  <span className="text-sm text-fg-muted">Thinking…</span>
+                  <span className="bg-fg inline-block h-4 w-0.5 motion-safe:animate-pulse" />
+                  <span className="text-fg-muted text-sm">Thinking…</span>
                 </div>
               </div>
             </div>
@@ -154,19 +154,19 @@ export const MessageList = memo(function MessageList({
               isLastAssistant={isLastAssistant}
               onCopy={onCopy}
               onRegenerate={
-                onRegenerate && isLastAssistant && !isStreaming
-                  ? onRegenerate
-                  : undefined
+                onRegenerate && isLastAssistant && !isStreaming ? onRegenerate : undefined
               }
               onEdit={onEdit}
               onFollowUpSelect={onFollowUpSelect}
             />
             {isStreaming && m.role === 'assistant' && (
               <StreamingLiveRegion
-                text={m.parts
-                  ?.filter((p) => p.type === 'text')
-                  .map((p) => ('text' in p ? p.text : ''))
-                  .join('') ?? ''}
+                text={
+                  m.parts
+                    ?.filter((p) => p.type === 'text')
+                    .map((p) => ('text' in p ? p.text : ''))
+                    .join('') ?? ''
+                }
               />
             )}
           </div>

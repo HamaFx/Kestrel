@@ -29,13 +29,7 @@
 
 export const PLAN_FEATURES = {
   free: ['chat_basic', 'chart_basic', 'journal_basic'],
-  pro: [
-    'chat_advanced',
-    'chart_advanced',
-    'journal_full',
-    'alerts_unlimited',
-    'ai_high_quota',
-  ],
+  pro: ['chat_advanced', 'chart_advanced', 'journal_full', 'alerts_unlimited', 'ai_high_quota'],
   enterprise: [
     'chat_advanced',
     'chart_advanced',
@@ -65,7 +59,10 @@ export type FeatureKey =
  * @param feature The feature key to check
  * @returns true if the feature is present
  */
-export function hasFeature(planFeatures: string[] | null | undefined, feature: FeatureKey): boolean {
+export function hasFeature(
+  planFeatures: string[] | null | undefined,
+  feature: FeatureKey,
+): boolean {
   if (!planFeatures) return false;
   return planFeatures.includes(feature);
 }

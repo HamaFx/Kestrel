@@ -24,17 +24,13 @@
 // Rows older than 1 hour are safe to delete (Telegram retries within
 // minutes). The cron retention job (DB-1) handles cleanup.
 
-import { index, pgTable, bigint, timestamp } from 'drizzle-orm/pg-core';
+import { bigint, index, pgTable, timestamp } from 'drizzle-orm/pg-core';
 
 export const telegramUpdates = pgTable(
   'telegram_updates',
   {
     updateId: bigint('update_id', { mode: 'number' }).primaryKey(),
-    processedAt: timestamp('processed_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
+    processedAt: timestamp('processed_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [
-    index('telegram_updates_processed_at_idx').on(t.processedAt),
-  ],
+  (t) => [index('telegram_updates_processed_at_idx').on(t.processedAt)],
 );

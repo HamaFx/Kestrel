@@ -22,14 +22,13 @@
 // 'weekly_review'). Schedule: Sunday 18:00 UTC.
 
 import { emitWeeklyReview } from '@kestrel/ai';
-
 import { getActiveUserIds } from '@kestrel/db';
 
 import type { JobContext, JobResult } from './types.js';
 
 export async function runWeeklyReview(ctx: JobContext): Promise<JobResult> {
   const userIds = await getActiveUserIds();
-  
+
   let emittedCount = 0;
   for (const userId of userIds) {
     if (ctx.signal?.aborted) break;

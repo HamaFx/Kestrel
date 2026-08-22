@@ -16,8 +16,11 @@
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Writable } from 'node:stream';
+
 import pino from 'pino';
 
+// Import here to avoid circular dependency issues at module top level.
+import { generateBugReport, redactDiagnosticPayload } from './bug-report';
 import { findErrorPattern } from './error-patterns';
 import { logStreamHub } from './log-stream';
 
@@ -67,8 +70,13 @@ class TeeDestination extends Writable {
     this.streamingEnabled = logStreamHub.isEnabled();
   }
 
-  override _write(chunk: unknown, _encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
-    const line = typeof chunk === 'string' ? chunk : Buffer.isBuffer(chunk) ? chunk.toString() : String(chunk);
+  override _write(
+    chunk: unknown,
+    _encoding: BufferEncoding,
+    callback: (error?: Error | null) => void,
+  ): void {
+    const line =
+      typeof chunk === 'string' ? chunk : Buffer.isBuffer(chunk) ? chunk.toString() : String(chunk);
     process.stdout.write(line, (err) => {
       if (this.streamingEnabled) {
         logStreamHub.write(line.trimEnd());
@@ -276,16 +284,26 @@ export function createCategorizedLogger(
   }
 
   return {
-    trace: (msgOrObj: string | Record<string, unknown>, metaOrMsg?: Record<string, unknown> | string) =>
-      log('trace', msgOrObj, metaOrMsg),
-    debug: (msgOrObj: string | Record<string, unknown>, metaOrMsg?: Record<string, unknown> | string) =>
-      log('debug', msgOrObj, metaOrMsg),
-    info: (msgOrObj: string | Record<string, unknown>, metaOrMsg?: Record<string, unknown> | string) =>
-      log('info', msgOrObj, metaOrMsg),
-    warn: (msgOrObj: string | Record<string, unknown>, metaOrMsg?: Record<string, unknown> | string) =>
-      log('warn', msgOrObj, metaOrMsg),
-    error: (msgOrObj: string | Record<string, unknown>, metaOrMsg?: Record<string, unknown> | string) =>
-      log('error', msgOrObj, metaOrMsg),
+    trace: (
+      msgOrObj: string | Record<string, unknown>,
+      metaOrMsg?: Record<string, unknown> | string,
+    ) => log('trace', msgOrObj, metaOrMsg),
+    debug: (
+      msgOrObj: string | Record<string, unknown>,
+      metaOrMsg?: Record<string, unknown> | string,
+    ) => log('debug', msgOrObj, metaOrMsg),
+    info: (
+      msgOrObj: string | Record<string, unknown>,
+      metaOrMsg?: Record<string, unknown> | string,
+    ) => log('info', msgOrObj, metaOrMsg),
+    warn: (
+      msgOrObj: string | Record<string, unknown>,
+      metaOrMsg?: Record<string, unknown> | string,
+    ) => log('warn', msgOrObj, metaOrMsg),
+    error: (
+      msgOrObj: string | Record<string, unknown>,
+      metaOrMsg?: Record<string, unknown> | string,
+    ) => log('error', msgOrObj, metaOrMsg),
     errorContext: (err, operation, ctx = {}) => {
       logErrorContext(err, operation, ctx, category);
     },
@@ -336,6 +354,3 @@ export function logForAgent(
     operation,
   );
 }
-
-// Import here to avoid circular dependency issues at module top level.
-import { generateBugReport, redactDiagnosticPayload } from './bug-report';

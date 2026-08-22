@@ -90,25 +90,30 @@ export default [
           paths: [
             {
               name: '@kestrel/ai',
-              message: 'API routes must import from @/lib/services/* instead of @kestrel/ai directly. Import domain functions through the service layer.',
+              message:
+                'API routes must import from @/lib/services/* instead of @kestrel/ai directly. Import domain functions through the service layer.',
             },
             {
               name: '@kestrel/data',
-              message: 'API routes must import from @/lib/services/* instead of @kestrel/data directly. Import data functions through the service layer.',
+              message:
+                'API routes must import from @/lib/services/* instead of @kestrel/data directly. Import data functions through the service layer.',
             },
             {
               name: '@kestrel/db',
-              message: 'API routes must import from @/lib/services/* instead of @kestrel/db directly. Import database functions through the service layer.',
+              message:
+                'API routes must import from @/lib/services/* instead of @kestrel/db directly. Import database functions through the service layer.',
             },
             {
               name: '@kestrel/shared',
-              message: 'API routes must import from @/lib/services/* instead of @kestrel/shared directly. Import shared utilities through the service layer.',
+              message:
+                'API routes must import from @/lib/services/* instead of @kestrel/shared directly. Import shared utilities through the service layer.',
             },
           ],
           patterns: [
             {
               group: ['@kestrel/*'],
-              message: 'API routes must import from @/lib/services/* instead of @kestrel/* directly.',
+              message:
+                'API routes must import from @/lib/services/* instead of @kestrel/* directly.',
             },
           ],
         },
@@ -122,6 +127,7 @@ export default [
       '**/.turbo/**',
       '**/dist/**',
       '**/coverage/**',
+      '**/.mastra/**',
       '**/.vercel/**',
       '**/public/**',
       '**/drizzle/**',

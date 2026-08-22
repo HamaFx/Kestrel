@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // /api/chat/threads/bulk-delete — delete multiple threads at once.
@@ -12,10 +28,10 @@
 // the UI can show "deleted N conversations" instead of a generic
 // success toast.
 
-import { withRateLimit, batchDeleteThreads } from '@/lib/services/api-boundary';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { batchDeleteThreads, withRateLimit } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,9 +44,7 @@ const BodySchema = z.object({
 // strictly than chat. 10 calls / minute / user covers a power user
 // tapping "delete 50 selected" several times without locking out
 // the legitimate flow.
-const BULK_DELETE_RATE_LIMIT = Number(
-  process.env.AI_BULK_DELETE_RATE_LIMIT ?? '10',
-);
+const BULK_DELETE_RATE_LIMIT = Number(process.env.AI_BULK_DELETE_RATE_LIMIT ?? '10');
 
 export const POST = withAuth<void>(async (req, { user }) => {
   const rl = await withRateLimit(user.userId, 'ai_bulk_delete', BULK_DELETE_RATE_LIMIT);

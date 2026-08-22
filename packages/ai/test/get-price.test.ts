@@ -18,9 +18,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getPriceTool } from '../src/tools/get-price';
 
-const exec = getPriceTool.execute as unknown as (
-  input: { symbols: string[] },
-) => Promise<{ ticks: unknown[]; asOf: string }>;
+const exec = getPriceTool.execute as unknown as (input: {
+  symbols: string[];
+}) => Promise<{ ticks: unknown[]; asOf: string }>;
 
 const mockGetPrice = vi.fn();
 
@@ -68,7 +68,9 @@ describe('get_price — Phase 0.10', () => {
 
   it('wraps ProviderError in a user-friendly message', async () => {
     const { ProviderError } = await import('@kestrel/data');
-    mockGetPrice.mockRejectedValue(new ProviderError('PROVIDER_TIMEOUT', 'biquote', 'connection refused'));
+    mockGetPrice.mockRejectedValue(
+      new ProviderError('PROVIDER_TIMEOUT', 'biquote', 'connection refused'),
+    );
 
     await expect(exec({ symbols: ['EURUSD'] })).rejects.toThrow(
       "Couldn't price EURUSD: connection refused",
@@ -84,7 +86,10 @@ describe('get_price — Phase 0.10', () => {
   it('returns an ISO timestamp asOf the price fetch', async () => {
     const before = new Date().toISOString();
     mockGetPrice.mockResolvedValue({
-      bid: 1.08, ask: 1.0802, mid: 1.0801, timestamp: Date.now(),
+      bid: 1.08,
+      ask: 1.0802,
+      mid: 1.0801,
+      timestamp: Date.now(),
     });
 
     const result = await exec({ symbols: ['EURUSD'] });
@@ -95,16 +100,33 @@ describe('get_price — Phase 0.10', () => {
   });
 
   it('validates input schema — min 1 symbol', () => {
-    const schema = getPriceTool.inputSchema as { safeParse: (v: unknown) => { success: boolean; error?: { issues?: unknown[] } } };
+    const schema = getPriceTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean; error?: { issues?: unknown[] } };
+    };
     expect(schema.safeParse({ symbols: [] }).success).toBe(false);
   });
 
   it('validates input schema — max canonical catalog size', () => {
     const schema = getPriceTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
     const canonicalSymbols = [
-      'XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'NZDUSD', 'USDCHF',
-      'EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY',
-      'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT',
+      'XAUUSD',
+      'EURUSD',
+      'GBPUSD',
+      'USDJPY',
+      'AUDUSD',
+      'USDCAD',
+      'NZDUSD',
+      'USDCHF',
+      'EURGBP',
+      'EURJPY',
+      'GBPJPY',
+      'AUDJPY',
+      'BTCUSDT',
+      'ETHUSDT',
+      'SOLUSDT',
+      'BNBUSDT',
+      'XRPUSDT',
+      'ADAUSDT',
     ];
     expect(schema.safeParse({ symbols: canonicalSymbols }).success).toBe(true);
     expect(schema.safeParse({ symbols: [...canonicalSymbols, 'XAUUSD'] }).success).toBe(false);
@@ -118,7 +140,9 @@ describe('get_price — Phase 0.10', () => {
 
   it('calls getPrice for each symbol in parallel', async () => {
     let resolveSecond: (v: unknown) => void;
-    const secondPromise = new Promise<unknown>((resolve) => { resolveSecond = resolve; });
+    const secondPromise = new Promise<unknown>((resolve) => {
+      resolveSecond = resolve;
+    });
     mockGetPrice
       .mockResolvedValueOnce({ bid: 1.08, ask: 1.0802, mid: 1.0801, timestamp: Date.now() })
       .mockReturnValueOnce(secondPromise);

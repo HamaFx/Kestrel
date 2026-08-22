@@ -19,10 +19,9 @@
 // §4.4: "Continue with Google" OAuth button.
 // Renders only when NEXT_PUBLIC_GOOGLE_ENABLED is set and AUTH_GOOGLE_ID/SECRET
 // are configured server-side. Uses next-auth/react signIn() for the OAuth flow.
-
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { IconBrandGoogle } from '@tabler/icons-react';
+import { signIn } from 'next-auth/react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -54,9 +53,9 @@ export function OAuthButtons({ callbackUrl, action, disabled }: OAuthButtonsProp
   return (
     <div className="flex flex-col gap-3">
       <div className="relative flex items-center">
-        <div className="flex-grow border-t border-border" />
-        <span className="mx-3 flex-shrink text-fg-muted text-xs">or continue with</span>
-        <div className="flex-grow border-t border-border" />
+        <div className="border-border flex-grow border-t" />
+        <span className="text-fg-muted mx-3 flex-shrink text-xs">or continue with</span>
+        <div className="border-border flex-grow border-t" />
       </div>
 
       <Button

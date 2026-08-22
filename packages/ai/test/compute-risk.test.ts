@@ -53,7 +53,7 @@ describe('compute_risk — Phase 7b', () => {
     expect(r.riskUsd).toBeCloseTo(100, 6);
     expect(r.pipsToStop).toBeCloseTo(30, 6);
     expect(r.positionSizeLots).toBeCloseTo(100 / (30 * 10), 6);
-    expect(r.positionSizeUnits).toBeCloseTo(((100 / (30 * 10)) * 100_000), 0);
+    expect(r.positionSizeUnits).toBeCloseTo((100 / (30 * 10)) * 100_000, 0);
     expect(r.distanceUnit).toBe('pips');
     expect(r.quantityUnit).toBe('lots');
     expect(r.rrRatio).toBeCloseTo(70 / 30, 6);
@@ -140,7 +140,9 @@ describe('compute_risk — Phase 7b', () => {
   });
 
   it('rejects non-USD-quoted forex pairs until conversion data is available', () => {
-    const schema = computeRiskTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = computeRiskTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(
       schema.safeParse({
         symbol: 'USDJPY',
@@ -157,7 +159,9 @@ describe('compute_risk — Phase 7b', () => {
     // The AI SDK validates the input schema before invoking `execute()`,
     // so we exercise the schema directly here. `tool({})` exposes the
     // schema on `inputSchema`.
-    const schema = computeRiskTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = computeRiskTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(
       schema.safeParse({
         symbol: 'EURUSD',

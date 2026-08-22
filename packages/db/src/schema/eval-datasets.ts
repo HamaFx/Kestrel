@@ -6,6 +6,7 @@
  */
 
 import { integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+
 import { users } from './auth';
 
 export type EvalDatasetStatus = 'draft' | 'in_review' | 'approved' | 'archived';
@@ -21,7 +22,9 @@ export const evalDatasets = pgTable(
     contentSha256: text('content_sha256').notNull(),
     source: text('source').notNull(),
     provenance: jsonb('provenance').$type<Record<string, unknown>>().notNull(),
-    createdBy: text('created_by').notNull().references(() => users.id, { onDelete: 'restrict' }),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
     approvedBy: text('approved_by').references(() => users.id, { onDelete: 'set null' }),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { afterEach, beforeAll, describe, it, expect, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+import { Composer } from '@/components/chat/composer';
+import { MAX_TEXT_CHARS } from '@/components/chat/composer-helpers';
 
 // Polyfill window.matchMedia for jsdom (used by Composer to detect touch).
 beforeAll(() => {
@@ -39,7 +42,9 @@ beforeAll(() => {
 // Mock next/image to render a plain <img> in jsdom.
 vi.mock('next/image', () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
-    const { unoptimized, ...rest } = props as React.ImgHTMLAttributes<HTMLImageElement> & { unoptimized?: boolean };
+    const { unoptimized, ...rest } = props as React.ImgHTMLAttributes<HTMLImageElement> & {
+      unoptimized?: boolean;
+    };
     return <img {...rest} />;
   },
 }));
@@ -48,7 +53,12 @@ vi.mock('next/image', () => ({
 // These are mutated per-test via `beforeEach` or directly.
 // Using mutable objects avoids any vitest hoisting closure issues.
 
-const voiceMock: { supported: boolean; active: boolean; start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> } = {
+const voiceMock: {
+  supported: boolean;
+  active: boolean;
+  start: ReturnType<typeof vi.fn>;
+  stop: ReturnType<typeof vi.fn>;
+} = {
   supported: true,
   active: false,
   start: vi.fn(),
@@ -67,9 +77,6 @@ vi.mock('@/lib/csrf', () => ({
     text: () => Promise.resolve(''),
   }),
 }));
-
-import { Composer } from '@/components/chat/composer';
-import { MAX_TEXT_CHARS } from '@/components/chat/composer-helpers';
 
 afterEach(cleanup);
 

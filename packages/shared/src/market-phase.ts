@@ -31,12 +31,7 @@
 // Weekend: Friday 22:00 UTC → Sunday 22:00 UTC (market closed).
 
 export type ForexSession =
-  | 'sydney'
-  | 'tokyo'
-  | 'london'
-  | 'newyork'
-  | 'london_ny_overlap'
-  | 'closed';
+  'sydney' | 'tokyo' | 'london' | 'newyork' | 'london_ny_overlap' | 'closed';
 
 export type LiquidityLevel = 'high' | 'medium' | 'low';
 

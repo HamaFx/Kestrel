@@ -15,6 +15,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { schema } from '@kestrel/db';
 import {
   GetIntermarketResonanceInputSchema,
   GetIntermarketResonanceOutputSchema,
@@ -22,12 +23,11 @@ import {
   type ResonanceObservation,
   type Symbol,
 } from '@kestrel/shared';
-import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import { tool } from 'ai';
 import { desc } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { getDb } from '../db';
 import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = GetIntermarketResonanceInputSchema;
@@ -66,7 +66,8 @@ export const getIntermarketResonanceTool = tool({
         currentRealYield: 2.1,
         currentBreakevenInflation: 2.3,
         regime: 'convergent',
-        narrative: 'No intermarket resonance historical entries found in the database. Sync pipeline pending.',
+        narrative:
+          'No intermarket resonance historical entries found in the database. Sync pipeline pending.',
       };
     }
 
@@ -91,7 +92,13 @@ export const getIntermarketResonanceTool = tool({
       regime = 'divergent_discount';
     }
 
-    const narrative = compileNarrative(requestedSymbol, currentDivergence, currentRealYield, currentBreakevenInflation, regime);
+    const narrative = compileNarrative(
+      requestedSymbol,
+      currentDivergence,
+      currentRealYield,
+      currentBreakevenInflation,
+      regime,
+    );
 
     return {
       symbol: requestedSymbol,

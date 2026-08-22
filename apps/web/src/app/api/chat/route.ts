@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // /api/chat — Mastra-owned chat boundary. Kestrel retains HTTP validation,
@@ -27,10 +43,8 @@ import {
   withDiagnostics,
   withRateLimit,
 } from '@/lib/services/api-boundary';
-import { startMutationDraft } from '@/lib/services/mastra-mutation-draft';
 import { runMastraCanonicalChatStreamService } from '@/lib/services/mastra-canonical-chat-stream';
 import { runMastraXauusdChat } from '@/lib/services/mastra-chat';
-import { runMastraXauusdConversationStreamChat } from '@/lib/services/mastra-chat-stream';
 import { mastraChatResponse } from '@/lib/services/mastra-chat-response';
 import {
   extractMastraSymbol,
@@ -40,8 +54,10 @@ import {
   isMastraXauusdFollowupCandidate,
   mastraXauusdChatKind,
 } from '@/lib/services/mastra-chat-routing';
+import { runMastraXauusdConversationStreamChat } from '@/lib/services/mastra-chat-stream';
 import { runMastraModeChat } from '@/lib/services/mastra-mode';
 import { mastraModeResponse } from '@/lib/services/mastra-mode-response';
+import { startMutationDraft } from '@/lib/services/mastra-mutation-draft';
 import {
   extractLatestMastraReport,
   mayReferToMastraReport,
@@ -177,7 +193,11 @@ export const POST = withAuth<void>(async (req, { user }) => {
           { err: String(error), threadId: body.threadId, mutation: mutationKind },
           'Mutation draft failed',
         );
-        return errorJson('MUTATION_DRAFT_FAILED', 'Could not prepare this mutation for confirmation.', 502);
+        return errorJson(
+          'MUTATION_DRAFT_FAILED',
+          'Could not prepare this mutation for confirmation.',
+          502,
+        );
       }
     }
   }

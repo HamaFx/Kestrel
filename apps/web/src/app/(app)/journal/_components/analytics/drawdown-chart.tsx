@@ -17,7 +17,6 @@
  */
 
 // Mini equity-curve chart with drawdown periods shaded below the running peak.
-
 import type { JournalEntry, JournalStats } from '@kestrel/shared';
 import { useMemo } from 'react';
 
@@ -58,14 +57,14 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
     return (
       <div
         className={cn(
-          'border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-2',
+          'border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-4',
           className,
         )}
       >
-        <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">
+        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
           Drawdown
         </span>
-        <p className="text-sm text-fg-muted">Not enough closed trades to show drawdown.</p>
+        <p className="text-fg-muted text-sm">Not enough closed trades to show drawdown.</p>
       </div>
     );
   }
@@ -96,14 +95,14 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
   return (
     <div
       className={cn(
-        'border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-3',
+        'border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4',
         className,
       )}
       role="img"
       aria-label={`Drawdown chart: max drawdown ${maxDrawdown.toFixed(2)}R`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">
+        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
           Drawdown
         </span>
         <span className="text-caption text-fg-muted tabular-nums">
@@ -118,11 +117,7 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
             <path d={peakPath} />
           </clipPath>
         </defs>
-        <path
-          d={areaPath}
-          className="fill-bear/20"
-          clipPath="url(#drawdown-clip)"
-        />
+        <path d={areaPath} className="fill-bear/20" clipPath="url(#drawdown-clip)" />
         <path
           d={linePath}
           fill="none"

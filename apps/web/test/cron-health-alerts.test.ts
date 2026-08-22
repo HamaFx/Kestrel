@@ -1,4 +1,22 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { GET } from '@/app/api/cron/health-alerts/route';
 
 const mockWithCronAuth = vi.hoisted(() => vi.fn());
 const mockGetDb = vi.hoisted(() => vi.fn());
@@ -8,9 +26,9 @@ const mockDeliverHealthAlert = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/cron', () => ({ withCronAuth: mockWithCronAuth }));
 vi.mock('@/lib/services/api-boundary', () => ({ getDb: mockGetDb }));
 vi.mock('@/lib/services/admin-health', () => ({ computeHealthSloService: mockComputeHealth }));
-vi.mock('@/lib/services/health-alert-delivery', () => ({ deliverHealthAlert: mockDeliverHealthAlert }));
-
-import { GET } from '@/app/api/cron/health-alerts/route';
+vi.mock('@/lib/services/health-alert-delivery', () => ({
+  deliverHealthAlert: mockDeliverHealthAlert,
+}));
 
 const snapshot = {
   ts: '2026-08-16T00:00:00.000Z',

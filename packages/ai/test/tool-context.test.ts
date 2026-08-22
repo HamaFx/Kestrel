@@ -23,7 +23,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { getToolContext, maybeGetToolContext, withToolContext, type ToolContext } from '../src/tool-context';
+import {
+  getToolContext,
+  maybeGetToolContext,
+  withToolContext,
+  type ToolContext,
+} from '../src/tool-context';
 
 function makeContext(threadId: string, spent = 0): ToolContext {
   return {

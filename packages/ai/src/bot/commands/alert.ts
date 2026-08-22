@@ -18,8 +18,9 @@
 // /alert XAUUSD > 2700 → creates a priceCross alert when XAUUSD goes above 2700.
 // /alert EURUSD < 1.0850 → creates a priceCross alert when EURUSD goes below 1.0850.
 
-import type { BotCommand, BotResponse, BotContext } from '../types';
 import { createAlert } from '@kestrel/db';
+
+import type { BotCommand, BotContext, BotResponse } from '../types';
 
 interface ParsedAlert {
   symbol: string;

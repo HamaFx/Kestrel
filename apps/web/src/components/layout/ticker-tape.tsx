@@ -8,21 +8,28 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { priceDecimals, type Symbol, type Tick } from '@kestrel/shared';
 import { useEffect, useReducer, useRef } from 'react';
-import type { Symbol, Tick } from '@kestrel/shared';
-import { priceDecimals } from '@kestrel/shared';
 
 import { usePrices } from '@/hooks/use-prices';
 import { cn } from '@/lib/cn';
 
-const TAPE_SYMBOLS: Symbol[] = [
-  'XAUUSD',
-  'EURUSD',
-  'GBPUSD',
-  'USDJPY',
-  'BTCUSDT',
-  'ETHUSDT',
-];
+const TAPE_SYMBOLS: Symbol[] = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT'];
 
 function pctChange(prev: number, cur: number): string {
   const pct = ((cur - prev) / prev) * 100;
@@ -71,7 +78,7 @@ export function TickerTape() {
   if (items.length === 0) {
     const fallbackSymbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT'];
     const fallback = fallbackSymbols.flatMap((s) => [
-      <span key={`${s}-label`} className="inline-flex items-center gap-1 shrink-0">
+      <span key={`${s}-label`} className="inline-flex shrink-0 items-center gap-1">
         <span className="text-fg font-semibold tracking-tight">{s}</span>
         <span className="text-fg-subtle tabular-nums">---.--</span>
         <span className="text-fg-subtle/40 mx-2 select-none">·</span>
@@ -79,11 +86,11 @@ export function TickerTape() {
     ]);
     return (
       <div
-        className="border-b border-border/60 bg-bg relative h-6 overflow-hidden"
+        className="border-border/60 bg-bg relative h-6 overflow-hidden border-b"
         aria-label="Market ticker tape — awaiting data"
         role="marquee"
       >
-        <div className="ticker-track font-mono text-caption leading-6 whitespace-nowrap">
+        <div className="ticker-track text-caption font-mono leading-6 whitespace-nowrap">
           {fallback}
           {fallback}
         </div>
@@ -95,15 +102,10 @@ export function TickerTape() {
   const doubled = [...items, ...items];
 
   const content = doubled.map((item, i) => (
-    <span key={`${item.symbol}-${i}`} className="inline-flex items-center gap-1 shrink-0">
+    <span key={`${item.symbol}-${i}`} className="inline-flex shrink-0 items-center gap-1">
       <span className="text-fg font-semibold tracking-tight">{item.symbol}</span>
       <span className="text-fg-subtle tabular-nums">{item.mid}</span>
-      <span
-        className={cn(
-          'text-caption tabular-nums',
-          item.isBull ? 'text-bull' : 'text-bear',
-        )}
-      >
+      <span className={cn('text-caption tabular-nums', item.isBull ? 'text-bull' : 'text-bear')}>
         {item.isBull ? '▲' : '▼'} {item.changeStr}
       </span>
       <span className="text-fg-subtle/30 mx-2 select-none">·</span>
@@ -112,11 +114,11 @@ export function TickerTape() {
 
   return (
     <div
-      className="border-b border-border/60 bg-bg relative h-6 overflow-hidden"
+      className="border-border/60 bg-bg relative h-6 overflow-hidden border-b"
       aria-label="Market ticker tape"
       role="marquee"
     >
-      <div className="ticker-track font-mono text-caption leading-6 whitespace-nowrap">
+      <div className="ticker-track text-caption font-mono leading-6 whitespace-nowrap">
         {content}
       </div>
     </div>

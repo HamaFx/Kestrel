@@ -23,7 +23,7 @@
 //
 // Pattern mirrors ToolRegistry, IndicatorRegistry, and AlertRuleRegistry.
 
-import type { Symbol, Candle, Timeframe } from '@kestrel/shared';
+import type { Candle, Symbol, Timeframe } from '@kestrel/shared';
 
 // --- Plugin interface ----------------------------------------------------
 
@@ -61,7 +61,10 @@ export interface MarketDataProvider {
    * Returns the price, provider name, and optionally the data age in ms
    * (for SWR staleness tracking with live-tick providers).
    */
-  fetchPrice(symbol: Symbol, opts?: ProviderFetchOptions): Promise<{
+  fetchPrice(
+    symbol: Symbol,
+    opts?: ProviderFetchOptions,
+  ): Promise<{
     price: number;
     provider: string;
     /** ms since the upstream observed the value. null for REST providers. */
@@ -71,7 +74,12 @@ export interface MarketDataProvider {
    * Fetch OHLCV candles. Returns null when the provider cannot serve this
    * symbol/timeframe (no throw — callers skip null gracefully).
    */
-  fetchCandles?(symbol: Symbol, tf: Timeframe, count: number, opts?: ProviderFetchOptions): Promise<Candle[] | null>;
+  fetchCandles?(
+    symbol: Symbol,
+    tf: Timeframe,
+    count: number,
+    opts?: ProviderFetchOptions,
+  ): Promise<Candle[] | null>;
   /**
    * Optional connectivity probe for the settings "test provider" button.
    * Returns { ok: true } on success, { ok: false, error } on failure.
@@ -95,7 +103,10 @@ export class MarketDataProviderRegistry {
 
   get(name: string): MarketDataProvider {
     const p = this.providers.get(name);
-    if (!p) throw new Error(`Unknown market data provider: "${name}". Registered: ${this.listNames().join(', ')}`);
+    if (!p)
+      throw new Error(
+        `Unknown market data provider: "${name}". Registered: ${this.listNames().join(', ')}`,
+      );
     return p;
   }
 

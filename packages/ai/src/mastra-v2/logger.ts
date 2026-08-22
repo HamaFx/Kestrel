@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -9,22 +25,12 @@
  * with the same redaction, trace correlation, and log-stream delivery.
  */
 
-import type { IMastraLogger, LogLevel, LoggerTransport, BaseLogMessage } from '@mastra/core/logger';
-import { createCategorizedLogger, logErrorContext, type CategorizedLogger } from '@kestrel/shared/logger';
-
-/** Mastra's `LogLevel` is a subset of pino's; route both error-ish levels to error. */
-function pinoLevel(level: LogLevel | undefined): 'debug' | 'info' | 'warn' | 'error' {
-  switch (level) {
-    case 'debug':
-      return 'debug';
-    case 'warn':
-      return 'warn';
-    case 'error':
-      return 'error';
-    default:
-      return 'info';
-  }
-}
+import {
+  createCategorizedLogger,
+  logErrorContext,
+  type CategorizedLogger,
+} from '@kestrel/shared/logger';
+import type { BaseLogMessage, IMastraLogger, LoggerTransport, LogLevel } from '@mastra/core/logger';
 
 /**
  * Adapter that forwards Mastra logger calls into the shared categorized pino
@@ -72,7 +78,13 @@ export class MastraPinoLogger implements IMastraLogger {
       page?: number;
       perPage?: number;
     },
-  ): Promise<{ logs: BaseLogMessage[]; total: number; page: number; perPage: number; hasMore: boolean }> {
+  ): Promise<{
+    logs: BaseLogMessage[];
+    total: number;
+    page: number;
+    perPage: number;
+    hasMore: boolean;
+  }> {
     return { logs: [], total: 0, page: 1, perPage: 50, hasMore: false };
   }
 
@@ -85,7 +97,13 @@ export class MastraPinoLogger implements IMastraLogger {
     filters?: Record<string, unknown>;
     page?: number;
     perPage?: number;
-  }): Promise<{ logs: BaseLogMessage[]; total: number; page: number; perPage: number; hasMore: boolean }> {
+  }): Promise<{
+    logs: BaseLogMessage[];
+    total: number;
+    page: number;
+    perPage: number;
+    hasMore: boolean;
+  }> {
     return { logs: [], total: 0, page: 1, perPage: 50, hasMore: false };
   }
 

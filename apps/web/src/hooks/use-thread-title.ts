@@ -20,8 +20,8 @@
 //
 // After streaming completes, re-fetches the thread to pick up the LLM-
 // generated title. Caches per threadId to avoid redundant fetches.
-
 import { useEffect, useRef, useState } from 'react';
+
 import { apiFetch } from '@/lib/api-client';
 
 interface UseThreadTitleOptions {
@@ -51,10 +51,9 @@ export function useThreadTitle({
     let cancelled = false;
     void (async () => {
       try {
-        const json = await apiFetch<{ thread?: { title: string | null; titleSource: string | null } }>(
-          `/api/chat/threads/${threadId}`,
-          { skipCsrf: true },
-        );
+        const json = await apiFetch<{
+          thread?: { title: string | null; titleSource: string | null };
+        }>(`/api/chat/threads/${threadId}`, { skipCsrf: true });
         if (cancelled) return;
         const t = json.thread;
         if (t?.titleSource === 'llm' && t.title && !cancelled) {

@@ -1,15 +1,28 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { LibSQLStore } from '@mastra/libsql';
 import { RequestContext } from '@mastra/core/request-context';
+import { LibSQLStore } from '@mastra/libsql';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  createKestrelMastra,
-  initializeKestrelMastra,
-} from '../src/mastra-v2';
+import { createKestrelMastra, initializeKestrelMastra } from '../src/mastra-v2';
 import { createXauusdReportWorkflow } from '../src/mastra-v2/workflows/xauusd-report';
 import { XauusdResearchPacketSchema } from '../src/mastra/research-types';
 
@@ -156,7 +169,10 @@ describe('xauusd-report workflow', () => {
   });
 
   it('persists run snapshots including the repair attempt when an instance is provided', async () => {
-    const file = join(tmpdir(), `kestrel-xau-snap-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+    const file = join(
+      tmpdir(),
+      `kestrel-xau-snap-${Date.now()}-${Math.random().toString(36).slice(2)}.db`,
+    );
     const url = `file:${file}`;
     try {
       const store = new LibSQLStore({ id: 'test-store', url });
@@ -174,8 +190,16 @@ describe('xauusd-report workflow', () => {
         .mockReturnValue(report);
       const generate = vi
         .fn()
-        .mockResolvedValueOnce({ object: { invalid: true }, text: 'first', usage: { inputTokens: 5, outputTokens: 3 } })
-        .mockResolvedValueOnce({ object: { valid: true }, text: 'second', usage: { inputTokens: 5, outputTokens: 3 } });
+        .mockResolvedValueOnce({
+          object: { invalid: true },
+          text: 'first',
+          usage: { inputTokens: 5, outputTokens: 3 },
+        })
+        .mockResolvedValueOnce({
+          object: { valid: true },
+          text: 'second',
+          usage: { inputTokens: 5, outputTokens: 3 },
+        });
 
       const workflow = createXauusdReportWorkflow({
         agent: { generate } as never,

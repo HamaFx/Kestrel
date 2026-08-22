@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -12,19 +28,21 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { RequestContext } from '@mastra/core/request-context';
 import type { AgentMemoryOption } from '@mastra/core/agent';
+import { RequestContext } from '@mastra/core/request-context';
 
 import { estimateCostUsd } from '../cost';
-import { resolveChatModel, type ChatModelResolution } from '../model';
-import type { ResolveModelEnv } from '../vertex-factory';
 import { prepareKestrelMemory } from '../mastra-v2/context';
-import { buildResearchGuardrails } from '../mastra-v2/guardrails';
 import { buildResearchScorers } from '../mastra-v2/evals/scorers';
+import { buildResearchGuardrails } from '../mastra-v2/guardrails';
 import { getKestrelMastra } from '../mastra-v2/instance';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../mastra-v2/logger';
+import {
+  createKestrelMemory,
+  kestrelMemoryOptions,
+  type CreateKestrelMemoryArgs,
+} from '../mastra-v2/memory';
 import { runTracingOptions } from '../mastra-v2/telemetry';
-import { createKestrelMemory, kestrelMemoryOptions, type CreateKestrelMemoryArgs } from '../mastra-v2/memory';
 import {
   createSymbolResearchWorkflow,
   MastraModeStrictFailureError,
@@ -34,6 +52,8 @@ import {
   type MastraModeOpinion,
   type MastraSpecialistName,
 } from '../mastra-v2/workflows/symbol-research';
+import { resolveChatModel, type ChatModelResolution } from '../model';
+import type { ResolveModelEnv } from '../vertex-factory';
 import type { SymbolResearchPacket } from './symbol-research';
 import {
   beginMastraRun,
@@ -233,15 +253,14 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         mode: args.mode,
         symbol: args.symbol,
         status: result.status,
-        resultStatus:
-          (result as { result?: { status?: string } | null }).result?.status ?? null,
+        resultStatus: (result as { result?: { status?: string } | null }).result?.status ?? null,
       },
     });
 
     if (result.status !== 'success') {
       // Aborts must propagate as-is so the caller records 'cancelled'.
       if (args.signal?.aborted) {
-        throw (args.signal.reason ?? new DOMException('Aborted', 'AbortError'));
+        throw args.signal.reason ?? new DOMException('Aborted', 'AbortError');
       }
       const error =
         result.status === 'failed' && result.error
@@ -268,7 +287,9 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
 
     if (output.status === 'blocked' || !output.finalText) {
       const stats = output.stats ?? { inputTokens: 0, outputTokens: 0, toolCalls: 0, steps: 0 };
-      const text = output.blockedText ?? `I could not complete ${args.symbol} ${args.mode} analysis because required market data is unavailable.`;
+      const text =
+        output.blockedText ??
+        `I could not complete ${args.symbol} ${args.mode} analysis because required market data is unavailable.`;
       await finishMastraRun({
         userId: args.userId,
         threadId: args.threadId,

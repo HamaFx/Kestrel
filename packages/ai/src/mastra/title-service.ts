@@ -1,4 +1,20 @@
 /**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
  * Shared best-effort thread-title orchestration.
  *
  * Web chat services and the durable full-analysis worker both call this after
@@ -10,8 +26,7 @@
 import { getUserWithSettings } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
-import type { ResolveModelEnv } from '../model';
-import { deriveTitleModel } from '../model';
+import { deriveTitleModel, type ResolveModelEnv } from '../model';
 import { getThread, updateThreadTitle } from '../persistence';
 import { generateThreadTitle } from './title';
 
@@ -27,9 +42,7 @@ export interface MaybeGenerateThreadTitleArgs {
   env: ResolveModelEnv;
 }
 
-export async function maybeGenerateThreadTitle(
-  args: MaybeGenerateThreadTitleArgs,
-): Promise<void> {
+export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArgs): Promise<void> {
   const { userId, threadId, firstUser, firstAssistant, env } = args;
   try {
     // Race-safe guard: only title threads that are still untitled.

@@ -18,13 +18,13 @@
 
 // §4.5: Connected accounts card — shows linked OAuth providers
 // with connect/disconnect actions. Currently supports Google.
-
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { IconBrandGoogle, IconLink } from '@tabler/icons-react';
+import { signIn } from 'next-auth/react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+
 import { SettingsRow } from '../settings-row';
 
 interface LinkedAccountsCardProps {
@@ -39,7 +39,7 @@ export function LinkedAccountsCard({ googleLinked }: LinkedAccountsCardProps) {
   return (
     <section
       aria-labelledby="linked-accounts-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-1 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
     >
       <header className="flex items-center gap-3 pb-2">
         <h2 id="linked-accounts-heading" className="text-fg text-base font-semibold tracking-tight">
@@ -50,7 +50,9 @@ export function LinkedAccountsCard({ googleLinked }: LinkedAccountsCardProps) {
       <SettingsRow
         icon={<IconBrandGoogle className="size-4" />}
         label="Google"
-        description={googleLinked ? 'Your Google account is connected.' : 'Sign in with your Google account'}
+        description={
+          googleLinked ? 'Your Google account is connected.' : 'Sign in with your Google account'
+        }
         action={
           googleLinked ? (
             <span className="text-success text-xs font-medium">Connected</span>

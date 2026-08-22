@@ -16,9 +16,10 @@
 
 // Watchlist query helpers — symbol catalog JOINs.
 
-import { eq, asc, and, inArray, sql } from 'drizzle-orm';
-import { getDb, schema } from '../client';
 import { validationError } from '@kestrel/shared';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+
+import { getDb, schema } from '../client';
 
 /** A watchlist entry enriched with symbol catalog metadata. */
 export interface WatchlistEntry {
@@ -54,10 +55,7 @@ export async function getWatchlistWithCatalog(userId: string): Promise<Watchlist
       displayOrder: schema.userSymbols.displayOrder,
     })
     .from(schema.userSymbols)
-    .innerJoin(
-      schema.symbolCatalog,
-      eq(schema.userSymbols.symbol, schema.symbolCatalog.symbol),
-    )
+    .innerJoin(schema.symbolCatalog, eq(schema.userSymbols.symbol, schema.symbolCatalog.symbol))
     .where(
       and(
         eq(schema.userSymbols.userId, userId),
@@ -138,8 +136,8 @@ export async function reorderWatchlist(userId: string, symbols: string[]): Promi
       throw validationError('watchlist reorder must include exactly the user watchlist symbols');
     }
 
-    const whenClauses = symbols.map((symbol, i) =>
-      sql`WHEN ${eq(schema.userSymbols.symbol, symbol)} THEN ${i}`,
+    const whenClauses = symbols.map(
+      (symbol, i) => sql`WHEN ${eq(schema.userSymbols.symbol, symbol)} THEN ${i}`,
     );
     await tx
       .update(schema.userSymbols)
@@ -147,10 +145,7 @@ export async function reorderWatchlist(userId: string, symbols: string[]): Promi
         displayOrder: sql`CASE ${sql.join(whenClauses, sql` `)} ELSE ${schema.userSymbols.displayOrder} END`,
       })
       .where(
-        and(
-          eq(schema.userSymbols.userId, userId),
-          inArray(schema.userSymbols.symbol, symbols),
-        ),
+        and(eq(schema.userSymbols.userId, userId), inArray(schema.userSymbols.symbol, symbols)),
       );
   });
 }

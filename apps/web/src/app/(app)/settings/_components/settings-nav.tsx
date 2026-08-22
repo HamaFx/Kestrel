@@ -1,9 +1,41 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import {IconArrowLeft, IconChevronRight} from '@tabler/icons-react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import {
+  IconActivity,
+  IconArrowLeft,
+  IconBell,
+  IconChevronRight,
+  IconCpu,
+  IconCreditCard,
+  IconDatabase,
+  IconKey,
+  IconList,
+  IconMessageCircle,
+  IconPalette,
+  IconRobot,
+  IconSettings,
+  IconShield,
+  IconUser,
+  IconWallet,
+} from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
-import {IconUser, IconKey, IconList, IconActivity, IconSettings, IconCpu, IconRobot, IconWallet, IconMessageCircle, IconCreditCard, IconShield, IconBell, IconPalette, IconDatabase} from '@tabler/icons-react';
+import { usePathname } from 'next/navigation';
+
 import { cn } from '@/lib/cn';
 
 const NAV_ITEMS = [
@@ -32,18 +64,20 @@ export function SettingsNav() {
   );
 
   return (
-    <div className="flex flex-col gap-3 md:w-56 shrink-0">
+    <div className="flex shrink-0 flex-col gap-3 md:w-56">
       {isSubPage && (
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-fg-subtle">
+        <nav aria-label="Breadcrumb" className="text-fg-subtle flex items-center gap-1.5 text-sm">
           <Link
             href="/settings"
-            className="inline-flex items-center gap-1.5 hover:text-fg transition-colors shrink-0"
+            className="hover:text-fg inline-flex shrink-0 items-center gap-1.5 transition-colors"
           >
-            <IconArrowLeft className="size-3.5" />Settings</Link>
+            <IconArrowLeft className="size-3.5" />
+            Settings
+          </Link>
           {currentItem && (
             <>
               <IconChevronRight className="size-3.5 shrink-0" aria-hidden />
-              <span className="text-fg font-medium truncate" aria-current="page">
+              <span className="text-fg truncate font-medium" aria-current="page">
                 {currentItem.label}
               </span>
             </>
@@ -52,11 +86,12 @@ export function SettingsNav() {
       )}
 
       <aside className="w-full">
-        <nav aria-label="Settings" className="flex flex-row md:flex-col gap-1 overflow-x-auto snap-x pb-2 md:pb-0">
+        <nav
+          aria-label="Settings"
+          className="flex snap-x flex-row gap-1 overflow-x-auto pb-2 md:flex-col md:pb-0"
+        >
           {NAV_ITEMS.map((item) => {
-            const active = item.exact
-              ? pathname === item.href
-              : pathname?.startsWith(item.href);
+            const active = item.exact ? pathname === item.href : pathname?.startsWith(item.href);
 
             const Icon = item.icon;
 
@@ -66,10 +101,10 @@ export function SettingsNav() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap snap-start',
+                  'flex snap-start items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
                   active
-                    ? 'bg-brand/8 ring-1 ring-brand/22 text-brand'
-                    : 'text-fg-subtle hover:bg-bg-elev-2 hover:text-fg'
+                    ? 'bg-brand/8 ring-brand/22 text-brand ring-1'
+                    : 'text-fg-subtle hover:bg-bg-elev-2 hover:text-fg',
                 )}
               >
                 <Icon className="size-4" />

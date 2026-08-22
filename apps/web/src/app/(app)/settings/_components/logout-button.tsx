@@ -18,10 +18,9 @@
 
 // Sign-out trigger. Drawer-confirm because losing the session on a personal
 // app is annoying if it happens by accident.
-
 import { IconLogout } from '@tabler/icons-react';
-import { useState } from 'react';
 import { signOut } from 'next-auth/react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';

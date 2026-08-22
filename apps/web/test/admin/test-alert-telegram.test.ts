@@ -1,14 +1,32 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resetAdminRateLimit } from '@/lib/admin-rate-limit';
 import { POST as emailPost } from '@/app/api/admin/test-alert-email/route';
 import { POST as telegramPost } from '@/app/api/admin/test-telegram/route';
+import { resetAdminRateLimit } from '@/lib/admin-rate-limit';
 
 vi.mock('@/lib/admin-auth', () => ({
-  withAdminAuth: (handler: (req: Request, ctx: { user: { userId: string } }) => Promise<Response>) =>
-    async (req: Request) => handler(req, { user: { userId: 'admin-123' } }),
+  withAdminAuth:
+    (handler: (req: Request, ctx: { user: { userId: string } }) => Promise<Response>) =>
+    async (req: Request) =>
+      handler(req, { user: { userId: 'admin-123' } }),
 }));
 
 const originalFetch = globalThis.fetch;
@@ -38,9 +56,9 @@ describe('POST /api/admin/test-alert-email', () => {
   });
 
   it('sends to the configured ALERT_TO_EMAIL by default', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: 'resend-123' }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ id: 'resend-123' }), { status: 200 }));
 
     const res = await emailPost(createJsonRequest('POST'));
     const body = await res.json();
@@ -54,9 +72,9 @@ describe('POST /api/admin/test-alert-email', () => {
   });
 
   it('ignores a body `to` override when override mode is disabled', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: 'resend-123' }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ id: 'resend-123' }), { status: 200 }));
 
     const res = await emailPost(createJsonRequest('POST', { to: 'attacker@evil.com' }));
     const body = await res.json();
@@ -70,9 +88,9 @@ describe('POST /api/admin/test-alert-email', () => {
 
   it('ignores a body `to` override when override mode is enabled but no allowlist is configured', async () => {
     vi.stubEnv('ALERT_TEST_ALLOW_OVERRIDE', 'true');
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: 'resend-789' }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ id: 'resend-789' }), { status: 200 }));
 
     const res = await emailPost(createJsonRequest('POST', { to: 'arbitrary@example.com' }));
     const body = await res.json();
@@ -87,9 +105,9 @@ describe('POST /api/admin/test-alert-email', () => {
   it('honours a body `to` override when an allowlist is configured and the address is in it', async () => {
     vi.stubEnv('ALERT_TEST_ALLOW_OVERRIDE', 'true');
     vi.stubEnv('ALERT_TEST_RECIPIENT_ALLOWLIST', 'ops@example.com, allowed@example.com');
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: 'resend-456' }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ id: 'resend-456' }), { status: 200 }));
 
     const res = await emailPost(createJsonRequest('POST', { to: 'allowed@example.com' }));
     const body = await res.json();
@@ -125,9 +143,9 @@ describe('POST /api/admin/test-alert-email', () => {
   });
 
   it('rate-limits repeated requests from the same admin', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: 'resend-123' }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ id: 'resend-123' }), { status: 200 }));
 
     resetAdminRateLimit();
 
@@ -157,9 +175,11 @@ describe('POST /api/admin/test-telegram', () => {
   });
 
   it('sends to the configured TELEGRAM_CHAT_ID by default', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true, result: { message_id: 42 } }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ ok: true, result: { message_id: 42 } }), { status: 200 }),
+      );
 
     const res = await telegramPost(createJsonRequest('POST'));
     const body = await res.json();
@@ -171,9 +191,11 @@ describe('POST /api/admin/test-telegram', () => {
   });
 
   it('ignores a body `chatId` override when override mode is disabled', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true, result: { message_id: 42 } }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ ok: true, result: { message_id: 42 } }), { status: 200 }),
+      );
 
     const res = await telegramPost(createJsonRequest('POST', { chatId: '99999' }));
     expect(res.status).toBe(200);
@@ -184,9 +206,11 @@ describe('POST /api/admin/test-telegram', () => {
 
   it('ignores a body `chatId` override when override mode is enabled but no allowlist is configured', async () => {
     vi.stubEnv('TELEGRAM_TEST_ALLOW_OVERRIDE', 'true');
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true, result: { message_id: 42 } }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ ok: true, result: { message_id: 42 } }), { status: 200 }),
+      );
 
     const res = await telegramPost(createJsonRequest('POST', { chatId: '99999' }));
     expect(res.status).toBe(200);
@@ -198,9 +222,11 @@ describe('POST /api/admin/test-telegram', () => {
   it('honours a body `chatId` override when an allowlist is configured and the chat ID is in it', async () => {
     vi.stubEnv('TELEGRAM_TEST_ALLOW_OVERRIDE', 'true');
     vi.stubEnv('TELEGRAM_TEST_CHAT_ID_ALLOWLIST', '12345, 67890');
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true, result: { message_id: 99 } }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ ok: true, result: { message_id: 99 } }), { status: 200 }),
+      );
 
     const res = await telegramPost(createJsonRequest('POST', { chatId: '67890' }));
     expect(res.status).toBe(200);

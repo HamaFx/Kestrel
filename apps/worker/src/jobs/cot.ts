@@ -27,9 +27,9 @@ import { upsertCoTReport } from '@kestrel/ai';
 import { cftc } from '@kestrel/data';
 import { SYMBOLS, type Symbol } from '@kestrel/shared';
 
-const { fetchLatestRows, parseCftcInt, toCftcName } = cftc;
-
 import type { JobContext, JobResult } from './types.js';
+
+const { fetchLatestRows, parseCftcInt, toCftcName } = cftc;
 
 /** Number of weekly rows to refresh on each run. */
 const WEEKS = 4;

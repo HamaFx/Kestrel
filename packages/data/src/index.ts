@@ -1,3 +1,6 @@
+// P2-2 — Auto-register provider adapters on import.
+import './providers/provider-adapters';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -17,8 +20,18 @@
 // Public barrel for @kestrel/data. Routes / AI tools / hooks import from here.
 // Adapter helpers (cache, failover) are also re-exported for advanced use.
 
-export { getPrice, getPriceWithMeta, type GetPriceOptions, type PriceResult } from './adapters/price';
-export { getCandles, getCandlesWithMeta, type GetCandlesOptions, type CandlesResult } from './adapters/candles';
+export {
+  getPrice,
+  getPriceWithMeta,
+  type GetPriceOptions,
+  type PriceResult,
+} from './adapters/price';
+export {
+  getCandles,
+  getCandlesWithMeta,
+  type GetCandlesOptions,
+  type CandlesResult,
+} from './adapters/candles';
 export { fetchNews, articleIdFromUrl, type FetchNewsOptions } from './adapters/news';
 export {
   fetchUpcomingEvents,
@@ -74,9 +87,7 @@ export * as biquote from './providers/biquote';
 // P2-2 — Market Data Provider Plugin Registry.
 // Adding a new provider means registering a plugin — no adapter code changes (OCP).
 export { marketDataProviders, MarketDataProviderRegistry } from './providers/provider-registry';
-export type { MarketDataProvider as IMarketDataProvider, ProviderFetchOptions } from './providers/provider-registry';
-
-// P2-2 — Auto-register provider adapters on import.
-import './providers/provider-adapters';
-
-
+export type {
+  MarketDataProvider as IMarketDataProvider,
+  ProviderFetchOptions,
+} from './providers/provider-registry';

@@ -35,12 +35,15 @@
 // Routing decisions live in chat_telemetry via the `kind` discriminator
 // so /settings/usage can break down spend per domain.
 
-import type { UIMessage } from 'ai';
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { derivePlannerModel } from './model';
-import type { ResolveModelEnv } from './model';
-import { classifyTurnLLM } from './semantic-routing';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { UIMessage } from 'ai';
+
+import { derivePlannerModel, type ResolveModelEnv } from './model';
+// P2-1 — Keyword patterns externalized to routing-keywords.ts.
+// Keep the config auditable and tunable without modifying domain logic.
+import { FUNDAMENTAL_PATTERNS, SUMMARY_PATTERNS, TECHNICAL_PATTERNS } from './routing-keywords';
+import { classifyTurnLLM } from './semantic-routing';
 
 const routingLog = createCategorizedLogger('ai', { component: 'routing' });
 
@@ -49,8 +52,7 @@ const routingLog = createCategorizedLogger('ai', { component: 'routing' });
  * to disable the LLM classification call and fall back to keyword-only
  * routing (zero additional cost per turn).
  */
-const SEMANTIC_ROUTING_ENABLED =
-  (process.env.AI_SEMANTIC_ROUTING_ENABLED ?? 'true') !== 'false';
+const SEMANTIC_ROUTING_ENABLED = (process.env.AI_SEMANTIC_ROUTING_ENABLED ?? 'true') !== 'false';
 
 /**
  * Build the semantic routing config for `routeTurn()` when enabled and a
@@ -72,20 +74,7 @@ export function resolveSemanticRoutingConfig(
   return { modelId, env, ...(signal ? { signal } : {}) };
 }
 
-// P2-1 — Keyword patterns externalized to routing-keywords.ts.
-// Keep the config auditable and tunable without modifying domain logic.
-import {
-  FUNDAMENTAL_PATTERNS,
-  TECHNICAL_PATTERNS,
-  SUMMARY_PATTERNS,
-} from './routing-keywords';
-
-export type RoutingDomain =
-  | 'fundamental'
-  | 'technical'
-  | 'summary'
-  | 'vision'
-  | 'generic';
+export type RoutingDomain = 'fundamental' | 'technical' | 'summary' | 'vision' | 'generic';
 
 export interface RoutingDecision {
   domain: RoutingDomain;
@@ -119,7 +108,10 @@ export interface RouteTurnOptions {
   };
 }
 
-export async function routeTurn(args: { userMessage: UIMessage; modelOverride?: string | null }): Promise<RoutingDecision>;
+export async function routeTurn(args: {
+  userMessage: UIMessage;
+  modelOverride?: string | null;
+}): Promise<RoutingDecision>;
 export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision>;
 export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision> {
   const { userMessage, modelOverride } = args;
@@ -137,9 +129,10 @@ export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision
     return {
       domain: 'vision',
       planRequired: false,
-      rationale: modelOverride && modelOverride.length > 0
-        ? `image attached; explicit override noted: ${modelOverride}`
-        : 'image attached → vision model',
+      rationale:
+        modelOverride && modelOverride.length > 0
+          ? `image attached; explicit override noted: ${modelOverride}`
+          : 'image attached → vision model',
     };
   }
 
@@ -163,7 +156,7 @@ export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision
         args.semanticRouting.signal,
       );
       if (result) {
-        const domain = result.domain === 'vision' ? 'generic' as const : result.domain;
+        const domain = result.domain === 'vision' ? ('generic' as const) : result.domain;
         return {
           domain,
           planRequired: domain === 'fundamental' || domain === 'technical',
@@ -171,7 +164,9 @@ export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision
         };
       }
       // Fall through to keyword scoring on low confidence or failure.
-      routingLog.debug('semantic routing returned no confident classification', { elapsedMs: Date.now() - startMs });
+      routingLog.debug('semantic routing returned no confident classification', {
+        elapsedMs: Date.now() - startMs,
+      });
     } catch (err) {
       // Fall through to keyword scoring, but preserve the reason in logs.
       routingLog.warn('semantic routing failed; using keyword routing', {

@@ -18,18 +18,17 @@
 // backfillEmbeddings + countPendingEmbeddings to avoid hitting the AI
 // Gateway / Postgres.
 
+import * as ai from '@kestrel/ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runEmbeddingBackfill } from '../src/jobs/embedding-backfill';
+import { createLogger } from '../src/log';
+import { TenantRouter } from '../src/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   backfillEmbeddings: vi.fn(),
   countPendingEmbeddings: vi.fn(),
 }));
-
-import * as ai from '@kestrel/ai';
-
-import { runEmbeddingBackfill } from '../src/jobs/embedding-backfill';
-import { TenantRouter } from '../src/tenant-router';
-import { createLogger } from '../src/log';
 
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
@@ -51,9 +50,7 @@ describe('runEmbeddingBackfill', () => {
   });
 
   it('runs backfill and returns processed + diff in note', async () => {
-    vi.mocked(ai.countPendingEmbeddings)
-      .mockResolvedValueOnce(50)
-      .mockResolvedValueOnce(0);
+    vi.mocked(ai.countPendingEmbeddings).mockResolvedValueOnce(50).mockResolvedValueOnce(0);
     vi.mocked(ai.backfillEmbeddings).mockResolvedValue({
       embedded: 50,
       batches: 2,
@@ -66,8 +63,7 @@ describe('runEmbeddingBackfill', () => {
     expect(ai.backfillEmbeddings).toHaveBeenCalledTimes(1);
 
     const args = vi.mocked(ai.backfillEmbeddings).mock.calls[0]?.[0] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(args?.['batchSize']).toBe(32);
     // Phase 8 cap: 1024 rows per run, up from the Vercel-bound 256.
     expect(args?.['maxRows']).toBe(1024);
@@ -84,7 +80,8 @@ describe('runEmbeddingBackfill', () => {
     const ac = new AbortController();
     await runEmbeddingBackfill({ log, signal: ac.signal, tenantRouter: testRouter });
 
-    const args = vi.mocked(ai.backfillEmbeddings).mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+    const args = vi.mocked(ai.backfillEmbeddings).mock.calls[0]?.[0] as
+      Record<string, unknown> | undefined;
     expect(args?.['signal']).toBe(ac.signal);
   });
 });

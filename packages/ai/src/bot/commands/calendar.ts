@@ -18,8 +18,9 @@
 // /calendar → next 5 economic events
 // /calendar 10 → next 10 events
 
-import type { BotCommand, BotResponse } from '../types';
 import { queries } from '@kestrel/db';
+
+import type { BotCommand, BotResponse } from '../types';
 
 export const calendarCommand: BotCommand = {
   name: 'calendar',
@@ -31,7 +32,11 @@ export const calendarCommand: BotCommand = {
       const limit = firstArg ? Math.min(parseInt(firstArg, 10) || 5, 15) : 5;
       const now = Date.now();
       // Events up to 90 days out
-      const events = await queries.news.listUpcomingEvents(now, now + 90 * 24 * 60 * 60 * 1000, limit);
+      const events = await queries.news.listUpcomingEvents(
+        now,
+        now + 90 * 24 * 60 * 60 * 1000,
+        limit,
+      );
 
       if (events.length === 0) {
         return { text: '📅 No upcoming economic events found.' };
@@ -47,8 +52,7 @@ export const calendarCommand: BotCommand = {
           minute: '2-digit',
         });
         const impactIcon =
-          ev.importance === 'high' ? '🔴' :
-          ev.importance === 'medium' ? '🟡' : '🟢';
+          ev.importance === 'high' ? '🔴' : ev.importance === 'medium' ? '🟡' : '🟢';
         const actualStr = ev.actual !== null ? ` | Actual: ${ev.actual}` : '';
         const forecastStr = ev.forecast !== null ? ` | Forecast: ${ev.forecast}` : '';
 

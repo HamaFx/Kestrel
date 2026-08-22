@@ -26,7 +26,6 @@
 // CRUD response never waits on it.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import {
   JournalEntrySchema,
   SymbolSchema,
@@ -38,9 +37,10 @@ import {
   type TradeOutcome,
   type TradeSide,
 } from '@kestrel/shared';
-import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
 
+import { getDb } from '../db';
 import { rememberJournalEntry } from '../memory/memory-index';
 
 const jlog = createCategorizedLogger('ai', { component: 'journal' });
@@ -272,10 +272,7 @@ export function summarize(entries: JournalEntry[]): JournalStats {
   let maxDrawdown = 0;
 
   // Phase 2 — rich analytics accumulators.
-  const bySymbolMap = new Map<
-    string,
-    { trades: number; wins: number; totalR: number }
-  >();
+  const bySymbolMap = new Map<string, { trades: number; wins: number; totalR: number }>();
   const byHourMap = new Map<number, { trades: number; wins: number; totalR: number }>();
   const byDowMap = new Map<string, { trades: number; wins: number; totalR: number }>();
   const byTagMap = new Map<string, { trades: number; wins: number; totalR: number }>();
@@ -289,7 +286,15 @@ export function summarize(entries: JournalEntry[]): JournalStats {
     { bucket: '(2,3]', min: 2, max: 3, count: 0 },
     { bucket: '[3+]', min: 3, max: Infinity, count: 0 },
   ];
-  const DOW_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+  const DOW_KEYS = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ] as const;
 
   function sessionFromHour(hour: number): string {
     if (hour >= 0 && hour < 8) return 'Asian';
@@ -400,13 +405,27 @@ export function summarize(entries: JournalEntry[]): JournalStats {
       const d = new Date(e.closedAt);
       const dow = d.getUTCDay();
       switch (dow) {
-        case 0: perDow.sunday += 1; break;
-        case 1: perDow.monday += 1; break;
-        case 2: perDow.tuesday += 1; break;
-        case 3: perDow.wednesday += 1; break;
-        case 4: perDow.thursday += 1; break;
-        case 5: perDow.friday += 1; break;
-        case 6: perDow.saturday += 1; break;
+        case 0:
+          perDow.sunday += 1;
+          break;
+        case 1:
+          perDow.monday += 1;
+          break;
+        case 2:
+          perDow.tuesday += 1;
+          break;
+        case 3:
+          perDow.wednesday += 1;
+          break;
+        case 4:
+          perDow.thursday += 1;
+          break;
+        case 5:
+          perDow.friday += 1;
+          break;
+        case 6:
+          perDow.saturday += 1;
+          break;
       }
     }
   }
@@ -418,11 +437,7 @@ export function summarize(entries: JournalEntry[]): JournalStats {
   // Profit factor: gross wins / |gross losses|. Return null when
   // there are no losses (Infinity is not meaningful in the UI).
   const profitFactor: number | null =
-    sumLosingR === 0
-      ? sumWinningR > 0
-        ? null
-        : 0
-      : sumWinningR / Math.abs(sumLosingR);
+    sumLosingR === 0 ? (sumWinningR > 0 ? null : 0) : sumWinningR / Math.abs(sumLosingR);
 
   const avgWinR = wins === 0 ? 0 : sumWinningR / wins;
   const avgLossR = losses === 0 ? 0 : sumLosingR / losses;

@@ -30,8 +30,4 @@ export {
 } from './position-service';
 
 // P&L engine & risk analysis
-export {
-  computePnL,
-  getOpenPositionsWithPnL,
-  getPortfolioRiskReport,
-} from './risk-service';
+export { computePnL, getOpenPositionsWithPnL, getPortfolioRiskReport } from './risk-service';

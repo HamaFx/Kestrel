@@ -17,9 +17,10 @@
 
 // @vitest-environment jsdom
 
-import React from 'react';
-import { afterEach, describe, it, expect } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import React from 'react';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { EmptyState } from '@/components/ui/empty-state';
 
 afterEach(cleanup);
@@ -55,13 +56,7 @@ describe('EmptyState', () => {
   });
 
   it('renders action when provided', () => {
-    render(
-      <EmptyState
-        icon={defaultIcon}
-        title="Empty"
-        action={<button>Create</button>}
-      />,
-    );
+    render(<EmptyState icon={defaultIcon} title="Empty" action={<button>Create</button>} />);
     expect(screen.getByText('Create')).toBeTruthy();
   });
 
@@ -84,9 +79,7 @@ describe('EmptyState', () => {
   });
 
   it('applies brand icon container size for tone="brand"', () => {
-    const { container } = render(
-      <EmptyState icon={defaultIcon} title="Empty" tone="brand" />,
-    );
+    const { container } = render(<EmptyState icon={defaultIcon} title="Empty" tone="brand" />);
     const iconSpan = container.querySelector('[aria-hidden="true"]');
     expect(iconSpan!.classList.contains('h-20')).toBe(true);
     expect(iconSpan!.classList.contains('w-20')).toBe(true);

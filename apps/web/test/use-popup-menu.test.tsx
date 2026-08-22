@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+
 import { usePopupMenu } from '@/hooks/use-popup-menu';
 
 function TestMenu({ focusFirstOnOpen = true }: { focusFirstOnOpen?: boolean }) {
@@ -61,7 +62,7 @@ describe('usePopupMenu', () => {
 
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByTestId('menu')).toBeInTheDocument();
-    expect(screen.getAllByRole('menuitem')[0]). toHaveFocus();
+    expect(screen.getAllByRole('menuitem')[0]).toHaveFocus();
   });
 
   it('does not auto-focus the first item when focusFirstOnOpen is false', () => {

@@ -32,11 +32,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  applyMigrations,
-  closePGliteDb,
-  getPGliteDb,
-} from '../src/pglite-client';
+import { applyMigrations, closePGliteDb, getPGliteDb } from '../src/pglite-client';
 
 describe('applyMigrations — rename upgrade path (fd346ce)', () => {
   let dataDir: string;

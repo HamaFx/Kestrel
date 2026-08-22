@@ -21,12 +21,12 @@
 // array — that's fine, the model handles it gracefully.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import { SymbolSchema, type GetNewsOutput, type ToolNewsItem } from '@kestrel/shared';
 import { tool } from 'ai';
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
+import { getDb } from '../db';
 import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = z.object({

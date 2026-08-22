@@ -22,14 +22,14 @@ Out of scope: DDoS, advanced persistent threats.
 
 ### Stack
 
-| Component | Technology |
-|-----------|-----------|
-| Auth framework | NextAuth.js v5 (Auth.js) |
-| Session strategy | JWT (stateless) |
-| Database adapter | `@auth/drizzle-adapter` |
-| Credentials provider | Email + Password (bcrypt) |
-| Request boundary | Next.js proxy (NextAuth + CSRF) |
-| 2FA | TOTP via `otplib` (enforced at login) |
+| Component            | Technology                            |
+| -------------------- | ------------------------------------- |
+| Auth framework       | NextAuth.js v5 (Auth.js)              |
+| Session strategy     | JWT (stateless)                       |
+| Database adapter     | `@auth/drizzle-adapter`               |
+| Credentials provider | Email + Password (bcrypt)             |
+| Request boundary     | Next.js proxy (NextAuth + CSRF)       |
+| 2FA                  | TOTP via `otplib` (enforced at login) |
 
 ### Setup
 
@@ -44,6 +44,7 @@ NEXTAUTH_URL=http://localhost:3000
 ```
 
 Generate secrets:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
@@ -67,6 +68,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ### CSRF Protection
 
 Double-submit cookie pattern:
+
 - Middleware mints a `hfx_csrf` cookie (random UUID) on first request.
 - State-changing requests (`POST`, `PUT`, `DELETE`, `PATCH`) to `/api/*` must carry `X-CSRF-Token` header matching the cookie.
 - Client-side helper: `withCsrf()` in `apps/web/src/lib/csrf.ts` auto-attaches the header.
@@ -200,6 +202,7 @@ The utility:
 - Never logs plaintext secrets.
 
 **Operational procedure:**
+
 1. Take and verify a database backup before starting.
 2. Stop app/worker writers and run the utility with `DIRECT_URL` (or another direct/session URL), including `ROTATE_ENCRYPTION_SECRET_MAINTENANCE=STOP_WRITERS`.
 3. Confirm the command completes successfully; if it fails, do not change the active environment secret.
@@ -214,6 +217,7 @@ If the old secret is lost, encrypted values cannot be recovered by the applicati
 Signs JWT session cookies. Rotation logs out all users.
 
 **Procedure:**
+
 1. Generate: `openssl rand -hex 32`
 2. Update the environment variable in Vercel and on the VM.
 3. Users will be logged out upon their next request (JWTs signed with the old key fail verification).
@@ -223,6 +227,7 @@ Signs JWT session cookies. Rotation logs out all users.
 Protects internal cron endpoints.
 
 **Procedure:**
+
 1. Generate a new secure string: `openssl rand -hex 16`
 2. Update `CRON_SECRET` in Vercel and in `/opt/kestrel/.env` on the VM.
 3. Restart the worker: `systemctl restart kestrel-worker.service`.
@@ -230,6 +235,7 @@ Protects internal cron endpoints.
 ### Database Passwords
 
 For Supabase Postgres or local setups:
+
 1. Change password in Supabase Dashboard.
 2. Update `DATABASE_URL` in Vercel and `.env` files.
 3. Re-deploy the application.

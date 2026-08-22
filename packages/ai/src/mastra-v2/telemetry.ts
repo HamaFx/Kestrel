@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -22,11 +38,15 @@
  * AI result, so construction and flush failures degrade silently.
  */
 
-import { Observability, SamplingStrategyType, type ObservabilityRegistryConfig } from '@mastra/observability';
-import { LangfuseExporter } from '@mastra/langfuse';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { Mastra } from '@mastra/core';
 import type { TracingOptions } from '@mastra/core/observability';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { LangfuseExporter } from '@mastra/langfuse';
+import {
+  Observability,
+  SamplingStrategyType,
+  type ObservabilityRegistryConfig,
+} from '@mastra/observability';
 
 const tlog = createCategorizedLogger('ai', { component: 'mastra-telemetry' });
 
@@ -144,7 +164,10 @@ export function langfuseBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
  * Deep link to a Langfuse trace by its trace id. Returns `null` when Langfuse
  * is not configured — callers hide the link instead of showing a dead one.
  */
-export function langfuseTraceUrl(traceId: string, env: NodeJS.ProcessEnv = process.env): string | null {
+export function langfuseTraceUrl(
+  traceId: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
   if (!isLangfuseConfigured(env)) return null;
   return `${langfuseBaseUrl(env)}/trace/${encodeURIComponent(traceId)}`;
 }

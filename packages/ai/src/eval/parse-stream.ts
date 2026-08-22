@@ -139,7 +139,9 @@ export async function consumeUIMessageStream(
             data?: unknown;
           };
           if (chunk.type === 'error') {
-            errors.push(typeof chunk.errorText === 'string' ? chunk.errorText : JSON.stringify(value));
+            errors.push(
+              typeof chunk.errorText === 'string' ? chunk.errorText : JSON.stringify(value),
+            );
           }
           if (chunk.type === 'data-agent-progress' && isAgentProgressData(chunk.data)) {
             agentProgress.push(chunk.data);
@@ -165,7 +167,8 @@ export async function consumeUIMessageStream(
   const totalMs = Date.now() - startedAt;
   const text = lastMessage ? extractText(lastMessage) : '';
   const toolCalls = lastMessage ? extractToolCalls(lastMessage) : [];
-  const assistantMessageId = lastMessage && typeof lastMessage.id === 'string' ? lastMessage.id : null;
+  const assistantMessageId =
+    lastMessage && typeof lastMessage.id === 'string' ? lastMessage.id : null;
 
   return { ttftMs, totalMs, text, toolCalls, agentProgress, metadata, errors, assistantMessageId };
 }
@@ -203,8 +206,12 @@ function isAgentProgressData(value: unknown): value is AgentProgressSnapshot {
   if (typeof data.mode !== 'string' || !Array.isArray(data.agents)) return false;
   if (data.status !== undefined && typeof data.status !== 'string') return false;
   if (data.error !== undefined && typeof data.error !== 'string') return false;
-  const agents = data.agents.filter((agent): agent is Record<string, unknown> => typeof agent === 'object' && agent !== null);
-  return agents.every((agent) => typeof agent.agentName === 'string' && typeof agent.status === 'string');
+  const agents = data.agents.filter(
+    (agent): agent is Record<string, unknown> => typeof agent === 'object' && agent !== null,
+  );
+  return agents.every(
+    (agent) => typeof agent.agentName === 'string' && typeof agent.status === 'string',
+  );
 }
 
 function isStreamMetadata(value: unknown): value is ParsedStreamMetadata {

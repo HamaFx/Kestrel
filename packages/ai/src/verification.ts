@@ -78,9 +78,7 @@ const NEWS_OR_EVENT_TOOLS = new Set([
   'web_search',
 ]);
 
-const SUMMARY_MESSAGE = (
-  "Numbers in this answer weren't verified against a tool call this turn."
-);
+const SUMMARY_MESSAGE = "Numbers in this answer weren't verified against a tool call this turn.";
 
 /**
  * Per-claim finding exposed on the warning part. Phase B — item 9.

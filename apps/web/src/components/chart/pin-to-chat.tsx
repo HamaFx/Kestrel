@@ -30,7 +30,6 @@
  *   4. /chat/[id] page mounts ChatScreen, which auto-submits the
  *      prompt exactly once (autoSubmittedRef in chat-screen.tsx).
  */
-
 import type { Symbol } from '@kestrel/shared';
 import { IconMessageCircle } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
@@ -78,7 +77,7 @@ export function PinToChat({ symbol, prompt }: PinToChatProps) {
         onClick={() => void onPin()}
         disabled={pending}
         aria-label={`Pin ${symbol} to a new chat`}
-        className="bg-bg-elev-1 border border-border text-fg-muted hover:text-fg hover:border-border focus-visible:ring-fg inline-flex size-11 items-center justify-center rounded-sm focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+        className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg hover:border-border focus-visible:ring-fg inline-flex size-11 items-center justify-center rounded-sm border focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <IconMessageCircle className="size-4" strokeWidth={1.75} />
       </button>

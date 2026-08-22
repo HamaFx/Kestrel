@@ -2,12 +2,29 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconCircleCheck, IconCircleX, IconDatabase, IconLoader2 } from '@tabler/icons-react';
 import { useActionState, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import {IconDatabase, IconLoader2, IconCircleCheck, IconCircleX} from '@tabler/icons-react';
+
 import { Button } from '@/components/ui/button';
-import { updateMarketDataProviderAction } from '../../actions';
 import { apiMutate } from '@/lib/api-client';
+
+import { updateMarketDataProviderAction } from '../../actions';
 
 interface MarketDataConfigProps {
   initialProvider: string;
@@ -15,10 +32,7 @@ interface MarketDataConfigProps {
 }
 
 type TestState =
-  | { kind: 'idle' }
-  | { kind: 'pending' }
-  | { kind: 'ok' }
-  | { kind: 'err'; message: string };
+  { kind: 'idle' } | { kind: 'pending' } | { kind: 'ok' } | { kind: 'err'; message: string };
 
 export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataConfigProps) {
   const [selected, setSelected] = useState(initialProvider);
@@ -33,7 +47,7 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
         ok: res.ok,
       };
     },
-    { error: '', ok: false }
+    { error: '', ok: false },
   );
 
   useEffect(() => {
@@ -95,12 +109,12 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
   return (
     <form
       action={action}
-      className="border border-border bg-bg-elev-1 rounded-sm p-5 flex flex-col gap-5 shadow-sm"
+      className="border-border bg-bg-elev-1 flex flex-col gap-5 rounded-sm border p-5 shadow-sm"
     >
-      <header className="flex items-center gap-3 border-b border-border pb-3">
-        <IconDatabase className="size-5 text-fg shrink-0" />
+      <header className="border-border flex items-center gap-3 border-b pb-3">
+        <IconDatabase className="text-fg size-5 shrink-0" />
         <div>
-          <h2 className="text-sm font-semibold text-fg">Market Data Provider</h2>
+          <h2 className="text-fg text-sm font-semibold">Market Data Provider</h2>
           <p className="text-caption text-fg-subtle mt-0.5">
             Select the source used for charts, indicators, and real-time prices.
           </p>
@@ -111,7 +125,7 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
         {providersList.map((p) => (
           <label
             key={p.id}
-            className={`flex items-start gap-3 border rounded-sm p-3 cursor-pointer select-none transition-all ${
+            className={`flex cursor-pointer items-start gap-3 rounded-sm border p-3 transition-all select-none ${
               selected === p.id
                 ? 'border-border bg-bg-elev-1'
                 : 'border-border bg-bg-elev-2/40 hover:bg-bg-elev-2'
@@ -126,13 +140,13 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
                 setSelected(p.id);
                 setTest({ kind: 'idle' });
               }}
-              className="size-4 accent-brand mt-0.5 cursor-pointer"
+              className="accent-brand mt-0.5 size-4 cursor-pointer"
             />
-            <div className="flex flex-col gap-1 min-w-0">
-              <span className="text-xs font-semibold text-fg">{p.name}</span>
-              <span className="text-xs text-fg-subtle leading-normal">{p.description}</span>
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-fg text-xs font-semibold">{p.name}</span>
+              <span className="text-fg-subtle text-xs leading-normal">{p.description}</span>
               {p.warn && (
-                <span className="text-xs text-warn font-semibold mt-1">
+                <span className="text-warn mt-1 text-xs font-semibold">
                   ⚠️ Note: Finnhub API key is not set above. Please add it to enable this provider.
                 </span>
               )}
@@ -142,19 +156,19 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
       </div>
 
       {test.kind === 'err' && (
-        <div className="flex items-start gap-2 text-xs text-danger">
-          <IconCircleX className="size-3.5 mt-0.5 shrink-0" />
+        <div className="text-danger flex items-start gap-2 text-xs">
+          <IconCircleX className="mt-0.5 size-3.5 shrink-0" />
           <span className="break-words">{test.message}</span>
         </div>
       )}
       {test.kind === 'ok' && (
-        <div className="flex items-center gap-2 text-xs text-success">
+        <div className="text-success flex items-center gap-2 text-xs">
           <IconCircleCheck className="size-3.5 shrink-0" />
           <span>Connection test successful! Provider is online.</span>
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-border pt-4 gap-3">
+      <div className="border-border flex items-center justify-between gap-3 border-t pt-4">
         <Button
           type="button"
           variant="secondary"

@@ -306,9 +306,9 @@ describe('parseServerEnv — defaults and transforms', () => {
   });
 
   it('rejects multi-user mode without RLS', () => {
-    expect(() => parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', MULTI_USER_ENABLED: '1' })).toThrow(
-      /MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS/i,
-    );
+    expect(() =>
+      parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', MULTI_USER_ENABLED: '1' }),
+    ).toThrow(/MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS/i);
   });
 
   it('rejects multi-user mode even when RLS is enabled in the OSS release', () => {
@@ -323,9 +323,9 @@ describe('parseServerEnv — defaults and transforms', () => {
   });
 
   it('rejects open registration without multi-user RLS', () => {
-    expect(() => parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', REGISTRATION_MODE: 'open' })).toThrow(
-      /REGISTRATION_MODE=open requires/i,
-    );
+    expect(() =>
+      parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', REGISTRATION_MODE: 'open' }),
+    ).toThrow(/REGISTRATION_MODE=open requires/i);
   });
 
   it('rejects open registration in the OSS release', () => {
@@ -341,7 +341,11 @@ describe('parseServerEnv — defaults and transforms', () => {
   });
 
   it('keeps deprecated UNLIMITED_SYMBOLS disabled regardless of input', () => {
-    const falseEnv = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', UNLIMITED_SYMBOLS: 'false' });
+    const falseEnv = parseServerEnv({
+      ...MINIMAL_ENV,
+      NODE_ENV: 'test',
+      UNLIMITED_SYMBOLS: 'false',
+    });
     const trueEnv = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', UNLIMITED_SYMBOLS: 'true' });
     expect(falseEnv.UNLIMITED_SYMBOLS).toBe(false);
     expect(trueEnv.UNLIMITED_SYMBOLS).toBe(false);

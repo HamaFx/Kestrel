@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -20,13 +36,12 @@
  */
 
 import type { Mastra } from '@mastra/core';
-import { Agent } from '@mastra/core/agent';
-import type { AgentMemoryOption } from '@mastra/core/agent';
-import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
+import { Agent, type AgentMemoryOption } from '@mastra/core/agent';
+import type { MastraScorers } from '@mastra/core/evals';
 import type { MastraMemory } from '@mastra/core/memory';
-import type { MastraScorer } from '@mastra/core/evals';
+import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import { RequestContext } from '@mastra/core/request-context';
-import { Workflow, createStep } from '@mastra/core/workflows';
+import { createStep, Workflow } from '@mastra/core/workflows';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
@@ -72,12 +87,7 @@ export class MastraModeStrictFailureError extends Error {
 }
 
 export const MastraAnalysisModeSchema = z.enum(['single', 'quick', 'standard', 'full']);
-export const MastraSpecialistNameSchema = z.enum([
-  'technical',
-  'fundamental',
-  'risk',
-  'sentiment',
-]);
+export const MastraSpecialistNameSchema = z.enum(['technical', 'fundamental', 'risk', 'sentiment']);
 
 export const SPECIALISTS_BY_MODE: Record<MastraAnalysisMode, readonly MastraSpecialistName[]> = {
   single: ['technical'],
@@ -185,13 +195,10 @@ export interface SymbolResearchWorkflowDeps {
   /** Phase 5 — input processors (Unicode normalizer + prompt-injection detector). */
   inputProcessors?: Array<InputProcessorOrWorkflow>;
   /** Phase 6 — sampled live scorers for research agents (from `buildResearchScorers`). */
-  scorers?: Record<string, { scorer: MastraScorer<string, any, any, any>; sampling?: { type: 'ratio'; rate: number } }>;
+  scorers?: MastraScorers;
 }
 
-function specialistInstructions(
-  name: MastraSpecialistName,
-  packet: SymbolResearchPacket,
-): string {
+function specialistInstructions(name: MastraSpecialistName, packet: SymbolResearchPacket): string {
   const focus: Record<MastraSpecialistName, string> = {
     technical:
       'Focus only on trend, structure, indicators, levels, timeframe agreement, and volatility.',
@@ -215,10 +222,7 @@ Hard rules:
 PACKET:\n${serializeSymbolResearchPacket(packet)}`;
 }
 
-function fusionInstructions(
-  packet: SymbolResearchPacket,
-  opinions: MastraModeOpinion[],
-): string {
+function fusionInstructions(packet: SymbolResearchPacket, opinions: MastraModeOpinion[]): string {
   const opinionBlock = opinions.map((opinion) => JSON.stringify(opinion)).join('\n');
   return `You are Kestrel's Mastra decision synthesizer for ${packet.symbol}.
 
@@ -235,7 +239,7 @@ function createAgent(
   instructions: string,
   memory?: MastraMemory,
   inputProcessors?: Array<InputProcessorOrWorkflow>,
-  scorers?: Record<string, { scorer: MastraScorer<string, any, any, any>; sampling?: { type: 'ratio'; rate: number } }>,
+  scorers?: MastraScorers,
 ) {
   return new Agent({
     id,
@@ -275,7 +279,9 @@ function isAbort(error: unknown, signal?: AbortSignal): boolean {
   return (
     signal?.aborted === true ||
     (error instanceof Error && error.name === 'AbortError') ||
-    (typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError')
+    (typeof DOMException !== 'undefined' &&
+      error instanceof DOMException &&
+      error.name === 'AbortError')
   );
 }
 
@@ -293,7 +299,7 @@ export function createSymbolResearchWorkflow(
   deps: SymbolResearchWorkflowDeps,
   mode: MastraAnalysisMode,
   workflowId: string = 'symbol-research',
-): Workflow<any, any, string, unknown, unknown, unknown> {
+): Workflow {
   const specialists = SPECIALISTS_BY_MODE[mode];
   const strict = mode === 'full';
 
@@ -344,7 +350,10 @@ export function createSymbolResearchWorkflow(
             deps.scorers,
           );
           const result = await agent.generate(inputData.prompt, {
-            requestContext: contextWithPacket(requestContext as RequestContext<ModeRequestContext>, inputData.packet),
+            requestContext: contextWithPacket(
+              requestContext as RequestContext<ModeRequestContext>,
+              inputData.packet,
+            ),
             memory: deps.specialistCallOptions,
             toolChoice: 'none',
             maxSteps: 1,
@@ -469,7 +478,10 @@ export function createSymbolResearchWorkflow(
           deps.scorers,
         );
         const fusionResult = await fusionAgent.generate(prompt, {
-          requestContext: contextWithPacket(requestContext as RequestContext<ModeRequestContext>, packet),
+          requestContext: contextWithPacket(
+            requestContext as RequestContext<ModeRequestContext>,
+            packet,
+          ),
           memory: deps.fusionCallOptions,
           toolChoice: 'none',
           maxSteps: 1,
@@ -497,21 +509,19 @@ export function createSymbolResearchWorkflow(
     },
   });
 
-  const workflow = (
-    new Workflow({
-      id: workflowId,
-      inputSchema: SymbolResearchWorkflowInputSchema,
-      outputSchema: SymbolResearchWorkflowOutputSchema,
-      requestContextSchema: REQUEST_CONTEXT_SCHEMA,
-      retryConfig: { attempts: 2, delay: 2_000 },
-      ...(deps.mastra ? { mastra: deps.mastra } : {}),
-    })
-      .then(collectPacketStep)
-      .parallel(specialistSteps as never)
-      .then(verifyStep)
-      .then(fusionStep)
-      .commit()
-  ) as unknown as Workflow<any, any, string, unknown, unknown, unknown>;
+  const workflow = new Workflow({
+    id: workflowId,
+    inputSchema: SymbolResearchWorkflowInputSchema,
+    outputSchema: SymbolResearchWorkflowOutputSchema,
+    requestContextSchema: REQUEST_CONTEXT_SCHEMA,
+    retryConfig: { attempts: 2, delay: 2_000 },
+    ...(deps.mastra ? { mastra: deps.mastra } : {}),
+  })
+    .then(collectPacketStep)
+    .parallel(specialistSteps as never)
+    .then(verifyStep)
+    .then(fusionStep)
+    .commit() as unknown as Workflow;
 
   return workflow;
 }

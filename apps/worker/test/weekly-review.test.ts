@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+import * as ai from '@kestrel/ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runWeeklyReview } from '../src/jobs/weekly-review';
+import { createLogger } from '../src/log';
+import { TenantRouter } from '../src/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   emitWeeklyReview: vi.fn(),
@@ -31,12 +36,6 @@ vi.mock('@kestrel/db', () => ({
   getActiveUserIds: vi.fn(async () => ['u1']),
 }));
 
-import * as ai from '@kestrel/ai';
-
-import { runWeeklyReview } from '../src/jobs/weekly-review';
-import { TenantRouter } from '../src/tenant-router';
-import { createLogger } from '../src/log';
-
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
 
@@ -47,12 +46,16 @@ beforeEach(() => {
 describe('runWeeklyReview', () => {
   it('returns processed=1 when emitWeeklyReview emitted', async () => {
     vi.mocked(ai.emitWeeklyReview).mockResolvedValue({ emitted: true });
-    const r = await runWeeklyReview({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const r = await runWeeklyReview({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     expect(r.processed).toBe(1);
     expect(r.note).toBeUndefined();
   });
 
-  it('returns processed=0 when all users already have this week\'s review', async () => {
+  it("returns processed=0 when all users already have this week's review", async () => {
     // Phase A (multi-user): the job now loops per-user. The per-user
     // 'already-emitted' reason is logged at error level instead of being
     // propagated to the aggregated JobResult, so `note` is undefined.
@@ -60,7 +63,11 @@ describe('runWeeklyReview', () => {
       emitted: false,
       reason: 'already-emitted',
     });
-    const r = await runWeeklyReview({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const r = await runWeeklyReview({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     expect(r.processed).toBe(0);
     expect(r.note).toBeUndefined();
   });

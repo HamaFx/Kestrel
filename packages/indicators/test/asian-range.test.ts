@@ -1,6 +1,23 @@
-import { describe, expect, it } from 'vitest';
-import { computeAsianRange } from '../src/smc/asian-range';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import type { Candle } from '@kestrel/shared';
+import { describe, expect, it } from 'vitest';
+
+import { computeAsianRange } from '../src/smc/asian-range';
 
 // Asian session is 00:00-07:00 UTC. Use timestamps that fall in this window.
 // 2025-01-15 03:00 UTC = 1736905200000
@@ -36,7 +53,7 @@ describe('computeAsianRange', () => {
 
   it('computes high/low across multiple Asian session candles', () => {
     const candles = [
-      makeCandle(2005, 2000, ASIAN_CANDLE_TS),           // 03:00
+      makeCandle(2005, 2000, ASIAN_CANDLE_TS), // 03:00
       makeCandle(2015, 2008, ASIAN_CANDLE_TS + 3600000), // 04:00
       makeCandle(2010, 2002, ASIAN_CANDLE_TS + 7200000), // 05:00
     ];
@@ -59,13 +76,10 @@ describe('computeAsianRange', () => {
 
   it('falls back to previous day when latest day has no Asian bars', () => {
     // Two distinct days: day 1 has Asian bars, day 2 has no Asian bars
-    const prevDayAsian = ASIAN_CANDLE_TS;           // Day 1, 03:00 UTC
+    const prevDayAsian = ASIAN_CANDLE_TS; // Day 1, 03:00 UTC
     const todayNonAsian = ASIAN_CANDLE_TS + 86400000 + 10 * 3600000; // Day 2, 10:00 UTC
 
-    const candles = [
-      makeCandle(2010, 2000, prevDayAsian),
-      makeCandle(2050, 1990, todayNonAsian),
-    ];
+    const candles = [makeCandle(2010, 2000, prevDayAsian), makeCandle(2050, 1990, todayNonAsian)];
     const result = computeAsianRange(candles);
     expect(result).not.toBeNull();
     // Should use yesterday's Asian session

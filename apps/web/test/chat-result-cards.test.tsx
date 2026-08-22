@@ -1,8 +1,29 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
 
+import { cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+
+import { AnalyzeTechnicalPart } from '@/components/chat/parts/analyze-technical';
+import { GetCalendarPart } from '@/components/chat/parts/get-calendar';
+import { GetNewsPart } from '@/components/chat/parts/get-news';
+import { GetPricePart } from '@/components/chat/parts/get-price';
 
 vi.mock('next-view-transitions', () => ({
   Link: ({ children, ...props }: React.ComponentProps<'a'>) => <a {...props}>{children}</a>,
@@ -12,15 +33,12 @@ vi.mock('next/link', () => ({
   default: ({ children, ...props }: React.ComponentProps<'a'>) => <a {...props}>{children}</a>,
 }));
 
-import { GetPricePart } from '@/components/chat/parts/get-price';
-import { AnalyzeTechnicalPart } from '@/components/chat/parts/analyze-technical';
-import { GetNewsPart } from '@/components/chat/parts/get-news';
-import { GetCalendarPart } from '@/components/chat/parts/get-calendar';
-
 afterEach(cleanup);
 
 const price = {
-  ticks: [{ symbol: 'XAUUSD' as const, bid: 2320, ask: 2320.5, mid: 2320.25, ts: 1, source: 'test-feed' }],
+  ticks: [
+    { symbol: 'XAUUSD' as const, bid: 2320, ask: 2320.5, mid: 2320.25, ts: 1, source: 'test-feed' },
+  ],
   asOf: '2026-08-11T12:00:00.000Z',
 };
 
@@ -29,30 +47,52 @@ const technical = {
   asOf: 1_754_000_000_000,
   partial: false,
   summary: 'Bullish structure with momentum confirmation.',
-  perTimeframe: [{
-    tf: '1h' as const,
-    trend: 'up' as const,
-    bias: 'bullish' as const,
-    momentum: { rsi14: 62.4, macdHist: 0.12 },
-    structure: { swingHigh: 2330, swingLow: 2300, latestStructureEvent: 'BOS_up' as const },
-    levels: { pivot: 2310, r1: 2340, s1: 2290, atr14: 12 },
-  }],
+  perTimeframe: [
+    {
+      tf: '1h' as const,
+      trend: 'up' as const,
+      bias: 'bullish' as const,
+      momentum: { rsi14: 62.4, macdHist: 0.12 },
+      structure: { swingHigh: 2330, swingLow: 2300, latestStructureEvent: 'BOS_up' as const },
+      levels: { pivot: 2310, r1: 2340, s1: 2290, atr14: 12 },
+    },
+  ],
 };
 
 const news = {
   pipelinePending: false,
-  items: [{
-    id: 'n1', title: 'Gold rises as yields ease', summary: null, url: 'https://example.com/news', source: 'Wire', publisher: 'Example', publishedAt: 1_754_000_000_000,
-    sentiment: 'positive' as const, sentimentScore: 0.7,
-  }],
+  items: [
+    {
+      id: 'n1',
+      title: 'Gold rises as yields ease',
+      summary: null,
+      url: 'https://example.com/news',
+      source: 'Wire',
+      publisher: 'Example',
+      publishedAt: 1_754_000_000_000,
+      sentiment: 'positive' as const,
+      sentimentScore: 0.7,
+    },
+  ],
 };
 
 const calendar = {
   pipelinePending: false,
-  items: [{
-    id: 'e1', title: 'CPI YoY', country: 'US', currency: 'USD', importance: 'high' as const,
-    date: 1_754_000_000_000, actual: null, forecast: 3.1, previous: 3, unit: '%', source: 'test',
-  }],
+  items: [
+    {
+      id: 'e1',
+      title: 'CPI YoY',
+      country: 'US',
+      currency: 'USD',
+      importance: 'high' as const,
+      date: 1_754_000_000_000,
+      actual: null,
+      forecast: 3.1,
+      previous: 3,
+      unit: '%',
+      source: 'test',
+    },
+  ],
 };
 
 describe('answer-first chat result cards', () => {

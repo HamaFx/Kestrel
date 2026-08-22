@@ -25,9 +25,9 @@
 import { z } from 'zod';
 
 import {
-  SYMBOL_MAP,
   isKnownSymbol,
   normalizeSymbol,
+  SYMBOL_MAP,
   tryGetSymbolDefinition,
 } from './symbol-catalog';
 
@@ -67,9 +67,12 @@ export const SymbolSchema = z
   .min(2)
   .max(20)
   .transform(normalizeSymbol)
-  .refine((symbol) => isKnownSymbol(symbol), (symbol) => ({
-    message: `Unknown symbol: ${symbol}`,
-  }));
+  .refine(
+    (symbol) => isKnownSymbol(symbol),
+    (symbol) => ({
+      message: `Unknown symbol: ${symbol}`,
+    }),
+  );
 
 /**
  * Loose symbol schema — accepts any reasonable string.
@@ -119,8 +122,22 @@ export function formatPips(symbol: string, delta: number): string {
 
 /** Currency tags used for news/calendar filtering — expanded from catalog. */
 export const CURRENCY_TAGS = [
-  'USD', 'USDT', 'EUR', 'GBP', 'XAU', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF',
-  'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA',
+  'USD',
+  'USDT',
+  'EUR',
+  'GBP',
+  'XAU',
+  'JPY',
+  'AUD',
+  'CAD',
+  'NZD',
+  'CHF',
+  'BTC',
+  'ETH',
+  'SOL',
+  'BNB',
+  'XRP',
+  'ADA',
 ] as const;
 export type CurrencyTag = (typeof CURRENCY_TAGS)[number];
 export const CurrencyTagSchema = z.enum(CURRENCY_TAGS);

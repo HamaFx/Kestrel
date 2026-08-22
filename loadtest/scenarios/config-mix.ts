@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Per-iteration VU function: settings/config endpoint mix covering the
 // full user-configuration surface. Settings are read-heavy with occasional
 // writes (model switching, watchlist edits, analysis mode changes).
@@ -14,16 +30,18 @@
 // require valid API keys and will likely return 400 in test environments.
 // They're included at low probability for code-path coverage only.
 
-import { sleep } from 'k6';
-import http from 'k6/http';
-import { SharedArray } from 'k6/data';
 import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
-import { getJson, postJson, patchJson, putJson, deleteReq } from '../lib/http.js';
-import { expectStatus, record429, recordAuthFailure } from '../lib/checks.js';
-import { env, type SessionCtx } from '../config/environments.js';
+import { sleep } from 'k6';
+import { SharedArray } from 'k6/data';
+import http from 'k6/http';
 
-const symbols = new SharedArray('symbols', () =>
-  JSON.parse(open('../lib/data/symbols.json') as string) as string[],
+import { env, type SessionCtx } from '../config/environments.js';
+import { expectStatus, record429, recordAuthFailure } from '../lib/checks.js';
+import { deleteReq, getJson, patchJson, postJson, putJson } from '../lib/http.js';
+
+const symbols = new SharedArray(
+  'symbols',
+  () => JSON.parse(open('../lib/data/symbols.json') as string) as string[],
 );
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -68,7 +86,7 @@ export function configMix(ctx: SessionCtx): void {
   const symbol = pickSymbol();
 
   // ── Symbol operations (35%) ─────────────────────────────────────
-  if (roll < 0.10) {
+  if (roll < 0.1) {
     // GET /api/settings/symbols — list watchlist with catalog metadata (10%)
     getJson('/api/settings/symbols', 'symbols_list');
   } else if (roll < 0.18) {
@@ -88,7 +106,7 @@ export function configMix(ctx: SessionCtx): void {
     getJson('/api/settings/catalog', 'catalog_list');
   }
   // ── Model config (25%) ──────────────────────────────────────────
-  else if (roll < 0.40) {
+  else if (roll < 0.4) {
     // GET /api/settings/chat-model — read current chat model (5%)
     getJson('/api/settings/chat-model', 'chat_model_read');
   } else if (roll < 0.43) {
@@ -118,7 +136,7 @@ export function configMix(ctx: SessionCtx): void {
   } else if (roll < 0.58) {
     // GET /api/settings/embedding-model — read current embedding model (3%)
     getJson('/api/settings/embedding-model', 'embedding_model_read');
-  } else if (roll < 0.60) {
+  } else if (roll < 0.6) {
     // PUT /api/settings/embedding-model — set embedding model (2%)
     putJson('/api/settings/embedding-model', 'embedding_model_write', {
       providerId: 'google',
@@ -129,7 +147,7 @@ export function configMix(ctx: SessionCtx): void {
   else if (roll < 0.65) {
     // GET /api/settings/analysis-mode — read current mode (5%)
     getJson('/api/settings/analysis-mode', 'analysis_mode_read');
-  } else if (roll < 0.70) {
+  } else if (roll < 0.7) {
     // PATCH /api/settings/analysis-mode — update mode (5%)
     patchJson('/api/settings/analysis-mode', 'analysis_mode_write', {
       defaultAnalysisMode: randomItem(['single', 'quick', 'standard', 'full', 'auto']),
@@ -139,7 +157,7 @@ export function configMix(ctx: SessionCtx): void {
   else if (roll < 0.75) {
     // GET /api/settings/fallback-chain — read current chain (5%)
     getJson('/api/settings/fallback-chain', 'fallback_chain_read');
-  } else if (roll < 0.80) {
+  } else if (roll < 0.8) {
     // PUT /api/settings/fallback-chain — update chain (5%)
     putJson('/api/settings/fallback-chain', 'fallback_chain_write', {
       fallbackChain: ['google', 'openai', 'anthropic'],
@@ -150,7 +168,7 @@ export function configMix(ctx: SessionCtx): void {
     // GET /api/settings/usage-by-agent — per-agent cost breakdown (5%)
     // Aggregation query across agent_opinions table
     getJson('/api/settings/usage-by-agent', 'usage_by_agent');
-  } else if (roll < 0.90) {
+  } else if (roll < 0.9) {
     // GET /api/settings/usage-by-provider — per-provider breakdown (5%)
     // Aggregation query via computeUsage()
     getJson('/api/settings/usage-by-provider', 'usage_by_provider');
@@ -165,7 +183,10 @@ export function configMix(ctx: SessionCtx): void {
         provider: randomProvider(),
         apiKey: 'k6-test-key-placeholder',
       }),
-      { headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken }, tags: { group: 'provider_test' } },
+      {
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
+        tags: { group: 'provider_test' },
+      },
     );
     expectStatus(tpRes, [200, 400, 401]);
     record429(tpRes);
@@ -179,7 +200,10 @@ export function configMix(ctx: SessionCtx): void {
         provider: 'finnhub',
         apiKey: 'k6-test-key-placeholder',
       }),
-      { headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken }, tags: { group: 'market_provider_test' } },
+      {
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
+        tags: { group: 'market_provider_test' },
+      },
     );
     expectStatus(tmpRes, [200, 400]);
     record429(tmpRes);
@@ -187,11 +211,10 @@ export function configMix(ctx: SessionCtx): void {
   } else {
     // POST /api/settings/bulk-test — test all configured providers (3%)
     // Expected 400 with no valid keys — uses raw http.post with wide status.
-    const btRes = http.post(
-      `${env.baseUrl}/api/settings/bulk-test`,
-      JSON.stringify({}),
-      { headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken }, tags: { group: 'bulk_test' } },
-    );
+    const btRes = http.post(`${env.baseUrl}/api/settings/bulk-test`, JSON.stringify({}), {
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
+      tags: { group: 'bulk_test' },
+    });
     expectStatus(btRes, [200, 400, 429]);
     record429(btRes);
     recordAuthFailure(btRes);

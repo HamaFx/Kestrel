@@ -1,6 +1,21 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 import { metrics } from '@kestrel/shared';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   evaluateXauusdReportCase,
@@ -106,9 +121,9 @@ describe('Mastra XAUUSD report evaluation', () => {
       actualValid: true,
       passed: true,
     });
-    expect(metrics.snapshot().counters[
-      'eval_case_total{result=ok,suite=mastra_xauusd_report}'
-    ]).toBe(1);
+    expect(
+      metrics.snapshot().counters['eval_case_total{result=ok,suite=mastra_xauusd_report}'],
+    ).toBe(1);
   });
 
   it('passes an expected-invalid report when numeric grounding is rejected', () => {
@@ -126,8 +141,18 @@ describe('Mastra XAUUSD report evaluation', () => {
 
   it('summarizes mixed fixture outcomes', () => {
     const evaluations = [
-      evaluateXauusdReportCase({ id: 'valid', packet: packet(), candidate: report(), expectedValid: true }),
-      evaluateXauusdReportCase({ id: 'invalid', packet: packet(), candidate: report(9_999), expectedValid: false }),
+      evaluateXauusdReportCase({
+        id: 'valid',
+        packet: packet(),
+        candidate: report(),
+        expectedValid: true,
+      }),
+      evaluateXauusdReportCase({
+        id: 'invalid',
+        packet: packet(),
+        candidate: report(9_999),
+        expectedValid: false,
+      }),
     ];
 
     expect(summarizeXauusdReportEvaluations(evaluations)).toEqual({

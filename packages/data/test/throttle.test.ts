@@ -16,7 +16,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { _resetThrottle, noteBackoff, resolveThrottleBackend, tryReserve, tryReserveDaily } from '../src/cache/throttle';
+import {
+  _resetThrottle,
+  noteBackoff,
+  resolveThrottleBackend,
+  tryReserve,
+  tryReserveDaily,
+} from '../src/cache/throttle';
 
 describe('tryReserve', () => {
   beforeEach(() => {
@@ -52,7 +58,6 @@ describe('tryReserve', () => {
     expect(await tryReserve('b', cfg)).toBe(false);
   });
 });
-
 
 describe('adaptive throttle — Phase 7a backoff', () => {
   beforeEach(() => {

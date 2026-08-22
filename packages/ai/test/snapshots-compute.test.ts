@@ -1,9 +1,25 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import type { Candle } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
 
 // computeDailySnapshot imports indicator functions that need mocking
 // since we only want to test the pure orchestration logic.
 import { computeDailySnapshot, previousUtcMidnight } from '../src/snapshots/compute';
-import type { Candle } from '@kestrel/shared';
 
 function makeCandle(overrides: Partial<Candle> = {}): Candle {
   return {
@@ -11,7 +27,12 @@ function makeCandle(overrides: Partial<Candle> = {}): Candle {
     tf: '1h' as Candle['tf'],
     source: 'test',
     fetchedAt: 0,
-    t: 0, o: 100, h: 110, l: 90, c: 105, v: 1000,
+    t: 0,
+    o: 100,
+    h: 110,
+    l: 90,
+    c: 105,
+    v: 1000,
     ...overrides,
   };
 }
@@ -34,7 +55,7 @@ describe('computeDailySnapshot', () => {
   it('returns nulls when no candles fall within the subject day', () => {
     const candles = [
       makeCandle({ t: asOfMs - 1000 }), // before midnight
-      makeCandle({ t: dayEndMs }),      // exactly at midnight — NOT included (t >= asOfMs && t < dayEndMs)
+      makeCandle({ t: dayEndMs }), // exactly at midnight — NOT included (t >= asOfMs && t < dayEndMs)
     ];
     // dayEndMs is excluded by the strict less-than
     const result = computeDailySnapshot({ candles, asOf });
@@ -45,9 +66,7 @@ describe('computeDailySnapshot', () => {
   });
 
   it('computes OHLC for one candle in subject day', () => {
-    const candles = [
-      makeCandle({ t: asOfMs + 1000, o: 100, h: 110, l: 95, c: 105 }),
-    ];
+    const candles = [makeCandle({ t: asOfMs + 1000, o: 100, h: 110, l: 95, c: 105 })];
     const result = computeDailySnapshot({ candles, asOf });
     expect(result.open).toBe(100);
     expect(result.high).toBe(110);

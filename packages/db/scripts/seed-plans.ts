@@ -26,10 +26,10 @@
 
 import { eq } from 'drizzle-orm';
 
+import { getDb } from '../src/client';
 // This script is meant to be run from the @kestrel/db package.
 // Import the schema and client directly.
 import { plans } from '../src/schema/billing';
-import { getDb } from '../src/client';
 
 const SEED_PLANS = [
   {

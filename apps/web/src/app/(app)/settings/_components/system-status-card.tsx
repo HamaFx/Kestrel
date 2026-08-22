@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // System status card — high-density "everything wired" overview so the
@@ -5,12 +21,12 @@
 // without diving into the test buttons. Server component; reads env vars
 // directly + counts push subscriptions.
 
-import { cache } from 'react';
 import { listPushSubscriptions } from '@kestrel/ai';
 import { getDb } from '@kestrel/db';
-import { getMarketPhase, describeMarketPhase } from '@kestrel/shared';
-import {IconCircleCheck, IconAlertCircle} from '@tabler/icons-react';
+import { describeMarketPhase, getMarketPhase } from '@kestrel/shared';
+import { IconAlertCircle, IconCircleCheck } from '@tabler/icons-react';
 import { sql } from 'drizzle-orm';
+import { cache } from 'react';
 
 import { cn } from '@/lib/cn';
 import { getServerEnv } from '@/lib/env';
@@ -35,17 +51,13 @@ const buildStatuses = cache(async (userId: string): Promise<BuildStatusResult> =
     {
       label: 'Email',
       ready:
-        Boolean(env.RESEND_API_KEY) &&
-        Boolean(env.ALERT_FROM_EMAIL) &&
-        Boolean(env.ALERT_TO_EMAIL),
+        Boolean(env.RESEND_API_KEY) && Boolean(env.ALERT_FROM_EMAIL) && Boolean(env.ALERT_TO_EMAIL),
       detail: env.ALERT_TO_EMAIL ? `→ ${env.ALERT_TO_EMAIL}` : 'Not configured',
     },
     {
       label: 'Telegram',
       ready: Boolean(env.TELEGRAM_BOT_TOKEN) && Boolean(env.TELEGRAM_CHAT_ID),
-      detail: env.TELEGRAM_CHAT_ID
-        ? `Chat ${env.TELEGRAM_CHAT_ID}`
-        : 'Not configured',
+      detail: env.TELEGRAM_CHAT_ID ? `Chat ${env.TELEGRAM_CHAT_ID}` : 'Not configured',
     },
     {
       label: 'Web push',
@@ -109,18 +121,18 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
   return (
     <section
       aria-labelledby="system-status-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm relative flex flex-col gap-4 overflow-hidden p-4"
+      className="border-border bg-bg-elev-1 relative flex flex-col gap-4 overflow-hidden rounded-sm border p-4"
     >
       <header className="flex items-center justify-between gap-3">
         <h2
           id="system-status-heading"
-          className="text-fg-subtle text-caption font-semibold uppercase tracking-wider"
+          className="text-fg-subtle text-caption font-semibold tracking-wider uppercase"
         >
           System status
         </h2>
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-caption font-bold uppercase tracking-wide ring-1',
+            'text-caption inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 font-bold tracking-wide uppercase ring-1',
             allReady
               ? 'bg-success/10 text-success ring-success/30'
               : 'bg-warn/10 text-warn ring-warn/30',
@@ -142,17 +154,12 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
 
       <ul className="flex flex-col gap-2.5">
         {channels.map((c) => (
-          <li
-            key={c.label}
-            className="flex items-center gap-3"
-          >
+          <li key={c.label} className="flex items-center gap-3">
             <span
               aria-hidden="true"
               className={cn(
                 'inline-flex size-7 shrink-0 items-center justify-center rounded-sm',
-                c.ready
-                  ? 'bg-success/15 text-success'
-                  : 'bg-bg-elev-2 text-fg-subtle',
+                c.ready ? 'bg-success/15 text-success' : 'bg-bg-elev-2 text-fg-subtle',
               )}
             >
               {c.ready ? (
@@ -163,13 +170,11 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
             </span>
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="text-fg text-sm font-semibold">{c.label}</span>
-              <span className="text-fg-subtle truncate text-body-sm tabular-nums">
-                {c.detail}
-              </span>
+              <span className="text-fg-subtle text-body-sm truncate tabular-nums">{c.detail}</span>
             </div>
             <span
               className={cn(
-                'rounded-sm px-2 py-0.5 text-caption font-bold uppercase tabular-nums ring-1',
+                'text-caption rounded-sm px-2 py-0.5 font-bold uppercase tabular-nums ring-1',
                 c.ready
                   ? 'bg-success/10 text-success ring-success/30'
                   : 'bg-bg-elev-2 text-fg-muted ring-divider',
@@ -232,13 +237,11 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
           </span>
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="text-fg text-sm font-semibold">Market phase</span>
-            <span className="text-fg-subtle text-body-sm">
-              {marketPhaseDescription}
-            </span>
+            <span className="text-fg-subtle text-body-sm">{marketPhaseDescription}</span>
           </div>
           <span
             className={cn(
-              'rounded-sm px-2 py-0.5 text-caption font-bold uppercase tabular-nums ring-1',
+              'text-caption rounded-sm px-2 py-0.5 font-bold uppercase tabular-nums ring-1',
               marketPhase.isOpen
                 ? marketPhase.liquidity === 'high'
                   ? 'bg-success/10 text-success ring-success/30'

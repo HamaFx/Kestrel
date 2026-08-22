@@ -18,9 +18,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getCandlesTool } from '../src/tools/get-candles';
 
-const exec = getCandlesTool.execute as unknown as (
-  input: { symbol: string; tf: string; count?: number },
-) => Promise<{ symbol: string; tf: string; candles: unknown[] }>;
+const exec = getCandlesTool.execute as unknown as (input: {
+  symbol: string;
+  tf: string;
+  count?: number;
+}) => Promise<{ symbol: string; tf: string; candles: unknown[] }>;
 
 const mockGetCandles = vi.fn();
 
@@ -28,7 +30,14 @@ vi.mock('@kestrel/data', () => ({
   getCandles: (...args: unknown[]) => mockGetCandles(...args),
 }));
 
-function makeCandle(overrides: { time?: number; open?: number; high?: number; low?: number; close?: number; tf?: string }) {
+function makeCandle(overrides: {
+  time?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+  tf?: string;
+}) {
   return {
     t: overrides.time ?? Date.now(),
     o: overrides.open ?? 1.08,
@@ -79,7 +88,9 @@ describe('get_candles — Phase 0.10', () => {
   });
 
   it('returns XAUUSD candles with correct symbol', async () => {
-    const candles = [makeCandle({ time: Date.now(), open: 2400, high: 2405, low: 2395, close: 2402 })];
+    const candles = [
+      makeCandle({ time: Date.now(), open: 2400, high: 2405, low: 2395, close: 2402 }),
+    ];
     mockGetCandles.mockResolvedValue(candles);
 
     const result = await exec({ symbol: 'XAUUSD', tf: '4h' });
@@ -90,7 +101,9 @@ describe('get_candles — Phase 0.10', () => {
   });
 
   it('returns GBPUSD candles', async () => {
-    const candles = [makeCandle({ time: Date.now(), open: 1.27, high: 1.275, low: 1.265, close: 1.272 })];
+    const candles = [
+      makeCandle({ time: Date.now(), open: 1.27, high: 1.275, low: 1.265, close: 1.272 }),
+    ];
     mockGetCandles.mockResolvedValue(candles);
 
     const result = await exec({ symbol: 'GBPUSD', tf: '1d' });
@@ -100,18 +113,24 @@ describe('get_candles — Phase 0.10', () => {
   });
 
   it('validates input schema — count min 10', () => {
-    const schema = getCandlesTool.inputSchema as { safeParse: (v: unknown) => { success: boolean; error?: { issues?: unknown[] } } };
+    const schema = getCandlesTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean; error?: { issues?: unknown[] } };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 5 }).success).toBe(false);
   });
 
   it('validates input schema — count max 500', () => {
-    const schema = getCandlesTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getCandlesTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 500 }).success).toBe(true);
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 501 }).success).toBe(false);
   });
 
   it('validates input schema — count defaults to 120', () => {
-    const schema = getCandlesTool.inputSchema as { safeParse: (v: unknown) => { success: boolean; data?: { count: number } } };
+    const schema = getCandlesTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean; data?: { count: number } };
+    };
     const parsed = schema.safeParse({ symbol: 'EURUSD', tf: '1h' });
     expect(parsed.success).toBe(true);
     if (parsed.data) {
@@ -120,17 +139,23 @@ describe('get_candles — Phase 0.10', () => {
   });
 
   it('validates input schema — unknown symbol rejected', () => {
-    const schema = getCandlesTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getCandlesTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'UNKNOWN', tf: '1h' }).success).toBe(false);
   });
 
   it('validates input schema — unknown timeframe rejected', () => {
-    const schema = getCandlesTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getCandlesTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '7h' }).success).toBe(false);
   });
 
   it('accepts all standard timeframes', () => {
-    const schema = getCandlesTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = getCandlesTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     // TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w']
     for (const tf of ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w']) {
       expect(schema.safeParse({ symbol: 'EURUSD', tf }).success).toBe(true);

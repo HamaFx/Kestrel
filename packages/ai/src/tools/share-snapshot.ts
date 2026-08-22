@@ -44,7 +44,14 @@ export const shareSnapshotTool = tool({
   description:
     "Persist a one-off analysis snapshot (title + body + optional chart overlay) and return a signed share URL the user can paste into Telegram/iMessage/etc. The link is valid for `ttlMinutes` (default 7 days). Use when the user says 'share this analysis' or 'send me a link to this'. The link bypasses the password gate but verifies an HMAC token, so the password is never exposed.",
   inputSchema: InputSchema,
-  execute: async ({ title, body, overlay, symbol, tf, ttlMinutes }): Promise<ShareSnapshotOutput> => {
+  execute: async ({
+    title,
+    body,
+    overlay,
+    symbol,
+    tf,
+    ttlMinutes,
+  }): Promise<ShareSnapshotOutput> => {
     assertMutationIntent('share_snapshot');
     const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
     const row = await createSnapshot({

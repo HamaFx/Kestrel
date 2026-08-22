@@ -10,8 +10,8 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { applyMigrations, closePGliteDb, getPGliteDb } from '../src/pglite-client';
 import type * as ClientModule from '../src/client';
+import { applyMigrations, closePGliteDb, getPGliteDb } from '../src/pglite-client';
 
 let pglite: Awaited<ReturnType<typeof getPGliteDb>>;
 
@@ -34,8 +34,12 @@ describe('AI regression cases', { timeout: 60_000 }, () => {
     await applyMigrations(dir);
     pglite = await getPGliteDb(dir);
     await sql(`INSERT INTO "organization" ("id", "name") VALUES ('org-1', 'Test Org')`);
-    await sql(`INSERT INTO "user" ("id", "email", "name", "role") VALUES ('u-1', 'u@example.com', 'U', 'user')`);
-    await sql(`INSERT INTO "chat_threads" ("id", "user_id", "tenant_id", "title") VALUES ('${UUID('100000000001')}', 'u-1', 'org-1', 'Gold')`);
+    await sql(
+      `INSERT INTO "user" ("id", "email", "name", "role") VALUES ('u-1', 'u@example.com', 'U', 'user')`,
+    );
+    await sql(
+      `INSERT INTO "chat_threads" ("id", "user_id", "tenant_id", "title") VALUES ('${UUID('100000000001')}', 'u-1', 'org-1', 'Gold')`,
+    );
     await sql(`INSERT INTO "chat_messages" ("id", "thread_id", "tenant_id", "role", "content", "created_at") VALUES
       ('${UUID('200000000001')}', '${UUID('100000000001')}', 'org-1', 'user', 'Analyse gold', now() - interval '1 hour'),
       ('${UUID('200000000002')}', '${UUID('100000000001')}', 'org-1', 'assistant', 'Gold is at 2400.15', now() - interval '30 minutes')`);
@@ -48,7 +52,8 @@ describe('AI regression cases', { timeout: 60_000 }, () => {
   });
 
   it('creates a hashed regression case from a reviewed failure', async () => {
-    const { syncAiRegressionCase, listAiRegressionCases } = await import('../src/queries/ai-regression-cases');
+    const { syncAiRegressionCase, listAiRegressionCases } =
+      await import('../src/queries/ai-regression-cases');
     const created = await syncAiRegressionCase(UUID('300000000001'));
     expect(created?.status).toBe('open');
     expect(created?.issueCodes).toEqual(['wrong_number']);
@@ -62,9 +67,12 @@ describe('AI regression cases', { timeout: 60_000 }, () => {
   });
 
   it('dismisses an existing case when the review is reclassified', async () => {
-    const { syncAiRegressionCase, listAiRegressionCases } = await import('../src/queries/ai-regression-cases');
+    const { syncAiRegressionCase, listAiRegressionCases } =
+      await import('../src/queries/ai-regression-cases');
     await syncAiRegressionCase(UUID('300000000001'));
-    await sql(`UPDATE "ai_message_feedback" SET "reviewer_label" = 'pass' WHERE "id" = '${UUID('300000000001')}'`);
+    await sql(
+      `UPDATE "ai_message_feedback" SET "reviewer_label" = 'pass' WHERE "id" = '${UUID('300000000001')}'`,
+    );
     await syncAiRegressionCase(UUID('300000000001'));
 
     const rows = await listAiRegressionCases({ status: 'dismissed' });

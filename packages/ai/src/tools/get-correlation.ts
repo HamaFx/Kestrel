@@ -76,7 +76,8 @@ export const getCorrelationTool = tool({
         const b = SYMBOLS[j]!;
         const ra = candlesBySymbol.get(a);
         const rb = candlesBySymbol.get(b);
-        if (!ra || !rb || ra.returns.length < windowBars || rb.returns.length < windowBars) continue;
+        if (!ra || !rb || ra.returns.length < windowBars || rb.returns.length < windowBars)
+          continue;
         const r = pearson(ra.returns.slice(-windowBars), rb.returns.slice(-windowBars));
         matrix.push({ a, b, r: clampUnit(r) });
       }

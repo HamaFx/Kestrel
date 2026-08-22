@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-import {
-  RunSystemActionInputSchema,
-  type RunSystemActionOutput,
-  forbidden,
-} from '@kestrel/shared';
 import { fred } from '@kestrel/data';
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
+import { forbidden, RunSystemActionInputSchema, type RunSystemActionOutput } from '@kestrel/shared';
 import { tool } from 'ai';
 import { and, eq, gte, lte, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { getDb } from '../db';
 import { getToolContext, maybeGetToolContext } from '../tool-context';
 import { assertMutationIntent } from './mutation-guard';
 
@@ -75,7 +71,9 @@ export const runSystemActionTool = tool({
         throw new Error('FRED_API_KEY environment variable is not configured.');
       }
 
-      consoleLogs.push('[resonance-sync] Fetching historical observations from FRED (last 45 days)...');
+      consoleLogs.push(
+        '[resonance-sync] Fetching historical observations from FRED (last 45 days)...',
+      );
       const today = new Date();
       const endDateStr = today.toISOString().slice(0, 10);
       const startDate = new Date();
@@ -149,7 +147,9 @@ export const runSystemActionTool = tool({
         );
       }
 
-      consoleLogs.push('[resonance-sync] Computing Ordinary Least Squares (OLS) regression baseline...');
+      consoleLogs.push(
+        '[resonance-sync] Computing Ordinary Least Squares (OLS) regression baseline...',
+      );
       const n = aligned.length;
       let sumX = 0;
       let sumY = 0;
@@ -236,7 +236,9 @@ export const runSystemActionTool = tool({
     }
 
     const executionTimeMs = Date.now() - startedAt;
-    consoleLogs.push(`[devops] Action finished with status ${status.toUpperCase()} in ${executionTimeMs}ms`);
+    consoleLogs.push(
+      `[devops] Action finished with status ${status.toUpperCase()} in ${executionTimeMs}ms`,
+    );
 
     return {
       action,

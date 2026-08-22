@@ -19,17 +19,14 @@
 //
 // Dependency: model-helpers.ts (PROVIDER_PRIORITY, envFallbackKeys).
 
-import type { LanguageModel } from 'ai';
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import {
-  decryptByok,
-  type ByokPayload,
-  type ProviderId,
-} from '@kestrel/shared/encryption';
 import { PROVIDER_IDS } from '@kestrel/shared/byok';
+import { decryptByok, type ByokPayload, type ProviderId } from '@kestrel/shared/encryption';
+import type { LanguageModel } from 'ai';
+
 import { BYOK_PROVIDERS } from './byok-providers';
-import type { ResolveModelEnv } from './vertex-factory';
 import { envFallbackKeys } from './model-helpers';
+import type { ResolveModelEnv } from './vertex-factory';
 
 // -----------------------------------------------------------------------
 // Phase B — UX_UPGRADE_PLAN.md item 8.
@@ -114,10 +111,7 @@ export function resolveOverrideModel(args: {
   // model. We deliberately default to 'technical' (not the
   // routing domain) because the override is an explicit user
   // choice that bypasses the auto-router.
-  const modelId =
-    modelIdRaw && modelIdRaw.length > 0
-      ? modelIdRaw
-      : spec.defaultModels.technical;
+  const modelId = modelIdRaw && modelIdRaw.length > 0 ? modelIdRaw : spec.defaultModels.technical;
 
   if (!modelId) return null;
 

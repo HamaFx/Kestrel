@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -41,13 +57,16 @@ describe('resolveEvaluationAnnotations', () => {
     const annotations = resolveEvaluationAnnotations({
       results: [result()],
       feedbackByMessageId: new Map([
-        ['msg-1', feedback({
-          reviewStatus: 'reviewed',
-          reviewerLabel: 'fail',
-          reviewerId: 'reviewer-1',
-          issueCodes: ['unsafe_output'],
-          reviewerNote: 'cited an unsupported price',
-        })],
+        [
+          'msg-1',
+          feedback({
+            reviewStatus: 'reviewed',
+            reviewerLabel: 'fail',
+            reviewerId: 'reviewer-1',
+            issueCodes: ['unsafe_output'],
+            reviewerNote: 'cited an unsupported price',
+          }),
+        ],
       ]),
       caseToMessageId: { 'case-1': 'msg-1' },
     });
@@ -75,30 +94,45 @@ describe('resolveEvaluationAnnotations', () => {
   it('treats rejected feedback as no feedback and falls back to the eval outcome', () => {
     const annotations = resolveEvaluationAnnotations({
       results: [result({ ok: true, assertions: [] })],
-      feedbackByMessageId: new Map([['msg-1', feedback({ reviewStatus: 'rejected', rating: 'negative' })]]),
+      feedbackByMessageId: new Map([
+        ['msg-1', feedback({ reviewStatus: 'rejected', rating: 'negative' })],
+      ]),
       caseToMessageId: { 'case-1': 'msg-1' },
     });
     expect(annotations['case-1']).toEqual({ label: 'pass' });
   });
 
   it('falls back to pass only when transport ok and no assertions failed', () => {
-    expect(resolveEvaluationAnnotations({
-      results: [result({ ok: true, assertions: [] })],
-    })['case-1']).toEqual({ label: 'pass' });
+    expect(
+      resolveEvaluationAnnotations({
+        results: [result({ ok: true, assertions: [] })],
+      })['case-1'],
+    ).toEqual({ label: 'pass' });
 
-    expect(resolveEvaluationAnnotations({
-      results: [result({ ok: true, assertions: [{ kind: 'missing_tool', detail: 'get_price' }] })],
-    })['case-1']).toEqual({ label: 'needs_review' });
+    expect(
+      resolveEvaluationAnnotations({
+        results: [
+          result({ ok: true, assertions: [{ kind: 'missing_tool', detail: 'get_price' }] }),
+        ],
+      })['case-1'],
+    ).toEqual({ label: 'needs_review' });
 
-    expect(resolveEvaluationAnnotations({
-      results: [result({ ok: false, error: 'boom' })],
-    })['case-1']).toEqual({ label: 'needs_review' });
+    expect(
+      resolveEvaluationAnnotations({
+        results: [result({ ok: false, error: 'boom' })],
+      })['case-1'],
+    ).toEqual({ label: 'needs_review' });
   });
 
   it('leaves unlinked cases to the eval fallback', () => {
     const annotations = resolveEvaluationAnnotations({
-      results: [result({ ok: false, error: 'boom' }), result({ id: 'case-2', ok: true, assertions: [] })],
-      feedbackByMessageId: new Map([['msg-1', feedback({ reviewStatus: 'reviewed', reviewerLabel: 'pass' })]]),
+      results: [
+        result({ ok: false, error: 'boom' }),
+        result({ id: 'case-2', ok: true, assertions: [] }),
+      ],
+      feedbackByMessageId: new Map([
+        ['msg-1', feedback({ reviewStatus: 'reviewed', reviewerLabel: 'pass' })],
+      ]),
       caseToMessageId: {}, // nothing linked
     });
     expect(annotations['case-1']).toEqual({ label: 'needs_review' });
@@ -109,7 +143,14 @@ describe('resolveEvaluationAnnotations', () => {
     const annotations = resolveEvaluationAnnotations({
       results: [result({ id: 'msg-9', ok: true, assertions: [] })],
       feedbackByMessageId: new Map([
-        ['msg-9', feedback({ reviewStatus: 'reviewed', reviewerLabel: 'fail', issueCodes: ['wrong-price'] })],
+        [
+          'msg-9',
+          feedback({
+            reviewStatus: 'reviewed',
+            reviewerLabel: 'fail',
+            issueCodes: ['wrong-price'],
+          }),
+        ],
       ]),
       // No caseToMessageId — the feedback-only export path relies on identity.
     });
@@ -140,13 +181,15 @@ describe('assembleTrainingDataset', () => {
   });
 
   it('refuses to assemble a dataset when a record still needs review', () => {
-    expect(() => assembleTrainingDataset({
-      results: [result()],
-      datasetVersion: '2026-08-cases',
-      feedbackByMessageId: new Map([['msg-1', feedback({ rating: 'negative' })]]),
-      caseToMessageId: { 'case-1': 'msg-1' },
-      requireApprovedAnnotations: true,
-    })).toThrow('approved reviewer label');
+    expect(() =>
+      assembleTrainingDataset({
+        results: [result()],
+        datasetVersion: '2026-08-cases',
+        feedbackByMessageId: new Map([['msg-1', feedback({ rating: 'negative' })]]),
+        caseToMessageId: { 'case-1': 'msg-1' },
+        requireApprovedAnnotations: true,
+      }),
+    ).toThrow('approved reviewer label');
   });
 
   it('never includes raw prompt or answer text in the default export', () => {

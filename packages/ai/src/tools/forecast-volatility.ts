@@ -26,7 +26,6 @@
 
 import { getCandles, getPrice } from '@kestrel/data';
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import { atr } from '@kestrel/indicators';
 import {
   ForecastVolatilityInputSchema,
@@ -40,6 +39,7 @@ import { tool } from 'ai';
 import { and, asc, gte, inArray, lte } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { getDb } from '../db';
 import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = ForecastVolatilityInputSchema;
@@ -83,8 +83,7 @@ export const forecastVolatilityTool = tool({
 
     const baselineAtrSeries = baselineCandles.length >= 30 ? atr(baselineCandles, 14) : [];
     const baselineLast = baselineAtrSeries.length > 0 ? lastFiniteNumber(baselineAtrSeries) : null;
-    const atrPipsBaseline30d =
-      baselineLast !== null ? baselineLast / pipSize(symbol) : null;
+    const atrPipsBaseline30d = baselineLast !== null ? baselineLast / pipSize(symbol) : null;
 
     // High-impact events inside the horizon window.
     const events = await listHighImpactEventsInWindow({

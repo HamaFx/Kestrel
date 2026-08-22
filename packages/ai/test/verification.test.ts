@@ -17,8 +17,9 @@
 // P3-13 — Unit tests for citation enforcement (verification.ts).
 
 import { describe, expect, it } from 'vitest';
-import { PRICE_TOKEN, EVENT_TOKEN, ATTRIBUTION_TOKEN } from '../src/verification/regex';
+
 import { collectFindings } from '../src/verification';
+import { ATTRIBUTION_TOKEN, EVENT_TOKEN, PRICE_TOKEN } from '../src/verification/regex';
 
 describe('PRICE_TOKEN', () => {
   it('matches gold prices in the 1xxx-4xxx range', () => {
@@ -91,21 +92,25 @@ describe('collectFindings', () => {
 
   it('does not flag when numeric tools were invoked', () => {
     const text = 'Gold is trading at 2650.50 with support at 2620.00.';
-    const responseMessages = [{
-      content: [{ type: 'tool-call', toolName: 'get_price' }],
-    }];
+    const responseMessages = [
+      {
+        content: [{ type: 'tool-call', toolName: 'get_price' }],
+      },
+    ];
     const result = collectFindings({ text, responseMessages });
     expect(result).toBeNull();
   });
 
   it('returns the invoked tool names in toolsInvoked', () => {
     const text = 'Gold at 2650.50';
-    const responseMessages = [{
-      content: [
-        { type: 'tool-call', toolName: 'get_price' },
-        { type: 'tool-call', toolName: 'get_candles' },
-      ],
-    }];
+    const responseMessages = [
+      {
+        content: [
+          { type: 'tool-call', toolName: 'get_price' },
+          { type: 'tool-call', toolName: 'get_candles' },
+        ],
+      },
+    ];
     // Price claims are covered by the numeric tools, so no findings expected.
     const result = collectFindings({ text, responseMessages });
     expect(result).toBeNull();
@@ -128,9 +133,11 @@ describe('collectFindings', () => {
 
   it('does not flag event claims when news tools were invoked', () => {
     const text = 'The NFP report suggests...';
-    const responseMessages = [{
-      content: [{ type: 'tool-call', toolName: 'get_news' }],
-    }];
+    const responseMessages = [
+      {
+        content: [{ type: 'tool-call', toolName: 'get_news' }],
+      },
+    ];
     const result = collectFindings({ text, responseMessages });
     expect(result).toBeNull();
   });

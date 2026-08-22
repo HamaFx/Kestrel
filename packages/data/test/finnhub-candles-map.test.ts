@@ -20,8 +20,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { synth4HFrom1H, type FinnhubCandle } from '../src/providers/finnhub/rest';
 import { toFinnhubSymbol } from '../src/providers/finnhub/map';
+import { synth4HFrom1H, type FinnhubCandle } from '../src/providers/finnhub/rest';
 
 function bar(tIsoUtc: string, o: number, h: number, l: number, c: number, v = 1): FinnhubCandle {
   return { t: new Date(tIsoUtc).getTime(), o, h, l, c, v };

@@ -18,8 +18,8 @@
 // operational tables (rate_limits, chat_telemetry, tool_telemetry,
 // diagnostic_traces, provider_daily_quota, and recovery ledgers).
 
-import { runRetentionCleanup, runVacuumAnalyze } from '@kestrel/db';
 import { pruneMastraStorage } from '@kestrel/ai/mastra';
+import { runRetentionCleanup, runVacuumAnalyze } from '@kestrel/db';
 
 import type { JobContext, JobResult } from './types.js';
 
@@ -46,7 +46,9 @@ export async function runRetention(ctx: JobContext): Promise<JobResult> {
   ctx.log.info('Mastra storage pruning', mastraRetention);
 
   return {
-    processed: Object.values(result).filter((value): value is number => typeof value === 'number').reduce((sum, value) => sum + value, 0),
+    processed: Object.values(result)
+      .filter((value): value is number => typeof value === 'number')
+      .reduce((sum, value) => sum + value, 0),
     note: result.note,
   };
 }

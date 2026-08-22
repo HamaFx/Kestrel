@@ -17,9 +17,10 @@
 
 // @vitest-environment jsdom
 
-import React from 'react';
-import { afterEach, describe, it, expect } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
+import React from 'react';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { Sparkline } from '@/components/ui/sparkline';
 
 afterEach(cleanup);
@@ -78,9 +79,7 @@ describe('Sparkline', () => {
   });
 
   it('applies className to the SVG', () => {
-    const { container } = render(
-      <Sparkline values={[10, 20]} className="my-sparkline" />,
-    );
+    const { container } = render(<Sparkline values={[10, 20]} className="my-sparkline" />);
     const svg = container.querySelector('svg');
     expect(svg!.classList.contains('my-sparkline')).toBe(true);
   });

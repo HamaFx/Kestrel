@@ -17,6 +17,7 @@
 // PF-01 Phase 2 — Journal entry query helpers.
 
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type JournalRow = typeof schema.journalEntries.$inferSelect;
@@ -26,7 +27,10 @@ export async function listJournalEntries(
   userId: string,
   opts?: { symbol?: string; limit?: number; offset?: number },
 ): Promise<JournalRow[]> {
-  const conditions = [eq(schema.journalEntries.userId, userId), isNull(schema.journalEntries.deletedAt)];
+  const conditions = [
+    eq(schema.journalEntries.userId, userId),
+    isNull(schema.journalEntries.deletedAt),
+  ];
   if (opts?.symbol) conditions.push(eq(schema.journalEntries.symbol, opts.symbol));
   const db = getDb();
   return db

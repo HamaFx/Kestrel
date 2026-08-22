@@ -18,16 +18,16 @@
 // Imported by tools/index.ts for self-registration and also exposed
 // as a sub-path export: @kestrel/ai/tools/market
 
-import { getPriceTool } from './get-price';
 import { getCandlesTool } from './get-candles';
-import { getIndicatorsTool } from './get-indicators';
-import { getMarketStructureTool } from './get-market-structure';
 import { getCorrelationTool } from './get-correlation';
 import { getCoTTool } from './get-cot';
+import { getIndicatorsTool } from './get-indicators';
 import { getIntermarketTool } from './get-intermarket';
 import { getIntermarketResonanceTool } from './get-intermarket-resonance';
-import { getSessionLevelsTool } from './get-session-levels';
+import { getMarketStructureTool } from './get-market-structure';
+import { getPriceTool } from './get-price';
 import { getSeasonalityTool } from './get-seasonality';
+import { getSessionLevelsTool } from './get-session-levels';
 import { toolRegistry } from './registry';
 
 const marketTools = [

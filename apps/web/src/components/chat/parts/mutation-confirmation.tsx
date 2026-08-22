@@ -11,14 +11,27 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { MutationConfirmResultSchema, type MutationDraftPayload } from '@kestrel/shared';
 import { useCallback, useEffect, useState } from 'react';
-
-import type { MutationDraftPayload } from '@kestrel/shared';
-import { MutationConfirmResultSchema } from '@kestrel/shared';
-import { apiMutate } from '@/lib/api-client';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { apiMutate } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
 
 const KIND_LABELS: Record<MutationDraftPayload['mutation'], string> = {
@@ -103,7 +116,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-fg-muted text-xs">{KIND_LABELS[payload.mutation]} confirmed</div>
-            <div className="text-fg mt-0.5 break-words text-sm font-medium">{state.summary}</div>
+            <div className="text-fg mt-0.5 text-sm font-medium break-words">{state.summary}</div>
           </div>
         </div>
       </Card>
@@ -119,7 +132,10 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-fg-muted text-xs">Not executed</div>
-            <div className="text-fg mt-0.5 text-sm">The {(KIND_LABELS[payload.mutation] ?? 'mutation').toLowerCase()} was cancelled. Nothing was changed.</div>
+            <div className="text-fg mt-0.5 text-sm">
+              The {(KIND_LABELS[payload.mutation] ?? 'mutation').toLowerCase()} was cancelled.
+              Nothing was changed.
+            </div>
           </div>
         </div>
       </Card>
@@ -138,7 +154,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-fg-muted text-xs">Confirmation required</div>
-          <div className="text-fg mt-0.5 break-words text-sm font-medium">{payload.summary}</div>
+          <div className="text-fg mt-0.5 text-sm font-medium break-words">{payload.summary}</div>
           <div className="text-fg-muted mt-1 text-xs">
             {expired
               ? 'This confirmation has expired. Retry the request to get a fresh one.'
@@ -148,7 +164,10 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
       </div>
 
       {state.phase === 'error' && (
-        <div role="alert" className="border-danger/30 bg-danger/10 text-danger mt-2 rounded-sm border px-2 py-1.5 text-xs">
+        <div
+          role="alert"
+          className="border-danger/30 bg-danger/10 text-danger mt-2 rounded-sm border px-2 py-1.5 text-xs"
+        >
           {state.message}
         </div>
       )}
@@ -160,7 +179,9 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
           disabled={state.phase === 'confirming' || expired}
           className={cn('min-h-[44px] min-w-[44px]')}
         >
-          {state.phase === 'confirming' ? 'Confirming…' : (payload.confirmLabel ?? `Confirm ${KIND_LABELS[payload.mutation]}`)}
+          {state.phase === 'confirming'
+            ? 'Confirming…'
+            : (payload.confirmLabel ?? `Confirm ${KIND_LABELS[payload.mutation]}`)}
         </Button>
         <Button
           size="sm"

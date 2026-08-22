@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // OBS-12 (Phase 5.4): Auth anomaly metrics + threshold alerting.
@@ -16,11 +32,7 @@
 import * as Sentry from '@sentry/nextjs';
 
 type AuthEventType =
-  | 'login_success'
-  | 'login_failure'
-  | 'account_locked'
-  | '2fa_failure'
-  | 'unauthorized_401';
+  'login_success' | 'login_failure' | 'account_locked' | '2fa_failure' | 'unauthorized_401';
 
 interface AuthEvent {
   type: AuthEventType;
@@ -40,7 +52,7 @@ const THRESHOLDS = {
   // 2FA failures: >15 in 5 min = 2FA bypass attempt
   TWO_FA_FAILURE: 15,
   // Login success rate drops below 30% with >20 total attempts
-  MIN_LOGIN_SUCCESS_RATE: 0.30,
+  MIN_LOGIN_SUCCESS_RATE: 0.3,
   MIN_LOGIN_ATTEMPTS_FOR_RATE: 20,
 };
 
@@ -126,7 +138,7 @@ function checkThresholds(): void {
     totalLoginAttempts >= THRESHOLDS.MIN_LOGIN_ATTEMPTS_FOR_RATE &&
     counts.login_success / totalLoginAttempts < THRESHOLDS.MIN_LOGIN_SUCCESS_RATE
   ) {
-    const successRate = (counts.login_success / totalLoginAttempts * 100).toFixed(1);
+    const successRate = ((counts.login_success / totalLoginAttempts) * 100).toFixed(1);
     maybeAlert(
       'login_failure',
       `Auth anomaly: login success rate dropped to ${successRate}% (${counts.login_success}/${totalLoginAttempts} in 5 min)`,

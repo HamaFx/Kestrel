@@ -26,23 +26,23 @@
 //     surface it via `<StaleIndicator/>`.
 //
 // Phase 8 PR-8 final order:
-  //   1. live-ticks   — Postgres snapshot table maintained by the worker.
-  //                     When the row is fresh, /api/market/price is served
-  //                     directly from Postgres with zero outbound HTTP.
-  //   2. biquote      — REST fallback when the worker is down.
-  //   3. finnhub      — third tier.
-  //
-  // Twelve Data removed — BiQuote primary covers forex/gold.
+//   1. live-ticks   — Postgres snapshot table maintained by the worker.
+//                     When the row is fresh, /api/market/price is served
+//                     directly from Postgres with zero outbound HTTP.
+//   2. biquote      — REST fallback when the worker is down.
+//   3. finnhub      — third tier.
+//
+// Twelve Data removed — BiQuote primary covers forex/gold.
 
 import { SymbolSchema, type Symbol, type Tick } from '@kestrel/shared';
 
 import { cacheKey, cacheTag, getDefaultCache, PRICE_TTL } from '../cache';
 import { runWithFailover, type ProviderAttempt } from '../failover';
-
 // P2-2 — Build provider attempts from the plugin registry instead of
 // hardcoded imports. Adding a new provider means registering a plugin
 // — no adapter code changes (OCP).
 import '../providers/provider-adapters'; // side-effect: register providers
+
 import { marketDataProviders } from '../providers/provider-registry';
 
 export interface GetPriceOptions {
@@ -126,17 +126,21 @@ export async function getPriceWithMeta(
         providers
           .filter((p) => p.supports?.(symbol) ?? true)
           .map((p) => ({
-          name: p.name,
-          pinned: p.pinned ?? false,
-          run: async () => {
-            const result = await p.fetchPrice(symbol, {
-              ...(opts.signal ? { signal: opts.signal } : {}),
-              baseUrl: keys.biquoteBaseUrl,
-              apiKey: keys.finnhub,
-            });
-            return { price: result.price, provider: result.provider, ageMs: result.ageMs ?? null };
-          },
-        }));
+            name: p.name,
+            pinned: p.pinned ?? false,
+            run: async () => {
+              const result = await p.fetchPrice(symbol, {
+                ...(opts.signal ? { signal: opts.signal } : {}),
+                baseUrl: keys.biquoteBaseUrl,
+                apiKey: keys.finnhub,
+              });
+              return {
+                price: result.price,
+                provider: result.provider,
+                ageMs: result.ageMs ?? null,
+              };
+            },
+          }));
 
       if (opts.marketDataProvider) {
         attempts.forEach((attempt) => {

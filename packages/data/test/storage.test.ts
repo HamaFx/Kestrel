@@ -1,6 +1,26 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { listStorageObjects, deleteStorageObjects } from '../src/adapters/storage';
-import type { SupabaseStorageEnv } from '../src/adapters/storage';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  deleteStorageObjects,
+  listStorageObjects,
+  type SupabaseStorageEnv,
+} from '../src/adapters/storage';
 
 const TEST_ENV: SupabaseStorageEnv = {
   SUPABASE_URL: 'https://test-project.supabase.co',
@@ -57,9 +77,9 @@ describe('listStorageObjects', () => {
     });
     vi.mocked(fetch).mockResolvedValueOnce(mockResponse);
 
-    await expect(
-      listStorageObjects(TEST_ENV, 'bucket', ''),
-    ).rejects.toThrow(/Supabase Storage list failed: HTTP 403/);
+    await expect(listStorageObjects(TEST_ENV, 'bucket', '')).rejects.toThrow(
+      /Supabase Storage list failed: HTTP 403/,
+    );
   });
 });
 
@@ -93,8 +113,8 @@ describe('deleteStorageObjects', () => {
     const mockResponse = new Response('Not Found', { status: 404 });
     vi.mocked(fetch).mockResolvedValueOnce(mockResponse);
 
-    await expect(
-      deleteStorageObjects(TEST_ENV, 'bucket', ['missing.txt']),
-    ).rejects.toThrow(/Supabase Storage delete failed: HTTP 404/);
+    await expect(deleteStorageObjects(TEST_ENV, 'bucket', ['missing.txt'])).rejects.toThrow(
+      /Supabase Storage delete failed: HTTP 404/,
+    );
   });
 });

@@ -76,13 +76,13 @@ If host port 5432 is already in use, set `POSTGRES_PUBLISHED_PORT=127.0.0.1:5433
 
 ### Services
 
-| Service | Port | Description |
-|---------|------|-------------|
-| `app` | 3000 | Next.js web application (frontend + API routes) |
-| `worker` | 8081 (healthcheck) | Background worker (SignalR consumer, tick processing, scheduled jobs) |
-| `db` | 5432 | PostgreSQL 16 with pgvector extension |
-| `backup` | — | Local compressed PostgreSQL dumps and freshness healthcheck |
-| `langfuse` | 3001 | Optional LLM observability (`observability` profile) |
+| Service    | Port               | Description                                                           |
+| ---------- | ------------------ | --------------------------------------------------------------------- |
+| `app`      | 3000               | Next.js web application (frontend + API routes)                       |
+| `worker`   | 8081 (healthcheck) | Background worker (SignalR consumer, tick processing, scheduled jobs) |
+| `db`       | 5432               | PostgreSQL 16 with pgvector extension                                 |
+| `backup`   | —                  | Local compressed PostgreSQL dumps and freshness healthcheck           |
+| `langfuse` | 3001               | Optional LLM observability (`observability` profile)                  |
 
 ### Architecture
 
@@ -190,10 +190,10 @@ See [13-first-run-setup.md](./13-first-run-setup.md) for detailed first-run info
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---------|-------------|-----|
-| `Invalid environment configuration: AUTH_SECRET must be at least 32 chars` | Secret not set or too short | Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `relation does not exist` on first boot | Migrations didn't run | `docker compose restart app` |
-| Worker can't connect to SignalR | BiQuote endpoint unreachable | Set `BIQUOTE_BASE_URL` in `.env` (BiQuote is keyless) |
-| `Daily AI budget exceeded` | Hit the spending cap | Wait until UTC midnight or raise `MAX_DAILY_USD` |
-| Encrypted BYOK keys unreadable after restart | `ENCRYPTION_SECRET` changed | Restore the original secret; for planned rotation, follow the guarded procedure in [10-security.md](./10-security.md) |
+| Symptom                                                                    | Likely cause                 | Fix                                                                                                                   |
+| -------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `Invalid environment configuration: AUTH_SECRET must be at least 32 chars` | Secret not set or too short  | Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`                              |
+| `relation does not exist` on first boot                                    | Migrations didn't run        | `docker compose restart app`                                                                                          |
+| Worker can't connect to SignalR                                            | BiQuote endpoint unreachable | Set `BIQUOTE_BASE_URL` in `.env` (BiQuote is keyless)                                                                 |
+| `Daily AI budget exceeded`                                                 | Hit the spending cap         | Wait until UTC midnight or raise `MAX_DAILY_USD`                                                                      |
+| Encrypted BYOK keys unreadable after restart                               | `ENCRYPTION_SECRET` changed  | Restore the original secret; for planned rotation, follow the guarded procedure in [10-security.md](./10-security.md) |
