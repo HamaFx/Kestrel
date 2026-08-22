@@ -15,11 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import type { Alert } from '@kestrel/shared';
+import {
+  IconActivity,
+  IconArrowRight,
+  IconBell,
+  IconBellOff,
+  IconBellRinging,
+  IconChartBar,
+  IconMail,
+  IconPlus,
+  IconRefresh,
+  IconTrash,
+  IconTrendingUp,
+} from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { IconActivity,  IconChartBar,  IconBell,  IconBellOff,  IconBellRinging,  IconMail,  IconPlus,  IconRefresh,  IconArrowRight,  IconTrash,  IconTrendingUp } from '@tabler/icons-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -35,10 +46,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Segmented } from '@/components/ui/segmented';
 import { StaleIndicator } from '@/components/ui/stale-indicator';
 import { Tooltip } from '@/components/ui/tooltip';
-import { cn } from '@/lib/cn';
 import { apiFetch, apiMutate } from '@/lib/api-client';
+import { cn } from '@/lib/cn';
 import { formatRelative } from '@/lib/format';
-import { useMemo } from 'react';
 
 import { AlertForm } from './alert-form';
 
@@ -130,11 +140,15 @@ export function AlertList() {
     if (ok) remove.mutate(alert.id);
   }
 
-  const filteredAlerts = useMemo(() => data?.alerts.filter((a) => {
-    if (filter === 'active') return a.active && !a.firedAt;
-    if (filter === 'past') return !!a.firedAt || !a.active;
-    return true;
-  }), [data?.alerts, filter]);
+  const filteredAlerts = useMemo(
+    () =>
+      data?.alerts.filter((a) => {
+        if (filter === 'active') return a.active && !a.firedAt;
+        if (filter === 'past') return !!a.firedAt || !a.active;
+        return true;
+      }),
+    [data?.alerts, filter],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -163,9 +177,13 @@ export function AlertList() {
       </div>
 
       {isLoading ? (
-        <p role="status" className="text-fg-muted text-sm px-1">Loading alerts…</p>
+        <p role="status" className="text-fg-muted px-1 text-sm">
+          Loading alerts…
+        </p>
       ) : isError ? (
-        <p className="text-danger text-sm px-1" role="alert">Failed to load: {(error as Error)?.message}</p>
+        <p className="text-danger px-1 text-sm" role="alert">
+          Failed to load: {(error as Error)?.message}
+        </p>
       ) : data?.alerts.length === 0 ? (
         <EmptyState
           tone="muted"
@@ -231,7 +249,6 @@ export function AlertList() {
         </DrawerContent>
       </Drawer>
 
-
       {confirmEl}
     </div>
   );
@@ -284,7 +301,8 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
         const commitThreshold = 0.3;
         if (ratio < commitThreshold && !isTriggered) {
           isTriggered = true;
-          const direction = (entry.boundingClientRect.x - (entry.rootBounds?.x ?? 0)) > 0 ? 'left' : 'right';
+          const direction =
+            entry.boundingClientRect.x - (entry.rootBounds?.x ?? 0) > 0 ? 'left' : 'right';
 
           if (direction === 'left') {
             onToggle();
@@ -300,7 +318,7 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
       {
         root: track,
         threshold: [0.3, 0.95],
-      }
+      },
     );
 
     observer.observe(content);
@@ -313,18 +331,18 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
   }, [onToggle, onDelete]);
 
   return (
-    <li className="relative overflow-hidden rounded-sm border border-border bg-bg-elev-1 transition-all duration-200 hover:shadow-lg">
+    <li className="border-border bg-bg-elev-1 relative overflow-hidden rounded-sm border transition-all duration-200 hover:shadow-lg">
       <div
         ref={trackRef}
-        className="grid overflow-x-auto scrollbar-none overscroll-behavior-x-none select-none"
+        className="overscroll-behavior-x-none grid scrollbar-none overflow-x-auto select-none"
         style={{
           gridTemplateColumns: '100% 100% 100%',
           scrollSnapType: 'x mandatory',
         }}
       >
         {/* Left Option (Re-arm / Pause) */}
-        <div 
-          className="flex w-full items-center justify-start pl-6 bg-bg-elev-2 text-fg"
+        <div
+          className="bg-bg-elev-2 text-fg flex w-full items-center justify-start pl-6"
           style={{ scrollSnapAlign: 'start' }}
         >
           <StatusIcon className="size-5 animate-pulse" />
@@ -334,7 +352,7 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
         <div
           ref={contentRef}
           className={cn(
-            'flex w-full items-start gap-3 p-4 bg-bg-elev-1 transition-opacity duration-200',
+            'bg-bg-elev-1 flex w-full items-start gap-3 p-4 transition-opacity duration-200',
             !alert.active && 'opacity-60 saturate-50',
           )}
           style={{ scrollSnapAlign: 'center' }}
@@ -342,7 +360,7 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
           {/* Touch-swipe grabber — visible only on touch devices */}
           <span
             aria-hidden
-            className="self-stretch flex items-center touch-swipe-hint text-fg-muted/30"
+            className="touch-swipe-hint text-fg-muted/30 flex items-center self-stretch"
           >
             ≡
           </span>
@@ -366,8 +384,8 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
             </span>
             {alert.active && !alert.firedAt && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-sm bg-fg opacity-75"></span>
-                <span className="relative inline-flex rounded-sm h-3 w-3 bg-fg border-2 border-bg"></span>
+                <span className="bg-fg absolute inline-flex h-full w-full animate-ping rounded-sm opacity-75"></span>
+                <span className="bg-fg border-bg relative inline-flex h-3 w-3 rounded-sm border-2"></span>
               </span>
             )}
           </div>
@@ -378,7 +396,7 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
                 <RuleIcon className="text-fg-muted size-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">{describe(alert)}</span>
               </div>
-              <div className="flex items-center gap-1 ml-1.5">
+              <div className="ml-1.5 flex items-center gap-1">
                 {alert.channels.includes('email') && (
                   <IconMail className="text-fg-muted size-3.5" strokeWidth={2} />
                 )}
@@ -405,7 +423,11 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
                 aria-label={alert.active ? 'Pause alert' : 'Re-arm alert'}
                 className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex size-10 items-center justify-center rounded-sm transition-colors"
               >
-                {alert.active ? <IconBellOff className="size-4" /> : <IconRefresh className="size-4" />}
+                {alert.active ? (
+                  <IconBellOff className="size-4" />
+                ) : (
+                  <IconRefresh className="size-4" />
+                )}
               </button>
             </Tooltip>
             <Tooltip label="Delete">
@@ -422,8 +444,8 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
         </div>
 
         {/* Right Option (Delete) */}
-        <div 
-          className="flex w-full items-center justify-end pr-6 bg-danger/10 text-danger"
+        <div
+          className="bg-danger/10 text-danger flex w-full items-center justify-end pr-6"
           style={{ scrollSnapAlign: 'end' }}
         >
           <IconTrash className="size-5 animate-pulse" />

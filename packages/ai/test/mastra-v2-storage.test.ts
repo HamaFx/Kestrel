@@ -1,11 +1,26 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
-
 import { LibSQLStore } from '@mastra/libsql';
 import { PostgresStore } from '@mastra/pg';
+import { describe, expect, it } from 'vitest';
 
 import {
   createMastraStorage,
@@ -17,7 +32,10 @@ import {
 // the store's own client would see different databases), so tests use a
 // file-backed libsql URL.
 function tempLibsqlUrl(): { url: string; cleanup: () => void } {
-  const file = join(tmpdir(), `kestrel-mastra-storage-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+  const file = join(
+    tmpdir(),
+    `kestrel-mastra-storage-${Date.now()}-${Math.random().toString(36).slice(2)}.db`,
+  );
   return { url: `file:${file}`, cleanup: () => rmSync(file, { force: true }) };
 }
 

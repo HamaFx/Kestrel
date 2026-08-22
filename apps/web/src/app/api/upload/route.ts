@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // POST /api/upload — chat-attachment image uploads.
@@ -14,15 +30,15 @@
 // cross-site form posts. (The §22 CSRF token would add belt-and-
 // braces double-submit on top.)
 
-import { validationError, providerUnavailable, AppError } from '@/lib/services/api-boundary';
-
 import { errorResponse, withAuth } from '@/lib/api';
 import { getServerEnv } from '@/lib/env';
-import { withRateLimit } from '@/lib/services/api-boundary';
 import {
-  CHAT_IMAGE_MAX_BYTES,
-  uploadChatImage,
-} from '@/lib/storage';
+  AppError,
+  providerUnavailable,
+  validationError,
+  withRateLimit,
+} from '@/lib/services/api-boundary';
+import { CHAT_IMAGE_MAX_BYTES, uploadChatImage } from '@/lib/storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,7 +63,10 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // STAB-12: Rate limit uploads — 20 per user per minute.
     const rl = await withRateLimit(user.userId, 'upload', 20);
     if (!rl.allowed) {
-      return errorResponse(new AppError('RATE_LIMITED', 'Too many uploads. Please wait a moment.', 429), req);
+      return errorResponse(
+        new AppError('RATE_LIMITED', 'Too many uploads. Please wait a moment.', 429),
+        req,
+      );
     }
 
     // Pre-check the content-length header so an oversize request is
@@ -58,9 +77,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     if (lenHeader) {
       const declared = Number(lenHeader);
       if (Number.isFinite(declared) && declared > MAX_REQUEST_BYTES) {
-        throw validationError(
-          `Upload too large (max ${CHAT_IMAGE_MAX_BYTES} bytes per file)`,
-        );
+        throw validationError(`Upload too large (max ${CHAT_IMAGE_MAX_BYTES} bytes per file)`);
       }
     }
 
@@ -78,9 +95,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     }
 
     if (file.size > CHAT_IMAGE_MAX_BYTES) {
-      throw validationError(
-        `Image exceeds ${CHAT_IMAGE_MAX_BYTES} bytes (got ${file.size})`,
-      );
+      throw validationError(`Image exceeds ${CHAT_IMAGE_MAX_BYTES} bytes (got ${file.size})`);
     }
 
     const mediaType = file.type || 'application/octet-stream';
@@ -89,7 +104,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     }
 
     let uploadBody: ArrayBuffer | Uint8Array = await file.arrayBuffer();
-    
+
     // PERF-09: Image optimization with sharp
     if (mediaType.startsWith('image/')) {
       const sharp = (await import('sharp')).default;
@@ -109,7 +124,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         userId: user.userId,
         body: uploadBody,
         mediaType: mediaType.startsWith('image/') ? 'image/webp' : mediaType,
-        filename: file.name ? file.name.replace(/\.[^/.]+$/, "") + ".webp" : 'attachment.webp',
+        filename: file.name ? file.name.replace(/\.[^/.]+$/, '') + '.webp' : 'attachment.webp',
       },
     );
 

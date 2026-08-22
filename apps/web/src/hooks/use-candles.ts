@@ -24,12 +24,11 @@
 // chart that's mounted but offscreen (in a tab, behind a drawer,
 // scrolled past) stops polling. Pair with an `IntersectionObserver`
 // in the consumer.
-
 import type { Candle, Symbol, Timeframe } from '@kestrel/shared';
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchCandles } from '@/lib/market-client';
 import { refetchIntervalFor } from '@/lib/datetime';
+import { fetchCandles } from '@/lib/market-client';
 
 export interface UseCandlesOptions {
   /**

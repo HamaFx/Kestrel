@@ -23,9 +23,9 @@
 
 import { createHash } from 'node:crypto';
 
-import { LangfuseClient } from '@langfuse/client';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { metrics } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { LangfuseClient } from '@langfuse/client';
 
 import type { AssembledDataset } from './assemble-dataset';
 import type { TrainingExportRecord } from './training-export';
@@ -219,7 +219,12 @@ export function createLangfuseClientFromEnv(): LangfuseDatasetClient | null {
 export class LangfuseSdkClient implements LangfuseDatasetClient {
   private readonly client: LangfuseClient;
 
-  constructor(params?: { publicKey?: string; secretKey?: string; baseUrl?: string; timeout?: number }) {
+  constructor(params?: {
+    publicKey?: string;
+    secretKey?: string;
+    baseUrl?: string;
+    timeout?: number;
+  }) {
     this.client = new LangfuseClient({
       ...(params?.publicKey ? { publicKey: params.publicKey } : {}),
       ...(params?.secretKey ? { secretKey: params.secretKey } : {}),
@@ -228,7 +233,11 @@ export class LangfuseSdkClient implements LangfuseDatasetClient {
     });
   }
 
-  async ensureDataset(datasetName: string, description?: string, metadata?: unknown): Promise<void> {
+  async ensureDataset(
+    datasetName: string,
+    description?: string,
+    metadata?: unknown,
+  ): Promise<void> {
     try {
       await this.client.api.datasets.create({
         name: datasetName,

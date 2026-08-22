@@ -1,12 +1,33 @@
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconCheck, IconCopy, IconLoader2, IconShield, IconShieldOff } from '@tabler/icons-react';
 import { useState } from 'react';
-import {IconShield, IconShieldOff, IconLoader2, IconCheck, IconCopy} from '@tabler/icons-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { setupTwoFactorAction, verifyTwoFactorAction, regenerateBackupCodesAction, disableTwoFactorAction } from '../../actions';
+
+import {
+  disableTwoFactorAction,
+  regenerateBackupCodesAction,
+  setupTwoFactorAction,
+  verifyTwoFactorAction,
+} from '../../actions';
 
 interface TwoFactorSetupProps {
   enabled: boolean;
@@ -32,7 +53,9 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
         setBackupCodes(res.data.backupCodes);
         setStep('show_qr');
       } else {
-        toast.error('error' in res ? (res.error ?? 'Failed to start setup') : 'Failed to start setup');
+        toast.error(
+          'error' in res ? (res.error ?? 'Failed to start setup') : 'Failed to start setup',
+        );
       }
     } catch {
       toast.error('Failed to start 2FA setup');
@@ -106,11 +129,11 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
 
   if (enabled && step !== 'done') {
     return (
-      <div className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-4">
+      <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4">
         <div className="flex items-center gap-2">
-          <IconShield className="size-4 text-success" />
-          <span className="text-sm font-medium text-fg">Two-Factor Authentication</span>
-          <span className="rounded-sm bg-success/15 px-2 py-0.5 text-xs font-medium text-success ml-auto">
+          <IconShield className="text-success size-4" />
+          <span className="text-fg text-sm font-medium">Two-Factor Authentication</span>
+          <span className="bg-success/15 text-success ml-auto rounded-sm px-2 py-0.5 text-xs font-medium">
             Enabled
           </span>
         </div>
@@ -124,7 +147,7 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
             placeholder="Enter 6-digit code to disable"
             maxLength={6}
             aria-label="Enter 6-digit code to disable two-factor authentication"
-            className="bg-bg-elev-1 h-9 text-sm w-40"
+            className="bg-bg-elev-1 h-9 w-40 text-sm"
           />
           <Button
             type="button"
@@ -134,7 +157,11 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
             disabled={disabling || token.length !== 6}
             className="w-fit"
           >
-            {disabling ? <IconLoader2 className="size-3.5 animate-spin mr-1" /> : <IconShieldOff className="size-3.5 mr-1" />}
+            {disabling ? (
+              <IconLoader2 className="mr-1 size-3.5 animate-spin" />
+            ) : (
+              <IconShieldOff className="mr-1 size-3.5" />
+            )}
             Disable 2FA
           </Button>
         </div>
@@ -144,25 +171,26 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
 
   if (step === 'done') {
     return (
-      <div className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-3">
+      <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4">
         <div className="flex items-center gap-2">
-          <IconCheck className="size-4 text-success" />
-          <span className="text-sm font-medium text-fg">Two-Factor Authentication</span>
-          <span className="rounded-sm bg-success/15 px-2 py-0.5 text-xs font-medium text-success ml-auto">
+          <IconCheck className="text-success size-4" />
+          <span className="text-fg text-sm font-medium">Two-Factor Authentication</span>
+          <span className="bg-success/15 text-success ml-auto rounded-sm px-2 py-0.5 text-xs font-medium">
             Enabled
           </span>
         </div>
         <p className="text-caption text-fg-subtle">
-          2FA is active. Next time you perform a sensitive action (export keys, delete account), you'll need your authenticator app code.
+          2FA is active. Next time you perform a sensitive action (export keys, delete account),
+          you'll need your authenticator app code.
         </p>
         {backupCodes.length > 0 && (
-          <div className="w-full border border-border bg-bg rounded-sm p-3 flex flex-col gap-2">
+          <div className="border-border bg-bg flex w-full flex-col gap-2 rounded-sm border p-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-fg">Backup Codes</span>
+              <span className="text-fg text-sm font-medium">Backup Codes</span>
               <button
                 type="button"
                 onClick={handleCopyBackupCodes}
-                className="p-1 text-fg-subtle hover:text-fg cursor-pointer"
+                className="text-fg-subtle hover:text-fg cursor-pointer p-1"
                 aria-label="Copy all backup codes"
               >
                 <IconCopy className="size-3.5" />
@@ -171,11 +199,11 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
             <p className="text-caption text-fg-subtle">
               Save these single-use codes in a safe place. They are only shown once.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {backupCodes.map((code) => (
                 <code
                   key={code}
-                  className="text-xs bg-bg-elev-2 px-2 py-1 rounded-sm border border-border font-mono text-center select-all"
+                  className="bg-bg-elev-2 border-border rounded-sm border px-2 py-1 text-center font-mono text-xs select-all"
                 >
                   {code}
                 </code>
@@ -198,58 +226,62 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
 
   if (step === 'show_qr' && qrDataUrl) {
     return (
-      <div className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-4">
+      <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4">
         <div className="flex items-center gap-2">
-          <IconShield className="size-4 text-fg" />
-          <span className="text-sm font-medium text-fg">Set Up Two-Factor Authentication</span>
-        </div>          <div className="flex flex-col items-center gap-3">
-            <img src={qrDataUrl} alt="Scan this QR code with your authenticator app" className="size-40 border border-border rounded-sm" />
-            <p className="text-caption text-fg-subtle text-center max-w-sm">
-              Scan this QR code with your authenticator app (e.g., Google Authenticator, Authy).
-            </p>
-            <div className="flex items-center gap-2">
-              <code className="text-xs bg-bg-elev-2 px-2 py-1 rounded-sm border border-border font-mono select-all">
-                {secret}
-              </code>
+          <IconShield className="text-fg size-4" />
+          <span className="text-fg text-sm font-medium">Set Up Two-Factor Authentication</span>
+        </div>{' '}
+        <div className="flex flex-col items-center gap-3">
+          <img
+            src={qrDataUrl}
+            alt="Scan this QR code with your authenticator app"
+            className="border-border size-40 rounded-sm border"
+          />
+          <p className="text-caption text-fg-subtle max-w-sm text-center">
+            Scan this QR code with your authenticator app (e.g., Google Authenticator, Authy).
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="bg-bg-elev-2 border-border rounded-sm border px-2 py-1 font-mono text-xs select-all">
+              {secret}
+            </code>
+            <button
+              type="button"
+              onClick={handleCopySecret}
+              className="text-fg-subtle hover:text-fg cursor-pointer p-1"
+              aria-label="Copy secret"
+            >
+              <IconCopy className="size-3.5" />
+            </button>
+          </div>
+        </div>
+        {backupCodes.length > 0 && (
+          <div className="border-border bg-bg-elev-1 flex w-full flex-col gap-2 rounded-sm border p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-fg text-sm font-medium">Backup Codes</span>
               <button
                 type="button"
-                onClick={handleCopySecret}
-                className="p-1 text-fg-subtle hover:text-fg cursor-pointer"
-                aria-label="Copy secret"
+                onClick={handleCopyBackupCodes}
+                className="text-fg-subtle hover:text-fg cursor-pointer p-1"
+                aria-label="Copy all backup codes"
               >
                 <IconCopy className="size-3.5" />
               </button>
             </div>
-          </div>
-
-          {backupCodes.length > 0 && (
-            <div className="w-full border border-border bg-bg-elev-1 rounded-sm p-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-fg">Backup Codes</span>
-                <button
-                  type="button"
-                  onClick={handleCopyBackupCodes}
-                  className="p-1 text-fg-subtle hover:text-fg cursor-pointer"
-                  aria-label="Copy all backup codes"
+            <p className="text-caption text-fg-subtle">
+              Save these single-use codes in a safe place. They are only shown once.
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {backupCodes.map((code) => (
+                <code
+                  key={code}
+                  className="bg-bg-elev-2 border-border rounded-sm border px-2 py-1 text-center font-mono text-xs select-all"
                 >
-                  <IconCopy className="size-3.5" />
-                </button>
-              </div>
-              <p className="text-caption text-fg-subtle">
-                Save these single-use codes in a safe place. They are only shown once.
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {backupCodes.map((code) => (
-                  <code
-                    key={code}
-                    className="text-xs bg-bg-elev-2 px-2 py-1 rounded-sm border border-border font-mono text-center select-all"
-                  >
-                    {code}
-                  </code>
-                ))}
-              </div>
+                  {code}
+                </code>
+              ))}
             </div>
-          )}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Input
             value={token}
@@ -257,7 +289,7 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
             placeholder="Enter 6-digit code"
             maxLength={6}
             aria-label="Enter verification code"
-            className="bg-bg-elev-1 h-9 text-sm w-32"
+            className="bg-bg-elev-1 h-9 w-32 text-sm"
           />
           <Button
             type="button"
@@ -266,7 +298,7 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
             onClick={handleVerify}
             disabled={verifying || token.length !== 6}
           >
-            {verifying ? <IconLoader2 className="size-3.5 animate-spin mr-1" /> : null}
+            {verifying ? <IconLoader2 className="mr-1 size-3.5 animate-spin" /> : null}
             Verify & Enable
           </Button>
         </div>
@@ -275,18 +307,19 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
   }
 
   return (
-    <div className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-3">
+    <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4">
       <div className="flex items-center gap-2">
-        <IconShield className="size-4 text-fg-muted" />
-        <span className="text-sm font-medium text-fg">Two-Factor Authentication</span>
+        <IconShield className="text-fg-muted size-4" />
+        <span className="text-fg text-sm font-medium">Two-Factor Authentication</span>
         {enabled && (
-          <span className="rounded-sm bg-success/15 px-2 py-0.5 text-xs font-medium text-success ml-auto">
+          <span className="bg-success/15 text-success ml-auto rounded-sm px-2 py-0.5 text-xs font-medium">
             Enabled
           </span>
         )}
       </div>
       <p className="text-caption text-fg-subtle">
-        Add an extra layer of security by requiring a one-time code from your authenticator app when performing sensitive actions.
+        Add an extra layer of security by requiring a one-time code from your authenticator app when
+        performing sensitive actions.
       </p>
       <Button
         type="button"
@@ -296,7 +329,11 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
         disabled={isSettingUp}
         className="w-fit"
       >
-        {isSettingUp ? <IconLoader2 className="size-3.5 animate-spin mr-1" /> : <IconShield className="size-3.5 mr-1" />}
+        {isSettingUp ? (
+          <IconLoader2 className="mr-1 size-3.5 animate-spin" />
+        ) : (
+          <IconShield className="mr-1 size-3.5" />
+        )}
         Set up 2FA
       </Button>
     </div>

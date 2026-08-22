@@ -22,7 +22,7 @@
 // identity, and closes on route change. Also checks mobile behavior.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Navigation drawer', () => {
   test('opens via hamburger menu trigger', async ({ authedPage }) => {
@@ -105,7 +105,10 @@ test.describe('Navigation drawer', () => {
     await expect(page.getByRole('dialog', { name: /primary navigation/i })).toBeVisible();
 
     // Click the Journal link
-    await page.getByRole('link', { name: /journal/i }).first().click();
+    await page
+      .getByRole('link', { name: /journal/i })
+      .first()
+      .click();
 
     // Drawer should close (dialog should not be visible)
     await expect(page.getByRole('dialog', { name: /primary navigation/i })).not.toBeVisible();
@@ -124,7 +127,7 @@ test.describe('Navigation drawer', () => {
     // left edge, so click toward the right side of the viewport to avoid
     // hitting the drawer's own subtree.
     const overlay = page.locator('[data-vaul-overlay]').or(page.locator('.vaul-overlay'));
-    if (await overlay.count() > 0) {
+    if ((await overlay.count()) > 0) {
       const viewport = page.viewportSize();
       const x = (viewport?.width ?? 1280) - 50;
       await overlay.first().click({ position: { x, y: 100 } });
@@ -195,7 +198,10 @@ test.describe('Navigation drawer — responsive', () => {
 
     // Navigate to dashboard via drawer
     await page.getByRole('button', { name: /open navigation/i }).click();
-    await page.getByRole('link', { name: /dashboard/i }).first().click();
+    await page
+      .getByRole('link', { name: /dashboard/i })
+      .first()
+      .click();
 
     // Should reach the dashboard page
     await expect(page).toHaveURL(/[\s\S]*dashboard/);

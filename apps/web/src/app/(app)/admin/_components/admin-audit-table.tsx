@@ -2,17 +2,33 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconDownload, IconHistory } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
-import { IconHistory, IconDownload } from '@tabler/icons-react';
 
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
-import { AdminErrorBlock } from './admin-error-block';
 import { apiFetch } from '@/lib/api-client';
+import { downloadCSV, formatAbsoluteTime, formatRelativeTime } from '@/lib/format-number';
 import { toastApiError } from '@/lib/toast-api-error';
-import { formatRelativeTime, formatAbsoluteTime, downloadCSV } from '@/lib/format-number';
+
+import { AdminErrorBlock } from './admin-error-block';
 
 interface AuditEntry {
   id: string;
@@ -97,7 +113,12 @@ export function AdminAuditTable() {
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={page === 0}
+            onClick={() => setPage((p) => p - 1)}
+          >
             Previous
           </Button>
           <Button
@@ -111,7 +132,7 @@ export function AdminAuditTable() {
         </div>
       </div>
 
-      <div className="border-border overflow-x-auto overflow-hidden rounded-sm border">
+      <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
         <table className="w-full min-w-[600px] text-sm">
           <thead className="bg-bg-elev-2 text-fg-subtle">
             <tr>
@@ -138,7 +159,9 @@ export function AdminAuditTable() {
               entries.map((entry) => (
                 <tr key={entry.id} className="border-border border-t">
                   <td className="text-fg px-4 py-2 font-medium">{entry.action}</td>
-                  <td className="text-fg-subtle font-mono px-4 py-2 text-xs">{entry.actorUserId}</td>
+                  <td className="text-fg-subtle px-4 py-2 font-mono text-xs">
+                    {entry.actorUserId}
+                  </td>
                   <td className="text-fg-subtle px-4 py-2 font-mono text-xs">
                     {entry.targetUserId ?? '—'}
                   </td>

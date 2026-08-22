@@ -32,20 +32,18 @@ import {
 } from '@kestrel/ai';
 import {
   claimNextFullAnalysisRun,
-  maybeGenerateThreadTitle,
   completeFullAnalysisRun,
+  extractSymbolFromPrompt,
   failFullAnalysisRun,
+  FULL_ANALYSIS_WORKFLOW_ID,
+  isSafeSymbolResearchPrompt,
+  maybeGenerateThreadTitle,
   purgeOldFullAnalysisRuns,
   recoverStaleFullAnalysisRuns,
   requeueFullAnalysisRun,
-  touchFullAnalysisRun,
-  FULL_ANALYSIS_WORKFLOW_ID,
-  type FullAnalysisPayload,
-} from '@kestrel/ai/mastra';
-import {
-  extractSymbolFromPrompt,
-  isSafeSymbolResearchPrompt,
   runMastraMode,
+  touchFullAnalysisRun,
+  type FullAnalysisPayload,
 } from '@kestrel/ai/mastra';
 import { schema } from '@kestrel/db';
 import { pickAiEnv } from '@kestrel/shared';
@@ -124,7 +122,10 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
       let observedCost = 0;
       try {
         const [[userSettings]] = await Promise.all([
-          db.select().from(schema.userSettings).where(eq(schema.userSettings.userId, payload.userId)),
+          db
+            .select()
+            .from(schema.userSettings)
+            .where(eq(schema.userSettings.userId, payload.userId)),
         ]);
         if (!userSettings) {
           throw new Error(`User settings not found for userId=${payload.userId}`);
@@ -245,7 +246,8 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         else await processRun();
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        const retryable = isRetryableAnalysisError(error) && payload.attemptCount < MAX_ANALYSIS_ATTEMPTS;
+        const retryable =
+          isRetryableAnalysisError(error) && payload.attemptCount < MAX_ANALYSIS_ATTEMPTS;
         ctx.log.error('Full analysis job failed', {
           runId,
           err: message,

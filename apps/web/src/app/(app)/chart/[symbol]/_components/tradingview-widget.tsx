@@ -15,12 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import type { Symbol, Timeframe } from '@kestrel/shared';
-import { getSymbolDefinition, isKnownSymbol } from '@kestrel/shared';
+import { getSymbolDefinition, isKnownSymbol, type Symbol, type Timeframe } from '@kestrel/shared';
 import { Link } from 'next-view-transitions';
 import Script from 'next/script';
-import { useEffect, useRef, useState, useId } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 interface TradingViewGlobal {
   widget: new (config: TradingViewWidgetConfig) => unknown;
@@ -194,7 +192,8 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
           <div className="bg-bg-elev-1 border-border absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-sm border p-6 text-center">
             <p className="text-bear text-lg font-semibold">Chart unavailable</p>
             <p className="text-fg-muted max-w-xs text-sm">
-              The TradingView widget could not load. This may happen on networks that block third-party scripts.
+              The TradingView widget could not load. This may happen on networks that block
+              third-party scripts.
             </p>
             <Link
               href="/chat"

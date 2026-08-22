@@ -1,7 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import Image from 'next/image';
 import { Link } from 'next-view-transitions';
+import Image from 'next/image';
 
 import { cn } from '@/lib/cn';
 
@@ -41,37 +57,38 @@ export function KestrelBrand({
   className,
 }: KestrelBrandProps) {
   const isDecorative = decorative && !href;
-  const image = variant === 'mark' ? (
-    <Image
-      src="/icons/icon-192.png"
-      alt={isDecorative ? '' : 'Kestrel'}
-      aria-hidden={isDecorative || undefined}
-      width={40}
-      height={40}
-      priority={priority}
-      className={cn(
-        'shrink-0 rounded-sm object-cover',
-        markSize === 'xs' ? 'size-4' : 'size-7',
-      )}
-    />
-  ) : (
-    <Image
-      src="/brand/kestrel-logo.png"
-      alt={isDecorative ? '' : 'Kestrel'}
-      aria-hidden={isDecorative || undefined}
-      width={160}
-      height={107}
-      priority={priority}
-      className="h-auto w-full object-contain"
-    />
-  );
+  const image =
+    variant === 'mark' ? (
+      <Image
+        src="/icons/icon-192.png"
+        alt={isDecorative ? '' : 'Kestrel'}
+        aria-hidden={isDecorative || undefined}
+        width={40}
+        height={40}
+        priority={priority}
+        className={cn('shrink-0 rounded-sm object-cover', markSize === 'xs' ? 'size-4' : 'size-7')}
+      />
+    ) : (
+      <Image
+        src="/brand/kestrel-logo.png"
+        alt={isDecorative ? '' : 'Kestrel'}
+        aria-hidden={isDecorative || undefined}
+        width={160}
+        height={107}
+        priority={priority}
+        className="h-auto w-full object-contain"
+      />
+    );
 
-  const content = variant === 'mark' && showName ? (
-    <span className="inline-flex items-center gap-2">
-      {image}
-      <span className="text-fg text-sm font-semibold tracking-tight">{label}</span>
-    </span>
-  ) : image;
+  const content =
+    variant === 'mark' && showName ? (
+      <span className="inline-flex items-center gap-2">
+        {image}
+        <span className="text-fg text-sm font-semibold tracking-tight">{label}</span>
+      </span>
+    ) : (
+      image
+    );
 
   const wrapperClassName = cn(
     'inline-flex shrink-0 items-center',
@@ -81,11 +98,7 @@ export function KestrelBrand({
 
   if (href) {
     return (
-      <Link
-        href={href}
-        aria-label="Kestrel home"
-        className={wrapperClassName}
-      >
+      <Link href={href} aria-label="Kestrel home" className={wrapperClassName}>
         {content}
       </Link>
     );

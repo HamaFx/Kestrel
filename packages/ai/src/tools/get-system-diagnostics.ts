@@ -15,17 +15,17 @@
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { schema } from '@kestrel/db';
 import {
   GetSystemDiagnosticsInputSchema,
   GetSystemDiagnosticsOutputSchema,
   type GetSystemDiagnosticsOutput,
 } from '@kestrel/shared';
-import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import { tool } from 'ai';
 import { desc, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { getDb } from '../db';
 import { getToolContext, maybeGetToolContext } from '../tool-context';
 
 const InputSchema = GetSystemDiagnosticsInputSchema;
@@ -91,7 +91,9 @@ export const getSystemDiagnosticsTool = tool({
         .from(schema.briefingsEmitted)
         .orderBy(desc(schema.briefingsEmitted.createdAt))
         .limit(1);
-      cotSyncLastRun = cotRecent[0]?.occurredAt ? cotRecent[0].occurredAt.toISOString().slice(0, 10) : null;
+      cotSyncLastRun = cotRecent[0]?.occurredAt
+        ? cotRecent[0].occurredAt.toISOString().slice(0, 10)
+        : null;
     } catch {
       // best-effort
     }

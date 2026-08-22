@@ -1,8 +1,26 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import type { ProviderMeta, ProviderPricingTier } from '@kestrel/shared';
 import { IconCheck, IconChevronRight, IconEye, IconEyeOff, IconLoader2 } from '@tabler/icons-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProviderInfoDot } from '@/components/ui/provider-info-dot';
-import type { ProviderMeta, ProviderPricingTier } from '@kestrel/shared';
+
 import type { TestState } from './wizard-types';
 
 interface WizardStepProviderProps {
@@ -22,10 +40,14 @@ interface WizardStepProviderProps {
 
 function tierLabel(tier: ProviderPricingTier) {
   switch (tier) {
-    case 'free': return 'Free tier';
-    case 'low': return 'Low cost';
-    case 'medium': return 'Paid';
-    case 'high': return 'Premium';
+    case 'free':
+      return 'Free tier';
+    case 'low':
+      return 'Low cost';
+    case 'medium':
+      return 'Paid';
+    case 'high':
+      return 'Premium';
   }
 }
 
@@ -44,16 +66,16 @@ export function WizardStepProvider({
   onSkipProvider,
 }: WizardStepProviderProps) {
   return (
-    <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4">
+    <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 flex flex-col gap-6">
       <div>
-        <h2 className="text-xl font-semibold text-fg mb-1">Connect an AI Provider</h2>
-        <p className="text-sm text-fg-subtle">
-          Kestrel is BYOK (Bring Your Own Key). Pick a provider below and paste
-          your API key. You can add more or change providers later in Settings.
+        <h2 className="text-fg mb-1 text-xl font-semibold">Connect an AI Provider</h2>
+        <p className="text-fg-subtle text-sm">
+          Kestrel is BYOK (Bring Your Own Key). Pick a provider below and paste your API key. You
+          can add more or change providers later in Settings.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+      <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
         {providers.map((p) => {
           const selected = selectedProvider === p.id;
           return (
@@ -64,30 +86,28 @@ export function WizardStepProvider({
                 setSelectedProvider(p.id);
               }}
               aria-pressed={selected}
-              className={`min-h-11 text-left rounded-sm border p-3 transition-colors ${
+              className={`min-h-11 rounded-sm border p-3 text-left transition-colors ${
                 selected
-                  ? 'border-border bg-bg-elev-2 ring-1 ring-fg'
+                  ? 'border-border bg-bg-elev-2 ring-fg ring-1'
                   : 'border-border bg-bg-elev-1 hover:border-fg-subtle'
               }`}
             >
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex items-center gap-1.5">
-                  <div className="text-sm font-medium text-fg">{p.displayName}</div>
+                  <div className="text-fg text-sm font-medium">{p.displayName}</div>
                   <ProviderInfoDot provider={p} />
                 </div>
-                <div className="text-xs text-fg-subtle">{tierLabel(p.pricingTier)}</div>
+                <div className="text-fg-subtle text-xs">{tierLabel(p.pricingTier)}</div>
               </div>
-              <div className="mt-1 text-xs text-fg-subtle line-clamp-2">
-                {p.description}
-              </div>
+              <div className="text-fg-subtle mt-1 line-clamp-2 text-xs">{p.description}</div>
             </button>
           );
         })}
       </div>
 
       {selectedProvider && (
-        <div className="flex flex-col gap-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2">
-          <label className="text-sm font-medium text-fg" htmlFor="onboarding-api-key">
+        <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 flex flex-col gap-3">
+          <label className="text-fg text-sm font-medium" htmlFor="onboarding-api-key">
             API Key for {providers.find((p) => p.id === selectedProvider)?.displayName}
           </label>
           <div className="relative">
@@ -103,11 +123,11 @@ export function WizardStepProvider({
               spellCheck={false}
               className="pr-20"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1">
               <button
                 type="button"
                 onClick={() => setRevealed(!revealed)}
-                className="p-1 text-fg-subtle hover:text-fg transition-colors"
+                className="text-fg-subtle hover:text-fg p-1 transition-colors"
                 aria-label={revealed ? 'Hide key' : 'Show key'}
               >
                 {revealed ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
@@ -132,12 +152,12 @@ export function WizardStepProvider({
               )}
             </Button>
             {testState.kind === 'ok' && (
-              <span className="flex items-center gap-1 text-xs text-success">
+              <span className="text-success flex items-center gap-1 text-xs">
                 <IconCheck className="size-3" /> Key looks valid
               </span>
             )}
             {testState.kind === 'err' && (
-              <span role="alert" className="text-xs text-danger">
+              <span role="alert" className="text-danger text-xs">
                 {testState.message}
               </span>
             )}
@@ -146,7 +166,7 @@ export function WizardStepProvider({
       )}
 
       {!selectedProvider && (
-        <p className="text-xs text-fg-subtle">
+        <p className="text-fg-subtle text-xs">
           Tip: choose a free-tier provider to try things out without spending.
         </p>
       )}
@@ -166,7 +186,7 @@ export function WizardStepProvider({
       <button
         type="button"
         onClick={onSkipProvider}
-        className="text-xs text-fg-subtle hover:text-fg transition-colors text-center w-full mt-2"
+        className="text-fg-subtle hover:text-fg mt-2 w-full text-center text-xs transition-colors"
       >
         Skip for now (configure later in Settings)
       </button>

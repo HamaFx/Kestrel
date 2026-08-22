@@ -19,7 +19,6 @@
 // Mobile-friendly segmented control for the 8 supported timeframes.
 // Thin wrapper over the shared <Segmented> primitive so all segment-style
 // controls in the app stay consistent.
-
 import { TIMEFRAMES, type Timeframe } from '@kestrel/shared';
 
 import { Segmented } from '@/components/ui/segmented';

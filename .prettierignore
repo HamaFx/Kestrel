@@ -7,3 +7,7 @@ coverage
 pnpm-lock.yaml
 *.tsbuildinfo
 packages/db/drizzle
+.vercel
+.mastra
+.agents
+

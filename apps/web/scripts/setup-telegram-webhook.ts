@@ -23,6 +23,7 @@
 // Or set VERCEL_PROJECT_PRODUCTION_URL / NEXT_PUBLIC_APP_URL env vars.
 
 import * as crypto from 'crypto';
+
 import { setBotCommands, telegramApiCall } from '../../packages/ai/src/telegram/client';
 
 // Bot command menu (shown in Telegram client's "/" autocomplete)
@@ -46,9 +47,7 @@ const BOT_COMMANDS = [
 async function main() {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const domain =
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.argv[2];
+    process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.NEXT_PUBLIC_APP_URL || process.argv[2];
 
   if (!botToken) {
     console.error('Error: TELEGRAM_BOT_TOKEN environment variable is not set.');
@@ -64,8 +63,7 @@ async function main() {
 
   // Generate a secret token so we can verify incoming requests are from Telegram.
   // Or use existing if configured.
-  const secretToken =
-    process.env.TELEGRAM_SECRET_TOKEN || crypto.randomBytes(32).toString('hex');
+  const secretToken = process.env.TELEGRAM_SECRET_TOKEN || crypto.randomBytes(32).toString('hex');
   const url = `https://${domain.replace(/^https?:\/\//, '')}/api/telegram/webhook`;
 
   // 1. Set the webhook

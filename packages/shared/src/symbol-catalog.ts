@@ -521,7 +521,11 @@ export function assertSymbolCatalog(): void {
       if (definition.binance === null || !hasProvider('binance') || definition.biquote !== null) {
         throw new Error(`Invalid crypto provider metadata: ${definition.internal}`);
       }
-    } else if (definition.binance !== null || !hasProvider('biquote') || definition.biquote === null) {
+    } else if (
+      definition.binance !== null ||
+      !hasProvider('biquote') ||
+      definition.biquote === null
+    ) {
       throw new Error(`Invalid non-crypto provider metadata: ${definition.internal}`);
     }
 
@@ -533,7 +537,11 @@ export function assertSymbolCatalog(): void {
     }
   }
 
-  const defaults = [...DEFAULT_WATCHLIST_SYMBOLS, ...DEFAULT_STREAM_SYMBOLS, ...CFTC_SUPPORTED_SYMBOLS];
+  const defaults = [
+    ...DEFAULT_WATCHLIST_SYMBOLS,
+    ...DEFAULT_STREAM_SYMBOLS,
+    ...CFTC_SUPPORTED_SYMBOLS,
+  ];
   if (defaults.some((symbol) => !seen.has(symbol))) {
     throw new Error('Invalid symbol defaults: every default must be canonical');
   }
@@ -543,9 +551,9 @@ assertSymbolCatalog();
 
 /** Get all canonical symbols in one asset category. */
 export function symbolsByCategory(category: SymbolCategory): string[] {
-  return BUILTIN_SYMBOLS
-    .filter((symbol) => symbol.category === category)
-    .map((symbol) => symbol.internal);
+  return BUILTIN_SYMBOLS.filter((symbol) => symbol.category === category).map(
+    (symbol) => symbol.internal,
+  );
 }
 
 /** Category for a symbol, or null for an unsupported input. */

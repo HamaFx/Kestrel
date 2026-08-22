@@ -19,17 +19,15 @@
 // touching any live provider — these tests exercise the trade-simulation
 // / R-multiple math, not the data layer.
 
+import { getCandles } from '@kestrel/data';
+import type { Candle } from '@kestrel/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Candle } from '@kestrel/shared';
+import { replaySetupTool } from '../src/tools/replay-setup';
 
 vi.mock('@kestrel/data', () => ({
   getCandles: vi.fn(),
 }));
-
-import { getCandles } from '@kestrel/data';
-
-import { replaySetupTool } from '../src/tools/replay-setup';
 
 const exec = replaySetupTool.execute as unknown as (input: unknown) => Promise<{
   count: number;
@@ -87,7 +85,14 @@ describe('replay_setup — pure logic', () => {
       tf: '1h',
       windowBars: 200,
       rule: { kind: 'rsi_threshold', period: 14, threshold: 30, side: 'long' },
-      exit: { unit: 'pips', stopMult: 1.5, targetMult: 2, stopPips: 10, targetPips: 20, maxBars: 100 },
+      exit: {
+        unit: 'pips',
+        stopMult: 1.5,
+        targetMult: 2,
+        stopPips: 10,
+        targetPips: 20,
+        maxBars: 100,
+      },
     });
     expect(r.count).toBe(0);
     expect(r.hitRate).toBe(0);
@@ -103,14 +108,14 @@ describe('replay_setup — pure logic', () => {
     let t = 1_700_000_000_000;
     // 60 declining bars to put fast<slow.
     for (let i = 0; i < 60; i += 1) {
-      const c = 1.10 - i * 0.0005;
+      const c = 1.1 - i * 0.0005;
       seq.push(bar(c, c + 0.0001, c - 0.0001, c, t));
       t += 60 * 60_000;
     }
     // 20 sharply rising bars → fast crosses slow upward.
     for (let i = 0; i < 20; i += 1) {
-      const c = 1.07 + i * 0.0010;
-      seq.push(bar(c, c + 0.0010, c - 0.00005, c, t));
+      const c = 1.07 + i * 0.001;
+      seq.push(bar(c, c + 0.001, c - 0.00005, c, t));
       t += 60 * 60_000;
     }
     // 10 more bars climbing further so the +20p target is reached.

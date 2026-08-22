@@ -15,22 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import 'server-only';
 
-import { z } from 'zod';
-import { auth } from '@/auth';
-import { schema } from '@kestrel/db';
 import { getDb } from '@kestrel/ai';
+import { schema } from '@kestrel/db';
+import { DEFAULT_WATCHLIST_SYMBOLS, normalizeSymbol } from '@kestrel/shared';
+import type { PROVIDER_IDS } from '@kestrel/shared/byok';
+import { decryptByok, encryptByok, type ByokPayload } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import type { ByokPayload } from '@kestrel/shared/encryption';
-import { encryptByok, decryptByok } from '@kestrel/shared/encryption';
-import type { PROVIDER_IDS } from '@kestrel/shared/byok';
-import { DEFAULT_WATCHLIST_SYMBOLS, normalizeSymbol } from '@kestrel/shared';
+import { z } from 'zod';
+
+import { auth } from '@/auth';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 
-const symbolSchema = z.string().regex(/^[A-Z0-9/]{1,20}$/).transform(normalizeSymbol);
+const symbolSchema = z
+  .string()
+  .regex(/^[A-Z0-9/]{1,20}$/)
+  .transform(normalizeSymbol);
 
 export type TradingStyle = 'scalper' | 'day_trader' | 'swing' | 'position';
 
@@ -67,9 +69,10 @@ export async function completeOnboardingAction(formData: FormData) {
   }
 
   try {
-    const requestedSymbols = payload.symbols && Array.isArray(payload.symbols) && payload.symbols.length > 0
-      ? payload.symbols.map(normalizeSymbol)
-      : [...DEFAULT_WATCHLIST_SYMBOLS];
+    const requestedSymbols =
+      payload.symbols && Array.isArray(payload.symbols) && payload.symbols.length > 0
+        ? payload.symbols.map(normalizeSymbol)
+        : [...DEFAULT_WATCHLIST_SYMBOLS];
 
     if (new Set(requestedSymbols).size !== requestedSymbols.length) {
       return { ok: false as const, error: 'Duplicate symbols are not allowed' };
@@ -86,7 +89,10 @@ export async function completeOnboardingAction(formData: FormData) {
       payload.defaultSymbol ?? requestedSymbols[0] ?? DEFAULT_WATCHLIST_SYMBOLS[0],
     );
     if (!requestedSymbols.includes(requestedDefault)) {
-      return { ok: false as const, error: `Default symbol "${requestedDefault}" must be in the watchlist` };
+      return {
+        ok: false as const,
+        error: `Default symbol "${requestedDefault}" must be in the watchlist`,
+      };
     }
 
     // The database catalog is authoritative at the user boundary.
@@ -105,7 +111,6 @@ export async function completeOnboardingAction(formData: FormData) {
     if (unsupported) {
       return { ok: false as const, error: `Symbol "${unsupported}" is not supported or active` };
     }
-
 
     // Validate tradingStyle if provided (BUG-1: tradingStyle now persisted server-side)
     let validatedTradingStyle: TradingStyle | undefined;
@@ -177,7 +182,9 @@ export async function completeOnboardingAction(formData: FormData) {
             timezone: payload.timezone || 'UTC',
             aiApiKeys: encryptedKeys,
             onboardingCompleted: true,
-            ...(Object.keys(mergedProgress).length > 0 ? { onboardingProgress: mergedProgress } : {}),
+            ...(Object.keys(mergedProgress).length > 0
+              ? { onboardingProgress: mergedProgress }
+              : {}),
           })
           .where(eq(schema.userSettings.userId, userId));
       }
@@ -199,22 +206,20 @@ export async function completeOnboardingAction(formData: FormData) {
           )
           .onConflictDoNothing();
       } catch (err) {
-        createScopedLoggerWithContext({ component: 'onboarding', action: 'seed-watchlist' }).errorContext(
-          err,
-          'seedWatchlist',
-          { userId },
-        );
+        createScopedLoggerWithContext({
+          component: 'onboarding',
+          action: 'seed-watchlist',
+        }).errorContext(err, 'seedWatchlist', { userId });
       }
     });
 
     revalidatePath('/');
     return { ok: true as const, success: true as const };
   } catch (err) {
-    createScopedLoggerWithContext({ component: 'onboarding', action: 'complete-onboarding' }).errorContext(
-      err,
-      'completeOnboarding',
-      { userId },
-    );
+    createScopedLoggerWithContext({
+      component: 'onboarding',
+      action: 'complete-onboarding',
+    }).errorContext(err, 'completeOnboarding', { userId });
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',

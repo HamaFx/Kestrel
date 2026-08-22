@@ -69,11 +69,7 @@ export const DEFAULT_USER = {
 // ---------------------------------------------------------------------------
 
 async function mockChatApi(page: Page, opts: ChatMockOptions = {}) {
-  const {
-    status = 200,
-    singleAgentBody = '0:"Mock AI response"\n',
-    multiAgentBody,
-  } = opts;
+  const { status = 200, singleAgentBody = '0:"Mock AI response"\n', multiAgentBody } = opts;
 
   // Match only the exact chat endpoint. A broader `**/api/chat` glob also
   // intercepts `/api/chat/threads/fork` (and other sub-routes), which would

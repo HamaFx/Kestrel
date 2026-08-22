@@ -38,19 +38,14 @@
  *   - No analytics. The palette is a power-user affordance; logging
  *     every selection would inflate telemetry without insight.
  */
-
-import {IconCommand, IconSearch} from '@tabler/icons-react';
+import { IconCommand, IconSearch } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { cn } from '@/lib/cn';
+import { COMMANDS, type CommandGroup, type CommandItem } from '@/lib/commands';
 import { rankByQuery } from '@/lib/fuzzy-match';
-import {
-  COMMANDS,
-  type CommandGroup,
-  type CommandItem,
-} from '@/lib/commands';
 
 const GROUP_LABELS: Record<CommandGroup, string> = {
   navigation: 'Navigate',
@@ -160,7 +155,8 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
       create: [],
       settings: [],
     };
-    for (const r of ranked) out[r.command.group].push({ command: r.command, labelIndices: r.labelIndices });
+    for (const r of ranked)
+      out[r.command.group].push({ command: r.command, labelIndices: r.labelIndices });
     return out;
   }, [ranked]);
 
@@ -196,7 +192,9 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
       setActiveIdx((i) => (flatRows.length === 0 ? 0 : (i + 1) % flatRows.length));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveIdx((i) => (flatRows.length === 0 ? 0 : (i - 1 + flatRows.length) % flatRows.length));
+      setActiveIdx((i) =>
+        flatRows.length === 0 ? 0 : (i - 1 + flatRows.length) % flatRows.length,
+      );
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const target = flatRows[activeIdx];
@@ -209,11 +207,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
 
   return (
     <>
-      <span
-        data-command-palette-ready="true"
-        aria-hidden="true"
-        className="hidden"
-      />
+      <span data-command-palette-ready="true" aria-hidden="true" className="hidden" />
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="max-h-[80svh]">
           <DrawerHeader>
@@ -232,7 +226,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
             <div className="relative">
               <IconSearch
                 aria-hidden="true"
-                className="text-fg-subtle absolute left-3 top-1/2 size-4 -translate-y-1/2"
+                className="text-fg-subtle absolute top-1/2 left-3 size-4 -translate-y-1/2"
               />
               <input
                 ref={inputRef}
@@ -241,7 +235,9 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                 aria-autocomplete="list"
                 aria-expanded={open}
                 aria-controls="command-listbox"
-                aria-activedescendant={activeIdx >= 0 && flatRows.length > 0 ? `command-option-${activeIdx}` : undefined}
+                aria-activedescendant={
+                  activeIdx >= 0 && flatRows.length > 0 ? `command-option-${activeIdx}` : undefined
+                }
                 type="search"
                 value={query}
                 onChange={(e) => {
@@ -252,17 +248,27 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                 placeholder="Search…"
                 autoComplete="off"
                 spellCheck={false}
-                className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pl-10 pr-4 text-sm focus:outline-none"
+                className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-4 pl-10 text-sm focus:outline-none"
               />
             </div>
           </div>
 
-          <div id="command-listbox" role="listbox" aria-label="Command results" aria-describedby="command-result-count" className="scrollbar-hide flex max-h-[50svh] flex-col overflow-y-auto px-2 pb-4">
+          <div
+            id="command-listbox"
+            role="listbox"
+            aria-label="Command results"
+            aria-describedby="command-result-count"
+            className="scrollbar-hide flex max-h-[50svh] flex-col overflow-y-auto px-2 pb-4"
+          >
             <p id="command-result-count" className="sr-only" role="status" aria-live="polite">
               {flatRows.length} command{flatRows.length === 1 ? '' : 's'} available
             </p>
             {flatRows.length === 0 ? (
-              <p className="text-fg-subtle px-3 py-6 text-center text-sm" role="status" aria-live="polite">
+              <p
+                className="text-fg-subtle px-3 py-6 text-center text-sm"
+                role="status"
+                aria-live="polite"
+              >
                 No commands match.
               </p>
             ) : (
@@ -273,7 +279,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                   <section key={group} aria-labelledby={`cmd-group-${group}`} className="mb-2">
                     <h3
                       id={`cmd-group-${group}`}
-                      className="text-fg-subtle px-3 pb-1 pt-2 text-caption font-medium uppercase tracking-wide"
+                      className="text-fg-subtle text-caption px-3 pt-2 pb-1 font-medium tracking-wide uppercase"
                     >
                       {GROUP_LABELS[group]}
                     </h3>
@@ -302,7 +308,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                             >
                               <span
                                 aria-hidden="true"
-                                className="text-fg-muted inline-flex size-8 shrink-0 items-center justify-center rounded-sm bg-bg-elev-2"
+                                className="text-fg-muted bg-bg-elev-2 inline-flex size-8 shrink-0 items-center justify-center rounded-sm"
                               >
                                 <Icon className="size-4" strokeWidth={1.75} />
                               </span>
@@ -310,7 +316,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                                 <HighlightedLabel label={command.label} indices={labelIndices} />
                               </span>
                               {command.shortcut ? (
-                                <kbd className="bg-bg-elev-2 ring-divider rounded-sm border px-1.5 font-mono text-caption ring-1">
+                                <kbd className="bg-bg-elev-2 ring-divider text-caption rounded-sm border px-1.5 font-mono ring-1">
                                   {command.shortcut}
                                 </kbd>
                               ) : null}
@@ -334,7 +340,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open command palette"
-          className="bg-bg-elev-2 text-fg-muted border-border hover:bg-bg-elev-3 hover:text-fg fixed right-4 bottom-24 z-30 inline-flex size-12 items-center justify-center rounded-sm border shadow-md focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+          className="bg-bg-elev-2 text-fg-muted border-border hover:bg-bg-elev-3 hover:text-fg focus-visible:ring-brand fixed right-4 bottom-24 z-30 inline-flex size-12 items-center justify-center rounded-sm border shadow-md focus-visible:ring-2 focus-visible:outline-none"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
         >
           <IconCommand className="size-5" aria-hidden="true" />

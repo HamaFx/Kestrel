@@ -22,12 +22,12 @@
 //
 // See DSA_FEATURE_EXPANSION_PLAN.md §F3 for the design.
 
-import { z } from 'zod';
+import { SymbolSchema } from '@kestrel/shared';
 import { tool } from 'ai';
+import { z } from 'zod';
 
 import { getSentimentService } from '../sentiment';
 import { getToolContext } from '../tool-context';
-import { SymbolSchema } from '@kestrel/shared';
 
 const InputSchema = z.object({
   symbol: SymbolSchema.describe('The supported gold, forex, or crypto symbol to get sentiment for'),
@@ -73,7 +73,10 @@ export const getSocialSentimentTool = tool({
     // propagate the per-tool signal to the external sentiment request.
     const ctx = getToolContext();
     const service = getSentimentService();
-    const sentiment = await service.getAggregatedSentiment(symbol, options?.abortSignal ?? ctx.signal);
+    const sentiment = await service.getAggregatedSentiment(
+      symbol,
+      options?.abortSignal ?? ctx.signal,
+    );
 
     const anyAvailable = sentiment.sources.some((s) => s.available);
 

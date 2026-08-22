@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -17,10 +33,9 @@
  * and training export consume one record stream.
  */
 
-import type { Mastra } from '@mastra/core';
-import type { MastraScorer } from '@mastra/core/evals';
-import { runEvals } from '@mastra/core/evals';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { Mastra } from '@mastra/core';
+import { runEvals, type MastraScorer } from '@mastra/core/evals';
 import { z } from 'zod';
 
 import casesJson from '../../eval/cases.json';
@@ -122,7 +137,7 @@ export async function migrateLegacyEvalCasesToDatasets(
   const created: DatasetMigrationSummary['created'] = [];
   const skipped: EvalDatasetId[] = [];
 
-  for (const [id, raw] of Object.entries(CASES_BY_DATASET) as Array<[EvalDatasetId, unknown[]]>) {
+  for (const [id] of Object.entries(CASES_BY_DATASET) as Array<[EvalDatasetId, unknown[]]>) {
     const items = loadLegacyEvalCases(id);
     if (items.length === 0) {
       dlog.warn('No valid cases to migrate', { datasetId: id });
@@ -142,16 +157,22 @@ export async function migrateLegacyEvalCasesToDatasets(
       continue;
     }
 
-    const dataset = existing ?? (await instance.datasets.create({
-      id,
-      name: DATASET_LABELS[id],
-      description: `Migrated from the legacy eval case catalog (${items.length} cases).`,
-      metadata: { source: 'kestrel-legacy-eval', datasetId: id, migratedAt: new Date().toISOString() },
-      inputSchema: z.object({ prompt: z.string(), caseId: z.string() }),
-      targetType: 'agent',
-      targetIds: ['kestrel-mastra-canonical-chat', 'kestrel-xauusd-research-poc'],
-      scorerIds: ['faithfulness', 'hallucination', 'answer-relevancy', 'bias', 'toxicity'],
-    }));
+    const dataset =
+      existing ??
+      (await instance.datasets.create({
+        id,
+        name: DATASET_LABELS[id],
+        description: `Migrated from the legacy eval case catalog (${items.length} cases).`,
+        metadata: {
+          source: 'kestrel-legacy-eval',
+          datasetId: id,
+          migratedAt: new Date().toISOString(),
+        },
+        inputSchema: z.object({ prompt: z.string(), caseId: z.string() }),
+        targetType: 'agent',
+        targetIds: ['kestrel-mastra-canonical-chat', 'kestrel-xauusd-research-poc'],
+        scorerIds: ['faithfulness', 'hallucination', 'answer-relevancy', 'bias', 'toxicity'],
+      }));
 
     await dataset.addItems({
       items: items.map((item) => {
@@ -163,8 +184,10 @@ export async function migrateLegacyEvalCasesToDatasets(
         };
         if (item.analysisMode !== undefined) groundTruth.analysisMode = item.analysisMode;
         if (item.expectedAgents !== undefined) groundTruth.expectedAgents = item.expectedAgents;
-        if (item.expectedAgentStatuses !== undefined) groundTruth.expectedAgentStatuses = item.expectedAgentStatuses;
-        if (item.expectedTerminalStatus !== undefined) groundTruth.expectedTerminalStatus = item.expectedTerminalStatus;
+        if (item.expectedAgentStatuses !== undefined)
+          groundTruth.expectedAgentStatuses = item.expectedAgentStatuses;
+        if (item.expectedTerminalStatus !== undefined)
+          groundTruth.expectedTerminalStatus = item.expectedTerminalStatus;
         return {
           externalId: item.id,
           input: { prompt: item.prompt, caseId: item.id },
@@ -182,9 +205,9 @@ export async function migrateLegacyEvalCasesToDatasets(
 
 export interface RunDatasetExperimentOptions {
   /** Scorers to run against every item. */
-  scorers: Array<MastraScorer<string, any, any, any>>;
+  scorers: Array<MastraScorer<string, unknown, unknown, Record<string, unknown>>>;
   /** Gate scorers that must score 1.0 for an item to pass. */
-  gates?: Array<MastraScorer<string, any, any, any>>;
+  gates?: Array<MastraScorer<string, unknown, unknown, Record<string, unknown>>>;
   /** Dataset to replay (default: regression). */
   datasetId?: EvalDatasetId;
   /** Max concurrent items. */
@@ -210,7 +233,9 @@ export interface DatasetExperimentSummary {
  * surface: run the same dataset against two agent variants and compare
  * the returned summaries.
  */
-export async function runDatasetExperiment<TTarget extends Parameters<typeof runEvals>[0]['target']>(
+export async function runDatasetExperiment<
+  TTarget extends Parameters<typeof runEvals>[0]['target'],
+>(
   instance: Mastra,
   target: TTarget,
   options: RunDatasetExperimentOptions,

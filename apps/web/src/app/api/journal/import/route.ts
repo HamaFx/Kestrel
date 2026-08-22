@@ -1,13 +1,31 @@
-import { withRateLimit, createJournalEntry } from '@/lib/services/api-boundary';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { z } from 'zod';
 
 import { errorResponse, withAuth } from '@/lib/api';
-import { ALL_SYMBOLS } from '@/lib/services/api-boundary';
+import { ALL_SYMBOLS, createJournalEntry, withRateLimit } from '@/lib/services/api-boundary';
 
 const ImportRowSchema = z.object({
-  symbol: z.string().transform((value) => value.trim().toUpperCase()).refine((value) => ALL_SYMBOLS.includes(value), {
-    message: 'Unsupported symbol',
-  }),
+  symbol: z
+    .string()
+    .transform((value) => value.trim().toUpperCase())
+    .refine((value) => ALL_SYMBOLS.includes(value), {
+      message: 'Unsupported symbol',
+    }),
   side: z.enum(['long', 'short']),
   // M-11: Add sensible bounds for forex price/date values to
   // prevent data corruption from malformed imports.
@@ -36,7 +54,12 @@ export const POST = withAuth<void>(async (req, { user }) => {
     const rl = await withRateLimit(user.userId, 'journal_import', JOURNAL_IMPORT_RATE_LIMIT);
     if (!rl.allowed) {
       return Response.json(
-        { error: { code: 'RATE_LIMITED', message: `Too many requests (${rl.count}/${rl.limit} per minute).` } },
+        {
+          error: {
+            code: 'RATE_LIMITED',
+            message: `Too many requests (${rl.count}/${rl.limit} per minute).`,
+          },
+        },
         { status: 429, headers: { 'Retry-After': '60' } },
       );
     }
@@ -54,15 +77,18 @@ export const POST = withAuth<void>(async (req, { user }) => {
 
       if (exit !== null && trade.stop !== null && trade.stop !== undefined) {
         const diff = trade.side === 'long' ? exit - trade.entry : trade.entry - exit;
-        const risk = trade.side === 'long'
-          ? trade.entry - trade.stop
-          : trade.stop - trade.entry;
+        const risk = trade.side === 'long' ? trade.entry - trade.stop : trade.stop - trade.entry;
         if (risk > 0) {
           rMultiple = diff / risk;
         }
-        outcome = rMultiple !== null
-          ? rMultiple > 0.1 ? 'win' : rMultiple < -0.1 ? 'loss' : 'breakeven'
-          : 'open';
+        outcome =
+          rMultiple !== null
+            ? rMultiple > 0.1
+              ? 'win'
+              : rMultiple < -0.1
+                ? 'loss'
+                : 'breakeven'
+            : 'open';
       }
 
       const row = await createJournalEntry({

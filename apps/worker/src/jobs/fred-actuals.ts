@@ -25,9 +25,9 @@
 import { listFredEventsMissingActual, parseFredEventId, patchEventActual } from '@kestrel/ai';
 import { fred } from '@kestrel/data';
 
-const { fetchObservations, fredMeta } = fred;
-
 import type { JobContext, JobResult } from './types.js';
+
+const { fetchObservations, fredMeta } = fred;
 
 /** Look-back window for the observation query (FRED is sometimes late). */
 const LOOKBACK_DAYS = 7;
@@ -47,7 +47,11 @@ export async function runFredActuals(ctx: JobContext): Promise<JobResult> {
 
   for (const ev of candidates) {
     if (ctx.signal?.aborted) {
-      log.warn('fred-actuals aborted', { filled, skipped, remaining: candidates.length - filled - skipped });
+      log.warn('fred-actuals aborted', {
+        filled,
+        skipped,
+        remaining: candidates.length - filled - skipped,
+      });
       break;
     }
 
@@ -76,8 +80,7 @@ export async function runFredActuals(ctx: JobContext): Promise<JobResult> {
       // Pick the observation closest to the release date.
       const target = parsed.releaseDate;
       obs.sort(
-        (a, b) =>
-          Math.abs(daysBetween(a.date, target)) - Math.abs(daysBetween(b.date, target)),
+        (a, b) => Math.abs(daysBetween(a.date, target)) - Math.abs(daysBetween(b.date, target)),
       );
       const pick = obs[0]!;
       await patchEventActual(ev.id, pick.value, new Date());

@@ -21,9 +21,10 @@
 // week without producing duplicate rows.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import type { CoTSample, Symbol } from '@kestrel/shared';
 import { and, desc, eq } from 'drizzle-orm';
+
+import { getDb } from '../db';
 
 export interface UpsertCoTReportArgs {
   symbol: Symbol;
@@ -79,7 +80,10 @@ export async function upsertCoTReport(args: UpsertCoTReportArgs): Promise<void> 
     });
 }
 
-export async function listCoTSamples(args: { symbol: Symbol; weeks: number }): Promise<CoTSample[]> {
+export async function listCoTSamples(args: {
+  symbol: Symbol;
+  weeks: number;
+}): Promise<CoTSample[]> {
   const rows = await getDb()
     .select()
     .from(schema.cotReports)

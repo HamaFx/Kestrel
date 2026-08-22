@@ -2,7 +2,22 @@
 
 'use client';
 
-import {IconCpu, IconCheck, IconLoader2, IconArrowBackUp} from '@tabler/icons-react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconArrowBackUp, IconCheck, IconCpu, IconLoader2 } from '@tabler/icons-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
@@ -26,12 +41,42 @@ interface ProviderModel {
   tier?: string;
 }
 
-const AGENT_META: Array<{ name: AgentName; label: string; defaultTier: string; description: string }> = [
-  { name: 'technical', label: 'Technical', defaultTier: 'fast', description: 'Price action, indicators, structure' },
-  { name: 'fundamental', label: 'Fundamental', defaultTier: 'mid', description: 'Macro, calendar, COT, central banks' },
-  { name: 'risk', label: 'Risk', defaultTier: 'mid', description: 'Risk flags, veto, worst-case scenarios' },
-  { name: 'sentiment', label: 'Sentiment', defaultTier: 'fast', description: 'News/social sentiment, fear/greed' },
-  { name: 'decision', label: 'Decision', defaultTier: 'strong', description: 'Fusion of all specialist opinions' },
+const AGENT_META: Array<{
+  name: AgentName;
+  label: string;
+  defaultTier: string;
+  description: string;
+}> = [
+  {
+    name: 'technical',
+    label: 'Technical',
+    defaultTier: 'fast',
+    description: 'Price action, indicators, structure',
+  },
+  {
+    name: 'fundamental',
+    label: 'Fundamental',
+    defaultTier: 'mid',
+    description: 'Macro, calendar, COT, central banks',
+  },
+  {
+    name: 'risk',
+    label: 'Risk',
+    defaultTier: 'mid',
+    description: 'Risk flags, veto, worst-case scenarios',
+  },
+  {
+    name: 'sentiment',
+    label: 'Sentiment',
+    defaultTier: 'fast',
+    description: 'News/social sentiment, fear/greed',
+  },
+  {
+    name: 'decision',
+    label: 'Decision',
+    defaultTier: 'strong',
+    description: 'Fusion of all specialist opinions',
+  },
 ];
 
 interface AgentModelOverrideFormProps {
@@ -43,7 +88,10 @@ interface AgentModelOverrideFormProps {
   }>;
 }
 
-export function AgentModelOverrideForm({ initialOverrides, providers }: AgentModelOverrideFormProps) {
+export function AgentModelOverrideForm({
+  initialOverrides,
+  providers,
+}: AgentModelOverrideFormProps) {
   const [overrides, setOverrides] = useState<AgentModelOverrides>(initialOverrides);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -99,7 +147,7 @@ export function AgentModelOverrideForm({ initialOverrides, providers }: AgentMod
   return (
     <section aria-labelledby="agent-model-override-heading" className="flex flex-col gap-3">
       <header className="flex items-center gap-2">
-        <IconCpu className="size-4 text-fg-muted" />
+        <IconCpu className="text-fg-muted size-4" />
         <h2 id="agent-model-override-heading" className="text-fg-muted text-sm font-medium">
           Per-Agent Model Override
         </h2>
@@ -115,7 +163,7 @@ export function AgentModelOverrideForm({ initialOverrides, providers }: AgentMod
           return (
             <div
               key={agent.name}
-              className="flex flex-col gap-1.5 rounded-sm border border-border bg-bg-elev-1 p-3"
+              className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3"
             >
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex flex-col">
@@ -129,7 +177,7 @@ export function AgentModelOverrideForm({ initialOverrides, providers }: AgentMod
               <select
                 value={currentValue}
                 onChange={(e) => setAgentModel(agent.name, e.target.value)}
-                className="bg-bg-elev-2 text-fg border-border rounded-sm border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-fg"
+                className="bg-bg-elev-2 text-fg border-border focus:ring-fg rounded-sm border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
               >
                 <option value="">Default ({agent.defaultTier} tier)</option>
                 {modelOptions.map((opt) => (
@@ -153,9 +201,13 @@ export function AgentModelOverrideForm({ initialOverrides, providers }: AgentMod
             type="button"
             onClick={save}
             disabled={pending}
-            className="bg-fg text-white hover:bg-fg/90 inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            className="bg-fg hover:bg-fg/90 inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
           >
-            {pending ? <IconLoader2 className="size-4 animate-spin" /> : saved ? <IconCheck className="size-4" /> : null}
+            {pending ? (
+              <IconLoader2 className="size-4 animate-spin" />
+            ) : saved ? (
+              <IconCheck className="size-4" />
+            ) : null}
             {saved ? 'Saved' : 'Save overrides'}
           </button>
           <button

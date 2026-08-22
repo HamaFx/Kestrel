@@ -6,6 +6,7 @@
  */
 
 import { and, desc, eq, isNotNull } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 import type { FeedbackReviewStatus } from '../schema/ai-feedback';
 
@@ -29,12 +30,14 @@ export async function upsertMessageFeedback(
     .select({ id: schema.chatMessages.id })
     .from(schema.chatMessages)
     .innerJoin(schema.chatThreads, eq(schema.chatMessages.threadId, schema.chatThreads.id))
-    .where(and(
-      eq(schema.chatMessages.id, input.messageId),
-      eq(schema.chatMessages.threadId, input.threadId),
-      eq(schema.chatMessages.role, 'assistant'),
-      eq(schema.chatThreads.userId, input.userId),
-    ))
+    .where(
+      and(
+        eq(schema.chatMessages.id, input.messageId),
+        eq(schema.chatMessages.threadId, input.threadId),
+        eq(schema.chatMessages.role, 'assistant'),
+        eq(schema.chatThreads.userId, input.userId),
+      ),
+    )
     .limit(1);
 
   if (!ownedMessage[0]) return null;
@@ -78,11 +81,13 @@ export async function getMessageFeedback(
   const [row] = await db
     .select()
     .from(schema.aiMessageFeedback)
-    .where(and(
-      eq(schema.aiMessageFeedback.userId, userId),
-      eq(schema.aiMessageFeedback.threadId, threadId),
-      eq(schema.aiMessageFeedback.messageId, messageId),
-    ))
+    .where(
+      and(
+        eq(schema.aiMessageFeedback.userId, userId),
+        eq(schema.aiMessageFeedback.threadId, threadId),
+        eq(schema.aiMessageFeedback.messageId, messageId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -95,11 +100,13 @@ export async function deleteMessageFeedback(
   const db = getDb();
   const deleted = await db
     .delete(schema.aiMessageFeedback)
-    .where(and(
-      eq(schema.aiMessageFeedback.userId, userId),
-      eq(schema.aiMessageFeedback.threadId, threadId),
-      eq(schema.aiMessageFeedback.messageId, messageId),
-    ))
+    .where(
+      and(
+        eq(schema.aiMessageFeedback.userId, userId),
+        eq(schema.aiMessageFeedback.threadId, threadId),
+        eq(schema.aiMessageFeedback.messageId, messageId),
+      ),
+    )
     .returning({ id: schema.aiMessageFeedback.id });
   return deleted.length > 0;
 }
@@ -117,9 +124,11 @@ export async function listFeedbackForReview(
   return db
     .select()
     .from(schema.aiMessageFeedback)
-    .where(options.reviewStatus
-      ? eq(schema.aiMessageFeedback.reviewStatus, options.reviewStatus)
-      : undefined)
+    .where(
+      options.reviewStatus
+        ? eq(schema.aiMessageFeedback.reviewStatus, options.reviewStatus)
+        : undefined,
+    )
     .orderBy(desc(schema.aiMessageFeedback.updatedAt))
     .limit(options.limit)
     .offset(options.offset);
@@ -142,10 +151,12 @@ export async function listReviewedFeedbackForExport(
   return db
     .select()
     .from(schema.aiMessageFeedback)
-    .where(and(
-      eq(schema.aiMessageFeedback.reviewStatus, 'reviewed'),
-      isNotNull(schema.aiMessageFeedback.reviewerLabel),
-    ))
+    .where(
+      and(
+        eq(schema.aiMessageFeedback.reviewStatus, 'reviewed'),
+        isNotNull(schema.aiMessageFeedback.reviewerLabel),
+      ),
+    )
     .orderBy(desc(schema.aiMessageFeedback.reviewedAt))
     .limit(options.limit)
     .offset(options.offset);

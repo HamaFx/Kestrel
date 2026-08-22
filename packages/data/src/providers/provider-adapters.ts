@@ -28,19 +28,19 @@
 // 1m→candles-1m) lives in each provider's `supports()` / `fetchCandles()`
 // so adapters just iterate the registry.
 
-import type { Symbol, Timeframe, Candle } from '@kestrel/shared';
-import { getSymbolDefinition } from '@kestrel/shared';
+import { getSymbolDefinition, type Candle, type Symbol, type Timeframe } from '@kestrel/shared';
+
 import { ProviderError } from '../errors';
+import * as binance from './binance';
+import * as biquote from './biquote';
+import { fetchCandles1m } from './candles-1m';
+import * as finnhub from './finnhub';
+import { fetchLiveTick } from './live-ticks';
 import {
   marketDataProviders,
   type MarketDataProvider,
   type ProviderFetchOptions,
 } from './provider-registry';
-import * as biquote from './biquote';
-import * as binance from './binance';
-import * as finnhub from './finnhub';
-import { fetchLiveTick } from './live-ticks';
-import { fetchCandles1m } from './candles-1m';
 import { toCandle, toCandleFromBiquote } from './to-candle';
 
 // ── Provider adapter wrappers ────────────────────────────────────────
@@ -58,9 +58,7 @@ const liveTicksProvider: MarketDataProvider = {
     if (tf !== '1m') return null; // LSP-2 fix — no throw, just skip
     const r = await fetchCandles1m({ symbol, count });
     const fetchedAt = Date.now();
-    return r.bars.map((bar) =>
-      toCandle(bar, { symbol, tf, source: r.provider, fetchedAt }),
-    );
+    return r.bars.map((bar) => toCandle(bar, { symbol, tf, source: r.provider, fetchedAt }));
   },
   supports(_symbol: Symbol, tf?: Timeframe): boolean {
     // Price requests omit a timeframe; live snapshots support those too.
@@ -88,10 +86,15 @@ const biquoteProvider: MarketDataProvider = {
       baseUrl,
       ...(opts?.signal ? { signal: opts.signal } : {}),
     });
-    const mid = tick.mid ?? ((tick.bid + tick.ask) / 2);
+    const mid = tick.mid ?? (tick.bid + tick.ask) / 2;
     return { price: mid, provider: 'biquote', ageMs: null };
   },
-  async fetchCandles(symbol: Symbol, tf: Timeframe, count: number, opts?: ProviderFetchOptions): Promise<Candle[] | null> {
+  async fetchCandles(
+    symbol: Symbol,
+    tf: Timeframe,
+    count: number,
+    opts?: ProviderFetchOptions,
+  ): Promise<Candle[] | null> {
     // BiQuote doesn't support weekly bars.
     if (tf === '1w') return null;
     const baseUrl = opts?.baseUrl ?? process.env.BIQUOTE_BASE_URL ?? 'https://biquote.io';
@@ -103,9 +106,7 @@ const biquoteProvider: MarketDataProvider = {
       ...(opts?.signal ? { signal: opts.signal } : {}),
     });
     const fetchedAt = Date.now();
-    return raw.map((bar) =>
-      toCandleFromBiquote(bar, { symbol, tf, fetchedAt }),
-    );
+    return raw.map((bar) => toCandleFromBiquote(bar, { symbol, tf, fetchedAt }));
   },
   supports(symbol: Symbol, tf?: Timeframe): boolean {
     const def = getSymbolDefinition(symbol);
@@ -144,7 +145,12 @@ function createFinnhubProvider(): MarketDataProvider {
       });
       return { price: result.price, provider: 'finnhub', ageMs: null };
     },
-    async fetchCandles(symbol: Symbol, tf: Timeframe, count: number, opts?: ProviderFetchOptions): Promise<Candle[] | null> {
+    async fetchCandles(
+      symbol: Symbol,
+      tf: Timeframe,
+      count: number,
+      opts?: ProviderFetchOptions,
+    ): Promise<Candle[] | null> {
       const key = opts?.apiKey ?? process.env.FINNHUB_API_KEY;
       if (!key) return null;
       const raw = await finnhub.fetchCandles({
@@ -155,9 +161,7 @@ function createFinnhubProvider(): MarketDataProvider {
         ...(opts?.signal ? { signal: opts.signal } : {}),
       });
       const fetchedAt = Date.now();
-      return raw.map((bar) =>
-        toCandle(bar, { symbol, tf, source: 'finnhub', fetchedAt }),
-      );
+      return raw.map((bar) => toCandle(bar, { symbol, tf, source: 'finnhub', fetchedAt }));
     },
     supports(_symbol: Symbol, _tf?: Timeframe): boolean {
       // Finnhub can serve any symbol/timeframe with a valid API key.
@@ -199,16 +203,19 @@ const binanceProvider: MarketDataProvider = {
     });
     return { price, provider: 'binance', ageMs: null };
   },
-  async fetchCandles(symbol: Symbol, tf: Timeframe, count: number, opts?: ProviderFetchOptions): Promise<Candle[] | null> {
+  async fetchCandles(
+    symbol: Symbol,
+    tf: Timeframe,
+    count: number,
+    opts?: ProviderFetchOptions,
+  ): Promise<Candle[] | null> {
     const def = getSymbolDefinition(symbol);
     if (!def?.binance) return null;
     const raw = await binance.fetchCandles(def.binance, tf, count, {
       ...(opts?.signal ? { signal: opts.signal } : {}),
     });
     const fetchedAt = Date.now();
-    return raw.map((bar) =>
-      toCandle(bar, { symbol, tf, source: 'binance', fetchedAt }),
-    );
+    return raw.map((bar) => toCandle(bar, { symbol, tf, source: 'binance', fetchedAt }));
   },
   supports(symbol: Symbol, _tf?: Timeframe): boolean {
     const def = getSymbolDefinition(symbol);
@@ -228,12 +235,7 @@ const binanceProvider: MarketDataProvider = {
 
 /** Build the provider list — all providers registered; key checks happen at call time. */
 function buildProviderList(): MarketDataProvider[] {
-  return [
-    liveTicksProvider,
-    biquoteProvider,
-    binanceProvider,
-    createFinnhubProvider(),
-  ];
+  return [liveTicksProvider, biquoteProvider, binanceProvider, createFinnhubProvider()];
 }
 
 let _bootstrapped = false;

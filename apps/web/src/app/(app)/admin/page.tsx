@@ -2,6 +2,38 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import {
+  IconBug,
+  IconDatabase,
+  IconFlag,
+  IconFlask,
+  IconHeartbeat,
+  IconHistory,
+  IconMessageReport,
+  IconRefresh,
+  IconSettingsBolt,
+  IconStethoscope,
+  IconTerminal,
+  IconTool,
+  IconUsers,
+} from '@tabler/icons-react';
+import dynamic from 'next/dynamic';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Suspense,
   useCallback,
@@ -10,26 +42,9 @@ import {
   type ComponentType,
   type KeyboardEvent,
 } from 'react';
-import dynamic from 'next/dynamic';
-import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  IconRefresh,
-  IconHistory,
-  IconTool,
-  IconStethoscope,
-  IconUsers,
-  IconFlag,
-  IconTerminal,
-  IconHeartbeat,
-  IconSettingsBolt,
-  IconMessageReport,
-  IconDatabase,
-  IconBug,
-  IconFlask,
-} from '@tabler/icons-react';
 
-import { cn } from '@/lib/cn';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { cn } from '@/lib/cn';
 
 // ---- Lazy-loaded admin sub-components ----
 // Each tab's component is only loaded when the user navigates to it.
@@ -167,7 +182,9 @@ export default function AdminPage() {
   const rawTab = searchParams.get(TAB_PARAM);
   const activeTab: TabId = isValidTab(rawTab) ? rawTab : DEFAULT_TAB;
 
-  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({} as Record<TabId, HTMLButtonElement | null>);
+  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>(
+    {} as Record<TabId, HTMLButtonElement | null>,
+  );
 
   // If the URL contains an unknown tab, rewrite it to the default.
   useEffect(() => {
@@ -279,7 +296,7 @@ export default function AdminPage() {
                   'border-b-2',
                   active
                     ? 'border-brand text-brand'
-                    : 'border-transparent text-fg-muted hover:text-fg',
+                    : 'text-fg-muted hover:text-fg border-transparent',
                 )}
               >
                 <Icon className="size-4" aria-hidden="true" />
@@ -288,7 +305,6 @@ export default function AdminPage() {
             );
           })}
         </div>
-
       </div>
 
       <section
@@ -296,7 +312,7 @@ export default function AdminPage() {
         role="tabpanel"
         aria-labelledby={`${activeTab}-tab`}
         tabIndex={0}
-        className="min-h-[300px] outline-none focus-visible:ring-2 focus-visible:ring-brand/50 rounded-sm"
+        className="focus-visible:ring-brand/50 min-h-[300px] rounded-sm outline-none focus-visible:ring-2"
       >
         <Suspense fallback={<TabFallback />}>
           <ActiveComponent />

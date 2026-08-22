@@ -17,6 +17,7 @@
 // Diagnostic trace query helpers and the admin correlation timeline.
 
 import { and, desc, eq, inArray, or, type SQL } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type DiagnosticTraceRow = typeof schema.diagnosticTraces.$inferSelect;
@@ -61,13 +62,7 @@ export interface TraceExplorerFilters {
   limit?: number | undefined;
 }
 
-export type TraceExplorerSource =
-  | 'trace'
-  | 'turn'
-  | 'tool'
-  | 'agent'
-  | 'budget'
-  | 'outbox';
+export type TraceExplorerSource = 'trace' | 'turn' | 'tool' | 'agent' | 'budget' | 'outbox';
 
 export interface TraceExplorerEvent {
   id: string;
@@ -111,59 +106,71 @@ export async function listTraceExplorerEvents(
       : db
           .select()
           .from(schema.diagnosticTraces)
-          .where(filters.traceId || filters.threadId
-            ? allMatch([
-                ...(filters.traceId ? [eq(schema.diagnosticTraces.id, filters.traceId)] : []),
-                ...(filters.threadId ? [eq(schema.diagnosticTraces.threadId, filters.threadId)] : []),
-              ])
-            : undefined)
+          .where(
+            filters.traceId || filters.threadId
+              ? allMatch([
+                  ...(filters.traceId ? [eq(schema.diagnosticTraces.id, filters.traceId)] : []),
+                  ...(filters.threadId
+                    ? [eq(schema.diagnosticTraces.threadId, filters.threadId)]
+                    : []),
+                ])
+              : undefined,
+          )
           .orderBy(desc(schema.diagnosticTraces.startedAt))
           .limit(limit),
     db
       .select()
       .from(schema.chatTelemetry)
-      .where(allMatch([
-        ...(filters.traceId ? [eq(schema.chatTelemetry.traceId, filters.traceId)] : []),
-        ...(filters.runId ? [eq(schema.chatTelemetry.runId, filters.runId)] : []),
-        ...(filters.jobId ? [eq(schema.chatTelemetry.jobId, filters.jobId)] : []),
-        ...(filters.threadId ? [eq(schema.chatTelemetry.threadId, filters.threadId)] : []),
-        ...(filters.messageId ? [eq(schema.chatTelemetry.messageId, filters.messageId)] : []),
-      ]))
+      .where(
+        allMatch([
+          ...(filters.traceId ? [eq(schema.chatTelemetry.traceId, filters.traceId)] : []),
+          ...(filters.runId ? [eq(schema.chatTelemetry.runId, filters.runId)] : []),
+          ...(filters.jobId ? [eq(schema.chatTelemetry.jobId, filters.jobId)] : []),
+          ...(filters.threadId ? [eq(schema.chatTelemetry.threadId, filters.threadId)] : []),
+          ...(filters.messageId ? [eq(schema.chatTelemetry.messageId, filters.messageId)] : []),
+        ]),
+      )
       .orderBy(desc(schema.chatTelemetry.createdAt))
       .limit(limit),
     db
       .select()
       .from(schema.chatToolTelemetry)
-      .where(allMatch([
-        ...(filters.traceId ? [eq(schema.chatToolTelemetry.traceId, filters.traceId)] : []),
-        ...(filters.runId ? [eq(schema.chatToolTelemetry.runId, filters.runId)] : []),
-        ...(filters.jobId ? [eq(schema.chatToolTelemetry.jobId, filters.jobId)] : []),
-        ...(filters.threadId ? [eq(schema.chatToolTelemetry.threadId, filters.threadId)] : []),
-        ...(filters.messageId ? [eq(schema.chatToolTelemetry.messageId, filters.messageId)] : []),
-      ]))
+      .where(
+        allMatch([
+          ...(filters.traceId ? [eq(schema.chatToolTelemetry.traceId, filters.traceId)] : []),
+          ...(filters.runId ? [eq(schema.chatToolTelemetry.runId, filters.runId)] : []),
+          ...(filters.jobId ? [eq(schema.chatToolTelemetry.jobId, filters.jobId)] : []),
+          ...(filters.threadId ? [eq(schema.chatToolTelemetry.threadId, filters.threadId)] : []),
+          ...(filters.messageId ? [eq(schema.chatToolTelemetry.messageId, filters.messageId)] : []),
+        ]),
+      )
       .orderBy(desc(schema.chatToolTelemetry.createdAt))
       .limit(limit),
     db
       .select()
       .from(schema.aiBudgetReservations)
-      .where(allMatch([
-        ...(filters.traceId ? [eq(schema.aiBudgetReservations.traceId, filters.traceId)] : []),
-        ...(filters.runId ? [eq(schema.aiBudgetReservations.runId, filters.runId)] : []),
-        ...(filters.jobId ? [eq(schema.aiBudgetReservations.jobId, filters.jobId)] : []),
-        ...(filters.threadId ? [eq(schema.aiBudgetReservations.threadId, filters.threadId)] : []),
-      ]))
+      .where(
+        allMatch([
+          ...(filters.traceId ? [eq(schema.aiBudgetReservations.traceId, filters.traceId)] : []),
+          ...(filters.runId ? [eq(schema.aiBudgetReservations.runId, filters.runId)] : []),
+          ...(filters.jobId ? [eq(schema.aiBudgetReservations.jobId, filters.jobId)] : []),
+          ...(filters.threadId ? [eq(schema.aiBudgetReservations.threadId, filters.threadId)] : []),
+        ]),
+      )
       .orderBy(desc(schema.aiBudgetReservations.createdAt))
       .limit(limit),
     db
       .select()
       .from(schema.persistenceOutbox)
-      .where(allMatch([
-        ...(filters.traceId ? [eq(schema.persistenceOutbox.traceId, filters.traceId)] : []),
-        ...(filters.runId ? [eq(schema.persistenceOutbox.runId, filters.runId)] : []),
-        ...(filters.jobId ? [eq(schema.persistenceOutbox.jobId, filters.jobId)] : []),
-        ...(filters.threadId ? [eq(schema.persistenceOutbox.threadId, filters.threadId)] : []),
-        ...(filters.messageId ? [eq(schema.persistenceOutbox.messageId, filters.messageId)] : []),
-      ]))
+      .where(
+        allMatch([
+          ...(filters.traceId ? [eq(schema.persistenceOutbox.traceId, filters.traceId)] : []),
+          ...(filters.runId ? [eq(schema.persistenceOutbox.runId, filters.runId)] : []),
+          ...(filters.jobId ? [eq(schema.persistenceOutbox.jobId, filters.jobId)] : []),
+          ...(filters.threadId ? [eq(schema.persistenceOutbox.threadId, filters.threadId)] : []),
+          ...(filters.messageId ? [eq(schema.persistenceOutbox.messageId, filters.messageId)] : []),
+        ]),
+      )
       .orderBy(desc(schema.persistenceOutbox.updatedAt))
       .limit(limit),
   ]);
@@ -176,19 +183,23 @@ export async function listTraceExplorerEvents(
     .filter((id): id is string => typeof id === 'string');
 
   const opinionConditions: SQL[] = [];
-  if (filters.messageId) opinionConditions.push(eq(schema.agentOpinions.messageId, filters.messageId));
+  if (filters.messageId)
+    opinionConditions.push(eq(schema.agentOpinions.messageId, filters.messageId));
   if (filters.threadId) opinionConditions.push(eq(schema.agentOpinions.threadId, filters.threadId));
-  if (correlatedMessageIds.length > 0) opinionConditions.push(inArray(schema.agentOpinions.messageId, correlatedMessageIds));
-  if (correlatedThreadIds.length > 0) opinionConditions.push(inArray(schema.agentOpinions.threadId, correlatedThreadIds));
+  if (correlatedMessageIds.length > 0)
+    opinionConditions.push(inArray(schema.agentOpinions.messageId, correlatedMessageIds));
+  if (correlatedThreadIds.length > 0)
+    opinionConditions.push(inArray(schema.agentOpinions.threadId, correlatedThreadIds));
 
-  const opinions = opinionConditions.length > 0
-    ? await db
-        .select()
-        .from(schema.agentOpinions)
-        .where(or(...opinionConditions))
-        .orderBy(desc(schema.agentOpinions.createdAt))
-        .limit(limit)
-    : [];
+  const opinions =
+    opinionConditions.length > 0
+      ? await db
+          .select()
+          .from(schema.agentOpinions)
+          .where(or(...opinionConditions))
+          .orderBy(desc(schema.agentOpinions.createdAt))
+          .limit(limit)
+      : [];
 
   const events: TraceExplorerEvent[] = [
     ...traces.map((row) => ({
@@ -220,7 +231,10 @@ export async function listTraceExplorerEvents(
       messageId: row.messageId,
       userId: row.userId,
       durationMs: row.ms,
-      error: row.kind?.endsWith('_failed') || row.kind === 'turn_failed' ? 'Telemetry marked failed' : null,
+      error:
+        row.kind?.endsWith('_failed') || row.kind === 'turn_failed'
+          ? 'Telemetry marked failed'
+          : null,
       metadata: {
         model: row.model,
         inputTokens: row.inputTokens,
@@ -242,7 +256,7 @@ export async function listTraceExplorerEvents(
       messageId: row.messageId,
       userId: row.userId,
       durationMs: row.ms,
-      error: row.ok ? null : row.errorCode ?? 'Tool failed',
+      error: row.ok ? null : (row.errorCode ?? 'Tool failed'),
       metadata: { outputChars: row.outputChars },
     })),
     ...opinions.map((row) => ({
@@ -281,7 +295,11 @@ export async function listTraceExplorerEvents(
       userId: row.userId,
       durationMs: null,
       error: row.lastError,
-      metadata: { reservedUsdCents: row.reservedUsdCents, actualUsdCents: row.actualUsdCents, day: row.day },
+      metadata: {
+        reservedUsdCents: row.reservedUsdCents,
+        actualUsdCents: row.actualUsdCents,
+        day: row.day,
+      },
     })),
     ...outbox.map((row) => ({
       id: `outbox:${row.id}`,
@@ -297,11 +315,13 @@ export async function listTraceExplorerEvents(
       userId: row.userId,
       durationMs: null,
       error: row.lastError,
-      metadata: { attemptCount: row.attemptCount, maxAttempts: row.maxAttempts, dedupeKey: row.dedupeKey },
+      metadata: {
+        attemptCount: row.attemptCount,
+        maxAttempts: row.maxAttempts,
+        dedupeKey: row.dedupeKey,
+      },
     })),
   ];
 
-  return events
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-    .slice(0, limit);
+  return events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, limit);
 }

@@ -20,7 +20,6 @@
 // Both <TopBar> and <ChatTopBar> render this component. Clicks call into
 // the drawer's context state, so it doesn't matter which trigger fires —
 // only one drawer instance lives in the DOM.
-
 import { IconMenu2 } from '@tabler/icons-react';
 
 import { useNavDrawer } from './nav-drawer-context';
@@ -34,7 +33,7 @@ export function NavTrigger() {
       aria-expanded={open}
       aria-controls="sidebar-nav"
       onClick={() => setOpen(true)}
-      className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 active:scale-95 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-all"
+      className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-all active:scale-95"
     >
       <IconMenu2 className="size-5" />
     </button>

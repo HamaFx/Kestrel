@@ -1,4 +1,23 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { GET as GET_PUBLIC } from '@/app/api/health/public/route';
+import { GET } from '@/app/api/health/route';
 
 const mockDbExecute = vi.hoisted(() => vi.fn());
 const mockAuthFn = vi.hoisted(() => vi.fn());
@@ -18,9 +37,6 @@ vi.mock('@kestrel/db', () => ({
 vi.mock('@/auth', () => ({
   auth: mockAuthFn,
 }));
-
-import { GET } from '@/app/api/health/route';
-import { GET as GET_PUBLIC } from '@/app/api/health/public/route';
 
 const MOCK_REQ = new Request('http://localhost/api/health');
 
@@ -71,9 +87,7 @@ describe('GET /api/health/public', () => {
 
 describe('GET /api/health', () => {
   it('returns 200 with status ok when all checks pass', async () => {
-    mockDbExecute.mockResolvedValue([
-      { extname: 'vector', recent: '42', stuck: '0' },
-    ]);
+    mockDbExecute.mockResolvedValue([{ extname: 'vector', recent: '42', stuck: '0' }]);
 
     const response = await GET(MOCK_REQ, { params: Promise.resolve(undefined as never) });
     expect(response.status).toBe(200);
@@ -90,9 +104,7 @@ describe('GET /api/health', () => {
   });
 
   it('returns 503 when env vars are missing', async () => {
-    mockDbExecute.mockResolvedValue([
-      { extname: 'vector', recent: '10', stuck: '0' },
-    ]);
+    mockDbExecute.mockResolvedValue([{ extname: 'vector', recent: '10', stuck: '0' }]);
     delete process.env.DATABASE_URL;
 
     const response = await GET(MOCK_REQ, { params: Promise.resolve(undefined as never) });

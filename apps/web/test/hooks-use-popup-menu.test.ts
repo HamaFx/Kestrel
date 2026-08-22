@@ -1,6 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { usePopupMenu } from '../src/hooks/use-popup-menu';
 
 describe('usePopupMenu', () => {
@@ -82,9 +99,7 @@ describe('usePopupMenu', () => {
 
     act(() => result.current.setOpen(true));
     // Should register when opened
-    const pointerCalls = addSpy.mock.calls.filter(
-      ([event]) => event === 'pointerdown',
-    );
+    const pointerCalls = addSpy.mock.calls.filter(([event]) => event === 'pointerdown');
     expect(pointerCalls.length).toBeGreaterThan(0);
 
     addSpy.mockRestore();

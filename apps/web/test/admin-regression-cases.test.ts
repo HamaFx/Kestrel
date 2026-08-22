@@ -1,4 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { PATCH } from '@/app/api/admin/regression-cases/[id]/route';
+import { GET } from '@/app/api/admin/regression-cases/route';
 
 const mocks = vi.hoisted(() => ({
   listAiRegressionCases: vi.fn(),
@@ -7,17 +26,34 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/admin-auth', () => ({
-  withAdminAuth: (handler: (req: Request, ctx: { user: { userId: string }; params: Promise<{ id: string }> }) => Promise<Response>) =>
-    (req: Request, ctx?: { params?: Promise<{ id: string }> }) => handler(req, { user: { userId: 'admin-1' }, params: ctx?.params ?? Promise.resolve({ id: 'case-1' }) }),
+  withAdminAuth:
+    (
+      handler: (
+        req: Request,
+        ctx: { user: { userId: string }; params: Promise<{ id: string }> },
+      ) => Promise<Response>,
+    ) =>
+    (req: Request, ctx?: { params?: Promise<{ id: string }> }) =>
+      handler(req, {
+        user: { userId: 'admin-1' },
+        params: ctx?.params ?? Promise.resolve({ id: 'case-1' }),
+      }),
 }));
 
 vi.mock('@/lib/api', () => ({
-  parseSearchParams: (req: Request, schema: { parse: (value: Record<string, string>) => unknown }) => {
+  parseSearchParams: (
+    req: Request,
+    schema: { parse: (value: Record<string, string>) => unknown },
+  ) => {
     const url = new URL(req.url);
     return schema.parse(Object.fromEntries(url.searchParams.entries()));
   },
-  parseJsonBody: vi.fn(async (req: Request, schema: { parse: (value: unknown) => unknown }) => schema.parse(await req.json())),
-  errorResponse: vi.fn((error: unknown) => Response.json({ error: String(error) }, { status: 500 })),
+  parseJsonBody: vi.fn(async (req: Request, schema: { parse: (value: unknown) => unknown }) =>
+    schema.parse(await req.json()),
+  ),
+  errorResponse: vi.fn((error: unknown) =>
+    Response.json({ error: String(error) }, { status: 500 }),
+  ),
 }));
 
 vi.mock('@/lib/services/api-boundary', () => ({
@@ -26,9 +62,6 @@ vi.mock('@/lib/services/api-boundary', () => ({
 }));
 
 vi.mock('@/lib/services/admin', () => ({ recordAdminAudit: mocks.recordAdminAudit }));
-
-import { GET } from '@/app/api/admin/regression-cases/route';
-import { PATCH } from '@/app/api/admin/regression-cases/[id]/route';
 
 const row = {
   id: 'case-1',
@@ -54,34 +87,47 @@ describe('admin regression cases API', () => {
   });
 
   it('returns privacy-safe case fields', async () => {
-    const response = await GET(new Request('http://localhost/api/admin/regression-cases?status=open'));
+    const response = await GET(
+      new Request('http://localhost/api/admin/regression-cases?status=open'),
+    );
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ cases: [{
-      id: row.id,
-      feedbackId: row.feedbackId,
-      threadId: row.threadId,
-      messageId: row.messageId,
-      promptSha256: row.promptSha256,
-      assistantOutputSha256: row.assistantOutputSha256,
-      issueCodes: row.issueCodes,
-      reviewerNote: row.reviewerNote,
-      status: row.status,
-      createdAt: '2026-08-18T12:00:00.000Z',
-      updatedAt: '2026-08-18T12:00:00.000Z',
-    }] });
+    expect(await response.json()).toEqual({
+      cases: [
+        {
+          id: row.id,
+          feedbackId: row.feedbackId,
+          threadId: row.threadId,
+          messageId: row.messageId,
+          promptSha256: row.promptSha256,
+          assistantOutputSha256: row.assistantOutputSha256,
+          issueCodes: row.issueCodes,
+          reviewerNote: row.reviewerNote,
+          status: row.status,
+          createdAt: '2026-08-18T12:00:00.000Z',
+          updatedAt: '2026-08-18T12:00:00.000Z',
+        },
+      ],
+    });
   });
 
   it('updates status and audits the transition', async () => {
-    const response = await PATCH(new Request('http://localhost/api/admin/regression-cases/case-1', {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ status: 'resolved' }),
-    }));
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/regression-cases/case-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' }),
+      }),
+    );
     expect(response.status).toBe(200);
     expect(mocks.updateAiRegressionCaseStatus).toHaveBeenCalledWith('case-1', 'resolved');
-    expect(mocks.recordAdminAudit).toHaveBeenCalledWith('admin-1', 'ai.regression-case.update', undefined, {
-      regressionCaseId: 'case-1',
-      status: 'resolved',
-    });
+    expect(mocks.recordAdminAudit).toHaveBeenCalledWith(
+      'admin-1',
+      'ai.regression-case.update',
+      undefined,
+      {
+        regressionCaseId: 'case-1',
+        status: 'resolved',
+      },
+    );
   });
 });

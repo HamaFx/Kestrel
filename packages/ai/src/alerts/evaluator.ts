@@ -30,12 +30,11 @@
 // active until a channel returns 2xx so transient delivery errors retry on
 // the next cron tick.
 
-import { schema } from '@kestrel/db';
-import { getDb } from '../db';
-import { eq, inArray } from 'drizzle-orm';
 import { getCandles, getPrice } from '@kestrel/data';
+import { schema } from '@kestrel/db';
 import { computeIndicator } from '@kestrel/indicators';
 import {
+  msPerTimeframe,
   type AlertRule,
   type Candle,
   type IndicatorKind,
@@ -43,9 +42,10 @@ import {
   type Tick,
   type Timeframe,
 } from '@kestrel/shared';
-import { msPerTimeframe } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { eq, inArray } from 'drizzle-orm';
 
+import { getDb } from '../db';
 import { deliverAlert, type DeliveryResult } from './delivery';
 import {
   claimAlertDelivery,
@@ -53,8 +53,8 @@ import {
   releaseAlertDeliveryClaim,
   setRulePreviousValue,
 } from './persistence';
-import { specFromRule, type RuleReading } from './spec';
 import { alertRuleRegistry } from './rule-registry';
+import { specFromRule, type RuleReading } from './spec';
 
 const elog = createCategorizedLogger('ai', { component: 'alerts-evaluator' });
 
@@ -90,7 +90,8 @@ export type { RuleReading, CrossContext } from './spec';
  * became `rsi(14)`), which produced alerts that didn't match the user's
  * stated intent.
  */
-const INDICATOR_SPEC_RE = /^(sma|ema|rsi|atr|macd|bollinger|pivots)(?::([0-9]+(?:,[0-9]+){0,2}))?$/i;
+const INDICATOR_SPEC_RE =
+  /^(sma|ema|rsi|atr|macd|bollinger|pivots)(?::([0-9]+(?:,[0-9]+){0,2}))?$/i;
 
 export function parseIndicatorSpec(
   spec: string,
@@ -131,7 +132,6 @@ function defaultPeriod(kind: IndicatorKind): number {
   return kind === 'rsi' || kind === 'atr' ? 14 : 20;
 }
 
-
 export function lastClosedBar(candles: Candle[], tf: Timeframe): Candle | null {
   // A bar is closed iff its open time + timeframe duration is in the past
   // (i.e. the next bar has already opened). The previous implementation
@@ -149,23 +149,33 @@ export function lastClosedBar(candles: Candle[], tf: Timeframe): Candle | null {
 
 type AlertObj = { id: string; rule: AlertRule };
 
-async function readReadingsBatch(alerts: AlertObj[]): Promise<Map<string, RuleReading | null | Error>> {
+async function readReadingsBatch(
+  alerts: AlertObj[],
+): Promise<Map<string, RuleReading | null | Error>> {
   // 1. Group dependencies
   const neededPrices = new Set<Symbol>();
   const neededCandles = new Map<string, { symbol: Symbol; tf: Timeframe; count: number }>();
-  
+
   for (const a of alerts) {
     const { rule } = a;
     if (rule.type === 'priceCross') neededPrices.add(rule.symbol);
     else if (rule.type === 'candleClose') {
       const key = `${rule.symbol}-${rule.tf}`;
       const existing = neededCandles.get(key);
-      neededCandles.set(key, { symbol: rule.symbol, tf: rule.tf, count: Math.max(existing?.count ?? 0, 4) });
+      neededCandles.set(key, {
+        symbol: rule.symbol,
+        tf: rule.tf,
+        count: Math.max(existing?.count ?? 0, 4),
+      });
     } else if (rule.type === 'indicatorCross') {
       if (!parseIndicatorSpec(rule.indicator)) continue;
       const key = `${rule.symbol}-${rule.tf}`;
       const existing = neededCandles.get(key);
-      neededCandles.set(key, { symbol: rule.symbol, tf: rule.tf, count: Math.max(existing?.count ?? 0, 250) });
+      neededCandles.set(key, {
+        symbol: rule.symbol,
+        tf: rule.tf,
+        count: Math.max(existing?.count ?? 0, 250),
+      });
     }
   }
 
@@ -174,12 +184,28 @@ async function readReadingsBatch(alerts: AlertObj[]): Promise<Map<string, RuleRe
   const candleCache = new Map<string, Candle[] | Error>();
 
   const fetches: Promise<void>[] = [];
-  
+
   for (const sym of neededPrices) {
-    fetches.push(getPrice(sym).then(t => { priceCache.set(sym, t); }).catch(e => { priceCache.set(sym, e instanceof Error ? e : new Error(String(e))); }));
+    fetches.push(
+      getPrice(sym)
+        .then((t) => {
+          priceCache.set(sym, t);
+        })
+        .catch((e) => {
+          priceCache.set(sym, e instanceof Error ? e : new Error(String(e)));
+        }),
+    );
   }
   for (const [key, req] of neededCandles.entries()) {
-    fetches.push(getCandles(req.symbol, req.tf, { count: req.count }).then(c => { candleCache.set(key, c); }).catch(e => { candleCache.set(key, e instanceof Error ? e : new Error(String(e))); }));
+    fetches.push(
+      getCandles(req.symbol, req.tf, { count: req.count })
+        .then((c) => {
+          candleCache.set(key, c);
+        })
+        .catch((e) => {
+          candleCache.set(key, e instanceof Error ? e : new Error(String(e)));
+        }),
+    );
   }
 
   await Promise.all(fetches);
@@ -193,24 +219,36 @@ async function readReadingsBatch(alerts: AlertObj[]): Promise<Map<string, RuleRe
       if (rule.type === 'priceCross') {
         const tick = priceCache.get(rule.symbol);
         if (tick instanceof Error) throw tick;
-        if (!tick) { results.set(a.id, null); continue; }
+        if (!tick) {
+          results.set(a.id, null);
+          continue;
+        }
         results.set(a.id, { value: tick.mid, source: tick.source });
       } else if (rule.type === 'candleClose') {
         const key = `${rule.symbol}-${rule.tf}`;
         const candles = candleCache.get(key);
         if (candles instanceof Error) throw candles;
-        if (!candles || candles.length === 0) { results.set(a.id, null); continue; }
+        if (!candles || candles.length === 0) {
+          results.set(a.id, null);
+          continue;
+        }
         const last = lastClosedBar(candles, rule.tf);
         if (!last) results.set(a.id, null);
         else results.set(a.id, { value: last.c, source: last.source });
       } else if (rule.type === 'indicatorCross') {
         const parsed = parseIndicatorSpec(rule.indicator);
-        if (!parsed) { results.set(a.id, null); continue; }
+        if (!parsed) {
+          results.set(a.id, null);
+          continue;
+        }
         const key = `${rule.symbol}-${rule.tf}`;
         const candles = candleCache.get(key);
         if (candles instanceof Error) throw candles;
-        if (!candles || candles.length === 0) { results.set(a.id, null); continue; }
-        
+        if (!candles || candles.length === 0) {
+          results.set(a.id, null);
+          continue;
+        }
+
         const result = computeIndicator({
           symbol: rule.symbol,
           tf: rule.tf,
@@ -223,11 +261,23 @@ async function readReadingsBatch(alerts: AlertObj[]): Promise<Map<string, RuleRe
         for (let i = result.values.length - 1; i >= 0; i -= 1) {
           const v = result.values[i];
           if (v == null) continue;
-          if (typeof v === 'number') { found = { value: v, source: `${parsed.kind}@${rule.tf}` }; break; }
+          if (typeof v === 'number') {
+            found = { value: v, source: `${parsed.kind}@${rule.tf}` };
+            break;
+          }
           if (typeof v === 'object') {
-            if ('macd' in v && typeof v.macd === 'number') { found = { value: v.macd, source: `macd@${rule.tf}` }; break; }
-            if ('middle' in v && typeof v.middle === 'number') { found = { value: v.middle, source: `bollinger.middle@${rule.tf}` }; break; }
-            if ('pp' in v && typeof v.pp === 'number') { found = { value: v.pp, source: `pivots.pp@${rule.tf}` }; break; }
+            if ('macd' in v && typeof v.macd === 'number') {
+              found = { value: v.macd, source: `macd@${rule.tf}` };
+              break;
+            }
+            if ('middle' in v && typeof v.middle === 'number') {
+              found = { value: v.middle, source: `bollinger.middle@${rule.tf}` };
+              break;
+            }
+            if ('pp' in v && typeof v.pp === 'number') {
+              found = { value: v.pp, source: `pivots.pp@${rule.tf}` };
+              break;
+            }
           }
         }
         results.set(a.id, found);
@@ -316,7 +366,7 @@ export async function evaluateAlerts(
   const errors: EvaluationResult['errors'] = [];
   const deliveries: DeliveryResult[] = [];
 
-  // Phase 2 hardening §9 — read all rules' inputs in parallel. 
+  // Phase 2 hardening §9 — read all rules' inputs in parallel.
   // We group dependencies (symbol, tf) and pre-fetch them concurrently
   // so we never execute duplicated upstream calls in this worker boundary.
   const batchMap = await readReadingsBatch(alerts);
@@ -350,9 +400,10 @@ export async function evaluateAlerts(
       // immediately on creation.
       // PF-08 — Use the specification pattern to evaluate the rule.
       const spec = specFromRule(alert.rule);
-      const cross = alert.rule.type === 'indicatorCross'
-        ? { previousValue: alert.rule.previousValue ?? null }
-        : undefined;
+      const cross =
+        alert.rule.type === 'indicatorCross'
+          ? { previousValue: alert.rule.previousValue ?? null }
+          : undefined;
       const isMatch = spec.isSatisfiedBy(reading, cross);
 
       if (alert.rule.type === 'indicatorCross' && !isMatch) {

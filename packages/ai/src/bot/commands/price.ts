@@ -17,10 +17,11 @@
 // F7 — /price command: get current price for a symbol.
 // /price XAUUSD → current gold price
 
-import type { BotCommand, BotResponse } from '../types';
 import { schema } from '@kestrel/db';
+import { desc, eq } from 'drizzle-orm';
+
 import { getDb } from '../../db';
-import { eq, desc } from 'drizzle-orm';
+import type { BotCommand, BotResponse } from '../types';
 
 export const priceCommand: BotCommand = {
   name: 'price',

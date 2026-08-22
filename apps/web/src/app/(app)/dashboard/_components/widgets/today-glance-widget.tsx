@@ -24,14 +24,13 @@
 //
 // Uses the shared `TimeProvider` so the countdown ticks without each
 // cell starting its own interval. All numerals are `tabular-nums`.
-
-import {IconClock, IconCompass, IconAlertTriangle, IconBolt} from '@tabler/icons-react';
+import type { EconomicEvent, JournalEntry, Symbol } from '@kestrel/shared';
+import { IconAlertTriangle, IconBolt, IconClock, IconCompass } from '@tabler/icons-react';
 import Link from 'next/link';
-import type { JournalEntry, EconomicEvent, Symbol } from '@kestrel/shared';
 
 import { useTime } from '@/components/providers/time-provider';
-import { formatCountdown } from '@/lib/datetime';
 import { cn } from '@/lib/cn';
+import { formatCountdown } from '@/lib/datetime';
 
 interface TodayGlanceWidgetProps {
   events: EconomicEvent[];
@@ -67,19 +66,17 @@ export function TodayGlanceWidget({
 
 function CellNextEvent({ events }: { events: EconomicEvent[] }) {
   const { now } = useTime();
-  const upcoming = events
-    .filter((e) => e.date > now)
-    .sort((a, b) => a.date - b.date)[0];
+  const upcoming = events.filter((e) => e.date > now).sort((a, b) => a.date - b.date)[0];
 
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3">
-      <div className="text-fg-subtle flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wider">
+      <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
         <IconClock className="text-warn size-3.5" />
         Next event
       </div>
       {upcoming ? (
         <>
-          <span className="text-fg line-clamp-2 text-body-sm font-semibold">{upcoming.title}</span>
+          <span className="text-fg text-body-sm line-clamp-2 font-semibold">{upcoming.title}</span>
           <span className="text-fg-muted text-caption tabular-nums">
             {formatCountdown(upcoming.date - now)}
           </span>
@@ -91,7 +88,6 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
   );
 }
 
-
 // -----------------------------------------------------------------------
 // Cell 2 — Current trading session (UTC-based)
 // -----------------------------------------------------------------------
@@ -102,14 +98,14 @@ function CellSession() {
   const active = session !== 'Closed' && session !== 'Weekend';
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3">
-      <div className="text-fg-subtle flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wider">
+      <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
         <IconCompass className="text-fg size-3.5" />
         Session
       </div>
       <span className="text-fg text-body-sm font-semibold">{session}</span>
       <span
         className={cn(
-          'inline-flex w-fit items-center rounded-sm px-1.5 py-0.5 text-caption font-medium',
+          'text-caption inline-flex w-fit items-center rounded-sm px-1.5 py-0.5 font-medium',
           active ? 'bg-success/10 text-success' : 'bg-fg-muted/10 text-fg-muted',
         )}
       >
@@ -147,11 +143,7 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
   // Without a target we fall back to 1R per open position.
   let totalR = 0;
   for (const e of open) {
-    if (
-      e.entry !== null &&
-      e.stop !== null &&
-      Math.abs(e.entry - e.stop) > 0
-    ) {
+    if (e.entry !== null && e.stop !== null && Math.abs(e.entry - e.stop) > 0) {
       // R = capital-at-risk per position (1R each). The risk is defined by
       // |entry - stop|, which represents one R in the user's risk framework.
       totalR += 1;
@@ -163,7 +155,7 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
 
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3">
-      <div className="text-fg-subtle flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wider">
+      <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
         <IconAlertTriangle className="text-danger size-3.5" />
         Open risk
       </div>
@@ -171,8 +163,7 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
         <span className="text-fg-muted text-xs">No open positions</span>
       ) : (
         <span className="text-fg text-body-sm font-semibold tabular-nums">
-          {open.length} {open.length === 1 ? 'position' : 'positions'} ·{' '}
-          {totalRRounded}R at risk
+          {open.length} {open.length === 1 ? 'position' : 'positions'} · {totalRRounded}R at risk
         </span>
       )}
     </div>
@@ -193,11 +184,11 @@ function CellAiNudge({
   const nudge = briefingNudge ?? `Ask AI about today's bias for ${defaultSymbol}`;
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3">
-      <div className="text-fg-subtle flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wider">
+      <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
         <IconBolt className="text-fg size-3.5" />
         AI nudge
       </div>
-      <p className="text-fg line-clamp-2 text-body-sm">{nudge}</p>
+      <p className="text-fg text-body-sm line-clamp-2">{nudge}</p>
       <Link
         href="/chat"
         className="text-fg text-caption mt-auto inline-flex items-center gap-1 hover:underline"

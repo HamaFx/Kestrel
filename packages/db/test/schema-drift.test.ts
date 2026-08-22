@@ -19,15 +19,19 @@
 // Compares the Drizzle schema definitions against the actual database
 // structure after applying all migrations.
 
-import { readFileSync, readdirSync } from 'node:fs';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { closePGliteDb, getPGliteDb, executeWithFallback, sanitizeStatement } from '../src/pglite-client';
+import {
+  closePGliteDb,
+  executeWithFallback,
+  getPGliteDb,
+  sanitizeStatement,
+} from '../src/pglite-client';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
@@ -79,7 +83,9 @@ async function applyOne(db: Awaited<ReturnType<typeof getPGliteDb>>, tag: string
 }
 
 async function applyAll(db: Awaited<ReturnType<typeof getPGliteDb>>): Promise<void> {
-  const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8')) as { entries: Array<{ tag: string }> };
+  const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8')) as {
+    entries: Array<{ tag: string }>;
+  };
   for (const entry of journal.entries) {
     await applyOne(db, entry.tag);
   }
@@ -89,47 +95,83 @@ function getSchemaTableColumns(): Map<string, string[]> {
   const schemaDir = join(HERE, '..', 'src', 'schema');
   const result = new Map<string, string[]>();
   const files = [
-    'auth.ts', 'chat.ts', 'agent-opinions.ts', 'alerts.ts', 'journal.ts',
-    'news.ts', 'calendar.ts', 'snapshots.ts', 'telemetry.ts', 'tool-telemetry.ts',
-    'briefings.ts', 'cot.ts', 'share.ts', 'push.ts', 'memory.ts',
-    'daily-ai-spend.ts', 'rate-limits.ts', 'live-ticks.ts', 'candles-1m.ts',
-    'throttle.ts', 'intermarket-resonance.ts', 'audit.ts', 'provider-tests.ts',
-    'symbol-catalog.ts', 'cron-runs.ts', 'portfolio.ts',
-    'noise-control.ts', 'bot-links.ts', 'billing.ts', 'telegram-updates.ts', 'ai-feedback.ts', 'eval-datasets.ts',
+    'auth.ts',
+    'chat.ts',
+    'agent-opinions.ts',
+    'alerts.ts',
+    'journal.ts',
+    'news.ts',
+    'calendar.ts',
+    'snapshots.ts',
+    'telemetry.ts',
+    'tool-telemetry.ts',
+    'briefings.ts',
+    'cot.ts',
+    'share.ts',
+    'push.ts',
+    'memory.ts',
+    'daily-ai-spend.ts',
+    'rate-limits.ts',
+    'live-ticks.ts',
+    'candles-1m.ts',
+    'throttle.ts',
+    'intermarket-resonance.ts',
+    'audit.ts',
+    'provider-tests.ts',
+    'symbol-catalog.ts',
+    'cron-runs.ts',
+    'portfolio.ts',
+    'noise-control.ts',
+    'bot-links.ts',
+    'billing.ts',
+    'telegram-updates.ts',
+    'ai-feedback.ts',
+    'eval-datasets.ts',
   ];
   for (const file of files) {
     try {
       const source = readFileSync(join(schemaDir, file), 'utf-8');
       const parts = source.split(/export\s+const\s+\w+\s*=\s*pgTable\(/);
-      const tableNamesMatches = [...source.matchAll(/export\s+const\s+\w+\s*=\s*pgTable\(\s*['"`]([^'"`]+)['"`]/g)];
-      
+      const tableNamesMatches = [
+        ...source.matchAll(/export\s+const\s+\w+\s*=\s*pgTable\(\s*['"`]([^'"`]+)['"`]/g),
+      ];
+
       for (let i = 0; i < tableNamesMatches.length; i++) {
-        const tableName = tableNamesMatches[i]![1];
+        const tableName = tableNamesMatches[i]?.[1];
+        if (!tableName) continue;
         const block = parts[i + 1] || '';
         const columnMatches = block.matchAll(/\w+:\s*\w+\(\s*['"`]([^'"`]+)['"`]/g);
         const columns: string[] = [];
         for (const colMatch of columnMatches) {
           const colName = colMatch[1];
-          if (colName === tableName) continue;
+          if (!colName || colName === tableName) continue;
           if (!columns.includes(colName)) columns.push(colName);
         }
         if (columns.length > 0) result.set(tableName, columns);
       }
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
   return result;
 }
 
 describe('Phase 6 — Task 28: Schema drift detection', () => {
   let dir: string;
-  beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'kestrel-drift-')); });
-  afterEach(async () => { await closePGliteDb(); });
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'kestrel-drift-'));
+  });
+  afterEach(async () => {
+    await closePGliteDb();
+  });
 
   it('all tables in Drizzle schema exist in migrated database', async () => {
     const db = await getPGliteDb(dir);
     await applyAll(db);
     const schemaTables = getSchemaTableColumns();
-    const { rows } = await db.execute(`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`);
+    const { rows } = await db.execute(
+      `SELECT tablename FROM pg_tables WHERE schemaname = 'public'`,
+    );
     const dbTables = new Set(rows.map((r: Record<string, unknown>) => r.tablename));
     for (const [tableName] of schemaTables) {
       expect(dbTables.has(tableName)).toBe(true);
@@ -150,7 +192,9 @@ describe('Phase 6 — Task 28: Schema drift detection', () => {
     for (const tableName of tablesToCheck) {
       const schemaCols = schemaTables.get(tableName);
       if (!schemaCols) continue;
-      const { rows } = await db.execute(`SELECT column_name FROM information_schema.columns WHERE table_name = '${tableName}'`);
+      const { rows } = await db.execute(
+        `SELECT column_name FROM information_schema.columns WHERE table_name = '${tableName}'`,
+      );
       const dbCols = new Set(rows.map((r: Record<string, unknown>) => r.column_name));
       for (const col of schemaCols) {
         expect(dbCols.has(col)).toBe(true);
@@ -159,7 +203,9 @@ describe('Phase 6 — Task 28: Schema drift detection', () => {
   });
 
   it('migration journal and SQL files have a one-to-one mapping', async () => {
-    const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8')) as { entries: Array<{ tag: string }> };
+    const journal = JSON.parse(
+      readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8'),
+    ) as { entries: Array<{ tag: string }> };
     const sqlFiles = readdirSync(DRIZZLE_DIR).filter((file) => file.endsWith('.sql'));
     const journalTags = new Set(journal.entries.map((entry) => `${entry.tag}.sql`));
 

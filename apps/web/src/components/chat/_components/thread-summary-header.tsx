@@ -22,8 +22,7 @@
 // thread + key insights (reuses the `summarize_thread` tool output). Only
 // appears once the thread has grown long enough (~20 messages) AND a summary
 // has been generated.
-
-import {IconChevronDown, IconChevronUp, IconBolt, IconX} from '@tabler/icons-react';
+import { IconBolt, IconChevronDown, IconChevronUp, IconX } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useState } from 'react';
 
@@ -40,12 +39,12 @@ export function ThreadSummaryHeader({ synopsis, insights, onDismiss }: ThreadSum
     <div
       role="status"
       aria-label="Thread summary"
-      className="border border-border bg-bg-elev-1 rounded-sm p-3 mb-3"
+      className="border-border bg-bg-elev-1 mb-3 rounded-sm border p-3"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <IconBolt className="size-3.5 text-fg" />
-          <span className="text-body-sm font-semibold text-fg">Thread summary</span>
+          <IconBolt className="text-fg size-3.5" />
+          <span className="text-body-sm text-fg font-semibold">Thread summary</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -55,7 +54,11 @@ export function ThreadSummaryHeader({ synopsis, insights, onDismiss }: ThreadSum
             aria-label={open ? 'Collapse summary' : 'Expand summary'}
             className="text-fg-subtle hover:text-fg inline-flex size-7 items-center justify-center rounded-sm transition-colors"
           >
-            {open ? <IconChevronUp className="size-3.5" /> : <IconChevronDown className="size-3.5" />}
+            {open ? (
+              <IconChevronUp className="size-3.5" />
+            ) : (
+              <IconChevronDown className="size-3.5" />
+            )}
           </button>
           {onDismiss ? (
             <button
@@ -71,9 +74,7 @@ export function ThreadSummaryHeader({ synopsis, insights, onDismiss }: ThreadSum
       </div>
 
       {/* Collapsed: synopsis preview */}
-      {!open ? (
-        <p className="text-fg-muted text-xs line-clamp-2 mt-1.5">{synopsis}</p>
-      ) : null}
+      {!open ? <p className="text-fg-muted mt-1.5 line-clamp-2 text-xs">{synopsis}</p> : null}
 
       <AnimatePresence initial={false}>
         {open ? (
@@ -97,7 +98,7 @@ export function ThreadSummaryHeader({ synopsis, insights, onDismiss }: ThreadSum
                       <span className="text-fg-muted">→</span>
                       <span className="text-fg flex-1">{ins.text}</span>
                       {ins.symbol ? (
-                        <span className="bg-bg-elev-2 text-fg-muted rounded-sm px-1.5 py-0.5 text-caption font-medium">
+                        <span className="bg-bg-elev-2 text-fg-muted text-caption rounded-sm px-1.5 py-0.5 font-medium">
                           {ins.symbol}
                         </span>
                       ) : null}

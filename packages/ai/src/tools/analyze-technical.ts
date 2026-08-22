@@ -27,9 +27,7 @@
 // `partial` flag flips so the chat part can surface a warning.
 
 import { getCandles } from '@kestrel/data';
-import { computeIndicator } from '@kestrel/indicators';
-import { computeStructure } from '@kestrel/indicators';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { computeIndicator, computeStructure } from '@kestrel/indicators';
 import {
   AnalyzeTechnicalInputSchema,
   priceDecimals,
@@ -41,6 +39,7 @@ import {
   type Symbol,
   type Timeframe,
 } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { tool } from 'ai';
 import type { z } from 'zod';
 
@@ -196,10 +195,8 @@ function projectReading(args: ProjectArgs): PerTimeframeReading {
             : 'neutral';
 
   const swings = args.structure.swings ?? [];
-  const recentHigh =
-    [...swings].reverse().find((s) => s.type === 'high')?.price ?? null;
-  const recentLow =
-    [...swings].reverse().find((s) => s.type === 'low')?.price ?? null;
+  const recentHigh = [...swings].reverse().find((s) => s.type === 'high')?.price ?? null;
+  const recentLow = [...swings].reverse().find((s) => s.type === 'low')?.price ?? null;
 
   const lastEvent = args.structure.events?.at(-1);
   const latestStructureEvent: PerTimeframeReading['structure']['latestStructureEvent'] = lastEvent

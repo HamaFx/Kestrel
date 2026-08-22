@@ -2,15 +2,30 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { IconDatabase, IconDownload, IconRefresh } from '@tabler/icons-react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { apiFetch, apiMutate } from '@/lib/api-client';
 import { toastApiError } from '@/lib/toast-api-error';
 
@@ -74,12 +89,17 @@ export function AdminDatasetReview() {
   async function exportNow() {
     setExporting(true);
     try {
-      const data = await apiMutate<{ dataset: DatasetRow; droppedNeedsReview: number }>('/api/admin/eval-datasets/export', {
-        method: 'POST',
-      });
+      const data = await apiMutate<{ dataset: DatasetRow; droppedNeedsReview: number }>(
+        '/api/admin/eval-datasets/export',
+        {
+          method: 'POST',
+        },
+      );
       toast.success(
         `Exported ${data.dataset.recordCount} record${data.dataset.recordCount === 1 ? '' : 's'} as ${data.dataset.version}` +
-        (data.droppedNeedsReview > 0 ? ` (${data.droppedNeedsReview} pending review excluded)` : ''),
+          (data.droppedNeedsReview > 0
+            ? ` (${data.droppedNeedsReview} pending review excluded)`
+            : ''),
       );
       await fetchRows();
     } catch (error) {
@@ -92,29 +112,94 @@ export function AdminDatasetReview() {
   if (loading) return <SkeletonCard lines={5} />;
 
   return (
-    <SettingsSection title="Evaluation Datasets" description="Content-addressed dataset versions with explicit provenance and approval state.">
+    <SettingsSection
+      title="Evaluation Datasets"
+      description="Content-addressed dataset versions with explicit provenance and approval state."
+    >
       <div className="mb-3 flex justify-end gap-2">
-        <Button type="button" variant="secondary" size="sm" disabled={exporting} onClick={() => void exportNow()}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={exporting}
+          onClick={() => void exportNow()}
+        >
           <IconDownload className="size-4" aria-hidden="true" />
           {exporting ? 'Exporting…' : 'Export now'}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => void fetchRows()}><IconRefresh className="size-4" aria-hidden="true" />Refresh</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => void fetchRows()}>
+          <IconRefresh className="size-4" aria-hidden="true" />
+          Refresh
+        </Button>
       </div>
       {rows.length === 0 ? (
-        <EmptyState icon={<IconDatabase className="size-6" />} title="No dataset versions" description="Register a manifest after generating a reviewable export." bare />
+        <EmptyState
+          icon={<IconDatabase className="size-6" />}
+          title="No dataset versions"
+          description="Register a manifest after generating a reviewable export."
+          bare
+        />
       ) : (
         <div className="border-border overflow-x-auto rounded-sm border">
           <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-bg-elev-2 text-fg-subtle"><tr><th className="px-3 py-2 text-left">Version</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Records</th><th className="px-3 py-2 text-left">Source</th><th className="px-3 py-2 text-left">Content hash</th><th className="px-3 py-2 text-left">Actions</th></tr></thead>
+            <thead className="bg-bg-elev-2 text-fg-subtle">
+              <tr>
+                <th className="px-3 py-2 text-left">Version</th>
+                <th className="px-3 py-2 text-left">Status</th>
+                <th className="px-3 py-2 text-left">Records</th>
+                <th className="px-3 py-2 text-left">Source</th>
+                <th className="px-3 py-2 text-left">Content hash</th>
+                <th className="px-3 py-2 text-left">Actions</th>
+              </tr>
+            </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className="border-border border-t align-top">
                   <td className="text-fg px-3 py-3 font-mono text-xs">{row.version}</td>
-                  <td className="px-3 py-3"><Badge tone={statusTone(row.status)}>{row.status}</Badge></td>
+                  <td className="px-3 py-3">
+                    <Badge tone={statusTone(row.status)}>{row.status}</Badge>
+                  </td>
                   <td className="text-fg-subtle px-3 py-3 tabular-nums">{row.recordCount}</td>
                   <td className="text-fg-subtle px-3 py-3">{row.source}</td>
-                  <td className="text-fg-subtle max-w-48 truncate px-3 py-3 font-mono text-xs" title={row.contentSha256}>{row.contentSha256}</td>
-                  <td className="px-3 py-3"><div className="flex flex-wrap gap-1">{row.status === 'draft' && <Button type="button" size="sm" variant="secondary" onClick={() => void transition(row, 'in_review')}>Submit review</Button>}{row.status === 'in_review' && <Button type="button" size="sm" onClick={() => void transition(row, 'approved')}>Approve</Button>}{row.status === 'approved' && <Button type="button" size="sm" variant="ghost" onClick={() => void transition(row, 'archived')}>Archive</Button>}</div></td>
+                  <td
+                    className="text-fg-subtle max-w-48 truncate px-3 py-3 font-mono text-xs"
+                    title={row.contentSha256}
+                  >
+                    {row.contentSha256}
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {row.status === 'draft' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void transition(row, 'in_review')}
+                        >
+                          Submit review
+                        </Button>
+                      )}
+                      {row.status === 'in_review' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => void transition(row, 'approved')}
+                        >
+                          Approve
+                        </Button>
+                      )}
+                      {row.status === 'approved' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void transition(row, 'archived')}
+                        >
+                          Archive
+                        </Button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Verifies the NextAuth v5 wiring is real, not a stub.
@@ -11,7 +27,9 @@
 // (cookies/headers), which doesn't exist in a bare vitest run. End-to-end
 // auth behaviour is covered by the integration test in auth-flow.test.ts.
 
-import { vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { handlers, signIn, signOut } from '../src/auth';
 
 vi.hoisted(() => {
   // The real auth.ts evaluates `DrizzleAdapter(getDb())` at module load.
@@ -21,9 +39,6 @@ vi.hoisted(() => {
   process.env.NEXTAUTH_SECRET ??= 'test-secret-must-be-at-least-32-chars-long';
   process.env.CRON_SECRET ??= 'test-cron-secret-16-chars-min';
 });
-
-import { describe, expect, it } from 'vitest';
-import { handlers, signIn, signOut } from '../src/auth';
 
 describe('NextAuth wiring', () => {
   it('exports real auth handlers (GET + POST)', () => {
@@ -47,10 +62,7 @@ describe('NextAuth wiring', () => {
     // re-introduce the stub form. Belt-and-braces alongside the runtime
     // shape checks above.
     const fs = await import('node:fs/promises');
-    const src = await fs.readFile(
-      new URL('../src/auth.ts', import.meta.url),
-      'utf8',
-    );
+    const src = await fs.readFile(new URL('../src/auth.ts', import.meta.url), 'utf8');
     expect(src).toMatch(/NextAuth\(/);
     expect(src).toMatch(/Credentials\(/);
     expect(src).toMatch(/getDb\(/);

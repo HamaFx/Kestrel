@@ -106,10 +106,7 @@ interface Signal {
   side: 'long' | 'short';
 }
 
-function computeSignals(
-  rule: z.infer<typeof InputSchema>['rule'],
-  candles: Candle[],
-): Signal[] {
+function computeSignals(rule: z.infer<typeof InputSchema>['rule'], candles: Candle[]): Signal[] {
   if (rule.kind === 'ema_cross') {
     const fastSeries = ema(candles, rule.fast);
     const slowSeries = ema(candles, rule.slow);
@@ -120,8 +117,10 @@ function computeSignals(
       const fPrev = fastSeries[i - 1];
       const sPrev = slowSeries[i - 1];
       if (fNow == null || sNow == null || fPrev == null || sPrev == null) continue;
-      if (rule.side === 'long' && fPrev <= sPrev && fNow > sNow) out.push({ index: i, side: 'long' });
-      if (rule.side === 'short' && fPrev >= sPrev && fNow < sNow) out.push({ index: i, side: 'short' });
+      if (rule.side === 'long' && fPrev <= sPrev && fNow > sNow)
+        out.push({ index: i, side: 'long' });
+      if (rule.side === 'short' && fPrev >= sPrev && fNow < sNow)
+        out.push({ index: i, side: 'short' });
     }
     return out;
   }

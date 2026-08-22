@@ -22,18 +22,18 @@
 // See DSA_FEATURE_EXPANSION_PLAN.md §F2 for the full design.
 
 import { getPrice } from '@kestrel/data';
-import type {
-  PortfolioPosition,
-  PortfolioRiskReport,
-  PositionWithPnL,
-  ConcentrationItem,
-  CorrelationRiskItem,
-  PositionNearStop,
-  RiskAlert,
+import {
+  getContractSize,
+  type ConcentrationItem,
+  type CorrelationRiskItem,
+  type PortfolioPosition,
+  type PortfolioRiskReport,
+  type PositionNearStop,
+  type PositionWithPnL,
+  type RiskAlert,
 } from '@kestrel/shared';
-import { getContractSize } from '@kestrel/shared';
 
-import { listOpenPositions, getPortfolioSettings } from './position-service';
+import { getPortfolioSettings, listOpenPositions } from './position-service';
 
 // ---------------------------------------------------------------------------
 // P&L computation
@@ -42,10 +42,7 @@ import { listOpenPositions, getPortfolioSettings } from './position-service';
 /**
  * Compute P&L for a single position given a current price.
  */
-export function computePnL(
-  position: PortfolioPosition,
-  currentPrice: number,
-): PositionWithPnL {
+export function computePnL(position: PortfolioPosition, currentPrice: number): PositionWithPnL {
   const contractSize = getContractSize(position.symbol);
   const priceDiff =
     position.direction === 'long'
@@ -53,8 +50,7 @@ export function computePnL(
       : position.entryPrice - currentPrice;
 
   const unrealizedPnlUsd = priceDiff * contractSize * position.lotSize;
-  const unrealizedPnlPct =
-    position.entryPrice > 0 ? (priceDiff / position.entryPrice) * 100 : 0;
+  const unrealizedPnlPct = position.entryPrice > 0 ? (priceDiff / position.entryPrice) * 100 : 0;
 
   // Risk/reward calculations
   let riskUsd: number | null = null;
@@ -103,9 +99,7 @@ export function computePnL(
  * Get all open positions with live P&L. Batch-fetches prices.
  * If a price fetch fails, the position is marked stale with null P&L.
  */
-export async function getOpenPositionsWithPnL(
-  userId: string,
-): Promise<PositionWithPnL[]> {
+export async function getOpenPositionsWithPnL(userId: string): Promise<PositionWithPnL[]> {
   const positions = await listOpenPositions(userId);
   if (positions.length === 0) return [];
 
@@ -161,8 +155,7 @@ export async function getPortfolioRiskReport(userId: string): Promise<PortfolioR
     return sum + p.entryPrice * contractSize * p.lotSize;
   }, 0);
 
-  const totalExposurePct =
-    accountBalance > 0 ? (totalExposureUsd / accountBalance) * 100 : 0;
+  const totalExposurePct = accountBalance > 0 ? (totalExposureUsd / accountBalance) * 100 : 0;
 
   // Total risk (distance to stop × contract size × lot)
   const totalRiskUsd = positions.reduce((sum, p) => sum + (p.riskUsd ?? 0), 0);

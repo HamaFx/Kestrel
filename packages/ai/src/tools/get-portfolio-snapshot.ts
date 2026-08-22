@@ -23,8 +23,8 @@
 //
 // See DSA_FEATURE_EXPANSION_PLAN.md §F2.6 for the design.
 
-import { z } from 'zod';
 import { tool } from 'ai';
+import { z } from 'zod';
 
 import { getOpenPositionsWithPnL, getPortfolioRiskReport } from '../portfolio';
 import { getToolContext } from '../tool-context';
@@ -77,7 +77,7 @@ declare module '@kestrel/shared' {
 
 export const getPortfolioSnapshotTool = tool({
   description:
-    'Get a snapshot of the user\'s open gold, forex, and crypto positions with live P&L, risk metrics, and concentration alerts. Use when the user asks about their positions, portfolio, exposure, or wants trading advice that should account for existing positions.',
+    "Get a snapshot of the user's open gold, forex, and crypto positions with live P&L, risk metrics, and concentration alerts. Use when the user asks about their positions, portfolio, exposure, or wants trading advice that should account for existing positions.",
   inputSchema: InputSchema,
   execute: async ({ includeRisk }): Promise<GetPortfolioSnapshotOutput> => {
     const { userId } = getToolContext();

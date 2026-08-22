@@ -1,8 +1,26 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { AdminDiagnosticTraces } from '@/app/(app)/admin/_components/admin-diagnostic-traces';
 
 const mockPush = vi.hoisted(() => vi.fn());
 const mockApiFetch = vi.hoisted(() => vi.fn());
@@ -10,13 +28,13 @@ let traceParam: string | null = 'trace-1';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
-  useSearchParams: () => ({ get: (key: string) => (key === 'trace' ? traceParam : key === 'tab' ? 'traces' : null) }),
+  useSearchParams: () => ({
+    get: (key: string) => (key === 'trace' ? traceParam : key === 'tab' ? 'traces' : null),
+  }),
 }));
 
 vi.mock('@/lib/api-client', () => ({ apiFetch: mockApiFetch }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-
-import { AdminDiagnosticTraces } from '@/app/(app)/admin/_components/admin-diagnostic-traces';
 
 describe('AdminDiagnosticTraces', () => {
   beforeEach(() => {
@@ -40,22 +58,24 @@ describe('AdminDiagnosticTraces', () => {
     mockApiFetch.mockImplementation((input: string) => {
       if (input.includes('/explorer')) {
         return Promise.resolve({
-          events: [{
-            id: 'tool:1',
-            source: 'tool',
-            timestamp: new Date().toISOString(),
-            name: 'tool:get_candles',
-            status: 'completed',
-            traceId: 'trace-1',
-            runId: 'run-1',
-            jobId: 'job-1',
-            threadId: 'thread-1',
-            messageId: 'message-1',
-            userId: 'user-1',
-            durationMs: 42,
-            error: null,
-            metadata: null,
-          }],
+          events: [
+            {
+              id: 'tool:1',
+              source: 'tool',
+              timestamp: new Date().toISOString(),
+              name: 'tool:get_candles',
+              status: 'completed',
+              traceId: 'trace-1',
+              runId: 'run-1',
+              jobId: 'job-1',
+              threadId: 'thread-1',
+              messageId: 'message-1',
+              userId: 'user-1',
+              durationMs: 42,
+              error: null,
+              metadata: null,
+            },
+          ],
           stats: { total: 1, bySource: { tool: 1 }, failures: 0 },
         });
       }

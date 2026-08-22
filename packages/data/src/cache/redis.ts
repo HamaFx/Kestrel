@@ -30,6 +30,7 @@
 // `setDefaultCache()`.
 
 import { createClient, type RedisClientOptions, type RedisClientType } from 'redis';
+
 import type { Cache, CacheEntryMeta, CacheFetchOptions } from './types';
 
 /** Serialized value envelope stored in Redis. */
@@ -83,7 +84,7 @@ export class RedisCache implements Cache {
       // partitioned Redis node. 5s is generous for data reads.
       options.socket = { connectTimeout: 5_000, reconnectStrategy: false };
       const c = createClient(options) as RedisClientType;
-c.on('error', (err: unknown) => {
+      c.on('error', (err: unknown) => {
         console.error('[RedisCache] connection error:', String(err));
       });
       await c.connect();

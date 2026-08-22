@@ -17,6 +17,7 @@
 // News article and economic event query helpers.
 
 import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 // ── News Articles ─────────────────────────────────────────────────────────
@@ -65,10 +66,7 @@ export async function listRecentArticles(
   const query = db.select().from(schema.newsArticles);
   if (conditions.length > 0) query.where(and(...conditions));
 
-  return query
-    .orderBy(desc(schema.newsArticles.publishedAt))
-    .limit(limit)
-    .offset(offset);
+  return query.orderBy(desc(schema.newsArticles.publishedAt)).limit(limit).offset(offset);
 }
 
 export async function getLatestArticleTimestamp(): Promise<number | null> {

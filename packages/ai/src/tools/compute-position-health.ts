@@ -51,7 +51,10 @@ export const computePositionHealthTool = tool({
     'For each currently-open journal entry, compute live P/L in pips and R-multiples plus distance to stop and target. Use when the user asks "how are my open trades", "anything close to stopping out", or wants a live P/L pulse. Skips closed trades; sets `empty: true` when no positions are open and `partial: true` when at least one row was dropped due to a price-fetch failure.',
   inputSchema: InputSchema,
   execute: async ({ symbol, limit }): Promise<ComputePositionHealthOutput> => {
-    const all = await listEntries(getToolContext().userId, { limit: 200, ...(symbol ? { symbol } : {}) });
+    const all = await listEntries(getToolContext().userId, {
+      limit: 200,
+      ...(symbol ? { symbol } : {}),
+    });
     const open = all.filter((e) => e.outcome === 'open').slice(0, limit);
 
     if (open.length === 0) {
@@ -110,12 +113,12 @@ function buildRow(args: BuildRowArgs): PositionHealthRow {
   if (e.stop !== null) {
     const risk = Math.abs(e.entry - e.stop);
     if (risk > 0) pnlR = pnlPriceUnits / risk;
-    distanceToStopPips = (mid - e.stop) * sign / pip;
+    distanceToStopPips = ((mid - e.stop) * sign) / pip;
   }
 
   let distanceToTargetPips: number | null = null;
   if (e.target !== null) {
-    distanceToTargetPips = (e.target - mid) * sign / pip;
+    distanceToTargetPips = ((e.target - mid) * sign) / pip;
   }
 
   const aboutToHit =

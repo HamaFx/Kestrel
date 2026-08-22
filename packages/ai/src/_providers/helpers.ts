@@ -19,6 +19,7 @@
 
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
+
 import type { ByokProviderSpec, ModelDomain } from './types';
 
 /** A normalized OpenAI-compatible tool call extracted from HCNSEC output. */
@@ -46,10 +47,7 @@ const HCNSEC_DEFAULT_INDICATORS = [
  * at the provider boundary keeps the canonical tool schemas strict for
  * every other provider while making this provider interoperable.
  */
-export function normalizeHcnsecToolArguments(
-  toolName: string,
-  rawArguments: string,
-): string {
+export function normalizeHcnsecToolArguments(toolName: string, rawArguments: string): string {
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawArguments) as unknown;
@@ -161,9 +159,10 @@ export function normalizeHcnsecJsonPayload(input: unknown): unknown {
       const toolCalls = existingToolCalls.map((rawCall) => {
         if (!rawCall || typeof rawCall !== 'object') return rawCall;
         const call = rawCall as Record<string, unknown>;
-        const fn = call.function && typeof call.function === 'object'
-          ? call.function as Record<string, unknown>
-          : null;
+        const fn =
+          call.function && typeof call.function === 'object'
+            ? (call.function as Record<string, unknown>)
+            : null;
         if (!fn || typeof fn.name !== 'string' || typeof fn.arguments !== 'string') return rawCall;
         return {
           ...call,
@@ -203,11 +202,13 @@ export function normalizeHcnsecJsonPayload(input: unknown): unknown {
 export function normalizeHcnsecSse(input: string): string {
   const events = input
     .split(/\r?\n\r?\n/)
-    .map((event) => event
-      .split(/\r?\n/)
-      .filter((line) => line.startsWith('data:'))
-      .map((line) => line.slice(5).trimStart())
-      .join('\n'))
+    .map((event) =>
+      event
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.slice(5).trimStart())
+        .join('\n'),
+    )
     .filter((data) => data.length > 0 && data !== '[DONE]');
 
   const chunks: Array<Record<string, unknown>> = [];
@@ -246,11 +247,12 @@ export function normalizeHcnsecSse(input: string): string {
     const delta = choice.delta as Record<string, unknown> | undefined;
     if (!delta) continue;
     if (typeof delta.content === 'string') content += delta.content;
-    const reasoningPart = typeof delta.reasoning_content === 'string'
-      ? delta.reasoning_content
-      : typeof delta.reasoning === 'string'
-        ? delta.reasoning
-        : '';
+    const reasoningPart =
+      typeof delta.reasoning_content === 'string'
+        ? delta.reasoning_content
+        : typeof delta.reasoning === 'string'
+          ? delta.reasoning
+          : '';
     reasoning += reasoningPart;
 
     if (!Array.isArray(delta.tool_calls)) continue;
@@ -258,14 +260,16 @@ export function normalizeHcnsecSse(input: string): string {
       if (!rawCall || typeof rawCall !== 'object') continue;
       const call = rawCall as Record<string, unknown>;
       const index = typeof call.index === 'number' ? call.index : toolCalls.size;
-      const fn = call.function && typeof call.function === 'object'
-        ? call.function as Record<string, unknown>
-        : {};
+      const fn =
+        call.function && typeof call.function === 'object'
+          ? (call.function as Record<string, unknown>)
+          : {};
       const previous = toolCalls.get(index);
       toolCalls.set(index, {
-        id: typeof call.id === 'string' ? call.id : previous?.id ?? `hcnsec-tool-${index}`,
-        name: typeof fn.name === 'string' ? fn.name : previous?.name ?? '',
-        arguments: (previous?.arguments ?? '') + (typeof fn.arguments === 'string' ? fn.arguments : ''),
+        id: typeof call.id === 'string' ? call.id : (previous?.id ?? `hcnsec-tool-${index}`),
+        name: typeof fn.name === 'string' ? fn.name : (previous?.name ?? ''),
+        arguments:
+          (previous?.arguments ?? '') + (typeof fn.arguments === 'string' ? fn.arguments : ''),
       });
     }
   }
@@ -297,11 +301,13 @@ export function normalizeHcnsecSse(input: string): string {
     id: typeof first.id === 'string' ? first.id : `hcnsec-${Date.now()}`,
     created: typeof first.created === 'number' ? first.created : Math.floor(Date.now() / 1000),
     model: typeof first.model === 'string' ? first.model : undefined,
-    choices: [{
-      index: 0,
-      delta: normalizedDelta,
-      finish_reason: finishReason ?? (toolCalls.size > 0 ? 'tool_calls' : 'stop'),
-    }],
+    choices: [
+      {
+        index: 0,
+        delta: normalizedDelta,
+        finish_reason: finishReason ?? (toolCalls.size > 0 ? 'tool_calls' : 'stop'),
+      },
+    ],
     ...(usage !== undefined ? { usage } : {}),
   };
 
@@ -313,11 +319,16 @@ export function normalizeHcnsecSse(input: string): string {
  * after buffering; plain text streams retain their native low-latency path.
  */
 export const hcnsecFetch: FetchFunction = async (input, init) => {
-  const body = typeof init?.body === 'string'
-    ? (() => {
-        try { return JSON.parse(init.body) as Record<string, unknown>; } catch { return null; }
-      })()
-    : null;
+  const body =
+    typeof init?.body === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(init.body) as Record<string, unknown>;
+          } catch {
+            return null;
+          }
+        })()
+      : null;
   const hasTools = Array.isArray(body?.tools) && body.tools.length > 0;
   const response = await fetch(input, init);
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';

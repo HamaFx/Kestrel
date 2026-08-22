@@ -1,3 +1,21 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import type * as sharedModule from '@kestrel/shared';
+import type * as sharedLoggerModule from '@kestrel/shared/logger';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runMultiAgentAnalysis } from '../src/jobs/multi-agent-analysis';
@@ -91,12 +109,12 @@ vi.mock('@kestrel/ai', () => ({
 }));
 
 vi.mock('@kestrel/shared', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/shared')>();
+  const actual = await importOriginal<typeof sharedModule>();
   return { ...actual, pickAiEnv: (env: unknown) => env };
 });
 
 vi.mock('@kestrel/shared/logger', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/shared/logger')>();
+  const actual = await importOriginal<typeof sharedLoggerModule>();
   return {
     ...actual,
     traceIdStorage: { run: async (_traceId: string, fn: () => Promise<unknown>) => fn() },

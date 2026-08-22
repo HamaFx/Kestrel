@@ -18,13 +18,13 @@
 // Imported by tools/index.ts for self-registration and also exposed
 // as a sub-path export: @kestrel/ai/tools/analysis
 
-import { analyzeTechnicalTool } from './analyze-technical';
-import { analyzeFundamentalTool } from './analyze-fundamental';
 import { analyzeChartImageTool } from './analyze-chart-image';
+import { analyzeFundamentalTool } from './analyze-fundamental';
+import { analyzeTechnicalTool } from './analyze-technical';
 import { annotateChartTool } from './annotate-chart';
-import { forecastVolatilityTool } from './forecast-volatility';
-import { computeRiskTool } from './compute-risk';
 import { computePositionHealthTool } from './compute-position-health';
+import { computeRiskTool } from './compute-risk';
+import { forecastVolatilityTool } from './forecast-volatility';
 import { toolRegistry } from './registry';
 
 const analysisTools = [

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Auth harness for k6 load tests.
 //
 // Implements both strategies from the prompt plan (Section 4):
@@ -14,18 +30,15 @@
 //     // ... make requests ...
 //   }
 
-import http from 'k6/http';
-import type { RefinedResponse, ResponseType } from 'k6/http';
-import type { SessionCtx } from '../config/environments.js';
-import { env } from '../config/environments.js';
+import http, { type RefinedResponse, type ResponseType } from 'k6/http';
+
+import { env, type SessionCtx } from '../config/environments.js';
 
 // Load seeded users manifest at init time (k6 does NOT support
 // `import ... with { type: 'json' }` — esbuild hangs on it).
 let seededUsers: Array<{ email: string; threadId: string }> = [];
 try {
-  seededUsers = JSON.parse(
-    open('./data/seeded-users.json') as string,
-  ) as typeof seededUsers;
+  seededUsers = JSON.parse(open('./data/seeded-users.json') as string) as typeof seededUsers;
 } catch {
   // File may not exist — fine for Strategy A (legacy mode).
   seededUsers = [];
@@ -93,9 +106,7 @@ function bootstrapSession(): SessionCtx[] {
       {
         headers: {
           'Content-Type': 'application/json',
-          ...(csrfSetupToken
-            ? { 'x-csrf-token': csrfSetupToken }
-            : {}),
+          ...(csrfSetupToken ? { 'x-csrf-token': csrfSetupToken } : {}),
         },
         tags: { group: 'auth_setup' },
         redirects: 0, // Don't follow; we want the Set-Cookie header
@@ -113,18 +124,13 @@ function bootstrapSession(): SessionCtx[] {
 
     // Do one GET to any endpoint to receive the hfx_csrf cookie.
     // Middleware uses 'hfx_csrf' in dev and '__Host-hfx_csrf' in prod.
-    const warmupRes = http.get(
-      `${env.baseUrl}/api/chat/threads`,
-      {
-        cookies: { 'authjs.session-token': sessionCookie },
-        tags: { group: 'auth_setup' },
-      },
-    );
+    const warmupRes = http.get(`${env.baseUrl}/api/chat/threads`, {
+      cookies: { 'authjs.session-token': sessionCookie },
+      tags: { group: 'auth_setup' },
+    });
 
     const csrfCookie =
-      extractCookie(warmupRes, 'hfx_csrf') ??
-      extractCookie(warmupRes, '__Host-hfx_csrf') ??
-      '';
+      extractCookie(warmupRes, 'hfx_csrf') ?? extractCookie(warmupRes, '__Host-hfx_csrf') ?? '';
 
     ctxs.push({
       cookies: { 'authjs.session-token': sessionCookie },

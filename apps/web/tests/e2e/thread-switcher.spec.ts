@@ -24,7 +24,7 @@
 // matches" and "all rows" ends rather than specific titles.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 async function createThread(page: import('@playwright/test').Page) {
   // The request proxy enforces a CSRF double-submit cookie on state-changing
@@ -109,7 +109,9 @@ test.describe('Thread switcher', () => {
     await expect(page.getByRole('button', { name: 'New conversation', exact: true })).toBeVisible();
   });
 
-  test('bulk-select mode exposes checkbox semantics and counts selections', async ({ authedPage }) => {
+  test('bulk-select mode exposes checkbox semantics and counts selections', async ({
+    authedPage,
+  }) => {
     const page = authedPage;
     await page.goto('/chat');
 

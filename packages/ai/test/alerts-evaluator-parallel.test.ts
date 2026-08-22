@@ -19,8 +19,12 @@
 // We mock `getPrice` / `getCandles` with controllable delays and assert
 // that wall-time scales as max(rule_latency) rather than sum(rule_latency).
 
+import { getCandles, getPrice } from '@kestrel/data';
 import type { Tick } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { evaluateAlerts } from '../src/alerts/evaluator';
+import { listEvaluable } from '../src/alerts/persistence';
 
 vi.mock('@kestrel/data', () => ({
   getPrice: vi.fn(),
@@ -75,12 +79,10 @@ vi.mock('../src/alerts/delivery', () => ({
   })),
 }));
 
-import { getCandles, getPrice } from '@kestrel/data';
-
-import { evaluateAlerts } from '../src/alerts/evaluator';
-import { listEvaluable } from '../src/alerts/persistence';
-
-function makeAlert(id: string, sym: string = 'XAUUSD'): {
+function makeAlert(
+  id: string,
+  sym: string = 'XAUUSD',
+): {
   id: string;
   rule: {
     type: 'priceCross';
@@ -152,7 +154,11 @@ describe('evaluateAlerts — parallel readings', () => {
   });
 
   it('records errors per-alert without aborting siblings', async () => {
-    const alerts = [makeAlert('ok', 'SYM1' as string), makeAlert('bad', 'SYM2' as string), makeAlert('also-ok', 'SYM3' as string)];
+    const alerts = [
+      makeAlert('ok', 'SYM1' as string),
+      makeAlert('bad', 'SYM2' as string),
+      makeAlert('also-ok', 'SYM3' as string),
+    ];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(listEvaluable).mockResolvedValue(alerts as any);
 

@@ -11,6 +11,21 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { m } from 'motion/react';
 
 import type { ToolPartProps } from './registry';
@@ -43,7 +58,10 @@ export function ComputeRiskPart({ output, state, errorMessage }: ToolPartProps<'
       <dl className="grid grid-cols-2 gap-2 text-xs">
         <Row k="Entry" v={pretty(output.entry, 5)} />
         <Row k="Stop" v={pretty(output.stop, 5)} />
-        <Row k={`${output.distanceUnit === 'price' ? 'Price' : 'Pips'} to stop`} v={`${pretty(output.pipsToStop, 1)}`} />
+        <Row
+          k={`${output.distanceUnit === 'price' ? 'Price' : 'Pips'} to stop`}
+          v={`${pretty(output.pipsToStop, 1)}`}
+        />
         <Row
           k={`${output.distanceUnit === 'price' ? 'Price' : 'Pips'} to target`}
           v={output.pipsToTarget !== null ? pretty(output.pipsToTarget, 1) : '—'}
@@ -55,11 +73,11 @@ export function ComputeRiskPart({ output, state, errorMessage }: ToolPartProps<'
             output.quantityUnit === 'coins' ? 4 : output.quantityUnit === 'ounces' ? 2 : 2,
           )}
         />
-        <Row k={`${output.distanceUnit === 'price' ? 'Value' : 'Pip'} $/${output.quantityUnit}`} v={`$${pretty(output.pipValueUsdPerLot, 2)}`} />
         <Row
-          k="Reward"
-          v={output.rewardUsd !== null ? `$${pretty(output.rewardUsd, 2)}` : '—'}
+          k={`${output.distanceUnit === 'price' ? 'Value' : 'Pip'} $/${output.quantityUnit}`}
+          v={`$${pretty(output.pipValueUsdPerLot, 2)}`}
         />
+        <Row k="Reward" v={output.rewardUsd !== null ? `$${pretty(output.rewardUsd, 2)}` : '—'} />
       </dl>
 
       <p className="text-fg-muted text-xs">{output.summary}</p>
@@ -67,7 +85,7 @@ export function ComputeRiskPart({ output, state, errorMessage }: ToolPartProps<'
       {output.invalidDirection ? (
         <p
           role="alert"
-          className="text-warn border-warn/30 bg-warn/5 rounded-sm border px-2 py-1 text-body-sm"
+          className="text-warn border-warn/30 bg-warn/5 text-body-sm rounded-sm border px-2 py-1"
         >
           Stop is on the wrong side of entry for this direction — the agent suggested an inverted
           setup.
@@ -79,7 +97,7 @@ export function ComputeRiskPart({ output, state, errorMessage }: ToolPartProps<'
 
 function Row({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-2 border-b border-dashed border-border/50 pb-1">
+    <div className="border-border/50 flex items-baseline justify-between gap-2 border-b border-dashed pb-1">
       <dt className="text-fg-muted">{k}</dt>
       <dd className="text-fg font-medium tabular-nums">{v}</dd>
     </div>
@@ -96,18 +114,18 @@ function RrGauge({ rrRatio }: { rrRatio: number }) {
   const rewardPct = (safe / total) * 100;
   return (
     <span
-      className="inline-flex h-1.5 w-20 overflow-hidden rounded-sm bg-bg-elev-3"
+      className="bg-bg-elev-3 inline-flex h-1.5 w-20 overflow-hidden rounded-sm"
       role="img"
       aria-label={`Risk to reward gauge: 1 to ${rrRatio.toFixed(2)}`}
     >
       <m.div
-        className="h-full bg-bear/30"
+        className="bg-bear/30 h-full"
         initial={{ width: 0 }}
         animate={{ width: `${riskPct}%` }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
       />
       <m.div
-        className="h-full bg-bull/30"
+        className="bg-bull/30 h-full"
         initial={{ width: 0 }}
         animate={{ width: `${rewardPct}%` }}
         transition={{ duration: 0.4, ease: 'easeOut' }}

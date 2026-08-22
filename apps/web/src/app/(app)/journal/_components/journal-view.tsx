@@ -37,6 +37,7 @@ import { StaleIndicator } from '@/components/ui/stale-indicator';
 import { apiFetch } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
 
+import { AiCoachCard } from './ai-coach-card';
 import { AiReviewPanel } from './ai-review-panel';
 import { BreakdownTable } from './analytics/breakdown-table';
 import { DrawdownChart } from './analytics/drawdown-chart';
@@ -92,7 +93,7 @@ export function JournalView() {
           <button
             onClick={() => setImportOpen(true)}
             aria-label="Import trades"
-            className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg flex size-10 cursor-pointer items-center justify-center rounded-sm border transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+            className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-brand flex size-10 cursor-pointer items-center justify-center rounded-sm border transition-all focus-visible:ring-2 focus-visible:outline-none"
           >
             <IconUpload aria-hidden="true" className="size-4" />
           </button>
@@ -100,9 +101,12 @@ export function JournalView() {
           <button
             onClick={refresh}
             aria-label="Refresh logs"
-            className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg flex size-10 cursor-pointer items-center justify-center rounded-sm border transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+            className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-brand flex size-10 cursor-pointer items-center justify-center rounded-sm border transition-all focus-visible:ring-2 focus-visible:outline-none"
           >
-            <IconRefresh aria-hidden="true" className={cn('size-4', isFetching && 'animate-spin')} />
+            <IconRefresh
+              aria-hidden="true"
+              className={cn('size-4', isFetching && 'animate-spin')}
+            />
           </button>
 
           <button
@@ -172,6 +176,7 @@ export function JournalView() {
 
           {tab === 'analytics' && data?.stats && (
             <div className="flex flex-col gap-4">
+              <AiCoachCard stats={data.stats} />
               {(() => {
                 const latestClosed = data.entries.find((e) => e.outcome !== 'open');
                 return latestClosed ? <AiReviewPanel entry={latestClosed} /> : null;

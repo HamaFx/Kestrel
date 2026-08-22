@@ -14,33 +14,44 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from 'vitest';
 import type { UIMessage } from 'ai';
+import { describe, expect, it } from 'vitest';
+
 import { routeTurn } from '../src/routing';
 
 function userMessage(text: string, hasImage = false): UIMessage {
   const parts: UIMessage['parts'] = [{ type: 'text', text }] as UIMessage['parts'];
   if (hasImage) {
-    (parts as Array<Record<string, unknown>>).push({ type: 'file', mediaType: 'image/png', url: 'data:...' });
+    (parts as Array<Record<string, unknown>>).push({
+      type: 'file',
+      mediaType: 'image/png',
+      url: 'data:...',
+    });
   }
   return { id: crypto.randomUUID(), role: 'user', parts } as unknown as UIMessage;
 }
 
 describe('routeTurn — Phase 0.7 offline eval (tool-selection)', () => {
   it('routes fundamental questions to the fundamental domain with planning', async () => {
-    const result = await routeTurn({ userMessage: userMessage('Why is gold rallying after the FOMC?') });
+    const result = await routeTurn({
+      userMessage: userMessage('Why is gold rallying after the FOMC?'),
+    });
     expect(result.domain).toBe('fundamental');
     expect(result.planRequired).toBe(true);
   });
 
   it('routes technical questions to the technical domain with planning', async () => {
-    const result = await routeTurn({ userMessage: userMessage('What is the RSI on the EURUSD 1h chart?') });
+    const result = await routeTurn({
+      userMessage: userMessage('What is the RSI on the EURUSD 1h chart?'),
+    });
     expect(result.domain).toBe('technical');
     expect(result.planRequired).toBe(true);
   });
 
   it('routes summary/recap questions to the summary domain', async () => {
-    const result = await routeTurn({ userMessage: userMessage("Summarize today's news and calendar") });
+    const result = await routeTurn({
+      userMessage: userMessage("Summarize today's news and calendar"),
+    });
     expect(result.domain).toBe('summary');
     expect(result.planRequired).toBe(false);
   });

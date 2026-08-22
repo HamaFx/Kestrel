@@ -29,22 +29,22 @@ The system is safe to continue improving, but it should not be described as “f
 
 ## 2. Scorecard
 
-| Area | Rating | Assessment |
-|---|---:|---|
-| Deterministic unit-test breadth | **8.0/10** | Broad coverage of tools, routing, budgets, persistence helpers, data transforms, auth policies, diagnostics, and UI utilities. |
-| AI orchestration contract coverage | **6.5/10** | Good specialist contracts, mode tests, retry/fallback tests, and stream tests; limited real model/route execution. |
-| AI/data/database integration realism | **4.5/10** | The principal AI-data integration uses mocked `@kestrel/data` and indicators. Very little validates real package boundaries plus a real database together. |
-| Web → AI integration | **4.5/10** | One representative web integration route exists, but the actual chat route is not exercised with the real AI client and persistence chain. |
-| Worker/queue integration | **5.5/10** | Worker jobs, scheduler, leases, retries, and analysis logic have unit tests; no durable queue test runs web enqueue, worker claim, completion, and browser polling together. |
-| End-to-end UX coverage | **7.0/10** | 20 Playwright specs cover auth, chat UI, modes, isolation, accessibility, PWA, and admin flows. Chat responses and Full-mode jobs are mocked. |
-| Failure/chaos/resilience testing | **6.0/10** | Retry, failover, reconnection, budget races, and some worker failures are covered. Provider outages, DB outages, stream truncation, queue duplication, and lease races are not tested as a complete system. |
-| CI quality gates | **6.0/10** | PR CI runs lint, typecheck, build, coverage, Playwright, audit, and empty-test guards. Coverage thresholds are low/inconsistent and no changed-line gate or mutation gate exists. |
-| Structured logging and trace correlation | **7.5/10** | Pino categories, request/run/trace IDs, redaction, diagnostic context, trace persistence, and an admin explorer are strong. |
-| Production monitoring and alerting | **5.5/10** | Health/SLO endpoints and Sentry/Langfuse hooks exist, but metrics, alert rules, dashboards, paging verification, and monitor availability are not fully codified. |
-| Privacy and telemetry governance | **5.0/10** | Secret redaction is thoughtful, but raw user/tool metadata and some PII can still enter diagnostic/Sentry paths; retention and access policy are not sufficiently enforced. |
-| Model-quality evaluation | **4.0/10** | Acceptance cases test plumbing and coarse behavior, not domain correctness or safety. No robust baseline, judge rubric, or regression threshold exists. |
-| Training/feedback readiness | **2.5/10** | Dataset publishing exists, but there is no implemented user feedback, annotation workflow, curated examples store, outcome labeling, or training/export pipeline. |
-| Developer test ergonomics | **7.0/10** | Clear package scripts, shared fixtures, Vitest/Playwright setup, artifacts, and test-file guard. Local live-stack setup remains cumbersome. |
+| Area                                     |     Rating | Assessment                                                                                                                                                                                                  |
+| ---------------------------------------- | ---------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deterministic unit-test breadth          | **8.0/10** | Broad coverage of tools, routing, budgets, persistence helpers, data transforms, auth policies, diagnostics, and UI utilities.                                                                              |
+| AI orchestration contract coverage       | **6.5/10** | Good specialist contracts, mode tests, retry/fallback tests, and stream tests; limited real model/route execution.                                                                                          |
+| AI/data/database integration realism     | **4.5/10** | The principal AI-data integration uses mocked `@kestrel/data` and indicators. Very little validates real package boundaries plus a real database together.                                                  |
+| Web → AI integration                     | **4.5/10** | One representative web integration route exists, but the actual chat route is not exercised with the real AI client and persistence chain.                                                                  |
+| Worker/queue integration                 | **5.5/10** | Worker jobs, scheduler, leases, retries, and analysis logic have unit tests; no durable queue test runs web enqueue, worker claim, completion, and browser polling together.                                |
+| End-to-end UX coverage                   | **7.0/10** | 20 Playwright specs cover auth, chat UI, modes, isolation, accessibility, PWA, and admin flows. Chat responses and Full-mode jobs are mocked.                                                               |
+| Failure/chaos/resilience testing         | **6.0/10** | Retry, failover, reconnection, budget races, and some worker failures are covered. Provider outages, DB outages, stream truncation, queue duplication, and lease races are not tested as a complete system. |
+| CI quality gates                         | **6.0/10** | PR CI runs lint, typecheck, build, coverage, Playwright, audit, and empty-test guards. Coverage thresholds are low/inconsistent and no changed-line gate or mutation gate exists.                           |
+| Structured logging and trace correlation | **7.5/10** | Pino categories, request/run/trace IDs, redaction, diagnostic context, trace persistence, and an admin explorer are strong.                                                                                 |
+| Production monitoring and alerting       | **5.5/10** | Health/SLO endpoints and Sentry/Langfuse hooks exist, but metrics, alert rules, dashboards, paging verification, and monitor availability are not fully codified.                                           |
+| Privacy and telemetry governance         | **5.0/10** | Secret redaction is thoughtful, but raw user/tool metadata and some PII can still enter diagnostic/Sentry paths; retention and access policy are not sufficiently enforced.                                 |
+| Model-quality evaluation                 | **4.0/10** | Acceptance cases test plumbing and coarse behavior, not domain correctness or safety. No robust baseline, judge rubric, or regression threshold exists.                                                     |
+| Training/feedback readiness              | **2.5/10** | Dataset publishing exists, but there is no implemented user feedback, annotation workflow, curated examples store, outcome labeling, or training/export pipeline.                                           |
+| Developer test ergonomics                | **7.0/10** | Clear package scripts, shared fixtures, Vitest/Playwright setup, artifacts, and test-file guard. Local live-stack setup remains cumbersome.                                                                 |
 
 ### Interpretation
 

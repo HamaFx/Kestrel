@@ -18,17 +18,17 @@
 
 // Advanced trade list with real-time price tracking, dynamic PnL sliders,
 // and powerful tabs/filters (Active, Closed, All, symbols, sides, text searches).
-
 import type { JournalEntry, Symbol, TradeSide } from '@kestrel/shared';
-import {IconSearch, IconAdjustmentsHorizontal, IconCompass} from '@tabler/icons-react';
-import { useState, useMemo, useRef } from 'react';
+import { IconAdjustmentsHorizontal, IconCompass, IconSearch } from '@tabler/icons-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { useMemo, useRef, useState } from 'react';
 
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { usePrices } from '@/hooks/use-prices';
 import { cn } from '@/lib/cn';
 import { formatRelative } from '@/lib/format';
+
 import { EntryRow } from './entry-row';
 
 interface EntryListProps {
@@ -135,41 +135,44 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Visual Tab Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-2">
-        <div className="flex p-0.5 rounded-sm bg-bg-elev-2 border border-border/40 self-start">
+      <div className="border-border/40 flex flex-col justify-between gap-3 border-b pb-2 sm:flex-row sm:items-center">
+        <div className="bg-bg-elev-2 border-border/40 flex self-start rounded-sm border p-0.5">
           <button
             onClick={() => setTab('active')}
             aria-pressed={tab === 'active'}
             className={cn(
-              'px-3.5 py-1.5 text-xs font-semibold rounded-sm transition-all relative flex items-center gap-1.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none',
-              tab === 'active' ? 'bg-fg text-black shadow-sm' : 'text-fg-muted hover:text-fg'
+              'focus-visible:ring-brand relative flex cursor-pointer items-center gap-1.5 rounded-sm px-3.5 py-1.5 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none',
+              tab === 'active' ? 'bg-fg text-black shadow-sm' : 'text-fg-muted hover:text-fg',
             )}
           >
             Active Positions
             {activeCount > 0 && (
-              <span aria-hidden="true" className={cn(
-                'size-2 rounded-sm',
-                tab === 'active' ? 'bg-fg animate-ping' : 'bg-fg animate-pulse'
-              )} />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'size-2 rounded-sm',
+                  tab === 'active' ? 'bg-fg animate-ping' : 'bg-fg animate-pulse',
+                )}
+              />
             )}
           </button>
           <button
             onClick={() => setTab('closed')}
             aria-pressed={tab === 'closed'}
             className={cn(
-              'px-3.5 py-1.5 text-xs font-semibold rounded-sm transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none',
-              tab === 'closed' ? 'bg-fg text-black shadow-sm' : 'text-fg-muted hover:text-fg'
+              'focus-visible:ring-brand cursor-pointer rounded-sm px-3.5 py-1.5 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none',
+              tab === 'closed' ? 'bg-fg text-black shadow-sm' : 'text-fg-muted hover:text-fg',
             )}
           >
             Closed History
-            <span className="text-caption opacity-70 ml-1">({closedCount})</span>
+            <span className="text-caption ml-1 opacity-70">({closedCount})</span>
           </button>
           <button
             onClick={() => setTab('all')}
             aria-pressed={tab === 'all'}
             className={cn(
-              'px-3.5 py-1.5 text-xs font-semibold rounded-sm transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none',
-              tab === 'all' ? 'bg-fg text-black shadow-sm' : 'text-fg-muted hover:text-fg'
+              'focus-visible:ring-brand cursor-pointer rounded-sm px-3.5 py-1.5 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none',
+              tab === 'all' ? 'bg-fg text-black shadow-sm' : 'text-fg-muted hover:text-fg',
             )}
           >
             All Logs
@@ -179,14 +182,14 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
         {/* IconFilter Trigger & IconSearch Bar */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1 sm:w-64">
-            <IconSearch className="absolute left-3.5 top-3 size-3.5 text-fg-muted" />
+            <IconSearch className="text-fg-muted absolute top-3 left-3.5 size-3.5" />
             <input
               type="text"
               placeholder="Search notes, tags, symbol..."
               aria-label="Search trades"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-sm bg-bg-elev-2/45 border border-border/40 focus:outline-none focus:border-border/70 transition-all text-fg"
+              className="bg-bg-elev-2/45 border-border/40 focus:border-border/70 text-fg w-full rounded-sm border py-2 pr-4 pl-9 text-xs transition-all focus:outline-none"
             />
           </div>
           <button
@@ -195,8 +198,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
             aria-expanded={showFilters}
             aria-controls="entry-filter-panel"
             className={cn(
-              'p-2.5 rounded-sm border border-border/40 bg-bg-elev-2/45 text-fg-muted hover:text-fg transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none',
-              showFilters && 'border-border text-fg bg-bg-elev-1'
+              'border-border/40 bg-bg-elev-2/45 text-fg-muted hover:text-fg focus-visible:ring-brand cursor-pointer rounded-sm border p-2.5 transition-all focus-visible:ring-2 focus-visible:outline-none',
+              showFilters && 'border-border text-fg bg-bg-elev-1',
             )}
           >
             <IconAdjustmentsHorizontal aria-hidden="true" className="size-4" />
@@ -208,19 +211,21 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
       {showFilters && (
         <div
           id="entry-filter-panel"
-          className="border border-border bg-bg-elev-1 rounded-sm p-4 grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200"
+          className="border-border bg-bg-elev-1 animate-in slide-in-from-top-2 grid grid-cols-2 gap-4 rounded-sm border p-4 duration-200"
         >
           <div className="flex flex-col gap-1.5">
-            <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Asset Class</span>
-              <div className="flex flex-wrap gap-1">
-                {(['ALL', ...availableSymbols] as const).map((sym) => (
+            <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+              Asset Class
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {(['ALL', ...availableSymbols] as const).map((sym) => (
                 <button
                   key={sym}
                   onClick={() => setSymbolFilter(sym)}
                   aria-pressed={symbolFilter === sym}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-semibold rounded-sm border border-border bg-bg-elev-3/50 hover:bg-bg-elev-3 cursor-pointer',
-                    symbolFilter === sym && 'border-border bg-bg-elev-2 text-fg'
+                    'border-border bg-bg-elev-3/50 hover:bg-bg-elev-3 cursor-pointer rounded-sm border px-2.5 py-1 text-xs font-semibold',
+                    symbolFilter === sym && 'border-border bg-bg-elev-2 text-fg',
                   )}
                 >
                   {sym}
@@ -230,7 +235,9 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Direction</span>
+            <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+              Direction
+            </span>
             <div className="flex flex-wrap gap-1">
               {(['ALL', 'long', 'short'] as const).map((side) => (
                 <button
@@ -238,8 +245,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
                   onClick={() => setSideFilter(side)}
                   aria-pressed={sideFilter === side}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-semibold rounded-sm border border-border bg-bg-elev-3/50 hover:bg-bg-elev-3 cursor-pointer',
-                    sideFilter === side && 'border-border bg-bg-elev-2 text-fg'
+                    'border-border bg-bg-elev-3/50 hover:bg-bg-elev-3 cursor-pointer rounded-sm border px-2.5 py-1 text-xs font-semibold',
+                    sideFilter === side && 'border-border bg-bg-elev-2 text-fg',
                   )}
                 >
                   {side === 'ALL' ? 'ALL' : side === 'long' ? 'Buy ↑' : 'Sell ↓'}
@@ -248,8 +255,10 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5 col-span-2">
-            <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Tag</span>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+              Tag
+            </span>
             <div className="flex flex-wrap gap-1">
               {(['ALL', ...availableTags] as const).map((tag) => (
                 <button
@@ -257,8 +266,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
                   onClick={() => setTagFilter(tag)}
                   aria-pressed={tagFilter === tag}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-semibold rounded-sm border border-border bg-bg-elev-3/50 hover:bg-bg-elev-3 cursor-pointer',
-                    tagFilter === tag && 'border-border bg-bg-elev-2 text-fg'
+                    'border-border bg-bg-elev-3/50 hover:bg-bg-elev-3 cursor-pointer rounded-sm border px-2.5 py-1 text-xs font-semibold',
+                    tagFilter === tag && 'border-border bg-bg-elev-2 text-fg',
                   )}
                 >
                   {tag === 'ALL' ? 'ALL' : `#${tag}`}
@@ -290,7 +299,7 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
       ) : (
         <div
           ref={parentRef}
-          className="scrollbar-thin scrollbar-thumb-divider overflow-y-auto pr-1"
+          className="scrollbar-thumb-divider scrollbar-thin overflow-y-auto pr-1"
           style={{ maxHeight: '750px' }}
         >
           <div

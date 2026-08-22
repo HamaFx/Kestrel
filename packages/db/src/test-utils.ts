@@ -22,9 +22,7 @@ import { getDb } from './client';
  *
  * @param testFn The test logic to execute with the transaction DB client
  */
-export async function withIsolatedDb(
-  testFn: (tx: ReturnType<typeof getDb>) => Promise<void>,
-) {
+export async function withIsolatedDb(testFn: (tx: ReturnType<typeof getDb>) => Promise<void>) {
   try {
     const db = getDb();
     await db.transaction(async (tx) => {

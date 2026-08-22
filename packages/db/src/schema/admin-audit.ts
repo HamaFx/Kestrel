@@ -29,7 +29,9 @@ import { users } from './auth';
 export const adminAuditLogs = pgTable(
   'admin_audit_log',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     actorUserId: text('actor_user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),

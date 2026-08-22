@@ -24,9 +24,9 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { createAlert } from '../alerts/persistence';
+import { alertRuleRegistry } from '../alerts/rule-registry';
 import { getToolContext } from '../tool-context';
 import { assertMutationIntent } from './mutation-guard';
-import { alertRuleRegistry } from '../alerts/rule-registry';
 
 const InputSchema = z.object({
   rule: AlertRuleSchema,

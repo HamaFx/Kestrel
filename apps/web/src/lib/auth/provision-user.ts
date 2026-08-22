@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // SRP-3: User provisioning + account linking extracted from the NextAuth
@@ -7,11 +23,12 @@
 // The signIn callback becomes thin glue: validate inputs, delegate to
 // provisionUserOnSignIn, return its decision.
 
-import { and, eq, isNull, ne, sql } from 'drizzle-orm';
-import { schema } from '@kestrel/db';
 import { getDb } from '@kestrel/ai';
-import { getServerEnv } from '@/lib/env';
+import { schema } from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
+import { and, eq, isNull, ne, sql } from 'drizzle-orm';
+
+import { getServerEnv } from '@/lib/env';
 
 const SYSTEM_USER_ID = '__system__';
 
@@ -103,14 +120,13 @@ export async function provisionUserOnSignIn(input: SignInInput): Promise<SignInD
       await db.transaction(async (tx) => {
         const t = tx as unknown as typeof db;
         if (registrationMode === 'owner-first') {
-          await t.execute(sql`SELECT pg_advisory_xact_lock(hashtext('hamafx:first-user-registration'))`);
+          await t.execute(
+            sql`SELECT pg_advisory_xact_lock(hashtext('hamafx:first-user-registration'))`,
+          );
           const [existingUser] = await t
             .select({ id: schema.users.id })
             .from(schema.users)
-            .where(and(
-              isNull(schema.users.deletedAt),
-              ne(schema.users.id, SYSTEM_USER_ID),
-            ))
+            .where(and(isNull(schema.users.deletedAt), ne(schema.users.id, SYSTEM_USER_ID)))
             .limit(1);
           if (existingUser && existingUser.id !== SYSTEM_USER_ID) {
             throw new Error('INITIAL_USER_ALREADY_EXISTS');
@@ -134,7 +150,10 @@ export async function provisionUserOnSignIn(input: SignInInput): Promise<SignInD
       });
     } catch (error) {
       if (error instanceof Error && error.message === 'INITIAL_USER_ALREADY_EXISTS') {
-        return { allow: false, reason: 'Registration is closed. Ask the instance owner to invite you.' };
+        return {
+          allow: false,
+          reason: 'Registration is closed. Ask the instance owner to invite you.',
+        };
       }
       throw error;
     }

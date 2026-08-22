@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Phase 7 — mutation confirmation.
@@ -17,9 +33,6 @@
 // web route owns the Drizzle connection and calls the existing @kestrel/db
 // queries (createAlert / createJournalEntry) plus createAuditLog.
 
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-
 import { appendAssistantMessage } from '@kestrel/ai';
 import {
   assertMastraMutationAllowed,
@@ -29,13 +42,9 @@ import {
   runMutationWorkflow,
   type MutationExecutor,
 } from '@kestrel/ai/mastra';
-import {
-  createAlert,
-  createAuditLog,
-  createJournalEntry,
-  getDb,
-  schema,
-} from '@kestrel/db';
+import { createAlert, createAuditLog, createJournalEntry, getDb, schema } from '@kestrel/db';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import { withAuth } from '@/lib/api';
 
@@ -114,7 +123,13 @@ export const POST = withAuth(async (req: Request, { user }) => {
   const parsed = ConfirmBodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: { code: 'VALIDATION', message: 'Invalid confirmation body', details: parsed.error.issues } },
+      {
+        error: {
+          code: 'VALIDATION',
+          message: 'Invalid confirmation body',
+          details: parsed.error.issues,
+        },
+      },
       { status: 400 },
     );
   }
@@ -194,7 +209,10 @@ async function readRunOwner(
   mutation: z.infer<typeof MutationKindSchema>,
 ): Promise<string | null> {
   const storage = getKestrelMastra().instance.getStorage() as {
-    getWorkflowRunById?: (args: { runId: string; workflowName?: string }) => Promise<{ resourceId?: string } | null>;
+    getWorkflowRunById?: (args: {
+      runId: string;
+      workflowName?: string;
+    }) => Promise<{ resourceId?: string } | null>;
   } | null;
   if (!storage?.getWorkflowRunById) return null;
   const run = await storage.getWorkflowRunById({ runId, workflowName: `mutation-${mutation}` });

@@ -1,15 +1,32 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Spike test — sharp 0→peak→0 read mix surge.
 // Validates the SUT recovers after a sudden traffic burst.
 // VU sizing: readMix iterations take ~1-2s (multiple sequential HTTP calls).
 // At PEAK_RPS with 1.5s iterations you need ~PEAK_RPS × 1.5 concurrent VUs.
 // Defaults chosen for 50 RPS × 1.5s = 75 VUs with headroom.
 import { sleep } from 'k6';
+
 import { env } from '../config/environments.js';
 import { spike } from '../config/load-profiles.js';
 import { READ_MIX, READ_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
-import { bootstrapAuth, applyAuth, pickUser } from '../lib/auth.js';
-import { readMix } from '../scenarios/read-mix.js';
+import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
 import { handleSummary } from '../lib/summary.js';
+import { readMix } from '../scenarios/read-mix.js';
 
 const PEAK_RPS = parseInt(__ENV['K6_SPIKE_RPS'] ?? '50', 10);
 const PRE_ALLOCATED_VUS = parseInt(__ENV['K6_PRE_ALLOCATED_VUS'] ?? '30', 10);
@@ -29,9 +46,7 @@ export function setup() {
   return bootstrapAuth();
 }
 
-export default function (
-  ctxs: ReturnType<typeof bootstrapAuth>,
-) {
+export default function (ctxs: ReturnType<typeof bootstrapAuth>) {
   const ctx = pickUser(ctxs);
   applyAuth(ctx);
   readMix(ctx);

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import type { Candle, Tick } from '@kestrel/shared';
 
 export interface MakeCandlesOpts {
@@ -10,10 +26,7 @@ export interface MakeCandlesOpts {
 
 const BASE_TS = 1_700_000_000_000;
 
-export function makeCandles(
-  closes: number[],
-  opts?: MakeCandlesOpts,
-): Candle[] {
+export function makeCandles(closes: number[], opts?: MakeCandlesOpts): Candle[] {
   return closes.map((c, i) => ({
     symbol: (opts?.symbol ?? 'XAUUSD') as Candle['symbol'],
     tf: (opts?.tf ?? '1h') as Candle['tf'],
@@ -28,10 +41,7 @@ export function makeCandles(
   }));
 }
 
-export function makeTicks(
-  prices: number[],
-  opts?: { symbol?: string; source?: string },
-): Tick[] {
+export function makeTicks(prices: number[], opts?: { symbol?: string; source?: string }): Tick[] {
   return prices.map((p, i) => ({
     symbol: (opts?.symbol ?? 'XAUUSD') as Tick['symbol'],
     bid: p - 0.1,

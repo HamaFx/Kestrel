@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // PF-22 — Alerts service layer.
@@ -14,18 +30,23 @@
 // call service → format Response.
 
 import {
-  listAlerts as aiListAlerts,
-  getAlert as aiGetAlert,
   createAlert as aiCreateAlert,
-  updateAlert as aiUpdateAlert,
   deleteAlert as aiDeleteAlert,
-  simulateAlert,
+  getAlert as aiGetAlert,
+  listAlerts as aiListAlerts,
+  updateAlert as aiUpdateAlert,
   getNoiseConfig,
+  simulateAlert,
   type SimCandle,
 } from '@kestrel/ai';
-import type { Alert, AlertRule, NoiseConfig, Severity } from '@kestrel/shared';
-import { SEVERITY_RANK } from '@kestrel/shared';
 import { getRecentCandles, withRateLimit } from '@kestrel/db';
+import {
+  SEVERITY_RANK,
+  type Alert,
+  type AlertRule,
+  type NoiseConfig,
+  type Severity,
+} from '@kestrel/shared';
 
 // ── Schemas (re-exported from the client-safe schema file) ───────────────────
 
@@ -117,10 +138,7 @@ export async function createAlertService(
   return { alert: toAlertDTO(alert) };
 }
 
-export async function getAlertService(
-  userId: string,
-  id: string,
-): Promise<AlertDTO | null> {
+export async function getAlertService(userId: string, id: string): Promise<AlertDTO | null> {
   const alert = await aiGetAlert(userId, id);
   return alert ? toAlertDTO(alert) : null;
 }
@@ -151,7 +169,8 @@ async function fetchCandles(rule: AlertRule, _lookbackDays: number): Promise<Sim
       const h = (r as { h?: number }).h ?? 0;
       const l = (r as { l?: number }).l ?? 0;
       const c = (r as { c?: number }).c ?? 0;
-      const tMs = typeof t === 'number' ? t : t instanceof Date ? t.getTime() : Date.parse(String(t));
+      const tMs =
+        typeof t === 'number' ? t : t instanceof Date ? t.getTime() : Date.parse(String(t));
       return { t: tMs, o, h, l, c } satisfies SimCandle;
     })
     .filter((candle) => Number.isFinite(candle.t));
@@ -165,7 +184,14 @@ export async function previewAlertRuleService(
   if (!rl.allowed) {
     throw Object.assign(
       new Error(`Too many preview requests (${rl.count}/${rl.limit} per minute).`),
-      { statusCode: 429, headers: { 'Retry-After': '60', 'X-RateLimit-Limit': String(rl.limit), 'X-RateLimit-Remaining': '0' } },
+      {
+        statusCode: 429,
+        headers: {
+          'Retry-After': '60',
+          'X-RateLimit-Limit': String(rl.limit),
+          'X-RateLimit-Remaining': '0',
+        },
+      },
     );
   }
 
@@ -183,7 +209,11 @@ export async function previewAlertRuleService(
   return {
     count: sim.fires.length,
     avgHoldMs: sim.avgHoldMs,
-    recentFires: sim.fires.slice().reverse().map((f) => f.at).slice(0, 10),
+    recentFires: sim.fires
+      .slice()
+      .reverse()
+      .map((f) => f.at)
+      .slice(0, 10),
     unsupported: false,
   };
 }
@@ -238,7 +268,8 @@ function simulateBreakdown(config: NoiseConfig, time: Date): PreviewDigestDTO['b
 export async function previewDigestService(userId: string): Promise<PreviewDigestDTO> {
   const config = await getNoiseConfig(userId);
   const breakdown = simulateBreakdown(config, new Date());
-  const allowedPct = breakdown.total > 0 ? Math.round((breakdown.allowed / breakdown.total) * 100) : 100;
+  const allowedPct =
+    breakdown.total > 0 ? Math.round((breakdown.allowed / breakdown.total) * 100) : 100;
   const blockedPct = 100 - allowedPct;
 
   return {

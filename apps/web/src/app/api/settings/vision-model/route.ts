@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // /api/settings/vision-model — Phase D2 user-pickable vision model.
@@ -19,12 +35,16 @@
 //
 // Auth: NextAuth session gate. Per-user data only.
 
-import { BYOK_PROVIDERS } from '@/lib/services/api-boundary';
-import { getUserWithSettings, updateUserSettingsField } from '@/lib/services/api-boundary';
-import { PROVIDER_IDS, type ProviderId } from '@/lib/services/api-boundary';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import {
+  BYOK_PROVIDERS,
+  getUserWithSettings,
+  PROVIDER_IDS,
+  updateUserSettingsField,
+  type ProviderId,
+} from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -75,9 +95,7 @@ export const PUT = withAuth<void>(async (req, { user }) => {
   const bareModelId = body.modelId.includes('/')
     ? body.modelId.split('/').slice(1).join('/')
     : body.modelId;
-  const known = (spec.models ?? []).some(
-    (m: { modelId: string }) => m.modelId === bareModelId,
-  );
+  const known = (spec.models ?? []).some((m: { modelId: string }) => m.modelId === bareModelId);
   if (!known) {
     return Response.json(
       {

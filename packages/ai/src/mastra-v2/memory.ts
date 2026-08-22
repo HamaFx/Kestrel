@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -24,23 +40,19 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { LibSQLVector } from '@mastra/libsql';
-import { Memory } from '@mastra/memory';
-import { PgVector } from '@mastra/pg';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { MemoryConfigInternal } from '@mastra/core/memory';
 import type { MastraCompositeStore } from '@mastra/core/storage';
 import type { MastraEmbeddingModel, MastraVector } from '@mastra/core/vector';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { LibSQLVector } from '@mastra/libsql';
+import { Memory } from '@mastra/memory';
+import { PgVector } from '@mastra/pg';
 
 import { embedTexts } from '../embeddings';
 import { resolveEmbeddingModel } from '../model';
 import type { ResolveModelEnv } from '../vertex-factory';
 import { getKestrelMastra } from './instance';
-import {
-  mastraDirectConnectionString,
-  mastraSslOptions,
-  type MastraStorageKind,
-} from './storage';
+import { mastraDirectConnectionString, mastraSslOptions, type MastraStorageKind } from './storage';
 
 const mlog = createCategorizedLogger('ai', { component: 'mastra-memory' });
 
@@ -96,9 +108,7 @@ export function createKestrelVectorStore(
 let cachedVectorStore: MastraVector | null = null;
 
 /** Process-wide vector-store singleton (created lazily). */
-export function getKestrelVectorStore(
-  kind: MastraStorageKind = 'libsql',
-): MastraVector {
+export function getKestrelVectorStore(kind: MastraStorageKind = 'libsql'): MastraVector {
   cachedVectorStore ??= createKestrelVectorStore(kind);
   return cachedVectorStore;
 }
@@ -175,9 +185,7 @@ export interface KestrelMemoryOptionsArgs {
  * - observationalMemory: off by default; enable with
  *   `ENABLE_MASTRA_OBSERVATIONAL_MEMORY=true` on long-lived paths.
  */
-export function kestrelMemoryOptions(
-  args: KestrelMemoryOptionsArgs,
-): MemoryConfigInternal {
+export function kestrelMemoryOptions(args: KestrelMemoryOptionsArgs): MemoryConfigInternal {
   const semanticRecall =
     (process.env.ENABLE_MASTRA_SEMANTIC_RECALL ?? 'true') !== 'false'
       ? {

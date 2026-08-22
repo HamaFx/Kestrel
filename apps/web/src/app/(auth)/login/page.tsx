@@ -15,20 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import { useActionState, useEffect, useState } from 'react';
+import { IconCheck } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { IconCheck } from '@tabler/icons-react';
+import { Suspense, useActionState, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { loginAction, resendVerificationAction } from '../actions';
+
+import { FormError } from '../_components/form-error';
 import { OAuthButtons } from '../_components/oauth-buttons';
 import { PasswordField } from '../_components/password-field';
-import { FormError } from '../_components/form-error';
-
-import { Suspense } from 'react';
+import { loginAction, resendVerificationAction } from '../actions';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -53,36 +51,71 @@ function LoginForm() {
           <input type="hidden" name="next" value={next} />
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="email" className="text-fg text-sm font-semibold">Email</label>
-            <Input id="email" name="email" type="email" autoComplete="email"
-              autoFocus={!requires2FA} required disabled={success}
+            <label htmlFor="email" className="text-fg text-sm font-semibold">
+              Email
+            </label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              autoFocus={!requires2FA}
+              required
+              disabled={success}
               readOnly={pending || requires2FA}
               aria-invalid={state?.error ? true : undefined}
-              aria-describedby={state?.error ? 'form-error' : undefined} />
+              aria-describedby={state?.error ? 'form-error' : undefined}
+            />
           </div>
 
-          <PasswordField value={password} onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password" required disabled={success}
+          <PasswordField
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+            disabled={success}
             readOnly={pending || requires2FA}
             error={!!state?.error}
-            errorId={state?.error ? 'form-error' : undefined} />
+            errorId={state?.error ? 'form-error' : undefined}
+          />
 
           {requires2FA && (
             <div className="flex flex-col gap-2">
-              <label htmlFor="totpCode" className="text-fg text-sm font-semibold">2FA Code</label>
-              <Input id="totpCode" name="totpCode" type="text" inputMode="numeric"
-                pattern="[0-9]*" maxLength={6} autoComplete="one-time-code"
-                autoFocus required disabled={success} readOnly={pending}
-                placeholder="Enter 6-digit code" />
+              <label htmlFor="totpCode" className="text-fg text-sm font-semibold">
+                2FA Code
+              </label>
+              <Input
+                id="totpCode"
+                name="totpCode"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                autoComplete="one-time-code"
+                autoFocus
+                required
+                disabled={success}
+                readOnly={pending}
+                placeholder="Enter 6-digit code"
+              />
             </div>
           )}
 
-          <div className="flex items-center justify-between -mt-3">
-            <label className="flex items-center gap-2 text-fg-muted text-xs cursor-pointer hover:text-fg transition-colors">
-              <input type="checkbox" name="rememberMe" value="true" defaultChecked className="rounded-sm border-border" />
+          <div className="-mt-3 flex items-center justify-between">
+            <label className="text-fg-muted hover:text-fg flex cursor-pointer items-center gap-2 text-xs transition-colors">
+              <input
+                type="checkbox"
+                name="rememberMe"
+                value="true"
+                defaultChecked
+                className="border-border rounded-sm"
+              />
               Remember me
             </label>
-            <Link href="/forgot-password" className="text-fg-muted hover:text-fg text-xs underline underline-offset-2 transition-colors">
+            <Link
+              href="/forgot-password"
+              className="text-fg-muted hover:text-fg text-xs underline underline-offset-2 transition-colors"
+            >
               Forgot password?
             </Link>
           </div>
@@ -120,7 +153,7 @@ function LoginForm() {
       <ResendVerification />
 
       {process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true' && (
-        <div className="flex flex-col items-center gap-2 border-t border-border pt-4">
+        <div className="border-border flex flex-col items-center gap-2 border-t pt-4">
           <button
             type="button"
             onClick={() => {
@@ -144,7 +177,10 @@ function ResendVerification() {
   const [error, setError] = useState('');
 
   async function handleResend() {
-    if (!email || !email.includes('@')) { setError('Enter a valid email'); return; }
+    if (!email || !email.includes('@')) {
+      setError('Enter a valid email');
+      return;
+    }
     setLoading(true);
     setError('');
     const result = await resendVerificationAction(email);
@@ -154,8 +190,8 @@ function ResendVerification() {
   }
 
   return (
-    <div className="border-t border-border pt-4 flex flex-col gap-2">
-      <p className="text-fg-subtle text-xs text-center">
+    <div className="border-border flex flex-col gap-2 border-t pt-4">
+      <p className="text-fg-subtle text-center text-xs">
         Didn&apos;t receive a verification email?
       </p>
       {!sent ? (
@@ -164,18 +200,26 @@ function ResendVerification() {
             type="email"
             placeholder="your@email.com"
             value={email}
-            onChange={(e) => { setEmail(e.target.value); setError(''); }}
-            className="h-9 text-sm flex-1"
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError('');
+            }}
+            className="h-9 flex-1 text-sm"
             aria-label="Email for verification resend"
           />
-          <Button type="button" size="sm" variant="secondary"
-            loading={loading} disabled={loading}
-            onClick={handleResend}>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            loading={loading}
+            disabled={loading}
+            onClick={handleResend}
+          >
             Resend
           </Button>
         </div>
       ) : (
-        <p className="text-success text-xs text-center" role="status">
+        <p className="text-success text-center text-xs" role="status">
           Verification email sent — check your inbox.
         </p>
       )}
@@ -186,7 +230,13 @@ function ResendVerification() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center p-8"><span className="text-fg-subtle">Loading...</span></div>}>
+    <Suspense
+      fallback={
+        <div className="flex justify-center p-8">
+          <span className="text-fg-subtle">Loading...</span>
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

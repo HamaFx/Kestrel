@@ -22,7 +22,6 @@
 //   - Slash command detection & filtering
 //   - Keyboard navigation (ArrowUp/Down, Escape, Tab, Enter)
 //   - Command selection with cursor placement
-
 import { useMemo, useState, type RefObject } from 'react';
 
 interface SlashCommand {
@@ -65,9 +64,7 @@ export function useSlashCommands({
   const filteredCommands = useMemo(() => {
     if (!slashActive) return [];
     if (!slashQuery) return [...commands];
-    return commands.filter((c) =>
-      c.command.toLowerCase().includes(slashQuery),
-    );
+    return commands.filter((c) => c.command.toLowerCase().includes(slashQuery));
   }, [slashActive, slashQuery, commands]);
 
   function selectSlashCommand(cmd: SlashCommand) {
@@ -101,16 +98,12 @@ export function useSlashCommands({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSlashIndex((prev) =>
-        prev < filteredCommands.length - 1 ? prev + 1 : 0,
-      );
+      setSlashIndex((prev) => (prev < filteredCommands.length - 1 ? prev + 1 : 0));
       return true;
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSlashIndex((prev) =>
-        prev > 0 ? prev - 1 : filteredCommands.length - 1,
-      );
+      setSlashIndex((prev) => (prev > 0 ? prev - 1 : filteredCommands.length - 1));
       return true;
     }
     if (e.key === 'Escape') {

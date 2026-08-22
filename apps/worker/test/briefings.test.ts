@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+import * as ai from '@kestrel/ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runBriefings } from '../src/jobs/briefings';
+import { createLogger } from '../src/log';
+import { TenantRouter } from '../src/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   emitPreEvent: vi.fn(),
@@ -34,12 +39,6 @@ vi.mock('@kestrel/db', () => ({
   getActiveUserIds: vi.fn(async () => ['u1']),
 }));
 
-import * as ai from '@kestrel/ai';
-
-import { runBriefings } from '../src/jobs/briefings';
-import { TenantRouter } from '../src/tenant-router';
-import { createLogger } from '../src/log';
-
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
 
@@ -57,7 +56,11 @@ describe('runBriefings', () => {
     vi.mocked(ai.emitPreEvent).mockResolvedValue({ emitted: true });
     vi.mocked(ai.emitPostEvent).mockResolvedValue({ emitted: true });
 
-    const r = await runBriefings({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const r = await runBriefings({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     expect(r.processed).toBe(3);
     expect(r.note).toMatch(/pre=2\/2/);
     expect(r.note).toMatch(/post=1\/1/);
@@ -71,7 +74,11 @@ describe('runBriefings', () => {
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce({ emitted: true });
 
-    const r = await runBriefings({ log, signal: new AbortController().signal, tenantRouter: testRouter });
+    const r = await runBriefings({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
     // Both candidates were considered, even though one failed.
     expect(r.processed).toBe(2);
     expect(r.note).toMatch(/pre=1\/2/);

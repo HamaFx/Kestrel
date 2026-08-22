@@ -42,7 +42,14 @@ export {
   FRED_SERIES_TTL,
   type TtlPolicy,
 } from './ttl';
-export { tryReserve, tryReserveDaily, noteBackoff, resolveThrottleBackend, type ThrottleConfig, _resetThrottle } from './throttle';
+export {
+  tryReserve,
+  tryReserveDaily,
+  noteBackoff,
+  resolveThrottleBackend,
+  type ThrottleConfig,
+  _resetThrottle,
+} from './throttle';
 
 /** Sentinel for the unscoped (legacy / self-host) cache namespace. */
 const GLOBAL_TENANT = '__global__';

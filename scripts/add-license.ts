@@ -22,14 +22,25 @@ const LICENSE_HEADER = `/**
 function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
   const files = fs.readdirSync(dirPath);
 
-  files.forEach(function(file) {
+  files.forEach(function (file) {
     const fullPath = path.join(dirPath, file);
     if (fs.statSync(fullPath).isDirectory()) {
-      if (!fullPath.includes('node_modules') && !fullPath.includes('.next') && !fullPath.includes('dist') && !fullPath.includes('build') && !fullPath.includes('coverage')) {
+      if (
+        !fullPath.includes('node_modules') &&
+        !fullPath.includes('.next') &&
+        !fullPath.includes('dist') &&
+        !fullPath.includes('build') &&
+        !fullPath.includes('coverage')
+      ) {
         arrayOfFiles = getAllFiles(fullPath, arrayOfFiles);
       }
     } else {
-      if (file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.js') || file.endsWith('.jsx')) {
+      if (
+        file.endsWith('.ts') ||
+        file.endsWith('.tsx') ||
+        file.endsWith('.js') ||
+        file.endsWith('.jsx')
+      ) {
         arrayOfFiles.push(fullPath);
       }
     }
@@ -40,7 +51,7 @@ function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
 
 async function main() {
   const rootDir = path.resolve(__dirname, '..');
-  
+
   const files = getAllFiles(rootDir);
 
   let modifiedCount = 0;
@@ -58,10 +69,14 @@ async function main() {
     // Handle files with 'use client' or 'use server' directives
     const lines = content.split('\n');
     let injectIndex = 0;
-    
+
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].startsWith('"use client"') || lines[i].startsWith("'use client'") ||
-          lines[i].startsWith('"use server"') || lines[i].startsWith("'use server'")) {
+      if (
+        lines[i].startsWith('"use client"') ||
+        lines[i].startsWith("'use client'") ||
+        lines[i].startsWith('"use server"') ||
+        lines[i].startsWith("'use server'")
+      ) {
         injectIndex = i + 1;
       }
     }

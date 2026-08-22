@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `get_price` tool part.
@@ -11,8 +27,8 @@
 //
 // Server component on purpose — no state, no events, no browser-only APIs.
 
-import { IconActivity, IconClock, IconDatabase } from '@tabler/icons-react';
 import { priceDecimals, type GetPriceOutput, type Symbol } from '@kestrel/shared';
+import { IconActivity, IconClock, IconDatabase } from '@tabler/icons-react';
 
 import { Card } from '@/components/ui/card';
 
@@ -49,7 +65,7 @@ export function GetPricePart({ output, state, errorMessage }: GetPricePartProps)
         </span>
       </header>
 
-      <div className="border-divider flex flex-wrap items-center gap-x-3 gap-y-1 border-y py-2 text-caption">
+      <div className="border-divider text-caption flex flex-wrap items-center gap-x-3 gap-y-1 border-y py-2">
         <span className="text-fg-muted inline-flex items-center gap-1">
           <IconClock className="size-3" aria-hidden="true" />
           {formatTime(output.asOf)}
@@ -73,7 +89,9 @@ export function GetPricePart({ output, state, errorMessage }: GetPricePartProps)
             <li key={t.symbol} className="flex min-h-[44px] items-center justify-between gap-3">
               <div className="flex min-w-0 flex-col">
                 <span className="text-fg font-semibold">{t.symbol}</span>
-                <span className="text-fg-subtle text-caption">bid {t.bid.toFixed(decimals)} · ask {t.ask.toFixed(decimals)}</span>
+                <span className="text-fg-subtle text-caption">
+                  bid {t.bid.toFixed(decimals)} · ask {t.ask.toFixed(decimals)}
+                </span>
               </div>
               <div className="flex shrink-0 items-baseline gap-2 tabular-nums">
                 <span className="text-fg text-numeric-xl font-bold">{t.mid.toFixed(decimals)}</span>
@@ -89,13 +107,7 @@ export function GetPricePart({ output, state, errorMessage }: GetPricePartProps)
 
 function PriceCardSkeleton() {
   return (
-    <Card
-      as="section"
-      role="status"
-      className="p-3"
-      aria-busy="true"
-      aria-label="Loading prices"
-    >
+    <Card as="section" role="status" className="p-3" aria-busy="true" aria-label="Loading prices">
       <div className="bg-bg-elev-2 mb-2 h-3 w-32 animate-pulse rounded-sm" />
       <ul className="space-y-1.5">
         {[0, 1, 2].map((i) => (
@@ -111,10 +123,18 @@ function PriceCardSkeleton() {
 
 function PriceCardError({ message }: { message?: string }) {
   return (
-    <Card as="section" role="alert" aria-label={message ? `Price unavailable: ${message}` : 'Price unavailable'} className="border-danger/30 p-3 text-sm">
+    <Card
+      as="section"
+      role="alert"
+      aria-label={message ? `Price unavailable: ${message}` : 'Price unavailable'}
+      className="border-danger/30 p-3 text-sm"
+    >
       <div className="flex items-start gap-2">
-        <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-danger" aria-hidden="true" />
-        <p className="text-danger"><span className="font-semibold">Price unavailable</span>{message ? <span className="text-fg-muted"> · {message}</span> : null}</p>
+        <span className="bg-danger mt-0.5 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+        <p className="text-danger">
+          <span className="font-semibold">Price unavailable</span>
+          {message ? <span className="text-fg-muted"> · {message}</span> : null}
+        </p>
       </div>
     </Card>
   );

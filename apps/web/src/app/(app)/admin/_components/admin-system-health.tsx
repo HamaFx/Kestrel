@@ -8,33 +8,50 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import {
-  IconDatabase,
   IconActivity,
-  IconClock,
-  IconTool,
-  IconMessage,
-  IconRefresh,
   IconAlertTriangle,
+  IconChartDots,
   IconCircleCheck,
   IconCircleX,
-  IconMinus,
-  IconChartDots,
-  IconInfoCircle,
-  IconShieldCheck,
-  IconHeartbeat,
+  IconClock,
+  IconDatabase,
   IconDatabaseCog,
-  IconWallet,
+  IconHeartbeat,
+  IconInfoCircle,
+  IconMessage,
+  IconMinus,
+  IconRefresh,
   IconRoute,
+  IconShieldCheck,
+  IconTool,
+  IconWallet,
 } from '@tabler/icons-react';
-import { SkeletonCard } from '@/components/ui/skeleton';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
 import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
-import { AdminErrorBlock } from './admin-error-block';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/api-client';
-import { toastApiError } from '@/lib/toast-api-error';
 import { cn } from '@/lib/cn';
 import type { HealthSloData, SliSnapshot } from '@/lib/services/admin-dtos';
+import { toastApiError } from '@/lib/toast-api-error';
+
+import { AdminErrorBlock } from './admin-error-block';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -100,12 +117,22 @@ function OverallBanner({ data }: { data: HealthSloData }) {
       )}
     >
       <div className="flex items-center gap-3">
-        <span className={cn('relative flex size-10 items-center justify-center rounded-full', config.bg)}>
-          <span className={cn('absolute size-3 rounded-full animate-pulse', config.dot)} />
+        <span
+          className={cn(
+            'relative flex size-10 items-center justify-center rounded-full',
+            config.bg,
+          )}
+        >
+          <span className={cn('absolute size-3 animate-pulse rounded-full', config.dot)} />
           <config.Icon className={cn('relative size-5', config.text)} aria-hidden="true" />
         </span>
         <div>
-          <p key={overall} aria-live="polite" aria-atomic="true" className={cn('text-lg font-bold', config.text)}>
+          <p
+            key={overall}
+            aria-live="polite"
+            aria-atomic="true"
+            className={cn('text-lg font-bold', config.text)}
+          >
             {config.label}
           </p>
           <p className="text-fg-subtle text-xs">
@@ -115,15 +142,15 @@ function OverallBanner({ data }: { data: HealthSloData }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-4 text-xs">
-        <div className="flex items-center gap-1.5 rounded-sm bg-bg-elev-2 px-2 py-1">
-          <IconDatabase className="size-3 text-fg-subtle" aria-hidden="true" />
+        <div className="bg-bg-elev-2 flex items-center gap-1.5 rounded-sm px-2 py-1">
+          <IconDatabase className="text-fg-subtle size-3" aria-hidden="true" />
           <span className="text-fg-subtle">DB:</span>
           <span className={cn('font-mono font-bold', dbOk ? 'text-success' : 'text-danger')}>
             {dbOk ? `${dbLatencyMs}ms` : 'DOWN'}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 rounded-sm bg-bg-elev-2 px-2 py-1">
-          <IconChartDots className="size-3 text-fg-subtle" aria-hidden="true" />
+        <div className="bg-bg-elev-2 flex items-center gap-1.5 rounded-sm px-2 py-1">
+          <IconChartDots className="text-fg-subtle size-3" aria-hidden="true" />
           <span className="text-fg-subtle">Tracing:</span>
           {langfuseActive && langfuseBaseUrl ? (
             <a
@@ -157,14 +184,8 @@ function ErrorBudgetGauge({ budget }: { budget: number | null }) {
   }
 
   const pct = Math.round(budget * 100);
-  const color =
-    pct > 50 ? 'text-success' : pct > 10 ? 'text-warn' : 'text-danger';
-  const barColor =
-    pct > 50
-      ? 'bg-success'
-      : pct > 10
-        ? 'bg-warn'
-        : 'bg-danger';
+  const color = pct > 50 ? 'text-success' : pct > 10 ? 'text-warn' : 'text-danger';
+  const barColor = pct > 50 ? 'bg-success' : pct > 10 ? 'bg-warn' : 'bg-danger';
 
   return (
     <div className="flex items-center gap-2" aria-label={`Error budget: ${pct}% remaining`}>
@@ -174,7 +195,7 @@ function ErrorBudgetGauge({ budget }: { budget: number | null }) {
           style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
         />
       </div>
-      <span className={cn('text-xs font-mono font-bold', color)}>{pct}%</span>
+      <span className={cn('font-mono text-xs font-bold', color)}>{pct}%</span>
     </div>
   );
 }
@@ -216,30 +237,33 @@ function SliCard({ sli }: { sli: SliSnapshot }) {
       <div className="mb-3 flex items-center gap-2">
         <span className={cn('size-2 rounded-full', statusDot)} aria-hidden="true" />
         {isInformational ? (
-          <IconInfoCircle className="size-4 text-fg-subtle" aria-hidden="true" />
+          <IconInfoCircle className="text-fg-subtle size-4" aria-hidden="true" />
         ) : (
-          <Icon className="size-4 text-fg-subtle" aria-hidden="true" />
+          <Icon className="text-fg-subtle size-4" aria-hidden="true" />
         )}
-        <h3 className="text-fg text-sm font-semibold truncate">{sli.label}</h3>
+        <h3 className="text-fg truncate text-sm font-semibold">{sli.label}</h3>
         {isInformational && (
-          <span className="text-fg-subtle rounded-sm bg-bg-elev-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+          <span className="text-fg-subtle bg-bg-elev-2 rounded-sm px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
             Sentry
           </span>
         )}
       </div>
 
       <div className="mb-2 flex items-baseline gap-2">
-        <span className={cn('text-2xl font-bold font-mono', isInformational ? 'text-fg-subtle' : statusColor)}>
+        <span
+          className={cn(
+            'font-mono text-2xl font-bold',
+            isInformational ? 'text-fg-subtle' : statusColor,
+          )}
+        >
           {isInformational ? '—' : successRate}
         </span>
         <span className="text-fg-subtle text-xs">/ SLO {sloTargetPct}</span>
       </div>
 
-      {sli.details && (
-        <p className="text-fg-subtle mb-2 text-xs">{sli.details}</p>
-      )}
+      {sli.details && <p className="text-fg-subtle mb-2 text-xs">{sli.details}</p>}
 
-      <div className="flex items-center gap-2 border-border border-t pt-2">
+      <div className="border-border flex items-center gap-2 border-t pt-2">
         <span className="text-fg-subtle text-xs">Budget:</span>
         {isInformational ? (
           <span className="text-fg-subtle text-xs">via Sentry</span>
@@ -265,7 +289,7 @@ function AnomalyList({ anomalies }: { anomalies: string[] }) {
       </div>
       <ul className="space-y-1">
         {anomalies.map((a, i) => (
-          <li key={i} className="text-fg-subtle text-xs flex items-start gap-1.5">
+          <li key={i} className="text-fg-subtle flex items-start gap-1.5 text-xs">
             <span className="text-warn mt-0.5 shrink-0">•</span>
             {a}
           </li>
@@ -373,7 +397,9 @@ export function AdminSystemHealth() {
       <div className="flex flex-col gap-4">
         {fetchError && (
           <div className="border-warn/25 bg-warn/5 flex items-center justify-between gap-3 rounded-sm border px-3 py-2">
-            <p className="text-warn text-xs">Refresh failed. Showing the last successful snapshot.</p>
+            <p className="text-warn text-xs">
+              Refresh failed. Showing the last successful snapshot.
+            </p>
             <button
               type="button"
               onClick={() => void fetchHealth()}
@@ -384,26 +410,26 @@ export function AdminSystemHealth() {
           </div>
         )}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1 rounded-sm bg-bg-elev-1 border border-border p-0.5">
+          <div className="bg-bg-elev-1 border-border flex items-center gap-1 rounded-sm border p-0.5">
             {HEALTH_WINDOWS.map(({ hours, label }) => (
-                <button
-                  key={hours}
-                  type="button"
-                  onClick={() => {
-                    setWindowHours(hours);
-                    void fetchHealth(hours);
-                  }}
-                  disabled={loading || hours === windowHours}
-                  className={cn(
-                    'rounded-sm px-3 py-1 text-xs font-medium transition-colors',
-                    windowHours === hours
-                      ? 'bg-brand text-brand-fg'
-                      : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
+              <button
+                key={hours}
+                type="button"
+                onClick={() => {
+                  setWindowHours(hours);
+                  void fetchHealth(hours);
+                }}
+                disabled={loading || hours === windowHours}
+                className={cn(
+                  'rounded-sm px-3 py-1 text-xs font-medium transition-colors',
+                  windowHours === hours
+                    ? 'bg-brand text-brand-fg'
+                    : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2',
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           <button
             type="button"
@@ -431,12 +457,15 @@ export function AdminSystemHealth() {
         <div className="border-border rounded-lg border p-4">
           <p className="text-fg-subtle text-xs">
             SLO targets from{' '}
-            <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">docs/INCIDENT-RESPONSE.md §2</code>.
-            Error budget remaining = (current − target) / (1 − target), floored at 0. When budget is exhausted, freeze
-            non-critical deploys.
+            <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">
+              docs/INCIDENT-RESPONSE.md §2
+            </code>
+            . Error budget remaining = (current − target) / (1 − target), floored at 0. When budget
+            is exhausted, freeze non-critical deploys.
             {data.langfuseActive && data.langfuseBaseUrl && (
               <>
-                {' '}Langfuse tracing is active —{' '}
+                {' '}
+                Langfuse tracing is active —{' '}
                 <a
                   href={data.langfuseBaseUrl}
                   target="_blank"
@@ -450,10 +479,20 @@ export function AdminSystemHealth() {
             )}
             {!data.langfuseActive && (
               <>
-                {' '}Langfuse tracing is off — set <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">LANGFUSE_PUBLIC_KEY</code>,{' '}
-                <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">LANGFUSE_SECRET_KEY</code>,{' '}
-                <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">LANGFUSE_BASE_URL</code> to
-                enable LLM observability.
+                {' '}
+                Langfuse tracing is off — set{' '}
+                <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">
+                  LANGFUSE_PUBLIC_KEY
+                </code>
+                ,{' '}
+                <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">
+                  LANGFUSE_SECRET_KEY
+                </code>
+                ,{' '}
+                <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">
+                  LANGFUSE_BASE_URL
+                </code>{' '}
+                to enable LLM observability.
               </>
             )}
           </p>

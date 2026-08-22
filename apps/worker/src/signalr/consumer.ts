@@ -33,12 +33,7 @@
 // Phase 8 PR-6 — feeds `live_ticks` (this PR). PR-7 wires the same `onTick`
 // to the in-process 1m candle aggregator.
 
-import {
-  BiquoteSignalRTickSchema,
-  isKnownSymbol,
-  SYMBOLS,
-  type Symbol,
-} from '@kestrel/shared';
+import { BiquoteSignalRTickSchema, isKnownSymbol, SYMBOLS, type Symbol } from '@kestrel/shared';
 
 import type { Logger } from '../log.js';
 import { DEFAULT_RECONNECT_DELAYS, jitteredDelay } from './reconnect.js';

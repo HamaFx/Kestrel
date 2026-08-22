@@ -219,10 +219,7 @@ function closestPrice(s: BareReturns, targetMs: number): number | null {
 // regime + notes
 // ---------------------------------------------------------------------------
 
-function inferRegime(args: {
-  dxy24h: number;
-  goldChange24h: number | null;
-}): RiskRegime {
+function inferRegime(args: { dxy24h: number; goldChange24h: number | null }): RiskRegime {
   const dxyDir = sign(args.dxy24h, 0.1);
   const goldDir = args.goldChange24h !== null ? sign(args.goldChange24h, 0.2) : 0;
   if (dxyDir < 0 && goldDir > 0) return 'risk-on';

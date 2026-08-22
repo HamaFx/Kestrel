@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { describe, it, expect } from 'vitest';
-import { parseCommand } from './types';
+import { describe, expect, it } from 'vitest';
+
 import { BotDispatcher, getBotDispatcher } from './dispatcher';
+import { parseCommand } from './types';
 
 describe('parseCommand', () => {
   it('parses a simple command', () => {

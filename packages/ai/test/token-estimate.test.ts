@@ -1,4 +1,21 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, expect, it } from 'vitest';
+
 import { estimateContextUsage, estimateTokens } from '../src/token-estimate';
 
 describe('estimateContextUsage', () => {
@@ -31,12 +48,7 @@ describe('estimateContextUsage', () => {
   it('warns at 80% of known context window', () => {
     // gemini-2.5-flash has 1M context. 80% = 800K tokens.
     // 800K * 3.5 = 2.8M chars
-    const result = estimateContextUsage(
-      'google/gemini-2.5-flash',
-      500,
-      50,
-      2_800_000,
-    );
+    const result = estimateContextUsage('google/gemini-2.5-flash', 500, 50, 2_800_000);
     expect(result.shouldWarn).toBe(true);
     expect(result.shouldTruncate).toBe(false);
     expect(result.contextLimit).toBe(1_000_000);
@@ -45,12 +57,7 @@ describe('estimateContextUsage', () => {
 
   it('truncates at 95% of known context window', () => {
     // 95% of 1M = 950K tokens = 3,325,000 chars
-    const result = estimateContextUsage(
-      'google/gemini-2.5-flash',
-      500,
-      100,
-      3_400_000,
-    );
+    const result = estimateContextUsage('google/gemini-2.5-flash', 500, 100, 3_400_000);
     expect(result.shouldWarn).toBe(true);
     expect(result.shouldTruncate).toBe(true);
     expect(result.warningNote).toContain('exceeds');
@@ -58,12 +65,7 @@ describe('estimateContextUsage', () => {
   });
 
   it('returns no warning for small conversations', () => {
-    const result = estimateContextUsage(
-      'anthropic/claude-sonnet-4',
-      200,
-      10,
-      5000,
-    );
+    const result = estimateContextUsage('anthropic/claude-sonnet-4', 200, 10, 5000);
     expect(result.shouldWarn).toBe(false);
     expect(result.shouldTruncate).toBe(false);
     expect(result.warningNote).toBeNull();
@@ -90,12 +92,7 @@ describe('estimateContextUsage', () => {
   });
 
   it('suggestedKeepCount is at least 4 when truncating', () => {
-    const result = estimateContextUsage(
-      'openai/gpt-4o',
-      200,
-      50,
-      5_000_000,
-    );
+    const result = estimateContextUsage('openai/gpt-4o', 200, 50, 5_000_000);
     expect(result.shouldTruncate).toBe(true);
     expect(result.suggestedKeepCount).toBeGreaterThanOrEqual(4);
   });

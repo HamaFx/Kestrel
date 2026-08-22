@@ -1,10 +1,26 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
 
 import { ALL_SYMBOLS, CFTC_SUPPORTED_SYMBOLS, SymbolSchema } from '@kestrel/shared';
+import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
 const authSource = readFileSync(resolve(root, 'apps/web/src/auth.ts'), 'utf8');
@@ -22,8 +38,8 @@ describe('Phase 4 authentication persistence policy', () => {
     expect(authSource).toContain("'auth/2fa_lockout_increment'");
     expect(authSource).toContain("'auth/2fa_lockout_reset'");
     expect(authSource).toContain("'auth/consume_backup_code'");
-    expect(authSource).toContain("array_remove");
-    expect(authSource).toContain(".returning({ id: schema.users.id })");
+    expect(authSource).toContain('array_remove');
+    expect(authSource).toContain('.returning({ id: schema.users.id })');
     expect(authSource).not.toContain('fail open — lockout');
     expect(authSource).not.toContain('fail open — session insert');
   });
@@ -48,11 +64,17 @@ describe('Phase 5 canonical product scope', () => {
     expect(read('README.md')).toContain('gold, forex, and crypto research');
     expect(promptSource).toContain('canonical supported instruments');
     expect(read('packages/ai/src/tools/get-price.ts')).toContain('gold, forex, and crypto catalog');
-    expect(read('apps/web/src/app/(app)/settings/_components/about-card.tsx')).toContain('Gold · forex · crypto');
+    expect(read('apps/web/src/app/(app)/settings/_components/about-card.tsx')).toContain(
+      'Gold · forex · crypto',
+    );
   });
 
   it('labels narrow legacy analytics instead of implying product-wide limits', () => {
-    expect(read('packages/ai/src/tools/get-correlation.ts')).toContain('legacy CFTC/intermarket trio');
-    expect(read('packages/ai/src/tools/get-intermarket.ts')).toContain('legacy CFTC/intermarket trio');
+    expect(read('packages/ai/src/tools/get-correlation.ts')).toContain(
+      'legacy CFTC/intermarket trio',
+    );
+    expect(read('packages/ai/src/tools/get-intermarket.ts')).toContain(
+      'legacy CFTC/intermarket trio',
+    );
   });
 });

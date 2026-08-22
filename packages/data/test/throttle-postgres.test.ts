@@ -54,7 +54,8 @@ function assertSafeTestUrl(url: string): void {
   const databaseName = decodeURIComponent(parsed.pathname).replace(/^\/+/, '');
   const postgresProtocol = parsed.protocol === 'postgres:' || parsed.protocol === 'postgresql:';
   const productionLooking = /(?:^|[_-])(prod|production|live)(?:$|[_-])/i.test(databaseName);
-  const dedicatedTestDatabase = /(?:^|[_-])(test|testing|ci|dev|development|staging|local)(?:$|[_-])/i.test(databaseName);
+  const dedicatedTestDatabase =
+    /(?:^|[_-])(test|testing|ci|dev|development|staging|local)(?:$|[_-])/i.test(databaseName);
   if (
     !postgresProtocol ||
     productionLooking ||

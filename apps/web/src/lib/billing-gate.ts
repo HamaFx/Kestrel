@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Phase E — Billing gate middleware for route handlers.
@@ -13,17 +29,17 @@
 //   if (!gate.allowed) return gate.response;
 
 import {
-  getSubscription,
-  getEffectiveFeatures,
-  getEffectiveTokenCap,
   countActiveAlerts,
   countJournalEntriesThisMonth,
+  getEffectiveFeatures,
+  getEffectiveTokenCap,
+  getSubscription,
   type SubscriptionWithPlan,
 } from '@kestrel/db';
 import {
-  hasFeature,
   FREE_PLAN_ALERT_LIMIT,
   FREE_PLAN_JOURNAL_MONTHLY_LIMIT,
+  hasFeature,
   type FeatureKey,
 } from '@kestrel/shared';
 
@@ -71,9 +87,7 @@ export async function checkFeature(
  * Free tier: max 5 active alerts.
  * Pro/Enterprise: unlimited (has 'alerts_unlimited' feature).
  */
-export async function checkAlertLimit(
-  userId: string,
-): Promise<BillingGateResult> {
+export async function checkAlertLimit(userId: string): Promise<BillingGateResult> {
   const sub = await getSubscription(userId);
   const features = getEffectiveFeatures(sub);
 
@@ -107,9 +121,7 @@ export async function checkAlertLimit(
  * Free tier: max 50 entries per month.
  * Pro/Enterprise: unlimited (has 'journal_full' feature).
  */
-export async function checkJournalLimit(
-  userId: string,
-): Promise<BillingGateResult> {
+export async function checkJournalLimit(userId: string): Promise<BillingGateResult> {
   const sub = await getSubscription(userId);
   const features = getEffectiveFeatures(sub);
 
@@ -142,9 +154,7 @@ export async function checkJournalLimit(
  * Get the effective monthly token cap for a user.
  * Returns null for unlimited (Enterprise).
  */
-export async function getUserTokenCap(
-  userId: string,
-): Promise<number | null> {
+export async function getUserTokenCap(userId: string): Promise<number | null> {
   const sub = await getSubscription(userId);
   return getEffectiveTokenCap(sub);
 }

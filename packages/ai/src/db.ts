@@ -27,9 +27,9 @@
 // This is the DIP implementation: consumers depend on the container
 // abstraction, not on the @kestrel/db module-level singleton.
 
+import { getDb as getRawDb, type DbClient } from '@kestrel/db';
 import { container } from '@kestrel/shared';
-import { getDb as getRawDb } from '@kestrel/db';
-import type { DbClient } from '@kestrel/db';
+
 import { DB } from './tokens';
 
 // Self-bootstrap: register the real DB factory on first import.

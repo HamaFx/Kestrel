@@ -2,19 +2,35 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconDownload, IconHistory } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
-import { IconHistory, IconDownload } from '@tabler/icons-react';
 
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
-import { AdminErrorBlock } from './admin-error-block';
 import { apiFetch } from '@/lib/api-client';
-import { toastApiError } from '@/lib/toast-api-error';
-import { formatRelativeTime, formatAbsoluteTime, downloadCSV } from '@/lib/format-number';
+import { downloadCSV, formatAbsoluteTime, formatRelativeTime } from '@/lib/format-number';
 import type { CronRun } from '@/lib/services/admin-dtos';
+import { toastApiError } from '@/lib/toast-api-error';
+
+import { AdminErrorBlock } from './admin-error-block';
 
 const STATUS_TONE: Record<CronRun['status'], BadgeTone> = {
   done: 'success',
@@ -85,7 +101,7 @@ export function AdminCronTable() {
           </Button>
         )}
       </div>
-      <div className="border-border overflow-x-auto overflow-hidden rounded-sm border">
+      <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
         <table className="w-full text-sm">
           <thead className="bg-bg-elev-2 text-fg-subtle">
             <tr>

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `get_correlation` tool part.
@@ -5,9 +21,7 @@
 // text-bear cells and a small DXY proxy strip with the value and 24h
 // change.
 
-import {
-  type CorrelationCell,
-} from '@kestrel/shared';
+import { type CorrelationCell } from '@kestrel/shared';
 
 import type { ToolPartProps } from './registry';
 
@@ -31,7 +45,7 @@ export function GetCorrelationPart({
 
   // Extract all unique symbols present in the matrix dynamically
   const uniqueSymbols = Array.from(
-    new Set(output.matrix.flatMap((cell) => [cell.a, cell.b]))
+    new Set(output.matrix.flatMap((cell) => [cell.a, cell.b])),
   ).sort();
 
   if (uniqueSymbols.length === 0) {
@@ -46,18 +60,21 @@ export function GetCorrelationPart({
         <h3 className="text-fg text-sm font-semibold">
           Correlation · {output.tf} · {output.windowBars} bars
         </h3>
-        <span className="text-fg-subtle font-mono text-caption">
+        <span className="text-fg-subtle text-caption font-mono">
           {new Date(output.asOf).toISOString().slice(11, 16)}Z
         </span>
       </header>
 
-      <div className="overflow-x-auto scrollbar-hide scroll-shadows-x">
-        <table className="w-full border-separate border-spacing-1 text-body-sm tabular-nums">
+      <div className="scrollbar-hide scroll-shadows-x overflow-x-auto">
+        <table className="text-body-sm w-full border-separate border-spacing-1 tabular-nums">
           <thead>
             <tr>
-              <th className="text-fg-subtle text-left font-medium pr-2" />
+              <th className="text-fg-subtle pr-2 text-left font-medium" />
               {uniqueSymbols.map((s) => (
-                <th key={s} className="text-fg-muted text-center font-semibold text-xs py-1 px-2 min-w-[60px]">
+                <th
+                  key={s}
+                  className="text-fg-muted min-w-[60px] px-2 py-1 text-center text-xs font-semibold"
+                >
                   {s}
                 </th>
               ))}
@@ -66,9 +83,9 @@ export function GetCorrelationPart({
           <tbody>
             {uniqueSymbols.map((row) => (
               <tr key={row}>
-                <td className="text-fg-muted text-left font-semibold text-xs py-1 px-2">{row}</td>
+                <td className="text-fg-muted px-2 py-1 text-left text-xs font-semibold">{row}</td>
                 {uniqueSymbols.map((col) => (
-                  <td key={col} className="text-center py-1 px-2">
+                  <td key={col} className="px-2 py-1 text-center">
                     {row === col ? (
                       <span className="text-fg-subtle/40 font-mono">1.00</span>
                     ) : (
@@ -88,12 +105,14 @@ export function GetCorrelationPart({
       <section className="border-border border-t pt-2">
         <header className="flex items-baseline justify-between gap-2">
           <span className="text-fg text-xs font-semibold">DXY proxy</span>
-          <span className={`text-body-sm tabular-nums ${dxy.change24h >= 0 ? 'text-bull' : 'text-bear'}`}>
+          <span
+            className={`text-body-sm tabular-nums ${dxy.change24h >= 0 ? 'text-bull' : 'text-bear'}`}
+          >
             {dxy.value.toFixed(4)} ({dxy.change24h >= 0 ? '+' : ''}
             {dxy.change24h.toFixed(2)}% 24h)
           </span>
         </header>
-        <p className="text-fg-subtle mt-1 font-mono text-caption">{dxy.formula}</p>
+        <p className="text-fg-subtle text-caption mt-1 font-mono">{dxy.formula}</p>
       </section>
     </div>
   );
@@ -131,7 +150,10 @@ function HeatStrip({ matrix }: { matrix: CorrelationCell[] }) {
             : 'bg-bg-elev-3';
 
   // Strongest pair by |r| for the accessible label.
-  const strongest = matrix.reduce((best, c) => (Math.abs(c.r) > Math.abs(best.r) ? c : best), matrix[0]!);
+  const strongest = matrix.reduce(
+    (best, c) => (Math.abs(c.r) > Math.abs(best.r) ? c : best),
+    matrix[0]!,
+  );
   const label = `Correlation heat strip: ${strongest.a}/${strongest.b} at ${strongest.r.toFixed(2)}`;
 
   return (

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+import { getMarketPhase, type MarketPhaseContext } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
 
 import { buildSystemPrompt, responseLanguageInstruction } from '../src/prompt/system';
-import { getMarketPhase, type MarketPhaseContext } from '@kestrel/shared';
 
 describe('responseLanguageInstruction', () => {
   it('pins English output for English locales', () => {

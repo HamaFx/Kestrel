@@ -18,9 +18,10 @@
 // Same shape as news-persistence.ts so the cron handler stays uniform.
 
 import { schema } from '@kestrel/db';
-import { getDb } from './db';
 import type { EconomicEvent, EventCurrency, Importance } from '@kestrel/shared';
 import { and, eq, isNull, lt } from 'drizzle-orm';
+
+import { getDb } from './db';
 
 export async function upsertEvents(
   events: EconomicEvent[],
@@ -60,7 +61,6 @@ export async function upsertEvents(
 
   return { inserted: inserted.length, skipped: 0 };
 }
-
 
 // ---------------------------------------------------------------------------
 // FRED actuals backfill helpers
@@ -107,11 +107,7 @@ export async function listFredEventsMissingActual(args: {
  * only set the timestamp when the column is currently null so re-runs
  * don't overwrite an existing fill timestamp.
  */
-export async function patchEventActual(
-  id: string,
-  value: number,
-  filledAt: Date,
-): Promise<void> {
+export async function patchEventActual(id: string, value: number, filledAt: Date): Promise<void> {
   await getDb()
     .update(schema.economicEvents)
     .set({ actual: value, actualsFilledAt: filledAt })
@@ -122,9 +118,7 @@ export async function patchEventActual(
  * Parse the FRED-prefixed event id back into its `(releaseId, releaseDate)`
  * tuple. Returns `null` for ids that don't match the prefix shape.
  */
-export function parseFredEventId(
-  id: string,
-): { releaseId: number; releaseDate: string } | null {
+export function parseFredEventId(id: string): { releaseId: number; releaseDate: string } | null {
   const m = /^fred:(\d+):(\d{4}-\d{2}-\d{2})$/.exec(id);
   if (!m) return null;
   const releaseId = Number(m[1]);

@@ -1,0 +1,229 @@
+'use client';
+
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import type { CoachInsightsResult } from '@kestrel/ai';
+import type { JournalStats } from '@kestrel/shared';
+import {
+  IconAlertTriangle,
+  IconBrain,
+  IconCircleCheck,
+  IconFlame,
+  IconShieldCheck,
+  IconSparkles,
+} from '@tabler/icons-react';
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/cn';
+import { fetchCsrf } from '@/lib/csrf';
+
+interface AiCoachCardProps {
+  stats: JournalStats;
+}
+
+export function AiCoachCard({ stats }: AiCoachCardProps) {
+  const [insights, setInsights] = useState<CoachInsightsResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function generateCoachReport() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetchCsrf('/api/journal/coach-insights', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+      });
+
+      const body = (await res.json()) as {
+        error?: { message: string };
+        insights?: CoachInsightsResult;
+      };
+      if (!res.ok) {
+        throw new Error(body.error?.message ?? `HTTP ${res.status}`);
+      }
+
+      if (body.insights) {
+        setInsights(body.insights);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate coach insights');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const gradeColors: Record<string, string> = {
+    'A+': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    A: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    B: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+    C: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    D: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    F: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+  };
+
+  return (
+    <div className="border-border bg-bg-elev-1 flex flex-col gap-5 rounded-sm border p-5 shadow-sm">
+      {/* Card Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-brand/10 text-brand rounded-sm p-2.5">
+            <IconBrain className="size-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-fg text-sm font-bold tracking-tight">
+                AI Trading Coach & Leak Detection
+              </h3>
+              <span className="bg-brand/10 text-brand rounded-xs px-1.5 py-0.5 text-[10px] font-black uppercase">
+                Coach v2
+              </span>
+            </div>
+            <p className="text-fg-subtle text-xs">
+              Automated behavioral psychology, statistical edge analysis & process audit
+            </p>
+          </div>
+        </div>
+
+        <Button
+          onClick={generateCoachReport}
+          disabled={loading || stats.count === 0}
+          size="sm"
+          className="bg-fg cursor-pointer font-bold text-black hover:opacity-90"
+        >
+          <IconSparkles className={cn('mr-1.5 size-3.5', loading && 'animate-spin')} />
+          <span>
+            {loading
+              ? 'Analyzing Habits...'
+              : insights
+                ? 'Refresh Insights'
+                : 'Run Coach Diagnostic'}
+          </span>
+        </Button>
+      </div>
+
+      {/* Empty / Initial State */}
+      {!insights && !loading && !error && (
+        <div className="border-border/60 bg-bg-elev-2 flex flex-col items-center justify-center gap-2 rounded-sm border border-dashed p-6 text-center">
+          <IconBrain className="text-fg-subtle size-8 opacity-60" />
+          <p className="text-fg text-xs font-semibold">
+            Ready to analyze your trading psychology and edge
+          </p>
+          <p className="text-fg-subtle max-w-md text-[11px]">
+            The AI coach cross-analyzes win rate across sessions (London/NY/Asian), hold times, risk
+            multiples, and trade notes to detect recurring mistakes.
+          </p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div className="border-danger/20 bg-danger/5 text-danger flex items-center gap-2 rounded-sm border p-3 text-xs">
+          <IconAlertTriangle className="size-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Insights Content */}
+      {insights && (
+        <div className="animate-in fade-in flex flex-col gap-4 duration-300">
+          {/* Executive Row */}
+          <div className="bg-bg-elev-2 border-border flex flex-col items-start justify-between gap-4 rounded-sm border p-4 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-1">
+              <span className="text-fg-subtle text-[10px] font-bold tracking-wider uppercase">
+                Coach Assessment & Edge
+              </span>
+              <p className="text-fg text-xs leading-relaxed">{insights.summary}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <div className="flex flex-col items-end">
+                <span className="text-fg-subtle text-[10px] font-semibold uppercase">
+                  Discipline Score
+                </span>
+                <span className="text-fg-subtle text-[10px]">{insights.modelId}</span>
+              </div>
+              <div
+                className={cn(
+                  'flex size-11 items-center justify-center rounded-sm border text-lg font-black',
+                  gradeColors[insights.disciplineGrade] ?? gradeColors.B,
+                )}
+              >
+                {insights.disciplineGrade}
+              </div>
+            </div>
+          </div>
+
+          {/* Strengths & Leaks 2-Column Grid */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Strengths */}
+            <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
+              <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-emerald-400 uppercase">
+                <IconShieldCheck className="size-4" />
+                <span>Identified Edges & Strengths</span>
+              </div>
+              <ul className="flex flex-col gap-2">
+                {insights.strengths.map((str, i) => (
+                  <li key={i} className="text-fg-muted flex items-start gap-2 text-xs">
+                    <IconCircleCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
+                    <span>{str}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Leaks */}
+            <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
+              <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-rose-400 uppercase">
+                <IconAlertTriangle className="size-4" />
+                <span>Psychological & Execution Leaks</span>
+              </div>
+              <ul className="flex flex-col gap-2">
+                {insights.leaks.map((leak, i) => (
+                  <li key={i} className="text-fg-muted flex items-start gap-2 text-xs">
+                    <IconFlame className="mt-0.5 size-3.5 shrink-0 text-rose-400" />
+                    <span>{leak}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Action Rules */}
+          <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
+            <h4 className="text-fg text-xs font-bold tracking-wider uppercase">
+              Action Plan: 3 Golden Rules For Next Trading Week
+            </h4>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              {insights.actionRules.map((rule, idx) => (
+                <div
+                  key={idx}
+                  className="border-border/80 bg-bg-elev-1 flex items-start gap-2.5 rounded-sm border p-3"
+                >
+                  <span className="bg-brand/10 text-brand flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black">
+                    {idx + 1}
+                  </span>
+                  <span className="text-fg text-xs leading-relaxed font-medium">{rule}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

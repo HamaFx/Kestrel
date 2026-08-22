@@ -17,8 +17,8 @@
 // BYOK provider type definitions. Shared between the provider registry and individual
 // provider spec files to avoid circular imports.
 
-import type { LanguageModel } from 'ai';
 import type { ProviderId } from '@kestrel/shared/byok';
+import type { LanguageModel } from 'ai';
 
 /** The five "domains" the agent routes between (see packages/ai/src/routing.ts). */
 export type ModelDomain = 'fundamental' | 'technical' | 'summary' | 'vision' | 'embedding';

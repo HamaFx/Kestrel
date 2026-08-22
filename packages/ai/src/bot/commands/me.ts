@@ -17,10 +17,11 @@
 // F7+ — /me command: show the user's account info and usage stats.
 // /me → displays account details, daily spend, and quick stats.
 
-import type { BotCommand, BotResponse, BotContext } from '../types';
-import { getUserWithSettings, countActiveAlerts } from '@kestrel/db';
+import { countActiveAlerts, getUserWithSettings } from '@kestrel/db';
+
 import { dailySpendUsd } from '../../cost';
 import { getBotLink } from '../linking';
+import type { BotCommand, BotContext, BotResponse } from '../types';
 
 export const meCommand: BotCommand = {
   name: 'me',
@@ -45,7 +46,7 @@ export const meCommand: BotCommand = {
         `Member since: ${memberSince}`,
         `Telegram: ${link ? '✅ Linked' : '❌ Not linked'}`,
         '',
-        '📊 Today\'s Usage',
+        "📊 Today's Usage",
         `${costIcon} AI Spend: $${dailyCostUsd.toFixed(4)}`,
         `Active Alerts: ${alertsCount}`,
         '',

@@ -61,10 +61,7 @@ export async function ping(
  * function is called inside try / catch; on success the body of the
  * `success` ping is the duration in ms. On failure it's the error message.
  */
-export async function withHeartbeat<T>(
-  uuid: string | undefined,
-  fn: () => Promise<T>,
-): Promise<T> {
+export async function withHeartbeat<T>(uuid: string | undefined, fn: () => Promise<T>): Promise<T> {
   const t0 = Date.now();
   await ping(uuid, 'start');
   try {

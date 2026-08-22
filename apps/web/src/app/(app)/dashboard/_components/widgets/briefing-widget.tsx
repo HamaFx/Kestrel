@@ -26,8 +26,7 @@
 // When `briefing` is null we render a quiet empty-state with a CTA into
 // the chat surface, not an error: many users simply haven't received a
 // briefing yet (fresh account, low event volume, etc.).
-
-import {IconArrowRight, IconCalendar, IconNews, IconBolt} from '@tabler/icons-react';
+import { IconArrowRight, IconBolt, IconCalendar, IconNews } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -35,8 +34,8 @@ import remarkGfm from 'remark-gfm';
 
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatRelative } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { formatRelative } from '@/lib/format';
 
 interface BriefingWidgetProps {
   briefing: {
@@ -66,9 +65,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
   // useMemo must be called before any early return (rules of hooks).
   const markdownContent = useMemo(() => {
     if (!briefing?.body) return null;
-    return (
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{briefing.body}</ReactMarkdown>
-    );
+    return <ReactMarkdown remarkPlugins={[remarkGfm]}>{briefing.body}</ReactMarkdown>;
   }, [briefing?.body]);
 
   if (!briefing) {
@@ -97,7 +94,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
           <span className="text-fg text-body-sm font-semibold">AI Briefing</span>
           <span
             className={cn(
-              'rounded-sm px-1.5 py-0.5 text-caption font-medium',
+              'text-caption rounded-sm px-1.5 py-0.5 font-medium',
               briefing.kind === 'pre'
                 ? 'bg-warn/10 text-warn'
                 : briefing.kind === 'post'
@@ -118,9 +115,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
 
       {briefing.eventTitle ? (
         <p className="text-fg-muted text-body-sm">
-          <span className="text-fg-subtle text-caption mr-1 uppercase tracking-wider">
-            Source
-          </span>
+          <span className="text-fg-subtle text-caption mr-1 tracking-wider uppercase">Source</span>
           {briefing.eventTitle}
           {briefing.eventDate
             ? ` · ${new Date(briefing.eventDate).toUTCString().slice(5, 22)}`
@@ -128,15 +123,19 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
         </p>
       ) : null}
 
-      <div className="border-divider border-y py-1 md-prose text-fg-muted text-body-sm flex flex-col gap-2 leading-[1.4]">
+      <div className="border-divider md-prose text-fg-muted text-body-sm flex flex-col gap-2 border-y py-1 leading-[1.4]">
         {markdownContent}
       </div>
 
       <footer className="mt-auto flex items-center justify-between gap-2">
-        {briefing.symbol ? <span className="text-fg-subtle text-caption uppercase">Focus · {briefing.symbol}</span> : <span />}
+        {briefing.symbol ? (
+          <span className="text-fg-subtle text-caption uppercase">Focus · {briefing.symbol}</span>
+        ) : (
+          <span />
+        )}
         <Link
           href="/chat"
-          className="text-fg text-body-sm hover:underline inline-flex min-h-10 items-center gap-1"
+          className="text-fg text-body-sm inline-flex min-h-10 items-center gap-1 hover:underline"
         >
           Dig deeper in chat <IconArrowRight className="size-3.5" />
         </Link>

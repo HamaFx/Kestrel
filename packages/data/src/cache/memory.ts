@@ -181,7 +181,8 @@ export class MemoryCache implements Cache {
     let swept = 0;
     // M3: Increase to 128 for worker runtime — still bounded but catches
     // more expired entries per call, reducing stale memory in long-lived processes.
-    const maxSweep = typeof process !== 'undefined' && process.env.HAMAFX_RUNTIME === 'worker' ? 128 : 32;
+    const maxSweep =
+      typeof process !== 'undefined' && process.env.HAMAFX_RUNTIME === 'worker' ? 128 : 32;
     for (const [key, entry] of this.store) {
       if (entry.hardExpiresAt < now) {
         this.store.delete(key);

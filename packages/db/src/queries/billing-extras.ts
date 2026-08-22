@@ -17,26 +17,21 @@
 // Billing query helpers — plans, subscriptions, payments.
 
 import { randomUUID } from 'node:crypto';
+
 import { and, desc, eq, isNull, lt, or } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 /** Get all active plans. */
 export async function listActivePlans() {
   const db = getDb();
-  return db
-    .select()
-    .from(schema.plans)
-    .where(eq(schema.plans.isActive, true));
+  return db.select().from(schema.plans).where(eq(schema.plans.isActive, true));
 }
 
 /** Get a single plan by ID. Returns null if not found. */
 export async function getPlan(planId: string) {
   const db = getDb();
-  const [plan] = await db
-    .select()
-    .from(schema.plans)
-    .where(eq(schema.plans.id, planId))
-    .limit(1);
+  const [plan] = await db.select().from(schema.plans).where(eq(schema.plans.id, planId)).limit(1);
   return plan ?? null;
 }
 
@@ -132,7 +127,10 @@ export async function claimCheckoutAttempt(data: {
       processingToken,
     })
     .onConflictDoNothing({
-      target: [schema.billingCheckoutAttempts.tenantId, schema.billingCheckoutAttempts.idempotencyKey],
+      target: [
+        schema.billingCheckoutAttempts.tenantId,
+        schema.billingCheckoutAttempts.idempotencyKey,
+      ],
     })
     .returning();
 
@@ -180,7 +178,13 @@ export async function claimCheckoutAttempt(data: {
   if (existing.status === 'failed') {
     const [reclaimed] = await db
       .update(schema.billingCheckoutAttempts)
-      .set({ status: 'pending', error: null, processingAt: new Date(), processingToken: randomUUID(), updatedAt: new Date() })
+      .set({
+        status: 'pending',
+        error: null,
+        processingAt: new Date(),
+        processingToken: randomUUID(),
+        updatedAt: new Date(),
+      })
       .where(
         and(
           eq(schema.billingCheckoutAttempts.id, existing.id),
@@ -251,11 +255,21 @@ export async function completeCheckoutAttempt(data: {
 }
 
 /** Mark a failed checkout claim so a retry can safely reclaim it. */
-export async function failCheckoutAttempt(attemptId: string, error: string, processingToken: string): Promise<void> {
+export async function failCheckoutAttempt(
+  attemptId: string,
+  error: string,
+  processingToken: string,
+): Promise<void> {
   const db = getDb();
   const [failed] = await db
     .update(schema.billingCheckoutAttempts)
-    .set({ status: 'failed', error, processingAt: null, processingToken: null, updatedAt: new Date() })
+    .set({
+      status: 'failed',
+      error,
+      processingAt: null,
+      processingToken: null,
+      updatedAt: new Date(),
+    })
     .where(
       and(
         eq(schema.billingCheckoutAttempts.id, attemptId),
@@ -301,7 +315,9 @@ export async function createPayment(data: {
     .where(eq(schema.payments.nowpaymentsInvoiceId, data.nowpaymentsInvoiceId))
     .limit(1);
   if (!existing) {
-    throw new Error(`Payment row for invoice ${data.nowpaymentsInvoiceId} disappeared after an idempotent insert`);
+    throw new Error(
+      `Payment row for invoice ${data.nowpaymentsInvoiceId} disappeared after an idempotent insert`,
+    );
   }
   return existing;
 }

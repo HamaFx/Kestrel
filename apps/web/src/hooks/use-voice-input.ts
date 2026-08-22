@@ -27,7 +27,6 @@
 // the device. Interim results stream into `onText` so the textarea can show
 // the transcript live; the final transcript is left in the textarea on
 // session end so the user can review/edit before submitting.
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // The Web Speech API is non-standard; Safari and Chrome ship it under
@@ -137,7 +136,7 @@ export function useVoiceInput({ lang, onText, onError }: UseVoiceInputArgs): Use
       console.warn('[voice-input] recognition error', e);
       setActive(false);
       ref.current = null;
-      
+
       const errName = (e as Record<string, unknown> | null)?.error;
       let userMsg = 'Voice recognition error';
       if (errName === 'not-allowed') {

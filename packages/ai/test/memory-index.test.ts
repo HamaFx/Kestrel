@@ -16,6 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { rememberThreadSynopsis } from '../src/memory/memory-index';
+
 const { mockValues, mockInsert, mockEmbedTexts } = vi.hoisted(() => {
   const mockValues = vi.fn();
   const mockInsert = vi.fn(() => ({ values: mockValues }));
@@ -46,8 +48,6 @@ vi.mock('../src/embeddings', () => ({
 vi.mock('../src/cost', () => ({
   dailySpendUsd: vi.fn(),
 }));
-
-import { rememberThreadSynopsis } from '../src/memory/memory-index';
 
 describe('rememberThreadSynopsis', () => {
   beforeEach(() => {
@@ -88,6 +88,8 @@ describe('rememberThreadSynopsis', () => {
       signal: controller.signal,
     });
 
-    expect(mockEmbedTexts).toHaveBeenCalledWith(expect.objectContaining({ signal: controller.signal }));
+    expect(mockEmbedTexts).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: controller.signal }),
+    );
   });
 });

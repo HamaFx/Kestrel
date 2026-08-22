@@ -2,8 +2,9 @@
  * Copyright 2026 Kestrel - Tests for RL-3 LLM rate-limit governor
  */
 
-import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { noteLlmRateLimit, awaitLlmHeadroom } from '../src/llm-throttle';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { awaitLlmHeadroom, noteLlmRateLimit } from '../src/llm-throttle';
 
 describe('noteLlmRateLimit + awaitLlmHeadroom', () => {
   beforeEach(() => {

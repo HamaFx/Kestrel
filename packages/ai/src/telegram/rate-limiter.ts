@@ -39,11 +39,7 @@ export interface RateLimitResult {
  * Check and consume a rate limit slot for a user+action.
  * Returns { allowed: true } if within limits, { allowed: false } if exceeded.
  */
-export function checkRateLimit(
-  userId: string,
-  action: string,
-  limit: number,
-): RateLimitResult {
+export function checkRateLimit(userId: string, action: string, limit: number): RateLimitResult {
   const key = `${userId}:${action}`;
   const now = Date.now();
 
@@ -61,7 +57,12 @@ export function checkRateLimit(
   }
 
   entry.count++;
-  return { allowed: true, remaining: limit - entry.count, limit, resetMs: Math.max(0, WINDOW_MS - (now - entry.windowStart)) };
+  return {
+    allowed: true,
+    remaining: limit - entry.count,
+    limit,
+    resetMs: Math.max(0, WINDOW_MS - (now - entry.windowStart)),
+  };
 }
 
 /**

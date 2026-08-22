@@ -36,9 +36,8 @@
 // provider content can never be hidden underneath the controls.
 //
 // The card is memoized to avoid re-rendering untouched cards when bookmark updates.
-
 import type { NewsArticle } from '@kestrel/shared';
-import {IconBookmark, IconExternalLink, IconBolt} from '@tabler/icons-react';
+import { IconBolt, IconBookmark, IconExternalLink } from '@tabler/icons-react';
 import { m } from 'motion/react';
 import { memo } from 'react';
 
@@ -88,8 +87,8 @@ const ArticleCardInner = memo(
       <article
         className={cn(
           'group relative overflow-hidden rounded-sm',
-          'border border-border bg-bg-elev-1',
-          'transition-colors duration-200 md:hover:bg-bg-elev-2',
+          'border-border bg-bg-elev-1 border',
+          'md:hover:bg-bg-elev-2 transition-colors duration-200',
         )}
       >
         {sentimentColor ? (
@@ -104,23 +103,23 @@ const ArticleCardInner = memo(
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block px-4 py-4 pl-5 pb-5"
+          className="block px-4 py-4 pb-5 pl-5"
         >
-          <h3 className="text-fg line-clamp-3 text-body font-semibold leading-snug">
-            {title}
-          </h3>
+          <h3 className="text-fg text-body line-clamp-3 leading-snug font-semibold">{title}</h3>
 
-          <div className="text-fg-subtle mt-2 flex flex-wrap items-center gap-x-2 text-body-sm tabular-nums">
-            <span className="text-fg-muted font-medium">
-              {article.publisher ?? article.source}
+          <div className="text-fg-subtle text-body-sm mt-2 flex flex-wrap items-center gap-x-2 tabular-nums">
+            <span className="text-fg-muted font-medium">{article.publisher ?? article.source}</span>
+            <span aria-hidden className="opacity-50">
+              ·
             </span>
-            <span aria-hidden className="opacity-50">·</span>
             <time dateTime={new Date(article.publishedAt).toISOString()}>
               {formatRelative(article.publishedAt)}
             </time>
             {article.sentiment && article.sentimentScore !== null ? (
               <>
-                <span aria-hidden className="opacity-50">·</span>
+                <span aria-hidden className="opacity-50">
+                  ·
+                </span>
                 <span
                   className={cn(
                     'inline-flex items-center gap-1 font-semibold',
@@ -135,21 +134,17 @@ const ArticleCardInner = memo(
                 </span>
               </>
             ) : null}
-            {showTagsInline
-              ? renderInlineTags(article.symbols, article.topics)
-              : null}
+            {showTagsInline ? renderInlineTags(article.symbols, article.topics) : null}
           </div>
 
           {summary ? (
-            <p className="text-fg-muted mt-2 line-clamp-2 text-body-sm leading-[1.4]">
-              {summary}
-            </p>
+            <p className="text-fg-muted text-body-sm mt-2 line-clamp-2 leading-[1.4]">{summary}</p>
           ) : null}
         </a>
 
         <div
           className={cn(
-            'flex items-center justify-between gap-2 border-t border-border/70 px-3 py-2',
+            'border-border/70 flex items-center justify-between gap-2 border-t px-3 py-2',
             'bg-bg-elev-1 transition-colors duration-150',
             'hover:bg-bg-elev-2',
           )}
@@ -157,7 +152,7 @@ const ArticleCardInner = memo(
           <a
             href={`/chat?prompt=${askPrompt}`}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-8 items-center gap-1 rounded-sm px-3 py-1.5 text-body-sm font-medium transition-colors"
+            className="bg-bg-elev-2 text-fg-muted hover:text-fg text-body-sm inline-flex min-h-8 items-center gap-1 rounded-sm px-3 py-1.5 font-medium transition-colors"
           >
             <IconBolt className="size-3.5" />
             Ask AI
@@ -175,9 +170,7 @@ const ArticleCardInner = memo(
               aria-pressed={saved}
               className={cn(
                 'inline-flex size-8 items-center justify-center rounded-sm transition-colors',
-                saved
-                  ? 'text-fg bg-bg-elev-2'
-                  : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2',
+                saved ? 'text-fg bg-bg-elev-2' : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2',
               )}
             >
               <IconBookmark className={cn('size-4', saved && 'fill-current')} />
@@ -226,10 +219,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
 
 // ---------------------------------------------------------------------------
 
-function renderInlineTags(
-  symbols: readonly string[],
-  topics: readonly string[],
-) {
+function renderInlineTags(symbols: readonly string[], topics: readonly string[]) {
   const items: Array<{ key: string; kind: 'symbol' | 'topic'; value: string }> = [
     ...symbols.slice(0, 2).map((s) => ({ key: `sym-${s}`, kind: 'symbol' as const, value: s })),
     ...topics.slice(0, 2).map((t) => ({ key: `topic-${t}`, kind: 'topic' as const, value: t })),
@@ -238,13 +228,10 @@ function renderInlineTags(
     <>
       {items.map((item) => (
         <span key={item.key} className="inline-flex items-center gap-x-2">
-          <span aria-hidden className="opacity-50">·</span>
-          <span
-            className={cn(
-              'font-medium',
-              item.kind === 'symbol' ? 'uppercase' : 'opacity-75',
-            )}
-          >
+          <span aria-hidden className="opacity-50">
+            ·
+          </span>
+          <span className={cn('font-medium', item.kind === 'symbol' ? 'uppercase' : 'opacity-75')}>
             {item.kind === 'topic' ? `#${item.value}` : item.value}
           </span>
         </span>

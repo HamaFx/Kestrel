@@ -1,11 +1,27 @@
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconCheck, IconEye, IconEyeOff, IconLock } from '@tabler/icons-react';
 import { useActionState, useEffect, useState } from 'react';
-import {IconLock, IconCheck, IconEye, IconEyeOff} from '@tabler/icons-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
 import { changePasswordAction } from '../../actions';
 
 type FormState = { ok: boolean; error: string };
@@ -47,14 +63,14 @@ export function ChangePasswordCard() {
   }, [state.ok, state.error]);
 
   return (
-    <div className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-3 p-4">
+    <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4">
       <div className="flex items-center gap-2">
         <IconLock className="text-fg-muted size-4" />
         <h2 className="text-fg text-base font-semibold tracking-tight">Change Password</h2>
       </div>
 
       {state.ok ? (
-        <div className="flex items-center gap-2 text-sm text-success">
+        <div className="text-success flex items-center gap-2 text-sm">
           <IconCheck className="size-4" />
           Password changed successfully
         </div>
@@ -72,7 +88,7 @@ export function ChangePasswordCard() {
             <button
               type="button"
               onClick={() => setShowCurrent(!showCurrent)}
-              className="text-fg-muted hover:text-fg absolute right-2 top-1/2 -translate-y-1/2"
+              className="text-fg-muted hover:text-fg absolute top-1/2 right-2 -translate-y-1/2"
               tabIndex={-1}
               aria-label={showCurrent ? 'Hide password' : 'Show password'}
             >
@@ -94,14 +110,14 @@ export function ChangePasswordCard() {
             <button
               type="button"
               onClick={() => setShowNew(!showNew)}
-              className="text-fg-muted hover:text-fg absolute right-2 top-1/2 -translate-y-1/2"
+              className="text-fg-muted hover:text-fg absolute top-1/2 right-2 -translate-y-1/2"
               tabIndex={-1}
             >
               {showNew ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
             </button>
           </div>
           {newPassword.length > 0 && (
-            <div className="text-xs text-fg-subtle grid grid-cols-2 gap-1">
+            <div className="text-fg-subtle grid grid-cols-2 gap-1 text-xs">
               <span className={newPassword.length >= 8 ? 'text-success' : 'text-danger'}>
                 {newPassword.length >= 8 ? '✓' : '✗'} Min 8 characters
               </span>

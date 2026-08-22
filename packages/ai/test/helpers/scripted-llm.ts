@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import type { LanguageModel } from 'ai';
 
 import type {
@@ -40,8 +56,15 @@ const SCRIPTED_MODEL = {
   provider: 'scripted',
   modelId: 'scripted-model',
   defaultObjectGenerationMode: 'json',
-  doGenerate: async () => ({ finishReason: 'stop', usage: { inputTokens: 0, outputTokens: 0 }, content: [] }),
-  doStream: async () => ({ stream: new ReadableStream(), rawCall: { rawPrompt: null, rawSettings: {} } }),
+  doGenerate: async () => ({
+    finishReason: 'stop',
+    usage: { inputTokens: 0, outputTokens: 0 },
+    content: [],
+  }),
+  doStream: async () => ({
+    stream: new ReadableStream(),
+    rawCall: { rawPrompt: null, rawSettings: {} },
+  }),
 } as unknown as LanguageModel;
 
 export function scriptedModel(): LanguageModel {
@@ -67,9 +90,10 @@ export function createScriptedLlmClient(initialScenarios: ScriptedLlmScenario[])
     const scenario = nextScenario();
     if (scenario.type === 'error') throw scenario.error;
 
-    const responseMessages = scenario.type === 'tool'
-      ? await buildToolResponse(scenario, opts)
-      : [{ role: 'assistant', content: [{ type: 'text', text: scenario.text }] }];
+    const responseMessages =
+      scenario.type === 'tool'
+        ? await buildToolResponse(scenario, opts)
+        : [{ role: 'assistant', content: [{ type: 'text', text: scenario.text }] }];
     const usage = {
       inputTokens: scenario.inputTokens ?? 100,
       outputTokens: scenario.outputTokens ?? Math.max(1, scenario.text.length),
@@ -110,9 +134,14 @@ async function buildToolResponse(
   scenario: Extract<ScriptedLlmScenario, { type: 'tool' }>,
   opts: StreamTextOpts,
 ): Promise<readonly unknown[]> {
-  const tool = opts.tools?.[scenario.toolName] as {
-    execute?: (input: unknown, options: { toolCallId: string; messages: readonly unknown[]; abortSignal?: AbortSignal }) => Promise<unknown>;
-  } | undefined;
+  const tool = opts.tools?.[scenario.toolName] as
+    | {
+        execute?: (
+          input: unknown,
+          options: { toolCallId: string; messages: readonly unknown[]; abortSignal?: AbortSignal },
+        ) => Promise<unknown>;
+      }
+    | undefined;
   if (!tool?.execute) {
     throw new Error(`Scripted LLM requested unavailable tool: ${scenario.toolName}`);
   }
@@ -127,11 +156,15 @@ async function buildToolResponse(
   return [
     {
       role: 'assistant',
-      content: [{ type: 'tool-call', toolName: scenario.toolName, toolCallId, args: scenario.input }],
+      content: [
+        { type: 'tool-call', toolName: scenario.toolName, toolCallId, args: scenario.input },
+      ],
     },
     {
       role: 'tool',
-      content: [{ type: 'tool-result', toolName: scenario.toolName, toolCallId, result: toolOutput }],
+      content: [
+        { type: 'tool-result', toolName: scenario.toolName, toolCallId, result: toolOutput },
+      ],
     },
     {
       role: 'assistant',

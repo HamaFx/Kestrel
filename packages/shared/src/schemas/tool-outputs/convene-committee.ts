@@ -15,6 +15,7 @@
  */
 
 import { z } from 'zod';
+
 import { SymbolSchema } from '../../symbols';
 import { CommitteeVerdictSchema } from '../ui-parts';
 

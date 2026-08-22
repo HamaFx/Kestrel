@@ -2,18 +2,33 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useConfirm } from '@/components/ui/confirm-drawer';
-import { SkeletonCard } from '@/components/ui/skeleton';
 import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
+import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-drawer';
+import { Input } from '@/components/ui/input';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { apiFetch, apiMutate } from '@/lib/api-client';
-import { toastApiError } from '@/lib/toast-api-error';
 import { cn } from '@/lib/cn';
+import { toastApiError } from '@/lib/toast-api-error';
 
 interface ProbeResponse {
   enabled: boolean;
@@ -35,7 +50,9 @@ export function AdminDevTools() {
   const [probeLoading, setProbeLoading] = useState(true);
   const [impUserId, setImpUserId] = useState('');
   const [impLoading, setImpLoading] = useState(false);
-  const [flushTarget, setFlushTarget] = useState<'cron_locks' | 'cache' | 'sessions' | 'all'>('cron_locks');
+  const [flushTarget, setFlushTarget] = useState<'cron_locks' | 'cache' | 'sessions' | 'all'>(
+    'cron_locks',
+  );
   const [flushLoading, setFlushLoading] = useState(false);
   const [flushResults, setFlushResults] = useState<FlushResult[] | null>(null);
   const [confirmEl, confirm] = useConfirm();
@@ -148,14 +165,14 @@ export function AdminDevTools() {
       <SettingsSection title="Maintenance" description="Flush caches, locks, and sessions.">
         <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4">
           <div className="flex items-center gap-2">
-            <label htmlFor="flush-target" className="text-sm font-medium shrink-0">
+            <label htmlFor="flush-target" className="shrink-0 text-sm font-medium">
               Target:
             </label>
             <select
               id="flush-target"
               value={flushTarget}
               onChange={(e) => setFlushTarget(e.target.value as typeof flushTarget)}
-              className="bg-bg-elev-2 border-border rounded-sm border px-3 py-2 text-sm text-fg"
+              className="bg-bg-elev-2 border-border text-fg rounded-sm border px-3 py-2 text-sm"
             >
               <option value="cron_locks">Cron locks</option>
               <option value="cache">Cache</option>

@@ -19,6 +19,7 @@
 // — extracted here to keep field selection consistent and reduce drift.
 
 import { eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export interface UserWithSettings {
@@ -33,9 +34,7 @@ export interface UserWithSettings {
  * Fetch userSettings + basic user info (name, email) in parallel.
  * Returns null settings when no row exists (caller should handle).
  */
-export async function getUserWithSettings(
-  userId: string,
-): Promise<UserWithSettings> {
+export async function getUserWithSettings(userId: string): Promise<UserWithSettings> {
   const db = getDb();
   const [settings, userRow] = await Promise.all([
     db
@@ -57,7 +56,7 @@ export async function getUserWithSettings(
  * List all user settings rows. Used by background job that checks
  * spending alerts across every user.
  */
-export async function listAllUserSettings(): Promise<typeof schema.userSettings.$inferSelect[]> {
+export async function listAllUserSettings(): Promise<(typeof schema.userSettings.$inferSelect)[]> {
   const db = getDb();
   return db.select().from(schema.userSettings);
 }
@@ -66,11 +65,9 @@ export async function listAllUserSettings(): Promise<typeof schema.userSettings.
  * Update a single field on the userSettings row for a given userId.
  * Uses a partial update so only the provided field is changed.
  */
-export async function updateUserSettingsField<K extends keyof typeof schema.userSettings.$inferInsert>(
-  userId: string,
-  field: K,
-  value: (typeof schema.userSettings.$inferInsert)[K],
-): Promise<void> {
+export async function updateUserSettingsField<
+  K extends keyof typeof schema.userSettings.$inferInsert,
+>(userId: string, field: K, value: (typeof schema.userSettings.$inferInsert)[K]): Promise<void> {
   const db = getDb();
   await db
     .update(schema.userSettings)

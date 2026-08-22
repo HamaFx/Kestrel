@@ -1,13 +1,29 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Full-mode queue load test — explicitly opt-in because it invokes real LLMs.
 // This measures the user-facing enqueue path and the worker polling bridge;
 // it does not bypass the queue or mutate internal tables directly.
+import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { check, sleep } from 'k6';
 import http from 'k6/http';
 import { Counter, Rate, Trend } from 'k6/metrics';
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 import { env } from '../config/environments.js';
-import { bootstrapAuth, applyAuth, pickUser } from '../lib/auth.js';
+import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
 import { handleSummary } from '../lib/summary.js';
 
 const fullModeCompleted = new Rate('full_mode_completed');
@@ -59,11 +75,13 @@ export default function (contexts: ReturnType<typeof bootstrapAuth>) {
     JSON.stringify({
       threadId: ctx.threadId,
       analysisMode: 'full',
-      messages: [{
-        id: messageId,
-        role: 'user',
-        parts: [{ type: 'text', text: 'Run a complete Full-mode XAUUSD analysis.' }],
-      }],
+      messages: [
+        {
+          id: messageId,
+          role: 'user',
+          parts: [{ type: 'text', text: 'Run a complete Full-mode XAUUSD analysis.' }],
+        },
+      ],
     }),
     {
       headers: { 'Content-Type': 'application/json' },

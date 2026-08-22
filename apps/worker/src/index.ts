@@ -30,25 +30,20 @@
 //   4. start SignalR consumer + Binance WS consumer + the 1Hz flush loop.
 //   5. heartbeat to healthchecks.io every 30s while the consumer is alive.
 
-import { closeDb } from '@kestrel/db'
-import { getDb } from '@kestrel/ai';
-import { initLangfuse, shutdownLangfuse } from '@kestrel/ai';
+import { getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
+import { closeDb } from '@kestrel/db';
 
 import { Candle1mAggregator, type ClosedCandle } from './aggregator/candle-1m.js';
-import { createHealthServer } from './http-server.js';
+import { BinanceStreamConsumer } from './binance/index.js';
 import { loadEnv, type WorkerEnv } from './env.js';
 import { ping } from './healthchecks.js';
+import { createHealthServer } from './http-server.js';
 import { createLogger, type Logger } from './log.js';
 import { flushClosedCandle } from './persistence/candles-1m.js';
 import { flushLiveTicks } from './persistence/live-ticks.js';
-import {
-  notifyReady,
-  notifyStatus,
-  notifyStopping,
-  notifyWatchdog,
-} from './sd-notify.js';
+import { startScheduler } from './scheduler.js';
+import { notifyReady, notifyStatus, notifyStopping, notifyWatchdog } from './sd-notify.js';
 import { captureException, flushSentry, initSentry } from './sentry.js';
-import { BinanceStreamConsumer } from './binance/index.js';
 import {
   createDefaultBuildConnection,
   SignalRConsumer,
@@ -133,8 +128,7 @@ export interface RunningWorker {
 
 export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   const { env, log } = args;
-  const buildConnection =
-    args.buildConnection ?? (await createDefaultBuildConnection());
+  const buildConnection = args.buildConnection ?? (await createDefaultBuildConnection());
   const buffer = new TickBuffer();
   const db = getDb();
 
@@ -210,7 +204,11 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
         candleFailureCount = 0;
       } catch (err) {
         candleFailureCount += 1;
-        log.error('flushClosedCandle failed', { err: String(err), symbol: bar.symbol, consecutiveFailures: candleFailureCount });
+        log.error('flushClosedCandle failed', {
+          err: String(err),
+          symbol: bar.symbol,
+          consecutiveFailures: candleFailureCount,
+        });
 
         // Rate-limited Sentry capture: only page after sustained failures
         const now = Date.now();
@@ -245,7 +243,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   });
 
   const symbolManager = new SymbolManager(log.with({ module: 'symbol-manager' }));
-  
+
   // Wire per-consumer subscription updates
   symbolManager.on('symbolsChanged', ({ added, removed }) => {
     // Backward compat: still update BiQuote consumer via aggregate event
@@ -265,7 +263,9 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   });
 
   // Binance WebSocket consumer for live crypto klines.
-  const cryptoSymbols = (env.BINANCE_CRYPTO_SYMBOLS ?? 'BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT')
+  const cryptoSymbols = (
+    env.BINANCE_CRYPTO_SYMBOLS ?? 'BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT'
+  )
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
@@ -277,7 +277,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     log: log.with({ module: 'binance-ws' }),
   });
 
-  await consumer.start();        // BiQuote SignalR
+  await consumer.start(); // BiQuote SignalR
   await binanceConsumer.start(); // Binance WS
   symbolManager.start();
   // The consumer is connected and subscribed — tell systemd we're done
@@ -346,7 +346,10 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
       });
 
       const now = Date.now();
-      if (tickFlushFailureCount >= 3 && now - lastTickFlushCaptureAt > TICK_FLUSH_CAPTURE_COOLDOWN_MS) {
+      if (
+        tickFlushFailureCount >= 3 &&
+        now - lastTickFlushCaptureAt > TICK_FLUSH_CAPTURE_COOLDOWN_MS
+      ) {
         lastTickFlushCaptureAt = now;
         captureException(err, {
           kind: 'flushLiveTicks-sustained',
@@ -381,18 +384,21 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
   const stop = async (): Promise<void> => {
     notifyStopping();
-    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     symbolManager.stop();
-    
+
     // Gracefully shut down all services in parallel
-    await Promise.all([
-      consumer.stop(),
-      binanceConsumer.stop(),
-    ]);
+    await Promise.all([consumer.stop(), binanceConsumer.stop()]);
 
     // L6: Drain any pending batched ticks before final DB flush.
-    if (batchTimer) { clearTimeout(batchTimer); batchTimer = null; }
+    if (batchTimer) {
+      clearTimeout(batchTimer);
+      batchTimer = null;
+    }
     if (pendingTicks.length > 0) flushBatch();
     // Final best-effort flush with peek-before-drain pattern (C1 fix).
     try {
@@ -413,8 +419,6 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
   return { consumer, binanceConsumer, buffer, aggregator, getLastTickAt, stop };
 }
-
-import { startScheduler } from './scheduler.js';
 
 export async function main(): Promise<void> {
   // Phase 3 §3.9 — load secrets from vault (GCP Secret Manager) before

@@ -6,11 +6,11 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-
 import 'server-only';
 
-import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+
+import { auth } from '@/auth';
 import {
   AlertCreateSchema,
   AlertPatchSchema,
@@ -18,8 +18,8 @@ import {
   deleteAlertService,
   updateAlertService,
   type AlertCreateInput,
-  type AlertPatchInput,
   type AlertDTO,
+  type AlertPatchInput,
 } from '@/lib/services/alerts';
 
 export interface ActionResult<T = unknown> {

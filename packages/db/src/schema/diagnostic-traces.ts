@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { pgTable, text, timestamp, jsonb, integer, index } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+
 import { users } from './auth';
 
 export const diagnosticTraces = pgTable(

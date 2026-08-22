@@ -1,26 +1,42 @@
-import { getPriceWithMeta } from '@/lib/services/api-boundary';
-import { SymbolSchema } from '@/lib/services/api-boundary';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { z } from 'zod';
 
 import { auth } from '@/auth';
-import { getUserApiKeys } from '@/lib/services/api-boundary';
-import { decryptByok } from '@/lib/services/api-boundary';
+import {
+  decryptByok,
+  getPriceWithMeta,
+  getUserApiKeys,
+  SymbolSchema,
+} from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const QuerySchema = z.object({
-  symbol: z
-    .union([SymbolSchema, z.array(SymbolSchema), z.string()])
-    .transform((v) => {
-      if (Array.isArray(v)) return v;
-      const parts = String(v)
-        .split(',')
-        .map((s) => s.trim().toUpperCase())
-        .filter(Boolean);
-      const parsed = parts.map((s) => SymbolSchema.parse(s));
-      return [...new Set(parsed)];
-    }),
+  symbol: z.union([SymbolSchema, z.array(SymbolSchema), z.string()]).transform((v) => {
+    if (Array.isArray(v)) return v;
+    const parts = String(v)
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean);
+    const parsed = parts.map((s) => SymbolSchema.parse(s));
+    return [...new Set(parsed)];
+  }),
 });
 
 // H6: Cap iterations to prevent infinite loop holding DB connections.
@@ -28,15 +44,16 @@ const MAX_ITERATIONS = 1200;
 // M9: Measure fetch duration and sleep only the remainder of the 3s window.
 const POLL_INTERVAL_MS = 3_000;
 
-async function* generatePrices(keys: Record<string, string>, symbols: string[]): AsyncGenerator<string> {
+async function* generatePrices(
+  keys: Record<string, string>,
+  symbols: string[],
+): AsyncGenerator<string> {
   let iteration = 0;
   while (iteration < MAX_ITERATIONS) {
     iteration++;
     const fetchStart = Date.now();
     try {
-      const results = await Promise.all(
-        symbols.map((s) => getPriceWithMeta(s, { apiKeys: keys })),
-      );
+      const results = await Promise.all(symbols.map((s) => getPriceWithMeta(s, { apiKeys: keys })));
       const ticks = results.map((r) => r.tick);
       yield `data: ${JSON.stringify({ ticks, ts: Date.now() })}\n\n`;
     } catch (err) {
@@ -66,7 +83,10 @@ export const GET = async (req: Request) => {
   const symbols = parsed.data.symbol.length > 0 ? parsed.data.symbol : ['XAUUSD'];
 
   const encryptedKeys = await getUserApiKeys(session.user.id);
-  const keys: Record<string, string> = (decryptByok(encryptedKeys) ?? {}) as unknown as Record<string, string>;
+  const keys: Record<string, string> = (decryptByok(encryptedKeys) ?? {}) as unknown as Record<
+    string,
+    string
+  >;
 
   const stream = generatePrices(keys, symbols);
   const encoder = new TextEncoder();

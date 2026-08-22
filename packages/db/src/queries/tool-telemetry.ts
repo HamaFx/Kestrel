@@ -17,6 +17,7 @@
 // Tool telemetry query helpers.
 
 import { gte, sql } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 export type ToolTelemetryRow = typeof schema.chatToolTelemetry.$inferSelect;
@@ -41,9 +42,17 @@ export async function getToolStats(sinceMs: number): Promise<ToolStats[]> {
     .select({
       tool: schema.chatToolTelemetry.tool,
       invocations: sql<number>`count(*)`.as('invocations'),
-      failures: sql<number>`sum(case when ${schema.chatToolTelemetry.ok} = false then 1 else 0 end)`.as('failures'),
-      median: sql<number>`percentile_cont(0.5) within group (order by ${schema.chatToolTelemetry.ms})`.as('median'),
-      p95: sql<number>`percentile_cont(0.95) within group (order by ${schema.chatToolTelemetry.ms})`.as('p95'),
+      failures:
+        sql<number>`sum(case when ${schema.chatToolTelemetry.ok} = false then 1 else 0 end)`.as(
+          'failures',
+        ),
+      median:
+        sql<number>`percentile_cont(0.5) within group (order by ${schema.chatToolTelemetry.ms})`.as(
+          'median',
+        ),
+      p95: sql<number>`percentile_cont(0.95) within group (order by ${schema.chatToolTelemetry.ms})`.as(
+        'p95',
+      ),
     })
     .from(schema.chatToolTelemetry)
     .where(gte(schema.chatToolTelemetry.createdAt, since))

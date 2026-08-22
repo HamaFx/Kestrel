@@ -25,7 +25,7 @@
 import { appendUserMessage, createThread, deleteThread } from '@kestrel/ai/persistence';
 import type { UIMessage } from 'ai';
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 import { ensureTestUser } from './test-utils';
 
 test.describe('Chat Flows', () => {
@@ -44,7 +44,9 @@ test.describe('Chat Flows', () => {
 
     // Expect the user's message to be visible
     await expect(page.locator('.group.items-end').first()).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator('.group.items-end').first()).toContainText('What is the current price of gold?');
+    await expect(page.locator('.group.items-end').first()).toContainText(
+      'What is the current price of gold?',
+    );
 
     // Check that we redirected to a specific thread URL
     await expect(page).toHaveURL(/.*\/chat\/[a-zA-Z0-9_-]+/);
@@ -117,7 +119,9 @@ test.describe('Chat Flows', () => {
     // Navigate back to thread A via URL and confirm its message renders.
     await page.goto(threadAUrl, { waitUntil: 'load' });
     await expect(page).toHaveURL(threadAUrl);
-    await expect(page.getByText('Test message for thread navigation')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Test message for thread navigation')).toBeVisible({
+      timeout: 15_000,
+    });
 
     await deleteThread(user.id, threadB.id).catch(() => undefined);
   });

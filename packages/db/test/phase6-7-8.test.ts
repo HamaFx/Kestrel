@@ -16,12 +16,13 @@
 
 // Phase 6 + 7 + 8 tests — file-based verification (no PGlite needed)
 
-import { vi, describe, expect, it } from 'vitest';
-vi.mock('server-only', () => ({}));
-
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('server-only', () => ({}));
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
@@ -61,13 +62,13 @@ describe('Phase 7 — Code Quality & Polish', () => {
 
   it('audit.ts uses array-style index definitions', () => {
     const source = readFileSync(join(HERE, '..', 'src', 'schema', 'audit.ts'), 'utf-8');
-    expect(source).toContain("(t) => [");
+    expect(source).toContain('(t) => [');
     expect(source).not.toMatch(/\(t\) => \(\{/);
   });
 
   it('bot-links.ts uses array-style index definitions', () => {
     const source = readFileSync(join(HERE, '..', 'src', 'schema', 'bot-links.ts'), 'utf-8');
-    expect(source).toContain("(t) => [");
+    expect(source).toContain('(t) => [');
     expect(source).not.toMatch(/\(t\) => \(\{/);
   });
 
@@ -100,25 +101,31 @@ describe('Phase 7 — Code Quality & Polish', () => {
 
   it('setup-telegram-webhook.ts moved out of db package', () => {
     expect(existsSync(join(HERE, '..', 'scripts', 'setup-telegram-webhook.ts'))).toBe(false);
-    expect(existsSync(join(REPO_ROOT, 'apps', 'web', 'scripts', 'setup-telegram-webhook.ts'))).toBe(true);
+    expect(existsSync(join(REPO_ROOT, 'apps', 'web', 'scripts', 'setup-telegram-webhook.ts'))).toBe(
+      true,
+    );
   });
 
   it('migration 0031 adds COMMENT ON TABLE', () => {
-    const migration = readFileSync(join(DRIZZLE_DIR, '0031_phase7_comments_and_triggers.sql'), 'utf-8');
+    const migration = readFileSync(
+      join(DRIZZLE_DIR, '0031_phase7_comments_and_triggers.sql'),
+      'utf-8',
+    );
     expect(migration).toContain('COMMENT ON TABLE');
     expect(migration).toContain('"user"');
     expect(migration).toContain('"chat_threads"');
     expect(migration).toContain('"journal_entries"');
-
   });
 
   it('migration 0031 adds update_updated_at trigger function', () => {
-    const migration = readFileSync(join(DRIZZLE_DIR, '0031_phase7_comments_and_triggers.sql'), 'utf-8');
+    const migration = readFileSync(
+      join(DRIZZLE_DIR, '0031_phase7_comments_and_triggers.sql'),
+      'utf-8',
+    );
     expect(migration).toContain('CREATE OR REPLACE FUNCTION update_updated_at');
     expect(migration).toContain('BEFORE UPDATE');
     expect(migration).toContain('trg_updated_at_user');
     expect(migration).toContain('trg_updated_at_journal_entries');
-
   });
 
   it('migration 0031 is in the journal', () => {
@@ -146,9 +153,7 @@ describe('Phase 8 — Improvements', () => {
   });
 
   it('migrate:status script exists in package.json', () => {
-    const pkg = JSON.parse(
-      readFileSync(join(HERE, '..', 'package.json'), 'utf-8'),
-    );
+    const pkg = JSON.parse(readFileSync(join(HERE, '..', 'package.json'), 'utf-8'));
     expect(pkg.scripts['migrate:status']).toBeDefined();
     expect(pkg.scripts['migrate:status']).toContain('migrate-status');
   });
@@ -158,10 +163,16 @@ describe('Phase 8 — Improvements', () => {
   });
 
   it('migration 0032 adds deleted_at columns', () => {
-    const migration = readFileSync(join(DRIZZLE_DIR, '0032_phase8_soft_delete_enums_fts.sql'), 'utf-8');
-    expect(migration).toContain('ALTER TABLE "journal_entries" ADD COLUMN IF NOT EXISTS "deleted_at"');
-    expect(migration).toContain('ALTER TABLE "portfolio_positions" ADD COLUMN IF NOT EXISTS "deleted_at"');
-
+    const migration = readFileSync(
+      join(DRIZZLE_DIR, '0032_phase8_soft_delete_enums_fts.sql'),
+      'utf-8',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "journal_entries" ADD COLUMN IF NOT EXISTS "deleted_at"',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "portfolio_positions" ADD COLUMN IF NOT EXISTS "deleted_at"',
+    );
   });
 
   it('schema files have deleted_at columns', () => {
@@ -169,10 +180,12 @@ describe('Phase 8 — Improvements', () => {
     expect(journalSource).toContain('deletedAt');
     expect(journalSource).toContain('deleted_at');
 
-    const portfolioSource = readFileSync(join(HERE, '..', 'src', 'schema', 'portfolio.ts'), 'utf-8');
+    const portfolioSource = readFileSync(
+      join(HERE, '..', 'src', 'schema', 'portfolio.ts'),
+      'utf-8',
+    );
     expect(portfolioSource).toContain('deletedAt');
     expect(portfolioSource).toContain('deleted_at');
-
   });
 
   it('user-settings-split-plan.md document exists', () => {
@@ -180,7 +193,10 @@ describe('Phase 8 — Improvements', () => {
   });
 
   it('Postgres enum types created in migration 0032', () => {
-    const migration = readFileSync(join(DRIZZLE_DIR, '0032_phase8_soft_delete_enums_fts.sql'), 'utf-8');
+    const migration = readFileSync(
+      join(DRIZZLE_DIR, '0032_phase8_soft_delete_enums_fts.sql'),
+      'utf-8',
+    );
     expect(migration).toContain('CREATE TYPE user_role');
     expect(migration).toContain('CREATE TYPE journal_outcome');
     expect(migration).toContain('CREATE TYPE portfolio_status');
@@ -214,7 +230,10 @@ describe('Phase 8 — Improvements', () => {
   });
 
   it('full-text search index in migration 0032', () => {
-    const migration = readFileSync(join(DRIZZLE_DIR, '0032_phase8_soft_delete_enums_fts.sql'), 'utf-8');
+    const migration = readFileSync(
+      join(DRIZZLE_DIR, '0032_phase8_soft_delete_enums_fts.sql'),
+      'utf-8',
+    );
     expect(migration).toContain('news_fts_idx');
     expect(migration).toContain('to_tsvector');
     expect(migration).toContain('USING gin');

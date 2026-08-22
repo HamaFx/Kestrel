@@ -16,8 +16,9 @@
 
 // Auth query helpers — login, registration, password reset, verification tokens.
 
-import { and, eq, gt, isNull, ne, sql } from 'drizzle-orm';
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
+import { and, eq, gt, isNull, ne, sql } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 const SYSTEM_USER_ID = '__system__';
@@ -102,22 +103,19 @@ export interface CreateUserInput {
  * Create a new user, userSettings, and email verification token in a single transaction.
  * Returns the raw verification token (for constructing the verify URL) and the user.
  */
-export async function createUserWithSettings(
-  input: CreateUserInput,
-): Promise<void> {
+export async function createUserWithSettings(input: CreateUserInput): Promise<void> {
   const db = getDb();
   await db.transaction(async (tx) => {
     if (input.initialUserOnly) {
       // Serialize the check and insert so two concurrent first-run requests
       // cannot both become the owner of a fresh deployment.
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('hamafx:first-user-registration'))`);
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext('hamafx:first-user-registration'))`,
+      );
       const [existingUser] = await tx
         .select({ id: schema.users.id })
         .from(schema.users)
-        .where(and(
-          isNull(schema.users.deletedAt),
-          ne(schema.users.id, SYSTEM_USER_ID),
-        ))
+        .where(and(isNull(schema.users.deletedAt), ne(schema.users.id, SYSTEM_USER_ID)))
         .limit(1);
       if (existingUser && existingUser.id !== SYSTEM_USER_ID) {
         throw new Error('INITIAL_USER_ALREADY_EXISTS');
@@ -171,7 +169,10 @@ export async function updateUserPassword(userId: string, hashedPassword: string)
 /**
  * Update a user's password by email (for password reset flow).
  */
-export async function updatePasswordByEmail(email: string, hashedPassword: string): Promise<string | null> {
+export async function updatePasswordByEmail(
+  email: string,
+  hashedPassword: string,
+): Promise<string | null> {
   const db = getDb();
   const [user] = await db
     .update(schema.users)
@@ -201,10 +202,7 @@ export async function createVerificationToken(
 }
 
 /** Find a non-expired verification token by hash + purpose. */
-export async function findVerificationToken(
-  hashedToken: string,
-  purpose: string,
-) {
+export async function findVerificationToken(hashedToken: string, purpose: string) {
   const db = getDb();
   const [vt] = await db
     .select()
@@ -221,10 +219,7 @@ export async function findVerificationToken(
 }
 
 /** Delete a verification token by hash + purpose (single-use). */
-export async function deleteVerificationToken(
-  hashedToken: string,
-  purpose: string,
-): Promise<void> {
+export async function deleteVerificationToken(hashedToken: string, purpose: string): Promise<void> {
   const db = getDb();
   await db
     .delete(schema.verificationTokens)
@@ -303,7 +298,10 @@ export async function createUserSession(
 /**
  * Update the two-factor secret for a user (stores encrypted secret).
  */
-export async function updateTwoFactorSecret(userId: string, encryptedSecret: string | null): Promise<void> {
+export async function updateTwoFactorSecret(
+  userId: string,
+  encryptedSecret: string | null,
+): Promise<void> {
   const db = getDb();
   await db
     .update(schema.users)
@@ -368,10 +366,7 @@ export async function incrementTokenVersion(userId: string): Promise<void> {
  */
 export async function updateUserDisplayName(userId: string, name: string): Promise<void> {
   const db = getDb();
-  await db
-    .update(schema.users)
-    .set({ name })
-    .where(eq(schema.users.id, userId));
+  await db.update(schema.users).set({ name }).where(eq(schema.users.id, userId));
 }
 
 /** Create an audit log entry (best-effort, fail open). */

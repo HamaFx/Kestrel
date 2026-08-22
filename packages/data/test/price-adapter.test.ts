@@ -24,7 +24,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getPrice, getPriceWithMeta } from '../src/adapters/price';
+import { setDefaultCache } from '../src/cache';
+import { MemoryCache } from '../src/cache/memory';
+import { _resetThrottle } from '../src/cache/throttle';
 import { ProviderEmptyError } from '../src/errors';
+import { _resetHealth } from '../src/health';
+import { fetchLiveTick } from '../src/providers/live-ticks';
 
 // Auto-mock the live-ticks pseudo-provider for every test in this file —
 // most tests don't have a Postgres connection so we make the live_ticks
@@ -34,19 +40,9 @@ import { ProviderEmptyError } from '../src/errors';
 // override this with `vi.mocked(fetchLiveTick).mockImplementationOnce(...)`.
 vi.mock('../src/providers/live-ticks', () => ({
   fetchLiveTick: vi.fn().mockImplementation(() => {
-    throw new ProviderEmptyError(
-      'live-ticks',
-      'live_ticks not configured (test default)',
-    );
+    throw new ProviderEmptyError('live-ticks', 'live_ticks not configured (test default)');
   }),
 }));
-
-import { getPrice, getPriceWithMeta } from '../src/adapters/price';
-import { setDefaultCache } from '../src/cache';
-import { MemoryCache } from '../src/cache/memory';
-import { _resetThrottle } from '../src/cache/throttle';
-import { _resetHealth } from '../src/health';
-import { fetchLiveTick } from '../src/providers/live-ticks';
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -111,10 +107,7 @@ beforeEach(() => {
   // exercise the network path. Tests that explicitly want a live_ticks
   // hit re-set the implementation.
   vi.mocked(fetchLiveTick).mockImplementation(() => {
-    throw new ProviderEmptyError(
-      'live-ticks',
-      'live_ticks not configured (test default)',
-    );
+    throw new ProviderEmptyError('live-ticks', 'live_ticks not configured (test default)');
   });
 });
 
@@ -152,7 +145,7 @@ describe('getPrice — provider order (Phase 8: live-ticks, then catalog-routed 
     await getPrice('EURUSD');
     await getPrice('EURUSD');
     // First call hits BiQuote; second is served from cache.
-    expect((fetchSpy as unknown as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+    expect(fetchSpy as unknown as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(1);
   });
 
   it('falls over from biquote → finnhub', async () => {
@@ -282,7 +275,10 @@ describe('getPrice — live_ticks pseudo-provider (Phase 8 PR-8)', () => {
         match: (u) => u.includes('finnhub.io'),
         respond: () => {
           finnhubCalls += 1;
-          return { status: 500, body: { message: 'Finnhub must not be called after Binance succeeds' } };
+          return {
+            status: 500,
+            body: { message: 'Finnhub must not be called after Binance succeeds' },
+          };
         },
       },
       {

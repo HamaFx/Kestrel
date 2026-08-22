@@ -79,7 +79,9 @@ test.describe('Multi-User Isolation', () => {
       await textareaA.fill('A unique message from User A');
       await textareaA.press('Enter');
 
-      await expect(pageA.getByText('A unique message from User A')).toBeVisible({ timeout: 15_000 });
+      await expect(pageA.getByText('A unique message from User A')).toBeVisible({
+        timeout: 15_000,
+      });
       await expect(pageA).toHaveURL(/.*\/chat\/[a-zA-Z0-9_-]+/);
 
       // Grab the thread ID from the URL

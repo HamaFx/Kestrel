@@ -25,23 +25,35 @@
 // — both call into the single <NavDrawer> instance via context. There is
 // only ever one drawer in the DOM, which fixes the "menu sometimes
 // doesn't open" intermittent bug caused by stacked drawer instances.
-
 import type { Symbol } from '@kestrel/shared';
-import {IconLoader2, IconMessages, IconDotsCircleHorizontal, IconPlus, IconBolt, IconTrash, IconCheck, IconFileDownload, IconAdjustmentsHorizontal, IconChevronDown, IconLayoutColumns} from '@tabler/icons-react';
+import {
+  IconAdjustmentsHorizontal,
+  IconBolt,
+  IconCheck,
+  IconChevronDown,
+  IconDotsCircleHorizontal,
+  IconFileDownload,
+  IconLayoutColumns,
+  IconLoader2,
+  IconMessages,
+  IconPlus,
+  IconTrash,
+} from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
-import { NavTrigger } from '@/components/layout/nav-trigger';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import { NavTrigger } from '@/components/layout/nav-trigger';
 import { useConfirm } from '@/components/ui/confirm-drawer';
-import { Tooltip } from '@/components/ui/tooltip';
-import { cn } from '@/lib/cn';
-import { apiMutate } from '@/lib/api-client';
 import { SymbolChip } from '@/components/ui/symbol-chip';
-import { ThreadSwitcher } from './_components/thread-switcher';
-import { ChatModelSelector } from './_components/chat-model-selector';
+import { Tooltip } from '@/components/ui/tooltip';
 import { usePopupMenu } from '@/hooks/use-popup-menu';
+import { apiMutate } from '@/lib/api-client';
+import { cn } from '@/lib/cn';
+
+import { ChatModelSelector } from './_components/chat-model-selector';
+import { ThreadSwitcher } from './_components/thread-switcher';
 
 export type AnalysisMode = 'single' | 'quick' | 'standard' | 'full' | 'auto';
 
@@ -202,175 +214,171 @@ export function ChatTopBar({
     <header
       className={cn(
         'sticky top-0 z-30 flex h-12 w-full shrink-0 items-center justify-between',
-        'border-b border-border bg-bg/90 backdrop-blur-md px-3 pt-safe',
+        'border-border bg-bg/90 pt-safe border-b px-3 backdrop-blur-md',
       )}
     >
       <div className="flex min-w-0 shrink-0 items-center gap-2">
         <NavTrigger />
-        <KestrelBrand
-          variant="mark"
-          href="/chat"
-          className="inline-flex"
-        />
+        <KestrelBrand variant="mark" href="/chat" className="inline-flex" />
       </div>
 
       {/* Center: title + pinned symbol */}
       <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
         <h1 className="text-fg truncate text-sm font-semibold tracking-tight">{title}</h1>
         {pinnedSymbol ? (
-          <SymbolChip
-            symbol={pinnedSymbol}
-            clearing={unpinning}
-            onClear={() => void clearPin()}
-          />
+          <SymbolChip symbol={pinnedSymbol} clearing={unpinning} onClear={() => void clearPin()} />
         ) : null}
         {isStreaming ? (
-          <span className="text-fg-subtle inline-flex items-center gap-1 text-caption font-medium">
+          <span className="text-fg-subtle text-caption inline-flex items-center gap-1 font-medium">
             <IconBolt className="size-2.5 animate-pulse" /> thinking…
           </span>
         ) : null}
       </div>
 
-        {/* Chat model selector. The picker uses the authenticated catalog and
+      {/* Chat model selector. The picker uses the authenticated catalog and
             saves the selected model for future turns. */}
-        {onChatModelChange && (
-          <ChatModelSelector
-            activeModelId={chatModel}
-            disabled={isStreaming || modelSelectionPending}
-            onPick={onChatModelChange}
-          />
-        )}
+      {onChatModelChange && (
+        <ChatModelSelector
+          activeModelId={chatModel}
+          disabled={isStreaming || modelSelectionPending}
+          onPick={onChatModelChange}
+        />
+      )}
 
-        {/* Analysis Mode Selector */}
-        {onAnalysisModeChange && (
-          <div className="relative" ref={modeMenu.menuRef}>
-            <button
-              type="button"
-              onClick={() => modeMenu.setOpen((v) => !v)}
-              aria-label="Analysis mode"
-              {...modeMenu.triggerProps}
-              className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex items-center gap-1 rounded-sm px-2.5 py-1.5 text-caption font-medium transition-colors shrink-0"
-            >
-              <IconAdjustmentsHorizontal className="size-3.5" aria-hidden="true" />
-              <span className="hidden sm:inline">{MODE_LABELS[analysisMode]}</span>
-              <IconChevronDown className="size-3" />
-            </button>
-            {modeMenu.open ? (
-              <div
-                {...modeMenu.menuProps}
-                className="bg-bg-elev-1 border border-border shadow-xl absolute right-0 top-full z-50 mt-2 w-56 rounded-sm p-1.5"
-              >
-                {(Object.keys(MODE_LABELS) as AnalysisMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      onAnalysisModeChange(mode);
-                      modeMenu.setOpen(false);
-                    }}
-                    className={cn(
-                      'flex w-full items-center justify-between gap-2 rounded-sm px-3 py-2 text-left text-sm transition-colors',
-                      analysisMode === mode
-                        ? 'bg-bg-elev-2 text-fg font-medium'
-                        : 'text-fg-muted hover:bg-bg-elev-2 hover:text-fg',
-                    )}
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <span>{MODE_LABELS[mode]}</span>
-                      <span className="text-caption text-fg-subtle">{MODE_DESCRIPTIONS[mode]}</span>
-                    </div>
-                    {analysisMode === mode && <IconCheck className="size-4 text-fg shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* Desktop Split Terminal Toggle */}
-        {onToggleSplitMode && (
-          <Tooltip label={splitMode ? 'Single View' : 'Split Terminal (Chart + AI)'} side="bottom">
-            <button
-              type="button"
-              onClick={onToggleSplitMode}
-              aria-label="Toggle split chart"
-              className={cn(
-                'hidden xl:inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-caption font-medium transition-colors shrink-0',
-                splitMode
-                  ? 'bg-brand/15 text-brand border border-brand/40'
-                  : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2 border border-transparent',
-              )}
-            >
-              <IconLayoutColumns className="size-3.5" aria-hidden="true" />
-              <span>{splitMode ? 'Split: ON' : 'Split'}</span>
-            </button>
-          </Tooltip>
-        )}
-
-        <Tooltip label="New chat" side="bottom">
+      {/* Analysis Mode Selector */}
+      {onAnalysisModeChange && (
+        <div className="relative" ref={modeMenu.menuRef}>
           <button
             type="button"
-            onClick={newChat}
-            disabled={pending}
-            aria-label="New chat"
-            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors disabled:opacity-50"
+            onClick={() => modeMenu.setOpen((v) => !v)}
+            aria-label="Analysis mode"
+            {...modeMenu.triggerProps}
+            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 text-caption inline-flex shrink-0 items-center gap-1 rounded-sm px-2.5 py-1.5 font-medium transition-colors"
           >
-            {pending ? <IconLoader2 className="size-5 animate-spin" /> : <IconPlus className="size-5" />}
+            <IconAdjustmentsHorizontal className="size-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">{MODE_LABELS[analysisMode]}</span>
+            <IconChevronDown className="size-3" />
           </button>
-        </Tooltip>
-
-        <div className="relative" ref={overflowMenu.menuRef}>
-          <button
-            ref={overflowMenu.triggerRef}
-            type="button"
-            onClick={() => overflowMenu.setOpen((v) => !v)}
-            aria-label="Conversation menu"
-            {...overflowMenu.triggerProps}
-            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors"
-          >
-            <IconDotsCircleHorizontal className="size-5" />
-          </button>
-          {overflowMenu.open ? (
+          {modeMenu.open ? (
             <div
-              {...overflowMenu.menuProps}
-              className="surface-elevated absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-sm text-body-sm"
+              {...modeMenu.menuProps}
+              className="bg-bg-elev-1 border-border absolute top-full right-0 z-50 mt-2 w-56 rounded-sm border p-1.5 shadow-xl"
             >
-              <button
-                role="menuitem"
-                type="button"
-                onClick={() => {
-                  overflowMenu.setOpen(false);
-                  setDrawerOpen(true);
-                }}
-                className="text-fg hover:bg-bg-elev-2 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
-              >
-                <IconMessages className="size-4" />
-                Switch conversation
-              </button>
-              <div className="border-border/60 border-t" />
-              <button
-                role="menuitem"
-                type="button"
-                onClick={exportThread}
-                className="text-fg hover:bg-bg-elev-2 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
-              >
-                <IconFileDownload className="size-4" />
-                Export as Markdown
-              </button>
-              <div className="border-border/60 border-t" />
-              <button
-                role="menuitem"
-                type="button"
-                onClick={() => void deleteCurrent()}
-                className="text-danger hover:bg-danger/10 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
-              >
-                <IconTrash className="size-4" />
-                Delete conversation
-              </button>
+              {(Object.keys(MODE_LABELS) as AnalysisMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  role="menuitem"
+                  type="button"
+                  onClick={() => {
+                    onAnalysisModeChange(mode);
+                    modeMenu.setOpen(false);
+                  }}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-2 rounded-sm px-3 py-2 text-left text-sm transition-colors',
+                    analysisMode === mode
+                      ? 'bg-bg-elev-2 text-fg font-medium'
+                      : 'text-fg-muted hover:bg-bg-elev-2 hover:text-fg',
+                  )}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <span>{MODE_LABELS[mode]}</span>
+                    <span className="text-caption text-fg-subtle">{MODE_DESCRIPTIONS[mode]}</span>
+                  </div>
+                  {analysisMode === mode && <IconCheck className="text-fg size-4 shrink-0" />}
+                </button>
+              ))}
             </div>
           ) : null}
         </div>
+      )}
+
+      {/* Desktop Split Terminal Toggle */}
+      {onToggleSplitMode && (
+        <Tooltip label={splitMode ? 'Single View' : 'Split Terminal (Chart + AI)'} side="bottom">
+          <button
+            type="button"
+            onClick={onToggleSplitMode}
+            aria-label="Toggle split chart"
+            className={cn(
+              'text-caption hidden shrink-0 items-center gap-1.5 rounded-sm px-2.5 py-1.5 font-medium transition-colors xl:inline-flex',
+              splitMode
+                ? 'bg-brand/15 text-brand border-brand/40 border'
+                : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2 border border-transparent',
+            )}
+          >
+            <IconLayoutColumns className="size-3.5" aria-hidden="true" />
+            <span>{splitMode ? 'Split: ON' : 'Split'}</span>
+          </button>
+        </Tooltip>
+      )}
+
+      <Tooltip label="New chat" side="bottom">
+        <button
+          type="button"
+          onClick={newChat}
+          disabled={pending}
+          aria-label="New chat"
+          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors disabled:opacity-50"
+        >
+          {pending ? (
+            <IconLoader2 className="size-5 animate-spin" />
+          ) : (
+            <IconPlus className="size-5" />
+          )}
+        </button>
+      </Tooltip>
+
+      <div className="relative" ref={overflowMenu.menuRef}>
+        <button
+          ref={overflowMenu.triggerRef}
+          type="button"
+          onClick={() => overflowMenu.setOpen((v) => !v)}
+          aria-label="Conversation menu"
+          {...overflowMenu.triggerProps}
+          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors"
+        >
+          <IconDotsCircleHorizontal className="size-5" />
+        </button>
+        {overflowMenu.open ? (
+          <div
+            {...overflowMenu.menuProps}
+            className="surface-elevated text-body-sm absolute top-12 right-0 z-50 w-56 overflow-hidden rounded-sm"
+          >
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => {
+                overflowMenu.setOpen(false);
+                setDrawerOpen(true);
+              }}
+              className="text-fg hover:bg-bg-elev-2 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
+            >
+              <IconMessages className="size-4" />
+              Switch conversation
+            </button>
+            <div className="border-border/60 border-t" />
+            <button
+              role="menuitem"
+              type="button"
+              onClick={exportThread}
+              className="text-fg hover:bg-bg-elev-2 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
+            >
+              <IconFileDownload className="size-4" />
+              Export as Markdown
+            </button>
+            <div className="border-border/60 border-t" />
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => void deleteCurrent()}
+              className="text-danger hover:bg-danger/10 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
+            >
+              <IconTrash className="size-4" />
+              Delete conversation
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       <ThreadSwitcher
         open={drawerOpen}
@@ -389,6 +397,3 @@ export function ChatTopBar({
 }
 
 // ---------------------------------------------------------------------------
-
-
-

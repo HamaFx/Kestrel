@@ -21,6 +21,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { tryReserveBudget } from '../src/cost';
+
 interface SpendRow {
   totalCents: number;
 }
@@ -100,9 +102,8 @@ vi.mock('@kestrel/db', () => {
       });
       return {
         execute,
-        transaction: async (
-          callback: (tx: { execute: typeof execute }) => Promise<unknown>,
-        ) => callback({ execute }),
+        transaction: async (callback: (tx: { execute: typeof execute }) => Promise<unknown>) =>
+          callback({ execute }),
         select: () => ({
           from: () => ({
             where: () => ({
@@ -118,8 +119,6 @@ vi.mock('@kestrel/db', () => {
     },
   };
 });
-
-import { tryReserveBudget } from '../src/cost';
 
 const TEST_USER = 'test-user';
 

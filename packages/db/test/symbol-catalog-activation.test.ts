@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-import { readFileSync } from 'node:fs';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { ALL_SYMBOLS, getSymbolDefinition } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { ALL_SYMBOLS, getSymbolDefinition } from '@kestrel/shared';
-import {
-  closePGliteDb,
-  getPGliteDb,
-  sanitizeStatement,
-} from '../src/pglite-client';
+import { closePGliteDb, getPGliteDb, sanitizeStatement } from '../src/pglite-client';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
@@ -41,9 +36,7 @@ function stripComments(sql: string): string {
   return lines.join('\n').trim();
 }
 
-async function applyMigration(
-  db: Awaited<ReturnType<typeof getPGliteDb>>,
-): Promise<void> {
+async function applyMigration(db: Awaited<ReturnType<typeof getPGliteDb>>): Promise<void> {
   const source = readFileSync(join(DRIZZLE_DIR, `${MIGRATION}.sql`), 'utf8');
   for (const chunk of source.split('--> statement-breakpoint')) {
     const statement = sanitizeStatement(stripComments(chunk));
@@ -51,9 +44,12 @@ async function applyMigration(
     try {
       await db.execute(statement);
     } catch (error) {
-      const message = error instanceof Error && error.cause instanceof Error
-        ? error.cause.message
-        : error instanceof Error ? error.message : String(error);
+      const message =
+        error instanceof Error && error.cause instanceof Error
+          ? error.cause.message
+          : error instanceof Error
+            ? error.message
+            : String(error);
       if (!message.includes('cannot insert multiple commands')) throw error;
       const raw = (await import('../src/pglite-client')).getRawPGlite();
       await raw.exec(statement);
@@ -93,7 +89,9 @@ describe('Phase 2 — canonical symbol catalog activation', () => {
         tenant_id text DEFAULT '__system__'
       )
     `);
-    await db.execute(`INSERT INTO symbol_catalog (symbol, name, category, is_active, tenant_id) VALUES ('LEGACY', 'Legacy', 'forex', true, '__system__')`);
+    await db.execute(
+      `INSERT INTO symbol_catalog (symbol, name, category, is_active, tenant_id) VALUES ('LEGACY', 'Legacy', 'forex', true, '__system__')`,
+    );
 
     await applyMigration(db);
 

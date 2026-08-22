@@ -21,9 +21,10 @@
 // Dependency: model-chat.ts (resolveChatModel, ChatModelResolution).
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import type { ResolveModelEnv } from './vertex-factory';
+
 import type { ModelDomain } from './byok-providers';
 import { resolveChatModel, type ChatModelResolution } from './model-chat';
+import type { ResolveModelEnv } from './vertex-factory';
 
 /**
  * Context passed to each domain routing strategy. */
@@ -115,7 +116,7 @@ export function routeModelByDomain(
   if (!strategy) {
     throw new Error(
       `No model routing strategy registered for domain: "${domain}". ` +
-      `Available domains: ${(Object.keys(MODEL_ROUTER) as ModelDomain[]).join(', ')}.`,
+        `Available domains: ${(Object.keys(MODEL_ROUTER) as ModelDomain[]).join(', ')}.`,
     );
   }
   return strategy.resolve(ctx);

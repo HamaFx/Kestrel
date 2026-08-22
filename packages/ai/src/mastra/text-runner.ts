@@ -1,6 +1,26 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { Agent } from '@mastra/core/agent';
+import {
+  PromptInjectionDetector,
+  UnicodeNormalizer,
+  type InputProcessorOrWorkflow,
+} from '@mastra/core/processors';
 import { RequestContext } from '@mastra/core/request-context';
-import { PromptInjectionDetector, UnicodeNormalizer, type InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { LanguageModel, ModelMessage } from 'ai';
 import type { z } from 'zod';
 
@@ -77,11 +97,11 @@ export interface MastraStructuredRunArgs<TOutput> extends Omit<
  * this module owns only model execution and request context.
  */
 export async function runMastraText(args: MastraTextRunArgs): Promise<MastraTextRunResult> {
-  const contextEntries: Array<[string, {} | undefined]> = [['task', args.task]];
+  const contextEntries: Array<[string, unknown]> = [['task', args.task]];
   if (args.userId) contextEntries.push(['userId', args.userId]);
   if (args.threadId) contextEntries.push(['threadId', args.threadId]);
   if (args.runId) contextEntries.push(['runId', args.runId]);
-  const requestContext = new RequestContext(contextEntries);
+  const requestContext = new RequestContext(contextEntries as never);
   const agentOptions = {
     id: `kestrel-mastra-${args.task.replace(/[^a-z0-9-]/gi, '-')}`,
     name: `Kestrel Mastra ${args.task}`,
@@ -123,11 +143,11 @@ export async function runMastraText(args: MastraTextRunArgs): Promise<MastraText
 export async function runMastraStructured<TOutput>(
   args: MastraStructuredRunArgs<TOutput>,
 ): Promise<MastraTextRunResult & { object: TOutput }> {
-  const contextEntries: Array<[string, {} | undefined]> = [['task', args.task]];
+  const contextEntries: Array<[string, unknown]> = [['task', args.task]];
   if (args.userId) contextEntries.push(['userId', args.userId]);
   if (args.threadId) contextEntries.push(['threadId', args.threadId]);
   if (args.runId) contextEntries.push(['runId', args.runId]);
-  const requestContext = new RequestContext(contextEntries);
+  const requestContext = new RequestContext(contextEntries as never);
   const agent = new Agent({
     id: `kestrel-mastra-${args.task.replace(/[^a-z0-9-]/gi, '-')}`,
     name: `Kestrel Mastra ${args.task}`,

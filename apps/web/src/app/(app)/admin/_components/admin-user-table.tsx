@@ -2,21 +2,37 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconDownload, IconSearch, IconUsers } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
-import { IconSearch, IconUsers, IconDownload } from '@tabler/icons-react';
 import { toast } from 'sonner';
 
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
-import { AdminErrorBlock } from './admin-error-block';
 import { apiFetch, apiMutate } from '@/lib/api-client';
-import { formatAbsoluteTime, downloadCSV } from '@/lib/format-number';
+import { downloadCSV, formatAbsoluteTime } from '@/lib/format-number';
 import type { UserSummary } from '@/lib/services/admin-dtos';
+
+import { AdminErrorBlock } from './admin-error-block';
 
 const PAGE_SIZES = [10, 25, 50];
 
@@ -110,7 +126,9 @@ export function AdminUserTable() {
 
   const handleSort = useCallback((key: SortState['key']) => {
     setSort((prev) =>
-      prev.key === key ? { key, order: prev.order === 'asc' ? 'desc' : 'asc' } : { key, order: 'asc' },
+      prev.key === key
+        ? { key, order: prev.order === 'asc' ? 'desc' : 'asc' }
+        : { key, order: 'asc' },
     );
   }, []);
 
@@ -129,10 +147,12 @@ export function AdminUserTable() {
     <button
       type="button"
       onClick={() => handleSort(key)}
-      className="flex items-center gap-1 text-left font-medium hover:text-fg"
+      className="hover:text-fg flex items-center gap-1 text-left font-medium"
     >
       {label}
-      {sort.key === key && <span className="text-fg-subtle">{sort.order === 'asc' ? '↑' : '↓'}</span>}
+      {sort.key === key && (
+        <span className="text-fg-subtle">{sort.order === 'asc' ? '↑' : '↓'}</span>
+      )}
     </button>
   );
 
@@ -189,7 +209,7 @@ export function AdminUserTable() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="page-size" className="text-sm text-fg-subtle">
+            <label htmlFor="page-size" className="text-fg-subtle text-sm">
               Show
             </label>
             <select
@@ -250,7 +270,10 @@ export function AdminUserTable() {
                         {user.onboardingCompleted ? 'Done' : 'Pending'}
                       </Badge>
                     </td>
-                    <td className="text-fg-subtle px-4 py-2" title={formatAbsoluteTime(user.createdAt)}>
+                    <td
+                      className="text-fg-subtle px-4 py-2"
+                      title={formatAbsoluteTime(user.createdAt)}
+                    >
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2 text-right">
@@ -291,7 +314,7 @@ export function AdminUserTable() {
             >
               Previous
             </Button>
-            <span className="text-sm text-fg-subtle">
+            <span className="text-fg-subtle text-sm">
               Page {page + 1} of {Math.ceil(total / pageSize)}
             </span>
             <Button

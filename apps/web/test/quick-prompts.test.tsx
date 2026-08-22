@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { afterEach, describe, it, expect, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { QuickPrompts } from '@/components/chat/quick-prompts';
 
 afterEach(cleanup);
@@ -35,7 +36,9 @@ describe('QuickPrompts', () => {
       const now = new Date('2026-03-16T03:00:00Z'); // Monday 03:00 UTC → Asian
       render(<QuickPrompts onSelect={vi.fn()} now={now} />);
       // First prompt gets the session prefix: "Asian session is live — What's moving in Asia today?"
-      expect(screen.getByText(/Asian session is live — What's moving in Asia today\?/)).toBeTruthy();
+      expect(
+        screen.getByText(/Asian session is live — What's moving in Asia today\?/),
+      ).toBeTruthy();
     });
 
     it('renders London session prompts at 09:00 UTC', () => {
@@ -86,7 +89,9 @@ describe('QuickPrompts', () => {
       // The first prompt label includes the session prefix
       fireEvent.click(screen.getByText(/London session is live — London open — bias on majors/i));
       expect(onSelect).toHaveBeenCalledTimes(1);
-      expect(onSelect).toHaveBeenCalledWith('London session is live — London open — bias on majors?');
+      expect(onSelect).toHaveBeenCalledWith(
+        'London session is live — London open — bias on majors?',
+      );
     });
   });
 
@@ -117,7 +122,9 @@ describe('QuickPrompts', () => {
       const now = new Date('2026-03-16T09:00:00Z');
       render(<QuickPrompts onSelect={vi.fn()} now={now} />);
       // The first prompt should have the prefix
-      expect(screen.getByText(/London session is live — London open — bias on majors/i)).toBeTruthy();
+      expect(
+        screen.getByText(/London session is live — London open — bias on majors/i),
+      ).toBeTruthy();
     });
 
     it('prepends "NY session is live — " to the first prompt', () => {
@@ -129,7 +136,9 @@ describe('QuickPrompts', () => {
     it('prepends "Asian session is live — " to the first prompt', () => {
       const now = new Date('2026-03-16T03:00:00Z');
       render(<QuickPrompts onSelect={vi.fn()} now={now} />);
-      expect(screen.getByText(/Asian session is live — What's moving in Asia today\?/i)).toBeTruthy();
+      expect(
+        screen.getByText(/Asian session is live — What's moving in Asia today\?/i),
+      ).toBeTruthy();
     });
 
     it('does not add prefix for Closed session', () => {

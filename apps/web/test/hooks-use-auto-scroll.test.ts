@@ -1,9 +1,28 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
 import { useAutoScroll } from '../src/hooks/use-auto-scroll';
 
-function createMockRef(current: HTMLDivElement | null = null): React.RefObject<HTMLDivElement | null> {
+function createMockRef(
+  current: HTMLDivElement | null = null,
+): React.RefObject<HTMLDivElement | null> {
   return { current };
 }
 
@@ -22,7 +41,7 @@ describe('useAutoScroll', () => {
   it('returns showScrollFab based on scroll position', () => {
     const div = createMockDiv(1000, 800, 500);
     const ref = createMockRef(div);
-    
+
     const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
       cb(0);
       return 0;
@@ -38,7 +57,7 @@ describe('useAutoScroll', () => {
       }),
     );
     expect(typeof result.current.scrollToBottom).toBe('function');
-    
+
     rafSpy.mockRestore();
   });
 
@@ -108,7 +127,9 @@ describe('useAutoScroll', () => {
         isStreaming: false,
       }),
     );
-    expect(div.addEventListener).toHaveBeenCalledWith('scroll', expect.any(Function), { passive: true });
+    expect(div.addEventListener).toHaveBeenCalledWith('scroll', expect.any(Function), {
+      passive: true,
+    });
   });
 
   it('cleans up scroll listener on unmount', () => {

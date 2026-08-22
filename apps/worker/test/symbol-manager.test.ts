@@ -21,8 +21,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { SymbolManager, type PerConsumerChangeEvent } from '../src/symbol-manager';
 import type { Logger } from '../src/log';
+import { SymbolManager, type PerConsumerChangeEvent } from '../src/symbol-manager';
 
 // Mock logger that does nothing
 function mockLogger(): Logger {
@@ -47,7 +47,9 @@ describe('SymbolManager', () => {
 
     // Listen for the biquoteChanged event
     let _biquoteEvent: PerConsumerChangeEvent | null = null;
-    mgr.on('biquoteChanged', (ev) => { _biquoteEvent = ev; });
+    mgr.on('biquoteChanged', (ev) => {
+      _biquoteEvent = ev;
+    });
 
     // The SymbolManager starts with an empty set. After a poll that
     // returns XAUUSD + EURUSD + GBPUSD, it should emit biquoteChanged

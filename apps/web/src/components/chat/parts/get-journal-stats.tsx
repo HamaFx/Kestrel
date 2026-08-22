@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `get_journal_stats` tool part.
@@ -38,13 +54,15 @@ export function GetJournalStatsPart({
     <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3">
       <header className="text-fg text-sm font-semibold">Journal stats</header>
 
-      <dl className="grid grid-cols-3 gap-x-3 gap-y-1 text-body-sm tabular-nums">
+      <dl className="text-body-sm grid grid-cols-3 gap-x-3 gap-y-1 tabular-nums">
         <dt className="text-fg-subtle">count</dt>
         <dt className="text-fg-subtle">win rate</dt>
         <dt className="text-fg-subtle">avg R</dt>
 
         <dd className="text-fg font-semibold">{stats.count}</dd>
-        <dd className={stats.winRate >= 0.5 ? 'text-bull font-semibold' : 'text-bear font-semibold'}>
+        <dd
+          className={stats.winRate >= 0.5 ? 'text-bull font-semibold' : 'text-bear font-semibold'}
+        >
           {Math.round(stats.winRate * 100)}%
         </dd>
         <dd className={stats.avgR >= 0 ? 'text-bull font-semibold' : 'text-bear font-semibold'}>
@@ -62,8 +80,16 @@ export function GetJournalStatsPart({
         </dd>
       </dl>
 
-      <BreakdownList title="By symbol" rows={bySymbol} hrefBuilder={(k) => `/journal?symbol=${k}`} />
-      <BreakdownList title="By tag" rows={byTag} hrefBuilder={(k) => `/journal?tag=${encodeURIComponent(k)}`} />
+      <BreakdownList
+        title="By symbol"
+        rows={bySymbol}
+        hrefBuilder={(k) => `/journal?symbol=${k}`}
+      />
+      <BreakdownList
+        title="By tag"
+        rows={byTag}
+        hrefBuilder={(k) => `/journal?tag=${encodeURIComponent(k)}`}
+      />
     </div>
   );
 }
@@ -80,22 +106,20 @@ function BreakdownList({
   if (rows.length === 0) return null;
   return (
     <section>
-      <h4 className="text-fg-muted mb-1 text-body-sm uppercase tracking-wide">{title}</h4>
+      <h4 className="text-fg-muted text-body-sm mb-1 tracking-wide uppercase">{title}</h4>
       <ul className="divide-border divide-y">
         {rows.slice(0, TOP_N).map((r) => (
           <li key={r.key}>
             <Link
               href={hrefBuilder(r.key)}
-              className="focus-visible:ring-fg-muted grid min-h-[36px] grid-cols-[1fr_auto_auto_auto] items-center gap-3 py-1.5 text-body-sm tabular-nums outline-none focus-visible:ring-2"
+              className="focus-visible:ring-fg-muted text-body-sm grid min-h-[36px] grid-cols-[1fr_auto_auto_auto] items-center gap-3 py-1.5 tabular-nums outline-none focus-visible:ring-2"
             >
               <span className="text-fg truncate font-medium">{r.key}</span>
               <span className="text-fg-muted">{r.count}</span>
               <span className={r.winRate >= 0.5 ? 'text-bull' : 'text-bear'}>
                 {Math.round(r.winRate * 100)}%
               </span>
-              <span className={r.avgR >= 0 ? 'text-bull' : 'text-bear'}>
-                {r.avgR.toFixed(2)}R
-              </span>
+              <span className={r.avgR >= 0 ? 'text-bull' : 'text-bear'}>{r.avgR.toFixed(2)}R</span>
             </Link>
           </li>
         ))}

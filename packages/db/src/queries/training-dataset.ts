@@ -6,6 +6,7 @@
  */
 
 import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 /** Reviewer-approved feedback joined to the persisted prompt + answer text. */
@@ -75,10 +76,7 @@ export async function listReviewedTrainingPairs(
     })
     .from(feedback)
     .innerJoin(assistant, eq(assistant.id, feedback.messageId))
-    .where(and(
-      eq(feedback.reviewStatus, 'reviewed'),
-      isNotNull(feedback.reviewerLabel),
-    ))
+    .where(and(eq(feedback.reviewStatus, 'reviewed'), isNotNull(feedback.reviewerLabel)))
     .orderBy(desc(feedback.reviewedAt))
     .limit(Math.min(5000, Math.max(1, limit)))
     .offset(Math.max(0, offset));

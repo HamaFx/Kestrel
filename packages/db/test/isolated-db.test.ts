@@ -16,7 +16,9 @@
 
 // Phase 6 — Task 29: withIsolatedDb rollback verification test
 
-import { vi, describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { withIsolatedDb } from '../src/test-utils';
 
 vi.mock('server-only', () => ({}));
 
@@ -28,8 +30,6 @@ vi.mock('../src/client', () => ({
     execute: vi.fn(),
   })),
 }));
-
-import { withIsolatedDb } from '../src/test-utils';
 
 describe('Phase 6 — Task 29: withIsolatedDb rollback verification', () => {
   it('executes the test function and provides a tx client', async () => {
@@ -58,9 +58,7 @@ describe('Phase 6 — Task 29: withIsolatedDb rollback verification', () => {
       throw new Error('ROLLBACK_FOR_TESTING');
     });
 
-    await expect(
-      withIsolatedDb(async () => {}),
-    ).resolves.toBeUndefined();
+    await expect(withIsolatedDb(async () => {})).resolves.toBeUndefined();
   });
 
   it('re-throws non-rollback errors from the test function', async () => {
@@ -69,7 +67,9 @@ describe('Phase 6 — Task 29: withIsolatedDb rollback verification', () => {
     });
 
     await expect(
-      withIsolatedDb(async () => { throw new Error('test failure'); }),
+      withIsolatedDb(async () => {
+        throw new Error('test failure');
+      }),
     ).rejects.toThrow('test failure');
   });
 
@@ -78,9 +78,7 @@ describe('Phase 6 — Task 29: withIsolatedDb rollback verification', () => {
       throw new Error('connection lost');
     });
 
-    await expect(
-      withIsolatedDb(async () => {}),
-    ).rejects.toThrow('connection lost');
+    await expect(withIsolatedDb(async () => {})).rejects.toThrow('connection lost');
   });
 
   it('provides the same shape as getDb() return value', async () => {

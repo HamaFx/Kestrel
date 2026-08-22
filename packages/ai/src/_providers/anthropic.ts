@@ -15,6 +15,7 @@
  */
 
 import { createAnthropic } from '@ai-sdk/anthropic';
+
 import { CAPS_FULL, defineProvider } from './helpers';
 import type { ByokProviderSpec } from './types';
 
@@ -36,12 +37,72 @@ export const ANTHROPIC: ByokProviderSpec = defineProvider({
   bestFor: 'Deep reasoning + agents',
   supports: { vision: true, embedding: false },
   models: [
-    { modelId: 'claude-fable-5', label: 'Claude Fable 5', description: 'Most capable widely-released Claude (2026).', tier: 'flagship', inputPerMTokUsd: 5, outputPerMTokUsd: 25, contextTokens: 1_000_000, capabilities: CAPS_FULL, released: '2026-06' },
-    { modelId: 'claude-opus-4-8', label: 'Claude Opus 4.8', description: 'Top agentic coding / enterprise reasoning.', tier: 'flagship', inputPerMTokUsd: 5, outputPerMTokUsd: 25, contextTokens: 1_000_000, capabilities: CAPS_FULL, released: '2026-05' },
-    { modelId: 'claude-sonnet-5', label: 'Claude Sonnet 5', description: 'Best balance of intelligence, speed, cost.', tier: 'pro', inputPerMTokUsd: 3, outputPerMTokUsd: 15, contextTokens: 1_000_000, capabilities: CAPS_FULL, released: '2026-05' },
-    { modelId: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', description: 'Cheap, fast, near-Sonnet quality.', tier: 'fast', inputPerMTokUsd: 1, outputPerMTokUsd: 5, contextTokens: 200_000, capabilities: CAPS_FULL, released: '2025-10' },
-    { modelId: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', description: 'Previous-gen Sonnet (still supported).', tier: 'pro', inputPerMTokUsd: 3, outputPerMTokUsd: 15, contextTokens: 200_000, capabilities: CAPS_FULL, released: '2025-09' },
-    { modelId: 'claude-opus-4-6', label: 'Claude Opus 4.6', description: 'Previous Opus generation.', tier: 'flagship', inputPerMTokUsd: 5, outputPerMTokUsd: 25, contextTokens: 1_000_000, capabilities: CAPS_FULL, released: '2026-02' },
+    {
+      modelId: 'claude-fable-5',
+      label: 'Claude Fable 5',
+      description: 'Most capable widely-released Claude (2026).',
+      tier: 'flagship',
+      inputPerMTokUsd: 5,
+      outputPerMTokUsd: 25,
+      contextTokens: 1_000_000,
+      capabilities: CAPS_FULL,
+      released: '2026-06',
+    },
+    {
+      modelId: 'claude-opus-4-8',
+      label: 'Claude Opus 4.8',
+      description: 'Top agentic coding / enterprise reasoning.',
+      tier: 'flagship',
+      inputPerMTokUsd: 5,
+      outputPerMTokUsd: 25,
+      contextTokens: 1_000_000,
+      capabilities: CAPS_FULL,
+      released: '2026-05',
+    },
+    {
+      modelId: 'claude-sonnet-5',
+      label: 'Claude Sonnet 5',
+      description: 'Best balance of intelligence, speed, cost.',
+      tier: 'pro',
+      inputPerMTokUsd: 3,
+      outputPerMTokUsd: 15,
+      contextTokens: 1_000_000,
+      capabilities: CAPS_FULL,
+      released: '2026-05',
+    },
+    {
+      modelId: 'claude-haiku-4-5',
+      label: 'Claude Haiku 4.5',
+      description: 'Cheap, fast, near-Sonnet quality.',
+      tier: 'fast',
+      inputPerMTokUsd: 1,
+      outputPerMTokUsd: 5,
+      contextTokens: 200_000,
+      capabilities: CAPS_FULL,
+      released: '2025-10',
+    },
+    {
+      modelId: 'claude-sonnet-4-5',
+      label: 'Claude Sonnet 4.5',
+      description: 'Previous-gen Sonnet (still supported).',
+      tier: 'pro',
+      inputPerMTokUsd: 3,
+      outputPerMTokUsd: 15,
+      contextTokens: 200_000,
+      capabilities: CAPS_FULL,
+      released: '2025-09',
+    },
+    {
+      modelId: 'claude-opus-4-6',
+      label: 'Claude Opus 4.6',
+      description: 'Previous Opus generation.',
+      tier: 'flagship',
+      inputPerMTokUsd: 5,
+      outputPerMTokUsd: 25,
+      contextTokens: 1_000_000,
+      capabilities: CAPS_FULL,
+      released: '2026-02',
+    },
   ],
   factory: (apiKey) => {
     const provider = createAnthropic({ apiKey });

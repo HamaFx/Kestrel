@@ -50,7 +50,11 @@ function makeFakeDb(): {
   return { db, captured };
 }
 
-function tick(symbol: NormalizedTick['symbol'], mid: number, ts = 1_700_000_000_000): NormalizedTick {
+function tick(
+  symbol: NormalizedTick['symbol'],
+  mid: number,
+  ts = 1_700_000_000_000,
+): NormalizedTick {
   return {
     symbol,
     bid: mid - 0.05,
@@ -131,13 +135,6 @@ describe('flushLiveTicks', () => {
     buffer.drain();
     expect(captured.conflictConfig).not.toBeNull();
     const set = (captured.conflictConfig as { set: Record<string, unknown> }).set;
-    expect(Object.keys(set).sort()).toEqual([
-      'ask',
-      'bid',
-      'mid',
-      'source',
-      'ts',
-      'updatedAt',
-    ]);
+    expect(Object.keys(set).sort()).toEqual(['ask', 'bid', 'mid', 'source', 'ts', 'updatedAt']);
   });
 });

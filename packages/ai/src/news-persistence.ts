@@ -19,7 +19,6 @@
 // without duplicating SQL.
 
 import { schema } from '@kestrel/db';
-import { getDb } from './db';
 import {
   type EconomicEvent,
   type EventCurrency,
@@ -30,6 +29,7 @@ import {
 } from '@kestrel/shared';
 import { and, asc, desc, eq, gte, ilike, isNull, lte, or, sql } from 'drizzle-orm';
 
+import { getDb } from './db';
 import { embedTexts } from './embeddings';
 
 /**
@@ -79,22 +79,17 @@ export async function listRecentArticles(
     sentiment?: string;
     symbol?: string;
     query?: string;
-  }
+  },
 ): Promise<NewsArticle[]> {
   const db = getDb();
-  const selectQuery = db
-    .select()
-    .from(schema.newsArticles);
+  const selectQuery = db.select().from(schema.newsArticles);
 
   const conditions = [];
 
   if (filters?.sentiment && filters.sentiment !== 'all') {
     if (filters.sentiment === 'neutral') {
       conditions.push(
-        or(
-          eq(schema.newsArticles.sentiment, 'neutral'),
-          isNull(schema.newsArticles.sentiment)
-        )
+        or(eq(schema.newsArticles.sentiment, 'neutral'), isNull(schema.newsArticles.sentiment)),
       );
     } else {
       conditions.push(eq(schema.newsArticles.sentiment, filters.sentiment));
@@ -112,8 +107,8 @@ export async function listRecentArticles(
         ilike(schema.newsArticles.title, q),
         ilike(schema.newsArticles.summary, q),
         ilike(schema.newsArticles.publisher, q),
-        ilike(schema.newsArticles.source, q)
-      )
+        ilike(schema.newsArticles.source, q),
+      ),
     );
   }
 

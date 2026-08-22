@@ -10,17 +10,17 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/db', () => ({
-  getDb: vi.fn(),
-}));
-
-import { getDb } from '../src/db';
-import { getOrCreateBriefingsThread } from '../src/briefings/persistence';
 import {
   claimAlertDelivery,
   markFired,
   releaseAlertDeliveryClaim,
 } from '../src/alerts/persistence';
+import { getOrCreateBriefingsThread } from '../src/briefings/persistence';
+import { getDb } from '../src/db';
+
+vi.mock('../src/db', () => ({
+  getDb: vi.fn(),
+}));
 
 function mockDb(value: unknown): void {
   vi.mocked(getDb).mockReturnValue(value as never);
@@ -91,9 +91,7 @@ describe('Phase 2 concurrency guards', () => {
     }));
     mockDb({ update: competingUpdate });
 
-    await expect(
-      claimAlertDelivery('user-1', 'alert-1', new Date(10_001)),
-    ).resolves.toBe(false);
+    await expect(claimAlertDelivery('user-1', 'alert-1', new Date(10_001))).resolves.toBe(false);
   });
 
   it('fences finalization and releases a failed claim', async () => {

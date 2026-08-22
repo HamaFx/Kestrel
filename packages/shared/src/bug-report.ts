@@ -21,9 +21,15 @@ const PRIVATE_CONTENT_KEY_PATTERN =
 const SENSITIVE_KEY_PATTERN =
   /api[_-]?key|access[_-]?token|auth[_-]?token|token|secret|password|passwd|cookie|webhook|private[_-]?key|client[_-]?secret|refresh[_-]?token/i;
 const SECRET_STRING_PATTERNS: Array<[RegExp, string]> = [
-  [/(?:authorization)\s*[:=]\s*(?:(?:Bearer|Basic|Token)\s+)?[^\s,&;]+/gi, 'authorization=<redacted>'],
+  [
+    /(?:authorization)\s*[:=]\s*(?:(?:Bearer|Basic|Token)\s+)?[^\s,&;]+/gi,
+    'authorization=<redacted>',
+  ],
   [/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>'],
-  [/\b(?:api[_-]?key|access[_-]?token|token|secret|password|cookie)\s*[=:]\s*[^\s,&;]+/gi, '<redacted-secret>'],
+  [
+    /\b(?:api[_-]?key|access[_-]?token|token|secret|password|cookie)\s*[=:]\s*[^\s,&;]+/gi,
+    '<redacted-secret>',
+  ],
 ];
 
 /**

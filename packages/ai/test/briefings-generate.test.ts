@@ -1,13 +1,30 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import type { EconomicEvent } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
+
 import {
   buildEventPrompt,
   deterministicEventSummary,
-  surpriseLabel,
   deterministicWeeklyReview,
   isoWeekKey,
+  surpriseLabel,
   symbolFromCurrency,
 } from '../src/briefings/generate';
-import type { EconomicEvent } from '@kestrel/shared';
 
 function makeEvent(overrides: Partial<EconomicEvent> = {}): EconomicEvent {
   return {
@@ -91,20 +108,37 @@ describe('surpriseLabel', () => {
   });
 
   it('returns "Print matched forecast" when equal', () => {
-    expect(surpriseLabel(makeEvent({ actual: 200, forecast: 200 }))).toBe('Print matched forecast.');
+    expect(surpriseLabel(makeEvent({ actual: 200, forecast: 200 }))).toBe(
+      'Print matched forecast.',
+    );
   });
 
   it('returns "Beat (positive surprise)" when actual exceeds forecast', () => {
-    expect(surpriseLabel(makeEvent({ actual: 250, forecast: 200 }))).toBe('Beat (positive surprise).');
+    expect(surpriseLabel(makeEvent({ actual: 250, forecast: 200 }))).toBe(
+      'Beat (positive surprise).',
+    );
   });
 
   it('returns "Miss (negative surprise)" when actual below forecast', () => {
-    expect(surpriseLabel(makeEvent({ actual: 150, forecast: 200 }))).toBe('Miss (negative surprise).');
+    expect(surpriseLabel(makeEvent({ actual: 150, forecast: 200 }))).toBe(
+      'Miss (negative surprise).',
+    );
   });
 });
 
 describe('deterministicWeeklyReview', () => {
-  function makeStats(overrides: Partial<{ count: number; wins: number; losses: number; breakevens: number; open: number; winRate: number; avgR: number; totalR: number }> = {}) {
+  function makeStats(
+    overrides: Partial<{
+      count: number;
+      wins: number;
+      losses: number;
+      breakevens: number;
+      open: number;
+      winRate: number;
+      avgR: number;
+      totalR: number;
+    }> = {},
+  ) {
     return {
       count: 10,
       wins: 6,

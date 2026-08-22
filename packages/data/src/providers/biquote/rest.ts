@@ -34,8 +34,9 @@ import {
   BiquoteTickSchema,
   type BiquoteOhlcBar,
   type BiquoteTick,
+  type Symbol,
+  type Timeframe,
 } from '@kestrel/shared';
-import type { Symbol, Timeframe } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { noteBackoff, tryReserve, type ThrottleConfig } from '../../cache/throttle';
@@ -106,7 +107,8 @@ async function call<T>(
   const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
   if (opts.signal) {
     if (opts.signal.aborted) ctrl.abort(opts.signal.reason);
-    else opts.signal.addEventListener('abort', () => ctrl.abort(opts.signal!.reason), { once: true });
+    else
+      opts.signal.addEventListener('abort', () => ctrl.abort(opts.signal!.reason), { once: true });
   }
 
   let res: Response;

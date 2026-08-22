@@ -17,7 +17,6 @@
  */
 
 // Current and max win/loss streak pills.
-
 import type { JournalStats } from '@kestrel/shared';
 
 import { cn } from '@/lib/cn';
@@ -42,26 +41,25 @@ export function StreakDisplay({ stats, className }: StreakDisplayProps) {
 
   return (
     <div className={cn('grid grid-cols-3 gap-3', className)}>
-      <div
-        className={cn(
-          'border border-border rounded-sm p-3 flex flex-col gap-1',
-          currentClass,
-        )}
-      >
-        <span className="text-caption font-bold uppercase tracking-wider opacity-80">Current</span>
+      <div className={cn('border-border flex flex-col gap-1 rounded-sm border p-3', currentClass)}>
+        <span className="text-caption font-bold tracking-wider uppercase opacity-80">Current</span>
         <span className="text-lg font-bold tabular-nums">
           {current.count}
           {currentLabel}
         </span>
       </div>
 
-      <div className="border border-border bg-bg-elev-1 rounded-sm p-3 flex flex-col gap-1 text-bull">
-        <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Best Win</span>
+      <div className="border-border bg-bg-elev-1 text-bull flex flex-col gap-1 rounded-sm border p-3">
+        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+          Best Win
+        </span>
         <span className="text-lg font-bold tabular-nums">{maxWin}</span>
       </div>
 
-      <div className="border border-border bg-bg-elev-1 rounded-sm p-3 flex flex-col gap-1 text-bear">
-        <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Worst Loss</span>
+      <div className="border-border bg-bg-elev-1 text-bear flex flex-col gap-1 rounded-sm border p-3">
+        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+          Worst Loss
+        </span>
         <span className="text-lg font-bold tabular-nums">{maxLoss}</span>
       </div>
     </div>

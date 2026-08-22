@@ -19,7 +19,7 @@
 // These functions provide a cached lookup of a tenant's active subscription
 // and associated plan, used by feature gating checks across the app.
 
-import { eq, and, desc, gte, lt } from 'drizzle-orm';
+import { and, desc, eq, gte, lt } from 'drizzle-orm';
 
 import { getDb, schema } from '../index';
 
@@ -140,12 +140,7 @@ export async function countActiveAlerts(tenantId: string): Promise<number> {
   const result = await db
     .select({ id: schema.alerts.id })
     .from(schema.alerts)
-    .where(
-      and(
-        eq(schema.alerts.tenantId, tenantId),
-        eq(schema.alerts.active, true),
-      ),
-    );
+    .where(and(eq(schema.alerts.tenantId, tenantId), eq(schema.alerts.active, true)));
   return result.length;
 }
 

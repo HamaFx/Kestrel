@@ -23,14 +23,13 @@
 // stay flat for a few hours or whether they have all day. The pulse
 // strip shows the distribution of upcoming impacts so the user can
 // gauge how event-heavy the week is.
-
 import type { EconomicEvent } from '@kestrel/shared';
-import {IconClock, IconBolt} from '@tabler/icons-react';
+import { IconBolt, IconClock } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
 import { useTime } from '@/components/providers/time-provider';
-import { startOfDay } from '@/lib/datetime';
 import { cn } from '@/lib/cn';
+import { startOfDay } from '@/lib/datetime';
 
 interface CalendarHeroProps {
   events?: readonly EconomicEvent[];
@@ -62,7 +61,7 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
   return (
     <section
       aria-label="Calendar overview"
-      className="border border-border bg-bg-elev-1 rounded-sm relative flex flex-col gap-4 overflow-hidden p-4"
+      className="border-border bg-bg-elev-1 relative flex flex-col gap-4 overflow-hidden rounded-sm border p-4"
     >
       {/* Countdown row */}
       {nextHigh ? (
@@ -74,14 +73,16 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
             <IconBolt className="size-5" strokeWidth={2} />
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <p className="text-fg-subtle text-caption font-semibold uppercase tracking-wider">
+            <p className="text-fg-subtle text-caption font-semibold tracking-wider uppercase">
               Next high-impact
             </p>
             <p className="text-fg truncate text-base font-bold">{nextHigh.title}</p>
             <p className="text-fg-muted flex items-center gap-1.5 text-xs tabular-nums">
               <IconClock className="size-3" />
               <Countdown ms={nextHigh.date - now} />
-              <span aria-hidden className="opacity-50">·</span>
+              <span aria-hidden className="opacity-50">
+                ·
+              </span>
               <CountryChip country={nextHigh.country} currency={nextHigh.currency} />
             </p>
           </div>
@@ -104,8 +105,8 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
 
       {/* Distribution bar — shows the impact mix for the next two weeks */}
       <div className="flex flex-col gap-2">
-        <div className="text-fg-subtle flex items-baseline justify-between text-body-sm">
-          <span className="font-semibold uppercase tracking-wider">Next 14 days</span>
+        <div className="text-fg-subtle text-body-sm flex items-baseline justify-between">
+          <span className="font-semibold tracking-wider uppercase">Next 14 days</span>
           <span className="tabular-nums">
             {todayCount > 0 ? `${todayCount} today · ` : ''}
             {upcoming.length} upcoming
@@ -134,7 +135,7 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
             />
           ) : null}
         </div>
-        <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm tabular-nums">
+        <ul className="text-body-sm flex flex-wrap items-center gap-x-3 gap-y-1 tabular-nums">
           <Tag dot="bg-danger" tone="text-danger" label="High" count={counts.high} />
           <Tag dot="bg-warn" tone="text-warn" label="Medium" count={counts.medium} />
           <Tag dot="bg-fg-subtle" tone="text-fg-muted" label="Low" count={counts.low} />
@@ -165,11 +166,7 @@ function Countdown({ ms }: { ms: number }) {
       </span>
     );
   }
-  return (
-    <span className="text-warn font-semibold">
-      in {m}m
-    </span>
-  );
+  return <span className="text-warn font-semibold">in {m}m</span>;
 }
 
 function CountryChip({
@@ -181,7 +178,7 @@ function CountryChip({
 }) {
   const label = currency ?? country;
   return (
-    <span className="bg-bg-elev-2 border border-border rounded-sm px-1.5 py-0.5 text-caption font-bold uppercase tabular-nums">
+    <span className="bg-bg-elev-2 border-border text-caption rounded-sm border px-1.5 py-0.5 font-bold uppercase tabular-nums">
       {label}
     </span>
   );
@@ -206,4 +203,3 @@ function Tag({
     </li>
   );
 }
-

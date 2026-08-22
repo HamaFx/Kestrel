@@ -28,10 +28,12 @@
 // — PGlite doesn't support custom schemas reliably, and the tracking
 // table only needs to be queryable by the PGlite runner itself.
 
-import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
+
 import * as schema from './schema/index';
 
 const DEFAULT_DATA_DIR = resolve('.kestrel/data');
@@ -103,10 +105,7 @@ export function sanitizeStatement(sql: string): string {
       /CREATE\s+EXTENSION\s+IF\s+NOT\s+EXISTS\s+"vector".*?;/gi,
       '-- [pglite] pgvector extension skipped',
     )
-    .replace(
-      /"embedding"\s+vector\(\d+\)/gi,
-      '"embedding" real[]',
-    )
+    .replace(/"embedding"\s+vector\(\d+\)/gi, '"embedding" real[]')
     .replace(
       /CREATE\s+INDEX\s+.*?\s+USING\s+hnsw\s*\(.*?vector_cosine_ops.*?\);/gi,
       '-- [pglite] HNSW index skipped (requires pgvector)',
@@ -214,9 +213,7 @@ export async function applyMigrations(dataDir?: string): Promise<void> {
   );
 
   // Get already-applied tags
-  const { rows } = await db.execute(
-    'SELECT hash FROM "__drizzle_migrations"',
-  );
+  const { rows } = await db.execute('SELECT hash FROM "__drizzle_migrations"');
   const applied = new Set(rows.map((r: Record<string, unknown>) => String(r.hash)));
 
   // Self-heal renames: if any OLD alias tag is in `applied`, insert the
@@ -241,9 +238,7 @@ export async function applyMigrations(dataDir?: string): Promise<void> {
     if (applied.has(entry.tag)) continue;
 
     const files = readdirSync(MIGRATIONS_DIR);
-    const sqlFile = files.find(
-      (f) => f.startsWith(entry.tag) && f.endsWith('.sql'),
-    );
+    const sqlFile = files.find((f) => f.startsWith(entry.tag) && f.endsWith('.sql'));
     if (!sqlFile) continue;
 
     const rawSql = readFileSync(join(MIGRATIONS_DIR, sqlFile), 'utf-8');
@@ -260,10 +255,7 @@ export async function applyMigrations(dataDir?: string): Promise<void> {
       // but the preceding lines are usually a `-- comment block` followed
       // by a blank line before the actual statement. Skip both.
       const lines = trimmed.split('\n');
-      while (
-        lines.length > 0 &&
-        (lines[0]!.trim() === '' || lines[0]!.trim().startsWith('--'))
-      ) {
+      while (lines.length > 0 && (lines[0]!.trim() === '' || lines[0]!.trim().startsWith('--'))) {
         lines.shift();
       }
       trimmed = lines.join('\n').trim();
@@ -277,12 +269,8 @@ export async function applyMigrations(dataDir?: string): Promise<void> {
         // drizzle-orm 0.45+ wraps PGlite errors with "Failed query:" prefix.
         // Extract the underlying message from err.cause when present.
         const causeMsg =
-          err instanceof Error && err.cause instanceof Error
-            ? err.cause.message
-            : undefined;
-        const msg =
-          causeMsg ??
-          (err instanceof Error ? err.message : String(err));
+          err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
+        const msg = causeMsg ?? (err instanceof Error ? err.message : String(err));
         // Silently skip pgvector-related failures (PGlite lacks the
         // vector extension; the schema has a `real[]` fallback).
         if (msg.includes('vector') || msg.includes('hnsw') || msg.includes('extension')) {
@@ -299,10 +287,12 @@ export async function applyMigrations(dataDir?: string): Promise<void> {
             // If raw exec() also fails with a PGlite-incompatible error,
             // skip the statement silently.
             if (
-              rawMsg.includes('vector') || rawMsg.includes('hnsw') ||
+              rawMsg.includes('vector') ||
+              rawMsg.includes('hnsw') ||
               (rawMsg.includes('relation') && rawMsg.includes('does not exist')) ||
               (rawMsg.includes('column') && rawMsg.includes('does not exist')) ||
-              rawMsg.includes('depend') || rawMsg.includes('already exists')
+              rawMsg.includes('depend') ||
+              rawMsg.includes('already exists')
             ) {
               continue;
             }
@@ -338,9 +328,7 @@ export async function applyMigrations(dataDir?: string): Promise<void> {
         // the problem instead of a silently-broken DB.
         // (Previously this branch swallowed the error, which is how
         // we ended up with `_migrationsApplied=true` and zero tables.)
-        throw new Error(
-          `[pglite] statement in ${entry.tag} failed: ${msg.slice(0, 200)}`,
-        );
+        throw new Error(`[pglite] statement in ${entry.tag} failed: ${msg.slice(0, 200)}`);
       }
     }
 
@@ -386,12 +374,8 @@ export async function executeWithFallback(
     // underlying error message, not the wrapper, to detect
     // PGlite-incompatible multi-statement SQL.
     const causeMsg =
-      err instanceof Error && err.cause instanceof Error
-        ? err.cause.message
-        : undefined;
-    const msg =
-      causeMsg ??
-      (err instanceof Error ? err.message : String(err));
+      err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
+    const msg = causeMsg ?? (err instanceof Error ? err.message : String(err));
     if (msg.includes('cannot insert multiple commands')) {
       try {
         await _pglite!.exec(sql);

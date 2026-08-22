@@ -18,10 +18,10 @@
 //
 // Tests the pure P&L computation logic without DB or price fetches.
 
+import type { PortfolioPosition } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
 
 import { computePnL } from './risk-service';
-import type { PortfolioPosition } from '@kestrel/shared';
 
 function makePosition(overrides: Partial<PortfolioPosition> = {}): PortfolioPosition {
   return {
@@ -79,12 +79,12 @@ describe('computePnL', () => {
     const pos = makePosition({
       symbol: 'EURUSD',
       direction: 'long',
-      entryPrice: 1.1000,
+      entryPrice: 1.1,
       lotSize: 1.0,
-      stopLoss: 1.0900,
-      takeProfit: 1.1200,
+      stopLoss: 1.09,
+      takeProfit: 1.12,
     });
-    const result = computePnL(pos, 1.1100);
+    const result = computePnL(pos, 1.11);
 
     // EURUSD: contract size = 100,000, lot = 1.0
     // P&L = (1.1100 - 1.1000) * 100000 * 1.0 = 1000

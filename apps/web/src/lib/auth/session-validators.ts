@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Session-callback validators extracted from auth.ts so they can be
@@ -5,9 +21,9 @@
 // throttling semantics but combines the tokenVersion and session-row
 // checks into one query to cut DB round-trips.
 
-import { eq } from 'drizzle-orm';
-import { logErrorContext } from '@kestrel/shared/logger';
 import { schema, type DbClient } from '@kestrel/db';
+import { logErrorContext } from '@kestrel/shared/logger';
+import { eq } from 'drizzle-orm';
 
 const TV_CHECK_INTERVAL_SECONDS = 60;
 const LAST_ACTIVE_INTERVAL_SECONDS = 900;
@@ -52,7 +68,11 @@ export async function validateSession(
   const failClosed = opts.failClosed ?? true;
 
   // FEAT-04: Without rememberMe, invalidate sessions older than 24h.
-  if (token.iat && token.rememberMe !== true && nowSeconds - token.iat > SESSION_AGE_LIMIT_SECONDS) {
+  if (
+    token.iat &&
+    token.rememberMe !== true &&
+    nowSeconds - token.iat > SESSION_AGE_LIMIT_SECONDS
+  ) {
     return invalidatedSession(session);
   }
 
@@ -101,7 +121,10 @@ export async function validateSession(
   // if it cannot complete, do not keep serving an unchecked session.
   const lastActiveUpdate = token.lastActiveUpdate;
   const sessionId = token.sessionId;
-  if (sessionId && (!lastActiveUpdate || nowSeconds - lastActiveUpdate > LAST_ACTIVE_INTERVAL_SECONDS)) {
+  if (
+    sessionId &&
+    (!lastActiveUpdate || nowSeconds - lastActiveUpdate > LAST_ACTIVE_INTERVAL_SECONDS)
+  ) {
     try {
       await db
         .update(schema.userSessions)

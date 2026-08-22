@@ -1,6 +1,25 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, expect, it } from 'vitest';
 
-import { extractLatestMastraReport, mayReferToMastraReport } from '@/lib/services/mastra-report-context';
+import {
+  extractLatestMastraReport,
+  mayReferToMastraReport,
+} from '@/lib/services/mastra-report-context';
 
 const report = {
   symbol: 'XAUUSD',
@@ -13,8 +32,25 @@ const report = {
   technicalSummary: 'Higher timeframe is constructive.',
   fundamentalSummary: 'Macro context is mixed.',
   scenarios: [
-    { name: 'bullish', direction: 'bullish', trigger: 'breakout', entryZone: '2400', invalidation: '2380', targets: ['2440'], risks: ['news'], evidenceIds: ['price-1'] },
-    { name: 'bearish', direction: 'bearish', trigger: 'breakdown', invalidation: '2440', targets: ['2380'], risks: ['volatility'], evidenceIds: ['price-1'] },
+    {
+      name: 'bullish',
+      direction: 'bullish',
+      trigger: 'breakout',
+      entryZone: '2400',
+      invalidation: '2380',
+      targets: ['2440'],
+      risks: ['news'],
+      evidenceIds: ['price-1'],
+    },
+    {
+      name: 'bearish',
+      direction: 'bearish',
+      trigger: 'breakdown',
+      invalidation: '2440',
+      targets: ['2380'],
+      risks: ['volatility'],
+      evidenceIds: ['price-1'],
+    },
   ],
   contradictions: ['Short timeframe is weaker.'],
   missingData: [],
@@ -32,13 +68,40 @@ describe('mastra report context', () => {
 
   it('extracts only schema-valid reports from persisted assistant parts', () => {
     const messages = [
-      { id: 'assistant-1', threadId: 'thread-1', role: 'assistant' as const, content: '', parts: [{ type: 'data-multi-agent-meta', data: { report } }], createdAt: 1 },
-      { id: 'assistant-2', threadId: 'thread-1', role: 'assistant' as const, content: '', parts: [{ type: 'data-multi-agent-meta', data: { report: { ...report, symbol: 'BTCUSD' } } }], createdAt: 2 },
+      {
+        id: 'assistant-1',
+        threadId: 'thread-1',
+        role: 'assistant' as const,
+        content: '',
+        parts: [{ type: 'data-multi-agent-meta', data: { report } }],
+        createdAt: 1,
+      },
+      {
+        id: 'assistant-2',
+        threadId: 'thread-1',
+        role: 'assistant' as const,
+        content: '',
+        parts: [
+          { type: 'data-multi-agent-meta', data: { report: { ...report, symbol: 'BTCUSD' } } },
+        ],
+        createdAt: 2,
+      },
     ];
     expect(extractLatestMastraReport(messages)?.symbol).toBe('XAUUSD');
   });
 
   it('returns null when no trusted report exists', () => {
-    expect(extractLatestMastraReport([{ id: 'assistant-1', threadId: 'thread-1', role: 'assistant', content: '', parts: [], createdAt: 1 }])).toBeNull();
+    expect(
+      extractLatestMastraReport([
+        {
+          id: 'assistant-1',
+          threadId: 'thread-1',
+          role: 'assistant',
+          content: '',
+          parts: [],
+          createdAt: 1,
+        },
+      ]),
+    ).toBeNull();
   });
 });

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Tests for the register flow's input validation + password hashing.
@@ -7,10 +23,12 @@
 // End-to-end coverage lives in the manual smoke test (Task A.2) where
 // `docker compose up` provides a real Postgres.
 
+import { createHash } from 'node:crypto';
+
+import bcrypt from 'bcryptjs';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
-import { createHash } from 'node:crypto';
+
 import { sanitizeNext } from '../src/app/(auth)/actions';
 
 const registerSchema = z.object({
@@ -315,7 +333,7 @@ describe('remember me logic (FEAT-04)', () => {
 
   function isSessionExpired(iat: number, rememberMe: boolean, now: number): boolean {
     if (rememberMe) return false; // session cookie handles maxAge
-    return (now - iat) > ONE_DAY;
+    return now - iat > ONE_DAY;
   }
 
   it('keeps rememberMe sessions valid beyond 24h', () => {

@@ -1,4 +1,21 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, expect, it } from 'vitest';
+
 import { toCandle, toCandleFromBiquote } from '../src/providers/to-candle';
 
 const DEFAULT_OPTS = {
@@ -27,10 +44,7 @@ describe('toCandle', () => {
   });
 
   it('accepts null volume', () => {
-    const result = toCandle(
-      { t: 1, o: 100, h: 101, l: 99, c: 100, v: null },
-      DEFAULT_OPTS,
-    );
+    const result = toCandle({ t: 1, o: 100, h: 101, l: 99, c: 100, v: null }, DEFAULT_OPTS);
     expect(result.v).toBeNull();
   });
 
@@ -47,7 +61,14 @@ describe('toCandle', () => {
 describe('toCandleFromBiquote', () => {
   it('maps a BiQuote bar to a Candle DTO', () => {
     const result = toCandleFromBiquote(
-      { openTime: '2025-01-15T10:00:00.000Z', open: 2000, high: 2010, low: 1995, close: 2005, volume: 0 },
+      {
+        openTime: '2025-01-15T10:00:00.000Z',
+        open: 2000,
+        high: 2010,
+        low: 1995,
+        close: 2005,
+        volume: 0,
+      },
       { symbol: 'XAUUSD' as const, tf: '1h' as const, fetchedAt: 1_700_000_000_000 },
     );
     expect(result.symbol).toBe('XAUUSD');
@@ -64,7 +85,14 @@ describe('toCandleFromBiquote', () => {
 
   it('maps positive volume when provided', () => {
     const result = toCandleFromBiquote(
-      { openTime: '2025-01-15T10:00:00.000Z', open: 100, high: 101, low: 99, close: 100, volume: 500 },
+      {
+        openTime: '2025-01-15T10:00:00.000Z',
+        open: 100,
+        high: 101,
+        low: 99,
+        close: 100,
+        volume: 500,
+      },
       { symbol: 'EURUSD' as const, tf: '1h' as const, fetchedAt: 1 },
     );
     expect(result.v).toBe(500);

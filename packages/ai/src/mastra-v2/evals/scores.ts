@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -10,9 +26,9 @@
  * depending on Mastra internals.
  */
 
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { Mastra } from '@mastra/core';
 import type { ScoreRowData } from '@mastra/core/evals';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 const slog = createCategorizedLogger('ai', { component: 'mastra-evals-scores' });
 
@@ -53,11 +69,10 @@ interface ScoresDomain {
  * scores domain. Returns an empty array when the instance exposes no scores
  * storage (e.g. minimal in-memory test instances).
  */
-export async function listScoresForRun(
-  instance: Mastra,
-  runId: string,
-): Promise<ScoreRecord[]> {
-  const storage = instance.getStorage() as (typeof instance extends never ? never : { getStore?: (domain: string) => Promise<unknown> }) | null;
+export async function listScoresForRun(instance: Mastra, runId: string): Promise<ScoreRecord[]> {
+  const storage = instance.getStorage() as
+    | (typeof instance extends never ? never : { getStore?: (domain: string) => Promise<unknown> })
+    | null;
   if (!storage || typeof storage.getStore !== 'function') {
     slog.warn('Mastra storage exposes no scores domain', { runId });
     return [];

@@ -1,13 +1,31 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Per-iteration VU function: broad read endpoint mix resembling a browsing
 // user on the dashboard/chat surface.
+import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { sleep } from 'k6';
 import { SharedArray } from 'k6/data';
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
-import { getJson } from '../lib/http.js';
-import type { SessionCtx } from '../config/environments.js';
 
-const symbols = new SharedArray('symbols', () =>
-  JSON.parse(open('../lib/data/symbols.json') as string) as string[],
+import type { SessionCtx } from '../config/environments.js';
+import { getJson } from '../lib/http.js';
+
+const symbols = new SharedArray(
+  'symbols',
+  () => JSON.parse(open('../lib/data/symbols.json') as string) as string[],
 );
 
 export function readMix(_ctx: SessionCtx): void {
@@ -18,10 +36,7 @@ export function readMix(_ctx: SessionCtx): void {
   sleep(0.3 + Math.random() * 0.5);
 
   if (Math.random() < 0.4) {
-    getJson(
-      `/api/market/candles?symbol=${symbol}&timeframe=1h`,
-      'market_read',
-    );
+    getJson(`/api/market/candles?symbol=${symbol}&timeframe=1h`, 'market_read');
     sleep(0.3 + Math.random() * 0.5);
   }
 

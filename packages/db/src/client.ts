@@ -54,8 +54,7 @@ function resolvePoolMax(): number {
   // Workers set `KESTREL_RUNTIME=worker` in the systemd unit's
   // environment file so we can pick the right default without
   // pulling Vercel-specific env vars into @kestrel/db.
-  const isWorker =
-    (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker';
+  const isWorker = (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker';
   const envOverride = isWorker ? process.env.WORKER_DB_POOL_MAX : process.env.DB_POOL_MAX;
   if (envOverride) {
     const n = Number(envOverride);
@@ -83,8 +82,7 @@ export type DbClient = ReturnType<typeof drizzle>;
 
 function resolveStatementTimeout(): number {
   if (process.env.NODE_ENV === 'test') return 30000;
-  const isWorker =
-    (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker';
+  const isWorker = (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker';
   return isWorker ? DEFAULT_WORKER_STATEMENT_TIMEOUT : DEFAULT_WEB_STATEMENT_TIMEOUT;
 }
 

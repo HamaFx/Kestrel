@@ -17,6 +17,7 @@
 // PF-01 Phase 2 — Portfolio position and settings query helpers.
 
 import { and, desc, eq, isNull } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 // ── Positions ───────────────────────────────────────────────────────────────
@@ -43,7 +44,10 @@ export async function listAllPositions(
   userId: string,
   opts?: { status?: string; limit?: number },
 ): Promise<PositionRow[]> {
-  const conditions = [eq(schema.portfolioPositions.userId, userId), isNull(schema.portfolioPositions.deletedAt)];
+  const conditions = [
+    eq(schema.portfolioPositions.userId, userId),
+    isNull(schema.portfolioPositions.deletedAt),
+  ];
   if (opts?.status) conditions.push(eq(schema.portfolioPositions.status, opts.status));
   const db = getDb();
   return db
@@ -96,7 +100,9 @@ export async function deletePosition(id: string, userId: string): Promise<void> 
 
 export type PortfolioSettingsRow = typeof schema.portfolioSettings.$inferSelect;
 
-export async function getPortfolioSettings(userId: string): Promise<PortfolioSettingsRow | undefined> {
+export async function getPortfolioSettings(
+  userId: string,
+): Promise<PortfolioSettingsRow | undefined> {
   const db = getDb();
   const rows = await db
     .select()

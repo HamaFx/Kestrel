@@ -25,8 +25,9 @@
 // Key = `${providerId}:${userId}` — per-user-per-provider isolation so one
 // user's exhaustion doesn't delay calls for others on the same instance.
 
-import type { RateLimitData } from './rate-limits';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+
+import type { RateLimitData } from './rate-limits';
 
 const throttleLog = createCategorizedLogger('ai', { component: 'llm-throttle' });
 
@@ -64,11 +65,11 @@ export function noteLlmRateLimit(key: string, data: RateLimitData): void {
       resetRequestsMs:
         data.resetRequests !== undefined
           ? parseReset(data.resetRequests, now)
-          : existing?.resetRequestsMs ?? 0,
+          : (existing?.resetRequestsMs ?? 0),
       resetTokensMs:
         data.resetTokens !== undefined
           ? parseReset(data.resetTokens, now)
-          : existing?.resetTokensMs ?? 0,
+          : (existing?.resetTokensMs ?? 0),
     });
   } catch (err) {
     // Fail-open — this is a soft governor, but the bypass must be visible.

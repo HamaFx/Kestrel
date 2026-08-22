@@ -26,10 +26,9 @@
 // usePathname makes this a client component, but the cost is one
 // useState read per navigation — negligible, and well worth the
 // simplicity vs. a route-group restructure.
-
-import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { usePathname } from 'next/navigation';
 
+import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { cn } from '@/lib/cn';
 
 import { NavTrigger } from './nav-trigger';
@@ -53,7 +52,7 @@ export function TopBar({ title, right }: TopBarProps) {
     <header
       className={cn(
         'sticky top-0 z-30 flex h-12 w-full items-center justify-between',
-        'border-b border-border bg-bg/90 backdrop-blur-md px-3 pt-safe',
+        'border-border bg-bg/90 pt-safe border-b px-3 backdrop-blur-md',
       )}
     >
       <NavTrigger />

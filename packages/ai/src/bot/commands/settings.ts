@@ -17,9 +17,10 @@
 // F7+ — /settings command: show user's bot and account settings.
 // /settings → displays current configuration and quick links.
 
-import type { BotCommand, BotResponse, BotContext } from '../types';
-import { getBotLink } from '../linking';
 import { getUserWithSettings } from '@kestrel/db';
+
+import { getBotLink } from '../linking';
+import type { BotCommand, BotContext, BotResponse } from '../types';
 
 export const settingsCommand: BotCommand = {
   name: 'settings',
@@ -30,11 +31,13 @@ export const settingsCommand: BotCommand = {
       const link = await getBotLink(ctx.userId, 'telegram');
       const { settings } = await getUserWithSettings(ctx.userId);
 
-      const linkedAt = link ? new Date(link.linkedAt).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }) : 'Not linked';
+      const linkedAt = link
+        ? new Date(link.linkedAt).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        : 'Not linked';
 
       const modelInfo = settings?.defaultModels
         ? Object.entries(settings.defaultModels)

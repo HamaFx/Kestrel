@@ -7,6 +7,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PushSubscriptionConflictError, savePushSubscription } from '../src/push/persistence';
+
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
   returning: vi.fn(),
@@ -31,11 +33,6 @@ vi.mock('drizzle-orm', () => ({
   and: (...conditions: unknown[]) => ({ conditions }),
   eq: (left: unknown, right: unknown) => ({ left, right }),
 }));
-
-import {
-  PushSubscriptionConflictError,
-  savePushSubscription,
-} from '../src/push/persistence';
 
 const USER_A = 'user-a';
 const USER_B = 'user-b';
@@ -71,9 +68,7 @@ beforeEach(() => {
 
 describe('savePushSubscription ownership', () => {
   it('updates keys when the endpoint already belongs to the same user', async () => {
-    mocks.returning.mockResolvedValue([
-      makeRow(USER_A, 'new-p256dh', 'new-auth', 'new-agent'),
-    ]);
+    mocks.returning.mockResolvedValue([makeRow(USER_A, 'new-p256dh', 'new-auth', 'new-agent')]);
 
     const result = await savePushSubscription({
       userId: USER_A,

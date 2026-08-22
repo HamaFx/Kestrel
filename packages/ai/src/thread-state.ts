@@ -45,10 +45,18 @@ export interface ThreadStateHandler {
 class CreatedState implements ThreadStateHandler {
   readonly state: ThreadState = 'created';
 
-  canAppendMessage(): boolean { return true; }
-  canEdit(): boolean { return true; }
-  canDelete(): boolean { return true; }
-  canArchive(): boolean { return false; }
+  canAppendMessage(): boolean {
+    return true;
+  }
+  canEdit(): boolean {
+    return true;
+  }
+  canDelete(): boolean {
+    return true;
+  }
+  canArchive(): boolean {
+    return false;
+  }
 
   allowedTransitions(): ThreadState[] {
     return ['active', 'deleted'];
@@ -58,10 +66,18 @@ class CreatedState implements ThreadStateHandler {
 class ActiveState implements ThreadStateHandler {
   readonly state: ThreadState = 'active';
 
-  canAppendMessage(): boolean { return true; }
-  canEdit(): boolean { return true; }
-  canDelete(): boolean { return true; }
-  canArchive(): boolean { return true; }
+  canAppendMessage(): boolean {
+    return true;
+  }
+  canEdit(): boolean {
+    return true;
+  }
+  canDelete(): boolean {
+    return true;
+  }
+  canArchive(): boolean {
+    return true;
+  }
 
   allowedTransitions(): ThreadState[] {
     return ['archived', 'deleted'];
@@ -71,10 +87,18 @@ class ActiveState implements ThreadStateHandler {
 class ArchivedState implements ThreadStateHandler {
   readonly state: ThreadState = 'archived';
 
-  canAppendMessage(): boolean { return false; }
-  canEdit(): boolean { return false; }
-  canDelete(): boolean { return true; }
-  canArchive(): boolean { return false; }
+  canAppendMessage(): boolean {
+    return false;
+  }
+  canEdit(): boolean {
+    return false;
+  }
+  canDelete(): boolean {
+    return true;
+  }
+  canArchive(): boolean {
+    return false;
+  }
 
   allowedTransitions(): ThreadState[] {
     return ['active', 'deleted']; // unarchive or delete
@@ -84,10 +108,18 @@ class ArchivedState implements ThreadStateHandler {
 class DeletedState implements ThreadStateHandler {
   readonly state: ThreadState = 'deleted';
 
-  canAppendMessage(): boolean { return false; }
-  canEdit(): boolean { return false; }
-  canDelete(): boolean { return false; }
-  canArchive(): boolean { return false; }
+  canAppendMessage(): boolean {
+    return false;
+  }
+  canEdit(): boolean {
+    return false;
+  }
+  canDelete(): boolean {
+    return false;
+  }
+  canArchive(): boolean {
+    return false;
+  }
 
   allowedTransitions(): ThreadState[] {
     return []; // terminal state

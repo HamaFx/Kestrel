@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  logger,
-  createScopedLogger,
   createCategorizedLogger,
+  createScopedLogger,
   logErrorContext,
   logForAgent,
+  logger,
   requestIdStorage,
   runIdStorage,
   traceIdStorage,
@@ -142,7 +142,7 @@ describe('logErrorContext', () => {
     logErrorContext(err, 'testOperation', { userId: 'u-123' }, 'ai');
 
     expect(errorSpy).toHaveBeenCalledTimes(1);
-    const logObject = errorSpy.mock.calls[0][0] as Record<string, unknown>;
+    const logObject = errorSpy.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(logObject.category).toBe('ai');
     expect(logObject.operation).toBe('testOperation');
     expect(logObject.userId).toBe('u-123');
@@ -159,7 +159,7 @@ describe('logErrorContext', () => {
       ),
     );
 
-    const logObject = errorSpy.mock.calls[0][0] as Record<string, unknown>;
+    const logObject = errorSpy.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(logObject.traceId).toBe('trace-abc');
     expect(logObject.requestId).toBe('request-abc');
     expect(logObject.runId).toBe('run-abc');
@@ -169,7 +169,7 @@ describe('logErrorContext', () => {
     const err = new Error('Daily AI budget exceeded');
     logErrorContext(err, 'checkBudget');
 
-    const logObject = errorSpy.mock.calls[0][0] as Record<string, unknown>;
+    const logObject = errorSpy.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(logObject.errorPattern).toBe('Daily AI spend cap reached');
     expect(logObject.suggestedFix).toBeDefined();
     expect(logObject.retryable).toBe(false);
@@ -198,7 +198,7 @@ describe('logForAgent', () => {
     });
 
     expect(infoSpy).toHaveBeenCalledTimes(1);
-    const logObject = infoSpy.mock.calls[0][0] as Record<string, unknown>;
+    const logObject = infoSpy.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(logObject.agentLog).toBe(true);
     expect(logObject.operation).toBe('testOperation');
     expect(logObject.module).toBe('test-module');
@@ -215,7 +215,7 @@ describe('logForAgent', () => {
     });
 
     expect(errorSpy).toHaveBeenCalledTimes(1);
-    const logObject = errorSpy.mock.calls[0][0] as Record<string, unknown>;
+    const logObject = errorSpy.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(logObject.agentLog).toBe(true);
     expect(logObject.bugReport).toBeDefined();
     expect((logObject.bugReport as Record<string, unknown>).error).toBeDefined();
@@ -229,7 +229,7 @@ describe('logForAgent', () => {
       });
     });
 
-    const logObject = infoSpy.mock.calls[0][0] as Record<string, unknown>;
+    const logObject = infoSpy.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(logObject.traceId).toBe('trace-xyz');
   });
 });

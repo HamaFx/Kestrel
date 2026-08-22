@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `analyze_chart_image` tool part.
@@ -29,7 +45,9 @@ export function AnalyzeChartImagePart({
         <h3 className="text-fg text-sm font-semibold">
           {output.symbol ?? 'Chart'} {output.tf ? `· ${output.tf}` : ''} · vision
         </h3>
-        <span className="text-fg-subtle font-mono text-caption">{shortRef(output.sourceImageRef)}</span>
+        <span className="text-fg-subtle text-caption font-mono">
+          {shortRef(output.sourceImageRef)}
+        </span>
       </header>
 
       {output.observed ? (
@@ -41,7 +59,7 @@ export function AnalyzeChartImagePart({
       {output.symbol && output.tf ? (
         <Link
           href={buildChartHref(output)}
-          className="text-fg focus-visible:ring-fg text-right text-body-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2"
+          className="text-fg focus-visible:ring-fg text-body-sm text-right font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2"
         >
           open chart →
         </Link>
@@ -53,7 +71,7 @@ export function AnalyzeChartImagePart({
 function LevelsList({ output }: { output: AnalyzeChartImageOutput }) {
   const decimals = output.symbol ? priceDecimals(output.symbol) : 4;
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-body-sm tabular-nums">
+    <dl className="text-body-sm grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 tabular-nums">
       {output.levels.map((l, i) => (
         <Row key={`${l.label}-${l.price}-${i}`} label={l.label} value={l.price.toFixed(decimals)} />
       ))}

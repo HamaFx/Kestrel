@@ -18,21 +18,17 @@
 // into asia (00–07), london (07–12), ny (12–21) UTC windows and surface
 // `forming: true` when the session window's right edge is in the future.
 
+import { getCandles } from '@kestrel/data';
+import type { Candle, SessionTag } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Candle, SessionTag } from '@kestrel/shared';
+import { getSessionLevelsTool } from '../src/tools/get-session-levels';
 
 vi.mock('@kestrel/data', () => ({
   getCandles: vi.fn(),
 }));
 
-import { getCandles } from '@kestrel/data';
-
-import { getSessionLevelsTool } from '../src/tools/get-session-levels';
-
-const exec = getSessionLevelsTool.execute as unknown as (
-  input: unknown,
-) => Promise<{
+const exec = getSessionLevelsTool.execute as unknown as (input: unknown) => Promise<{
   today: Array<{
     session: SessionTag;
     open: number | null;

@@ -2,11 +2,35 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import {
+  IconCheck,
+  IconCopy,
+  IconDownload,
+  IconEye,
+  IconEyeOff,
+  IconUpload,
+} from '@tabler/icons-react';
 import { useState, useTransition } from 'react';
-import {IconDownload, IconUpload, IconCopy, IconCheck, IconEye, IconEyeOff} from '@tabler/icons-react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
 import { exportKeysAction, importKeysAction } from '../../actions';
 
 export function ExportImportKeys() {
@@ -33,7 +57,11 @@ export function ExportImportKeys() {
         setExportedPayload(res.data.payload);
         toast.success('Backup payload generated successfully');
       } else {
-        toast.error('error' in res ? (res.error ?? 'Failed to generate backup payload') : 'Failed to generate backup payload');
+        toast.error(
+          'error' in res
+            ? (res.error ?? 'Failed to generate backup payload')
+            : 'Failed to generate backup payload',
+        );
       }
     });
   }
@@ -73,10 +101,13 @@ export function ExportImportKeys() {
   }
 
   return (
-    <details className="border border-border bg-bg-elev-1 rounded-sm overflow-hidden mt-2">
-      <summary aria-label="Toggle backup and key migration section" className="cursor-pointer select-none px-4 py-3 flex items-center justify-between gap-3 hover:bg-bg-elev-2 transition-colors">
+    <details className="border-border bg-bg-elev-1 mt-2 overflow-hidden rounded-sm border">
+      <summary
+        aria-label="Toggle backup and key migration section"
+        className="hover:bg-bg-elev-2 flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors select-none"
+      >
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-fg">Backup & Key Migration</span>
+          <span className="text-fg text-sm font-medium">Backup & Key Migration</span>
           <span className="text-caption text-fg-subtle">
             Export your encrypted API keys for backup, or import them on another device.
           </span>
@@ -84,22 +115,22 @@ export function ExportImportKeys() {
         <span className="text-caption text-fg-subtle">▾</span>
       </summary>
 
-      <div className="border-t border-border p-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-bg-elev-2/10">
+      <div className="border-border bg-bg-elev-2/10 grid grid-cols-1 gap-6 border-t p-4 md:grid-cols-2">
         {/* Export Column */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <IconDownload className="size-4 text-fg shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-fg-muted">
+            <IconDownload className="text-fg size-4 shrink-0" />
+            <h3 className="text-fg-muted text-xs font-bold tracking-wider uppercase">
               Export API Keys
             </h3>
           </div>
-          <p className="text-xs text-fg-subtle leading-[1.4]">
-            Encrypt your API keys using your account password. You will need the same
-            password to decrypt and restore your keys later.
+          <p className="text-fg-subtle text-xs leading-[1.4]">
+            Encrypt your API keys using your account password. You will need the same password to
+            decrypt and restore your keys later.
           </p>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="export-pwd" className="text-xs font-bold text-fg-subtle uppercase">
+            <label htmlFor="export-pwd" className="text-fg-subtle text-xs font-bold uppercase">
               Account Password
             </label>
             <div className="relative">
@@ -114,11 +145,15 @@ export function ExportImportKeys() {
               <button
                 type="button"
                 onClick={() => setShowExportPassword(!showExportPassword)}
-                className="text-fg-muted hover:text-fg absolute right-2 top-1/2 -translate-y-1/2"
+                className="text-fg-muted hover:text-fg absolute top-1/2 right-2 -translate-y-1/2"
                 tabIndex={-1}
                 aria-label={showExportPassword ? 'Hide password' : 'Show password'}
               >
-                {showExportPassword ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
+                {showExportPassword ? (
+                  <IconEyeOff className="size-4" />
+                ) : (
+                  <IconEye className="size-4" />
+                )}
               </button>
             </div>
           </div>
@@ -130,19 +165,22 @@ export function ExportImportKeys() {
             onClick={handleExport}
             disabled={isExportPending || exportPassword.length < 8}
             loading={isExportPending}
-            className="w-full sm:w-auto self-start"
+            className="w-full self-start sm:w-auto"
           >
             {isExportPending ? 'Generating…' : 'Generate Backup Payload'}
           </Button>
 
           {exportedPayload && (
-            <div className="flex flex-col gap-1.5 mt-2">
-              <label htmlFor="export-payload" className="text-xs font-bold text-fg-subtle uppercase flex justify-between items-center">
+            <div className="mt-2 flex flex-col gap-1.5">
+              <label
+                htmlFor="export-payload"
+                className="text-fg-subtle flex items-center justify-between text-xs font-bold uppercase"
+              >
                 <span>Backup Payload</span>
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="text-fg hover:underline font-semibold flex items-center gap-1 normal-case"
+                  className="text-fg flex items-center gap-1 font-semibold normal-case hover:underline"
                 >
                   {copied ? <IconCheck className="size-3" /> : <IconCopy className="size-3" />}
                   {copied ? 'Copied' : 'Copy'}
@@ -153,28 +191,31 @@ export function ExportImportKeys() {
                 readOnly
                 value={exportedPayload}
                 rows={4}
-                className="w-full border border-border bg-bg-elev-2 text-fg font-mono text-xs rounded-sm p-2.5 resize-none focus:outline-none"
+                className="border-border bg-bg-elev-2 text-fg w-full resize-none rounded-sm border p-2.5 font-mono text-xs focus:outline-none"
               />
             </div>
           )}
         </div>
 
         {/* Import Column */}
-        <div className="flex flex-col gap-4 border-t md:border-t-0 md:border-l border-border pt-6 md:pt-0 md:pl-6">
+        <div className="border-border flex flex-col gap-4 border-t pt-6 md:border-t-0 md:border-l md:pt-0 md:pl-6">
           <div className="flex items-center gap-2">
-            <IconUpload className="size-4 text-fg shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-fg-muted">
+            <IconUpload className="text-fg size-4 shrink-0" />
+            <h3 className="text-fg-muted text-xs font-bold tracking-wider uppercase">
               Import API Keys
             </h3>
           </div>
-          <p className="text-xs text-fg-subtle leading-[1.4]">
-            Paste a previously exported backup payload and enter your account password to
-            restore your keys.
+          <p className="text-fg-subtle text-xs leading-[1.4]">
+            Paste a previously exported backup payload and enter your account password to restore
+            your keys.
           </p>
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
-              <label htmlFor="import-payload" className="text-xs font-bold text-fg-subtle uppercase">
+              <label
+                htmlFor="import-payload"
+                className="text-fg-subtle text-xs font-bold uppercase"
+              >
                 Backup Payload
               </label>
               <textarea
@@ -183,33 +224,37 @@ export function ExportImportKeys() {
                 value={importPayload}
                 onChange={(e) => setImportPayload(e.target.value)}
                 rows={3}
-                className="w-full border border-border bg-bg-elev-2 text-fg font-mono text-xs rounded-sm p-2.5 resize-none focus:border-border focus:outline-none focus:ring-1 focus:ring-border"
+                className="border-border bg-bg-elev-2 text-fg focus:border-border focus:ring-border w-full resize-none rounded-sm border p-2.5 font-mono text-xs focus:ring-1 focus:outline-none"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="import-pwd" className="text-xs font-bold text-fg-subtle uppercase">
+              <label htmlFor="import-pwd" className="text-fg-subtle text-xs font-bold uppercase">
                 Decryption Password
               </label>
               <div className="relative">
-              <Input
-                id="import-pwd"
-                type={showImportPassword ? 'text' : 'password'}
-                placeholder="Enter backup password"
-                value={importPassword}
-                onChange={(e) => setImportPassword(e.target.value)}
-                className="text-xs"
-              />
-              <button
-                type="button"
-                onClick={() => setShowImportPassword(!showImportPassword)}
-                className="text-fg-muted hover:text-fg absolute right-2 top-1/2 -translate-y-1/2"
-                tabIndex={-1}
-                aria-label={showImportPassword ? 'Hide password' : 'Show password'}
-              >
-                {showImportPassword ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
-              </button>
-            </div>
+                <Input
+                  id="import-pwd"
+                  type={showImportPassword ? 'text' : 'password'}
+                  placeholder="Enter backup password"
+                  value={importPassword}
+                  onChange={(e) => setImportPassword(e.target.value)}
+                  className="text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowImportPassword(!showImportPassword)}
+                  className="text-fg-muted hover:text-fg absolute top-1/2 right-2 -translate-y-1/2"
+                  tabIndex={-1}
+                  aria-label={showImportPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showImportPassword ? (
+                    <IconEyeOff className="size-4" />
+                  ) : (
+                    <IconEye className="size-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <Button
@@ -218,7 +263,7 @@ export function ExportImportKeys() {
               onClick={handleImport}
               disabled={isImportPending || !importPayload || !importPassword}
               loading={isImportPending}
-              className="w-full sm:w-auto self-start mt-1"
+              className="mt-1 w-full self-start sm:w-auto"
             >
               {isImportPending ? 'Importing…' : 'Decrypt & Restore Keys'}
             </Button>

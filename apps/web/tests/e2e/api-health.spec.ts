@@ -21,7 +21,7 @@
 // smoke tests — not full API integration tests (those live in vitest).
 // ---------------------------------------------------------------------------
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('API health', () => {
   test('GET /api/health returns 200', async ({ request }) => {

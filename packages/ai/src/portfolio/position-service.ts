@@ -20,17 +20,17 @@
 // Row ↔ domain object mapping follows the same pattern as decision-signals.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
-import { and, desc, eq } from 'drizzle-orm';
-
 import type {
+  ClosePositionInput,
+  CreatePositionInput,
   PortfolioPosition,
   PortfolioSettings,
   PositionDirection,
   PositionStatus,
-  CreatePositionInput,
-  ClosePositionInput,
 } from '@kestrel/shared';
+import { and, desc, eq } from 'drizzle-orm';
+
+import { getDb } from '../db';
 
 // ---------------------------------------------------------------------------
 // Position CRUD
@@ -74,10 +74,7 @@ export async function listOpenPositions(userId: string): Promise<PortfolioPositi
   return rows.map(rowToPosition);
 }
 
-export async function listAllPositions(
-  userId: string,
-  limit = 100,
-): Promise<PortfolioPosition[]> {
+export async function listAllPositions(userId: string, limit = 100): Promise<PortfolioPosition[]> {
   const rows = await getDb()
     .select()
     .from(schema.portfolioPositions)
@@ -88,7 +85,10 @@ export async function listAllPositions(
   return rows.map(rowToPosition);
 }
 
-export async function getPosition(userId: string, positionId: string): Promise<PortfolioPosition | null> {
+export async function getPosition(
+  userId: string,
+  positionId: string,
+): Promise<PortfolioPosition | null> {
   const rows = await getDb()
     .select()
     .from(schema.portfolioPositions)
@@ -165,7 +165,12 @@ export async function getPortfolioSettings(userId: string): Promise<PortfolioSet
 
 export async function savePortfolioSettings(
   userId: string,
-  updates: Partial<Pick<PortfolioSettings, 'accountBalance' | 'baseCurrency' | 'maxRiskPerTradePct' | 'maxTotalExposurePct'>>,
+  updates: Partial<
+    Pick<
+      PortfolioSettings,
+      'accountBalance' | 'baseCurrency' | 'maxRiskPerTradePct' | 'maxTotalExposurePct'
+    >
+  >,
 ): Promise<PortfolioSettings> {
   const current = await getPortfolioSettings(userId);
   const merged = { ...current, ...updates };

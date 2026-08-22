@@ -11,7 +11,7 @@
     "moduleResolution": "Bundler",
     // Inherit DOM types so the data-package imports (which use the
     // RequestInit { cache: 'no-store' } extension) typecheck cleanly.
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": ["ES2024", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["test", "dist", "node_modules"]

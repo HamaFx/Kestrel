@@ -19,13 +19,13 @@
 
 import { PROVIDER_IDS, type ProviderId } from '@kestrel/shared/byok';
 
-import { GOOGLE } from './google';
-import { VERTEX } from './vertex';
 import { ANTHROPIC } from './anthropic';
-import { OPENAI } from './openai';
+import { GOOGLE } from './google';
 import { GROQ, MISTRAL, OPENROUTER } from './groq-mistral-openrouter';
-import { XAI, DEEPSEEK, IAMHC, HCNSEC } from './xai-deepseek-iamhc';
+import { OPENAI } from './openai';
 import type { ByokProviderSpec, ModelDomain } from './types';
+import { VERTEX } from './vertex';
+import { DEEPSEEK, HCNSEC, IAMHC, XAI } from './xai-deepseek-iamhc';
 
 export const BYOK_PROVIDERS: Record<ProviderId, ByokProviderSpec> = {
   google: GOOGLE,
@@ -42,9 +42,7 @@ export const BYOK_PROVIDERS: Record<ProviderId, ByokProviderSpec> = {
 };
 
 /** Ordered list of all providers — handy for iterating in UI. */
-export const BYOK_PROVIDERS_LIST: ByokProviderSpec[] = PROVIDER_IDS.map(
-  (id) => BYOK_PROVIDERS[id],
-);
+export const BYOK_PROVIDERS_LIST: ByokProviderSpec[] = PROVIDER_IDS.map((id) => BYOK_PROVIDERS[id]);
 
 /** Lookup helper that throws a clear error if the id is unknown. */
 export function getProvider(id: ProviderId): ByokProviderSpec {
@@ -71,9 +69,7 @@ export function defaultModelFor(id: ProviderId, domain: ModelDomain): string | n
  * or a bare Gemini id. Used by cost estimation so rates stay in sync
  * with the provider registry.
  */
-export function lookupModelRate(
-  modelId: string,
-): { inputPerM: number; outputPerM: number } | null {
+export function lookupModelRate(modelId: string): { inputPerM: number; outputPerM: number } | null {
   let providerId: string | null = null;
   let bare = modelId;
 

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { IconCheck } from '@tabler/icons-react';
 
 interface WizardStepperProps {
@@ -26,15 +42,15 @@ export function WizardStepper({ step }: WizardStepperProps) {
           >
             <div
               aria-hidden="true"
-            className={`flex size-8 items-center justify-center rounded-sm text-sm font-semibold transition-colors ${
-              step >= i ? 'bg-fg text-black' : 'bg-bg-elev-1 text-fg-subtle'
-            }`}
-          >
+              className={`flex size-8 items-center justify-center rounded-sm text-sm font-semibold transition-colors ${
+                step >= i ? 'bg-fg text-black' : 'bg-bg-elev-1 text-fg-subtle'
+              }`}
+            >
               {step > i ? <IconCheck className="size-4" /> : i}
             </div>
             {i < 5 && (
               <div
-                className={`h-px w-8 sm:w-16 transition-colors ${
+                className={`h-px w-8 transition-colors sm:w-16 ${
                   step > i ? 'bg-fg' : 'bg-bg-elev-2'
                 }`}
               />

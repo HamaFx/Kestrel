@@ -15,7 +15,16 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 // Note: `real` is not needed here — analysis_mode is text.
 import { organization, users } from './auth';

@@ -33,6 +33,41 @@
 
 import type { z } from 'zod';
 
+import type { AnalyzeChartImageOutputSchema } from '../schemas/tool-outputs/analyze-chart-image';
+import type { AnalyzeFundamentalOutputSchema } from '../schemas/tool-outputs/analyze-fundamental';
+import type { AnalyzeTechnicalOutputSchema } from '../schemas/tool-outputs/analyze-technical';
+import type { AnnotateChartOutputSchema } from '../schemas/tool-outputs/annotate-chart';
+import type { ComputePositionHealthOutputSchema } from '../schemas/tool-outputs/compute-position-health';
+import type { ComputeRiskOutputSchema } from '../schemas/tool-outputs/compute-risk';
+import type { ConveneCommitteeOutputSchema } from '../schemas/tool-outputs/convene-committee';
+import type { ForecastVolatilityOutputSchema } from '../schemas/tool-outputs/forecast-volatility';
+import type { GetCalendarOutputSchema } from '../schemas/tool-outputs/get-calendar';
+import type { GetCandlesOutputSchema } from '../schemas/tool-outputs/get-candles';
+import type { GetCorrelationOutputSchema } from '../schemas/tool-outputs/get-correlation';
+import type { GetCoTOutputSchema } from '../schemas/tool-outputs/get-cot';
+import type { GetIndicatorsOutputSchema } from '../schemas/tool-outputs/get-indicators';
+import type { GetIntermarketOutputSchema } from '../schemas/tool-outputs/get-intermarket';
+import type { GetIntermarketResonanceOutputSchema } from '../schemas/tool-outputs/get-intermarket-resonance';
+import type { GetJournalStatsOutputSchema } from '../schemas/tool-outputs/get-journal-stats';
+import type { GetMarketStructureOutputSchema } from '../schemas/tool-outputs/get-market-structure';
+import type { GetNewsOutputSchema } from '../schemas/tool-outputs/get-news';
+import type { GetPortfolioSnapshotOutputSchema } from '../schemas/tool-outputs/get-portfolio-snapshot';
+import type { GetPriceOutputSchema } from '../schemas/tool-outputs/get-price';
+import type { GetSeasonalityOutputSchema } from '../schemas/tool-outputs/get-seasonality';
+import type { GetSessionLevelsOutputSchema } from '../schemas/tool-outputs/get-session-levels';
+import type { GetSocialSentimentOutputSchema } from '../schemas/tool-outputs/get-social-sentiment';
+import type { GetSystemDiagnosticsOutputSchema } from '../schemas/tool-outputs/get-system-diagnostics';
+import type { LogJournalOutputSchema } from '../schemas/tool-outputs/log-journal';
+import type { ReplaySetupOutputSchema } from '../schemas/tool-outputs/replay-setup';
+import type { RunSystemActionOutputSchema } from '../schemas/tool-outputs/run-system-action';
+import type { SearchKnowledgeOutputSchema } from '../schemas/tool-outputs/search-knowledge';
+import type { SetAlertOutputSchema } from '../schemas/tool-outputs/set-alert';
+import type { ShareSnapshotOutputSchema } from '../schemas/tool-outputs/share-snapshot';
+import type { SummarizeThreadOutputSchema } from '../schemas/tool-outputs/summarize-thread';
+import type { VerifyCallOutputSchema } from '../schemas/tool-outputs/verify-call';
+import type { WebSearchOutputSchema } from '../schemas/tool-outputs/web-search';
+import type { ToolName } from './tool-names';
+
 // P3-14 — Typed UIMessage part guards. These replace the scattered `as any`
 // casts around UIMessage.parts access across agent.ts and persistence.ts.
 
@@ -72,41 +107,6 @@ export function getMessageText(m: { parts?: unknown; content?: unknown; text?: u
   if (typeof m.text === 'string') return m.text.trim();
   return '';
 }
-
-import type { AnalyzeChartImageOutputSchema } from '../schemas/tool-outputs/analyze-chart-image';
-import type { AnalyzeFundamentalOutputSchema } from '../schemas/tool-outputs/analyze-fundamental';
-import type { AnalyzeTechnicalOutputSchema } from '../schemas/tool-outputs/analyze-technical';
-import type { AnnotateChartOutputSchema } from '../schemas/tool-outputs/annotate-chart';
-import type { ComputePositionHealthOutputSchema } from '../schemas/tool-outputs/compute-position-health';
-import type { ComputeRiskOutputSchema } from '../schemas/tool-outputs/compute-risk';
-import type { ForecastVolatilityOutputSchema } from '../schemas/tool-outputs/forecast-volatility';
-import type { GetCalendarOutputSchema } from '../schemas/tool-outputs/get-calendar';
-import type { GetCandlesOutputSchema } from '../schemas/tool-outputs/get-candles';
-import type { GetCorrelationOutputSchema } from '../schemas/tool-outputs/get-correlation';
-import type { GetCoTOutputSchema } from '../schemas/tool-outputs/get-cot';
-import type { GetIndicatorsOutputSchema } from '../schemas/tool-outputs/get-indicators';
-import type { GetIntermarketOutputSchema } from '../schemas/tool-outputs/get-intermarket';
-import type { GetJournalStatsOutputSchema } from '../schemas/tool-outputs/get-journal-stats';
-import type { GetMarketStructureOutputSchema } from '../schemas/tool-outputs/get-market-structure';
-import type { GetNewsOutputSchema } from '../schemas/tool-outputs/get-news';
-import type { GetPriceOutputSchema } from '../schemas/tool-outputs/get-price';
-import type { GetSeasonalityOutputSchema } from '../schemas/tool-outputs/get-seasonality';
-import type { GetSessionLevelsOutputSchema } from '../schemas/tool-outputs/get-session-levels';
-import type { LogJournalOutputSchema } from '../schemas/tool-outputs/log-journal';
-import type { ReplaySetupOutputSchema } from '../schemas/tool-outputs/replay-setup';
-import type { SearchKnowledgeOutputSchema } from '../schemas/tool-outputs/search-knowledge';
-import type { SetAlertOutputSchema } from '../schemas/tool-outputs/set-alert';
-import type { ShareSnapshotOutputSchema } from '../schemas/tool-outputs/share-snapshot';
-import type { SummarizeThreadOutputSchema } from '../schemas/tool-outputs/summarize-thread';
-import type { VerifyCallOutputSchema } from '../schemas/tool-outputs/verify-call';
-import type { ConveneCommitteeOutputSchema } from '../schemas/tool-outputs/convene-committee';
-import type { GetIntermarketResonanceOutputSchema } from '../schemas/tool-outputs/get-intermarket-resonance';
-import type { GetSystemDiagnosticsOutputSchema } from '../schemas/tool-outputs/get-system-diagnostics';
-import type { RunSystemActionOutputSchema } from '../schemas/tool-outputs/run-system-action';
-import type { GetPortfolioSnapshotOutputSchema } from '../schemas/tool-outputs/get-portfolio-snapshot';
-import type { GetSocialSentimentOutputSchema } from '../schemas/tool-outputs/get-social-sentiment';
-import type { WebSearchOutputSchema } from '../schemas/tool-outputs/web-search';
-import type { ToolName } from './tool-names';
 
 /**
  * Per-tool input map. Augmented by each tool file:

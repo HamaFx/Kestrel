@@ -21,23 +21,27 @@
 //
 // See DSA_FEATURE_EXPANSION_PLAN.md §F7.3 for the architecture design.
 
-import type { BotCommand, BotContext, BotResponse, ParsedCommand } from './types';
-import { parseCommand } from './types';
-
-import { helpCommand } from './commands/help';
-import { priceCommand } from './commands/price';
+import { alertCommand } from './commands/alert';
 import { analyzeCommand } from './commands/analyze';
 import { askCommand } from './commands/ask';
-import { statusCommand } from './commands/status';
-import { chartCommand } from './commands/chart';
-import { alertCommand } from './commands/alert';
-import { positionsCommand } from './commands/positions';
-import { linkCommand } from './commands/link';
-import { newsCommand } from './commands/news';
 import { calendarCommand } from './commands/calendar';
+import { chartCommand } from './commands/chart';
 import { committeeCommand } from './commands/committee';
-import { settingsCommand } from './commands/settings';
+import { helpCommand } from './commands/help';
+import { linkCommand } from './commands/link';
 import { meCommand } from './commands/me';
+import { newsCommand } from './commands/news';
+import { positionsCommand } from './commands/positions';
+import { priceCommand } from './commands/price';
+import { settingsCommand } from './commands/settings';
+import { statusCommand } from './commands/status';
+import {
+  parseCommand,
+  type BotCommand,
+  type BotContext,
+  type BotResponse,
+  type ParsedCommand,
+} from './types';
 
 export class BotDispatcher {
   private commands = new Map<string, BotCommand>();

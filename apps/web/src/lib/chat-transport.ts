@@ -25,19 +25,19 @@
 //      polled, and synthesized into a normal text stream.
 //
 // The UI only sees one `useChat` with status/messages/stop.
-
-import {
-  DefaultChatTransport,
-  type UIMessage,
-  type PrepareSendMessagesRequest,
-  type HttpChatTransportInitOptions,
-} from 'ai';
 import {
   AnalysisQueuedEventSchema,
   ChatStreamEventSchema,
   MutationDraftEventSchema,
   type MutationDraftEvent,
 } from '@kestrel/shared';
+import {
+  DefaultChatTransport,
+  type HttpChatTransportInitOptions,
+  type PrepareSendMessagesRequest,
+  type UIMessage,
+} from 'ai';
+
 import { getCsrfToken } from '@/lib/csrf';
 
 /** Shape emitted by the server for agent deliberation progress. */
@@ -45,7 +45,12 @@ export interface AgentProgress {
   agents: Array<{
     agentName: string;
     status: 'pending' | 'running' | 'done' | 'error';
-    opinion?: { agentName: string; bias: 'bullish' | 'bearish' | 'neutral'; confidence: number; reasoning: string };
+    opinion?: {
+      agentName: string;
+      bias: 'bullish' | 'bearish' | 'neutral';
+      confidence: number;
+      reasoning: string;
+    };
     error?: string;
   }>;
   mode: string;
@@ -75,7 +80,10 @@ function getContentType(res: Response): string {
 }
 
 /** Minimal SSE-to-AI-SDK-data-stream converter. */
-function transformSseToDataStream(res: Response, onProgress: (p: AgentProgress | null) => void): Response {
+function transformSseToDataStream(
+  res: Response,
+  onProgress: (p: AgentProgress | null) => void,
+): Response {
   const id = crypto.randomUUID();
   let started = false;
   let ended = false;
@@ -87,7 +95,9 @@ function transformSseToDataStream(res: Response, onProgress: (p: AgentProgress |
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       if (!res.body) {
-        controller.enqueue(encodeChunk({ type: 'error', errorText: 'Chat stream returned no response body.' }));
+        controller.enqueue(
+          encodeChunk({ type: 'error', errorText: 'Chat stream returned no response body.' }),
+        );
         onProgress(null);
         controller.close();
         return;
@@ -150,7 +160,9 @@ function transformSseToDataStream(res: Response, onProgress: (p: AgentProgress |
                   controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
                 }
                 const textId = activeTextId ?? event.id;
-                controller.enqueue(encodeChunk({ type: 'text-delta', id: textId, delta: event.delta }));
+                controller.enqueue(
+                  encodeChunk({ type: 'text-delta', id: textId, delta: event.delta }),
+                );
                 break;
               }
               case 'text-end': {
@@ -225,13 +237,33 @@ function transformSseToDataStream(res: Response, onProgress: (p: AgentProgress |
                     activeTextId = event.id;
                     controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
                   }
-                  controller.enqueue(encodeChunk({ type: 'text-delta', id: activeTextId ?? event.id, delta: event.delta }));
+                  controller.enqueue(
+                    encodeChunk({
+                      type: 'text-delta',
+                      id: activeTextId ?? event.id,
+                      delta: event.delta,
+                    }),
+                  );
                 } else if (event.type === 'data-agent-progress') {
                   const progress = (event.data ?? event) as AgentProgress;
                   onProgress(progress);
-                  controller.enqueue(encodeChunk({ type: 'data-agent-progress', id, data: progress, transient: true }));
+                  controller.enqueue(
+                    encodeChunk({
+                      type: 'data-agent-progress',
+                      id,
+                      data: progress,
+                      transient: true,
+                    }),
+                  );
                 } else if (event.type === 'data-multi-agent-meta') {
-                  controller.enqueue(encodeChunk({ type: event.type, id: event.id, data: event.data, transient: event.transient }));
+                  controller.enqueue(
+                    encodeChunk({
+                      type: event.type,
+                      id: event.id,
+                      data: event.data,
+                      transient: event.transient,
+                    }),
+                  );
                 } else if (event.type === 'error') {
                   emittedError = true;
                   controller.enqueue(encodeChunk({ type: 'error', errorText: event.errorText }));
@@ -314,7 +346,12 @@ function pollJobToStreamResponse(
             consecutivePollFailures += 1;
             if (consecutivePollFailures >= 3) {
               hasError = true;
-              controller.enqueue(encodeChunk({ type: 'error', errorText: 'Unable to reach the background analysis worker.' }));
+              controller.enqueue(
+                encodeChunk({
+                  type: 'error',
+                  errorText: 'Unable to reach the background analysis worker.',
+                }),
+              );
               return;
             }
             pollIntervalMs = Math.min(pollIntervalMs + 2_000, MAX_POLL_MS);
@@ -325,7 +362,15 @@ function pollJobToStreamResponse(
             consecutivePollFailures += 1;
             if (pollRes?.status === 404 || consecutivePollFailures >= 3) {
               hasError = true;
-              controller.enqueue(encodeChunk({ type: 'error', errorText: pollRes?.status === 404 ? 'Background analysis job was not found.' : 'Unable to poll the background analysis worker.' }));
+              controller.enqueue(
+                encodeChunk({
+                  type: 'error',
+                  errorText:
+                    pollRes?.status === 404
+                      ? 'Background analysis job was not found.'
+                      : 'Unable to poll the background analysis worker.',
+                }),
+              );
               return;
             }
             pollIntervalMs = Math.min(pollIntervalMs + 2_000, MAX_POLL_MS);
@@ -352,7 +397,12 @@ function pollJobToStreamResponse(
             consecutivePollFailures += 1;
             if (consecutivePollFailures >= 3) {
               hasError = true;
-              controller.enqueue(encodeChunk({ type: 'error', errorText: 'Background analysis returned invalid status data.' }));
+              controller.enqueue(
+                encodeChunk({
+                  type: 'error',
+                  errorText: 'Background analysis returned invalid status data.',
+                }),
+              );
               return;
             }
             pollIntervalMs = Math.min(pollIntervalMs + 2_000, MAX_POLL_MS);
@@ -375,7 +425,9 @@ function pollJobToStreamResponse(
             const finalText = pollJson.result?.finalText ?? '';
             controller.enqueue(encodeChunk({ type: 'text-start', id: finalId }));
             if (finalText) {
-              controller.enqueue(encodeChunk({ type: 'text-delta', id: finalId, delta: finalText }));
+              controller.enqueue(
+                encodeChunk({ type: 'text-delta', id: finalId, delta: finalText }),
+              );
             }
             controller.enqueue(encodeChunk({ type: 'text-end', id: finalId }));
             controller.enqueue(
@@ -397,10 +449,14 @@ function pollJobToStreamResponse(
 
           if (pollJson.status === 'failed') {
             hasError = true;
-            controller.enqueue(encodeChunk({
-              type: 'error',
-              errorText: pollJson.error ?? 'Full analysis could not be completed. No partial answer was returned.',
-            }));
+            controller.enqueue(
+              encodeChunk({
+                type: 'error',
+                errorText:
+                  pollJson.error ??
+                  'Full analysis could not be completed. No partial answer was returned.',
+              }),
+            );
             // Keep the terminal failed-agent snapshot visible. Clearing it here
             // made the UI appear to reset immediately after showing progress.
             return;
@@ -408,7 +464,12 @@ function pollJobToStreamResponse(
 
           if (pollJson.status !== 'pending' && pollJson.status !== 'running') {
             hasError = true;
-            controller.enqueue(encodeChunk({ type: 'error', errorText: 'Background analysis returned an unknown job status.' }));
+            controller.enqueue(
+              encodeChunk({
+                type: 'error',
+                errorText: 'Background analysis returned an unknown job status.',
+              }),
+            );
             onProgress(null);
             return;
           }
@@ -417,7 +478,12 @@ function pollJobToStreamResponse(
         }
 
         if (!hasError) {
-          controller.enqueue(encodeChunk({ type: 'error', errorText: 'Background analysis timed out after 5 minutes.' }));
+          controller.enqueue(
+            encodeChunk({
+              type: 'error',
+              errorText: 'Background analysis timed out after 5 minutes.',
+            }),
+          );
         }
       } finally {
         abortSignal?.removeEventListener('abort', abortHandler);
@@ -440,11 +506,13 @@ function mutationDraftToStreamResponse(draft: MutationDraftEvent): Response {
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       controller.enqueue(encodeChunk({ type: 'text-start', id }));
-      controller.enqueue(encodeChunk({
-        type: 'data-mutation-confirmation',
-        id,
-        data: draft.payload,
-      }));
+      controller.enqueue(
+        encodeChunk({
+          type: 'data-mutation-confirmation',
+          id,
+          data: draft.payload,
+        }),
+      );
       controller.enqueue(encodeChunk({ type: 'text-end', id }));
       controller.close();
     },
@@ -493,7 +561,9 @@ async function hamaFxFetch(
   return res;
 }
 
-export function createKestrelChatTransport(options: KestrelChatTransportOptions): DefaultChatTransport<UIMessage> {
+export function createKestrelChatTransport(
+  options: KestrelChatTransportOptions,
+): DefaultChatTransport<UIMessage> {
   const onProgress = options.onAgentProgress ?? (() => {});
   const transportOptions: HttpChatTransportInitOptions<UIMessage> = {
     ...(options.api !== undefined && { api: options.api }),

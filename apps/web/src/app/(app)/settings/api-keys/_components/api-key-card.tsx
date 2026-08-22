@@ -15,17 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+import type { ProviderMeta } from '@kestrel/shared';
+import {
+  IconCircleCheck,
+  IconCircleX,
+  IconCopy,
+  IconEye,
+  IconEyeOff,
+  IconLoader2,
+} from '@tabler/icons-react';
 import { useState, useTransition } from 'react';
-import { IconCircleCheck,  IconEye,  IconEyeOff,  IconLoader2,  IconCircleX,  IconCopy } from '@tabler/icons-react';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-drawer';
 import { Input } from '@/components/ui/input';
 import { ProviderInfoDot } from '@/components/ui/provider-info-dot';
 import { apiMutate } from '@/lib/api-client';
-import { useConfirm } from '@/components/ui/confirm-drawer';
-import { toast } from 'sonner';
 import { formatRelative } from '@/lib/format';
-import type { ProviderMeta } from '@kestrel/shared';
+
 import { ProviderLogo } from './provider-logo';
 import { SETUP_INSTRUCTIONS } from './provider-setup-instructions';
 
@@ -33,31 +41,37 @@ interface ApiKeyCardProps {
   provider: ProviderMeta;
   currentValue: string;
   keyUpdatedAt?: string | undefined;
-  health?: {
-    ok: boolean;
-    error: string | null;
-    testedAt: string;
-    rateLimit?: {
-      remainingRequests?: number;
-      remainingTokens?: number;
-      resetRequests?: string;
-      resetTokens?: string;
-    } | null;
-  } | undefined;
-  usage?: {
-    turns: number;
-    costUsd: number;
-  } | undefined;
+  health?:
+    | {
+        ok: boolean;
+        error: string | null;
+        testedAt: string;
+        rateLimit?: {
+          remainingRequests?: number;
+          remainingTokens?: number;
+          resetRequests?: string;
+          resetTokens?: string;
+        } | null;
+      }
+    | undefined;
+  usage?:
+    | {
+        turns: number;
+        costUsd: number;
+      }
+    | undefined;
 }
 
 type TestState =
-  | { kind: 'idle' }
-  | { kind: 'pending' }
-  | { kind: 'ok' }
-  | { kind: 'err'; message: string };
+  { kind: 'idle' } | { kind: 'pending' } | { kind: 'ok' } | { kind: 'err'; message: string };
 
-
-export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt }: ApiKeyCardProps) {
+export function ApiKeyCard({
+  provider,
+  currentValue,
+  health,
+  usage,
+  keyUpdatedAt,
+}: ApiKeyCardProps) {
   const [revealed, setRevealed] = useState(false);
   const [value, setValue] = useState(currentValue);
   const [test, setTest] = useState<TestState>({ kind: 'idle' });
@@ -108,7 +122,8 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
     if (!isSet) return;
     const ok = await confirm({
       title: 'Copy API Key to Clipboard?',
-      description: 'API keys are highly sensitive. Storing them in the system clipboard makes them accessible to other applications running on your device. Proceed with caution.',
+      description:
+        'API keys are highly sensitive. Storing them in the system clipboard makes them accessible to other applications running on your device. Proceed with caution.',
       confirmLabel: 'Copy Key',
       cancelLabel: 'Cancel',
       tone: 'default',
@@ -132,93 +147,98 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 't' || e.key === 'T') {
-          if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+          if (
+            document.activeElement?.tagName === 'INPUT' ||
+            document.activeElement?.tagName === 'TEXTAREA'
+          ) {
             return;
           }
           e.preventDefault();
           handleTest();
         }
       }}
-      className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-border"
+      className="border-border bg-bg-elev-1 focus:ring-border flex flex-col gap-3 rounded-sm border p-4 focus:ring-2 focus:outline-none"
     >
       {/* Header */}
       <div className="flex items-baseline justify-between gap-4">
-        <div className="flex flex-col gap-1 flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
             <ProviderLogo id={provider.id} />
-            <label
-              htmlFor={`key-${provider.id}`}
-              className="text-sm font-medium text-fg"
-            >
+            <label htmlFor={`key-${provider.id}`} className="text-fg text-sm font-medium">
               {provider.displayName}
             </label>
             {provider.pricingTier === 'free' && (
-              <span className="rounded-sm bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+              <span className="bg-success/15 text-success rounded-sm px-2 py-0.5 text-xs font-semibold">
                 Free
               </span>
             )}
-            <StatusPill
-              isSet={isSet}
-              health={health}
-              testState={test}
-            />
+            <StatusPill isSet={isSet} health={health} testState={test} />
             <ProviderInfoDot provider={provider} side="top" />
             <UsageBadge usage={usage} />
           </div>
-          <p className="text-xs text-fg-subtle">{provider.description}</p>
+          <p className="text-fg-subtle text-xs">{provider.description}</p>
         </div>
         {isSet && test.kind !== 'pending' ? (
           <span
             className={
               test.kind === 'ok'
-                ? 'flex items-center gap-1 text-xs text-success shrink-0'
-                : 'flex items-center gap-1 text-xs text-fg-subtle shrink-0'
+                ? 'text-success flex shrink-0 items-center gap-1 text-xs'
+                : 'text-fg-subtle flex shrink-0 items-center gap-1 text-xs'
             }
           >
             {test.kind === 'ok' && <IconCircleCheck className="size-3" />}
-            {test.kind === 'ok' ? 'Looks valid' : test.kind === 'err' ? 'Last test failed' : 'Saved'}
+            {test.kind === 'ok'
+              ? 'Looks valid'
+              : test.kind === 'err'
+                ? 'Last test failed'
+                : 'Saved'}
           </span>
         ) : null}
       </div>
 
       {keyAgeDays !== null && keyAgeDays >= 90 && (
-        <div className="border border-warn/20 bg-warn/5 rounded-sm p-3 text-caption text-warn flex items-start gap-2.5">
+        <div className="border-warn/20 bg-warn/5 text-caption text-warn flex items-start gap-2.5 rounded-sm border p-3">
           <span className="shrink-0 text-sm">⚠️</span>
           <div className="flex flex-col gap-0.5">
-            <span className="font-semibold text-fg">Consider rotating your API key</span>
+            <span className="text-fg font-semibold">Consider rotating your API key</span>
             <p className="text-fg-subtle text-xs">
-              This key was last updated {keyAgeDays} days ago. Regular key rotation increases security.
+              This key was last updated {keyAgeDays} days ago. Regular key rotation increases
+              security.
             </p>
           </div>
         </div>
       )}
 
       {health?.rateLimit && (
-        <div className="border border-border bg-bg-elev-2/40 rounded-sm p-3 text-caption text-fg-subtle flex flex-col gap-1.5 shadow-sm">
-          <div className="font-semibold text-fg flex items-center gap-1.5">
+        <div className="border-border bg-bg-elev-2/40 text-caption text-fg-subtle flex flex-col gap-1.5 rounded-sm border p-3 shadow-sm">
+          <div className="text-fg flex items-center gap-1.5 font-semibold">
             <span>⏱️</span>
             <span>API Rate Limits</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mt-0.5">
+          <div className="mt-0.5 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
             {health.rateLimit.remainingRequests !== undefined && (
               <div className="flex flex-col gap-0.5">
                 <span className="text-fg-muted font-medium">Requests Remaining</span>
-                <span className="font-mono text-fg font-semibold tabular-nums text-sm">
+                <span className="text-fg font-mono text-sm font-semibold tabular-nums">
                   {health.rateLimit.remainingRequests}
                 </span>
                 {health.rateLimit.resetRequests && (
-                  <span className="opacity-60 text-xs">Resets in {health.rateLimit.resetRequests}</span>
+                  <span className="text-xs opacity-60">
+                    Resets in {health.rateLimit.resetRequests}
+                  </span>
                 )}
               </div>
             )}
             {health.rateLimit.remainingTokens !== undefined && (
               <div className="flex flex-col gap-0.5">
                 <span className="text-fg-muted font-medium">Tokens Remaining</span>
-                <span className="font-mono text-fg font-semibold tabular-nums text-sm">
+                <span className="text-fg font-mono text-sm font-semibold tabular-nums">
                   {health.rateLimit.remainingTokens.toLocaleString()}
                 </span>
                 {health.rateLimit.resetTokens && (
-                  <span className="opacity-60 text-xs">Resets in {health.rateLimit.resetTokens}</span>
+                  <span className="text-xs opacity-60">
+                    Resets in {health.rateLimit.resetTokens}
+                  </span>
                 )}
               </div>
             )}
@@ -228,7 +248,7 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
 
       {/* Vertex-specific JSON preview (when a value is entered). */}
       {isVertex && vertexPreview ? (
-        <div className="text-caption text-fg-subtle border border-border bg-bg-elev-2 rounded-sm px-3 py-2 flex flex-col gap-1">
+        <div className="text-caption text-fg-subtle border-border bg-bg-elev-2 flex flex-col gap-1 rounded-sm border px-3 py-2">
           {vertexPreview.clientEmail ? (
             <span>
               <span className="text-fg-muted">client_email:</span>{' '}
@@ -241,9 +261,7 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
               <span className="font-mono">{vertexPreview.projectId}</span>
             </span>
           ) : null}
-          {vertexPreview.error ? (
-            <span className="text-danger">{vertexPreview.error}</span>
-          ) : null}
+          {vertexPreview.error ? <span className="text-danger">{vertexPreview.error}</span> : null}
         </div>
       ) : null}
 
@@ -264,13 +282,13 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
             spellCheck={false}
             autoComplete="off"
             rows={6}
-            className="border border-border bg-bg-elev-2 placeholder:text-fg-muted text-fg font-mono text-caption w-full rounded-sm px-3 py-2 focus:border-border focus:outline-none focus:ring-1 focus:ring-border resize-y"
+            className="border-border bg-bg-elev-2 placeholder:text-fg-muted text-fg text-caption focus:border-border focus:ring-border w-full resize-y rounded-sm border px-3 py-2 font-mono focus:ring-1 focus:outline-none"
           />
           {isSet && (
             <button
               type="button"
               onClick={handleCopy}
-              className="text-fg-muted hover:text-fg absolute right-3 bottom-3 inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors hover:bg-bg-elev-3 border border-border"
+              className="text-fg-muted hover:text-fg hover:bg-bg-elev-3 border-border absolute right-3 bottom-3 inline-flex h-7 w-7 items-center justify-center rounded-sm border transition-colors"
               aria-label="Copy key to clipboard"
             >
               <IconCopy className="size-3.5" />
@@ -293,7 +311,7 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
             spellCheck={false}
             className="pr-24 font-mono"
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+          <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-0.5">
             {isSet && (
               <button
                 type="button"
@@ -318,13 +336,13 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
 
       {/* Validation / test feedback. */}
       {test.kind === 'err' ? (
-        <div className="flex items-start gap-2 text-xs text-danger">
-          <IconCircleX className="size-3.5 mt-0.5 shrink-0" />
+        <div className="text-danger flex items-start gap-2 text-xs">
+          <IconCircleX className="mt-0.5 size-3.5 shrink-0" />
           <span className="break-words">{test.message}</span>
         </div>
       ) : null}
       {test.kind === 'ok' && dirty ? (
-        <div className="flex items-center gap-2 text-xs text-success">
+        <div className="text-success flex items-center gap-2 text-xs">
           <IconCircleCheck className="size-3.5 shrink-0" />
           <span>New value passes validation. Click Save to apply.</span>
         </div>
@@ -332,23 +350,26 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
 
       {/* Expandable setup instructions details. */}
       {instructions && (
-        <details className="text-xs border border-divider rounded-sm overflow-hidden bg-bg-elev-2/50">
-          <summary aria-label="Toggle setup instructions and limits" className="cursor-pointer select-none px-3 py-1.5 font-medium text-fg-subtle hover:text-fg transition-colors flex items-center justify-between">
+        <details className="border-divider bg-bg-elev-2/50 overflow-hidden rounded-sm border text-xs">
+          <summary
+            aria-label="Toggle setup instructions and limits"
+            className="text-fg-subtle hover:text-fg flex cursor-pointer items-center justify-between px-3 py-1.5 font-medium transition-colors select-none"
+          >
             <span>Setup Instructions & Limits</span>
             <span className="text-xs">▼</span>
           </summary>
-          <div className="p-3 border-t border-divider flex flex-col gap-2 bg-bg-elev-2/10">
+          <div className="border-divider bg-bg-elev-2/10 flex flex-col gap-2 border-t p-3">
             <div>
-              <span className="font-semibold text-fg-muted">How to get:</span>{' '}
+              <span className="text-fg-muted font-semibold">How to get:</span>{' '}
               <span className="text-fg-subtle">{instructions.howToGet}</span>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <div>
-                <span className="font-semibold text-fg-muted">Free tier:</span>{' '}
+                <span className="text-fg-muted font-semibold">Free tier:</span>{' '}
                 <span className="text-fg-subtle">{instructions.freeTier}</span>
               </div>
               <div>
-                <span className="font-semibold text-fg-muted">Rate limits:</span>{' '}
+                <span className="text-fg-muted font-semibold">Rate limits:</span>{' '}
                 <span className="text-fg-subtle">{instructions.rateLimits}</span>
               </div>
             </div>
@@ -357,7 +378,7 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
                 href={instructions.dashboardUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-fg hover:underline font-semibold"
+                className="text-fg inline-flex items-center font-semibold hover:underline"
               >
                 Go to {provider.displayName} Dashboard →
               </a>
@@ -372,7 +393,13 @@ export function ApiKeyCard({ provider, currentValue, health, usage, keyUpdatedAt
           {isVertex ? (
             <>Paste the service-account JSON from the GCP IAM console.</>
           ) : (
-            <>Key is encrypted at rest with AES-256-GCM. Press <kbd className="bg-bg-elev-2 border border-border px-1.5 py-0.5 rounded-sm text-xs">T</kbd> to test.</>
+            <>
+              Key is encrypted at rest with AES-256-GCM. Press{' '}
+              <kbd className="bg-bg-elev-2 border-border rounded-sm border px-1.5 py-0.5 text-xs">
+                T
+              </kbd>{' '}
+              to test.
+            </>
           )}
         </span>
         <Button
@@ -414,7 +441,7 @@ function StatusPill({
 }) {
   if (!isSet) {
     return (
-      <span className="rounded-sm bg-bg-elev-2 px-2 py-0.5 text-caption font-medium text-fg-subtle">
+      <span className="bg-bg-elev-2 text-caption text-fg-subtle rounded-sm px-2 py-0.5 font-medium">
         Not set
       </span>
     );
@@ -422,34 +449,34 @@ function StatusPill({
   // Live test result takes precedence over the cached health snapshot.
   if (testState.kind === 'err') {
     return (
-      <span className="rounded-sm bg-danger/15 px-2 py-0.5 text-caption font-medium text-danger">
+      <span className="bg-danger/15 text-caption text-danger rounded-sm px-2 py-0.5 font-medium">
         Failed
       </span>
     );
   }
   if (testState.kind === 'ok') {
     return (
-      <span className="rounded-sm bg-success/15 px-2 py-0.5 text-caption font-medium text-success">
+      <span className="bg-success/15 text-caption text-success rounded-sm px-2 py-0.5 font-medium">
         OK
       </span>
     );
   }
   if (!health) {
     return (
-      <span className="rounded-sm bg-bg-elev-2 px-2 py-0.5 text-caption font-medium text-fg-subtle">
+      <span className="bg-bg-elev-2 text-caption text-fg-subtle rounded-sm px-2 py-0.5 font-medium">
         Saved (untested)
       </span>
     );
   }
   if (!health.ok) {
     return (
-      <span className="rounded-sm bg-danger/15 px-2 py-0.5 text-caption font-medium text-danger">
+      <span className="bg-danger/15 text-caption text-danger rounded-sm px-2 py-0.5 font-medium">
         Failed <span className="opacity-60">·</span> {formatRelative(health.testedAt)}
       </span>
     );
   }
   return (
-    <span className="rounded-sm bg-success/15 px-2 py-0.5 text-caption font-medium text-success">
+    <span className="bg-success/15 text-caption text-success rounded-sm px-2 py-0.5 font-medium">
       OK <span className="opacity-60">·</span> {formatRelative(health.testedAt)}
     </span>
   );
@@ -460,16 +487,11 @@ function StatusPill({
  * when usage is non-zero. Hidden when there's no usage so the card
  * header stays clean for fresh setups.
  */
-function UsageBadge({
-  usage,
-}: {
-  usage?: { turns: number; costUsd: number } | undefined;
-}) {
+function UsageBadge({ usage }: { usage?: { turns: number; costUsd: number } | undefined }) {
   if (!usage || usage.turns === 0) return null;
   return (
-    <span className="rounded-sm bg-bg-elev-2 px-2 py-0.5 text-caption font-medium text-fg tabular-nums">
-      {usage.turns} {usage.turns === 1 ? 'turn' : 'turns'} · $
-      {usage.costUsd.toFixed(2)}
+    <span className="bg-bg-elev-2 text-caption text-fg rounded-sm px-2 py-0.5 font-medium tabular-nums">
+      {usage.turns} {usage.turns === 1 ? 'turn' : 'turns'} · ${usage.costUsd.toFixed(2)}
     </span>
   );
 }
@@ -479,15 +501,15 @@ function UsageBadge({
  * the two most useful fields — project_id and client_email — for the
  * user to sanity-check before saving. Returns null on parse error.
  */
-function previewVertexJson(
-  raw: string,
-): { clientEmail?: string | undefined; projectId?: string | undefined; error?: string } {
+function previewVertexJson(raw: string): {
+  clientEmail?: string | undefined;
+  projectId?: string | undefined;
+  error?: string;
+} {
   try {
     const obj = JSON.parse(raw) as Record<string, unknown>;
-    const clientEmail =
-      typeof obj.client_email === 'string' ? obj.client_email : undefined;
-    const projectId =
-      typeof obj.project_id === 'string' ? obj.project_id : undefined;
+    const clientEmail = typeof obj.client_email === 'string' ? obj.client_email : undefined;
+    const projectId = typeof obj.project_id === 'string' ? obj.project_id : undefined;
     if (!clientEmail && !projectId) {
       return {
         error: 'JSON parsed but missing client_email and project_id',
@@ -498,4 +520,3 @@ function previewVertexJson(
     return { error: err instanceof Error ? err.message : 'Invalid JSON' };
   }
 }
-

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -15,8 +31,9 @@
  * against an agent attached to the shared instance.
  */
 
-import { createScorer, type MastraScorer } from '@mastra/core/evals';
-import { createCitationScorer, createGroundingScorer } from './custom';
+import type { UserSettingsRow } from '@kestrel/db/schema';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { createScorer, type MastraScorer, type MastraScorers } from '@mastra/core/evals';
 import type { MastraModelConfig } from '@mastra/core/llm';
 import {
   createAnswerRelevancyScorer,
@@ -26,19 +43,16 @@ import {
   createToxicityScorer,
 } from '@mastra/evals/scorers/prebuilt';
 import type { LanguageModel } from 'ai';
-import type { UserSettingsRow } from '@kestrel/db/schema';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { resolveChatModel } from '../../model';
 import type { ResolveModelEnv } from '../../vertex-factory';
+import { createCitationScorer, createGroundingScorer } from './custom';
 
 const slog = createCategorizedLogger('ai', { component: 'mastra-evals-scorers' });
 
 export type ScorerId = 'faithfulness' | 'hallucination' | 'answer-relevancy' | 'bias' | 'toxicity';
 
-export type ScorerSampling =
-  | { type: 'none' }
-  | { type: 'ratio'; rate: number };
+export type ScorerSampling = { type: 'none' } | { type: 'ratio'; rate: number };
 
 export interface BuildScorersOptions {
   /** User settings for BYOK judge-model resolution. */
@@ -52,10 +66,10 @@ export interface BuildScorersOptions {
 
 export interface BuiltScorers {
   /** Mastra scorer instances (for `createScorer`-style direct use / runEvals). */
-  scorers: Array<MastraScorer<string, any, any, any>>;
+  scorers: Array<MastraScorer<string, unknown, unknown, Record<string, unknown>>>;
   /** Instance-ready entry map keyed by scorer id, ready for the agent
    *  `scorers` option or a registered Mastra instance. */
-  entries: Record<string, { scorer: MastraScorer<string, any, any, any>; sampling?: { type: 'ratio'; rate: number } }>;
+  entries: MastraScorers;
   /** Judge model resolved (null when no BYOK model was available). */
   judgeModel: MastraModelConfig | null;
   /** Scorers skipped because no judge model could be resolved. */
@@ -65,13 +79,43 @@ export interface BuiltScorers {
 
 const PREBUILT: Record<
   ScorerId,
-  (model: MastraModelConfig) => MastraScorer<string, any, any, any>
+  (model: MastraModelConfig) => MastraScorer<string, unknown, unknown, Record<string, unknown>>
 > = {
-  faithfulness: (model) => createFaithfulnessScorer({ model }),
-  hallucination: (model) => createHallucinationScorer({ model }),
-  'answer-relevancy': (model) => createAnswerRelevancyScorer({ model }),
-  bias: (model) => createBiasScorer({ model }),
-  toxicity: (model) => createToxicityScorer({ model }),
+  faithfulness: (model) =>
+    createFaithfulnessScorer({ model }) as unknown as MastraScorer<
+      string,
+      unknown,
+      unknown,
+      Record<string, unknown>
+    >,
+  hallucination: (model) =>
+    createHallucinationScorer({ model }) as unknown as MastraScorer<
+      string,
+      unknown,
+      unknown,
+      Record<string, unknown>
+    >,
+  'answer-relevancy': (model) =>
+    createAnswerRelevancyScorer({ model }) as unknown as MastraScorer<
+      string,
+      unknown,
+      unknown,
+      Record<string, unknown>
+    >,
+  bias: (model) =>
+    createBiasScorer({ model }) as unknown as MastraScorer<
+      string,
+      unknown,
+      unknown,
+      Record<string, unknown>
+    >,
+  toxicity: (model) =>
+    createToxicityScorer({ model }) as unknown as MastraScorer<
+      string,
+      unknown,
+      unknown,
+      Record<string, unknown>
+    >,
 };
 
 export const PREBUILT_SCORER_IDS: readonly ScorerId[] = [
@@ -124,8 +168,8 @@ export function buildPrebuiltScorers(options: BuildScorersOptions): BuiltScorers
     return { scorers: [], entries: {}, judgeModel: null, skipped: [...enabled], warnings };
   }
 
-  const scorers: Array<MastraScorer<string, any, any, any>> = [];
-  const entries: Record<string, { scorer: MastraScorer<string, any, any, any>; sampling?: { type: 'ratio'; rate: number } }> = {};
+  const scorers: Array<MastraScorer<string, unknown, unknown, Record<string, unknown>>> = [];
+  const entries: MastraScorers = {};
   const skipped: ScorerId[] = [];
 
   for (const id of enabled) {
@@ -156,17 +200,25 @@ export function buildCustomScorers(): BuiltScorers {
     const grounding = createGroundingScorer();
     const citation = createCitationScorer();
     return {
-      scorers: [grounding, citation],
+      scorers: [grounding, citation] as unknown as Array<
+        MastraScorer<string, unknown, unknown, Record<string, unknown>>
+      >,
       entries: {
         'kestrel-grounding': { scorer: grounding },
         'kestrel-citation': { scorer: citation },
-      },
+      } as unknown as MastraScorers,
       judgeModel: null,
       skipped: [],
       warnings: [],
     };
   } catch {
-    return { scorers: [], entries: {}, judgeModel: null, skipped: [], warnings: ['custom scorers failed to build'] };
+    return {
+      scorers: [],
+      entries: {},
+      judgeModel: null,
+      skipped: [],
+      warnings: ['custom scorers failed to build'],
+    };
   }
 }
 
@@ -227,7 +279,7 @@ export function createDeterministicScorer(
   id: string,
   description: string,
   predicate: (run: { input?: unknown; output: unknown }) => boolean,
-): MastraScorer<string, any, any, any> {
+): MastraScorer<string, unknown, unknown, Record<string, unknown>> {
   return createScorer({
     id,
     description,
@@ -238,5 +290,5 @@ export function createDeterministicScorer(
     }))
     .generateScore(({ results }) =>
       results.preprocessStepResult?.passed ? 1 : 0,
-    );
+    ) as unknown as MastraScorer<string, unknown, unknown, Record<string, unknown>>;
 }

@@ -1,4 +1,24 @@
-import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+
+import { DELETE, PATCH } from '@/app/api/journal/[id]/route';
+import { GET, POST } from '@/app/api/journal/route';
+import { auth } from '@/auth';
 
 vi.mock('@/auth', () => ({ auth: vi.fn() }));
 
@@ -17,10 +37,6 @@ vi.mock('@kestrel/ai', () => ({
   updateEntry: mockUpdateEntry,
   deleteEntry: mockDeleteEntry,
 }));
-
-import { auth } from '@/auth';
-import { GET, POST } from '@/app/api/journal/route';
-import { PATCH, DELETE } from '@/app/api/journal/[id]/route';
 
 const USER_ID = 'test-user-001';
 
@@ -99,10 +115,9 @@ describe('GET /api/journal', () => {
     mockListEntries.mockResolvedValue([mockEntry]);
     mockComputeStats.mockResolvedValue(mockStats);
 
-    const response = await GET(
-      new Request('http://localhost/api/journal?symbol=XAUUSD'),
-      { params: Promise.resolve({}) },
-    );
+    const response = await GET(new Request('http://localhost/api/journal?symbol=XAUUSD'), {
+      params: Promise.resolve({}),
+    });
     expect(response.status).toBe(200);
     expect(mockListEntries).toHaveBeenCalledWith(USER_ID, { symbol: 'XAUUSD' });
   });
@@ -235,9 +250,12 @@ describe('DELETE /api/journal/[id]', () => {
   it('deletes a journal entry', async () => {
     mockDeleteEntry.mockResolvedValue(true);
 
-    const response = await DELETE(new Request('http://localhost/api/journal/id', { method: 'DELETE' }), {
-      params: Promise.resolve({ id: mockEntry.id }),
-    });
+    const response = await DELETE(
+      new Request('http://localhost/api/journal/id', { method: 'DELETE' }),
+      {
+        params: Promise.resolve({ id: mockEntry.id }),
+      },
+    );
     expect(response.status).toBe(200);
 
     const body = await response.json();
@@ -248,18 +266,24 @@ describe('DELETE /api/journal/[id]', () => {
   it('returns 404 when entry not found', async () => {
     mockDeleteEntry.mockResolvedValue(false);
 
-    const response = await DELETE(new Request('http://localhost/api/journal/id', { method: 'DELETE' }), {
-      params: Promise.resolve({ id: 'nonexistent' }),
-    });
+    const response = await DELETE(
+      new Request('http://localhost/api/journal/id', { method: 'DELETE' }),
+      {
+        params: Promise.resolve({ id: 'nonexistent' }),
+      },
+    );
     expect(response.status).toBe(404);
   });
 
   it('returns 401 when not authenticated', async () => {
     (auth as Mock).mockResolvedValue(null);
 
-    const response = await DELETE(new Request('http://localhost/api/journal/id', { method: 'DELETE' }), {
-      params: Promise.resolve({ id: mockEntry.id }),
-    });
+    const response = await DELETE(
+      new Request('http://localhost/api/journal/id', { method: 'DELETE' }),
+      {
+        params: Promise.resolve({ id: mockEntry.id }),
+      },
+    );
     expect(response.status).toBe(401);
   });
 });

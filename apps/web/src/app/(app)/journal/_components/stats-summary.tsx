@@ -19,13 +19,25 @@
 // Upgraded Stats Summary Dashboard with advanced risk analytics.
 // Displays core metrics, a horizontal segmented trade distribution gauge,
 // and institutional stats (Profit Factor, Max Drawdown, Expectancy, and Extreme trade boundaries).
-
 import type { JournalEntry, JournalStats } from '@kestrel/shared';
-import { IconActivity,  IconCalculator,  IconTarget,  IconTrendingUp,  IconAlertTriangle,  IconPercentage,  IconAward,  IconTrendingDown,  IconFlame,  IconClock,  IconCalendarEvent,  IconBook } from '@tabler/icons-react';
+import {
+  IconActivity,
+  IconAlertTriangle,
+  IconAward,
+  IconBook,
+  IconCalculator,
+  IconCalendarEvent,
+  IconClock,
+  IconFlame,
+  IconPercentage,
+  IconTarget,
+  IconTrendingDown,
+  IconTrendingUp,
+} from '@tabler/icons-react';
 import { useMemo } from 'react';
 
-import { StatCard, type StatTone } from '@/components/ui/stat-card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { StatCard, type StatTone } from '@/components/ui/stat-card';
 import { cn } from '@/lib/cn';
 
 interface StatsSummaryProps {
@@ -39,16 +51,17 @@ export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
   // 1. Calculate historical closed trades
   const closedTrades = useMemo(() => {
     return entries.filter(
-      (e) => e.rMultiple !== null && e.rMultiple !== undefined && e.outcome !== 'open'
+      (e) => e.rMultiple !== null && e.rMultiple !== undefined && e.outcome !== 'open',
     );
   }, [entries]);
-
-
 
   // 2. Sparkline values: rolling cumulative R-multiple over the last 20 closed entries.
   const closedSpark = useMemo(() => {
     return entries
-      .filter((e): e is JournalEntry & { rMultiple: number } => e.rMultiple !== null && e.rMultiple !== undefined)
+      .filter(
+        (e): e is JournalEntry & { rMultiple: number } =>
+          e.rMultiple !== null && e.rMultiple !== undefined,
+      )
       .slice(0, 20)
       .reverse();
   }, [entries]);
@@ -79,16 +92,12 @@ export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
 
   // 3. Compute Advanced Institutional Metrics
   const grossProfit = useMemo(() => {
-    return closedTrades
-      .filter((e) => e.rMultiple! > 0)
-      .reduce((sum, e) => sum + e.rMultiple!, 0);
+    return closedTrades.filter((e) => e.rMultiple! > 0).reduce((sum, e) => sum + e.rMultiple!, 0);
   }, [closedTrades]);
 
   const grossLoss = useMemo(() => {
     return Math.abs(
-      closedTrades
-        .filter((e) => e.rMultiple! < 0)
-        .reduce((sum, e) => sum + e.rMultiple!, 0)
+      closedTrades.filter((e) => e.rMultiple! < 0).reduce((sum, e) => sum + e.rMultiple!, 0),
     );
   }, [closedTrades]);
 
@@ -158,7 +167,7 @@ export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
   const totalTone: StatTone = stats.totalR > 0 ? 'bull' : stats.totalR < 0 ? 'bear' : 'muted';
   if (entries.length === 0) {
     return (
-      <div className="border border-border bg-bg-elev-1 rounded-sm p-6">
+      <div className="border-border bg-bg-elev-1 rounded-sm border p-6">
         <EmptyState
           tone="muted"
           icon={<IconBook className="size-7" strokeWidth={1.75} />}
@@ -173,58 +182,58 @@ export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
     <div className="flex flex-col gap-4">
       {/* Visual Outcome Distribution Bar */}
       {entries.length > 0 && (
-        <div className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-2.5">
-          <div className="flex items-center justify-between text-xs font-semibold text-fg-subtle">
-            <span className="uppercase tracking-wider">Outcome Distribution</span>
-            <span className="tabular-nums text-fg-muted">{entries.length} Total Trades logged</span>
+        <div className="border-border bg-bg-elev-1 flex flex-col gap-2.5 rounded-sm border p-4">
+          <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold">
+            <span className="tracking-wider uppercase">Outcome Distribution</span>
+            <span className="text-fg-muted tabular-nums">{entries.length} Total Trades logged</span>
           </div>
 
-          <div className="h-3 w-full rounded-sm bg-bg-elev-3 overflow-hidden flex">
+          <div className="bg-bg-elev-3 flex h-3 w-full overflow-hidden rounded-sm">
             {distribution.win > 0 && (
               <div
                 style={{ width: `${distribution.win}%` }}
-                className="h-full bg-bull transition-all duration-300"
+                className="bg-bull h-full transition-all duration-300"
                 title={`Wins: ${distribution.raw.win}`}
               />
             )}
             {distribution.open > 0 && (
               <div
                 style={{ width: `${distribution.open}%` }}
-                className="h-full bg-fg transition-all duration-300 animate-pulse"
+                className="bg-fg h-full animate-pulse transition-all duration-300"
                 title={`Open: ${distribution.raw.open}`}
               />
             )}
             {distribution.be > 0 && (
               <div
                 style={{ width: `${distribution.be}%` }}
-                className="h-full bg-fg-muted/65 transition-all duration-300"
+                className="bg-fg-muted/65 h-full transition-all duration-300"
                 title={`Breakeven: ${distribution.raw.be}`}
               />
             )}
             {distribution.loss > 0 && (
               <div
                 style={{ width: `${distribution.loss}%` }}
-                className="h-full bg-bear transition-all duration-300"
+                className="bg-bear h-full transition-all duration-300"
                 title={`Losses: ${distribution.raw.loss}`}
               />
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-0.5 text-caption font-semibold text-fg-subtle">
+          <div className="text-caption text-fg-subtle mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 font-semibold">
             <div className="flex items-center gap-1.5">
-              <span className="size-2 rounded-sm bg-bull" />
+              <span className="bg-bull size-2 rounded-sm" />
               <span>Wins ({distribution.raw.win})</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="size-2 rounded-sm bg-fg" />
+              <span className="bg-fg size-2 rounded-sm" />
               <span>Open ({distribution.raw.open})</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="size-2 rounded-sm bg-fg-muted/65" />
+              <span className="bg-fg-muted/65 size-2 rounded-sm" />
               <span>Breakeven ({distribution.raw.be})</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="size-2 rounded-sm bg-bear" />
+              <span className="bg-bear size-2 rounded-sm" />
               <span>Losses ({distribution.raw.loss})</span>
             </div>
           </div>
@@ -265,54 +274,64 @@ export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
       {/* Advanced Institutional Metrics Grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
         {/* Profit Factor */}
-        <div className="border border-border bg-bg-elev-1 rounded-sm p-3.5 flex flex-col gap-1 relative overflow-hidden group hover:border-border transition-all">
+        <div className="border-border bg-bg-elev-1 group hover:border-border relative flex flex-col gap-1 overflow-hidden rounded-sm border p-3.5 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Profit Factor</span>
-            <IconPercentage className="size-3.5 text-fg/70" />
+            <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+              Profit Factor
+            </span>
+            <IconPercentage className="text-fg/70 size-3.5" />
           </div>
-          <p className={cn(
-            'text-lg font-bold tracking-tight mt-1.5 tabular-nums',
-            profitFactor >= 1.5 ? 'text-bull' : profitFactor >= 1.0 ? 'text-fg' : 'text-bear'
-          )}>
+          <p
+            className={cn(
+              'mt-1.5 text-lg font-bold tracking-tight tabular-nums',
+              profitFactor >= 1.5 ? 'text-bull' : profitFactor >= 1.0 ? 'text-fg' : 'text-bear',
+            )}
+          >
             {Number.isFinite(profitFactor) ? profitFactor.toFixed(2) : '∞'}
           </p>
-          <span className="text-xs text-fg-muted font-medium">Gross Wins vs. Gross Losses</span>
+          <span className="text-fg-muted text-xs font-medium">Gross Wins vs. Gross Losses</span>
         </div>
 
         {/* Max Drawdown */}
-        <div className="border border-border bg-bg-elev-1 rounded-sm p-3.5 flex flex-col gap-1 relative overflow-hidden group hover:border-bear/40 transition-all">
+        <div className="border-border bg-bg-elev-1 group hover:border-bear/40 relative flex flex-col gap-1 overflow-hidden rounded-sm border p-3.5 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Max R DD</span>
-            <IconAlertTriangle className="size-3.5 text-bear/70" />
+            <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+              Max R DD
+            </span>
+            <IconAlertTriangle className="text-bear/70 size-3.5" />
           </div>
-          <p className="text-lg font-bold tracking-tight mt-1.5 text-bear tabular-nums">
+          <p className="text-bear mt-1.5 text-lg font-bold tracking-tight tabular-nums">
             -{maxDrawdown.toFixed(2)}R
           </p>
-          <span className="text-xs text-fg-muted font-medium">Maximum peak-to-trough drop</span>
+          <span className="text-fg-muted text-xs font-medium">Maximum peak-to-trough drop</span>
         </div>
 
         {/* Best Trade Win */}
-        <div className="border border-border bg-bg-elev-1 rounded-sm p-3.5 flex flex-col gap-1 relative overflow-hidden group hover:border-bull/40 transition-all">
+        <div className="border-border bg-bg-elev-1 group hover:border-bull/40 relative flex flex-col gap-1 overflow-hidden rounded-sm border p-3.5 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Best Trade</span>
-            <IconAward className="size-3.5 text-bull/70" />
+            <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+              Best Trade
+            </span>
+            <IconAward className="text-bull/70 size-3.5" />
           </div>
-          <p className="text-lg font-bold tracking-tight mt-1.5 text-bull tabular-nums">
+          <p className="text-bull mt-1.5 text-lg font-bold tracking-tight tabular-nums">
             +{extremes.best.toFixed(2)}R
           </p>
-          <span className="text-xs text-fg-muted font-medium">Single maximum R realized</span>
+          <span className="text-fg-muted text-xs font-medium">Single maximum R realized</span>
         </div>
 
         {/* Worst Trade Loss */}
-        <div className="border border-border bg-bg-elev-1 rounded-sm p-3.5 flex flex-col gap-1 relative overflow-hidden group hover:border-bear/30 transition-all">
+        <div className="border-border bg-bg-elev-1 group hover:border-bear/30 relative flex flex-col gap-1 overflow-hidden rounded-sm border p-3.5 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Worst Trade</span>
-            <IconTrendingDown className="size-3.5 text-bear/70" />
+            <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+              Worst Trade
+            </span>
+            <IconTrendingDown className="text-bear/70 size-3.5" />
           </div>
-          <p className="text-lg font-bold tracking-tight mt-1.5 text-bear/80 tabular-nums">
+          <p className="text-bear/80 mt-1.5 text-lg font-bold tracking-tight tabular-nums">
             {extremes.worst.toFixed(2)}R
           </p>
-          <span className="text-xs text-fg-muted font-medium">Single maximum R loss</span>
+          <span className="text-fg-muted text-xs font-medium">Single maximum R loss</span>
         </div>
       </div>
 
@@ -323,46 +342,56 @@ export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
       {hasExtendedStats(stats) ? (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="border border-border bg-bg-elev-1 rounded-sm p-3.5 flex flex-col gap-1">
+            <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3.5">
               <div className="flex items-center justify-between">
-                <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Win Streak</span>
-                <IconFlame className="size-3.5 text-bull/70" />
+                <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+                  Win Streak
+                </span>
+                <IconFlame className="text-bull/70 size-3.5" />
               </div>
-              <p className="text-lg font-bold tracking-tight mt-1.5 text-bull tabular-nums">
+              <p className="text-bull mt-1.5 text-lg font-bold tracking-tight tabular-nums">
                 {stats.longestWinStreak}
               </p>
-              <span className="text-xs text-fg-muted font-medium">Longest consecutive wins (across breakevens)</span>
+              <span className="text-fg-muted text-xs font-medium">
+                Longest consecutive wins (across breakevens)
+              </span>
             </div>
 
-            <div className="border border-border bg-bg-elev-1 rounded-sm p-3.5 flex flex-col gap-1">
+            <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3.5">
               <div className="flex items-center justify-between">
-                <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Loss Streak</span>
-                <IconFlame className="size-3.5 text-bear/70" />
+                <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+                  Loss Streak
+                </span>
+                <IconFlame className="text-bear/70 size-3.5" />
               </div>
-              <p className="text-lg font-bold tracking-tight mt-1.5 text-bear/80 tabular-nums">
+              <p className="text-bear/80 mt-1.5 text-lg font-bold tracking-tight tabular-nums">
                 {stats.longestLossStreak}
               </p>
-              <span className="text-xs text-fg-muted font-medium">Longest consecutive losses</span>
+              <span className="text-fg-muted text-xs font-medium">Longest consecutive losses</span>
             </div>
 
-            <div className="border border-border bg-bg-elev-1 rounded-sm p-3.5 flex flex-col gap-1">
+            <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3.5">
               <div className="flex items-center justify-between">
-                <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">Avg Hold</span>
-                <IconClock className="size-3.5 text-info/70" />
+                <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+                  Avg Hold
+                </span>
+                <IconClock className="text-info/70 size-3.5" />
               </div>
-              <p className="text-lg font-bold tracking-tight mt-1.5 text-fg tabular-nums">
+              <p className="text-fg mt-1.5 text-lg font-bold tracking-tight tabular-nums">
                 {(stats.avgHoldMs ?? 0) > 0 ? formatHoldTime(stats.avgHoldMs!) : '—'}
               </p>
-              <span className="text-xs text-fg-muted font-medium">Average trade duration (closed)</span>
+              <span className="text-fg-muted text-xs font-medium">
+                Average trade duration (closed)
+              </span>
             </div>
           </div>
 
           {stats.perDayOfWeek ? (
-            <div className="border border-border bg-bg-elev-1 rounded-sm p-3.5 flex flex-col gap-3">
+            <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <IconCalendarEvent className="size-3.5 text-fg-muted" />
-                  <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">
+                  <IconCalendarEvent className="text-fg-muted size-3.5" />
+                  <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
                     Closed by day of week
                   </span>
                 </div>
@@ -423,7 +452,7 @@ function DayOfWeekChart({
   const counts = DOW_KEYS.map((k) => perDayOfWeek[k] ?? 0);
   const max = Math.max(1, ...counts); // avoid div-by-zero
   return (
-    <div className="flex items-end gap-2 h-16">
+    <div className="flex h-16 items-end gap-2">
       {counts.map((n, i) => {
         const heightPct = (n / max) * 100;
         return (
@@ -436,9 +465,7 @@ function DayOfWeekChart({
                 aria-label={`${DOW_LABELS[i]}: ${n}`}
               />
             </div>
-            <span className="text-fg-muted text-xs uppercase tracking-wider">
-              {DOW_LABELS[i]}
-            </span>
+            <span className="text-fg-muted text-xs tracking-wider uppercase">{DOW_LABELS[i]}</span>
           </div>
         );
       })}

@@ -1,6 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { useLocalStorage } from '../src/hooks/use-local-storage';
 
 function createMockWindow() {
@@ -8,10 +25,18 @@ function createMockWindow() {
   vi.stubGlobal('window', {
     localStorage: {
       getItem: vi.fn((key: string) => store[key] ?? null),
-      setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
-      removeItem: vi.fn((key: string) => { delete store[key]; }),
-      clear: vi.fn(() => { for (const k in store) delete store[k]; }),
-      get length() { return Object.keys(store).length; },
+      setItem: vi.fn((key: string, value: string) => {
+        store[key] = value;
+      }),
+      removeItem: vi.fn((key: string) => {
+        delete store[key];
+      }),
+      clear: vi.fn(() => {
+        for (const k in store) delete store[k];
+      }),
+      get length() {
+        return Object.keys(store).length;
+      },
     },
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
@@ -66,12 +91,11 @@ describe('useLocalStorage', () => {
     warnSpy.mockRestore();
   });
 
-
-
   it('syncs across tabs via the storage event', () => {
     const { result } = renderHook(() => useLocalStorage('sync-key', 'old'));
-    const listener = (window.addEventListener as ReturnType<typeof vi.fn>).mock
-      .calls.find(([e]: [string]) => e === 'storage')?.[1];
+    const listener = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls.find(
+      ([e]: [string]) => e === 'storage',
+    )?.[1];
     expect(listener).toBeDefined();
     act(() => {
       listener({ key: 'sync-key', newValue: '"synced"' });
@@ -84,8 +108,9 @@ describe('useLocalStorage', () => {
     const { result } = renderHook(() => useLocalStorage('deleted-key', 'default'));
     expect(result.current[0]).toBe('stored');
 
-    const listener = (window.addEventListener as ReturnType<typeof vi.fn>).mock
-      .calls.find(([e]: [string]) => e === 'storage')?.[1];
+    const listener = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls.find(
+      ([e]: [string]) => e === 'storage',
+    )?.[1];
     expect(listener).toBeDefined();
     act(() => {
       listener({ key: 'deleted-key', newValue: null });

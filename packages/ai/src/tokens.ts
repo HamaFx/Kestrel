@@ -21,10 +21,10 @@
 // Using token<T>('key') means resolve(token) infers T without a manual
 // generic parameter — a typo or wrong type is a compile error.
 
-import { token } from '@kestrel/shared';
-import type { LlmClient } from './llm-client';
 import type { DbClient } from '@kestrel/db';
-import type { Token } from '@kestrel/shared';
+import { token, type Token } from '@kestrel/shared';
+
+import type { LlmClient } from './llm-client';
 
 export const DB: Token<DbClient> = token<DbClient>('db');
 export const LLM_CLIENT: Token<LlmClient> = token<LlmClient>('llmClient');

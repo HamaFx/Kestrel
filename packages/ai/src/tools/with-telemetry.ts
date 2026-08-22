@@ -44,12 +44,12 @@
 // Tools that already surface their own telemetry (none today) can opt
 // out by importing the raw factory and skipping the wrap.
 
+import { metrics } from '@kestrel/shared';
 import type { Tool } from 'ai';
 
-import { metrics } from '@kestrel/shared';
+import { completeStep, recordError, recordStep } from '../diagnostics';
 import { recordToolTelemetry } from '../persistence';
 import { maybeGetToolContext, type BatchedToolTelemetry } from '../tool-context';
-import { recordStep, completeStep, recordError } from '../diagnostics';
 
 /** Custom error class for tool timeout detection. */
 class ToolTimeoutError extends Error {
@@ -98,7 +98,8 @@ export function withTelemetry<T extends Tool<any, any>>(name: string, t: T): T {
     // Give every invocation its own cancellation controller. The parent
     // signal handles request/turn cancellation; the local controller also
     // aborts the underlying operation when the tool deadline expires.
-    const parentSignal = (opts as { abortSignal?: AbortSignal } | undefined)?.abortSignal ?? ctx?.signal ?? undefined;
+    const parentSignal =
+      (opts as { abortSignal?: AbortSignal } | undefined)?.abortSignal ?? ctx?.signal ?? undefined;
     const toolController = new AbortController();
     const onParentAbort = () => {
       toolController.abort(parentSignal?.reason);

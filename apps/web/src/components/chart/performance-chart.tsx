@@ -22,10 +22,9 @@
 // H-2 audit fix: removed the file-level `eslint-disable
 // @typescript-eslint/no-explicit-any` — the chart instance and area
 // series are now typed via the lightweight-charts v5 public APIs.
-
 import type { JournalEntry } from '@kestrel/shared';
+import { IconAward, IconTrendingUp } from '@tabler/icons-react';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-import {IconTrendingUp, IconAward} from '@tabler/icons-react';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { buildEquityCurve } from './performance-chart-data';
@@ -90,7 +89,8 @@ export function PerformanceChart({
       // leave it undefined, so the fallback is defensive.
       const createChartFn =
         lc.createChart ??
-        (lc as unknown as { default?: { createChart: typeof lc.createChart } }).default?.createChart;
+        (lc as unknown as { default?: { createChart: typeof lc.createChart } }).default
+          ?.createChart;
       if (!createChartFn) throw new Error('lightweight-charts createChart not found');
 
       const chart = createChartFn(containerRef.current, {
@@ -98,7 +98,8 @@ export function PerformanceChart({
         layout: {
           background: { color: 'transparent' },
           textColor: colors.text,
-          fontFamily: getComputedStyle(el).getPropertyValue('--font-mono') || 'ui-monospace, monospace',
+          fontFamily:
+            getComputedStyle(el).getPropertyValue('--font-mono') || 'ui-monospace, monospace',
         },
         grid: {
           vertLines: { color: 'transparent' },
@@ -173,11 +174,11 @@ export function PerformanceChart({
   if (chartData.length < 2) {
     return (
       <div className="surface-panel flex h-[220px] flex-col items-center justify-center gap-2 p-6 text-center">
-        <div className="rounded-sm bg-bg-elev-2 p-3 text-fg">
+        <div className="bg-bg-elev-2 text-fg rounded-sm p-3">
           <IconTrendingUp className="size-6 animate-pulse" />
         </div>
-        <p className="text-sm font-semibold text-fg">Performance Curve Loading</p>
-        <p className="max-w-[280px] text-xs text-fg-subtle">
+        <p className="text-fg text-sm font-semibold">Performance Curve Loading</p>
+        <p className="text-fg-subtle max-w-[280px] text-xs">
           Close at least two trades to begin plotting your cumulative R-multiple performance curve.
         </p>
       </div>
@@ -185,26 +186,33 @@ export function PerformanceChart({
   }
 
   return (
-    <div className="surface-panel relative overflow-hidden p-4 flex flex-col gap-3">
+    <div className="surface-panel relative flex flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <div className="rounded-sm bg-bg-elev-2 p-2 text-fg">
+          <div className="bg-bg-elev-2 text-fg rounded-sm p-2">
             <IconAward className="size-4" />
           </div>
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-fg-subtle">Performance Curve</h4>
-            <p className="text-xs text-fg-muted mt-0.5">Cumulative R-Multiple Growth</p>
+            <h4 className="text-fg-subtle text-xs font-bold tracking-wider uppercase">
+              Performance Curve
+            </h4>
+            <p className="text-fg-muted mt-0.5 text-xs">Cumulative R-Multiple Growth</p>
           </div>
         </div>
         <div className="text-right">
-          <span className="text-xs text-fg-muted font-medium uppercase tracking-wide">Net R-Score</span>
-          <p className={`text-xl font-bold tracking-tight tabular-nums ${totalR >= 0 ? 'text-bull' : 'text-bear'}`}>
-            {totalR >= 0 ? '+' : ''}{totalR.toFixed(2)}R
+          <span className="text-fg-muted text-xs font-medium tracking-wide uppercase">
+            Net R-Score
+          </span>
+          <p
+            className={`text-xl font-bold tracking-tight tabular-nums ${totalR >= 0 ? 'text-bull' : 'text-bear'}`}
+          >
+            {totalR >= 0 ? '+' : ''}
+            {totalR.toFixed(2)}R
           </p>
         </div>
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-sm mt-1 bg-black/10">
+      <div className="relative mt-1 w-full overflow-hidden rounded-sm bg-black/10">
         <div ref={containerRef} className="w-full" />
       </div>
     </div>

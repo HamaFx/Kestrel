@@ -17,7 +17,6 @@
  */
 
 // Histogram of R-multiple buckets. Positive buckets are bullish, negative bearish.
-
 import type { JournalStats } from '@kestrel/shared';
 
 import { cn } from '@/lib/cn';
@@ -35,35 +34,38 @@ export function RDistribution({ stats, className }: RDistributionProps) {
   return (
     <div
       className={cn(
-        'border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-3',
+        'border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4',
         className,
       )}
       role="img"
       aria-label="R-multiple distribution histogram"
     >
       <div className="flex items-center justify-between">
-        <span className="text-caption font-bold uppercase tracking-wider text-fg-subtle">
+        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
           R Distribution
         </span>
         <span className="text-caption text-fg-muted tabular-nums">{total} trades</span>
       </div>
 
       {total === 0 ? (
-        <p className="text-sm text-fg-muted">No closed trades to display.</p>
+        <p className="text-fg-muted text-sm">No closed trades to display.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          <div className="flex items-end gap-1 h-32">
+          <div className="flex h-32 items-end gap-1">
             {data.map((d) => {
-              const isPositive = d.bucket.startsWith('(') || (d.bucket.startsWith('[') && d.bucket !== '[0,0]' && d.bucket !== '[-3,-2)' && d.bucket !== '[-2,-1)' && d.bucket !== '[-1,0)');
+              const isPositive =
+                d.bucket.startsWith('(') ||
+                (d.bucket.startsWith('[') &&
+                  d.bucket !== '[0,0]' &&
+                  d.bucket !== '[-3,-2)' &&
+                  d.bucket !== '[-2,-1)' &&
+                  d.bucket !== '[-1,0)');
               const heightPct = (d.count / maxCount) * 100;
               return (
                 <div key={d.bucket} className="flex flex-1 flex-col items-center gap-1.5">
                   <span className="text-fg-subtle text-xs tabular-nums">{d.count}</span>
                   <div
-                    className={cn(
-                      'w-full rounded-t',
-                      isPositive ? 'bg-bull/60' : 'bg-bear/60',
-                    )}
+                    className={cn('w-full rounded-t', isPositive ? 'bg-bull/60' : 'bg-bear/60')}
                     style={{ height: `${Math.max(heightPct, 0)}%` }}
                     aria-label={`${d.bucket}: ${d.count}`}
                   />
@@ -76,7 +78,7 @@ export function RDistribution({ stats, className }: RDistributionProps) {
             {data.map((d) => (
               <span
                 key={`label-${d.bucket}`}
-                className="text-caption text-fg-subtle tabular-nums text-center"
+                className="text-caption text-fg-subtle text-center tabular-nums"
               >
                 {d.bucket}
               </span>

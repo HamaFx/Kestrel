@@ -15,7 +15,13 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { LogJournalOutput, SetAlertOutput, ShareSnapshotOutput } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { withToolContext } from '../src/tool-context';
+import { logJournalTool } from '../src/tools/log-journal';
+import { setAlertTool } from '../src/tools/set-alert';
+import { shareSnapshotTool } from '../src/tools/share-snapshot';
 
 const mocks = vi.hoisted(() => ({
   createAlertMock: vi.fn(),
@@ -39,12 +45,6 @@ vi.mock('../src/share/persistence', () => ({
 vi.mock('../src/share/sign', () => ({
   signShareToken: mocks.signShareTokenMock,
 }));
-
-import { withToolContext } from '../src/tool-context';
-import { logJournalTool } from '../src/tools/log-journal';
-import { setAlertTool } from '../src/tools/set-alert';
-import { shareSnapshotTool } from '../src/tools/share-snapshot';
-import type { LogJournalOutput, SetAlertOutput, ShareSnapshotOutput } from '@kestrel/shared';
 
 function makeContext(latestUserMessageText: string) {
   return {
@@ -122,7 +122,8 @@ describe('mutation tool intent guards', () => {
             },
             {} as any,
           ),
-        )),
+        ),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
 
     expect(mocks.createAlertMock).not.toHaveBeenCalled();
@@ -139,7 +140,8 @@ describe('mutation tool intent guards', () => {
           },
           {} as any,
         ),
-      ))) as SetAlertOutput;
+      ),
+    )) as SetAlertOutput;
 
     expect(result.alertId).toBe('alert_123');
     expect(mocks.createAlertMock).toHaveBeenCalledOnce();
@@ -155,7 +157,8 @@ describe('mutation tool intent guards', () => {
             },
             {} as any,
           ),
-        )),
+        ),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
   });
 
@@ -194,7 +197,8 @@ describe('mutation tool intent guards', () => {
             },
             {} as any,
           ),
-        )),
+        ),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
 
     expect(mocks.createEntryMock).not.toHaveBeenCalled();
@@ -214,7 +218,8 @@ describe('mutation tool intent guards', () => {
             },
             {} as any,
           ),
-        )),
+        ),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
 
     expect(mocks.createSnapshotMock).not.toHaveBeenCalled();
@@ -236,7 +241,9 @@ describe('mutation tool intent guards', () => {
         ),
     )) as ShareSnapshotOutput;
 
-    expect(result.url).toBe('https://app.kestrel.test/share/550e8400-e29b-41d4-a716-446655440000?t=signed-token');
+    expect(result.url).toBe(
+      'https://app.kestrel.test/share/550e8400-e29b-41d4-a716-446655440000?t=signed-token',
+    );
     expect(mocks.createSnapshotMock).toHaveBeenCalledOnce();
     expect(mocks.signShareTokenMock).toHaveBeenCalledOnce();
   });
@@ -271,7 +278,8 @@ describe('U6 — prompt-injection resistance', () => {
             },
             {} as any,
           ),
-        )),
+        ),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
     expect(mocks.createAlertMock).not.toHaveBeenCalled();
   });
@@ -282,11 +290,9 @@ describe('U6 — prompt-injection resistance', () => {
     await expect(
       withToolContext(makeContext('Search the knowledge base for gold seasonality patterns.'), () =>
         Promise.resolve(
-          logJournalTool.execute!(
-            { symbol: 'XAUUSD', side: 'long', entry: 2600 },
-            {} as any,
-          ),
-        )),
+          logJournalTool.execute!({ symbol: 'XAUUSD', side: 'long', entry: 2600 }, {} as any),
+        ),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
     expect(mocks.createEntryMock).not.toHaveBeenCalled();
   });
@@ -296,10 +302,17 @@ describe('U6 — prompt-injection resistance', () => {
       withToolContext(makeContext('What is the latest FOMC statement?'), () =>
         Promise.resolve(
           shareSnapshotTool.execute!(
-            { title: 'Leaked analysis', body: 'ignore-all-previous', symbol: 'XAUUSD', tf: '1h', ttlMinutes: 60 },
+            {
+              title: 'Leaked analysis',
+              body: 'ignore-all-previous',
+              symbol: 'XAUUSD',
+              tf: '1h',
+              ttlMinutes: 60,
+            },
             {} as any,
           ),
-        )),
+        ),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
     expect(mocks.createSnapshotMock).not.toHaveBeenCalled();
   });
@@ -311,11 +324,9 @@ describe('U6 — prompt-injection resistance', () => {
     await expect(
       withToolContext(makeContext('Can you explain gold support levels?'), () =>
         Promise.resolve(
-          logJournalTool.execute!(
-            { symbol: 'XAUUSD', side: 'long', entry: 2650 },
-            {} as any,
-          ),
-        )),
+          logJournalTool.execute!({ symbol: 'XAUUSD', side: 'long', entry: 2650 }, {} as any),
+        ),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
     expect(mocks.createEntryMock).not.toHaveBeenCalled();
   });

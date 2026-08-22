@@ -17,7 +17,6 @@
  */
 
 // Reusable sortable breakdown table for by-symbol / by-session / by-hour / by-day / by-tag stats.
-
 import { useMemo, useState } from 'react';
 
 import { cn } from '@/lib/cn';
@@ -80,7 +79,7 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
         role="columnheader"
         aria-sort={ariaSort}
         className={cn(
-          'text-left text-caption font-bold uppercase tracking-wider text-fg-subtle py-2 px-3 cursor-pointer select-none',
+          'text-caption text-fg-subtle cursor-pointer px-3 py-2 text-left font-bold tracking-wider uppercase select-none',
           numeric && 'text-right',
         )}
         onClick={() =>
@@ -97,12 +96,12 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
 
   return (
     <div
-      className="border border-border bg-bg-elev-1 rounded-sm overflow-hidden"
+      className="border-border bg-bg-elev-1 overflow-hidden rounded-sm border"
       role="table"
       aria-label={title}
     >
-      <div className="px-3 py-2 border-b border-border">
-        <span className="text-body-sm font-semibold text-fg">{title}</span>
+      <div className="border-border border-b px-3 py-2">
+        <span className="text-body-sm text-fg font-semibold">{title}</span>
       </div>
       <table className="w-full text-sm">
         <thead className="bg-bg-elev-2">
@@ -116,28 +115,34 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.label} className="border-b border-divider last:border-b-0">
-              <td className="py-2 px-3 text-fg font-medium">{row.label}</td>
-              <td className="py-2 px-3 text-right text-fg-muted tabular-nums">{row.trades}</td>
+            <tr key={row.label} className="border-divider border-b last:border-b-0">
+              <td className="text-fg px-3 py-2 font-medium">{row.label}</td>
+              <td className="text-fg-muted px-3 py-2 text-right tabular-nums">{row.trades}</td>
               <td
                 className={cn(
-                  'py-2 px-3 text-right tabular-nums font-medium',
-                  row.winRate > 0.55 ? 'text-bull' : row.winRate < 0.4 ? 'text-bear' : 'text-fg-muted',
+                  'px-3 py-2 text-right font-medium tabular-nums',
+                  row.winRate > 0.55
+                    ? 'text-bull'
+                    : row.winRate < 0.4
+                      ? 'text-bear'
+                      : 'text-fg-muted',
                 )}
               >
                 {(row.winRate * 100).toFixed(0)}%
               </td>
               <td
                 className={cn(
-                  'py-2 px-3 text-right tabular-nums font-medium',
+                  'px-3 py-2 text-right font-medium tabular-nums',
                   row.totalR > 0 ? 'text-bull' : row.totalR < 0 ? 'text-bear' : 'text-fg-muted',
                 )}
               >
                 {row.totalR > 0 ? '+' : ''}
                 {row.totalR.toFixed(2)}R
               </td>
-              <td className="py-2 px-3 text-right text-fg-muted tabular-nums">
-                {row.expectancy !== undefined ? `${row.expectancy > 0 ? '+' : ''}${row.expectancy.toFixed(2)}R` : '—'}
+              <td className="text-fg-muted px-3 py-2 text-right tabular-nums">
+                {row.expectancy !== undefined
+                  ? `${row.expectancy > 0 ? '+' : ''}${row.expectancy.toFixed(2)}R`
+                  : '—'}
               </td>
             </tr>
           ))}

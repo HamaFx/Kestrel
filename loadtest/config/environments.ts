@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Central env resolution from __ENV (k6 injects -e KEY=val and OS env).
 // See loadtest/README.md for the full env-var reference.
 
@@ -25,8 +41,7 @@ export interface Env {
   cronSecret?: string;
 }
 
-const E = (k: string, d?: string): string =>
-  ((__ENV[k] ?? d) as string | undefined) ?? '';
+const E = (k: string, d?: string): string => ((__ENV[k] ?? d) as string | undefined) ?? '';
 
 export const env: Env = {
   baseUrl: E('K6_BASE_URL', 'http://localhost:3000').replace(/\/$/, ''),

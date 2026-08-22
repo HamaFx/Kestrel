@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // PR-06: Admin health SLO service.
@@ -8,12 +24,11 @@
 // live_ticks, and the Mastra `full-analysis` workflow run records
 // (mastra_workflow_snapshot) that replaced analysis_jobs in Phase 3.
 
-import { sql } from 'drizzle-orm';
+import { sql, type SQLWrapper } from 'drizzle-orm';
 
-import type { SQLWrapper } from 'drizzle-orm';
+import { createScopedLoggerWithContext } from '@/lib/logger';
 
 import type { HealthSloResponse, SliSnapshot } from './admin-dtos';
-import { createScopedLoggerWithContext } from '@/lib/logger';
 
 export interface ComputeHealthSloOptions {
   hours: number;
@@ -132,14 +147,15 @@ export async function computeHealthSloService(
   }
 
   // ── Independent telemetry queries (concurrent) ────────────────────────────
-  const [ticksResult, cronResult, toolResult, chatResult, analysisResult, operationalResult] = await Promise.allSettled([
-    queryTickAggregate(db),
-    queryCronAggregate(db, since),
-    queryToolAggregate(db, since),
-    queryChatAggregate(db, since),
-    queryAnalysisAggregate(db, since),
-    queryOperationalAggregate(db, since),
-  ]);
+  const [ticksResult, cronResult, toolResult, chatResult, analysisResult, operationalResult] =
+    await Promise.allSettled([
+      queryTickAggregate(db),
+      queryCronAggregate(db, since),
+      queryToolAggregate(db, since),
+      queryChatAggregate(db, since),
+      queryAnalysisAggregate(db, since),
+      queryOperationalAggregate(db, since),
+    ]);
 
   const ticks = ticksResult.status === 'fulfilled' ? ticksResult.value : null;
   const cron = cronResult.status === 'fulfilled' ? cronResult.value : null;
@@ -229,13 +245,22 @@ export async function computeHealthSloService(
 
   // ── Recovery / Full-mode operational signals ───────────────────────────
   if (!operational) {
-    anomalies.push('Recovery telemetry is unavailable — outbox, budget, trace, and Full-mode health cannot be verified');
+    anomalies.push(
+      'Recovery telemetry is unavailable — outbox, budget, trace, and Full-mode health cannot be verified',
+    );
   } else {
     if (operational.fullTotal > 0 && operational.fullCompleted / operational.fullTotal < 0.995) {
-      anomalies.push(`Full-mode completion is below SLO: ${operational.fullCompleted}/${operational.fullTotal} completed`);
+      anomalies.push(
+        `Full-mode completion is below SLO: ${operational.fullCompleted}/${operational.fullTotal} completed`,
+      );
     }
-    if (operational.sentimentTotal > 0 && operational.sentimentSucceeded / operational.sentimentTotal < 0.95) {
-      anomalies.push(`Sentiment specialist success is below SLO: ${operational.sentimentSucceeded}/${operational.sentimentTotal} succeeded`);
+    if (
+      operational.sentimentTotal > 0 &&
+      operational.sentimentSucceeded / operational.sentimentTotal < 0.95
+    ) {
+      anomalies.push(
+        `Sentiment specialist success is below SLO: ${operational.sentimentSucceeded}/${operational.sentimentTotal} succeeded`,
+      );
     }
     if (operational.outboxDead > 0) {
       anomalies.push(`${operational.outboxDead} persistence outbox record(s) are dead-lettered`);
@@ -246,88 +271,138 @@ export async function computeHealthSloService(
     if (operational.traceFailed > 0) {
       anomalies.push(`${operational.traceFailed} diagnostic trace(s) failed to complete`);
     }
-    if (operational.traceTotal > 0 && operational.providerFallbackTraces / operational.traceTotal > 0.05) {
-      anomalies.push(`Provider fallback usage is above threshold: ${operational.providerFallbackTraces}/${operational.traceTotal} traces used fallback`);
+    if (
+      operational.traceTotal > 0 &&
+      operational.providerFallbackTraces / operational.traceTotal > 0.05
+    ) {
+      anomalies.push(
+        `Provider fallback usage is above threshold: ${operational.providerFallbackTraces}/${operational.traceTotal} traces used fallback`,
+      );
     }
   }
 
   // ── Langfuse ────────────────────────────────────────────────────────────
   const langfuseActive = Boolean(
     process.env.LANGFUSE_PUBLIC_KEY &&
-      process.env.LANGFUSE_SECRET_KEY &&
-      process.env.LANGFUSE_BASE_URL,
+    process.env.LANGFUSE_SECRET_KEY &&
+    process.env.LANGFUSE_BASE_URL,
   );
   const langfuseBaseUrl = process.env.LANGFUSE_BASE_URL ?? null;
 
   // ── Build SLIs ───────────────────────────────────────────────────────────
-  const HOUR_LABEL = hours <= 1 ? '1 hour' : hours <= 24 ? `${hours}h` : `${hours}h (${Math.round(hours / 24)}d)`;
+  const HOUR_LABEL =
+    hours <= 1 ? '1 hour' : hours <= 24 ? `${hours}h` : `${hours}h (${Math.round(hours / 24)}d)`;
 
   const operationalSlis: SliSnapshot[] = operational
     ? [
         {
           key: 'full_mode_completion',
           label: 'Full-mode Completion',
-          current: operational.fullTotal > 0 ? operational.fullCompleted / operational.fullTotal : null,
+          current:
+            operational.fullTotal > 0 ? operational.fullCompleted / operational.fullTotal : null,
           sloTarget: 0.995,
           window: HOUR_LABEL,
           success: operational.fullCompleted,
           total: operational.fullTotal,
-          errorBudget: computeErrorBudget(operational.fullTotal > 0 ? operational.fullCompleted / operational.fullTotal : null, 0.995),
+          errorBudget: computeErrorBudget(
+            operational.fullTotal > 0 ? operational.fullCompleted / operational.fullTotal : null,
+            0.995,
+          ),
           details: `${operational.fullCompleted}/${operational.fullTotal} Full-mode jobs completed`,
         },
         {
           key: 'sentiment_health',
           label: 'Sentiment Specialist',
-          current: operational.sentimentTotal > 0 ? operational.sentimentSucceeded / operational.sentimentTotal : null,
+          current:
+            operational.sentimentTotal > 0
+              ? operational.sentimentSucceeded / operational.sentimentTotal
+              : null,
           sloTarget: 0.95,
           window: HOUR_LABEL,
           success: operational.sentimentSucceeded,
           total: operational.sentimentTotal,
-          errorBudget: computeErrorBudget(operational.sentimentTotal > 0 ? operational.sentimentSucceeded / operational.sentimentTotal : null, 0.95),
+          errorBudget: computeErrorBudget(
+            operational.sentimentTotal > 0
+              ? operational.sentimentSucceeded / operational.sentimentTotal
+              : null,
+            0.95,
+          ),
           details: `${operational.sentimentSucceeded}/${operational.sentimentTotal} sentiment calls succeeded`,
         },
         {
           key: 'persistence_outbox',
           label: 'Persistence Recovery',
-          current: operational.outboxTerminal > 0 ? operational.outboxCompleted / operational.outboxTerminal : null,
+          current:
+            operational.outboxTerminal > 0
+              ? operational.outboxCompleted / operational.outboxTerminal
+              : null,
           sloTarget: 0.999,
           window: HOUR_LABEL,
           success: operational.outboxCompleted,
           total: operational.outboxTerminal,
-          errorBudget: computeErrorBudget(operational.outboxTerminal > 0 ? operational.outboxCompleted / operational.outboxTerminal : null, 0.999),
+          errorBudget: computeErrorBudget(
+            operational.outboxTerminal > 0
+              ? operational.outboxCompleted / operational.outboxTerminal
+              : null,
+            0.999,
+          ),
           details: `${operational.outboxCompleted} completed, ${operational.outboxDead} dead-lettered`,
         },
         {
           key: 'budget_recovery',
           label: 'Budget Recovery',
-          current: operational.budgetTerminal > 0 ? 1 - operational.budgetErrors / operational.budgetTerminal : null,
+          current:
+            operational.budgetTerminal > 0
+              ? 1 - operational.budgetErrors / operational.budgetTerminal
+              : null,
           sloTarget: 0.999,
           window: HOUR_LABEL,
           success: operational.budgetTerminal - operational.budgetErrors,
           total: operational.budgetTerminal,
-          errorBudget: computeErrorBudget(operational.budgetTerminal > 0 ? 1 - operational.budgetErrors / operational.budgetTerminal : null, 0.999),
+          errorBudget: computeErrorBudget(
+            operational.budgetTerminal > 0
+              ? 1 - operational.budgetErrors / operational.budgetTerminal
+              : null,
+            0.999,
+          ),
           details: `${operational.budgetErrors} recovery errors across ${operational.budgetTerminal} terminal reservations`,
         },
         {
           key: 'trace_sink',
           label: 'Diagnostic Trace Sink',
-          current: operational.traceTotal > 0 ? (operational.traceTotal - operational.traceFailed) / operational.traceTotal : null,
+          current:
+            operational.traceTotal > 0
+              ? (operational.traceTotal - operational.traceFailed) / operational.traceTotal
+              : null,
           sloTarget: 0.999,
           window: HOUR_LABEL,
           success: operational.traceTotal - operational.traceFailed,
           total: operational.traceTotal,
-          errorBudget: computeErrorBudget(operational.traceTotal > 0 ? (operational.traceTotal - operational.traceFailed) / operational.traceTotal : null, 0.999),
+          errorBudget: computeErrorBudget(
+            operational.traceTotal > 0
+              ? (operational.traceTotal - operational.traceFailed) / operational.traceTotal
+              : null,
+            0.999,
+          ),
           details: `${operational.traceFailed} failed of ${operational.traceTotal} traces`,
         },
         {
           key: 'provider_fallback_free',
           label: 'Provider Fallback-free',
-          current: operational.traceTotal > 0 ? 1 - operational.providerFallbackTraces / operational.traceTotal : null,
+          current:
+            operational.traceTotal > 0
+              ? 1 - operational.providerFallbackTraces / operational.traceTotal
+              : null,
           sloTarget: 0.95,
           window: HOUR_LABEL,
           success: operational.traceTotal - operational.providerFallbackTraces,
           total: operational.traceTotal,
-          errorBudget: computeErrorBudget(operational.traceTotal > 0 ? 1 - operational.providerFallbackTraces / operational.traceTotal : null, 0.95),
+          errorBudget: computeErrorBudget(
+            operational.traceTotal > 0
+              ? 1 - operational.providerFallbackTraces / operational.traceTotal
+              : null,
+            0.95,
+          ),
           details: `${operational.providerFallbackTraces} trace(s) used provider fallback`,
         },
       ]
@@ -357,7 +432,8 @@ export async function computeHealthSloService(
       success: cron?.done ?? 0,
       total: cron?.total ?? 0,
       errorBudget: computeErrorBudget(cronSuccessRate, 0.995),
-      details: cron && cron.total > 0 ? `${cron.done}/${cron.total} completed` : 'No cron runs in window',
+      details:
+        cron && cron.total > 0 ? `${cron.done}/${cron.total} completed` : 'No cron runs in window',
     },
     {
       key: 'ai_gateway',
@@ -368,7 +444,10 @@ export async function computeHealthSloService(
       success: tools?.ok ?? 0,
       total: tools?.total ?? 0,
       errorBudget: computeErrorBudget(toolSuccessRate, 0.99),
-      details: tools && tools.total > 0 ? `${tools.ok}/${tools.total} tools succeeded` : 'No tool calls in window',
+      details:
+        tools && tools.total > 0
+          ? `${tools.ok}/${tools.total} tools succeeded`
+          : 'No tool calls in window',
     },
     {
       key: 'chat_api',
@@ -414,9 +493,7 @@ export async function computeHealthSloService(
 // Analysis counts are selected-window cohorts whose current status has
 // crossed the stale/running threshold.
 
-async function queryTickAggregate(
-  db: HealthSloDb,
-): Promise<TickAggregate | null> {
+async function queryTickAggregate(db: HealthSloDb): Promise<TickAggregate | null> {
   try {
     const result = await db.execute(sql`
       SELECT
@@ -436,10 +513,7 @@ async function queryTickAggregate(
   }
 }
 
-async function queryCronAggregate(
-  db: HealthSloDb,
-  since: string,
-): Promise<CronAggregate | null> {
+async function queryCronAggregate(db: HealthSloDb, since: string): Promise<CronAggregate | null> {
   try {
     const result = await db.execute(sql`
       SELECT
@@ -465,10 +539,7 @@ async function queryCronAggregate(
   }
 }
 
-async function queryToolAggregate(
-  db: HealthSloDb,
-  since: string,
-): Promise<ToolAggregate | null> {
+async function queryToolAggregate(db: HealthSloDb, since: string): Promise<ToolAggregate | null> {
   try {
     const result = await db.execute(sql`
       SELECT
@@ -489,10 +560,7 @@ async function queryToolAggregate(
   }
 }
 
-async function queryChatAggregate(
-  db: HealthSloDb,
-  since: string,
-): Promise<ChatAggregate | null> {
+async function queryChatAggregate(db: HealthSloDb, since: string): Promise<ChatAggregate | null> {
   try {
     const result = await db.execute(sql`
       SELECT COUNT(*)::text AS turns
@@ -562,7 +630,10 @@ async function queryOperationalAggregate(
       error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
         ? error.code
         : undefined;
-    createScopedLoggerWithContext({ component: 'admin-health', query: 'operational-aggregate' }).error(
+    createScopedLoggerWithContext({
+      component: 'admin-health',
+      query: 'operational-aggregate',
+    }).error(
       {
         err: error instanceof Error ? error.message : String(error),
         ...(underlying ? { cause: underlying } : {}),

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `summarize_thread` tool part.
@@ -20,7 +36,7 @@ export function SummarizeThreadPart({
       <header className="flex items-baseline justify-between gap-2">
         <h3 className="text-fg text-sm font-semibold">Thread synopsis</h3>
         {output.remembered ? (
-          <span className="bg-bull/15 text-bull rounded-sm px-2 py-0.5 text-caption font-semibold">
+          <span className="bg-bull/15 text-bull text-caption rounded-sm px-2 py-0.5 font-semibold">
             Saved to memory
           </span>
         ) : (
@@ -32,7 +48,7 @@ export function SummarizeThreadPart({
 
       {output.insights.length > 0 ? (
         <section>
-          <h4 className="text-fg-subtle mb-1 text-body-sm uppercase tracking-wide">Key insights</h4>
+          <h4 className="text-fg-subtle text-body-sm mb-1 tracking-wide uppercase">Key insights</h4>
           <ul className="flex flex-col gap-1">
             {output.insights.map((ins, i) => (
               <li
@@ -42,7 +58,7 @@ export function SummarizeThreadPart({
                 <span className="text-fg-muted">→</span>
                 <span className="text-fg flex-1">{ins.text}</span>
                 {ins.symbol ? (
-                  <span className="bg-bg-elev-2 text-fg-muted rounded-sm px-1.5 py-0.5 text-caption font-medium">
+                  <span className="bg-bg-elev-2 text-fg-muted text-caption rounded-sm px-1.5 py-0.5 font-medium">
                     {ins.symbol}
                   </span>
                 ) : null}

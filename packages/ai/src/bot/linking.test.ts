@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { createLinkCode, resolveLinkCode } from './linking';
 
 // These tests only cover the in-memory link code logic.

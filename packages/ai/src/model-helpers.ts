@@ -19,8 +19,9 @@
 //
 // Dependency: none (leaf module — no imports from other model-* files).
 
-import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
 import { PROVIDER_IDS } from '@kestrel/shared/byok';
+import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
+
 import { BYOK_PROVIDERS } from './byok-providers';
 import type { ResolveModelEnv } from './vertex-factory';
 
@@ -124,9 +125,11 @@ export function supportsPromptCaching(modelId: string): boolean {
 function isUsableVertexCredentials(json: string): boolean {
   try {
     const parsed = JSON.parse(json) as Record<string, unknown>;
-    return typeof parsed.client_email === 'string'
-      && typeof parsed.private_key === 'string'
-      && parsed.private_key.length > 0;
+    return (
+      typeof parsed.client_email === 'string' &&
+      typeof parsed.private_key === 'string' &&
+      parsed.private_key.length > 0
+    );
   } catch {
     return false;
   }
@@ -144,7 +147,12 @@ function isUsableVertexCredentials(json: string): boolean {
 export function parsePickedModelId(
   value: string,
   keys: ByokPayload,
-): { providerId: ProviderId; bareModelId: string; spec: typeof BYOK_PROVIDERS[ProviderId]; apiKey: string } | null {
+): {
+  providerId: ProviderId;
+  bareModelId: string;
+  spec: (typeof BYOK_PROVIDERS)[ProviderId];
+  apiKey: string;
+} | null {
   const sep = value.indexOf(':');
   if (sep < 0) return null;
   const providerIdRaw = value.slice(0, sep);
@@ -155,9 +163,7 @@ export function parsePickedModelId(
   if (typeof apiKey !== 'string' || apiKey.length === 0) return null;
   const spec = BYOK_PROVIDERS[providerId];
   if (!spec) return null;
-  const known = (spec.models ?? []).some(
-    (m: { modelId: string }) => m.modelId === bareModelId,
-  );
+  const known = (spec.models ?? []).some((m: { modelId: string }) => m.modelId === bareModelId);
   if (!known) return null;
   return { providerId, bareModelId, spec, apiKey };
 }

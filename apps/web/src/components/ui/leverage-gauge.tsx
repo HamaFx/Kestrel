@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // ASCII portfolio leverage gauge — flat horizontal text-based bar using
@@ -43,9 +59,12 @@ export function LeverageGauge({ usagePct, label = 'Margin Used', detail }: Lever
   const toneClass = computeTone(usagePct);
 
   return (
-    <div className="flex flex-col gap-1.5 font-mono" aria-label={`${label}: ${usagePct.toFixed(1)}%`}>
+    <div
+      className="flex flex-col gap-1.5 font-mono"
+      aria-label={`${label}: ${usagePct.toFixed(1)}%`}
+    >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-caption text-fg-subtle font-semibold uppercase tracking-wider">
+        <span className="text-caption text-fg-subtle font-semibold tracking-wider uppercase">
           {label}
         </span>
         <span className={cn('text-caption font-bold tabular-nums', toneClass)}>
@@ -54,17 +73,11 @@ export function LeverageGauge({ usagePct, label = 'Margin Used', detail }: Lever
       </div>
 
       <div className="text-xs leading-none tracking-[0.08em] select-none" aria-hidden="true">
-        <span className={cn(toneClass)}>
-          {'█'.repeat(filled)}
-        </span>
-        <span className="text-fg-subtle/40">
-          {'░'.repeat(empty)}
-        </span>
+        <span className={cn(toneClass)}>{'█'.repeat(filled)}</span>
+        <span className="text-fg-subtle/40">{'░'.repeat(empty)}</span>
       </div>
 
-      {detail ? (
-        <p className="text-caption text-fg-subtle/60 tabular-nums">{detail}</p>
-      ) : null}
+      {detail ? <p className="text-caption text-fg-subtle/60 tabular-nums">{detail}</p> : null}
     </div>
   );
 }

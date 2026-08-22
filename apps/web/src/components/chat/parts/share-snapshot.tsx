@@ -20,7 +20,6 @@
 //
 // Client component because we need a copy-to-clipboard action. Layout
 // stays minimal — a one-line title + the copyable URL + an expiry hint.
-
 import { useEffect, useState } from 'react';
 
 import type { ToolPartProps } from './registry';
@@ -60,18 +59,20 @@ export function ShareSnapshotPart({
     <div className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-3">
       <header className="flex items-baseline justify-between gap-2">
         <h3 className="text-fg text-sm font-semibold">Snapshot ready</h3>
-        <span className="text-fg-subtle text-caption tabular-nums">{formatExpiry(output.expiresAt, now)}</span>
+        <span className="text-fg-subtle text-caption tabular-nums">
+          {formatExpiry(output.expiresAt, now)}
+        </span>
       </header>
 
       <div className="flex items-stretch gap-2">
-        <code className="border-border bg-bg-elev-2 text-fg-muted flex-1 truncate rounded-sm border px-2 py-2 text-body-sm">
+        <code className="border-border bg-bg-elev-2 text-fg-muted text-body-sm flex-1 truncate rounded-sm border px-2 py-2">
           {output.url}
         </code>
         <button
           type="button"
           onClick={() => copy(output.url)}
           aria-label="Copy share link"
-          className="border-border bg-bg-elev-2 text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex h-11 min-w-[44px] items-center justify-center rounded-sm border px-3 text-body-sm font-medium focus:outline-none focus-visible:ring-2"
+          className="border-border bg-bg-elev-2 text-fg-muted hover:text-fg focus-visible:ring-fg text-body-sm inline-flex h-11 min-w-[44px] items-center justify-center rounded-sm border px-3 font-medium focus:outline-none focus-visible:ring-2"
         >
           {copied ? 'copied' : 'copy'}
         </button>
@@ -81,7 +82,7 @@ export function ShareSnapshotPart({
         href={output.url}
         target="_blank"
         rel="noreferrer"
-        className="text-fg text-right text-body-sm font-medium underline-offset-2 hover:underline"
+        className="text-fg text-body-sm text-right font-medium underline-offset-2 hover:underline"
       >
         open in new tab →
       </a>

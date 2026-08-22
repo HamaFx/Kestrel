@@ -1,4 +1,22 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { replayPersistenceFailures } from '../src/persistence-recovery';
 
 const {
   mockDbExecute,
@@ -42,8 +60,6 @@ vi.mock('../src/diagnostics/trace-persistence', () => ({
   persistTraceStrict: mockPersistTraceStrict,
 }));
 
-import { replayPersistenceFailures } from '../src/persistence-recovery';
-
 describe('persistence outbox replay', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -59,32 +75,36 @@ describe('persistence outbox replay', () => {
   it('claims, dispatches, and completes a telemetry replay', async () => {
     mockTxExecute
       .mockResolvedValueOnce({
-        rows: [{
-          id: 'outbox-1',
-          operation: 'telemetry.turn',
-          payload: {
-            userId: 'user-1',
-            threadId: 'thread-1',
-            messageId: null,
-            idempotencyKey: 'telemetry.turn:1',
-            model: 'test/model',
-            inputTokens: 3,
-            outputTokens: 2,
-            toolCalls: 0,
-            ms: 10,
+        rows: [
+          {
+            id: 'outbox-1',
+            operation: 'telemetry.turn',
+            payload: {
+              userId: 'user-1',
+              threadId: 'thread-1',
+              messageId: null,
+              idempotencyKey: 'telemetry.turn:1',
+              model: 'test/model',
+              inputTokens: 3,
+              outputTokens: 2,
+              toolCalls: 0,
+              ms: 10,
+            },
+            attempt_count: 0,
+            max_attempts: 8,
           },
-          attempt_count: 0,
-          max_attempts: 8,
-        }],
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ id: 'outbox-1' }] });
 
     const result = await replayPersistenceFailures(1);
 
-    expect(mockRecordTelemetry).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 'user-1',
-      idempotencyKey: 'telemetry.turn:1',
-    }));
+    expect(mockRecordTelemetry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        idempotencyKey: 'telemetry.turn:1',
+      }),
+    );
     expect(mockDbExecute).toHaveBeenCalled();
     expect(result).toEqual({ claimed: 1, completed: 1, failed: 0, dead: 0 });
   });
@@ -92,23 +112,25 @@ describe('persistence outbox replay', () => {
   it('replays messages using their stable idempotency key', async () => {
     mockTxExecute
       .mockResolvedValueOnce({
-        rows: [{
-          id: 'outbox-message',
-          operation: 'message.assistant',
-          payload: {
-            userId: 'user-1',
-            threadId: 'thread-1',
-            idempotencyKey: 'ui:assistant-1',
-            message: {
-              id: 'assistant-1',
-              role: 'assistant',
-              parts: [{ type: 'text', text: 'replayed' }],
+        rows: [
+          {
+            id: 'outbox-message',
+            operation: 'message.assistant',
+            payload: {
+              userId: 'user-1',
+              threadId: 'thread-1',
+              idempotencyKey: 'ui:assistant-1',
+              message: {
+                id: 'assistant-1',
+                role: 'assistant',
+                parts: [{ type: 'text', text: 'replayed' }],
+              },
+              messageId: 'assistant-1',
             },
-            messageId: 'assistant-1',
+            attempt_count: 0,
+            max_attempts: 8,
           },
-          attempt_count: 0,
-          max_attempts: 8,
-        }],
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ id: 'outbox-message' }] });
 
@@ -125,31 +147,35 @@ describe('persistence outbox replay', () => {
   it('reclaims a worker-crashed processing record after its lease expires', async () => {
     mockTxExecute
       .mockResolvedValueOnce({
-        rows: [{
-          id: 'outbox-stale',
-          operation: 'telemetry.turn',
-          payload: {
-            userId: 'user-1',
-            threadId: 'thread-1',
-            messageId: null,
-            idempotencyKey: 'telemetry.stale:1',
-            model: 'test/model',
-            inputTokens: 1,
-            outputTokens: 1,
-            toolCalls: 0,
-            ms: 1,
+        rows: [
+          {
+            id: 'outbox-stale',
+            operation: 'telemetry.turn',
+            payload: {
+              userId: 'user-1',
+              threadId: 'thread-1',
+              messageId: null,
+              idempotencyKey: 'telemetry.stale:1',
+              model: 'test/model',
+              inputTokens: 1,
+              outputTokens: 1,
+              toolCalls: 0,
+              ms: 1,
+            },
+            attempt_count: 1,
+            max_attempts: 8,
           },
-          attempt_count: 1,
-          max_attempts: 8,
-        }],
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ id: 'outbox-stale' }] });
 
     const result = await replayPersistenceFailures(1);
 
-    expect(mockRecordTelemetry).toHaveBeenCalledWith(expect.objectContaining({
-      idempotencyKey: 'telemetry.stale:1',
-    }));
+    expect(mockRecordTelemetry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: 'telemetry.stale:1',
+      }),
+    );
     expect(result).toEqual({ claimed: 1, completed: 1, failed: 0, dead: 0 });
   });
 
@@ -157,13 +183,15 @@ describe('persistence outbox replay', () => {
     mockRecordTelemetry.mockRejectedValueOnce(new Error('database unavailable'));
     mockTxExecute
       .mockResolvedValueOnce({
-        rows: [{
-          id: 'outbox-failed',
-          operation: 'telemetry.turn',
-          payload: { userId: 'user-1', threadId: 'thread-1', messageId: null },
-          attempt_count: 0,
-          max_attempts: 8,
-        }],
+        rows: [
+          {
+            id: 'outbox-failed',
+            operation: 'telemetry.turn',
+            payload: { userId: 'user-1', threadId: 'thread-1', messageId: null },
+            attempt_count: 0,
+            max_attempts: 8,
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ id: 'outbox-failed' }] });
 
@@ -177,13 +205,15 @@ describe('persistence outbox replay', () => {
     mockRecordTelemetry.mockRejectedValueOnce(new Error('permanent failure'));
     mockTxExecute
       .mockResolvedValueOnce({
-        rows: [{
-          id: 'outbox-dead',
-          operation: 'telemetry.turn',
-          payload: { userId: 'user-1', threadId: 'thread-1', messageId: null },
-          attempt_count: 7,
-          max_attempts: 8,
-        }],
+        rows: [
+          {
+            id: 'outbox-dead',
+            operation: 'telemetry.turn',
+            payload: { userId: 'user-1', threadId: 'thread-1', messageId: null },
+            attempt_count: 7,
+            max_attempts: 8,
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ id: 'outbox-dead' }] });
 

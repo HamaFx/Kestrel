@@ -19,6 +19,7 @@
 // fields without recording prompts or outputs by default.
 
 import { createHash } from 'node:crypto';
+
 import type { AttributeValue } from '@opentelemetry/api';
 
 import { getDiagnosticContext } from './diagnostics/run-context';
@@ -43,8 +44,8 @@ type TelemetryConfig = { experimental_telemetry: TelemetrySettings };
 function isLangfuseConfigured(): boolean {
   return Boolean(
     process.env.LANGFUSE_PUBLIC_KEY &&
-      process.env.LANGFUSE_SECRET_KEY &&
-      process.env.LANGFUSE_BASE_URL,
+    process.env.LANGFUSE_SECRET_KEY &&
+    process.env.LANGFUSE_BASE_URL,
   );
 }
 
@@ -79,7 +80,9 @@ function correlationMetadata(): Record<string, AttributeValue> {
  * Next.js may load vault-backed secrets after module evaluation, and tests
  * often change environment values between cases.
  */
-export function telemetryConfig(options: TelemetryConfigOptions = {}): Readonly<TelemetryConfig> | Record<string, never> {
+export function telemetryConfig(
+  options: TelemetryConfigOptions = {},
+): Readonly<TelemetryConfig> | Record<string, never> {
   if (!isLangfuseConfigured()) return {};
 
   const metadata: Record<string, AttributeValue> = {

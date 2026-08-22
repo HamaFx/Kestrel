@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `annotate_chart` tool part.
@@ -40,7 +56,7 @@ export function AnnotateChartPart({
         <h3 className="text-fg text-sm font-semibold">
           {output.symbol} · {output.tf} · annotated
         </h3>
-        <span className="text-fg-muted font-mono text-caption tabular-nums">
+        <span className="text-fg-muted text-caption font-mono tabular-nums">
           {output.markers.length}m / {output.priceLines.length}l
         </span>
       </header>
@@ -52,7 +68,7 @@ export function AnnotateChartPart({
           return (
             <li
               key={k}
-              className="bg-bg-elev-2 text-fg-muted rounded-sm px-2 py-0.5 text-body-sm font-medium tabular-nums"
+              className="bg-bg-elev-2 text-fg-muted text-body-sm rounded-sm px-2 py-0.5 font-medium tabular-nums"
             >
               {KIND_LABELS[k]} · {c}
             </li>
@@ -62,7 +78,7 @@ export function AnnotateChartPart({
 
       <Link
         href={`/chart/${output.symbol}?tf=${output.tf}`}
-        className="text-fg focus-visible:ring-fg mt-3 block min-h-[36px] text-right text-body-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2"
+        className="text-fg focus-visible:ring-fg text-body-sm mt-3 block min-h-[36px] text-right font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2"
       >
         open in chart →
       </Link>

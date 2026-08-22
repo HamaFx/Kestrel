@@ -47,13 +47,16 @@ export const ComputeRiskInputSchema = z
     message: 'entry and stop cannot be equal',
     path: ['stop'],
   })
-  .refine((v) => {
-    const definition = getSymbolDefinition(v.symbol);
-    return definition.quoteCurrency === 'USD' || definition.quoteCurrency === 'USDT';
-  }, {
-    message: 'Risk sizing currently requires a USD- or USDT-quoted symbol',
-    path: ['symbol'],
-  });
+  .refine(
+    (v) => {
+      const definition = getSymbolDefinition(v.symbol);
+      return definition.quoteCurrency === 'USD' || definition.quoteCurrency === 'USDT';
+    },
+    {
+      message: 'Risk sizing currently requires a USD- or USDT-quoted symbol',
+      path: ['symbol'],
+    },
+  );
 export type ComputeRiskInput = z.infer<typeof ComputeRiskInputSchema>;
 
 export const ComputeRiskOutputSchema = z.object({

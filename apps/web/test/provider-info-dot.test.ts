@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from 'vitest';
@@ -20,9 +36,7 @@ const FULL = {
 
 describe('Phase C item 16 — buildProviderTooltip', () => {
   it('joins bestFor and supports flags with a middot', () => {
-    expect(buildProviderTooltip(FULL)).toBe(
-      'Best for: Deep reasoning · Supports: Vision',
-    );
+    expect(buildProviderTooltip(FULL)).toBe('Best for: Deep reasoning · Supports: Vision');
   });
 
   it('lists supports in the documented order (Vision, Embeddings)', () => {
@@ -74,9 +88,7 @@ describe('Phase C item 16 — buildProviderTooltip', () => {
 
 describe('Phase C item 16 — buildProviderAriaLabel', () => {
   it('replaces the middot separator with a period', () => {
-    expect(buildProviderAriaLabel(FULL)).toBe(
-      'Best for: Deep reasoning. Supports: Vision',
-    );
+    expect(buildProviderAriaLabel(FULL)).toBe('Best for: Deep reasoning. Supports: Vision');
   });
 
   it('returns the description alone when both are absent', () => {

@@ -18,6 +18,7 @@
 // destination so the tests are isolated from process.stdout.
 
 import { Writable } from 'node:stream';
+
 import { describe, expect, it } from 'vitest';
 
 import { createLogger } from '../src/log';
@@ -43,7 +44,12 @@ function parseLine(lines: string[], index: number): Record<string, unknown> {
 describe('createLogger', () => {
   it('emits JSON when forceJson=true', () => {
     const { writable, lines } = makeDestination();
-    const log = createLogger({ service: 'worker', commit: 'abc123', forceJson: true, destination: writable });
+    const log = createLogger({
+      service: 'worker',
+      commit: 'abc123',
+      forceJson: true,
+      destination: writable,
+    });
     log.info('hello', { thread: 't1' });
 
     expect(lines).toHaveLength(1);

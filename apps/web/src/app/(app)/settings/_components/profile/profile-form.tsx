@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { useActionState, useEffect } from 'react';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
 import { updateProfileAction } from '../../actions';
-import { toast } from 'sonner';
 
 interface ProfileFormProps {
   initialName: string;
@@ -28,13 +29,16 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ initialName, email }: ProfileFormProps) {
-  const [state, action, pending] = useActionState(async (prevState: { error: string; ok: boolean }, formData: FormData) => {
-    const res = await updateProfileAction(formData);
-    return {
-      error: 'error' in res ? (res.error ?? '') : '',
-      ok: res.ok,
-    };
-  }, { error: '', ok: false });
+  const [state, action, pending] = useActionState(
+    async (prevState: { error: string; ok: boolean }, formData: FormData) => {
+      const res = await updateProfileAction(formData);
+      return {
+        error: 'error' in res ? (res.error ?? '') : '',
+        ok: res.ok,
+      };
+    },
+    { error: '', ok: false },
+  );
 
   useEffect(() => {
     if (state.ok) {
@@ -45,32 +49,37 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
   }, [state.ok, state.error]);
 
   return (
-    <form action={action} className="border border-border bg-bg-elev-1 rounded-sm p-4 flex flex-col gap-4">
+    <form
+      action={action}
+      className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4"
+    >
       <div className="flex flex-col gap-2">
-        <label htmlFor="settings-email" className="text-sm font-medium text-fg">Email</label>
-        <Input 
-          id="settings-email"
-          value={email} 
-          readOnly 
-          disabled 
-          className="opacity-50"
-        />
-        <p className="text-body-sm text-fg-subtle">Your email address cannot be changed right now.</p>
+        <label htmlFor="settings-email" className="text-fg text-sm font-medium">
+          Email
+        </label>
+        <Input id="settings-email" value={email} readOnly disabled className="opacity-50" />
+        <p className="text-body-sm text-fg-subtle">
+          Your email address cannot be changed right now.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="display-name" className="text-sm font-medium text-fg">Display Name</label>
-        <Input 
+        <label htmlFor="display-name" className="text-fg text-sm font-medium">
+          Display Name
+        </label>
+        <Input
           id="display-name"
-          name="name" 
-          defaultValue={initialName} 
+          name="name"
+          defaultValue={initialName}
           placeholder="Your name"
           required
         />
       </div>
 
       <div className="flex justify-end pt-2">
-        <Button type="submit" loading={pending}>Save Profile</Button>
+        <Button type="submit" loading={pending}>
+          Save Profile
+        </Button>
       </div>
     </form>
   );

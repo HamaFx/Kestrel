@@ -17,6 +17,7 @@
 // P3-13 — Unit tests for autoDetectMode and resolveMode.
 
 import { describe, expect, it } from 'vitest';
+
 import { autoDetectMode, resolveMode, selectAgents } from '../src/multi-agent/modes';
 
 describe('autoDetectMode', () => {

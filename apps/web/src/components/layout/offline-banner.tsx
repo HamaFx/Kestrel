@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import {IconWifiOff, IconLoader2} from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { IconLoader2, IconWifiOff } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
+import { useEffect, useState } from 'react';
 
 export function OfflineBanner() {
   const [online, setOnline] = useState(true);
@@ -65,7 +64,7 @@ export function OfflineBanner() {
                 setRetrying(true);
                 window.location.reload();
               }}
-              className="text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-sm px-3 text-body-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-60"
+              className="text-fg-muted hover:text-fg focus-visible:ring-fg text-body-sm inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-sm px-3 font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-60"
             >
               {retrying && <IconLoader2 className="size-3 animate-spin" />}
               Retry

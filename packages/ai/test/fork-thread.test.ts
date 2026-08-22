@@ -61,6 +61,8 @@ describe('Phase C item 19 — deriveForkedTitle', () => {
   });
 
   it('rejects malformed pagination cursors instead of restarting at page one', async () => {
-    await expect(listThreads('user-1', 50, 'not-a-cursor')).rejects.toBeInstanceOf(InvalidThreadCursorError);
+    await expect(listThreads('user-1', 50, 'not-a-cursor')).rejects.toBeInstanceOf(
+      InvalidThreadCursorError,
+    );
   });
 });

@@ -24,7 +24,6 @@
 // avoid double-handling with vaul's built-in trap. vaul/Radix already
 // manages focus restore, Tab cycling, and Escape-to-close. We keep only
 // the initial focus move to the first focusable element for ergonomics.
-
 import * as React from 'react';
 import { Drawer as DrawerPrimitive } from 'vaul';
 
@@ -48,11 +47,12 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn('fixed inset-0 z-50 bg-overlay ', className)}
+    className={cn('bg-overlay fixed inset-0 z-50', className)}
     {...props}
   />
 )) as React.ForwardRefExoticComponent<
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay> & React.RefAttributes<HTMLDivElement>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay> &
+    React.RefAttributes<HTMLDivElement>
 >;
 DrawerOverlay.displayName = 'DrawerOverlay';
 
@@ -89,9 +89,7 @@ const DrawerContent = React.forwardRef<
     // vaul handles Tab cycling, Escape-to-close, and focus restore.
     const focusableSelector =
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-    const focusables = Array.from(
-      el.querySelectorAll<HTMLElement>(focusableSelector),
-    ).filter(
+    const focusables = Array.from(el.querySelectorAll<HTMLElement>(focusableSelector)).filter(
       (node) => !node.hasAttribute('disabled') && node.getAttribute('aria-hidden') !== 'true',
     );
 
@@ -117,13 +115,17 @@ const DrawerContent = React.forwardRef<
         )}
         {...props}
       >
-        <div className="mx-auto mt-3 mb-2 h-1.5 w-12 rounded-sm bg-fg-subtle/40" aria-hidden="true" />
+        <div
+          className="bg-fg-subtle/40 mx-auto mt-3 mb-2 h-1.5 w-12 rounded-sm"
+          aria-hidden="true"
+        />
         {children}
       </DrawerPrimitive.Content>
     </DrawerPortal>
   );
 }) as React.ForwardRefExoticComponent<
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & React.RefAttributes<HTMLDivElement>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> &
+    React.RefAttributes<HTMLDivElement>
 >;
 DrawerContent.displayName = 'DrawerContent';
 
@@ -143,11 +145,12 @@ const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
-    className={cn('text-lg font-semibold leading-none tracking-tight text-fg', className)}
+    className={cn('text-fg text-lg leading-none font-semibold tracking-tight', className)}
     {...props}
   />
 )) as React.ForwardRefExoticComponent<
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title> & React.RefAttributes<HTMLHeadingElement>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title> &
+    React.RefAttributes<HTMLHeadingElement>
 >;
 DrawerTitle.displayName = 'DrawerTitle';
 
@@ -157,11 +160,12 @@ const DrawerDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-fg-muted', className)}
+    className={cn('text-fg-muted text-sm', className)}
     {...props}
   />
 )) as React.ForwardRefExoticComponent<
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description> & React.RefAttributes<HTMLParagraphElement>
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description> &
+    React.RefAttributes<HTMLParagraphElement>
 >;
 DrawerDescription.displayName = 'DrawerDescription';
 

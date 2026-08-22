@@ -16,8 +16,8 @@
 
 // F7 — /help command: list all available commands.
 
-import type { BotCommand, BotResponse } from '../types';
 import { getBotDispatcher } from '../dispatcher';
+import type { BotCommand, BotResponse } from '../types';
 
 export const helpCommand: BotCommand = {
   name: 'help',
@@ -31,9 +31,7 @@ export const helpCommand: BotCommand = {
     const marketCommands = commands.filter((c) =>
       ['price', 'chart', 'news', 'calendar'].includes(c.name),
     );
-    const aiCommands = commands.filter((c) =>
-      ['analyze', 'ask', 'committee'].includes(c.name),
-    );
+    const aiCommands = commands.filter((c) => ['analyze', 'ask', 'committee'].includes(c.name));
     const accountCommands = commands.filter((c) =>
       ['status', 'positions', 'alert', 'track', 'settings', 'me'].includes(c.name),
     );

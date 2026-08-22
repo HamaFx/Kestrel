@@ -1,10 +1,32 @@
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import {
+  IconCheck,
+  IconFlask,
+  IconLoader2,
+  IconPlayerPlay,
+  IconSquare,
+  IconX,
+} from '@tabler/icons-react';
 import { useCallback, useRef, useState } from 'react';
-import { IconFlask, IconPlayerPlay, IconSquare, IconCheck, IconX, IconLoader2 } from '@tabler/icons-react';
 
-import { Button } from '@/components/ui/button';
 import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
+import { Button } from '@/components/ui/button';
 import { AI_EVAL_PROMPTS } from '@/lib/ai-eval-prompts';
 import { getCsrfToken } from '@/lib/csrf';
 
@@ -113,7 +135,8 @@ async function runOnePrompt(threadId: string, prompt: string): Promise<RunOneRes
     }
 
     const text = await readSseText(res);
-    const error = text.error ?? (text.text.length === 0 ? 'Stream closed without assistant text' : undefined);
+    const error =
+      text.error ?? (text.text.length === 0 ? 'Stream closed without assistant text' : undefined);
     return {
       ok: !error,
       totalMs,
@@ -210,7 +233,9 @@ export function AdminAiEval() {
     stopRef.current = false;
     setRunning(true);
     setSummary(null);
-    setRows(AI_EVAL_PROMPTS.map((p) => ({ id: p.id, prompt: p.prompt, status: 'pending' as const })));
+    setRows(
+      AI_EVAL_PROMPTS.map((p) => ({ id: p.id, prompt: p.prompt, status: 'pending' as const })),
+    );
 
     let ok = 0;
     let failed = 0;
@@ -289,7 +314,13 @@ export function AdminAiEval() {
       description={`Runs ${AI_EVAL_PROMPTS.length} read-only gold prompts through the normal chat route from your session. Each eligible prompt produces a Mastra verified report. This uses provider tokens and takes roughly 10–20 minutes.`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" onClick={() => void run()} disabled={running} variant={running ? 'secondary' : 'primary'} size="sm">
+        <Button
+          type="button"
+          onClick={() => void run()}
+          disabled={running}
+          variant={running ? 'secondary' : 'primary'}
+          size="sm"
+        >
           {running ? (
             <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
           ) : (
@@ -303,14 +334,29 @@ export function AdminAiEval() {
           </Button>
         ) : null}
         {!running && completed > 0 ? (
-          <Button type="button" onClick={() => setRows(AI_EVAL_PROMPTS.map((p) => ({ id: p.id, prompt: p.prompt, status: 'pending' as const })))} variant="ghost" size="sm">
+          <Button
+            type="button"
+            onClick={() =>
+              setRows(
+                AI_EVAL_PROMPTS.map((p) => ({
+                  id: p.id,
+                  prompt: p.prompt,
+                  status: 'pending' as const,
+                })),
+              )
+            }
+            variant="ghost"
+            size="sm"
+          >
             Reset
           </Button>
         ) : null}
       </div>
 
       {summary ? (
-        <p role="status" className="mt-3 text-sm text-fg-muted">{summary}</p>
+        <p role="status" className="text-fg-muted mt-3 text-sm">
+          {summary}
+        </p>
       ) : null}
 
       {completed > 0 || running ? (
@@ -333,19 +379,20 @@ export function AdminAiEval() {
                   <td className="text-fg-subtle px-3 py-2 text-xs">{row.prompt}</td>
                   <td className="px-3 py-2">
                     {row.status === 'ok' ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-bull">
+                      <span className="text-bull inline-flex items-center gap-1 text-xs font-semibold">
                         <IconCheck className="size-3.5" aria-hidden="true" /> ok
                       </span>
                     ) : row.status === 'failed' ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-danger">
+                      <span className="text-danger inline-flex items-center gap-1 text-xs font-semibold">
                         <IconX className="size-3.5" aria-hidden="true" /> failed
                       </span>
                     ) : row.status === 'running' ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-fg-subtle">
-                        <IconLoader2 className="size-3.5 animate-spin" aria-hidden="true" /> running…
+                      <span className="text-fg-subtle inline-flex items-center gap-1 text-xs font-semibold">
+                        <IconLoader2 className="size-3.5 animate-spin" aria-hidden="true" />{' '}
+                        running…
                       </span>
                     ) : (
-                      <span className="text-xs text-fg-subtle">pending</span>
+                      <span className="text-fg-subtle text-xs">pending</span>
                     )}
                   </td>
                   <td className="text-fg-subtle px-3 py-2 text-xs tabular-nums">
@@ -354,17 +401,21 @@ export function AdminAiEval() {
                   <td className="text-fg-subtle px-3 py-2 text-xs tabular-nums">
                     {row.chars === undefined ? '—' : row.chars}
                   </td>
-                  <td className="text-fg-subtle px-3 py-2 text-xs">{row.error ?? (row.status === 'ok' ? 'Mastra report generated' : '')}</td>
+                  <td className="text-fg-subtle px-3 py-2 text-xs">
+                    {row.error ?? (row.status === 'ok' ? 'Mastra report generated' : '')}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : (
-        <div className="border-border mt-4 flex items-start gap-2 rounded-sm border border-warn/30 bg-warn/5 p-3 text-xs text-fg-muted">
-          <IconFlask className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden="true" />
+        <div className="border-border border-warn/30 bg-warn/5 text-fg-muted mt-4 flex items-start gap-2 rounded-sm border p-3 text-xs">
+          <IconFlask className="text-warn mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>
-            Keep this tab open while the run is in progress. Each prompt creates a fresh thread, waits for the Mastra report, and moves to the next. When it finishes, open <strong className="text-fg">AI Compare</strong> to review Mastra-vs-legacy rows.
+            Keep this tab open while the run is in progress. Each prompt creates a fresh thread,
+            waits for the Mastra report, and moves to the next. When it finishes, open{' '}
+            <strong className="text-fg">AI Compare</strong> to review Mastra-vs-legacy rows.
           </span>
         </div>
       )}

@@ -60,24 +60,24 @@ export const buildToolCatalogue = cache(
 
     const stats = new Map(result.map((r) => [r.tool, r]));
 
-    return TOOL_NAMES
-      .filter((name) => !disabledTools?.includes(name))
-      .map((name): CatalogueEntry => {
-      const plugin = toolRegistry.getPlugin(name);
-      const desc = plugin?.description ?? '(no description)';
-      const agg = stats.get(name);
-      const invocations = agg?.invocations ?? 0;
-      const failures = agg?.failures ?? 0;
-      const median = Math.round(agg?.median ?? 0);
-      const p95 = Math.round(agg?.p95 ?? 0);
-      return {
-        name: name as ToolName,
-        description: desc,
-        invocations24h: invocations,
-        failures24h: failures,
-        medianMs: median,
-        p95Ms: p95,
-      };
-    });
+    return TOOL_NAMES.filter((name) => !disabledTools?.includes(name)).map(
+      (name): CatalogueEntry => {
+        const plugin = toolRegistry.getPlugin(name);
+        const desc = plugin?.description ?? '(no description)';
+        const agg = stats.get(name);
+        const invocations = agg?.invocations ?? 0;
+        const failures = agg?.failures ?? 0;
+        const median = Math.round(agg?.median ?? 0);
+        const p95 = Math.round(agg?.p95 ?? 0);
+        return {
+          name: name as ToolName,
+          description: desc,
+          invocations24h: invocations,
+          failures24h: failures,
+          medianMs: median,
+          p95Ms: p95,
+        };
+      },
+    );
   },
 );

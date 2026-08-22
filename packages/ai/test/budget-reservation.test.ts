@@ -18,9 +18,10 @@
 // Mock the cost module to control tryReserveBudget / applyBudgetDelta
 // without touching the database.
 
+import { metrics } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { metrics } from '@kestrel/shared';
+import { reserveTurnBudget, type BudgetHandle } from '../src/budget-reservation';
 
 vi.mock('server-only', () => ({}));
 
@@ -50,13 +51,10 @@ vi.mock('../src/cost', () => ({
 
 // We need the real BudgetExceededError class for instanceof checks.
 const BudgetExceededErrorActual = (
-  await vi.importActual('../src/cost') as unknown as {
+  (await vi.importActual('../src/cost')) as unknown as {
     BudgetExceededError: new (...args: never[]) => Error;
   }
 ).BudgetExceededError;
-
-import { reserveTurnBudget } from '../src/budget-reservation';
-import type { BudgetHandle } from '../src/budget-reservation';
 
 beforeEach(() => {
   metrics.reset();
@@ -85,7 +83,7 @@ describe('reserveTurnBudget', () => {
   });
 
   it('uses custom estimateUsd when provided', async () => {
-    mockTryReserveBudget.mockResolvedValue({ ok: true, spent: 0.10, max: 5.0 });
+    mockTryReserveBudget.mockResolvedValue({ ok: true, spent: 0.1, max: 5.0 });
 
     const handle = await reserveTurnBudget({ userId: 'u1', estimateUsd: 0.05, maxDailyUsd: 5.0 });
 
@@ -96,9 +94,9 @@ describe('reserveTurnBudget', () => {
   it('throws BudgetExceededError when reservation fails', async () => {
     mockTryReserveBudget.mockResolvedValue({ ok: false, spent: 4.99, max: 5.0 });
 
-    await expect(
-      reserveTurnBudget({ userId: 'u1', maxDailyUsd: 5.0 }),
-    ).rejects.toThrow(BudgetExceededErrorActual);
+    await expect(reserveTurnBudget({ userId: 'u1', maxDailyUsd: 5.0 })).rejects.toThrow(
+      BudgetExceededErrorActual,
+    );
     // A rejected reservation must not count as reserved.
     expect(metrics.snapshot().counters['budget_reserved_total']).toBeUndefined();
   });
@@ -106,7 +104,7 @@ describe('reserveTurnBudget', () => {
 
 describe('BudgetHandle.reconcile', () => {
   beforeEach(() => {
-    mockTryReserveBudget = vi.fn().mockResolvedValue({ ok: true, spent: 0.00, max: 5.0 });
+    mockTryReserveBudget = vi.fn().mockResolvedValue({ ok: true, spent: 0.0, max: 5.0 });
     mockApplyBudgetDelta = vi.fn(() => Promise.resolve());
   });
 
@@ -174,7 +172,7 @@ describe('BudgetHandle.reconcile', () => {
 
 describe('BudgetHandle.release', () => {
   beforeEach(() => {
-    mockTryReserveBudget = vi.fn().mockResolvedValue({ ok: true, spent: 0.00, max: 5.0 });
+    mockTryReserveBudget = vi.fn().mockResolvedValue({ ok: true, spent: 0.0, max: 5.0 });
     mockApplyBudgetDelta = vi.fn(() => Promise.resolve());
   });
 

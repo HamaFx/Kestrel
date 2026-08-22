@@ -6,20 +6,20 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  */
-
 import 'server-only';
 
-import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+
+import { auth } from '@/auth';
 import {
-  JournalCreateSchema,
-  JournalPatchSchema,
   createJournalEntryService,
   deleteJournalEntryService,
+  JournalCreateSchema,
+  JournalPatchSchema,
   updateJournalEntryService,
+  type EntryDTO,
   type JournalCreateInput,
   type JournalPatchInput,
-  type EntryDTO,
 } from '@/lib/services/journal';
 
 export interface ActionResult<T = unknown> {
@@ -46,7 +46,10 @@ export async function createJournalEntryAction(
     revalidatePath('/journal');
     return { ok: true, data: { entry } };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to create journal entry' };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Failed to create journal entry',
+    };
   }
 }
 
@@ -72,7 +75,10 @@ export async function updateJournalEntryAction(
     revalidatePath('/journal');
     return { ok: true, data: { entry } };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to update journal entry' };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Failed to update journal entry',
+    };
   }
 }
 
@@ -90,6 +96,9 @@ export async function deleteJournalEntryAction(id: string): Promise<ActionResult
     revalidatePath('/journal');
     return { ok: true, data: { id } };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to delete journal entry' };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Failed to delete journal entry',
+    };
   }
 }

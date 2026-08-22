@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `get_indicators` tool part.
@@ -174,7 +190,13 @@ function RsiGauge({ value }: { value: number }) {
       role="img"
       aria-label={`RSI gauge: ${value.toFixed(1)}`}
     >
-      <path d={d} fill="none" stroke="var(--color-bg-elev-3)" strokeWidth="4" strokeLinecap="round" />
+      <path
+        d={d}
+        fill="none"
+        stroke="var(--color-bg-elev-3)"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
       <path
         d={d}
         fill="none"
@@ -189,7 +211,7 @@ function RsiGauge({ value }: { value: number }) {
         y={cy - 5}
         textAnchor="middle"
         fill="var(--color-fg)"
-                style={{ fontSize: 9, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+        style={{ fontSize: 9, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
       >
         {value.toFixed(0)}
       </text>

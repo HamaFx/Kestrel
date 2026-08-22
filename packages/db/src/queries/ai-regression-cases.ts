@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { createHash } from 'node:crypto';
@@ -22,7 +38,9 @@ export interface ListAiRegressionCasesOptions {
  * feedback is later reclassified, the existing case is dismissed rather than
  * deleted, preserving the audit trail.
  */
-export async function syncAiRegressionCase(feedbackId: string): Promise<AiRegressionCaseRow | null> {
+export async function syncAiRegressionCase(
+  feedbackId: string,
+): Promise<AiRegressionCaseRow | null> {
   const db = getDb();
   const feedbackRows = await db
     .select({
@@ -37,11 +55,9 @@ export async function syncAiRegressionCase(feedbackId: string): Promise<AiRegres
   const source = feedbackRows[0];
   if (!source) return null;
 
-  const prompt = await findNearestPrompt(
-    source.feedback.threadId,
-    source.assistantCreatedAt,
-  );
-  const isFailure = source.feedback.reviewStatus === 'reviewed' && source.feedback.reviewerLabel === 'fail';
+  const prompt = await findNearestPrompt(source.feedback.threadId, source.assistantCreatedAt);
+  const isFailure =
+    source.feedback.reviewStatus === 'reviewed' && source.feedback.reviewerLabel === 'fail';
 
   if (!isFailure) {
     await db
@@ -112,11 +128,13 @@ async function findNearestPrompt(threadId: string, assistantCreatedAt: Date): Pr
   const rows = await getDb()
     .select({ content: schema.chatMessages.content })
     .from(schema.chatMessages)
-    .where(and(
-      eq(schema.chatMessages.threadId, threadId),
-      eq(schema.chatMessages.role, 'user'),
-      sql`${schema.chatMessages.createdAt} < ${assistantCreatedAt}`,
-    ))
+    .where(
+      and(
+        eq(schema.chatMessages.threadId, threadId),
+        eq(schema.chatMessages.role, 'user'),
+        sql`${schema.chatMessages.createdAt} < ${assistantCreatedAt}`,
+      ),
+    )
     .orderBy(desc(schema.chatMessages.createdAt), asc(schema.chatMessages.id))
     .limit(1);
   return rows[0]?.content ?? '';

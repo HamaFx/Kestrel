@@ -1,4 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { MastraModeStrictFailureError, runMastraMode } from '../src/mastra/mode-runner';
+import { extractSymbolFromPrompt, isSafeSymbolResearchPrompt } from '../src/mastra/symbol-research';
 
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
@@ -22,14 +41,20 @@ vi.mock('../src/mastra/symbol-research', async () => {
 vi.mock('../src/mastra/telemetry', () => ({
   beginMastraRun: mocks.beginMastraRun,
   finishMastraRun: mocks.finishMastraRun,
-  getMastraGenerationStats: (result: { usage?: { inputTokens?: number; outputTokens?: number }; toolCalls?: unknown[]; steps?: unknown[] }) => ({
+  getMastraGenerationStats: (result: {
+    usage?: { inputTokens?: number; outputTokens?: number };
+    toolCalls?: unknown[];
+    steps?: unknown[];
+  }) => ({
     inputTokens: result.usage?.inputTokens ?? 0,
     outputTokens: result.usage?.outputTokens ?? 0,
     toolCalls: result.toolCalls?.length ?? 0,
     steps: result.steps?.length ?? 1,
   }),
   mastraOutcomeForError: (error: unknown, signal?: AbortSignal) =>
-    signal?.aborted || (error instanceof Error && error.name === 'AbortError') ? 'cancelled' : 'failed',
+    signal?.aborted || (error instanceof Error && error.name === 'AbortError')
+      ? 'cancelled'
+      : 'failed',
 }));
 
 vi.mock('@mastra/core/agent', () => ({
@@ -44,11 +69,17 @@ vi.mock('@mastra/core/agent', () => ({
       if (mocks.failRisk && this.id.includes('risk')) throw new Error('risk unavailable');
       if (mocks.rateLimitFailures > 0 && !this.id.includes('decision')) {
         mocks.rateLimitFailures -= 1;
-        const rateLimited = Object.assign(new Error('You exceeded your current quota'), { statusCode: 429 });
+        const rateLimited = Object.assign(new Error('You exceeded your current quota'), {
+          statusCode: 429,
+        });
         throw rateLimited;
       }
       if (this.id.includes('decision')) {
-        return { text: 'Synthesized read.', usage: { inputTokens: 20, outputTokens: 10 }, steps: [{}] };
+        return {
+          text: 'Synthesized read.',
+          usage: { inputTokens: 20, outputTokens: 10 },
+          steps: [{}],
+        };
       }
       return {
         object: {
@@ -63,15 +94,6 @@ vi.mock('@mastra/core/agent', () => ({
     }
   },
 }));
-
-import {
-  extractSymbolFromPrompt,
-  isSafeSymbolResearchPrompt,
-} from '../src/mastra/symbol-research';
-import {
-  MastraModeStrictFailureError,
-  runMastraMode,
-} from '../src/mastra/mode-runner';
 
 const packet = {
   packetId: 'packet-1',
@@ -126,7 +148,11 @@ describe('Mastra mode runner', () => {
       env,
     });
 
-    expect(result).toMatchObject({ mode: 'quick', symbol: 'EURUSD', finalText: expect.stringContaining('EURUSD') });
+    expect(result).toMatchObject({
+      mode: 'quick',
+      symbol: 'EURUSD',
+      finalText: expect.stringContaining('EURUSD'),
+    });
     expect(result.agentOpinions).toHaveLength(1);
     expect(result.agentOpinions[0]?.agentName).toBe('technical');
     // Packet collection now happens inside the workflow's collect-packet step,
@@ -150,23 +176,28 @@ describe('Mastra mode runner', () => {
     });
 
     expect(result.finalText).toBe('Synthesized read.');
-    expect(result.agentOpinions.map((opinion) => opinion.agentName).sort()).toEqual(['fundamental', 'technical']);
+    expect(result.agentOpinions.map((opinion) => opinion.agentName).sort()).toEqual([
+      'fundamental',
+      'technical',
+    ]);
     expect(result.stats.inputTokens).toBe(40);
     expect(result.totalCostUsd).toBeGreaterThanOrEqual(0);
   });
 
   it('keeps Full strict when a required specialist fails', async () => {
     mocks.failRisk = true;
-    await expect(runMastraMode({
-      prompt: 'Run a full committee analysis of EURUSD',
-      symbol: 'EURUSD',
-      userId: 'user-1',
-      threadId: 'thread-1',
-      runId: 'run-full',
-      mode: 'full',
-      settings,
-      env,
-    })).rejects.toBeInstanceOf(MastraModeStrictFailureError);
+    await expect(
+      runMastraMode({
+        prompt: 'Run a full committee analysis of EURUSD',
+        symbol: 'EURUSD',
+        userId: 'user-1',
+        threadId: 'thread-1',
+        runId: 'run-full',
+        mode: 'full',
+        settings,
+        env,
+      }),
+    ).rejects.toBeInstanceOf(MastraModeStrictFailureError);
   });
 
   it('retries a transient specialist rate-limit and completes Full', async () => {

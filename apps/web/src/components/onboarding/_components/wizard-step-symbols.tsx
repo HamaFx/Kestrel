@@ -1,7 +1,24 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import type { SymbolCatalogRow } from '@kestrel/db';
 import { IconCheck, IconChevronRight } from '@tabler/icons-react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
-import type { SymbolCatalogRow } from '@kestrel/db';
 
 interface WizardStepSymbolsProps {
   symbolsCatalog: SymbolCatalogRow[];
@@ -25,13 +42,19 @@ export function WizardStepSymbols({
   onBack,
 }: WizardStepSymbolsProps) {
   return (
-    <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4">
+    <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 flex flex-col gap-6">
       <div>
-        <h2 className="text-xl font-semibold text-fg mb-1">Select Preferred Symbols</h2>
-        <p className="text-sm text-fg-subtle">Choose the instruments you want in your default watchlist. Select at least one.</p>
-        {symbolsError && <p id="onboarding-symbols-error" role="alert" className="mt-1 text-xs text-danger">{symbolsError}</p>}
+        <h2 className="text-fg mb-1 text-xl font-semibold">Select Preferred Symbols</h2>
+        <p className="text-fg-subtle text-sm">
+          Choose the instruments you want in your default watchlist. Select at least one.
+        </p>
+        {symbolsError && (
+          <p id="onboarding-symbols-error" role="alert" className="text-danger mt-1 text-xs">
+            {symbolsError}
+          </p>
+        )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+      <div className="grid max-h-72 grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
         {symbolsCatalog.map((sym) => {
           const active = selectedSymbols.includes(sym.symbol);
           return (
@@ -55,19 +78,25 @@ export function WizardStepSymbols({
               }}
               aria-pressed={active}
               aria-describedby={symbolsError ? 'onboarding-symbols-error' : undefined}
-              className={`min-h-11 text-left rounded-sm border p-4 transition-all hover:bg-bg-elev-2 flex items-center justify-between cursor-pointer relative ${
+              className={`hover:bg-bg-elev-2 relative flex min-h-11 cursor-pointer items-center justify-between rounded-sm border p-4 text-left transition-all ${
                 active
-                  ? 'border-border bg-bg-elev-1 ring-1 ring-fg'
+                  ? 'border-border bg-bg-elev-1 ring-fg ring-1'
                   : 'border-border bg-bg-elev-1 hover:border-fg-muted'
               }`}
             >
               <div className="flex flex-col gap-0.5">
-                <span className="font-mono font-semibold text-fg text-sm sm:text-base">{sym.symbol}</span>
-                <span className="text-xs text-fg-subtle">{sym.name} ({sym.category})</span>
+                <span className="text-fg font-mono text-sm font-semibold sm:text-base">
+                  {sym.symbol}
+                </span>
+                <span className="text-fg-subtle text-xs">
+                  {sym.name} ({sym.category})
+                </span>
               </div>
-              <div className={`size-5 rounded-sm border flex items-center justify-center transition-colors ${
-                active ? 'bg-fg border-border text-black' : 'border-border bg-bg-elev-1'
-              }`}>
+              <div
+                className={`flex size-5 items-center justify-center rounded-sm border transition-colors ${
+                  active ? 'bg-fg border-border text-black' : 'border-border bg-bg-elev-1'
+                }`}
+              >
                 {active && <IconCheck className="size-3.5 stroke-[3]" />}
               </div>
             </button>
@@ -77,10 +106,12 @@ export function WizardStepSymbols({
 
       {selectedSymbols.length > 0 && (
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-fg" htmlFor="onboarding-default-symbol">Default Chart Symbol</label>
+          <label className="text-fg text-sm font-medium" htmlFor="onboarding-default-symbol">
+            Default Chart Symbol
+          </label>
           <select
             id="onboarding-default-symbol"
-            className="h-11 w-full rounded-sm border border-border bg-bg-elev-1 px-3 py-2 text-sm text-fg focus:outline-none focus:ring-1 focus:ring-fg cursor-pointer"
+            className="border-border bg-bg-elev-1 text-fg focus:ring-fg h-11 w-full cursor-pointer rounded-sm border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
             value={defaultSymbol}
             onChange={(e) => setDefaultSymbol(e.target.value)}
           >

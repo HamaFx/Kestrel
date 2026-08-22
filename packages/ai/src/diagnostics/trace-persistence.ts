@@ -18,9 +18,9 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
+import { getDb } from '../db';
 import { enqueuePersistenceFailure } from '../persistence-outbox';
 
 const log = createCategorizedLogger('ai', { component: 'trace-persistence' });
@@ -53,7 +53,10 @@ export async function persistTrace(trace: PersistedTrace): Promise<void> {
   const results = await Promise.allSettled(operations);
   for (const result of results) {
     if (result.status === 'rejected') {
-      log.warn({ traceId: trace.traceId, err: String(result.reason) }, 'diagnostic trace sink failed');
+      log.warn(
+        { traceId: trace.traceId, err: String(result.reason) },
+        'diagnostic trace sink failed',
+      );
     }
   }
 }

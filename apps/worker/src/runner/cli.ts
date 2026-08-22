@@ -25,12 +25,13 @@
 //   1  — env / argv error (job not found, env malformed)
 //   2  — job threw (already pinged fail)
 
+import { closeDb } from '@kestrel/db';
+
 import { loadEnv } from '../env.js';
 import { ping, withHeartbeat } from '../healthchecks.js';
 import { JOBS, type JobName } from '../jobs/index.js';
 import { createLogger } from '../log.js';
 import { captureException, flushSentry, initSentry } from '../sentry.js';
-import { closeDb } from '@kestrel/db';
 import { tenantRouter } from '../tenant-router.js';
 
 function isKnownJob(name: string): name is JobName {
@@ -61,9 +62,7 @@ async function main(): Promise<number> {
   }
 
   if (!isKnownJob(jobName)) {
-    process.stderr.write(
-      `unknown job: ${jobName}\n  available: ${Object.keys(JOBS).join(', ')}\n`,
-    );
+    process.stderr.write(`unknown job: ${jobName}\n  available: ${Object.keys(JOBS).join(', ')}\n`);
     return 1;
   }
 
@@ -97,8 +96,7 @@ async function main(): Promise<number> {
     log.info('job completed', { processed: result.processed, note: result.note });
     return 0;
   } catch (err) {
-    const stack =
-      err instanceof Error && typeof err.stack === 'string' ? err.stack : String(err);
+    const stack = err instanceof Error && typeof err.stack === 'string' ? err.stack : String(err);
     log.error('job failed', { err: String(err), stack });
     captureException(err, { job: jobName });
     // withHeartbeat already pinged fail; ping again with the message in

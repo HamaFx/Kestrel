@@ -17,12 +17,13 @@
 // Multi-Agent Orchestration — opinion persistence.
 
 import { schema } from '@kestrel/db';
-import { container } from '@kestrel/shared';
-import { DB } from '../tokens';
-import { and, asc, eq } from 'drizzle-orm';
 import type { AgentOpinionRow } from '@kestrel/db/schema';
-import { enqueuePersistenceFailure } from '../persistence-outbox';
+import { container } from '@kestrel/shared';
+import { and, asc, eq } from 'drizzle-orm';
+
 import { getDiagnosticContext } from '../diagnostics/run-context';
+import { enqueuePersistenceFailure } from '../persistence-outbox';
+import { DB } from '../tokens';
 
 export interface SaveOpinionsArgs {
   userId: string;
@@ -45,24 +46,27 @@ export async function saveAgentOpinions(args: SaveOpinionsArgs): Promise<void> {
   const db = container.resolve(DB);
   if (args.opinions.length === 0) return;
   try {
-    await db.insert(schema.agentOpinions).values(
-      args.opinions.map((op) => ({
-        userId: args.userId,
-        threadId: args.threadId,
-        messageId: args.messageId,
-        agentName: op.agentName,
-        bias: op.bias,
-        confidence: op.confidence,
-        reasoning: op.reasoning,
-        rawData: op.rawData,
-        model: op.model,
-        costUsd: op.costUsd,
-        latencyMs: op.latencyMs,
-        analysisMode: args.analysisMode,
-      })),
-    ).onConflictDoNothing({
-      target: [schema.agentOpinions.messageId, schema.agentOpinions.agentName],
-    });
+    await db
+      .insert(schema.agentOpinions)
+      .values(
+        args.opinions.map((op) => ({
+          userId: args.userId,
+          threadId: args.threadId,
+          messageId: args.messageId,
+          agentName: op.agentName,
+          bias: op.bias,
+          confidence: op.confidence,
+          reasoning: op.reasoning,
+          rawData: op.rawData,
+          model: op.model,
+          costUsd: op.costUsd,
+          latencyMs: op.latencyMs,
+          analysisMode: args.analysisMode,
+        })),
+      )
+      .onConflictDoNothing({
+        target: [schema.agentOpinions.messageId, schema.agentOpinions.agentName],
+      });
   } catch (err) {
     const context = getDiagnosticContext();
     await enqueuePersistenceFailure({
@@ -82,16 +86,30 @@ export async function saveAgentOpinions(args: SaveOpinionsArgs): Promise<void> {
 }
 
 /** S1 fix — scope agent opinion queries by userId to prevent cross-tenant data leaks. */
-export async function listAgentOpinions(userId: string, threadId: string): Promise<AgentOpinionRow[]> {
+export async function listAgentOpinions(
+  userId: string,
+  threadId: string,
+): Promise<AgentOpinionRow[]> {
   const db = container.resolve(DB);
-  return db.select().from(schema.agentOpinions)
-    .where(and(eq(schema.agentOpinions.userId, userId), eq(schema.agentOpinions.threadId, threadId)))
+  return db
+    .select()
+    .from(schema.agentOpinions)
+    .where(
+      and(eq(schema.agentOpinions.userId, userId), eq(schema.agentOpinions.threadId, threadId)),
+    )
     .orderBy(asc(schema.agentOpinions.createdAt));
 }
 
-export async function listMessageOpinions(userId: string, messageId: string): Promise<AgentOpinionRow[]> {
+export async function listMessageOpinions(
+  userId: string,
+  messageId: string,
+): Promise<AgentOpinionRow[]> {
   const db = container.resolve(DB);
-  return db.select().from(schema.agentOpinions)
-    .where(and(eq(schema.agentOpinions.userId, userId), eq(schema.agentOpinions.messageId, messageId)))
+  return db
+    .select()
+    .from(schema.agentOpinions)
+    .where(
+      and(eq(schema.agentOpinions.userId, userId), eq(schema.agentOpinions.messageId, messageId)),
+    )
     .orderBy(asc(schema.agentOpinions.createdAt));
 }

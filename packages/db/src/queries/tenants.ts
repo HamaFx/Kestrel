@@ -26,8 +26,5 @@ export type OrganizationRow = typeof schema.organization.$inferSelect;
  */
 export async function listActiveTenants(limit = 100): Promise<OrganizationRow[]> {
   const db = getDb();
-  return db
-    .select()
-    .from(schema.organization)
-    .limit(limit);
+  return db.select().from(schema.organization).limit(limit);
 }

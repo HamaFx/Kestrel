@@ -119,7 +119,7 @@
     "prompt": "Give me a quick technical read on XAUUSD.",
     "analysisMode": "quick",
     "expectedAgents": ["technical"],
-    "expectedAgentStatuses": {"technical": "done"},
+    "expectedAgentStatuses": { "technical": "done" },
     "expectedTerminalStatus": "complete",
     "mustContainSubstrings": ["XAUUSD"]
   },
@@ -128,7 +128,7 @@
     "prompt": "Analyze XAUUSD structure and macro context.",
     "analysisMode": "standard",
     "expectedAgents": ["technical", "fundamental"],
-    "expectedAgentStatuses": {"technical": "done", "fundamental": "done"},
+    "expectedAgentStatuses": { "technical": "done", "fundamental": "done" },
     "expectedTerminalStatus": "complete",
     "mustContainSubstrings": ["XAUUSD"]
   },
@@ -137,7 +137,13 @@
     "prompt": "Run a full committee analysis of XAUUSD and give me the decision.",
     "analysisMode": "full",
     "expectedAgents": ["technical", "fundamental", "risk", "sentiment", "decision"],
-    "expectedAgentStatuses": {"technical": "done", "fundamental": "done", "risk": "done", "sentiment": "done", "decision": "done"},
+    "expectedAgentStatuses": {
+      "technical": "done",
+      "fundamental": "done",
+      "risk": "done",
+      "sentiment": "done",
+      "decision": "done"
+    },
     "expectedTerminalStatus": "complete",
     "mustContainSubstrings": ["XAUUSD"]
   },
@@ -146,7 +152,13 @@
     "prompt": "Run strict Full mode on XAUUSD when sentiment is unavailable; no partial answer should be returned.",
     "analysisMode": "full",
     "expectedAgents": ["technical", "fundamental", "risk", "sentiment", "decision"],
-    "expectedAgentStatuses": {"technical": "done", "fundamental": "done", "risk": "done", "sentiment": "error", "decision": "error"},
+    "expectedAgentStatuses": {
+      "technical": "done",
+      "fundamental": "done",
+      "risk": "done",
+      "sentiment": "error",
+      "decision": "error"
+    },
     "expectedTerminalStatus": "failed",
     "mustContainSubstrings": []
   },

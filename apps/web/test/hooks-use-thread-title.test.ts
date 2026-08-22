@@ -1,7 +1,25 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { apiFetch } from '@/lib/api-client';
+
 import { useThreadTitle } from '../src/hooks/use-thread-title';
 
 vi.mock('@/lib/api-client', () => ({ apiFetch: vi.fn(), apiMutate: vi.fn() }));
@@ -33,7 +51,9 @@ describe('useThreadTitle', () => {
 
   it('fetches LLM title when status is ready and has 2+ messages', async () => {
     let resolveJson: (value: unknown) => void;
-    const jsonPromise = new Promise((resolve) => { resolveJson = resolve; });
+    const jsonPromise = new Promise((resolve) => {
+      resolveJson = resolve;
+    });
 
     apiFetchMock.mockReturnValue(jsonPromise as Promise<unknown>);
 
@@ -109,17 +129,14 @@ describe('useThreadTitle', () => {
       thread: { title: 'Analysis', titleSource: 'llm' },
     });
 
-    const { rerender } = renderHook(
-      (props) => useThreadTitle(props),
-      {
-        initialProps: {
-          threadId: 'thread-6',
-          initialTitle: 'Chat',
-          status: 'ready',
-          messageCount: 3,
-        },
+    const { rerender } = renderHook((props) => useThreadTitle(props), {
+      initialProps: {
+        threadId: 'thread-6',
+        initialTitle: 'Chat',
+        status: 'ready',
+        messageCount: 3,
       },
-    );
+    });
 
     await act(async () => {
       await vi.runAllTimersAsync();

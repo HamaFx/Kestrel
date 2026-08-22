@@ -25,8 +25,9 @@
 // or `deletePushSubscriptionByEndpoint` to clean up.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import { and, eq } from 'drizzle-orm';
+
+import { getDb } from '../db';
 
 export interface PushSubscriptionRow {
   id: string;
@@ -114,15 +115,13 @@ export async function savePushSubscription(
 export async function deletePushSubscription(userId: string, id: string): Promise<void> {
   await getDb()
     .delete(schema.pushSubscriptions)
-    .where(
-      and(
-        eq(schema.pushSubscriptions.id, id),
-        eq(schema.pushSubscriptions.userId, userId),
-      ),
-    );
+    .where(and(eq(schema.pushSubscriptions.id, id), eq(schema.pushSubscriptions.userId, userId)));
 }
 
-export async function deletePushSubscriptionByEndpoint(userId: string, endpoint: string): Promise<void> {
+export async function deletePushSubscriptionByEndpoint(
+  userId: string,
+  endpoint: string,
+): Promise<void> {
   await getDb()
     .delete(schema.pushSubscriptions)
     .where(

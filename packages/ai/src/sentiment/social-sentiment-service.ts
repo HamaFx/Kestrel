@@ -24,13 +24,14 @@
 //
 // See DSA_FEATURE_EXPANSION_PLAN.md §F3 for the full design.
 
-import type {
-  SocialSentiment,
-  AggregatedSentiment,
-  SentimentSource,
-  SentimentLabel,
+import {
+  detectContrarianSignal,
+  scoreToLabel,
+  type AggregatedSentiment,
+  type SentimentLabel,
+  type SentimentSource,
+  type SocialSentiment,
 } from '@kestrel/shared';
-import { scoreToLabel, detectContrarianSignal } from '@kestrel/shared';
 
 import { withRetry } from '../retry';
 
@@ -55,10 +56,13 @@ function getEnv(): SentimentEnv {
 // ---------------------------------------------------------------------------
 
 export class SocialSentimentService {
-  constructor(
-    private apiKey?: string,
-    private apiUrl?: string,
-  ) {}
+  private apiKey?: string | undefined;
+  private apiUrl?: string | undefined;
+
+  constructor(apiKey?: string, apiUrl?: string) {
+    this.apiKey = apiKey;
+    this.apiUrl = apiUrl;
+  }
 
   get isAvailable(): boolean {
     return Boolean(this.apiKey && this.apiUrl);
@@ -128,7 +132,10 @@ export class SocialSentimentService {
    * Currently only fetches retail positioning, but the architecture
    * supports adding Reddit, Twitter, etc. as additional sources.
    */
-  async getAggregatedSentiment(symbol: string, signal?: AbortSignal | null): Promise<AggregatedSentiment> {
+  async getAggregatedSentiment(
+    symbol: string,
+    signal?: AbortSignal | null,
+  ): Promise<AggregatedSentiment> {
     const sources: SocialSentiment[] = [];
 
     // Retail positioning (primary source)
@@ -186,7 +193,10 @@ let _instance: SocialSentimentService | null = null;
 export function getSentimentService(): SocialSentimentService {
   if (_instance) return _instance;
   const env = getEnv();
-  _instance = new SocialSentimentService(env.SOCIAL_SENTIMENT_API_KEY, env.SOCIAL_SENTIMENT_API_URL);
+  _instance = new SocialSentimentService(
+    env.SOCIAL_SENTIMENT_API_KEY,
+    env.SOCIAL_SENTIMENT_API_URL,
+  );
   return _instance;
 }
 

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Static button — no scale/whileTap that can cause layout shift.
@@ -35,9 +51,9 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-10 px-3 text-sm rounded-sm',     // 40px
-  md: 'h-12 px-4 text-sm rounded-sm',     // 48px (comfortable thumb hit area)
-  lg: 'h-14 px-5 text-base rounded-sm',   // 56px (prominent CTA)
+  sm: 'h-10 px-3 text-sm rounded-sm', // 40px
+  md: 'h-12 px-4 text-sm rounded-sm', // 48px (comfortable thumb hit area)
+  lg: 'h-14 px-5 text-base rounded-sm', // 56px (prominent CTA)
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -69,7 +85,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-sm font-medium',
         'transition-colors duration-150',
-        'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand focus:outline-none',
+        'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none',
         variants[variant],
         sizes[size],

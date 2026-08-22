@@ -28,13 +28,14 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { schema, getUserWithSettings } from '@kestrel/db';
-import { getDb } from './db';
-import { sql, eq, gte, and } from 'drizzle-orm';
-import { sendDirectNotification } from './alerts/delivery';
-import { buildCatalogRateTable } from './byok-providers';
+import { getUserWithSettings, schema } from '@kestrel/db';
 import { KNOWN_BYOK_PROVIDERS } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { and, eq, gte, sql } from 'drizzle-orm';
+
+import { sendDirectNotification } from './alerts/delivery';
+import { buildCatalogRateTable } from './byok-providers';
+import { getDb } from './db';
 import { getDiagnosticContext } from './diagnostics/run-context';
 
 interface ModelRate {
@@ -139,9 +140,7 @@ export async function reservedSpendUsd(userId: string, now = new Date()): Promis
   const rows = await getDb()
     .select({ cents: schema.dailyAiSpend.totalUsdCents })
     .from(schema.dailyAiSpend)
-    .where(
-      sql`${schema.dailyAiSpend.userId} = ${userId} AND ${schema.dailyAiSpend.day} = ${day}`,
-    )
+    .where(sql`${schema.dailyAiSpend.userId} = ${userId} AND ${schema.dailyAiSpend.day} = ${day}`)
     .limit(1);
   return Number(rows[0]?.cents ?? 0) / 100;
 }
@@ -216,9 +215,9 @@ export async function tryReserveBudget(
     );
     // Handle both Drizzle RowList (array directly) and mock/legacy patterns
     // that wrap results in { rows: [...] }.
-    const list = (Array.isArray(rows)
-      ? rows
-      : (rows as { rows?: unknown[] }).rows ?? []) as Array<{ total_usd_cents: number | string }>;
+    const list = (
+      Array.isArray(rows) ? rows : ((rows as { rows?: unknown[] }).rows ?? [])
+    ) as Array<{ total_usd_cents: number | string }>;
     const first = list[0];
     if (!first) return null;
 
@@ -290,7 +289,7 @@ function resultRows<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
   if (typeof result === 'object' && result !== null && 'rows' in result) {
     const rows = (result as { rows?: unknown }).rows;
-    return Array.isArray(rows) ? rows as T[] : [];
+    return Array.isArray(rows) ? (rows as T[]) : [];
   }
   return [];
 }
@@ -312,27 +311,31 @@ export async function reconcileBudgetReservation(
   // timestamp timezone explicit.
   const resolvedAt = now.toISOString();
   return getDb().transaction(async (tx) => {
-    const reservationRows = resultRows<StoredReservation>(await tx.execute(
-      sql`
+    const reservationRows = resultRows<StoredReservation>(
+      await tx.execute(
+        sql`
         SELECT user_id, day, reserved_usd_cents, status
         FROM ai_budget_reservations
         WHERE id = ${reservationId}
         FOR UPDATE
       `,
-    ));
+      ),
+    );
     const reservation = reservationRows[0];
     if (!reservation || reservation.status !== 'reserved') return false;
 
     const deltaCents = actualCents - Number(reservation.reserved_usd_cents);
     if (deltaCents !== 0) {
-      const counterRows = resultRows<{ user_id: string }>(await tx.execute(
-        sql`
+      const counterRows = resultRows<{ user_id: string }>(
+        await tx.execute(
+          sql`
           UPDATE daily_ai_spend
           SET total_usd_cents = GREATEST(0, total_usd_cents + ${deltaCents})
           WHERE user_id = ${reservation.user_id} AND day = ${reservation.day}
           RETURNING user_id
         `,
-      ));
+        ),
+      );
       if (counterRows.length === 0) throw new Error('daily budget counter missing for reservation');
     }
 
@@ -357,25 +360,29 @@ export async function releaseBudgetReservation(
 ): Promise<boolean> {
   const resolvedAt = now.toISOString();
   return getDb().transaction(async (tx) => {
-    const reservationRows = resultRows<StoredReservation>(await tx.execute(
-      sql`
+    const reservationRows = resultRows<StoredReservation>(
+      await tx.execute(
+        sql`
         SELECT user_id, day, reserved_usd_cents, status
         FROM ai_budget_reservations
         WHERE id = ${reservationId}
         FOR UPDATE
       `,
-    ));
+      ),
+    );
     const reservation = reservationRows[0];
     if (!reservation || reservation.status !== 'reserved') return false;
 
-    const counterRows = resultRows<{ user_id: string }>(await tx.execute(
-      sql`
+    const counterRows = resultRows<{ user_id: string }>(
+      await tx.execute(
+        sql`
         UPDATE daily_ai_spend
         SET total_usd_cents = GREATEST(0, total_usd_cents - ${Number(reservation.reserved_usd_cents)})
         WHERE user_id = ${reservation.user_id} AND day = ${reservation.day}
         RETURNING user_id
       `,
-    ));
+      ),
+    );
     if (counterRows.length === 0) throw new Error('daily budget counter missing for reservation');
 
     await tx.execute(
@@ -405,15 +412,17 @@ export async function recoverStaleBudgetReservations(
   limit = 100,
 ): Promise<{ scanned: number; released: number; failed: number }> {
   const boundedLimit = Math.max(1, Math.min(500, Math.floor(limit)));
-  const rows = resultRows<{ id: string }>(await getDb().execute(
-    sql`
+  const rows = resultRows<{ id: string }>(
+    await getDb().execute(
+      sql`
       SELECT id
       FROM ai_budget_reservations
       WHERE status = 'reserved' AND created_at < ${cutoff.toISOString()}
       ORDER BY created_at ASC
       LIMIT ${boundedLimit}
     `,
-  ));
+    ),
+  );
 
   let released = 0;
   let failed = 0;
@@ -447,12 +456,14 @@ export async function enforceDailyBudget(
 
 export class BudgetExceededError extends Error {
   readonly code = 'BUDGET_EXCEEDED' as const;
-  constructor(
-    readonly spent: number,
-    readonly max: number,
-  ) {
+  readonly spent: number;
+  readonly max: number;
+
+  constructor(spent: number, max: number) {
     super(`Daily AI budget exceeded: spent $${spent.toFixed(4)} / $${max.toFixed(2)}`);
     this.name = 'BudgetExceededError';
+    this.spent = spent;
+    this.max = max;
   }
 }
 
@@ -464,15 +475,16 @@ export async function getMonthlySpend(userId: string, now = new Date()): Promise
     .select({ totalCents: sql<number>`coalesce(sum(${schema.dailyAiSpend.totalUsdCents}), 0)` })
     .from(schema.dailyAiSpend)
     .where(
-      and(
-        eq(schema.dailyAiSpend.userId, userId),
-        gte(schema.dailyAiSpend.day, startOfMonthStr)
-      )
+      and(eq(schema.dailyAiSpend.userId, userId), gte(schema.dailyAiSpend.day, startOfMonthStr)),
     );
   return (rows[0]?.totalCents ?? 0) / 100;
 }
 
-export async function getProviderMonthlySpend(userId: string, providerId: string, now = new Date()): Promise<number> {
+export async function getProviderMonthlySpend(
+  userId: string,
+  providerId: string,
+  now = new Date(),
+): Promise<number> {
   const db = getDb();
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const rows = await db
@@ -484,8 +496,8 @@ export async function getProviderMonthlySpend(userId: string, providerId: string
     .where(
       and(
         eq(schema.chatTelemetry.userId, userId),
-        gte(schema.chatTelemetry.createdAt, startOfMonth)
-      )
+        gte(schema.chatTelemetry.createdAt, startOfMonth),
+      ),
     );
 
   const providerIdFromModel = (modelId: string) => {
@@ -561,12 +573,7 @@ async function triggerAlert(
   if (telegramBotToken) alertEnv.TELEGRAM_BOT_TOKEN = telegramBotToken;
   if (telegramChatId) alertEnv.TELEGRAM_CHAT_ID = telegramChatId;
 
-  await sendDirectNotification(
-    opts.subject,
-    opts.body,
-    alertEnv,
-    channels,
-  );
+  await sendDirectNotification(opts.subject, opts.body, alertEnv, channels);
 }
 
 export async function checkBudgetAlertsAndThresholds(
@@ -610,7 +617,9 @@ export async function checkBudgetAlertsAndThresholds(
         alerted50: !!alertsState.alerted50,
         alerted80: !!alertsState.alerted80,
         alerted100: !!alertsState.alerted100,
-        providerAlerted: Array.isArray(alertsState.providerAlerted) ? alertsState.providerAlerted : ([] as string[]),
+        providerAlerted: Array.isArray(alertsState.providerAlerted)
+          ? alertsState.providerAlerted
+          : ([] as string[]),
       };
 
   let stateChanged = isNewMonth;
@@ -655,7 +664,13 @@ export async function checkBudgetAlertsAndThresholds(
         if (!state.providerAlerted.includes(activeProviderId)) {
           state.providerAlerted.push(activeProviderId);
           stateChanged = true;
-          await triggerProviderAlert(userId, activeProviderId, providerSpend, providerLimit, alertsConfig);
+          await triggerProviderAlert(
+            userId,
+            activeProviderId,
+            providerSpend,
+            providerLimit,
+            alertsConfig,
+          );
         }
         return {
           blocked: true,
@@ -669,7 +684,15 @@ export async function checkBudgetAlertsAndThresholds(
   if (stateChanged) {
     await db
       .update(schema.userSettings)
-      .set({ spendAlertsState: state as { monthKey?: string; alerted50?: boolean; alerted80?: boolean; alerted100?: boolean; providerAlerted?: string[]; } | null })
+      .set({
+        spendAlertsState: state as {
+          monthKey?: string;
+          alerted50?: boolean;
+          alerted80?: boolean;
+          alerted100?: boolean;
+          providerAlerted?: string[];
+        } | null,
+      })
       .where(eq(schema.userSettings.userId, userId));
   }
 

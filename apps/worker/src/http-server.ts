@@ -26,8 +26,9 @@
 // optional pathway; its absence should be a soft degradation, not a
 // hard error that would trigger Sentry alerts on every proxy request.
 
-import { timingSafeEqual } from 'node:crypto';
 import * as http from 'http';
+import { timingSafeEqual } from 'node:crypto';
+
 import type { Logger } from './log.js';
 
 export interface HealthServerDeps {
@@ -62,8 +63,7 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
     const providedBytes = Buffer.from(provided);
     const expectedBytes = Buffer.from(expected);
     return (
-      providedBytes.length === expectedBytes.length &&
-      timingSafeEqual(providedBytes, expectedBytes)
+      providedBytes.length === expectedBytes.length && timingSafeEqual(providedBytes, expectedBytes)
     );
   }
 
@@ -100,7 +100,12 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
           'Content-Type': 'application/json',
           'Retry-After': '86400',
         });
-        res.end(JSON.stringify({ status: 'error', message: 'BiQuote proxy not configured (missing BIQUOTE_PROXY_TOKEN)' }));
+        res.end(
+          JSON.stringify({
+            status: 'error',
+            message: 'BiQuote proxy not configured (missing BIQUOTE_PROXY_TOKEN)',
+          }),
+        );
         return;
       }
       const rest = req.url.slice('/biquote'.length) || '/';
@@ -136,14 +141,16 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
       const ageMs = Date.now() - lastTickAt;
       const healthy = lastTickAt > 0 && ageMs < 120_000;
       res.writeHead(healthy ? 200 : 503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: healthy ? 'ok' : 'degraded',
-        lastTickAgeMs: ageMs,
-        signalrConnected: isSignalRConnected(),
-        droppedTicks: deps.getDroppedTicks?.() ?? 0,
-        uptimeMs: process.uptime() * 1000,
-        proxyConfigured: deps.isProxyConfigured?.() ?? Boolean(PROXY_TOKEN),
-      }));
+      res.end(
+        JSON.stringify({
+          status: healthy ? 'ok' : 'degraded',
+          lastTickAgeMs: ageMs,
+          signalrConnected: isSignalRConnected(),
+          droppedTicks: deps.getDroppedTicks?.() ?? 0,
+          uptimeMs: process.uptime() * 1000,
+          proxyConfigured: deps.isProxyConfigured?.() ?? Boolean(PROXY_TOKEN),
+        }),
+      );
     } else {
       res.writeHead(404);
       res.end();

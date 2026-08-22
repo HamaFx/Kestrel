@@ -1,6 +1,23 @@
-import { describe, expect, it, vi, afterEach } from 'vitest';
-import { rrfFuse, decayRow, ragRowToItem, memoryRowToItem, type RagRow } from '../src/rag';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import type { MemoryRow } from '../src/memory/memory-index';
+import { decayRow, memoryRowToItem, ragRowToItem, rrfFuse, type RagRow } from '../src/rag';
 
 function makeRagRow(overrides: Partial<RagRow> = {}): RagRow {
   return {
@@ -53,7 +70,7 @@ describe('rrfFuse', () => {
     // 'shared' appears in both and should get the highest combined score
     expect(result[0]!.id).toBe('shared');
     // All unique IDs should be present
-    const ids = result.map(r => r.id);
+    const ids = result.map((r) => r.id);
     expect(ids).toContain('shared');
     expect(ids).toContain('only-a');
     expect(ids).toContain('only-a2');

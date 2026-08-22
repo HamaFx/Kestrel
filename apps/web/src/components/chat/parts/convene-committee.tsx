@@ -1,15 +1,37 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import type { ConveneCommitteeOutput, CommitteeVerdict } from '@kestrel/shared';
-import { IconAlertTriangle,  IconBriefcase,  IconCircleCheck,  IconChevronDown,  IconLink as LinkIcon,  IconTrendingUp,  IconUsers,  IconCircleX } from '@tabler/icons-react';
-import type { Icon } from '@tabler/icons-react';
+import type { CommitteeVerdict, ConveneCommitteeOutput } from '@kestrel/shared';
+import {
+  IconAlertTriangle,
+  IconBriefcase,
+  IconChevronDown,
+  IconCircleCheck,
+  IconCircleX,
+  IconTrendingUp,
+  IconUsers,
+  IconLink as LinkIcon,
+  type Icon,
+} from '@tabler/icons-react';
 
 import type { ToolPartProps } from './registry';
 
-const PERSONA_LABELS: Record<
-  CommitteeVerdict['persona'],
-  { label: string; Icon: Icon }
-> = {
+const PERSONA_LABELS: Record<CommitteeVerdict['persona'], { label: string; Icon: Icon }> = {
   economist: { label: 'Economist', Icon: IconBriefcase },
   technician: { label: 'Technician', Icon: IconTrendingUp },
   risk_manager: { label: 'Risk Manager', Icon: IconAlertTriangle },
@@ -38,7 +60,7 @@ function GradeBadge({
 
   return (
     <div
-      className={`flex items-center rounded-sm px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${bgTone}`}
+      className={`flex items-center rounded-sm px-2 py-0.5 text-xs font-bold tracking-wide uppercase ${bgTone}`}
     >
       {icon}
       Grade {grade}
@@ -94,7 +116,7 @@ export function ConveneCommitteePart({
       </div>
 
       <div className="border-border bg-bg-elev-2 rounded-sm border p-3 text-sm">
-        <div className="text-fg-muted mb-1 text-xs font-semibold uppercase tracking-wider">
+        <div className="text-fg-muted mb-1 text-xs font-semibold tracking-wider uppercase">
           Consensus
         </div>
         <p className="text-fg text-sm leading-[1.4]">{output.consensus}</p>
@@ -122,17 +144,15 @@ function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
           <span className="text-fg text-xs font-semibold">{meta.label}</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`text-body-sm font-medium uppercase ${tone}`}>
-            {verdict.verdict}
-          </span>
-          <span className="bg-bg-elev-1 border-border text-fg-subtle rounded-sm border px-1.5 py-0.5 text-caption tabular-nums">
+          <span className={`text-body-sm font-medium uppercase ${tone}`}>{verdict.verdict}</span>
+          <span className="bg-bg-elev-1 border-border text-fg-subtle text-caption rounded-sm border px-1.5 py-0.5 tabular-nums">
             Conf: {verdict.confidence}/10
           </span>
           <IconChevronDown className="text-fg-subtle size-3.5 transition-transform group-open:rotate-180" />
         </div>
       </summary>
 
-      <div className="px-2.5 pb-2.5 pt-0 text-xs">
+      <div className="px-2.5 pt-0 pb-2.5 text-xs">
         <div className="border-border mt-1 space-y-2 border-t pt-2">
           {verdict.keyPoints.length > 0 && (
             <div>
@@ -156,49 +176,47 @@ function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
             </div>
           </div>
 
-          {verdict.persona === 'economist' &&
-            verdict.sources &&
-            verdict.sources.length > 0 && (
-              <div className="pt-1">
-                <span className="text-fg-muted flex items-center gap-1 font-semibold">
-                  <LinkIcon className="size-3" /> Sources:
-                </span>
-                <ul className="mt-1 flex flex-wrap gap-2">
-                  {verdict.sources.map((src, i) => {
-                    let host = src;
-                    let isUrl = false;
-                    let href = src;
-                    try {
-                      if (/^(?:https?:\/\/)?(?:[\w-]+\.)+[\w-]+(?:\/[\w- ./?%&=]*)?$/i.test(src)) {
-                        isUrl = true;
-                        if (!/^https?:\/\//i.test(src)) {
-                          href = 'https://' + src;
-                        }
-                        host = new URL(href).hostname.replace('www.', '');
+          {verdict.persona === 'economist' && verdict.sources && verdict.sources.length > 0 && (
+            <div className="pt-1">
+              <span className="text-fg-muted flex items-center gap-1 font-semibold">
+                <LinkIcon className="size-3" /> Sources:
+              </span>
+              <ul className="mt-1 flex flex-wrap gap-2">
+                {verdict.sources.map((src, i) => {
+                  let host = src;
+                  let isUrl = false;
+                  let href = src;
+                  try {
+                    if (/^(?:https?:\/\/)?(?:[\w-]+\.)+[\w-]+(?:\/[\w- ./?%&=]*)?$/i.test(src)) {
+                      isUrl = true;
+                      if (!/^https?:\/\//i.test(src)) {
+                        href = 'https://' + src;
                       }
-                    } catch {
-                      isUrl = false;
+                      host = new URL(href).hostname.replace('www.', '');
                     }
-                    return (
-                      <li key={i}>
-                        {isUrl ? (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-fg inline-block max-w-[200px] align-bottom text-body-sm hover:underline truncate"
-                          >
-                            {host}
-                          </a>
-                        ) : (
-                          <span className="text-fg-subtle text-body-sm">{src}</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
+                  } catch {
+                    isUrl = false;
+                  }
+                  return (
+                    <li key={i}>
+                      {isUrl ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-fg text-body-sm inline-block max-w-[200px] truncate align-bottom hover:underline"
+                        >
+                          {host}
+                        </a>
+                      ) : (
+                        <span className="text-fg-subtle text-body-sm">{src}</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </details>

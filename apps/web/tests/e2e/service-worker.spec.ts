@@ -21,7 +21,7 @@
 // Also checks offline page accessibility and cache behavior.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('PWA Service Worker', () => {
   test('should register and activate', async ({ page }) => {

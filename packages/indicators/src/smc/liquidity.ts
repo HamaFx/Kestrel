@@ -61,7 +61,14 @@ export function detectLiquiditySweeps(
       if (i - sw.index > maxLookback) break;
       if (c.h > sw.price && c.c < sw.price) {
         const extension = c.h - sw.price;
-        out.push({ side: 'high', index: i, time: c.t, level: sw.price, wick: c.h, magnitude: atr14 > 0 ? extension / atr14 : 0 });
+        out.push({
+          side: 'high',
+          index: i,
+          time: c.t,
+          level: sw.price,
+          wick: c.h,
+          magnitude: atr14 > 0 ? extension / atr14 : 0,
+        });
         break; // one sweep per bar per side is enough
       }
     }
@@ -73,7 +80,14 @@ export function detectLiquiditySweeps(
       if (i - sw.index > maxLookback) break;
       if (c.l < sw.price && c.c > sw.price) {
         const extension = sw.price - c.l;
-        out.push({ side: 'low', index: i, time: c.t, level: sw.price, wick: c.l, magnitude: atr14 > 0 ? extension / atr14 : 0 });
+        out.push({
+          side: 'low',
+          index: i,
+          time: c.t,
+          level: sw.price,
+          wick: c.l,
+          magnitude: atr14 > 0 ? extension / atr14 : 0,
+        });
         break;
       }
     }

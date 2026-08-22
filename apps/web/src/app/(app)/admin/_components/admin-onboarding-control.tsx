@@ -2,19 +2,34 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/components/ui/confirm-drawer';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { apiFetch, apiMutate } from '@/lib/api-client';
-import { toastApiError } from '@/lib/toast-api-error';
 import type { OnboardingInspectDTO } from '@/lib/services/admin-dtos';
+import { toastApiError } from '@/lib/toast-api-error';
 
 export function AdminOnboardingControl() {
   const router = useRouter();
@@ -86,7 +101,10 @@ export function AdminOnboardingControl() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SettingsSection title="Onboarding Inspector" description="Inspect and reset onboarding for any user.">
+      <SettingsSection
+        title="Onboarding Inspector"
+        description="Inspect and reset onboarding for any user."
+      >
         <form onSubmit={handleLoadUser} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex flex-1 flex-col gap-1">
             <label htmlFor="target-user-id" className="text-sm font-medium">
@@ -109,7 +127,7 @@ export function AdminOnboardingControl() {
           <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4">
             <div className="flex flex-col gap-1">
               <span className="text-fg text-sm font-semibold">User ID</span>
-              <span className="text-fg-subtle text-sm font-mono break-all">{status.userId}</span>
+              <span className="text-fg-subtle font-mono text-sm break-all">{status.userId}</span>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-fg text-sm font-semibold">Status</span>
@@ -123,7 +141,9 @@ export function AdminOnboardingControl() {
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-fg text-sm font-semibold">Default symbol</span>
-              <span className="text-fg-subtle text-sm">{status.userSettings.defaultSymbol ?? '—'}</span>
+              <span className="text-fg-subtle text-sm">
+                {status.userSettings.defaultSymbol ?? '—'}
+              </span>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-fg text-sm font-semibold">Timezone</span>

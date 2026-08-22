@@ -20,12 +20,12 @@
 // Empty until Phase 1c — the tool handles that gracefully.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import type { GetCalendarOutput } from '@kestrel/shared';
 import { tool } from 'ai';
 import { and, asc, gte, inArray, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
+import { getDb } from '../db';
 import { maybeGetToolContext } from '../tool-context';
 
 const ImportanceSchema = z.enum(['low', 'medium', 'high']);

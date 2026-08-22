@@ -1,8 +1,24 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
 
+import { cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
 
 import { MastraReportCard, MastraReportPart } from '@/components/chat/parts/mastra-report';
 
@@ -47,11 +63,13 @@ const baseMeta = {
     ],
     contradictions: ['Daily and 15m trends disagree.'],
     missingData: ['News and macro context'],
-    sources: [{
-      evidenceId: 'price:XAUUSD',
-      source: 'BiQuote',
-      dataAsOf: '2026-08-18T11:59:00.000Z',
-    }],
+    sources: [
+      {
+        evidenceId: 'price:XAUUSD',
+        source: 'BiQuote',
+        dataAsOf: '2026-08-18T11:59:00.000Z',
+      },
+    ],
   },
 };
 
@@ -72,13 +90,11 @@ describe('MastraReportCard', () => {
   });
 
   it('shows a clear fail-closed message when research is blocked', () => {
-    render(
-      <MastraReportCard
-        meta={{ ...baseMeta, researchStatus: 'blocked', report: null }}
-      />,
-    );
+    render(<MastraReportCard meta={{ ...baseMeta, researchStatus: 'blocked', report: null }} />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/required market evidence was unavailable/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /required market evidence was unavailable/i,
+    );
     expect(screen.queryByText('Bullish continuation')).toBeNull();
   });
 

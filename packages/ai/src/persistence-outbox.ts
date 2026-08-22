@@ -17,13 +17,12 @@
 // Phase 5 — durable persistence failure enqueueing.
 
 import { schema } from '@kestrel/db';
-import { sql } from 'drizzle-orm';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
-
-import { redactSecrets } from './diagnostics/redact';
 import type { PersistenceOutboxOperation } from '@kestrel/db/schema';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { sql } from 'drizzle-orm';
 
 import { getDb } from './db';
+import { redactSecrets } from './diagnostics/redact';
 
 const olog = createCategorizedLogger('ai', { component: 'persistence-outbox' });
 
@@ -48,7 +47,8 @@ export interface EnqueuePersistenceFailureArgs {
 export async function enqueuePersistenceFailure(
   args: EnqueuePersistenceFailureArgs,
 ): Promise<boolean> {
-  const errorText = args.error instanceof Error ? args.error.message : args.error ? String(args.error) : null;
+  const errorText =
+    args.error instanceof Error ? args.error.message : args.error ? String(args.error) : null;
   try {
     await getDb()
       .insert(schema.persistenceOutbox)

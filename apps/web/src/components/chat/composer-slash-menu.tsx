@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
-import type { ReactNode } from 'react';
 
 export interface SlashMenuCommand {
   command: string;
@@ -54,12 +54,10 @@ export function ComposerSlashMenu({
       id="slash-command-listbox"
       role="listbox"
       aria-label="Slash commands"
-      className="border-t border-border bg-bg-elev-2 px-2 py-1.5 max-h-[min(18rem,40dvh)] overflow-y-auto overscroll-contain"
+      className="border-border bg-bg-elev-2 max-h-[min(18rem,40dvh)] overflow-y-auto overscroll-contain border-t px-2 py-1.5"
     >
       <div className="flex items-center justify-between gap-2 px-2 pb-1">
-        <p className="text-caption text-fg-subtle font-mono uppercase tracking-wider">
-          Commands
-        </p>
+        <p className="text-caption text-fg-subtle font-mono tracking-wider uppercase">Commands</p>
         <span className="text-fg-subtle text-caption" aria-live="polite">
           {commands.length} available
         </span>
@@ -100,7 +98,7 @@ export function ComposerSlashMenu({
             </div>
             <kbd
               className={cn(
-                'hidden rounded-sm border px-1.5 font-mono text-caption sm:inline',
+                'text-caption hidden rounded-sm border px-1.5 font-mono sm:inline',
                 isActive ? 'border-brand-fg/30' : 'border-border',
               )}
             >

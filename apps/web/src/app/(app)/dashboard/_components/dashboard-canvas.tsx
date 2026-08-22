@@ -2,6 +2,22 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Phase 1.6 — Modular customizable dashboard canvas.
 //
 // A dnd-kit-powered grid that maps the persisted `WidgetConfig[]`
@@ -15,37 +31,40 @@
 //   - Per-widget remove (re-add via the "Add widget" dropdown).
 //   - Persist on every change.
 //   - "Customize" toggle exposes the chrome; default = clean view.
-
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  closestCenter,
   DndContext,
   KeyboardSensor,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  SortableContext,
   arrayMove,
   rectSortingStrategy,
+  SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {IconGripVertical, IconPlus, IconAdjustmentsHorizontal, IconX, IconRotate, IconAlertTriangle} from '@tabler/icons-react';
-import type {
-  Alert,
-  EconomicEvent,
-  JournalEntry,
-  NewsArticle,
-  Symbol,
-} from '@kestrel/shared';
+import type { Alert, EconomicEvent, JournalEntry, NewsArticle, Symbol } from '@kestrel/shared';
+import {
+  IconAdjustmentsHorizontal,
+  IconAlertTriangle,
+  IconGripVertical,
+  IconPlus,
+  IconRotate,
+  IconX,
+} from '@tabler/icons-react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { LeverageGauge } from '@/components/ui/leverage-gauge';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { cn } from '@/lib/cn';
+
 import { PreSessionChecklistDrawer } from './pre-session-checklist-drawer';
 import { QuickLogTradeDrawer } from './quick-log-trade-drawer';
 import {
@@ -57,9 +76,9 @@ import {
   type WidgetConfig,
   type WidgetType,
 } from './widget-types';
+import { AlertsWidget } from './widgets/alerts-widget';
 import { BriefingWidget } from './widgets/briefing-widget';
 import { CalendarWidget } from './widgets/calendar-widget';
-import { AlertsWidget } from './widgets/alerts-widget';
 import { EquityCurveWidget } from './widgets/equity-curve-widget';
 import { NewsPulseWidget } from './widgets/news-pulse-widget';
 import { OpenPositionsWidget } from './widgets/open-positions-widget';
@@ -67,8 +86,6 @@ import { PnLHeatmapWidget } from './widgets/pnl-heatmap-widget';
 import { StatsWidget } from './widgets/stats-widget';
 import { TodayGlanceWidget } from './widgets/today-glance-widget';
 import { WatchlistWidget } from './widgets/watchlist-widget';
-import { cn } from '@/lib/cn';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 
 const MemoTodayGlance = memo(TodayGlanceWidget);
 const MemoBriefing = memo(BriefingWidget);
@@ -128,7 +145,11 @@ const ALL_WIDGETS: WidgetType[] = [
   'news-pulse',
 ];
 
-export function DashboardCanvas({ marginUsagePct = 0, marginDetail, ...props }: DashboardCanvasProps) {
+export function DashboardCanvas({
+  marginUsagePct = 0,
+  marginDetail,
+  ...props
+}: DashboardCanvasProps) {
   const [layout, setLayout, hydrated] = useLocalStorage<WidgetConfig[]>(
     LAYOUT_STORAGE_KEY,
     DEFAULT_LAYOUT,
@@ -141,9 +162,7 @@ export function DashboardCanvas({ marginUsagePct = 0, marginDetail, ...props }: 
   const safeLayout = useMemo(() => {
     if (!hydrated) return DEFAULT_LAYOUT;
     const known = new Set<WidgetType>(ALL_WIDGETS);
-    return layout
-      .filter((w) => known.has(w.type))
-      .map((w, i) => ({ ...w, order: i }));
+    return layout.filter((w) => known.has(w.type)).map((w, i) => ({ ...w, order: i }));
   }, [hydrated, layout]);
 
   const persistLayout = useCallback(
@@ -196,20 +215,18 @@ export function DashboardCanvas({ marginUsagePct = 0, marginDetail, ...props }: 
     if (ok) resetLayout();
   }
 
-  const hidden = ALL_WIDGETS.filter(
-    (t) => !safeLayout.some((w) => w.type === t),
-  );
+  const hidden = ALL_WIDGETS.filter((t) => !safeLayout.some((w) => w.type === t));
 
   return (
     <div className="flex flex-col gap-4">
       {/* Header / controls */}
       <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center gap-2.5">
             <h1 className="text-fg text-xl font-bold tracking-tight">Dashboard</h1>
             <PreSessionChecklistDrawer />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <QuickLogTradeDrawer />
             {editMode && hidden.length > 0 ? (
               <AddWidgetMenu
@@ -247,12 +264,12 @@ export function DashboardCanvas({ marginUsagePct = 0, marginDetail, ...props }: 
 
         {/* Role Presets Bar when in Edit Mode */}
         {editMode && (
-          <div className="flex flex-col gap-2 rounded-sm border border-brand-border/60 bg-bg-elev-1 p-3 animate-in fade-in duration-200">
+          <div className="border-brand-border/60 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 duration-200">
             <div className="flex items-center justify-between">
-              <span className="text-caption font-semibold uppercase tracking-wider text-fg-subtle">
+              <span className="text-caption text-fg-subtle font-semibold tracking-wider uppercase">
                 Role Layout Presets
               </span>
-              <span className="text-[11px] text-fg-subtle">
+              <span className="text-fg-subtle text-[11px]">
                 Click a preset to instantly restructure your workspace
               </span>
             </div>
@@ -266,7 +283,7 @@ export function DashboardCanvas({ marginUsagePct = 0, marginDetail, ...props }: 
                     onClick={() => {
                       persistLayout(preset.layout);
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-bg-elev-2 px-3 py-1.5 text-xs font-medium text-fg transition-colors hover:border-brand hover:text-brand"
+                    className="border-border bg-bg-elev-2 text-fg hover:border-brand hover:text-brand inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-colors"
                     title={preset.description}
                   >
                     <span>{preset.name}</span>
@@ -278,19 +295,24 @@ export function DashboardCanvas({ marginUsagePct = 0, marginDetail, ...props }: 
         )}
 
         {/* ASCII leverage gauge — summary row below header */}
-        <div className="rounded-sm border border-border bg-bg-elev-1 px-4 py-3">
+        <div className="border-border bg-bg-elev-1 rounded-sm border px-4 py-3">
           <LeverageGauge
             usagePct={marginUsagePct}
             label="Exposure"
-            detail={marginDetail ?? 'No connected account — set up portfolio settings to track exposure'}
+            detail={
+              marginDetail ?? 'No connected account — set up portfolio settings to track exposure'
+            }
           />
         </div>
       </div>
 
       {/* Phase 5.6 — Error banner for failed data fetches */}
       {props.hasAnyError ? (
-        <div className="border-warn/30 bg-warn/5 flex items-center gap-3 rounded-sm border px-4 py-2.5 text-sm" role="alert">
-          <IconAlertTriangle className="size-4 shrink-0 text-warn" />
+        <div
+          className="border-warn/30 bg-warn/5 flex items-center gap-3 rounded-sm border px-4 py-2.5 text-sm"
+          role="alert"
+        >
+          <IconAlertTriangle className="text-warn size-4 shrink-0" />
           <span className="text-fg-subtle">
             Some dashboard data failed to load. Try{' '}
             <button
@@ -302,23 +324,21 @@ export function DashboardCanvas({ marginUsagePct = 0, marginDetail, ...props }: 
             </button>
             .
             {props.fetchErrors && (
-              <span className="ml-2 text-fg-muted text-xs">
-                ({Object.entries(props.fetchErrors).filter(([, v]) => v).map(([k]) => k).join(', ')})
+              <span className="text-fg-muted ml-2 text-xs">
+                (
+                {Object.entries(props.fetchErrors)
+                  .filter(([, v]) => v)
+                  .map(([k]) => k)
+                  .join(', ')}
+                )
               </span>
             )}
           </span>
         </div>
       ) : null}
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={safeLayout.map((w) => w.id)}
-          strategy={rectSortingStrategy}
-        >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={safeLayout.map((w) => w.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {safeLayout.map((w) => (
               <SortableWidget
@@ -358,14 +378,9 @@ function SortableWidget({
   onToggleSpan,
   ...data
 }: SortableWidgetProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: widget.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: widget.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -381,7 +396,7 @@ function SortableWidget({
         widget.span === 3 && 'col-span-1 md:col-span-2 lg:col-span-3',
         widget.span === 2 && 'col-span-1 md:col-span-2 lg:col-span-2',
         widget.span === 1 && 'col-span-1',
-        editMode && 'rounded-sm ring-1 ring-border',
+        editMode && 'ring-border rounded-sm ring-1',
       )}
     >
       {editMode ? (
@@ -395,7 +410,7 @@ function SortableWidget({
           >
             <IconGripVertical className="size-4" />
           </button>
-          <span className="text-fg-subtle text-caption uppercase tracking-wider">
+          <span className="text-fg-subtle text-caption tracking-wider uppercase">
             {WIDGET_LABELS[widget.type]}
           </span>
           <div className="flex items-center gap-1.5">
@@ -403,7 +418,7 @@ function SortableWidget({
               type="button"
               aria-label={`Toggle span for ${WIDGET_LABELS[widget.type]}`}
               onClick={onToggleSpan}
-              className="text-fg-subtle hover:text-fg text-[11px] font-mono px-1.5 py-0.5 rounded-xs bg-bg-elev-2 border border-border/80"
+              className="text-fg-subtle hover:text-fg bg-bg-elev-2 border-border/80 rounded-xs border px-1.5 py-0.5 font-mono text-[11px]"
               title={`Current span: ${widget.span}/3 columns (click to cycle)`}
             >
               {widget.span}/3 col
@@ -430,17 +445,8 @@ function SortableWidget({
 // chrome (`SortableWidget`) decoupled from individual widget APIs.
 // ---------------------------------------------------------------------------
 
-function renderWidget(
-  type: WidgetType,
-  data: Omit<DashboardCanvasProps, never>,
-) {
-  const {
-    alerts,
-    events,
-    entries,
-    news,
-    briefing,
-  } = data;
+function renderWidget(type: WidgetType, data: Omit<DashboardCanvasProps, never>) {
+  const { alerts, events, entries, news, briefing } = data;
 
   const briefingNudge = briefing?.body?.split('. ')[0] ?? null;
 
@@ -505,7 +511,7 @@ function AddWidgetMenu({
   return (
     <details ref={ref} className="relative">
       <summary
-        className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 text-fg inline-flex cursor-pointer list-none items-center gap-1 rounded-sm border px-2 py-1 text-caption"
+        className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 text-fg text-caption inline-flex cursor-pointer list-none items-center gap-1 rounded-sm border px-2 py-1"
         aria-label="Add widget"
       >
         <IconPlus className="size-3.5" />
@@ -517,7 +523,7 @@ function AddWidgetMenu({
             key={t}
             type="button"
             onClick={() => onAdd(t)}
-            className="text-fg hover:bg-bg-elev-2 rounded-sm px-2 py-1 text-left text-caption"
+            className="text-fg hover:bg-bg-elev-2 text-caption rounded-sm px-2 py-1 text-left"
           >
             {WIDGET_LABELS[t]}
           </button>

@@ -23,7 +23,7 @@ export async function runAlerts(ctx: JobContext): Promise<JobResult> {
   // the receiving type uses `signal?: AbortSignal` (not `| undefined`),
   // so passing `{ signal: undefined }` is rejected. Omit the key instead.
   const result = await evaluateAlerts(ctx.signal ? { signal: ctx.signal } : {});
-  
+
   ctx.log.info('alerts evaluated', {
     total: result.total,
     matched: result.matched,

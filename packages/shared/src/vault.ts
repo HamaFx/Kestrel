@@ -134,7 +134,8 @@ async function fetchGcpSecret(
 
     // Secret Manager returns base64-encoded values.
     return Buffer.from(data.payload.data, 'base64').toString('utf-8');
-  } catch (err) {      vlog.warn({ err: String(err) }, `failed to fetch ${secretName} from GCP Secret Manager`);
+  } catch (err) {
+    vlog.warn({ err: String(err) }, `failed to fetch ${secretName} from GCP Secret Manager`);
     return null;
   }
 }

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
@@ -32,29 +48,25 @@ export async function tryMastraBotMessage(args: {
   const { settings } = await getUserWithSettings(args.userId);
   if (!settings) return null;
 
-  try {
-    // Generate before persisting so a failed Mastra attempt cannot leave a
-    // duplicate user message when the caller falls back to the legacy path.
-    const result = await runMastraBackgroundText({
-      userId: args.userId,
-      threadId: args.threadId,
-      task: 'bot',
-      prompt: args.prompt,
-      system: args.system,
-      settings,
-      env: botEnv(),
-    });
-    if (result.text.length === 0) return null;
+  // Generate before persisting so a failed Mastra attempt cannot leave a
+  // duplicate user message when the caller falls back to the legacy path.
+  const result = await runMastraBackgroundText({
+    userId: args.userId,
+    threadId: args.threadId,
+    task: 'bot',
+    prompt: args.prompt,
+    system: args.system,
+    settings,
+    env: botEnv(),
+  });
+  if (result.text.length === 0) return null;
 
-    await appendUserMessage(args.userId, args.threadId, args.userMessage);
-    const assistant: UIMessage = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      parts: [{ type: 'text', text: result.text }],
-    };
-    await appendAssistantMessage(args.userId, args.threadId, assistant);
-    return result.text;
-  } catch (error) {
-    throw error;
-  }
+  await appendUserMessage(args.userId, args.threadId, args.userMessage);
+  const assistant: UIMessage = {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    parts: [{ type: 'text', text: result.text }],
+  };
+  await appendAssistantMessage(args.userId, args.threadId, assistant);
+  return result.text;
 }

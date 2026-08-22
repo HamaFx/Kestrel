@@ -4,20 +4,21 @@ A GCE `e2-medium` instance that runs the Docker worker and fires lightweight cro
 
 ## Instance details
 
-| Property | Value |
-|----------|-------|
-| Name | `kestrel-cron` |
-| Project | `gen-lang-client-0103421645` |
-| Zone | `us-central1-a` |
-| Machine type | `e2-medium` (2 vCPU, 4 GB RAM) |
-| OS | Ubuntu 24.04 LTS Minimal |
-| Disk | 10 GB pd-standard |
-| External IP | Currently ephemeral; reserve a static address only if stable allowlisting is needed |
-| Monthly cost | ~$15-17 (e2-medium in us-central1, sustained use discount) |
+| Property     | Value                                                                               |
+| ------------ | ----------------------------------------------------------------------------------- |
+| Name         | `kestrel-cron`                                                                      |
+| Project      | `gen-lang-client-0103421645`                                                        |
+| Zone         | `us-central1-a`                                                                     |
+| Machine type | `e2-medium` (2 vCPU, 4 GB RAM)                                                      |
+| OS           | Ubuntu 24.04 LTS Minimal                                                            |
+| Disk         | 10 GB pd-standard                                                                   |
+| External IP  | Currently ephemeral; reserve a static address only if stable allowlisting is needed |
+| Monthly cost | ~$15-17 (e2-medium in us-central1, sustained use discount)                          |
 
 ## Firewall
 
 The VM uses GCP default firewall rules (deny all inbound except SSH):
+
 - **SSH (port 22):** allowed from 0.0.0.0/0
 - **Port 8081:** exposed for the Vercel worker-health probe; `/health` requires the `WORKER_HEALTH_TOKEN` bearer token
 - **No other worker inbound ports** are needed
@@ -32,19 +33,19 @@ Firewall rules are configured by `_provision-docker.sh` during VM setup.
 
 ## Schedule
 
-| Endpoint | Cadence | Purpose |
-|----------|---------|---------|
-| `/api/cron/news` | Every 5 min | Marketaux news ingestion |
-| `/api/cron/calendar` | Every 15 min | FRED calendar ingestion |
-| `/api/cron/alerts` | Every 5 min | Alert evaluation + delivery |
-| `/api/cron/warm-cache` | Every 2 min | Pre-fetches the most-used market data so first chat / chart load is hot (Phase 7a) |
-| `/api/cron/billing-dlq` | Every hour | Alerts on stale authenticated billing webhook failures |
-| **(worker internal)** `briefings` | Every 5 min | Pre/post event briefings (Phase 8 PR-10) |
-| **(worker internal)** `snapshots` | 00:05 UTC daily | Daily HLOC/pivots/ATR + candles_1m prune (Phase 8 PR-11) |
-| **(worker internal)** `embedding-backfill` | Every 6 hours | News embedding computation (Phase 8 PR-9) |
-| **(worker internal)** `fred-actuals` | 01:30 UTC daily | FRED actuals backfill (Phase 8 PR-13) |
-| **(worker internal)** `weekly-review` | Sunday 18:00 UTC | Weekly journal review (Phase 8 PR-14) |
-| **(worker internal)** `cot` | Friday 22:00 UTC | CFTC CoT ingestion (Phase 8 PR-12) |
+| Endpoint                                   | Cadence          | Purpose                                                                            |
+| ------------------------------------------ | ---------------- | ---------------------------------------------------------------------------------- |
+| `/api/cron/news`                           | Every 5 min      | Marketaux news ingestion                                                           |
+| `/api/cron/calendar`                       | Every 15 min     | FRED calendar ingestion                                                            |
+| `/api/cron/alerts`                         | Every 5 min      | Alert evaluation + delivery                                                        |
+| `/api/cron/warm-cache`                     | Every 2 min      | Pre-fetches the most-used market data so first chat / chart load is hot (Phase 7a) |
+| `/api/cron/billing-dlq`                    | Every hour       | Alerts on stale authenticated billing webhook failures                             |
+| **(worker internal)** `briefings`          | Every 5 min      | Pre/post event briefings (Phase 8 PR-10)                                           |
+| **(worker internal)** `snapshots`          | 00:05 UTC daily  | Daily HLOC/pivots/ATR + candles_1m prune (Phase 8 PR-11)                           |
+| **(worker internal)** `embedding-backfill` | Every 6 hours    | News embedding computation (Phase 8 PR-9)                                          |
+| **(worker internal)** `fred-actuals`       | 01:30 UTC daily  | FRED actuals backfill (Phase 8 PR-13)                                              |
+| **(worker internal)** `weekly-review`      | Sunday 18:00 UTC | Weekly journal review (Phase 8 PR-14)                                              |
+| **(worker internal)** `cot`                | Friday 22:00 UTC | CFTC CoT ingestion (Phase 8 PR-12)                                                 |
 
 Phase 8 PR-15 — the legacy `cron` daemon is replaced by **systemd timers**.
 The light crons (top five rows above) still poke Vercel via curl. The heavy
@@ -75,6 +76,7 @@ CRON_SECRET=<your-cron-secret>
 ```
 
 To update the secret:
+
 ```bash
 gcloud compute ssh kestrel-cron --zone=us-central1-a --project=gen-lang-client-0103421645 --command="sudo tee /opt/kestrel/.env << EOF
 PRODUCTION_URL=https://kestrel-ai.vercel.app

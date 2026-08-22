@@ -35,14 +35,15 @@
 
 // Must mock server-only before the first import that pulls it in.
 // vi.mock is hoisted by vitest's transform pipeline.
-import { vi, describe, expect, it } from 'vitest';
-vi.mock('server-only', () => ({}));
-
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { describe, expect, it, vi } from 'vitest';
+
 import { sanitizeStatement } from '../src/pglite-client';
+
+vi.mock('server-only', () => ({}));
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
@@ -51,10 +52,7 @@ const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
 
 describe('Phase 4 — Security (file checks)', () => {
   it('client.ts uses per-runtime statement_timeout (8s web, 30s worker)', () => {
-    const clientSource = readFileSync(
-      join(HERE, '..', 'src', 'client.ts'),
-      'utf-8',
-    );
+    const clientSource = readFileSync(join(HERE, '..', 'src', 'client.ts'), 'utf-8');
 
     expect(clientSource).toContain('DEFAULT_WEB_STATEMENT_TIMEOUT = 8000');
     expect(clientSource).toContain('DEFAULT_WORKER_STATEMENT_TIMEOUT = 30000');
@@ -65,10 +63,7 @@ describe('Phase 4 — Security (file checks)', () => {
   });
 
   it('client.ts documents SSL rejectUnauthorized rationale', () => {
-    const clientSource = readFileSync(
-      join(HERE, '..', 'src', 'client.ts'),
-      'utf-8',
-    );
+    const clientSource = readFileSync(join(HERE, '..', 'src', 'client.ts'), 'utf-8');
 
     expect(clientSource).toContain('rejectUnauthorized: false');
     // DB-2: TLS now mandatory in production
@@ -81,15 +76,10 @@ describe('Phase 4 — Security (file checks)', () => {
   });
 
   it('auth.ts comment documents telegramBotToken encryption', () => {
-    const authSource = readFileSync(
-      join(HERE, '..', 'src', 'schema', 'auth.ts'),
-      'utf-8',
-    );
+    const authSource = readFileSync(join(HERE, '..', 'src', 'schema', 'auth.ts'), 'utf-8');
 
     // The comment should mention encryption
-    const tokenLine = authSource
-      .split('\n')
-      .find((l) => l.includes('telegram_bot_token'));
+    const tokenLine = authSource.split('\n').find((l) => l.includes('telegram_bot_token'));
     expect(tokenLine).toBeDefined();
     // There should be a comment above it mentioning AES-256-GCM
     const lines = authSource.split('\n');
@@ -185,15 +175,10 @@ describe('Phase 5 — Migration System', () => {
   });
 
   it('migration 0007 no longer creates daily_ai_spend', () => {
-    const migrationContent = readFileSync(
-      join(DRIZZLE_DIR, '0007_idempotency_keys.sql'),
-      'utf-8',
-    );
+    const migrationContent = readFileSync(join(DRIZZLE_DIR, '0007_idempotency_keys.sql'), 'utf-8');
 
     // The duplicate CREATE TABLE should be gone
-    expect(migrationContent).not.toMatch(
-      /CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+"daily_ai_spend"/i,
-    );
+    expect(migrationContent).not.toMatch(/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+"daily_ai_spend"/i);
     // But a comment explaining the removal should be present
     expect(migrationContent).toContain('MIG-3');
     // The provider_throttle table should still be there
@@ -224,9 +209,7 @@ describe('Phase 5 — Migration System', () => {
   });
 
   it('migrate:gen:custom script exists in package.json', () => {
-    const pkg = JSON.parse(
-      readFileSync(join(HERE, '..', 'package.json'), 'utf-8'),
-    );
+    const pkg = JSON.parse(readFileSync(join(HERE, '..', 'package.json'), 'utf-8'));
     expect(pkg.scripts['migrate:gen:custom']).toBeDefined();
     expect(pkg.scripts['migrate:gen:custom']).toContain('--custom');
   });

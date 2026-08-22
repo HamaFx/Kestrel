@@ -18,9 +18,8 @@
 
 // §5: Shared password field with show/hide toggle, caps-lock hint,
 // and strength meter. Used by login, register, and reset-password pages.
-
-import { useState } from 'react';
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
+import { useState } from 'react';
 
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/cn';
@@ -94,14 +93,16 @@ export function PasswordField({
             // getModifierState is on the native event, not the React synthetic event
             setCapsLockOn((e.nativeEvent as KeyboardEvent).getModifierState?.('CapsLock') ?? false);
           }}
-          onKeyUp={(e) => setCapsLockOn((e.nativeEvent as KeyboardEvent).getModifierState?.('CapsLock') ?? false)}
+          onKeyUp={(e) =>
+            setCapsLockOn((e.nativeEvent as KeyboardEvent).getModifierState?.('CapsLock') ?? false)
+          }
           {...(error !== undefined ? { error } : {})}
           {...(error && errorId ? { 'aria-describedby': errorId } : {})}
         />
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="text-fg-muted hover:text-fg absolute right-2 top-1/2 -translate-y-1/2 focus-visible:ring-2 focus-visible:ring-fg focus-visible:outline-none rounded-sm"
+          className="text-fg-muted hover:text-fg focus-visible:ring-fg absolute top-1/2 right-2 -translate-y-1/2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           aria-label={show ? 'Hide password' : 'Show password'}
           aria-pressed={show}
         >
@@ -111,14 +112,14 @@ export function PasswordField({
 
       {/* Caps-lock hint */}
       {capsLockOn && (
-        <p className="flex items-center gap-1 text-fg-muted text-xs" role="alert">
+        <p className="text-fg-muted flex items-center gap-1 text-xs" role="alert">
           ⇪ Caps Lock is on
         </p>
       )}
 
       {/* Strength meter */}
       {checks && value.length > 0 && (
-        <div className={cn('text-xs grid grid-cols-2 gap-1 mt-1')}>
+        <div className={cn('mt-1 grid grid-cols-2 gap-1 text-xs')}>
           {checks.map((c) => (
             <div key={c.label} className="flex items-center gap-1">
               <span className={c.ok ? 'text-success' : 'text-danger'}>

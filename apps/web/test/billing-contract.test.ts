@@ -1,6 +1,26 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { POST as replayDlq } from '@/app/api/admin/billing/dlq/[id]/replay/route';
+import { POST as checkout } from '@/app/api/billing/checkout/route';
+import { POST as webhook } from '@/app/api/billing/webhook/route';
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockGetServerEnv = vi.hoisted(() => vi.fn());
@@ -29,7 +49,13 @@ const mockMetricsCount = vi.hoisted(() => vi.fn());
 
 vi.mock('@/auth', () => ({ auth: mockAuth }));
 vi.mock('@/lib/admin-auth', () => ({
-  withAdminAuth: (handler: (req: Request, ctx: { user: { userId: string }; params: Promise<unknown> }) => Promise<Response>) =>
+  withAdminAuth:
+    (
+      handler: (
+        req: Request,
+        ctx: { user: { userId: string }; params: Promise<unknown> },
+      ) => Promise<Response>,
+    ) =>
     (req: Request, ctx?: { params: Promise<unknown> }) =>
       handler(req, { user: { userId: 'admin-1' }, params: ctx?.params ?? Promise.resolve({}) }),
 }));
@@ -65,10 +91,6 @@ vi.mock('@kestrel/db', () => ({
   countStaleBillingWebhookFailures: mockCountStaleBillingWebhookFailures,
 }));
 
-import { POST as checkout } from '@/app/api/billing/checkout/route';
-import { POST as webhook } from '@/app/api/billing/webhook/route';
-import { POST as replayDlq } from '@/app/api/admin/billing/dlq/[id]/replay/route';
-
 const PLAN = {
   id: '11111111-1111-4111-8111-111111111111',
   name: 'Pro',
@@ -103,7 +125,10 @@ beforeEach(() => {
   mockCreatePayment.mockResolvedValue({ id: 'payment-1' });
   mockSaveCheckoutInvoice.mockResolvedValue(undefined);
   mockFailCheckoutAttempt.mockResolvedValue(undefined);
-  mockCreateInvoice.mockResolvedValue({ id: 'invoice-1', invoice_url: 'https://pay.test/invoice-1' });
+  mockCreateInvoice.mockResolvedValue({
+    id: 'invoice-1',
+    invoice_url: 'https://pay.test/invoice-1',
+  });
   mockVerifyIpnSignature.mockResolvedValue(true);
   mockClaimIpnEvent.mockResolvedValue({ kind: 'claimed', event: { id: 'event-1' } });
   mockGetPaymentByNowpaymentsId.mockResolvedValue({
@@ -148,7 +173,12 @@ describe('billing P1 safety gate', () => {
   it('returns the stored checkout response on an idempotent retry', async () => {
     mockClaimCheckoutAttempt.mockResolvedValueOnce({
       kind: 'completed',
-      attempt: { ...ATTEMPT, status: 'completed', invoiceId: 'invoice-1', checkoutUrl: 'https://pay.test/invoice-1' },
+      attempt: {
+        ...ATTEMPT,
+        status: 'completed',
+        invoiceId: 'invoice-1',
+        checkoutUrl: 'https://pay.test/invoice-1',
+      },
     });
 
     const response = await checkout(
@@ -256,7 +286,10 @@ describe('billing P1 safety gate', () => {
       'billing_webhook_signature_failure',
       1,
       expect.objectContaining({
-        attributes: expect.objectContaining({ component: 'billing-webhook', provider: 'nowpayments' }),
+        attributes: expect.objectContaining({
+          component: 'billing-webhook',
+          provider: 'nowpayments',
+        }),
       }),
     );
     expect(mockCaptureMessage).toHaveBeenCalledWith(

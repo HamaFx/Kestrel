@@ -28,11 +28,15 @@
 // render each finding as its own row with a "supported" / "no tool
 // source" pill. The legacy flat `unsupportedClaims` list is still
 // rendered for parts persisted before the findings field landed.
-
-import {IconQuote, IconChevronDown, IconChevronRight, IconCheck, IconX} from '@tabler/icons-react';
-import { useId, useState } from 'react';
-
 import type { CitationWarningPart } from '@kestrel/shared';
+import {
+  IconCheck,
+  IconChevronDown,
+  IconChevronRight,
+  IconQuote,
+  IconX,
+} from '@tabler/icons-react';
+import { useId, useState } from 'react';
 
 import { Card } from '@/components/ui/card';
 
@@ -72,9 +76,13 @@ export function CitationWarningPartView({ part }: CitationWarningProps) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={contentId}
-        className="hover:text-fg flex items-center gap-2 text-left text-body-sm font-medium focus:outline-none"
+        className="hover:text-fg text-body-sm flex items-center gap-2 text-left font-medium focus:outline-none"
       >
-        {open ? <IconChevronDown className="size-3.5" /> : <IconChevronRight className="size-3.5" />}
+        {open ? (
+          <IconChevronDown className="size-3.5" />
+        ) : (
+          <IconChevronRight className="size-3.5" />
+        )}
         <IconQuote className="size-3.5" />
         <span>
           {rows.length} statement{rows.length === 1 ? '' : 's'} without a tool source
@@ -82,7 +90,7 @@ export function CitationWarningPartView({ part }: CitationWarningProps) {
       </button>
 
       {open ? (
-        <ul id={contentId} className="ml-6 flex flex-col gap-1 text-body-sm">
+        <ul id={contentId} className="text-body-sm ml-6 flex flex-col gap-1">
           {rows.map((row, i) => (
             <li key={i} className="text-fg-subtle flex items-start gap-2">
               {row.supported ? (
@@ -91,14 +99,11 @@ export function CitationWarningPartView({ part }: CitationWarningProps) {
                   aria-label="supported"
                 />
               ) : (
-                <IconX
-                  className="text-warn mt-0.5 size-3.5 shrink-0"
-                  aria-label="no tool source"
-                />
+                <IconX className="text-warn mt-0.5 size-3.5 shrink-0" aria-label="no tool source" />
               )}
               <span className="flex-1">{row.text}</span>
               {row.supportingTool ? (
-                <span className="text-fg-subtle ml-2 font-mono text-caption">
+                <span className="text-fg-subtle text-caption ml-2 font-mono">
                   {row.supportingTool}
                 </span>
               ) : null}

@@ -34,7 +34,11 @@ export const AnalyzeTechnicalInputSchema = z.object({
 export type AnalyzeTechnicalInput = z.infer<typeof AnalyzeTechnicalInputSchema>;
 
 export const TrendSchema = z.union([z.literal('up'), z.literal('down'), z.literal('range')]);
-export const BiasSchema = z.union([z.literal('bullish'), z.literal('bearish'), z.literal('neutral')]);
+export const BiasSchema = z.union([
+  z.literal('bullish'),
+  z.literal('bearish'),
+  z.literal('neutral'),
+]);
 export const StructureEventTagSchema = z.union([
   z.literal('BOS_up'),
   z.literal('BOS_down'),

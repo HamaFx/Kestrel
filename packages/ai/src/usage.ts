@@ -23,6 +23,7 @@
 import { schema } from '@kestrel/db';
 import { KNOWN_BYOK_PROVIDERS } from '@kestrel/shared';
 import { and, desc, eq, gte, lte } from 'drizzle-orm';
+
 import { getDb } from './db';
 
 export interface TelemetryRow {
@@ -128,10 +129,7 @@ function startOfUtcDay(date: Date): Date {
 }
 
 /** Aggregate the last 30 days of telemetry and authoritative daily spend. */
-export async function computeUsage(
-  userId: string,
-  now = new Date(),
-): Promise<UsageStats> {
+export async function computeUsage(userId: string, now = new Date()): Promise<UsageStats> {
   const todayStart = startOfUtcDay(now);
   const sevenStart = new Date(todayStart.getTime() - 6 * DAY_MS);
   const thirtyStart = new Date(todayStart.getTime() - 29 * DAY_MS);
@@ -153,10 +151,7 @@ export async function computeUsage(
       .select()
       .from(schema.dailyAiSpend)
       .where(
-        and(
-          eq(schema.dailyAiSpend.userId, userId),
-          gte(schema.dailyAiSpend.day, thirtyStartDay),
-        ),
+        and(eq(schema.dailyAiSpend.userId, userId), gte(schema.dailyAiSpend.day, thirtyStartDay)),
       )
       .limit(30),
   ]);
@@ -178,11 +173,10 @@ export async function computeUsage(
 
   // Turn markers and auxiliary model rows have different meanings. Keep
   // user-turn counts separate from model/provider token breakdowns.
-  const turnRows = rows.filter(
-    (row) => row.kind === null || row.kind === 'multi_agent_turn',
-  );
+  const turnRows = rows.filter((row) => row.kind === null || row.kind === 'multi_agent_turn');
   const usageRows = rows.filter(
-    (row) => row.kind === null ||
+    (row) =>
+      row.kind === null ||
       row.kind.startsWith('title_') ||
       row.kind.startsWith('plan_') ||
       row.kind.startsWith('multi_specialist_'),

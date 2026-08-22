@@ -1,8 +1,29 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { NextResponse } from 'next/server';
-import { findVerificationToken, deleteVerificationToken, verifyUserEmail } from '@/lib/services/api-boundary';
-import { AppError } from '@/lib/services/api-boundary';
+
 import { errorResponse } from '@/lib/api';
 import { hashToken } from '@/lib/auth-tokens';
+import {
+  AppError,
+  deleteVerificationToken,
+  findVerificationToken,
+  verifyUserEmail,
+} from '@/lib/services/api-boundary';
 
 /**
  * GET /api/auth/verify-email?token=...
@@ -25,7 +46,8 @@ export async function GET(req: Request) {
 
     if (!vt) {
       return errorResponse(new AppError('VALIDATION', 'Invalid or expired token', 400), req);
-    }    await verifyUserEmail(vt.identifier);
+    }
+    await verifyUserEmail(vt.identifier);
 
     // Single-use: delete after consumption (defense-in-depth: filter by purpose too)
     await deleteVerificationToken(hashedToken, 'email_verify');

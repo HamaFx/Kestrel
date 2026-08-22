@@ -18,8 +18,9 @@
 // /news → latest gold, forex, and crypto market news
 // /news XAUUSD → news filtered to a symbol
 
-import type { BotCommand, BotResponse } from '../types';
 import { queries } from '@kestrel/db';
+
+import type { BotCommand, BotResponse } from '../types';
 
 export const newsCommand: BotCommand = {
   name: 'news',
@@ -46,8 +47,7 @@ export const newsCommand: BotCommand = {
           minute: '2-digit',
         });
         const sentimentIcon =
-          item.sentiment === 'positive' ? '🟢' :
-          item.sentiment === 'negative' ? '🔴' : '⚪';
+          item.sentiment === 'positive' ? '🟢' : item.sentiment === 'negative' ? '🔴' : '⚪';
         lines.push(`${sentimentIcon} ${item.title}`);
         lines.push(`   ${item.source} · ${time}`);
         if (item.url) lines.push(`   🔗 ${item.url}`);

@@ -96,8 +96,8 @@ export class Container {
     if (!factory) {
       throw new Error(
         `No service registered for token "${key}". ` +
-        `Available tokens: ${[...this.factories.keys()].join(', ') || '(none)'}. ` +
-        `Register via container.register('${key}', () => ...).`,
+          `Available tokens: ${[...this.factories.keys()].join(', ') || '(none)'}. ` +
+          `Register via container.register('${key}', () => ...).`,
       );
     }
 

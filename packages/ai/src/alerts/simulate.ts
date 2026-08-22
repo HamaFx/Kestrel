@@ -78,8 +78,7 @@ export function simulateAlert(
 
   if (rule.type === 'priceCross') {
     for (const c of candles) {
-      const fired =
-        rule.direction === 'above' ? c.h >= rule.level : c.l <= rule.level;
+      const fired = rule.direction === 'above' ? c.h >= rule.level : c.l <= rule.level;
       if (fired) {
         fires.push({ at: c.t, price: rule.level });
         if (fires.length >= maxFires) break;
@@ -87,8 +86,7 @@ export function simulateAlert(
     }
   } else if (rule.type === 'candleClose') {
     for (const c of candles) {
-      const fired =
-        rule.direction === 'above' ? c.c >= rule.level : c.c <= rule.level;
+      const fired = rule.direction === 'above' ? c.c >= rule.level : c.c <= rule.level;
       if (fired) {
         fires.push({ at: c.t, price: c.c });
         if (fires.length >= maxFires) break;

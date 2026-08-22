@@ -17,15 +17,16 @@
  */
 
 // Preferences domain actions: profile, UI, AI prefs, notifications, usage budget, symbols, locale.
+import { getDb } from '@kestrel/ai';
+import { schema, updateUserDisplayName, withRateLimit } from '@kestrel/db';
+import { PROVIDER_IDS } from '@kestrel/shared/encryption';
+import * as Sentry from '@sentry/nextjs';
+import { and, eq, sql } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
-import { eq, and, sql } from 'drizzle-orm';
-import { withRateLimit, schema, updateUserDisplayName } from '@kestrel/db'
-import { getDb } from '@kestrel/ai';
-import * as Sentry from '@sentry/nextjs';
-import { revalidatePath } from 'next/cache';
-import { PROVIDER_IDS } from '@kestrel/shared/encryption';
-import { type ActionResult, NAME_MIN, NAME_MAX } from './_actions-shared';
+
+import { NAME_MAX, NAME_MIN, type ActionResult } from './_actions-shared';
 
 /**
  * Server action to update user profile.
@@ -90,7 +91,8 @@ export async function updateUIPrefsAction(prefs: {
 
   try {
     const db = getDb();
-    await db.update(schema.userSettings)
+    await db
+      .update(schema.userSettings)
       .set(prefs)
       .where(eq(schema.userSettings.userId, session.user.id));
 
@@ -121,7 +123,8 @@ export async function updateAiPrefsAction(customInstructions: string): Promise<A
 
   try {
     const db = getDb();
-    await db.update(schema.userSettings)
+    await db
+      .update(schema.userSettings)
       .set({ customInstructions })
       .where(eq(schema.userSettings.userId, session.user.id));
 
@@ -139,9 +142,7 @@ export async function updateAiPrefsAction(customInstructions: string): Promise<A
 /**
  * Server action to update the list of disabled AI tools.
  */
-export async function updateDisabledToolsAction(
-  disabledTools: string[],
-): Promise<ActionResult> {
+export async function updateDisabledToolsAction(disabledTools: string[]): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
@@ -173,7 +174,9 @@ export async function updateDisabledToolsAction(
 /**
  * Server action to update notification preferences.
  */
-export async function updateNotificationPrefsAction(prefs: Record<string, Record<string, boolean>>): Promise<ActionResult> {
+export async function updateNotificationPrefsAction(
+  prefs: Record<string, Record<string, boolean>>,
+): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
@@ -188,11 +191,16 @@ export async function updateNotificationPrefsAction(prefs: Record<string, Record
     const db = getDb();
     // Merge with existing notification preferences to preserve nested
     // fields like noiseConfig that aren't managed through this action.
-    const [existing] = await db.select({ notificationPreferences: schema.userSettings.notificationPreferences })
+    const [existing] = await db
+      .select({ notificationPreferences: schema.userSettings.notificationPreferences })
       .from(schema.userSettings)
       .where(eq(schema.userSettings.userId, session.user.id));
-    const merged = { ...(existing?.notificationPreferences as Record<string, unknown> || {}), ...prefs };
-    await db.update(schema.userSettings)
+    const merged = {
+      ...((existing?.notificationPreferences as Record<string, unknown>) || {}),
+      ...prefs,
+    };
+    await db
+      .update(schema.userSettings)
       .set({ notificationPreferences: merged as Record<string, Record<string, boolean>> })
       .where(eq(schema.userSettings.userId, session.user.id));
 
@@ -222,9 +230,10 @@ export async function updateUsageSettingsAction(formData: FormData): Promise<Act
   }
 
   const monthlyLimitRaw = formData.get('monthlyBudgetLimit');
-  const monthlyBudgetLimit = monthlyLimitRaw && String(monthlyLimitRaw).trim().length > 0 
-    ? parseInt(String(monthlyLimitRaw), 10) 
-    : null;
+  const monthlyBudgetLimit =
+    monthlyLimitRaw && String(monthlyLimitRaw).trim().length > 0
+      ? parseInt(String(monthlyLimitRaw), 10)
+      : null;
 
   const emailAlert = formData.get('emailAlert') === 'on';
   const telegramAlert = formData.get('telegramAlert') === 'on';
@@ -242,10 +251,12 @@ export async function updateUsageSettingsAction(formData: FormData): Promise<Act
 
   try {
     const db = getDb();
-    await db.update(schema.userSettings)
+    await db
+      .update(schema.userSettings)
       .set({
         monthlyBudgetLimit,
-        providerSpendingThresholds: Object.keys(providerSpendingThresholds).length > 0 ? providerSpendingThresholds : null,
+        providerSpendingThresholds:
+          Object.keys(providerSpendingThresholds).length > 0 ? providerSpendingThresholds : null,
         spendAlertsConfig: { email: emailAlert, telegram: telegramAlert },
       })
       .where(eq(schema.userSettings.userId, session.user.id));
@@ -288,34 +299,41 @@ export async function addSymbolAction(formData: FormData): Promise<ActionResult>
   try {
     const db = getDb();
 
-    const inCatalog = await db.select({ symbol: schema.symbolCatalog.symbol })
+    const inCatalog = await db
+      .select({ symbol: schema.symbolCatalog.symbol })
       .from(schema.symbolCatalog)
-      .where(and(
-        eq(schema.symbolCatalog.symbol, symbol),
-        eq(schema.symbolCatalog.isActive, true),
-        eq(schema.symbolCatalog.tenantId, '__system__'),
-      ))
+      .where(
+        and(
+          eq(schema.symbolCatalog.symbol, symbol),
+          eq(schema.symbolCatalog.isActive, true),
+          eq(schema.symbolCatalog.tenantId, '__system__'),
+        ),
+      )
       .limit(1);
 
     if (inCatalog.length === 0) {
       return { ok: false as const, error: `Symbol "${symbol}" is not supported or active.` };
     }
 
-    const orderResult = await db.select({
-      maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`
-    })
+    const orderResult = await db
+      .select({
+        maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`,
+      })
       .from(schema.userSymbols)
       .where(eq(schema.userSymbols.userId, session.user.id));
 
     const nextOrder = (orderResult[0]?.maxOrder ?? -1) + 1;
 
-    await db.insert(schema.userSymbols).values({
-      userId: session.user.id,
-      symbol,
-      displayOrder: nextOrder,
-    }).onConflictDoNothing({
-      target: [schema.userSymbols.userId, schema.userSymbols.symbol],
-    });
+    await db
+      .insert(schema.userSymbols)
+      .values({
+        userId: session.user.id,
+        symbol,
+        displayOrder: nextOrder,
+      })
+      .onConflictDoNothing({
+        target: [schema.userSymbols.userId, schema.userSymbols.symbol],
+      });
 
     revalidatePath('/settings/symbols');
     return { ok: true as const };
@@ -349,12 +367,10 @@ export async function removeSymbolAction(formData: FormData): Promise<ActionResu
 
   try {
     const db = getDb();
-    await db.delete(schema.userSymbols)
+    await db
+      .delete(schema.userSymbols)
       .where(
-        and(
-          eq(schema.userSymbols.userId, session.user.id),
-          eq(schema.userSymbols.symbol, symbol)
-        )
+        and(eq(schema.userSymbols.userId, session.user.id), eq(schema.userSymbols.symbol, symbol)),
       );
 
     revalidatePath('/settings/symbols');
@@ -388,7 +404,8 @@ export async function updateLocaleAction(locale: string): Promise<ActionResult> 
 
   try {
     const db = getDb();
-    await db.update(schema.userSettings)
+    await db
+      .update(schema.userSettings)
       .set({ language: locale })
       .where(eq(schema.userSettings.userId, session.user.id));
 

@@ -21,6 +21,7 @@
 // callers from Drizzle ORM internals.
 
 import { and, desc, eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -59,10 +60,7 @@ export interface UpdateAlertInput {
 /**
  * List alerts for a user, most recently created first.
  */
-export async function listAlerts(
-  userId: string,
-  limit: number = 50,
-): Promise<AlertRow[]> {
+export async function listAlerts(userId: string, limit: number = 50): Promise<AlertRow[]> {
   const db = getDb();
   return db
     .select()
@@ -75,20 +73,12 @@ export async function listAlerts(
 /**
  * Get a single alert by ID, scoped to the user.
  */
-export async function getAlert(
-  userId: string,
-  alertId: string,
-): Promise<AlertRow | null> {
+export async function getAlert(userId: string, alertId: string): Promise<AlertRow | null> {
   const db = getDb();
   const rows = await db
     .select()
     .from(schema.alerts)
-    .where(
-      and(
-        eq(schema.alerts.id, alertId),
-        eq(schema.alerts.userId, userId),
-      ),
-    )
+    .where(and(eq(schema.alerts.id, alertId), eq(schema.alerts.userId, userId)))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -96,9 +86,7 @@ export async function getAlert(
 /**
  * Create a new alert.
  */
-export async function createAlert(
-  input: CreateAlertInput,
-): Promise<AlertRow> {
+export async function createAlert(input: CreateAlertInput): Promise<AlertRow> {
   const db = getDb();
   const rows = await db
     .insert(schema.alerts)
@@ -131,12 +119,7 @@ export async function updateAlert(
       ...(input.active !== undefined ? { active: input.active } : {}),
       ...(input.snoozeHours !== undefined ? { snoozeHours: input.snoozeHours } : {}),
     })
-    .where(
-      and(
-        eq(schema.alerts.id, alertId),
-        eq(schema.alerts.userId, userId),
-      ),
-    )
+    .where(and(eq(schema.alerts.id, alertId), eq(schema.alerts.userId, userId)))
     .returning();
   return rows[0] ?? null;
 }
@@ -148,39 +131,24 @@ export async function deleteAlert(userId: string, alertId: string): Promise<void
   const db = getDb();
   await db
     .delete(schema.alerts)
-    .where(
-      and(
-        eq(schema.alerts.id, alertId),
-        eq(schema.alerts.userId, userId),
-      ),
-    );
+    .where(and(eq(schema.alerts.id, alertId), eq(schema.alerts.userId, userId)));
 }
 
 /**
  * List active alerts for a user. The caller applies snooze logic.
  */
-export async function listActiveAlerts(
-  userId: string,
-): Promise<AlertRow[]> {
+export async function listActiveAlerts(userId: string): Promise<AlertRow[]> {
   const db = getDb();
   return db
     .select()
     .from(schema.alerts)
-    .where(
-      and(
-        eq(schema.alerts.userId, userId),
-        eq(schema.alerts.active, true),
-      ),
-    );
+    .where(and(eq(schema.alerts.userId, userId), eq(schema.alerts.active, true)));
 }
 
 /**
  * Mark an alert as fired, setting firedAt and lastFiredAt.
  */
-export async function markAlertFired(
-  userId: string,
-  alertId: string,
-): Promise<void> {
+export async function markAlertFired(userId: string, alertId: string): Promise<void> {
   const db = getDb();
   const now = new Date();
   await db
@@ -189,10 +157,5 @@ export async function markAlertFired(
       firedAt: now,
       lastFiredAt: now,
     })
-    .where(
-      and(
-        eq(schema.alerts.id, alertId),
-        eq(schema.alerts.userId, userId),
-      ),
-    );
+    .where(and(eq(schema.alerts.id, alertId), eq(schema.alerts.userId, userId)));
 }

@@ -1,20 +1,26 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import { LibSQLStore } from '@mastra/libsql';
-import { LibSQLVector } from '@mastra/libsql';
+import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
 import { Memory } from '@mastra/memory';
-
-// Real module mock: replaces only `listMessages` with a spy so the backfill
-// tests can stub Drizzle history without touching the DB. The rest of the
-// persistence barrel stays intact.
-vi.mock('../src/persistence', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../src/persistence')>();
-  return { ...actual, listMessages: vi.fn() };
-});
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   backfillThreadHistoryIfNeeded,
@@ -22,7 +28,16 @@ import {
   prepareKestrelMemory,
   seedWorkingMemoryFromSettings,
 } from '../src/mastra-v2';
+import type * as persistenceModule from '../src/persistence';
 import { listMessages } from '../src/persistence';
+
+// Real module mock: replaces only `listMessages` with a spy so the backfill
+// tests can stub Drizzle history without touching the DB. The rest of the
+// persistence barrel stays intact.
+vi.mock('../src/persistence', async (importOriginal) => {
+  const actual = await importOriginal<typeof persistenceModule>();
+  return { ...actual, listMessages: vi.fn() };
+});
 
 const cleanups: Array<() => void> = [];
 afterEach(() => {
@@ -159,7 +174,14 @@ describe('mastra-v2 thread backfill', () => {
   it('creates the thread and copies Drizzle history into Mastra storage', async () => {
     const memory = await buildMemory();
     const rows = [
-      { id: 'd1', threadId: 't1', role: 'user', content: 'first', parts: null, createdAt: Date.now() },
+      {
+        id: 'd1',
+        threadId: 't1',
+        role: 'user',
+        content: 'first',
+        parts: null,
+        createdAt: Date.now(),
+      },
       {
         id: 'd2',
         threadId: 't1',

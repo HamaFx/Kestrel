@@ -120,17 +120,16 @@ function isTransientByDefault(err: unknown): boolean {
   const { reason } = classifyStreamError(err);
   // 'unknown' covers provider SDK errors with novel shapes that the
   // classifier doesn't recognise yet — retrying once is cheap insurance.
-  return reason === 'rate-limit' || reason === 'upstream' || reason === 'timeout' || reason === 'unknown';
+  return (
+    reason === 'rate-limit' || reason === 'upstream' || reason === 'timeout' || reason === 'unknown'
+  );
 }
 
 /**
  * Retry `fn` up to `maxAttempts` times with exponential backoff + full jitter.
  * Throws the last error if all attempts fail, or if the error is not retryable.
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {},
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const {
     maxAttempts = 3,
     baseDelayMs = 500,
@@ -185,10 +184,14 @@ export async function withRetry<T>(
           reject(new DOMException('Aborted', 'AbortError'));
           return;
         }
-        signal?.addEventListener('abort', () => {
-          clearTimeout(timer);
-          reject(new DOMException('Aborted', 'AbortError'));
-        }, { once: true });
+        signal?.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(timer);
+            reject(new DOMException('Aborted', 'AbortError'));
+          },
+          { once: true },
+        );
       });
     }
   }

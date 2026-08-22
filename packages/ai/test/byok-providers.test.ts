@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
+import { PROVIDER_IDS } from '@kestrel/shared/byok';
 import { describe, expect, it } from 'vitest';
+
+import {
+  normalizeHcnsecDsmlToolCalls,
+  normalizeHcnsecJsonPayload,
+  normalizeHcnsecSse,
+  normalizeHcnsecToolArguments,
+} from '../src/_providers/helpers';
 import {
   BYOK_PROVIDERS,
   BYOK_PROVIDERS_LIST,
   defaultModelFor,
   getProvider,
 } from '../src/byok-providers';
-import { PROVIDER_IDS } from '@kestrel/shared/byok';
-import {
-  normalizeHcnsecDsmlToolCalls,
-  normalizeHcnsecJsonPayload,
-  normalizeHcnsecToolArguments,
-  normalizeHcnsecSse,
-} from '../src/_providers/helpers';
 
 describe('BYOK_PROVIDERS', () => {
   it('contains every id from PROVIDER_IDS', () => {
@@ -51,7 +52,13 @@ describe('BYOK_PROVIDERS', () => {
       expect(Array.isArray(spec.models)).toBe(true);
       expect(spec.models.length).toBeGreaterThan(0);
       // defaultModels must resolve to catalog entries (defineProvider also enforces this).
-      for (const domain of ['fundamental', 'technical', 'summary', 'vision', 'embedding'] as const) {
+      for (const domain of [
+        'fundamental',
+        'technical',
+        'summary',
+        'vision',
+        'embedding',
+      ] as const) {
         const id = spec.defaultModels[domain];
         if (id == null) continue;
         expect(spec.models.some((m) => m.modelId === id)).toBe(true);
@@ -106,7 +113,8 @@ describe('HCNSEC provider', () => {
 
 describe('HCNSEC DSML normalization', () => {
   it('converts DeepSeek DSML text into executable tool calls', () => {
-    const raw = 'I will pull the 15m data. <｜｜DSML｜｜tool_calls> <｜｜DSML｜｜invoke name="get_candles"> <｜｜DSML｜｜parameter name="symbol" string="true">XAUUSD</｜｜DSML｜｜parameter> <｜｜DSML｜｜parameter name="timeframe" string="true">15m</｜｜DSML｜｜parameter> <｜｜DSML｜｜parameter name="limit" string="false">100</｜｜DSML｜｜parameter> </｜｜DSML｜｜invoke> <｜｜DSML｜｜invoke name="get_indicators"> <｜｜DSML｜｜parameter name="symbol" string="true">XAUUSD</｜｜DSML｜｜parameter> <｜｜DSML｜｜parameter name="timeframe" string="true">15m</｜｜DSML｜｜parameter> </｜｜DSML｜｜invoke> </｜｜DSML｜｜tool_calls>';
+    const raw =
+      'I will pull the 15m data. <｜｜DSML｜｜tool_calls> <｜｜DSML｜｜invoke name="get_candles"> <｜｜DSML｜｜parameter name="symbol" string="true">XAUUSD</｜｜DSML｜｜parameter> <｜｜DSML｜｜parameter name="timeframe" string="true">15m</｜｜DSML｜｜parameter> <｜｜DSML｜｜parameter name="limit" string="false">100</｜｜DSML｜｜parameter> </｜｜DSML｜｜invoke> <｜｜DSML｜｜invoke name="get_indicators"> <｜｜DSML｜｜parameter name="symbol" string="true">XAUUSD</｜｜DSML｜｜parameter> <｜｜DSML｜｜parameter name="timeframe" string="true">15m</｜｜DSML｜｜parameter> </｜｜DSML｜｜invoke> </｜｜DSML｜｜tool_calls>';
     const normalized = normalizeHcnsecDsmlToolCalls(raw);
 
     expect(normalized?.content).toBe('I will pull the 15m data.');
@@ -144,16 +152,25 @@ describe('HCNSEC DSML normalization', () => {
 
   it('normalizes DSML in non-streaming chat responses', () => {
     const payload = {
-      choices: [{
-        message: {
-          role: 'assistant',
-          content: '<｜｜DSML｜｜tool_calls><｜｜DSML｜｜invoke name="get_price"><｜｜DSML｜｜parameter name="symbol" string="true">XAUUSD</｜｜DSML｜｜parameter></｜｜DSML｜｜invoke></｜｜DSML｜｜tool_calls>',
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content:
+              '<｜｜DSML｜｜tool_calls><｜｜DSML｜｜invoke name="get_price"><｜｜DSML｜｜parameter name="symbol" string="true">XAUUSD</｜｜DSML｜｜parameter></｜｜DSML｜｜invoke></｜｜DSML｜｜tool_calls>',
+          },
+          finish_reason: 'stop',
         },
-        finish_reason: 'stop',
-      }],
+      ],
     };
     const normalized = normalizeHcnsecJsonPayload(payload) as {
-      choices: Array<{ finish_reason: string; message: { content: string | null; tool_calls: Array<{ function: { name: string; arguments: string } }> } }>;
+      choices: Array<{
+        finish_reason: string;
+        message: {
+          content: string | null;
+          tool_calls: Array<{ function: { name: string; arguments: string } }>;
+        };
+      }>;
     };
     expect(normalized.choices[0]?.finish_reason).toBe('tool_calls');
     expect(normalized.choices[0]?.message.content).toBeNull();
@@ -175,7 +192,12 @@ describe('HCNSEC stream normalization', () => {
     const normalized = normalizeHcnsecSse(raw);
     const firstEvent = normalized.split('\n\n')[0]?.replace(/^data: /, '');
     const parsed = JSON.parse(firstEvent ?? '{}') as {
-      choices?: Array<{ delta?: { reasoning_content?: string; tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }> } }>;
+      choices?: Array<{
+        delta?: {
+          reasoning_content?: string;
+          tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }>;
+        };
+      }>;
     };
     const delta = parsed.choices?.[0]?.delta;
     expect(delta?.reasoning_content).toBe('reasoning ');

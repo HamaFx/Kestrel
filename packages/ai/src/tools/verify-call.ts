@@ -49,7 +49,7 @@ declare module '@kestrel/shared' {
 
 export const verifyCallTool = tool({
   description:
-    "Verify a directional setup. Re-checks the proposed levels against the live market, validates entry/stop/target geometry, and scans recent structure for the nearest opposing liquidity (swing high above for longs, swing low below for shorts). Use after naming a setup and before presenting it as verified.",
+    'Verify a directional setup. Re-checks the proposed levels against the live market, validates entry/stop/target geometry, and scans recent structure for the nearest opposing liquidity (swing high above for longs, swing low below for shorts). Use after naming a setup and before presenting it as verified.',
   inputSchema: InputSchema,
   execute: async ({
     symbol,
@@ -92,7 +92,8 @@ export const verifyCallTool = tool({
     } catch {
       caveats.push({
         code: 'market_price_unavailable',
-        message: 'Could not fetch the live market price, so this setup was not grounded against the current market.',
+        message:
+          'Could not fetch the live market price, so this setup was not grounded against the current market.',
       });
     }
 

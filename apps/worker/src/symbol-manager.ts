@@ -15,6 +15,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+
 import { listDistinctSymbols } from '@kestrel/db';
 import {
   DEFAULT_WATCHLIST_SYMBOLS,
@@ -23,6 +24,7 @@ import {
   symbolCategory,
   type SymbolCategory,
 } from '@kestrel/shared';
+
 import type { Logger } from './log.js';
 
 interface ActiveSymbol {
@@ -48,12 +50,16 @@ export class SymbolManager extends EventEmitter {
   private pollTimer: NodeJS.Timeout | null = null;
   private isPolling = false;
   private consecutiveFailures = 0;
+  private readonly log: Logger;
+  private readonly pollIntervalMs: number;
 
   constructor(
-    private readonly log: Logger,
-    private readonly pollIntervalMs = 300_000,  // M1: 5 min — symbol changes are administrative, not real-time.
+    log: Logger,
+    pollIntervalMs = 300_000, // M1: 5 min — symbol changes are administrative, not real-time.
   ) {
     super();
+    this.log = log;
+    this.pollIntervalMs = pollIntervalMs;
   }
 
   /**
@@ -65,7 +71,7 @@ export class SymbolManager extends EventEmitter {
    */
   public start(): void {
     if (this.pollTimer) return;
-    
+
     // Initial fetch
     void this.poll();
 
@@ -75,7 +81,7 @@ export class SymbolManager extends EventEmitter {
     // STAB-06: Unref the poll timer so it doesn't prevent the Node.js
     // process from exiting during graceful shutdown.
     this.pollTimer.unref();
-    
+
     this.log.info('SymbolManager started polling', { intervalMs: this.pollIntervalMs });
   }
 
@@ -96,10 +102,8 @@ export class SymbolManager extends EventEmitter {
 
     try {
       const symbols = await listDistinctSymbols();
-      const newSymbols = new Set(
-        symbols.filter((s) => isKnownSymbol(s)),
-      );
-      
+      const newSymbols = new Set(symbols.filter((s) => isKnownSymbol(s)));
+
       // If the database has no symbols, fallback to defaults
       if (newSymbols.size === 0) {
         for (const symbol of DEFAULT_WATCHLIST_SYMBOLS) newSymbols.add(symbol);
@@ -108,7 +112,7 @@ export class SymbolManager extends EventEmitter {
       if (this.hasSetChanged(this.symbols, newSymbols)) {
         const added = Array.from(newSymbols).filter((s) => !this.symbols.has(s));
         const removed = Array.from(this.symbols).filter((s) => !newSymbols.has(s));
-        
+
         // Capture old symbols BEFORE updating this.symbols — needed for correct
         // diff computation in per-consumer events (biquoteChanged, binanceChanged).
         const oldSymbols = new Set(this.symbols);
@@ -125,7 +129,7 @@ export class SymbolManager extends EventEmitter {
         }));
 
         // Emit aggregate event (backward compat)
-        this.emit('symbolsChanged', { 
+        this.emit('symbolsChanged', {
           current: Array.from(this.symbols),
           added,
           removed,
@@ -155,15 +159,15 @@ export class SymbolManager extends EventEmitter {
           added: binanceSymbols.filter((s) => !prevBinance.includes(s)),
           removed: prevBinance.filter((s) => !binanceSymbols.includes(s)),
         });
-        
+
         // Reset failure counter on successful poll
         this.consecutiveFailures = 0;
 
-        this.log.info('Active symbols changed', { 
-          total: this.symbols.size, 
+        this.log.info('Active symbols changed', {
+          total: this.symbols.size,
           biquote: biquoteSymbols.length,
           binance: binanceSymbols.length,
-          added, 
+          added,
           removed,
         });
       }

@@ -87,7 +87,9 @@ function latestUserText(): string {
 function requireUserText(toolName: MutationToolName): string {
   const text = latestUserText();
   if (text.length === 0) {
-    throw validationError(`${toolName} blocked: the latest user message was empty, so write intent could not be verified.`);
+    throw validationError(
+      `${toolName} blocked: the latest user message was empty, so write intent could not be verified.`,
+    );
   }
   return text;
 }

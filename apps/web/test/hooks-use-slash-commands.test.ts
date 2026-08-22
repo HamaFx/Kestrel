@@ -1,12 +1,35 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { useSlashCommands } from '../src/hooks/use-slash-commands';
 
 const TEST_COMMANDS = [
   { command: '/chart', description: 'Open chart', placeholder: '/chart XAUUSD' },
   { command: '/journal', description: 'Log trade', placeholder: '/journal buy' },
-  { command: '/settings', description: 'Settings', placeholder: '/settings', action: 'navigate' as const, href: '/settings' },
+  {
+    command: '/settings',
+    description: 'Settings',
+    placeholder: '/settings',
+    action: 'navigate' as const,
+    href: '/settings',
+  },
 ] as const;
 
 function createMockTextarea(): HTMLTextAreaElement {

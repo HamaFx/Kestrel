@@ -2,8 +2,24 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { IconClock, IconFlame } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
+
 import { cn } from '@/lib/cn';
 
 interface MarketSession {
@@ -51,27 +67,24 @@ export function MarketSessionBar() {
     return () => clearInterval(interval);
   }, []);
 
-  const isLondonNyOverlap =
-    mounted && utcTime.hour >= 12 && utcTime.hour < 16;
-  const isNyOpenKillzone =
-    mounted && utcTime.hour >= 12 && utcTime.hour < 15;
-  const isLondonOpenKillzone =
-    mounted && utcTime.hour >= 7 && utcTime.hour < 10;
+  const isLondonNyOverlap = mounted && utcTime.hour >= 12 && utcTime.hour < 16;
+  const isNyOpenKillzone = mounted && utcTime.hour >= 12 && utcTime.hour < 15;
+  const isLondonOpenKillzone = mounted && utcTime.hour >= 7 && utcTime.hour < 10;
 
   return (
     <div
       aria-label="Global market trading sessions"
-      className="border-b border-border/50 bg-bg-elev-1/60 px-3 py-1 flex items-center justify-between text-caption font-mono"
+      className="border-border/50 bg-bg-elev-1/60 text-caption flex items-center justify-between border-b px-3 py-1 font-mono"
     >
-      <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide py-0.5">
-        <div className="flex items-center gap-1.5 text-fg-subtle shrink-0">
-          <IconClock className="size-3.5 text-fg-subtle" />
-          <span className="tabular-nums font-medium text-fg-muted">{utcTime.str}</span>
+      <div className="scrollbar-hide flex items-center gap-3 overflow-x-auto py-0.5">
+        <div className="text-fg-subtle flex shrink-0 items-center gap-1.5">
+          <IconClock className="text-fg-subtle size-3.5" />
+          <span className="text-fg-muted font-medium tabular-nums">{utcTime.str}</span>
         </div>
 
-        <div className="h-3 w-px bg-border shrink-0" />
+        <div className="bg-border h-3 w-px shrink-0" />
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex shrink-0 items-center gap-1.5">
           {SESSIONS.map((s) => {
             const active = mounted && isSessionActive(s, utcTime.hour);
             return (
@@ -80,8 +93,8 @@ export function MarketSessionBar() {
                 className={cn(
                   'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold tracking-wider transition-colors',
                   active
-                    ? 'bg-bull/15 text-bull border border-bull/30'
-                    : 'bg-bg-elev-2 text-fg-subtle/70 border border-border/40',
+                    ? 'bg-bull/15 text-bull border-bull/30 border'
+                    : 'bg-bg-elev-2 text-fg-subtle/70 border-border/40 border',
                 )}
                 title={`${s.name} Session (${s.startHourUtc}:00 - ${s.endHourUtc}:00 UTC)`}
               >
@@ -99,23 +112,19 @@ export function MarketSessionBar() {
 
         {(isLondonNyOverlap || isNyOpenKillzone || isLondonOpenKillzone) && (
           <>
-            <div className="h-3 w-px bg-border shrink-0" />
+            <div className="bg-border h-3 w-px shrink-0" />
             <span
-              className="inline-flex items-center gap-1 rounded-sm bg-brand/15 border border-brand/40 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-brand shrink-0"
+              className="bg-brand/15 border-brand/40 text-brand inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold tracking-wider"
               title="High volatility killzone window"
             >
-              <IconFlame className="size-3 text-brand animate-pulse" />
-              {isLondonNyOverlap
-                ? 'OVERLAP KILLZONE'
-                : isNyOpenKillzone
-                  ? 'NY OPEN'
-                  : 'LON OPEN'}
+              <IconFlame className="text-brand size-3 animate-pulse" />
+              {isLondonNyOverlap ? 'OVERLAP KILLZONE' : isNyOpenKillzone ? 'NY OPEN' : 'LON OPEN'}
             </span>
           </>
         )}
       </div>
 
-      <div className="hidden sm:flex items-center gap-2 text-fg-subtle/80 text-[10px] shrink-0">
+      <div className="text-fg-subtle/80 hidden shrink-0 items-center gap-2 text-[10px] sm:flex">
         <span>24H FX/GOLD</span>
       </div>
     </div>

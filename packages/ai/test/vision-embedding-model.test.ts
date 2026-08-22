@@ -10,6 +10,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resolveEmbeddingModel, resolveVisionModel } from '../src/model';
+
 vi.mock('server-only', () => ({}));
 
 // Phase D2 tests mock @kestrel/shared/encryption with a permissive
@@ -31,17 +33,11 @@ vi.mock('@kestrel/shared/encryption', () => ({
   ],
   decryptByok: () => byokPayload,
   encryptByok: () => '',
-  configuredProviders: (keys: Record<string, unknown>) =>
-    Object.keys(keys) as never[],
+  configuredProviders: (keys: Record<string, unknown>) => Object.keys(keys) as never[],
   __setByok: (p: Record<string, string>) => {
     byokPayload = p;
   },
 }));
-
-import {
-  resolveVisionModel,
-  resolveEmbeddingModel,
-} from '../src/model';
 
 const ENV = {
   AI_GATEWAY_API_KEY: '',
@@ -78,10 +74,7 @@ describe('resolveVisionModel — Phase D2 user-pickable vision', () => {
 
   it('falls back to spec.defaultModels.vision of the priority-ordered configured provider', () => {
     __setByok({ anthropic: 'a'.repeat(40) });
-    const result = resolveVisionModel(
-      { aiApiKeys: 'encrypted' as never, visionModel: null },
-      ENV,
-    );
+    const result = resolveVisionModel({ aiApiKeys: 'encrypted' as never, visionModel: null }, ENV);
     // Anthropic supports vision; its spec.defaultModels.vision is set.
     expect(result.providerId).toBe('anthropic');
     expect(result.bareModelId).toBeTruthy();
@@ -91,20 +84,14 @@ describe('resolveVisionModel — Phase D2 user-pickable vision', () => {
     // DeepSeek + Google. DeepSeek has no vision support; resolver
     // should fall through to Google (which does).
     __setByok({ deepseek: 'a'.repeat(40), google: 'b'.repeat(40) });
-    const result = resolveVisionModel(
-      { aiApiKeys: 'encrypted' as never, visionModel: null },
-      ENV,
-    );
+    const result = resolveVisionModel({ aiApiKeys: 'encrypted' as never, visionModel: null }, ENV);
     expect(result.providerId).toBe('google');
   });
 
   it('throws when no vision-capable provider is configured', () => {
     __setByok({});
     expect(() =>
-      resolveVisionModel(
-        { aiApiKeys: 'encrypted' as never, visionModel: null },
-        ENV,
-      ),
+      resolveVisionModel({ aiApiKeys: 'encrypted' as never, visionModel: null }, ENV),
     ).toThrow(/No vision-capable model available/);
   });
 

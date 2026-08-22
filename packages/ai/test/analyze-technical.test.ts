@@ -18,9 +18,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { analyzeTechnicalTool } from '../src/tools/analyze-technical';
 
-const exec = analyzeTechnicalTool.execute as unknown as (
-  input: { symbol: string; timeframes?: string[] },
-) => Promise<{
+const exec = analyzeTechnicalTool.execute as unknown as (input: {
+  symbol: string;
+  timeframes?: string[];
+}) => Promise<{
   symbol: string;
   asOf: number;
   perTimeframe: Array<{
@@ -98,9 +99,9 @@ describe('analyze_technical — Phase 0.10', () => {
     mockComputeIndicator
       .mockReturnValueOnce(fakeIndicatorResult([closePrice - 0.001])) // ema50
       .mockReturnValueOnce(fakeIndicatorResult([closePrice - 0.002])) // ema200
-      .mockReturnValueOnce(fakeIndicatorResult([55]))                   // rsi14
-      .mockReturnValueOnce(fakeIndicatorResult([{ hist: 0.0001 }]))    // macd
-      .mockReturnValueOnce(fakeIndicatorResult([0.001]))               // atr14
+      .mockReturnValueOnce(fakeIndicatorResult([55])) // rsi14
+      .mockReturnValueOnce(fakeIndicatorResult([{ hist: 0.0001 }])) // macd
+      .mockReturnValueOnce(fakeIndicatorResult([0.001])) // atr14
       .mockReturnValueOnce(fakeIndicatorResult([{ pp: 1.08, r1: 1.09, s1: 1.07 }])); // pivots
 
     mockComputeStructure.mockReturnValue({
@@ -145,15 +146,21 @@ describe('analyze_technical — Phase 0.10', () => {
     mockGetCandles.mockResolvedValue(candles);
     // EMA50 above EMA200 but close below EMA50 → range
     mockComputeIndicator
-      .mockReturnValueOnce(fakeIndicatorResult([1.085]))  // ema50 — above close
-      .mockReturnValueOnce(fakeIndicatorResult([1.083]))  // ema200 — below ema50
-      .mockReturnValueOnce(fakeIndicatorResult([50]))      // rsi14
+      .mockReturnValueOnce(fakeIndicatorResult([1.085])) // ema50 — above close
+      .mockReturnValueOnce(fakeIndicatorResult([1.083])) // ema200 — below ema50
+      .mockReturnValueOnce(fakeIndicatorResult([50])) // rsi14
       .mockReturnValueOnce(fakeIndicatorResult([{ hist: 0 }]))
       .mockReturnValueOnce(fakeIndicatorResult([0.001]))
       .mockReturnValueOnce(fakeIndicatorResult([{ pp: 1.08, r1: null, s1: null }]));
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 2, fetchedAt: Date.now(),
-      swings: [], events: [], fvgs: [], orderBlocks: [],
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 2,
+      fetchedAt: Date.now(),
+      swings: [],
+      events: [],
+      fvgs: [],
+      orderBlocks: [],
     });
 
     const result = await exec({ symbol: 'EURUSD', timeframes: ['1h'] });
@@ -180,8 +187,14 @@ describe('analyze_technical — Phase 0.10', () => {
       .mockReturnValueOnce(fakeIndicatorResult([0.001]))
       .mockReturnValueOnce(fakeIndicatorResult([{ pp: 1.08, r1: 1.09, s1: 1.07 }]));
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 200, fetchedAt: Date.now(),
-      swings: [], events: [], fvgs: [], orderBlocks: [],
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 200,
+      fetchedAt: Date.now(),
+      swings: [],
+      events: [],
+      fvgs: [],
+      orderBlocks: [],
     });
 
     const result = await exec({ symbol: 'EURUSD', timeframes: ['1h', '4h'] });
@@ -195,15 +208,21 @@ describe('analyze_technical — Phase 0.10', () => {
     mockGetCandles.mockResolvedValue(candles);
     // close=1.08 < ema50=1.082 < ema200=1.084 → trend: down
     mockComputeIndicator
-      .mockReturnValueOnce(fakeIndicatorResult([1.082]))   // ema50 — above close
-      .mockReturnValueOnce(fakeIndicatorResult([1.084]))   // ema200 — above ema50 → ema50 < ema200
-      .mockReturnValueOnce(fakeIndicatorResult([45]))       // rsi14 ≤ 55
+      .mockReturnValueOnce(fakeIndicatorResult([1.082])) // ema50 — above close
+      .mockReturnValueOnce(fakeIndicatorResult([1.084])) // ema200 — above ema50 → ema50 < ema200
+      .mockReturnValueOnce(fakeIndicatorResult([45])) // rsi14 ≤ 55
       .mockReturnValueOnce(fakeIndicatorResult([{ hist: -0.0001 }]))
       .mockReturnValueOnce(fakeIndicatorResult([0.001]))
       .mockReturnValueOnce(fakeIndicatorResult([{ pp: 1.08, r1: null, s1: null }]));
     mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD', tf: '1h', bars: 2, fetchedAt: Date.now(),
-      swings: [], events: [], fvgs: [], orderBlocks: [],
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 2,
+      fetchedAt: Date.now(),
+      swings: [],
+      events: [],
+      fvgs: [],
+      orderBlocks: [],
     });
 
     const result = await exec({ symbol: 'EURUSD', timeframes: ['1h'] });
@@ -232,17 +251,22 @@ describe('analyze_technical — Phase 0.10', () => {
   });
 
   it('validates input schema — timeframes min 1', () => {
-    const schema = analyzeTechnicalTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = analyzeTechnicalTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(schema.safeParse({ symbol: 'EURUSD', timeframes: [] }).success).toBe(false);
   });
 
   it('validates input schema — timeframes max 5', () => {
-    const schema = analyzeTechnicalTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = analyzeTechnicalTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean };
+    };
     expect(
       schema.safeParse({ symbol: 'EURUSD', timeframes: ['1m', '5m', '15m', '1h', '4h'] }).success,
     ).toBe(true);
     expect(
-      schema.safeParse({ symbol: 'EURUSD', timeframes: ['1m', '5m', '15m', '1h', '4h', '1d'] }).success,
+      schema.safeParse({ symbol: 'EURUSD', timeframes: ['1m', '5m', '15m', '1h', '4h', '1d'] })
+        .success,
     ).toBe(false);
   });
 });

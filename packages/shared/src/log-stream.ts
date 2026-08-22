@@ -34,7 +34,8 @@ export class LogStreamHub {
 
   constructor(maxSize = 500) {
     this.maxSize = maxSize;
-    this.enabled = process.env.NODE_ENV === 'development' && process.env.ENABLE_LOG_STREAM === 'true';
+    this.enabled =
+      process.env.NODE_ENV === 'development' && process.env.ENABLE_LOG_STREAM === 'true';
   }
 
   isEnabled(): boolean {

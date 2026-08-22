@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Tiny helpers shared by all `/api/*` route handlers.
@@ -9,21 +25,19 @@
 //   - Phase A: getUserFromRequest() + withAuth() for multi-user scoping
 //   - PF-10: compose() middleware chain
 
-import * as Sentry from '@sentry/nextjs';
-import { ProviderError, toAppError } from '@kestrel/data';
-import { AppError, type ErrorCode, validationError, formatErrorResponse } from '@kestrel/shared';
-import { ZodError, type z } from 'zod';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
+import { ProviderError, toAppError } from '@kestrel/data';
+import { AppError, formatErrorResponse, validationError, type ErrorCode } from '@kestrel/shared';
+import * as Sentry from '@sentry/nextjs';
+import { ZodError, type z } from 'zod';
+
 import { auth } from '@/auth';
-import { createScopedLoggerWithContext } from './logger';
+
 import { recordAuthEvent } from './auth-anomaly';
+import { createScopedLoggerWithContext } from './logger';
 import { REQUEST_ID_HEADER } from './request-id';
-import {
-  getSigningSecret,
-  USER_ID_HEADER,
-  USER_ID_SIG_HEADER,
-} from './signed-user-header';
+import { getSigningSecret, USER_ID_HEADER, USER_ID_SIG_HEADER } from './signed-user-header';
 
 // ── Auth helpers (Phase A) ─────────────────────────────────────────────────
 
@@ -105,7 +119,7 @@ export async function getUserFromRequest(req: Request): Promise<RequestUser | nu
  * error envelope and X-Request-Id propagation.
  */
 export function withAuth<T>(
-  handler: (req: Request, ctx: { params: Promise<T>, user: RequestUser }) => Promise<Response>,
+  handler: (req: Request, ctx: { params: Promise<T>; user: RequestUser }) => Promise<Response>,
 ): (req: Request, ctx: { params: Promise<T> }) => Promise<Response> {
   return async (req: Request, ctx: { params: Promise<T> }) => {
     const user = await getUserFromRequest(req);
@@ -190,9 +204,13 @@ export function errorResponse(err: unknown, req?: Request): Response {
 
   // PF-22: Handle rate-limit and validation errors thrown from service
   // functions as plain Error objects with a numeric `statusCode` property.
-  if (err instanceof Error && typeof (err as unknown as Record<string, unknown>).statusCode === 'number') {
+  if (
+    err instanceof Error &&
+    typeof (err as unknown as Record<string, unknown>).statusCode === 'number'
+  ) {
     const statusCode = (err as unknown as Record<string, unknown>).statusCode as number;
-    const extraHeaders = (err as unknown as Record<string, unknown>).headers as Record<string, string> | undefined;
+    const extraHeaders = (err as unknown as Record<string, unknown>).headers as
+      Record<string, string> | undefined;
     return Response.json(
       {
         error: {
@@ -276,9 +294,7 @@ export type Middleware<T, R> = (
  * ```
  */
 export function compose<T, R extends Record<string, unknown> = Record<string, unknown>>(
-  ...middlewares: Array<
-    Middleware<T, R>
-  >
+  ...middlewares: Array<Middleware<T, R>>
 ): (req: Request, ctx: { params: Promise<T> }) => Promise<Response> {
   return async (req: Request, ctx: { params: Promise<T> }): Promise<Response> => {
     let index = -1;
@@ -294,11 +310,7 @@ export function compose<T, R extends Record<string, unknown> = Record<string, un
         throw new Error('No handler registered');
       }
 
-      return middleware(
-        req,
-        ctx as { params: Promise<T> } & R,
-        async () => dispatch(i + 1),
-      );
+      return middleware(req, ctx as { params: Promise<T> } & R, async () => dispatch(i + 1));
     };
 
     return dispatch(0);
@@ -370,11 +382,9 @@ export async function parseJsonBody<S extends z.ZodTypeAny>(
         const readResult = await Promise.race([
           reader.read(),
           new Promise<never>((_, reject) => {
-            readTimeout.addEventListener(
-              'abort',
-              () => reject(new Error('Body read timed out')),
-              { once: true },
-            );
+            readTimeout.addEventListener('abort', () => reject(new Error('Body read timed out')), {
+              once: true,
+            });
           }),
         ]);
         const { value, done } = readResult;

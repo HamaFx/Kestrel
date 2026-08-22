@@ -24,6 +24,7 @@
 import { google } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
 import type { LanguageModel } from 'ai';
+
 import { normalizePemPrivateKey } from './util/pem';
 
 export interface ResolveModelEnv {
@@ -53,9 +54,7 @@ function parseVertexCredentials(json: string): VertexCredentials {
   const clientEmail = parsed.client_email;
   const privateKey = parsed.private_key;
   if (typeof clientEmail !== 'string' || typeof privateKey !== 'string') {
-    throw new Error(
-      'GOOGLE_APPLICATION_CREDENTIALS_JSON is missing client_email or private_key',
-    );
+    throw new Error('GOOGLE_APPLICATION_CREDENTIALS_JSON is missing client_email or private_key');
   }
   const creds: VertexCredentials = {
     client_email: clientEmail,
@@ -104,7 +103,11 @@ function getVertex(env: ResolveModelEnv, tenantId?: string): ReturnType<typeof c
  *
  * Throws if no transport is configured for the requested id.
  */
-export function resolveModel(modelId: string, env: ResolveModelEnv, tenantId?: string): LanguageModel | string {
+export function resolveModel(
+  modelId: string,
+  env: ResolveModelEnv,
+  tenantId?: string,
+): LanguageModel | string {
   if (modelId.startsWith('google-vertex/')) {
     const bareId = modelId.slice('google-vertex/'.length);
     return getVertex(env, tenantId)(bareId);

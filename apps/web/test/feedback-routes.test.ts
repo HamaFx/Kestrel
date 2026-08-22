@@ -1,6 +1,30 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { PATCH as patchAdminFeedback } from '@/app/api/admin/feedback/[id]/route';
+import { GET as listAdminFeedback } from '@/app/api/admin/feedback/route';
+import {
+  DELETE as deleteUserFeedback,
+  GET as getUserFeedback,
+  PUT as putUserFeedback,
+} from '@/app/api/chat/threads/[id]/messages/[messageId]/feedback/route';
 
 const {
   mockUpsertMessageFeedback,
@@ -19,26 +43,32 @@ const {
 }));
 
 vi.mock('@/lib/api', () => ({
-  withAuth: (handler: (req: Request, ctx: unknown) => Promise<Response>) =>
-    (req: Request, ctx?: { params?: Promise<unknown> }) => handler(req, {
-      params: ctx?.params ?? Promise.resolve({ threadId: 'thread-1', messageId: 'message-1' }),
-      user: { userId: 'user-1' },
-    }),
-  parseJsonBody: async (req: Request, schema: { parse: (value: unknown) => unknown }) => schema.parse(await req.json()),
+  withAuth:
+    (handler: (req: Request, ctx: unknown) => Promise<Response>) =>
+    (req: Request, ctx?: { params?: Promise<unknown> }) =>
+      handler(req, {
+        params: ctx?.params ?? Promise.resolve({ threadId: 'thread-1', messageId: 'message-1' }),
+        user: { userId: 'user-1' },
+      }),
+  parseJsonBody: async (req: Request, schema: { parse: (value: unknown) => unknown }) =>
+    schema.parse(await req.json()),
   parseSearchParams: (req: Request, schema: { parse: (value: unknown) => unknown }) => {
     const values: Record<string, string> = {};
     for (const [key, value] of new URL(req.url).searchParams.entries()) values[key] = value;
     return schema.parse(values);
   },
-  errorResponse: (error: unknown) => Response.json({ error: { code: 'ERROR', message: String(error) } }, { status: 500 }),
+  errorResponse: (error: unknown) =>
+    Response.json({ error: { code: 'ERROR', message: String(error) } }, { status: 500 }),
 }));
 
 vi.mock('@/lib/admin-auth', () => ({
-  withAdminAuth: (handler: (req: Request, ctx: unknown) => Promise<Response>) =>
-    (req: Request, ctx?: { params?: Promise<unknown> }) => handler(req, {
-      params: ctx?.params ?? Promise.resolve({ id: 'feedback-1' }),
-      user: { userId: 'admin-1', email: 'admin@example.com', name: 'Admin' },
-    }),
+  withAdminAuth:
+    (handler: (req: Request, ctx: unknown) => Promise<Response>) =>
+    (req: Request, ctx?: { params?: Promise<unknown> }) =>
+      handler(req, {
+        params: ctx?.params ?? Promise.resolve({ id: 'feedback-1' }),
+        user: { userId: 'admin-1', email: 'admin@example.com', name: 'Admin' },
+      }),
 }));
 
 vi.mock('@/lib/services/api-boundary', () => ({
@@ -52,14 +82,6 @@ vi.mock('@/lib/services/api-boundary', () => ({
 vi.mock('@/lib/services/admin', () => ({
   recordAdminAudit: mockRecordAdminAudit,
 }));
-
-import {
-  GET as getUserFeedback,
-  PUT as putUserFeedback,
-  DELETE as deleteUserFeedback,
-} from '@/app/api/chat/threads/[id]/messages/[messageId]/feedback/route';
-import { GET as listAdminFeedback } from '@/app/api/admin/feedback/route';
-import { PATCH as patchAdminFeedback } from '@/app/api/admin/feedback/[id]/route';
 
 const row = {
   id: 'feedback-1',
@@ -87,7 +109,11 @@ describe('message feedback routes', () => {
     const response = await putUserFeedback(
       new Request('http://localhost/api/chat/threads/thread-1/messages/message-1/feedback', {
         method: 'PUT',
-        body: JSON.stringify({ rating: 'negative', userNote: 'The number was wrong', traceId: 'trace-1' }),
+        body: JSON.stringify({
+          rating: 'negative',
+          userNote: 'The number was wrong',
+          traceId: 'trace-1',
+        }),
       }),
       { params: Promise.resolve({ id: 'thread-1', messageId: 'message-1' }) },
     );
@@ -120,7 +146,9 @@ describe('message feedback routes', () => {
     mockDeleteMessageFeedback.mockResolvedValue(true);
 
     const response = await deleteUserFeedback(
-      new Request('http://localhost/api/chat/threads/thread-1/messages/message-1/feedback', { method: 'DELETE' }),
+      new Request('http://localhost/api/chat/threads/thread-1/messages/message-1/feedback', {
+        method: 'DELETE',
+      }),
       { params: Promise.resolve({ id: 'thread-1', messageId: 'message-1' }) },
     );
 
@@ -136,23 +164,42 @@ describe('admin feedback review routes', () => {
   it('lists review records without conversation content', async () => {
     mockListFeedbackForReview.mockResolvedValue([row]);
 
-    const response = await listAdminFeedback(new Request('http://localhost/api/admin/feedback?status=unreviewed&limit=25'));
+    const response = await listAdminFeedback(
+      new Request('http://localhost/api/admin/feedback?status=unreviewed&limit=25'),
+    );
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(mockListFeedbackForReview).toHaveBeenCalledWith({ limit: 25, offset: 0, reviewStatus: 'unreviewed' });
-    expect(body.feedback[0]).toEqual(expect.objectContaining({ id: 'feedback-1', messageId: 'message-1' }));
+    expect(mockListFeedbackForReview).toHaveBeenCalledWith({
+      limit: 25,
+      offset: 0,
+      reviewStatus: 'unreviewed',
+    });
+    expect(body.feedback[0]).toEqual(
+      expect.objectContaining({ id: 'feedback-1', messageId: 'message-1' }),
+    );
     expect(body.feedback[0]).not.toHaveProperty('assistantText');
   });
 
   it('persists reviewer classification and writes an admin audit record', async () => {
-    mockReviewMessageFeedback.mockResolvedValue({ ...row, reviewStatus: 'reviewed', reviewerId: 'admin-1', reviewerLabel: 'fail', issueCodes: ['wrong_number'] });
+    mockReviewMessageFeedback.mockResolvedValue({
+      ...row,
+      reviewStatus: 'reviewed',
+      reviewerId: 'admin-1',
+      reviewerLabel: 'fail',
+      issueCodes: ['wrong_number'],
+    });
     mockRecordAdminAudit.mockResolvedValue(undefined);
 
     const response = await patchAdminFeedback(
       new Request('http://localhost/api/admin/feedback/feedback-1', {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'reviewed', label: 'fail', issueCodes: ['wrong_number'], reviewerNote: 'Check tool grounding' }),
+        body: JSON.stringify({
+          status: 'reviewed',
+          label: 'fail',
+          issueCodes: ['wrong_number'],
+          reviewerNote: 'Check tool grounding',
+        }),
       }),
       { params: Promise.resolve({ id: 'feedback-1' }) },
     );
@@ -166,6 +213,11 @@ describe('admin feedback review routes', () => {
       issueCodes: ['wrong_number'],
       reviewerNote: 'Check tool grounding',
     });
-    expect(mockRecordAdminAudit).toHaveBeenCalledWith('admin-1', 'ai.feedback.review', 'user-1', expect.objectContaining({ feedbackId: 'feedback-1' }));
+    expect(mockRecordAdminAudit).toHaveBeenCalledWith(
+      'admin-1',
+      'ai.feedback.review',
+      'user-1',
+      expect.objectContaining({ feedbackId: 'feedback-1' }),
+    );
   });
 });

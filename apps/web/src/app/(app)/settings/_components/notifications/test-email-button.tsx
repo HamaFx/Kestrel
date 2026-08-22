@@ -18,13 +18,12 @@
 
 // Settings island for Resend email test. Uses sonner toasts for
 // confirmation/error rather than inline status text.
-
 import { IconMail } from '@tabler/icons-react';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { apiMutate, ApiError } from '@/lib/api-client';
+import { ApiError, apiMutate } from '@/lib/api-client';
 
 interface SuccessBody {
   id?: string | null;
@@ -39,14 +38,11 @@ export function TestEmailButton(): React.JSX.Element {
   function send(): void {
     startTransition(async () => {
       try {
-        const json = await apiMutate<SuccessBody | MissingBody>(
-          '/api/admin/test-alert-email',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: '{}',
-          },
-        );
+        const json = await apiMutate<SuccessBody | MissingBody>('/api/admin/test-alert-email', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: '{}',
+        });
         const typed = json as SuccessBody;
         toast.success('Email sent', {
           description: `message id: ${typed.id ?? 'unknown'}`,

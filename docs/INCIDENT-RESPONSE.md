@@ -1,8 +1,8 @@
 # Kestrel Incident Response Playbook
 
 > **Phase 5.6 deliverable.** Extends `infra/cron-vm/RECOVERY.md` — do not
-> replace it. RECOVERY covers *infrastructure* restore (DB, journal, VM,
-> key rotation). This document covers *customer-facing* incident response:
+> replace it. RECOVERY covers _infrastructure_ restore (DB, journal, VM,
+> key rotation). This document covers _customer-facing_ incident response:
 > severity taxonomy, SLOs, on-call paging, status page, comms templates,
 > symptom-triage runbooks, and a postmortem template.
 
@@ -10,23 +10,23 @@
 
 ## 1. Severity Taxonomy
 
-| SEV | Definition | Response Target | Restore Target | Notify |
-|-----|-----------|----------------|----------------|--------|
-| **SEV1** | Full outage: chat, auth, or AI gateway down for all users. Data loss. Billing failure. | 15 min | 1 hour | Status page + page on-call + email all users |
-| **SEV2** | Major degradation: chat slow (>10s latency), one provider down, cron stuck >2h, or partial outage affecting >25% of users. | 30 min | 4 hours | Status page + page on-call |
-| **SEV3** | Minor degradation: intermittent errors, single cron failure (non-critical), UI bugs with workaround. | 2 hours | 1 business day | Status page (degraded) + Slack/email on-call |
-| **SEV4** | Cosmetic / non-urgent: docs drift, minor UI glitch, log noise. | 1 business day | Next release | Internal only |
+| SEV      | Definition                                                                                                                 | Response Target | Restore Target | Notify                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------------------- | --------------- | -------------- | -------------------------------------------- |
+| **SEV1** | Full outage: chat, auth, or AI gateway down for all users. Data loss. Billing failure.                                     | 15 min          | 1 hour         | Status page + page on-call + email all users |
+| **SEV2** | Major degradation: chat slow (>10s latency), one provider down, cron stuck >2h, or partial outage affecting >25% of users. | 30 min          | 4 hours        | Status page + page on-call                   |
+| **SEV3** | Minor degradation: intermittent errors, single cron failure (non-critical), UI bugs with workaround.                       | 2 hours         | 1 business day | Status page (degraded) + Slack/email on-call |
+| **SEV4** | Cosmetic / non-urgent: docs drift, minor UI glitch, log noise.                                                             | 1 business day  | Next release   | Internal only                                |
 
 ## 2. SLOs (Service Level Objectives)
 
-| Service | SLI (Indicator) | Target | Window |
-|---------|----------------|--------|--------|
-| Chat API | Success rate (non-429/4xx) | 99.5% | 30 days |
-| Auth | Login success rate (excluding user error) | 99.9% | 30 days |
-| AI Gateway | Tool call success rate | 99.0% | 30 days |
-| Worker | Tick flush success rate | 99.9% | 30 days |
-| Cron Jobs | Job completion rate | 99.5% | 30 days |
-| /api/health | Uptime | 99.9% | 30 days |
+| Service     | SLI (Indicator)                           | Target | Window  |
+| ----------- | ----------------------------------------- | ------ | ------- |
+| Chat API    | Success rate (non-429/4xx)                | 99.5%  | 30 days |
+| Auth        | Login success rate (excluding user error) | 99.9%  | 30 days |
+| AI Gateway  | Tool call success rate                    | 99.0%  | 30 days |
+| Worker      | Tick flush success rate                   | 99.9%  | 30 days |
+| Cron Jobs   | Job completion rate                       | 99.5%  | 30 days |
+| /api/health | Uptime                                    | 99.9%  | 30 days |
 
 **Error budget:** 0.1% of requests per 30 days. When consumed, freeze
 non-critical deploys and prioritize reliability work.
@@ -69,6 +69,7 @@ non-critical deploys and prioritize reliability work.
 **Symptoms:** `/api/chat` returning 500s or timing out for all users.
 
 **Triage:**
+
 1. Check `/api/health` — is DB up? Is pgvector installed?
 2. Check Sentry for error spike — is it the AI gateway, the agent, or the DB?
 3. Check Vercel status page — is there a platform incident?
@@ -76,6 +77,7 @@ non-critical deploys and prioritize reliability work.
 5. If DB: follow `RECOVERY.md` Scenario 1
 
 **Comms:**
+
 - Status page: "We're investigating elevated error rates on the chat service."
 - Update within 30 min: root cause + ETA, or "still investigating."
 - Resolve: "Chat service has been restored. [Postmortem link]."
@@ -85,6 +87,7 @@ non-critical deploys and prioritize reliability work.
 **Symptoms:** Users cannot log in; 401 rate spike; `ACCOUNT_LOCKED` spike.
 
 **Triage:**
+
 1. Check Sentry auth-anomaly alerts (Phase 5.4)
 2. Check DB connectivity — can `users` table be queried?
 3. Check `AUTH_COOKIE_SECRET` is set and valid
@@ -92,6 +95,7 @@ non-critical deploys and prioritize reliability work.
 5. If credential stuffing: enable IP-based rate limiting, consider temporary captcha
 
 **Comms:**
+
 - Status page: "We're investigating authentication issues. Users may be unable to sign in."
 - Update: "Authentication has been restored. If you were locked out, your account will unlock automatically."
 
@@ -100,6 +104,7 @@ non-critical deploys and prioritize reliability work.
 **Symptoms:** All AI tool calls failing; chat returns "tool failed" messages.
 
 **Triage:**
+
 1. Check which provider(s) are affected — is it the gateway or a specific model?
 2. Check `AI_GATEWAY_API_KEY` and provider-specific keys
 3. Check provider status pages (Google AI, OpenAI, etc.)
@@ -107,6 +112,7 @@ non-critical deploys and prioritize reliability work.
 5. If gateway: switch to direct provider calls as fallback (if configured)
 
 **Comms:**
+
 - Status page: "AI analysis features are degraded. We're investigating."
 - Update: "AI services have been restored." or "AI services are operating in degraded mode with provider X."
 
@@ -160,14 +166,14 @@ A full postmortem will be available at {link} within {timeframe}.
 
 ## Timeline (all times UTC)
 
-| Time | Event |
-|------|-------|
+| Time  | Event                                                 |
+| ----- | ----------------------------------------------------- |
 | 00:00 | Alert triggered (Sentry / healthchecks / user report) |
-| 00:05 | On-call paged |
-| 00:10 | Investigation began |
-| 00:30 | Root cause identified |
-| 01:00 | Fix deployed |
-| 01:15 | Verified resolved |
+| 00:05 | On-call paged                                         |
+| 00:10 | Investigation began                                   |
+| 00:30 | Root cause identified                                 |
+| 01:00 | Fix deployed                                          |
+| 01:15 | Verified resolved                                     |
 
 ## Root Cause
 
@@ -187,8 +193,8 @@ A full postmortem will be available at {link} within {timeframe}.
 
 ## Action Items
 
-| Action | Owner | Priority | Status |
-|--------|-------|----------|--------|
+| Action   | Owner  | Priority | Status    |
+| -------- | ------ | -------- | --------- |
 | {action} | {name} | P0/P1/P2 | Todo/Done |
 | {action} | {name} | P0/P1/P2 | Todo/Done |
 
@@ -199,11 +205,11 @@ A full postmortem will be available at {link} within {timeframe}.
 
 ## 7. Healthchecks UUID Table (extends RECOVERY.md)
 
-| UUID env var | Purpose | Expected cadence |
-|-------------|---------|-----------------|
-| `HC_SIGNALR_UUID` | SignalR consumer liveness | 30s heartbeat |
-| `HC_CLEANUP_UPLOADS_UUID` | Upload cleanup cron | Daily |
-| `HC_JOB_RESONANCE_SYNC_UUID` | Resonance sync job | Daily (when enabled) |
+| UUID env var                 | Purpose                   | Expected cadence     |
+| ---------------------------- | ------------------------- | -------------------- |
+| `HC_SIGNALR_UUID`            | SignalR consumer liveness | 30s heartbeat        |
+| `HC_CLEANUP_UPLOADS_UUID`    | Upload cleanup cron       | Daily                |
+| `HC_JOB_RESONANCE_SYNC_UUID` | Resonance sync job        | Daily (when enabled) |
 
 > **Note:** `HC_CLEANUP_UPLOADS_UUID` and `HC_JOB_RESONANCE_SYNC_UUID`
 > were missing from the original RECOVERY.md UUID table. Add them to

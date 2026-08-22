@@ -22,15 +22,19 @@
 // produced the answer, the timestamp, and an expandable details section
 // (token usage, cost, citations). Everything is guarded with optional
 // chaining — metadata is only present on finished assistant turns.
-
-import type { UIMessage } from 'ai';
 import {
   CiteSourcesPartSchema,
   SourceDocumentPartSchema,
   SourceUrlPartSchema,
   UIMessageMetadataSchema,
 } from '@kestrel/shared';
-import {IconRobot, IconChevronDown, IconChevronRight, IconLink as LinkIcon} from '@tabler/icons-react';
+import {
+  IconChevronDown,
+  IconChevronRight,
+  IconRobot,
+  IconLink as LinkIcon,
+} from '@tabler/icons-react';
+import type { UIMessage } from 'ai';
 import { useState } from 'react';
 
 interface MessageFooterProps {
@@ -82,7 +86,7 @@ export function MessageFooter({ message }: MessageFooterProps) {
 
   return (
     <div className="flex flex-col gap-0">
-      <div className="flex items-center gap-2 text-caption text-fg-subtle mt-1.5">
+      <div className="text-caption text-fg-subtle mt-1.5 flex items-center gap-2">
         {model ? (
           <span className="inline-flex items-center gap-1">
             <IconRobot className="size-3" />
@@ -90,21 +94,25 @@ export function MessageFooter({ message }: MessageFooterProps) {
           </span>
         ) : null}
         {time ? <span>· {time}</span> : null}
-        {(usage || citations.length > 0) ? (
+        {usage || citations.length > 0 ? (
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            className="ml-auto inline-flex items-center gap-0.5 text-fg-subtle hover:text-fg transition-colors"
+            className="text-fg-subtle hover:text-fg ml-auto inline-flex items-center gap-0.5 transition-colors"
           >
-            {open ? <IconChevronDown className="size-3" /> : <IconChevronRight className="size-3" />}
+            {open ? (
+              <IconChevronDown className="size-3" />
+            ) : (
+              <IconChevronRight className="size-3" />
+            )}
             details
           </button>
         ) : null}
       </div>
 
       {open ? (
-        <div className="border-t border-border mt-2 pt-2 flex flex-col gap-1.5 text-caption">
+        <div className="border-border text-caption mt-2 flex flex-col gap-1.5 border-t pt-2">
           {usage ? (
             <div className="flex justify-between">
               <span className="text-fg-subtle">Tokens</span>
@@ -128,7 +136,7 @@ export function MessageFooter({ message }: MessageFooterProps) {
                   href={c.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-fg hover:underline flex items-center gap-1"
+                  className="text-fg flex items-center gap-1 hover:underline"
                 >
                   <LinkIcon className="size-3 shrink-0" />
                   <span className="truncate">{c.title || c.url}</span>

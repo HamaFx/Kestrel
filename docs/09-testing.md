@@ -32,16 +32,16 @@ pnpm --filter @kestrel/web exec playwright test
 
 ## Package Test Layout
 
-| Package | Test Files | Key Areas |
-|---------|-----------|-----------|
-| `ai` | 78 | Tools, routing, verification, planner, committee, alerts, briefings, memory, cost, diagnostics, budget, retry-loop, contract tests, budget-guard, thread-state |
-| `data` | 19 | Provider maps, rest endpoints, candles, live-ticks, news adapter, price adapter, throttle, failover, chaos, cache, to-candle mapper, storage, cache-index |
-| `db` | 14 | Schema validation, migration chain, phase migrations, rate-limit, user-scope, isolated DB, hash stability |
-| `indicators` | 16 | SMC swings, structure, FVG, order blocks, liquidity, RSI, EMA, SMA, MACD, asian-range, defaults, pdh-pdl, registry |
-| `shared` | 11 | Env validation, error types, encryption, market phase, logger, bug-report, biquote, error-patterns, tool-io, billing-features | 65% |
-| `worker` | 19 | SignalR consumer, reconnect, tick buffer, candle aggregator, env, jobs, scheduler, cron-lock, briefings, cot, review |
-| `web` | 45 unit + 16 E2E | API integration, auth flow, CSRF, route health, settings actions, voice input, admin routes, middleware, hooks, Playwright E2E (auth, chat, chat-ui, settings, isolation, multi-agent, service-worker, navigation, dashboard, responsive, accessibility, api-health, theme-tokens, admin-dashboard, nav-drawer, onboarding-replay) |
-| `test-utils` | 6 | Factories (users, candles, threads), mocks (llm, fetch), helpers (vitest) — self-tested as of July 2026 |
+| Package      | Test Files       | Key Areas                                                                                                                                                                                                                                                                                                                          |
+| ------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ai`         | 78               | Tools, routing, verification, planner, committee, alerts, briefings, memory, cost, diagnostics, budget, retry-loop, contract tests, budget-guard, thread-state                                                                                                                                                                     |
+| `data`       | 19               | Provider maps, rest endpoints, candles, live-ticks, news adapter, price adapter, throttle, failover, chaos, cache, to-candle mapper, storage, cache-index                                                                                                                                                                          |
+| `db`         | 14               | Schema validation, migration chain, phase migrations, rate-limit, user-scope, isolated DB, hash stability                                                                                                                                                                                                                          |
+| `indicators` | 16               | SMC swings, structure, FVG, order blocks, liquidity, RSI, EMA, SMA, MACD, asian-range, defaults, pdh-pdl, registry                                                                                                                                                                                                                 |
+| `shared`     | 11               | Env validation, error types, encryption, market phase, logger, bug-report, biquote, error-patterns, tool-io, billing-features                                                                                                                                                                                                      | 65% |
+| `worker`     | 19               | SignalR consumer, reconnect, tick buffer, candle aggregator, env, jobs, scheduler, cron-lock, briefings, cot, review                                                                                                                                                                                                               |
+| `web`        | 45 unit + 16 E2E | API integration, auth flow, CSRF, route health, settings actions, voice input, admin routes, middleware, hooks, Playwright E2E (auth, chat, chat-ui, settings, isolation, multi-agent, service-worker, navigation, dashboard, responsive, accessibility, api-health, theme-tokens, admin-dashboard, nav-drawer, onboarding-replay) |
+| `test-utils` | 6                | Factories (users, candles, threads), mocks (llm, fetch), helpers (vitest) — self-tested as of July 2026                                                                                                                                                                                                                            |
 
 ## Test Patterns
 
@@ -51,6 +51,7 @@ Every test file lives in a `test/` directory at the package root or next to the 
 
 ```typescript
 import { describe, expect, it } from 'vitest';
+
 import { myFunction } from '../src/my-function';
 
 describe('myFunction', () => {
@@ -72,7 +73,7 @@ Always mock external providers in tests. Use dependency injection rather than gl
 ```typescript
 // Good: inject fake provider
 const result = await getPrice('XAUUSD', {
-  providers: { biquote: fakeBiquoteFn }
+  providers: { biquote: fakeBiquoteFn },
 });
 
 // Bad: global mock
@@ -132,6 +133,7 @@ Jobs are tested by calling their `run()` function with a mock context:
 
 ```typescript
 import { runSnapshots } from '../src/jobs/snapshots';
+
 const result = await runSnapshots({ log: mockLogger, signal: ac.signal });
 expect(result.processed).toBeGreaterThan(0);
 ```
@@ -279,7 +281,7 @@ mock `/api/chat` or Full-mode polling. Run it only against an isolated staging
 application with a real database, configured model provider, and running
 worker:
 
-```bash
+````bash
 KESTREL_REAL_E2E=true \
 PLAYWRIGHT_BASE_URL=https://staging.example.com \
 DATABASE_URL=... AUTH_SECRET=... ENCRYPTION_SECRET=... \
@@ -317,7 +319,7 @@ cat artifacts/e2e-local/summary.json
 
 # Run only shard 3/4; useful when a previous connection ended mid-run
 pnpm test:e2e:local -- --shards=4 --only-shard=3
-```
+````
 
 Each shard writes `shard-N-of-M.log` and the runner stops at the first failed
 shard. Rerun only the failed shard directly when debugging:
@@ -337,6 +339,7 @@ The GitHub workflow files are optional CI mirrors; they are not required for
 local or staging verification.
 
 E2E tests in `apps/web/tests/e2e/` (16 spec files):
+
 - `auth.spec.ts` — login flow, unauthenticated redirect
 - `chat.spec.ts` — chat interaction, streaming
 - `chat-ui.spec.ts` — chat UI component testing
@@ -377,19 +380,23 @@ Admin routes live under `/api/admin/*` and are gated by `withAdminAuth()`. When 
 Example:
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
-import { GET } from '../app/api/admin/users/route';
-import { fetchCsrf } from '@/lib/csrf';
+import { describe, expect, it, vi } from 'vitest';
+
 import * as adminAuth from '@/lib/admin-auth';
+import { fetchCsrf } from '@/lib/csrf';
+
+import { GET } from '../app/api/admin/users/route';
 
 vi.mock('@/lib/admin-auth', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/admin-auth')>();
   return {
     ...actual,
-    getAdminUser: vi.fn(() => Promise.resolve({
-      admin: { userId: 'admin-123', email: 'admin@example.com', name: 'Admin' },
-      reason: 'authenticated',
-    })),
+    getAdminUser: vi.fn(() =>
+      Promise.resolve({
+        admin: { userId: 'admin-123', email: 'admin@example.com', name: 'Admin' },
+        reason: 'authenticated',
+      }),
+    ),
   };
 });
 
@@ -502,11 +509,13 @@ describe('Candle formatting', () => {
 ```
 
 **When to use snapshots:**
+
 - Complex DTO shapes with nested fields (tool outputs, API responses)
 - Regression tests for data transformations (candle mapping, indicator calculations)
 - UI rendering output that's tedious to assert field-by-field
 
 **When NOT to use snapshots:**
+
 - Values that change per run (timestamps, UUIDs, random data)
 - Simple scalar assertions (use `toBe`, `toEqual`)
 - Tests that need to communicate intent (snapshots hide expected values)
@@ -520,7 +529,7 @@ Use `describe.each` with a registry of implementations to verify that every subc
 satisfies its base contract:
 
 ```typescript
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // PF-12 — verify every BaseAgent subclass satisfies the specialist contract
 const ALL_SPECIALISTS: BaseAgent[] = [
@@ -542,9 +551,13 @@ describe.each(ALL_SPECIALISTS.map((a) => ({ agent: a, name: a.constructor.name }
     });
 
     it('parseOutput() handles valid JSON input', () => {
-      const result = agent.parseOutput(JSON.stringify({
-        bias: 'bullish', confidence: 0.85, reasoning: '...',
-      }));
+      const result = agent.parseOutput(
+        JSON.stringify({
+          bias: 'bullish',
+          confidence: 0.85,
+          reasoning: '...',
+        }),
+      );
       expect(result.bias).toMatch(/^(bullish|bearish|neutral)$/);
     });
   },
@@ -562,6 +575,7 @@ See `packages/ai/test/base-agent-contract.test.ts` for the canonical example.
 Three-tier CI pipeline:
 
 ### ci-fast.yml (optional every-PR mirror)
+
 1. `lint-and-typecheck`: ESLint + TypeScript + `pnpm audit --audit-level=critical` + build + bundle analysis
 2. `unit-tests`: `pnpm turbo run test -- --coverage` + empty-guard + coverage report
 3. `e2e-tests`: Playwright (2-way shard), blob/JUnit reports, failure artifacts
@@ -570,12 +584,14 @@ For repositories without GitHub Actions access, `pnpm test:e2e:local` is the
 supported equivalent for the E2E portion.
 
 ### ci-slow.yml (push to main + nightly)
+
 1. `lint-and-typecheck`: Full lint + typecheck
 2. `unit-tests`: Full suite with coverage
 3. `e2e-tests`: Playwright (4-way shard for faster execution)
 4. `nightly-eval`: AI eval harness (schedule only)
 
 ### loadtest.yml (nightly 3 AM UTC + manual dispatch)
+
 k6 smoke + average-load tests against a throwaway Docker SUT. **Never gates PRs.**
 
 Concurrency is managed via `cancel-in-progress: true` across all workflows.
@@ -589,7 +605,7 @@ a separate, standalone TypeScript project under `loadtest/`. It is **not** part 
 the pnpm workspace and talks to the running app only over HTTP.
 
 k6 fills the gap between Vitest (correctness), Playwright (UX), and Lighthouse
-(front-end vitals) by answering: *how many concurrent users can the API sustain?*
+(front-end vitals) by answering: _how many concurrent users can the API sustain?_
 
 ### Quick Start
 
@@ -605,14 +621,14 @@ k6 run -e K6_BASE_URL=http://localhost:3000 -e K6_AUTH_MODE=legacy tests/smoke-r
 
 ### Test Types
 
-| Type | Purpose | CI |
-|---|---|---|
-| Smoke | Validate script + SUT wiring | Nightly |
-| Average-load | Baseline latency SLOs (p95/p99) | Nightly |
-| Stress | Find the throughput ceiling | Manual only |
-| Spike | Surge → recovery validation | Manual only |
-| Soak | Memory/resource leak detection (hours) | Manual only |
-| Chat | LLM streaming latency (guarded) | Manual only |
+| Type         | Purpose                                | CI          |
+| ------------ | -------------------------------------- | ----------- |
+| Smoke        | Validate script + SUT wiring           | Nightly     |
+| Average-load | Baseline latency SLOs (p95/p99)        | Nightly     |
+| Stress       | Find the throughput ceiling            | Manual only |
+| Spike        | Surge → recovery validation            | Manual only |
+| Soak         | Memory/resource leak detection (hours) | Manual only |
+| Chat         | LLM streaming latency (guarded)        | Manual only |
 
 ### CI
 
@@ -631,5 +647,5 @@ Full documentation: [`loadtest/README.md`](../loadtest/README.md).
 ### Out of Scope
 
 The worker (`apps/worker`) is not an end-user HTTP server; it cannot be load-tested
-via k6. Worker load is *indirect* (DB write pressure from tick volume). A separate
+via k6. Worker load is _indirect_ (DB write pressure from tick volume). A separate
 harness would be needed for worker load characterization.

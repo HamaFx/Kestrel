@@ -15,20 +15,21 @@
  */
 
 // Must mock server-only before the first import that pulls it in.
-import { vi, beforeAll, describe, expect, it } from 'vitest';
-vi.mock('server-only', () => ({}));
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
-  encryptByok,
+  configuredProviders,
   decryptByok,
-  encryptWithPassword,
+  decryptSecret,
   decryptWithPassword,
   describeByok,
-  configuredProviders,
+  encryptByok,
   encryptSecret,
-  decryptSecret,
+  encryptWithPassword,
   PROVIDER_IDS,
 } from '../src/encryption';
+
+vi.mock('server-only', () => ({}));
 
 const ENCRYPTION_SECRET = 'a'.repeat(64); // 32 bytes hex
 
@@ -211,7 +212,10 @@ describe('configuredProviders', () => {
   });
 
   it('returns matching ProviderId entries', () => {
-    const result = configuredProviders({ openai: 'sk-abc', unknown_provider: 'test' } as Record<string, string>);
+    const result = configuredProviders({ openai: 'sk-abc', unknown_provider: 'test' } as Record<
+      string,
+      string
+    >);
     expect(result).toEqual(['openai']);
   });
 

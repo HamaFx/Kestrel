@@ -23,8 +23,7 @@
 //
 // `reducedMotion="user"` automatically respects the user's OS-level
 // prefers-reduced-motion setting and skips animations to their final state.
-
-import { LazyMotion, MotionConfig, domAnimation } from 'motion/react';
+import { domAnimation, LazyMotion, MotionConfig } from 'motion/react';
 import type { ReactNode } from 'react';
 
 interface MotionRootProps {

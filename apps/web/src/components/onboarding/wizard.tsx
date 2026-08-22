@@ -15,22 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import { useEffect, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { DEFAULT_WATCHLIST_SYMBOLS, type ProviderMeta } from '@kestrel/shared';
 import type { SymbolCatalogRow } from '@kestrel/db';
+import { DEFAULT_WATCHLIST_SYMBOLS, type ProviderMeta } from '@kestrel/shared';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
+import { toast } from 'sonner';
+
 import { completeOnboardingAction } from '@/app/onboarding/actions';
 import { apiMutate } from '@/lib/api-client';
 
-import { WizardStepper } from './_components/wizard-stepper';
 import { WizardStepProfile } from './_components/wizard-step-profile';
-import { WizardStepStyle } from './_components/wizard-step-style';
-import { WizardStepSymbols } from './_components/wizard-step-symbols';
 import { WizardStepProvider } from './_components/wizard-step-provider';
 import { WizardStepReview } from './_components/wizard-step-review';
-import type { TradingStyle, TestState } from './_components/wizard-types';
+import { WizardStepStyle } from './_components/wizard-step-style';
+import { WizardStepSymbols } from './_components/wizard-step-symbols';
+import { WizardStepper } from './_components/wizard-stepper';
+import type { TestState, TradingStyle } from './_components/wizard-types';
 
 interface OnboardingWizardProps {
   initialName: string;
@@ -39,7 +39,12 @@ interface OnboardingWizardProps {
   initialProgress?: Record<string, unknown> | null;
 }
 
-export function OnboardingWizard({ initialName, providers, symbolsCatalog, initialProgress }: OnboardingWizardProps) {
+export function OnboardingWizard({
+  initialName,
+  providers,
+  symbolsCatalog,
+  initialProgress,
+}: OnboardingWizardProps) {
   const [step, setStep] = useState(1);
   const [isSubmitting, startSubmit] = useTransition();
   const [nameError, setNameError] = useState<string | null>(null);
@@ -47,9 +52,7 @@ export function OnboardingWizard({ initialName, providers, symbolsCatalog, initi
   const router = useRouter();
 
   const [name, setName] = useState(initialName);
-  const [timezone, setTimezone] = useState(
-    Intl.DateTimeFormat().resolvedOptions().timeZone,
-  );
+  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [tradingStyle, setTradingStyle] = useState<TradingStyle>('day_trader');
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([...DEFAULT_WATCHLIST_SYMBOLS]);
   const [defaultSymbol, setDefaultSymbol] = useState<string>(DEFAULT_WATCHLIST_SYMBOLS[0]);
@@ -117,7 +120,15 @@ export function OnboardingWizard({ initialName, providers, symbolsCatalog, initi
   // Save wizard state when any field changes (API key intentionally excluded)
   useEffect(() => {
     try {
-      const state = { step, name, timezone, defaultSymbol, selectedProvider, tradingStyle, selectedSymbols };
+      const state = {
+        step,
+        name,
+        timezone,
+        defaultSymbol,
+        selectedProvider,
+        tradingStyle,
+        selectedSymbols,
+      };
       sessionStorage.setItem(onboardingStorageKey, JSON.stringify(state));
     } catch {
       // ignore
@@ -131,7 +142,15 @@ export function OnboardingWizard({ initialName, providers, symbolsCatalog, initi
       apiMutate('/api/onboarding/save-progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step, name, timezone, defaultSymbol, selectedProvider, tradingStyle, selectedSymbols }),
+        body: JSON.stringify({
+          step,
+          name,
+          timezone,
+          defaultSymbol,
+          selectedProvider,
+          tradingStyle,
+          selectedSymbols,
+        }),
       }).catch((err) => {
         console.warn('onboarding save-progress failed', err);
       });
@@ -201,17 +220,18 @@ export function OnboardingWizard({ initialName, providers, symbolsCatalog, initi
     startSubmit(async () => {
       try {
         const currentPrefs = JSON.parse(
-          localStorage.getItem('kestrel:prefs:v1') ??
-            localStorage.getItem('hamafx:prefs') ??
-            '{}',
+          localStorage.getItem('kestrel:prefs:v1') ?? localStorage.getItem('hamafx:prefs') ?? '{}',
         );
-        localStorage.setItem('kestrel:prefs:v1', JSON.stringify({
-          ...currentPrefs,
-          defaultSymbol: defaultSymbol || selectedSymbols[0] || DEFAULT_WATCHLIST_SYMBOLS[0],
-          timeFormat: currentPrefs.timeFormat || '24h',
-          reduceMotion: currentPrefs.reduceMotion || false,
-          tradingStyle: tradingStyle,
-        }));
+        localStorage.setItem(
+          'kestrel:prefs:v1',
+          JSON.stringify({
+            ...currentPrefs,
+            defaultSymbol: defaultSymbol || selectedSymbols[0] || DEFAULT_WATCHLIST_SYMBOLS[0],
+            timeFormat: currentPrefs.timeFormat || '24h',
+            reduceMotion: currentPrefs.reduceMotion || false,
+            tradingStyle: tradingStyle,
+          }),
+        );
         localStorage.removeItem('hamafx:prefs');
       } catch {
         // ignore
@@ -223,9 +243,8 @@ export function OnboardingWizard({ initialName, providers, symbolsCatalog, initi
         defaultSymbol: defaultSymbol || selectedSymbols[0] || DEFAULT_WATCHLIST_SYMBOLS[0],
         symbols: selectedSymbols,
         tradingStyle,
-        apiKeys: selectedProvider && apiKey.trim().length > 0
-          ? { [selectedProvider]: apiKey.trim() }
-          : {},
+        apiKeys:
+          selectedProvider && apiKey.trim().length > 0 ? { [selectedProvider]: apiKey.trim() } : {},
       };
       const fd = new FormData();
       fd.append('payload', JSON.stringify(payload));
@@ -249,14 +268,17 @@ export function OnboardingWizard({ initialName, providers, symbolsCatalog, initi
   function handleSkip() {
     startSubmit(async () => {
       const fd = new FormData();
-      fd.append('payload', JSON.stringify({
-        displayName: name,
-        timezone,
-        defaultSymbol: selectedSymbols[0] || DEFAULT_WATCHLIST_SYMBOLS[0],
-        symbols: selectedSymbols,
-        tradingStyle,
-        apiKeys: {},
-      }));
+      fd.append(
+        'payload',
+        JSON.stringify({
+          displayName: name,
+          timezone,
+          defaultSymbol: selectedSymbols[0] || DEFAULT_WATCHLIST_SYMBOLS[0],
+          symbols: selectedSymbols,
+          tradingStyle,
+          apiKeys: {},
+        }),
+      );
       try {
         const res = await completeOnboardingAction(fd);
         if (res.ok) {
@@ -282,15 +304,15 @@ export function OnboardingWizard({ initialName, providers, symbolsCatalog, initi
   }
 
   return (
-    <div className="border border-border bg-bg-elev-1 rounded-sm p-6">
+    <div className="border-border bg-bg-elev-1 rounded-sm border p-6">
       <WizardStepper step={step} />
 
-      <div className="flex justify-end mb-4">
+      <div className="mb-4 flex justify-end">
         <button
           type="button"
           onClick={handleSkip}
           disabled={isSubmitting}
-          className="text-xs text-fg-subtle hover:text-fg transition-colors"
+          className="text-fg-subtle hover:text-fg text-xs transition-colors"
         >
           Skip setup, explore first
         </button>
@@ -299,7 +321,10 @@ export function OnboardingWizard({ initialName, providers, symbolsCatalog, initi
       {step === 1 && (
         <WizardStepProfile
           name={name}
-          setName={(v) => { setName(v); setNameError(null); }}
+          setName={(v) => {
+            setName(v);
+            setNameError(null);
+          }}
           nameError={nameError}
           timezone={timezone}
           setTimezone={setTimezone}

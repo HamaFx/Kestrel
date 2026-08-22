@@ -91,23 +91,22 @@ const DbEnv = z
 // into one of {fundamental, technical, summary, vision, generic} and picks
 // the model from the matching env var below. All defaults stay safe — if
 // you don't set the new vars, behaviour falls back to AI_DEFAULT_MODEL.
-const AiEnv = z
-  .object({
-    AI_GATEWAY_API_KEY: z.string().min(1).optional(),
-    GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
-    GOOGLE_VERTEX_PROJECT: z.string().min(1).optional(),
-    GOOGLE_VERTEX_LOCATION: z.string().min(1).optional(),
-    GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(1).optional(),
-    GOOGLE_APPLICATION_CREDENTIALS: z.string().min(1).optional(),
-    AI_DEFAULT_MODEL: z.string().default('google-vertex/gemini-2.5-flash'),
-    /**
-     * Auto-title generator (first-turn thread title) and operator-set
-     * fallback for the planner-style cheap model. Per-user picks come
-     * from `user_settings.chat_model` + `derivePlannerModel` / `deriveTitleModel`.
-     */
-    AI_TITLE_MODEL: z.string().default('google-vertex/gemini-2.5-flash-lite'),
-    AI_EMBEDDING_MODEL: z.string().default('openai/text-embedding-3-small'),
-  });
+const AiEnv = z.object({
+  AI_GATEWAY_API_KEY: z.string().min(1).optional(),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
+  GOOGLE_VERTEX_PROJECT: z.string().min(1).optional(),
+  GOOGLE_VERTEX_LOCATION: z.string().min(1).optional(),
+  GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(1).optional(),
+  GOOGLE_APPLICATION_CREDENTIALS: z.string().min(1).optional(),
+  AI_DEFAULT_MODEL: z.string().default('google-vertex/gemini-2.5-flash'),
+  /**
+   * Auto-title generator (first-turn thread title) and operator-set
+   * fallback for the planner-style cheap model. Per-user picks come
+   * from `user_settings.chat_model` + `derivePlannerModel` / `deriveTitleModel`.
+   */
+  AI_TITLE_MODEL: z.string().default('google-vertex/gemini-2.5-flash-lite'),
+  AI_EMBEDDING_MODEL: z.string().default('openai/text-embedding-3-small'),
+});
 
 // NOTE: The AI transport refinement (requiring at least one of
 // AI_GATEWAY_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY / Vertex) was removed.
@@ -191,10 +190,7 @@ const NotifyEnv = z.object({
 const BillingEnv = z.object({
   NOWPAYMENTS_API_KEY: z.string().min(1).optional(),
   NOWPAYMENTS_IPN_SECRET: z.string().min(1).optional(),
-  NOWPAYMENTS_API_BASE: z
-    .string()
-    .url()
-    .default('https://api-sandbox.nowpayments.io'),
+  NOWPAYMENTS_API_BASE: z.string().url().default('https://api-sandbox.nowpayments.io'),
 });
 
 const PublicEnv = z.object({
@@ -330,11 +326,14 @@ export const ServerEnvSchema = z
       'Multi-user/RLS mode is disabled in this open-source release until every user-data query establishes tenant context. Keep MULTI_USER_ENABLED=0 and KESTREL_ENABLE_RLS=0, and use owner-first registration.',
     path: ['MULTI_USER_ENABLED'],
   })
-  .refine((env) => env.REGISTRATION_MODE !== 'open' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS), {
-    message:
-      'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
-    path: ['REGISTRATION_MODE'],
-  });
+  .refine(
+    (env) => env.REGISTRATION_MODE !== 'open' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS),
+    {
+      message:
+        'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
+      path: ['REGISTRATION_MODE'],
+    },
+  );
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
 /**

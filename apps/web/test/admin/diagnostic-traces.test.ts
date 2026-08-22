@@ -1,14 +1,34 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { GET as explorerGet } from '@/app/api/admin/diagnostics/explorer/route';
+import { GET as detailGet } from '@/app/api/admin/diagnostics/trace/[id]/route';
+import { GET as listGet } from '@/app/api/admin/diagnostics/traces/route';
 
 vi.mock('@/lib/admin-auth', () => ({
   withAdminAuth:
     <T extends { params?: Promise<unknown> }>(
       handler: (req: Request, ctx: T & { user: { userId: string } }) => Promise<Response>,
     ) =>
-      async (req: Request, ctx: T) =>
-        handler(req, { ...ctx, user: { userId: 'admin-123' } } as T & { user: { userId: string } }),
+    async (req: Request, ctx: T) =>
+      handler(req, { ...ctx, user: { userId: 'admin-123' } } as T & { user: { userId: string } }),
 }));
 
 const mockListDiagnosticTraces = vi.hoisted(() => vi.fn());
@@ -23,10 +43,6 @@ vi.mock('@kestrel/db', () => ({
   recordAdminAudit: mockRecordAdminAudit,
   schema: { diagnosticTraces: {} },
 }));
-
-import { GET as listGet } from '@/app/api/admin/diagnostics/traces/route';
-import { GET as detailGet } from '@/app/api/admin/diagnostics/trace/[id]/route';
-import { GET as explorerGet } from '@/app/api/admin/diagnostics/explorer/route';
 
 describe('GET /api/admin/diagnostics/traces', () => {
   beforeEach(() => {
@@ -105,7 +121,9 @@ describe('GET /api/admin/diagnostics/explorer', () => {
   });
 
   it('passes correlation filters and returns a normalized timeline with failure stats', async () => {
-    const req = new Request('http://localhost/api/admin/diagnostics/explorer?traceId=trace-1&jobId=job-1&limit=50');
+    const req = new Request(
+      'http://localhost/api/admin/diagnostics/explorer?traceId=trace-1&jobId=job-1&limit=50',
+    );
     const res = await explorerGet(req);
     const body = await res.json();
 

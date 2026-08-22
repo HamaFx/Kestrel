@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import * as fs from 'node:fs/promises';
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { persistTrace, type PersistedTrace } from '../../src/diagnostics/trace-persistence';
 
@@ -36,8 +38,6 @@ vi.mock('@kestrel/db', () => ({
 vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn(),
 }));
-
-import * as fs from 'node:fs/promises';
 
 describe('persistTrace', () => {
   const baseTrace: PersistedTrace = {
@@ -81,7 +81,9 @@ describe('persistTrace', () => {
     expect(inserted.durationMs).toBe(100);
     expect(inserted.stepCount).toBe(3);
     expect(inserted.status).toBe('completed');
-    const upsert = valuesFn.values.mock.results[0]!.value as { onConflictDoUpdate: ReturnType<typeof vi.fn> };
+    const upsert = valuesFn.values.mock.results[0]!.value as {
+      onConflictDoUpdate: ReturnType<typeof vi.fn>;
+    };
     expect(upsert.onConflictDoUpdate).toHaveBeenCalled();
   });
 

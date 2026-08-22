@@ -22,7 +22,6 @@
 // frame for the duration of the transition. We bail out of state updates
 // once the spring is within 1/(10^decimals) of the target so React
 // doesn't re-render every frame for the rest of eternity.
-
 import { useMotionValue, useSpring } from 'motion/react';
 import { useEffect, useState } from 'react';
 

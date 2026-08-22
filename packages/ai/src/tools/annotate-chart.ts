@@ -25,11 +25,7 @@
 // the tool runs in any environment without reading the DOM.
 
 import { getCandles } from '@kestrel/data';
-import {
-  computeAsianRange,
-  computePdhPdl,
-  computeStructure,
-} from '@kestrel/indicators';
+import { computeAsianRange, computePdhPdl, computeStructure } from '@kestrel/indicators';
 import {
   AnnotateChartInputSchema,
   type AnnotateChartKind,
@@ -288,7 +284,9 @@ function bartime(candles: Candle[], i: number): number | null {
  * Map our `AnnotateChartKind` to the `StructureKind` the SMC orchestrator
  * understands. PDH/PDL and Asian-range aren't structure-module concepts.
  */
-function toStructureKind(k: AnnotateChartKind): 'swings' | 'bos_choch' | 'fvg' | 'order_blocks' | 'liquidity' {
+function toStructureKind(
+  k: AnnotateChartKind,
+): 'swings' | 'bos_choch' | 'fvg' | 'order_blocks' | 'liquidity' {
   if (k === 'pdh_pdl' || k === 'asian_range') {
     throw new Error(`toStructureKind: ${k} is not a structure kind`);
   }

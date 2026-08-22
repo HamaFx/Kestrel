@@ -22,8 +22,9 @@
 //   - Observable: logs all API errors with context for debugging.
 //   - Lightweight: uses plain fetch, no extra dependencies.
 
-import { withRetry } from '../retry';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+
+import { withRetry } from '../retry';
 
 const tlog = createCategorizedLogger('telegram', { component: 'client' });
 
@@ -39,13 +40,14 @@ interface TelegramApiResponse {
 
 /** Error thrown when a Telegram API call fails. */
 export class TelegramApiError extends Error {
-  constructor(
-    message: string,
-    public readonly errorCode?: number,
-    public readonly retryable: boolean = false,
-  ) {
+  public readonly errorCode?: number | undefined;
+  public readonly retryable: boolean;
+
+  constructor(message: string, errorCode?: number, retryable: boolean = false) {
     super(message);
     this.name = 'TelegramApiError';
+    this.errorCode = errorCode;
+    this.retryable = retryable;
   }
 }
 
@@ -53,7 +55,8 @@ export class TelegramApiError extends Error {
 function classifyTelegramError(status: number): { retryable: boolean; description: string } {
   if (status === 429) return { retryable: true, description: 'Rate limited by Telegram' };
   if (status >= 500) return { retryable: true, description: 'Telegram server error' };
-  if (status === 409) return { retryable: false, description: 'Conflict — duplicate webhook or terminated' };
+  if (status === 409)
+    return { retryable: false, description: 'Conflict — duplicate webhook or terminated' };
   if (status === 401) return { retryable: false, description: 'Invalid bot token' };
   return { retryable: false, description: `Telegram API error (${status})` };
 }
@@ -104,10 +107,9 @@ export async function telegramApiCall<T = TelegramApiResponse>(
         return false;
       },
       onRetry: (err, attempt, delayMs) => {
-        tlog.warn(
-          `retrying ${method} (attempt ${attempt + 1}) after ${Math.round(delayMs)}ms`,
-          { err: err instanceof Error ? err.message : String(err) },
-        );
+        tlog.warn(`retrying ${method} (attempt ${attempt + 1}) after ${Math.round(delayMs)}ms`, {
+          err: err instanceof Error ? err.message : String(err),
+        });
       },
     },
   );
@@ -134,13 +136,18 @@ export async function sendTextMessage(
   let sent = 0;
 
   for (let i = 0; i < chunks.length; i++) {
-    await telegramApiCall(botToken, 'sendMessage', {
-      chat_id: chatId,
-      text: chunks[i],
-      parse_mode: options?.parseMode,
-      reply_to_message_id: i === 0 ? options?.replyToMessageId : undefined,
-      disable_web_page_preview: options?.disableWebPagePreview ?? true,
-    }, options?.signal ? { signal: options.signal } : undefined);
+    await telegramApiCall(
+      botToken,
+      'sendMessage',
+      {
+        chat_id: chatId,
+        text: chunks[i],
+        parse_mode: options?.parseMode,
+        reply_to_message_id: i === 0 ? options?.replyToMessageId : undefined,
+        disable_web_page_preview: options?.disableWebPagePreview ?? true,
+      },
+      options?.signal ? { signal: options.signal } : undefined,
+    );
     sent++;
   }
 
@@ -160,12 +167,17 @@ export async function sendPhoto(
     signal?: AbortSignal;
   },
 ): Promise<void> {
-  await telegramApiCall(botToken, 'sendPhoto', {
-    chat_id: chatId,
-    photo,
-    caption: options?.caption?.slice(0, 1024), // Telegram caption limit
-    parse_mode: options?.parseMode,
-  }, options?.signal ? { signal: options.signal } : undefined);
+  await telegramApiCall(
+    botToken,
+    'sendPhoto',
+    {
+      chat_id: chatId,
+      photo,
+      caption: options?.caption?.slice(0, 1024), // Telegram caption limit
+      parse_mode: options?.parseMode,
+    },
+    options?.signal ? { signal: options.signal } : undefined,
+  );
 }
 
 /**
@@ -218,12 +230,17 @@ export async function sendInlineKeyboard(
     signal?: AbortSignal;
   },
 ): Promise<void> {
-  await telegramApiCall(botToken, 'sendMessage', {
-    chat_id: chatId,
-    text,
-    parse_mode: options?.parseMode,
-    reply_markup: JSON.stringify({ inline_keyboard: keyboard }),
-  }, options?.signal ? { signal: options.signal } : undefined);
+  await telegramApiCall(
+    botToken,
+    'sendMessage',
+    {
+      chat_id: chatId,
+      text,
+      parse_mode: options?.parseMode,
+      reply_markup: JSON.stringify({ inline_keyboard: keyboard }),
+    },
+    options?.signal ? { signal: options.signal } : undefined,
+  );
 }
 
 /**

@@ -78,13 +78,14 @@ ChatScreen (client)                      apps/web/src/components/chat/chat-scree
 the single place where the UI flattens **three backend modes** into one
 `useChat`:
 
-| Backend response | Client handling |
-|---|---|
-| AI SDK data stream (single mode) | passthrough |
-| SSE `data: <json>` (quick/standard) | `transformSseToDataStream` → converts `text-start/delta/end`, `data-multi-agent-meta`, `data-agent-progress`, `error` into AI SDK chunks |
+| Backend response                              | Client handling                                                                                                                               |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI SDK data stream (single mode)              | passthrough                                                                                                                                   |
+| SSE `data: <json>` (quick/standard)           | `transformSseToDataStream` → converts `text-start/delta/end`, `data-multi-agent-meta`, `data-agent-progress`, `error` into AI SDK chunks      |
 | JSON `{type:'analysis-queued', jobId}` (full) | `pollJobToStreamResponse` → polls `/api/chat/analysis-jobs/{jobId}` (2s→10s backoff, 5-min cap, 3-strike failure) → synthesizes a text stream |
 
 Request augmentation in `prepareSendMessagesRequest`:
+
 - `analysisMode` (read from a **ref** so a fresh selection applies to an
   immediately-submitted turn), `threadId`, `id`, `messages`
 - `modelOverride` (one-shot, cleared when stream settles)
@@ -154,7 +155,7 @@ route.ts POST /api/chat                    apps/web/src/app/api/chat/route.ts
 ### 2.2 Findings
 
 **[STRENGTH]** — Layered auth with no single point of trust: the proxy stamps a
-*signed* user header (spoofed headers without a valid signature fall through to
+_signed_ user header (spoofed headers without a valid signature fall through to
 JWT re-validation), CSRF is checked at the edge, and the route re-checks thread
 ownership with the authenticated `userId`. This is a textbook defense-in-depth
 stack.
@@ -219,6 +220,7 @@ Key details:
   spent/max figures.
 
 ### 3.2 Findings**[RESOLVED / MONITORED]** — Quick mode now uses a 45s synchronous timeout,
+
 while Standard retains the 55s cap needed for two specialists plus fusion.
 Both modes record TTFB and total latency in structured logs and the transient
 meta event, making slow provider behavior measurable without changing the
@@ -526,7 +528,7 @@ a manually refreshed reference artifact per the repository instructions.
 
 **[STRENGTH]** — The mutation guard is a genuine safety net: tools that write
 user data (alerts, journal, share links) or run system actions are gated on
-user intent in the *latest* message, and the system prompt's Untrusted Content
+user intent in the _latest_ message, and the system prompt's Untrusted Content
 Policy covers prompt-injection via news/RAG/web content.
 
 **[RESOLVED / SAFETY TRADE-OFF RETAINED]** — Mutation intent now recognizes
@@ -557,8 +559,8 @@ side-effect.
 
 `enforceCitations` scans the finished assistant text for price tokens
 (instrument-banded regex: gold `1xxx–4xxxx`, FX `0.xxx/1.xxx`) and event
-tokens, and only flags when no relevant numeric/news tool was called *this
-turn* (counts `tool-call` parts, never `tool-result` — prevents stale replay
+tokens, and only flags when no relevant numeric/news tool was called _this
+turn_ (counts `tool-call` parts, never `tool-result` — prevents stale replay
 from satisfying the check). Output is ONE muted footer
 (`data-citation-warning`, stance "soft") with per-claim `findings` for
 drill-down. Multi-agent passes synthetic tool-call parts built from specialist
@@ -611,7 +613,7 @@ single footer line (no warning wall), per-claim findings, and it correctly
 distinguishes "covered by a tool this turn" from "mentioned in history".
 
 **[INFO]** — Cost accounting is estimate-based (upper bounds from list prices).
-Reconciliation moves the ledger to the *estimate* of actual usage, not the
+Reconciliation moves the ledger to the _estimate_ of actual usage, not the
 provider's bill. For a consumer copilot this bias is conservative (good), but
 the numbers in /settings/usage are estimates, not invoices.
 
@@ -623,16 +625,16 @@ normalization in `rate-limit.ts`/`cost.ts`).
 
 ## Cross-Cutting Observations
 
-| # | Observation | Type |
-|---|---|---|
-| C1 | Defense-in-depth is consistent: proxy CSRF → HMAC-signed user header → JWT re-validation → route ownership check → userId-scoped queries → idempotent writes. | STRENGTH |
-| C2 | One pipeline, two planes: sync (Vercel) and async (worker) both call `runMultiAgentChat` from `@kestrel/ai`; behavior cannot drift. | STRENGTH |
-| C3 | Abort signals are threaded end-to-end: route timeout ∪ client disconnect → streamText → tool context → tool wrapper → provider fetch. Stop works, hung tools can't eat the turn. | STRENGTH |
-| C4 | Single-agent has LLM-throttle + circuit breaker + fallback chain; multi-agent has concurrency cap + agent timeouts + per-agent model fallback but no shared throttle. | INFO |
-| C5 | Sanitization discipline at every public boundary: SSE events, job polling, error envelopes, progress events — internal details never leak to the client. | STRENGTH |
-| C6 | AsyncLocalStorage (tool context, diagnostics, trace/request/run ids) replaces global state everywhere — no cross-user leakage by construction. | STRENGTH |
-| C7 | Two committee implementations coexist: the `convene_committee` tool (legacy, 4-LLM in one tool call) and the multi-agent mode pipeline. Only the latter is reachable in analytical turns (see Phase 7 finding). | INFO |
-| C8 | Estimation points (cost, MODE_COST_ESTIMATE, MODE_OPTIONS latency) are heuristics; they drive guardrails and UI promises respectively, and are periodically reconciled. | INFO |
+| #   | Observation                                                                                                                                                                                                     | Type     |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| C1  | Defense-in-depth is consistent: proxy CSRF → HMAC-signed user header → JWT re-validation → route ownership check → userId-scoped queries → idempotent writes.                                                   | STRENGTH |
+| C2  | One pipeline, two planes: sync (Vercel) and async (worker) both call `runMultiAgentChat` from `@kestrel/ai`; behavior cannot drift.                                                                             | STRENGTH |
+| C3  | Abort signals are threaded end-to-end: route timeout ∪ client disconnect → streamText → tool context → tool wrapper → provider fetch. Stop works, hung tools can't eat the turn.                                | STRENGTH |
+| C4  | Single-agent has LLM-throttle + circuit breaker + fallback chain; multi-agent has concurrency cap + agent timeouts + per-agent model fallback but no shared throttle.                                           | INFO     |
+| C5  | Sanitization discipline at every public boundary: SSE events, job polling, error envelopes, progress events — internal details never leak to the client.                                                        | STRENGTH |
+| C6  | AsyncLocalStorage (tool context, diagnostics, trace/request/run ids) replaces global state everywhere — no cross-user leakage by construction.                                                                  | STRENGTH |
+| C7  | Two committee implementations coexist: the `convene_committee` tool (legacy, 4-LLM in one tool call) and the multi-agent mode pipeline. Only the latter is reachable in analytical turns (see Phase 7 finding). | INFO     |
+| C8  | Estimation points (cost, MODE_COST_ESTIMATE, MODE_OPTIONS latency) are heuristics; they drive guardrails and UI promises respectively, and are periodically reconciled.                                         | INFO     |
 
 ---
 
@@ -672,4 +674,4 @@ trace correlation. No critical defects found. The gaps are engineering-quality
 items (compaction for multi-agent, streaming fidelity, one ref race, doc
 drift) rather than correctness or security holes.
 
-*Generated by Buffy (Codebuff) — full-flow audit, 2026-08-15.*
+_Generated by Buffy (Codebuff) — full-flow audit, 2026-08-15._

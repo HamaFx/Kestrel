@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,11 +23,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createKestrelMastra,
+  DATASET_IDS,
   initializeKestrelMastra,
   loadLegacyEvalCases,
   migrateLegacyEvalCasesToDatasets,
   runDatasetExperiment,
-  DATASET_IDS,
 } from '../src/mastra-v2';
 import { createDeterministicScorer } from '../src/mastra-v2/evals/scorers';
 
@@ -27,7 +43,10 @@ vi.mock('@mastra/core/evals', async () => {
 let dbFile: string;
 
 beforeEach(() => {
-  dbFile = join(tmpdir(), `kestrel-evals-datasets-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+  dbFile = join(
+    tmpdir(),
+    `kestrel-evals-datasets-${Date.now()}-${Math.random().toString(36).slice(2)}.db`,
+  );
 });
 
 afterEach(() => {
@@ -64,18 +83,26 @@ describe('mastra evals — datasets migration', () => {
     const instance = await buildInstance();
     await migrateLegacyEvalCasesToDatasets(instance, { skipExisting: false });
     const dataset = await instance.datasets.get({ id: DATASET_IDS.regression });
-    const items = (await dataset.listItems({ perPage: 100 })) as unknown as { items: Array<{ externalId: string }> };
+    const items = (await dataset.listItems({ perPage: 100 })) as unknown as {
+      items: Array<{ externalId: string }>;
+    };
     expect(items.items.length).toBeGreaterThanOrEqual(55);
-    expect(items.items.some((item) => item.externalId === 'reg-51-unicode-control-char-bypass')).toBe(true);
+    expect(
+      items.items.some((item) => item.externalId === 'reg-51-unicode-control-char-bypass'),
+    ).toBe(true);
   });
 });
 
 describe('mastra evals — dataset experiment runner', () => {
   it('runs the dataset against a target and summarizes per-scorer means', async () => {
     const instance = await buildInstance();
-    const scorer = createDeterministicScorer('test-quality', 'Scores 1 on good output', ({ output }) => {
-      return String(output).includes('ok');
-    });
+    const scorer = createDeterministicScorer(
+      'test-quality',
+      'Scores 1 on good output',
+      ({ output }) => {
+        return String(output).includes('ok');
+      },
+    );
 
     mocks.runEvals.mockResolvedValue({
       scores: {},
@@ -85,11 +112,15 @@ describe('mastra evals — dataset experiment runner', () => {
       gateResults: [{ id: 'test-quality', passed: true, score: 1 }],
     });
 
-    const summary = await runDatasetExperiment(instance, { id: 'kestrel-mastra-canonical-chat' } as never, {
-      scorers: [scorer],
-      gates: [scorer],
-      datasetId: DATASET_IDS.prompts,
-    });
+    const summary = await runDatasetExperiment(
+      instance,
+      { id: 'kestrel-mastra-canonical-chat' } as never,
+      {
+        scorers: [scorer],
+        gates: [scorer],
+        datasetId: DATASET_IDS.prompts,
+      },
+    );
 
     expect(mocks.runEvals).toHaveBeenCalledTimes(1);
     expect(summary.datasetId).toBe(DATASET_IDS.prompts);

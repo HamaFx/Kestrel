@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-import { vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { testProviderKey } from '../src/model';
 
 // model.ts pulls in @kestrel/shared/encryption which contains
 // `import 'server-only'` — that throws at import time, not at
@@ -38,10 +40,6 @@ vi.mock('@kestrel/shared/encryption', () => ({
   ] as const,
   describeByok: () => 'none',
 }));
-
-import { describe, expect, it } from 'vitest';
-
-import { testProviderKey } from '../src/model';
 
 /**
  * Build a service-account JSON object shaped like Google's IAM
@@ -72,8 +70,7 @@ function makeVertexJson(overrides: Record<string, string | undefined> = {}): str
     auth_uri: 'https://accounts.google.com/o/oauth2/auth',
     token_uri: 'https://oauth2.googleapis.com/token',
     auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-    client_x509_cert_url:
-      'https://www.googleapis.com/robot/v1/metadata/x509/kestrel-test',
+    client_x509_cert_url: 'https://www.googleapis.com/robot/v1/metadata/x509/kestrel-test',
   };
   for (const [k, v] of Object.entries(overrides)) {
     if (v === undefined) {

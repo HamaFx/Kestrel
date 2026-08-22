@@ -26,10 +26,12 @@
 //
 // See DSA_FEATURE_EXPANSION_PLAN.md §F7.4 for the design.
 
-import { schema } from '@kestrel/db';
-import { getDb } from '../db';
-import { eq, and } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
+
+import { schema } from '@kestrel/db';
+import { and, eq } from 'drizzle-orm';
+
+import { getDb } from '../db';
 
 /** Link code expiry in milliseconds (10 minutes). */
 const LINK_CODE_TTL_MS = 10 * 60 * 1000;
@@ -143,12 +145,7 @@ export async function resolveBotUser(
   const [link] = await db
     .select({ userId: schema.botLinks.userId })
     .from(schema.botLinks)
-    .where(
-      and(
-        eq(schema.botLinks.platform, platform),
-        eq(schema.botLinks.chatId, String(chatId)),
-      ),
-    )
+    .where(and(eq(schema.botLinks.platform, platform), eq(schema.botLinks.chatId, String(chatId))))
     .limit(1);
 
   return link?.userId ?? null;
@@ -158,19 +155,11 @@ export async function resolveBotUser(
  * Unlink a bot platform from a user.
  * Called from the settings page when the user clicks "Unlink Telegram".
  */
-export async function unlinkBot(
-  userId: string,
-  platform: string = 'telegram',
-): Promise<void> {
+export async function unlinkBot(userId: string, platform: string = 'telegram'): Promise<void> {
   const db = getDb();
   await db
     .delete(schema.botLinks)
-    .where(
-      and(
-        eq(schema.botLinks.userId, userId),
-        eq(schema.botLinks.platform, platform),
-      ),
-    );
+    .where(and(eq(schema.botLinks.userId, userId), eq(schema.botLinks.platform, platform)));
 }
 
 /**
@@ -184,12 +173,7 @@ export async function getBotLink(
   const [link] = await db
     .select({ chatId: schema.botLinks.chatId, linkedAt: schema.botLinks.linkedAt })
     .from(schema.botLinks)
-    .where(
-      and(
-        eq(schema.botLinks.userId, userId),
-        eq(schema.botLinks.platform, platform),
-      ),
-    )
+    .where(and(eq(schema.botLinks.userId, userId), eq(schema.botLinks.platform, platform)))
     .limit(1);
 
   return link ?? null;

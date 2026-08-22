@@ -2,16 +2,31 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Phase 1.6 — News pulse widget.
 //
 // Slim summary of the recent news flow: a stacked sentiment bar + the
 // headline at each extreme (most positive, most negative). Reuses the
 // `SentimentSummary` body semantics but compresses them into a card
 // suitable for the dashboard grid.
-
-import Link from 'next/link';
-import { IconNews } from '@tabler/icons-react';
 import type { NewsArticle } from '@kestrel/shared';
+import { IconNews } from '@tabler/icons-react';
+import Link from 'next/link';
 
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
@@ -32,10 +47,8 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
   const pct = (n: number) => (total > 0 ? Math.max(0, (n / total) * 100) : 0);
   const rawScore = total > 0 ? (counts.positive - counts.negative) / total : 0;
   const score = Math.max(-1, Math.min(1, rawScore));
-  const leanLabel =
-    score > 0.15 ? 'Bullish' : score < -0.15 ? 'Bearish' : 'Neutral';
-  const leanTone =
-    score > 0.15 ? 'text-bull' : score < -0.15 ? 'text-bear' : 'text-fg-muted';
+  const leanLabel = score > 0.15 ? 'Bullish' : score < -0.15 ? 'Bearish' : 'Neutral';
+  const leanTone = score > 0.15 ? 'text-bull' : score < -0.15 ? 'text-bear' : 'text-fg-muted';
 
   // Headlines at the extremes.
   const ranked = [...articles]
@@ -49,10 +62,7 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <IconNews className="text-fg-subtle size-4" />
-          <span
-            id="news-pulse-heading"
-            className="text-fg text-body-sm font-semibold"
-          >
+          <span id="news-pulse-heading" className="text-fg text-body-sm font-semibold">
             News pulse
           </span>
           <span className={cn('text-caption font-semibold tabular-nums', leanTone)}>
@@ -68,23 +78,14 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
       <div
         role="img"
         aria-label={`${total} articles: ${counts.positive} positive, ${counts.negative} negative, ${counts.neutral} neutral`}
-        className="flex h-1.5 w-full overflow-hidden rounded-sm bg-bg-elev-2"
+        className="bg-bg-elev-2 flex h-1.5 w-full overflow-hidden rounded-sm"
       >
-        <div
-          className="h-full bg-bull"
-          style={{ width: `${pct(counts.positive)}%` }}
-        />
-        <div
-          className="h-full bg-fg-muted"
-          style={{ width: `${pct(counts.neutral)}%` }}
-        />
-        <div
-          className="h-full bg-bear"
-          style={{ width: `${pct(counts.negative)}%` }}
-        />
+        <div className="bg-bull h-full" style={{ width: `${pct(counts.positive)}%` }} />
+        <div className="bg-fg-muted h-full" style={{ width: `${pct(counts.neutral)}%` }} />
+        <div className="bg-bear h-full" style={{ width: `${pct(counts.negative)}%` }} />
       </div>
 
-      <div className="text-fg-subtle flex items-center justify-between text-caption tabular-nums">
+      <div className="text-fg-subtle text-caption flex items-center justify-between tabular-nums">
         <span>{counts.positive} bull</span>
         <span>{counts.neutral} neut</span>
         <span>{counts.negative} bear</span>
@@ -93,30 +94,30 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
       {top || bottom ? (
         <ul className="flex flex-col gap-2">
           {top ? (
-            <li className="border-divider border-l-2 border-l-bull/50 pl-2">
-              <span className="text-fg-subtle text-caption uppercase tracking-wider">
+            <li className="border-divider border-l-bull/50 border-l-2 pl-2">
+              <span className="text-fg-subtle text-caption tracking-wider uppercase">
                 Most positive
               </span>
               <a
                 href={top.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-fg hover:text-fg line-clamp-2 text-body-sm"
+                className="text-fg hover:text-fg text-body-sm line-clamp-2"
               >
                 {top.title}
               </a>
             </li>
           ) : null}
           {bottom && bottom.id !== top?.id ? (
-            <li className="border-divider border-l-2 border-l-bear/50 pl-2">
-              <span className="text-fg-subtle text-caption uppercase tracking-wider">
+            <li className="border-divider border-l-bear/50 border-l-2 pl-2">
+              <span className="text-fg-subtle text-caption tracking-wider uppercase">
                 Most negative
               </span>
               <a
                 href={bottom.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-fg hover:text-fg line-clamp-2 text-body-sm"
+                className="text-fg hover:text-fg text-body-sm line-clamp-2"
               >
                 {bottom.title}
               </a>

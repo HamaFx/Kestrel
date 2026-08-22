@@ -1,4 +1,20 @@
 /**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
  * LLM-based extraction of a structured mutation input from free chat text.
  *
  * The classifier (mutation-detect.ts) picks the kind; this module runs a
@@ -22,12 +38,12 @@ import {
 import { runMastraStructured } from './text-runner';
 
 export class MutationExtractionError extends Error {
-  constructor(
-    message: string,
-    readonly kind: MutationKind,
-  ) {
+  readonly kind: MutationKind;
+
+  constructor(message: string, kind: MutationKind) {
     super(message);
     this.name = 'MutationExtractionError';
+    this.kind = kind;
   }
 }
 
@@ -189,9 +205,7 @@ function normalizeSymbol(symbol: string): string {
  * Run the extraction generation. Throws `MutationExtractionError` when the
  * model cannot produce a valid structured input.
  */
-export async function extractMutationInput(
-  args: ExtractMutationInputArgs,
-): Promise<MutationInput> {
+export async function extractMutationInput(args: ExtractMutationInputArgs): Promise<MutationInput> {
   const { kind, text } = args;
   try {
     const result = await runMastraStructured({

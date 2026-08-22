@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { afterEach, describe, it, expect } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { AgentDeliberation } from '@/components/chat/parts/agent-deliberation';
 
 afterEach(cleanup);
@@ -63,12 +64,22 @@ function allDoneWithVerdict(): AgentProgress[] {
     {
       agentName: 'technical',
       status: 'done',
-      opinion: { agentName: 'technical', bias: 'bullish', confidence: 0.85, reasoning: 'Strong trend on 4H' },
+      opinion: {
+        agentName: 'technical',
+        bias: 'bullish',
+        confidence: 0.85,
+        reasoning: 'Strong trend on 4H',
+      },
     },
     {
       agentName: 'fundamental',
       status: 'done',
-      opinion: { agentName: 'fundamental', bias: 'bullish', confidence: 0.72, reasoning: 'NFP beat expectations' },
+      opinion: {
+        agentName: 'fundamental',
+        bias: 'bullish',
+        confidence: 0.72,
+        reasoning: 'NFP beat expectations',
+      },
     },
     {
       agentName: 'risk',
@@ -80,15 +91,37 @@ function allDoneWithVerdict(): AgentProgress[] {
 
 function mixedDoneError(): AgentProgress[] {
   return [
-    { agentName: 'technical', status: 'done', opinion: { agentName: 'technical', bias: 'bullish', confidence: 0.8, reasoning: 'Trending up' } },
+    {
+      agentName: 'technical',
+      status: 'done',
+      opinion: {
+        agentName: 'technical',
+        bias: 'bullish',
+        confidence: 0.8,
+        reasoning: 'Trending up',
+      },
+    },
     { agentName: 'fundamental', status: 'error', error: 'API timeout' },
-    { agentName: 'risk', status: 'done', opinion: { agentName: 'risk', bias: 'neutral', confidence: 0.5, reasoning: 'Neutral' } },
+    {
+      agentName: 'risk',
+      status: 'done',
+      opinion: { agentName: 'risk', bias: 'neutral', confidence: 0.5, reasoning: 'Neutral' },
+    },
   ];
 }
 
 function singleAgentDone(): AgentProgress[] {
   return [
-    { agentName: 'technical', status: 'done', opinion: { agentName: 'technical', bias: 'bullish', confidence: 0.9, reasoning: 'Clear uptrend' } },
+    {
+      agentName: 'technical',
+      status: 'done',
+      opinion: {
+        agentName: 'technical',
+        bias: 'bullish',
+        confidence: 0.9,
+        reasoning: 'Clear uptrend',
+      },
+    },
   ];
 }
 
@@ -97,12 +130,22 @@ function allDoneDissent(): AgentProgress[] {
     {
       agentName: 'technical',
       status: 'done',
-      opinion: { agentName: 'technical', bias: 'bullish', confidence: 0.8, reasoning: 'Strong trend' },
+      opinion: {
+        agentName: 'technical',
+        bias: 'bullish',
+        confidence: 0.8,
+        reasoning: 'Strong trend',
+      },
     },
     {
       agentName: 'fundamental',
       status: 'done',
-      opinion: { agentName: 'fundamental', bias: 'bearish', confidence: 0.7, reasoning: 'Weak data' },
+      opinion: {
+        agentName: 'fundamental',
+        bias: 'bearish',
+        confidence: 0.7,
+        reasoning: 'Weak data',
+      },
     },
     {
       agentName: 'risk',

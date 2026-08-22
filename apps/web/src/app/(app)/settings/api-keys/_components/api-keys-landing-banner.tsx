@@ -30,8 +30,7 @@
  *     the banner does not reappear on subsequent visits to
  *     /settings/api-keys (regardless of `from=chat`).
  */
-
-import {IconInfoCircle, IconX} from '@tabler/icons-react';
+import { IconInfoCircle, IconX } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'kestrel:banner-dismissed:api-keys-from-chat';
@@ -50,8 +49,7 @@ export function ApiKeysLandingBanner({ prompt }: ApiKeysLandingBannerProps) {
     setHydrated(true);
     try {
       const saved =
-        window.localStorage.getItem(STORAGE_KEY) ??
-        window.localStorage.getItem(LEGACY_STORAGE_KEY);
+        window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
       if (saved === '1') {
         setDismissed(true);
         window.localStorage.setItem(STORAGE_KEY, '1');
@@ -83,14 +81,12 @@ export function ApiKeysLandingBanner({ prompt }: ApiKeysLandingBannerProps) {
       <div className="flex-1 leading-[1.4]">
         <p className="text-sm font-medium">No AI provider is configured</p>
         <p className="text-fg-muted mt-1 text-xs">
-          Add a key below to start chatting. Free-tier providers (Google,
-          Groq) work without spending.
+          Add a key below to start chatting. Free-tier providers (Google, Groq) work without
+          spending.
         </p>
         {prompt ? (
           <p className="text-fg-subtle mt-2 text-xs">
-            <span className="text-fg-subtle uppercase tracking-wide">
-              Pending prompt:
-            </span>{' '}
+            <span className="text-fg-subtle tracking-wide uppercase">Pending prompt:</span>{' '}
             <span className="text-fg-muted italic">&ldquo;{prompt}&rdquo;</span>
           </p>
         ) : null}
@@ -99,7 +95,7 @@ export function ApiKeysLandingBanner({ prompt }: ApiKeysLandingBannerProps) {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss banner"
-        className="text-fg-subtle hover:text-fg -mr-1 inline-flex size-7 shrink-0 items-center justify-center rounded-sm transition-colors hover:bg-info/15"
+        className="text-fg-subtle hover:text-fg hover:bg-info/15 -mr-1 inline-flex size-7 shrink-0 items-center justify-center rounded-sm transition-colors"
       >
         <IconX className="size-4" />
       </button>

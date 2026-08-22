@@ -1,8 +1,8 @@
 {
   "extends": "./base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "ES2022"],
+    "target": "ES2024",
+    "lib": ["dom", "dom.iterable", "ES2024"],
     "module": "esnext",
     "moduleResolution": "bundler",
     "jsx": "preserve",

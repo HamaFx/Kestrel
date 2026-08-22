@@ -131,14 +131,14 @@ export class MetricsRegistry {
   private readonly counters = new Map<string, number>();
   private readonly histograms = new Map<string, HistogramAccumulator>();
 
-  /** Increment a counter (defaults to +1). */ 
+  /** Increment a counter (defaults to +1). */
   increment(name: MetricName, opts?: { by?: number; tags?: Record<string, string> }): void {
     const key = keyFor(name, opts?.tags);
     const next = (this.counters.get(key) ?? 0) + (opts?.by ?? 1);
     this.counters.set(key, next);
   }
 
-  /** Record one observation into a histogram. */ 
+  /** Record one observation into a histogram. */
   observe(name: MetricName, value: number, opts?: { tags?: Record<string, string> }): void {
     if (!Number.isFinite(value)) return;
     const key = keyFor(name, opts?.tags);
@@ -162,7 +162,7 @@ export class MetricsRegistry {
     }
   }
 
-  /** Export a flat, JSON-serializable snapshot of the registry. */ 
+  /** Export a flat, JSON-serializable snapshot of the registry. */
   snapshot(): MetricsSnapshot {
     const counters: Record<string, number> = {};
     for (const [key, value] of this.counters) counters[key] = value;
@@ -183,7 +183,7 @@ export class MetricsRegistry {
     return { counters, histograms };
   }
 
-  /** Reset all counters and histograms (used between test cases / reports). */ 
+  /** Reset all counters and histograms (used between test cases / reports). */
   reset(): void {
     this.counters.clear();
     this.histograms.clear();

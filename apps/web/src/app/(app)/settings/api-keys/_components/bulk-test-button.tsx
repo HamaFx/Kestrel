@@ -1,12 +1,27 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { IconCircleCheck, IconCircleX, IconLoader2, IconPlayerPlay } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import {IconCircleCheck, IconLoader2, IconPlayerPlay, IconCircleX} from '@tabler/icons-react';
+import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { apiFetch, parseErrorBody } from '@/lib/api-client';
-import { toast } from 'sonner';
 
 interface BulkTestButtonProps {
   /** Disable when there are no keys configured. */
@@ -74,17 +89,11 @@ export function BulkTestButton({ disabled }: BulkTestButtonProps) {
               const summary = parsed.summary as BulkTestSummary;
               setSummary(summary);
               if (summary.failed === 0) {
-                toast.success(
-                  `All ${summary.ok} configured providers are valid.`,
-                );
+                toast.success(`All ${summary.ok} configured providers are valid.`);
               } else if (summary.ok === 0) {
-                toast.error(
-                  `${summary.failed} providers failed. Check the errors below.`,
-                );
+                toast.error(`${summary.failed} providers failed. Check the errors below.`);
               } else {
-                toast.warning(
-                  `${summary.ok} ok, ${summary.failed} failed.`,
-                );
+                toast.warning(`${summary.ok} ok, ${summary.failed} failed.`);
               }
             } else if (parsed.type === 'error') {
               throw new Error(parsed.message as string);
@@ -94,9 +103,7 @@ export function BulkTestButton({ disabled }: BulkTestButtonProps) {
 
         router.refresh();
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : 'Bulk test failed',
-        );
+        toast.error(err instanceof Error ? err.message : 'Bulk test failed');
       } finally {
         setRunning(false);
         setProgress(null);
@@ -129,11 +136,11 @@ export function BulkTestButton({ disabled }: BulkTestButtonProps) {
         )}
       </Button>
       {summary ? (
-        <span className="flex items-center gap-1 text-caption tabular-nums">
+        <span className="text-caption flex items-center gap-1 tabular-nums">
           {summary.failed === 0 ? (
-            <IconCircleCheck className="size-3 text-success" />
+            <IconCircleCheck className="text-success size-3" />
           ) : (
-            <IconCircleX className="size-3 text-danger" />
+            <IconCircleX className="text-danger size-3" />
           )}
           <span className="text-fg-muted">
             {summary.ok}/{summary.total - summary.missing} ok

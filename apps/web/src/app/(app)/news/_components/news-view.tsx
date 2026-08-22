@@ -29,14 +29,13 @@
 //
 // Each bucket renders as a sticky-headed section so scrolling preserves
 // the "where am I in the timeline" cue.
-
 import type { NewsArticle, SymbolOrCurrencyTag } from '@kestrel/shared';
-import {IconBookmark, IconRefresh} from '@tabler/icons-react';
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { IconBookmark, IconRefresh } from '@tabler/icons-react';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { toast } from 'sonner';
 
 import { ArticleCard } from '@/components/news/article-card';
 import { useBookmarks } from '@/components/news/use-bookmarks';
@@ -44,8 +43,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
 import { startOfDay } from '@/lib/datetime';
+import { formatRelative } from '@/lib/format';
 
 import { NewsToolbar } from './news-toolbar';
 
@@ -96,14 +95,23 @@ export function NewsView({ initialArticles }: NewsViewProps) {
         `/api/news?${params.toString()}`,
       );
     },
-    getNextPageParam: (last: { hasMore: boolean; nextOffset: number }) => last.hasMore ? last.nextOffset : undefined,
+    getNextPageParam: (last: { hasMore: boolean; nextOffset: number }) =>
+      last.hasMore ? last.nextOffset : undefined,
     initialPageParam: 0,
-    ...((sentiment === 'all' && symbol === 'all' && !query) ? {
-      initialData: {
-        pages: [{ items: initialArticles, hasMore: initialArticles.length >= 120, nextOffset: initialArticles.length }],
-        pageParams: [0]
-      }
-    } : {}),
+    ...(sentiment === 'all' && symbol === 'all' && !query
+      ? {
+          initialData: {
+            pages: [
+              {
+                items: initialArticles,
+                hasMore: initialArticles.length >= 120,
+                nextOffset: initialArticles.length,
+              },
+            ],
+            pageParams: [0],
+          },
+        }
+      : {}),
   });
 
   const allArticles = useMemo(() => {
@@ -146,9 +154,7 @@ export function NewsView({ initialArticles }: NewsViewProps) {
         counts.set(s, (counts.get(s) ?? 0) + 1);
       }
     }
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([tag]) => tag);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([tag]) => tag);
   }, [allArticles]);
 
   const filtered = useMemo(() => {
@@ -171,7 +177,7 @@ export function NewsView({ initialArticles }: NewsViewProps) {
           fetchNextPage();
         }
       },
-      { rootMargin: '200px' }
+      { rootMargin: '200px' },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -199,9 +205,9 @@ export function NewsView({ initialArticles }: NewsViewProps) {
           aria-pressed={savedOnly}
           disabled={savedCount === 0}
           className={cn(
-            'inline-flex min-h-11 items-center gap-1.5 rounded-sm border px-3 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-fg focus-visible:outline-none',
+            'focus-visible:ring-fg inline-flex min-h-11 items-center gap-1.5 rounded-sm border px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40',
             savedOnly
-              ? 'bg-fg text-black border-border'
+              ? 'bg-fg border-border text-black'
               : 'border-border bg-bg-elev-1/60 text-fg-muted hover:text-fg',
           )}
         >
@@ -214,7 +220,7 @@ export function NewsView({ initialArticles }: NewsViewProps) {
           onClick={manualRefresh}
           disabled={pending}
           aria-label="Refresh now"
-          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex min-h-11 items-center gap-1.5 rounded-sm px-3 text-xs font-medium transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-fg focus-visible:outline-none"
+          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 focus-visible:ring-fg inline-flex min-h-11 items-center gap-1.5 rounded-sm px-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
         >
           <IconRefresh aria-hidden="true" className={cn('size-3.5', pending && 'animate-spin')} />
           {pending ? 'Refreshing…' : `Updated ${formatRelative(lastRefreshed)}`}
@@ -238,7 +244,7 @@ export function NewsView({ initialArticles }: NewsViewProps) {
           {buckets.map(([label, items]) => (
             <section key={label} className="flex flex-col gap-3">
               <h2
-                className="bg-bg-elev-1/95 text-fg-subtle sticky z-10 -mx-4 flex items-baseline gap-2 px-5 py-2 text-caption font-semibold uppercase tracking-wider"
+                className="bg-bg-elev-1/95 text-fg-subtle text-caption sticky z-10 -mx-4 flex items-baseline gap-2 px-5 py-2 font-semibold tracking-wider uppercase"
                 style={{ top: 'calc(var(--topbar-h) + env(safe-area-inset-top))' }}
               >
                 {label}
@@ -262,9 +268,13 @@ export function NewsView({ initialArticles }: NewsViewProps) {
                 <SkeletonCard className="h-24" lines={3} />
               </>
             ) : allArticles.length > 0 && !hasNextPage ? (
-              <span className="text-xs text-fg-muted text-center py-2">{allArticles.length} articles loaded</span>
+              <span className="text-fg-muted py-2 text-center text-xs">
+                {allArticles.length} articles loaded
+              </span>
             ) : allArticles.length > 0 ? (
-              <span className="text-xs text-fg-muted text-center py-2">{allArticles.length} articles loaded · scroll for more</span>
+              <span className="text-fg-muted py-2 text-center text-xs">
+                {allArticles.length} articles loaded · scroll for more
+              </span>
             ) : null}
           </div>
         </div>
@@ -309,4 +319,3 @@ function bucketByTime(articles: readonly NewsArticle[]): Bucket[] {
   if (older.length) buckets.push(['Older', older]);
   return buckets;
 }
-

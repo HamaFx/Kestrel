@@ -28,6 +28,7 @@
 // (start/stop/reconnect callbacks vs raw WebSocket events).
 
 import WebSocket from 'ws';
+
 import type { Logger } from './log.js';
 
 /** Default reconnect delays: 1s, 2s, 5s, 10s, 30s, then capped. */
@@ -140,7 +141,10 @@ export abstract class BaseWsConsumer {
     const delays = this.getReconnectDelays();
     const delay = delays[Math.min(this.reconnectAttempt, delays.length - 1)]!;
     this.reconnectAttempt += 1;
-    this.log.info(this.constructor.name + ' reconnect in', { delayMs: delay, attempt: this.reconnectAttempt });
+    this.log.info(this.constructor.name + ' reconnect in', {
+      delayMs: delay,
+      attempt: this.reconnectAttempt,
+    });
     this.reconnectTimer = setTimeout(() => this.connect(), delay);
   }
 

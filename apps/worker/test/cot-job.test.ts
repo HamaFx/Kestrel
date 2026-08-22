@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
+import * as ai from '@kestrel/ai';
+import { cftc } from '@kestrel/data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runCoT } from '../src/jobs/cot';
+import { createLogger } from '../src/log';
+import { TenantRouter } from '../src/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   upsertCoTReport: vi.fn(),
@@ -31,13 +37,6 @@ vi.mock('@kestrel/data', () => ({
     toCftcName: (s: string) => `cftc:${s}`,
   },
 }));
-
-import * as ai from '@kestrel/ai';
-import { cftc } from '@kestrel/data';
-
-import { runCoT } from '../src/jobs/cot';
-import { TenantRouter } from '../src/tenant-router';
-import { createLogger } from '../src/log';
 
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
@@ -85,10 +84,7 @@ describe('runCoT', () => {
 
   it('skips rows whose report_date_as_yyyy_mm_dd is malformed', async () => {
     const bad = { ...(SAMPLE_ROW as Record<string, unknown>), report_date_as_yyyy_mm_dd: '' };
-    vi.mocked(cftc.fetchLatestRows).mockResolvedValue([
-      bad as never,
-      SAMPLE_ROW,
-    ] as never);
+    vi.mocked(cftc.fetchLatestRows).mockResolvedValue([bad as never, SAMPLE_ROW] as never);
     vi.mocked(ai.upsertCoTReport).mockResolvedValue(undefined as never);
 
     await runCoT({ log, signal: new AbortController().signal, tenantRouter: testRouter });

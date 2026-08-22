@@ -42,9 +42,9 @@ describe('loadEnv', () => {
   });
 
   it('throws when neither DATABASE_URL nor POSTGRES_URL is set in production', () => {
-    expect(() =>
-      loadEnv({ NODE_ENV: 'production' } as unknown as NodeJS.ProcessEnv),
-    ).toThrow(/DATABASE_URL or POSTGRES_URL/);
+    expect(() => loadEnv({ NODE_ENV: 'production' } as unknown as NodeJS.ProcessEnv)).toThrow(
+      /DATABASE_URL or POSTGRES_URL/,
+    );
   });
 
   it('allows missing DATABASE_URL in development (PGlite mode)', () => {
@@ -55,9 +55,9 @@ describe('loadEnv', () => {
   });
 
   it('rejects malformed URLs', () => {
-    expect(() =>
-      loadEnv({ DATABASE_URL: 'not-a-url' } as unknown as NodeJS.ProcessEnv),
-    ).toThrow(/Invalid worker environment/);
+    expect(() => loadEnv({ DATABASE_URL: 'not-a-url' } as unknown as NodeJS.ProcessEnv)).toThrow(
+      /Invalid worker environment/,
+    );
   });
 
   it('honors BIQUOTE_HUB_URL override when set', () => {

@@ -49,7 +49,6 @@ import type { z } from 'zod';
 import { getDb } from '../db';
 import { runMastraText } from '../mastra/text-runner';
 import { resolveModel, resolveVisionModel } from '../model';
-import { telemetryConfig } from '../telemetry';
 import { maybeGetToolContext, type ToolDb } from '../tool-context';
 
 const InputSchema = AnalyzeChartImageInputSchema;

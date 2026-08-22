@@ -31,7 +31,9 @@
  * own dedicated test file (vertex-byok.test.ts).
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { testProviderKey } from '../src/model';
 
 // model.ts pulls in @kestrel/shared/encryption, which itself imports
 // 'server-only' (throws at import time outside a server runtime). We
@@ -81,8 +83,6 @@ vi.mock('@kestrel/db', () => ({
   },
 }));
 
-import { testProviderKey } from '../src/model';
-
 describe('testProviderKey — actually contacts the provider', () => {
   beforeEach(() => {
     generateTextMock.mockReset();
@@ -97,10 +97,7 @@ describe('testProviderKey — actually contacts the provider', () => {
     generateTextMock.mockRejectedValueOnce(apiError);
 
     // 30+ char opaque key passes the min-length floor
-    const result = await testProviderKey(
-      'mistral',
-      'msk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    );
+    const result = await testProviderKey('mistral', 'msk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
     expect(result.ok).toBe(false);
     if (!result.ok) {
       // The status code should be lifted into the user-facing message.
@@ -113,10 +110,7 @@ describe('testProviderKey — actually contacts the provider', () => {
   it('returns ok=true when generateText resolves', async () => {
     generateTextMock.mockResolvedValueOnce({ text: 'ok' });
 
-    const result = await testProviderKey(
-      'openai',
-      'sk-abcdefghijklmnopqrstuvwxyz1234567890',
-    );
+    const result = await testProviderKey('openai', 'sk-abcdefghijklmnopqrstuvwxyz1234567890');
     expect(result.ok).toBe(true);
     expect(generateTextMock).toHaveBeenCalledOnce();
     // The prompt should be tiny (maxOutputTokens: 1) — confirm we
@@ -133,10 +127,7 @@ describe('testProviderKey — actually contacts the provider', () => {
   it('returns ok=false with a friendly message on network error', async () => {
     generateTextMock.mockRejectedValueOnce(new Error('fetch failed'));
 
-    const result = await testProviderKey(
-      'groq',
-      'gsk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    );
+    const result = await testProviderKey('groq', 'gsk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
     expect(result.ok).toBe(false);
     if (!result.ok) {
       // Plain Error path — no statusCode → just the extracted message.

@@ -22,7 +22,7 @@
 // settings sub-pages, and offline page.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Navigation — authenticated routes', () => {
   const routes = [

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Phase 8 — Task 39: Database health check endpoint
@@ -8,14 +24,15 @@
 //
 // Returns 200 if both checks pass, 503 if either fails.
 
-import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/services/api-boundary';
-import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
-
-import { withAuth } from '@/lib/api';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { sql } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
+
+import { withAuth } from '@/lib/api';
+import { getDb } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,7 +40,20 @@ export const dynamic = 'force-dynamic';
 function getExpectedMigrationCount(): number | null {
   try {
     const here = dirname(fileURLToPath(import.meta.url));
-    const journalPath = join(here, '..', '..', '..', '..', '..', '..', 'packages', 'db', 'drizzle', 'meta', '_journal.json');
+    const journalPath = join(
+      here,
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      'packages',
+      'db',
+      'drizzle',
+      'meta',
+      '_journal.json',
+    );
     const journal = JSON.parse(readFileSync(journalPath, 'utf-8')) as { entries: unknown[] };
     return journal.entries.length;
   } catch {
@@ -74,7 +104,9 @@ export const GET = withAuth<void>(async () => {
   let migrations: DbHealthResult['migrations'] = {
     ok: false,
     expected: expectedMigrations ?? 0,
-    ...(expectedMigrations === null ? { message: 'migration journal unavailable in deployment' } : {}),
+    ...(expectedMigrations === null
+      ? { message: 'migration journal unavailable in deployment' }
+      : {}),
   };
   try {
     const db = getDb();
@@ -84,10 +116,17 @@ export const GET = withAuth<void>(async () => {
         ok: actual >= expectedMigrations,
         expected: expectedMigrations,
         actual,
-        ...(actual < expectedMigrations ? { message: `missing ${expectedMigrations - actual} migrations` } : {}),
+        ...(actual < expectedMigrations
+          ? { message: `missing ${expectedMigrations - actual} migrations` }
+          : {}),
       };
     } else {
-      migrations = { ok: false, expected: 0, actual, message: 'migration journal unavailable in deployment' };
+      migrations = {
+        ok: false,
+        expected: 0,
+        actual,
+        message: 'migration journal unavailable in deployment',
+      };
     }
   } catch (err) {
     migrations = {

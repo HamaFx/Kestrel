@@ -39,9 +39,10 @@
 //
 // Adapters may pre-filter the provider list (e.g. candles-capable only).
 
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+
 import { ProviderEmptyError, ProviderError } from './errors';
 import { getScore, recordFailure, recordSuccess } from './health';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 const flog = createCategorizedLogger('market_data', { component: 'failover' });
 
@@ -80,7 +81,7 @@ export async function runWithFailover<T>(
       dynamic.push({ a, i, score: getScore(a.name) });
     }
   });
-  dynamic.sort((x, y) => (y.score - x.score) || (x.i - y.i));
+  dynamic.sort((x, y) => y.score - x.score || x.i - y.i);
   const ordered: ProviderAttempt<T>[] = [...pinned, ...dynamic.map((s) => s.a)];
 
   let firstError: ProviderError | null = null;
@@ -117,7 +118,11 @@ export async function runWithFailover<T>(
       // different quota.
     }
   }
-  throw bestError ?? firstError ?? new ProviderError('NO_PROVIDER_AVAILABLE', 'none', 'all providers failed');
+  throw (
+    bestError ??
+    firstError ??
+    new ProviderError('NO_PROVIDER_AVAILABLE', 'none', 'all providers failed')
+  );
 }
 
 /**

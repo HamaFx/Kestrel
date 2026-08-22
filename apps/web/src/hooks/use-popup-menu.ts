@@ -25,8 +25,7 @@
 //   - Roving keyboard navigation (ArrowUp/Down, Home, End, Tab wrap)
 //   - Focus stays inside the menu while it is open
 //   - ARIA attributes for trigger and menu
-
-import { useEffect, useRef, useState, useCallback, useId } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 interface UsePopupMenuOptions {
   /** Whether to auto-focus the first menuitem on open. */
@@ -73,15 +72,12 @@ export function usePopupMenu(opts: UsePopupMenuOptions = {}): UsePopupMenuResult
     return Array.from(menuRef.current.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
   }, []);
 
-  const focusItem = useCallback(
-    (index: number, focusable: HTMLButtonElement[]) => {
-      if (focusable.length === 0) return;
-      const clamped = Math.max(0, Math.min(index, focusable.length - 1));
-      activeIndexRef.current = clamped;
-      focusable[clamped]?.focus();
-    },
-    [],
-  );
+  const focusItem = useCallback((index: number, focusable: HTMLButtonElement[]) => {
+    if (focusable.length === 0) return;
+    const clamped = Math.max(0, Math.min(index, focusable.length - 1));
+    activeIndexRef.current = clamped;
+    focusable[clamped]?.focus();
+  }, []);
 
   // Focus first item on open (if requested). Return focus to trigger on close.
   useEffect(() => {

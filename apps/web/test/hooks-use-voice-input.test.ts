@@ -1,6 +1,23 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { useVoiceInput } from '../src/hooks/use-voice-input';
 
 afterEach(() => {
@@ -9,16 +26,18 @@ afterEach(() => {
 
 describe('useVoiceInput — no SpeechRecognition', () => {
   it('reports supported=false when window is undefined', () => {
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn() }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn() }));
     expect(result.current.supported).toBe(false);
     expect(result.current.active).toBe(false);
   });
 });
 
 describe('useVoiceInput — with SpeechRecognition', () => {
-  let mockRecognition: { start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn>; abort: ReturnType<typeof vi.fn> };
+  let mockRecognition: {
+    start: ReturnType<typeof vi.fn>;
+    stop: ReturnType<typeof vi.fn>;
+    abort: ReturnType<typeof vi.fn>;
+  };
   let SpeechRecognitionCtor: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -43,17 +62,13 @@ describe('useVoiceInput — with SpeechRecognition', () => {
   });
 
   it('reports supported=true when SpeechRecognition exists', () => {
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn() }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn() }));
     expect(result.current.supported).toBe(true);
     expect(result.current.active).toBe(false);
   });
 
   it('start creates a recognition session and sets active=true', () => {
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn() }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn() }));
     act(() => result.current.start());
     expect(SpeechRecognitionCtor).toHaveBeenCalled();
     expect(mockRecognition.start).toHaveBeenCalled();
@@ -61,9 +76,7 @@ describe('useVoiceInput — with SpeechRecognition', () => {
   });
 
   it('stop sets active=false and calls stop on the recognition instance', () => {
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn() }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn() }));
     act(() => result.current.start());
     expect(result.current.active).toBe(true);
     act(() => result.current.stop());
@@ -72,9 +85,7 @@ describe('useVoiceInput — with SpeechRecognition', () => {
   });
 
   it('onend callback sets active=false and clears ref', () => {
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn() }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn() }));
     act(() => result.current.start());
     const instance = SpeechRecognitionCtor.mock.results[0].value;
     expect(instance.onend).toBeDefined();
@@ -84,9 +95,7 @@ describe('useVoiceInput — with SpeechRecognition', () => {
 
   it('onresult callback calls onText with the concatenated transcript', () => {
     const onText = vi.fn();
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText }));
     act(() => result.current.start());
     const instance = SpeechRecognitionCtor.mock.results[0].value;
     act(() => {
@@ -102,9 +111,7 @@ describe('useVoiceInput — with SpeechRecognition', () => {
 
   it('onerror with not-allowed calls onError with permission message', () => {
     const onError = vi.fn();
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn(), onError }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn(), onError }));
     act(() => result.current.start());
     const instance = SpeechRecognitionCtor.mock.results[0].value;
     act(() => {
@@ -116,9 +123,7 @@ describe('useVoiceInput — with SpeechRecognition', () => {
 
   it('onerror with no-speech calls onError with appropriate message', () => {
     const onError = vi.fn();
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn(), onError }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn(), onError }));
     act(() => result.current.start());
     const instance = SpeechRecognitionCtor.mock.results[0].value;
     act(() => {
@@ -128,18 +133,14 @@ describe('useVoiceInput — with SpeechRecognition', () => {
   });
 
   it('aborts the recognition session on unmount', () => {
-    const { result, unmount } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn() }),
-    );
+    const { result, unmount } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn() }));
     act(() => result.current.start());
     unmount();
     expect(mockRecognition.abort).toHaveBeenCalled();
   });
 
   it('start is a no-op when already active', () => {
-    const { result } = renderHook(() =>
-      useVoiceInput({ lang: 'en-US', onText: vi.fn() }),
-    );
+    const { result } = renderHook(() => useVoiceInput({ lang: 'en-US', onText: vi.fn() }));
     act(() => result.current.start());
     const callCount = SpeechRecognitionCtor.mock.calls.length;
     act(() => result.current.start());

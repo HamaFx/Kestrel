@@ -18,14 +18,14 @@
 // Imported by tools/index.ts for self-registration and also exposed
 // as a sub-path export: @kestrel/ai/tools/journal
 
-import { logJournalTool } from './log-journal';
+import { getCalendarTool } from './get-calendar';
 import { getJournalStatsTool } from './get-journal-stats';
 import { getNewsTool } from './get-news';
-import { getCalendarTool } from './get-calendar';
-import { setAlertTool } from './set-alert';
-import { searchKnowledgeTool } from './search-knowledge';
-import { shareSnapshotTool } from './share-snapshot';
+import { logJournalTool } from './log-journal';
 import { toolRegistry } from './registry';
+import { searchKnowledgeTool } from './search-knowledge';
+import { setAlertTool } from './set-alert';
+import { shareSnapshotTool } from './share-snapshot';
 
 const journalTools = [
   ['log_journal', logJournalTool],

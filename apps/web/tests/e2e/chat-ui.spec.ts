@@ -23,7 +23,7 @@
 // on AI model availability.
 // ---------------------------------------------------------------------------
 
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Chat UI — empty state', () => {
   test('shows branded empty state when no messages exist', async ({ authedPage }) => {
@@ -38,7 +38,12 @@ test.describe('Chat UI — empty state', () => {
     // Empty-state copy and adaptive quick prompts should be present.
     await expect(page.getByText('What are you watching?')).toBeVisible();
     await expect(page.getByText(/Ask Kestrel about price action/i)).toBeVisible();
-    await expect(page.locator('button').filter({ hasText: /session|calendar|structure|gold|XAU|bias/i }).first()).toBeVisible();
+    await expect(
+      page
+        .locator('button')
+        .filter({ hasText: /session|calendar|structure|gold|XAU|bias/i })
+        .first(),
+    ).toBeVisible();
   });
 
   test('empty state has functional quick prompt buttons', async ({ authedPage }) => {
@@ -46,7 +51,10 @@ test.describe('Chat UI — empty state', () => {
     await page.goto('/chat');
 
     // Quick prompts should be clickable
-    const firstPrompt = page.locator('button').filter({ hasText: /session|calendar|structure|gold|XAU|bias/i }).first();
+    const firstPrompt = page
+      .locator('button')
+      .filter({ hasText: /session|calendar|structure|gold|XAU|bias/i })
+      .first();
     await expect(firstPrompt).toBeEnabled();
   });
 });
@@ -150,7 +158,10 @@ test.describe('Chat UI — message rendering', () => {
     await expect(copyButton).toBeAttached();
   });
 
-  test('regenerate button appears on last assistant message', async ({ authedPage, mockChatApi }) => {
+  test('regenerate button appears on last assistant message', async ({
+    authedPage,
+    mockChatApi,
+  }) => {
     const page = authedPage;
     await mockChatApi(page);
 

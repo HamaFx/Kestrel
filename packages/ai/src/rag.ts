@@ -31,10 +31,10 @@
 // behaviour stays bit-stable when the agent doesn't ask for memory.
 
 import { schema } from '@kestrel/db';
-import { getDb } from './db';
 import type { NewsSentiment, SearchKnowledgeItem, Symbol } from '@kestrel/shared';
 import { sql } from 'drizzle-orm';
 
+import { getDb } from './db';
 import { embedTexts, vectorLiteral } from './embeddings';
 import { searchMemory, type MemoryKind, type MemoryRow } from './memory/memory-index';
 
@@ -109,8 +109,7 @@ interface SubQueryArgs {
 async function runDenseNewsQuery(args: SubQueryArgs): Promise<RagRow[]> {
   const { embedding, limit, since, symbol } = args;
   const vec = vectorLiteral(embedding);
-  const sinceClause =
-    since !== undefined ? sql`AND na.published_at >= ${new Date(since)}` : sql``;
+  const sinceClause = since !== undefined ? sql`AND na.published_at >= ${new Date(since)}` : sql``;
   const symbolClause =
     symbol !== undefined ? sql`AND na.symbols && ARRAY[${symbol}]::text[]` : sql``;
 
@@ -137,7 +136,7 @@ async function runDenseNewsQuery(args: SubQueryArgs): Promise<RagRow[]> {
 
   // db.execute() returns a RowList in drizzle-orm v0.40+.
   // Cast through unknown to access the underlying postgres-js result rows.
-  const rows = (result as unknown as RagRow[]);
+  const rows = result as unknown as RagRow[];
   return (rows as RagRow[]).map((r) => ({
     ...r,
     publishedAt: r.publishedAt instanceof Date ? r.publishedAt : new Date(r.publishedAt),
@@ -154,8 +153,7 @@ async function runFtsNewsQuery(args: FtsSubQueryArgs): Promise<RagRow[]> {
   // websearch_to_tsquery is the right primitive: tolerates raw user
   // strings ("FOMC minutes hawkish") without requiring `&` joining.
   const tsq = sql`websearch_to_tsquery('english', ${query})`;
-  const sinceClause =
-    since !== undefined ? sql`AND na.published_at >= ${new Date(since)}` : sql``;
+  const sinceClause = since !== undefined ? sql`AND na.published_at >= ${new Date(since)}` : sql``;
   const symbolClause =
     symbol !== undefined ? sql`AND na.symbols && ARRAY[${symbol}]::text[]` : sql``;
 
@@ -185,7 +183,7 @@ async function runFtsNewsQuery(args: FtsSubQueryArgs): Promise<RagRow[]> {
 
   // db.execute() returns a RowList in drizzle-orm v0.40+.
   // Cast through unknown to access the underlying postgres-js result rows.
-  const rows = (result as unknown as RagRow[]);
+  const rows = result as unknown as RagRow[];
   return (rows as RagRow[]).map((r) => ({
     ...r,
     publishedAt: r.publishedAt instanceof Date ? r.publishedAt : new Date(r.publishedAt),
@@ -233,10 +231,7 @@ export function rrfFuse(rankings: RagRow[][]): RagRow[] {
 
 /** Exported for testing — pure time-decay function. */
 export function decayRow(row: RagRow, halflifeDays: number): RagRow {
-  const ageDays = Math.max(
-    0,
-    (Date.now() - row.publishedAt.getTime()) / (24 * 60 * 60 * 1000),
-  );
+  const ageDays = Math.max(0, (Date.now() - row.publishedAt.getTime()) / (24 * 60 * 60 * 1000));
   // exp(-ln2 * age / halflife) — a true halflife model.
   const factor = Math.exp(-Math.LN2 * (ageDays / halflifeDays));
   return { ...row, similarity: row.similarity * factor };

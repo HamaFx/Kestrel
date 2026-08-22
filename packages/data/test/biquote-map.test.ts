@@ -18,13 +18,13 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { ProviderError } from '../src/errors';
+import { assertSupportedSymbol } from '../src/providers/biquote/filter';
 import {
   parseBiquoteDate,
   toBiquoteSymbol,
   toBiquoteTimeframe,
 } from '../src/providers/biquote/map';
-import { assertSupportedSymbol } from '../src/providers/biquote/filter';
-import { ProviderError } from '../src/errors';
 
 describe('biquote map', () => {
   it('maps every supported symbol identically (BiQuote uses our codes)', () => {

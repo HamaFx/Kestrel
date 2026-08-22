@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Premium stat card with solid surface and optional sparkline. Used by
@@ -50,11 +66,11 @@ export function StatCard({ icon, label, value, tone = 'fg', sparkline }: StatCar
       aria-label={`${label}: ${value}`}
       className={cn(
         'relative flex flex-col gap-2 overflow-hidden rounded-sm',
-        'border border-border border-l-2 bg-bg-elev-1 p-3 sm:p-4',
+        'border-border bg-bg-elev-1 border border-l-2 p-3 sm:p-4',
         TONE_TINT[tone],
       )}
     >
-      <div className="text-fg-subtle relative flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wider">
+      <div className="text-fg-subtle text-caption relative flex items-center gap-1.5 font-semibold tracking-wider uppercase">
         {icon ? (
           <span className={cn('inline-flex h-4 w-4 items-center justify-center', TONE_CLASS[tone])}>
             {icon}
@@ -64,14 +80,18 @@ export function StatCard({ icon, label, value, tone = 'fg', sparkline }: StatCar
       </div>
       <div
         className={cn(
-          'text-lg font-bold tabular-nums leading-none tracking-tight font-mono',
+          'font-mono text-lg leading-none font-bold tracking-tight tabular-nums',
           TONE_CLASS[tone],
         )}
       >
         {value}
       </div>
       {sparkline && sparkline.length >= 2 ? (
-        <Sparkline values={sparkline} label={label} className={cn('h-6 w-full opacity-70', TONE_CLASS[tone])} />
+        <Sparkline
+          values={sparkline}
+          label={label}
+          className={cn('h-6 w-full opacity-70', TONE_CLASS[tone])}
+        />
       ) : (
         <div className="h-6" />
       )}

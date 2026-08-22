@@ -18,14 +18,14 @@
 // Message CRUD + parts stripping. Thread and telemetry live in their own modules.
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import { getMessageText } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import { and, asc, eq } from 'drizzle-orm';
 
-import { getThread } from './thread-persistence';
-import { enqueuePersistenceFailure } from '../persistence-outbox';
+import { getDb } from '../db';
 import { getDiagnosticContext } from '../diagnostics/run-context';
+import { enqueuePersistenceFailure } from '../persistence-outbox';
+import { getThread } from './thread-persistence';
 
 // ---------------------------------------------------------------------------
 // Messages
@@ -43,7 +43,11 @@ export interface DbMessage {
   idempotencyKey?: string | null;
 }
 
-export async function listMessages(userId: string, threadId: string, limit = 200): Promise<DbMessage[]> {
+export async function listMessages(
+  userId: string,
+  threadId: string,
+  limit = 200,
+): Promise<DbMessage[]> {
   const thread = await getThread(userId, threadId);
   if (!thread) return [];
   const rows = await getDb()
@@ -208,14 +212,20 @@ const STRIP_FIELDS: ReadonlySet<string> = new Set([
 function stripPartsForStorage(parts: unknown): unknown {
   if (!Array.isArray(parts)) return parts;
   return parts.map((p) => {
-    if (p === null || typeof p !== 'object' || !('type' in (p as Record<string, unknown>))) return p;
+    if (p === null || typeof p !== 'object' || !('type' in (p as Record<string, unknown>)))
+      return p;
     const part = p as { type: unknown; output?: unknown };
-    if (part.type !== 'tool-result' || typeof part.output !== 'object' || part.output === null) return p;
+    if (part.type !== 'tool-result' || typeof part.output !== 'object' || part.output === null)
+      return p;
     const output = part.output as Record<string, unknown>;
     let modified = false;
     const next: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(output)) {
-      if (STRIP_FIELDS.has(k)) { next[k] = '[stripped]'; modified = true; continue; }
+      if (STRIP_FIELDS.has(k)) {
+        next[k] = '[stripped]';
+        modified = true;
+        continue;
+      }
       next[k] = v;
     }
     return modified ? { ...part, output: next } : p;

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -17,10 +33,10 @@
  * regex missed.
  */
 
-import { PromptInjectionDetector, UnicodeNormalizer } from '@mastra/core/processors';
-import type { LanguageModel } from 'ai';
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { PromptInjectionDetector, UnicodeNormalizer } from '@mastra/core/processors';
+import type { LanguageModel } from 'ai';
 
 import { resolveChatModel } from '../model';
 import type { ResolveModelEnv } from '../vertex-factory';
@@ -50,9 +66,10 @@ export interface GuardrailOptions {
  *
  * Returns `null` when no BYOK model is available (detector cannot run).
  */
-export function buildGuardrailInputProcessors(
-  options: GuardrailOptions,
-): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[] } {
+export function buildGuardrailInputProcessors(options: GuardrailOptions): {
+  processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
+  warnings: string[];
+} {
   const warnings: string[] = [];
   const normalizer = new UnicodeNormalizer({
     stripControlChars: true,

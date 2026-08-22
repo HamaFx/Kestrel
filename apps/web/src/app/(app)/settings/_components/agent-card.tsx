@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Phase 7c — link to the schema-driven /settings/agent catalogue page.
@@ -5,7 +21,7 @@
 // Right-arrow link so the settings list reads consistently.
 
 import { buildToolCatalogue } from '@kestrel/ai';
-import {IconRobot, IconChevronRight} from '@tabler/icons-react';
+import { IconChevronRight, IconRobot } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
 export async function AgentCard() {
@@ -16,7 +32,7 @@ export async function AgentCard() {
   return (
     <Link
       href="/settings/agent"
-      className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 flex items-center gap-3 rounded-sm border p-3 transition-colors focus-visible:ring-fg focus:outline-none focus-visible:ring-2"
+      className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 focus-visible:ring-fg flex items-center gap-3 rounded-sm border p-3 transition-colors focus:outline-none focus-visible:ring-2"
     >
       <span
         aria-hidden="true"
@@ -29,14 +45,17 @@ export async function AgentCard() {
         <IconRobot className="size-4" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-fg text-sm font-semibold leading-tight">Agent</span>
+        <span className="text-fg text-sm leading-tight font-semibold">Agent</span>
         <span className="text-fg-subtle text-xs leading-snug">
-          {entries.length} tool{entries.length === 1 ? '' : 's'} ·{' '}
-          {totalInvocations} invocation{totalInvocations === 1 ? '' : 's'} (24h)
+          {entries.length} tool{entries.length === 1 ? '' : 's'} · {totalInvocations} invocation
+          {totalInvocations === 1 ? '' : 's'} (24h)
           {totalFailures > 0 ? (
             <>
               {' '}
-              · <span className="text-danger">{totalFailures} failure{totalFailures === 1 ? '' : 's'}</span>
+              ·{' '}
+              <span className="text-danger">
+                {totalFailures} failure{totalFailures === 1 ? '' : 's'}
+              </span>
             </>
           ) : null}
         </span>

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `compute_position_health` tool part.
@@ -30,7 +46,7 @@ export function ComputePositionHealthPart({
     <div className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-3">
       <header className="flex items-baseline justify-between gap-2">
         <h3 className="text-fg text-sm font-semibold">Open positions</h3>
-        <span className="text-fg-subtle font-mono text-caption">
+        <span className="text-fg-subtle text-caption font-mono">
           {new Date(output.asOf).toISOString().slice(11, 16)}Z
         </span>
       </header>
@@ -42,7 +58,7 @@ export function ComputePositionHealthPart({
           return (
             <li
               key={r.entryId}
-              className="border-divider flex flex-col gap-0.5 rounded-sm border p-2 text-body-sm tabular-nums"
+              className="border-divider text-body-sm flex flex-col gap-0.5 rounded-sm border p-2 tabular-nums"
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-fg font-semibold">
@@ -51,9 +67,7 @@ export function ComputePositionHealthPart({
                 <span className={pnlTone}>
                   {r.pnlPips >= 0 ? '+' : ''}
                   {r.pnlPips.toFixed(1)} pips
-                  {r.pnlR !== null
-                    ? ` · ${r.pnlR >= 0 ? '+' : ''}${r.pnlR.toFixed(2)}R`
-                    : ''}
+                  {r.pnlR !== null ? ` · ${r.pnlR >= 0 ? '+' : ''}${r.pnlR.toFixed(2)}R` : ''}
                 </span>
               </div>
               <div className="text-fg-muted flex flex-wrap gap-x-3">
@@ -85,7 +99,7 @@ export function ComputePositionHealthPart({
       {output.partial ? (
         <p
           role="note"
-          className="text-warn border-warn/30 bg-warn/5 rounded-sm border px-2 py-1 text-body-sm"
+          className="text-warn border-warn/30 bg-warn/5 text-body-sm rounded-sm border px-2 py-1"
         >
           One or more positions skipped due to a price-fetch failure.
         </p>

@@ -1,7 +1,50 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { getDb, getUserPasswordHash, updateUserDisplayName } from '@kestrel/db';
+// Pre-register mock DB in the container BEFORE @kestrel/ai is imported.
+// importOriginal for @kestrel/ai runs db.ts which does container.register('db', ...),
+// but since @kestrel/db is mocked and getRawDb = mockGetDb, the container will
+// resolve to mockGetDb correctly.
+import { container } from '@kestrel/shared';
+import {
+  decryptByok,
+  decryptWithPassword,
+  encryptByok,
+  encryptWithPassword,
+  PROVIDER_IDS,
+} from '@kestrel/shared/encryption';
+import * as Sentry from '@sentry/nextjs';
 import bcrypt from 'bcryptjs';
+import { revalidatePath } from 'next/cache';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+
+import { auth } from '@/auth';
+
+import {
+  addSymbolAction,
+  exportKeysAction,
+  importKeysAction,
+  removeSymbolAction,
+  updateProfileAction,
+  updateUsageSettingsAction,
+} from '../src/app/(app)/settings/actions';
+import { mockNextAuthSession } from './auth-helpers';
 
 // Transparent mock of @kestrel/shared/encryption.
 vi.mock('@kestrel/shared/encryption', async () => {
@@ -11,14 +54,23 @@ vi.mock('@kestrel/shared/encryption', async () => {
     encryptByok: vi.fn((payload: unknown) => `enc:${JSON.stringify(payload)}`),
     decryptByok: vi.fn((encrypted: string | null | undefined) => {
       if (!encrypted || !encrypted.startsWith('enc:')) return null;
-      try { return JSON.parse(encrypted.slice(4)); } catch { return null; }
+      try {
+        return JSON.parse(encrypted.slice(4));
+      } catch {
+        return null;
+      }
     }),
-    encryptWithPassword: vi.fn((payload: unknown, password: string) =>
-      `pwe:${password}:${JSON.stringify(payload)}`),
+    encryptWithPassword: vi.fn(
+      (payload: unknown, password: string) => `pwe:${password}:${JSON.stringify(payload)}`,
+    ),
     decryptWithPassword: vi.fn((encrypted: string, password: string) => {
       const prefix = `pwe:${password}:`;
       if (!encrypted.startsWith(prefix)) return null;
-      try { return JSON.parse(encrypted.slice(prefix.length)); } catch { return null; }
+      try {
+        return JSON.parse(encrypted.slice(prefix.length));
+      } catch {
+        return null;
+      }
     }),
   };
 });
@@ -53,7 +105,7 @@ vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 vi.mock('@kestrel/ai', async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>;
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     getDb: mockGetDb,
@@ -61,35 +113,7 @@ vi.mock('@kestrel/ai', async (importOriginal) => {
   };
 });
 
-// Pre-register mock DB in the container BEFORE @kestrel/ai is imported.
-// importOriginal for @kestrel/ai runs db.ts which does container.register('db', ...),
-// but since @kestrel/db is mocked and getRawDb = mockGetDb, the container will
-// resolve to mockGetDb correctly.
-import { container } from '@kestrel/shared';
 container.register('db', () => mockGetDb());
-
-import { mockNextAuthSession } from './auth-helpers';
-
-import { auth } from '@/auth';
-import { getDb, updateUserDisplayName, getUserPasswordHash } from '@kestrel/db';
-import * as Sentry from '@sentry/nextjs';
-import { revalidatePath } from 'next/cache';
-import {
-  PROVIDER_IDS,
-  encryptByok,
-  decryptByok,
-  encryptWithPassword,
-  decryptWithPassword,
-} from '@kestrel/shared/encryption';
-
-import {
-  updateProfileAction,
-  addSymbolAction,
-  removeSymbolAction,
-  exportKeysAction,
-  importKeysAction,
-  updateUsageSettingsAction,
-} from '../src/app/(app)/settings/actions';
 
 const USER_ID = 'user-test-001';
 const TEST_PASSWORD = 'my-strong-password-123';
@@ -250,8 +274,8 @@ describe('addSymbolAction', () => {
 
   it('adds symbol with correct display order', async () => {
     mockDb([
-      [{ symbol: 'BTCUSD' }],    // catalog select
-      [{ maxOrder: 4 }],          // maxOrder select
+      [{ symbol: 'BTCUSD' }], // catalog select
+      [{ maxOrder: 4 }], // maxOrder select
     ]);
     const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
     expect(result).toEqual({ ok: true });
@@ -260,8 +284,8 @@ describe('addSymbolAction', () => {
 
   it('starts displayOrder at 0 when user has no symbols', async () => {
     mockDb([
-      [{ symbol: 'BTCUSD' }],    // catalog select
-      [{ maxOrder: null }],       // maxOrder select
+      [{ symbol: 'BTCUSD' }], // catalog select
+      [{ maxOrder: null }], // maxOrder select
     ]);
     const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
     expect(result).toEqual({ ok: true });
@@ -269,8 +293,8 @@ describe('addSymbolAction', () => {
 
   it('handles onConflictDoNothing for duplicate symbol', async () => {
     mockDb([
-      [{ symbol: 'BTCUSD' }],    // catalog select
-      [{ maxOrder: 2 }],          // maxOrder select
+      [{ symbol: 'BTCUSD' }], // catalog select
+      [{ maxOrder: 2 }], // maxOrder select
     ]);
     const result = await addSymbolAction(formData({ symbol: 'btcusd' }));
     expect(result).toEqual({ ok: true });
@@ -279,7 +303,9 @@ describe('addSymbolAction', () => {
   it('captures Sentry exception on DB error', async () => {
     const db = mockQueryChain([]);
     mockGetDb.mockReturnValue(db);
-    db.select = vi.fn(() => { throw new Error('db timeout'); });
+    db.select = vi.fn(() => {
+      throw new Error('db timeout');
+    });
 
     const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
     expect(result).toEqual({ ok: false, error: 'db timeout' });
@@ -313,7 +339,9 @@ describe('removeSymbolAction', () => {
   it('captures Sentry exception on DB error', async () => {
     const db = mockQueryChain([]);
     mockGetDb.mockReturnValue(db);
-    db.delete = vi.fn(() => { throw new Error('permission denied'); });
+    db.delete = vi.fn(() => {
+      throw new Error('permission denied');
+    });
 
     const result = await removeSymbolAction(formData({ symbol: 'XAUUSD' }));
     expect(result).toEqual({ ok: false, error: 'permission denied' });
@@ -354,8 +382,8 @@ describe('exportKeysAction', () => {
     // exportKeysAction calls getDb() twice: once for 2FA check, once for keys.
     // The first getDb call selects twoFactorEnabled, the second selects aiApiKeys.
     mockDb([
-      [{ twoFactorEnabled: false }],   // 2FA check
-      [{ aiApiKeys: null }],           // key retrieval
+      [{ twoFactorEnabled: false }], // 2FA check
+      [{ aiApiKeys: null }], // key retrieval
     ]);
     const result = await exportKeysAction(TEST_PASSWORD);
     expect(result).toEqual({ ok: false, error: 'No keys configured to export' });
@@ -364,8 +392,8 @@ describe('exportKeysAction', () => {
   it('returns error when no keys are configured (empty after decrypt)', async () => {
     const payload = encryptByok({});
     mockDb([
-      [{ twoFactorEnabled: false }],   // 2FA check
-      [{ aiApiKeys: payload }],        // key retrieval
+      [{ twoFactorEnabled: false }], // 2FA check
+      [{ aiApiKeys: payload }], // key retrieval
     ]);
     const result = await exportKeysAction(TEST_PASSWORD);
     expect(result).toEqual({ ok: false, error: 'No keys configured to export' });
@@ -375,8 +403,8 @@ describe('exportKeysAction', () => {
     const originalKeys = { openai: 'sk-abc', anthropic: 'sk-def' };
     const payload = encryptByok(originalKeys);
     mockDb([
-      [{ twoFactorEnabled: false }],   // 2FA check
-      [{ aiApiKeys: payload }],        // key retrieval
+      [{ twoFactorEnabled: false }], // 2FA check
+      [{ aiApiKeys: payload }], // key retrieval
     ]);
     const result = await exportKeysAction(TEST_PASSWORD);
     expect(result.ok).toBe(true);
@@ -391,11 +419,11 @@ describe('exportKeysAction', () => {
     // Second getDb call: throws on select.
     const okDb = mockQueryChain([[{ twoFactorEnabled: false }]]);
     const badDb = mockQueryChain([]);
-    badDb.select = vi.fn(() => { throw new Error('read failure'); });
+    badDb.select = vi.fn(() => {
+      throw new Error('read failure');
+    });
 
-    mockGetDb
-      .mockReturnValueOnce(okDb)
-      .mockReturnValueOnce(badDb);
+    mockGetDb.mockReturnValueOnce(okDb).mockReturnValueOnce(badDb);
 
     const result = await exportKeysAction(TEST_PASSWORD);
     expect(result).toEqual({ ok: false, error: 'read failure' });
@@ -432,7 +460,10 @@ describe('importKeysAction', () => {
   });
 
   it('imports keys successfully (encryption round-trip)', async () => {
-    const backup = encryptWithPassword({ anthropic: 'sk-new1', google: 'AIza-new2' }, TEST_PASSWORD);
+    const backup = encryptWithPassword(
+      { anthropic: 'sk-new1', google: 'AIza-new2' },
+      TEST_PASSWORD,
+    );
     // verifyAccountPassword calls getUserPasswordHash → returns hashedTestPassword (set in beforeEach)
     // importKeysAction then calls getDb() once for the update
     mockDb();
@@ -457,7 +488,9 @@ describe('importKeysAction', () => {
 
     // importKeysAction calls getDb() once for the update
     const badDb = mockQueryChain([]);
-    badDb.update = vi.fn(() => { throw new Error('update failed'); });
+    badDb.update = vi.fn(() => {
+      throw new Error('update failed');
+    });
     mockGetDb.mockReturnValueOnce(badDb);
 
     const result = await importKeysAction(backup, TEST_PASSWORD);
@@ -483,11 +516,13 @@ describe('updateUsageSettingsAction', () => {
   });
 
   it('stores parsed monthlyBudgetLimit and alert flags', async () => {
-    const result = await updateUsageSettingsAction(formData({
-      monthlyBudgetLimit: '100',
-      emailAlert: 'on',
-      telegramAlert: 'on',
-    }));
+    const result = await updateUsageSettingsAction(
+      formData({
+        monthlyBudgetLimit: '100',
+        emailAlert: 'on',
+        telegramAlert: 'on',
+      }),
+    );
     expect(result).toEqual({ ok: true });
     expect(revalidatePath).toHaveBeenCalledWith('/settings/usage');
   });
@@ -495,12 +530,16 @@ describe('updateUsageSettingsAction', () => {
   it('captures Sentry exception on DB error', async () => {
     const db = mockQueryChain([]);
     mockGetDb.mockReturnValue(db);
-    db.update = vi.fn(() => { throw new Error('write conflict'); });
+    db.update = vi.fn(() => {
+      throw new Error('write conflict');
+    });
 
-    const result = await updateUsageSettingsAction(formData({
-      monthlyBudgetLimit: '100',
-      emailAlert: 'on',
-    }));
+    const result = await updateUsageSettingsAction(
+      formData({
+        monthlyBudgetLimit: '100',
+        emailAlert: 'on',
+      }),
+    );
     expect(result).toEqual({ ok: false, error: 'write conflict' });
     expect(Sentry.captureException).toHaveBeenCalled();
   });

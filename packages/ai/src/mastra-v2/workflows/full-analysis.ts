@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -26,9 +42,9 @@
 
 import { createHash } from 'node:crypto';
 
-import type { WorkflowRunState } from '@mastra/core/workflows';
-import type { WorkflowsStorage } from '@mastra/core/storage';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { WorkflowsStorage } from '@mastra/core/storage';
+import type { WorkflowRunState } from '@mastra/core/workflows';
 
 import { tryWorkflowClaimLock } from '../advisory-lock';
 import { getKestrelMastra } from '../instance';
@@ -98,23 +114,26 @@ async function workflowsStore(): Promise<WorkflowsStorage | undefined> {
   return (store as WorkflowsStorage | undefined) ?? undefined;
 }
 
-// The snapshot JSON is an opaque workflow state blob; spreading it back into
-// `persistWorkflowSnapshot` must carry its fields through. `any` (rather than
-// `Record<string, any>`) makes object-literal spreads retain an index
-// signature so the reconstructed state typechecks against WorkflowRunState.
-function parseSnapshot(snapshot: unknown): any {
+interface ParsedSnapshot {
+  status?: string;
+  result?: unknown;
+  context?: { input?: unknown };
+  [key: string]: unknown;
+}
+
+function parseSnapshot(snapshot: unknown): ParsedSnapshot | null {
   if (typeof snapshot === 'string') {
     try {
-      return JSON.parse(snapshot) as Record<string, any>;
+      return JSON.parse(snapshot) as ParsedSnapshot;
     } catch {
       return null;
     }
   }
-  if (snapshot && typeof snapshot === 'object') return snapshot as Record<string, any>;
+  if (snapshot && typeof snapshot === 'object') return snapshot as ParsedSnapshot;
   return null;
 }
 
-function payloadFromSnapshot(snapshot: Record<string, any> | null): FullAnalysisPayload | null {
+function payloadFromSnapshot(snapshot: ParsedSnapshot | null): FullAnalysisPayload | null {
   const input = snapshot?.context?.input as FullAnalysisPayload | undefined;
   if (!input || input.kind !== 'full-analysis') return null;
   return input;
@@ -156,9 +175,7 @@ function serializeError(error: unknown): { name: string; message: string } {
  * Returns the runId to hand to the client; `null` when the run record could
  * not be written (route maps that to a 500).
  */
-export async function enqueueFullAnalysis(
-  input: FullAnalysisEnqueueInput,
-): Promise<string | null> {
+export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Promise<string | null> {
   const store = await workflowsStore();
   if (!store) return null;
 
@@ -186,12 +203,13 @@ export async function enqueueFullAnalysis(
   await store.persistWorkflowSnapshot({
     workflowName: FULL_ANALYSIS_WORKFLOW_ID,
     runId,
-    resourceId: input.userId,      snapshot: {
-        runId,
-        status: 'pending' as const,
-        value: {},
-        context: runContext(payload),
-        serializedStepGraph: [],
+    resourceId: input.userId,
+    snapshot: {
+      runId,
+      status: 'pending' as const,
+      value: {},
+      context: runContext(payload),
+      serializedStepGraph: [],
       activePaths: [],
       activeStepsPath: {},
       suspendedPaths: {},
@@ -200,7 +218,11 @@ export async function enqueueFullAnalysis(
       timestamp: Date.now(),
     },
   });
-  flog.info('Enqueued full-analysis run', { runId, userId: input.userId, threadId: input.threadId });
+  flog.info('Enqueued full-analysis run', {
+    runId,
+    userId: input.userId,
+    threadId: input.threadId,
+  });
   return runId;
 }
 
@@ -218,7 +240,7 @@ export async function claimNextFullAnalysisRun(
 
   // Acquire a Postgres advisory lock so concurrent workers don't both
   // claim the same pending run. Best-effort: on PGlite or failure,
- // falls back to the read-verify-write pattern below.
+  // falls back to the read-verify-write pattern below.
   const releaseLock = await tryWorkflowClaimLock(FULL_ANALYSIS_WORKFLOW_ID);
   try {
     return await claimNextFullAnalysisRunInner(workerRunId, store);
@@ -240,10 +262,7 @@ async function claimNextFullAnalysisRunInner(
   const candidates = runs
     .map((run) => ({ run, snapshot: parseSnapshot(run.snapshot) }))
     .filter(({ snapshot }) => snapshot?.status === 'pending')
-    .sort(
-      (a, b) =>
-        (a.run.createdAt?.getTime?.() ?? 0) - (b.run.createdAt?.getTime?.() ?? 0),
-    );
+    .sort((a, b) => (a.run.createdAt?.getTime?.() ?? 0) - (b.run.createdAt?.getTime?.() ?? 0));
 
   for (const { run, snapshot } of candidates) {
     if (!snapshot) continue;
@@ -263,9 +282,9 @@ async function claimNextFullAnalysisRunInner(
       snapshot: {
         ...snapshot,
         status: 'running' as const,
-        context: { ...snapshot.context, input: updated },
+        context: { ...(snapshot.context ?? {}), input: updated },
         timestamp: Date.now(),
-      },
+      } as unknown as WorkflowRunState,
     });
 
     // Verify we own the claim (another claimer may have won the race).
@@ -274,7 +293,10 @@ async function claimNextFullAnalysisRunInner(
       workflowName: FULL_ANALYSIS_WORKFLOW_ID,
     });
     const verified = payloadFromSnapshot(parseSnapshot(verify?.snapshot));
-    if (verified?.workerRunId === workerRunId && verified.attemptCount === payload.attemptCount + 1) {
+    if (
+      verified?.workerRunId === workerRunId &&
+      verified.attemptCount === payload.attemptCount + 1
+    ) {
       return { runId: run.runId, payload: verified };
     }
   }
@@ -374,9 +396,9 @@ export async function recoverStaleFullAnalysisRuns(
         snapshot: {
           ...snapshot,
           status: 'pending' as const,
-          context: { ...snapshot.context, input: requeuedPayload },
+          context: { ...(snapshot.context ?? {}), input: requeuedPayload },
           timestamp: Date.now(),
-        },
+        } as unknown as WorkflowRunState,
       });
       requeued += 1;
     } else {
@@ -385,7 +407,10 @@ export async function recoverStaleFullAnalysisRuns(
         runId: run.runId,
         opts: {
           status: 'failed',
-          error: { name: 'JobTimeoutError', message: 'Job timed out — maximum worker attempts reached.' },
+          error: {
+            name: 'JobTimeoutError',
+            message: 'Job timed out — maximum worker attempts reached.',
+          },
         },
       });
       failed += 1;
@@ -410,7 +435,7 @@ export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<n
   let deleted = 0;
   for (const run of runs) {
     const snapshot = parseSnapshot(run.snapshot);
-    if (!snapshot || !TERMINAL.has(snapshot.status)) continue;
+    if (!snapshot || !snapshot.status || !TERMINAL.has(snapshot.status)) continue;
     const updatedAt = run.updatedAt instanceof Date ? run.updatedAt.getTime() : Date.now();
     if (updatedAt < retentionCutoff.getTime()) {
       await store.deleteWorkflowRunById({
@@ -450,11 +475,20 @@ export interface FullAnalysisQueueHealth {
  */
 export async function getFullAnalysisQueueHealth(): Promise<FullAnalysisQueueHealth> {
   const store = await workflowsStore();
-  if (!store) return { pending: 0, running: 0, stalePending: 0, stuckRunning: 0, unavailable: true };
+  if (!store)
+    return { pending: 0, running: 0, stalePending: 0, stuckRunning: 0, unavailable: true };
   try {
     const [pendingList, runningList] = await Promise.all([
-      store.listWorkflowRuns({ workflowName: FULL_ANALYSIS_WORKFLOW_ID, status: 'pending', perPage: false }),
-      store.listWorkflowRuns({ workflowName: FULL_ANALYSIS_WORKFLOW_ID, status: 'running', perPage: false }),
+      store.listWorkflowRuns({
+        workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+        status: 'pending',
+        perPage: false,
+      }),
+      store.listWorkflowRuns({
+        workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+        status: 'running',
+        perPage: false,
+      }),
     ]);
     const now = Date.now();
     const stalePending = pendingList.runs.filter((run) => {
@@ -494,7 +528,8 @@ export async function getFullAnalysisRun(
   if (!run || (run.resourceId && run.resourceId !== userId)) return null;
 
   const snapshot = parseSnapshot(run.snapshot);
-  const status: FullAnalysisRunView['status'] = STATUS_MAP[snapshot?.status] ?? 'pending';
+  const status: FullAnalysisRunView['status'] =
+    (snapshot?.status ? STATUS_MAP[snapshot.status] : undefined) ?? 'pending';
   const createdAt = run.createdAt instanceof Date ? run.createdAt.toISOString() : null;
   const updatedAt = run.updatedAt instanceof Date ? run.updatedAt.toISOString() : null;
   const terminal = status === 'complete' || status === 'failed';

@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Probe: enqueue (persistWorkflowSnapshot pending) → claim (updateWorkflowState running)
 // → worker executes workflow with same runId → poll (getWorkflowRunById).
 import { mkdtempSync, rmSync } from 'node:fs';

@@ -8,8 +8,7 @@
  *     http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import { readFileSync } from 'node:fs';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,26 +19,19 @@ import { closePGliteDb, getPGliteDb, sanitizeStatement } from '../src/pglite-cli
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
-const JOURNAL = JSON.parse(
-  readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8'),
-) as { entries: Array<{ tag: string }> };
-
+const JOURNAL = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf-8')) as {
+  entries: Array<{ tag: string }>;
+};
 
 function stripComments(sql: string): string {
   const lines = sql.split('\n');
-  while (
-    lines.length > 0 &&
-    (lines[0]!.trim() === '' || lines[0]!.trim().startsWith('--'))
-  ) {
+  while (lines.length > 0 && (lines[0]!.trim() === '' || lines[0]!.trim().startsWith('--'))) {
     lines.shift();
   }
   return lines.join('\n').trim();
 }
 
-async function applyOne(
-  db: Awaited<ReturnType<typeof getPGliteDb>>,
-  tag: string,
-): Promise<void> {
+async function applyOne(db: Awaited<ReturnType<typeof getPGliteDb>>, tag: string): Promise<void> {
   const rawSql = readFileSync(join(DRIZZLE_DIR, `${tag}.sql`), 'utf-8');
   for (const stmt of rawSql.split('--> statement-breakpoint')) {
     const trimmed = stripComments(stmt.trim());

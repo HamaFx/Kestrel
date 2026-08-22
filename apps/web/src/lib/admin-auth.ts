@@ -1,14 +1,30 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Wrapper that checks the authenticated user has admin privileges.
 // In single-user deployments (no admin role set), the sole authenticated
 // user is treated as admin. In multi-user deployments, requires role='admin'.
 
+import { getDb } from '@kestrel/ai';
+import { schema } from '@kestrel/db';
 import { eq, sql } from 'drizzle-orm';
 
 import { auth } from '@/auth';
-import { schema } from '@kestrel/db';
-import { getDb } from '@kestrel/ai';
 
 import { createRequestLogger } from './logger';
 
@@ -48,7 +64,10 @@ export async function getAdminUser(): Promise<AdminAuthResult> {
   // Admin if role is 'admin' OR if this is a single-user deployment
   // (no users with role='admin' exist, meaning the sole user is the operator)
   if (user.role === 'admin') {
-    return { admin: { userId: user.id, email: user.email, name: user.name }, reason: 'authenticated' };
+    return {
+      admin: { userId: user.id, email: user.email, name: user.name },
+      reason: 'authenticated',
+    };
   }
 
   // Single-user deployment check: if no admin role exists, the earliest
@@ -62,14 +81,15 @@ export async function getAdminUser(): Promise<AdminAuthResult> {
   const [firstUserSingleQuery] = await db
     .select({ id: schema.users.id })
     .from(schema.users)
-    .where(
-      sql`NOT EXISTS (SELECT 1 FROM ${schema.users} WHERE ${schema.users.role} = 'admin')`,
-    )
+    .where(sql`NOT EXISTS (SELECT 1 FROM ${schema.users} WHERE ${schema.users.role} = 'admin')`)
     .orderBy(schema.users.createdAt)
     .limit(1);
 
   if (firstUserSingleQuery && firstUserSingleQuery.id === user.id) {
-    return { admin: { userId: user.id, email: user.email, name: user.name }, reason: 'authenticated' };
+    return {
+      admin: { userId: user.id, email: user.email, name: user.name },
+      reason: 'authenticated',
+    };
   }
 
   return { admin: null, reason: 'forbidden' };
@@ -84,11 +104,12 @@ export function withAdminAuth<T = Record<string, never>>(
     if (!admin) {
       const status = reason === 'unauthenticated' ? 401 : 403;
       const code = reason === 'unauthenticated' ? 'UNAUTHORIZED' : 'FORBIDDEN';
-      const message = reason === 'unauthenticated' ? 'Authentication required' : 'Admin access required';
+      const message =
+        reason === 'unauthenticated' ? 'Authentication required' : 'Admin access required';
       log.warn('admin route access denied', { reason });
       return Response.json({ error: { code, message } }, { status });
     }
     log.info('admin route accessed', { userId: admin.userId });
-    return handler(req, { user: admin, params: ctx?.params ?? (Promise.resolve({} as T)) });
+    return handler(req, { user: admin, params: ctx?.params ?? Promise.resolve({} as T) });
   };
 }

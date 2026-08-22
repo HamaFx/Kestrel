@@ -17,8 +17,9 @@
 // Binance WebSocket consumer — extends BaseWsConsumer for kline streams.
 
 import WebSocket from 'ws';
-import type { Logger } from '../log.js';
+
 import { BaseWsConsumer } from '../base-ws-consumer.js';
+import type { Logger } from '../log.js';
 import type { NormalizedTick } from '../signalr/consumer.js';
 
 const BINANCE_WS_BASE = process.env.BINANCE_WS_URL ?? 'wss://stream.binance.com:9443';
@@ -65,9 +66,7 @@ export class BinanceStreamConsumer extends BaseWsConsumer {
       this.log.info('binance ws skipping — no symbols configured');
       return '';
     }
-    const streams = this.symbols
-      .map((s) => `${s.toLowerCase()}@kline_1m`)
-      .join('/');
+    const streams = this.symbols.map((s) => `${s.toLowerCase()}@kline_1m`).join('/');
     return `${BINANCE_WS_BASE}/stream?streams=${streams}`;
   }
 

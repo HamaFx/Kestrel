@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `get_candles` tool part.
@@ -21,7 +37,7 @@ import {
   type Symbol,
 } from '@kestrel/shared';
 
-import { SERIES_BULL_HEX, SERIES_BEAR_HEX } from '@/components/chart/chart-colors';
+import { SERIES_BEAR_HEX, SERIES_BULL_HEX } from '@/components/chart/chart-colors';
 import { cn } from '@/lib/cn';
 
 interface GetCandlesPartProps {
@@ -97,7 +113,7 @@ export function GetCandlesPart({ output, state, errorMessage }: GetCandlesPartPr
             return (
               <li
                 key={c.t}
-                className="text-fg-muted flex items-center justify-between text-body-sm tabular-nums"
+                className="text-fg-muted text-body-sm flex items-center justify-between tabular-nums"
               >
                 <time dateTime={new Date(c.t).toISOString()} className="text-fg-subtle">
                   {formatBarTime(c.t)}
@@ -115,7 +131,7 @@ export function GetCandlesPart({ output, state, errorMessage }: GetCandlesPartPr
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div className="flex flex-col">
-      <dt className="text-fg-subtle text-caption uppercase tracking-wide">{label}</dt>
+      <dt className="text-fg-subtle text-caption tracking-wide uppercase">{label}</dt>
       <dd className={cn('text-fg text-sm font-medium', tone)}>{value}</dd>
     </div>
   );

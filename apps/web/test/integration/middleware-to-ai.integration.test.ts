@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Integration test: Web → AI pipeline.
@@ -14,7 +30,10 @@
 //   - Request body validation with Zod schemas
 //   - Response serialization (JSON shape, status codes)
 
-import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+
+import { GET, POST } from '@/app/api/journal/route';
+import { auth } from '@/auth';
 
 // Mock @kestrel/ai journal functions
 const mockListEntries = vi.hoisted(() => vi.fn());
@@ -31,9 +50,6 @@ vi.mock('@kestrel/ai', () => ({
 vi.mock('@/auth', () => ({
   auth: mockAuthFn,
 }));
-
-import { auth } from '@/auth';
-import { GET, POST } from '@/app/api/journal/route';
 
 const USER_ID = 'test-user-001';
 
@@ -71,8 +87,14 @@ const validCreatePayload = {
 };
 
 const mockStats = {
-  count: 1, wins: 0, losses: 0, breakevens: 0, open: 1,
-  winRate: 0, avgR: 0, totalR: 0,
+  count: 1,
+  wins: 0,
+  losses: 0,
+  breakevens: 0,
+  open: 1,
+  winRate: 0,
+  avgR: 0,
+  totalR: 0,
 };
 
 describe('Web → AI integration (journal route)', () => {
@@ -94,10 +116,9 @@ describe('Web → AI integration (journal route)', () => {
     it('returns 401 when no session exists', async () => {
       (auth as Mock).mockResolvedValue(null);
 
-      const response = await GET(
-        new Request('http://localhost/api/journal'),
-        { params: Promise.resolve({}) },
-      );
+      const response = await GET(new Request('http://localhost/api/journal'), {
+        params: Promise.resolve({}),
+      });
       expect(response.status).toBe(401);
 
       const body = await response.json();
@@ -105,20 +126,18 @@ describe('Web → AI integration (journal route)', () => {
     });
 
     it('returns 200 when session is valid', async () => {
-      const response = await GET(
-        new Request('http://localhost/api/journal'),
-        { params: Promise.resolve({}) },
-      );
+      const response = await GET(new Request('http://localhost/api/journal'), {
+        params: Promise.resolve({}),
+      });
       expect(response.status).toBe(200);
     });
   });
 
   describe('read path: GET → listEntries + computeStats', () => {
     it('calls both @kestrel/ai functions with correct userId', async () => {
-      const response = await GET(
-        new Request('http://localhost/api/journal'),
-        { params: Promise.resolve({}) },
-      );
+      const response = await GET(new Request('http://localhost/api/journal'), {
+        params: Promise.resolve({}),
+      });
       expect(response.status).toBe(200);
 
       const body = await response.json();
@@ -132,10 +151,9 @@ describe('Web → AI integration (journal route)', () => {
     });
 
     it('filters entries by symbol through the @kestrel/ai boundary', async () => {
-      await GET(
-        new Request('http://localhost/api/journal?symbol=XAUUSD'),
-        { params: Promise.resolve({}) },
-      );
+      await GET(new Request('http://localhost/api/journal?symbol=XAUUSD'), {
+        params: Promise.resolve({}),
+      });
       expect(mockListEntries).toHaveBeenCalledWith(USER_ID, { symbol: 'XAUUSD' });
     });
   });
@@ -173,10 +191,9 @@ describe('Web → AI integration (journal route)', () => {
     it('propagates service errors as 500 responses', async () => {
       mockListEntries.mockRejectedValue(new Error('Database connection refused'));
 
-      const response = await GET(
-        new Request('http://localhost/api/journal'),
-        { params: Promise.resolve({}) },
-      );
+      const response = await GET(new Request('http://localhost/api/journal'), {
+        params: Promise.resolve({}),
+      });
       expect(response.status).toBe(500);
     });
   });

@@ -1,12 +1,29 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Spike test — sharp 0→peak→0 write-mix surge.
 // Validates the SUT recovers after a sudden burst of write operations.
 // Defaults chosen for 20 RPS × 1s iterations = 20 VUs with headroom.
 import { sleep } from 'k6';
+
 import { spike } from '../config/load-profiles.js';
 import { WRITE_MIX, WRITE_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
-import { bootstrapAuth, applyAuth, pickUser } from '../lib/auth.js';
-import { writeMix } from '../scenarios/write-mix.js';
+import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
 import { handleSummary } from '../lib/summary.js';
+import { writeMix } from '../scenarios/write-mix.js';
 
 const PEAK_RPS = parseInt(__ENV['K6_SPIKE_RPS'] ?? '20', 10);
 const PRE_ALLOCATED_VUS = parseInt(__ENV['K6_PRE_ALLOCATED_VUS'] ?? '15', 10);
@@ -26,9 +43,7 @@ export function setup() {
   return bootstrapAuth();
 }
 
-export default function (
-  ctxs: ReturnType<typeof bootstrapAuth>,
-) {
+export default function (ctxs: ReturnType<typeof bootstrapAuth>) {
   const ctx = pickUser(ctxs);
   applyAuth(ctx);
   writeMix(ctx);

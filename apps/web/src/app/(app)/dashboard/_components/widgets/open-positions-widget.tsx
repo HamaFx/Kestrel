@@ -2,6 +2,22 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Phase 1.6 — Open positions widget.
 //
 // Lists journal entries with `outcome === 'open'`. Each row shows the
@@ -11,23 +27,22 @@
 // Enhanced with:
 // - 1-Click "Ask AI Copilot" position management & trailing stop review
 // - Live-tick flashing and floating R tracking
-
+import {
+  pipSize,
+  priceDecimals,
+  type JournalEntry,
+  type Symbol as SymbolType,
+  type Tick,
+} from '@kestrel/shared';
+import { IconActivity, IconArrowDownRight, IconArrowUpRight, IconBolt } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  IconActivity,
-  IconArrowUpRight,
-  IconArrowDownRight,
-  IconBolt,
-} from '@tabler/icons-react';
-import type { JournalEntry, Symbol as SymbolType, Tick } from '@kestrel/shared';
-import { priceDecimals, pipSize } from '@kestrel/shared';
 
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatRelative } from '@/lib/format';
 import { usePrices } from '@/hooks/use-prices';
 import { cn } from '@/lib/cn';
+import { formatRelative } from '@/lib/format';
 
 interface OpenPositionsWidgetProps {
   entries: readonly JournalEntry[];
@@ -35,10 +50,7 @@ interface OpenPositionsWidgetProps {
   limit?: number;
 }
 
-export function OpenPositionsWidget({
-  entries,
-  limit = 5,
-}: OpenPositionsWidgetProps) {
+export function OpenPositionsWidget({ entries, limit = 5 }: OpenPositionsWidgetProps) {
   const open = entries.filter((e) => e.outcome === 'open').slice(0, limit);
   const openSymbols = useMemo(
     () => Array.from(new Set(open.map((e) => e.symbol))) as SymbolType[],
@@ -53,13 +65,9 @@ export function OpenPositionsWidget({
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <IconActivity className="text-fg-subtle size-4" />
-          <span className="text-fg text-body-sm font-semibold">
-            Open positions
-          </span>
+          <span className="text-fg text-body-sm font-semibold">Open positions</span>
           {open.length > 0 ? (
-            <span className="text-fg-subtle text-caption tabular-nums">
-              {open.length}
-            </span>
+            <span className="text-fg-subtle text-caption tabular-nums">{open.length}</span>
           ) : null}
         </div>
         <Link href="/journal" className="text-fg-subtle hover:text-fg text-caption">
@@ -79,11 +87,7 @@ export function OpenPositionsWidget({
       ) : (
         <ul className="flex flex-col">
           {open.map((e) => (
-            <PositionRow
-              key={e.id}
-              entry={e}
-              tick={tickMap.get(e.symbol)}
-            />
+            <PositionRow key={e.id} entry={e} tick={tickMap.get(e.symbol)} />
           ))}
         </ul>
       )}
@@ -126,7 +130,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
   );
 
   return (
-    <li className="border-divider flex items-center justify-between gap-2 border-b py-2 last:border-0 group">
+    <li className="border-divider group flex items-center justify-between gap-2 border-b py-2 last:border-0">
       <div className="flex min-w-0 items-center gap-2">
         <span
           className={cn(
@@ -146,7 +150,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
             {curPrice && (
               <span
                 className={cn(
-                  'text-caption tabular-nums px-1 rounded-sm transition-colors duration-500',
+                  'text-caption rounded-sm px-1 tabular-nums transition-colors duration-500',
                   flash === 'bull' && 'bg-bull/20 text-bull',
                   flash === 'bear' && 'bg-bear/20 text-bear',
                   flash === null && 'text-fg-subtle',
@@ -163,7 +167,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex shrink-0 items-center gap-2">
         <div className="flex flex-col items-end font-mono">
           {floatingR !== null ? (
             <span
@@ -198,7 +202,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
           title={`Ask AI Copilot to review ${entry.symbol} position`}
           aria-label={`Ask AI Copilot to review ${entry.symbol} position`}
         >
-          <IconBolt className="size-3.5 text-brand" />
+          <IconBolt className="text-brand size-3.5" />
         </Link>
       </div>
     </li>

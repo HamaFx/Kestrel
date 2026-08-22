@@ -21,7 +21,8 @@
 // all normalize to a canonical format that crypto.createPrivateKey()
 // accepts on Node 20 with modern OpenSSL 3.x.
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { normalizePemPrivateKey } from '../src/util/pem';
 
 // A real (but intentionally generated for test) RSA 1024-bit private key
@@ -143,8 +144,7 @@ describe('normalizePemPrivateKey (SEC-4)', () => {
     const ecFooter = '-----END EC PRIVATE KEY-----';
     // Build a body from the RSA body (the key data structure is wrong but
     // we're testing marker handling, not cryptographic validity)
-    const lines = REAL_RSA_KEY_1024
-      .replace('-----BEGIN PRIVATE KEY-----', '')
+    const lines = REAL_RSA_KEY_1024.replace('-----BEGIN PRIVATE KEY-----', '')
       .replace('-----END PRIVATE KEY-----', '')
       .trim()
       .split('\n');

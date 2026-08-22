@@ -18,14 +18,21 @@
 
 // Settings island for linking/unlinking Telegram bot.
 // Phase 7D — Settings & Polish.
-
-import {IconCheck, IconLink, IconLoader2, IconUnlink, IconCopy, IconRefresh, IconExternalLink} from '@tabler/icons-react';
+import {
+  IconCheck,
+  IconCopy,
+  IconExternalLink,
+  IconLink,
+  IconLoader2,
+  IconRefresh,
+  IconUnlink,
+} from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/cn';
 import { apiFetch, apiMutate } from '@/lib/api-client';
+import { cn } from '@/lib/cn';
 
 interface LinkStatus {
   linked: boolean;
@@ -150,7 +157,7 @@ export function TelegramLinkCard(): React.JSX.Element {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-fg-subtle">
+      <div className="text-fg-subtle flex items-center gap-2">
         <IconLoader2 className="size-4 animate-spin" />
         Checking Telegram link status…
       </div>
@@ -164,9 +171,7 @@ export function TelegramLinkCard(): React.JSX.Element {
         <span
           className={cn(
             'inline-flex items-center gap-1.5 rounded-sm px-2.5 py-0.5 text-xs font-medium',
-            status?.linked
-              ? 'bg-success/10 text-success'
-              : 'bg-bg-elev-2/10 text-fg-muted',
+            status?.linked ? 'bg-success/10 text-success' : 'bg-bg-elev-2/10 text-fg-muted',
           )}
         >
           {status?.linked ? (
@@ -180,7 +185,7 @@ export function TelegramLinkCard(): React.JSX.Element {
           )}
         </span>
         {status?.linked && status.linkedAt && (
-          <span className="text-xs text-fg-subtle">
+          <span className="text-fg-subtle text-xs">
             Since {new Date(status.linkedAt).toLocaleDateString()}
           </span>
         )}
@@ -189,17 +194,17 @@ export function TelegramLinkCard(): React.JSX.Element {
       {/* Linked state */}
       {status?.linked ? (
         <div className="space-y-3">
-          <p className="text-sm text-fg-subtle">
+          <p className="text-fg-subtle text-sm">
             Your Telegram account is connected. You can use bot commands like{' '}
-            <code className="rounded-sm bg-bg-elev-2 px-1 py-0.5 text-xs">/price</code>,{' '}
-            <code className="rounded-sm bg-bg-elev-2 px-1 py-0.5 text-xs">/analyze</code>,{' '}
-            <code className="rounded-sm bg-bg-elev-2 px-1 py-0.5 text-xs">/ask</code>, and more.
+            <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">/price</code>,{' '}
+            <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">/analyze</code>,{' '}
+            <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">/ask</code>, and more.
           </p>
           <a
             href={`https://t.me/KestrelBot`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs text-fg hover:text-fg/80 font-semibold transition-colors"
+            className="text-fg hover:text-fg/80 inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
           >
             <IconExternalLink className="size-3" />
             Open Kestrel Bot on Telegram
@@ -222,7 +227,7 @@ export function TelegramLinkCard(): React.JSX.Element {
       ) : (
         /* Not linked state */
         <div className="space-y-3">
-          <p className="text-sm text-fg-subtle">
+          <p className="text-fg-subtle text-sm">
             Link your Telegram to control Kestrel from your phone with bot commands.
           </p>
 
@@ -230,7 +235,7 @@ export function TelegramLinkCard(): React.JSX.Element {
             href={`https://t.me/KestrelBot`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs text-fg hover:text-fg/80 font-semibold transition-colors"
+            className="text-fg hover:text-fg/80 inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
           >
             <IconExternalLink className="size-3" />
             Open Kestrel Bot on Telegram
@@ -251,64 +256,63 @@ export function TelegramLinkCard(): React.JSX.Element {
               {generating ? 'Generating…' : 'Link Telegram'}
             </Button>
           ) : (
-              <div className="space-y-3">
-                {/* Link code display */}
-                <div className="rounded-sm border border-border bg-bg-elev-2 p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-fg-subtle">Your link code</span>
-                    <span className="text-xs text-fg-subtle">
-                      Expires {new Date(linkCode.expiresAt).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-sm bg-bg px-3 py-2 text-lg font-mono font-bold tracking-widest">
-                      {linkCode.code}
-                    </code>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="w-10 px-0"
-                      onClick={copyCode}
-                      aria-label="Copy code"
-                    >
-                      {copied ? <IconCheck className="size-4" /> : <IconCopy className="size-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-fg-subtle">
-                    Send{' '}
-                    <code className="font-mono">/link {linkCode.code}</code>{' '}
-                    to the Kestrel bot on Telegram.
-                  </p>
-                  <a
-                    href={`https://t.me/KestrelBot`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs text-fg hover:text-fg/80 font-semibold transition-colors"
-                  >
-                    <IconExternalLink className="size-3" />
-                    Open Kestrel Bot on Telegram
-                  </a>
+            <div className="space-y-3">
+              {/* Link code display */}
+              <div className="border-border bg-bg-elev-2 space-y-2 rounded-sm border p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-fg-subtle text-xs">Your link code</span>
+                  <span className="text-fg-subtle text-xs">
+                    Expires {new Date(linkCode.expiresAt).toLocaleTimeString()}
+                  </span>
                 </div>
-
-                {polling && (
-                  <div className="flex items-center gap-2 text-xs text-fg-subtle animate-pulse">
-                    <IconLoader2 className="size-3 animate-spin" />
-                    Waiting for Telegram confirmation...
-                  </div>
-                )}
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={generateCode}
-                  disabled={generating}
-                  className="min-h-[44px]"
+                <div className="flex items-center gap-2">
+                  <code className="bg-bg flex-1 rounded-sm px-3 py-2 font-mono text-lg font-bold tracking-widest">
+                    {linkCode.code}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="w-10 px-0"
+                    onClick={copyCode}
+                    aria-label="Copy code"
+                  >
+                    {copied ? <IconCheck className="size-4" /> : <IconCopy className="size-4" />}
+                  </Button>
+                </div>
+                <p className="text-fg-subtle text-xs">
+                  Send <code className="font-mono">/link {linkCode.code}</code> to the Kestrel bot
+                  on Telegram.
+                </p>
+                <a
+                  href={`https://t.me/KestrelBot`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-fg hover:text-fg/80 inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
                 >
-                  <IconRefresh className="size-4" />
-                  Regenerate code
-                </Button>
+                  <IconExternalLink className="size-3" />
+                  Open Kestrel Bot on Telegram
+                </a>
               </div>
+
+              {polling && (
+                <div className="text-fg-subtle flex animate-pulse items-center gap-2 text-xs">
+                  <IconLoader2 className="size-3 animate-spin" />
+                  Waiting for Telegram confirmation...
+                </div>
+              )}
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={generateCode}
+                disabled={generating}
+                className="min-h-[44px]"
+              >
+                <IconRefresh className="size-4" />
+                Regenerate code
+              </Button>
+            </div>
           )}
         </div>
       )}

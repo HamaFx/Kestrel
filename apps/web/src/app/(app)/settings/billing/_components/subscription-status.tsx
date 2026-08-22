@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { cn } from '@/lib/cn';
@@ -28,13 +44,13 @@ export function SubscriptionStatus({
 }) {
   if (!subscription || !currentPlan) {
     return (
-      <div className="rounded-sm border border-border bg-bg-elev-1 p-4">
+      <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-fg font-medium">No active subscription</p>
             <p className="text-fg-subtle text-sm">You are on the Free tier.</p>
           </div>
-          <span className="rounded-sm bg-fg-muted/10 px-3 py-1 text-xs font-medium text-fg-subtle">
+          <span className="bg-fg-muted/10 text-fg-subtle rounded-sm px-3 py-1 text-xs font-medium">
             Free
           </span>
         </div>
@@ -46,18 +62,25 @@ export function SubscriptionStatus({
   const periodEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
 
   return (
-    <div className="rounded-sm border border-border bg-bg-elev-1 p-4">
+    <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <p className="text-fg font-medium">{currentPlan.name} Plan</p>
-            <span className={cn('rounded-sm px-2.5 py-0.5 text-xs font-medium capitalize', statusColor)}>
+            <span
+              className={cn('rounded-sm px-2.5 py-0.5 text-xs font-medium capitalize', statusColor)}
+            >
               {subscription.status.replace('_', ' ')}
             </span>
           </div>
           {periodEnd && (
             <p className="text-fg-subtle text-sm">
-              Next billing date: {periodEnd.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+              Next billing date:{' '}
+              {periodEnd.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })}
             </p>
           )}
         </div>
@@ -69,5 +92,3 @@ export function SubscriptionStatus({
     </div>
   );
 }
-
-

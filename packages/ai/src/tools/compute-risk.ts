@@ -76,10 +76,9 @@ export const computeRiskTool = tool({
     const positionSizeUnits = positionSizeLots * unitsPerLot;
 
     const rewardUsd =
-      distanceToTarget !== null
-        ? distanceToTarget * valuePerDistanceUnit * positionSizeLots
-        : null;
-    const rrRatio = distanceToTarget !== null && distanceToStop > 0 ? distanceToTarget / distanceToStop : null;
+      distanceToTarget !== null ? distanceToTarget * valuePerDistanceUnit * positionSizeLots : null;
+    const rrRatio =
+      distanceToTarget !== null && distanceToStop > 0 ? distanceToTarget / distanceToStop : null;
 
     const invalidDirection = isInvalidDirection({ side, entry, stop, target });
 

@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -18,9 +34,9 @@
  * database.
  */
 
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { Mastra } from '@mastra/core';
 import type { WorkflowRunState } from '@mastra/core/workflows';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { listScoresForRun, type ScoreRecord } from './evals/scores';
 import { langfuseTraceUrl } from './telemetry';
@@ -44,11 +60,7 @@ export interface RunTelemetryRow {
 }
 
 /** Known workflow ids whose snapshots back Mastra runs (from the registry). */
-export const MASTRA_WORKFLOW_IDS = [
-  'symbol-research',
-  'full-analysis',
-  'xauusd-report',
-] as const;
+export const MASTRA_WORKFLOW_IDS = ['symbol-research', 'full-analysis', 'xauusd-report'] as const;
 
 /** Map a telemetry kind to the workflow id that would hold its run state. */
 export function workflowIdForKind(kind: string | null): string | null {
@@ -82,7 +94,8 @@ export function summarizeWorkflowRunState(
   snapshot: WorkflowRunState | null,
   workflowId: string,
 ): WorkflowRunStatusView {
-  if (!snapshot) return { workflowId: null, status: null, failedSteps: [], completedSteps: 0, totalSteps: 0 };
+  if (!snapshot)
+    return { workflowId: null, status: null, failedSteps: [], completedSteps: 0, totalSteps: 0 };
   const failedSteps: string[] = [];
   let completedSteps = 0;
   let totalSteps = 0;
@@ -141,18 +154,31 @@ export async function toMastraRunView(
   const runId = row.runId ?? '';
   const workflowId = workflowIdForKind(row.kind);
 
-  let workflow: WorkflowRunStatusView = { workflowId: null, status: null, failedSteps: [], completedSteps: 0, totalSteps: 0 };
+  let workflow: WorkflowRunStatusView = {
+    workflowId: null,
+    status: null,
+    failedSteps: [],
+    completedSteps: 0,
+    totalSteps: 0,
+  };
   let scores: MastraRunScoreView[] = [];
 
   if (instance) {
     if (workflowId) {
       const storage = instance.getStorage() as
-        | (typeof instance extends never ? never : { getStore?: (domain: string) => Promise<unknown> })
+        | (typeof instance extends never
+            ? never
+            : { getStore?: (domain: string) => Promise<unknown> })
         | null;
       try {
         if (storage && typeof storage.getStore === 'function') {
           const workflowsDomain = (await storage.getStore('workflows')) as
-            | { loadWorkflowSnapshot(input: { workflowName: string; runId: string }): Promise<WorkflowRunState | null> }
+            | {
+                loadWorkflowSnapshot(input: {
+                  workflowName: string;
+                  runId: string;
+                }): Promise<WorkflowRunState | null>;
+              }
             | undefined;
           if (workflowsDomain && typeof workflowsDomain.loadWorkflowSnapshot === 'function') {
             const snapshot = await workflowsDomain.loadWorkflowSnapshot({
@@ -180,9 +206,7 @@ export async function toMastraRunView(
   }
 
   const scoreMean =
-    scores.length > 0
-      ? scores.reduce((sum, entry) => sum + entry.score, 0) / scores.length
-      : null;
+    scores.length > 0 ? scores.reduce((sum, entry) => sum + entry.score, 0) / scores.length : null;
 
   return {
     runId,

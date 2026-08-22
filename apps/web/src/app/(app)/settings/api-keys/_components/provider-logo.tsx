@@ -1,5 +1,21 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 export function ProviderLogo({ id }: { id: string }) {
-  const baseClass = "size-5 text-fg shrink-0";
+  const baseClass = 'size-5 text-fg shrink-0';
   switch (id) {
     case 'google':
     case 'vertex':
@@ -10,7 +26,15 @@ export function ProviderLogo({ id }: { id: string }) {
       );
     case 'openai':
       return (
-        <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 24 24"
+          className={baseClass}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <circle cx="12" cy="12" r="10" />
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           <path d="M2 12h20" />
@@ -24,27 +48,57 @@ export function ProviderLogo({ id }: { id: string }) {
       );
     case 'groq':
       return (
-        <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          viewBox="0 0 24 24"
+          className={baseClass}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
       );
     case 'mistral':
       return (
-        <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 24 24"
+          className={baseClass}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M9.5 20H4V4h5.5l2.5 4 2.5-4H20v16h-5.5L12 16l-2.5 4z" />
         </svg>
       );
     case 'iamhc':
     case 'hcnsec':
       return (
-        <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 24 24"
+          className={baseClass}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <circle cx="12" cy="12" r="10" />
           <path d="M12 6v12M6 12h12" />
         </svg>
       );
     default:
       return (
-        <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 24 24"
+          className={baseClass}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>

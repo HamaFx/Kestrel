@@ -19,6 +19,8 @@
 import type { JournalEntry } from '@kestrel/shared';
 import { describe, expect, it, vi } from 'vitest';
 
+import { computeRMultiple, summarize } from '../src/journal/persistence';
+
 // Phase D2 — journal/persistence.ts → memory/memory-index.ts →
 // embeddings.ts → resolveEmbeddingModel → @kestrel/shared/encryption
 // which imports `server-only`. Mock the encryption module so this
@@ -40,8 +42,6 @@ vi.mock('@kestrel/shared/encryption', () => ({
     'hcnsec',
   ],
 }));
-
-import { computeRMultiple, summarize } from '../src/journal/persistence';
 
 function entry(partial: Partial<JournalEntry>): JournalEntry {
   return {

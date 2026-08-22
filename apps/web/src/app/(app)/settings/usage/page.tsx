@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // /settings/usage — token spend, daily-budget gauge, model breakdown,
@@ -5,25 +21,30 @@
 // pass per render. Personal-mode volume keeps the query trivial.
 
 import {
+  BYOK_PROVIDERS_LIST,
   computeUsage,
+  getMonthlySpend,
   listTelemetry,
+  providerIdFromModel,
   type DayBucket,
   type UsageStats,
-  getMonthlySpend,
-  providerIdFromModel,
-  BYOK_PROVIDERS_LIST,
 } from '@kestrel/ai';
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
+import {
+  getUserWithSettings,
+  listTelemetry as listDbTelemetry,
+  listMtdAgentOpinions,
+} from '@kestrel/db';
+import { IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
-import { IconChartBar } from '@tabler/icons-react';
+import { redirect } from 'next/navigation';
 
+import { auth } from '@/auth';
 import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/cn';
 import { getServerEnv } from '@/lib/env';
 import { formatRelative } from '@/lib/format';
-import { getUserWithSettings, listMtdAgentOpinions, listTelemetry as listDbTelemetry } from '@kestrel/db';
+
 import { UsageLimitsForm } from './_components/usage-limits-form';
 
 export const metadata: Metadata = {
@@ -100,8 +121,12 @@ export default async function UsagePage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Usage</h2>
-        <p className="text-fg-subtle text-sm">Token spend, daily-budget gauge, model breakdown, and recent turns.</p>
-        <p className="text-fg-subtle text-xs">Displayed costs are conservative provider-rate estimates, not invoices.</p>
+        <p className="text-fg-subtle text-sm">
+          Token spend, daily-budget gauge, model breakdown, and recent turns.
+        </p>
+        <p className="text-fg-subtle text-xs">
+          Displayed costs are conservative provider-rate estimates, not invoices.
+        </p>
       </div>
       <BudgetCard
         stats={stats}
@@ -127,7 +152,7 @@ export default async function UsagePage() {
           action={
             <Link
               href="/chat"
-              className="bg-fg text-black inline-flex h-10 items-center rounded-sm px-3 text-sm font-medium hover:opacity-90"
+              className="bg-fg inline-flex h-10 items-center rounded-sm px-3 text-sm font-medium text-black hover:opacity-90"
             >
               Start chatting
             </Link>
@@ -137,9 +162,7 @@ export default async function UsagePage() {
         <>
           <DailyChart daily7={stats.daily7} />
           <ModelBreakdownCard stats={stats} />
-          {agentOpinionRows.length > 0 && (
-            <AgentUsageCard rows={agentOpinionRows} />
-          )}
+          {agentOpinionRows.length > 0 && <AgentUsageCard rows={agentOpinionRows} />}
           <RecentTurnsCard rows={recent} />
         </>
       )}
@@ -172,7 +195,7 @@ function BudgetCard({
   return (
     <section
       aria-labelledby="usage-budget-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-3 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 id="usage-budget-heading" className="text-fg-muted text-sm font-medium">
@@ -192,28 +215,35 @@ function BudgetCard({
       >
         <div className={cn('h-full transition-all', toneClass)} style={{ width: `${pct}%` }} />
       </div>
-      <dl className="grid grid-cols-3 gap-3 pt-1 text-xs tabular-nums border-b border-divider pb-3">
+      <dl className="border-divider grid grid-cols-3 gap-3 border-b pt-1 pb-3 text-xs tabular-nums">
         <Stat label="last 7d" value={`$${stats.sevenDayUsd.toFixed(4)}`} />
         <Stat label="last 30d" value={`$${stats.thirtyDayUsd.toFixed(4)}`} />
         <Stat label="turns" value={stats.thirtyDayTurns} />
       </dl>
 
       <div className="flex flex-col gap-2">
-        <div className="flex justify-between items-baseline text-xs">
+        <div className="flex items-baseline justify-between text-xs">
           <span className="text-fg-muted">Current Month Spend (MTD)</span>
-          <span className="font-semibold text-fg font-mono tabular-nums">
+          <span className="text-fg font-mono font-semibold tabular-nums">
             ${monthlySpend.toFixed(2)} {monthlyLimit ? `/ $${monthlyLimit.toFixed(2)}` : ''}
           </span>
         </div>
-        <div className="flex justify-between items-baseline text-xs">
+        <div className="flex items-baseline justify-between text-xs">
           <span className="text-fg-muted">Estimated Month Projection (based on 7d)</span>
-          <span className={cn("font-semibold font-mono tabular-nums", isProjectedExceeded ? "text-warn" : "text-fg")}>
+          <span
+            className={cn(
+              'font-mono font-semibold tabular-nums',
+              isProjectedExceeded ? 'text-warn' : 'text-fg',
+            )}
+          >
             ${projection.toFixed(2)}
           </span>
         </div>
         {isProjectedExceeded && (
-          <div className="bg-warn/5 border border-warn/25 rounded-sm p-2.5 text-caption text-warn mt-1">
-            ⚠️ Based on the last 7 days of usage, you are projected to exceed your monthly budget limit of ${monthlyLimit?.toFixed(2)}. This is an estimate, not an invoice. Consider reviewing your active tools or adjusting your budget.
+          <div className="bg-warn/5 border-warn/25 text-caption text-warn mt-1 rounded-sm border p-2.5">
+            ⚠️ Based on the last 7 days of usage, you are projected to exceed your monthly budget
+            limit of ${monthlyLimit?.toFixed(2)}. This is an estimate, not an invoice. Consider
+            reviewing your active tools or adjusting your budget.
           </div>
         )}
       </div>
@@ -224,7 +254,7 @@ function BudgetCard({
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex flex-col">
-      <dt className="text-fg-subtle text-caption uppercase tracking-wide">{label}</dt>
+      <dt className="text-fg-subtle text-caption tracking-wide uppercase">{label}</dt>
       <dd className="text-fg font-semibold">{value}</dd>
     </div>
   );
@@ -245,7 +275,7 @@ function DailyChart({ daily7 }: { daily7: DayBucket[] }) {
   return (
     <section
       aria-labelledby="usage-daily-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-3 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
     >
       <h2 id="usage-daily-heading" className="text-fg-muted text-sm font-medium">
         Last 7 days
@@ -256,7 +286,7 @@ function DailyChart({ daily7 }: { daily7: DayBucket[] }) {
           return (
             <li
               key={d.date}
-              className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-body-sm"
+              className="text-body-sm grid grid-cols-[auto_1fr_auto] items-center gap-2"
             >
               <span className="text-fg-subtle w-12 tabular-nums">{shortDate(d.date)}</span>
               <span
@@ -293,7 +323,7 @@ function ModelBreakdownCard({ stats }: { stats: UsageStats }) {
     return (
       <section
         aria-labelledby="usage-models-heading"
-        className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-2 p-4"
+        className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-4"
       >
         <h2 id="usage-models-heading" className="text-fg-muted text-sm font-medium">
           By model (30d)
@@ -305,7 +335,7 @@ function ModelBreakdownCard({ stats }: { stats: UsageStats }) {
   return (
     <section
       aria-labelledby="usage-models-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-3 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
     >
       <h2 id="usage-models-heading" className="text-fg-muted text-sm font-medium">
         By model (30d)
@@ -316,7 +346,7 @@ function ModelBreakdownCard({ stats }: { stats: UsageStats }) {
             key={m.model}
             className="grid grid-cols-[1fr_auto_auto_auto] items-baseline gap-3 text-xs tabular-nums"
           >
-            <span className="text-fg truncate font-mono text-body-sm">{m.model}</span>
+            <span className="text-fg text-body-sm truncate font-mono">{m.model}</span>
             <span className="text-fg-subtle">{m.turns} turns</span>
             <span className="text-fg-subtle">
               {(m.inputTokens + m.outputTokens).toLocaleString()} tok
@@ -338,7 +368,7 @@ function RecentTurnsCard({ rows }: { rows: Awaited<ReturnType<typeof listTelemet
     return (
       <section
         aria-labelledby="usage-recent-heading"
-        className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-2 p-4"
+        className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-4"
       >
         <h2 id="usage-recent-heading" className="text-fg-muted text-sm font-medium">
           Recent turns
@@ -353,7 +383,7 @@ function RecentTurnsCard({ rows }: { rows: Awaited<ReturnType<typeof listTelemet
   return (
     <section
       aria-labelledby="usage-recent-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-3 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
     >
       <h2 id="usage-recent-heading" className="text-fg-muted text-sm font-medium">
         Recent turns
@@ -365,7 +395,7 @@ function RecentTurnsCard({ rows }: { rows: Awaited<ReturnType<typeof listTelemet
             className="grid grid-cols-[1fr_auto] items-baseline gap-3 text-xs tabular-nums"
           >
             <div className="flex min-w-0 flex-col">
-              <span className="text-fg truncate font-mono text-body-sm">{r.model}</span>
+              <span className="text-fg text-body-sm truncate font-mono">{r.model}</span>
               <span className="text-fg-subtle text-caption">
                 {formatRelative(r.createdAt)} · {r.inputTokens}/{r.outputTokens} tok · {r.toolCalls}{' '}
                 tools · {Math.round(r.ms / 100) / 10}s
@@ -383,7 +413,9 @@ function RecentTurnsCard({ rows }: { rows: Awaited<ReturnType<typeof listTelemet
 // Multi-Agent: per-agent and per-mode cost breakdown
 // ---------------------------------------------------------------------------
 
-function AgentUsageCard({ rows }: {
+function AgentUsageCard({
+  rows,
+}: {
   rows: Array<{ agentName: string; analysisMode: string; costUsd: number; latencyMs: number }>;
 }) {
   // Aggregate by agent
@@ -395,12 +427,14 @@ function AgentUsageCard({ rows }: {
     existing.avgMs += Number(r.latencyMs);
     byAgent.set(r.agentName, existing);
   }
-  const agentRows = [...byAgent.entries()].map(([name, v]) => ({
-    name,
-    turns: v.turns,
-    cost: v.cost,
-    avgMs: Math.round(v.avgMs / v.turns),
-  })).sort((a, b) => b.cost - a.cost);
+  const agentRows = [...byAgent.entries()]
+    .map(([name, v]) => ({
+      name,
+      turns: v.turns,
+      cost: v.cost,
+      avgMs: Math.round(v.avgMs / v.turns),
+    }))
+    .sort((a, b) => b.cost - a.cost);
 
   // Aggregate by mode
   const byMode = new Map<string, { turns: number; cost: number }>();
@@ -410,11 +444,13 @@ function AgentUsageCard({ rows }: {
     existing.cost += Number(r.costUsd);
     byMode.set(r.analysisMode, existing);
   }
-  const modeRows = [...byMode.entries()].map(([mode, v]) => ({
-    mode,
-    turns: v.turns,
-    cost: v.cost,
-  })).sort((a, b) => b.cost - a.cost);
+  const modeRows = [...byMode.entries()]
+    .map(([mode, v]) => ({
+      mode,
+      turns: v.turns,
+      cost: v.cost,
+    }))
+    .sort((a, b) => b.cost - a.cost);
 
   const totalCost = agentRows.reduce((s, r) => s + r.cost, 0);
 
@@ -429,23 +465,23 @@ function AgentUsageCard({ rows }: {
   return (
     <section
       aria-labelledby="agent-usage-heading"
-      className="border border-border bg-bg-elev-1 rounded-sm flex flex-col gap-3 p-4"
+      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
     >
       <h2 id="agent-usage-heading" className="text-fg-muted text-sm font-medium">
         Multi-Agent Breakdown (MTD)
       </h2>
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-fg-subtle text-caption font-semibold uppercase tracking-wider">By Agent</h3>
+        <h3 className="text-fg-subtle text-caption font-semibold tracking-wider uppercase">
+          By Agent
+        </h3>
         <ul className="flex flex-col gap-1.5">
           {agentRows.map((r) => (
             <li
               key={r.name}
               className="grid grid-cols-[1fr_auto_auto] items-baseline gap-3 text-xs tabular-nums"
             >
-              <span className="text-fg font-medium">
-                {AGENT_LABELS[r.name] ?? r.name}
-              </span>
+              <span className="text-fg font-medium">{AGENT_LABELS[r.name] ?? r.name}</span>
               <span className="text-fg-subtle text-caption">
                 {r.turns} turns · {Math.round(r.avgMs / 100) / 10}s avg
               </span>
@@ -456,7 +492,9 @@ function AgentUsageCard({ rows }: {
       </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-fg-subtle text-caption font-semibold uppercase tracking-wider">By Mode</h3>
+        <h3 className="text-fg-subtle text-caption font-semibold tracking-wider uppercase">
+          By Mode
+        </h3>
         <ul className="flex flex-col gap-1.5">
           {modeRows.map((r) => (
             <li
@@ -471,7 +509,7 @@ function AgentUsageCard({ rows }: {
         </ul>
       </div>
 
-      <div className="border-t border-border pt-2">
+      <div className="border-border border-t pt-2">
         <div className="flex items-baseline justify-between text-xs tabular-nums">
           <span className="text-fg-muted font-medium">Total Specialist Cost</span>
           <span className="text-fg">${totalCost.toFixed(4)}</span>
@@ -480,4 +518,3 @@ function AgentUsageCard({ rows }: {
     </section>
   );
 }
-

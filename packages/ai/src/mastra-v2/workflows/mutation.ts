@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -26,12 +42,12 @@
  */
 
 import { randomBytes } from 'node:crypto';
-import type { Mastra } from '@mastra/core';
-import { Workflow, createStep } from '@mastra/core/workflows';
-import { z } from 'zod';
 
 import { SymbolSchema } from '@kestrel/shared';
 import { AlertChannelSchema, AlertRuleSchema } from '@kestrel/shared/schemas/alerts';
+import type { Mastra } from '@mastra/core';
+import { createStep, Workflow } from '@mastra/core/workflows';
+import { z } from 'zod';
 
 import {
   assertMastraMutationAllowed,
@@ -219,9 +235,7 @@ function mutationPolicyError(reason: 'token-invalid' | 'token-expired'): Error {
  * policy and returns the confirmed input. `execute` performs the write with
  * that input and writes the audit row. `notify` returns the output.
  */
-export function createMutationWorkflow(
-  deps: MutationWorkflowDeps,
-): Workflow<any, any, string, unknown, unknown, unknown> {
+export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
   const mutation = deps.mutation;
   const secret = deps.secret;
   const now = deps.now ?? Date.now;
@@ -233,9 +247,7 @@ export function createMutationWorkflow(
     resumeSchema: MutationResumeSchema,
     suspendSchema: MutationSuspendPayloadSchema,
     stateSchema: z.object({
-      confirmation: z
-        .object({ digest: z.string(), expiresAt: z.number().int() })
-        .optional(),
+      confirmation: z.object({ digest: z.string(), expiresAt: z.number().int() }).optional(),
       threadId: z.string().optional(),
     }),
     execute: async ({ inputData, resumeData, suspend, state, setState, runId }) => {
@@ -292,9 +304,7 @@ export function createMutationWorkflow(
       if (secret) verifyOptions.secret = secret;
       const tokenOk = verifyMutationConfirmationToken(verifyOptions);
       if (!tokenOk) {
-        throw mutationPolicyError(
-          now() > stored.expiresAt ? 'token-expired' : 'token-invalid',
-        );
+        throw mutationPolicyError(now() > stored.expiresAt ? 'token-expired' : 'token-invalid');
       }
       assertMastraMutationAllowed({
         mutation,
@@ -348,7 +358,7 @@ export function createMutationWorkflow(
     .then(draftStep)
     .then(executeStep)
     .then(notifyStep)
-    .commit() as unknown as Workflow<any, any, string, unknown, unknown, unknown>;
+    .commit() as unknown as Workflow;
 }
 
 // --- driver -----------------------------------------------------------------

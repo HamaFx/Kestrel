@@ -26,7 +26,6 @@
 // "everything is quiet".
 
 import { schema } from '@kestrel/db';
-import { getDb } from '../db';
 import {
   AnalyzeFundamentalInputSchema,
   type AnalyzeFundamentalOutput,
@@ -42,6 +41,7 @@ import { tool } from 'ai';
 import { and, desc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { getDb } from '../db';
 import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = AnalyzeFundamentalInputSchema;
@@ -161,7 +161,12 @@ async function fetchHeadlinesForCurrencies(args: HeadlineQuery): Promise<ToolNew
   const rows = await db
     .select()
     .from(schema.newsArticles)
-    .where(sql`${schema.newsArticles.symbols} && ARRAY[${sql.join(tags.map((t) => sql`${t}`), sql`, `)}]::text[]`)
+    .where(
+      sql`${schema.newsArticles.symbols} && ARRAY[${sql.join(
+        tags.map((t) => sql`${t}`),
+        sql`, `,
+      )}]::text[]`,
+    )
     .orderBy(desc(schema.newsArticles.publishedAt))
     .limit(limit);
 

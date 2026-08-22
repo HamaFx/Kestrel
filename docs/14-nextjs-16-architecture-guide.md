@@ -3,16 +3,18 @@
 > **Authoritative Technical Standard & Modernization Blueprint for Kestrel (`apps/web`)**  
 > **Framework Baseline**: Next.js 16 (`16.3.2`) · React 19 (`19.2.8`) · Turbopack · Mastra · Vercel AI SDK v5 · Drizzle ORM (`0.45.2`) · Tailwind CSS v4 (`4.3.3`)  
 > **Document Status**: Production Architecture Standard & Modernization Roadmap  
-> **Last Updated**: 2026-08-22  
+> **Last Updated**: 2026-08-22
 
 ---
 
 ## 1. Executive Summary & Technology Stack Overview
 
 ### 1.1 Project Identity & Scope
+
 **Kestrel** is an open-source, multi-tenant, chat-driven AI trading copilot engineered for high-frequency financial intelligence across **Gold (XAUUSD)**, a canonical **Forex catalog**, and supported **Binance Crypto pairs**. The platform delivers real-time market telemetry, autonomous multi-agent research workflows, technical pattern recognition, and risk management through a Progressive Web Application (PWA) powered by Next.js 16 App Router and React 19.
 
 The web tier (`apps/web`) acts as the user-facing interface and secure API gateway, interfacing with:
+
 1. A persistent Node.js worker daemon (`apps/worker`) that ingests 1Hz tick data from SignalR/WebSocket providers into PostgreSQL.
 2. A multi-agent AI runtime (`packages/ai`) built on **Mastra** workflows and the **Vercel AI SDK v5** model transport, supporting 31 read-only financial tools, domain-based model routing, and verification pipelines.
 3. A resilient database access layer (`packages/db`) using **Drizzle ORM** targeting Supabase PostgreSQL with vector similarity search (`pgvector`) and an embedded **PGlite** WASM fallback for zero-setup local development.
@@ -75,29 +77,30 @@ The web tier (`apps/web`) acts as the user-facing interface and secure API gatew
 
 The following baseline defines the verified production package inventory across `apps/web`:
 
-| Ecosystem Layer | Package / Tool | Version | Architectural Responsibility |
-|---|---|---|---|
-| **Core Framework** | `next` | `^16.3.2` | App Router, Server Actions, Turbopack compilation, Async Request APIs |
-| **UI Library** | `react` / `react-dom` | `^19.2.8` | React Server Components, `useActionState`, `useOptimistic`, `useTransition`, `cache()` |
-| **Authentication** | `next-auth` | `5.0.0-beta.32` | JWT session management, Credentials provider, TOTP 2FA, Edge-safe auth config |
-| **Auth Adapter** | `@auth/drizzle-adapter` | `^1.11.3` | Multi-tenant Drizzle user and session mapping (`@auth/core` pinned to `0.41.3`) |
-| **Database ORM** | `drizzle-orm` | `^0.45.2` | Type-safe SQL builder, schema declarations, migration management |
-| **AI SDK & Streaming** | `ai` / `@ai-sdk/react` | `^5.0.0` / `^2.0.0` | Vercel AI SDK model transport, streaming hooks (`useChat`), UI message parts |
-| **AI Framework** | `@mastra/core` | Workspace (`@kestrel/ai`) | Autonomous multi-agent workflows, tool execution loops, deterministic evaluators |
-| **Styling & Design** | `tailwindcss` | `^4.3.3` | Tailwind CSS v4 engine, `@tailwindcss/postcss`, theme token variables |
-| **Icons & Motion** | `@tabler/icons-react` / `motion` | `^3.31.0` / `^12.40.0` | Tree-shaken icon library, fluid hardware-accelerated UI transitions |
-| **Financial Charting** | `lightweight-charts` | `^5.0.4` (`5.2.0`) | High-performance HTML5 Canvas candlestick and technical indicator rendering |
-| **Client State** | `@tanstack/react-query` / `nuqs` | `^5.66.0` / `^2.2.3` | Server state management, SWR caching, type-safe URL search param state |
-| **Observability** | `@sentry/nextjs` | `^10.69.0` | Production error tracking, Server Action tracing, performance instrumentation |
-| **Monorepo Engine** | `turbo` / `pnpm` | `^2.10.9` / `9.15.4` | Workspace task pipelines, caching, strict dependency isolation |
+| Ecosystem Layer        | Package / Tool                   | Version                   | Architectural Responsibility                                                           |
+| ---------------------- | -------------------------------- | ------------------------- | -------------------------------------------------------------------------------------- |
+| **Core Framework**     | `next`                           | `^16.3.2`                 | App Router, Server Actions, Turbopack compilation, Async Request APIs                  |
+| **UI Library**         | `react` / `react-dom`            | `^19.2.8`                 | React Server Components, `useActionState`, `useOptimistic`, `useTransition`, `cache()` |
+| **Authentication**     | `next-auth`                      | `5.0.0-beta.32`           | JWT session management, Credentials provider, TOTP 2FA, Edge-safe auth config          |
+| **Auth Adapter**       | `@auth/drizzle-adapter`          | `^1.11.3`                 | Multi-tenant Drizzle user and session mapping (`@auth/core` pinned to `0.41.3`)        |
+| **Database ORM**       | `drizzle-orm`                    | `^0.45.2`                 | Type-safe SQL builder, schema declarations, migration management                       |
+| **AI SDK & Streaming** | `ai` / `@ai-sdk/react`           | `^5.0.0` / `^2.0.0`       | Vercel AI SDK model transport, streaming hooks (`useChat`), UI message parts           |
+| **AI Framework**       | `@mastra/core`                   | Workspace (`@kestrel/ai`) | Autonomous multi-agent workflows, tool execution loops, deterministic evaluators       |
+| **Styling & Design**   | `tailwindcss`                    | `^4.3.3`                  | Tailwind CSS v4 engine, `@tailwindcss/postcss`, theme token variables                  |
+| **Icons & Motion**     | `@tabler/icons-react` / `motion` | `^3.31.0` / `^12.40.0`    | Tree-shaken icon library, fluid hardware-accelerated UI transitions                    |
+| **Financial Charting** | `lightweight-charts`             | `^5.0.4` (`5.2.0`)        | High-performance HTML5 Canvas candlestick and technical indicator rendering            |
+| **Client State**       | `@tanstack/react-query` / `nuqs` | `^5.66.0` / `^2.2.3`      | Server state management, SWR caching, type-safe URL search param state                 |
+| **Observability**      | `@sentry/nextjs`                 | `^10.69.0`                | Production error tracking, Server Action tracing, performance instrumentation          |
+| **Monorepo Engine**    | `turbo` / `pnpm`                 | `^2.10.9` / `9.15.4`      | Workspace task pipelines, caching, strict dependency isolation                         |
 
 ---
 
 ### 1.3 Core Architectural Thesis
 
-The goal of this architectural blueprint is to elevate Kestrel's web tier from a mixed App Router / REST implementation to a state-of-the-art **Next.js 16 and React 19 architecture**. 
+The goal of this architectural blueprint is to elevate Kestrel's web tier from a mixed App Router / REST implementation to a state-of-the-art **Next.js 16 and React 19 architecture**.
 
 Key modernization imperatives include:
+
 1. **Sub-15ms TTFB via Partial Prerendering (PPR)**: Decomposing synchronous layout blocks so static navigation shells flush instantly while dynamic user sessions and ambient market tickers stream in parallel Suspense boundaries.
 2. **First-Party Mutation Ergonomics with Server Actions**: Replacing ~30 boilerplate internal REST endpoints with type-safe Server Actions that integrate directly with React 19's `useActionState`, `useOptimistic`, and automatic CSRF handling.
 3. **Targeted Caching via Modern Dynamic IO (`use cache`)**: Eliminating blunt, blanket `force-dynamic` exports and replacing them with granular function-level caching (`cacheTag`, `cacheLife`) for shared macro, news, and catalog data.
@@ -111,7 +114,7 @@ Key modernization imperatives include:
 
 ### 2.1 Server Actions vs Route Handlers Demarcation
 
-Next.js 16 establishes a definitive boundary between **Server Actions** (internal UI-driven Remote Procedure Calls) and **Route Handlers** (standard HTTP REST/SSE endpoints). 
+Next.js 16 establishes a definitive boundary between **Server Actions** (internal UI-driven Remote Procedure Calls) and **Route Handlers** (standard HTTP REST/SSE endpoints).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -144,15 +147,15 @@ Next.js 16 establishes a definitive boundary between **Server Actions** (interna
 
 #### Comparison Matrix:
 
-| Architectural Dimension | Server Actions (`'use server'`) | Route Handlers (`route.ts`) |
-|---|---|---|
-| **Primary Intent** | First-party UI state mutations, form submissions, optimistic flows | Streaming endpoints, inbound webhooks, cron jobs, file exports, public APIs |
-| **Transport & Calling** | Next.js RPC (POST to current URL with `Next-Action` header) | Standard HTTP methods (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`) |
-| **CSRF Protection** | **Automatic & Built-in**: Next.js validates Origin and Action IDs | **Manual**: Enforced via `src/proxy.ts` double-submit cookie (`__Host-hfx_csrf`) |
-| **React 19 Integration** | Native integration with `useActionState`, `useOptimistic`, `useTransition` | Consumed via `fetch()`, `@tanstack/react-query`, or `@ai-sdk/react` |
-| **Cache Invalidation** | Direct invocation of `revalidateTag(tag)` or `revalidatePath(path)` | Requires manual client cache mutation or cache-tag revalidation calls |
-| **Error Handling** | Structured return types (`{ ok: true, data } \| { ok: false, error }`) | HTTP status codes (`400`, `401`, `403`, `429`, `500`) with JSON error envelopes |
-| **Kestrel Assignments** | - Alert CRUD & toggle<br>- Journal entry management<br>- User preferences & profile<br>- Chat thread fork / rename / delete<br>- Admin feature toggles | - `/api/chat` (SSE AI token streaming)<br>- `/api/market/stream` (Ambient quote SSE)<br>- `/api/billing/webhook` (HMAC webhook)<br>- `/api/cron/*` (Secret-guarded cron)<br>- `/api/health/*` (Liveness & health) |
+| Architectural Dimension  | Server Actions (`'use server'`)                                                                                                                        | Route Handlers (`route.ts`)                                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Primary Intent**       | First-party UI state mutations, form submissions, optimistic flows                                                                                     | Streaming endpoints, inbound webhooks, cron jobs, file exports, public APIs                                                                                                                                       |
+| **Transport & Calling**  | Next.js RPC (POST to current URL with `Next-Action` header)                                                                                            | Standard HTTP methods (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`)                                                                                                                                                   |
+| **CSRF Protection**      | **Automatic & Built-in**: Next.js validates Origin and Action IDs                                                                                      | **Manual**: Enforced via `src/proxy.ts` double-submit cookie (`__Host-hfx_csrf`)                                                                                                                                  |
+| **React 19 Integration** | Native integration with `useActionState`, `useOptimistic`, `useTransition`                                                                             | Consumed via `fetch()`, `@tanstack/react-query`, or `@ai-sdk/react`                                                                                                                                               |
+| **Cache Invalidation**   | Direct invocation of `revalidateTag(tag)` or `revalidatePath(path)`                                                                                    | Requires manual client cache mutation or cache-tag revalidation calls                                                                                                                                             |
+| **Error Handling**       | Structured return types (`{ ok: true, data } \| { ok: false, error }`)                                                                                 | HTTP status codes (`400`, `401`, `403`, `429`, `500`) with JSON error envelopes                                                                                                                                   |
+| **Kestrel Assignments**  | - Alert CRUD & toggle<br>- Journal entry management<br>- User preferences & profile<br>- Chat thread fork / rename / delete<br>- Admin feature toggles | - `/api/chat` (SSE AI token streaming)<br>- `/api/market/stream` (Ambient quote SSE)<br>- `/api/billing/webhook` (HMAC webhook)<br>- `/api/cron/*` (Secret-guarded cron)<br>- `/api/health/*` (Liveness & health) |
 
 ---
 
@@ -190,6 +193,7 @@ In Next.js 16, **everything is dynamic by default**. The historical reliance on 
 ```
 
 #### Deduplication vs. Cross-Request Caching:
+
 1. **React `cache()` (Request-Scoped Memoization)**:
    - Does NOT persist data across requests or across different users.
    - Guaranteed zero memory leakage between requests.
@@ -230,6 +234,7 @@ In Next.js 16, **everything is dynamic by default**. The historical reliance on 
 ```
 
 #### Key Rules for PPR Geometry & Layout Stability:
+
 - **Skeleton Height Matching**: Fallbacks in `<Suspense fallback={...}>` must have identical dimensions and bounding-box geometry as the resolved dynamic components (e.g. `h-7 w-full` for `<LiveTickerTape>`) to prevent Cumulative Layout Shift (CLS = 0).
 - **Synchronous Shell Isolation**: Layout roots (`(app)/layout.tsx`) must avoid top-level `await auth()` blocks. Dynamic data dependencies must be pushed into leaf Server Components wrapped in Suspense boundaries.
 
@@ -240,6 +245,7 @@ In Next.js 16, **everything is dynamic by default**. The historical reliance on 
 Turbopack is the default Rust-based bundler in Next.js 16. In a pnpm monorepo structure where packages (`@kestrel/*`) reside outside `apps/web`, explicit configuration ensures optimal tree-shaking and rapid Fast Refresh (<50ms).
 
 #### Monorepo Anchoring Principles:
+
 1. **Workspace Root Pinning**: Setting `turbopack.root = workspaceRoot` ensures Turbopack anchors its module resolution graph to the repository root where `pnpm-lock.yaml` lives.
 2. **Barrel Import Optimization (`optimizePackageImports`)**: Heavy libraries containing hundreds of icon or component exports (such as `@tabler/icons-react`, `motion`, `shiki`, and `@dnd-kit/core`) are transformed into direct module imports, eliminating massive module resolution graphs.
 3. **Transpilation Pipeline (`transpilePackages`)**: Explicitly transpiling workspace packages (`@kestrel/shared`, `@kestrel/db`, `@kestrel/data`, `@kestrel/indicators`, `@kestrel/ai`, `@kestrel/config`) ensures TypeScript paths and shared TSConfigs are compiled consistently without manual pre-build steps.
@@ -251,6 +257,7 @@ Turbopack is the default Rust-based bundler in Next.js 16. In a pnpm monorepo st
 Next.js 16 enforces a strict separation between **document metadata** (`export const metadata: Metadata`) and **viewport settings** (`export const viewport: Viewport`).
 
 #### Architectural Requirements:
+
 - **Viewport Definition**: Properties such as `width`, `initialScale`, `maximumScale`, `viewportFit`, and `themeColor` must be defined exclusively inside `export const viewport: Viewport` in `src/app/layout.tsx`.
 - **Deduplicated Dynamic Metadata**: In dynamic routes (`/chart/[symbol]`, `/chat/[threadId]`), `generateMetadata` must call cached DAL fetchers (`getThread`, `getSymbolMetadata`) wrapped in React `cache()`. This ensures that Next.js executes the database lookup exactly once during the request lifecycle.
 
@@ -306,6 +313,7 @@ Kestrel’s AI chat runtime couples **Mastra multi-agent workflows** with the **
 Next.js 16 replaces legacy middleware conventions with the **Request Proxy** pattern. The proxy executes at the network ingress before routing decisions, serving as Kestrel's primary security perimeter.
 
 #### Security & Performance Guarantees:
+
 1. **Zero Database Overhead**: The proxy performs zero database lookups, operating entirely in memory using Web Crypto APIs and fast JWT header decoding (execution latency <2ms).
 2. **Double-Submit CSRF Defense**: Automatically sets `__Host-hfx_csrf` cookie on all requests and validates matching `x-csrf-token` headers on state-changing methods (`POST`, `PUT`, `DELETE`, `PATCH`).
 3. **Per-Request CSP Nonce**: Generates a 128-bit cryptographic nonce (`crypto.randomUUID()`) per request, injecting it into downstream `x-csp-nonce` headers and the `Content-Security-Policy` header with `'strict-dynamic'`.
@@ -317,35 +325,38 @@ Next.js 16 replaces legacy middleware conventions with the **Request Proxy** pat
 
 ### 3.1 Comprehensive Domain-by-Domain Evaluation Matrix
 
-| Domain # | Architectural Dimension | Current Kestrel Implementation (`apps/web`) | Next.js 16 & React 19 Best Practice | Severity / Impact | Evaluation & Recommendations |
-|---|---|---|---|---|---|
-| **1** | **Routing & Layout Architecture** | `AppLayout` (`(app)/layout.tsx`) is an `async` Server Component awaiting `auth()`, `getOnboardingStatus()`, and `checkIsAdmin()` at the layout root. Blocks initial HTML flush. | Synchronous Layout Shell + Partial Prerendering (PPR). User sessions, tickers, and content stream in granular Suspense boundaries. | **HIGH** | Decompose `(app)/layout.tsx` into a synchronous frame. Move dynamic auth checks into `<DynamicUserSidebar>` and `<MainContentStream>` to achieve <15ms TTFB. |
-| **2** | **Mutations & State Management** | ~30 internal CRUD endpoints use `apiMutate()` → REST Route Handlers (`/api/alerts`, `/api/journal`, `/api/settings/*`, `/api/chat/threads/*`) with manual CSRF headers. | Co-located Server Actions (`'use server'`) paired with React 19 `useActionState`, `useOptimistic`, and `useTransition`. | **HIGH** | Migrate internal UI mutations to typed Server Actions. Reserve Route Handlers strictly for SSE streaming, webhooks, cron, and public probes. |
-| **3** | **Caching & Directives** | Blanket `export const dynamic = 'force-dynamic'` across 70+ files. Conflicting `force-dynamic` + `generateStaticParams()` in `chart/[symbol]/page.tsx`. | Dynamic by default. Use Next.js 16 `'use cache'`, `cacheTag()`, and `cacheLife()` for shared data (Macro calendar, Symbol catalog). | **HIGH** | Remove blanket `force-dynamic`. Introduce `'use cache'` on Macro Calendar and News to cut database load by >80% on high-traffic shared views. |
-| **4** | **Query Deduplication (DAL)** | Dynamic pages (`/chat/[threadId]`) call `auth()` and `getThread()` in both `generateMetadata` and Page components without React `cache()`. | Wrap all DAL fetchers (`getThread`, `getUserWithSettings`, `listThreads`) in React `cache()` in `api-boundary.ts`. | **MEDIUM** | Wrap all read fetchers in React `cache()` to eliminate duplicate DB queries per navigation pass. |
-| **5** | **Bundle Splitting (AI Tools)** | All 31 bespoke tool renderers in `registry.tsx` are statically imported into the main chat bundle. | Dynamic Component Registry using `next/dynamic` / `React.lazy` to load tool components only when emitted in a stream. | **HIGH** | Refactor `registry.tsx` to dynamic imports, reducing chat initial JS payload by >45%. |
-| **6** | **Desktop Split-Chart Bundle** | `TradingViewWidget` is statically imported into `ChatScreen.tsx` even when split mode is inactive on mobile or standard chat views. | Dynamically import `TradingViewWidget` via `next/dynamic({ ssr: false })` rendered conditionally when `splitMode` is enabled. | **MEDIUM** | Lazy-load `TradingViewWidget` to defer heavy TradingView canvas scripts on mobile and standard chat screens. |
-| **7** | **Typography & Fonts** | `JetBrains_Mono` loaded via `next/font/google`. The primary sans-serif font falls back to unoptimized system fonts (`ui-sans-serif`). | Dual `next/font/google` configuration (`Geist` / `Inter` + `JetBrains_Mono`) with CSS variables and automatic self-hosting. | **LOW** | Integrate `Geist` via `next/font/google` in `layout.tsx` for consistent data density and zero CLS across all platforms. |
-| **8** | **Request Proxy & Security** | `src/proxy.ts` implements NextAuth v5, double-submit CSRF, CSP nonce, and HMAC header signing. 195 lines, zero DB calls. | State-of-the-art Next.js 16 Request Proxy architecture. | **OPTIMAL** | **Preserve as Gold Standard**. Maintain strict negative matchers and Edge-safe execution. |
-| **9** | **AI Streaming & Execution** | `/api/chat` uses `runtime = 'nodejs'`, `maxDuration = 60`, atomic budget guards, and SSE TransformStream event delivery. | Robust Node.js AI streaming with keep-alive heartbeats and client streaming fast-path. | **OPTIMAL** | **Preserve & Modernize**. Retain Node.js runtime and add periodic 15s keep-alive ping comments (`: ping\n\n`). |
+| Domain # | Architectural Dimension           | Current Kestrel Implementation (`apps/web`)                                                                                                                                     | Next.js 16 & React 19 Best Practice                                                                                                 | Severity / Impact | Evaluation & Recommendations                                                                                                                                 |
+| -------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1**    | **Routing & Layout Architecture** | `AppLayout` (`(app)/layout.tsx`) is an `async` Server Component awaiting `auth()`, `getOnboardingStatus()`, and `checkIsAdmin()` at the layout root. Blocks initial HTML flush. | Synchronous Layout Shell + Partial Prerendering (PPR). User sessions, tickers, and content stream in granular Suspense boundaries.  | **HIGH**          | Decompose `(app)/layout.tsx` into a synchronous frame. Move dynamic auth checks into `<DynamicUserSidebar>` and `<MainContentStream>` to achieve <15ms TTFB. |
+| **2**    | **Mutations & State Management**  | ~30 internal CRUD endpoints use `apiMutate()` → REST Route Handlers (`/api/alerts`, `/api/journal`, `/api/settings/*`, `/api/chat/threads/*`) with manual CSRF headers.         | Co-located Server Actions (`'use server'`) paired with React 19 `useActionState`, `useOptimistic`, and `useTransition`.             | **HIGH**          | Migrate internal UI mutations to typed Server Actions. Reserve Route Handlers strictly for SSE streaming, webhooks, cron, and public probes.                 |
+| **3**    | **Caching & Directives**          | Blanket `export const dynamic = 'force-dynamic'` across 70+ files. Conflicting `force-dynamic` + `generateStaticParams()` in `chart/[symbol]/page.tsx`.                         | Dynamic by default. Use Next.js 16 `'use cache'`, `cacheTag()`, and `cacheLife()` for shared data (Macro calendar, Symbol catalog). | **HIGH**          | Remove blanket `force-dynamic`. Introduce `'use cache'` on Macro Calendar and News to cut database load by >80% on high-traffic shared views.                |
+| **4**    | **Query Deduplication (DAL)**     | Dynamic pages (`/chat/[threadId]`) call `auth()` and `getThread()` in both `generateMetadata` and Page components without React `cache()`.                                      | Wrap all DAL fetchers (`getThread`, `getUserWithSettings`, `listThreads`) in React `cache()` in `api-boundary.ts`.                  | **MEDIUM**        | Wrap all read fetchers in React `cache()` to eliminate duplicate DB queries per navigation pass.                                                             |
+| **5**    | **Bundle Splitting (AI Tools)**   | All 31 bespoke tool renderers in `registry.tsx` are statically imported into the main chat bundle.                                                                              | Dynamic Component Registry using `next/dynamic` / `React.lazy` to load tool components only when emitted in a stream.               | **HIGH**          | Refactor `registry.tsx` to dynamic imports, reducing chat initial JS payload by >45%.                                                                        |
+| **6**    | **Desktop Split-Chart Bundle**    | `TradingViewWidget` is statically imported into `ChatScreen.tsx` even when split mode is inactive on mobile or standard chat views.                                             | Dynamically import `TradingViewWidget` via `next/dynamic({ ssr: false })` rendered conditionally when `splitMode` is enabled.       | **MEDIUM**        | Lazy-load `TradingViewWidget` to defer heavy TradingView canvas scripts on mobile and standard chat screens.                                                 |
+| **7**    | **Typography & Fonts**            | `JetBrains_Mono` loaded via `next/font/google`. The primary sans-serif font falls back to unoptimized system fonts (`ui-sans-serif`).                                           | Dual `next/font/google` configuration (`Geist` / `Inter` + `JetBrains_Mono`) with CSS variables and automatic self-hosting.         | **LOW**           | Integrate `Geist` via `next/font/google` in `layout.tsx` for consistent data density and zero CLS across all platforms.                                      |
+| **8**    | **Request Proxy & Security**      | `src/proxy.ts` implements NextAuth v5, double-submit CSRF, CSP nonce, and HMAC header signing. 195 lines, zero DB calls.                                                        | State-of-the-art Next.js 16 Request Proxy architecture.                                                                             | **OPTIMAL**       | **Preserve as Gold Standard**. Maintain strict negative matchers and Edge-safe execution.                                                                    |
+| **9**    | **AI Streaming & Execution**      | `/api/chat` uses `runtime = 'nodejs'`, `maxDuration = 60`, atomic budget guards, and SSE TransformStream event delivery.                                                        | Robust Node.js AI streaming with keep-alive heartbeats and client streaming fast-path.                                              | **OPTIMAL**       | **Preserve & Modernize**. Retain Node.js runtime and add periodic 15s keep-alive ping comments (`: ping\n\n`).                                               |
 
 ---
 
 ### 3.2 Specific Anti-Patterns Identified in Current Codebase
 
 #### Anti-Pattern A: Contradictory Directives in `chart/[symbol]/page.tsx`
+
 - **Location**: `apps/web/src/app/(app)/chart/[symbol]/page.tsx:14-19`
 - **Observation**: The file declares both `export const dynamic = 'force-dynamic'` and `export async function generateStaticParams()`.
 - **Issue**: Under `force-dynamic`, Next.js completely disables static generation, making `generateStaticParams()` a no-op dead code path while preventing Partial Prerendering.
 - **Remediation**: Remove `force-dynamic` and configure proper dynamic parameter handling.
 
 #### Anti-Pattern B: Invalid `revalidate` on Authenticated Pages
+
 - **Location**: `apps/web/src/app/(app)/settings/page.tsx:17`, `settings/agent/page.tsx:21`, `settings/models/page.tsx:17`
 - **Observation**: `export const revalidate = 60` is declared on pages that perform request-time dynamic operations (`await auth()`, `getUserWithSettings(userId)`).
 - **Issue**: When a component reads request cookies or headers via `auth()`, route-level ISR `revalidate` is ignored by Next.js.
 - **Remediation**: Remove `revalidate = 60` and rely on request-level memoization via React `cache()`.
 
 #### Anti-Pattern C: Dependency Inversion Violation in Settings Action
+
 - **Location**: `apps/web/src/app/(app)/settings/_actions-preferences.ts:24`
 - **Observation**: File imports `getDb` from `@kestrel/ai` rather than `@kestrel/db`.
 - **Issue**: Violates the DIP-1 architectural rule in `AGENTS.md` (which mandates importing `getDb` directly from `@kestrel/db` in `apps/web`).
@@ -461,8 +472,12 @@ const fontMono = JetBrains_Mono({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fontSans.variable} ${fontMono.variable} dark`} suppressHydrationWarning>
-      <body className="bg-bg text-fg font-sans antialiased selection:bg-gold-500/20 selection:text-gold-200">
+    <html
+      lang="en"
+      className={`${fontSans.variable} ${fontMono.variable} dark`}
+      suppressHydrationWarning
+    >
+      <body className="bg-bg text-fg selection:bg-gold-500/20 selection:text-gold-200 font-sans antialiased">
         {children}
       </body>
     </html>
@@ -480,28 +495,41 @@ Refactor `apps/web/src/components/chat/parts/registry.tsx` from static imports t
 // apps/web/src/components/chat/parts/registry.tsx
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
+
 import type { ToolPartProps } from './types';
 
 const ToolLoadingFallback = () => (
-  <div className="my-2 h-24 w-full animate-pulse rounded-md border border-border/40 bg-surface-muted/30" />
+  <div className="border-border/40 bg-surface-muted/30 my-2 h-24 w-full animate-pulse rounded-md border" />
 );
 
 export const DYNAMIC_TOOL_REGISTRY: Record<string, ComponentType<ToolPartProps<any>>> = {
   get_cot_report: dynamic(() => import('./tools/cot-report-part').then((m) => m.GetCoTPart), {
     loading: ToolLoadingFallback,
   }),
-  analyze_chart_image: dynamic(() => import('./tools/chart-image-part').then((m) => m.AnalyzeChartImagePart), {
-    loading: ToolLoadingFallback,
-  }),
-  convene_committee: dynamic(() => import('./tools/committee-part').then((m) => m.ConveneCommitteePart), {
-    loading: ToolLoadingFallback,
-  }),
-  get_correlation: dynamic(() => import('./tools/correlation-part').then((m) => m.GetCorrelationPart), {
-    loading: ToolLoadingFallback,
-  }),
-  get_intermarket_resonance: dynamic(() => import('./tools/resonance-part').then((m) => m.GetIntermarketResonancePart), {
-    loading: ToolLoadingFallback,
-  }),
+  analyze_chart_image: dynamic(
+    () => import('./tools/chart-image-part').then((m) => m.AnalyzeChartImagePart),
+    {
+      loading: ToolLoadingFallback,
+    },
+  ),
+  convene_committee: dynamic(
+    () => import('./tools/committee-part').then((m) => m.ConveneCommitteePart),
+    {
+      loading: ToolLoadingFallback,
+    },
+  ),
+  get_correlation: dynamic(
+    () => import('./tools/correlation-part').then((m) => m.GetCorrelationPart),
+    {
+      loading: ToolLoadingFallback,
+    },
+  ),
+  get_intermarket_resonance: dynamic(
+    () => import('./tools/resonance-part').then((m) => m.GetIntermarketResonancePart),
+    {
+      loading: ToolLoadingFallback,
+    },
+  ),
   // ... maps all 31 bespoke tool components on demand
 };
 ```
@@ -516,12 +544,13 @@ export const DYNAMIC_TOOL_REGISTRY: Record<string, ComponentType<ToolPartProps<a
 // apps/web/src/app/(app)/alerts/_actions.ts
 'use server';
 
-import { auth } from '@/auth';
-import { getDb } from '@kestrel/db'; // DIP-1 Compliant direct import
-import { schema, withRateLimit } from '@kestrel/db';
+import { getDb, schema, withRateLimit } from '@kestrel/db'; // DIP-1 Compliant direct import
+
+import * as Sentry from '@sentry/nextjs';
 import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
-import * as Sentry from '@sentry/nextjs';
+
+import { auth } from '@/auth';
 
 const CreateAlertSchema = z.object({
   symbol: z.string().min(2).max(20).trim(),
@@ -536,7 +565,7 @@ export type CreateAlertResult =
 
 export async function createAlertAction(
   _prevState: CreateAlertResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<CreateAlertResult> {
   return Sentry.withServerActionInstrumentation('createAlertAction', async () => {
     const session = await auth();
@@ -548,7 +577,10 @@ export async function createAlertAction(
     // Enforce database-backed rate limit (20 alert creations per minute per user)
     const rateLimit = await withRateLimit(userId, 'alert_create', 20);
     if (!rateLimit.allowed) {
-      return { ok: false, error: 'Rate limit exceeded. Please wait a minute before creating more alerts.' };
+      return {
+        ok: false,
+        error: 'Rate limit exceeded. Please wait a minute before creating more alerts.',
+      };
     }
 
     const raw = Object.fromEntries(formData);
@@ -604,8 +636,11 @@ export async function createAlertAction(
 // apps/web/src/lib/services/api-boundary.ts
 import 'server-only';
 
+import {
+  getThread as dbGetThread,
+  getUserWithSettings as dbGetUserWithSettings,
+} from '@kestrel/db';
 import { cache } from 'react';
-import { getThread as dbGetThread, getUserWithSettings as dbGetUserWithSettings } from '@kestrel/db';
 
 /**
  * Request-scoped memoized thread lookup.
@@ -631,19 +666,20 @@ export const getUserWithSettings = cache(async (userId: string) => {
 ```tsx
 // apps/web/src/app/(app)/layout.tsx
 import { Suspense } from 'react';
+
 import { AppShellContainer } from '@/components/layout/app-shell-container';
 import { DesktopSidebarShell } from '@/components/layout/desktop-sidebar-shell';
 import { DynamicUserSidebar } from '@/components/layout/dynamic-user-sidebar';
-import { TopBar } from '@/components/layout/top-bar';
+import { CommandPalette, InstallNudge } from '@/components/layout/lazy-chrome';
 import { LiveTickerTape } from '@/components/layout/live-ticker-tape';
 import { MarketSessionBar } from '@/components/layout/market-session-bar';
 import { NavDrawerProvider } from '@/components/layout/nav-drawer-context';
+import { OfflineBanner } from '@/components/layout/offline-banner';
 import { SidebarStateProvider } from '@/components/layout/sidebar-state-context';
-import { CommandPalette, InstallNudge } from '@/components/layout/lazy-chrome';
+import { SkipToContent } from '@/components/layout/skip-to-content';
+import { TopBar } from '@/components/layout/top-bar';
 import { MotionRoot } from '@/components/ui/motion-config';
 import { Toaster } from '@/components/ui/toaster';
-import { OfflineBanner } from '@/components/layout/offline-banner';
-import { SkipToContent } from '@/components/layout/skip-to-content';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -654,9 +690,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Static Sidebar Frame with Dynamic User Slot */}
             <DesktopSidebarShell>
               <Suspense
-                fallback={
-                  <div className="m-3 h-12 animate-pulse rounded-md bg-surface-muted/40" />
-                }
+                fallback={<div className="bg-surface-muted/40 m-3 h-12 animate-pulse rounded-md" />}
               >
                 <DynamicUserSidebar />
               </Suspense>
@@ -665,19 +699,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <AppShellContainer>
               <SkipToContent />
               <TopBar />
-              
+
               {/* Parallel Dynamic Market Telemetry Streams */}
-              <Suspense fallback={<div className="h-7 w-full animate-pulse bg-surface-muted/30" />}>
+              <Suspense fallback={<div className="bg-surface-muted/30 h-7 w-full animate-pulse" />}>
                 <LiveTickerTape />
               </Suspense>
-              <Suspense fallback={<div className="h-6 w-full animate-pulse bg-surface-muted/20" />}>
+              <Suspense fallback={<div className="bg-surface-muted/20 h-6 w-full animate-pulse" />}>
                 <MarketSessionBar />
               </Suspense>
 
               <main
                 id="main-content"
                 tabIndex={-1}
-                className="mx-auto w-full max-w-2xl px-4 pt-4 xl:max-w-7xl xl:px-6 focus:outline-none"
+                className="mx-auto w-full max-w-2xl px-4 pt-4 focus:outline-none xl:max-w-7xl xl:px-6"
                 style={{
                   viewTransitionName: 'main-content',
                   paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
@@ -687,7 +721,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Suspense
                   fallback={
                     <div className="flex min-h-[40svh] items-center justify-center">
-                      <div className="shimmer h-32 w-full max-w-md rounded-sm bg-surface-muted/30" />
+                      <div className="shimmer bg-surface-muted/30 h-32 w-full max-w-md rounded-sm" />
                     </div>
                   }
                 >
@@ -715,9 +749,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 // apps/web/next.config.ts
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { NextConfig } from 'next';
+
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { withSentryConfig } from '@sentry/nextjs';
+import type { NextConfig } from 'next';
 
 const workspaceRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 
@@ -819,13 +854,14 @@ export default withSentryConfig(withBundleAnalyzer(nextConfig), {
 
 ```ts
 // apps/web/src/app/api/chat/route.ts
-import { z } from 'zod';
-import { withAuth } from '@/lib/api';
-import { withRateLimit } from '@kestrel/db';
-import { reserveTurnBudget, estimateCostUsd } from '@kestrel/ai';
+import { estimateCostUsd, reserveTurnBudget } from '@kestrel/ai';
 import { runMastraCanonicalChatStream } from '@kestrel/ai/mastra';
+import { withRateLimit } from '@kestrel/db';
 import { ChatStreamEventSchema } from '@kestrel/shared';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
+
+import { withAuth } from '@/lib/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -842,7 +878,9 @@ const ChatPayloadSchema = z.object({
 });
 
 function encodeSse(event: unknown): Uint8Array {
-  return new TextEncoder().encode(`data: ${JSON.stringify(ChatStreamEventSchema.parse(event))}\n\n`);
+  return new TextEncoder().encode(
+    `data: ${JSON.stringify(ChatStreamEventSchema.parse(event))}\n\n`,
+  );
 }
 
 export const POST = withAuth<void>(async (req, { user }) => {
@@ -850,14 +888,17 @@ export const POST = withAuth<void>(async (req, { user }) => {
   if (!rateLimit.allowed) {
     return Response.json(
       { error: { code: 'RATE_LIMITED', message: 'Chat rate limit exceeded. Slow down.' } },
-      { status: 429, headers: { 'Retry-After': '60' } }
+      { status: 429, headers: { 'Retry-After': '60' } },
     );
   }
 
   const json = await req.json();
   const parsed = ChatPayloadSchema.safeParse(json);
   if (!parsed.success) {
-    return Response.json({ error: { code: 'VALIDATION', message: 'Invalid payload.' } }, { status: 400 });
+    return Response.json(
+      { error: { code: 'VALIDATION', message: 'Invalid payload.' } },
+      { status: 400 },
+    );
   }
 
   const { threadId, modelOverride, userMessage } = parsed.data;
@@ -900,9 +941,13 @@ export const POST = withAuth<void>(async (req, { user }) => {
             id: userMessage.id,
             data: {
               modelId: completion.modelId,
-              cost: estimateCostUsd(completion.modelId, completion.stats.inputTokens, completion.stats.outputTokens),
+              cost: estimateCostUsd(
+                completion.modelId,
+                completion.stats.inputTokens,
+                completion.stats.outputTokens,
+              ),
             },
-          })
+          }),
         );
 
         controller.enqueue(encodeSse({ type: 'text-end', id: userMessage.id }));
@@ -912,7 +957,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
           encodeSse({
             type: 'error',
             errorText: 'AI streaming error occurred. Please try again.',
-          })
+          }),
         );
       } finally {
         clearInterval(pingInterval);
@@ -961,19 +1006,20 @@ pnpm --filter @kestrel/web exec playwright test
 
 ### 6.2 Performance Benchmarking & Core Web Vitals Targets
 
-| Metric | Measurement Technique | Target Threshold | Architectural Driver |
-|---|---|---|---|
-| **TTFB (Time to First Byte)** | Navigation Timing API / Vercel Edge Analytics | **< 15ms** | Static layout shell flush via Partial Prerendering (PPR) |
-| **FCP (First Contentful Paint)** | Lighthouse / Chrome DevTools Performance Trace | **< 250ms** | Next.js 16 font self-hosting (`next/font/google`) & instant shell |
-| **LCP (Largest Contentful Paint)** | Web Vitals JS / Chrome Performance Profiler | **< 1.0s** | Parallel Suspense streaming + skeleton geometry matching |
-| **CLS (Cumulative Layout Shift)** | Chrome DevTools Layout Shift HUD | **0.000** | Explicit fallback height matching (`h-7`, `h-6`) & zero layout jump |
-| **INP (Interaction to Next Paint)** | Event Timing API / User Journey Profiling | **< 50ms** | Optimistic UI updates with React 19 `useOptimistic` & `useTransition` |
+| Metric                              | Measurement Technique                          | Target Threshold | Architectural Driver                                                  |
+| ----------------------------------- | ---------------------------------------------- | ---------------- | --------------------------------------------------------------------- |
+| **TTFB (Time to First Byte)**       | Navigation Timing API / Vercel Edge Analytics  | **< 15ms**       | Static layout shell flush via Partial Prerendering (PPR)              |
+| **FCP (First Contentful Paint)**    | Lighthouse / Chrome DevTools Performance Trace | **< 250ms**      | Next.js 16 font self-hosting (`next/font/google`) & instant shell     |
+| **LCP (Largest Contentful Paint)**  | Web Vitals JS / Chrome Performance Profiler    | **< 1.0s**       | Parallel Suspense streaming + skeleton geometry matching              |
+| **CLS (Cumulative Layout Shift)**   | Chrome DevTools Layout Shift HUD               | **0.000**        | Explicit fallback height matching (`h-7`, `h-6`) & zero layout jump   |
+| **INP (Interaction to Next Paint)** | Event Timing API / User Journey Profiling      | **< 50ms**       | Optimistic UI updates with React 19 `useOptimistic` & `useTransition` |
 
 ---
 
 ### 6.3 Invalidation Conditions & Audit Protocols
 
 An audit of this architecture is considered **FAILED / INVALIDATED** if any of the following conditions occur:
+
 1. `pnpm --filter @kestrel/web build` fails or logs deprecation warnings for Next.js configuration options.
 2. `pnpm typecheck` emits type resolution errors (`TS2742` or `TS2345`) on Next.js async request APIs (`params`, `searchParams`, `headers`).
 3. An internal Server Action imports `getDb` from `@kestrel/ai` instead of `@kestrel/db` (violating DIP-1).

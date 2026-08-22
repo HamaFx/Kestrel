@@ -20,13 +20,7 @@
 export { BotDispatcher, getBotDispatcher } from './dispatcher';
 export { parseCommand } from './types';
 export type { BotCommand, BotContext, BotResponse, BotPlatform, ParsedCommand } from './types';
-export {
-  createLinkCode,
-  resolveLinkCode,
-  resolveBotUser,
-  unlinkBot,
-  getBotLink,
-} from './linking';
+export { createLinkCode, resolveLinkCode, resolveBotUser, unlinkBot, getBotLink } from './linking';
 
 // Telegram client (resilient API calls with retry + chunking)
 export {

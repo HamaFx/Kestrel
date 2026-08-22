@@ -19,7 +19,20 @@
 export * from './schema/index';
 // PF-15 — Export `getDbRO` so consumers can route read queries to
 // read replicas. `withTenantDbRO` also uses `getDbRO` internally.
-export { getDb, getDbRO, getAdminDb, closeAdminDb, closeDb, closeReplicaDb, withTenantDb, withTenantDbRO, withDbRetry, checkDbHealth, schema, type DbClient } from './client';
+export {
+  getDb,
+  getDbRO,
+  getAdminDb,
+  closeAdminDb,
+  closeDb,
+  closeReplicaDb,
+  withTenantDb,
+  withTenantDbRO,
+  withDbRetry,
+  checkDbHealth,
+  schema,
+  type DbClient,
+} from './client';
 export { withUserScope } from './with-user-scope';
 export { traceQuery, withTracing } from './tracing';
 export { withRateLimit, type RateLimitResult } from './rate-limit';
@@ -43,7 +56,12 @@ export {
   countJournalEntriesThisMonth,
   type SubscriptionWithPlan,
 } from './queries/billing';
-export { getUserWithSettings, updateUserSettingsField, listAllUserSettings, type UserWithSettings } from './queries/user-settings';
+export {
+  getUserWithSettings,
+  updateUserSettingsField,
+  listAllUserSettings,
+  type UserWithSettings,
+} from './queries/user-settings';
 export {
   getThread,
   listThreads,
@@ -136,14 +154,8 @@ export {
   removeUserSymbol,
   type UserSymbolRow,
 } from './queries/user-symbols';
-export {
-  getToolStats,
-  type ToolStats,
-} from './queries/tool-telemetry';
-export {
-  listActiveTenants,
-  type OrganizationRow,
-} from './queries/tenants';
+export { getToolStats, type ToolStats } from './queries/tool-telemetry';
+export { listActiveTenants, type OrganizationRow } from './queries/tenants';
 export {
   listDiagnosticTraces,
   getDiagnosticTrace,
@@ -158,14 +170,8 @@ export {
   upsertFeatureFlag,
   type FeatureFlagRow,
 } from './queries/feature-flags';
-export {
-  listCronRuns,
-  deleteOldCronRuns,
-  type CronRunRow,
-} from './queries/cron-runs';
-export {
-  lazyPurgeExpiredTokens,
-} from './queries/verification-tokens';
+export { listCronRuns, deleteOldCronRuns, type CronRunRow } from './queries/cron-runs';
+export { lazyPurgeExpiredTokens } from './queries/verification-tokens';
 export {
   getUserById,
   getUserPasswordHash,
@@ -176,12 +182,15 @@ export {
   type UserRow,
   type UserWithSettingsRow,
 } from './queries/users';
-export {
-  recordAdminAudit,
-  listAdminAuditLogs,
-} from './queries/admin-audit';
+export { recordAdminAudit, listAdminAuditLogs } from './queries/admin-audit';
 export type { AdminAuditLogRow, AdminAuditLogInsert } from './schema/admin-audit';
-export type { AiMessageFeedbackRow, AiMessageFeedbackInsert, FeedbackRating, FeedbackReviewStatus, FeedbackLabel } from './schema/ai-feedback';
+export type {
+  AiMessageFeedbackRow,
+  AiMessageFeedbackInsert,
+  FeedbackRating,
+  FeedbackReviewStatus,
+  FeedbackLabel,
+} from './schema/ai-feedback';
 export {
   registerEvalDataset,
   getEvalDataset,
@@ -195,9 +204,7 @@ export {
   type ListReviewedTrainingPairsOptions,
 } from './queries/training-dataset';
 export type { EvalDatasetRow, EvalDatasetInsert, EvalDatasetStatus } from './schema/eval-datasets';
-export {
-  listToolTelemetry,
-} from './queries/chat-telemetry';
+export { listToolTelemetry } from './queries/chat-telemetry';
 export {
   getWatchlistWithCatalog,
   isSymbolInCatalog,
@@ -205,14 +212,8 @@ export {
   reorderWatchlist,
   type WatchlistEntry,
 } from './queries/watchlist';
-export {
-  resetOnboarding,
-  type ResetMode,
-} from './queries/onboarding';
-export {
-  getProviderHealthForUser,
-  getUserApiKeys,
-} from './queries/provider-tests';
+export { resetOnboarding, type ResetMode } from './queries/onboarding';
+export { getProviderHealthForUser, getUserApiKeys } from './queries/provider-tests';
 export {
   listActivePlans,
   getPlan,
@@ -272,15 +273,8 @@ export {
   markBillingWebhookReplayed,
   releaseBillingWebhookReplay,
 } from './queries/ipn-events';
-export {
-  getRecentCandles,
-  listActiveSymbols,
-  type CandleRow,
-} from './queries/candles';
-export {
-  listMtdAgentOpinions,
-  type AgentOpinionRow,
-} from './queries/agent-opinions';
+export { getRecentCandles, listActiveSymbols, type CandleRow } from './queries/candles';
+export { listMtdAgentOpinions, type AgentOpinionRow } from './queries/agent-opinions';
 export {
   upsertMessageFeedback,
   getMessageFeedback,

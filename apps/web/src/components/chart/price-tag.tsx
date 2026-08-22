@@ -22,9 +22,8 @@
 // The price digits animate via `<AnimatedNumber>` (motion spring) so live
 // updates feel alive instead of snapping. Delta gets a IconTrendingUp/Down
 // icon for at-a-glance direction.
-
 import { getSymbolDefinition, isKnownSymbol, priceDecimals, type Symbol } from '@kestrel/shared';
-import {IconMinus, IconTrendingDown, IconTrendingUp} from '@tabler/icons-react';
+import { IconMinus, IconTrendingDown, IconTrendingUp } from '@tabler/icons-react';
 import { useCallback, useRef, useState } from 'react';
 
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -66,18 +65,25 @@ export function PriceTag({ symbol, referencePrice, className }: PriceTagProps) {
   }, []);
 
   const { tick, isLoading, isError } = usePrice(symbol, { enabled: inView });
-  const decimals = isKnownSymbol(symbol) ? getSymbolDefinition(symbol).decimals : priceDecimals(symbol);
+  const decimals = isKnownSymbol(symbol)
+    ? getSymbolDefinition(symbol).decimals
+    : priceDecimals(symbol);
 
   if (isLoading) {
     return (
-      <span ref={elRef} className={cn('text-fg-subtle text-base tabular-nums font-mono animate-pulse', className)}>
+      <span
+        ref={elRef}
+        className={cn('text-fg-subtle animate-pulse font-mono text-base tabular-nums', className)}
+      >
         —
       </span>
     );
   }
   if (isError || !tick) {
     return (
-      <span ref={elRef} className={cn('text-danger text-xs tabular-nums font-mono', className)}>price unavailable</span>
+      <span ref={elRef} className={cn('text-danger font-mono text-xs tabular-nums', className)}>
+        price unavailable
+      </span>
     );
   }
 
@@ -105,7 +111,13 @@ export function PriceTag({ symbol, referencePrice, className }: PriceTagProps) {
             !bull && !bear && 'text-fg-muted',
           )}
         >
-          {bull ? <IconTrendingUp className="size-3" /> : bear ? <IconTrendingDown className="size-3" /> : <IconMinus className="size-3" />}
+          {bull ? (
+            <IconTrendingUp className="size-3" />
+          ) : bear ? (
+            <IconTrendingDown className="size-3" />
+          ) : (
+            <IconMinus className="size-3" />
+          )}
           {delta >= 0 ? '+' : ''}
           {delta.toFixed(decimals)}
         </span>

@@ -1,13 +1,30 @@
-import { describe, expect, it } from 'vitest';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { describe, expect, it } from 'vitest';
+
+import type { PromptResult } from '../src/eval/runner';
 import {
-  buildTrainingRecords,
   buildDatasetManifest,
+  buildTrainingRecords,
   writeTrainingExport,
 } from '../src/eval/training-export';
-import type { PromptResult } from '../src/eval/runner';
 
 function result(overrides: Partial<PromptResult> = {}): PromptResult {
   return {
@@ -16,7 +33,9 @@ function result(overrides: Partial<PromptResult> = {}): PromptResult {
     ttftMs: 42,
     totalMs: 120,
     text: 'XAUUSD response with private user content',
-    toolCalls: [{ name: 'get_price', args: { accountId: 'private' }, resultSummary: '{"price":2400}' }],
+    toolCalls: [
+      { name: 'get_price', args: { accountId: 'private' }, resultSummary: '{"price":2400}' },
+    ],
     agentProgress: [],
     metadata: { totalCostUsd: 0.012 },
     terminalStatus: 'complete',
@@ -44,22 +63,27 @@ describe('training export', () => {
   });
 
   it('requires explicit approval before including assistant text', () => {
-    expect(() => buildTrainingRecords([result()], {
-      datasetVersion: '2026-08-cases',
-      includeAssistantText: true,
-    })).toThrow('approvedBy is required');
+    expect(() =>
+      buildTrainingRecords([result()], {
+        datasetVersion: '2026-08-cases',
+        includeAssistantText: true,
+      }),
+    ).toThrow('approvedBy is required');
   });
 
   it('includes sanitized text and reviewer annotation only after approval', () => {
-    const [record] = buildTrainingRecords([result({ text: 'api_key=secret-value; reviewed answer' })], {
-      datasetVersion: '2026-08-cases',
-      includeAssistantText: true,
-      approvedBy: 'reviewer-1',
-      annotations: {
-        'case-1': { label: 'pass', reviewerId: 'reviewer-1', issueCodes: [] },
+    const [record] = buildTrainingRecords(
+      [result({ text: 'api_key=secret-value; reviewed answer' })],
+      {
+        datasetVersion: '2026-08-cases',
+        includeAssistantText: true,
+        approvedBy: 'reviewer-1',
+        annotations: {
+          'case-1': { label: 'pass', reviewerId: 'reviewer-1', issueCodes: [] },
+        },
+        now: new Date('2026-08-16T00:00:00.000Z'),
       },
-      now: new Date('2026-08-16T00:00:00.000Z'),
-    });
+    );
 
     expect(record?.assistantText).toContain('<redacted>');
     expect(record?.assistantText).not.toContain('secret-value');
@@ -71,16 +95,20 @@ describe('training export', () => {
   });
 
   it('requires reviewed labels for a governed training bundle', () => {
-    expect(() => buildTrainingRecords([result()], {
-      datasetVersion: '2026-08-cases',
-      requireApprovedAnnotations: true,
-      annotations: { 'case-1': { label: 'pass', reviewerId: 'reviewer-1' } },
-    })).not.toThrow();
-    expect(() => buildTrainingRecords([result({ assertions: [{ kind: 'unsafe_output', detail: 'bad' }] })], {
-      datasetVersion: '2026-08-cases',
-      requireApprovedAnnotations: true,
-      annotations: { 'case-1': { label: 'needs_review', reviewerId: 'reviewer-1' } },
-    })).toThrow('approved reviewer label');
+    expect(() =>
+      buildTrainingRecords([result()], {
+        datasetVersion: '2026-08-cases',
+        requireApprovedAnnotations: true,
+        annotations: { 'case-1': { label: 'pass', reviewerId: 'reviewer-1' } },
+      }),
+    ).not.toThrow();
+    expect(() =>
+      buildTrainingRecords([result({ assertions: [{ kind: 'unsafe_output', detail: 'bad' }] })], {
+        datasetVersion: '2026-08-cases',
+        requireApprovedAnnotations: true,
+        annotations: { 'case-1': { label: 'needs_review', reviewerId: 'reviewer-1' } },
+      }),
+    ).toThrow('approved reviewer label');
   });
 
   it('builds a content-addressed manifest with label counts and provenance', () => {
@@ -104,10 +132,12 @@ describe('training export', () => {
   });
 
   it('requires explicit annotations and records deterministic dataset splits', () => {
-    expect(() => buildTrainingRecords([result()], {
-      datasetVersion: '2026-08-cases',
-      requireApprovedAnnotations: true,
-    })).toThrow('missing an explicit reviewer annotation');
+    expect(() =>
+      buildTrainingRecords([result()], {
+        datasetVersion: '2026-08-cases',
+        requireApprovedAnnotations: true,
+      }),
+    ).toThrow('missing an explicit reviewer annotation');
 
     const [record] = buildTrainingRecords([result()], {
       datasetVersion: '2026-08-cases',
@@ -124,11 +154,16 @@ describe('training export', () => {
   });
 
   it('rejects approved assistant text containing PII after secret redaction', () => {
-    expect(() => buildTrainingRecords([result({ text: 'Contact trader@example.com for the private answer.' })], {
-      datasetVersion: '2026-08-cases',
-      includeAssistantText: true,
-      approvedBy: 'reviewer-1',
-    })).toThrow('sensitive content (email)');
+    expect(() =>
+      buildTrainingRecords(
+        [result({ text: 'Contact trader@example.com for the private answer.' })],
+        {
+          datasetVersion: '2026-08-cases',
+          includeAssistantText: true,
+          approvedBy: 'reviewer-1',
+        },
+      ),
+    ).toThrow('sensitive content (email)');
   });
 
   it('writes one JSONL record and a manifest sidecar per result', async () => {
@@ -141,7 +176,10 @@ describe('training export', () => {
       const lines = (await readFile(path, 'utf8')).trim().split('\n');
       expect(lines).toHaveLength(2);
       expect(JSON.parse(lines[0]!).schemaVersion).toBe('kestrel.eval-record.v1');
-      const manifest = JSON.parse(await readFile(`${path}.manifest.json`, 'utf8')) as { recordCount: number; contentSha256: string };
+      const manifest = JSON.parse(await readFile(`${path}.manifest.json`, 'utf8')) as {
+        recordCount: number;
+        contentSha256: string;
+      };
       expect(manifest.recordCount).toBe(2);
       expect(manifest.contentSha256).toHaveLength(64);
     } finally {

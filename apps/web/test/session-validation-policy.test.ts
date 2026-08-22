@@ -1,10 +1,27 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
 
 import type { DbClient } from '@kestrel/db';
+import { describe, expect, it, vi } from 'vitest';
+
 import { validateSession, type SessionToken } from '../src/lib/auth/session-validators';
 
 const authSource = readFileSync(resolve(process.cwd(), 'src/auth.ts'), 'utf8');
@@ -20,7 +37,9 @@ function token(overrides: Partial<SessionToken> = {}): SessionToken {
 }
 
 function validSelectChain(row: unknown) {
-  const limit = vi.fn().mockResolvedValue(row === undefined ? [{ tv: 3, sessionId: 'session-1' }] : row);
+  const limit = vi
+    .fn()
+    .mockResolvedValue(row === undefined ? [{ tv: 3, sessionId: 'session-1' }] : row);
   const where = vi.fn(() => ({ limit }));
   const leftJoin = vi.fn(() => ({ where }));
   const from = vi.fn(() => ({ leftJoin }));
@@ -34,7 +53,7 @@ function dbWithSelect(select: DbClient['select'], update?: DbClient['update']): 
 
 describe('session validation outage policy', () => {
   it('invalidates the session when auth cannot acquire the database client', () => {
-    expect(authSource).toContain("auth/session_database_unavailable");
+    expect(authSource).toContain('auth/session_database_unavailable');
     expect(authSource).toContain("return { ...session, user: undefined, expires: '0' }");
     expect(authSource).toContain('validateSession(db, token, session, now, { failClosed: true })');
   });
@@ -45,12 +64,7 @@ describe('session validation outage policy', () => {
     });
     const session = { user: { id: 'user-1' }, expires: 'future' };
 
-    const result = await validateSession(
-      dbWithSelect(select),
-      token(),
-      session,
-      2_000,
-    );
+    const result = await validateSession(dbWithSelect(select), token(), session, 2_000);
 
     expect(result).toEqual({ user: undefined, expires: '0' });
     expect(select).toHaveBeenCalledOnce();

@@ -1,14 +1,34 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
 const workflow = readFileSync(resolve(root, '.github/workflows/docker-backup.yml'), 'utf8');
 const smoke = readFileSync(resolve(root, 'docker/backup-restore-smoke.sh'), 'utf8');
 const backupEntrypointPath = resolve(root, 'docker/backup-entrypoint.sh');
-const rotation = readFileSync(resolve(root, 'packages/db/scripts/rotate-encryption-secret.mjs'), 'utf8');
+const rotation = readFileSync(
+  resolve(root, 'packages/db/scripts/rotate-encryption-secret.mjs'),
+  'utf8',
+);
 const loadtestWorkflow = readFileSync(resolve(root, '.github/workflows/loadtest.yml'), 'utf8');
 const dbPackage = readFileSync(resolve(root, 'packages/db/package.json'), 'utf8');
 
@@ -39,7 +59,9 @@ describe('P3 production hardening policy', () => {
     expect(loadtestWorkflow).not.toContain('for f in tests/*.ts');
     expect(loadtestWorkflow).not.toContain('k6 inspect "$f" 2>&1 || true');
     expect(loadtestWorkflow).toContain("default: 'loadtest/dist/tests/smoke-*.js'");
-    expect(loadtestWorkflow).toContain('path: ${{ inputs.test || \'loadtest/dist/tests/smoke-*.js\' }}');
+    expect(loadtestWorkflow).toContain(
+      "path: ${{ inputs.test || 'loadtest/dist/tests/smoke-*.js' }}",
+    );
     expect(loadtestWorkflow).not.toContain('path: loadtest/tests/load-read-mix.ts');
     expect(loadtestWorkflow).not.toContain('path: loadtest/tests/load-write-mix.ts');
   });
@@ -56,7 +78,7 @@ describe('P3 production hardening policy', () => {
     expect(rotation).toContain('ROTATE_ENCRYPTION_SECRET_CONFIRM');
     expect(rotation).toContain('ROTATE_ENCRYPTION_SECRET_MAINTENANCE');
     expect(rotation).toContain('STOP_WRITERS');
-    expect(rotation).toContain("!== REQUIRED_CONFIRMATION");
+    expect(rotation).toContain('!== REQUIRED_CONFIRMATION');
     expect(rotation).toContain('await sql.begin');
     expect(rotation).toContain('cannot be decrypted with OLD_ENCRYPTION_SECRET');
     expect(rotation).toContain('user_settings');

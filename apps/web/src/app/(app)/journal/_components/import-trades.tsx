@@ -1,13 +1,28 @@
 'use client';
 
-import {IconDownload, IconUpload, IconX, IconFileSpreadsheet} from '@tabler/icons-react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { isKnownSymbol } from '@kestrel/shared';
+import { IconDownload, IconFileSpreadsheet, IconUpload, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/cn';
 import { apiMutate } from '@/lib/api-client';
-import { isKnownSymbol } from '@kestrel/shared';
+import { cn } from '@/lib/cn';
 
 interface ParsedTrade {
   symbol: string;
@@ -28,7 +43,10 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
   const [importing, setImporting] = useState(false);
 
   function parseCSV(text: string): ParsedTrade[] {
-    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const lines = text
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
     const results: ParsedTrade[] = [];
 
     for (const line of lines) {
@@ -119,13 +137,16 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60">
-          <div className="w-full sm:max-w-lg rounded-sm bg-bg-elev-1 border border-border p-6 flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center">
+          <div className="bg-bg-elev-1 border-border flex max-h-[80vh] w-full flex-col gap-4 overflow-y-auto rounded-sm border p-6 sm:max-w-lg">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-fg">Import trades</h3>
+              <h3 className="text-fg text-base font-semibold">Import trades</h3>
               <button
                 type="button"
-                onClick={() => { setOpen(false); setParsed(null); }}
+                onClick={() => {
+                  setOpen(false);
+                  setParsed(null);
+                }}
                 className="text-fg-muted hover:text-fg"
               >
                 <IconX className="size-5" />
@@ -134,11 +155,13 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
 
             {!parsed ? (
               <div className="flex flex-col gap-3">
-                <p className="text-sm text-fg-subtle">
+                <p className="text-fg-subtle text-sm">
                   Upload a CSV file with columns:{' '}
-                  <code className="text-xs text-fg">symbol, side, entry, date, exit, stop, target, size, closedDate?, notes?</code>
+                  <code className="text-fg text-xs">
+                    symbol, side, entry, date, exit, stop, target, size, closedDate?, notes?
+                  </code>
                 </p>
-                <label className="flex items-center justify-center gap-2 rounded-sm border border-dashed border-border p-6 text-sm text-fg-subtle hover:border-border hover:text-fg transition-colors cursor-pointer">
+                <label className="border-border text-fg-subtle hover:border-border hover:text-fg flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed p-6 text-sm transition-colors">
                   <IconUpload className="size-5" />
                   Choose CSV file
                   <input
@@ -151,33 +174,35 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 text-sm text-fg">
-                  <IconFileSpreadsheet className="size-4 text-fg" />
+                <div className="text-fg flex items-center gap-2 text-sm">
+                  <IconFileSpreadsheet className="text-fg size-4" />
                   <span className="font-medium">{parsed.length} trades parsed</span>
                 </div>
-                <div className="max-h-48 overflow-y-auto border border-border rounded-sm">
+                <div className="border-border max-h-48 overflow-y-auto rounded-sm border">
                   <table className="w-full text-xs tabular-nums">
                     <thead>
                       <tr className="bg-bg-elev-2 text-fg-subtle">
-                        <th className="text-left p-2">Symbol</th>
-                        <th className="text-left p-2">Side</th>
-                        <th className="text-right p-2">Entry</th>
-                        <th className="text-right p-2">Exit</th>
+                        <th className="p-2 text-left">Symbol</th>
+                        <th className="p-2 text-left">Side</th>
+                        <th className="p-2 text-right">Entry</th>
+                        <th className="p-2 text-right">Exit</th>
                       </tr>
                     </thead>
                     <tbody>
                       {parsed.slice(0, 20).map((t, i) => (
-                        <tr key={i} className="border-t border-border">
-                          <td className="p-2 text-fg">{t.symbol}</td>
-                          <td className={cn('p-2', t.side === 'long' ? 'text-bull' : 'text-bear')}>{t.side}</td>
-                          <td className="p-2 text-right text-fg">{t.entry}</td>
-                          <td className="p-2 text-right text-fg">{t.exit ?? '—'}</td>
+                        <tr key={i} className="border-border border-t">
+                          <td className="text-fg p-2">{t.symbol}</td>
+                          <td className={cn('p-2', t.side === 'long' ? 'text-bull' : 'text-bear')}>
+                            {t.side}
+                          </td>
+                          <td className="text-fg p-2 text-right">{t.entry}</td>
+                          <td className="text-fg p-2 text-right">{t.exit ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {parsed.length > 20 && (
-                    <p className="p-2 text-center text-xs text-fg-subtle">
+                    <p className="text-fg-subtle p-2 text-center text-xs">
                       … and {parsed.length - 20} more
                     </p>
                   )}
@@ -186,7 +211,12 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
                   <Button variant="secondary" className="flex-1" onClick={() => setParsed(null)}>
                     Choose different file
                   </Button>
-                  <Button className="flex-1" onClick={handleImport} loading={importing} disabled={importing}>
+                  <Button
+                    className="flex-1"
+                    onClick={handleImport}
+                    loading={importing}
+                    disabled={importing}
+                  >
                     Import {parsed.length} trades
                   </Button>
                 </div>

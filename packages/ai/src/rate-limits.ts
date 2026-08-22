@@ -76,8 +76,10 @@ export function extractRateLimits(headers?: Record<string, string>): RateLimitDa
   }
 
   return {
-    remainingRequests: remainingRequests !== undefined && !isNaN(remainingRequests) ? remainingRequests : undefined,
-    remainingTokens: remainingTokens !== undefined && !isNaN(remainingTokens) ? remainingTokens : undefined,
+    remainingRequests:
+      remainingRequests !== undefined && !isNaN(remainingRequests) ? remainingRequests : undefined,
+    remainingTokens:
+      remainingTokens !== undefined && !isNaN(remainingTokens) ? remainingTokens : undefined,
     resetRequests,
     resetTokens,
   };

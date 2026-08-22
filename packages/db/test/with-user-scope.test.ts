@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { describe, expect, it } from 'vitest';
+
 import { withUserScope } from '../src/with-user-scope';
 
 describe('withUserScope', () => {

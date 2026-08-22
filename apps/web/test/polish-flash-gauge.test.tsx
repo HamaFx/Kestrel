@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-import { act, cleanup, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { NewsArticle, Tick } from '@kestrel/shared';
+import { act, cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { SentimentSummary } from '@/app/(app)/news/_components/sentiment-summary';
 import { WatchlistWidget } from '@/app/(app)/dashboard/_components/widgets/watchlist-widget';
+import { SentimentSummary } from '@/app/(app)/news/_components/sentiment-summary';
 
 afterEach(cleanup);
 

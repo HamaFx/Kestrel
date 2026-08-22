@@ -1,7 +1,24 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
@@ -19,7 +36,9 @@ describe('Docker-local backup policy', () => {
     const backupService = compose.split('  backup:\n')[1]?.split('\n  app:\n')[0] ?? '';
     expect(backupService).toContain('image: postgres:16-alpine');
     expect(backupService).toContain('entrypoint: ["/usr/local/bin/backup-entrypoint.sh"]');
-    expect(readFileSync(resolve(root, 'docker/backup-entrypoint.sh'), 'utf8')).toContain('su-exec postgres');
+    expect(readFileSync(resolve(root, 'docker/backup-entrypoint.sh'), 'utf8')).toContain(
+      'su-exec postgres',
+    );
     expect(backupService).not.toContain('ports:');
   });
 

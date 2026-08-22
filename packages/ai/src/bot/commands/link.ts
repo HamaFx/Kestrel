@@ -20,8 +20,8 @@
 // This command is special: it works even for unlinked users (that's its purpose).
 // The link code is generated from the settings page.
 
-import type { BotCommand, BotResponse, BotContext } from '../types';
 import { resolveLinkCode } from '../linking';
+import type { BotCommand, BotContext, BotResponse } from '../types';
 
 export const linkCommand: BotCommand = {
   name: 'link',

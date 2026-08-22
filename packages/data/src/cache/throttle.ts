@@ -118,7 +118,8 @@ export async function tryReserve(provider: string, cfg: ThrottleConfig): Promise
   const windowInterval = sql`${cfg.windowMs}::double precision * interval '1 millisecond'`;
   const effectiveBackoffLimit = sql`GREATEST(1::numeric, FLOOR(${cfg.limit}::numeric * ${backoffFrac}::numeric))`;
 
-  const result = await db.insert(providerThrottle)
+  const result = await db
+    .insert(providerThrottle)
     .values({
       provider,
       windowStartedAt: now,
@@ -135,7 +136,7 @@ export async function tryReserve(provider: string, cfg: ThrottleConfig): Promise
         windowStartedAt: sql`CASE 
           WHEN ${providerThrottle.windowStartedAt} + ${windowInterval} <= CURRENT_TIMESTAMP THEN CURRENT_TIMESTAMP
           ELSE ${providerThrottle.windowStartedAt}
-        END`
+        END`,
       },
       where: sql`
         (${providerThrottle.windowStartedAt} + ${windowInterval} <= CURRENT_TIMESTAMP)
@@ -146,7 +147,7 @@ export async function tryReserve(provider: string, cfg: ThrottleConfig): Promise
             ELSE ${cfg.limit}::numeric
           END
         )
-      `
+      `,
     })
     .returning({ count: providerThrottle.count });
 
@@ -171,7 +172,8 @@ export async function noteBackoff(provider: string, cfg: ThrottleConfig): Promis
 
   // Postgres backend — shared across instances
   const db = getDb();
-  await db.insert(providerThrottle)
+  await db
+    .insert(providerThrottle)
     .values({
       provider,
       windowStartedAt: now,
@@ -182,7 +184,7 @@ export async function noteBackoff(provider: string, cfg: ThrottleConfig): Promis
       target: providerThrottle.provider,
       set: {
         backoffUntil: until,
-      }
+      },
     });
 }
 

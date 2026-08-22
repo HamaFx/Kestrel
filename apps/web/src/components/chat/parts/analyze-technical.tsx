@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // Bespoke renderer for the `analyze_technical` tool part.
@@ -7,12 +23,12 @@
 // `partial: true` surfaces a single line at the top so the user knows a tf
 // was dropped due to a fetch failure.
 
-import { IconActivity, IconAlertTriangle, IconChartCandle } from '@tabler/icons-react';
 import type { AnalyzeTechnicalOutput, PerTimeframeReading } from '@kestrel/shared';
+import { IconActivity, IconAlertTriangle, IconChartCandle } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 import type { ToolPartProps } from './registry';
 
@@ -37,10 +53,16 @@ export function AnalyzeTechnicalPart({
           </span>
           <div className="min-w-0">
             <h3 className="text-fg text-body-sm font-semibold">{output.symbol} · technical</h3>
-            <p className="text-fg-muted text-caption">Answer across {output.perTimeframe.length} timeframe{output.perTimeframe.length === 1 ? '' : 's'}</p>
+            <p className="text-fg-muted text-caption">
+              Answer across {output.perTimeframe.length} timeframe
+              {output.perTimeframe.length === 1 ? '' : 's'}
+            </p>
           </div>
         </div>
-        <time dateTime={new Date(output.asOf).toISOString()} className="text-fg-subtle shrink-0 font-mono text-caption">
+        <time
+          dateTime={new Date(output.asOf).toISOString()}
+          className="text-fg-subtle text-caption shrink-0 font-mono"
+        >
           {new Date(output.asOf).toISOString().slice(0, 16).replace('T', ' ')}Z
         </time>
       </header>
@@ -51,7 +73,7 @@ export function AnalyzeTechnicalPart({
       </div>
 
       {output.partial ? (
-        <p className="text-warn flex items-center gap-1.5 text-caption">
+        <p className="text-warn text-caption flex items-center gap-1.5">
           <IconAlertTriangle className="size-3.5" aria-hidden="true" />
           Some timeframes unavailable.
         </p>
@@ -74,11 +96,7 @@ function TfCard({
   reading: PerTimeframeReading;
 }) {
   const trendTone =
-    reading.trend === 'up'
-      ? 'text-bull'
-      : reading.trend === 'down'
-        ? 'text-bear'
-        : 'text-fg-muted';
+    reading.trend === 'up' ? 'text-bull' : reading.trend === 'down' ? 'text-bear' : 'text-fg-muted';
   const biasTone =
     reading.bias === 'bullish'
       ? 'text-bull'
@@ -89,11 +107,13 @@ function TfCard({
   return (
     <li className="border-border bg-bg-elev-2 flex flex-col gap-2 rounded-sm border p-2.5">
       <div className="flex items-center justify-between gap-2">
-        <Badge tone="neutral" className="text-caption">{reading.tf}</Badge>
+        <Badge tone="neutral" className="text-caption">
+          {reading.tf}
+        </Badge>
         <span className={`text-caption font-semibold uppercase ${trendTone}`}>{reading.trend}</span>
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-body-sm tabular-nums">
+      <dl className="text-body-sm grid grid-cols-2 gap-x-2 gap-y-0.5 tabular-nums">
         <dt className="text-fg-subtle">bias</dt>
         <dd className={`text-right font-medium ${biasTone}`}>{reading.bias}</dd>
 
@@ -101,9 +121,7 @@ function TfCard({
         <dd className="text-fg text-right">{reading.momentum.rsi14.toFixed(1)}</dd>
 
         <dt className="text-fg-subtle">MACD h</dt>
-        <dd
-          className={`text-right ${reading.momentum.macdHist >= 0 ? 'text-bull' : 'text-bear'}`}
-        >
+        <dd className={`text-right ${reading.momentum.macdHist >= 0 ? 'text-bull' : 'text-bear'}`}>
           {reading.momentum.macdHist.toFixed(4)}
         </dd>
 
@@ -123,7 +141,7 @@ function TfCard({
         {reading.structure.latestStructureEvent ? (
           <>
             <dt className="text-fg-subtle">struct</dt>
-            <dd className="text-fg text-right text-caption">
+            <dd className="text-fg text-caption text-right">
               {reading.structure.latestStructureEvent}
             </dd>
           </>
@@ -132,7 +150,7 @@ function TfCard({
 
       <Link
         href={`/chart/${symbol}?tf=${reading.tf}`}
-        className="text-fg focus-visible:ring-fg mt-1 block min-h-[24px] text-right text-body-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2"
+        className="text-fg focus-visible:ring-fg text-body-sm mt-1 block min-h-[24px] text-right font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2"
       >
         view chart →
       </Link>
@@ -162,10 +180,18 @@ function SkeletonCard() {
 
 function ErrorCard({ message }: { message?: string }) {
   return (
-    <Card as="section" role="alert" aria-label={message ? `Technical analysis failed: ${message}` : 'Technical analysis failed'} className="border-danger/30 p-3 text-sm">
+    <Card
+      as="section"
+      role="alert"
+      aria-label={message ? `Technical analysis failed: ${message}` : 'Technical analysis failed'}
+      className="border-danger/30 p-3 text-sm"
+    >
       <div className="flex items-start gap-2">
-        <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-danger" aria-hidden="true" />
-        <p className="text-danger"><span className="font-semibold">Technical analysis failed</span>{message ? <span className="text-fg-muted"> · {message}</span> : null}</p>
+        <span className="bg-danger mt-0.5 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+        <p className="text-danger">
+          <span className="font-semibold">Technical analysis failed</span>
+          {message ? <span className="text-fg-muted"> · {message}</span> : null}
+        </p>
       </div>
     </Card>
   );

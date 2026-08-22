@@ -17,25 +17,25 @@
  */
 
 // API keys domain actions: BYOK key management, export/import, market data provider selection.
-
-import { auth } from '@/auth';
-import { schema, withRateLimit } from '@kestrel/db'
-import { getDb } from '@kestrel/ai';
-import { eq, and } from 'drizzle-orm';
-import * as Sentry from '@sentry/nextjs';
-import { revalidatePath } from 'next/cache';
-import { verifySync } from 'otplib';
-import { testProviderKey } from '@kestrel/ai';
+import { getDb, testProviderKey } from '@kestrel/ai';
+import { schema, withRateLimit } from '@kestrel/db';
 import {
-  PROVIDER_IDS,
-  encryptByok,
   decryptByok,
   decryptSecret,
-  encryptWithPassword,
   decryptWithPassword,
+  encryptByok,
+  encryptWithPassword,
+  PROVIDER_IDS,
   type ByokPayload,
 } from '@kestrel/shared/encryption';
-import { type ActionResult, type SaveKeysResult, verifyAccountPassword } from './_actions-shared';
+import * as Sentry from '@sentry/nextjs';
+import { and, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { verifySync } from 'otplib';
+
+import { auth } from '@/auth';
+
+import { verifyAccountPassword, type ActionResult, type SaveKeysResult } from './_actions-shared';
 
 /**
  * Server action to save/update/clear API keys for all BYOK providers.
@@ -63,10 +63,11 @@ export async function updateApiKeysAction(
 
   try {
     const db = getDb();
-    const [oldSettings] = await db.select({
-      aiApiKeys: schema.userSettings.aiApiKeys,
-      aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
-    })
+    const [oldSettings] = await db
+      .select({
+        aiApiKeys: schema.userSettings.aiApiKeys,
+        aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
+      })
       .from(schema.userSettings)
       .where(eq(schema.userSettings.userId, session.user.id));
     const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
@@ -102,7 +103,12 @@ export async function updateApiKeysAction(
         if (result.ok) {
           testResults.push({ id, action: 'upsert', ok: true });
         } else {
-          testResults.push({ id, action: 'upsert', ok: false, error: result.error ?? 'unknown error' });
+          testResults.push({
+            id,
+            action: 'upsert',
+            ok: false,
+            error: result.error ?? 'unknown error',
+          });
         }
       } else if (!newKey && oldKey) {
         testResults.push({ id, action: 'delete' });
@@ -112,7 +118,8 @@ export async function updateApiKeysAction(
     // STAB-10: Atomic write — all DB mutations inside one transaction.
     const userId = session.user.id;
     await db.transaction(async (tx) => {
-      await tx.update(schema.userSettings)
+      await tx
+        .update(schema.userSettings)
         .set({
           aiApiKeys: Object.keys(keys).length > 0 ? encryptByok(keys) : null,
           aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
@@ -161,7 +168,10 @@ export async function updateApiKeysAction(
  * Server action to export user API keys.
  * Encrypts the user's saved BYOK payload with a password.
  */
-export async function exportKeysAction(password: string, totpCode?: string): Promise<ActionResult<{ payload: string }>> {
+export async function exportKeysAction(
+  password: string,
+  totpCode?: string,
+): Promise<ActionResult<{ payload: string }>> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
@@ -173,10 +183,13 @@ export async function exportKeysAction(password: string, totpCode?: string): Pro
 
   // Check 2FA if enabled
   const db = getDb();
-  const [user] = await db.select({
-    twoFactorEnabled: schema.users.twoFactorEnabled,
-    twoFactorSecret: schema.users.twoFactorSecret,
-  }).from(schema.users).where(eq(schema.users.id, session.user.id));
+  const [user] = await db
+    .select({
+      twoFactorEnabled: schema.users.twoFactorEnabled,
+      twoFactorSecret: schema.users.twoFactorSecret,
+    })
+    .from(schema.users)
+    .where(eq(schema.users.id, session.user.id));
 
   if (user?.twoFactorEnabled) {
     if (!totpCode) {
@@ -201,7 +214,8 @@ export async function exportKeysAction(password: string, totpCode?: string): Pro
 
   try {
     const db = getDb();
-    const [settings] = await db.select({ aiApiKeys: schema.userSettings.aiApiKeys })
+    const [settings] = await db
+      .select({ aiApiKeys: schema.userSettings.aiApiKeys })
       .from(schema.userSettings)
       .where(eq(schema.userSettings.userId, session.user.id));
 
@@ -232,7 +246,10 @@ export async function exportKeysAction(password: string, totpCode?: string): Pro
  * Server action to import user API keys.
  * Decrypts the backup payload with a password and saves to user settings.
  */
-export async function importKeysAction(payload: string, password: string): Promise<ActionResult<{ importedCount: number }>> {
+export async function importKeysAction(
+  payload: string,
+  password: string,
+): Promise<ActionResult<{ importedCount: number }>> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
@@ -279,7 +296,8 @@ export async function importKeysAction(payload: string, password: string): Promi
       newUpdatedAt[id] = now;
     }
 
-    await db.update(schema.userSettings)
+    await db
+      .update(schema.userSettings)
       .set({
         aiApiKeys: encryptByok(validKeys),
         aiApiKeysUpdatedAt: newUpdatedAt,
@@ -318,7 +336,8 @@ export async function updateMarketDataProviderAction(formData: FormData): Promis
 
   try {
     const db = getDb();
-    await db.update(schema.userSettings)
+    await db
+      .update(schema.userSettings)
       .set({
         marketDataProvider: provider,
       })

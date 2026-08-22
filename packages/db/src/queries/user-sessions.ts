@@ -17,6 +17,7 @@
 // User sessions query helpers — session management and revocation.
 
 import { and, eq } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 /** A user session row (selective fields for display). */
@@ -53,9 +54,7 @@ export async function revokeUserSession(sessionId: string, userId: string): Prom
   const db = getDb();
   await db
     .delete(schema.userSessions)
-    .where(
-      and(eq(schema.userSessions.id, sessionId), eq(schema.userSessions.userId, userId)),
-    );
+    .where(and(eq(schema.userSessions.id, sessionId), eq(schema.userSessions.userId, userId)));
 }
 
 /**

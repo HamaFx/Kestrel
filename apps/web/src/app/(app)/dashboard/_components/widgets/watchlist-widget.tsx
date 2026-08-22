@@ -2,6 +2,22 @@
 
 'use client';
 
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // Phase 1.6 — Watchlist widget.
 //
 // Live tickers for a curated list of symbols, with mid-price + a small
@@ -13,36 +29,28 @@
 // - 1-Click "Ask AI Copilot" deep prompt link on every symbol
 // - Direct link to interactive TradingView chart
 // - Live-tick flash animation and mini sparkline
-
-import Link from 'next/link';
-import { useEffect, useReducer, useRef, useState, type MutableRefObject } from 'react';
+import { priceDecimals, SYMBOLS, type Symbol, type Tick } from '@kestrel/shared';
 import {
-  IconEye,
-  IconRefresh,
   IconAlertTriangle,
   IconBolt,
-  IconPlus,
-  IconX,
   IconChartLine,
+  IconEye,
+  IconPlus,
+  IconRefresh,
+  IconX,
 } from '@tabler/icons-react';
-import { SYMBOLS, type Symbol, type Tick, priceDecimals } from '@kestrel/shared';
+import Link from 'next/link';
+import { useEffect, useReducer, useRef, useState, type MutableRefObject } from 'react';
 
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SparklineCanvas } from '@/components/ui/sparkline-canvas';
-import { usePrices } from '@/hooks/use-prices';
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { usePrices } from '@/hooks/use-prices';
 import { cn } from '@/lib/cn';
 
-const DEFAULT_WATCHLIST: Symbol[] = [
-  'XAUUSD',
-  'EURUSD',
-  'GBPUSD',
-  'USDJPY',
-  'BTCUSDT',
-  'ETHUSDT',
-];
+const DEFAULT_WATCHLIST: Symbol[] = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT'];
 
 const WATCHLIST_STORAGE_KEY = 'kestrel:watchlist-symbols:v1';
 const BUFFER_SIZE = 10;
@@ -111,9 +119,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
     }
   }
 
-  const availableToAdd = (SYMBOLS as readonly Symbol[]).filter(
-    (s) => !list.includes(s),
-  );
+  const availableToAdd = (SYMBOLS as readonly Symbol[]).filter((s) => !list.includes(s));
 
   return (
     <Card as="section" aria-label="Market overview">
@@ -121,14 +127,16 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
         <div className="flex items-center gap-2">
           <IconEye className="text-fg-subtle size-4" />
           <span className="text-fg text-body-sm font-semibold">Market overview</span>
-          <Badge tone="brand" className="hidden sm:inline-flex">Live</Badge>
+          <Badge tone="brand" className="hidden sm:inline-flex">
+            Live
+          </Badge>
         </div>
-        <div className="flex items-center gap-1.5 relative" ref={addMenuRef}>
+        <div className="relative flex items-center gap-1.5" ref={addMenuRef}>
           {availableToAdd.length > 0 && (
             <button
               type="button"
               onClick={() => setShowAddMenu((v) => !v)}
-              className="text-fg-subtle hover:text-fg text-caption flex items-center gap-0.5 p-1 rounded-sm hover:bg-bg-elev-2 transition-colors"
+              className="text-fg-subtle hover:text-fg text-caption hover:bg-bg-elev-2 flex items-center gap-0.5 rounded-sm p-1 transition-colors"
               title="Add symbol to watchlist"
             >
               <IconPlus className="size-3.5" />
@@ -137,13 +145,13 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
           )}
 
           {showAddMenu && (
-            <div className="absolute right-0 top-full mt-1 z-30 flex flex-col gap-0.5 min-w-[140px] max-h-48 overflow-y-auto rounded-sm border border-border bg-bg-elev-2 p-1 shadow-lg">
+            <div className="border-border bg-bg-elev-2 absolute top-full right-0 z-30 mt-1 flex max-h-48 min-w-[140px] flex-col gap-0.5 overflow-y-auto rounded-sm border p-1 shadow-lg">
               {availableToAdd.map((sym) => (
                 <button
                   key={sym}
                   type="button"
                   onClick={() => addSymbol(sym)}
-                  className="w-full text-left px-2 py-1 text-xs font-mono font-medium text-fg hover:bg-bg-elev-3 rounded-xs transition-colors"
+                  className="text-fg hover:bg-bg-elev-3 w-full rounded-xs px-2 py-1 text-left font-mono text-xs font-medium transition-colors"
                 >
                   {sym}
                 </button>
@@ -165,14 +173,14 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
           if (isError) {
             return (
               <li role="alert" className="flex flex-col items-center gap-2 py-4 text-center">
-                <IconAlertTriangle className="size-5 text-danger" aria-hidden="true" />
+                <IconAlertTriangle className="text-danger size-5" aria-hidden="true" />
                 <p className="text-danger text-xs">
                   {error instanceof Error ? error.message : 'Failed to load prices'}
                 </p>
                 <button
                   type="button"
                   onClick={() => refetch()}
-                  className="inline-flex min-h-10 items-center gap-1 rounded-sm border border-border px-3 text-fg-subtle hover:text-fg text-caption"
+                  className="border-border text-fg-subtle hover:text-fg text-caption inline-flex min-h-10 items-center gap-1 rounded-sm border px-3"
                 >
                   <IconRefresh className="size-3" aria-hidden="true" />
                   Retry
@@ -249,20 +257,20 @@ function WatchRow({
   );
 
   return (
-    <li className="border-divider flex items-center justify-between gap-2 border-b py-2 last:border-0 group">
+    <li className="border-divider group flex items-center justify-between gap-2 border-b py-2 last:border-0">
       <div className="flex min-w-0 items-center gap-2">
-        <div className="flex flex-col font-mono min-w-0">
+        <div className="flex min-w-0 flex-col font-mono">
           <Link
             href={`/chart/${tick.symbol}`}
-            className="text-fg text-body-sm font-bold tracking-tight hover:text-brand transition-colors flex items-center gap-1"
+            className="text-fg text-body-sm hover:text-brand flex items-center gap-1 font-bold tracking-tight transition-colors"
             title={`Open ${tick.symbol} chart`}
           >
             <span>{tick.symbol}</span>
-            <IconChartLine className="size-3 text-fg-subtle opacity-0 group-hover:opacity-100 transition-opacity" />
+            <IconChartLine className="text-fg-subtle size-3 opacity-0 transition-opacity group-hover:opacity-100" />
           </Link>
           <span
             className={cn(
-              'inline-flex w-fit items-center rounded-sm px-1 -mx-1 text-caption tabular-nums transition-colors duration-500',
+              'text-caption -mx-1 inline-flex w-fit items-center rounded-sm px-1 tabular-nums transition-colors duration-500',
               flash === 'bull' && 'bg-bull/15 text-bull',
               flash === 'bear' && 'bg-bear/15 text-bear',
               flash === null && 'text-fg-subtle',
@@ -286,7 +294,7 @@ function WatchRow({
 
         <span
           className={cn(
-            'text-caption tabular-nums w-4 text-center font-bold',
+            'text-caption w-4 text-center font-bold tabular-nums',
             isBull ? 'text-bull' : 'text-bear',
           )}
           aria-label={isBull ? 'Trending up' : 'Trending down'}
@@ -301,7 +309,7 @@ function WatchRow({
           title={`Ask AI Copilot to analyze ${tick.symbol}`}
           aria-label={`Ask AI Copilot to analyze ${tick.symbol}`}
         >
-          <IconBolt className="size-3.5 text-brand" />
+          <IconBolt className="text-brand size-3.5" />
         </Link>
 
         {/* Remove symbol button in edit hover */}
@@ -309,7 +317,7 @@ function WatchRow({
           <button
             type="button"
             onClick={onRemove}
-            className="text-fg-subtle hover:text-danger p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity"
+            className="text-fg-subtle hover:text-danger rounded-sm p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
             title={`Remove ${tick.symbol} from watchlist`}
             aria-label={`Remove ${tick.symbol}`}
           >

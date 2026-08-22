@@ -26,18 +26,20 @@
 //   - Shared type compatibility regressions
 //   - Import resolution errors at package boundaries
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-
 // Import shared types to verify cross-package type compatibility
-import type { GetPriceOutput } from '@kestrel/shared';
-import type { GetCandlesOutput } from '@kestrel/shared';
-import { SymbolSchema, TimeframeSchema } from '@kestrel/shared';
+import {
+  SymbolSchema,
+  TimeframeSchema,
+  type GetCandlesOutput,
+  type GetPriceOutput,
+} from '@kestrel/shared';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { computeRiskTool } from '../../src/tools/compute-risk';
+import { getCandlesTool } from '../../src/tools/get-candles';
 // Import tools from the AI package — paths are relative to test/integration/
 // so we need ../../src/ to reach packages/ai/src/
 import { getPriceTool } from '../../src/tools/get-price';
-import { getCandlesTool } from '../../src/tools/get-candles';
-import { computeRiskTool } from '../../src/tools/compute-risk';
 import { verifyCallTool } from '../../src/tools/verify-call';
 
 // Mock external service boundaries — the tools' real logic runs, only
@@ -63,7 +65,10 @@ vi.mock('@kestrel/indicators', () => ({
 
 vi.mock('@kestrel/shared/logger', () => ({
   createCategorizedLogger: () => ({
-    warn: vi.fn(), info: vi.fn(), error: vi.fn(), debug: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   }),
   logErrorContext: vi.fn(),
 }));
@@ -76,10 +81,15 @@ describe('AI → Data integration', () => {
   describe('get_price → @kestrel/data', () => {
     it('returns properly shaped output through the full tool chain', async () => {
       mockGetPrice.mockResolvedValue({
-        bid: 1.0801, ask: 1.0803, mid: 1.0802, timestamp: Date.now(),
+        bid: 1.0801,
+        ask: 1.0803,
+        mid: 1.0802,
+        timestamp: Date.now(),
       });
 
-      const exec = getPriceTool.execute as unknown as (input: { symbols: string[] }) => Promise<GetPriceOutput>;
+      const exec = getPriceTool.execute as unknown as (input: {
+        symbols: string[];
+      }) => Promise<GetPriceOutput>;
       const result = await exec({ symbols: ['EURUSD'] });
 
       // Verify the output conforms to the shared GetPriceOutput type
@@ -101,9 +111,11 @@ describe('AI → Data integration', () => {
     it('calls the data layer with correct symbol and timeframe', async () => {
       mockGetCandles.mockResolvedValue([]);
 
-      const exec = getCandlesTool.execute as unknown as (
-        input: { symbol: string; tf: string; count?: number },
-      ) => Promise<GetCandlesOutput>;
+      const exec = getCandlesTool.execute as unknown as (input: {
+        symbol: string;
+        tf: string;
+        count?: number;
+      }) => Promise<GetCandlesOutput>;
       const result = await exec({ symbol: 'EURUSD', tf: '1h', count: 200 });
 
       expect(result.symbol).toBe('EURUSD');
@@ -123,13 +135,23 @@ describe('AI → Data integration', () => {
   describe('compute_risk — numeric pipeline', () => {
     it('calculates position sizing using shared forex metadata', async () => {
       const exec = computeRiskTool.execute as unknown as (input: {
-        symbol: string; side: string; entry: number; stop: number;
-        target?: number; accountUsd: number; riskPct: number;
+        symbol: string;
+        side: string;
+        entry: number;
+        stop: number;
+        target?: number;
+        accountUsd: number;
+        riskPct: number;
       }) => Promise<{ riskUsd: number; pipsToStop: number; positionSizeLots: number }>;
 
       const result = await exec({
-        symbol: 'EURUSD', side: 'long', entry: 1.085, stop: 1.082,
-        target: 1.092, accountUsd: 10_000, riskPct: 1,
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.085,
+        stop: 1.082,
+        target: 1.092,
+        accountUsd: 10_000,
+        riskPct: 1,
       });
 
       expect(result.riskUsd).toBeCloseTo(100, 2);
@@ -141,25 +163,52 @@ describe('AI → Data integration', () => {
   describe('verify_call → data + indicators', () => {
     it('validates a trade setup through data and indicator layers', async () => {
       mockGetPrice.mockResolvedValue({
-        symbol: 'EURUSD', bid: 1.0799, ask: 1.0801, mid: 1.08,
-        ts: Date.now(), source: 'test',
+        symbol: 'EURUSD',
+        bid: 1.0799,
+        ask: 1.0801,
+        mid: 1.08,
+        ts: Date.now(),
+        source: 'test',
       });
-      mockGetCandles.mockResolvedValue([{
-        t: Date.now(), o: 1.079, h: 1.09, l: 1.07, c: 1.085,
-        symbol: 'EURUSD', tf: '1h', v: null, source: 'test', fetchedAt: Date.now(),
-      }]);
+      mockGetCandles.mockResolvedValue([
+        {
+          t: Date.now(),
+          o: 1.079,
+          h: 1.09,
+          l: 1.07,
+          c: 1.085,
+          symbol: 'EURUSD',
+          tf: '1h',
+          v: null,
+          source: 'test',
+          fetchedAt: Date.now(),
+        },
+      ]);
       mockComputeStructure.mockReturnValue({
-        symbol: 'EURUSD', tf: '1h', bars: 1, fetchedAt: Date.now(),
+        symbol: 'EURUSD',
+        tf: '1h',
+        bars: 1,
+        fetchedAt: Date.now(),
         swings: [{ type: 'high', price: 1.095, index: 0 }],
-        events: [], fvgs: [], orderBlocks: [],
+        events: [],
+        fvgs: [],
+        orderBlocks: [],
       });
 
       const exec = verifyCallTool.execute as unknown as (input: {
-        symbol: string; side: string; entry: number; stop: number; target?: number | null;
+        symbol: string;
+        side: string;
+        entry: number;
+        stop: number;
+        target?: number | null;
       }) => Promise<{ agree: boolean; caveats: Array<{ code: string }> }>;
 
       const result = await exec({
-        symbol: 'EURUSD', side: 'long', entry: 1.08, stop: 1.075, target: 1.09,
+        symbol: 'EURUSD',
+        side: 'long',
+        entry: 1.08,
+        stop: 1.075,
+        target: 1.09,
       });
 
       expect(result.agree).toBe(true);

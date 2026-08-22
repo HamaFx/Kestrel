@@ -24,6 +24,19 @@
 import type { Candle, IndicatorKind } from '@kestrel/shared';
 import { z } from 'zod';
 
+// --- Registration (self-contained — each indicator registers here) --------
+//
+// Import order doesn't matter; registration is order-independent.
+// All indicators register themselves in this file to keep the barrel
+// clean. If you add a new indicator, add its import + registration here.
+
+import { atr } from './atr';
+import { bollinger } from './bollinger';
+import { macd } from './macd';
+import { ema, sma } from './moving-averages';
+import { pivotsAligned } from './pivots';
+import { rsi } from './rsi';
+
 // --- Plugin definition --------------------------------------------------
 
 /**
@@ -93,7 +106,7 @@ export class IndicatorRegistry {
     if (!plugin) {
       throw new Error(
         `Unknown indicator kind: "${kind}". Registered kinds: ${this.listKinds().join(', ')}. ` +
-        `Add it via indicatorRegistry.register() in the indicator's file and import it in the barrel.`,
+          `Add it via indicatorRegistry.register() in the indicator's file and import it in the barrel.`,
       );
     }
     return plugin;
@@ -123,19 +136,6 @@ export class IndicatorRegistry {
 
 /** Global singleton — import this in indicator files to register. */
 export const indicatorRegistry = new IndicatorRegistry();
-
-// --- Registration (self-contained — each indicator registers here) --------
-//
-// Import order doesn't matter; registration is order-independent.
-// All indicators register themselves in this file to keep the barrel
-// clean. If you add a new indicator, add its import + registration here.
-
-import { atr } from './atr';
-import { bollinger } from './bollinger';
-import { macd } from './macd';
-import { ema, sma } from './moving-averages';
-import { pivotsAligned } from './pivots';
-import { rsi } from './rsi';
 
 // --- Per-kind parameter schemas (moved from registry.ts) -----------------
 

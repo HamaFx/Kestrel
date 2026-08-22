@@ -29,7 +29,8 @@
  */
 
 import { compress as snappyCompress } from 'snappyjs';
-import { metrics, HISTOGRAM_BUCKET_BOUNDS_MS, type MetricsSnapshot } from './metrics';
+
+import { HISTOGRAM_BUCKET_BOUNDS_MS, metrics, type MetricsSnapshot } from './metrics';
 
 /** Env var names (single source of truth for docs + callers). */
 export const GRAFANA_OTLP_ENDPOINT_ENV = 'GRAFANA_CLOUD_OTLP_ENDPOINT' as const;

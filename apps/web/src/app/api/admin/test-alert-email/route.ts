@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 // POST /api/admin/test-alert-email
@@ -24,20 +40,22 @@
 //                                      (variable NAMES only, never values)
 //   502 { error: string }              on Resend non-2xx (response text truncated)
 
-import { AppError } from '@/lib/services/api-boundary';
 import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/admin-auth';
-import { errorResponse, parseJsonBody } from '@/lib/api';
 import { checkAdminRateLimit } from '@/lib/admin-rate-limit';
+import { errorResponse, parseJsonBody } from '@/lib/api';
+import { AppError } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const BodySchema = z.object({
-  /** Optional recipient override; only honoured when override mode is enabled. */
-  to: z.string().email().optional(),
-}).default({});
+const BodySchema = z
+  .object({
+    /** Optional recipient override; only honoured when override mode is enabled. */
+    to: z.string().email().optional(),
+  })
+  .default({});
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const SUBJECT = '[Kestrel] Test alert email';

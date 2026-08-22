@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -30,8 +46,9 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createNodeServer } from '@mastra/deployer/server';
+
 import type { Mastra } from '@mastra/core';
+import { createNodeServer } from '@mastra/deployer/server';
 
 import { createKestrelMastra, MASTRA_DEFAULT_PORT } from './instance.js';
 
@@ -108,7 +125,6 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
   try {
     const { resolveChatModel } = await import('../model');
     const { createXauusdMastraAgent } = await import('../mastra/agent');
-    const { xauusdMastraTools } = await import('../mastra/tools');
     const { createSymbolResearchWorkflow } = await import('./workflows/symbol-research');
     const { createXauusdReportWorkflow } = await import('./workflows/xauusd-report');
     const { createMutationWorkflow } = await import('./workflows/mutation');
@@ -122,8 +138,9 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
 
     // Canonical XAUUSD conversation agent.
     const agent = createXauusdMastraAgent({ model: resolution.model });
-    (instance as unknown as { __registerFsAgents: (agents: Record<string, unknown>) => void })
-      .__registerFsAgents({ xauusdConversation: agent });
+    (
+      instance as unknown as { __registerFsAgents: (agents: Record<string, unknown>) => void }
+    ).__registerFsAgents({ xauusdConversation: agent });
 
     // Canonical workflows (non-BYOK, for Studio visibility only).
     const mastra = instance;
@@ -149,22 +166,33 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
       symbolResearch,
       xauusdResearch: xauusdReport,
     };
-    for (const kind of ['set_alert', 'log_journal', 'share_snapshot', 'run_system_action'] as const) {
+    for (const kind of [
+      'set_alert',
+      'log_journal',
+      'share_snapshot',
+      'run_system_action',
+    ] as const) {
       const mutationWf = createMutationWorkflow({
         mutation: kind,
         userId: 'studio-canonical',
         threadId: 'studio',
-        execute: async () => { throw new Error('Studio mutations are view-only'); },
+        execute: async () => {
+          throw new Error('Studio mutations are view-only');
+        },
         writeAudit: async () => {},
         mastra,
       });
       workflows[`mutationWorkflows-${kind}`] = mutationWf;
     }
-    (instance as unknown as { __registerFsWorkflows: (wfs: Record<string, unknown>) => void })
-      .__registerFsWorkflows(workflows);
+    (
+      instance as unknown as { __registerFsWorkflows: (wfs: Record<string, unknown>) => void }
+    ).__registerFsWorkflows(workflows);
 
     console.log('[studio] registered canonical agents + workflows');
   } catch (err) {
-    console.warn('[studio] canonical component registration skipped:', err instanceof Error ? err.message : String(err));
+    console.warn(
+      '[studio] canonical component registration skipped:',
+      err instanceof Error ? err.message : String(err),
+    );
   }
 }

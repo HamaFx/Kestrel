@@ -22,6 +22,7 @@
 // internals and makes the query patterns consistent.
 
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+
 import { getDb, schema } from '../client';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -69,20 +70,12 @@ export interface CreateMessageInput {
 /**
  * Get a single thread by ID, scoped to the user.
  */
-export async function getThread(
-  userId: string,
-  threadId: string,
-): Promise<ThreadRow | null> {
+export async function getThread(userId: string, threadId: string): Promise<ThreadRow | null> {
   const db = getDb();
   const rows = await db
     .select()
     .from(schema.chatThreads)
-    .where(
-      and(
-        eq(schema.chatThreads.id, threadId),
-        eq(schema.chatThreads.userId, userId),
-      ),
-    )
+    .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -108,9 +101,7 @@ export async function listThreads(
 /**
  * Create a new chat thread.
  */
-export async function createThread(
-  input: CreateThreadInput,
-): Promise<ThreadRow> {
+export async function createThread(input: CreateThreadInput): Promise<ThreadRow> {
   const db = getDb();
   const rows = await db
     .insert(schema.chatThreads)
@@ -161,38 +152,22 @@ export async function updateThreadPinnedSymbol(
 /**
  * Delete a thread by ID, scoped to the user.
  */
-export async function deleteThread(
-  userId: string,
-  threadId: string,
-): Promise<void> {
+export async function deleteThread(userId: string, threadId: string): Promise<void> {
   const db = getDb();
   await db
     .delete(schema.chatThreads)
-    .where(
-      and(
-        eq(schema.chatThreads.id, threadId),
-        eq(schema.chatThreads.userId, userId),
-      ),
-    );
+    .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)));
 }
 
 /**
  * Batch-delete multiple threads for a user. Returns the deleted thread IDs.
  * Threads not belonging to the user are silently skipped.
  */
-export async function batchDeleteThreads(
-  userId: string,
-  ids: string[],
-): Promise<{ id: string }[]> {
+export async function batchDeleteThreads(userId: string, ids: string[]): Promise<{ id: string }[]> {
   const db = getDb();
   return db
     .delete(schema.chatThreads)
-    .where(
-      and(
-        eq(schema.chatThreads.userId, userId),
-        inArray(schema.chatThreads.id, ids),
-      ),
-    )
+    .where(and(eq(schema.chatThreads.userId, userId), inArray(schema.chatThreads.id, ids)))
     .returning({ id: schema.chatThreads.id });
 }
 
@@ -201,10 +176,7 @@ export async function batchDeleteThreads(
 /**
  * List messages for a thread, oldest first.
  */
-export async function listMessages(
-  threadId: string,
-  limit: number = 100,
-): Promise<MessageRow[]> {
+export async function listMessages(threadId: string, limit: number = 100): Promise<MessageRow[]> {
   const db = getDb();
   return db
     .select()

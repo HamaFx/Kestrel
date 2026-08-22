@@ -20,8 +20,9 @@
 // per statement and only removes terminal records; pending work, active
 // leases, retryable outbox rows, and unresolved budget reservations survive.
 
-import { getDb } from './client';
 import { sql } from 'drizzle-orm';
+
+import { getDb } from './client';
 
 const MAX_RETENTION_DAYS = 3_650;
 // A single invocation intentionally processes one bounded batch per table.
@@ -88,13 +89,31 @@ function envDays(name: string, fallback: number): number {
 /** Read operator retention settings without allowing unsafe negative/huge windows. */
 export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
   return {
-    telemetryRetentionDays: envDays('TELEMETRY_RETENTION_DAYS', DEFAULT_RETENTION.telemetryRetentionDays),
+    telemetryRetentionDays: envDays(
+      'TELEMETRY_RETENTION_DAYS',
+      DEFAULT_RETENTION.telemetryRetentionDays,
+    ),
     traceRetentionDays: envDays('TRACE_RETENTION_DAYS', DEFAULT_RETENTION.traceRetentionDays),
-    rateLimitRetentionHours: boundedHours(Number(process.env.RATE_LIMIT_RETENTION_HOURS), DEFAULT_RETENTION.rateLimitRetentionHours),
-    providerDailyQuotaRetentionDays: envDays('PROVIDER_DAILY_QUOTA_RETENTION_DAYS', DEFAULT_RETENTION.providerDailyQuotaRetentionDays),
-    cronRunRetentionDays: envDays('CRON_RUN_RETENTION_DAYS', DEFAULT_RETENTION.cronRunRetentionDays),
-    outboxRetentionDays: envDays('PERSISTENCE_OUTBOX_RETENTION_DAYS', DEFAULT_RETENTION.outboxRetentionDays),
-    budgetReservationRetentionDays: envDays('BUDGET_RESERVATION_RETENTION_DAYS', DEFAULT_RETENTION.budgetReservationRetentionDays),
+    rateLimitRetentionHours: boundedHours(
+      Number(process.env.RATE_LIMIT_RETENTION_HOURS),
+      DEFAULT_RETENTION.rateLimitRetentionHours,
+    ),
+    providerDailyQuotaRetentionDays: envDays(
+      'PROVIDER_DAILY_QUOTA_RETENTION_DAYS',
+      DEFAULT_RETENTION.providerDailyQuotaRetentionDays,
+    ),
+    cronRunRetentionDays: envDays(
+      'CRON_RUN_RETENTION_DAYS',
+      DEFAULT_RETENTION.cronRunRetentionDays,
+    ),
+    outboxRetentionDays: envDays(
+      'PERSISTENCE_OUTBOX_RETENTION_DAYS',
+      DEFAULT_RETENTION.outboxRetentionDays,
+    ),
+    budgetReservationRetentionDays: envDays(
+      'BUDGET_RESERVATION_RETENTION_DAYS',
+      DEFAULT_RETENTION.budgetReservationRetentionDays,
+    ),
   };
 }
 
@@ -159,28 +178,65 @@ export async function runRetentionCleanup(
   const db = getDb();
   const now = new Date();
   const retention = {
-    telemetryRetentionDays: boundedDays(config.telemetryRetentionDays, DEFAULT_RETENTION.telemetryRetentionDays),
-    traceRetentionDays: boundedDays(config.traceRetentionDays, DEFAULT_RETENTION.traceRetentionDays),
-    rateLimitRetentionHours: boundedHours(config.rateLimitRetentionHours, DEFAULT_RETENTION.rateLimitRetentionHours),
-    providerDailyQuotaRetentionDays: boundedDays(config.providerDailyQuotaRetentionDays, DEFAULT_RETENTION.providerDailyQuotaRetentionDays),
-    cronRunRetentionDays: boundedDays(config.cronRunRetentionDays, DEFAULT_RETENTION.cronRunRetentionDays),
-    outboxRetentionDays: boundedDays(config.outboxRetentionDays, DEFAULT_RETENTION.outboxRetentionDays),
-    budgetReservationRetentionDays: boundedDays(config.budgetReservationRetentionDays, DEFAULT_RETENTION.budgetReservationRetentionDays),
+    telemetryRetentionDays: boundedDays(
+      config.telemetryRetentionDays,
+      DEFAULT_RETENTION.telemetryRetentionDays,
+    ),
+    traceRetentionDays: boundedDays(
+      config.traceRetentionDays,
+      DEFAULT_RETENTION.traceRetentionDays,
+    ),
+    rateLimitRetentionHours: boundedHours(
+      config.rateLimitRetentionHours,
+      DEFAULT_RETENTION.rateLimitRetentionHours,
+    ),
+    providerDailyQuotaRetentionDays: boundedDays(
+      config.providerDailyQuotaRetentionDays,
+      DEFAULT_RETENTION.providerDailyQuotaRetentionDays,
+    ),
+    cronRunRetentionDays: boundedDays(
+      config.cronRunRetentionDays,
+      DEFAULT_RETENTION.cronRunRetentionDays,
+    ),
+    outboxRetentionDays: boundedDays(
+      config.outboxRetentionDays,
+      DEFAULT_RETENTION.outboxRetentionDays,
+    ),
+    budgetReservationRetentionDays: boundedDays(
+      config.budgetReservationRetentionDays,
+      DEFAULT_RETENTION.budgetReservationRetentionDays,
+    ),
   };
 
   const telemetryCutoff = isoCutoff(now, retention.telemetryRetentionDays * 24 * 60 * 60 * 1_000);
   const traceCutoff = isoCutoff(now, retention.traceRetentionDays * 24 * 60 * 60 * 1_000);
   const rateLimitCutoff = isoCutoff(now, retention.rateLimitRetentionHours * 60 * 60 * 1_000);
-  const providerQuotaCutoff = isoCutoff(now, retention.providerDailyQuotaRetentionDays * 24 * 60 * 60 * 1_000).slice(0, 10);
+  const providerQuotaCutoff = isoCutoff(
+    now,
+    retention.providerDailyQuotaRetentionDays * 24 * 60 * 60 * 1_000,
+  ).slice(0, 10);
   const cronCutoff = isoCutoff(now, retention.cronRunRetentionDays * 24 * 60 * 60 * 1_000);
   const outboxCutoff = isoCutoff(now, retention.outboxRetentionDays * 24 * 60 * 60 * 1_000);
-  const budgetCutoff = isoCutoff(now, retention.budgetReservationRetentionDays * 24 * 60 * 60 * 1_000);
+  const budgetCutoff = isoCutoff(
+    now,
+    retention.budgetReservationRetentionDays * 24 * 60 * 60 * 1_000,
+  );
 
   const telemetryDeleted = await deleteBatched(db, 'chat_telemetry', 'created_at', telemetryCutoff);
-  const toolTelemetryDeleted = await deleteBatched(db, 'chat_tool_telemetry', 'created_at', telemetryCutoff);
+  const toolTelemetryDeleted = await deleteBatched(
+    db,
+    'chat_tool_telemetry',
+    'created_at',
+    telemetryCutoff,
+  );
   const tracesDeleted = await deleteBatched(db, 'diagnostic_traces', 'created_at', traceCutoff);
   const rateLimitsDeleted = await deleteBatched(db, 'rate_limits', 'window_start', rateLimitCutoff);
-  const providerDailyQuotaDeleted = await deleteBatched(db, 'provider_daily_quota', 'day', providerQuotaCutoff);
+  const providerDailyQuotaDeleted = await deleteBatched(
+    db,
+    'provider_daily_quota',
+    'day',
+    providerQuotaCutoff,
+  );
   const cronRunsDeleted = await deleteBatched(db, 'cron_runs', 'started_at', cronCutoff);
   const outboxDeleted = await deleteBatchedWhere(
     db,
@@ -206,7 +262,9 @@ export async function runRetentionCleanup(
 
   return {
     ...counts,
-    note: Object.entries(counts).map(([key, value]) => `${key}=${value}`).join(', '),
+    note: Object.entries(counts)
+      .map(([key, value]) => `${key}=${value}`)
+      .join(', '),
   };
 }
 

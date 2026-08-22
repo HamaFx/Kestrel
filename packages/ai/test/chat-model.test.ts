@@ -8,7 +8,15 @@
  *     http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  BYOK_PROVIDERS,
+  derivePlannerModel,
+  deriveTitleModel,
+  resolveChatModel,
+  resolveModelForProvider,
+} from '../src/model';
 
 // Phase E tests mock @kestrel/shared/encryption with a permisssive
 // stub. We replicate that here so we can inject BYOK payloads via
@@ -29,22 +37,11 @@ vi.mock('@kestrel/shared/encryption', () => ({
   ],
   decryptByok: () => byokPayload,
   encryptByok: () => '',
-  configuredProviders: (keys: Record<string, unknown>) =>
-    Object.keys(keys) as never[],
+  configuredProviders: (keys: Record<string, unknown>) => Object.keys(keys) as never[],
   __setByok: (p: Record<string, string>) => {
     byokPayload = p;
   },
 }));
-
-import { beforeEach, describe, expect, it } from 'vitest';
-
-import {
-  BYOK_PROVIDERS,
-  derivePlannerModel,
-  deriveTitleModel,
-  resolveChatModel,
-  resolveModelForProvider,
-} from '../src/model';
 
 const ENV = {
   AI_GATEWAY_API_KEY: '',
@@ -68,20 +65,14 @@ beforeEach(() => {
 describe('Phase F — resolveChatModel', () => {
   it('throws when no keys are configured', () => {
     __setByok({});
-    expect(() =>
-      resolveChatModel({ aiApiKeys: null, chatModel: null }, ENV),
-    ).toThrow(/No AI API keys configured/);
+    expect(() => resolveChatModel({ aiApiKeys: null, chatModel: null }, ENV)).toThrow(
+      /No AI API keys configured/,
+    );
   });
 
   it("resolves a configured provider's tier model for specialists", () => {
     __setByok({ anthropic: 'sk-ant-test' });
-    const r = resolveModelForProvider(
-      'anthropic',
-      { aiApiKeys: null },
-      ENV,
-      undefined,
-      'summary',
-    );
+    const r = resolveModelForProvider('anthropic', { aiApiKeys: null }, ENV, undefined, 'summary');
     expect(r.providerId).toBe('anthropic');
     expect(r.bareModelId).toBe(BYOK_PROVIDERS.anthropic.defaultModels.summary);
   });
@@ -102,75 +93,50 @@ describe('Phase F — resolveChatModel', () => {
 
   it('falls back to spec defaults when chatModel is null', () => {
     __setByok({ google: 'goog-test' });
-    const r = resolveChatModel(
-      { aiApiKeys: null, chatModel: null },
-      ENV,
-    );
+    const r = resolveChatModel({ aiApiKeys: null, chatModel: null }, ENV);
     expect(r.providerId).toBe('google');
     expect(r.bareModelId).toBe(BYOK_PROVIDERS.google.defaultModels.technical);
-    expect(r.modelId).toBe(
-      `google/${BYOK_PROVIDERS.google.defaultModels.technical}`,
-    );
+    expect(r.modelId).toBe(`google/${BYOK_PROVIDERS.google.defaultModels.technical}`);
   });
 
   it('falls back to spec defaults when chatModel is invalid (unknown provider)', () => {
     __setByok({ google: 'goog-test' });
-    const r = resolveChatModel(
-      { aiApiKeys: null, chatModel: 'mystery:gpt-5' },
-      ENV,
-    );
+    const r = resolveChatModel({ aiApiKeys: null, chatModel: 'mystery:gpt-5' }, ENV);
     // Invalid chatModel is silently ignored → spec defaults used.
     expect(r.providerId).toBe('google');
   });
 
   it('falls back to spec defaults when chatModel points at a provider with no key', () => {
     __setByok({ google: 'goog-test' });
-    const r = resolveChatModel(
-      { aiApiKeys: null, chatModel: 'anthropic:claude-sonnet-4-5' },
-      ENV,
-    );
+    const r = resolveChatModel({ aiApiKeys: null, chatModel: 'anthropic:claude-sonnet-4-5' }, ENV);
     // Anthropic isn't configured; resolver falls back to google.
     expect(r.providerId).toBe('google');
   });
 
   it('falls back to spec defaults when chatModel has unknown bare model id', () => {
     __setByok({ anthropic: 'sk-ant-test' });
-    const r = resolveChatModel(
-      { aiApiKeys: null, chatModel: 'anthropic:gpt-99' },
-      ENV,
-    );
+    const r = resolveChatModel({ aiApiKeys: null, chatModel: 'anthropic:gpt-99' }, ENV);
     // Unknown bare id is silently ignored → spec defaults used.
     expect(r.providerId).toBe('anthropic');
-    expect(r.bareModelId).toBe(
-      BYOK_PROVIDERS.anthropic.defaultModels.technical,
-    );
+    expect(r.bareModelId).toBe(BYOK_PROVIDERS.anthropic.defaultModels.technical);
   });
 
   it('respects PROVIDER_PRIORITY when multiple providers are configured', () => {
     __setByok({ anthropic: 'sk-ant', openai: 'sk-openai', google: 'goog' });
-    const r = resolveChatModel(
-      { aiApiKeys: null, chatModel: null },
-      ENV,
-    );
+    const r = resolveChatModel({ aiApiKeys: null, chatModel: null }, ENV);
     // PROVIDER_PRIORITY starts with google → google wins.
     expect(r.providerId).toBe('google');
   });
 
   it('priority order: anthropic > openai when google is not configured', () => {
     __setByok({ anthropic: 'sk-ant', openai: 'sk-openai' });
-    const r = resolveChatModel(
-      { aiApiKeys: null, chatModel: null },
-      ENV,
-    );
+    const r = resolveChatModel({ aiApiKeys: null, chatModel: null }, ENV);
     expect(r.providerId).toBe('anthropic');
   });
 
   it('priority order: openai alone wins over higher-priority providers', () => {
     __setByok({ openai: 'sk-openai' });
-    const r = resolveChatModel(
-      { aiApiKeys: null, chatModel: null },
-      ENV,
-    );
+    const r = resolveChatModel({ aiApiKeys: null, chatModel: null }, ENV);
     expect(r.providerId).toBe('openai');
   });
 
@@ -181,16 +147,13 @@ describe('Phase F — resolveChatModel', () => {
       ...ENV,
       GOOGLE_GENERATIVE_AI_API_KEY: 'goog-env',
     };
-    const r = resolveChatModel(
-      { aiApiKeys: null, chatModel: null },
-      ENV_WITH_GOOGLE,
-    );
+    const r = resolveChatModel({ aiApiKeys: null, chatModel: null }, ENV_WITH_GOOGLE);
     expect(r.providerId).toBe('google');
   });
 });
 
 describe('Phase F — derivePlannerModel', () => {
-  it('returns the same provider\'s summary model when user has chatModel set', () => {
+  it("returns the same provider's summary model when user has chatModel set", () => {
     __setByok({ anthropic: 'sk-ant-test' });
     const r = derivePlannerModel(
       {
@@ -199,9 +162,7 @@ describe('Phase F — derivePlannerModel', () => {
       },
       ENV,
     );
-    expect(r).toBe(
-      `anthropic/${BYOK_PROVIDERS.anthropic.defaultModels.summary}`,
-    );
+    expect(r).toBe(`anthropic/${BYOK_PROVIDERS.anthropic.defaultModels.summary}`);
   });
 
   it('falls back to chat model when provider has no summary declared', () => {
@@ -213,10 +174,7 @@ describe('Phase F — derivePlannerModel', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (BYOK_PROVIDERS.google.defaultModels as any).summary = null;
     try {
-      const r = derivePlannerModel(
-        { aiApiKeys: null, chatModel: null },
-        ENV,
-      );
+      const r = derivePlannerModel({ aiApiKeys: null, chatModel: null }, ENV);
       expect(r).toBe(`google/${BYOK_PROVIDERS.google.defaultModels.technical}`);
     } finally {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -226,14 +184,12 @@ describe('Phase F — derivePlannerModel', () => {
 
   it('returns null when no keys are configured', () => {
     __setByok({});
-    expect(
-      derivePlannerModel({ aiApiKeys: null, chatModel: null }, ENV),
-    ).toBeNull();
+    expect(derivePlannerModel({ aiApiKeys: null, chatModel: null }, ENV)).toBeNull();
   });
 });
 
 describe('Phase F — deriveTitleModel', () => {
-  it('returns the same provider\'s summary model', () => {
+  it("returns the same provider's summary model", () => {
     __setByok({ anthropic: 'sk-ant-test' });
     const r = deriveTitleModel(
       {
@@ -242,15 +198,11 @@ describe('Phase F — deriveTitleModel', () => {
       },
       ENV,
     );
-    expect(r).toBe(
-      `anthropic/${BYOK_PROVIDERS.anthropic.defaultModels.summary}`,
-    );
+    expect(r).toBe(`anthropic/${BYOK_PROVIDERS.anthropic.defaultModels.summary}`);
   });
 
   it('returns null when no keys are configured', () => {
     __setByok({});
-    expect(
-      deriveTitleModel({ aiApiKeys: null, chatModel: null }, ENV),
-    ).toBeNull();
+    expect(deriveTitleModel({ aiApiKeys: null, chatModel: null }, ENV)).toBeNull();
   });
 });

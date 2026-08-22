@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { createKestrelChatTransport } from '@/lib/chat-transport';
 
 function sseResponse(events: unknown[]): Response {
@@ -96,27 +97,40 @@ describe('createKestrelChatTransport', () => {
   it('polls a queued full-mode job and emits its final metadata', async () => {
     vi.useFakeTimers();
     const progress = vi.fn();
-    const fetchMock = vi.spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        type: 'analysis-queued',
-        jobId: 'job-123',
-        status: 'queued',
-      }), { status: 200, headers: { 'content-type': 'application/json' } }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        status: 'complete',
-        progress: [{
-          type: 'data-agent-progress',
-          data: { agents: [{ agentName: 'technical', status: 'done' }], mode: 'full' },
-        }],
-        result: {
-          finalText: 'full result',
-          messageId: 'message-123',
-          agentOpinions: [{ agentName: 'technical', bias: 'bullish' }],
-          mode: 'full',
-          totalCostUsd: 0.04,
-          totalLatencyMs: 1234,
-        },
-      }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            type: 'analysis-queued',
+            jobId: 'job-123',
+            status: 'queued',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: 'complete',
+            progress: [
+              {
+                type: 'data-agent-progress',
+                data: { agents: [{ agentName: 'technical', status: 'done' }], mode: 'full' },
+              },
+            ],
+            result: {
+              finalText: 'full result',
+              messageId: 'message-123',
+              agentOpinions: [{ agentName: 'technical', bias: 'bullish' }],
+              mode: 'full',
+              totalCostUsd: 0.04,
+              totalLatencyMs: 1234,
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
 
     const transport = createKestrelChatTransport({ api: '/api/chat', onAgentProgress: progress });
     const stream = await transport.sendMessages({
@@ -129,7 +143,10 @@ describe('createKestrelChatTransport', () => {
     const chunks = await chunksPromise;
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(progress).toHaveBeenCalledWith({ agents: [{ agentName: 'technical', status: 'done' }], mode: 'full' });
+    expect(progress).toHaveBeenCalledWith({
+      agents: [{ agentName: 'technical', status: 'done' }],
+      mode: 'full',
+    });
     expect(chunks.some((chunk) => chunk.type === 'text-delta')).toBe(true);
     expect(chunks.some((chunk) => chunk.type === 'data-multi-agent-meta')).toBe(true);
   });
@@ -164,10 +181,12 @@ describe('createKestrelChatTransport', () => {
   });
 
   it('surfaces malformed SSE instead of presenting truncated text as complete', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
-      'data: {"type":"text-start","id":"server-message-id"}\\n\\ndata: {not-json}\\n\\n',
-      { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
-    ));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        'data: {"type":"text-start","id":"server-message-id"}\\n\\ndata: {not-json}\\n\\n',
+        { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
+      ),
+    );
 
     const transport = createKestrelChatTransport({ api: '/api/chat' });
     const stream = await transport.sendMessages({
@@ -201,29 +220,42 @@ describe('createKestrelChatTransport', () => {
   it('keeps failed Full-mode progress and emits no partial text', async () => {
     vi.useFakeTimers();
     const progress = vi.fn();
-    const fetchMock = vi.spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        type: 'analysis-queued',
-        jobId: 'job-strict',
-        status: 'queued',
-      }), { status: 200, headers: { 'content-type': 'application/json' } }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        status: 'failed',
-        progress: [{
-          type: 'data-agent-progress',
-          data: {
-            mode: 'full',
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            type: 'analysis-queued',
+            jobId: 'job-strict',
+            status: 'queued',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
             status: 'failed',
-            error: 'Full analysis stopped. No partial answer was returned.',
-            agents: [
-              { agentName: 'technical', status: 'done' },
-              { agentName: 'sentiment', status: 'error', error: 'Required agent failed.' },
-              { agentName: 'decision', status: 'error', error: 'Full analysis stopped.' },
+            progress: [
+              {
+                type: 'data-agent-progress',
+                data: {
+                  mode: 'full',
+                  status: 'failed',
+                  error: 'Full analysis stopped. No partial answer was returned.',
+                  agents: [
+                    { agentName: 'technical', status: 'done' },
+                    { agentName: 'sentiment', status: 'error', error: 'Required agent failed.' },
+                    { agentName: 'decision', status: 'error', error: 'Full analysis stopped.' },
+                  ],
+                },
+              },
             ],
-          },
-        }],
-        error: 'Full analysis could not be completed. No partial answer was returned.',
-      }), { status: 200, headers: { 'content-type': 'application/json' } }));
+            error: 'Full analysis could not be completed. No partial answer was returned.',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
 
     const transport = createKestrelChatTransport({ api: '/api/chat', onAgentProgress: progress });
     const stream = await transport.sendMessages({

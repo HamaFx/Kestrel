@@ -18,8 +18,8 @@
 
 // Phase 7 task 7.8 — scoped error boundary for the chat view.
 // Keeps the app chrome intact while showing an inline failure card.
-import { useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -40,8 +40,8 @@ export default function ChatError({ error, reset }: ChatErrorProps) {
     >
       <h1 className="text-danger text-base font-semibold">Chat unavailable</h1>
       <p className="text-fg-muted text-sm">
-        Something went wrong while loading the chat. Your conversation
-        is preserved — tapping Retry will restore it.
+        Something went wrong while loading the chat. Your conversation is preserved — tapping Retry
+        will restore it.
       </p>
       <div>
         <Button type="button" onClick={() => reset()} size="sm" variant="secondary">

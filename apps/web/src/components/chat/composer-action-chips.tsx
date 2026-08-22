@@ -2,7 +2,21 @@
 
 'use client';
 
-import { useMemo } from 'react';
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import type { Symbol } from '@kestrel/shared';
 import {
   IconActivity,
@@ -12,6 +26,7 @@ import {
   IconShieldCheck,
   IconTarget,
 } from '@tabler/icons-react';
+import { useMemo } from 'react';
 
 import { cn } from '@/lib/cn';
 
@@ -78,7 +93,7 @@ export function ComposerActionChips({
   );
 
   return (
-    <div className="w-full overflow-x-auto scrollbar-hide py-1.5 flex items-center gap-1.5 select-none">
+    <div className="scrollbar-hide flex w-full items-center gap-1.5 overflow-x-auto py-1.5 select-none">
       {chips.map((chip) => {
         const Icon = chip.icon;
         return (
@@ -88,13 +103,13 @@ export function ComposerActionChips({
             disabled={disabled}
             onClick={() => onSelect(chip.prompt)}
             className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-medium shrink-0 transition-all border',
+              'inline-flex shrink-0 items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs font-medium transition-all',
               'border-border/70 bg-bg-elev-1/80 text-fg-subtle hover:text-fg hover:border-brand/50 hover:bg-bg-elev-2 active:scale-95',
-              'disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-1 focus-visible:ring-brand',
+              'focus-visible:ring-brand focus:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50',
             )}
             title={chip.prompt}
           >
-            <Icon className="size-3.5 text-brand shrink-0" />
+            <Icon className="text-brand size-3.5 shrink-0" />
             <span className="whitespace-nowrap">{chip.label}</span>
           </button>
         );

@@ -23,6 +23,8 @@
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+import type { DbClient } from '@kestrel/db';
+import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ServerEnv } from '@kestrel/shared';
 
 /** The slice of env tools may need at runtime. */
@@ -38,22 +40,22 @@ export type ToolEnv = Pick<
   | 'AI_EMBEDDING_MODEL'
   | 'MAX_DAILY_USD'
   | 'LOG_PROMPTS'
-> & Partial<Pick<
-  ServerEnv,
-  | 'EXA_API_KEY'
-  | 'TAVILY_API_KEY'
-  | 'BRAVE_SEARCH_API_KEY'
-  | 'WEB_SEARCH_ENABLED'
-  | 'WEB_SEARCH_PROVIDER'
-  | 'WEB_SEARCH_FALLBACK_PROVIDERS'
-  | 'WEB_SEARCH_MAX_RESULTS'
-  | 'WEB_SEARCH_MAX_CALLS_PER_TURN'
-  | 'WEB_SEARCH_CACHE_TTL_SECONDS'
-  | 'WEB_SEARCH_TIMEOUT_MS'
->>;
-
-import type { DbClient } from '@kestrel/db';
-import type { UserSettingsRow } from '@kestrel/db/schema';
+> &
+  Partial<
+    Pick<
+      ServerEnv,
+      | 'EXA_API_KEY'
+      | 'TAVILY_API_KEY'
+      | 'BRAVE_SEARCH_API_KEY'
+      | 'WEB_SEARCH_ENABLED'
+      | 'WEB_SEARCH_PROVIDER'
+      | 'WEB_SEARCH_FALLBACK_PROVIDERS'
+      | 'WEB_SEARCH_MAX_RESULTS'
+      | 'WEB_SEARCH_MAX_CALLS_PER_TURN'
+      | 'WEB_SEARCH_CACHE_TTL_SECONDS'
+      | 'WEB_SEARCH_TIMEOUT_MS'
+    >
+  >;
 
 /**
  * P0-2 — Database abstraction injected into tools via ToolContext.

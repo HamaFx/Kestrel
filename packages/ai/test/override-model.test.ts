@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-import { vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { resolveOverrideModel } from '../src/model';
 
 // model.ts pulls in @kestrel/shared/encryption which contains
 // `import 'server-only'` — that throws at import time, not at
@@ -50,10 +52,6 @@ vi.mock('@kestrel/shared/encryption', () => ({
   describeByok: () => 'none',
 }));
 
-import { describe, expect, it } from 'vitest';
-
-import { resolveOverrideModel } from '../src/model';
-
 const ENV = {
   AI_GATEWAY_API_KEY: '',
   GOOGLE_GENERATIVE_AI_API_KEY: '',
@@ -68,9 +66,10 @@ const ENV = {
   LOG_PROMPTS: false,
 };
 
-function settingsWithKeys(
-  keys: Partial<Record<string, string>>,
-): { aiApiKeys: string | null; defaultModels: Record<string, never> } {
+function settingsWithKeys(keys: Partial<Record<string, string>>): {
+  aiApiKeys: string | null;
+  defaultModels: Record<string, never>;
+} {
   // Encrypt a real payload via the encryption module so we can
   // exercise the actual decryption path.
   // For tests we cheat: store the keys in plaintext inside a fake
