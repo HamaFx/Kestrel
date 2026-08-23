@@ -267,6 +267,8 @@ function payloadFromRow(row: FullAnalysisQueueRow): FullAnalysisPayload | null {
 
 export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Promise<string | null> {
   try {
+    const runId = fullAnalysisRunId(input.userId, input.idempotencyKey);
+
     const payload: FullAnalysisPayload = {
       kind: 'full-analysis',
       version: 1,
@@ -279,30 +281,81 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
       attemptCount: 0,
       createdAt: new Date().toISOString(),
     };
-    const row = await enqueueFullAnalysisQueue({
-      runId: fullAnalysisRunId(input.userId, input.idempotencyKey),
-      userId: input.userId,
-      threadId: input.threadId,
-      idempotencyKey: input.idempotencyKey,
-      payload,
-      db: getDb(),
-    });
-    // Mastra projection is best-effort; failures are logged and never
-    // prevent the queue row from being returned.
+
+    // Primary: persist to Mastra storage so the GCE worker picks it up.
+    // The worker watches Mastra workflow snapshots, not the DB queue.
+    const store = await workflowsStore();
+    const mastraEnqueued = store
+      ? await (async () => {
+          const existing = await store.getWorkflowRunById({
+            runId,
+            workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+          });
+          // Idempotency: a previous submission (terminal or still pending) wins.
+          if (existing) return true;
+
+          await store.persistWorkflowSnapshot({
+            workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+            runId,
+            resourceId: input.userId,
+            snapshot: {
+              runId,
+              status: 'pending' as const,
+              value: {},
+              context: projectionContext(payload),
+              serializedStepGraph: [],
+              activePaths: [],
+              activeStepsPath: {},
+              suspendedPaths: {},
+              resumeLabels: {},
+              waitingPaths: {},
+              timestamp: Date.now(),
+            },
+          });
+          return true;
+        })().catch((err) => {
+          flog.warn('Full-analysis Mastra persistence failed during enqueue', {
+            runId,
+            error: serializeError(err),
+          });
+          return false;
+        })
+      : false;
+
+    if (!mastraEnqueued) {
+      flog.warn('Full-analysis Mastra store unavailable; falling back to DB-only enqueue', { runId });
+    }
+
+    // Projection: also write to the DB queue for polling observability.
+    // This is best-effort — Mastra storage is the source of truth for the worker.
     try {
-      await projectQueueRow(row);
-    } catch (projectionError) {
-      flog.warn('Full-analysis Mastra projection failed during enqueue', {
-        runId: row.runId,
-        error: serializeError(projectionError),
+      const row = await enqueueFullAnalysisQueue({
+        runId,
+        userId: input.userId,
+        threadId: input.threadId,
+        idempotencyKey: input.idempotencyKey,
+        payload,
+        db: getDb(),
+      });
+      try {
+        await projectQueueRow(row);
+      } catch {
+        // projection failure is logged inside projectQueueRow
+      }
+    } catch (dbError) {
+      flog.warn('Full-analysis DB queue projection failed during enqueue', {
+        runId,
+        error: serializeError(dbError),
       });
     }
+
     flog.info('Enqueued full-analysis run', {
-      runId: row.runId,
-      userId: row.userId,
-      threadId: row.threadId,
+      runId,
+      userId: input.userId,
+      threadId: input.threadId,
+      mastraEnqueued,
     });
-    return row.runId;
+    return runId;
   } catch (error) {
     flog.error('Failed to enqueue full-analysis run', {
       userId: input.userId,
@@ -510,18 +563,98 @@ export async function getFullAnalysisRun(
   try {
     const row = await getFullAnalysisQueueRow(runId, userId, getDb());
     if (!row) return null;
-    const status = row.status;
+
+    // If DB shows pending/running, check Mastra storage as a fallback.
+    // The GCE worker may have completed the job via Mastra-native execution
+    // before being updated to sync back to the DB queue.
+    let status = row.status;
+    let result: Record<string, unknown> | null = row.result ?? null;
+    let error: string | null = status === 'failed' ? 'Full analysis could not be completed. No partial answer was returned.' : null;
+    let completedAt: string | null = row.completedAt?.toISOString() ?? null;
+
+    if (status === 'pending' || status === 'running') {
+      const store = await workflowsStore();
+      if (store) {
+        try {
+          const mastraRun = await store.getWorkflowRunById({
+            runId,
+            workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+          });
+          if (mastraRun) {
+            const snapshot = parseSnapshot(mastraRun.snapshot);
+            const mastraStatus = snapshot?.status;
+            if (mastraStatus === 'success') {
+              status = 'complete';
+              result = (snapshot?.result as Record<string, unknown> | undefined) ?? result;
+              const ts = snapshot?.timestamp as number | undefined;
+              completedAt = ts
+                ? new Date(ts).toISOString()
+                : null;
+              // Best-effort: sync the completed status back to the DB queue
+              void syncMastraStatusToDbQueue(row, 'complete', snapshot).catch(() => undefined);
+            } else if (mastraStatus === 'failed') {
+              status = 'failed';
+              error =
+                (snapshot?.error as { message?: string } | undefined)?.message ??
+                'Full analysis could not be completed. No partial answer was returned.';
+              const ts2 = snapshot?.timestamp as number | undefined;
+              completedAt = ts2
+                ? new Date(ts2).toISOString()
+                : null;
+              void syncMastraStatusToDbQueue(row, 'failed', snapshot).catch(() => undefined);
+            } else if (mastraStatus === 'running') {
+              status = 'running';
+            }
+          }
+        } catch {
+          // Mastra lookup is a best-effort fallback; DB state wins on failure
+        }
+      }
+    }
+
     return {
       id: row.runId,
       status,
       progress: [],
-      result: row.result ?? null,
-      error: status === 'failed' ? 'Full analysis could not be completed. No partial answer was returned.' : null,
+      result,
+      error,
       createdAt: row.createdAt.toISOString(),
-      completedAt: row.completedAt?.toISOString() ?? null,
+      completedAt,
     };
   } catch (error) {
     flog.warn('Full-analysis run lookup failed', { runId, error: serializeError(error) });
     return null;
+  }
+}
+
+/**
+ * Best-effort sync of Mastra workflow status back to the DB queue row.
+ * This bridges the gap while the GCE worker still uses Mastra-native execution.
+ */
+async function syncMastraStatusToDbQueue(
+  row: FullAnalysisQueueRow,
+  status: 'complete' | 'failed',
+  snapshot: ParsedSnapshot | null,
+): Promise<void> {
+  try {
+    const db = getDb();
+    if (status === 'complete') {
+      await completeFullAnalysisQueue({
+        runId: row.runId,
+        workerRunId: 'mastra-fallback-sync',
+        result: (snapshot?.result as Record<string, unknown> | undefined) ?? ({} as Record<string, unknown>),
+        db,
+      }).catch(() => undefined);
+    } else {
+      await failFullAnalysisQueue({
+        runId: row.runId,
+        workerRunId: 'mastra-fallback-sync',
+        error:
+          (snapshot?.error as { message?: string } | undefined)?.message ??
+          'Full analysis could not be completed.',
+      }).catch(() => undefined);
+    }
+  } catch {
+    // Sync failure never blocks the polling response
   }
 }
