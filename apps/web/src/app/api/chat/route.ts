@@ -241,22 +241,34 @@ export const POST = withAuth<void>(async (req, { user }) => {
         user.userId,
         body.threadId,
         async () => {
-          const runId = await enqueueFullAnalysis({
-            userId: user.userId,
-            threadId: body.threadId,
-            userMessageText: userText,
-            userMessageParts: userMessage.parts,
-            idempotencyKey: `full:${body.threadId}:${last.id}`,
-            traceId: traceIdStorage.getStore() ?? crypto.randomUUID(),
-          });
-          if (!runId) return errorJson('INTERNAL', 'Failed to queue analysis job', 500);
-          return Response.json(
-            AnalysisQueuedEventSchema.parse({
-              type: 'analysis-queued',
-              jobId: runId,
-              status: 'queued',
-            }),
-          );
+          try {
+            const runId = await enqueueFullAnalysis({
+              userId: user.userId,
+              threadId: body.threadId,
+              userMessageText: userText,
+              userMessageParts: userMessage.parts,
+              idempotencyKey: `full:${body.threadId}:${last.id}`,
+              traceId: traceIdStorage.getStore() ?? crypto.randomUUID(),
+            });
+            if (!runId) {
+              log.error({ threadId: body.threadId }, 'Full-analysis queue enqueue failed');
+              return errorJson('INTERNAL', 'Failed to queue analysis job', 500);
+            }
+            return Response.json(
+              AnalysisQueuedEventSchema.parse({
+                type: 'analysis-queued',
+                jobId: runId,
+                status: 'queued',
+              }),
+            );
+          } catch (enqueueError) {
+            log.error({ err: String(enqueueError), threadId: body.threadId }, 'Full-analysis enqueue threw');
+            return errorJson(
+              'INTERNAL',
+              'Failed to queue analysis job: ' + (enqueueError instanceof Error ? enqueueError.message : 'unknown error'),
+              500,
+            );
+          }
         },
         requestId ? { requestId } : {},
       );

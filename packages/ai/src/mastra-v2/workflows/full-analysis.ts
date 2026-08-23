@@ -130,10 +130,18 @@ function isLeaseError(error: unknown): boolean {
 }
 
 async function workflowsStore(): Promise<WorkflowsStorage | undefined> {
-  const storage = getKestrelMastra().instance.getStorage();
-  if (!storage) return undefined;
-  const store = await storage.getStore('workflows');
-  return (store as WorkflowsStorage | undefined) ?? undefined;
+  try {
+    const instance = getKestrelMastra();
+    if (!instance) return undefined;
+    const storage = instance.instance.getStorage();
+    if (!storage) return undefined;
+    const store = await storage.getStore('workflows');
+    return (store as WorkflowsStorage | undefined) ?? undefined;
+  } catch {
+    // Mastra storage is an observability projection; its absence
+    // must never fail the queue operation.
+    return undefined;
+  }
 }
 
 interface ParsedSnapshot {
@@ -258,33 +266,51 @@ function payloadFromRow(row: FullAnalysisQueueRow): FullAnalysisPayload | null {
 }
 
 export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Promise<string | null> {
-  const payload: FullAnalysisPayload = {
-    kind: 'full-analysis',
-    version: 1,
-    userId: input.userId,
-    threadId: input.threadId,
-    userMessageText: input.userMessageText,
-    userMessageParts: input.userMessageParts,
-    idempotencyKey: input.idempotencyKey,
-    ...(input.traceId ? { traceId: input.traceId } : {}),
-    attemptCount: 0,
-    createdAt: new Date().toISOString(),
-  };
-  const row = await enqueueFullAnalysisQueue({
-    runId: fullAnalysisRunId(input.userId, input.idempotencyKey),
-    userId: input.userId,
-    threadId: input.threadId,
-    idempotencyKey: input.idempotencyKey,
-    payload,
-    db: getDb(),
-  });
-  await projectQueueRow(row);
-  flog.info('Enqueued full-analysis run', {
-    runId: row.runId,
-    userId: row.userId,
-    threadId: row.threadId,
-  });
-  return row.runId;
+  try {
+    const payload: FullAnalysisPayload = {
+      kind: 'full-analysis',
+      version: 1,
+      userId: input.userId,
+      threadId: input.threadId,
+      userMessageText: input.userMessageText,
+      userMessageParts: input.userMessageParts,
+      idempotencyKey: input.idempotencyKey,
+      ...(input.traceId ? { traceId: input.traceId } : {}),
+      attemptCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+    const row = await enqueueFullAnalysisQueue({
+      runId: fullAnalysisRunId(input.userId, input.idempotencyKey),
+      userId: input.userId,
+      threadId: input.threadId,
+      idempotencyKey: input.idempotencyKey,
+      payload,
+      db: getDb(),
+    });
+    // Mastra projection is best-effort; failures are logged and never
+    // prevent the queue row from being returned.
+    try {
+      await projectQueueRow(row);
+    } catch (projectionError) {
+      flog.warn('Full-analysis Mastra projection failed during enqueue', {
+        runId: row.runId,
+        error: serializeError(projectionError),
+      });
+    }
+    flog.info('Enqueued full-analysis run', {
+      runId: row.runId,
+      userId: row.userId,
+      threadId: row.threadId,
+    });
+    return row.runId;
+  } catch (error) {
+    flog.error('Failed to enqueue full-analysis run', {
+      userId: input.userId,
+      threadId: input.threadId,
+      error: serializeError(error),
+    });
+    return null;
+  }
 }
 
 export async function claimNextFullAnalysisRun(
