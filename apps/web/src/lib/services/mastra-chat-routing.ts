@@ -75,8 +75,15 @@ export function isMutationIntent(prompt: string): boolean {
 const NEGATIVE_READONLY_PATTERNS =
   /\b(?:what\s+(?:is|are|would|should)|tell\s+me|explain|analy[sz]e|analysis|outlook|forecast|predict|setup|setup idea|trade\s+setup|trade\s+idea|best\s+(?:trade|entry|setup)|suggest(?:ion)?|recommend(?:ation)?|thoughts?\s+on|opinion|what\s+do\s+you\s+think|how\s+(?:do|would|should|to|is|about)|show\s+me|can\s+you|please\s+(?:analy|tell|show|explain)|close\s+price|today.?\s*(?:close|price)|position\s+siz(?:e|ing)|portfolio\s+(?:review|allocation|check|look|summary|overview)|journal\s+(?:entry|note|log|my|this)|alert\s+me\s+(?:when|if|at)|entry\s+(?:point|level|zone|area|price)|enter\s+(?:a\s+)?(?:trade|position|at))\b/i;
 
+/** Question-starter patterns: prompts that start like a question are read-only even when they contain trade words. */
+const QUESTION_STARTERS =
+  /^(?:what|how|when|where|why|who|should|could|would|can|do|does|did|is|are|will|has|have)\b|\?/i;
+
 /** Returns true when a prompt's surface-level trade terms are clearly in a read-only context. */
 function isReadOnlyContext(prompt: string): boolean {
+  // Prompts structured as questions (starts with question word, or contains ?)
+  // are read-only context — users don't execute trades with interrogative grammar.
+  if (QUESTION_STARTERS.test(prompt.trim())) return true;
   return NEGATIVE_READONLY_PATTERNS.test(prompt);
 }
 
