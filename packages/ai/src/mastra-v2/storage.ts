@@ -63,9 +63,20 @@ export interface MastraStorageResult {
 }
 
 /** Direct (non-pooling) connection string in the same order as the migration scripts. */
-export function mastraDirectConnectionString(env: NodeJS.ProcessEnv = process.env): string | null {
+export function mastraDirectConnectionString(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): string | null {
+  const e = env as Record<string, string | undefined>;
   return (
-    env.DIRECT_URL ?? env.POSTGRES_URL_NON_POOLING ?? env.DATABASE_URL ?? env.POSTGRES_URL ?? null
+    e.DIRECT_URL ??
+    e.POSTGRES_URL_NON_POOLING ??
+    e.DATABASE_URL ??
+    e.POSTGRES_URL ??
+    process.env.DIRECT_URL ??
+    process.env.POSTGRES_URL_NON_POOLING ??
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_URL ??
+    null
   );
 }
 
@@ -75,19 +86,28 @@ export function mastraDirectConnectionString(env: NodeJS.ProcessEnv = process.en
  * downgrade TLS in production.
  */
 export function mastraSslOptions(
-  env: NodeJS.ProcessEnv = process.env,
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
 ): boolean | { rejectUnauthorized: boolean; ca?: string } {
-  if (env.DB_DISABLE_SSL === 'true') {
-    const localDocker = (env.KESTREL_LOCAL_DOCKER ?? env.HAMAFX_LOCAL_DOCKER) === 'true';
-    if (env.NODE_ENV !== 'production' || localDocker) return false;
+  const e = env as Record<string, string | undefined>;
+  const dbDisableSsl = e.DB_DISABLE_SSL ?? process.env.DB_DISABLE_SSL;
+  if (dbDisableSsl === 'true') {
+    const localDocker =
+      (e.KESTREL_LOCAL_DOCKER ??
+        e.HAMAFX_LOCAL_DOCKER ??
+        process.env.KESTREL_LOCAL_DOCKER ??
+        process.env.HAMAFX_LOCAL_DOCKER) === 'true';
+    const nodeEnv = e.NODE_ENV ?? process.env.NODE_ENV;
+    if (nodeEnv !== 'production' || localDocker) return false;
     throw new Error(
       '[mastra] DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; ' +
         'configure verified TLS for production databases.',
     );
   }
-  const ca = env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  const rawCa = e.SUPABASE_CA_CERT ?? process.env.SUPABASE_CA_CERT;
+  const ca = rawCa ? rawCa.split(/\\n|\n/).join('\n').trim() : undefined;
   if (ca) return { ca, rejectUnauthorized: true };
-  if (env.NODE_ENV === 'production') return { rejectUnauthorized: true };
+  const nodeEnv = e.NODE_ENV ?? process.env.NODE_ENV;
+  if (nodeEnv === 'production') return { rejectUnauthorized: true };
   return { rejectUnauthorized: false };
 }
 
@@ -114,16 +134,21 @@ function mastraRetention(): RetentionConfig {
   };
 }
 
-function libsqlUrl(env: NodeJS.ProcessEnv = process.env): string {
-  const configured = env.MASTRA_LIBSQL_URL;
+function libsqlUrl(env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env): string {
+  const e = env as Record<string, string | undefined>;
+  const configured = e.MASTRA_LIBSQL_URL ?? process.env.MASTRA_LIBSQL_URL;
   if (configured && configured.length > 0) return configured;
   return 'file:./.kestrel/mastra.db';
 }
 
-export function resolveMastraStorageKind(env: NodeJS.ProcessEnv = process.env): MastraStorageKind {
-  return env.MASTRA_STORAGE === 'postgres'
+export function resolveMastraStorageKind(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): MastraStorageKind {
+  const e = env as Record<string, string | undefined>;
+  const configured = e.MASTRA_STORAGE ?? process.env.MASTRA_STORAGE;
+  return configured === 'postgres'
     ? 'postgres'
-    : env.MASTRA_STORAGE === 'libsql'
+    : configured === 'libsql'
       ? 'libsql'
       : mastraDirectConnectionString(env) !== null
         ? 'postgres'

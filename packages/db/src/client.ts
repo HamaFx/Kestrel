@@ -144,7 +144,8 @@ function resolveSslOptions(): false | { rejectUnauthorized: boolean; ca?: string
     );
   }
 
-  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  const rawCa = process.env.SUPABASE_CA_CERT;
+  const ca = rawCa ? rawCa.split(/\\n|\n/).join('\n').trim() : undefined;
   if (ca) {
     return {
       ca,
