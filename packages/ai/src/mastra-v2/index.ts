@@ -100,7 +100,11 @@ export {
   type PreparedKestrelMemory,
   type WorkingMemorySeedArgs,
 } from './context';
-export { tryWorkflowClaimLock } from './advisory-lock';
+export {
+  FullAnalysisLeaseLostError,
+  FullAnalysisPayloadSchema,
+  FULL_ANALYSIS_LEASE_MS,
+} from './workflows/full-analysis';
 export {
   assertMastraRegistryComplete,
   mastraRegistrationFor,
@@ -116,6 +120,9 @@ export {
   buildConversationGuardrails,
   buildGuardrailInputProcessors,
   buildResearchGuardrails,
+  buildResearchGuardrailsAvailability,
+  GuardrailUnavailableError,
+  type GuardrailMode,
   type GuardrailOptions,
   type GuardrailStrategy,
 } from './guardrails';
@@ -179,6 +186,7 @@ export {
   type XauusdReportWorkflowDeps,
 } from './workflows/xauusd-report';
 export {
+  cancelMutationWorkflow,
   createMutationWorkflow,
   runMutationWorkflow,
   MutationInputSchema,
@@ -186,8 +194,12 @@ export {
   MutationOutputSchema,
   MutationResumeSchema,
   MutationSuspendPayloadSchema,
+  mutationInputDigest,
+  parseMutationRunContext,
   type MutationExecutor,
   type MutationExecutorResult,
+  type MutationAtomicExecutor,
+  type MutationRunContext,
   type MutationInput,
   type MutationKind,
   type MutationOutput,

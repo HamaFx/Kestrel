@@ -57,7 +57,6 @@ export const MutationDraftPayloadSchema = z.object({
   mutation: z.enum(['set_alert', 'log_journal', 'share_snapshot', 'run_system_action']),
   summary: z.string(),
   runId: z.string(),
-  threadId: z.string(),
   expiresAt: z.number().int(),
   confirmationToken: z.string(),
   confirmLabel: z.string().optional(),

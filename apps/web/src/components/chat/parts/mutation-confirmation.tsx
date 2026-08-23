@@ -68,9 +68,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
       const json = await apiMutate('/api/chat/mutations/confirm', {
         method: 'POST',
         body: JSON.stringify({
-          mutation: payload.mutation,
           runId: payload.runId,
-          threadId: payload.threadId,
           confirmationToken: payload.confirmationToken,
         }),
       });
@@ -91,9 +89,25 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
     }
   }, [payload]);
 
-  // Cancel is local: the single-use token simply expires and the server never
-  // sees it. Nothing was written at draft time.
-  const decline = useCallback(() => setState({ phase: 'declined' }), []);
+  const decline = useCallback(async () => {
+    setState({ phase: 'confirming' });
+    try {
+      await apiMutate('/api/chat/mutations/cancel', {
+        method: 'POST',
+        body: JSON.stringify({
+          runId: payload.runId,
+          confirmationToken: payload.confirmationToken,
+        }),
+      });
+      setState({ phase: 'declined' });
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Cancellation failed. The draft may already be complete.';
+      setState({ phase: 'error', message });
+    }
+  }, [payload]);
 
   // When the token has expired, stop offering Confirm.
   const expired = payload.expiresAt <= Date.now();

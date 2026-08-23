@@ -134,6 +134,8 @@ const EXPECTED_TABLES = [
   'provider_throttle',
   'intermarket_resonance',
   'audit_logs',
+  'mutation_executions',
+  'full_analysis_queue',
   'provider_tests',
   'symbol_catalog',
   'cron_runs',
@@ -193,6 +195,29 @@ describe(
         `SELECT tablename FROM pg_tables WHERE tablename = '__drizzle_migrations'`,
       );
       expect(rows).toHaveLength(1);
+    }, 30_000);
+
+    it('Full-analysis queue has idempotency and lease indexes', async () => {
+      const db = await getPGliteDb(dir);
+      await applyAll(db);
+      const { rows: indexes } = await db.execute(
+        `SELECT indexname FROM pg_indexes WHERE tablename = 'full_analysis_queue'`,
+      );
+      const names = indexes.map((row: Record<string, unknown>) => row.indexname);
+      expect(names).toContain('full_analysis_queue_user_idempotency_uk');
+      expect(names).toContain('full_analysis_queue_lease_idx');
+    }, 30_000);
+
+    it('mutation execution ledger has a run-id primary key', async () => {
+      const db = await getPGliteDb(dir);
+      await applyAll(db);
+      const { rows } = await db.execute(
+        `SELECT constraint_name FROM information_schema.table_constraints
+         WHERE table_name = 'mutation_executions' AND constraint_type = 'PRIMARY KEY'`,
+      );
+      expect(rows.map((row: Record<string, unknown>) => row.constraint_name)).toContain(
+        'mutation_executions_pkey',
+      );
     }, 30_000);
 
     it('key unique constraints exist', async () => {

@@ -33,6 +33,7 @@ import {
   type RunMastraCanonicalChatArgs,
 } from '@kestrel/ai/mastra';
 import { getUserWithSettings } from '@kestrel/db';
+import { metrics } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
@@ -146,9 +147,13 @@ export async function runMastraCanonicalChatStreamService(
       meta: { id: messageId, data: { engine: 'mastra', canonical: true, runId } },
       signal: input.signal,
       onAbort: async () => {
-        // Persist an interrupted marker so the orphaned user message has
-        // context when the user retries. The idempotency key means a
-        // successful retry overwrites this with the real assistant reply.
+        // Release the budget reservation so a stranded reservation does
+        // not block the user's next turn until the recovery job runs.
+        metrics.increment('stream_abort_release_total');
+        await budget.release();
+        // Persist an interrupted marker under a distinct key so the
+        // retry's successful assistant response (inserted under the
+        // normal key) is never blocked by onConflictDoNothing.
         await appendAssistantMessage(
           input.userId,
           input.threadId,
@@ -158,7 +163,7 @@ export async function runMastraCanonicalChatStreamService(
             parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
           },
           {
-            idempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:assistant`,
+            idempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:interrupted`,
           },
         ).catch(() => {});
       },

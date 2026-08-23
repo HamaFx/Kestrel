@@ -183,7 +183,42 @@ export {
   type UserWithSettingsRow,
 } from './queries/users';
 export { recordAdminAudit, listAdminAuditLogs } from './queries/admin-audit';
+export type {
+  MutationExecutionRow,
+  MutationExecutionInsert,
+} from './schema/mutation-executions';
+export {
+  executeMutationOnce,
+  getMutationExecution,
+  MutationExecutionConflictError,
+  MutationExecutionContextError,
+  type ExecuteMutationOnceInput,
+  type ExecuteMutationOnceResult,
+  type MutationExecutionBusinessResult,
+} from './queries/mutation-executions';
 export type { AdminAuditLogRow, AdminAuditLogInsert } from './schema/admin-audit';
+export type {
+  FullAnalysisQueueRow,
+  FullAnalysisQueueInsert,
+  FullAnalysisQueueStatus,
+} from './schema/full-analysis-queue';
+export {
+  enqueueFullAnalysisQueue,
+  claimNextFullAnalysisQueue,
+  heartbeatFullAnalysisQueue,
+  completeFullAnalysisQueue,
+  failFullAnalysisQueue,
+  requeueFullAnalysisQueue,
+  recoverStaleFullAnalysisQueue,
+  purgeOldFullAnalysisQueue,
+  getFullAnalysisQueueRow,
+  listFullAnalysisQueueRows,
+  FullAnalysisQueueOwnershipError,
+  FullAnalysisQueuePayloadError,
+  type EnqueueFullAnalysisQueueInput,
+  type ClaimFullAnalysisQueueOptions,
+  type FullAnalysisLeaseInput,
+} from './queries/full-analysis-queue';
 export type {
   AiMessageFeedbackRow,
   AiMessageFeedbackInsert,

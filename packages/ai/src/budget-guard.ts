@@ -21,6 +21,7 @@
 // runChatInner(), this module makes the budget contract explicit
 // and independently testable.
 
+import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import {
@@ -116,6 +117,7 @@ export async function releaseBudget(reservation: BudgetReservation, userId: stri
   } catch (err) {
     // Keep the reservation open when the sink fails so a later terminal
     // recovery path can retry without losing the correction.
+    metrics.increment('budget_stranded_total');
     blog.error('budget release failed; reservation remains open', {
       userId,
       reservedUsd: reservation.reservedUsd,

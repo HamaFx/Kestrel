@@ -23,7 +23,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createKestrelMastra, initializeKestrelMastra } from '../src/mastra-v2';
 import {
+  cancelMutationWorkflow,
   createMutationWorkflow,
+  mutationInputDigest,
+  parseMutationRunContext,
   runMutationWorkflow,
   type MutationInput,
 } from '../src/mastra-v2/workflows/mutation';
@@ -242,6 +245,21 @@ describe('mutation workflow', () => {
     expect(audited).toHaveLength(0);
   });
 
+  it('cancels a drafted run without executing or auditing it', async () => {
+    const workflow = buildWorkflow();
+    const draft = await runMutationWorkflow(workflow, { input: sampleInput() });
+
+    await cancelMutationWorkflow(buildWorkflow(), {
+      runId: draft.runId,
+      userId: 'u1',
+    });
+
+    const state = await workflow.getWorkflowRunById(draft.runId);
+    expect(state?.status).toBe('canceled');
+    expect(executed).toHaveLength(0);
+    expect(audited).toHaveLength(0);
+  });
+
   it('resumes with the correct token → executes the write + audit exactly once', async () => {
     const workflow = buildWorkflow();
     const draft = await runMutationWorkflow(workflow, { input: sampleInput() });
@@ -296,5 +314,39 @@ describe('mutation policy — stored confirmation type', () => {
   it('StoredMutationConfirmation shape is usable', () => {
     const stored: StoredMutationConfirmation = { digest: 'a'.repeat(64), expiresAt: 123 };
     expect(stored.expiresAt).toBe(123);
+  });
+
+  it('recovers immutable context from object and serialized workflow snapshots', () => {
+    const input = sampleInput();
+    const context = {
+      userId: 'u1',
+      threadId: 'thread-1',
+      mutation: input.kind,
+      inputDigest: mutationInputDigest(input),
+      confirmation: { digest: 'a'.repeat(64), expiresAt: 2_000 },
+    };
+    const run = { snapshot: { value: context } };
+
+    expect(parseMutationRunContext(run)).toEqual(context);
+    expect(parseMutationRunContext({ snapshot: JSON.stringify(run.snapshot) })).toEqual(context);
+  });
+
+  it('rejects a tampered or malformed persisted context', () => {
+    const input = sampleInput();
+    const context = {
+      userId: 'u1',
+      threadId: 'thread-1',
+      mutation: input.kind,
+      inputDigest: mutationInputDigest(input),
+      confirmation: { digest: 'a'.repeat(64), expiresAt: 2_000 },
+    };
+
+    expect(
+      parseMutationRunContext({
+        snapshot: { value: { ...context, userId: 'u2' } },
+      }),
+    ).toEqual({ ...context, userId: 'u2' });
+    expect(parseMutationRunContext({ snapshot: { value: { ...context, inputDigest: 'bad' } } })).toBeNull();
+    expect(parseMutationRunContext({ snapshot: '{not-json' })).toBeNull();
   });
 });

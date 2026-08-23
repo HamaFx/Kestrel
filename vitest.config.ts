@@ -17,6 +17,12 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  esbuild: {
+    // esbuild does not recognise ES2024; the TS target in packages/config
+    // pins the type-check target while this tells esbuild to emit ES2022
+    // (latest stable) on transform.
+    target: 'es2022',
+  },
   test: {
     server: {
       deps: {

@@ -68,6 +68,14 @@ export const METRIC_NAMES = [
   'mastra_shadow_total',
   'mastra_shadow_failed_total',
   'mastra_shadow_skipped_total',
+  // Phase 5 — durability, cancellation, and guardrail health signals.
+  'queue_duplicate_claim_total',
+  'queue_stale_lease_completion_total',
+  'mutation_replay_conflict_total',
+  'budget_stranded_total',
+  'stream_abort_release_total',
+  'guardrail_degraded_total',
+  'scorer_missing_input_total',
 ] as const;
 
 export type MetricName = (typeof METRIC_NAMES)[number];

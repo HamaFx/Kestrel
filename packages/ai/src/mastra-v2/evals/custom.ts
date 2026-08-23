@@ -33,6 +33,7 @@
  * output — so they are free to attach to every turn (no sampling cost).
  */
 
+import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { createScorer, type MastraScorer } from '@mastra/core/evals';
 
@@ -76,6 +77,10 @@ export function createGroundingScorer(): MastraScorer<
   })
     .preprocess(async ({ run }) => {
       const { report, packet } = run.input as GroundingScorerRunInput;
+      if (!report || !packet) {
+        metrics.increment('scorer_missing_input_total', { tags: { scorer: 'kestrel-grounding' } });
+        return { ok: false, findings: ['missing report or packet input'] };
+      }
       const result = verifyXauusdReport(report, packet);
       if (!result.ok) {
         clog.warn('Grounding scorer: report failed verification', {
@@ -108,6 +113,10 @@ export function createCitationScorer(): MastraScorer<
   })
     .preprocess(async ({ run }) => {
       const { text, toolCalls } = run.input as CitationScorerRunInput;
+      if (!text) {
+        metrics.increment('scorer_missing_input_total', { tags: { scorer: 'kestrel-citation' } });
+        return { score: 0 };
+      }
       return { score: computeCitationScore(text, toolCalls) };
     })
     .generateScore(({ results }) => {

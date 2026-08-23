@@ -23,9 +23,11 @@ const mockDbExecute = vi.hoisted(() => vi.fn());
 const mockAuthFn = vi.hoisted(() => vi.fn());
 
 const mockWithRateLimit = vi.hoisted(() => vi.fn());
+const mockListFullAnalysisQueueRows = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
   getDb: vi.fn(() => ({ execute: mockDbExecute })),
+  listFullAnalysisQueueRows: mockListFullAnalysisQueueRows,
   withRateLimit: mockWithRateLimit,
   schema: {},
 }));
@@ -52,6 +54,7 @@ beforeEach(() => {
     process.env[k] = v;
   }
   mockWithRateLimit.mockResolvedValue({ allowed: true, count: 0, limit: 30 });
+  mockListFullAnalysisQueueRows.mockResolvedValue([]);
   // SEC-1: provide a valid auth session so the slow-path in getUserFromRequest
   // succeeds when the fast-path HMAC verification is skipped (no signature header).
   mockAuthFn.mockResolvedValue({

@@ -3,76 +3,68 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Durable Full-mode analysis queue (Phase 3).
+ * Durable Full-mode analysis queue.
  *
- * `analysis_jobs` is gone: the queue now lives in Mastra's workflow run
- * records. The web route enqueues by writing a `pending` run snapshot for a
- * dedicated `full-analysis` workflow id; the worker claims pending runs,
- * executes the symbol-research workflow under that exact runId (so every
- * repair/verification attempt is observable as run state), and writes the
- * terminal status + shaped result back into the same record. Web polling
- * reads the run record directly — no second queue table to keep in sync.
- *
- * Design notes (verified against the installed @mastra/core):
- * - `Workflow.createRun({ runId })` adopts an existing pending snapshot for
- *   that runId instead of overwriting it, so the worker's execution
- *   continues the record the web enqueued.
- * - The claim is read-verify-write (`persistWorkflowSnapshot`); the storage
- *   API has no conditional status update. In the current deployment there is
- *   a single worker, and message writes are idempotent via
- *   `analysis-job:<runId>:user|assistant` keys, so a double-claim cannot
- *   produce duplicate messages.
- * - `updateWorkflowState` requires an existing `context` in the snapshot, so
- *   enqueues always carry `context.input` (the payload).
+ * The database queue is the ownership authority: it provides atomic enqueue,
+ * claims, leases, retries, and stale-worker protection. Mastra workflow
+ * snapshots are a projection used for observability and execution tracing;
+ * they are never used to decide whether a worker owns a job.
  */
 
 import { createHash } from 'node:crypto';
 
+import {
+  claimNextFullAnalysisQueue,
+  completeFullAnalysisQueue,
+  enqueueFullAnalysisQueue,
+  failFullAnalysisQueue,
+  getFullAnalysisQueueRow,
+  heartbeatFullAnalysisQueue,
+  listFullAnalysisQueueRows,
+  purgeOldFullAnalysisQueue,
+  recoverStaleFullAnalysisQueue,
+  requeueFullAnalysisQueue,
+  type FullAnalysisQueueRow,
+} from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { WorkflowsStorage } from '@mastra/core/storage';
 import type { WorkflowRunState } from '@mastra/core/workflows';
+import { z } from 'zod';
 
-import { tryWorkflowClaimLock } from '../advisory-lock';
+import { getDb } from '../../db';
 import { getKestrelMastra } from '../instance';
 
 const flog = createCategorizedLogger('ai', { component: 'mastra-full-analysis' });
 
 export const FULL_ANALYSIS_WORKFLOW_ID = 'full-analysis';
+export const FULL_ANALYSIS_LEASE_MS = 90_000;
 
-/** Payload carried in the run snapshot's `context.input`. */
-export interface FullAnalysisPayload {
-  kind: 'full-analysis';
-  version: 1;
-  userId: string;
-  threadId: string;
-  userMessageText: string;
-  userMessageParts: unknown;
-  idempotencyKey: string;
-  /** Diagnostic traceId from the originating web request. */
-  traceId?: string;
-  /** Worker attempts so far (bumped at claim time). */
-  attemptCount: number;
-  createdAt: string;
-  /** Worker lease token set at claim time. */
-  workerRunId?: string;
-  startedAt?: string;
-}
+/** Payload carried by both the database queue and the Mastra projection. */
+export const FullAnalysisPayloadSchema = z
+  .object({
+    kind: z.literal('full-analysis'),
+    version: z.literal(1),
+    userId: z.string().min(1),
+    threadId: z.string().min(1),
+    userMessageText: z.string(),
+    userMessageParts: z.unknown(),
+    idempotencyKey: z.string().min(1),
+    traceId: z.string().min(1).optional(),
+    attemptCount: z.number().int().nonnegative(),
+    createdAt: z.string().datetime(),
+    workerRunId: z.string().min(1).optional(),
+    startedAt: z.string().datetime().optional(),
+  })
+  .strict();
 
-/** Public shape returned by the polling endpoint (unchanged contract). */
+export type FullAnalysisPayload = z.infer<typeof FullAnalysisPayloadSchema>;
+
+/** Public shape returned by the polling endpoint. */
 export interface FullAnalysisRunView {
   id: string;
   status: 'pending' | 'running' | 'complete' | 'failed';
@@ -97,14 +89,44 @@ export interface FullAnalysisEnqueueInput {
   traceId?: string;
 }
 
-/**
- * Deterministic runId from (userId, idempotencyKey) — mirrors the old unique
- * index on analysis_jobs. The same user + key always resolves to the same
- * run record, so re-submissions return the original terminal result instead
- * of queueing duplicate work.
- */
+export interface FullAnalysisQueueHealth {
+  pending: number;
+  running: number;
+  stalePending: number;
+  stuckRunning: number;
+  unavailable?: boolean;
+}
+
+export class FullAnalysisLeaseLostError extends Error {
+  readonly code = 'FULL_ANALYSIS_LEASE_LOST';
+
+  constructor(message = 'The Full-analysis worker lease is no longer owned.') {
+    super(message);
+    this.name = 'FullAnalysisLeaseLostError';
+  }
+}
+
+/** Deterministic run id from the user and request idempotency key. */
 export function fullAnalysisRunId(userId: string, idempotencyKey: string): string {
   return createHash('sha256').update(`${userId}:${idempotencyKey}`).digest('hex');
+}
+
+function parsePayload(value: unknown): FullAnalysisPayload {
+  const parsed = FullAnalysisPayloadSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(`Invalid Full-analysis payload: ${parsed.error.message}`);
+  }
+  return parsed.data;
+}
+
+function serializeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isLeaseError(error: unknown): boolean {
+  return error instanceof Error &&
+    ((error as { code?: unknown }).code === 'FULL_ANALYSIS_QUEUE_OWNERSHIP_LOST' ||
+      (error as { code?: unknown }).code === 'FULL_ANALYSIS_LEASE_LOST');
 }
 
 async function workflowsStore(): Promise<WorkflowsStorage | undefined> {
@@ -115,78 +137,127 @@ async function workflowsStore(): Promise<WorkflowsStorage | undefined> {
 }
 
 interface ParsedSnapshot {
+  runId?: string;
   status?: string;
   result?: unknown;
-  context?: { input?: unknown };
+  error?: unknown;
+  context?: { input?: unknown } & Record<string, unknown>;
   [key: string]: unknown;
 }
 
-function parseSnapshot(snapshot: unknown): ParsedSnapshot | null {
-  if (typeof snapshot === 'string') {
+function parseSnapshot(value: unknown): ParsedSnapshot | null {
+  if (typeof value === 'string') {
     try {
-      return JSON.parse(snapshot) as ParsedSnapshot;
+      return JSON.parse(value) as ParsedSnapshot;
     } catch {
       return null;
     }
   }
-  if (snapshot && typeof snapshot === 'object') return snapshot as ParsedSnapshot;
-  return null;
+  return value && typeof value === 'object' ? (value as ParsedSnapshot) : null;
 }
 
-function payloadFromSnapshot(snapshot: ParsedSnapshot | null): FullAnalysisPayload | null {
-  const input = snapshot?.context?.input as FullAnalysisPayload | undefined;
-  if (!input || input.kind !== 'full-analysis') return null;
-  return input;
-}
-
-/**
- * Build the run snapshot's `context` carrying the queue payload. The storage
- * API types `context.input` as a step-result record, but the durable queue
- * stores its own payload there (read back verbatim by payloadFromSnapshot).
- */
-function runContext(payload: FullAnalysisPayload): WorkflowRunState['context'] {
+function projectionContext(payload: FullAnalysisPayload): WorkflowRunState['context'] {
   return { input: payload } as unknown as WorkflowRunState['context'];
 }
 
-/** Default payload used when a stale run's snapshot is unreadable. */
-function fallbackPayload(): FullAnalysisPayload {
-  return {
-    kind: 'full-analysis',
-    version: 1,
-    userId: '',
-    threadId: '',
-    userMessageText: '',
-    userMessageParts: [],
-    idempotencyKey: '',
-    attemptCount: 0,
-    createdAt: new Date().toISOString(),
-  };
+function isResearchWorkflowInput(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.prompt === 'string' &&
+    typeof candidate.symbol === 'string' &&
+    typeof candidate.mode === 'string'
+  );
 }
 
-function serializeError(error: unknown): { name: string; message: string } {
+function minimalSnapshot(
+  runId: string,
+  status: 'pending' | 'running' | 'success' | 'failed',
+  payload: FullAnalysisPayload,
+  result?: Record<string, unknown>,
+  error?: string,
+): WorkflowRunState {
   return {
-    name: error instanceof Error ? error.name : 'Error',
-    message: error instanceof Error ? error.message : String(error),
-  };
+    runId,
+    status,
+    value: {},
+    context: projectionContext(payload),
+    serializedStepGraph: [],
+    activePaths: [],
+    activeStepsPath: {},
+    suspendedPaths: {},
+    resumeLabels: {},
+    waitingPaths: {},
+    ...(result ? { result: result as never } : {}),
+    ...(error ? { error: { name: 'FullAnalysisError', message: error } } : {}),
+    timestamp: Date.now(),
+  } as unknown as WorkflowRunState;
 }
 
 /**
- * Enqueue a Full-mode analysis job exactly once per (userId, idempotencyKey).
- * Returns the runId to hand to the client; `null` when the run record could
- * not be written (route maps that to a 500).
+ * Mirror a queue row into Mastra after the database transition. Projection
+ * failures are logged but do not weaken the queue's ownership guarantee.
  */
-export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Promise<string | null> {
+async function projectQueueRow(row: FullAnalysisQueueRow): Promise<void> {
+  const payload = parsePayload(row.payload);
   const store = await workflowsStore();
-  if (!store) return null;
+  if (!store) return;
 
-  const runId = fullAnalysisRunId(input.userId, input.idempotencyKey);
-  const existing = await store.getWorkflowRunById({
-    runId,
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-  });
-  // Exact-once: a previous submission (terminal or still pending) wins.
-  if (existing) return runId;
+  try {
+    const existing = await store.getWorkflowRunById({
+      runId: row.runId,
+      workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+    });
+    const snapshot = parseSnapshot(existing?.snapshot);
+    const hasDurableExecution = isResearchWorkflowInput(snapshot?.context?.input);
+    const status =
+      row.status === 'complete'
+        ? 'success'
+        : row.status === 'failed'
+          ? 'failed'
+          : row.status === 'pending' && hasDurableExecution
+            ? 'running'
+            : row.status;
+    const next = {
+      ...(snapshot ?? minimalSnapshot(row.runId, status, payload)),
+      runId: row.runId,
+      status,
+      // Preserve the actual workflow input and completed step context once the
+      // worker has started. The queue payload is only a projection fallback;
+      // replacing it here would make a post-crash restart feed the wrong schema.
+      context: snapshot?.context ?? projectionContext(payload),
+      ...(row.result ? { result: row.result } : {}),
+      ...(row.error ? { error: { name: 'FullAnalysisError', message: row.error } } : {}),
+      timestamp: Date.now(),
+    } as unknown as WorkflowRunState;
+    await store.persistWorkflowSnapshot({
+      workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+      runId: row.runId,
+      resourceId: row.userId,
+      snapshot: next,
+    });
+  } catch (error) {
+    flog.warn('Full-analysis Mastra projection failed', {
+      runId: row.runId,
+      status: row.status,
+      error: serializeError(error),
+    });
+  }
+}
 
+function payloadFromRow(row: FullAnalysisQueueRow): FullAnalysisPayload | null {
+  try {
+    return parsePayload(row.payload);
+  } catch (error) {
+    flog.error('Full-analysis queue payload is invalid', {
+      runId: row.runId,
+      error: serializeError(error),
+    });
+    return null;
+  }
+}
+
+export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Promise<string | null> {
   const payload: FullAnalysisPayload = {
     kind: 'full-analysis',
     version: 1,
@@ -199,351 +270,232 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
     attemptCount: 0,
     createdAt: new Date().toISOString(),
   };
-
-  await store.persistWorkflowSnapshot({
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    runId,
-    resourceId: input.userId,
-    snapshot: {
-      runId,
-      status: 'pending' as const,
-      value: {},
-      context: runContext(payload),
-      serializedStepGraph: [],
-      activePaths: [],
-      activeStepsPath: {},
-      suspendedPaths: {},
-      resumeLabels: {},
-      waitingPaths: {},
-      timestamp: Date.now(),
-    },
-  });
-  flog.info('Enqueued full-analysis run', {
-    runId,
+  const row = await enqueueFullAnalysisQueue({
+    runId: fullAnalysisRunId(input.userId, input.idempotencyKey),
     userId: input.userId,
     threadId: input.threadId,
+    idempotencyKey: input.idempotencyKey,
+    payload,
+    db: getDb(),
   });
-  return runId;
+  await projectQueueRow(row);
+  flog.info('Enqueued full-analysis run', {
+    runId: row.runId,
+    userId: row.userId,
+    threadId: row.threadId,
+  });
+  return row.runId;
 }
 
-/**
- * Claim the oldest pending full-analysis run. Returns the run + payload or
- * null when the queue is empty. The claim bumps attemptCount and stamps the
- * worker lease token into the payload (the storage API has no conditional
- * update, so the worker re-verifies ownership after writing).
- */
 export async function claimNextFullAnalysisRun(
   workerRunId: string,
+  ownsTenant?: (userId: string) => boolean,
 ): Promise<FullAnalysisClaim | null> {
-  const store = await workflowsStore();
-  if (!store) return null;
-
-  // Acquire a Postgres advisory lock so concurrent workers don't both
-  // claim the same pending run. Best-effort: on PGlite or failure,
-  // falls back to the read-verify-write pattern below.
-  const releaseLock = await tryWorkflowClaimLock(FULL_ANALYSIS_WORKFLOW_ID);
-  try {
-    return await claimNextFullAnalysisRunInner(workerRunId, store);
-  } finally {
-    releaseLock();
-  }
-}
-
-async function claimNextFullAnalysisRunInner(
-  workerRunId: string,
-  store: WorkflowsStorage,
-): Promise<FullAnalysisClaim | null> {
-  const { runs } = await store.listWorkflowRuns({
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    status: 'pending',
-    perPage: false,
-  });
-  // listWorkflowRuns returns newest-first; claim oldest first (FIFO).
-  const candidates = runs
-    .map((run) => ({ run, snapshot: parseSnapshot(run.snapshot) }))
-    .filter(({ snapshot }) => snapshot?.status === 'pending')
-    .sort((a, b) => (a.run.createdAt?.getTime?.() ?? 0) - (b.run.createdAt?.getTime?.() ?? 0));
-
-  for (const { run, snapshot } of candidates) {
-    if (!snapshot) continue;
-    const payload = payloadFromSnapshot(snapshot);
-    if (!payload) continue;
-
-    const updated: FullAnalysisPayload = {
+  const db = getDb();
+  for (;;) {
+    const row = await claimNextFullAnalysisQueue({
+      workerRunId,
+      leaseMs: FULL_ANALYSIS_LEASE_MS,
+      ...(ownsTenant ? { ownsTenant } : {}),
+      db,
+    });
+    if (!row) return null;
+    const payload = payloadFromRow(row);
+    if (!payload) {
+      try {
+        await failFullAnalysisQueue({
+          runId: row.runId,
+          workerRunId,
+          error: 'Invalid Full-analysis payload; job rejected.',
+          db,
+        });
+      } catch (error) {
+        if (!isLeaseError(error)) throw error;
+      }
+      continue;
+    }
+    // Reject a payload whose identity does not match the queue row's
+    // relational columns. The schema validates that userId / threadId
+    // are present, but a corrupted or manually modified row could carry
+    // a payload that passed validation without matching the owner.
+    if (payload.userId !== row.userId || payload.threadId !== row.threadId) {
+      try {
+        await failFullAnalysisQueue({
+          runId: row.runId,
+          workerRunId,
+          error: 'Full-analysis payload identity does not match the queue row owner; job rejected.',
+          db,
+        });
+      } catch (error) {
+        if (!isLeaseError(error)) throw error;
+      }
+      continue;
+    }
+    const claimedPayload = {
       ...payload,
-      attemptCount: payload.attemptCount + 1,
+      attemptCount: row.attemptCount,
       workerRunId,
       startedAt: new Date().toISOString(),
     };
-    await store.persistWorkflowSnapshot({
-      workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-      runId: run.runId,
-      resourceId: payload.userId,
-      snapshot: {
-        ...snapshot,
-        status: 'running' as const,
-        context: { ...(snapshot.context ?? {}), input: updated },
-        timestamp: Date.now(),
-      } as unknown as WorkflowRunState,
-    });
-
-    // Verify we own the claim (another claimer may have won the race).
-    const verify = await store.getWorkflowRunById({
-      runId: run.runId,
-      workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    });
-    const verified = payloadFromSnapshot(parseSnapshot(verify?.snapshot));
-    if (
-      verified?.workerRunId === workerRunId &&
-      verified.attemptCount === payload.attemptCount + 1
-    ) {
-      return { runId: run.runId, payload: verified };
-    }
+    await projectQueueRow({ ...row, payload: claimedPayload });
+    return { runId: row.runId, payload: claimedPayload };
   }
-  return null;
 }
 
-/** Lease heartbeat — bumps `updatedAt` so stale recovery leaves the run alone. */
-export async function touchFullAnalysisRun(runId: string): Promise<void> {
-  const store = await workflowsStore();
-  if (!store) return;
-  await store.updateWorkflowState({
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    runId,
-    opts: { status: 'running' },
-  });
+export async function touchFullAnalysisRun(runId: string, workerRunId: string): Promise<void> {
+  try {
+    const row = await heartbeatFullAnalysisQueue({
+      runId,
+      workerRunId,
+      leaseMs: FULL_ANALYSIS_LEASE_MS,
+      db: getDb(),
+    });
+    await projectQueueRow(row);
+  } catch (error) {
+    if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
+    throw error;
+  }
 }
 
-/** Write the shaped result into the run record (terminal success). */
 export async function completeFullAnalysisRun(
   runId: string,
+  workerRunId: string,
   result: Record<string, unknown>,
 ): Promise<void> {
-  const store = await workflowsStore();
-  if (!store) return;
-  await store.updateWorkflowState({
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    runId,
-    // The storage API types `result` as a StepResult wrapper, but the durable
-    // queue stores its own shaped payload there (read back verbatim by
-    // getFullAnalysisRun). Cast through `never` — the field is opaque.
-    opts: { status: 'success', result: result as never },
-  });
-  flog.info('Completed full-analysis run', { runId });
+  try {
+    const row = await completeFullAnalysisQueue({ runId, workerRunId, result, db: getDb() });
+    await projectQueueRow(row);
+    flog.info('Completed full-analysis run', { runId });
+  } catch (error) {
+    if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
+    throw error;
+  }
 }
 
-/** Requeue a retryable failure — status back to pending; attempts stay bumped. */
-export async function requeueFullAnalysisRun(runId: string, message: string): Promise<void> {
-  const store = await workflowsStore();
-  if (!store) return;
-  await store.updateWorkflowState({
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    runId,
-    opts: { status: 'pending', error: { name: 'RetryableAnalysisError', message } },
-  });
-  flog.warn('Requeued full-analysis run', { runId, message });
+export async function requeueFullAnalysisRun(
+  runId: string,
+  workerRunId: string,
+  message: string,
+): Promise<void> {
+  try {
+    const row = await requeueFullAnalysisQueue({
+      runId,
+      workerRunId,
+      error: message,
+      db: getDb(),
+    });
+    await projectQueueRow(row);
+    flog.warn('Requeued full-analysis run', { runId, message });
+  } catch (error) {
+    if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
+    throw error;
+  }
 }
 
-/** Terminal failure — no partial answer is returned (strict contract). */
-export async function failFullAnalysisRun(runId: string, error: unknown): Promise<void> {
-  const store = await workflowsStore();
-  if (!store) return;
-  await store.updateWorkflowState({
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    runId,
-    opts: { status: 'failed', error: serializeError(error) },
-  });
-  flog.error('Failed full-analysis run', { runId, error: String(error) });
+export async function failFullAnalysisRun(
+  runId: string,
+  workerRunId: string,
+  error: unknown,
+): Promise<void> {
+  try {
+    const row = await failFullAnalysisQueue({
+      runId,
+      workerRunId,
+      error: serializeError(error),
+      db: getDb(),
+    });
+    await projectQueueRow(row);
+    flog.error('Failed full-analysis run', { runId, error: serializeError(error) });
+  } catch (transitionError) {
+    if (isLeaseError(transitionError)) throw new FullAnalysisLeaseLostError();
+    throw transitionError;
+  }
 }
 
-/**
- * Recover stale `running` runs: requeue while attempts remain, otherwise mark
- * terminal failed (same bounded-attempt policy as the old worker).
- */
 export async function recoverStaleFullAnalysisRuns(
   staleCutoff: Date,
   maxAttempts: number,
 ): Promise<{ requeued: number; failed: number }> {
-  const store = await workflowsStore();
-  if (!store) return { requeued: 0, failed: 0 };
-
-  const { runs } = await store.listWorkflowRuns({
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    status: 'running',
-    perPage: false,
-  });
-
-  let requeued = 0;
-  let failed = 0;
-  for (const run of runs) {
-    const updatedAt = run.updatedAt instanceof Date ? run.updatedAt.getTime() : Date.now();
-    if (updatedAt >= staleCutoff.getTime()) continue;
-
-    const snapshot = parseSnapshot(run.snapshot);
-    if (!snapshot) continue;
-    const payload = payloadFromSnapshot(snapshot);
-    const attempts = payload?.attemptCount ?? 1;
-
-    if (attempts < maxAttempts) {
-      const requeuedPayload: FullAnalysisPayload = { ...(payload ?? fallbackPayload()) };
-      // Clear the lease: a requeued run must be claimable again.
-      delete requeuedPayload.workerRunId;
-      delete requeuedPayload.startedAt;
-      await store.persistWorkflowSnapshot({
-        workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-        runId: run.runId,
-        resourceId: requeuedPayload.userId,
-        snapshot: {
-          ...snapshot,
-          status: 'pending' as const,
-          context: { ...(snapshot.context ?? {}), input: requeuedPayload },
-          timestamp: Date.now(),
-        } as unknown as WorkflowRunState,
-      });
-      requeued += 1;
-    } else {
-      await store.updateWorkflowState({
-        workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-        runId: run.runId,
-        opts: {
-          status: 'failed',
-          error: {
-            name: 'JobTimeoutError',
-            message: 'Job timed out — maximum worker attempts reached.',
-          },
-        },
-      });
-      failed += 1;
-    }
+  const db = getDb();
+  const result = await recoverStaleFullAnalysisQueue(staleCutoff, maxAttempts, db);
+  for (const runId of result.runIds) {
+    const row = await getFullAnalysisQueueRow(runId, undefined, db);
+    if (row) await projectQueueRow(row);
   }
-  if (requeued > 0 || failed > 0) {
-    flog.warn('Recovered stale full-analysis runs', { requeued, failed, maxAttempts });
+  if (result.requeued > 0 || result.failed > 0) {
+    flog.warn('Recovered stale full-analysis runs', {
+      requeued: result.requeued,
+      failed: result.failed,
+      maxAttempts,
+    });
   }
-  return { requeued, failed };
+  return { requeued: result.requeued, failed: result.failed };
 }
 
-/** Delete terminal runs older than the retention cutoff. */
 export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<number> {
+  const db = getDb();
+  const terminalRows = (await listFullAnalysisQueueRows(undefined, db)).filter(
+    (row) =>
+      (row.status === 'complete' || row.status === 'failed') &&
+      row.updatedAt < retentionCutoff,
+  );
+  const deleted = await purgeOldFullAnalysisQueue(retentionCutoff, db);
   const store = await workflowsStore();
-  if (!store) return 0;
-
-  const { runs } = await store.listWorkflowRuns({
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-    perPage: false,
-  });
-  const TERMINAL = new Set(['success', 'failed', 'canceled', 'bailed', 'skipped']);
-  let deleted = 0;
-  for (const run of runs) {
-    const snapshot = parseSnapshot(run.snapshot);
-    if (!snapshot || !snapshot.status || !TERMINAL.has(snapshot.status)) continue;
-    const updatedAt = run.updatedAt instanceof Date ? run.updatedAt.getTime() : Date.now();
-    if (updatedAt < retentionCutoff.getTime()) {
-      await store.deleteWorkflowRunById({
-        runId: run.runId,
-        workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-      });
-      deleted += 1;
+  if (store && terminalRows.length > 0) {
+    try {
+      for (const row of terminalRows) {
+        await store.deleteWorkflowRunById({
+          runId: row.runId,
+          workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+        });
+      }
+    } catch (error) {
+      flog.warn('Full-analysis Mastra retention projection failed', { error: serializeError(error) });
     }
   }
-  if (deleted > 0) flog.info('Purged old full-analysis runs', { deleted });
   return deleted;
 }
 
-const STATUS_MAP: Record<string, FullAnalysisRunView['status']> = {
-  pending: 'pending',
-  running: 'running',
-  success: 'complete',
-  failed: 'failed',
-  canceled: 'failed',
-  bailed: 'failed',
-};
-
-export interface FullAnalysisQueueHealth {
-  pending: number;
-  running: number;
-  stalePending: number;
-  stuckRunning: number;
-  /** Set when the workflows domain is unavailable (graceful degradation). */
-  unavailable?: boolean;
-}
-
-/**
- * Light queue-health snapshot for the /api/health endpoint. Mirrors the old
- * analysis_jobs health query: stale pending (>10 min) signals the worker is
- * not claiming; stuck running (>30 s without a heartbeat) signals a dead
- * worker lease.
- */
 export async function getFullAnalysisQueueHealth(): Promise<FullAnalysisQueueHealth> {
-  const store = await workflowsStore();
-  if (!store)
-    return { pending: 0, running: 0, stalePending: 0, stuckRunning: 0, unavailable: true };
   try {
-    const [pendingList, runningList] = await Promise.all([
-      store.listWorkflowRuns({
-        workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-        status: 'pending',
-        perPage: false,
-      }),
-      store.listWorkflowRuns({
-        workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-        status: 'running',
-        perPage: false,
-      }),
-    ]);
+    const rows = await listFullAnalysisQueueRows(undefined, getDb());
     const now = Date.now();
-    const stalePending = pendingList.runs.filter((run) => {
-      const createdAt = run.createdAt instanceof Date ? run.createdAt.getTime() : now;
-      return now - createdAt > 10 * 60 * 1_000;
-    }).length;
-    const stuckRunning = runningList.runs.filter((run) => {
-      const updatedAt = run.updatedAt instanceof Date ? run.updatedAt.getTime() : now;
-      return now - updatedAt > 30_000;
-    }).length;
+    const pending = rows.filter((row) => row.status === 'pending');
+    const running = rows.filter((row) => row.status === 'running');
     return {
-      pending: pendingList.runs.length,
-      running: runningList.runs.length,
-      stalePending,
-      stuckRunning,
+      pending: pending.length,
+      running: running.length,
+      stalePending: pending.filter((row) => now - row.createdAt.getTime() > 10 * 60_000).length,
+      stuckRunning: running.filter(
+        (row) =>
+          (row.leaseExpiresAt?.getTime() ?? 0) <= now || now - row.updatedAt.getTime() > 30_000,
+      ).length,
     };
-  } catch {
+  } catch (error) {
+    flog.warn('Full-analysis queue health unavailable', { error: serializeError(error) });
     return { pending: 0, running: 0, stalePending: 0, stuckRunning: 0, unavailable: true };
   }
 }
 
-/**
- * Read a full-analysis run for the polling endpoint. User-scoped: a run that
- * belongs to a different user is treated as not found.
- */
 export async function getFullAnalysisRun(
   userId: string,
   runId: string,
 ): Promise<FullAnalysisRunView | null> {
-  const store = await workflowsStore();
-  if (!store) return null;
-
-  const run = await store.getWorkflowRunById({
-    runId,
-    workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-  });
-  if (!run || (run.resourceId && run.resourceId !== userId)) return null;
-
-  const snapshot = parseSnapshot(run.snapshot);
-  const status: FullAnalysisRunView['status'] =
-    (snapshot?.status ? STATUS_MAP[snapshot.status] : undefined) ?? 'pending';
-  const createdAt = run.createdAt instanceof Date ? run.createdAt.toISOString() : null;
-  const updatedAt = run.updatedAt instanceof Date ? run.updatedAt.toISOString() : null;
-  const terminal = status === 'complete' || status === 'failed';
-
-  return {
-    id: runId,
-    status,
-    progress: [],
-    result: (snapshot?.result as Record<string, unknown> | undefined) ?? null,
-    error:
-      status === 'failed'
-        ? 'Full analysis could not be completed. No partial answer was returned.'
-        : null,
-    createdAt,
-    completedAt: terminal ? updatedAt : null,
-  };
+  try {
+    const row = await getFullAnalysisQueueRow(runId, userId, getDb());
+    if (!row) return null;
+    const status = row.status;
+    return {
+      id: row.runId,
+      status,
+      progress: [],
+      result: row.result ?? null,
+      error: status === 'failed' ? 'Full analysis could not be completed. No partial answer was returned.' : null,
+      createdAt: row.createdAt.toISOString(),
+      completedAt: row.completedAt?.toISOString() ?? null,
+    };
+  } catch (error) {
+    flog.warn('Full-analysis run lookup failed', { runId, error: serializeError(error) });
+    return null;
+  }
 }

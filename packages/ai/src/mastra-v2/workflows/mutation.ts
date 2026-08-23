@@ -41,7 +41,7 @@
  * itself never imports `getDb`.
  */
 
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 import { SymbolSchema } from '@kestrel/shared';
 import { AlertChannelSchema, AlertRuleSchema } from '@kestrel/shared/schemas/alerts';
@@ -120,8 +120,6 @@ export const MutationSuspendPayloadSchema = z.object({
   mutation: MutationKindSchema,
   summary: z.string(),
   runId: z.string(),
-  /** Owning thread — returned so the confirm route can re-check policy context. */
-  threadId: z.string().min(1),
   /** ms epoch UTC — the confirmation expires. */
   expiresAt: z.number().int(),
   /**
@@ -166,6 +164,13 @@ export interface MutationExecutorResult {
 /** Executes the audited write. Injected by the composition edge (web route). */
 export type MutationExecutor = (input: MutationInput) => Promise<MutationExecutorResult>;
 
+/** Atomic executor supplied by the composition edge. It must commit the
+ * business write, audit row, and execution ledger in one transaction. */
+export type MutationAtomicExecutor = (
+  input: MutationInput,
+  context: { runId: string; userId: string; threadId: string; inputDigest: string },
+) => Promise<MutationExecutorResult>;
+
 export interface MutationWorkflowDeps {
   /** Mutation kind this workflow implements (fixes the input branch). */
   mutation: MutationKind;
@@ -173,8 +178,10 @@ export interface MutationWorkflowDeps {
   threadId: string;
   /** Executes the Drizzle write. Owned by the web route (DIP-1). */
   execute: MutationExecutor;
-  /** Best-effort audit writer (fail open). */
-  writeAudit: (userId: string, action: string, metadata: Record<string, unknown>) => Promise<void>;
+  /** Legacy test/studio hook. Production callers must provide executeAtomic. */
+  writeAudit?: (userId: string, action: string, metadata: Record<string, unknown>) => Promise<void>;
+  /** Transactional, idempotent executor used by the production confirmation route. */
+  executeAtomic?: MutationAtomicExecutor;
   /** Shared Mastra instance for run-snapshot persistence (optional). */
   mastra?: Mastra;
   /** Confirmation TTL. Defaults to the policy default (15 min). */
@@ -185,10 +192,15 @@ export interface MutationWorkflowDeps {
   secret?: string;
 }
 
-interface MutationState {
-  confirmation?: { digest: string; expiresAt: number };
-  threadId?: string;
+export interface MutationRunContext {
+  userId: string;
+  threadId: string;
+  mutation: MutationKind;
+  inputDigest: string;
+  confirmation: { digest: string; expiresAt: number };
 }
+
+type MutationState = MutationRunContext;
 
 function humanSummary(input: MutationInput): string {
   switch (input.kind) {
@@ -222,6 +234,47 @@ function mutationPolicyError(reason: 'token-invalid' | 'token-expired'): Error {
   return error;
 }
 
+function stableSerialize(value: unknown): string {
+  if (value === undefined) return 'undefined';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`)
+    .join(',')}}`;
+}
+
+export function mutationInputDigest(input: MutationInput): string {
+  return createHash('sha256').update(stableSerialize(input)).digest('hex');
+}
+
+const MutationRunContextSchema = z.object({
+  userId: z.string().min(1),
+  threadId: z.string().min(1),
+  mutation: MutationKindSchema,
+  inputDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  confirmation: z.object({ digest: z.string().min(1), expiresAt: z.number().int() }),
+});
+
+/** Parse the trusted state persisted in a Mastra workflow snapshot. */
+export function parseMutationRunContext(run: unknown): MutationRunContext | null {
+  if (!run || typeof run !== 'object') return null;
+  const snapshotValue = (run as { snapshot?: unknown }).snapshot;
+  let snapshot: unknown = snapshotValue;
+  if (typeof snapshot === 'string') {
+    try {
+      snapshot = JSON.parse(snapshot) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  const state = (snapshot as { value?: unknown }).value;
+  const parsed = MutationRunContextSchema.safeParse(state);
+  return parsed.success ? parsed.data : null;
+}
+
 /**
  * Build the confirmation workflow for one mutation kind.
  *
@@ -247,8 +300,11 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     resumeSchema: MutationResumeSchema,
     suspendSchema: MutationSuspendPayloadSchema,
     stateSchema: z.object({
-      confirmation: z.object({ digest: z.string(), expiresAt: z.number().int() }).optional(),
-      threadId: z.string().optional(),
+      userId: z.string(),
+      threadId: z.string(),
+      mutation: MutationKindSchema,
+      inputDigest: z.string(),
+      confirmation: z.object({ digest: z.string(), expiresAt: z.number().int() }),
     }),
     execute: async ({ inputData, resumeData, suspend, state, setState, runId }) => {
       // First pass — validate + dry-run + issue token + suspend.
@@ -272,16 +328,17 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
         if (secret) storedOptions.secret = secret;
         const stored = storedConfirmationForToken(token, storedOptions);
         await setState({
-          ...(state ?? {}),
-          confirmation: { digest: stored.digest, expiresAt: stored.expiresAt },
+          userId: deps.userId,
           threadId: deps.threadId,
+          mutation,
+          inputDigest: mutationInputDigest(inputData),
+          confirmation: { digest: stored.digest, expiresAt: stored.expiresAt },
         });
 
         return suspend({
           mutation,
           summary: humanSummary(inputData),
           runId,
-          threadId: deps.threadId,
           expiresAt,
           confirmationToken: token,
           confirmLabel: `Confirm ${mutationDisplayName(mutation)}`,
@@ -290,10 +347,21 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
       }
 
       // Resume pass — confirm: timing-safe token + expiry + policy.
-      const stored = (state as MutationState | undefined)?.confirmation;
-      if (!stored) {
+      const persisted = MutationRunContextSchema.safeParse(state);
+      if (!persisted.success || persisted.data.mutation !== mutation) {
         throw mutationPolicyError('token-invalid');
       }
+      if (persisted.data.userId !== deps.userId || persisted.data.threadId !== deps.threadId) {
+        const error = new Error('Mutation confirmation context does not match the drafted run.');
+        error.name = 'MastraMutationContextError';
+        throw error;
+      }
+      if (mutationInputDigest(inputData) !== persisted.data.inputDigest) {
+        const error = new Error('Persisted mutation input has changed.');
+        error.name = 'MastraMutationContextError';
+        throw error;
+      }
+      const stored = persisted.data.confirmation;
       const verifyOptions: Parameters<typeof verifyMutationConfirmationToken>[0] = {
         token: resumeData.confirmationToken,
         stored,
@@ -323,15 +391,26 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     inputSchema: ConfirmedInputSchema,
     outputSchema: MutationOutputSchema,
     execute: async ({ inputData, runId }) => {
-      const result = await deps.execute(inputData.input);
+      const inputDigest = mutationInputDigest(inputData.input);
+      const result = deps.executeAtomic
+        ? await deps.executeAtomic(inputData.input, {
+            runId,
+            userId: deps.userId,
+            threadId: deps.threadId,
+            inputDigest,
+          })
+        : await deps.execute(inputData.input);
       const summary = humanSummary(inputData.input);
-      await deps.writeAudit(deps.userId, `mutation.${mutation}.executed`, {
-        mutation,
-        runId,
-        threadId: deps.threadId,
-        resultId: result.id,
-        kind: inputData.input.kind,
-      });
+      if (!deps.executeAtomic && deps.writeAudit) {
+        await deps.writeAudit(deps.userId, `mutation.${mutation}.executed`, {
+          mutation,
+          runId,
+          threadId: deps.threadId,
+          resultId: result.id,
+          kind: inputData.input.kind,
+          inputDigest,
+        });
+      }
       return {
         status: 'executed' as const,
         mutation,
@@ -370,6 +449,17 @@ export interface RunMutationResult {
   output?: MutationOutput;
 }
 
+/** Cancel a drafted mutation without entering its confirmation branch. */
+export async function cancelMutationWorkflow(
+  workflow: ReturnType<typeof createMutationWorkflow>,
+  options: { runId: string; userId?: string },
+): Promise<void> {
+  const createRunOptions: { runId: string; resourceId?: string } = { runId: options.runId };
+  if (options.userId) createRunOptions.resourceId = options.userId;
+  const run = await workflow.createRun(createRunOptions);
+  await run.cancel();
+}
+
 /**
  * Start (or resume) a mutation run.
  *
@@ -390,8 +480,9 @@ export async function runMutationWorkflow(
     threadId?: string;
   },
 ): Promise<RunMutationResult> {
-  const createRunOptions: { runId?: string } = {};
+  const createRunOptions: { runId?: string; resourceId?: string } = {};
   if (options.runId) createRunOptions.runId = options.runId;
+  if (options.userId) createRunOptions.resourceId = options.userId;
   const run = await workflow.createRun(createRunOptions);
   const runId = run.runId;
   const startedAt = Date.now();

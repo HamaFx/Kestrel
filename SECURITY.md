@@ -38,7 +38,7 @@ Please practice responsible disclosure. We commit to not taking legal action aga
 
 Kestrel uses NextAuth.js v5 with a Credentials provider (email + password, bcrypt). Sessions are JWT-based with a 30-day expiry. Account lockout activates after 5 failed login attempts (15-minute lockout).
 
-**Auth hardening completed** — see [docs/05-security-auth-compliance.md](docs/05-security-auth-compliance.md) for the current self-hosted security model.
+**Auth hardening completed** — see [docs/10-security.md](docs/10-security.md) for the current self-hosted security model.
 
 | Issue                                                                                                   | Severity | Status   |
 | ------------------------------------------------------------------------------------------------------- | -------- | -------- |

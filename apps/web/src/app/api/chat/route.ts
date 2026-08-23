@@ -48,10 +48,12 @@ import { runMastraXauusdChat } from '@/lib/services/mastra-chat';
 import { mastraChatResponse } from '@/lib/services/mastra-chat-response';
 import {
   extractMastraSymbol,
+  isInjectionAttempt,
   isMastraPromptUnsafe,
   isMastraSymbolCandidate,
   isMastraXauusdCandidate,
   isMastraXauusdFollowupCandidate,
+  isMutationIntent,
   mastraXauusdChatKind,
 } from '@/lib/services/mastra-chat-routing';
 import { runMastraXauusdConversationStreamChat } from '@/lib/services/mastra-chat-stream';
@@ -169,11 +171,23 @@ export const POST = withAuth<void>(async (req, { user }) => {
     : null;
   const resolvedMode = resolveMode(analysisMode, userText);
 
-  // Mutations and injection-like requests are intentionally rejected rather
-  // than handed to an old fallback. When the operator enables the mutation
-  // capability, a clearly-mutation prompt is routed to the confirmation
-  // workflow instead: classify → extract (fast model) → draft → suspend with
-  // a single-use token. Nothing is written until the user confirms.
+  // Injection/jailbreak attempts are always blocked — no model should
+  // process them regardless of mutation capability.
+  if (isInjectionAttempt(userText)) {
+    return errorJson(
+      'READ_ONLY_REQUEST_REQUIRED',
+      'This request is not eligible for the read-only Mastra research capabilities.',
+      422,
+    );
+  }
+
+  // Mutation detection runs in two layers:
+  // 1. Model-based classifier (when mutation capability is enabled)
+  // 2. Lexical high-confidence gate (zero-cost fallback)
+  //
+  // The lexical gate only fires on unambiguous trade commands ("buy 1 lot",
+  // "sell at market").  Analysis-oriented phrasing ("best trade setup",
+  // "portfolio review") passes through to the read-only agents.
   if (isMastraMutationEnabled()) {
     const mutationKind = classifyMutationRequest(userText);
     if (mutationKind !== null) {
@@ -200,12 +214,16 @@ export const POST = withAuth<void>(async (req, { user }) => {
         );
       }
     }
+    // Fall through — even when mutations are enabled, if neither the model
+    // nor the lexical gate flagged it, treat as read-only.
   }
 
-  if (!isReadOnlySafePrompt(userText)) {
+  // Lexical high-confidence mutation gate — only blocks unambiguous trade
+  // commands that the model classifier may have missed.
+  if (isMutationIntent(userText)) {
     return errorJson(
       'READ_ONLY_REQUEST_REQUIRED',
-      'This request is not eligible for the read-only Mastra research capabilities.',
+      'Trade execution requests must go through the confirmation workflow.',
       422,
     );
   }

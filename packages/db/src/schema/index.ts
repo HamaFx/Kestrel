@@ -47,6 +47,10 @@ export * from './candles-1m';
 export * from './throttle';
 export * from './intermarket-resonance';
 export * from './audit';
+// Phase 1 — durable mutation confirmation idempotency ledger
+export * from './mutation-executions';
+// Phase 2 — database-owned Full-analysis queue and lease ledger
+export * from './full-analysis-queue';
 export * from './provider-tests';
 export * from './symbol-catalog';
 // STAB-01 — cron idempotency guard

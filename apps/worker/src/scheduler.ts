@@ -45,6 +45,9 @@ const _runningJobs = new Set<keyof typeof JOBS>();
 // between _runningJobs.add() and the try block). Entries older than 2×
 // JOB_TIMEOUT_MS are pruned by a periodic cleanup timer.
 const _jobStartedAt = new Map<keyof typeof JOBS, number>();
+// Active AbortControllers for in-flight jobs. Aborted on shutdown so
+// well-behaved jobs stop their work before the database connection closes.
+const _activeControllers = new Set<AbortController>();
 
 // Jobs that run more often than once-per-day are inherently idempotent
 // at the application layer (briefings uses (eventId, kind) PK; alerts
@@ -133,6 +136,7 @@ export function startScheduler(log: Logger): () => void {
 
   // STAB-10: Return a stop function that tears down all cron tasks,
   // the multi-agent poll timer, and the stuck-job cleanup timer.
+  // In-flight jobs are aborted and allowed a bounded drain window.
   return () => {
     log.info('scheduler: stopping all tasks');
     clearInterval(stuckCleanupTimer);
@@ -141,6 +145,16 @@ export function startScheduler(log: Logger): () => void {
       multiAgentTimer = null;
     }
     for (const t of tasks) t.stop();
+    // Abort every in-flight job so they stop work before the database
+    // connection closes. Jobs receive SIGTERM via their signal and should
+    // short-circuit within their configured timeout.
+    for (const ac of _activeControllers) {
+      try {
+        ac.abort(new Error('scheduler: worker shutting down'));
+      } catch {
+        // Best-effort — the process is exiting.
+      }
+    }
   };
 }
 
@@ -237,17 +251,28 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
     }
   }
 
-  // STAB-02: Race the job against a hard timeout.
+  // STAB-02: Race the job against a hard timeout. An abort signal alone is
+  // advisory — an uncooperative job that ignores AbortSignal remains pending
+  // forever. Racing a rejection promise ensures the scheduler regains control
+  // after JOB_TIMEOUT_MS regardless of the job's behaviour.
   const ac = new AbortController();
-  const timeoutHandle = setTimeout(() => {
-    ac.abort(new Error(`Job ${name} timed out after ${JOB_TIMEOUT_MS}ms`));
-  }, JOB_TIMEOUT_MS);
+  _activeControllers.add(ac);
+  const timeoutMs = JOB_TIMEOUT_MS;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      ac.abort(new Error(`Job ${name} timed out after ${timeoutMs}ms`));
+      reject(new Error(`Job ${name} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
 
   jobLog.info('Running scheduled job');
 
   try {
     const startMs = Date.now();
-    const result = await job.run({ log: jobLog, signal: ac.signal, tenantRouter });
+    const result = await Promise.race([
+      job.run({ log: jobLog, signal: ac.signal, tenantRouter }),
+      timeoutPromise,
+    ]);
     const durationMs = Date.now() - startMs;
 
     jobLog.info('Job completed successfully', {
@@ -262,7 +287,7 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
     jobLog.error(`Job ${isTimeout ? 'timed out' : 'failed'}`, { err: String(err) });
     await lock?.fail(err);
   } finally {
-    clearTimeout(timeoutHandle);
+    _activeControllers.delete(ac);
     _runningJobs.delete(name);
     _jobStartedAt.delete(name);
   }

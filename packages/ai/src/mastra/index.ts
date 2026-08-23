@@ -50,6 +50,7 @@ export {
 export {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
+  FullAnalysisLeaseLostError,
   enqueueFullAnalysis,
   failFullAnalysisRun,
   fullAnalysisRunId,
@@ -57,6 +58,8 @@ export {
   getFullAnalysisRun,
   purgeOldFullAnalysisRuns,
   recoverStaleFullAnalysisRuns,
+  FullAnalysisPayloadSchema,
+  FULL_ANALYSIS_LEASE_MS,
   requeueFullAnalysisRun,
   touchFullAnalysisRun,
   FULL_ANALYSIS_WORKFLOW_ID,
@@ -163,6 +166,7 @@ export {
   type RunTelemetryRow,
 } from '../mastra-v2/observability-view';
 export {
+  cancelMutationWorkflow,
   createMutationWorkflow,
   runMutationWorkflow,
   MutationInputSchema,
@@ -170,8 +174,12 @@ export {
   MutationOutputSchema,
   MutationResumeSchema,
   MutationSuspendPayloadSchema,
+  mutationInputDigest,
+  parseMutationRunContext,
   type MutationExecutor,
   type MutationExecutorResult,
+  type MutationAtomicExecutor,
+  type MutationRunContext,
   type MutationInput,
   type MutationKind,
   type MutationOutput,
@@ -245,6 +253,9 @@ export {
   buildConversationGuardrails,
   buildGuardrailInputProcessors,
   buildResearchGuardrails,
+  buildResearchGuardrailsAvailability,
+  GuardrailUnavailableError,
+  type GuardrailMode,
   type GuardrailOptions,
   type GuardrailStrategy,
 } from '../mastra-v2/guardrails';

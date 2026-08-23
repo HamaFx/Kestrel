@@ -52,20 +52,30 @@ export function mastraStreamResponse(
   messageId: string,
   options: MastraStreamResponseOptions = {},
 ): Response {
+  // Store the upstream iterator so the stream's cancel() handler can
+  // close it explicitly. Without this, a client disconnect can leave the
+  // provider streaming indefinitely.
+  let upstreamIterator: AsyncIterator<string> | null = null;
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let started = false;
       let ended = false;
+      upstreamIterator = text[Symbol.asyncIterator]();
       try {
         if (options.signal?.aborted)
           throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
         controller.enqueue(encode({ type: 'text-start', id: messageId }));
         started = true;
-        for await (const chunk of text) {
+        for (
+          let next = await upstreamIterator.next();
+          !next.done;
+          next = await upstreamIterator.next()
+        ) {
           if (options.signal?.aborted)
             throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
-          if (chunk)
-            controller.enqueue(encode({ type: 'text-delta', id: messageId, delta: chunk }));
+          if (next.value)
+            controller.enqueue(encode({ type: 'text-delta', id: messageId, delta: next.value }));
         }
         if (options.meta) {
           controller.enqueue(
@@ -94,8 +104,16 @@ export function mastraStreamResponse(
         }
       } finally {
         if (started && !ended) controller.enqueue(encode({ type: 'text-end', id: messageId }));
+        upstreamIterator = null;
         controller.close();
       }
+    },
+    cancel() {
+      // Close the upstream async iterator so the provider stops streaming
+      // when the client disconnects. The iterator's return() method signals
+      // the producer to release resources.
+      void upstreamIterator?.return?.();
+      upstreamIterator = null;
     },
   });
   return new Response(stream, {

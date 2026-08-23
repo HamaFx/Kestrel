@@ -20,7 +20,7 @@ import type { LanguageModel } from 'ai';
 
 import { getDiagnosticContext, withDiagnostics } from '../diagnostics';
 import { prepareKestrelMemory } from '../mastra-v2/context';
-import { buildConversationScorers } from '../mastra-v2/evals/scorers';
+import { buildConversationScorers, buildResearchScorers } from '../mastra-v2/evals/scorers';
 import { buildConversationGuardrails } from '../mastra-v2/guardrails';
 import { getKestrelMastra } from '../mastra-v2/instance';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../mastra-v2/logger';
@@ -35,7 +35,7 @@ import { generateXauusdFollowup } from './report-generation';
 import { blockedXauusdResearchText } from './report-text';
 import type { XauusdResearchReport } from './report-types';
 import { collectXauusdResearchPacket } from './research-packet';
-import type { XauusdResearchPacket } from './research-types';
+import { XauusdResearchPacketSchema, type XauusdResearchPacket } from './research-types';
 import type { MastraGenerationResultLike, MastraGenerationStats } from './stats';
 import {
   beginMastraRun,
@@ -134,6 +134,29 @@ function blockedStats(): MastraGenerationStats {
   return { inputTokens: 0, outputTokens: 0, toolCalls: 0, steps: 0 };
 }
 
+/**
+ * Build a minimal research packet from a saved report for follow-up questions.
+ * Follow-ups answer from the report's own data, NOT from fresh market data —
+ * this prevents stale-report answers from mixing in today's prices.
+ */
+function followupPacketFromReport(report: XauusdResearchReport): XauusdResearchPacket {
+  return XauusdResearchPacketSchema.parse({
+    packetId: `followup:${report.asOf}`,
+    kind: 'research_packet' as const,
+    symbol: 'XAUUSD' as const,
+    generatedAt: report.asOf,
+    status: 'ready' as const,
+    dataQuality: report.dataQuality,
+    timeframes: [],
+    price: null,
+    candles: [],
+    indicators: [],
+    macro: null,
+    missingData: ['follow-up context — no fresh market data'],
+    warnings: ['Answering from the saved report only. Request a fresh analysis for current market data.'],
+  });
+}
+
 export interface XauusdMastraRunResult {
   result: MastraGenerationResultLike;
   report: XauusdResearchReport | null;
@@ -173,6 +196,10 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       },
       backfill: true,
     });
+    // Report-generation path uses research scorers (hallucination + bias +
+    // toxicity + grounding + citation).  Conversation/follow-up paths keep
+    // the lighter conversation scorers (faithfulness + answer-relevancy +
+    // toxicity + grounding + citation).
     const { processors: guardrails } = buildConversationGuardrails(
       { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
       args.env,
@@ -181,48 +208,30 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
       args.env,
     );
-    const agent = createXauusdMastraAgent({
+    const { entries: researchScorers } = buildResearchScorers(
+      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
+      args.env,
+    );
+
+    // Follow-up answers explain a previously verified report.  They do NOT
+    // collect fresh market data — the saved report is the single source of
+    // truth.  Use conversation scorers since the output is plain text.
+    const followupAgent = createXauusdMastraAgent({
       model: resolution.model,
       memory,
       inputProcessors: guardrails,
       scorers: conversationScorers,
     });
-
-    // Follow-up answers explain a previously verified report; they keep the
-    // direct agent path (packet collected here for the follow-up context).
     if (args.followup && args.priorReport) {
-      const packet = await collectXauusdResearchPacket(args.signal);
-      if (packet.status === 'blocked') {
-        const stats = blockedStats();
-        const text = blockedXauusdResearchText(packet);
-        await finishMastraRun({
-          userId: args.userId,
-          threadId: args.threadId,
-          runId: args.runId,
-          model: resolution.modelId,
-          providerId: resolution.providerId,
-          startedAt,
-          ...stats,
-          outcome: 'success',
-          ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
-        });
-        return {
-          result: { text },
-          report: null,
-          packet,
-          modelId: resolution.modelId,
-          providerId: resolution.providerId,
-          stats,
-        };
-      }
-      const requestContext = contextForRun(args, packet);
+      const followupPacket = followupPacketFromReport(args.priorReport);
+      const requestContext = contextForRun(args, followupPacket);
       const result = await generateXauusdFollowup(
-        agent,
+        followupAgent,
         args.prompt,
         requestContext,
         resolution.providerId,
         args.priorReport,
-        packet,
+        followupPacket,
         args.signal,
         prepared.callOptions,
       );
@@ -241,7 +250,7 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       return {
         result,
         report: null,
-        packet,
+        packet: followupPacket,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
         stats,
@@ -251,8 +260,16 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
     // Verified-report pipeline: the packet is collected inside the workflow
     // (`collect-packet` step), and every generation/verification/repair attempt
     // is an observable workflow step (run snapshots) instead of an opaque loop.
+    // Research scorers (hallucination/bias/toxicity) are appropriate for
+    // structured report outputs.
+    const reportAgent = createXauusdMastraAgent({
+      model: resolution.model,
+      memory,
+      inputProcessors: guardrails,
+      scorers: researchScorers,
+    });
     const workflow = createXauusdReportWorkflow({
-      agent,
+      agent: reportAgent,
       callOptions: prepared.callOptions,
       providerId: resolution.providerId,
       ...(args.signal ? { signal: args.signal } : {}),
