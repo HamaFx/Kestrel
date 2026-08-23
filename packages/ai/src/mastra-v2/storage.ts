@@ -68,14 +68,16 @@ export function mastraDirectConnectionString(
 ): string | null {
   const e = env as Record<string, string | undefined>;
   return (
-    e.DIRECT_URL ??
-    e.POSTGRES_URL_NON_POOLING ??
+    e.POSTGRES_PRISMA_URL ??
     e.DATABASE_URL ??
     e.POSTGRES_URL ??
-    process.env.DIRECT_URL ??
-    process.env.POSTGRES_URL_NON_POOLING ??
+    e.DIRECT_URL ??
+    e.POSTGRES_URL_NON_POOLING ??
+    process.env.POSTGRES_PRISMA_URL ??
     process.env.DATABASE_URL ??
     process.env.POSTGRES_URL ??
+    process.env.DIRECT_URL ??
+    process.env.POSTGRES_URL_NON_POOLING ??
     null
   );
 }
