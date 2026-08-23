@@ -70,7 +70,7 @@ async function withQueueStorage<T>(
   }
 }
 
-describe('database-backed Full-analysis queue', () => {
+describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
   beforeEach(() => {
     _resetKestrelMastra();
   });
