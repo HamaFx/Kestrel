@@ -129,6 +129,10 @@ export interface MastraRunTraceIdentity {
   kind: string;
   /** Extra non-sensitive tags (e.g. ['full'], ['experiment-v2']). */
   tags?: string[];
+  /** Memory configuration: 'working' | 'last_turns' | 'disabled'. */
+  memoryMode?: string;
+  /** Whether memory backfill ran for this turn. */
+  memoryBackfill?: boolean;
 }
 
 /**
@@ -150,6 +154,8 @@ export function runTracingOptions(identity: MastraRunTraceIdentity): TracingOpti
       threadId: identity.threadId,
       kind: identity.kind,
       service: 'kestrel-ai',
+      ...(identity.memoryMode ? { memoryMode: identity.memoryMode } : {}),
+      ...(identity.memoryBackfill !== undefined ? { memoryBackfill: identity.memoryBackfill } : {}),
     },
     tags: [...mastraTraceTags(env), identity.kind, ...(identity.tags ?? [])],
   } as TracingOptions;

@@ -19,9 +19,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { RequestContext } from '@mastra/core/request-context';
+import { createStep, Workflow } from '@mastra/core/workflows';
+import type { WorkflowRunState } from '@mastra/core/workflows';
 import { LibSQLStore } from '@mastra/libsql';
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 import { createKestrelMastra, initializeKestrelMastra } from '../src/mastra-v2';
 import { createSymbolResearchWorkflow } from '../src/mastra-v2/workflows/symbol-research';
@@ -214,6 +217,133 @@ describe('symbol-research workflow', () => {
       'sentiment',
       'technical',
     ]);
+  });
+
+  it('restarts from a persisted snapshot without rerunning completed steps', async () => {
+    const file = join(
+      tmpdir(),
+      `kestrel-wf-restart-${Date.now()}-${Math.random().toString(36).slice(2)}.db`,
+    );
+    try {
+      const store = new LibSQLStore({ id: 'restart-store', url: `file:${file}` });
+      const mastra = createKestrelMastra({ storage: store, storageKind: 'libsql', env: {} });
+      await initializeKestrelMastra(mastra);
+      const calls: string[] = [];
+      const first = createStep({
+        id: 'first',
+        inputSchema: z.object({ value: z.string() }),
+        outputSchema: z.object({ value: z.string() }),
+        execute: async ({ inputData }) => {
+          calls.push('first');
+          return { value: inputData.value };
+        },
+      });
+      const second = createStep({
+        id: 'second',
+        inputSchema: z.object({ value: z.string() }),
+        outputSchema: z.object({ value: z.string() }),
+        execute: async ({ inputData }) => {
+          calls.push('second');
+          return { value: `${inputData.value}:completed` };
+        },
+      });
+      const workflow = new Workflow({
+        id: 'restartable-test',
+        inputSchema: z.object({ value: z.string() }),
+        outputSchema: z.object({ value: z.string() }),
+        mastra: mastra.instance,
+      })
+        .then(first)
+        .then(second)
+        .commit();
+      const now = Date.now();
+      const workflows = await mastra.instance.getStorage()?.getStore('workflows');
+      await workflows?.persistWorkflowSnapshot({
+        workflowName: 'restartable-test',
+        runId: 'restart-run',
+        resourceId: 'user-1',
+        snapshot: {
+          runId: 'restart-run',
+          status: 'running',
+          value: {},
+          context: {
+            input: { value: 'seed' },
+            first: {
+              status: 'success',
+              payload: { value: 'seed' },
+              output: { value: 'seed' },
+              startedAt: now,
+              endedAt: now,
+            },
+          } as unknown as WorkflowRunState['context'],
+          serializedStepGraph: workflow.serializedStepGraph,
+          activePaths: [1],
+          activeStepsPath: { second: [1] },
+          suspendedPaths: {},
+          resumeLabels: {},
+          waitingPaths: {},
+          stepExecutionPath: ['first'],
+          timestamp: now,
+        },
+      });
+
+      const result = await (await workflow.createRun({ runId: 'restart-run' })).restart();
+      expect(result.status).toBe('success');
+      expect((result as { status: 'success'; result: unknown }).result).toEqual({
+        value: 'seed:completed',
+      });
+      expect(calls).toEqual(['second']);
+      expect((await workflow.getWorkflowRunById('restart-run'))?.status).toBe('success');
+    } finally {
+      rmSync(file, { force: true });
+    }
+  });
+
+  it('cancels an active workflow and persists the canceled terminal state', async () => {
+    const file = join(
+      tmpdir(),
+      `kestrel-wf-cancel-${Date.now()}-${Math.random().toString(36).slice(2)}.db`,
+    );
+    try {
+      const store = new LibSQLStore({ id: 'cancel-store', url: `file:${file}` });
+      const mastra = createKestrelMastra({ storage: store, storageKind: 'libsql', env: {} });
+      await initializeKestrelMastra(mastra);
+      let enteredResolve: (() => void) | undefined;
+      const entered = new Promise<void>((resolve) => {
+        enteredResolve = resolve;
+      });
+      const wait = createStep({
+        id: 'wait',
+        inputSchema: z.object({ value: z.string() }),
+        outputSchema: z.object({ value: z.string() }),
+        execute: async ({ inputData, abortSignal }) => {
+          enteredResolve?.();
+          await new Promise<never>((_, reject) => {
+            const abort = () => reject(new DOMException('Aborted', 'AbortError'));
+            if (abortSignal.aborted) abort();
+            else abortSignal.addEventListener('abort', abort, { once: true });
+          });
+          return inputData;
+        },
+      });
+      const workflow = new Workflow({
+        id: 'cancelable-test',
+        inputSchema: z.object({ value: z.string() }),
+        outputSchema: z.object({ value: z.string() }),
+        mastra: mastra.instance,
+      })
+        .then(wait)
+        .commit();
+      const run = await workflow.createRun({ runId: 'cancel-run' });
+      const resultPromise = run.start({ inputData: { value: 'seed' } });
+      await entered;
+      await run.cancel();
+      const result = await resultPromise;
+      expect(result.status).toBe('canceled');
+      expect((await workflow.getWorkflowRunById('cancel-run'))?.status).toBe('canceled');
+    } finally {
+      rmSync(file, { force: true });
+    }
   });
 
   it('persists run snapshots to the shared Mastra storage when an instance is provided', async () => {

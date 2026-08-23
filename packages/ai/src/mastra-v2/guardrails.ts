@@ -34,6 +34,7 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { PromptInjectionDetector, UnicodeNormalizer } from '@mastra/core/processors';
 import type { LanguageModel } from 'ai';
@@ -44,6 +45,13 @@ import type { ResolveModelEnv } from '../vertex-factory';
 const glog = createCategorizedLogger('ai', { component: 'mastra-guardrails' });
 
 export type GuardrailStrategy = 'block' | 'rewrite';
+
+/**
+ * Guardrail availability mode:
+ * - `availability`: degrade gracefully when the detector model is unavailable
+ * - `strict`: reject the turn when the detector model cannot be loaded
+ */
+export type GuardrailMode = 'availability' | 'strict';
 
 export interface GuardrailOptions {
   /** User settings for BYOK model resolution. */
@@ -56,6 +64,14 @@ export interface GuardrailOptions {
    * - `rewrite`: neutralize the injection while preserving intent (conversation)
    */
   strategy: GuardrailStrategy;
+  /**
+   * Guardrail availability mode:
+   * - `availability` (default): degrade gracefully when the detector model
+   *   is unavailable (return normalizer only with a warning).
+   * - `strict`: return an error when the detector model cannot be loaded;
+   *   the caller must reject the turn.
+   */
+  mode?: GuardrailMode;
   /** Confidence threshold (0–1). Default: 0.7. */
   threshold?: number;
 }
@@ -64,12 +80,16 @@ export interface GuardrailOptions {
  * Build the Mastra input processors for a chat agent. The outer array places
  * the UnicodeNormalizer first so the detector sees clean text.
  *
- * Returns `null` when no BYOK model is available (detector cannot run).
+ * In `availability` mode (default), returns the normalizer only when no BYOK
+ * model is available.  In `strict` mode, throws `GuardrailUnavailableError`
+ * so the caller can reject the turn.
  */
 export function buildGuardrailInputProcessors(options: GuardrailOptions): {
   processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
   warnings: string[];
+  mode: GuardrailMode;
 } {
+  const mode = options.mode ?? 'availability';
   const warnings: string[] = [];
   const normalizer = new UnicodeNormalizer({
     stripControlChars: true,
@@ -88,14 +108,27 @@ export function buildGuardrailInputProcessors(options: GuardrailOptions): {
       'technical',
     );
   } catch (error) {
-    glog.warn('PromptInjectionDetector: no model available; injection detection disabled', {
+    metrics.increment('guardrail_degraded_total', { tags: { mode, cause: 'resolve_failed' } });
+    glog.warn('PromptInjectionDetector: no model available', {
       error: error instanceof Error ? error.message : String(error),
+      mode,
     });
+    if (mode === 'strict') {
+      throw new GuardrailUnavailableError(
+        'Prompt-injection detector model is unavailable and guardrail mode is strict.',
+      );
+    }
     warnings.push('PromptInjectionDetector: no model available; injection detection disabled');
   }
 
   if (!resolution) {
-    return { processors: [normalizer], warnings };
+    metrics.increment('guardrail_degraded_total', { tags: { mode } });
+    if (mode === 'strict') {
+      throw new GuardrailUnavailableError(
+        'Prompt-injection detector model could not be resolved and guardrail mode is strict.',
+      );
+    }
+    return { processors: [normalizer], warnings, mode };
   }
 
   const detector = new PromptInjectionDetector({
@@ -117,25 +150,46 @@ export function buildGuardrailInputProcessors(options: GuardrailOptions): {
     },
   });
 
-  return { processors: [normalizer, detector], warnings: [] };
+  return { processors: [normalizer, detector], warnings: [], mode };
+}
+
+/** Error thrown when strict-mode guardrails cannot load the detector model. */
+export class GuardrailUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GuardrailUnavailableError';
+  }
 }
 
 /**
- * Convenience — build conversation-path guardrails (rewrite strategy).
+ * Convenience — build conversation-path guardrails (rewrite strategy,
+ * availability mode — degrades gracefully without the detector).
  */
 export function buildConversationGuardrails(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
-): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[] } {
-  return buildGuardrailInputProcessors({ settings, env, strategy: 'rewrite' });
+): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[]; mode: GuardrailMode } {
+  return buildGuardrailInputProcessors({ settings, env, strategy: 'rewrite', mode: 'availability' });
 }
 
 /**
- * Convenience — build research-path guardrails (block strategy).
+ * Convenience — build research-path guardrails (block strategy,
+ * strict mode — rejects the turn when the detector cannot load).
  */
 export function buildResearchGuardrails(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
-): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[] } {
-  return buildGuardrailInputProcessors({ settings, env, strategy: 'block' });
+): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[]; mode: GuardrailMode } {
+  return buildGuardrailInputProcessors({ settings, env, strategy: 'block', mode: 'strict' });
+}
+
+/**
+ * Convenience — build research-path guardrails in availability mode
+ * (for callers that handle degradation themselves).
+ */
+export function buildResearchGuardrailsAvailability(
+  settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
+  env: ResolveModelEnv,
+): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[]; mode: GuardrailMode } {
+  return buildGuardrailInputProcessors({ settings, env, strategy: 'block', mode: 'availability' });
 }

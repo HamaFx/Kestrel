@@ -75,54 +75,63 @@ export function recordsToGateObserved(
   records: readonly ScoreRecord[],
   thresholds: EvalQualityGateThresholds = DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
 ): EvalQualityGateResult {
+  // Group by run ID so N scorer rows → 1 logical case per evaluated turn.
+  const groups = new Map<string, ScoreRecord[]>();
+  for (const record of records) {
+    const existing = groups.get(record.runId) ?? [];
+    existing.push(record);
+    groups.set(record.runId, existing);
+  }
+
   const pass = (record: ScoreRecord): boolean => {
-    // Grounding is a strict boolean; citation uses the citation minimum;
-    // inverted scorers (hallucination/bias/toxicity) pass when low;
-    // everything else passes at/above the overall pass rate.
     if (record.scorerId === 'kestrel-grounding') return record.score === 1;
     if (record.scorerId === 'kestrel-citation') return record.score >= thresholds.minCitationScore;
     if (INVERTED_SCORERS.has(record.scorerId)) return record.score <= INVERTED_PASS_CEILING;
     return record.score >= thresholds.minOverallPassRate;
   };
+
   const citationScores = records
     .filter((record) => record.scorerId === 'kestrel-citation')
     .map((record) => record.score);
 
-  // Merge partial caller thresholds over the canonical defaults so every
-  // maximum field is present (the legacy gate crashes on `undefined` maxes).
   const effectiveThresholds: EvalQualityGateThresholds = {
     ...DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
     ...thresholds,
   };
 
-  return evaluateEvalQualityGate(
-    records.map((record) => ({
-      id: record.runId,
+  // One logical case per run: passes when ALL scorer rows pass individually.
+  const cases = [...groups.values()].map((group) => {
+    const allPassed = group.every(pass);
+    const citationRecord = group.find((r) => r.scorerId === 'kestrel-citation');
+    const groundingFailure = group.find(
+      (r) => r.scorerId === 'kestrel-grounding' && r.score < 1,
+    );
+    return {
+      id: group[0]!.runId,
       prompt: '',
-      ttftMs: record.metadata?.ttftMs ?? null,
-      totalMs: record.metadata?.totalMs ?? 0,
+      ttftMs: group[0]!.metadata?.ttftMs ?? null,
+      totalMs: group[0]!.metadata?.totalMs ?? 0,
       text: '',
       toolCalls: [],
-      ok: pass(record),
+      ok: allPassed,
       metadata: {
-        totalCostUsd: record.metadata?.costUsd ?? 0,
+        totalCostUsd: group[0]!.metadata?.costUsd ?? 0,
       },
-      citationScore: record.scorerId === 'kestrel-citation' ? record.score : null,
-      assertions:
-        record.scorerId === 'kestrel-grounding' && record.score < 1
-          ? [
-              {
-                kind: 'unsupported_numeric_claim',
-                detail: record.reason ?? 'report failed grounding',
-              },
-            ]
-          : [],
-      // Gate-only projection: agent progress and terminal status are not part
-      // of the score domain; the runner's `ok` is derived from scorer pass.
+      citationScore: citationRecord?.score ?? null,
+      assertions: groundingFailure
+        ? [
+            {
+              kind: 'unsupported_numeric_claim' as const,
+              detail: groundingFailure.reason ?? 'report failed grounding',
+            },
+          ]
+        : [],
       agentProgress: [],
       terminalStatus: null,
-    })),
-    {
+    };
+  });
+
+  return evaluateEvalQualityGate(cases, {
       ...effectiveThresholds,
       minCaseCount: Math.max(effectiveThresholds.minCaseCount, 1),
       // Override the runner-specific citation minimum with the mean of the

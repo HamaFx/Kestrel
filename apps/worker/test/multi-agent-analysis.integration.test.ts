@@ -26,6 +26,7 @@ const {
   mockFailFullAnalysisRun,
   mockRequeueFullAnalysisRun,
   mockTouchFullAnalysisRun,
+  MockFullAnalysisLeaseLostError,
   mockRecoverStaleRuns,
   mockPurgeOldRuns,
   mockRunMastraMode,
@@ -38,6 +39,9 @@ const {
   mockFailFullAnalysisRun: vi.fn(),
   mockRequeueFullAnalysisRun: vi.fn(),
   mockTouchFullAnalysisRun: vi.fn(),
+  MockFullAnalysisLeaseLostError: class MockFullAnalysisLeaseLostError extends Error {
+    code = 'FULL_ANALYSIS_LEASE_LOST';
+  },
   mockRecoverStaleRuns: vi.fn(),
   mockPurgeOldRuns: vi.fn(),
   mockRunMastraMode: vi.fn(),
@@ -90,6 +94,7 @@ vi.mock('@kestrel/ai/mastra', () => ({
   failFullAnalysisRun: mockFailFullAnalysisRun,
   requeueFullAnalysisRun: mockRequeueFullAnalysisRun,
   touchFullAnalysisRun: mockTouchFullAnalysisRun,
+  FullAnalysisLeaseLostError: MockFullAnalysisLeaseLostError,
   recoverStaleFullAnalysisRuns: mockRecoverStaleRuns,
   purgeOldFullAnalysisRuns: mockPurgeOldRuns,
   FULL_ANALYSIS_WORKFLOW_ID: 'full-analysis',
@@ -181,10 +186,23 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     );
     expect(mockCompleteFullAnalysisRun).toHaveBeenCalledWith(
       'run-1',
+      expect.any(String),
       expect.objectContaining({ finalText: 'Full Mastra analysis result' }),
     );
-    // The lease heartbeat interval is 30s — it never fires inside a fast test.
-    expect(mockTouchFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockTouchFullAnalysisRun).toHaveBeenCalledWith('run-1', expect.any(String));
+  });
+
+  it('discards a result when the lease is lost before message projection', async () => {
+    const ctx = context();
+    mockTouchFullAnalysisRun.mockRejectedValueOnce(new MockFullAnalysisLeaseLostError());
+
+    const result = await runMultiAgentAnalysis(ctx);
+
+    expect(result).toEqual({ processed: 0, note: 'processed=0' });
+    expect(mockAppendAssistantMessage).not.toHaveBeenCalled();
+    expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockRequeueFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockFailFullAnalysisRun).not.toHaveBeenCalled();
   });
 
   it('requeues a retryable Mastra provider timeout', async () => {
@@ -196,6 +214,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     expect(result).toEqual({ processed: 1, note: 'processed=1' });
     expect(mockRequeueFullAnalysisRun).toHaveBeenCalledWith(
       'run-1',
+      expect.any(String),
       expect.stringContaining('retrying automatically'),
     );
     expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
@@ -209,7 +228,11 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     const result = await runMultiAgentAnalysis(ctx);
 
     expect(result).toEqual({ processed: 1, note: 'processed=1' });
-    expect(mockFailFullAnalysisRun).toHaveBeenCalledWith('run-1', expect.any(Error));
+    expect(mockFailFullAnalysisRun).toHaveBeenCalledWith(
+      'run-1',
+      expect.any(String),
+      expect.any(Error),
+    );
     expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
     expect(mockRequeueFullAnalysisRun).not.toHaveBeenCalled();
   });

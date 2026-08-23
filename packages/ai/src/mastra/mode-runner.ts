@@ -47,6 +47,7 @@ import {
   createSymbolResearchWorkflow,
   MastraModeStrictFailureError,
   REQUEST_CONTEXT_SCHEMA,
+  SymbolResearchWorkflowInputSchema,
   SPECIALISTS_BY_MODE,
   type MastraAnalysisMode,
   type MastraModeOpinion,
@@ -95,6 +96,8 @@ export interface RunMastraModeArgs {
    * so the worker's run continues the record the web enqueued (Phase 3).
    */
   workflowId?: string;
+  /** Restart an existing persisted workflow run instead of duplicating its steps. */
+  resumeExisting?: boolean;
 }
 
 export interface MastraModeResult {
@@ -225,24 +228,72 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       args.workflowId ?? 'symbol-research',
     );
     const run = await workflow.createRun({ runId: args.runId, resourceId: args.userId });
+    const tracingOptions = runTracingOptions({
+      runId: args.runId,
+      userId: args.userId,
+      threadId: args.threadId,
+      kind: args.telemetryKind ?? 'mastra_mode',
+      tags: ['research', args.mode],
+    });
+    const inputData = { prompt: args.prompt, symbol: args.symbol, mode: args.mode };
+    const persisted = args.resumeExisting
+      ? await workflow.getWorkflowRunById(args.runId, {
+          fields: [
+            'result',
+            'error',
+            'payload',
+            'steps',
+            'activeStepsPath',
+            'serializedStepGraph',
+            'suspendedPaths',
+            'resumeLabels',
+            'waitingPaths',
+          ],
+        })
+      : null;
+    const persistedStatus = persisted?.status;
+    const persistedInput = (persisted as { payload?: unknown } | null)?.payload;
+    const hasDurableWorkflowState =
+      SymbolResearchWorkflowInputSchema.safeParse(persistedInput).success ||
+      Object.keys(persisted?.steps ?? {}).length > 0;
+    if (persistedStatus === 'canceled') {
+      throw new DOMException('The persisted workflow run was canceled.', 'AbortError');
+    }
+    if (
+      persistedStatus === 'failed' ||
+      persistedStatus === 'tripwire' ||
+      persistedStatus === 'bailed' ||
+      persistedStatus === 'skipped'
+    ) {
+      const message =
+        persisted?.error && typeof persisted.error === 'object' && 'message' in persisted.error
+          ? String((persisted.error as { message: unknown }).message)
+          : `Persisted Mastra workflow ended with ${persistedStatus}.`;
+      throw new Error(message);
+    }
     logWorkflowStart({
       runId: args.runId,
       workflowId: args.workflowId ?? 'symbol-research',
       stepId: args.mode,
-      message: 'Symbol-research workflow run started',
-      meta: { mode: args.mode, symbol: args.symbol, model: resolution.modelId },
+      message: hasDurableWorkflowState ? 'Symbol-research workflow run resumed' : 'Symbol-research workflow run started',
+      meta: {
+        mode: args.mode,
+        symbol: args.symbol,
+        model: resolution.modelId,
+        persistedStatus,
+        hasDurableWorkflowState,
+      },
     });
-    const result = await run.start({
-      inputData: { prompt: args.prompt, symbol: args.symbol, mode: args.mode },
-      requestContext,
-      tracingOptions: runTracingOptions({
-        runId: args.runId,
-        userId: args.userId,
-        threadId: args.threadId,
-        kind: args.telemetryKind ?? 'mastra_mode',
-        tags: ['research', args.mode],
-      }),
-    });
+    const result = persistedStatus === 'success' && persisted?.result
+      ? ({
+          status: 'success',
+          result: persisted.result,
+          steps: persisted.steps,
+        } as never)
+      : hasDurableWorkflowState &&
+          ['running', 'suspended', 'waiting', 'paused', 'pending'].includes(persistedStatus ?? '')
+        ? await run.restart({ requestContext, tracingOptions })
+        : await run.start({ inputData, requestContext, tracingOptions });
     logWorkflowEnd({
       runId: args.runId,
       workflowId: args.workflowId ?? 'symbol-research',

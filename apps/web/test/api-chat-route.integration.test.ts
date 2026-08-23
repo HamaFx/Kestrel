@@ -75,6 +75,8 @@ vi.mock('@/lib/logger', () => ({
 
 vi.mock('@/lib/services/mastra-chat-routing', () => ({
   isMastraPromptUnsafe: (prompt: string) => /buy|sell|system:\s*ignore/i.test(prompt),
+  isInjectionAttempt: (prompt: string) => /system:\s*ignore/i.test(prompt),
+  isMutationIntent: (prompt: string) => /buy|sell/i.test(prompt),
   extractMastraSymbol: (prompt: string) => {
     if (/xauusd|gold/i.test(prompt)) return 'XAUUSD';
     if (/eurusd/i.test(prompt)) return 'EURUSD';

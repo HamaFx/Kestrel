@@ -117,6 +117,8 @@ function getSchemaTableColumns(): Map<string, string[]> {
     'throttle.ts',
     'intermarket-resonance.ts',
     'audit.ts',
+    'mutation-executions.ts',
+    'full-analysis-queue.ts',
     'provider-tests.ts',
     'symbol-catalog.ts',
     'cron-runs.ts',

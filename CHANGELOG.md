@@ -23,8 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs/02-data-flows.md` — provider flows and licensing responsibilities
   - `docs/03-backend-api.md` — API architecture and route-boundary rules
   - `docs/04-frontend-ux.md` — frontend architecture and UX requirements
-  - `docs/05-security-auth-compliance.md` — auth, BYOK encryption, RLS, and self-hosting security
-  - `docs/06-deployment-self-hosting.md` — deployment entry point
+  - `docs/10-security.md` — auth, BYOK encryption, RLS, and self-hosting security
+  - `docs/11-self-hosting.md` — deployment entry point
   - `docs/07-agent-understanding.md` — coding-agent guide
   - `docs/08-agent-setup-run.md` — setup and troubleshooting
   - `docs/14-oss-release-checklist.md` — public-release boundary and operator checklist
@@ -33,16 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `AGENTS.md` deleted — replaced by `docs/07-agent-understanding.md` + `docs/08-agent-setup-run.md`
+- Historical documentation indexes and audit/plan artifacts were consolidated into the current architecture, validation, and operational guides.
 - Old numbered and review/audit docs were replaced by the current procedural documentation set.
 - Community security and contribution guides were refreshed for the OSS release.
 
 ### Security
 
-- Documented known auth bugs in `docs/05-security-auth-compliance.md` §4:
-  - Token version not checked in JWT callback (Critical)
-  - `__system__` user assumption in cron jobs (Critical)
-  - Session validation gaps for deleted users (High)
+- Documented the historical auth hardening work in `docs/10-security.md`:
+  - Token-version invalidation
+  - Signed user-header protection
+  - Deleted-user session validation
 - Documented data provider licensing gaps — no terms files exist in repo
 
 ---

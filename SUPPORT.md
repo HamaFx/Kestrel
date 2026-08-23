@@ -12,7 +12,7 @@ The full documentation set lives in [`docs/`](docs/). Start here:
 | [docs/02-data-flows.md](docs/02-data-flows.md)                             | You need to understand data providers, AI providers, or integrations |
 | [docs/03-backend-api.md](docs/03-backend-api.md)                           | You're working on API routes or database schema                      |
 | [docs/04-frontend-ux.md](docs/04-frontend-ux.md)                           | You're working on the frontend                                       |
-| [docs/05-security-auth-compliance.md](docs/05-security-auth-compliance.md) | You're touching auth, encryption, RLS, or billing                    |
+| [docs/10-security.md](docs/10-security.md)                         | You're touching auth, encryption, RLS, or billing                    |
 | [docs/11-self-hosting.md](docs/11-self-hosting.md)                         | You're deploying or self-hosting                                     |
 | [docs/07-agent-understanding.md](docs/07-agent-understanding.md)           | You're an AI coding agent about to work on this repo                 |
 | [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md)                   | You need to set up a local dev environment                           |
@@ -45,7 +45,7 @@ If you're self-hosting Kestrel:
 
 1. Read [docs/11-self-hosting.md](docs/11-self-hosting.md) for Docker Compose setup
 2. Read [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md) for environment variable configuration
-3. Read [docs/05-security-auth-compliance.md](docs/05-security-auth-compliance.md) for security considerations when running your own instance
+3. Read [docs/10-security.md](docs/10-security.md) for security considerations when running your own instance
 
 Self-hosters are responsible for their own infrastructure security, TLS, and secret management.
 

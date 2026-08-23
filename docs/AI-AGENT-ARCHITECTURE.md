@@ -4,7 +4,7 @@
 **Last reviewed:** 2026-08-20  
 **Scope:** AI runtime, research workflows, evaluation, persistence, and deployment boundaries
 
-> This document describes what is implemented now. For planned work and decision gates, see the [AI and Mastra roadmap](AI-AGENT-MASTRA-ROADMAP.md). For the complete legacy-to-Mastra parity matrix, see the [migration inventory](AI-AGENT-MASTRA-MIGRATION-INVENTORY.md). For dated implementation and validation evidence, see the [validation log](AI-AGENT-VALIDATION-LOG.md).
+> This document describes the current implemented AI runtime. Dated implementation and validation evidence is maintained in the [validation log](AI-AGENT-VALIDATION-LOG.md).
 
 ## 1. Executive summary
 
@@ -372,8 +372,6 @@ These are simplification and release-correctness concerns, not reasons to replac
 
 ## 14. Related documents
 
-- [AI and Mastra roadmap](AI-AGENT-MASTRA-ROADMAP.md)
-- [Mastra migration inventory](AI-AGENT-MASTRA-MIGRATION-INVENTORY.md)
 - [AI validation log](AI-AGENT-VALIDATION-LOG.md)
 - [General architecture](01-architecture.md)
 - [Security guide](10-security.md)

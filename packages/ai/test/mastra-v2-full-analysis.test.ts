@@ -2,31 +2,24 @@
  * Copyright 2026 Kestrel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
-import { rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { LibSQLStore } from '@mastra/libsql';
+import { container } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { applyMigrations, closePGliteDb, getPGliteDb } from '@kestrel/db/pglite';
 import {
   _resetKestrelMastra,
   _setKestrelMastraForTest,
   createKestrelMastra,
   initializeKestrelMastra,
 } from '../src/mastra-v2';
+import { DB } from '../src/tokens';
 import {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
@@ -41,28 +34,6 @@ import {
   touchFullAnalysisRun,
 } from '../src/mastra-v2/workflows/full-analysis';
 
-// The durable queue reads the process-wide Mastra singleton's storage, so
-// each test injects a temp LibSQL-backed instance and resets afterwards.
-async function withTempStorage<T>(fn: () => Promise<T>): Promise<T> {
-  const file = join(
-    tmpdir(),
-    `kestrel-durable-${Date.now()}-${Math.random().toString(36).slice(2)}.db`,
-  );
-  const url = `file:${file}`;
-  const store = new LibSQLStore({ id: 'test-durable', url });
-  const mastra = createKestrelMastra({ storage: store, storageKind: 'libsql', env: {} });
-  await initializeKestrelMastra(mastra);
-  _setKestrelMastraForTest(mastra);
-  try {
-    return await fn();
-  } finally {
-    _resetKestrelMastra();
-    rmSync(file, { force: true });
-    rmSync(`${file}-shm`, { force: true });
-    rmSync(`${file}-wal`, { force: true });
-  }
-}
-
 const INPUT = {
   userId: 'user-1',
   threadId: 'thread-1',
@@ -71,7 +42,35 @@ const INPUT = {
   idempotencyKey: 'full:thread-1:message-1',
 };
 
-describe('mastra-v2 durable full-analysis queue', () => {
+async function withQueueStorage<T>(
+  fn: (db: Awaited<ReturnType<typeof getPGliteDb>>) => Promise<T>,
+): Promise<T> {
+  const dir = mkdtempSync(join(tmpdir(), 'kestrel-full-analysis-'));
+  await applyMigrations(dir);
+  const db = await getPGliteDb(dir);
+  await db.execute(
+    `INSERT INTO "user" ("id", "email") VALUES ('user-1', 'full-analysis@example.com')`,
+  );
+  container.register(DB, () => db as never);
+
+  const file = join(dir, 'mastra.db');
+  const store = new LibSQLStore({ id: 'test-durable', url: `file:${file}` });
+  const mastra = createKestrelMastra({ storage: store, storageKind: 'libsql', env: {} });
+  await initializeKestrelMastra(mastra);
+  _setKestrelMastraForTest(mastra);
+  try {
+    return await fn(db);
+  } finally {
+    _resetKestrelMastra();
+    container.register(DB, () => {
+      throw new Error('Full-analysis test DB was not initialized');
+    });
+    await closePGliteDb();
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+describe('database-backed Full-analysis queue', () => {
   beforeEach(() => {
     _resetKestrelMastra();
   });
@@ -80,8 +79,8 @@ describe('mastra-v2 durable full-analysis queue', () => {
     _resetKestrelMastra();
   });
 
-  it('round-trips enqueue → claim → complete → poll with user scoping', async () => {
-    await withTempStorage(async () => {
+  it('round-trips enqueue, claim, complete, and poll with user scoping', async () => {
+    await withQueueStorage(async () => {
       const runId = await enqueueFullAnalysis(INPUT);
       expect(runId).toBeTruthy();
 
@@ -92,115 +91,127 @@ describe('mastra-v2 durable full-analysis queue', () => {
       expect(claimed?.payload.workerRunId).toBe('worker-1');
       expect(claimed?.payload.startedAt).toBeDefined();
 
-      await completeFullAnalysisRun(runId!, { finalText: 'done', mode: 'full' });
+      await completeFullAnalysisRun(runId!, 'worker-1', { finalText: 'done', mode: 'full' });
 
       const poll = await getFullAnalysisRun('user-1', runId!);
       expect(poll?.status).toBe('complete');
       expect(poll?.result).toMatchObject({ finalText: 'done' });
       expect(poll?.completedAt).not.toBeNull();
-
-      // User scoping: another user cannot read the run.
       expect(await getFullAnalysisRun('user-2', runId!)).toBeNull();
     });
   });
 
-  it('is exactly-once per (userId, idempotencyKey) — re-enqueue returns the same runId', async () => {
-    await withTempStorage(async () => {
-      const first = await enqueueFullAnalysis(INPUT);
-      const second = await enqueueFullAnalysis({
-        ...INPUT,
-        userMessageText: 'Analyze XAUUSD again',
-      });
-      expect(second).toBe(first);
-
-      const health = await getFullAnalysisQueueHealth();
-      expect(health.pending).toBe(1);
-      expect(health.unavailable).toBeUndefined();
+  it('converges concurrent enqueue requests to one canonical run', async () => {
+    await withQueueStorage(async () => {
+      const [first, second] = await Promise.all([
+        enqueueFullAnalysis(INPUT),
+        enqueueFullAnalysis({ ...INPUT, userMessageText: 'Analyze XAUUSD again' }),
+      ]);
+      expect(first).toBe(second);
+      expect((await getFullAnalysisQueueHealth()).pending).toBe(1);
     });
   });
 
-  it('makes runIds deterministic across submissions', () => {
-    const a = fullAnalysisRunId('user-1', 'full:thread-1:message-1');
-    const b = fullAnalysisRunId('user-1', 'full:thread-1:message-1');
-    const c = fullAnalysisRunId('user-2', 'full:thread-1:message-1');
+  it('makes run IDs deterministic across submissions', () => {
+    const a = fullAnalysisRunId('user-1', INPUT.idempotencyKey);
+    const b = fullAnalysisRunId('user-1', INPUT.idempotencyKey);
+    const c = fullAnalysisRunId('user-2', INPUT.idempotencyKey);
     expect(a).toBe(b);
     expect(a).not.toBe(c);
   });
 
-  it('requeues retryable failures back to pending and reflects the lease in health', async () => {
-    await withTempStorage(async () => {
+  it('allows only one concurrent worker to claim a pending run', async () => {
+    await withQueueStorage(async () => {
       const runId = await enqueueFullAnalysis(INPUT);
-      const claimed = await claimNextFullAnalysisRun('worker-1');
-      expect(claimed?.runId).toBe(runId);
-
-      let health = await getFullAnalysisQueueHealth();
-      expect(health.pending).toBe(0);
-      expect(health.running).toBe(1);
-
-      await requeueFullAnalysisRun(runId!, 'attempt 1 failed; retrying');
-      health = await getFullAnalysisQueueHealth();
-      expect(health.pending).toBe(1);
-      expect(health.running).toBe(0);
-
-      // The requeued run is claimable again with attempts preserved.
-      const reClaimed = await claimNextFullAnalysisRun('worker-2');
-      expect(reClaimed?.payload.attemptCount).toBe(2);
-      expect(reClaimed?.payload.workerRunId).toBe('worker-2');
+      const [first, second] = await Promise.all([
+        claimNextFullAnalysisRun('worker-1'),
+        claimNextFullAnalysisRun('worker-2'),
+      ]);
+      expect([first?.runId, second?.runId].filter(Boolean)).toEqual([runId]);
+      expect([first?.payload.workerRunId, second?.payload.workerRunId].filter(Boolean)).toHaveLength(1);
     });
   });
 
-  it('recovers stale running runs: requeues within attempts, fails at the cap', async () => {
-    await withTempStorage(async () => {
+  it('rejects stale-worker completion after the run is requeued and reclaimed', async () => {
+    await withQueueStorage(async () => {
       const runId = await enqueueFullAnalysis(INPUT);
       await claimNextFullAnalysisRun('worker-1');
+      await recoverStaleFullAnalysisRuns(new Date(Date.now() + 60_000), 3);
+      const reclaimed = await claimNextFullAnalysisRun('worker-2');
+      expect(reclaimed?.payload.workerRunId).toBe('worker-2');
 
-      // Cutoff in the future makes every run stale relative to it.
-      const future = new Date(Date.now() + 60_000);
-
-      const first = await recoverStaleFullAnalysisRuns(future, 2);
-      expect(first).toEqual({ requeued: 1, failed: 0 });
-
-      await claimNextFullAnalysisRun('worker-2'); // attemptCount → 2
-      const second = await recoverStaleFullAnalysisRuns(future, 2);
-      expect(second).toEqual({ requeued: 0, failed: 1 });
-
-      const poll = await getFullAnalysisRun('user-1', runId!);
-      expect(poll?.status).toBe('failed');
-      expect(poll?.error).toContain('No partial answer was returned');
+      await expect(
+        completeFullAnalysisRun(runId!, 'worker-1', { finalText: 'stale' }),
+      ).rejects.toMatchObject({ code: 'FULL_ANALYSIS_LEASE_LOST' });
+      await completeFullAnalysisRun(runId!, 'worker-2', { finalText: 'current' });
+      expect((await getFullAnalysisRun('user-1', runId!))?.result).toMatchObject({
+        finalText: 'current',
+      });
     });
   });
 
-  it('reports a terminal failure view for failFullAnalysisRun', async () => {
-    await withTempStorage(async () => {
+  it('requeues retryable failures while preserving attempt count', async () => {
+    await withQueueStorage(async () => {
       const runId = await enqueueFullAnalysis(INPUT);
-      await failFullAnalysisRun(runId!, new Error('model unavailable'));
-
-      const poll = await getFullAnalysisRun('user-1', runId!);
-      expect(poll?.status).toBe('failed');
-      expect(poll?.result).toBeNull();
+      await claimNextFullAnalysisRun('worker-1');
+      await requeueFullAnalysisRun(runId!, 'worker-1', 'attempt failed; retrying');
+      expect((await getFullAnalysisQueueHealth()).pending).toBe(1);
+      const reclaimed = await claimNextFullAnalysisRun('worker-2');
+      expect(reclaimed?.payload.attemptCount).toBe(2);
     });
   });
 
-  it('purges terminal runs older than the retention cutoff', async () => {
-    await withTempStorage(async () => {
+  it('recovers stale runs and fails them at the attempt cap', async () => {
+    await withQueueStorage(async () => {
       const runId = await enqueueFullAnalysis(INPUT);
-      await completeFullAnalysisRun(runId!, { finalText: 'done' });
+      await claimNextFullAnalysisRun('worker-1');
+      expect(await recoverStaleFullAnalysisRuns(new Date(Date.now() + 60_000), 2)).toEqual({
+        requeued: 1,
+        failed: 0,
+      });
+      await claimNextFullAnalysisRun('worker-2');
+      expect(await recoverStaleFullAnalysisRuns(new Date(Date.now() + 60_000), 2)).toEqual({
+        requeued: 0,
+        failed: 1,
+      });
+      expect((await getFullAnalysisRun('user-1', runId!))?.status).toBe('failed');
+    });
+  });
 
-      const future = new Date(Date.now() + 60_000);
-      const deleted = await purgeOldFullAnalysisRuns(future);
-      expect(deleted).toBe(1);
+  it('rejects malformed queue payloads without an identity fallback', async () => {
+    await withQueueStorage(async (db) => {
+      const runId = await enqueueFullAnalysis(INPUT);
+      await db.execute(
+        `UPDATE "full_analysis_queue" SET payload = '{"kind":"full-analysis"}' WHERE run_id = '${runId}'`,
+      );
+      await expect(claimNextFullAnalysisRun('worker-1')).resolves.toBeNull();
+      const row = await db.execute(
+        `SELECT status, error FROM "full_analysis_queue" WHERE run_id = '${runId}'`,
+      );
+      expect(row.rows[0]).toMatchObject({ status: 'failed' });
+    });
+  });
+
+  it('requires the active lease for heartbeat and terminal failure', async () => {
+    await withQueueStorage(async () => {
+      const runId = await enqueueFullAnalysis(INPUT);
+      await claimNextFullAnalysisRun('worker-1');
+      await expect(touchFullAnalysisRun(runId!, 'worker-2')).rejects.toMatchObject({
+        code: 'FULL_ANALYSIS_LEASE_LOST',
+      });
+      await expect(failFullAnalysisRun(runId!, 'worker-1', new Error('model unavailable'))).resolves
+        .toBeUndefined();
+      expect((await getFullAnalysisRun('user-1', runId!))?.status).toBe('failed');
+    });
+  });
+
+  it('purges terminal queue rows after the retention cutoff', async () => {
+    await withQueueStorage(async () => {
+      const runId = await enqueueFullAnalysis(INPUT);
+      await claimNextFullAnalysisRun('worker-1');
+      await completeFullAnalysisRun(runId!, 'worker-1', { finalText: 'done' });
+      expect(await purgeOldFullAnalysisRuns(new Date(Date.now() + 60_000))).toBe(1);
       expect(await getFullAnalysisRun('user-1', runId!)).toBeNull();
-    });
-  });
-
-  it('heartbeat touch keeps a running lease fresh', async () => {
-    await withTempStorage(async () => {
-      const runId = await enqueueFullAnalysis(INPUT);
-      await claimNextFullAnalysisRun('worker-1');
-      await expect(touchFullAnalysisRun(runId!)).resolves.toBeUndefined();
-
-      const health = await getFullAnalysisQueueHealth();
-      expect(health.running).toBe(1);
     });
   });
 });

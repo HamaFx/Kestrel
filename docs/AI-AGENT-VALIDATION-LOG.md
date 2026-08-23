@@ -4,7 +4,7 @@
 **Last reviewed:** 2026-08-19  
 **Scope:** Mastra implementation milestones, evaluations, deployments, and known validation gaps
 
-> This is an evidence log, not the active plan. For current decisions and remaining work, see the [AI and Mastra roadmap](AI-AGENT-MASTRA-ROADMAP.md). For the current implementation boundary, see the [AI agent architecture](AI-AGENT-ARCHITECTURE.md).
+> This is a dated evidence log. For the current implementation boundary, see the [AI agent architecture](AI-AGENT-ARCHITECTURE.md).
 
 ## How to read this log
 
@@ -385,7 +385,7 @@ When adding a validation entry:
 - Never record secrets or raw user/model content.
 - Record provider/model identifiers and versions.
 - State whether the result is complete, partial, degraded, or pending.
-- Link the related roadmap gate when one exists.
+- Link the relevant current architecture section or operational procedure when one exists.
 - Do not mark a quality decision complete based only on transport success or token overlap.
 
 ## 21. Release-correctness fixes — 2026-08-19
@@ -435,7 +435,7 @@ The remaining live gates were intentionally not executed during this local imple
 - No external provider smoke check was run.
 - No provider credentials were changed or written.
 
-Tomorrow, after the Gemini quota resets, run the clean small-batch evaluation and production model-selection verification described in the roadmap. Keep the first batch small, record quota/transport failures separately from quality failures, and do not make a routing decision until successful verified reports have been human-reviewed.
+Run the clean small-batch evaluation and production model-selection verification before making a routing decision. Keep the first batch small, record quota/transport failures separately from quality failures, and require human review of successful verified reports.
 
 ## 24. Initial full-parity foundation — 2026-08-19
 

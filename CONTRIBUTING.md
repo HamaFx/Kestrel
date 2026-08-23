@@ -394,7 +394,7 @@ CI must pass before merge. E2E and AI evals run only on `main` and nightly (not 
 
 - **Architecture questions:** Read [docs/01-architecture.md](docs/01-architecture.md)
 - **Setup issues:** Read [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md) (Common Failures & Fixes)
-- **Security questions:** Read [docs/05-security-auth-compliance.md](docs/05-security-auth-compliance.md)
+- **Security questions:** Read [docs/10-security.md](docs/10-security.md)
 - **Bugs:** [Open an issue](https://github.com/HamaFx/Kestrel/issues) using the bug report template
 - **Feature requests:** [Open an issue](https://github.com/HamaFx/Kestrel/issues) using the feature request template
 - **Security vulnerabilities:** See [SECURITY.md](SECURITY.md) — do NOT open a public issue

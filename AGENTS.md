@@ -37,7 +37,7 @@
 | Semantic routing      | Default on (`AI_SEMANTIC_ROUTING_ENABLED=false` to disable); LLM classification with keyword fallback                                 |
 | Guardrails            | UnicodeNormalizer + PromptInjectionDetector on all agents incl. text-runner (extraction/routing)                                      |
 | Custom scorers        | Grounding + citation scorers always-on (deterministic, no LLM judge); prebuilt scorers sampled (5% conversation, 10% research)        |
-| Advisory lock         | Postgres advisory lock on full-analysis claim path for multi-worker safety                                                            |
+| Full-analysis queue   | Database-owned atomic claims, lease heartbeats, stale recovery, and worker ownership tokens                                          |
 | Architecture snapshot | `docs/architecture-explorer.html` + `docs/architecture-explorer.json` — static reference artifacts                                    |
 | Request proxy         | 190 lines. Handles auth, CSRF, CSP, request-id                                                                                        |
 
@@ -364,6 +364,4 @@ The project keeps procedural documentation alongside a small static architecture
 | `docs/INCIDENT-RESPONSE.md`                             | Incident runbook                                                        |
 | `docs/BILLING-WEBHOOK-SAFETY-GATE.md`                   | Operational safety procedure                                            |
 | `docs/AI-AGENT-ARCHITECTURE.md`                         | Current AI and Mastra implementation boundary                           |
-| `docs/AI-AGENT-MASTRA-ROADMAP.md`                       | Active AI/Mastra migration plan and decision gates                      |
 | `docs/AI-AGENT-VALIDATION-LOG.md`                       | Dated AI/Mastra validation and deployment evidence                      |
-| `cleanup-audit.md`                                      | Historical audit record                                                 |

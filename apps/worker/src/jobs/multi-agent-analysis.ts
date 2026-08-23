@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-// Durable full-analysis worker (Phase 3). The queue is Mastra workflow run
-// records: the web writes a pending `full-analysis` run snapshot, this job
-// claims it (status → running + lease token), executes the symbol-research
-// workflow under that exact runId, and writes the terminal status + shaped
-// result back into the same record. No analysis_jobs table; no heartbeat
-// hand-rolling — `touchFullAnalysisRun` bumps the run's `updatedAt` lease.
+// Durable full-analysis worker. The web writes a pending database queue row
+// and a Mastra projection; this job atomically claims the DB row, executes the
+// Full workflow under the runId, and projects terminal state after a lease-
+// conditional queue transition. No stale worker may overwrite a requeued run.
 
 import {
   appendAssistantMessage,
@@ -33,6 +31,7 @@ import {
 import {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
+  FullAnalysisLeaseLostError,
   extractSymbolFromPrompt,
   failFullAnalysisRun,
   FULL_ANALYSIS_WORKFLOW_ID,
@@ -95,7 +94,10 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
   let processed = 0;
 
   for (let i = 0; i < MAX_JOBS_PER_RUN; i++) {
-    const claimed = await claimNextFullAnalysisRun(workerRunId);
+    const claimed = await claimNextFullAnalysisRun(
+      workerRunId,
+      (userId) => ctx.tenantRouter.isMyTenant(userId),
+    );
     if (!claimed) {
       ctx.log.info('No pending full-analysis runs — done.');
       break;
@@ -109,10 +111,16 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
       attempt: payload.attemptCount,
     });
 
+    let leaseLost = false;
+    const leaseAbort = new AbortController();
     const leaseHeartbeat = setInterval(() => {
-      void touchFullAnalysisRun(runId).catch((error) =>
-        ctx.log.warn('Full-analysis lease heartbeat failed', { err: String(error) }),
-      );
+      void touchFullAnalysisRun(runId, workerRunId).catch((error) => {
+        if (error instanceof FullAnalysisLeaseLostError) {
+          leaseLost = true;
+          leaseAbort.abort(error);
+        }
+        ctx.log.warn('Full-analysis lease heartbeat failed', { err: String(error) });
+      });
     }, HEARTBEAT_MS);
     leaseHeartbeat.unref();
 
@@ -166,8 +174,9 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
               workflowId: FULL_ANALYSIS_WORKFLOW_ID,
               settings: userSettings,
               env,
-              signal: ctx.signal,
+              signal: AbortSignal.any([ctx.signal, leaseAbort.signal]),
               telemetryKind: 'mastra_full_job',
+              resumeExisting: true,
             }),
           {
             ...(payload.traceId ? { traceId: payload.traceId } : {}),
@@ -176,6 +185,9 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           },
         );
         observedCost = modeResult.totalCostUsd;
+
+        await touchFullAnalysisRun(runId, workerRunId);
+        if (leaseLost) throw new FullAnalysisLeaseLostError();
 
         const assistant: UIMessage = {
           id: crypto.randomUUID(),
@@ -212,7 +224,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           env,
         });
 
-        await completeFullAnalysisRun(runId, {
+        await completeFullAnalysisRun(runId, workerRunId, {
           finalText: modeResult.finalText,
           agentOpinions: modeResult.agentOpinions,
           mode: modeResult.mode,
@@ -245,6 +257,10 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         if (payload.traceId) await traceIdStorage.run(payload.traceId, processRun);
         else await processRun();
       } catch (error) {
+        if (leaseLost || error instanceof FullAnalysisLeaseLostError) {
+          ctx.log.warn('Full-analysis result discarded after lease loss', { runId });
+          continue;
+        }
         const message = error instanceof Error ? error.message : String(error);
         const retryable =
           isRetryableAnalysisError(error) && payload.attemptCount < MAX_ANALYSIS_ATTEMPTS;
@@ -257,15 +273,17 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         if (retryable) {
           await requeueFullAnalysisRun(
             runId,
+            workerRunId,
             `Attempt ${payload.attemptCount}/${MAX_ANALYSIS_ATTEMPTS} failed; retrying automatically.`,
           );
         } else {
-          await failFullAnalysisRun(runId, error);
+          await failFullAnalysisRun(runId, workerRunId, error);
         }
         processed++;
       }
     } finally {
       clearInterval(leaseHeartbeat);
+      leaseAbort.abort();
     }
   }
 
