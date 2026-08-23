@@ -36,8 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-COPY --from=builder /prod/worker ./
+COPY --chown=node:node --from=builder /prod/worker ./
 
 ARG DEPLOYED_SHA=unknown
 ENV DEPLOYED_SHA=${DEPLOYED_SHA}
@@ -56,7 +55,6 @@ EXPOSE 8080
 # SEC-3: Run as non-root user.
 # The Node.js 22 slim image provides uid 1000 as 'node'.
 # Ports 8080/8081 are >1024 so non-root binding works.
-RUN chown -R node:node /app
 USER node
 
 # SEC-3: Container HEALTHCHECK against the real worker health endpoint.
