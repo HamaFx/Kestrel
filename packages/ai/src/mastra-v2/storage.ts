@@ -120,7 +120,17 @@ function libsqlUrl(env: NodeJS.ProcessEnv = process.env): string {
   return 'file:./.kestrel/mastra.db';
 }
 
-function ensureLibsqlParent(url: string): void {
+export function resolveMastraStorageKind(env: NodeJS.ProcessEnv = process.env): MastraStorageKind {
+  return env.MASTRA_STORAGE === 'postgres'
+    ? 'postgres'
+    : env.MASTRA_STORAGE === 'libsql'
+      ? 'libsql'
+      : mastraDirectConnectionString(env) !== null
+        ? 'postgres'
+        : 'libsql';
+}
+
+export function ensureLibsqlParent(url: string): void {
   if (url === ':memory:' || !url.startsWith('file:')) return;
   const path = url.slice('file:'.length);
   if (!path || path === ':memory:') return;
@@ -143,14 +153,7 @@ function ensureLibsqlParent(url: string): void {
  * `initializeMastraStorage(result)`.
  */
 export function createMastraStorage(env: NodeJS.ProcessEnv = process.env): MastraStorageResult {
-  const kind: MastraStorageKind =
-    env.MASTRA_STORAGE === 'postgres'
-      ? 'postgres'
-      : env.MASTRA_STORAGE === 'libsql'
-        ? 'libsql'
-        : mastraDirectConnectionString(env) !== null
-          ? 'postgres'
-          : 'libsql';
+  const kind: MastraStorageKind = resolveMastraStorageKind(env);
 
   if (kind === 'postgres') {
     const connectionString = mastraDirectConnectionString(env);

@@ -52,7 +52,13 @@ import { embedTexts } from '../embeddings';
 import { resolveEmbeddingModel } from '../model';
 import type { ResolveModelEnv } from '../vertex-factory';
 import { getKestrelMastra } from './instance';
-import { mastraDirectConnectionString, mastraSslOptions, type MastraStorageKind } from './storage';
+import {
+  ensureLibsqlParent,
+  mastraDirectConnectionString,
+  mastraSslOptions,
+  resolveMastraStorageKind,
+  type MastraStorageKind,
+} from './storage';
 
 const mlog = createCategorizedLogger('ai', { component: 'mastra-memory' });
 
@@ -73,8 +79,10 @@ export const KESTREL_WORKING_MEMORY_TEMPLATE = `# User Preferences
 // Vector store (shared process-wide singleton)
 // ---------------------------------------------------------------------------
 
-function libsqlVectorUrl(env: NodeJS.ProcessEnv = process.env): string {
-  const configured = env.MASTRA_LIBSQL_URL;
+type EnvRecord = NodeJS.ProcessEnv | ResolveModelEnv | Record<string, string | undefined>;
+
+function libsqlVectorUrl(env: EnvRecord = process.env): string {
+  const configured = (env as Record<string, string | undefined>).MASTRA_LIBSQL_URL;
   if (configured && configured.length > 0) return configured;
   return 'file:./.kestrel/mastra.db';
 }
@@ -84,11 +92,13 @@ function libsqlVectorUrl(env: NodeJS.ProcessEnv = process.env): string {
  * selection so dev (LibSQL file) and prod (Postgres + pgvector) stay aligned.
  */
 export function createKestrelVectorStore(
-  kind: MastraStorageKind,
-  env: NodeJS.ProcessEnv = process.env,
+  kind?: MastraStorageKind,
+  env: EnvRecord = process.env,
 ): MastraVector {
-  if (kind === 'postgres') {
-    const connectionString = mastraDirectConnectionString(env);
+  const processEnv = env as NodeJS.ProcessEnv;
+  const resolvedKind = kind ?? resolveMastraStorageKind(processEnv);
+  if (resolvedKind === 'postgres') {
+    const connectionString = mastraDirectConnectionString(processEnv);
     if (!connectionString) {
       throw new Error(
         '[mastra-memory] vector store requires DIRECT_URL, POSTGRES_URL_NON_POOLING, ' +
@@ -98,18 +108,23 @@ export function createKestrelVectorStore(
     return new PgVector({
       id: 'kestrel-mastra-vector',
       connectionString,
-      schemaName: env.MASTRA_SCHEMA ?? 'mastra',
-      ssl: mastraSslOptions(env),
+      schemaName: (env as Record<string, string | undefined>).MASTRA_SCHEMA ?? 'mastra',
+      ssl: mastraSslOptions(processEnv),
     });
   }
-  return new LibSQLVector({ id: 'kestrel-mastra-vector', url: libsqlVectorUrl(env) });
+  const url = libsqlVectorUrl(env);
+  ensureLibsqlParent(url);
+  return new LibSQLVector({ id: 'kestrel-mastra-vector', url });
 }
 
 let cachedVectorStore: MastraVector | null = null;
 
 /** Process-wide vector-store singleton (created lazily). */
-export function getKestrelVectorStore(kind: MastraStorageKind = 'libsql'): MastraVector {
-  cachedVectorStore ??= createKestrelVectorStore(kind);
+export function getKestrelVectorStore(
+  kind?: MastraStorageKind,
+  env: EnvRecord = process.env,
+): MastraVector {
+  cachedVectorStore ??= createKestrelVectorStore(kind, env);
   return cachedVectorStore;
 }
 
@@ -232,9 +247,10 @@ export interface CreateKestrelMemoryArgs extends KestrelEmbedderArgs {
  * the Memory never falls back to Mastra's ephemeral `file:memory.db` default.
  */
 export function createKestrelMemory(args: CreateKestrelMemoryArgs): Memory {
-  const vector = args.vector ?? getKestrelVectorStore();
+  const km = getKestrelMastra();
+  const vector = args.vector ?? getKestrelVectorStore(km.storageKind, args.env);
   const options = args.options ?? kestrelMemoryOptions({ env: args.env });
-  const storage = args.storage ?? getKestrelMastra().instance.getStorage();
+  const storage = args.storage ?? km.instance.getStorage();
   if (!storage) {
     throw new Error(
       '[mastra-memory] no storage available: configure Mastra storage on the shared ' +
