@@ -49,7 +49,6 @@ import { mastraChatResponse } from '@/lib/services/mastra-chat-response';
 import {
   extractMastraSymbol,
   isInjectionAttempt,
-  isMastraPromptUnsafe,
   isMastraSymbolCandidate,
   isMastraXauusdCandidate,
   isMastraXauusdFollowupCandidate,
@@ -101,10 +100,6 @@ function mastraFailureResponse(error: unknown): Response {
         ? error.message
         : String(error);
   return errorJson('MASTRA_FAILED', message, 502);
-}
-
-function isReadOnlySafePrompt(prompt: string): boolean {
-  return !isMastraPromptUnsafe(prompt);
 }
 
 export const POST = withAuth<void>(async (req, { user }) => {
@@ -319,14 +314,14 @@ export const POST = withAuth<void>(async (req, { user }) => {
       });
     }
 
-    // Quick, Standard, and symbol-scoped Single requests use the bounded
-    // shared-packet Mastra mode workflow. It is no longer feature-flagged and
-    // has no legacy fallback.
-    if (resolvedMode === 'quick' || resolvedMode === 'standard' || symbol !== null) {
-      if (!symbol || !isMastraSymbolCandidate(userText)) {
+    // Quick and Standard modes use the bounded shared-packet Mastra mode
+    // workflow when the user has explicitly named a supported symbol.
+    // Symbol-free prompts in these modes fall through to canonical chat.
+    if ((resolvedMode === 'quick' || resolvedMode === 'standard') && symbol !== null) {
+      if (!isMastraSymbolCandidate(userText)) {
         return errorJson(
           'UNSUPPORTED_RESEARCH_SCOPE',
-          'Mastra requires one supported symbol and a read-only research request.',
+          'Mastra requires a read-only research request with this symbol.',
           422,
         );
       }
