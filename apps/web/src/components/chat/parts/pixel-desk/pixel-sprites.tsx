@@ -62,8 +62,8 @@ function PixelSvg({
 
 /**
  * 📈 Chart Wizard (Technical Analyst)
- * Features: Purple/blue wizard hat with golden pixel star, round spectacles,
- * animated robe, hands moving across a glowing terminal.
+ * Features: Purple/indigo wizard hat with golden pixel star, glowing crystal wand,
+ * spectacles, animated robe, casting candlestick vectors.
  */
 export function ChartWizardSprite({ className, isThinking, isDone, bias, isSparkling }: SpriteProps) {
   const prefersReduced = useReducedMotion();
@@ -103,23 +103,21 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
         {/* Wizard Hat Peak & Star */}
         <rect x="11" y="2" width="2" height="2" fill="#818cf8" />
         <rect x="10" y="4" width="4" height="2" fill="#6366f1" />
-        <rect x="9" y="5" width="2" height="1" fill="#facc15" /> {/* Gold star pixel */}
-        <rect x="9" y="6" width="6" height="2" fill="#4f46e5" />
-        <rect x="7" y="8" width="10" height="1" fill="#4338ca" /> {/* Hat brim */}
+        <rect x="9" y="6" width="6" height="3" fill="#4f46e5" />
+        <rect x="7" y="9" width="10" height="2" fill="#3730a3" />
+        <rect x="11" y="5" width="2" height="2" fill="#fbbf24" /> {/* Glowing Gold Star */}
 
-        {/* Head & Skin */}
-        <rect x="9" y="9" width="6" height="5" fill="#fed7aa" />
-        
-        {/* Spectacles / Glasses */}
-        <rect x="9" y="10" width="2" height="2" fill="#1e1b4b" />
-        <rect x="10" y="10" width="1" height="1" fill="#38bdf8" />
-        <rect x="11" y="10" width="2" height="1" fill="#1e1b4b" />
-        <rect x="13" y="10" width="2" height="2" fill="#1e1b4b" />
-        <rect x="14" y="10" width="1" height="1" fill="#38bdf8" />
-        
-        {/* Beard / Smile */}
-        <rect x="10" y="13" width="4" height="2" fill="#e0e7ff" />
-        <rect x="11" y="15" width="2" height="1" fill="#c7d2fe" />
+        {/* Wizard Face & Eyeglasses */}
+        <rect x="8" y="11" width="8" height="4" fill="#fed7aa" />
+        <rect x="9" y="12" width="2" height="2" fill="#312e81" /> {/* Spectacles Frame */}
+        <rect x="10" y="12" width="1" height="1" fill="#67e8f9" /> {/* Glass Lens Glow */}
+        <rect x="13" y="12" width="2" height="2" fill="#312e81" />
+        <rect x="14" y="12" width="1" height="1" fill="#67e8f9" />
+        <rect x="11" y="12" width="2" height="1" fill="#fbbf24" /> {/* Gold Bridge */}
+
+        {/* Beard & Smile */}
+        <rect x="10" y="14" width="4" height="2" fill="#e0e7ff" />
+        <rect x="11" y="16" width="2" height="1" fill="#c7d2fe" />
 
         {/* Robe Body */}
         <rect x="8" y="14" width="8" height="6" fill="#3730a3" />
@@ -130,8 +128,8 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
           <>
             <rect x="6" y="16" width="2" height="2" fill="#fed7aa" />
             <rect x="16" y="16" width="2" height="2" fill="#fed7aa" />
-            <rect x="18" y="14" width="1" height="4" fill="#22c55e" /> {/* Mini green candle */}
-            <rect x="19" y="15" width="1" height="2" fill="#22c55e" />
+            <rect x="18" y="13" width="1" height="5" fill="#facc15" /> {/* Wand shaft */}
+            <rect x="18" y="12" width="2" height="2" fill="#4ade80" /> {/* Glowing Wand Tip */}
           </>
         ) : (
           <>
@@ -185,6 +183,7 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
         <rect x="9" y="8" width="6" height="5" fill="#fde68a" />
         <rect x="10" y="9" width="1" height="2" fill="#451a03" /> {/* Eyes */}
         <rect x="13" y="9" width="1" height="2" fill="#451a03" />
+        <rect x="10" y="9" width="2" height="1" fill="#38bdf8" opacity="0.8" /> {/* Glasses shine */}
         <rect x="11" y="11" width="2" height="1" fill="#d97706" /> {/* Mustache */}
 
         {/* Scholar Robe Body */}
@@ -368,31 +367,190 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
 }
 
 /**
- * 🖥️ Retro CRT Monitor Sprite
- * Animated green/amber phosphor scanline graph displaying active candlestick ticks.
+ * 🖥️ Workstation 1: Technical Dual-Screen Terminal
+ * Features: Multi-timeframe candlestick screen with sub-oscillator display.
  */
-export function RetroCrtMonitor({ isThinking }: { isThinking?: boolean }) {
+export function TechnicalWorkstation({ isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 20 18" className="size-6 opacity-80">
-      {/* CRT Chassis */}
-      <rect x="2" y="2" width="16" height="12" fill="#1e293b" />
-      <rect x="3" y="3" width="14" height="10" fill="#0f172a" />
-      
-      {/* Glowing Screen */}
-      <rect x="4" y="4" width="12" height="8" fill="#052e16" />
-
-      {/* Candlestick Green Pixels */}
-      <rect x="6" y="8" width="1" height="3" fill="#22c55e" />
-      <rect x="8" y="6" width="1" height="4" fill="#22c55e" />
-      <rect x="10" y="7" width="1" height="2" fill="#ef4444" />
-      <rect x="12" y="5" width="1" height="5" fill="#22c55e" />
+    <PixelSvg viewBox="0 0 24 18" className="size-7 opacity-90">
+      {/* Primary CRT Monitor */}
+      <rect x="1" y="2" width="15" height="11" fill="#1e293b" />
+      <rect x="2" y="3" width="13" height="9" fill="#052e16" />
+      {/* Candlestick Vectors */}
+      <rect x="4" y="7" width="1" height="4" fill="#22c55e" />
+      <rect x="6" y="5" width="1" height="5" fill="#22c55e" />
+      <rect x="8" y="6" width="1" height="3" fill="#ef4444" />
+      <rect x="10" y="4" width="1" height="6" fill="#22c55e" />
       {isThinking && (
-        <rect x="14" y="6" width="1" height="3" fill="#4ade80" className="animate-pulse" />
+        <rect x="12" y="5" width="1" height="4" fill="#4ade80" className="animate-pulse" />
       )}
 
-      {/* CRT Stand */}
-      <rect x="8" y="14" width="4" height="2" fill="#334155" />
-      <rect x="6" y="16" width="8" height="1" fill="#475569" />
+      {/* Auxiliary Mini Display (RSI / Sub-chart) */}
+      <rect x="17" y="4" width="6" height="8" fill="#1e293b" />
+      <rect x="18" y="5" width="4" height="6" fill="#022c22" />
+      <rect x="19" y="7" width="2" height="1" fill="#10b981" />
+      <rect x="19" y="9" width="2" height="1" fill="#10b981" />
+
+      {/* Monitor Stands */}
+      <rect x="6" y="13" width="4" height="2" fill="#334155" />
+      <rect x="4" y="15" width="8" height="1" fill="#475569" />
+      <rect x="19" y="12" width="2" height="3" fill="#334155" />
     </PixelSvg>
   );
+}
+
+/**
+ * 📚 Workstation 2: Macro News Ledger & Brass Lamp
+ * Features: Open economic parchment ledger, desk lamp, and ticker lines.
+ */
+export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
+  return (
+    <PixelSvg viewBox="0 0 24 18" className="size-7 opacity-90">
+      {/* Macro Data Terminal Screen */}
+      <rect x="2" y="2" width="14" height="11" fill="#1c1917" />
+      <rect x="3" y="3" width="12" height="9" fill="#0c4a6e" />
+      {/* Yield / Policy Text Lines */}
+      <rect x="5" y="5" width="8" height="1" fill="#38bdf8" />
+      <rect x="5" y="7" width="6" height="1" fill="#7dd3fc" />
+      <rect x="5" y="9" width="7" height="1" fill="#e0f2fe" />
+      {isThinking && (
+        <rect x="9" y="9" width="2" height="1" fill="#facc15" className="animate-pulse" />
+      )}
+
+      {/* Vintage Brass Desk Lamp */}
+      <rect x="18" y="3" width="4" height="2" fill="#d97706" /> {/* Lamp shade */}
+      <rect x="19" y="5" width="2" height="2" fill="#fef08a" /> {/* Glowing bulb */}
+      <rect x="20" y="7" width="1" height="6" fill="#b45309" /> {/* Curved neck */}
+      <rect x="18" y="13" width="4" height="1" fill="#92400e" /> {/* Lamp base */}
+
+      {/* Terminal Stand */}
+      <rect x="7" y="13" width="4" height="2" fill="#44403c" />
+      <rect x="5" y="15" width="8" height="1" fill="#57534e" />
+    </PixelSvg>
+  );
+}
+
+/**
+ * 🛡️ Workstation 3: Tactical VaR Radar Terminal
+ * Features: Tactical circular radar sweep screen with armor plating.
+ */
+export function RiskWorkstation({ isThinking }: { isThinking?: boolean }) {
+  return (
+    <PixelSvg viewBox="0 0 24 18" className="size-7 opacity-90">
+      {/* Heavy Armored Monitor Chassis */}
+      <rect x="2" y="2" width="16" height="11" fill="#1e293b" />
+      <rect x="3" y="3" width="14" height="9" fill="#18181b" />
+      {/* Radar Circles & Crosshair */}
+      <rect x="8" y="4" width="4" height="7" fill="#881337" opacity="0.4" />
+      <rect x="6" y="7" width="8" height="1" fill="#e11d48" opacity="0.7" />
+      <rect x="9" y="4" width="1" height="7" fill="#e11d48" opacity="0.7" />
+      {/* Risk VaR Sweeper */}
+      {isThinking ? (
+        <>
+          <rect x="10" y="5" width="2" height="2" fill="#f43f5e" className="animate-ping" />
+          <rect x="7" y="8" width="2" height="2" fill="#fb7185" />
+        </>
+      ) : (
+        <rect x="9" y="7" width="1" height="1" fill="#22c55e" />
+      )}
+
+      {/* Hazard Warning Strip */}
+      <rect x="19" y="4" width="2" height="8" fill="#ef4444" />
+      <rect x="19" y="6" width="2" height="2" fill="#0f172a" />
+      <rect x="19" y="10" width="2" height="2" fill="#0f172a" />
+
+      {/* Fortified Heavy Mount Stand */}
+      <rect x="8" y="13" width="4" height="2" fill="#334155" />
+      <rect x="5" y="15" width="10" height="1" fill="#475569" />
+    </PixelSvg>
+  );
+}
+
+/**
+ * 🛰️ Workstation 4: Sentinel Satellite & Whale Scanner
+ * Features: High-altitude antenna array, satellite dish, and institutional flow grid.
+ */
+export function SentinelWorkstation({ isThinking }: { isThinking?: boolean }) {
+  return (
+    <PixelSvg viewBox="0 0 24 18" className="size-7 opacity-90">
+      {/* High-Tech Whale Terminal */}
+      <rect x="2" y="3" width="14" height="10" fill="#1e293b" />
+      <rect x="3" y="4" width="12" height="8" fill="#451a03" />
+      {/* Whale Order Flow Heatmap */}
+      <rect x="5" y="6" width="4" height="2" fill="#f59e0b" />
+      <rect x="9" y="8" width="4" height="2" fill="#d97706" />
+      <rect x="6" y="9" width="3" height="1" fill="#fbbf24" />
+      {isThinking && (
+        <rect x="11" y="6" width="2" height="2" fill="#fef08a" className="animate-pulse" />
+      )}
+
+      {/* Satellite Dish & Antenna */}
+      <rect x="17" y="1" width="1" height="6" fill="#94a3b8" /> {/* Mast */}
+      <rect x="19" y="2" width="3" height="3" fill="#f59e0b" /> {/* Dish bowl */}
+      <rect x="18" y="3" width="1" height="1" fill="#fbbf24" />
+      <rect x="16" y="0" width="3" height="1" fill="#e2e8f0" /> {/* Signal emitter */}
+
+      {/* Satellite Mount Stand */}
+      <rect x="7" y="13" width="4" height="2" fill="#334155" />
+      <rect x="5" y="15" width="8" height="1" fill="#475569" />
+      <rect x="16" y="7" width="3" height="8" fill="#334155" />
+    </PixelSvg>
+  );
+}
+
+/**
+ * 🪵 TradingFloorDesk
+ * Continuous retro trading desk counter across the bottom of the character row
+ * with subtle ambient props (stylus, coffee mug, measuring tool, coin).
+ */
+export function TradingFloorDesk() {
+  return (
+    <div className="relative w-full">
+      {/* Continuous Mahogany / Carbon Desk Surface */}
+      <div className="bg-bg-elev-3 relative h-4 w-full rounded-xs border-t border-border/80 shadow-md">
+        {/* Subtle Bevel Highlight Line */}
+        <div className="bg-border/60 absolute inset-x-0 top-0 h-[1px]" />
+
+        {/* Ambient Desk Props Spanned Across Positions */}
+        <div className="flex h-full items-center justify-around px-4">
+          {/* Prop 1 (Technical): Stylus & Sticky Pad */}
+          <div className="flex items-center gap-1 opacity-70">
+            <div className="h-1.5 w-3 rounded-2xs bg-amber-400/80 shadow-xs" title="Sticky Note" />
+            <div className="h-0.5 w-3 bg-fg-subtle" />
+          </div>
+
+          {/* Prop 2 (Macro): Steaming Pixel Coffee Mug */}
+          <div className="relative flex items-center gap-1 opacity-80" title="Coffee Mug">
+            <m.div
+              className="absolute -top-2 left-1 h-1.5 w-0.5 rounded-full bg-fg-subtle/50"
+              animate={{ y: [-1, -3, -1], opacity: [0.3, 0.8, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <div className="size-2 rounded-2xs bg-amber-700 border border-amber-900/50 shadow-xs" />
+          </div>
+
+          {/* Prop 3 (Risk): Caliper & Vault Lock */}
+          <div className="flex items-center gap-1 opacity-70">
+            <div className="h-1.5 w-2 rounded-2xs bg-slate-500 border border-slate-600 shadow-xs" />
+            <div className="h-0.5 w-2.5 bg-red-400/70" />
+          </div>
+
+          {/* Prop 4 (Sentinel): Gold Coin & Compass */}
+          <div className="flex items-center gap-1 opacity-80">
+            <div className="size-2 rounded-full bg-amber-400 border border-amber-600 shadow-xs" title="Institutional Coin" />
+          </div>
+        </div>
+
+        {/* Under-Desk Shadow Strip */}
+        <div className="bg-bg/60 absolute inset-x-0 -bottom-1 h-1" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Backward-compatible generic CRT monitor sprite
+ */
+export function RetroCrtMonitor({ isThinking }: { isThinking?: boolean }) {
+  return <TechnicalWorkstation isThinking={isThinking} />;
 }

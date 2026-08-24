@@ -27,8 +27,12 @@ import {
   ChartWizardSprite,
   KestrelFalconSprite,
   MacroMageSprite,
-  RetroCrtMonitor,
+  MacroWorkstation,
   RiskKnightSprite,
+  RiskWorkstation,
+  SentinelWorkstation,
+  TechnicalWorkstation,
+  TradingFloorDesk,
 } from './pixel-sprites';
 
 const QUANT_STATUS_STEPS = [
@@ -247,7 +251,7 @@ function CharacterProfileCard({
 /**
  * 🎮 PixelDeskThinking
  * Active during in-flight generation / background analysis.
- * Renders the 4 pixel quants actively working at their CRT stations with ONE unified bubble at a time.
+ * Renders the 4 pixel quants at their custom workstations with connected trading desk.
  */
 export function PixelDeskThinking({ className }: { className?: string }) {
   const [stepIdx, setStepIdx] = useState(0);
@@ -297,103 +301,108 @@ export function PixelDeskThinking({ className }: { className?: string }) {
         </span>
       </div>
 
-      {/* The 8-Bit Trading Floor / Character Row */}
-      <div className="flex items-end justify-around gap-2 px-1 pt-6 pb-2">
-        {/* Desk 1: Chart Wizard */}
-        <m.button
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
-          className="group relative flex flex-col items-center gap-1 cursor-pointer"
-          title="Click to view Chart Wizard profile"
-        >
-          <AnimatePresence>
-            {activeBubble?.agent === 'technical' && (
-              <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="technical" />
-            )}
-          </AnimatePresence>
-          <ChartWizardSprite isThinking={true} />
-          <div className="flex flex-col items-center gap-0.5">
-            <RetroCrtMonitor isThinking={true} />
-            <span className="size-1 rounded-full bg-bull animate-ping opacity-75" />
-          </div>
-          <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
-            Technical
-          </span>
-        </m.button>
+      {/* The 8-Bit Trading Floor / Character Row with Custom Workstations */}
+      <div className="flex flex-col gap-0 pt-6">
+        <div className="flex items-end justify-around gap-2 px-1 pb-1">
+          {/* Desk 1: Chart Wizard */}
+          <m.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Chart Wizard profile"
+          >
+            <AnimatePresence>
+              {activeBubble?.agent === 'technical' && (
+                <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="technical" />
+              )}
+            </AnimatePresence>
+            <ChartWizardSprite isThinking={true} />
+            <div className="flex flex-col items-center gap-0.5">
+              <TechnicalWorkstation isThinking={true} />
+              <span className="size-1 rounded-full bg-bull animate-ping opacity-75" />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Technical
+            </span>
+          </m.button>
 
-        {/* Desk 2: Macro Mage */}
-        <m.button
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')}
-          className="group relative flex flex-col items-center gap-1 cursor-pointer"
-          title="Click to view Macro Mage profile"
-        >
-          <AnimatePresence>
-            {activeBubble?.agent === 'fundamental' && (
-              <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="fundamental" />
-            )}
-          </AnimatePresence>
-          <MacroMageSprite isThinking={true} />
-          <div className="flex flex-col items-center gap-0.5">
-            <RetroCrtMonitor isThinking={true} />
-            <span className="size-1 rounded-full bg-sky-400 animate-ping opacity-75" />
-          </div>
-          <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
-            Macro
-          </span>
-        </m.button>
+          {/* Desk 2: Macro Mage */}
+          <m.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Macro Mage profile"
+          >
+            <AnimatePresence>
+              {activeBubble?.agent === 'fundamental' && (
+                <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="fundamental" />
+              )}
+            </AnimatePresence>
+            <MacroMageSprite isThinking={true} />
+            <div className="flex flex-col items-center gap-0.5">
+              <MacroWorkstation isThinking={true} />
+              <span className="size-1 rounded-full bg-sky-400 animate-ping opacity-75" />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Macro
+            </span>
+          </m.button>
 
-        {/* Desk 3: Risk Knight */}
-        <m.button
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
-          className="group relative flex flex-col items-center gap-1 cursor-pointer"
-          title="Click to view Risk Knight profile"
-        >
-          <AnimatePresence>
-            {activeBubble?.agent === 'risk' && (
-              <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="risk" />
-            )}
-          </AnimatePresence>
-          <RiskKnightSprite isThinking={true} />
-          <div className="flex flex-col items-center gap-0.5">
-            <RetroCrtMonitor isThinking={true} />
-            <span className="size-1 rounded-full bg-bear animate-ping opacity-75" />
-          </div>
-          <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
-            Risk
-          </span>
-        </m.button>
+          {/* Desk 3: Risk Knight */}
+          <m.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Risk Knight profile"
+          >
+            <AnimatePresence>
+              {activeBubble?.agent === 'risk' && (
+                <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="risk" />
+              )}
+            </AnimatePresence>
+            <RiskKnightSprite isThinking={true} />
+            <div className="flex flex-col items-center gap-0.5">
+              <RiskWorkstation isThinking={true} />
+              <span className="size-1 rounded-full bg-bear animate-ping opacity-75" />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Risk
+            </span>
+          </m.button>
 
-        {/* Desk 4: Sentinel Falcon */}
-        <m.button
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
-          className="group relative flex flex-col items-center gap-1 cursor-pointer"
-          title="Click to view Sentinel Falcon profile"
-        >
-          <AnimatePresence>
-            {activeBubble?.agent === 'sentiment' && (
-              <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="sentiment" />
-            )}
-          </AnimatePresence>
-          <KestrelFalconSprite isThinking={true} />
-          <div className="flex flex-col items-center gap-0.5">
-            <RetroCrtMonitor isThinking={true} />
-            <span className="size-1 rounded-full bg-amber-400 animate-ping opacity-75" />
-          </div>
-          <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
-            Sentinel
-          </span>
-        </m.button>
+          {/* Desk 4: Sentinel Falcon */}
+          <m.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Sentinel Falcon profile"
+          >
+            <AnimatePresence>
+              {activeBubble?.agent === 'sentiment' && (
+                <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="sentiment" />
+              )}
+            </AnimatePresence>
+            <KestrelFalconSprite isThinking={true} />
+            <div className="flex flex-col items-center gap-0.5">
+              <SentinelWorkstation isThinking={true} />
+              <span className="size-1 rounded-full bg-amber-400 animate-ping opacity-75" />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Sentinel
+            </span>
+          </m.button>
+        </div>
+
+        {/* Continuous Trading Desk Counter with Ambient Props */}
+        <TradingFloorDesk />
       </div>
 
       {/* Selected Character Profile Card Popover */}
@@ -434,7 +443,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
 
 /**
  * 🏆 PixelDeskDeliberation
- * Renders the settled committee view with ONE unified call bubble above each specialist character.
+ * Renders the settled committee view with custom workstations and continuous trading desk.
  */
 export function PixelDeskDeliberation({
   opinions,
@@ -530,111 +539,116 @@ export function PixelDeskDeliberation({
         </m.div>
       </div>
 
-      {/* The 4 Pixel Agents in Settled Poses with ONE Unified Call Badge each */}
-      <div className="flex items-end justify-around gap-2 px-1 pt-6 pb-1">
-        {/* Technical */}
-        <m.button
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
-          className="group relative flex flex-col items-center gap-1 cursor-pointer"
-          title="Click to view Chart Wizard profile"
-        >
-          <UnifiedDeskBubble
-            text={techOp?.bias === 'bullish' ? '▲ BUY' : techOp?.bias === 'bearish' ? '▼ SELL' : '■ NEUT'}
-            theme={techOp?.bias ?? 'bullish'}
-          />
-          <ChartWizardSprite
-            isDone={true}
-            bias={techOp?.bias ?? 'bullish'}
-            isSparkling={majorityBias === 'bullish' && avgConfidence >= 80}
-          />
-          <div className="flex flex-col items-center gap-0.5">
-            <RetroCrtMonitor isThinking={false} />
-            <span className={cn('size-1 rounded-full', techOp?.bias === 'bullish' ? 'bg-bull' : techOp?.bias === 'bearish' ? 'bg-bear' : 'bg-fg-subtle')} />
-          </div>
-          <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
-            Technical
-          </span>
-        </m.button>
+      {/* The 4 Pixel Agents in Settled Poses with Custom Workstations & Unified Call Badges */}
+      <div className="flex flex-col gap-0 pt-6">
+        <div className="flex items-end justify-around gap-2 px-1 pb-1">
+          {/* Technical */}
+          <m.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Chart Wizard profile"
+          >
+            <UnifiedDeskBubble
+              text={techOp?.bias === 'bullish' ? '▲ BUY' : techOp?.bias === 'bearish' ? '▼ SELL' : '■ NEUT'}
+              theme={techOp?.bias ?? 'bullish'}
+            />
+            <ChartWizardSprite
+              isDone={true}
+              bias={techOp?.bias ?? 'bullish'}
+              isSparkling={majorityBias === 'bullish' && avgConfidence >= 80}
+            />
+            <div className="flex flex-col items-center gap-0.5">
+              <TechnicalWorkstation isThinking={false} />
+              <span className={cn('size-1 rounded-full', techOp?.bias === 'bullish' ? 'bg-bull' : techOp?.bias === 'bearish' ? 'bg-bear' : 'bg-fg-subtle')} />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Technical
+            </span>
+          </m.button>
 
-        {/* Macro */}
-        <m.button
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')}
-          className="group relative flex flex-col items-center gap-1 cursor-pointer"
-          title="Click to view Macro Mage profile"
-        >
-          <UnifiedDeskBubble
-            text={macroOp?.bias === 'bullish' ? '▲ GROWTH' : macroOp?.bias === 'bearish' ? '▼ RECESS' : '■ STEADY'}
-            theme={macroOp?.bias ?? 'bullish'}
-          />
-          <MacroMageSprite isDone={true} bias={macroOp?.bias ?? 'bullish'} />
-          <div className="flex flex-col items-center gap-0.5">
-            <RetroCrtMonitor isThinking={false} />
-            <span className={cn('size-1 rounded-full', macroOp?.bias === 'bullish' ? 'bg-bull' : macroOp?.bias === 'bearish' ? 'bg-bear' : 'bg-fg-subtle')} />
-          </div>
-          <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
-            Macro
-          </span>
-        </m.button>
+          {/* Macro */}
+          <m.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Macro Mage profile"
+          >
+            <UnifiedDeskBubble
+              text={macroOp?.bias === 'bullish' ? '▲ GROWTH' : macroOp?.bias === 'bearish' ? '▼ RECESS' : '■ STEADY'}
+              theme={macroOp?.bias ?? 'bullish'}
+            />
+            <MacroMageSprite isDone={true} bias={macroOp?.bias ?? 'bullish'} />
+            <div className="flex flex-col items-center gap-0.5">
+              <MacroWorkstation isThinking={false} />
+              <span className={cn('size-1 rounded-full', macroOp?.bias === 'bullish' ? 'bg-bull' : macroOp?.bias === 'bearish' ? 'bg-bear' : 'bg-fg-subtle')} />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Macro
+            </span>
+          </m.button>
 
-        {/* Risk */}
-        <m.button
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
-          className="group relative flex flex-col items-center gap-1 cursor-pointer"
-          title="Click to view Risk Knight profile"
-        >
-          <UnifiedDeskBubble
-            text={riskOp?.bias === 'bullish' ? '🛡️ SAFE' : '⚠️ CAUTION'}
-            theme={riskOp?.bias === 'bullish' ? 'bullish' : 'risk'}
-          />
-          <RiskKnightSprite
-            isDone={true}
-            bias={riskOp?.bias ?? 'bullish'}
-            hasAlarm={isDisputed || riskOp?.bias === 'bearish'}
-          />
-          <div className="flex flex-col items-center gap-0.5">
-            <RetroCrtMonitor isThinking={false} />
-            <span className={cn('size-1 rounded-full', riskOp?.bias === 'bullish' ? 'bg-bull' : riskOp?.bias === 'bearish' ? 'bg-bear' : 'bg-warn')} />
-          </div>
-          <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
-            Risk Guard
-          </span>
-        </m.button>
+          {/* Risk */}
+          <m.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Risk Knight profile"
+          >
+            <UnifiedDeskBubble
+              text={riskOp?.bias === 'bullish' ? '🛡️ SAFE' : '⚠️ CAUTION'}
+              theme={riskOp?.bias === 'bullish' ? 'bullish' : 'risk'}
+            />
+            <RiskKnightSprite
+              isDone={true}
+              bias={riskOp?.bias ?? 'bullish'}
+              hasAlarm={isDisputed || riskOp?.bias === 'bearish'}
+            />
+            <div className="flex flex-col items-center gap-0.5">
+              <RiskWorkstation isThinking={false} />
+              <span className={cn('size-1 rounded-full', riskOp?.bias === 'bullish' ? 'bg-bull' : riskOp?.bias === 'bearish' ? 'bg-bear' : 'bg-warn')} />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Risk Guard
+            </span>
+          </m.button>
 
-        {/* Sentinel */}
-        <m.button
-          type="button"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
-          className="group relative flex flex-col items-center gap-1 cursor-pointer"
-          title="Click to view Sentinel Falcon profile"
-        >
-          <UnifiedDeskBubble
-            text={!isDisputed ? '★ CONSENSUS' : '⚠️ DISPUTED'}
-            theme={!isDisputed ? 'bullish' : 'sentiment'}
-          />
-          <KestrelFalconSprite
-            isDone={true}
-            bias={sentOp?.bias ?? 'bullish'}
-            hasWingsSpread={!isDisputed && majorityBias === 'bullish'}
-          />
-          <div className="flex flex-col items-center gap-0.5">
-            <RetroCrtMonitor isThinking={false} />
-            <span className={cn('size-1 rounded-full', sentOp?.bias === 'bullish' ? 'bg-bull' : sentOp?.bias === 'bearish' ? 'bg-bear' : 'bg-fg-subtle')} />
-          </div>
-          <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
-            Sentinel
-          </span>
-        </m.button>
+          {/* Sentinel */}
+          <m.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Sentinel Falcon profile"
+          >
+            <UnifiedDeskBubble
+              text={!isDisputed ? '★ CONSENSUS' : '⚠️ DISPUTED'}
+              theme={!isDisputed ? 'bullish' : 'sentiment'}
+            />
+            <KestrelFalconSprite
+              isDone={true}
+              bias={sentOp?.bias ?? 'bullish'}
+              hasWingsSpread={!isDisputed && majorityBias === 'bullish'}
+            />
+            <div className="flex flex-col items-center gap-0.5">
+              <SentinelWorkstation isThinking={false} />
+              <span className={cn('size-1 rounded-full', sentOp?.bias === 'bullish' ? 'bg-bull' : sentOp?.bias === 'bearish' ? 'bg-bear' : 'bg-fg-subtle')} />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Sentinel
+            </span>
+          </m.button>
+        </div>
+
+        {/* Continuous Trading Desk Counter with Ambient Props */}
+        <TradingFloorDesk />
       </div>
 
       {/* Selected Character Profile Card Popover */}
