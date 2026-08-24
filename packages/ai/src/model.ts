@@ -54,7 +54,13 @@ export {
   derivePlannerModel,
   deriveTitleModel,
 } from './model-chat';
-export type { ChatModelResolution } from './model-chat';
+export { resolveMastraModel } from './model-resolution';
+export type {
+  ChatModelResolution,
+  MastraModelPurpose,
+  MastraModelSnapshot,
+  ResolveMastraModelInput,
+} from './model-resolution';
 
 // ── Strategy map (domain routing) ────────────────────────────────────
 export { MODEL_ROUTER, TIER_TO_DOMAIN, routeModelByDomain } from './model-strategy';

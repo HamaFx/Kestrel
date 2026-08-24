@@ -39,6 +39,7 @@ describe('mastraStreamResponse onAbort', () => {
     const response = mastraStreamResponse(text(), 'msg-1', {
       signal: controller.signal,
       onAbort,
+      onComplete: () => 'interrupted',
     });
 
     // Abort after a short delay so the first chunk can be yielded.
@@ -85,8 +86,8 @@ describe('mastraStreamResponse onAbort', () => {
     expect(onAbort).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call onAbort when the stream completes normally', async () => {
-    const onAbort = vi.fn();
+  it('emits the durable terminal status before ending normally', async () => {
+    const onComplete = vi.fn().mockReturnValue('persisted');
 
     async function* text(): AsyncIterable<string> {
       yield 'hello';
@@ -94,16 +95,36 @@ describe('mastraStreamResponse onAbort', () => {
     }
 
     const response = mastraStreamResponse(text(), 'msg-2', {
-      onAbort,
+      onComplete,
     });
 
     const reader = response.body!.getReader();
+    let body = '';
     for (;;) {
-      const { done } = await reader.read();
+      const { done, value } = await reader.read();
       if (done) break;
+      body += new TextDecoder().decode(value);
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(onAbort).not.toHaveBeenCalled();
+    expect(body).toContain('"type":"turn-complete"');
+    expect(body).toContain('"status":"persisted"');
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits persistence-failed when completion reports a persistence failure', async () => {
+    async function* text(): AsyncIterable<string> {
+      yield 'hello';
+    }
+    const response = mastraStreamResponse(text(), 'msg-failed', {
+      onComplete: () => 'persistence-failed',
+    });
+    const reader = response.body!.getReader();
+    let body = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      body += new TextDecoder().decode(value);
+    }
+    expect(body).toContain('"status":"persistence-failed"');
   });
 });

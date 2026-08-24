@@ -31,7 +31,7 @@ export const XauusdResearchPacketSchema = z.object({
   kind: z.literal('research_packet'),
   symbol: z.literal(XAUUSD),
   generatedAt: z.string().datetime(),
-  status: z.enum(['ready', 'blocked']),
+  status: z.enum(['succeeded', 'blocked']).or(z.literal('ready')),
   dataQuality: EvidenceQualitySchema,
   timeframes: z.array(TimeframeSchema),
   price: XauusdPriceEvidenceSchema.nullable(),

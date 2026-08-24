@@ -16,7 +16,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { isRetryableAnalysisError } from '../src/jobs/multi-agent-analysis';
+import {
+  FullAnalysisBudgetAdmissionError,
+  FullAnalysisQuotaExceededError,
+  isRetryableAnalysisError,
+} from '../src/jobs/multi-agent-analysis';
 
 describe('isRetryableAnalysisError', () => {
   it.each([
@@ -36,6 +40,14 @@ describe('isRetryableAnalysisError', () => {
       expect(isRetryableAnalysisError(new Error(message))).toBe(false);
     },
   );
+
+  it('does not treat quota exhaustion as retryable', () => {
+    expect(isRetryableAnalysisError(new FullAnalysisQuotaExceededError(5, 5))).toBe(false);
+  });
+
+  it('treats budget infrastructure admission failures as retryable', () => {
+    expect(isRetryableAnalysisError(new FullAnalysisBudgetAdmissionError(new Error('database timeout')))).toBe(true);
+  });
 
   it('classifies a strict Full-mode error by its preserved underlying cause', () => {
     const error = new Error('Full mode could not complete', {

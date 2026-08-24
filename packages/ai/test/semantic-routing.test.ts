@@ -86,6 +86,55 @@ describe('classifyTurnLLM', () => {
     expect(result).toBeNull();
   });
 
+  it('does not treat prompts with the same first 200 characters as identical', async () => {
+    vi.mocked(runMastraStructured)
+      .mockResolvedValueOnce({
+        object: { domain: 'technical', confidence: 0.95, rationale: 'First prompt' },
+      } as never)
+      .mockResolvedValueOnce({
+        object: { domain: 'summary', confidence: 0.95, rationale: 'Second prompt' },
+      } as never);
+    const prefix = 'x'.repeat(200);
+
+    const first = await classifyTurnLLM(`${prefix} first`, 'google/gemini-2.5-flash', {}, null);
+    const second = await classifyTurnLLM(`${prefix} second`, 'google/gemini-2.5-flash', {}, null);
+
+    expect(first?.domain).toBe('technical');
+    expect(second?.domain).toBe('summary');
+    expect(runMastraStructured).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports cache-miss accounting without allowing accounting failures to fail routing', async () => {
+    vi.mocked(runMastraStructured).mockResolvedValueOnce({
+      object: {
+        domain: 'technical',
+        confidence: 0.95,
+        rationale: 'RSI question',
+      },
+    } as never);
+    const onComplete = vi.fn().mockRejectedValueOnce(new Error('telemetry unavailable'));
+
+    const result = await classifyTurnLLM(
+      'A unique routing question for accounting',
+      'google/gemini-2.5-flash',
+      {},
+      null,
+      { onComplete },
+    );
+
+    expect(result?.domain).toBe('technical');
+    expect(onComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelId: 'google/gemini-2.5-flash',
+        inputChars: expect.any(Number),
+        outputChars: expect.any(Number),
+        cached: false,
+        success: true,
+        latencyMs: expect.any(Number),
+      }),
+    );
+  });
+
   it('returns cached result on repeated call with same input', async () => {
     vi.mocked(runMastraStructured).mockResolvedValueOnce({
       object: {

@@ -105,6 +105,7 @@ export interface RouteTurnOptions {
     /** AI env subset for model resolution. */
     env: ResolveModelEnv;
     signal?: AbortSignal | null;
+    accounting?: import('./semantic-routing').SemanticRoutingAccounting;
   };
 }
 
@@ -154,6 +155,7 @@ export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision
         args.semanticRouting.modelId,
         args.semanticRouting.env,
         args.semanticRouting.signal,
+        args.semanticRouting.accounting,
       );
       if (result) {
         const domain = result.domain === 'vision' ? ('generic' as const) : result.domain;

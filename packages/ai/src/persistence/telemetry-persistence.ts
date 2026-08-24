@@ -48,6 +48,8 @@ export interface TelemetryInput {
   outputTokens: number;
   toolCalls: number;
   ms: number;
+  /** False when a provider failed before final usage was available. */
+  usageKnown?: boolean;
   kind?:
     | 'title_generated'
     | 'title_failed'

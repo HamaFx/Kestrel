@@ -44,6 +44,7 @@ import {
   REQUIRED_HEALTH_ENV_VARS,
   withRateLimit,
 } from '@/lib/services/api-boundary';
+import { getTelemetryStartupCheck, isMastraTelemetryDegraded, validateTelemetryStartup } from '@kestrel/ai';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -177,7 +178,9 @@ export const GET = withAuth<void>(async (req, { user }) => {
   // CH-1: analysis jobs with stale pending rows (>10 min unclaimed) indicate
   // the worker is not processing the queue — treat as degraded.
   const analysisOk = analysisCheck.ok && (analysisCheck.stalePending ?? 0) === 0;
-  const allOk = dbCheck.ok && envCheck.ok && pgvectorCheck.ok && cronOk && analysisOk;
+  const telemetryDegraded = isMastraTelemetryDegraded();
+  const telemetryStartup = validateTelemetryStartup();
+  const allOk = dbCheck.ok && envCheck.ok && pgvectorCheck.ok && cronOk && analysisOk && !telemetryDegraded;
   const status = allOk ? 'ok' : 'error';
   const httpStatus = allOk ? 200 : 503;
 
@@ -192,6 +195,12 @@ export const GET = withAuth<void>(async (req, { user }) => {
         cron: cronCheck,
         pgvector: pgvectorCheck,
         analysisJobs: analysisCheck,
+        telemetry: {
+          ok: !telemetryDegraded,
+          degraded: telemetryDegraded,
+          startup: telemetryStartup,
+          lastCheck: getTelemetryStartupCheck(),
+        },
       },
     },
     { status: httpStatus },

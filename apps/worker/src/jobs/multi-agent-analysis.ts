@@ -24,7 +24,7 @@ import {
   appendUserMessage,
   DEFAULT_MAX_DAILY_USD,
   getDb,
-  resolveModelForProvider,
+  resolveMastraModel,
   reserveTurnBudget,
   withDiagnostics,
   type BudgetHandle,
@@ -47,7 +47,6 @@ import {
 } from '@kestrel/ai/mastra';
 import { schema } from '@kestrel/db';
 import { pickAiEnv } from '@kestrel/shared';
-import type { ProviderId } from '@kestrel/shared/encryption';
 import { traceIdStorage } from '@kestrel/shared/logger';
 import type { UIMessage } from 'ai';
 import { eq } from 'drizzle-orm';
@@ -59,6 +58,39 @@ const STALE_JOB_TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_ANALYSIS_ATTEMPTS = 3;
 const HEARTBEAT_MS = 30_000;
 const RETENTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** A quota decision is permanent for this queued run and must not be retried. */
+export class FullAnalysisQuotaExceededError extends Error {
+  readonly code = 'FULL_ANALYSIS_BUDGET_EXCEEDED';
+  readonly spent: number;
+  readonly max: number;
+
+  constructor(spent: number, max: number) {
+    super(`Daily AI budget exceeded ($${spent.toFixed(2)} / $${max.toFixed(2)}).`);
+    this.name = 'FullAnalysisQuotaExceededError';
+    this.spent = spent;
+    this.max = max;
+  }
+}
+
+/** Reservation infrastructure failures are retryable admission errors. */
+export class FullAnalysisBudgetAdmissionError extends Error {
+  readonly code = 'FULL_ANALYSIS_BUDGET_ADMISSION_FAILED';
+
+  constructor(cause: unknown) {
+    super('Full-analysis budget admission failed.', { cause });
+    this.name = 'FullAnalysisBudgetAdmissionError';
+  }
+}
+
+function isBudgetExceededError(error: unknown): error is { spent: number; max: number } {
+  return (
+    error instanceof Error &&
+    (error as { code?: unknown }).code === 'BUDGET_EXCEEDED' &&
+    Number.isFinite((error as { spent?: unknown }).spent) &&
+    Number.isFinite((error as { max?: unknown }).max)
+  );
+}
 
 export function isRetryableAnalysisError(error: unknown): boolean {
   const messages: string[] = [];
@@ -75,17 +107,17 @@ export function isRetryableAnalysisError(error: unknown): boolean {
 }
 
 function resolveSnapshotModel(
-  settings: Parameters<typeof resolveModelForProvider>[1],
-  env: Parameters<typeof resolveModelForProvider>[2],
+  settings: Parameters<typeof resolveMastraModel>[0]['settings'],
+  env: Parameters<typeof resolveMastraModel>[0]['env'],
   snapshot: NonNullable<FullAnalysisPayload['modelSnapshot']>,
 ) {
-  return resolveModelForProvider(
-    snapshot.providerId as ProviderId,
+  return resolveMastraModel({
+    purpose: 'worker',
     settings,
     env,
-    snapshot.bareModelId,
-    'technical',
-  );
+    domain: 'technical',
+    snapshot,
+  });
 }
 
 function userMessageFromPayload(payload: FullAnalysisPayload): UIMessage {
@@ -175,12 +207,19 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
             `Enqueue-time model ${expectedModel} is unavailable; no provider failover is permitted.`,
           );
         }
-        budget = await reserveTurnBudget({
-          userId: payload.userId,
-          estimateUsd: 0.05,
-          maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
-          correlation: { threadId: payload.threadId, runId },
-        });
+        try {
+          budget = await reserveTurnBudget({
+            userId: payload.userId,
+            estimateUsd: 0.05,
+            maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
+            correlation: { threadId: payload.threadId, runId },
+          });
+        } catch (error) {
+          if (isBudgetExceededError(error)) {
+            throw new FullAnalysisQuotaExceededError(error.spent, error.max);
+          }
+          throw new FullAnalysisBudgetAdmissionError(error);
+        }
 
         await appendUserMessage(payload.userId, payload.threadId, userMessage, {
           idempotencyKey: `analysis-job:${runId}:user`,
@@ -289,9 +328,20 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           ctx.log.warn('Full-analysis result discarded after lease loss', { runId });
           continue;
         }
+        if (error instanceof FullAnalysisQuotaExceededError) {
+          ctx.log.warn('Full-analysis run rejected by daily budget', {
+            runId,
+            spent: error.spent,
+            max: error.max,
+          });
+          await failFullAnalysisRun(runId, workerRunId, error);
+          processed++;
+          continue;
+        }
         const message = error instanceof Error ? error.message : String(error);
         const retryable =
-          isRetryableAnalysisError(error) && payload.attemptCount < MAX_ANALYSIS_ATTEMPTS;
+          (error instanceof FullAnalysisBudgetAdmissionError || isRetryableAnalysisError(error)) &&
+          payload.attemptCount < MAX_ANALYSIS_ATTEMPTS;
         ctx.log.error('Full analysis job failed', {
           runId,
           err: message,

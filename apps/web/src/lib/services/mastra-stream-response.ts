@@ -16,6 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import 'server-only';
+
 import { ChatStreamEventSchema } from '@kestrel/shared';
 
 export interface MastraStreamResponseMeta {
@@ -23,17 +25,18 @@ export interface MastraStreamResponseMeta {
   readonly data: Record<string, unknown>;
 }
 
+export type MastraStreamTerminalStatus =
+  | 'persisted'
+  | 'persistence-failed'
+  | 'interrupted'
+  | 'failed';
+
 export interface MastraStreamResponseOptions {
   readonly meta?: MastraStreamResponseMeta;
   readonly signal?: AbortSignal;
-  /**
-   * Called when the stream is aborted before completion (client disconnect
-   * or upstream error). This is the hook for the service layer to persist
-   * an "interrupted" assistant marker so the orphaned user message has
-   * context when the user retries. The callback must not throw — failures
-   * are swallowed so the stream can close cleanly.
-   */
   readonly onAbort?: () => void | Promise<void>;
+  /** Called exactly once after upstream consumption, before the stream closes. */
+  readonly onComplete?: () => MastraStreamTerminalStatus | Promise<MastraStreamTerminalStatus>;
 }
 
 function encode(event: unknown): Uint8Array {
@@ -42,22 +45,15 @@ function encode(event: unknown): Uint8Array {
   );
 }
 
-/**
- * Adapt an async text iterable into the chat SSE contract. The iterable is
- * consumed lazily, so the first provider chunk can reach the browser without
- * waiting for the full answer.
- */
 export function mastraStreamResponse(
   text: AsyncIterable<string>,
   messageId: string,
   options: MastraStreamResponseOptions = {},
 ): Response {
-  // Store the upstream iterator so the stream's cancel() handler can
-  // close it explicitly. Without this, a client disconnect can leave the
-  // provider streaming indefinitely.
   let upstreamIterator: AsyncIterator<string> | null = null;
   let cancelled = false;
   let abortNotified = false;
+  let completionNotified = false;
 
   const notifyAbort = async (): Promise<void> => {
     if (abortNotified || !options.onAbort) return;
@@ -65,8 +61,14 @@ export function mastraStreamResponse(
     try {
       await options.onAbort();
     } catch {
-      // Abort cleanup is best-effort and must not mask the stream shutdown.
+      // Abort cleanup is best-effort and must not mask stream shutdown.
     }
+  };
+
+  const notifyCompletion = async (): Promise<MastraStreamTerminalStatus> => {
+    if (completionNotified || !options.onComplete) return 'failed';
+    completionNotified = true;
+    return options.onComplete();
   };
 
   const stream = new ReadableStream<Uint8Array>({
@@ -75,8 +77,9 @@ export function mastraStreamResponse(
       let ended = false;
       upstreamIterator = text[Symbol.asyncIterator]();
       try {
-        if (options.signal?.aborted)
+        if (options.signal?.aborted) {
           throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
+        }
         controller.enqueue(encode({ type: 'text-start', id: messageId }));
         started = true;
         for (
@@ -84,10 +87,12 @@ export function mastraStreamResponse(
           !next.done;
           next = await upstreamIterator.next()
         ) {
-          if (options.signal?.aborted)
+          if (options.signal?.aborted) {
             throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
-          if (next.value)
+          }
+          if (next.value) {
             controller.enqueue(encode({ type: 'text-delta', id: messageId, delta: next.value }));
+          }
         }
         if (options.meta) {
           controller.enqueue(
@@ -95,8 +100,18 @@ export function mastraStreamResponse(
           );
         }
         controller.enqueue(encode({ type: 'text-end', id: messageId }));
+        const status = options.onComplete ? await notifyCompletion() : 'persisted';
+        controller.enqueue(encode({ type: 'turn-complete', id: messageId, status }));
         ended = true;
       } catch (error) {
+        if (started && !ended) {
+          const status = options.signal?.aborted
+            ? 'interrupted'
+            : options.onComplete
+              ? await notifyCompletion()
+              : 'failed';
+          controller.enqueue(encode({ type: 'turn-complete', id: messageId, status }));
+        }
         if (!cancelled && !options.signal?.aborted) {
           controller.enqueue(
             encode({
@@ -105,8 +120,6 @@ export function mastraStreamResponse(
             }),
           );
         }
-        // When the stream is aborted before completion, fire the onAbort
-        // callback so the service layer can persist an interrupted marker.
         if (started && !ended) await notifyAbort();
       } finally {
         if (started && !ended && !cancelled) {
@@ -118,9 +131,6 @@ export function mastraStreamResponse(
     },
     async cancel() {
       cancelled = true;
-      // Close the upstream async iterator so the provider stops streaming
-      // when the client disconnects. The iterator's return() method signals
-      // the producer to release resources.
       try {
         await upstreamIterator?.return?.();
       } finally {
@@ -129,6 +139,7 @@ export function mastraStreamResponse(
       await notifyAbort();
     },
   });
+
   return new Response(stream, {
     status: 200,
     headers: {

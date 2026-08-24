@@ -17,6 +17,8 @@
 // Public barrel for @kestrel/db.
 
 export * from './schema/index';
+export * from './schema/memory-backfill';
+export * from './schema/memory-projection';
 // PF-15 — Export `getDbRO` so consumers can route read queries to
 // read replicas. `withTenantDbRO` also uses `getDbRO` internally.
 export {
@@ -327,4 +329,17 @@ export {
   type AiRegressionCaseRow,
   type ListAiRegressionCasesOptions,
 } from './queries/ai-regression-cases';
+export {
+  claimMemoryBackfill,
+  completeMemoryBackfill,
+  failMemoryBackfill,
+  getMemoryBackfillState,
+  type MemoryBackfillClaim,
+} from './queries/memory-backfill';
+export {
+  markMemoryProjectionPending,
+  markMemoryProjectionProjected,
+  markMemoryProjectionFailed,
+  getMemoryProjectionState,
+} from './queries/memory-projection';
 export * as queries from './queries';

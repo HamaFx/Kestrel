@@ -111,7 +111,7 @@ export interface XauusdReportWorkflowDeps {
   mastra?: Mastra;
 }
 
-const REPORT_REPAIR_LIMIT = 2; // generations beyond the initial attempt
+const MAX_REPAIR_ATTEMPTS = 2; // additional generations beyond the initial attempt
 
 function isAbort(error: unknown, signal?: AbortSignal): boolean {
   return (
@@ -271,7 +271,7 @@ export function createXauusdReportWorkflow(deps: XauusdReportWorkflowDeps): Work
       };
       if (verified) {
         metrics.increment('mastra_report_repair_total', { tags: { result: 'passed' } });
-      } else if (inputData.attempt < REPORT_REPAIR_LIMIT) {
+      } else if (inputData.attempt < MAX_REPAIR_ATTEMPTS) {
         // Another repair is still scheduled (the loop condition allows it).
         metrics.increment('mastra_report_repair_total', { tags: { result: 'requested' } });
       }
@@ -333,7 +333,7 @@ export function createXauusdReportWorkflow(deps: XauusdReportWorkflowDeps): Work
     .then(generateStep)
     .dowhile(repairStep, async ({ getStepResult, iterationCount }) => {
       const repair = getStepResult('repair') as { verified?: boolean };
-      return repair?.verified !== true && iterationCount < REPORT_REPAIR_LIMIT;
+      return repair?.verified !== true && iterationCount < MAX_REPAIR_ATTEMPTS;
     })
     .then(finalizeStep)
     .commit() as unknown as Workflow;

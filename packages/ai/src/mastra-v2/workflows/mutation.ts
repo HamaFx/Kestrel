@@ -169,7 +169,14 @@ export type MutationExecutor = (input: MutationInput) => Promise<MutationExecuto
  * business write, audit row, and execution ledger in one transaction. */
 export type MutationAtomicExecutor = (
   input: MutationInput,
-  context: { runId: string; userId: string; threadId: string; inputDigest: string },
+  context: {
+    runId: string;
+    userId: string;
+    threadId: string;
+    inputDigest: string;
+    approvalId: string;
+    approvalExpiresAt: number;
+  },
 ) => Promise<MutationExecutorResult>;
 
 export interface MutationWorkflowDeps {
@@ -198,7 +205,7 @@ export interface MutationRunContext {
   threadId: string;
   mutation: MutationKind;
   inputDigest: string;
-  confirmation: { digest: string; expiresAt: number };
+  confirmation: { digest: string; expiresAt: number; inputDigest: string };
 }
 
 type MutationState = MutationRunContext;
@@ -255,7 +262,11 @@ const MutationRunContextSchema = z.object({
   threadId: z.string().min(1),
   mutation: MutationKindSchema,
   inputDigest: z.string().regex(/^[a-f0-9]{64}$/),
-  confirmation: z.object({ digest: z.string().min(1), expiresAt: z.number().int() }),
+  confirmation: z.object({
+    digest: z.string().min(1),
+    expiresAt: z.number().int(),
+    inputDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  }),
 });
 
 /** Parse the trusted state persisted in a Mastra workflow snapshot. */
@@ -305,7 +316,11 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
       threadId: z.string(),
       mutation: MutationKindSchema,
       inputDigest: z.string(),
-      confirmation: z.object({ digest: z.string(), expiresAt: z.number().int() }),
+      confirmation: z.object({
+        digest: z.string(),
+        expiresAt: z.number().int(),
+        inputDigest: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+      }),
     }),
     execute: async ({ inputData, resumeData, suspend, state, setState, runId }) => {
       // First pass — validate + dry-run + issue token + suspend.
@@ -324,10 +339,12 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
 
         const token = randomBytes(32).toString('base64url');
         const expiresAt = now() + (deps.ttlMs ?? MUTATION_TOKEN_TTL_MS);
+        const inputDigest = mutationInputDigest(inputData);
         const storedOptions: Parameters<typeof storedConfirmationForToken>[1] = {
           mutation,
           userId: deps.userId,
           expiresAt,
+          inputDigest,
         };
         if (secret) storedOptions.secret = secret;
         const stored = storedConfirmationForToken(token, storedOptions);
@@ -335,8 +352,12 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
           userId: deps.userId,
           threadId: deps.threadId,
           mutation,
-          inputDigest: mutationInputDigest(inputData),
-          confirmation: { digest: stored.digest, expiresAt: stored.expiresAt },
+          inputDigest,
+          confirmation: {
+            digest: stored.digest,
+            expiresAt: stored.expiresAt,
+            inputDigest: stored.inputDigest,
+          },
         });
 
         return suspend({
@@ -374,6 +395,7 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
         stored,
         mutation,
         userId: deps.userId,
+        inputDigest: persisted.data.inputDigest,
         now: now(),
       };
       if (secret) verifyOptions.secret = secret;
@@ -381,13 +403,24 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
       if (!tokenOk) {
         throw mutationPolicyError(now() > stored.expiresAt ? 'token-expired' : 'token-invalid');
       }
-      assertMastraMutationAllowed({
-        mutation,
-        userId: deps.userId,
-        threadId: (state as MutationState | undefined)?.threadId ?? deps.threadId,
-        confirmed: true,
-        approvalId: runId,
-      });
+      assertMastraMutationAllowed(
+        {
+          mutation,
+          userId: deps.userId,
+          threadId: (state as MutationState | undefined)?.threadId ?? deps.threadId,
+          approval: {
+            approvalId: runId,
+            userId: deps.userId,
+            threadId: (state as MutationState | undefined)?.threadId ?? deps.threadId,
+            mutation,
+            inputDigest: persisted.data.inputDigest,
+            expiresAt: stored.expiresAt,
+            confirmationToken: resumeData.confirmationToken,
+            confirmation: stored,
+          },
+        },
+        { secret, now: now() },
+      );
 
       return { confirmed: true as const, input: inputData };
     },
@@ -397,15 +430,19 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     id: 'execute',
     inputSchema: ConfirmedInputSchema,
     outputSchema: MutationOutputSchema,
-    execute: async ({ inputData, runId }) => {
+    execute: async ({ inputData, runId, state }) => {
       const inputDigest = mutationInputDigest(inputData.input);
+      const approvalExpiresAt = MutationRunContextSchema.safeParse(state).data?.confirmation.expiresAt ?? now();
       const result = deps.executeAtomic
         ? await deps.executeAtomic(inputData.input, {
             runId,
             userId: deps.userId,
             threadId: deps.threadId,
             inputDigest,
+            approvalId: runId,
+            approvalExpiresAt,
           })
+
         : await deps.execute(inputData.input);
       const summary = humanSummary(inputData.input);
       if (!deps.executeAtomic && deps.writeAudit) {

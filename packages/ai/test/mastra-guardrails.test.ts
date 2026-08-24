@@ -44,6 +44,20 @@ describe('mastra guardrails', () => {
     expect(warnings.length).toBe(1);
   });
 
+  it('strictly fails when an external-retrieval path has no detector model', () => {
+    mocks.resolveChatModel.mockImplementation(() => {
+      throw new Error('No AI API keys configured');
+    });
+    expect(() =>
+      buildGuardrailInputProcessors({
+        settings: settings as never,
+        env: env as never,
+        strategy: 'block',
+        mode: 'strict',
+      }),
+    ).toThrow(/strict/i);
+  });
+
   it('builds UnicodeNormalizer + PromptInjectionDetector with a resolved BYOK model', () => {
     mocks.resolveChatModel.mockReturnValue({
       model: { id: 'fast-model' },

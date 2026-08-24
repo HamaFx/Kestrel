@@ -34,66 +34,10 @@
 
 import type { Tool } from 'ai';
 
+import { toolsForRoutingDomain } from '../mastra/capability-registry';
 import { toolRegistry } from './index';
 
 export type RoutingDomain = 'fundamental' | 'technical' | 'summary' | 'vision' | 'generic';
-
-/** Tools included in every domain (user-facing actions). */
-const ALWAYS_TOOLS: ReadonlySet<string> = new Set([
-  'get_price',
-  'set_alert',
-  'log_journal',
-  'search_knowledge',
-]);
-
-const DOMAIN_TOOLS: Record<Exclude<RoutingDomain, 'generic'>, ReadonlySet<string>> = {
-  summary: new Set([
-    ...ALWAYS_TOOLS,
-    'get_news',
-    'get_calendar',
-    'get_cot',
-    'get_journal_stats',
-    'get_social_sentiment',
-  ]),
-  vision: new Set([
-    ...ALWAYS_TOOLS,
-    'analyze_chart_image',
-    'get_candles',
-    'get_indicators',
-    'get_market_structure',
-    'get_session_levels',
-  ]),
-  fundamental: new Set([
-    ...ALWAYS_TOOLS,
-    'get_news',
-    'get_calendar',
-    'get_cot',
-    'analyze_fundamental',
-    'get_correlation',
-    'get_intermarket',
-    'get_intermarket_resonance',
-    'get_seasonality',
-    'get_social_sentiment',
-    'compute_risk',
-    'forecast_volatility',
-    'verify_call',
-    'web_search',
-  ]),
-  technical: new Set([
-    ...ALWAYS_TOOLS,
-    'get_candles',
-    'get_indicators',
-    'get_market_structure',
-    'get_session_levels',
-    'analyze_technical',
-    'analyze_chart_image',
-    'annotate_chart',
-    'compute_position_health',
-    'get_journal_stats',
-    'replay_setup',
-    'get_portfolio_snapshot',
-  ]),
-};
 
 /**
  * Return a filtered copy of the tool registry containing only tools
@@ -110,7 +54,7 @@ export function domainToolFilter(domain: RoutingDomain, plan?: string): Record<s
 
   if (domain === 'generic') return allTools;
 
-  const allowed = DOMAIN_TOOLS[domain];
+  const allowed = toolsForRoutingDomain(domain);
   const filtered: Record<string, Tool> = {};
   for (const name of allowed) {
     const tool = allTools[name];

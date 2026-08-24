@@ -23,7 +23,7 @@ export interface MastraChatMeta {
   runId: string;
   modelId: string;
   providerId: string;
-  researchStatus: 'ready' | 'blocked';
+  researchStatus: 'succeeded' | 'blocked' | 'ready';
   dataQuality: 'complete' | 'partial' | 'degraded';
   packetId: string;
   observedCost: number;

@@ -33,6 +33,16 @@ const mlog = createCategorizedLogger('ai', {
   agentVersion: MASTRA_XAUUSD_AGENT_VERSION,
 });
 
+let telemetryDegraded = false;
+
+export function isMastraTelemetryDegraded(): boolean {
+  return telemetryDegraded;
+}
+
+export function resetMastraTelemetryHealth(): void {
+  telemetryDegraded = false;
+}
+
 export interface MastraRunObservation {
   userId: string;
   threadId: string;
@@ -42,6 +52,8 @@ export interface MastraRunObservation {
   startedAt: number;
   inputTokens: number;
   outputTokens: number;
+  /** False when the provider failed before usage was available. */
+  usageKnown?: boolean;
   toolCalls: number;
   steps: number;
   outcome: MastraRunOutcome;
@@ -148,6 +160,7 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
       outputTokens: args.outputTokens,
       toolCalls: args.toolCalls,
       ms: durationMs,
+      usageKnown: args.usageKnown ?? true,
       // One run has one terminal ledger row regardless of whether the
       // callback was triggered by completion, failure, or abort.
       idempotencyKey: `mastra.run:${args.runId}`,
@@ -165,6 +178,10 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
                   : 'mastra_xauusd_poc_failed',
     });
   } catch (error) {
+    telemetryDegraded = true;
+    metrics.increment('metrics_flush_failed_total', {
+      tags: { surface: 'database' },
+    });
     mlog.error('Mastra run telemetry persistence failed', {
       runId: args.runId,
       threadId: args.threadId,
@@ -196,6 +213,10 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
   try {
     await flushLangfuse();
   } catch (error) {
+    telemetryDegraded = true;
+    metrics.increment('metrics_flush_failed_total', {
+      tags: { surface: 'langfuse' },
+    });
     mlog.warn('Mastra Langfuse flush failed', {
       runId: args.runId,
       err: error instanceof Error ? error.name : 'UnknownError',
@@ -206,6 +227,10 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
   try {
     await flushMastraObservability(getKestrelMastra().instance);
   } catch (error) {
+    telemetryDegraded = true;
+    metrics.increment('metrics_flush_failed_total', {
+      tags: { surface: 'mastra-observability' },
+    });
     mlog.warn('Mastra observability flush failed', {
       runId: args.runId,
       err: error instanceof Error ? error.name : 'UnknownError',
@@ -214,6 +239,10 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
   try {
     await flushMetrics();
   } catch (error) {
+    telemetryDegraded = true;
+    metrics.increment('metrics_flush_failed_total', {
+      tags: { surface: 'metrics' },
+    });
     mlog.warn('Mastra metrics flush failed', {
       runId: args.runId,
       err: error instanceof Error ? error.name : 'UnknownError',

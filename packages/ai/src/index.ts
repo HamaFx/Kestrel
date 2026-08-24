@@ -15,6 +15,12 @@
  */
 
 // Public barrel for @kestrel/ai. The route handler imports from here.
+export * from './workflow-status';
+export * from './mastra/telemetry-startup';
+export {
+  isMastraTelemetryDegraded,
+  resetMastraTelemetryHealth,
+} from './mastra/telemetry';
 
 // P2-3 — Auto-bootstrap DI container services on first import.
 // Every consumer of @kestrel/ai gets db + llmClient registered.
@@ -46,6 +52,7 @@ export {
 export {
   resolveChatModel,
   resolveModelForProvider,
+  resolveMastraModel,
   resolveVisionModel,
   resolveEmbeddingModel,
   derivePlannerModel,
@@ -55,6 +62,9 @@ export {
   MODEL_ROUTER,
   TIER_TO_DOMAIN,
   type ChatModelResolution,
+  type MastraModelPurpose,
+  type MastraModelSnapshot,
+  type ResolveMastraModelInput,
   type VisionModelResolution,
   type EmbeddingModelResolution,
   type DomainRoutingStrategy,

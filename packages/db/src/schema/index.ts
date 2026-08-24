@@ -37,6 +37,8 @@ export * from './cot';
 export * from './share';
 export * from './push';
 export * from './memory';
+export * from './memory-backfill';
+export * from './memory-projection';
 export * from './daily-ai-spend';
 export * from './budget-reservations';
 export * from './persistence-outbox';
@@ -82,3 +84,4 @@ export * from './telegram-updates';
 export * from './provider-health';
 // Privacy-safe paired comparison data for AI rollout
 export * from './ai-shadow-comparisons';
+export * from './ai-quality-results';

@@ -14,23 +14,61 @@
  * limitations under the License.
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { assertMastraMutationAllowed, evaluateMastraMutation } from '../src/mastra';
+import {
+  assertMastraMutationAllowed,
+  evaluateMastraMutation,
+  issueMutationConfirmationToken,
+  storedConfirmationForToken,
+} from '../src/mastra';
+
+const SECRET = 'm'.repeat(64);
+const INPUT_DIGEST = 'a'.repeat(64);
+
+beforeEach(() => {
+  process.env.AUTH_COOKIE_SECRET = SECRET;
+});
 
 afterEach(() => {
   delete process.env.ENABLE_MASTRA_MUTATIONS;
+  delete process.env.AUTH_COOKIE_SECRET;
 });
 
-describe('Mastra mutation policy', () => {
-  const request = {
+function makeRequest() {
+  const issued = issueMutationConfirmationToken({
+    mutation: 'set_alert',
+    userId: 'user-1',
+    secret: SECRET,
+    ttlMs: 60_000,
+  });
+  const confirmation = storedConfirmationForToken(issued.token, {
+    mutation: 'set_alert',
+    userId: 'user-1',
+    inputDigest: INPUT_DIGEST,
+    expiresAt: issued.expiresAt,
+    secret: SECRET,
+  });
+  return {
     mutation: 'set_alert' as const,
     userId: 'user-1',
     threadId: 'thread-1',
-    confirmed: true,
+    approval: {
+      approvalId: 'approval-1',
+      userId: 'user-1',
+      threadId: 'thread-1',
+      mutation: 'set_alert' as const,
+      inputDigest: INPUT_DIGEST,
+      expiresAt: issued.expiresAt,
+      confirmationToken: issued.token,
+      confirmation,
+    },
   };
+}
 
+describe('Mastra mutation policy', () => {
   it('rejects mutations while the operator flag is absent', () => {
+    const request = makeRequest();
     expect(evaluateMastraMutation(request)).toEqual({
       allowed: false,
       mutation: 'set_alert',
@@ -39,16 +77,23 @@ describe('Mastra mutation policy', () => {
     expect(() => assertMastraMutationAllowed(request)).toThrow('disabled by policy');
   });
 
-  it('requires server-side confirmation after enablement', () => {
+  it('rejects an unverified or forged confirmation proof after enablement', () => {
     process.env.ENABLE_MASTRA_MUTATIONS = 'true';
-    expect(evaluateMastraMutation({ ...request, confirmed: false })).toMatchObject({
+    const request = makeRequest();
+    expect(
+      evaluateMastraMutation({
+        ...request,
+        approval: { ...request.approval, confirmationToken: 'attacker-token' },
+      }),
+    ).toMatchObject({
       allowed: false,
-      reason: 'confirmation-required',
+      reason: 'token-invalid',
     });
   });
 
-  it('allows only a valid confirmed request when explicitly enabled', () => {
+  it('allows only a valid token proof when explicitly enabled', () => {
     process.env.ENABLE_MASTRA_MUTATIONS = 'true';
+    const request = makeRequest();
     expect(evaluateMastraMutation(request)).toEqual({
       allowed: true,
       mutation: 'set_alert',

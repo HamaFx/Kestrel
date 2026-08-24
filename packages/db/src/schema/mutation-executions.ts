@@ -30,6 +30,9 @@ export const mutationExecutions = pgTable(
     threadId: text('thread_id').notNull(),
     mutation: text('mutation').notNull(),
     inputDigest: text('input_digest').notNull(),
+    /** Immutable approval identity captured when the token is consumed. */
+    approvalId: text('approval_id'),
+    approvalExpiresAt: timestamp('approval_expires_at', { withTimezone: true }),
     status: text('status').notNull().default('executing'),
     resultId: text('result_id'),
     resultUrl: text('result_url'),

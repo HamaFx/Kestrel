@@ -16,6 +16,7 @@
 
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   doublePrecision,
   index,
   integer,
@@ -120,6 +121,7 @@ export const chatTelemetry = pgTable(
     ms: integer('ms').notNull().default(0),
     /** Estimated cost in USD; computed from per-model rate at insert time. */
     estCostUsd: doublePrecision('est_cost_usd').notNull().default(0),
+    /** Whether provider token usage was available for this row. */
     /**
      * Row marker. `null` for legacy assistant turns; one of `ChatTelemetryKind`
      * for Title_Generator events. Stored as plain text so we can extend the

@@ -55,14 +55,33 @@ export function assertRegisteredSystemAction(action: string): asserts action is 
   }
 }
 
+export interface VerifiedMutationApproval {
+  /** Server-issued, durable approval identity. */
+  approvalId: string;
+  userId: string;
+  threadId: string;
+  mutation: MastraMutationName;
+  /** Digest of the exact mutation input approved by the user. */
+  inputDigest: string;
+  expiresAt: number;
+  /** Raw token presented by the user for this exact approval. */
+  confirmationToken: string;
+  /** HMAC-backed proof persisted by the draft workflow. */
+  confirmation: StoredMutationConfirmation;
+}
+
 export interface MastraMutationRequest {
   mutation: MastraMutationName;
   userId: string;
   threadId: string;
-  /** Set only by a server-side approval flow after validating the user action. */
-  confirmed: boolean;
-  /** Optional opaque approval id for audit correlation. */
-  approvalId?: string;
+  /** Server-produced approval; a client boolean is intentionally not accepted. */
+  approval: VerifiedMutationApproval;
+}
+
+export interface MastraMutationVerificationOptions {
+  /** Secret/clock overrides are available only to trusted server composition edges and tests. */
+  secret?: string | undefined;
+  now?: number;
 }
 
 export type MastraMutationDecision =
@@ -83,19 +102,48 @@ export type MastraMutationDecision =
  * The flag is false unless an operator explicitly enables it, and the
  * request must carry a server-issued confirmation decision as well.
  */
-export function evaluateMastraMutation(request: MastraMutationRequest): MastraMutationDecision {
+export function evaluateMastraMutation(
+  request: MastraMutationRequest,
+  verification: MastraMutationVerificationOptions = {},
+): MastraMutationDecision {
   if (!request.userId || !request.threadId) {
     return { allowed: false, mutation: request.mutation, reason: 'invalid-context' };
   }
   if (process.env.ENABLE_MASTRA_MUTATIONS !== 'true') {
     return { allowed: false, mutation: request.mutation, reason: 'disabled' };
   }
-  if (!request.confirmed) {
-    return {
-      allowed: false,
-      mutation: request.mutation,
-      reason: 'confirmation-required',
-    };
+  const approval = request.approval;
+  if (
+    approval.approvalId.length === 0 ||
+    approval.userId !== request.userId ||
+    approval.threadId !== request.threadId ||
+    approval.mutation !== request.mutation ||
+    !/^[a-f0-9]{64}$/.test(approval.inputDigest) ||
+    approval.expiresAt !== approval.confirmation.expiresAt ||
+    approval.confirmation.inputDigest !== approval.inputDigest
+  ) {
+    return { allowed: false, mutation: request.mutation, reason: 'confirmation-required' };
+  }
+  const now = verification.now ?? Date.now();
+  if (now > approval.expiresAt) {
+    return { allowed: false, mutation: request.mutation, reason: 'token-expired' };
+  }
+  try {
+    if (
+      !verifyMutationConfirmationToken({
+        token: approval.confirmationToken,
+        stored: approval.confirmation,
+        mutation: request.mutation,
+        userId: request.userId,
+        inputDigest: approval.inputDigest,
+        secret: verification.secret,
+        now,
+      })
+    ) {
+      return { allowed: false, mutation: request.mutation, reason: 'token-invalid' };
+    }
+  } catch {
+    return { allowed: false, mutation: request.mutation, reason: 'token-invalid' };
   }
   return { allowed: true, mutation: request.mutation };
 }
@@ -118,8 +166,11 @@ export function assertMastraMutationDraftAllowed(request: {
   }
 }
 
-export function assertMastraMutationAllowed(request: MastraMutationRequest): void {
-  const decision = evaluateMastraMutation(request);
+export function assertMastraMutationAllowed(
+  request: MastraMutationRequest,
+  verification?: MastraMutationVerificationOptions,
+): void {
+  const decision = evaluateMastraMutation(request, verification);
   if (decision.allowed) return;
 
   if (!decision.allowed) {
@@ -174,6 +225,8 @@ export interface MutationConfirmationToken {
 export interface StoredMutationConfirmation {
   digest: string;
   expiresAt: number;
+  /** Digest of the exact mutation input bound into the HMAC proof. */
+  inputDigest: string;
 }
 
 export interface IssueConfirmationTokenOptions {
@@ -199,15 +252,20 @@ export function issueMutationConfirmationToken(
 /** Compute the persisted digest for a token (store this, not the token). */
 export function storedConfirmationForToken(
   token: string,
-  options: Omit<IssueConfirmationTokenOptions, 'ttlMs' | 'now'> & { expiresAt: number },
+  options: Omit<IssueConfirmationTokenOptions, 'ttlMs' | 'now'> & {
+    expiresAt: number;
+    inputDigest?: string;
+  },
 ): StoredMutationConfirmation {
   const secret = confirmationSecret(options.secret);
+  const inputDigest = options.inputDigest ?? '';
   return {
     digest: hmacDigest(
       secret,
-      `${token}:${options.mutation}:${options.userId}:${options.expiresAt}`,
+      `${token}:${options.mutation}:${options.userId}:${inputDigest}:${options.expiresAt}`,
     ),
     expiresAt: options.expiresAt,
+    inputDigest,
   };
 }
 
@@ -218,7 +276,9 @@ export interface VerifyConfirmationTokenOptions {
   stored: StoredMutationConfirmation;
   mutation: MastraMutationName;
   userId: string;
-  secret?: string;
+  inputDigest?: string;
+  /** Trusted server-side secret override; omitted callers use AUTH_COOKIE_SECRET. */
+  secret?: string | undefined;
   now?: number;
 }
 
@@ -233,7 +293,7 @@ export function verifyMutationConfirmationToken(options: VerifyConfirmationToken
   if (now > options.stored.expiresAt) return false;
   const expected = hmacDigest(
     secret,
-    `${options.token}:${options.mutation}:${options.userId}:${options.stored.expiresAt}`,
+    `${options.token}:${options.mutation}:${options.userId}:${options.inputDigest ?? ''}:${options.stored.expiresAt}`,
   );
   return timingSafeEqualHex(expected, options.stored.digest);
 }

@@ -27,6 +27,7 @@ import {
   resolveMastraModeModel,
 } from '@kestrel/ai/mastra';
 import { getUserWithSettings } from '@kestrel/db';
+import { UserMessagePartsSchema } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -94,6 +95,20 @@ function errorJson(code: string, message: string, status: number): Response {
   return Response.json({ error: { code, message } }, { status });
 }
 
+/** Only allow presentation preferences into the AI request boundary. */
+function sanitizeCustomInstructions(value: string): string | undefined {
+  const normalized = value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, 2_000);
+  if (!normalized) return undefined;
+  if (
+    /\b(?:ignore|system|developer|tool|function|execute|mutation|safety|policy|reveal|secret|memory|permission|instruction|jailbreak|override)\b/i.test(
+      normalized,
+    )
+  ) {
+    return undefined;
+  }
+  return normalized;
+}
+
 function mastraFailureResponse(error: unknown): Response {
   const message =
     process.env.NODE_ENV === 'production'
@@ -137,6 +152,10 @@ export const POST = withAuth<void>(async (req, { user }) => {
   if (!last || last.role !== 'user') {
     return errorJson('VALIDATION', 'last message must be from the user', 400);
   }
+  const userParts = UserMessagePartsSchema.safeParse(last.parts);
+  if (!userParts.success) {
+    return errorJson('VALIDATION', 'user message contains unsupported or malformed parts', 400);
+  }
 
   let serverEnv: ReturnType<typeof getServerEnv>;
   try {
@@ -151,7 +170,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     try {
       const prefs = JSON.parse(aiPrefsHeader) as { customInstructions?: unknown };
       if (typeof prefs.customInstructions === 'string') {
-        customInstructions = prefs.customInstructions;
+        customInstructions = sanitizeCustomInstructions(prefs.customInstructions);
       }
     } catch {
       // Malformed optional preferences do not invalidate the chat request.
@@ -162,7 +181,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
   if (!thread) return errorJson('NOT_FOUND', 'Thread not found', 404);
 
   const analysisMode = body.analysisMode ?? 'single';
-  const userMessage = last as UIMessage;
+  const userMessage = { ...last, parts: userParts.data } as UIMessage;
   const userText = extractUserMessageText(userMessage);
   const priorReport = mayReferToMastraReport(userText)
     ? extractLatestMastraReport(await listMessages(user.userId, body.threadId, 100))
@@ -254,7 +273,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
               userId: user.userId,
               threadId: body.threadId,
               userMessageText: userText,
-              userMessageParts: userMessage.parts,
+              userMessageParts: userParts.data,
               idempotencyKey: `full:${body.threadId}:${last.id}`,
               traceId: traceIdStorage.getStore() ?? crypto.randomUUID(),
               modelSnapshot: {

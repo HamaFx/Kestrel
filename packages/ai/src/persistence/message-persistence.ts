@@ -25,7 +25,6 @@ import { and, asc, eq } from 'drizzle-orm';
 import { getDb } from '../db';
 import { getDiagnosticContext } from '../diagnostics/run-context';
 import { enqueuePersistenceFailure } from '../persistence-outbox';
-import { getThread } from './thread-persistence';
 
 // ---------------------------------------------------------------------------
 // Messages
@@ -48,12 +47,27 @@ export async function listMessages(
   threadId: string,
   limit = 200,
 ): Promise<DbMessage[]> {
-  const thread = await getThread(userId, threadId);
-  if (!thread) return [];
+  // Enforce ownership in the message query itself. Keeping the owner
+  // predicate on the joined thread prevents a future refactor from turning
+  // the pre-check into a time-of-check/time-of-use authorization gap.
   const rows = await getDb()
-    .select()
+    .select({
+      id: schema.chatMessages.id,
+      threadId: schema.chatMessages.threadId,
+      role: schema.chatMessages.role,
+      content: schema.chatMessages.content,
+      parts: schema.chatMessages.parts,
+      idempotencyKey: schema.chatMessages.idempotencyKey,
+      createdAt: schema.chatMessages.createdAt,
+    })
     .from(schema.chatMessages)
-    .where(eq(schema.chatMessages.threadId, threadId))
+    .innerJoin(schema.chatThreads, eq(schema.chatMessages.threadId, schema.chatThreads.id))
+    .where(
+      and(
+        eq(schema.chatMessages.threadId, threadId),
+        eq(schema.chatThreads.userId, userId),
+      ),
+    )
     .orderBy(asc(schema.chatMessages.createdAt))
     .limit(limit);
   return rows.map((r) => ({

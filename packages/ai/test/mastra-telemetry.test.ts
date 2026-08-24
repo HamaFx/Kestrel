@@ -22,6 +22,8 @@ import {
   finishMastraRun,
   getMastraGenerationStats,
   mastraOutcomeForError,
+  isMastraTelemetryDegraded,
+  resetMastraTelemetryHealth,
 } from '../src/mastra/telemetry';
 
 const mocks = vi.hoisted(() => ({
@@ -45,6 +47,7 @@ vi.mock('../src/instrumentation', () => ({
 describe('Mastra telemetry boundaries', () => {
   beforeEach(() => {
     metrics.reset();
+    resetMastraTelemetryHealth();
     mocks.recordTelemetry.mockClear();
     mocks.recordToolTelemetry.mockClear();
     mocks.flushMetrics.mockClear();
@@ -234,5 +237,29 @@ describe('Mastra telemetry boundaries', () => {
     expect(mocks.recordTelemetry).toHaveBeenCalledOnce();
     expect(mocks.flushLangfuse).toHaveBeenCalledOnce();
     expect(mocks.flushMetrics).toHaveBeenCalledOnce();
+  });
+
+  it('exposes degradation health when a telemetry surface fails', async () => {
+    mocks.flushMetrics.mockRejectedValueOnce(new Error('exporter down'));
+
+    await finishMastraRun({
+      userId: 'user-1',
+      threadId: 'thread-1',
+      runId: 'run-health',
+      model: 'google/gemini-2.5-flash',
+      providerId: 'google',
+      startedAt: Date.now(),
+      inputTokens: 1,
+      outputTokens: 1,
+      toolCalls: 0,
+      steps: 1,
+      outcome: 'success',
+    });
+
+    expect(isMastraTelemetryDegraded()).toBe(true);
+    expect(metrics.snapshot().counters).toHaveProperty(
+      'metrics_flush_failed_total{surface=metrics}',
+      1,
+    );
   });
 });

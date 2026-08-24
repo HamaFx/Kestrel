@@ -42,6 +42,29 @@ export const ErrorEventSchema = z.object({
   type: z.literal('error'),
   errorText: z.string(),
 });
+export const TurnCompleteEventSchema = z.object({
+  type: z.literal('turn-complete'),
+  id: z.string(),
+  status: z.enum(['persisted', 'persistence-failed', 'interrupted', 'failed']),
+});
+
+/** Strict user-authored parts allowed into durable AI queue payloads. */
+export const UserMessageTextPartSchema = z.object({
+  type: z.literal('text'),
+  text: z.string().max(50_000),
+});
+export const UserMessageFilePartSchema = z.object({
+  type: z.literal('file'),
+  url: z.string().url().max(2_048),
+  mediaType: z.string().regex(/^[a-z]+\/[a-z0-9.+-]+$/i).max(120),
+  filename: z.string().max(255).optional(),
+});
+export const UserMessagePartSchema = z.discriminatedUnion('type', [
+  UserMessageTextPartSchema,
+  UserMessageFilePartSchema,
+]);
+export const UserMessagePartsSchema = z.array(UserMessagePartSchema).max(50);
+export type UserMessagePart = z.infer<typeof UserMessagePartSchema>;
 export const AnalysisQueuedEventSchema = z.object({
   type: z.literal('analysis-queued'),
   jobId: z.string(),
@@ -93,6 +116,7 @@ export const ChatStreamEventSchema = z.discriminatedUnion('type', [
   MultiAgentMetaEventSchema,
   AgentProgressEventSchema,
   ErrorEventSchema,
+  TurnCompleteEventSchema,
 ]);
 
 export type ChatStreamEvent = z.infer<typeof ChatStreamEventSchema>;

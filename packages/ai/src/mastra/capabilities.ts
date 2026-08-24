@@ -19,6 +19,36 @@ import { ALL_SYMBOLS, type ToolName } from '@kestrel/shared';
 export type MastraCapabilityMode = 'single' | 'quick' | 'standard' | 'full' | 'auto';
 export type MastraEvidencePolicy = 'required' | 'optional' | 'none';
 export type MastraCapabilityScope = 'read-only' | 'user-scoped' | 'admin';
+export type MastraContentTrust = 'trusted' | 'untrusted';
+
+/**
+ * Reviewed legacy-tool exposure by routing domain. This is the single source
+ * for domain filtering; a tool is not exposed merely because it exists in the
+ * broad legacy registry.
+ */
+export const LEGACY_DOMAIN_TOOL_NAMES = {
+  summary: [
+    'get_price', 'set_alert', 'log_journal', 'search_knowledge', 'get_news',
+    'get_calendar', 'get_cot', 'get_journal_stats', 'get_social_sentiment',
+  ],
+  vision: [
+    'get_price', 'set_alert', 'log_journal', 'search_knowledge', 'analyze_chart_image',
+    'get_candles', 'get_indicators', 'get_market_structure', 'get_session_levels',
+  ],
+  fundamental: [
+    'get_price', 'set_alert', 'log_journal', 'search_knowledge', 'get_news',
+    'get_calendar', 'get_cot', 'analyze_fundamental', 'get_correlation',
+    'get_intermarket', 'get_intermarket_resonance', 'get_seasonality',
+    'get_social_sentiment', 'compute_risk', 'forecast_volatility', 'verify_call',
+    'web_search',
+  ],
+  technical: [
+    'get_price', 'set_alert', 'log_journal', 'search_knowledge', 'get_candles',
+    'get_indicators', 'get_market_structure', 'get_session_levels', 'analyze_technical',
+    'analyze_chart_image', 'annotate_chart', 'compute_position_health',
+    'get_journal_stats', 'replay_setup', 'get_portfolio_snapshot',
+  ],
+} as const satisfies Record<Exclude<MastraCapabilityMode, 'single' | 'quick' | 'standard' | 'full' | 'auto'> | 'summary' | 'vision' | 'fundamental' | 'technical', readonly string[]>;
 
 /**
  * Explicit legacy-tool boundary for the canonical conversational agent.
@@ -67,6 +97,8 @@ export interface MastraCapability {
   readonly maxSteps: number;
   readonly maxDurationMs: number;
   readonly evidencePolicy: MastraEvidencePolicy;
+  readonly externalData: boolean;
+  readonly contentTrust: MastraContentTrust;
 }
 
 /**
@@ -107,6 +139,8 @@ export const MASTRA_CAPABILITIES = {
     maxSteps: 3,
     maxDurationMs: 55_000,
     evidencePolicy: 'required',
+    externalData: true,
+    contentTrust: 'untrusted',
   },
   'symbol-research': {
     id: 'symbol-research',
@@ -129,6 +163,8 @@ export const MASTRA_CAPABILITIES = {
     maxSteps: 5,
     maxDurationMs: 55_000,
     evidencePolicy: 'required',
+    externalData: true,
+    contentTrust: 'untrusted',
   },
   'mutation-workflows': {
     id: 'mutation-workflows',
@@ -144,6 +180,8 @@ export const MASTRA_CAPABILITIES = {
     maxSteps: 1,
     maxDurationMs: 15_000,
     evidencePolicy: 'none',
+    externalData: false,
+    contentTrust: 'trusted',
   },
   'xauusd-research': {
     id: 'xauusd-research',
@@ -166,6 +204,8 @@ export const MASTRA_CAPABILITIES = {
     maxSteps: 1,
     maxDurationMs: 55_000,
     evidencePolicy: 'required',
+    externalData: true,
+    contentTrust: 'untrusted',
   },
 } as const satisfies Record<string, MastraCapability>;
 
