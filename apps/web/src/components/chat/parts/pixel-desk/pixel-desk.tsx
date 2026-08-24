@@ -249,11 +249,234 @@ function CharacterProfileCard({
 }
 
 /**
+ * 🕹️ PixelDeskStandby
+ * Rendered on the Chat Welcome Screen and Dashboard Widget.
+ * The 4 animated specialists are actively on standby, ready to answer questions or run analysis.
+ */
+export function PixelDeskStandby({
+  pinnedSymbol,
+  onSelectPrompt,
+  className,
+}: {
+  pinnedSymbol?: string | null;
+  onSelectPrompt?: (prompt: string) => void;
+  className?: string;
+}) {
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const activeSymbol = pinnedSymbol ?? 'XAUUSD';
+
+  const PROMPTS: Record<string, string> = {
+    technical: `Analyze ${activeSymbol} 15m/1h SMC liquidity sweeps, order blocks & market structure`,
+    fundamental: `Provide macro catalyst outlook on real yields, DXY, and central bank policy for ${activeSymbol}`,
+    risk: `Calculate optimal 1% risk position sizing, ATR cones & stop loss invalidation for ${activeSymbol}`,
+    sentiment: `Check institutional CFTC COT positioning and retail sentiment regime for ${activeSymbol}`,
+  };
+
+  return (
+    <div
+      role="region"
+      aria-label="Quantitative floor on standby"
+      className={cn(
+        'border-border/80 bg-bg-elev-1 relative my-2 flex w-full max-w-xl flex-col gap-3 overflow-hidden rounded-sm border p-3.5 shadow-sm',
+        className,
+      )}
+    >
+      {/* Subtle CRT Scanline Background Overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(0deg, #000, #000 1px, transparent 1px, transparent 2px)',
+          backgroundSize: '100% 2px',
+        }}
+      />
+
+      {/* Header Bar */}
+      <div className="border-border/60 flex items-center justify-between border-b pb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="bg-bull inline-block size-2 rounded-xs animate-pulse shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
+          <span className="text-fg font-mono text-[11px] font-bold tracking-wider uppercase">
+            KESTREL QUANT DESK
+          </span>
+        </div>
+        <span className="border-bull/40 bg-bull/10 text-bull rounded-xs border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase">
+          STANDBY READY
+        </span>
+      </div>
+
+      {/* The 8-Bit Trading Floor / Character Row with Custom Workstations */}
+      <div className="flex flex-col gap-0 pt-6">
+        <div className="flex items-end justify-around gap-2 px-1 pb-1">
+          {/* Desk 1: Chart Wizard */}
+          <motion.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Chart Wizard profile"
+          >
+            <UnifiedDeskBubble tag="SMC" text="15m Chart Ready" theme="technical" />
+            <ChartWizardSprite />
+            <div className="flex flex-col items-center gap-0.5">
+              <TechnicalWorkstation />
+              <span className="size-1 rounded-full bg-bull" />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Technical
+            </span>
+          </motion.button>
+
+          {/* Desk 2: Macro Mage */}
+          <motion.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Macro Mage profile"
+          >
+            <UnifiedDeskBubble tag="FRED" text="Macro & Yields" theme="fundamental" />
+            <MacroMageSprite />
+            <div className="flex flex-col items-center gap-0.5">
+              <MacroWorkstation />
+              <span className="size-1 rounded-full bg-sky-400" />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Macro
+            </span>
+          </motion.button>
+
+          {/* Desk 3: Risk Knight */}
+          <motion.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Risk Knight profile"
+          >
+            <UnifiedDeskBubble tag="VaR" text="1% Risk Guard" theme="risk" />
+            <RiskKnightSprite />
+            <div className="flex flex-col items-center gap-0.5">
+              <RiskWorkstation />
+              <span className="size-1 rounded-full bg-bear" />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Risk Guard
+            </span>
+          </motion.button>
+
+          {/* Desk 4: Sentinel Falcon */}
+          <motion.button
+            type="button"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
+            className="group relative flex flex-col items-center gap-1 cursor-pointer"
+            title="Click to view Sentinel Falcon profile"
+          >
+            <UnifiedDeskBubble tag="COT" text="Whale Scanner" theme="sentiment" />
+            <KestrelFalconSprite />
+            <div className="flex flex-col items-center gap-0.5">
+              <SentinelWorkstation />
+              <span className="size-1 rounded-full bg-amber-400" />
+            </div>
+            <span className="text-fg-subtle group-hover:text-brand font-mono text-[10px] font-semibold transition-colors">
+              Sentinel
+            </span>
+          </motion.button>
+        </div>
+
+        {/* Continuous Trading Desk Counter with Ambient Props */}
+        <TradingFloorDesk />
+      </div>
+
+      {/* Selected Character Profile Card Popover */}
+      <AnimatePresence>
+        {selectedProfile && CHARACTER_PROFILES[selectedProfile] && (
+          <div className="flex flex-col gap-2">
+            <CharacterProfileCard
+              profile={CHARACTER_PROFILES[selectedProfile]!}
+              onClose={() => setSelectedProfile(null)}
+            />
+            {onSelectPrompt && (
+              <button
+                type="button"
+                onClick={() => onSelectPrompt(PROMPTS[selectedProfile] ?? '')}
+                className="bg-brand/10 hover:bg-brand/20 text-brand border-brand/40 flex w-full items-center justify-center gap-1.5 rounded-xs border py-1.5 font-mono text-xs font-bold tracking-wide uppercase transition-colors cursor-pointer"
+              >
+                <span>▶ Deploy {CHARACTER_PROFILES[selectedProfile]?.name} on {activeSymbol}</span>
+              </button>
+            )}
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Launch Action Strip (if prompt callback provided) */}
+      {onSelectPrompt && !selectedProfile && (
+        <div className="flex flex-col gap-1.5 pt-1">
+          <span className="text-fg-subtle font-mono text-[10px] uppercase font-bold tracking-wider">
+            Quick Launch Specialist Models:
+          </span>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              onClick={() => onSelectPrompt(PROMPTS.technical!)}
+              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bull/50 flex items-center gap-1.5 rounded-xs border p-2 text-left transition-all cursor-pointer group"
+            >
+              <span className="text-bull font-mono text-xs font-bold">🧙‍♂️ 15m SMC</span>
+              <span className="text-fg-subtle group-hover:text-fg font-mono text-[10px] truncate">
+                Order blocks & sweeps
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectPrompt(PROMPTS.fundamental!)}
+              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-sky-400/50 flex items-center gap-1.5 rounded-xs border p-2 text-left transition-all cursor-pointer group"
+            >
+              <span className="text-sky-400 font-mono text-xs font-bold">📰 Macro</span>
+              <span className="text-fg-subtle group-hover:text-fg font-mono text-[10px] truncate">
+                Yields & Fed catalyst
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectPrompt(PROMPTS.risk!)}
+              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bear/50 flex items-center gap-1.5 rounded-xs border p-2 text-left transition-all cursor-pointer group"
+            >
+              <span className="text-bear font-mono text-xs font-bold">🛡️ 1% Sizing</span>
+              <span className="text-fg-subtle group-hover:text-fg font-mono text-[10px] truncate">
+                ATR VaR stop loss
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectPrompt(PROMPTS.sentiment!)}
+              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-amber-400/50 flex items-center gap-1.5 rounded-xs border p-2 text-left transition-all cursor-pointer group"
+            >
+              <span className="text-amber-400 font-mono text-xs font-bold">🦅 COT</span>
+              <span className="text-fg-subtle group-hover:text-fg font-mono text-[10px] truncate">
+                Whale positioning
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * 🎮 PixelDeskThinking
  * Active during in-flight generation / background analysis.
  * Renders the 4 pixel quants at their custom workstations with connected trading desk.
  */
 export function PixelDeskThinking({ className }: { className?: string }) {
+
   const [stepIdx, setStepIdx] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
 

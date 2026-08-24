@@ -58,6 +58,7 @@ import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useThreadTitle } from '@/hooks/use-thread-title';
 import { apiFetch, apiMutate } from '@/lib/api-client';
 import { createKestrelChatTransport, type AgentProgress } from '@/lib/chat-transport';
+import { PixelDeskStandby } from './parts/pixel-desk/pixel-desk';
 import { cn } from '@/lib/cn';
 import { getCsrfToken } from '@/lib/csrf';
 
@@ -640,14 +641,12 @@ interface EmptyChatStateProps {
 
 function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProps) {
   return (
-    <div className="flex min-h-[60svh] flex-col items-center justify-center gap-6 px-4 py-10 text-center">
-      <KestrelBrand variant="lockup" decorative priority className="w-44 opacity-95" />
+    <div className="flex min-h-[60svh] flex-col items-center justify-center gap-4 px-4 py-6 text-center">
+      <KestrelBrand variant="lockup" decorative priority className="w-36 opacity-95" />
 
-      <div className="flex max-w-sm flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">What are you watching?</h2>
-        <p className="text-fg-muted text-sm leading-relaxed">
-          Ask Kestrel about price action, macro risk, news, or your trading journal.
-        </p>
+      {/* 8-Bit Pixel Quant Floor on Standby */}
+      <div className="w-full max-w-xl flex justify-center">
+        <PixelDeskStandby pinnedSymbol={pinnedSymbol} onSelectPrompt={onSelect} />
       </div>
 
       <div className="w-full max-w-md">
@@ -656,3 +655,4 @@ function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProp
     </div>
   );
 }
+
