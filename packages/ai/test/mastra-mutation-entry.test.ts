@@ -15,6 +15,7 @@
  */
 
 import {
+  assertRegisteredSystemAction,
   buildMutationInput,
   classifyMutationRequest,
   MutationExtractionError,
@@ -90,6 +91,13 @@ describe('buildMutationInput', () => {
       tags: ['gold', 'breakout'],
     });
     expect((input as { openedAt: number }).openedAt).toBeGreaterThan(0);
+  });
+
+  it('rejects unregistered system actions at the policy boundary', () => {
+    expect(() => assertRegisteredSystemAction('maintenance')).toThrow(
+      'Unregistered system action',
+    );
+    expect(() => assertRegisteredSystemAction('resonance_sync')).not.toThrow();
   });
 
   it('builds a share_snapshot input', () => {

@@ -223,6 +223,29 @@ export function buildCustomScorers(): BuiltScorers {
 }
 
 /** Merge two BuiltScorers into one (entries from b override a on key conflict). */
+function buildCitationScorers(): BuiltScorers {
+  try {
+    const citation = createCitationScorer();
+    return {
+      scorers: [citation] as unknown as Array<
+        MastraScorer<string, unknown, unknown, Record<string, unknown>>
+      >,
+      entries: { 'kestrel-citation': { scorer: citation } } as unknown as MastraScorers,
+      judgeModel: null,
+      skipped: [],
+      warnings: [],
+    };
+  } catch {
+    return {
+      scorers: [],
+      entries: {},
+      judgeModel: null,
+      skipped: [],
+      warnings: ['citation scorer failed to build'],
+    };
+  }
+}
+
 function mergeScorers(a: BuiltScorers, b: BuiltScorers): BuiltScorers {
   return {
     scorers: [...a.scorers, ...b.scorers],
@@ -249,7 +272,10 @@ export function buildConversationScorers(
     enabled: ['faithfulness', 'answer-relevancy', 'toxicity'],
     sampling,
   });
-  return mergeScorers(prebuilt, buildCustomScorers());
+  // The grounding scorer requires a report + packet input and is therefore
+  // not attached to a generic agent run (where Mastra supplies prompt/output
+  // only). Attach it explicitly at the report-verification boundary instead.
+  return mergeScorers(prebuilt, buildCitationScorers());
 }
 
 /**
@@ -268,7 +294,9 @@ export function buildResearchScorers(
     enabled: ['hallucination', 'bias', 'toxicity'],
     sampling,
   });
-  return mergeScorers(prebuilt, buildCustomScorers());
+  // Report grounding is kept out of the generic agent scorer map because its
+  // packet is available to the verifier, not to an arbitrary scorer callback.
+  return mergeScorers(prebuilt, buildCitationScorers());
 }
 
 /**

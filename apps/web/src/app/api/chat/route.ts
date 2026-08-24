@@ -24,7 +24,9 @@ import {
   classifyMutationRequest,
   isMastraMutationEnabled,
   MutationExtractionError,
+  resolveMastraModeModel,
 } from '@kestrel/ai/mastra';
+import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -136,8 +138,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
     return errorJson('VALIDATION', 'last message must be from the user', 400);
   }
 
+  let serverEnv: ReturnType<typeof getServerEnv>;
   try {
-    getServerEnv();
+    serverEnv = getServerEnv();
   } catch (error) {
     return errorResponse(error);
   }
@@ -229,13 +232,18 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // overrides are not yet serializable on the run payload, so reject them
     // clearly instead of silently selecting another model.
     if (resolvedMode === 'full') {
-      if (body.modelOverride != null) {
+      const { settings } = await getUserWithSettings(user.userId);
+      if (!settings) {
+        return errorJson('ONBOARDING_REQUIRED', 'User settings not found.', 409);
+      }
+      if (body.modelOverride) {
         return errorJson(
-          'MODEL_OVERRIDE_UNSUPPORTED',
-          'Full analysis currently uses the configured Mastra worker model; remove the override and retry.',
+          'INVALID_MODEL_OVERRIDE',
+          'Full-mode model overrides are not supported by the durable queue yet.',
           400,
         );
       }
+      const resolvedModel = resolveMastraModeModel(settings, serverEnv, null);
       const requestId = req.headers.get('x-request-id') ?? undefined;
       return withDiagnostics(
         user.userId,
@@ -249,6 +257,11 @@ export const POST = withAuth<void>(async (req, { user }) => {
               userMessageParts: userMessage.parts,
               idempotencyKey: `full:${body.threadId}:${last.id}`,
               traceId: traceIdStorage.getStore() ?? crypto.randomUUID(),
+              modelSnapshot: {
+                modelId: resolvedModel.modelId,
+                providerId: resolvedModel.providerId,
+                bareModelId: resolvedModel.bareModelId,
+              },
             });
             if (!runId) {
               log.error({ threadId: body.threadId }, 'Full-analysis queue enqueue failed');
@@ -299,6 +312,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
           prompt: userText,
           modelOverride: body.modelOverride ?? null,
           signal,
+          backfillExcludeMessageIdempotencyKey: `ui:${userMessage.id}`,
           ...(priorReport ? { priorReport } : {}),
         });
       }
@@ -310,6 +324,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         kind,
         modelOverride: body.modelOverride ?? null,
         signal,
+        backfillExcludeMessageIdempotencyKey: `ui:${userMessage.id}`,
         ...(priorReport ? { followup: true, priorReport } : {}),
       });
       return mastraChatResponse({
@@ -346,6 +361,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         mode: resolvedMode === 'quick' || resolvedMode === 'standard' ? resolvedMode : 'single',
         modelOverride: body.modelOverride ?? null,
         signal,
+        backfillExcludeMessageIdempotencyKey: `mastra-mode:${body.threadId}:${userMessage.id}:user`,
       });
       return mastraModeResponse(run);
     }

@@ -23,6 +23,7 @@ import { RequestContext } from '@mastra/core/request-context';
 import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
 import { estimateCostUsd } from '../cost';
+import { CANONICAL_READ_ONLY_TOOL_NAMES } from './capabilities';
 import { prepareKestrelMemory } from '../mastra-v2/context';
 import { buildConversationScorers, type BuiltScorers } from '../mastra-v2/evals/scorers';
 import { buildConversationGuardrails } from '../mastra-v2/guardrails';
@@ -36,6 +37,7 @@ import { domainToolFilter } from '../tools/by-domain';
 import { adaptLegacyReadOnlyTool } from './legacy-tool-adapter';
 import {
   beginMastraRun,
+  createMastraRunFinalizer,
   finishMastraRun,
   getMastraGenerationStats,
   mastraOutcomeForError,
@@ -50,32 +52,7 @@ const mlog = createCategorizedLogger('ai', { component: 'mastra-canonical-chat' 
  * as new tools are added: a new tool cannot become reachable from Mastra until
  * it is reviewed and classified here.
  */
-const READ_ONLY_TOOL_NAMES = new Set([
-  'get_price',
-  'get_candles',
-  'get_indicators',
-  'get_market_structure',
-  'get_session_levels',
-  'get_news',
-  'get_calendar',
-  'get_cot',
-  'get_seasonality',
-  'get_intermarket',
-  'get_intermarket_resonance',
-  'get_social_sentiment',
-  'get_correlation',
-  'forecast_volatility',
-  'analyze_technical',
-  'analyze_fundamental',
-  'compute_risk',
-  'get_journal_stats',
-  'get_portfolio_snapshot',
-  'compute_position_health',
-  'replay_setup',
-  'web_search',
-  'search_knowledge',
-  'verify_call',
-]);
+const READ_ONLY_TOOL_NAMES = new Set<string>(CANONICAL_READ_ONLY_TOOL_NAMES);
 
 export interface RunMastraCanonicalChatArgs {
   userId: string;
@@ -83,10 +60,14 @@ export interface RunMastraCanonicalChatArgs {
   userMessage: UIMessage;
   history: UIMessage[];
   settings: UserSettingsRow;
+  /** Authenticated organization plan; never sourced from request/env input. */
+  plan?: string | null;
   env: Parameters<typeof pickAiEnv>[0];
   customInstructions?: string;
   signal?: AbortSignal;
   modelOverride?: string | null;
+  /** Idempotency key of the already-persisted current user message. */
+  backfillExcludeMessageIdempotencyKey?: string;
   runId?: string;
 }
 
@@ -157,6 +138,7 @@ ${preferences}`;
 }
 
 interface CanonicalChatSetup {
+  runId: string;
   agent: Agent;
   routing: RoutingDecision;
   resolution: ChatModelResolution;
@@ -175,16 +157,7 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     ...(resolveSemanticRoutingConfig(args.settings, args.env, args.signal) ?? {}),
   });
   const resolution = resolveCanonicalModel(args.settings, args.env, routing, args.modelOverride);
-  beginMastraRun({
-    runId,
-    threadId: args.threadId,
-    model: resolution.modelId,
-    providerId: resolution.providerId,
-  });
-  const legacyTools = domainToolFilter(
-    routing.domain,
-    (args.env as Record<string, unknown>).USER_PLAN_TIER as string | undefined,
-  );
+  const legacyTools = domainToolFilter(routing.domain, args.plan ?? undefined);
   const registeredTools = Object.fromEntries(
     Object.entries(legacyTools)
       .filter(([name]) => READ_ONLY_TOOL_NAMES.has(name))
@@ -207,6 +180,9 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
       threadId: args.threadId,
       settings: args.settings,
       backfill: true,
+      ...(args.backfillExcludeMessageIdempotencyKey
+        ? { excludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
+        : {}),
     });
     memory = memoryInstance;
     callMemory = prepared.callOptions;
@@ -259,6 +235,7 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
   };
 
   return {
+    runId,
     agent,
     routing,
     resolution,
@@ -276,10 +253,15 @@ export async function runMastraCanonicalChat(
   args: RunMastraCanonicalChatArgs,
 ): Promise<MastraCanonicalChatResult> {
   const startedAt = Date.now();
-  const runId = args.runId ?? crypto.randomUUID();
   const setup = await setupCanonicalChat(args);
-  const { agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
+  const { runId, agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
     setup;
+  beginMastraRun({
+    runId,
+    threadId: args.threadId,
+    model: resolution.modelId,
+    providerId: resolution.providerId,
+  });
 
   try {
     const result = await withToolContext(context, () =>
@@ -366,10 +348,15 @@ export async function runMastraCanonicalChatStream(
   args: RunMastraCanonicalChatArgs,
 ): Promise<MastraCanonicalChatStream> {
   const startedAt = Date.now();
-  const runId = args.runId ?? crypto.randomUUID();
   const setup = await setupCanonicalChat(args);
-  const { agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
+  const { runId, agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
     setup;
+  beginMastraRun({
+    runId,
+    threadId: args.threadId,
+    model: resolution.modelId,
+    providerId: resolution.providerId,
+  });
 
   const output = await withToolContext(context, () =>
     agent.stream(messages, {
@@ -389,6 +376,8 @@ export async function runMastraCanonicalChatStream(
     }),
   );
 
+  const finishRun = createMastraRunFinalizer();
+
   async function* textIter(): AsyncIterable<string> {
     try {
       for await (const chunk of output.textStream) {
@@ -398,7 +387,7 @@ export async function runMastraCanonicalChatStream(
         yield chunk;
       }
     } catch (error) {
-      await finishMastraRun({
+      await finishRun({
         userId: args.userId,
         threadId: args.threadId,
         runId,
@@ -418,31 +407,56 @@ export async function runMastraCanonicalChatStream(
   }
 
   const completion = (async () => {
-    const full = await output.getFullOutput();
-    const stats = getMastraGenerationStats(full);
-    const totalCostUsd = estimateCostUsd(resolution.modelId, stats.inputTokens, stats.outputTokens);
-    const totalLatencyMs = Date.now() - startedAt;
-    await finishMastraRun({
-      userId: args.userId,
-      threadId: args.threadId,
-      runId,
-      model: resolution.modelId,
-      providerId: resolution.providerId,
-      startedAt,
-      ...stats,
-      outcome: 'success',
-      telemetryKind: 'mastra_canonical_chat',
-    });
-    return {
-      text: full.text.trim(),
-      stats,
-      totalCostUsd,
-      totalLatencyMs,
-      toolNames: extractToolNames(full.response?.messages),
-      routing,
-      modelId: resolution.modelId,
-      providerId: resolution.providerId,
-    };
+    try {
+      const full = await output.getFullOutput();
+      const stats = getMastraGenerationStats(full);
+      const totalCostUsd = estimateCostUsd(
+        resolution.modelId,
+        stats.inputTokens,
+        stats.outputTokens,
+      );
+      const totalLatencyMs = Date.now() - startedAt;
+      await finishRun({
+        userId: args.userId,
+        threadId: args.threadId,
+        runId,
+        model: resolution.modelId,
+        providerId: resolution.providerId,
+        startedAt,
+        ...stats,
+        outcome: args.signal?.aborted
+          ? mastraOutcomeForError(args.signal.reason, args.signal)
+          : 'success',
+        telemetryKind: 'mastra_canonical_chat',
+      });
+      return {
+        text: full.text.trim(),
+        stats,
+        totalCostUsd,
+        totalLatencyMs,
+        toolNames: extractToolNames(full.response?.messages),
+        routing,
+        modelId: resolution.modelId,
+        providerId: resolution.providerId,
+      };
+    } catch (error) {
+      await finishRun({
+        userId: args.userId,
+        threadId: args.threadId,
+        runId,
+        model: resolution.modelId,
+        providerId: resolution.providerId,
+        startedAt,
+        inputTokens: 0,
+        outputTokens: 0,
+        toolCalls: 0,
+        steps: 0,
+        outcome: mastraOutcomeForError(error, args.signal),
+        telemetryKind: 'mastra_canonical_chat',
+        error,
+      });
+      throw error;
+    }
   })();
 
   return { text: textIter(), completion };

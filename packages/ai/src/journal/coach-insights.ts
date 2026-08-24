@@ -19,10 +19,8 @@ import type { JournalEntry, JournalStats, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import {
-  applyBudgetDelta,
   DEFAULT_MAX_DAILY_USD,
-  estimateCostUsd,
-  reconcileBudgetReservation,
+  estimateKnownCostUsd,
   releaseBudgetReservation,
   tryReserveBudget,
 } from '../cost';
@@ -162,7 +160,9 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
 
   const estimatedUsd = 0.008;
   const maxDailyUsd = userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD;
-  const reservation = await tryReserveBudget(userId, estimatedUsd, maxDailyUsd);
+  const reservation = await tryReserveBudget(userId, estimatedUsd, maxDailyUsd, new Date(), {
+    runId: crypto.randomUUID(),
+  });
   if (!reservation.ok) {
     throw new Error(
       `Daily AI budget exceeded ($${reservation.spent.toFixed(2)} / $${reservation.max.toFixed(2)}).`,
@@ -188,13 +188,10 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
     });
 
     const latencyMs = Date.now() - startedAt;
-    const costUsd = estimateCostUsd(modelId, result.inputTokens, result.outputTokens);
-
+    const costUsd = estimateKnownCostUsd(modelId, result.inputTokens, result.outputTokens);
     if (reservation.reservationId) {
+      const { reconcileBudgetReservation } = await import('../cost');
       await reconcileBudgetReservation(reservation.reservationId, costUsd);
-    } else {
-      const delta = costUsd - estimatedUsd;
-      if (Math.abs(delta) > 0.0001) await applyBudgetDelta(userId, delta);
     }
 
     let parsed: {
@@ -244,6 +241,9 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       if (reservation.reservationId) {
         await releaseBudgetReservation(reservation.reservationId);
       } else {
+        // Legacy reservations without a ledger id are not expected in production.
+        // Keep the fallback path only for compatibility with older test adapters.
+        const { applyBudgetDelta } = await import('../cost');
         await applyBudgetDelta(userId, -estimatedUsd);
       }
     } catch (releaseErr) {

@@ -192,6 +192,7 @@ describe('mastra-v2 thread backfill', () => {
       },
     ];
     vi.mocked(listMessages).mockResolvedValue(rows as never);
+    expect(await listMessages('u1', 't1', 40)).toEqual(rows);
 
     const backfilled = await backfillThreadHistoryIfNeeded({
       memory,

@@ -124,11 +124,14 @@ export function startScheduler(log: Logger): () => void {
     const cutoff = 2 * JOB_TIMEOUT_MS;
     for (const [name, startedAt] of _jobStartedAt) {
       if (now - startedAt > cutoff) {
-        log.warn(`Pruning stuck job from _runningJobs: ${name}`, {
+        // Do not remove the guard while the original promise may still be
+        // executing. The timeout only regains scheduler control; deleting
+        // this entry here would permit overlapping side effects from an
+        // uncooperative job. The owning run releases it in its promise
+        // settlement handler (or the process is restarted).
+        log.warn(`Job remains in flight beyond the scheduler safety window: ${name}`, {
           stuckForMs: now - startedAt,
         });
-        _runningJobs.delete(name);
-        _jobStartedAt.delete(name);
       }
     }
   }, 30_000);
@@ -258,21 +261,46 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
   const ac = new AbortController();
   _activeControllers.add(ac);
   const timeoutMs = JOB_TIMEOUT_MS;
+  let timedOut = false;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
+      timedOut = true;
       ac.abort(new Error(`Job ${name} timed out after ${timeoutMs}ms`));
       reject(new Error(`Job ${name} timed out after ${timeoutMs}ms`));
     }, timeoutMs);
+    timeoutId.unref?.();
   });
 
   jobLog.info('Running scheduled job');
 
+  // Always create a promise before entering the race. If a job ignores its
+  // abort signal, the scheduler may return after the timeout, but the in-flight
+  // guard and controller remain owned until this promise actually settles.
+  let jobSettled = false;
+  let cleanupRequested = false;
+  const cleanup = () => {
+    _activeControllers.delete(ac);
+    _runningJobs.delete(name);
+    _jobStartedAt.delete(name);
+  };
+  const requestCleanup = () => {
+    cleanupRequested = true;
+    if (jobSettled) cleanup();
+  };
+  const jobPromise = Promise.resolve()
+    .then(() => job.run({ log: jobLog, signal: ac.signal, tenantRouter }))
+    .finally(() => {
+      jobSettled = true;
+      if (cleanupRequested) cleanup();
+    });
+  // The race observes the rejection, but this explicit sink also prevents a
+  // late rejection from an uncooperative timed-out job becoming unhandled.
+  void jobPromise.catch(() => undefined);
+
   try {
     const startMs = Date.now();
-    const result = await Promise.race([
-      job.run({ log: jobLog, signal: ac.signal, tenantRouter }),
-      timeoutPromise,
-    ]);
+    const result = await Promise.race([jobPromise, timeoutPromise]);
     const durationMs = Date.now() - startMs;
 
     jobLog.info('Job completed successfully', {
@@ -287,8 +315,10 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
     jobLog.error(`Job ${isTimeout ? 'timed out' : 'failed'}`, { err: String(err) });
     await lock?.fail(err);
   } finally {
-    _activeControllers.delete(ac);
-    _runningJobs.delete(name);
-    _jobStartedAt.delete(name);
+    if (timeoutId) clearTimeout(timeoutId);
+    requestCleanup();
+    if (timedOut && !jobSettled) {
+      jobLog.warn('Job timed out; retaining in-flight guard until the job settles');
+    }
   }
 }

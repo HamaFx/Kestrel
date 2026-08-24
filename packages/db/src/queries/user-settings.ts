@@ -27,6 +27,7 @@ export interface UserWithSettings {
   user: {
     name: string | null;
     email: string | null;
+    plan: string | null;
   } | null;
 }
 
@@ -43,8 +44,16 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
       .where(eq(schema.userSettings.userId, userId))
       .then((rows) => rows[0] ?? null),
     db
-      .select({ name: schema.users.name, email: schema.users.email })
+      .select({ name: schema.users.name, email: schema.users.email, plan: schema.organization.plan })
       .from(schema.users)
+      .leftJoin(
+        schema.organizationMember,
+        eq(schema.organizationMember.userId, schema.users.id),
+      )
+      .leftJoin(
+        schema.organization,
+        eq(schema.organization.id, schema.organizationMember.orgId),
+      )
       .where(eq(schema.users.id, userId))
       .then((rows) => rows[0] ?? null),
   ]);

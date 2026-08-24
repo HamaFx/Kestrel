@@ -62,6 +62,9 @@ export {
 } from './model';
 export {
   estimateCostUsd,
+  estimateKnownCostUsd,
+  resolveModelRate,
+  UnknownModelPricingError,
   dailySpendUsd,
   reservedSpendUsd,
   enforceDailyBudget,

@@ -87,6 +87,7 @@ describe('web_search', () => {
     expect(sources[0]!.domain).toBe('example.com');
     expect(sources[0]!.title).toBe('Gold outlook');
     expect(sources[0]!.content).not.toContain('<script>');
+    expect(sources[0]!.content).not.toContain('\u0000');
   });
 
   it('returns an explicit unavailable result when disabled', async () => {
@@ -129,6 +130,7 @@ describe('web_search', () => {
     expect(result.status).toBe('success');
     expect(result.provider).toBe('exa');
     expect(result.sources[0]!.url).toContain('federalreserve.gov');
+    expect(result.sources[0]!.content).toContain('held rates steady');
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
       'https://api.exa.ai/search',
       expect.objectContaining({

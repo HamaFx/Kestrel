@@ -83,21 +83,23 @@ export function recordsToGateObserved(
     groups.set(record.runId, existing);
   }
 
+  const effectiveThresholds: EvalQualityGateThresholds = {
+    ...DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
+    ...thresholds,
+  };
+
   const pass = (record: ScoreRecord): boolean => {
     if (record.scorerId === 'kestrel-grounding') return record.score === 1;
-    if (record.scorerId === 'kestrel-citation') return record.score >= thresholds.minCitationScore;
+    if (record.scorerId === 'kestrel-citation') {
+      return record.score >= effectiveThresholds.minCitationScore;
+    }
     if (INVERTED_SCORERS.has(record.scorerId)) return record.score <= INVERTED_PASS_CEILING;
-    return record.score >= thresholds.minOverallPassRate;
+    return record.score >= effectiveThresholds.minOverallPassRate;
   };
 
   const citationScores = records
     .filter((record) => record.scorerId === 'kestrel-citation')
     .map((record) => record.score);
-
-  const effectiveThresholds: EvalQualityGateThresholds = {
-    ...DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
-    ...thresholds,
-  };
 
   // One logical case per run: passes when ALL scorer rows pass individually.
   const cases = [...groups.values()].map((group) => {

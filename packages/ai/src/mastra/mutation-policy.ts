@@ -27,6 +27,34 @@ export const MastraMutationNameSchema = z.enum([
 
 export type MastraMutationName = z.infer<typeof MastraMutationNameSchema>;
 
+/**
+ * Closed registry for operator actions. Mutation extraction and confirmation
+ * must validate against this registry before any executor is reached; an
+ * LLM-provided action string is never an authorization decision.
+ */
+export const SYSTEM_ACTION_REGISTRY = {
+  resonance_sync: {
+    requiresAdmin: true,
+    timeoutMs: 120_000,
+    auditLabel: 'system.resonance_sync',
+  },
+} as const;
+
+export type SystemActionId = keyof typeof SYSTEM_ACTION_REGISTRY;
+
+export function isRegisteredSystemAction(action: string): action is SystemActionId {
+  return Object.prototype.hasOwnProperty.call(SYSTEM_ACTION_REGISTRY, action);
+}
+
+export function assertRegisteredSystemAction(action: string): asserts action is SystemActionId {
+  if (!isRegisteredSystemAction(action)) {
+    const error = new Error(`Unregistered system action: ${action}`);
+    error.name = 'MastraMutationPolicyError';
+    Object.assign(error, { code: 'MASTRA_MUTATION_UNREGISTERED_ACTION' });
+    throw error;
+  }
+}
+
 export interface MastraMutationRequest {
   mutation: MastraMutationName;
   userId: string;

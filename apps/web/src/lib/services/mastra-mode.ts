@@ -40,6 +40,8 @@ export interface RunMastraModeChatInput {
   mode: MastraAnalysisMode;
   modelOverride?: string | null;
   signal?: AbortSignal;
+  /** Prevent native memory backfill from duplicating this persisted request. */
+  backfillExcludeMessageIdempotencyKey?: string;
 }
 
 export async function runMastraModeChat(
@@ -49,11 +51,12 @@ export async function runMastraModeChat(
   if (!settings) throw new Error('User settings not found. Please complete onboarding.');
 
   const env = getServerEnv();
+  const runId = crypto.randomUUID();
   const budget = await reserveTurnBudget({
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
+    correlation: { threadId: input.threadId, runId },
   });
-  const runId = crypto.randomUUID();
   let result: MastraModeResult | null = null;
 
   try {
@@ -71,6 +74,7 @@ export async function runMastraModeChat(
       settings,
       env,
       ...(input.signal ? { signal: input.signal } : {}),
+      backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey,
       telemetryKind: 'mastra_mode',
     });
 

@@ -20,6 +20,39 @@ export type MastraCapabilityMode = 'single' | 'quick' | 'standard' | 'full' | 'a
 export type MastraEvidencePolicy = 'required' | 'optional' | 'none';
 export type MastraCapabilityScope = 'read-only' | 'user-scoped' | 'admin';
 
+/**
+ * Explicit legacy-tool boundary for the canonical conversational agent.
+ * Keep this list here rather than deriving it from the full registry: adding
+ * a new tool must require an intentional policy review before it is exposed
+ * to general conversation.
+ */
+export const CANONICAL_READ_ONLY_TOOL_NAMES = [
+  'get_price',
+  'get_candles',
+  'get_indicators',
+  'get_market_structure',
+  'get_session_levels',
+  'get_news',
+  'get_calendar',
+  'get_cot',
+  'get_seasonality',
+  'get_intermarket',
+  'get_intermarket_resonance',
+  'get_social_sentiment',
+  'get_correlation',
+  'forecast_volatility',
+  'analyze_technical',
+  'analyze_fundamental',
+  'compute_risk',
+  'get_journal_stats',
+  'get_portfolio_snapshot',
+  'compute_position_health',
+  'replay_setup',
+  'web_search',
+  'search_knowledge',
+  'verify_call',
+] as const;
+
 export interface MastraCapability {
   readonly id: string;
   readonly version: string;

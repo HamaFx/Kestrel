@@ -34,6 +34,7 @@ vi.mock('../src/cost', () => ({
   reconcileBudgetReservation: vi.fn().mockResolvedValue(undefined),
   releaseBudgetReservation: vi.fn().mockResolvedValue(undefined),
   estimateCostUsd: vi.fn().mockReturnValue(0.002),
+  estimateKnownCostUsd: vi.fn().mockReturnValue(0.002),
 }));
 
 vi.mock('../src/model', () => ({

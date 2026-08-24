@@ -33,12 +33,12 @@ import {
   type RunMastraCanonicalChatArgs,
 } from '@kestrel/ai/mastra';
 import { getUserWithSettings } from '@kestrel/db';
-import { metrics } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
 import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra-thread-title';
+import { createMastraStreamFinalizer } from '@/lib/services/mastra-stream-finalizer';
 
 export interface RunMastraCanonicalChatStreamInput {
   userId: string;
@@ -52,7 +52,7 @@ export interface RunMastraCanonicalChatStreamInput {
 export async function runMastraCanonicalChatStreamService(
   input: RunMastraCanonicalChatStreamInput,
 ): Promise<Response> {
-  const { settings } = await getUserWithSettings(input.userId);
+  const { settings, user } = await getUserWithSettings(input.userId);
   if (!settings) throw new Error('User settings not found. Please complete onboarding.');
 
   const env = getServerEnv();
@@ -61,6 +61,24 @@ export async function runMastraCanonicalChatStreamService(
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
     correlation: { threadId: input.threadId, runId },
+  });
+
+  const finalizer = createMastraStreamFinalizer({
+    budget,
+    onInterrupted: async () => {
+      await appendAssistantMessage(
+        input.userId,
+        input.threadId,
+        {
+          id: runId,
+          role: 'assistant',
+          parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
+        },
+        {
+          idempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:interrupted`,
+        },
+      ).catch(() => undefined);
+    },
   });
 
   try {
@@ -84,10 +102,12 @@ export async function runMastraCanonicalChatStreamService(
       userMessage: input.userMessage,
       history,
       settings,
+      plan: user?.plan ?? null,
       env,
       ...(input.customInstructions ? { customInstructions: input.customInstructions } : {}),
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
+      backfillExcludeMessageIdempotencyKey: currentUserKey,
       runId,
     };
 
@@ -135,10 +155,10 @@ export async function runMastraCanonicalChatStreamService(
           firstUser: extractUserMessageText(input.userMessage),
           firstAssistant: completed.text,
         });
-        await budget.reconcile(observedCost);
+        await finalizer.complete(observedCost);
       } catch (error) {
-        // Best-effort release if no model run completed
-        await budget.release();
+        if (input.signal?.aborted) await finalizer.abort();
+        else await finalizer.fail();
         throw error;
       }
     }
@@ -147,29 +167,12 @@ export async function runMastraCanonicalChatStreamService(
       meta: { id: messageId, data: { engine: 'mastra', canonical: true, runId } },
       signal: input.signal,
       onAbort: async () => {
-        // Release the budget reservation so a stranded reservation does
-        // not block the user's next turn until the recovery job runs.
-        metrics.increment('stream_abort_release_total');
-        await budget.release();
-        // Persist an interrupted marker under a distinct key so the
-        // retry's successful assistant response (inserted under the
-        // normal key) is never blocked by onConflictDoNothing.
-        await appendAssistantMessage(
-          input.userId,
-          input.threadId,
-          {
-            id: messageId,
-            role: 'assistant',
-            parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
-          },
-          {
-            idempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:interrupted`,
-          },
-        ).catch(() => {});
+        await finalizer.abort();
       },
     });
   } catch (error) {
-    await budget.release();
+    if (input.signal?.aborted) await finalizer.abort();
+    else await finalizer.fail();
     throw error;
   }
 }

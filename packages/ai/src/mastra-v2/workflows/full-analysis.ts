@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2026 Kestrel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,6 +59,15 @@ export const FullAnalysisPayloadSchema = z
     createdAt: z.string().datetime(),
     workerRunId: z.string().min(1).optional(),
     startedAt: z.string().datetime().optional(),
+    /** Exact model resolved when the job was accepted; worker retries reuse it. */
+    modelSnapshot: z
+      .object({
+        modelId: z.string().min(1),
+        providerId: z.string().min(1),
+        bareModelId: z.string().min(1),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -87,6 +96,12 @@ export interface FullAnalysisEnqueueInput {
   userMessageParts: unknown;
   idempotencyKey: string;
   traceId?: string;
+  /** Exact resolved model snapshot captured before the queue row is created. */
+  modelSnapshot: {
+    modelId: string;
+    providerId: string;
+    bareModelId: string;
+  };
 }
 
 export interface FullAnalysisQueueHealth {
@@ -124,9 +139,11 @@ function serializeError(error: unknown): string {
 }
 
 function isLeaseError(error: unknown): boolean {
-  return error instanceof Error &&
+  return (
+    error instanceof Error &&
     ((error as { code?: unknown }).code === 'FULL_ANALYSIS_QUEUE_OWNERSHIP_LOST' ||
-      (error as { code?: unknown }).code === 'FULL_ANALYSIS_LEASE_LOST');
+      (error as { code?: unknown }).code === 'FULL_ANALYSIS_LEASE_LOST')
+  );
 }
 
 async function workflowsStore(): Promise<WorkflowsStorage | undefined> {
@@ -230,9 +247,6 @@ async function projectQueueRow(row: FullAnalysisQueueRow): Promise<void> {
       ...(snapshot ?? minimalSnapshot(row.runId, status, payload)),
       runId: row.runId,
       status,
-      // Preserve the actual workflow input and completed step context once the
-      // worker has started. The queue payload is only a projection fallback;
-      // replacing it here would make a post-crash restart feed the wrong schema.
       context: snapshot?.context ?? projectionContext(payload),
       ...(row.result ? { result: row.result } : {}),
       ...(row.error ? { error: { name: 'FullAnalysisError', message: row.error } } : {}),
@@ -268,7 +282,6 @@ function payloadFromRow(row: FullAnalysisQueueRow): FullAnalysisPayload | null {
 export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Promise<string | null> {
   try {
     const runId = fullAnalysisRunId(input.userId, input.idempotencyKey);
-
     const payload: FullAnalysisPayload = {
       kind: 'full-analysis',
       version: 1,
@@ -278,82 +291,29 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
       userMessageParts: input.userMessageParts,
       idempotencyKey: input.idempotencyKey,
       ...(input.traceId ? { traceId: input.traceId } : {}),
+      modelSnapshot: input.modelSnapshot,
       attemptCount: 0,
       createdAt: new Date().toISOString(),
     };
 
-    // Primary: persist to Mastra storage so the GCE worker picks it up.
-    // The worker watches Mastra workflow snapshots, not the DB queue.
-    const store = await workflowsStore();
-    const mastraEnqueued = store
-      ? await (async () => {
-          const existing = await store.getWorkflowRunById({
-            runId,
-            workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-          });
-          // Idempotency: a previous submission (terminal or still pending) wins.
-          if (existing) return true;
-
-          await store.persistWorkflowSnapshot({
-            workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-            runId,
-            resourceId: input.userId,
-            snapshot: {
-              runId,
-              status: 'pending' as const,
-              value: {},
-              context: projectionContext(payload),
-              serializedStepGraph: [],
-              activePaths: [],
-              activeStepsPath: {},
-              suspendedPaths: {},
-              resumeLabels: {},
-              waitingPaths: {},
-              timestamp: Date.now(),
-            },
-          });
-          return true;
-        })().catch((err) => {
-          flog.warn('Full-analysis Mastra persistence failed during enqueue', {
-            runId,
-            error: serializeError(err),
-          });
-          return false;
-        })
-      : false;
-
-    if (!mastraEnqueued) {
-      flog.warn('Full-analysis Mastra store unavailable; falling back to DB-only enqueue', { runId });
-    }
-
-    // Projection: also write to the DB queue for polling observability.
-    // This is best-effort — Mastra storage is the source of truth for the worker.
-    try {
-      const row = await enqueueFullAnalysisQueue({
-        runId,
-        userId: input.userId,
-        threadId: input.threadId,
-        idempotencyKey: input.idempotencyKey,
-        payload,
-        db: getDb(),
-      });
-      try {
-        await projectQueueRow(row);
-      } catch {
-        // projection failure is logged inside projectQueueRow
-      }
-    } catch (dbError) {
-      flog.warn('Full-analysis DB queue projection failed during enqueue', {
-        runId,
-        error: serializeError(dbError),
-      });
-    }
+    // The database queue is the operational authority. An accepted request
+    // must always create (or find) a worker-visible DB row; Mastra is only a
+    // best-effort observability projection performed after the durable write.
+    const row = await enqueueFullAnalysisQueue({
+      runId,
+      userId: input.userId,
+      threadId: input.threadId,
+      idempotencyKey: input.idempotencyKey,
+      payload,
+      db: getDb(),
+    });
+    await projectQueueRow(row);
 
     flog.info('Enqueued full-analysis run', {
       runId,
       userId: input.userId,
       threadId: input.threadId,
-      mastraEnqueued,
+      queueAuthority: 'database',
     });
     return runId;
   } catch (error) {
@@ -393,10 +353,19 @@ export async function claimNextFullAnalysisRun(
       }
       continue;
     }
-    // Reject a payload whose identity does not match the queue row's
-    // relational columns. The schema validates that userId / threadId
-    // are present, but a corrupted or manually modified row could carry
-    // a payload that passed validation without matching the owner.
+    if (!payload.modelSnapshot) {
+      try {
+        await failFullAnalysisQueue({
+          runId: row.runId,
+          workerRunId,
+          error: 'Full-analysis payload has no model snapshot; legacy job rejected safely.',
+          db,
+        });
+      } catch (error) {
+        if (!isLeaseError(error)) throw error;
+      }
+      continue;
+    }
     if (payload.userId !== row.userId || payload.threadId !== row.threadId) {
       try {
         await failFullAnalysisQueue({
@@ -529,7 +498,9 @@ export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<n
         });
       }
     } catch (error) {
-      flog.warn('Full-analysis Mastra retention projection failed', { error: serializeError(error) });
+      flog.warn('Full-analysis Mastra retention projection failed', {
+        error: serializeError(error),
+      });
     }
   }
   return deleted;
@@ -564,53 +535,16 @@ export async function getFullAnalysisRun(
     const row = await getFullAnalysisQueueRow(runId, userId, getDb());
     if (!row) return null;
 
-    // If DB shows pending/running, check Mastra storage as a fallback.
-    // The GCE worker may have completed the job via Mastra-native execution
-    // before being updated to sync back to the DB queue.
-    let status = row.status;
-    let result: Record<string, unknown> | null = row.result ?? null;
-    let error: string | null = status === 'failed' ? 'Full analysis could not be completed. No partial answer was returned.' : null;
-    let completedAt: string | null = row.completedAt?.toISOString() ?? null;
-
-    if (status === 'pending' || status === 'running') {
-      const store = await workflowsStore();
-      if (store) {
-        try {
-          const mastraRun = await store.getWorkflowRunById({
-            runId,
-            workflowName: FULL_ANALYSIS_WORKFLOW_ID,
-          });
-          if (mastraRun) {
-            const snapshot = parseSnapshot(mastraRun.snapshot);
-            const mastraStatus = snapshot?.status;
-            if (mastraStatus === 'success') {
-              status = 'complete';
-              result = (snapshot?.result as Record<string, unknown> | undefined) ?? result;
-              const ts = snapshot?.timestamp as number | undefined;
-              completedAt = ts
-                ? new Date(ts).toISOString()
-                : null;
-              // Best-effort: sync the completed status back to the DB queue
-              void syncMastraStatusToDbQueue(row, 'complete', snapshot).catch(() => undefined);
-            } else if (mastraStatus === 'failed') {
-              status = 'failed';
-              error =
-                (snapshot?.error as { message?: string } | undefined)?.message ??
-                'Full analysis could not be completed. No partial answer was returned.';
-              const ts2 = snapshot?.timestamp as number | undefined;
-              completedAt = ts2
-                ? new Date(ts2).toISOString()
-                : null;
-              void syncMastraStatusToDbQueue(row, 'failed', snapshot).catch(() => undefined);
-            } else if (mastraStatus === 'running') {
-              status = 'running';
-            }
-          }
-        } catch {
-          // Mastra lookup is a best-effort fallback; DB state wins on failure
-        }
-      }
-    }
+    // Polling is DB-authoritative. Mastra snapshots are projection data and
+    // must not make an accepted DB job appear complete without a worker-owned
+    // terminal transition in the queue.
+    const status = row.status;
+    const result: Record<string, unknown> | null = row.result ?? null;
+    const error: string | null =
+      status === 'failed'
+        ? 'Full analysis could not be completed. No partial answer was returned.'
+        : null;
+    const completedAt: string | null = row.completedAt?.toISOString() ?? null;
 
     return {
       id: row.runId,
@@ -624,37 +558,5 @@ export async function getFullAnalysisRun(
   } catch (error) {
     flog.warn('Full-analysis run lookup failed', { runId, error: serializeError(error) });
     return null;
-  }
-}
-
-/**
- * Best-effort sync of Mastra workflow status back to the DB queue row.
- * This bridges the gap while the GCE worker still uses Mastra-native execution.
- */
-async function syncMastraStatusToDbQueue(
-  row: FullAnalysisQueueRow,
-  status: 'complete' | 'failed',
-  snapshot: ParsedSnapshot | null,
-): Promise<void> {
-  try {
-    const db = getDb();
-    if (status === 'complete') {
-      await completeFullAnalysisQueue({
-        runId: row.runId,
-        workerRunId: 'mastra-fallback-sync',
-        result: (snapshot?.result as Record<string, unknown> | undefined) ?? ({} as Record<string, unknown>),
-        db,
-      }).catch(() => undefined);
-    } else {
-      await failFullAnalysisQueue({
-        runId: row.runId,
-        workerRunId: 'mastra-fallback-sync',
-        error:
-          (snapshot?.error as { message?: string } | undefined)?.message ??
-          'Full analysis could not be completed.',
-      }).catch(() => undefined);
-    }
-  } catch {
-    // Sync failure never blocks the polling response
   }
 }

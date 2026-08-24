@@ -24,6 +24,7 @@ import {
   appendUserMessage,
   DEFAULT_MAX_DAILY_USD,
   getDb,
+  resolveModelForProvider,
   reserveTurnBudget,
   withDiagnostics,
   type BudgetHandle,
@@ -46,6 +47,7 @@ import {
 } from '@kestrel/ai/mastra';
 import { schema } from '@kestrel/db';
 import { pickAiEnv } from '@kestrel/shared';
+import type { ProviderId } from '@kestrel/shared/encryption';
 import { traceIdStorage } from '@kestrel/shared/logger';
 import type { UIMessage } from 'ai';
 import { eq } from 'drizzle-orm';
@@ -69,6 +71,20 @@ export function isRetryableAnalysisError(error: unknown): boolean {
   }
   return /(?:timeout|timed?\s*out|aborted|network|fetch\s*failed|rate\s*limit|too\s*many\s*requests|temporar(?:y|ily)|connection|ECONNRESET|5\d\d)/i.test(
     messages.join(' '),
+  );
+}
+
+function resolveSnapshotModel(
+  settings: Parameters<typeof resolveModelForProvider>[1],
+  env: Parameters<typeof resolveModelForProvider>[2],
+  snapshot: NonNullable<FullAnalysisPayload['modelSnapshot']>,
+) {
+  return resolveModelForProvider(
+    snapshot.providerId as ProviderId,
+    settings,
+    env,
+    snapshot.bareModelId,
+    'technical',
   );
 }
 
@@ -138,6 +154,9 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         if (!userSettings) {
           throw new Error(`User settings not found for userId=${payload.userId}`);
         }
+        if (!payload.modelSnapshot) {
+          throw new Error('Full-analysis job is missing its enqueue-time model snapshot.');
+        }
 
         const userMessage = userMessageFromPayload(payload);
         const userText = payload.userMessageText;
@@ -149,6 +168,13 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         }
 
         const env = pickAiEnv(process.env as unknown as Parameters<typeof pickAiEnv>[0]);
+        const expectedModel = `${payload.modelSnapshot.providerId}/${payload.modelSnapshot.bareModelId}`;
+        const resolvedSnapshot = resolveSnapshotModel(userSettings, env, payload.modelSnapshot);
+        if (resolvedSnapshot.modelId !== expectedModel) {
+          throw new Error(
+            `Enqueue-time model ${expectedModel} is unavailable; no provider failover is permitted.`,
+          );
+        }
         budget = await reserveTurnBudget({
           userId: payload.userId,
           estimateUsd: 0.05,
@@ -171,10 +197,12 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
               threadId: payload.threadId,
               runId,
               mode: 'full',
+              modelOverride: `${payload.modelSnapshot?.providerId ?? ''}:${payload.modelSnapshot?.bareModelId ?? ''}`,
               workflowId: FULL_ANALYSIS_WORKFLOW_ID,
               settings: userSettings,
               env,
               signal: AbortSignal.any([ctx.signal, leaseAbort.signal]),
+              backfillExcludeMessageIdempotencyKey: `analysis-job:${runId}:user`,
               telemetryKind: 'mastra_full_job',
               resumeExisting: true,
             }),

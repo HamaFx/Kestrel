@@ -59,18 +59,13 @@ interface PixelDeskDeliberationProps {
  */
 export function PixelDeskThinking({ className }: { className?: string }) {
   const [stepIdx, setStepIdx] = useState(0);
-  const [dots, setDots] = useState(0);
 
   useEffect(() => {
     const stepTimer = setInterval(() => {
       setStepIdx((prev) => (prev + 1) % QUANT_STATUS_STEPS.length);
     }, 2200);
-    const dotTimer = setInterval(() => {
-      setDots((prev) => (prev + 1) % 4);
-    }, 450);
     return () => {
       clearInterval(stepTimer);
-      clearInterval(dotTimer);
     };
   }, []);
 

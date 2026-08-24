@@ -22,21 +22,21 @@ import '../src/tools/index';
 
 describe('domainToolFilter', () => {
   it('returns all tools for generic domain', () => {
-    const tools = domainToolFilter('generic');
+    const tools = domainToolFilter('generic', 'pro');
     expect(Object.keys(tools).length).toBeGreaterThan(10);
     expect(tools.get_price).toBeDefined();
     expect(tools.get_candles).toBeDefined();
   });
 
   it('includes always-present tools in fundamental domain', () => {
-    const tools = domainToolFilter('fundamental');
+    const tools = domainToolFilter('fundamental', 'pro');
     expect(tools.get_price).toBeDefined();
     expect(tools.set_alert).toBeDefined();
     expect(tools.log_journal).toBeDefined();
   });
 
   it('includes fundamental-specific tools', () => {
-    const tools = domainToolFilter('fundamental');
+    const tools = domainToolFilter('fundamental', 'pro');
     expect(tools.get_news).toBeDefined();
     expect(tools.get_calendar).toBeDefined();
     expect(tools.get_cot).toBeDefined();
@@ -45,7 +45,7 @@ describe('domainToolFilter', () => {
   });
 
   it('includes summary tools for summary routing', () => {
-    const tools = domainToolFilter('summary');
+    const tools = domainToolFilter('summary', 'pro');
     expect(tools.get_news).toBeDefined();
     expect(tools.get_calendar).toBeDefined();
     expect(tools.get_journal_stats).toBeDefined();
@@ -55,28 +55,28 @@ describe('domainToolFilter', () => {
   });
 
   it('includes vision tools for vision routing', () => {
-    const tools = domainToolFilter('vision');
+    const tools = domainToolFilter('vision', 'pro');
     expect(tools.analyze_chart_image).toBeDefined();
     expect(tools.get_candles).toBeDefined();
     expect(tools.get_news).toBeUndefined();
   });
 
   it('excludes technical-only tools from fundamental domain', () => {
-    const tools = domainToolFilter('fundamental');
+    const tools = domainToolFilter('fundamental', 'pro');
     expect(tools.get_candles).toBeUndefined();
     expect(tools.get_indicators).toBeUndefined();
     expect(tools.analyze_technical).toBeUndefined();
   });
 
   it('includes always-present tools in technical domain', () => {
-    const tools = domainToolFilter('technical');
+    const tools = domainToolFilter('technical', 'pro');
     expect(tools.get_price).toBeDefined();
     expect(tools.set_alert).toBeDefined();
     expect(tools.log_journal).toBeDefined();
   });
 
   it('includes technical-specific tools', () => {
-    const tools = domainToolFilter('technical');
+    const tools = domainToolFilter('technical', 'pro');
     expect(tools.get_candles).toBeDefined();
     expect(tools.get_indicators).toBeDefined();
     expect(tools.get_market_structure).toBeDefined();
@@ -85,12 +85,17 @@ describe('domainToolFilter', () => {
   });
 
   it('excludes fundamental-only tools from technical domain', () => {
-    const tools = domainToolFilter('technical');
+    const tools = domainToolFilter('technical', 'pro');
     expect(tools.get_news).toBeUndefined();
     expect(tools.get_calendar).toBeUndefined();
     expect(tools.get_cot).toBeUndefined();
     expect(tools.analyze_fundamental).toBeUndefined();
     expect(tools.web_search).toBeUndefined();
+  });
+
+  it('fails closed when the plan is missing or unknown', () => {
+    expect(Object.keys(domainToolFilter('generic'))).toHaveLength(0);
+    expect(Object.keys(domainToolFilter('generic', 'unknown'))).toHaveLength(0);
   });
 
   it('filters by plan when provided', () => {

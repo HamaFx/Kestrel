@@ -16,7 +16,13 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } from '../src/cost';
+import {
+  DEFAULT_MAX_DAILY_USD,
+  DEFAULT_TURN_ESTIMATE_USD,
+  estimateCostUsd,
+  estimateKnownCostUsd,
+  UnknownModelPricingError,
+} from '../src/cost';
 
 describe('estimateCostUsd', () => {
   it('calculates cost for known model', () => {
@@ -48,6 +54,18 @@ describe('estimateCostUsd', () => {
     const bareCost = estimateCostUsd('gemini-2.5-flash', 1_000, 100);
     const qualifiedCost = estimateCostUsd('google/gemini-2.5-flash', 1_000, 100);
     expect(bareCost).toBe(qualifiedCost);
+  });
+
+  it('fails closed for unknown models when strict accounting is requested', () => {
+    expect(() => estimateKnownCostUsd('unknown/model', 1_000, 100)).toThrow(
+      UnknownModelPricingError,
+    );
+  });
+
+  it('rejects invalid token counts in strict accounting', () => {
+    expect(() => estimateKnownCostUsd('google/gemini-2.5-flash', -1, 0)).toThrow(
+      'token counts must be finite and non-negative',
+    );
   });
 
   it('handles deepseek model IDs', () => {

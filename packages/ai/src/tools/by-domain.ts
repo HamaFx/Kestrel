@@ -103,12 +103,10 @@ const DOMAIN_TOOLS: Record<Exclude<RoutingDomain, 'generic'>, ReadonlySet<string
  * Filter tools by routing domain, with optional per-tenant plan gating (PF-16).
  *
  * @param domain - The routing domain to filter for.
- * @param plan - Optional tenant plan (e.g. 'free', 'pro'). When set, only
- *   tools allowed for that plan are returned. Falls back to all tools when
- *   plan is undefined.
+ * @param plan - Authenticated tenant plan. Missing or unknown plans fail closed.
  */
 export function domainToolFilter(domain: RoutingDomain, plan?: string): Record<string, Tool> {
-  const allTools = plan ? toolRegistry.resolveForPlan(undefined, plan) : toolRegistry.resolve();
+  const allTools = toolRegistry.resolveForPlan(undefined, plan);
 
   if (domain === 'generic') return allTools;
 
