@@ -28,6 +28,10 @@ interface SpriteProps {
   isThinking?: boolean;
   isDone?: boolean;
   bias?: 'bullish' | 'bearish' | 'neutral';
+  isSparkling?: boolean;
+  hasAlarm?: boolean;
+  hasWingsSpread?: boolean;
+  isShielding?: boolean;
   style?: CSSProperties;
 }
 
@@ -61,7 +65,7 @@ function PixelSvg({
  * Features: Purple/blue wizard hat with golden pixel star, round spectacles,
  * animated robe, hands moving across a glowing terminal.
  */
-export function ChartWizardSprite({ className, isThinking, isDone, bias }: SpriteProps) {
+export function ChartWizardSprite({ className, isThinking, isDone, bias, isSparkling }: SpriteProps) {
   const prefersReduced = useReducedMotion();
 
   return (
@@ -82,6 +86,19 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias }: Sprit
           : { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }
       }
     >
+      {/* Floating Golden Sparks for high-confidence / bullish celebration */}
+      {(isSparkling || (isDone && bias === 'bullish')) && (
+        <m.div
+          className="pointer-events-none absolute -top-4 -left-1 flex items-center gap-1 z-10"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: [0.6, 1, 0.6], y: [-1, -3, -1], scale: [0.9, 1.1, 0.9] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <span className="text-amber-400 font-mono text-[9px] font-bold select-none leading-none">✦</span>
+          <span className="text-yellow-300 font-mono text-[7px] font-bold select-none leading-none">✧</span>
+        </m.div>
+      )}
+
       <PixelSvg viewBox="0 0 24 24">
         {/* Wizard Hat Peak & Star */}
         <rect x="11" y="2" width="2" height="2" fill="#818cf8" />
@@ -250,7 +267,7 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
  * Features: Steel armor, visor helmet with glowing amber visor,
  * holding a pixel shield that pulses against volatility spikes.
  */
-export function RiskKnightSprite({ className, isThinking, isDone, bias }: SpriteProps) {
+export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm }: SpriteProps) {
   const prefersReduced = useReducedMotion();
 
   return (
@@ -271,6 +288,18 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias }: Sprite
           : { duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }
       }
     >
+      {/* Flashing Hazard / Volatility Alarm Beacon on helmet */}
+      {(hasAlarm || (isDone && bias === 'bearish')) && (
+        <m.div
+          className="pointer-events-none absolute -top-3.5 left-1/2 -translate-x-1/2 flex flex-col items-center z-10"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: [0.7, 1, 0.7], scale: [0.95, 1.15, 0.95] }}
+          transition={{ duration: 0.5, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <div className="size-2 rounded-xs bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse" />
+        </m.div>
+      )}
+
       <PixelSvg viewBox="0 0 24 24">
         {/* Knight Helmet & Crest */}
         <rect x="11" y="2" width="2" height="2" fill="#ef4444" /> {/* Red feather crest */}
@@ -326,7 +355,7 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias }: Sprite
  * Features: Sharp falcon beak, amber feathers, animated flapping wings,
  * scanning left and right to lock in the final consensus.
  */
-export function KestrelFalconSprite({ className, isThinking, isDone }: SpriteProps) {
+export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWingsSpread }: SpriteProps) {
   const prefersReduced = useReducedMotion();
 
   return (
@@ -347,6 +376,18 @@ export function KestrelFalconSprite({ className, isThinking, isDone }: SpritePro
           : { duration: 0.7, repeat: Infinity, ease: 'easeInOut', delay: 0.1 }
       }
     >
+      {/* Victory Crown / Sparkle */}
+      {(hasWingsSpread || (isDone && bias === 'bullish')) && (
+        <m.div
+          className="pointer-events-none absolute -top-3.5 left-1/2 -translate-x-1/2 z-10"
+          initial={{ opacity: 0, y: 2 }}
+          animate={{ opacity: 1, y: -1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <span className="text-amber-400 font-mono text-[10px] font-bold select-none drop-shadow-xs">👑</span>
+        </m.div>
+      )}
+
       <PixelSvg viewBox="0 0 24 24">
         {/* Falcon Crest & Head */}
         <rect x="10" y="3" width="4" height="2" fill="#d97706" />
