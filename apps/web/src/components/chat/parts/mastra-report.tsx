@@ -17,13 +17,13 @@
  */
 import { IconAlertTriangle, IconCircleCheck, IconClock, IconDatabase } from '@tabler/icons-react';
 
-import { AgentDeliberation } from './agent-deliberation';
 import { MastraReportScenarios } from './mastra-report-scenarios';
 import {
   MastraReportMetaSchema,
   type MastraReportMetaView,
   type MastraReportView,
 } from './mastra-report-schema';
+import { PixelDeskDeliberation } from './pixel-desk/pixel-desk';
 
 export function MastraReportPart({ data }: { data: unknown }) {
   const parsed = MastraReportMetaSchema.safeParse(data);
@@ -46,22 +46,11 @@ export function MastraReportPart({ data }: { data: unknown }) {
         reasoning: string;
       }>;
     };
-    const agents = multiData.agentOpinions.map((op) => ({
-      agentName: op.agentName,
-      status: 'done' as const,
-      opinion: {
-        agentName: op.agentName,
-        bias: op.bias,
-        confidence: op.confidence,
-        reasoning: op.reasoning,
-      },
-    }));
     return (
       <div className="mt-3 w-full">
-        <AgentDeliberation
-          agents={agents}
+        <PixelDeskDeliberation
+          opinions={multiData.agentOpinions}
           mode={multiData.mode ?? 'full'}
-          status="complete"
         />
       </div>
     );
