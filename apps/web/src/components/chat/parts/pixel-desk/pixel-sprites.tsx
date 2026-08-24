@@ -18,7 +18,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { m, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
@@ -66,37 +66,31 @@ function PixelSvg({
  * spectacles, animated robe, casting candlestick vectors.
  */
 export function ChartWizardSprite({ className, isThinking, isDone, bias, isSparkling }: SpriteProps) {
-  const prefersReduced = useReducedMotion();
-
   return (
-    <m.div
-      className={cn('relative inline-flex items-center justify-center', className)}
+    <motion.div
+      className={cn(
+        'relative inline-flex items-center justify-center animate-pixel-wizard',
+        className,
+      )}
       animate={
-        prefersReduced
-          ? undefined
-          : isThinking
-            ? { y: [0, -3, 0], rotate: [-1.5, 1.5, -1.5] }
-            : isDone
-              ? { y: [0, -4, 0], scale: [1, 1.06, 1] }
-              : { y: [0, -2, 0] }
+        isThinking
+          ? { y: [0, -4, 0], rotate: [-2, 2, -2] }
+          : isDone
+            ? { y: [0, -5, 0], scale: [1, 1.08, 1] }
+            : { y: [0, -3, 0] }
       }
       transition={{
-        duration: isThinking ? 0.9 : isDone ? 1.8 : 2.4,
+        duration: isThinking ? 0.8 : isDone ? 1.6 : 2.0,
         repeat: Infinity,
         ease: 'easeInOut',
       }}
     >
       {/* Floating Golden Sparks for high-confidence / bullish celebration */}
       {(isSparkling || (isDone && bias === 'bullish')) && (
-        <m.div
-          className="pointer-events-none absolute -top-4 -left-1 flex items-center gap-1 z-10"
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: [0.6, 1, 0.6], y: [-1, -4, -1], scale: [0.9, 1.2, 0.9] }}
-          transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-        >
+        <div className="pointer-events-none absolute -top-4 -left-1 flex items-center gap-1 z-10 animate-pixel-sparkle">
           <span className="text-amber-400 font-mono text-[9px] font-bold select-none leading-none">✦</span>
           <span className="text-yellow-300 font-mono text-[7px] font-bold select-none leading-none">✧</span>
-        </m.div>
+        </div>
       )}
 
       <PixelSvg viewBox="0 0 24 24">
@@ -134,7 +128,7 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
         <rect x="12" y="20" width="3" height="2" fill="#1e1b4b" />
         <rect x="7" y="22" width="10" height="1" fill="#0f172a" opacity="0.4" />
       </PixelSvg>
-    </m.div>
+    </motion.div>
   );
 }
 
@@ -144,25 +138,24 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
  * animated data parchment and macro rate ledgers.
  */
 export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteProps) {
-  const prefersReduced = useReducedMotion();
-
   return (
-    <m.div
-      className={cn('relative inline-flex items-center justify-center', className)}
+    <motion.div
+      className={cn(
+        'relative inline-flex items-center justify-center animate-pixel-mage',
+        className,
+      )}
       animate={
-        prefersReduced
-          ? undefined
-          : isThinking
-            ? { y: [0, -2.5, 0], rotate: [-1, 1, -1] }
-            : isDone
-              ? { y: [0, -3.5, 0], scale: [1, 1.05, 1] }
-              : { y: [0, -2, 0] }
+        isThinking
+          ? { y: [0, -3.5, 0], rotate: [-1.5, 1.5, -1.5] }
+          : isDone
+            ? { y: [0, -4.5, 0], scale: [1, 1.07, 1] }
+            : { y: [0, -2.5, 0] }
       }
       transition={{
-        duration: isThinking ? 0.85 : isDone ? 1.9 : 2.6,
+        duration: isThinking ? 0.85 : isDone ? 1.8 : 2.4,
         repeat: Infinity,
         ease: 'easeInOut',
-        delay: 0.2,
+        delay: 0.15,
       }}
     >
       <PixelSvg viewBox="0 0 24 24">
@@ -194,7 +187,7 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
         <rect x="12" y="20" width="3" height="2" fill="#1c1917" />
         <rect x="7" y="22" width="10" height="1" fill="#0f172a" opacity="0.4" />
       </PixelSvg>
-    </m.div>
+    </motion.div>
   );
 }
 
@@ -204,37 +197,31 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
  * holding a pixel shield that pulses against volatility spikes.
  */
 export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm }: SpriteProps) {
-  const prefersReduced = useReducedMotion();
-
   return (
-    <m.div
-      className={cn('relative inline-flex items-center justify-center', className)}
+    <motion.div
+      className={cn(
+        'relative inline-flex items-center justify-center animate-pixel-knight',
+        className,
+      )}
       animate={
-        prefersReduced
-          ? undefined
-          : isThinking
-            ? { y: [0, -2.5, 0], rotate: [-1, 1, -1] }
-            : isDone
-              ? { y: [0, -3.5, 0], scale: [1, 1.05, 1] }
-              : { y: [0, -2, 0] }
+        isThinking
+          ? { y: [0, -3.5, 0], rotate: [-1.5, 1.5, -1.5] }
+          : isDone
+            ? { y: [0, -4.5, 0], scale: [1, 1.07, 1] }
+            : { y: [0, -2.5, 0] }
       }
       transition={{
-        duration: isThinking ? 0.9 : isDone ? 2.0 : 2.5,
+        duration: isThinking ? 0.9 : isDone ? 1.9 : 2.2,
         repeat: Infinity,
         ease: 'easeInOut',
-        delay: 0.4,
+        delay: 0.3,
       }}
     >
       {/* Flashing Hazard / Volatility Alarm Beacon on helmet */}
       {(hasAlarm || (isDone && bias === 'bearish')) && (
-        <m.div
-          className="pointer-events-none absolute -top-3.5 left-1/2 -translate-x-1/2 flex flex-col items-center z-10"
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: [0.7, 1, 0.7], scale: [0.95, 1.15, 0.95] }}
-          transition={{ duration: 0.5, repeat: Infinity, ease: 'easeInOut' }}
-        >
+        <div className="pointer-events-none absolute -top-3.5 left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
           <div className="size-2 rounded-xs bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse" />
-        </m.div>
+        </div>
       )}
 
       <PixelSvg viewBox="0 0 24 24">
@@ -245,7 +232,7 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
 
         {/* Glowing Visor Slit with Animated Scanner Sweep */}
         <rect x="9" y="8" width="6" height="2" fill="#0f172a" />
-        <rect x="10" y="8" width="4" height="1" fill="#f59e0b" className="animate-pulse" />
+        <rect x="10" y="8" width="4" height="1" fill="#f59e0b" className="animate-pixel-scanner" />
 
         {/* Armor Torso */}
         <rect x="8" y="11" width="8" height="8" fill="#334155" />
@@ -267,7 +254,7 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
         <rect x="12" y="19" width="3" height="3" fill="#1e293b" />
         <rect x="7" y="22" width="10" height="1" fill="#0f172a" opacity="0.4" />
       </PixelSvg>
-    </m.div>
+    </motion.div>
   );
 }
 
@@ -277,22 +264,21 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
  * scanning left and right to lock in the final consensus.
  */
 export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWingsSpread }: SpriteProps) {
-  const prefersReduced = useReducedMotion();
-
   return (
-    <m.div
-      className={cn('relative inline-flex items-center justify-center', className)}
+    <motion.div
+      className={cn(
+        'relative inline-flex items-center justify-center animate-pixel-falcon',
+        className,
+      )}
       animate={
-        prefersReduced
-          ? undefined
-          : isThinking
-            ? { y: [0, -3.5, 0], rotate: [-3, 3, -3] }
-            : isDone
-              ? { y: [0, -5, 0], rotate: [-2, 2, -2], scale: [1, 1.08, 1] }
-              : { y: [0, -2.5, 0], rotate: [-1.5, 1.5, -1.5] }
+        isThinking
+          ? { y: [0, -4.5, 0], rotate: [-3, 3, -3] }
+          : isDone
+            ? { y: [0, -6, 0], rotate: [-2, 2, -2], scale: [1, 1.1, 1] }
+            : { y: [0, -3.5, 0], rotate: [-2, 2, -2] }
       }
       transition={{
-        duration: isThinking ? 0.75 : isDone ? 1.6 : 2.2,
+        duration: isThinking ? 0.75 : isDone ? 1.5 : 1.8,
         repeat: Infinity,
         ease: 'easeInOut',
         delay: 0.1,
@@ -300,14 +286,9 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
     >
       {/* Victory Crown / Sparkle */}
       {(hasWingsSpread || (isDone && bias === 'bullish')) && (
-        <m.div
-          className="pointer-events-none absolute -top-3.5 left-1/2 -translate-x-1/2 z-10"
-          initial={{ opacity: 0, y: 2 }}
-          animate={{ opacity: 1, y: -1 }}
-          transition={{ duration: 0.3 }}
-        >
+        <div className="pointer-events-none absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
           <span className="text-amber-400 font-mono text-[10px] font-bold select-none drop-shadow-xs">👑</span>
-        </m.div>
+        </div>
       )}
 
       <PixelSvg viewBox="0 0 24 24">
@@ -338,7 +319,7 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
         <rect x="13" y="18" width="2" height="3" fill="#d97706" />
         <rect x="7" y="21" width="10" height="2" fill="#475569" />
       </PixelSvg>
-    </m.div>
+    </motion.div>
   );
 }
 
@@ -484,10 +465,8 @@ export function TradingFloorDesk() {
 
           {/* Prop 2 (Macro): Steaming Pixel Coffee Mug */}
           <div className="relative flex items-center gap-1 opacity-80" title="Coffee Mug">
-            <m.div
-              className="absolute -top-2 left-1 h-2 w-0.5 rounded-full bg-fg-subtle/60"
-              animate={{ y: [0, -3, 0], opacity: [0.2, 0.9, 0.2] }}
-              transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+            <div
+              className="absolute -top-2.5 left-1 h-2 w-0.5 rounded-full bg-fg-subtle/80 animate-pixel-steam"
             />
             <div className="size-2 rounded-2xs bg-amber-700 border border-amber-900/50 shadow-xs" />
           </div>
