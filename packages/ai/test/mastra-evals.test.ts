@@ -103,12 +103,13 @@ describe('mastra evals — scorers', () => {
   it('builds conversation (5%) and research (10%) presets with custom scorers', () => {
     mocks.resolveChatModel.mockReturnValue(fakeResolution());
     const conversation = buildConversationScorers(settings as never, env as never);
-    // Prebuilt scorers (sampled) + always-on deterministic custom scorers.
+    // Prebuilt scorers (sampled) + the generic citation scorer. Report
+    // grounding requires an explicit packet and is attached at verification,
+    // not to a generic prompt/output agent run.
     expect(Object.keys(conversation.entries).sort()).toEqual([
       'answer-relevancy',
       'faithfulness',
       'kestrel-citation',
-      'kestrel-grounding',
       'toxicity',
     ]);
     // Prebuilt scorers carry sampling; custom scorers do not.
@@ -124,7 +125,6 @@ describe('mastra evals — scorers', () => {
       'bias',
       'hallucination',
       'kestrel-citation',
-      'kestrel-grounding',
       'toxicity',
     ]);
     expect(research.entries['hallucination']?.sampling).toEqual({ type: 'ratio', rate: 0.1 });

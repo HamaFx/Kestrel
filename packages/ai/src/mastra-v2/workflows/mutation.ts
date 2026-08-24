@@ -43,7 +43,7 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 
-import { SymbolSchema } from '@kestrel/shared';
+import { RunSystemActionInputSchema, SymbolSchema } from '@kestrel/shared';
 import { AlertChannelSchema, AlertRuleSchema } from '@kestrel/shared/schemas/alerts';
 import type { Mastra } from '@mastra/core';
 import { createStep, Workflow } from '@mastra/core/workflows';
@@ -52,6 +52,7 @@ import { z } from 'zod';
 import {
   assertMastraMutationAllowed,
   assertMastraMutationDraftAllowed,
+  assertRegisteredSystemAction,
   MUTATION_TOKEN_TTL_MS,
   storedConfirmationForToken,
   verifyMutationConfirmationToken,
@@ -109,7 +110,7 @@ export const MutationInputSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('run_system_action'),
-    action: z.string().min(1).max(200),
+    action: RunSystemActionInputSchema.shape.action,
     params: z.record(z.unknown()).optional(),
   }),
 ]);
@@ -309,6 +310,9 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     execute: async ({ inputData, resumeData, suspend, state, setState, runId }) => {
       // First pass — validate + dry-run + issue token + suspend.
       if (!resumeData) {
+        if (inputData.kind === 'run_system_action') {
+          assertRegisteredSystemAction(inputData.action);
+        }
         // Draft gate before any state is written: enabled + valid context.
         // Confirmation is intentionally NOT required here — this is the start
         // of the confirmation flow.
@@ -347,6 +351,9 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
       }
 
       // Resume pass — confirm: timing-safe token + expiry + policy.
+      if (inputData.kind === 'run_system_action') {
+        assertRegisteredSystemAction(inputData.action);
+      }
       const persisted = MutationRunContextSchema.safeParse(state);
       if (!persisted.success || persisted.data.mutation !== mutation) {
         throw mutationPolicyError('token-invalid');

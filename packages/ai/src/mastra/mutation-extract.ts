@@ -26,7 +26,11 @@
  * exported so unit tests can cover validation/normalization without an LLM.
  */
 
-import { AlertChannelSchema, AlertRuleSchema } from '@kestrel/shared';
+import {
+  AlertChannelSchema,
+  AlertRuleSchema,
+  RunSystemActionInputSchema,
+} from '@kestrel/shared';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
@@ -74,7 +78,7 @@ const SHARE_EXTRACTION_SCHEMA = z.object({
   tf: z.string().nullish(),
 });
 const ACTION_EXTRACTION_SCHEMA = z.object({
-  action: z.string().min(2).describe('The operator action to run'),
+  action: RunSystemActionInputSchema.shape.action.describe('The registered operator action to run'),
   params: z.record(z.unknown()).default({}),
 });
 

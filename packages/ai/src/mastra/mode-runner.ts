@@ -28,6 +28,7 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import type { ProviderId } from '@kestrel/shared/encryption';
 import type { AgentMemoryOption } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 
@@ -53,7 +54,11 @@ import {
   type MastraModeOpinion,
   type MastraSpecialistName,
 } from '../mastra-v2/workflows/symbol-research';
-import { resolveChatModel, type ChatModelResolution } from '../model';
+import {
+  resolveChatModel,
+  resolveModelForProvider,
+  type ChatModelResolution,
+} from '../model';
 import type { ResolveModelEnv } from '../vertex-factory';
 import type { SymbolResearchPacket } from './symbol-research';
 import {
@@ -89,6 +94,8 @@ export interface RunMastraModeArgs {
   settings: MastraModeSettings;
   env: ResolveModelEnv;
   signal?: AbortSignal;
+  /** Idempotency key of the current user message already stored in Drizzle. */
+  backfillExcludeMessageIdempotencyKey?: string;
   telemetryKind?: 'mastra_mode' | 'mastra_full_job';
   /**
    * Storage key for the run record. Defaults to the workflow's own id
@@ -120,14 +127,19 @@ export function resolveMastraModeModel(
   modelOverride?: string | null,
 ): ChatModelResolution {
   const pinned = process.env.MASTRA_MODE_MODEL ?? process.env.MASTRA_XAUUSD_MODEL;
-  return resolveChatModel(
-    {
-      aiApiKeys: settings.aiApiKeys,
-      chatModel: modelOverride ?? (pinned && pinned.length > 0 ? pinned : settings.chatModel),
-    },
-    env,
-    'technical',
-  );
+  const selected = modelOverride ?? (pinned && pinned.length > 0 ? pinned : null);
+  if (selected) {
+    const separator = selected.indexOf(':');
+    if (separator <= 0 || separator === selected.length - 1) {
+      throw new Error(
+        'Mastra mode model overrides must use the provider:model format.',
+      );
+    }
+    const providerId = selected.slice(0, separator) as ProviderId;
+    const bareModelId = selected.slice(separator + 1);
+    return resolveModelForProvider(providerId, settings, env, bareModelId, 'technical');
+  }
+  return resolveChatModel(settings, env, 'technical');
 }
 
 /** Base run context (no packet — the workflow collects it inside its first step). */
@@ -193,6 +205,9 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         embeddingModel: args.settings.embeddingModel ?? null,
       },
       backfill: true,
+      ...(args.backfillExcludeMessageIdempotencyKey
+        ? { excludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
+        : {}),
     });
     const requestContext = contextForRun(args);
     // Specialists read thread context but must not write their internal

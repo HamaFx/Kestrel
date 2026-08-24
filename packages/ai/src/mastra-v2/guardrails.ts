@@ -180,7 +180,17 @@ export function buildResearchGuardrails(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
 ): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[]; mode: GuardrailMode } {
-  return buildGuardrailInputProcessors({ settings, env, strategy: 'block', mode: 'strict' });
+  // Production research is fail-closed as agreed. Local development and
+  // hermetic tests may still run without a judge key; they keep the
+  // deterministic Unicode normalizer and expose the degradation warning.
+  const strict =
+    process.env.NODE_ENV === 'production' || process.env.MASTRA_STRICT_GUARDRAILS === 'true';
+  return buildGuardrailInputProcessors({
+    settings,
+    env,
+    strategy: 'block',
+    mode: strict ? 'strict' : 'availability',
+  });
 }
 
 /**

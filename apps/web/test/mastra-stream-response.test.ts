@@ -60,6 +60,31 @@ describe('mastraStreamResponse onAbort', () => {
     expect(onAbort).toHaveBeenCalledTimes(1);
   });
 
+  it('calls onAbort when the consumer cancels the response', async () => {
+    const onAbort = vi.fn().mockResolvedValue(undefined);
+    let returned = false;
+
+    const text: AsyncIterable<string> = {
+      [Symbol.asyncIterator]() {
+        return {
+          next: async () => ({ value: 'partial', done: false }),
+          return: async () => {
+            returned = true;
+            return { value: undefined, done: true };
+          },
+        };
+      },
+    };
+
+    const response = mastraStreamResponse(text, 'msg-cancel', { onAbort });
+    const reader = response.body!.getReader();
+    await reader.read();
+    await reader.cancel('client disconnected');
+
+    expect(returned).toBe(true);
+    expect(onAbort).toHaveBeenCalledTimes(1);
+  });
+
   it('does not call onAbort when the stream completes normally', async () => {
     const onAbort = vi.fn();
 

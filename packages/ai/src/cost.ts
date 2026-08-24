@@ -82,6 +82,35 @@ const log = createCategorizedLogger('ai', { component: 'cost' });
 
 const FALLBACK_RATE: ModelRate = { inputPerM: 5, outputPerM: 15 };
 
+/** Error raised when production accounting cannot price a model safely. */
+export class UnknownModelPricingError extends Error {
+  readonly code = 'UNKNOWN_MODEL_PRICING' as const;
+
+  constructor(readonly model: string) {
+    super(`No pricing is configured for model "${model}".`);
+    this.name = 'UnknownModelPricingError';
+  }
+}
+
+/** Resolve a normalized model rate without applying the compatibility fallback. */
+export function resolveModelRate(model: string): ModelRate | null {
+  return RATES[rateKeyForModel(model)] ?? null;
+}
+
+/** Strict cost estimate for durable accounting; unknown models fail closed. */
+export function estimateKnownCostUsd(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const rate = resolveModelRate(model);
+  if (!rate) throw new UnknownModelPricingError(model);
+  if (!Number.isFinite(inputTokens) || !Number.isFinite(outputTokens) || inputTokens < 0 || outputTokens < 0) {
+    throw new Error('token counts must be finite and non-negative');
+  }
+  return (inputTokens / 1_000_000) * rate.inputPerM + (outputTokens / 1_000_000) * rate.outputPerM;
+}
+
 export const DEFAULT_TURN_ESTIMATE_USD = 0.01;
 
 /**
@@ -112,7 +141,7 @@ function rateKeyForModel(model: string): string {
 
 /** Estimate USD cost from token counts. Always >= 0. */
 export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
-  const rate = RATES[rateKeyForModel(model)] ?? FALLBACK_RATE;
+  const rate = resolveModelRate(model) ?? FALLBACK_RATE;
   return (inputTokens / 1_000_000) * rate.inputPerM + (outputTokens / 1_000_000) * rate.outputPerM;
 }
 

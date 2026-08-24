@@ -24,5 +24,10 @@ export {
   type MastraRunOutcome,
   type MastraUsageLike,
 } from './stats';
-export { beginMastraRun, finishMastraRun, type MastraRunObservation } from './run-telemetry';
+export {
+  beginMastraRun,
+  createMastraRunFinalizer,
+  finishMastraRun,
+  type MastraRunObservation,
+} from './run-telemetry';
 export { executeMastraTool } from './tool-telemetry';

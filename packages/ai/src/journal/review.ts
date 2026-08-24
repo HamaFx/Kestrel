@@ -24,10 +24,8 @@ import type { JournalEntry, JournalStats, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import {
-  applyBudgetDelta,
   DEFAULT_MAX_DAILY_USD,
-  estimateCostUsd,
-  reconcileBudgetReservation,
+  estimateKnownCostUsd,
   releaseBudgetReservation,
   tryReserveBudget,
 } from '../cost';
@@ -119,7 +117,9 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
   // Budget guardrail: reserve a small estimate before the call.
   const estimatedUsd = 0.005;
   const maxDailyUsd = userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD;
-  const reservation = await tryReserveBudget(userId, estimatedUsd, maxDailyUsd);
+  const reservation = await tryReserveBudget(userId, estimatedUsd, maxDailyUsd, new Date(), {
+    runId: crypto.randomUUID(),
+  });
   if (!reservation.ok) {
     throw new Error(
       `Daily AI budget exceeded ($${reservation.spent.toFixed(2)} / $${reservation.max.toFixed(2)}).`,
@@ -142,16 +142,12 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
     const inputTokens = result.inputTokens;
     const outputTokens = result.outputTokens;
     const latencyMs = Date.now() - startedAt;
-    const costUsd = estimateCostUsd(modelId, inputTokens, outputTokens);
+    const costUsd = estimateKnownCostUsd(modelId, inputTokens, outputTokens);
 
-    // Reconcile the budget reservation with actual cost. The ledger path is
-    // atomic and retry-safe; the fallback is retained for legacy test/setup
-    // implementations that do not return a reservation ID.
+    // Reconcile the durable budget reservation with actual cost.
     if (reservation.reservationId) {
+      const { reconcileBudgetReservation } = await import('../cost');
       await reconcileBudgetReservation(reservation.reservationId, costUsd);
-    } else {
-      const delta = costUsd - estimatedUsd;
-      if (Math.abs(delta) > 0.0001) await applyBudgetDelta(userId, delta);
     }
 
     return {
@@ -169,6 +165,8 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
       if (reservation.reservationId) {
         await releaseBudgetReservation(reservation.reservationId);
       } else {
+        // Legacy reservations without a ledger id are not expected in production.
+        const { applyBudgetDelta } = await import('../cost');
         await applyBudgetDelta(userId, -estimatedUsd);
       }
     } catch (releaseErr) {

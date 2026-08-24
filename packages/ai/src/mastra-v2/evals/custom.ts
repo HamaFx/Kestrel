@@ -76,7 +76,12 @@ export function createGroundingScorer(): MastraScorer<
       'Scores 1 when the candidate XAUUSD report passes every deterministic verification check (schema, evidence IDs, safety, numeric/narrative grounding, temporal disclosure).',
   })
     .preprocess(async ({ run }) => {
-      const { report, packet } = run.input as GroundingScorerRunInput;
+      const explicit =
+        run.input && typeof run.input === 'object'
+          ? (run.input as Partial<GroundingScorerRunInput>)
+          : undefined;
+      const report = explicit?.report ?? run.output;
+      const packet = explicit?.packet ?? extractPacket(run.output);
       if (!report || !packet) {
         metrics.increment('scorer_missing_input_total', { tags: { scorer: 'kestrel-grounding' } });
         return { ok: false, findings: ['missing report or packet input'] };
@@ -112,7 +117,12 @@ export function createCitationScorer(): MastraScorer<
       'Scores the ratio of price/event claims in the assistant text that are backed by supporting tool calls (0..1).',
   })
     .preprocess(async ({ run }) => {
-      const { text, toolCalls } = run.input as CitationScorerRunInput;
+      const explicit =
+        run.input && typeof run.input === 'object'
+          ? (run.input as Partial<CitationScorerRunInput>)
+          : undefined;
+      const text = explicit?.text ?? outputText(run.output);
+      const toolCalls = explicit?.toolCalls ?? outputToolCalls(run.output);
       if (!text) {
         metrics.increment('scorer_missing_input_total', { tags: { scorer: 'kestrel-citation' } });
         return { score: 0 };
@@ -122,6 +132,50 @@ export function createCitationScorer(): MastraScorer<
     .generateScore(({ results }) => {
       return results.preprocessStepResult?.score ?? 0;
     });
+}
+
+function outputText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
+  const candidate = value as { text?: unknown; result?: { text?: unknown } };
+  if (typeof candidate.text === 'string') return candidate.text;
+  if (candidate.result && typeof candidate.result.text === 'string') return candidate.result.text;
+  return '';
+}
+
+function outputToolCalls(value: unknown): Array<{ name: string }> {
+  if (!value || typeof value !== 'object') return [];
+  const candidate = value as {
+    toolCalls?: unknown;
+    response?: { messages?: unknown };
+  };
+  if (Array.isArray(candidate.toolCalls)) {
+    return candidate.toolCalls.flatMap((call) => {
+      if (!call || typeof call !== 'object') return [];
+      const name = (call as { toolName?: unknown; name?: unknown }).toolName ??
+        (call as { name?: unknown }).name;
+      return typeof name === 'string' ? [{ name }] : [];
+    });
+  }
+  if (!Array.isArray(candidate.response?.messages)) return [];
+  return candidate.response.messages.flatMap((message) => {
+    if (!message || typeof message !== 'object') return [];
+    const content = (message as { content?: unknown }).content;
+    if (!Array.isArray(content)) return [];
+    return content.flatMap((part) => {
+      if (!part || typeof part !== 'object') return [];
+      const candidatePart = part as { type?: unknown; toolName?: unknown };
+      return candidatePart.type === 'tool-call' && typeof candidatePart.toolName === 'string'
+        ? [{ name: candidatePart.toolName }]
+        : [];
+    });
+  });
+}
+
+function extractPacket(value: unknown): XauusdResearchPacket | null {
+  if (!value || typeof value !== 'object') return null;
+  const packet = (value as { packet?: unknown }).packet;
+  return packet && typeof packet === 'object' ? (packet as XauusdResearchPacket) : null;
 }
 
 export const CUSTOM_SCORER_IDS = ['kestrel-grounding', 'kestrel-citation'] as const;

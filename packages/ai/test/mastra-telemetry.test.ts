@@ -174,7 +174,7 @@ describe('Mastra telemetry boundaries', () => {
         inputTokens: 100,
         outputTokens: 40,
         toolCalls: 3,
-        idempotencyKey: 'mastra.run:run-3:success',
+        idempotencyKey: 'mastra.run:run-3',
         kind: 'mastra_xauusd_poc',
       }),
     );
@@ -205,7 +205,7 @@ describe('Mastra telemetry boundaries', () => {
 
     expect(mocks.recordTelemetry).toHaveBeenCalledWith(
       expect.objectContaining({
-        idempotencyKey: 'mastra.run:canonical-run-1:success',
+        idempotencyKey: 'mastra.run:canonical-run-1',
         kind: 'mastra_canonical_chat',
       }),
     );

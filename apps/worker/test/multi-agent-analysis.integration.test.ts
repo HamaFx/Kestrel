@@ -31,6 +31,7 @@ const {
   mockPurgeOldRuns,
   mockRunMastraMode,
   mockReserveTurnBudget,
+  mockResolveModelForProvider,
   mockAppendUserMessage,
   mockAppendAssistantMessage,
 } = vi.hoisted(() => ({
@@ -46,6 +47,7 @@ const {
   mockPurgeOldRuns: vi.fn(),
   mockRunMastraMode: vi.fn(),
   mockReserveTurnBudget: vi.fn(),
+  mockResolveModelForProvider: vi.fn(),
   mockAppendUserMessage: vi.fn(),
   mockAppendAssistantMessage: vi.fn(),
 }));
@@ -72,6 +74,11 @@ const payload = {
   traceId: 'trace-worker-1',
   attemptCount: 1,
   createdAt: '2026-08-15T12:00:00.000Z',
+  modelSnapshot: {
+    modelId: 'google/gemini-2.5-flash',
+    providerId: 'google',
+    bareModelId: 'gemini-2.5-flash',
+  },
 };
 
 const claimed = { runId: 'run-1', payload };
@@ -106,6 +113,7 @@ vi.mock('@kestrel/ai/mastra', () => ({
 
 vi.mock('@kestrel/ai', () => ({
   getDb: () => mockDb,
+  resolveModelForProvider: mockResolveModelForProvider,
   appendUserMessage: mockAppendUserMessage,
   appendAssistantMessage: mockAppendAssistantMessage,
   DEFAULT_MAX_DAILY_USD: 5,
@@ -136,6 +144,12 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     mockClaimNextFullAnalysisRun.mockResolvedValueOnce(claimed).mockResolvedValueOnce(null);
     mockRecoverStaleRuns.mockResolvedValue({ requeued: 0, failed: 0 });
     mockPurgeOldRuns.mockResolvedValue(0);
+    mockResolveModelForProvider.mockReturnValue({
+      modelId: 'google/gemini-2.5-flash',
+      providerId: 'google',
+      bareModelId: 'gemini-2.5-flash',
+      model: {},
+    });
     mockReserveTurnBudget.mockResolvedValue({
       reconcile: vi.fn().mockResolvedValue(undefined),
       release: vi.fn().mockResolvedValue(undefined),
@@ -176,6 +190,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
         symbol: 'XAUUSD',
         workflowId: 'full-analysis',
         telemetryKind: 'mastra_full_job',
+        modelOverride: 'google:gemini-2.5-flash',
       }),
     );
     expect(mockAppendUserMessage).toHaveBeenCalledWith(

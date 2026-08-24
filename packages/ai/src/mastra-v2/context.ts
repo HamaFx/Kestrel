@@ -159,24 +159,32 @@ function toMastraMessage(
  * first; best-effort — failures degrade to empty context, never block the
  * turn.
  */
-export async function backfillThreadHistoryIfNeeded(args: {
+const backfillInFlight = new Map<string, Promise<number>>();
+
+async function performThreadHistoryBackfill(args: {
   memory: Memory;
   userId: string;
   threadId: string;
+  excludeMessageIdempotencyKey?: string;
 }): Promise<number> {
-  const { memory, userId, threadId } = args;
+  const { memory, userId, threadId, excludeMessageIdempotencyKey } = args;
   try {
-    // recall() validates the thread belongs to the resource, so pre-migration
-    // threads must exist in Mastra storage first. Idempotent: `saveThread`
-    // upserts on the primary key.
+    // The Drizzle history is authoritative for legacy threads. Create the
+    // Mastra thread lazily after confirming there is history to migrate.
     const existingThread = await memory.getThreadById({ threadId, resourceId: userId });
+    // The legacy Drizzle table is the authoritative source for this
+    // migration. Check it before writing rather than using `recall()`, which
+    // may include synthetic memory context and is not a reliable empty-thread
+    // sentinel on every storage backend.
+    const listedRows = await listMessages(userId, threadId, BACKFILL_LIMIT);
+    const rows = (Array.isArray(listedRows) ? listedRows : []).filter(
+      (row) => !excludeMessageIdempotencyKey || row.idempotencyKey !== excludeMessageIdempotencyKey,
+    );
+
+    if (rows.length === 0) return 0;
     if (!existingThread) {
       await memory.createThread({ threadId, resourceId: userId, title: 'Kestrel thread' });
     }
-    const existing = await memory.recall({ threadId, resourceId: userId, perPage: 1 });
-    if (existing.messages.length > 0) return 0;
-    const rows = await listMessages(userId, threadId, BACKFILL_LIMIT);
-    if (rows.length === 0) return 0;
     await memory.saveMessages({
       messages: rows.map((row) => toMastraMessage(row, userId, threadId)),
     });
@@ -191,7 +199,40 @@ export async function backfillThreadHistoryIfNeeded(args: {
       threadId,
       error: error instanceof Error ? error.message : String(error),
     });
+    // Do not let the wrapper confuse a transient storage failure with a
+    // successful no-op. It must remain possible to retry on a later request.
+    throw error;
+  }
+}
+
+/**
+ * Race-safe wrapper around the one-time backfill. Native Mastra storage
+ * upserts message IDs, but the read-then-write check can still duplicate
+ * work when two requests initialize the same legacy thread concurrently.
+ * Serialize that check/write pair per user/thread within this process.
+ */
+export async function backfillThreadHistoryIfNeeded(args: {
+  memory: Memory;
+  userId: string;
+  threadId: string;
+  /** Do not copy the current request, already persisted in Drizzle. */
+  excludeMessageIdempotencyKey?: string;
+}): Promise<number> {
+  const key = `${args.userId}:${args.threadId}`;
+  const existing = backfillInFlight.get(key);
+  if (existing) return existing;
+  const operation = performThreadHistoryBackfill(args);
+  backfillInFlight.set(key, operation);
+  try {
+    return await operation;
+  } catch {
+    // Best effort: callers continue with native memory or explicit history.
     return 0;
+  } finally {
+    // No second operation can be admitted while this lock is present, so an
+    // unconditional delete cannot remove a newer lock and also avoids stale
+    // locks when a storage implementation returns a wrapped Promise.
+    backfillInFlight.delete(key);
   }
 }
 
@@ -204,6 +245,8 @@ export interface PrepareKestrelMemoryArgs {
   userId: string;
   threadId: string;
   settings: WorkingMemorySeedArgs['settings'];
+  /** Do not copy the current request, already persisted in Drizzle. */
+  excludeMessageIdempotencyKey?: string;
   /** When true, also backfill pre-migration thread history. */
   backfill?: boolean;
 }
@@ -235,6 +278,9 @@ export async function prepareKestrelMemory(
           memory: args.memory,
           userId: args.userId,
           threadId: args.threadId,
+          ...(args.excludeMessageIdempotencyKey
+            ? { excludeMessageIdempotencyKey: args.excludeMessageIdempotencyKey }
+            : {}),
         })
       : 0;
   return { callOptions, seededWorkingMemory, backfilledMessages };

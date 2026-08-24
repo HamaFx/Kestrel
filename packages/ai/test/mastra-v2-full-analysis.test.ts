@@ -40,6 +40,11 @@ const INPUT = {
   userMessageText: 'Analyze XAUUSD',
   userMessageParts: [{ type: 'text', text: 'Analyze XAUUSD' }],
   idempotencyKey: 'full:thread-1:message-1',
+  modelSnapshot: {
+    modelId: 'google/gemini-2.5-flash',
+    providerId: 'google',
+    bareModelId: 'gemini-2.5-flash',
+  },
 };
 
 async function withQueueStorage<T>(
@@ -90,6 +95,7 @@ describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
       expect(claimed?.payload.attemptCount).toBe(1);
       expect(claimed?.payload.workerRunId).toBe('worker-1');
       expect(claimed?.payload.startedAt).toBeDefined();
+      expect(claimed?.payload.modelSnapshot).toEqual(INPUT.modelSnapshot);
 
       await completeFullAnalysisRun(runId!, 'worker-1', { finalText: 'done', mode: 'full' });
 

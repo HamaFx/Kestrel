@@ -44,7 +44,7 @@ export interface RunMastraCanonicalChatInput {
 export async function runMastraCanonicalChatService(
   input: RunMastraCanonicalChatInput,
 ): Promise<MastraCanonicalChatResult & { runId: string; observedCost: number; messageId: string }> {
-  const { settings } = await getUserWithSettings(input.userId);
+  const { settings, user } = await getUserWithSettings(input.userId);
   if (!settings) throw new Error('User settings not found. Please complete onboarding.');
 
   const env = getServerEnv();
@@ -83,10 +83,12 @@ export async function runMastraCanonicalChatService(
       userMessage: input.userMessage,
       history,
       settings,
+      plan: user?.plan ?? null,
       env: runEnv,
       ...(input.customInstructions ? { customInstructions: input.customInstructions } : {}),
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
+      backfillExcludeMessageIdempotencyKey: currentUserKey,
       runId,
     });
     const observedCost = estimateCostUsd(

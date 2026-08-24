@@ -56,6 +56,18 @@ export function mastraStreamResponse(
   // close it explicitly. Without this, a client disconnect can leave the
   // provider streaming indefinitely.
   let upstreamIterator: AsyncIterator<string> | null = null;
+  let cancelled = false;
+  let abortNotified = false;
+
+  const notifyAbort = async (): Promise<void> => {
+    if (abortNotified || !options.onAbort) return;
+    abortNotified = true;
+    try {
+      await options.onAbort();
+    } catch {
+      // Abort cleanup is best-effort and must not mask the stream shutdown.
+    }
+  };
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -85,7 +97,7 @@ export function mastraStreamResponse(
         controller.enqueue(encode({ type: 'text-end', id: messageId }));
         ended = true;
       } catch (error) {
-        if (!options.signal?.aborted) {
+        if (!cancelled && !options.signal?.aborted) {
           controller.enqueue(
             encode({
               type: 'error',
@@ -95,25 +107,26 @@ export function mastraStreamResponse(
         }
         // When the stream is aborted before completion, fire the onAbort
         // callback so the service layer can persist an interrupted marker.
-        if (started && !ended && options.onAbort) {
-          try {
-            await options.onAbort();
-          } catch {
-            // Swallow — the stream must close cleanly regardless.
-          }
-        }
+        if (started && !ended) await notifyAbort();
       } finally {
-        if (started && !ended) controller.enqueue(encode({ type: 'text-end', id: messageId }));
+        if (started && !ended && !cancelled) {
+          controller.enqueue(encode({ type: 'text-end', id: messageId }));
+        }
         upstreamIterator = null;
-        controller.close();
+        if (!cancelled) controller.close();
       }
     },
-    cancel() {
+    async cancel() {
+      cancelled = true;
       // Close the upstream async iterator so the provider stops streaming
       // when the client disconnects. The iterator's return() method signals
       // the producer to release resources.
-      void upstreamIterator?.return?.();
-      upstreamIterator = null;
+      try {
+        await upstreamIterator?.return?.();
+      } finally {
+        upstreamIterator = null;
+      }
+      await notifyAbort();
     },
   });
   return new Response(stream, {

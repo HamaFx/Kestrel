@@ -16,6 +16,7 @@
 
 export {
   MASTRA_CAPABILITIES,
+  CANONICAL_READ_ONLY_TOOL_NAMES,
   evaluateMastraCapability,
   getMastraCapability,
   type MastraCapability,
@@ -113,6 +114,9 @@ export {
 export {
   assertMastraMutationAllowed,
   assertMastraMutationDraftAllowed,
+  assertRegisteredSystemAction,
+  isRegisteredSystemAction,
+  SYSTEM_ACTION_REGISTRY,
   evaluateMastraMutation,
   issueMutationConfirmationToken,
   storedConfirmationForToken,
@@ -125,6 +129,7 @@ export {
   type MastraMutationRequest,
   type MutationConfirmationToken,
   type StoredMutationConfirmation,
+  type SystemActionId,
 } from './mutation-policy';
 export {
   createKestrelMastra,
@@ -261,6 +266,7 @@ export {
 } from '../mastra-v2/guardrails';
 export {
   beginMastraRun,
+  createMastraRunFinalizer,
   errorCodeForMastra,
   executeMastraTool,
   finishMastraRun,

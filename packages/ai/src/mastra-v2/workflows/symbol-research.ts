@@ -194,6 +194,8 @@ export interface SymbolResearchWorkflowDeps {
   mastra?: Mastra;
   /** Phase 5 — input processors (Unicode normalizer + prompt-injection detector). */
   inputProcessors?: Array<InputProcessorOrWorkflow>;
+  /** Research-specific processors; falls back to inputProcessors for compatibility. */
+  researchInputProcessors?: Array<InputProcessorOrWorkflow>;
   /** Phase 6 — sampled live scorers for research agents (from `buildResearchScorers`). */
   scorers?: MastraScorers;
 }
@@ -346,7 +348,7 @@ export function createSymbolResearchWorkflow(
             `kestrel-mastra-${name}`,
             specialistInstructions(name, inputData.packet),
             deps.memory,
-            deps.inputProcessors,
+            deps.researchInputProcessors ?? deps.inputProcessors,
             deps.scorers,
           );
           const result = await agent.generate(inputData.prompt, {

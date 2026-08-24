@@ -21,6 +21,7 @@ import { POST } from '@/app/api/chat/route';
 
 const {
   mockEnqueueFullAnalysis,
+  mockGetUserWithSettings,
   mockGetThread,
   mockWithRateLimit,
   mockRunMastraXauusdChat,
@@ -33,6 +34,7 @@ const {
   mockMastraModeResponse,
 } = vi.hoisted(() => ({
   mockEnqueueFullAnalysis: vi.fn(),
+  mockGetUserWithSettings: vi.fn(),
   mockGetThread: vi.fn(),
   mockWithRateLimit: vi.fn(),
   mockRunMastraXauusdChat: vi.fn(),
@@ -48,6 +50,10 @@ const {
 }));
 
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
+vi.mock('@kestrel/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  return { ...actual, getUserWithSettings: mockGetUserWithSettings };
+});
 
 vi.mock('@/lib/api', () => ({
   errorResponse: vi.fn((error: unknown) =>
@@ -63,6 +69,7 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/lib/env', () => ({
   getServerEnv: () => ({
     AI_DEFAULT_MODEL: 'google/gemini-3.6-flash',
+    GOOGLE_GENERATIVE_AI_API_KEY: 'test-key',
     MAX_DAILY_USD: 5,
     MAX_TOOL_ITERATIONS: 6,
   }),
@@ -165,6 +172,13 @@ describe('POST /api/chat Mastra boundary', () => {
     vi.clearAllMocks();
     mockWithRateLimit.mockResolvedValue({ allowed: true, count: 1, limit: 30 });
     mockGetThread.mockResolvedValue({ id: 'thread-1', userId: 'user-1' });
+    mockGetUserWithSettings.mockResolvedValue({
+      settings: {
+        aiApiKeys: null,
+        chatModel: null,
+        embeddingModel: null,
+      },
+    });
     mockEnqueueFullAnalysis.mockResolvedValue('run-1');
     mockRunMastraXauusdChat.mockResolvedValue({
       result: { text: 'xauusd result' },

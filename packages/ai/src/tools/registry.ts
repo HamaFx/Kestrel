@@ -119,7 +119,10 @@ export class ToolRegistry {
    * Falls back to resolve(names) when plan is undefined.
    */
   resolveForPlan(names: string[] | undefined, plan?: string): Record<string, Tool> {
-    if (!plan) return this.resolve(names);
+    // Missing or unknown authorization state fails closed. Callers that need
+    // the unrestricted registry must use resolve() explicitly at a trusted
+    // composition boundary.
+    if (!plan || !['free', 'pro', 'enterprise'].includes(plan)) return {};
 
     const source = names ? this.resolve(names) : this.resolve();
     if (plan !== 'free') return source;

@@ -18,7 +18,7 @@ import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
 import { flushMetrics } from '@kestrel/shared/metrics-export';
 
-import { estimateCostUsd } from '../cost';
+import { estimateKnownCostUsd } from '../cost';
 import { completeStep, recordError, recordStep } from '../diagnostics';
 import { flushLangfuse } from '../instrumentation';
 import { getKestrelMastra } from '../mastra-v2/instance';
@@ -77,6 +77,17 @@ export function beginMastraRun(
  * Finish one Mastra run. Observability failures are deliberately swallowed so
  * a Grafana/DB/Langfuse outage cannot change the result of the AI run.
  */
+export function createMastraRunFinalizer(): (
+  args: MastraRunObservation,
+) => Promise<void> {
+  let terminalPromise: Promise<void> | null = null;
+  return (args) => {
+    if (terminalPromise) return terminalPromise;
+    terminalPromise = finishMastraRun(args);
+    return terminalPromise;
+  };
+}
+
 export async function finishMastraRun(args: MastraRunObservation): Promise<void> {
   const durationMs = Math.max(0, Date.now() - args.startedAt);
   const status = args.outcome === 'success' ? 'completed' : 'failed';
@@ -137,7 +148,9 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
       outputTokens: args.outputTokens,
       toolCalls: args.toolCalls,
       ms: durationMs,
-      idempotencyKey: `mastra.run:${args.runId}:${args.outcome}`,
+      // One run has one terminal ledger row regardless of whether the
+      // callback was triggered by completion, failure, or abort.
+      idempotencyKey: `mastra.run:${args.runId}`,
       kind:
         args.outcome === 'success'
           ? (args.telemetryKind ?? 'mastra_xauusd_poc')
@@ -159,7 +172,19 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
     });
   }
 
-  const cost = estimateCostUsd(args.model, args.inputTokens, args.outputTokens);
+  let cost = 0;
+  try {
+    cost = estimateKnownCostUsd(args.model, args.inputTokens, args.outputTokens);
+  } catch (error) {
+    metrics.increment('mastra_unpriced_model_total', {
+      tags: { agent: MASTRA_XAUUSD_AGENT_ID },
+    });
+    mlog.warn('Mastra run completed with unpriced model', {
+      runId: args.runId,
+      model: args.model,
+      err: error instanceof Error ? error.message : String(error),
+    });
+  }
   if (Number.isFinite(cost) && cost > 0) {
     metrics.observe('turn_cost_usd', cost, {
       tags: { agent: MASTRA_XAUUSD_AGENT_ID },

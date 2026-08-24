@@ -103,6 +103,13 @@ export async function reserveTurnBudget(args: {
     },
     async reconcile(observedUsd: number) {
       if (state.released) return;
+      if (!Number.isFinite(observedUsd) || observedUsd < 0) {
+        alog.error('invalid observed cost; reservation remains open', {
+          userId: args.userId,
+          observedUsd,
+        });
+        return;
+      }
       const delta = observedUsd - estimateUsd;
       try {
         if (reservation.reservationId) {

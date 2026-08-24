@@ -43,6 +43,8 @@ export interface RunMastraXauusdChatInput {
   modelOverride?: string | null;
   kind?: 'research' | 'conversation';
   signal?: AbortSignal;
+  /** Prevent native memory backfill from duplicating this persisted request. */
+  backfillExcludeMessageIdempotencyKey?: string;
   followup?: boolean;
   priorReport?: XauusdResearchReport | null;
 }
@@ -60,12 +62,12 @@ export async function runMastraXauusdChat(
   }
 
   const env = getServerEnv();
+  const runId = crypto.randomUUID();
   const budget = await reserveTurnBudget({
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
+    correlation: { threadId: input.threadId, runId },
   });
-
-  const runId = crypto.randomUUID();
   let completedRun: Awaited<ReturnType<typeof runMastraXauusdResearch>> | null = null;
   let observedCost = 0;
 
@@ -82,6 +84,9 @@ export async function runMastraXauusdChat(
       prompt: input.prompt,
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
+      ...(input.backfillExcludeMessageIdempotencyKey
+        ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
+        : {}),
       ...(input.followup ? { followup: true } : {}),
       ...(input.priorReport ? { priorReport: input.priorReport } : {}),
     });

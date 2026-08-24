@@ -31,13 +31,13 @@ import {
   type XauusdResearchReport,
 } from '@kestrel/ai/mastra';
 import { getThread, getUserWithSettings } from '@kestrel/db';
-import { metrics } from '@kestrel/shared';
 import { notFound } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
 import { createMastraChatMeta } from '@/lib/mastra-chat-meta';
 import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
+import { createMastraStreamFinalizer } from '@/lib/services/mastra-stream-finalizer';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra-thread-title';
 
 export interface RunMastraXauusdConversationStreamInput {
@@ -47,6 +47,8 @@ export interface RunMastraXauusdConversationStreamInput {
   prompt: string;
   modelOverride?: string | null;
   signal?: AbortSignal;
+  /** Prevent native memory backfill from duplicating this persisted request. */
+  backfillExcludeMessageIdempotencyKey?: string;
   priorReport?: XauusdResearchReport | null;
 }
 
@@ -60,12 +62,29 @@ export async function runMastraXauusdConversationStreamChat(
   if (!settings) throw new Error('User settings not found. Please complete onboarding.');
 
   const env = getServerEnv();
+  const runId = crypto.randomUUID();
   const budget = await reserveTurnBudget({
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
+    correlation: { threadId: input.threadId, runId },
   });
+  let assistantMessageId = runId;
 
-  const runId = crypto.randomUUID();
+  const finalizer = createMastraStreamFinalizer({
+    budget,
+    onInterrupted: async () => {
+      await appendAssistantMessage(
+        input.userId,
+        input.threadId,
+        {
+          id: assistantMessageId,
+          role: 'assistant',
+          parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
+        },
+        { idempotencyKey: `mastra:${input.threadId}:${input.userMessage.id}:interrupted` },
+      ).catch(() => undefined);
+    },
+  });
 
   try {
     await appendUserMessage(input.userId, input.threadId, input.userMessage);
@@ -79,10 +98,14 @@ export async function runMastraXauusdConversationStreamChat(
       env,
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
+      ...(input.backfillExcludeMessageIdempotencyKey
+        ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
+        : {}),
       ...(input.priorReport ? { followup: true, priorReport: input.priorReport } : {}),
     });
 
     const messageId = crypto.randomUUID();
+    assistantMessageId = messageId;
     let observedCost = 0;
 
     async function* text(): AsyncIterable<string> {
@@ -121,9 +144,10 @@ export async function runMastraXauusdConversationStreamChat(
           firstUser: input.prompt,
           firstAssistant: completed.result.text,
         });
-        await budget.reconcile(observedCost);
+        await finalizer.complete(observedCost);
       } catch (error) {
-        await budget.release();
+        if (input.signal?.aborted) await finalizer.abort();
+        else await finalizer.fail();
         throw error;
       }
     }
@@ -131,30 +155,11 @@ export async function runMastraXauusdConversationStreamChat(
     return mastraStreamResponse(text(), messageId, {
       meta: { id: messageId, data: { engine: 'mastra', agent: 'mastra-xauusd', runId } },
       signal: input.signal,
-      onAbort: async () => {
-        // Release the budget reservation so a stranded reservation does
-        // not block the user's next turn until the recovery job runs.
-        // budget.release() is idempotent — safe even when the text()
-        // generator's catch path also releases.
-        metrics.increment('stream_abort_release_total');
-        await budget.release();
-        // Persist an interrupted marker under a distinct key so the
-        // retry's successful assistant response (inserted under the
-        // normal key) is never blocked by onConflictDoNothing.
-        await appendAssistantMessage(
-          input.userId,
-          input.threadId,
-          {
-            id: messageId,
-            role: 'assistant',
-            parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
-          },
-          { idempotencyKey: `mastra:${input.threadId}:${input.userMessage.id}:interrupted` },
-        ).catch(() => {});
-      },
+      onAbort: () => finalizer.abort(),
     });
   } catch (error) {
-    await budget.release();
+    if (input.signal?.aborted) await finalizer.abort();
+    else await finalizer.fail();
     throw error;
   }
 }

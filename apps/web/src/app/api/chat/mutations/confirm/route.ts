@@ -17,6 +17,7 @@
 import { appendAssistantMessage } from '@kestrel/ai';
 import {
   assertMastraMutationAllowed,
+  assertRegisteredSystemAction,
   createMutationWorkflow,
   getKestrelMastra,
   MutationKindSchema,
@@ -107,6 +108,7 @@ function executorFor(kind: z.infer<typeof MutationKindSchema>, userId: string): 
       }
       case 'run_system_action':
         if (input.kind !== 'run_system_action') throw new Error('mutation kind mismatch');
+        assertRegisteredSystemAction(input.action);
         return { id: `system:${input.action}` };
     }
   };
@@ -194,6 +196,7 @@ function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: str
           }
           case 'run_system_action':
             if (input.kind !== 'run_system_action') throw new Error('mutation kind mismatch');
+            assertRegisteredSystemAction(input.action);
             return { id: `system:${input.action}`, summary };
         }
       },

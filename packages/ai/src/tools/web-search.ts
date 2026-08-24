@@ -116,7 +116,12 @@ export function normalizeWebSearchResults(
     seen.add(url);
 
     const title = cleanText(stringValue(item.title) || parsed.hostname, 240);
-    const content = cleanText(stringValue(item.content) || textValue(item.highlights), 1800);
+    const content = cleanText(
+      stringValue(item.content) ||
+        textValue(item.highlights) ||
+        stringValue((item as ProviderItem & { highlight?: unknown }).highlight),
+      1800,
+    );
     const snippet = cleanText(stringValue(item.snippet) || content, 500);
 
     sources.push({
@@ -406,7 +411,10 @@ async function fetchExa(
   );
   return arrayValue(response.results).map((item) => ({
     ...item,
-    content: item.content ?? item.highlights,
+    content:
+      item.content ??
+      item.highlights ??
+      (item as ProviderItem & { highlight?: unknown }).highlight,
     publishedAt: item.publishedDate,
   }));
 }
