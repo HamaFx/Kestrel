@@ -31,6 +31,7 @@
 export type WidgetType =
   | 'today-glance' // 1.9 — hero (4-cell strip)
   | 'briefing' // 1.7 — AI briefing
+  | 'quant-desk' // 8-bit live quant trading floor
   | 'pnl-heatmap' // 1.8 — P&L calendar
   | 'equity-curve' // existing PerformanceChart
   | 'watchlist' // live prices + sparklines
@@ -52,21 +53,21 @@ export interface WidgetConfig {
 
 /**
  * Default layout shipped to a fresh user. Order is intentionally
- * "story-first": today's glance → AI briefing → P&L heatmap (the three
- * full-width heroes), then the half-width modules in descending signal
- * strength.
+ * "story-first": today's glance → AI briefing → quant floor → P&L heatmap,
+ * then the half-width modules in descending signal strength.
  */
 export const DEFAULT_LAYOUT: WidgetConfig[] = [
   { id: 'w1', type: 'today-glance', span: 3, order: 0 },
-  { id: 'w2', type: 'briefing', span: 3, order: 1 },
-  { id: 'w3', type: 'pnl-heatmap', span: 3, order: 2 },
-  { id: 'w4', type: 'equity-curve', span: 2, order: 3 },
-  { id: 'w5', type: 'stats', span: 1, order: 4 },
-  { id: 'w6', type: 'watchlist', span: 1, order: 5 },
-  { id: 'w7', type: 'open-positions', span: 2, order: 6 },
-  { id: 'w8', type: 'alerts', span: 1, order: 7 },
-  { id: 'w9', type: 'calendar', span: 1, order: 8 },
-  { id: 'w10', type: 'news-pulse', span: 1, order: 9 },
+  { id: 'w2', type: 'briefing', span: 2, order: 1 },
+  { id: 'w-qd', type: 'quant-desk', span: 1, order: 2 },
+  { id: 'w3', type: 'pnl-heatmap', span: 3, order: 3 },
+  { id: 'w4', type: 'equity-curve', span: 2, order: 4 },
+  { id: 'w5', type: 'stats', span: 1, order: 5 },
+  { id: 'w6', type: 'watchlist', span: 1, order: 6 },
+  { id: 'w7', type: 'open-positions', span: 2, order: 7 },
+  { id: 'w8', type: 'alerts', span: 1, order: 8 },
+  { id: 'w9', type: 'calendar', span: 1, order: 9 },
+  { id: 'w10', type: 'news-pulse', span: 1, order: 10 },
 ];
 
 /**
@@ -81,6 +82,7 @@ export const LAYOUT_STORAGE_KEY = 'kestrel:dashboard-layout:v1';
 export const WIDGET_LABELS: Record<WidgetType, string> = {
   'today-glance': 'Today at a glance',
   briefing: 'AI briefing',
+  'quant-desk': 'Kestrel Quant Floor',
   'pnl-heatmap': 'P&L heatmap',
   'equity-curve': 'Equity curve',
   watchlist: 'Watchlist',
@@ -90,6 +92,7 @@ export const WIDGET_LABELS: Record<WidgetType, string> = {
   'news-pulse': 'News pulse',
   stats: 'Stats',
 };
+
 
 export type LayoutPresetName = 'default' | 'day_trader' | 'macro' | 'risk';
 

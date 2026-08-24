@@ -83,12 +83,14 @@ import { EquityCurveWidget } from './widgets/equity-curve-widget';
 import { NewsPulseWidget } from './widgets/news-pulse-widget';
 import { OpenPositionsWidget } from './widgets/open-positions-widget';
 import { PnLHeatmapWidget } from './widgets/pnl-heatmap-widget';
+import { QuantDeskWidget } from './widgets/quant-desk-widget';
 import { StatsWidget } from './widgets/stats-widget';
 import { TodayGlanceWidget } from './widgets/today-glance-widget';
 import { WatchlistWidget } from './widgets/watchlist-widget';
 
 const MemoTodayGlance = memo(TodayGlanceWidget);
 const MemoBriefing = memo(BriefingWidget);
+const MemoQuantDesk = memo(QuantDeskWidget);
 const MemoHeatmap = memo(PnLHeatmapWidget);
 const MemoEquityCurve = memo(EquityCurveWidget);
 const MemoStats = memo(StatsWidget);
@@ -135,6 +137,7 @@ interface DashboardCanvasProps {
 const ALL_WIDGETS: WidgetType[] = [
   'today-glance',
   'briefing',
+  'quant-desk',
   'pnl-heatmap',
   'equity-curve',
   'stats',
@@ -144,6 +147,7 @@ const ALL_WIDGETS: WidgetType[] = [
   'calendar',
   'news-pulse',
 ];
+
 
 export function DashboardCanvas({
   marginUsagePct = 0,
@@ -462,8 +466,11 @@ function renderWidget(type: WidgetType, data: Omit<DashboardCanvasProps, never>)
       );
     case 'briefing':
       return <MemoBriefing briefing={briefing} />;
+    case 'quant-desk':
+      return <MemoQuantDesk />;
     case 'pnl-heatmap':
       return <MemoHeatmap entries={entries} />;
+
     case 'equity-curve':
       return <MemoEquityCurve entries={entries} />;
     case 'stats':
