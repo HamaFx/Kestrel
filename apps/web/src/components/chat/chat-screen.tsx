@@ -68,7 +68,7 @@ import { Composer } from './composer';
 import { ComposerActionChips } from './composer-action-chips';
 import { MessageList } from './message-list';
 import { AgentDeliberation } from './parts/agent-deliberation';
-import { QuickPrompts } from './quick-prompts';
+
 
 interface ChatScreenProps {
   threadId: string;
@@ -641,18 +641,19 @@ interface EmptyChatStateProps {
 
 function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProps) {
   return (
-    <div className="flex min-h-[60svh] flex-col items-center justify-center gap-4 px-4 py-6 text-center">
+    <div className="flex min-h-[60svh] flex-col items-center justify-center gap-3 px-3 py-6 text-center">
       <KestrelBrand variant="lockup" decorative priority className="w-36 opacity-95" />
 
-      {/* 8-Bit Pixel Quant Floor on Standby */}
+      {/* Unified 8-Bit Pixel Quant Floor & Recommended Prompts Hub */}
       <div className="w-full max-w-xl flex justify-center">
-        <PixelDeskStandby pinnedSymbol={pinnedSymbol} onSelectPrompt={onSelect} />
-      </div>
-
-      <div className="w-full max-w-md">
-        <QuickPrompts onSelect={onSelect} pinnedSymbol={pinnedSymbol} disabled={disabled} />
+        <PixelDeskStandby
+          pinnedSymbol={pinnedSymbol}
+          onSelectPrompt={onSelect}
+          disabled={disabled}
+        />
       </div>
     </div>
   );
 }
+
 
