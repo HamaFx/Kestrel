@@ -23,6 +23,7 @@ import type { UIMessage } from 'ai';
 import { memo, useEffect, useState } from 'react';
 
 import { Message } from './message';
+import { PixelDeskThinking } from './parts/pixel-desk/pixel-desk';
 
 // Phase 7 task 7.3 — sr-only polite live region so screen readers announce
 // streamed assistant text. Mirrors the pattern in chart-canvas.tsx.
@@ -116,14 +117,7 @@ export const MessageList = memo(function MessageList({
               className="py-2"
             >
               <div className="flex justify-start">
-                <div
-                  className="flex items-center gap-2 py-3"
-                  role="status"
-                  aria-label="Assistant is responding"
-                >
-                  <span className="bg-fg inline-block h-4 w-0.5 motion-safe:animate-pulse" />
-                  <span className="text-fg-muted text-sm">Thinking…</span>
-                </div>
+                <PixelDeskThinking />
               </div>
             </div>
           );
