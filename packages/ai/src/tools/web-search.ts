@@ -29,6 +29,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { completeStep, recordStep } from '../diagnostics';
+import { sanitizeExternalText, sanitizeExternalUrl } from '../mastra/external-content';
 import { maybeGetToolContext } from '../tool-context';
 
 const webLog = createCategorizedLogger('ai', { component: 'web-search' });
@@ -103,26 +104,20 @@ export function normalizeWebSearchResults(
     const rawUrl = stringValue(item.url);
     if (!rawUrl) continue;
 
-    let parsed: URL;
-    try {
-      parsed = new URL(rawUrl);
-    } catch {
-      continue;
-    }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue;
-
-    const url = parsed.toString();
+    const url = sanitizeExternalUrl(rawUrl);
+    if (!url) continue;
+    const parsed = new URL(url);
     if (seen.has(url)) continue;
     seen.add(url);
 
-    const title = cleanText(stringValue(item.title) || parsed.hostname, 240);
-    const content = cleanText(
+    const title = sanitizeExternalText(stringValue(item.title) || parsed.hostname, 240);
+    const content = sanitizeExternalText(
       stringValue(item.content) ||
         textValue(item.highlights) ||
         stringValue((item as ProviderItem & { highlight?: unknown }).highlight),
       1800,
     );
-    const snippet = cleanText(stringValue(item.snippet) || content, 500);
+    const snippet = sanitizeExternalText(stringValue(item.snippet) || content, 500);
 
     sources.push({
       id: `${provider}:${createHash('sha256').update(url).digest('hex').slice(0, 16)}`,
@@ -539,17 +534,6 @@ function writeCache(key: string, value: WebSearchOutput, ttlMs: number): void {
     if (typeof oldest === 'string') searchCache.delete(oldest);
   }
   searchCache.set(key, { expiresAt: Date.now() + ttlMs, value });
-}
-
-function cleanText(value: string, maxLength: number): string {
-  return value
-    .replace(new RegExp('<script[^>]*>[^]*?</script>', 'gi'), ' ')
-    .replace(new RegExp('<style[^>]*>[^]*?</style>', 'gi'), ' ')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\p{Cc}/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength);
 }
 
 function stringValue(value: unknown): string {
