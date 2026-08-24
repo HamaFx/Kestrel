@@ -61,9 +61,9 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
-import { LeverageGauge } from '@/components/ui/leverage-gauge';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { cn } from '@/lib/cn';
+
 
 import { PreSessionChecklistDrawer } from './pre-session-checklist-drawer';
 import { QuickLogTradeDrawer } from './quick-log-trade-drawer';
@@ -222,11 +222,11 @@ export function DashboardCanvas({
   const hidden = ALL_WIDGETS.filter((t) => !safeLayout.some((w) => w.type === t));
 
   return (
-    <div className="flex flex-col gap-3.5 sm:gap-4">
+    <div className="flex flex-col gap-4">
       {/* Top Header & Controls */}
-      <div className="flex flex-col gap-2.5 sm:gap-3">
-        <div className="flex flex-col justify-between gap-2.5 sm:flex-row sm:items-center">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-fg text-xl font-bold tracking-tight">Dashboard</h1>
             <PreSessionChecklistDrawer />
           </div>
@@ -298,18 +298,8 @@ export function DashboardCanvas({
             </div>
           </div>
         )}
-
-        {/* Account Exposure HUD */}
-        <div className="border-border bg-bg-elev-1 rounded-sm border px-3.5 py-2.5 shadow-xs">
-          <LeverageGauge
-            usagePct={marginUsagePct}
-            label="Exposure & Risk"
-            detail={
-              marginDetail ?? 'No connected broker account — set up portfolio settings to track exposure'
-            }
-          />
-        </div>
       </div>
+
 
       {/* Phase 5.6 — Error banner for failed data fetches */}
       {props.hasAnyError ? (
