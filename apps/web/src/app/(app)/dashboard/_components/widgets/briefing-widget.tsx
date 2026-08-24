@@ -123,23 +123,32 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
         </p>
       ) : null}
 
-      <div className="border-divider md-prose text-fg-muted text-body-sm flex flex-col gap-2 border-y py-1 leading-[1.4]">
+      <div className="border-divider md-prose text-fg-muted text-body-sm flex max-h-[220px] flex-col gap-2 overflow-y-auto border-y py-2 leading-relaxed">
         {markdownContent}
       </div>
 
-      <footer className="mt-auto flex items-center justify-between gap-2">
+      <footer className="mt-auto flex items-center justify-between gap-2 pt-1">
         {briefing.symbol ? (
-          <span className="text-fg-subtle text-caption uppercase">Focus · {briefing.symbol}</span>
+          <Link
+            href={`/chat?prompt=${encodeURIComponent(`Analyze ${briefing.symbol} daily macro catalysts and market bias`)}`}
+            className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 inline-flex items-center gap-1 rounded-2xs border px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase transition-colors"
+            title={`Open chat with ${briefing.symbol} gameplan`}
+          >
+            <span>Focus · {briefing.symbol}</span>
+            <IconBolt className="size-3" />
+          </Link>
         ) : (
           <span />
         )}
         <Link
           href="/chat"
-          className="text-fg text-body-sm inline-flex min-h-10 items-center gap-1 hover:underline"
+          className="text-fg-subtle hover:text-brand text-body-sm inline-flex items-center gap-1 font-mono text-xs font-semibold transition-colors"
         >
-          Dig deeper in chat <IconArrowRight className="size-3.5" />
+          <span>Open Chat Desk</span>
+          <IconArrowRight className="size-3.5" />
         </Link>
       </footer>
     </Card>
   );
 }
+

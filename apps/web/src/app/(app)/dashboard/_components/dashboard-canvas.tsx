@@ -222,11 +222,11 @@ export function DashboardCanvas({
   const hidden = ALL_WIDGETS.filter((t) => !safeLayout.some((w) => w.type === t));
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Header / controls */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2.5">
+    <div className="flex flex-col gap-3.5 sm:gap-4">
+      {/* Top Header & Controls */}
+      <div className="flex flex-col gap-2.5 sm:gap-3">
+        <div className="flex flex-col justify-between gap-2.5 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-fg text-xl font-bold tracking-tight">Dashboard</h1>
             <PreSessionChecklistDrawer />
           </div>
@@ -255,29 +255,30 @@ export function DashboardCanvas({
               </Button>
             ) : null}
             <Button
-              variant="ghost"
+              variant={editMode ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setEditMode((v) => !v)}
               aria-pressed={editMode}
+              className="gap-1.5 font-semibold"
             >
               <IconAdjustmentsHorizontal className="size-4" />
-              {editMode ? 'Done' : 'Customize'}
+              {editMode ? 'Done Editing' : 'Customize Layout'}
             </Button>
           </div>
         </div>
 
         {/* Role Presets Bar when in Edit Mode */}
         {editMode && (
-          <div className="border-brand-border/60 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 duration-200">
+          <div className="border-brand/40 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 duration-200 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-caption text-fg-subtle font-semibold tracking-wider uppercase">
-                Role Layout Presets
+              <span className="text-caption text-brand font-mono font-bold tracking-wider uppercase">
+                ⚡ Role Layout Presets
               </span>
               <span className="text-fg-subtle text-[11px]">
                 Click a preset to instantly restructure your workspace
               </span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {(Object.keys(PRESET_LAYOUTS) as LayoutPresetName[]).map((key) => {
                 const preset = PRESET_LAYOUTS[key];
                 return (
@@ -287,7 +288,7 @@ export function DashboardCanvas({
                     onClick={() => {
                       persistLayout(preset.layout);
                     }}
-                    className="border-border bg-bg-elev-2 text-fg hover:border-brand hover:text-brand inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-colors"
+                    className="border-border bg-bg-elev-2 text-fg hover:border-brand hover:text-brand inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer touch-manipulation"
                     title={preset.description}
                   >
                     <span>{preset.name}</span>
@@ -298,13 +299,13 @@ export function DashboardCanvas({
           </div>
         )}
 
-        {/* ASCII leverage gauge — summary row below header */}
-        <div className="border-border bg-bg-elev-1 rounded-sm border px-4 py-3">
+        {/* Account Exposure HUD */}
+        <div className="border-border bg-bg-elev-1 rounded-sm border px-3.5 py-2.5 shadow-xs">
           <LeverageGauge
             usagePct={marginUsagePct}
-            label="Exposure"
+            label="Exposure & Risk"
             detail={
-              marginDetail ?? 'No connected account — set up portfolio settings to track exposure'
+              marginDetail ?? 'No connected broker account — set up portfolio settings to track exposure'
             }
           />
         </div>
@@ -343,7 +344,7 @@ export function DashboardCanvas({
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={safeLayout.map((w) => w.id)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3.5 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
             {safeLayout.map((w) => (
               <SortableWidget
                 key={w.id}
@@ -361,6 +362,7 @@ export function DashboardCanvas({
     </div>
   );
 }
+
 
 // ---------------------------------------------------------------------------
 // SortableWidget — wraps each widget in a chrome card with the drag handle,

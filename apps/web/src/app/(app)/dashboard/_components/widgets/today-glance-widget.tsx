@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { useTime } from '@/components/providers/time-provider';
 import { cn } from '@/lib/cn';
 import { formatCountdown } from '@/lib/datetime';
+import { getSessionInfo } from '@/lib/session';
 
 interface TodayGlanceWidgetProps {
   events: EconomicEvent[];
@@ -51,7 +52,7 @@ export function TodayGlanceWidget({
     <section
       role="status"
       aria-label="Today at a glance"
-      className="grid grid-cols-2 gap-3 md:grid-cols-4"
+      className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4"
     >
       <CellNextEvent events={events} />
       <CellSession />
@@ -60,6 +61,7 @@ export function TodayGlanceWidget({
     </section>
   );
 }
+
 // -----------------------------------------------------------------------
 // Cell 1 — Next high-impact event countdown
 // -----------------------------------------------------------------------
@@ -69,68 +71,67 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
   const upcoming = events.filter((e) => e.date > now).sort((a, b) => a.date - b.date)[0];
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3">
-      <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
-        <IconClock className="text-warn size-3.5" />
-        Next event
+    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">
+      <div className="text-fg-subtle text-caption flex items-center justify-between font-semibold tracking-wider uppercase">
+        <div className="flex items-center gap-1.5">
+          <IconClock className="text-warn size-3.5" />
+          <span>Next event</span>
+        </div>
+        {upcoming?.currency && (
+          <span className="bg-warn/10 text-warn border-warn/30 rounded-2xs border px-1 py-0.2 font-mono text-[9px] font-bold">
+            {upcoming.currency}
+          </span>
+        )}
       </div>
       {upcoming ? (
-        <>
-          <span className="text-fg text-body-sm line-clamp-2 font-semibold">{upcoming.title}</span>
-          <span className="text-fg-muted text-caption tabular-nums">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-fg text-body-sm line-clamp-1 font-semibold" title={upcoming.title}>
+            {upcoming.title}
+          </span>
+          <span className="text-warn text-caption font-mono font-medium tabular-nums">
             {formatCountdown(upcoming.date - now)}
           </span>
-        </>
+        </div>
       ) : (
-        <span className="text-fg-muted text-xs">No high-impact events today</span>
+        <span className="text-fg-muted text-caption">No high-impact events today</span>
       )}
     </div>
   );
 }
 
 // -----------------------------------------------------------------------
-// Cell 2 — Current trading session (UTC-based)
+// Cell 2 — Current trading session (UTC-anchored via session helper)
 // -----------------------------------------------------------------------
 
 function CellSession() {
   const { now } = useTime();
-  const session = getSession(new Date(now));
-  const active = session !== 'Closed' && session !== 'Weekend';
+  const sessionInfo = getSessionInfo(new Date(now));
+  const active = sessionInfo.session !== 'closed' && sessionInfo.session !== 'weekend';
+
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3">
-      <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
-        <IconCompass className="text-fg size-3.5" />
-        Session
-      </div>
-      <span className="text-fg text-body-sm font-semibold">{session}</span>
-      <span
-        className={cn(
-          'text-caption inline-flex w-fit items-center rounded-sm px-1.5 py-0.5 font-medium',
-          active ? 'bg-success/10 text-success' : 'bg-fg-muted/10 text-fg-muted',
+    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">
+      <div className="text-fg-subtle text-caption flex items-center justify-between font-semibold tracking-wider uppercase">
+        <div className="flex items-center gap-1.5">
+          <IconCompass className="text-fg size-3.5" />
+          <span>Session</span>
+        </div>
+        {active && (
+          <span className="flex size-1.5 rounded-full bg-bull animate-pulse" />
         )}
-      >
-        {active ? 'Active' : 'Closed'}
-      </span>
+      </div>
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-fg text-body-sm font-semibold">{sessionInfo.label}</span>
+        <span
+          className={cn(
+            'text-[10px] inline-flex items-center rounded-2xs px-1.5 py-0.5 font-mono font-semibold uppercase',
+            active ? 'bg-bull/10 text-bull border border-bull/30' : 'bg-bg-elev-2 text-fg-muted border border-border',
+          )}
+        >
+          {active ? 'Live' : 'Closed'}
+        </span>
+      </div>
     </div>
   );
-}
-
-/**
- * Maps the current UTC hour to one of the canonical trading sessions.
- * London + New York overlap 13:00–16:00 UTC — we keep "London" for the
- * overlap hour so the label matches what most retail desks print.
- */
-function getSession(now: Date): 'Asian' | 'London' | 'New York' | 'Closed' | 'Weekend' {
-  const day = now.getUTCDay();
-  if (day === 0 || day === 6) return 'Weekend';
-  const hour = now.getUTCHours();
-  // Sydney 22:00–07:00 UTC + Tokyo 00:00–09:00 → Asian: 22:00–07:59
-  if (hour >= 22 || hour < 8) return 'Asian';
-  // London 08:00–17:00 UTC (including London/NY overlap at 13:00–16:59)
-  if (hour >= 8 && hour < 17) return 'London';
-  // New York 13:00–22:00 UTC (active after London closes: 17:00–21:59)
-  if (hour >= 17 && hour < 22) return 'New York';
-  return 'Closed';
 }
 
 // -----------------------------------------------------------------------
@@ -139,32 +140,29 @@ function getSession(now: Date): 'Asian' | 'London' | 'New York' | 'Closed' | 'We
 
 function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
   const open = entries.filter((e) => e.outcome === 'open');
-  // Aggregate R-at-risk. With a stop+target, R = |entry - stop| / |entry - target|.
-  // Without a target we fall back to 1R per open position.
   let totalR = 0;
   for (const e of open) {
-    if (e.entry !== null && e.stop !== null && Math.abs(e.entry - e.stop) > 0) {
-      // R = capital-at-risk per position (1R each). The risk is defined by
-      // |entry - stop|, which represents one R in the user's risk framework.
-      totalR += 1;
-    } else {
-      totalR += 1;
-    }
+    totalR += 1;
   }
   const totalRRounded = Math.round(totalR * 10) / 10;
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3">
+    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">
       <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
         <IconAlertTriangle className="text-danger size-3.5" />
-        Open risk
+        <span>Open risk</span>
       </div>
       {open.length === 0 ? (
-        <span className="text-fg-muted text-xs">No open positions</span>
+        <span className="text-fg-muted text-caption">No open risk</span>
       ) : (
-        <span className="text-fg text-body-sm font-semibold tabular-nums">
-          {open.length} {open.length === 1 ? 'position' : 'positions'} · {totalRRounded}R at risk
-        </span>
+        <div className="flex items-baseline justify-between gap-1 font-mono">
+          <span className="text-fg text-body-sm font-semibold">
+            {open.length} {open.length === 1 ? 'pos' : 'positions'}
+          </span>
+          <span className="text-danger text-caption font-bold tabular-nums">
+            {totalRRounded}R at risk
+          </span>
+        </div>
       )}
     </div>
   );
@@ -183,18 +181,21 @@ function CellAiNudge({
 }) {
   const nudge = briefingNudge ?? `Ask AI about today's bias for ${defaultSymbol}`;
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3">
-      <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
-        <IconBolt className="text-fg size-3.5" />
-        AI nudge
+    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">
+      <div className="text-fg-subtle text-caption flex items-center justify-between font-semibold tracking-wider uppercase">
+        <div className="flex items-center gap-1.5">
+          <IconBolt className="text-brand size-3.5" />
+          <span>AI Insight</span>
+        </div>
+        <Link
+          href="/chat"
+          className="text-brand hover:underline font-mono text-[10px] font-semibold"
+        >
+          Copilot →
+        </Link>
       </div>
-      <p className="text-fg text-body-sm line-clamp-2">{nudge}</p>
-      <Link
-        href="/chat"
-        className="text-fg text-caption mt-auto inline-flex items-center gap-1 hover:underline"
-      >
-        Open chat <span aria-hidden>→</span>
-      </Link>
+      <p className="text-fg text-body-sm line-clamp-1 leading-snug">{nudge}</p>
     </div>
   );
 }
+

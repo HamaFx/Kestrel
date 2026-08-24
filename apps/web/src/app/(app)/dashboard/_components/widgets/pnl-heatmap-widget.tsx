@@ -218,23 +218,23 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
       </header>
 
       {months.map((m, mi) => (
-        <div key={mi} className="flex flex-col gap-2">
+        <div key={mi} className="flex flex-col gap-1.5 sm:gap-2">
           <span className="text-fg text-body-sm font-semibold">{m.label}</span>
 
           {/* Day-of-week header */}
-          <div className="grid grid-cols-7 gap-1.5">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center">
             {DOW_LABELS.map((d) => (
-              <span key={d} className="text-fg-subtle text-caption tracking-wider uppercase">
+              <span key={d} className="text-fg-subtle text-[10px] sm:text-caption tracking-wider uppercase">
                 {d}
               </span>
             ))}
           </div>
 
-          {/* IconCalendar grid */}
-          <div className="grid grid-cols-7 gap-1.5">
+          {/* Calendar grid with fluid aspect-square cells */}
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
             {m.weeks.flat().map((cell, idx) => {
               if (!cell) {
-                return <div key={idx} aria-hidden="true" />;
+                return <div key={idx} aria-hidden="true" className="aspect-square w-full" />;
               }
               const sign = cell.totalR > 0 ? '+' : '';
               const isToday = cell.key === localDayKey(Date.now());
@@ -246,10 +246,10 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
                   title={`${cell.key}: ${sign}${cell.totalR.toFixed(1)}R (${cell.count} trades)${isToday ? ' · today' : ''}`}
                   aria-label={`${cell.key}: ${sign}${cell.totalR.toFixed(1)}R, ${cell.count} trades${isToday ? ', today' : ''}`}
                   className={cn(
-                    'flex size-11 items-center justify-center rounded-sm tabular-nums',
-                    'text-caption',
-                    cell.totalR > 0 && 'text-bull',
-                    cell.totalR < 0 && 'text-bear',
+                    'flex aspect-square w-full min-h-[28px] sm:min-h-[34px] md:min-h-[38px] items-center justify-center rounded-sm tabular-nums touch-manipulation',
+                    'text-[11px] sm:text-caption font-mono font-medium',
+                    cell.totalR > 0 && 'text-bull font-bold',
+                    cell.totalR < 0 && 'text-bear font-bold',
                     cell.totalR === 0 && 'text-fg-muted',
                     'transition-transform active:scale-95',
                     isToday && 'ring-fg ring-offset-bg-elev-1 ring-2 ring-offset-1',
@@ -263,6 +263,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
           </div>
         </div>
       ))}
+
 
       <Legend />
 
