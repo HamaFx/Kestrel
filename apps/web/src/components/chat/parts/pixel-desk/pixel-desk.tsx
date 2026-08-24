@@ -269,151 +269,113 @@ export function PixelDeskStandby({
   className?: string;
 }) {
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'technical' | 'fundamental' | 'risk' | 'sentiment'>('all');
+  const [customSymbol, setCustomSymbol] = useState<string | null>(null);
+
   const sessionInfo = useMemo(() => getSessionInfo(now ?? new Date()), [now]);
   const session = sessionInfo.session;
-  const activeSymbol = pinnedSymbol ?? 'XAUUSD';
+  const activeSymbol = (customSymbol ?? pinnedSymbol ?? 'XAUUSD').toUpperCase();
 
   // Dynamic session-aware recommended prompts organized by specialist discipline
-  const SPECIALIST_ACTIONS = useMemo(() => {
-    const s = activeSymbol.toUpperCase();
-    switch (session) {
-      case 'london':
-        return {
-          technical: {
-            badge: '🧙‍♂️ 15m SMC',
-            title: `London Open ${s} SMC`,
-            desc: `Top-down ${s} 4H→15M order blocks`,
-            prompt: `London open structure & SMC order blocks for ${s}`,
-          },
-          fundamental: {
-            badge: '📰 Macro',
-            title: 'European Catalyst',
-            desc: 'London session news & yields',
-            prompt: `European news & macroeconomic yields affecting ${s}`,
-          },
-          risk: {
-            badge: '🛡️ 1% Sizing',
-            title: '1% Risk Guard',
-            desc: `Alert ${s} below London low`,
-            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
-          },
-          sentiment: {
-            badge: '🦅 COT Flow',
-            title: 'Whale Tracker',
-            desc: 'Commercial vs retail bias',
-            prompt: `Check CFTC institutional positioning & sentiment regime for ${s}`,
-          },
-        };
-      case 'ny':
-        return {
-          technical: {
-            badge: '🧙‍♂️ 15m SMC',
-            title: `NY Session ${s} Plan`,
-            desc: `Top-down ${s} 4H→15M structure`,
-            prompt: `NY session plan and SMC liquidity sweeps for ${s}`,
-          },
-          fundamental: {
-            badge: '📰 Macro',
-            title: 'USD Yields & News',
-            desc: 'NY session calendar & catalysts',
-            prompt: `NY session economic calendar and USD macro yields for ${s}`,
-          },
-          risk: {
-            badge: '🛡️ 1% Sizing',
-            title: '1% Risk Guard',
-            desc: `Alert ${s} break of high`,
-            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
-          },
-          sentiment: {
-            badge: '🦅 COT Flow',
-            title: 'Whale Tracker',
-            desc: 'Institutional order flow',
-            prompt: `Check CFTC institutional positioning & sentiment regime for ${s}`,
-          },
-        };
-      case 'asian':
-        return {
-          technical: {
-            badge: '🧙‍♂️ 15m SMC',
-            title: `Asian Range ${s}`,
-            desc: 'Asian session structure & sweeps',
-            prompt: `Asian session range, liquidity pools & key levels for ${s}`,
-          },
-          fundamental: {
-            badge: '📰 Macro',
-            title: 'Asian News Impact',
-            desc: 'Global catalysts & yields',
-            prompt: `Asian session macro news impact and economic calendar for ${s}`,
-          },
-          risk: {
-            badge: '🛡️ 1% Sizing',
-            title: '1% Risk Guard',
-            desc: `Alert ${s} break of Asian range`,
-            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
-          },
-          sentiment: {
-            badge: '🦅 COT Flow',
-            title: 'Whale Tracker',
-            desc: 'Asian session sentiment check',
-            prompt: `Check CFTC institutional positioning & sentiment regime for ${s}`,
-          },
-        };
-      case 'weekend':
-        return {
-          technical: {
-            badge: '🧙‍♂️ 15m SMC',
-            title: 'Weekly Structure',
-            desc: `Multi-timeframe ${s} recap`,
-            prompt: `Weekly multi-timeframe structure recap and key levels for ${s}`,
-          },
-          fundamental: {
-            badge: '📰 Macro',
-            title: 'Next Week Outlook',
-            desc: 'Central bank & macro preview',
-            prompt: `Next week economic calendar and central bank preview for ${s}`,
-          },
-          risk: {
-            badge: '🛡️ 1% Sizing',
-            title: '1% Risk Guard',
-            desc: 'Set alert for Sunday open',
-            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
-          },
-          sentiment: {
-            badge: '🦅 COT Flow',
-            title: 'Weekly COT Check',
-            desc: 'Whale positioning review',
-            prompt: `Weekly ${s} sentiment & CFTC COT institutional positioning check`,
-          },
-        };
-      default: // closed
-        return {
-          technical: {
-            badge: '🧙‍♂️ 15m SMC',
-            title: 'Daily Close Recap',
-            desc: `How did ${s} close today?`,
-            prompt: `How did ${s} close today? Daily bias recap & market structure`,
-          },
-          fundamental: {
-            badge: '📰 Macro',
-            title: "Tomorrow's News",
-            desc: `Tomorrow's ${s} news outlook`,
-            prompt: `Tomorrow's economic news outlook and macro catalysts for ${s}`,
-          },
-          risk: {
-            badge: '🛡️ 1% Sizing',
-            title: '1% Risk Guard',
-            desc: `Set an alert for ${s} tomorrow`,
-            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
-          },
-          sentiment: {
-            badge: '🦅 COT Flow',
-            title: 'Whale Tracker',
-            desc: 'Session flow summary',
-            prompt: `Check CFTC institutional positioning & sentiment regime for ${s}`,
-          },
-        };
-    }
-  }, [activeSymbol, session]);
+  const SPECIALIST_PROMPT_CATALOG = useMemo(() => {
+    const s = activeSymbol;
+    return {
+      technical: [
+        {
+          id: 't1',
+          tag: '15m SMC',
+          title: `${s} 15m SMC & Order Blocks`,
+          desc: 'Scan liquidity sweeps & Fair Value Gaps',
+          prompt: `Analyze ${s} 15m/1h SMC liquidity sweeps, order blocks & market structure.`,
+        },
+        {
+          id: 't2',
+          tag: '4H→15M',
+          title: `Top-Down Multi-Timeframe`,
+          desc: '4H macro trend alignment down to 15m entry',
+          prompt: `Run top-down multi-timeframe analysis for ${s} from 4H structure to 15m execution.`,
+        },
+        {
+          id: 't3',
+          tag: 'FVG/OB',
+          title: `Imbalances & Key Zones`,
+          desc: 'Map premium/discount zones and mitigation blocks',
+          prompt: `Identify key Fair Value Gaps (FVG) and premium/discount order blocks for ${s}.`,
+        },
+      ],
+      fundamental: [
+        {
+          id: 'f1',
+          tag: 'CATALYST',
+          title: `${sessionInfo.label} Economic News`,
+          desc: 'High-impact events & central bank expectations',
+          prompt: `What are the upcoming economic calendar catalysts and central bank drivers for ${s}?`,
+        },
+        {
+          id: 'f2',
+          tag: 'YIELDS',
+          title: 'US Real Yields & DXY',
+          desc: '10Y real rates, inflation breakevens & dollar index',
+          prompt: `Analyze US 10-year Treasury yields, real rates, and DXY index correlation with ${s}.`,
+        },
+        {
+          id: 'f3',
+          tag: 'MACRO',
+          title: 'Central Bank Policy Bias',
+          desc: 'Fed / ECB / BOE rate trajectory & policy stance',
+          prompt: `Provide the central bank policy stance and rate cut/hike trajectory affecting ${s}.`,
+        },
+      ],
+      risk: [
+        {
+          id: 'r1',
+          tag: '1% RISK',
+          title: 'Optimal 1% Position Sizing',
+          desc: 'Strict account risk & lot size calculator',
+          prompt: `Calculate optimal 1% risk position sizing and ATR invalidation stop loss for ${s}.`,
+        },
+        {
+          id: 'r2',
+          tag: '1:3 R:R',
+          title: 'Multi-Target Take Profit Cones',
+          desc: 'Partial TP scaling (1:1.5, 1:2.5, 1:4 R:R)',
+          prompt: `Design a 1:3 R:R trade execution plan with partial take-profit cones for ${s}.`,
+        },
+        {
+          id: 'r3',
+          tag: 'ALERT',
+          title: 'Invalidation & Level Alert',
+          desc: 'Key support/resistance breach guard',
+          prompt: `Set an invalidation risk alert for ${s} at the nearest major session high/low.`,
+        },
+      ],
+      sentiment: [
+        {
+          id: 's1',
+          tag: 'COT',
+          title: 'CFTC Institutional Positioning',
+          desc: 'Commercial hedge vs non-commercial speculators',
+          prompt: `Check CFTC Commitments of Traders (COT) institutional whale positioning for ${s}.`,
+        },
+        {
+          id: 's2',
+          tag: 'REGIME',
+          title: 'Retail vs Smart Money Flow',
+          desc: 'Sentiment extremes & contrarian reversal odds',
+          prompt: `Analyze retail sentiment extremes and smart money order flow divergence on ${s}.`,
+        },
+        {
+          id: 's3',
+          tag: 'CONSENSUS',
+          title: 'Multi-Desk Committee Verdict',
+          desc: 'Full 4-agent weighted consensus score',
+          prompt: `Convene full quantitative committee deliberation on ${s} across Technicals, Macro, Risk, and Sentiment.`,
+        },
+      ],
+    };
+  }, [activeSymbol, sessionInfo.label]);
+
+  const QUICK_SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'BTCUSD', 'USDJPY'];
 
   return (
     <div
@@ -456,7 +418,10 @@ export function PixelDeskStandby({
             disabled={disabled}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
+            onClick={() => {
+              setSelectedProfile(selectedProfile === 'technical' ? null : 'technical');
+              setActiveTab('technical');
+            }}
             className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation disabled:opacity-50"
             title="Click to view Chart Wizard profile"
           >
@@ -466,7 +431,7 @@ export function PixelDeskStandby({
               <TechnicalWorkstation />
               <span className="size-1 rounded-full bg-bull" />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand font-mono text-[9px] sm:text-[10px] font-semibold transition-colors">
+            <span className={cn('font-mono text-[9px] sm:text-[10px] font-semibold transition-colors', activeTab === 'technical' ? 'text-bull font-bold' : 'text-fg-subtle group-hover:text-brand')}>
               Technical
             </span>
           </motion.button>
@@ -477,7 +442,10 @@ export function PixelDeskStandby({
             disabled={disabled}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')}
+            onClick={() => {
+              setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental');
+              setActiveTab('fundamental');
+            }}
             className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation disabled:opacity-50"
             title="Click to view Macro Mage profile"
           >
@@ -487,7 +455,7 @@ export function PixelDeskStandby({
               <MacroWorkstation />
               <span className="size-1 rounded-full bg-sky-400" />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand font-mono text-[9px] sm:text-[10px] font-semibold transition-colors">
+            <span className={cn('font-mono text-[9px] sm:text-[10px] font-semibold transition-colors', activeTab === 'fundamental' ? 'text-sky-400 font-bold' : 'text-fg-subtle group-hover:text-brand')}>
               Macro
             </span>
           </motion.button>
@@ -498,7 +466,10 @@ export function PixelDeskStandby({
             disabled={disabled}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
+            onClick={() => {
+              setSelectedProfile(selectedProfile === 'risk' ? null : 'risk');
+              setActiveTab('risk');
+            }}
             className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation disabled:opacity-50"
             title="Click to view Risk Knight profile"
           >
@@ -508,7 +479,7 @@ export function PixelDeskStandby({
               <RiskWorkstation />
               <span className="size-1 rounded-full bg-bear" />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand font-mono text-[9px] sm:text-[10px] font-semibold transition-colors">
+            <span className={cn('font-mono text-[9px] sm:text-[10px] font-semibold transition-colors', activeTab === 'risk' ? 'text-bear font-bold' : 'text-fg-subtle group-hover:text-brand')}>
               Risk Guard
             </span>
           </motion.button>
@@ -519,7 +490,10 @@ export function PixelDeskStandby({
             disabled={disabled}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
+            onClick={() => {
+              setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment');
+              setActiveTab('sentiment');
+            }}
             className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation disabled:opacity-50"
             title="Click to view Sentinel Falcon profile"
           >
@@ -529,7 +503,7 @@ export function PixelDeskStandby({
               <SentinelWorkstation />
               <span className="size-1 rounded-full bg-amber-400" />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand font-mono text-[9px] sm:text-[10px] font-semibold transition-colors">
+            <span className={cn('font-mono text-[9px] sm:text-[10px] font-semibold transition-colors', activeTab === 'sentiment' ? 'text-amber-400 font-bold' : 'text-fg-subtle group-hover:text-brand')}>
               Sentinel
             </span>
           </motion.button>
@@ -551,7 +525,7 @@ export function PixelDeskStandby({
               <button
                 type="button"
                 disabled={disabled}
-                onClick={() => onSelectPrompt(SPECIALIST_ACTIONS[selectedProfile as keyof typeof SPECIALIST_ACTIONS]?.prompt ?? '')}
+                onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG[selectedProfile as keyof typeof SPECIALIST_PROMPT_CATALOG]?.[0]?.prompt ?? '')}
                 className="bg-brand/10 hover:bg-brand/20 text-brand border-brand/40 flex w-full items-center justify-center gap-1.5 rounded-xs border py-2 font-mono text-xs font-bold tracking-wide uppercase transition-colors cursor-pointer touch-manipulation disabled:opacity-50"
               >
                 <span>▶ Deploy {CHARACTER_PROFILES[selectedProfile]?.name} on {activeSymbol}</span>
@@ -561,95 +535,258 @@ export function PixelDeskStandby({
         )}
       </AnimatePresence>
 
-      {/* Merged Recommended Prompts / Quick Action Hub */}
+      {/* Merged Interactive Prompt Command Hub */}
       {onSelectPrompt && !selectedProfile && (
-        <div className="flex flex-col gap-1.5 pt-1">
-          <div className="flex items-center justify-between">
-            <span className="text-fg-subtle font-mono text-[9.5px] sm:text-[10px] uppercase font-bold tracking-wider">
-              Recommended Specialist Briefs:
-            </span>
-            <span className="text-fg-subtle/80 font-mono text-[9px]">
-              Target: <strong className="text-fg">{activeSymbol}</strong>
-            </span>
+        <div className="flex flex-col gap-2 pt-1">
+          {/* Top Bar: Category Tabs & Asset Switcher */}
+          <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-border/40 pb-1.5">
+            {/* Category Filter Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setActiveTab('all')}
+                className={cn(
+                  'rounded-xs px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors cursor-pointer touch-manipulation shrink-0',
+                  activeTab === 'all'
+                    ? 'bg-brand/15 text-brand border border-brand/40'
+                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
+                )}
+              >
+                ⚡ Top Picks
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('technical')}
+                className={cn(
+                  'rounded-xs px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors cursor-pointer touch-manipulation shrink-0',
+                  activeTab === 'technical'
+                    ? 'bg-bull/15 text-bull border border-bull/40'
+                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
+                )}
+              >
+                🧙‍♂️ Tech
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('fundamental')}
+                className={cn(
+                  'rounded-xs px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors cursor-pointer touch-manipulation shrink-0',
+                  activeTab === 'fundamental'
+                    ? 'bg-sky-400/15 text-sky-400 border border-sky-400/40'
+                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
+                )}
+              >
+                📰 Macro
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('risk')}
+                className={cn(
+                  'rounded-xs px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors cursor-pointer touch-manipulation shrink-0',
+                  activeTab === 'risk'
+                    ? 'bg-bear/15 text-bear border border-bear/40'
+                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
+                )}
+              >
+                🛡️ Risk
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('sentiment')}
+                className={cn(
+                  'rounded-xs px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors cursor-pointer touch-manipulation shrink-0',
+                  activeTab === 'sentiment'
+                    ? 'bg-amber-400/15 text-amber-400 border border-amber-400/40'
+                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
+                )}
+              >
+                🦅 Sentiment
+              </button>
+            </div>
+
+            {/* Quick Symbol Switcher */}
+            <div className="flex items-center gap-1">
+              <span className="text-fg-subtle font-mono text-[9px]">Pair:</span>
+              <div className="flex items-center gap-0.5">
+                {QUICK_SYMBOLS.map((sym) => (
+                  <button
+                    key={sym}
+                    type="button"
+                    onClick={() => setCustomSymbol(sym)}
+                    className={cn(
+                      'rounded-2xs px-1 py-0.5 font-mono text-[9px] transition-colors cursor-pointer touch-manipulation',
+                      activeSymbol === sym
+                        ? 'bg-brand text-bg font-bold shadow-xs'
+                        : 'text-fg-subtle hover:text-fg bg-bg-elev-2',
+                    )}
+                  >
+                    {sym.replace('USD', '')}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-            {/* Technical Brief */}
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelectPrompt(SPECIALIST_ACTIONS.technical.prompt)}
-              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bull/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
-            >
-              <div className="flex flex-col gap-0.5 truncate">
-                <span className="text-bull font-mono text-xs font-bold">
-                  {SPECIALIST_ACTIONS.technical.badge}
-                </span>
-                <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
-                  {SPECIALIST_ACTIONS.technical.desc}
-                </span>
-              </div>
-              <span className="text-fg-subtle group-hover:text-bull font-mono text-xs shrink-0">→</span>
-            </button>
 
-            {/* Macro Brief */}
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelectPrompt(SPECIALIST_ACTIONS.fundamental.prompt)}
-              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-sky-400/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
-            >
-              <div className="flex flex-col gap-0.5 truncate">
-                <span className="text-sky-400 font-mono text-xs font-bold">
-                  {SPECIALIST_ACTIONS.fundamental.badge}
-                </span>
-                <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
-                  {SPECIALIST_ACTIONS.fundamental.desc}
-                </span>
-              </div>
-              <span className="text-fg-subtle group-hover:text-sky-400 font-mono text-xs shrink-0">→</span>
-            </button>
+          {/* Action List based on Active Tab */}
+          {activeTab === 'all' ? (
+            <div className="flex flex-col gap-1.5">
+              {/* Full Multi-Agent Committee Deliberation Hero Trigger */}
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() =>
+                  onSelectPrompt(
+                    `Convene full quantitative committee deliberation on ${activeSymbol} across Technicals, Macro, Risk, and Sentiment.`,
+                  )
+                }
+                className="bg-gradient-to-r from-brand/15 via-amber-500/10 to-bull/15 hover:from-brand/25 hover:to-bull/25 border-brand/50 hover:border-brand flex items-center justify-between gap-2 rounded-xs border p-2.5 text-left transition-all cursor-pointer group touch-manipulation shadow-xs disabled:opacity-50"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <span className="bg-brand text-bg flex size-5 shrink-0 items-center justify-center rounded-xs font-mono text-[10px] font-extrabold">
+                    ⚡
+                  </span>
+                  <div className="flex flex-col truncate">
+                    <span className="text-fg group-hover:text-brand font-mono text-xs font-bold truncate">
+                      Convene Full Quant Committee on {activeSymbol}
+                    </span>
+                    <span className="text-fg-subtle font-mono text-[9.5px] truncate">
+                      Run all 4 specialist models (Technical, Macro, Risk, Sentiment) in consensus
+                    </span>
+                  </div>
+                </div>
+                <span className="text-brand font-mono text-xs font-bold shrink-0">▶ RUN</span>
+              </button>
 
-            {/* Risk Brief */}
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelectPrompt(SPECIALIST_ACTIONS.risk.prompt)}
-              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bear/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
-            >
-              <div className="flex flex-col gap-0.5 truncate">
-                <span className="text-bear font-mono text-xs font-bold">
-                  {SPECIALIST_ACTIONS.risk.badge}
-                </span>
-                <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
-                  {SPECIALIST_ACTIONS.risk.desc}
-                </span>
-              </div>
-              <span className="text-fg-subtle group-hover:text-bear font-mono text-xs shrink-0">→</span>
-            </button>
+              {/* 4 Flagship Specialist Briefs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {/* Technical */}
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.technical[0]!.prompt)}
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bull/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
+                >
+                  <div className="flex flex-col gap-0.5 truncate">
+                    <span className="text-bull font-mono text-xs font-bold">
+                      🧙‍♂️ {SPECIALIST_PROMPT_CATALOG.technical[0]!.title}
+                    </span>
+                    <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
+                      {SPECIALIST_PROMPT_CATALOG.technical[0]!.desc}
+                    </span>
+                  </div>
+                  <span className="text-fg-subtle group-hover:text-bull font-mono text-xs shrink-0">→</span>
+                </button>
 
-            {/* Sentiment Brief */}
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelectPrompt(SPECIALIST_ACTIONS.sentiment.prompt)}
-              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-amber-400/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
-            >
-              <div className="flex flex-col gap-0.5 truncate">
-                <span className="text-amber-400 font-mono text-xs font-bold">
-                  {SPECIALIST_ACTIONS.sentiment.badge}
-                </span>
-                <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
-                  {SPECIALIST_ACTIONS.sentiment.desc}
-                </span>
+                {/* Macro */}
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.fundamental[0]!.prompt)}
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-sky-400/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
+                >
+                  <div className="flex flex-col gap-0.5 truncate">
+                    <span className="text-sky-400 font-mono text-xs font-bold">
+                      📰 {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.title}
+                    </span>
+                    <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
+                      {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.desc}
+                    </span>
+                  </div>
+                  <span className="text-fg-subtle group-hover:text-sky-400 font-mono text-xs shrink-0">→</span>
+                </button>
+
+                {/* Risk */}
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.risk[0]!.prompt)}
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bear/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
+                >
+                  <div className="flex flex-col gap-0.5 truncate">
+                    <span className="text-bear font-mono text-xs font-bold">
+                      🛡️ {SPECIALIST_PROMPT_CATALOG.risk[0]!.title}
+                    </span>
+                    <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
+                      {SPECIALIST_PROMPT_CATALOG.risk[0]!.desc}
+                    </span>
+                  </div>
+                  <span className="text-fg-subtle group-hover:text-bear font-mono text-xs shrink-0">→</span>
+                </button>
+
+                {/* Sentiment */}
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.sentiment[0]!.prompt)}
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-amber-400/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
+                >
+                  <div className="flex flex-col gap-0.5 truncate">
+                    <span className="text-amber-400 font-mono text-xs font-bold">
+                      🦅 {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.title}
+                    </span>
+                    <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
+                      {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.desc}
+                    </span>
+                  </div>
+                  <span className="text-fg-subtle group-hover:text-amber-400 font-mono text-xs shrink-0">→</span>
+                </button>
               </div>
-              <span className="text-fg-subtle group-hover:text-amber-400 font-mono text-xs shrink-0">→</span>
-            </button>
-          </div>
+            </div>
+          ) : (
+            /* Dedicated Specialist Toolkit View */
+            <div className="flex flex-col gap-1.5">
+              {SPECIALIST_PROMPT_CATALOG[activeTab].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onSelectPrompt(item.prompt)}
+                  className={cn(
+                    'bg-bg-elev-2 hover:bg-bg-elev-3 border-border flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50',
+                    activeTab === 'technical'
+                      ? 'hover:border-bull/50'
+                      : activeTab === 'fundamental'
+                        ? 'hover:border-sky-400/50'
+                        : activeTab === 'risk'
+                          ? 'hover:border-bear/50'
+                          : 'hover:border-amber-400/50',
+                  )}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <span
+                      className={cn(
+                        'rounded-2xs border px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase shrink-0',
+                        activeTab === 'technical'
+                          ? 'text-bull border-bull/30 bg-bull/10'
+                          : activeTab === 'fundamental'
+                            ? 'text-sky-400 border-sky-400/30 bg-sky-400/10'
+                            : activeTab === 'risk'
+                              ? 'text-bear border-bear/30 bg-bear/10'
+                              : 'text-amber-400 border-amber-400/30 bg-amber-400/10',
+                      )}
+                    >
+                      {item.tag}
+                    </span>
+                    <div className="flex flex-col truncate">
+                      <span className="text-fg group-hover:text-brand font-mono text-xs font-semibold truncate">
+                        {item.title}
+                      </span>
+                      <span className="text-fg-subtle font-mono text-[9.5px] truncate">
+                        {item.desc}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-fg-subtle group-hover:text-fg font-mono text-xs shrink-0">→</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
+
 
 
 
