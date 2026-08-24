@@ -62,7 +62,7 @@ function PixelSvg({
 
 /**
  * 📈 Chart Wizard (Technical Analyst)
- * Features: Purple/indigo wizard hat with golden pixel star, glowing crystal wand,
+ * Features: Purple/indigo wizard hat with glowing star, wand casting gestures,
  * spectacles, animated robe, casting candlestick vectors.
  */
 export function ChartWizardSprite({ className, isThinking, isDone, bias, isSparkling }: SpriteProps) {
@@ -74,25 +74,25 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
       animate={
         prefersReduced
           ? undefined
-          : isDone
-            ? { y: [0, -4, 0], scale: [1, 1.06, 1] }
-            : isThinking
-              ? { y: [0, -1.5, 0] }
-              : undefined
+          : isThinking
+            ? { y: [0, -3, 0], rotate: [-1.5, 1.5, -1.5] }
+            : isDone
+              ? { y: [0, -4, 0], scale: [1, 1.06, 1] }
+              : { y: [0, -2, 0] }
       }
-      transition={
-        isDone
-          ? { duration: 0.5, repeat: 1, ease: 'easeOut' }
-          : { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }
-      }
+      transition={{
+        duration: isThinking ? 0.9 : isDone ? 1.8 : 2.4,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }}
     >
       {/* Floating Golden Sparks for high-confidence / bullish celebration */}
       {(isSparkling || (isDone && bias === 'bullish')) && (
         <m.div
           className="pointer-events-none absolute -top-4 -left-1 flex items-center gap-1 z-10"
           initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: [0.6, 1, 0.6], y: [-1, -3, -1], scale: [0.9, 1.1, 0.9] }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ opacity: [0.6, 1, 0.6], y: [-1, -4, -1], scale: [0.9, 1.2, 0.9] }}
+          transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
         >
           <span className="text-amber-400 font-mono text-[9px] font-bold select-none leading-none">✦</span>
           <span className="text-yellow-300 font-mono text-[7px] font-bold select-none leading-none">✧</span>
@@ -100,12 +100,12 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
       )}
 
       <PixelSvg viewBox="0 0 24 24">
-        {/* Wizard Hat Peak & Star */}
+        {/* Wizard Hat Peak & Pulsing Star */}
         <rect x="11" y="2" width="2" height="2" fill="#818cf8" />
         <rect x="10" y="4" width="4" height="2" fill="#6366f1" />
         <rect x="9" y="6" width="6" height="3" fill="#4f46e5" />
         <rect x="7" y="9" width="10" height="2" fill="#3730a3" />
-        <rect x="11" y="5" width="2" height="2" fill="#fbbf24" /> {/* Glowing Gold Star */}
+        <rect x="11" y="5" width="2" height="2" fill="#fbbf24" /> {/* Gold Star */}
 
         {/* Wizard Face & Eyeglasses */}
         <rect x="8" y="11" width="8" height="4" fill="#fed7aa" />
@@ -123,20 +123,11 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
         <rect x="8" y="14" width="8" height="6" fill="#3730a3" />
         <rect x="10" y="14" width="4" height="6" fill="#4338ca" />
 
-        {/* Active Hand / Wand drawing candlesticks */}
-        {isThinking ? (
-          <>
-            <rect x="6" y="16" width="2" height="2" fill="#fed7aa" />
-            <rect x="16" y="16" width="2" height="2" fill="#fed7aa" />
-            <rect x="18" y="13" width="1" height="5" fill="#facc15" /> {/* Wand shaft */}
-            <rect x="18" y="12" width="2" height="2" fill="#4ade80" /> {/* Glowing Wand Tip */}
-          </>
-        ) : (
-          <>
-            <rect x="7" y="17" width="2" height="2" fill="#fed7aa" />
-            <rect x="15" y="17" width="2" height="2" fill="#fed7aa" />
-          </>
-        )}
+        {/* Active Hand / Wand casting */}
+        <rect x="6" y="16" width="2" height="2" fill="#fed7aa" />
+        <rect x="16" y="16" width="2" height="2" fill="#fed7aa" />
+        <rect x="18" y="13" width="1" height="5" fill="#facc15" /> {/* Wand shaft */}
+        <rect x="18" y="12" width="2" height="2" fill="#4ade80" className="animate-pulse" /> {/* Tip */}
 
         {/* Feet / Shadow */}
         <rect x="9" y="20" width="3" height="2" fill="#1e1b4b" />
@@ -161,17 +152,18 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
       animate={
         prefersReduced
           ? undefined
-          : isDone
-            ? { y: [0, -4, 0], scale: [1, 1.06, 1] }
-            : isThinking
-              ? { y: [0, -1.5, 0] }
-              : undefined
+          : isThinking
+            ? { y: [0, -2.5, 0], rotate: [-1, 1, -1] }
+            : isDone
+              ? { y: [0, -3.5, 0], scale: [1, 1.05, 1] }
+              : { y: [0, -2, 0] }
       }
-      transition={
-        isDone
-          ? { duration: 0.5, repeat: 1, ease: 'easeOut', delay: 0.1 }
-          : { duration: 0.85, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }
-      }
+      transition={{
+        duration: isThinking ? 0.85 : isDone ? 1.9 : 2.6,
+        repeat: Infinity,
+        ease: 'easeInOut',
+        delay: 0.2,
+      }}
     >
       <PixelSvg viewBox="0 0 24 24">
         {/* Scholar Cowl / Hood */}
@@ -191,20 +183,11 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
         <rect x="10" y="13" width="4" height="7" fill="#b45309" />
 
         {/* Animated Macro Data Scroll in hands */}
-        {isThinking ? (
-          <>
-            <rect x="5" y="15" width="4" height="5" fill="#fef3c7" /> {/* Scroll sheet */}
-            <rect x="6" y="16" width="2" height="1" fill="#0284c7" /> {/* Data lines */}
-            <rect x="6" y="18" width="2" height="1" fill="#0284c7" />
-            <rect x="4" y="14" width="1" height="7" fill="#d97706" /> {/* Scroll roller */}
-            <rect x="15" y="16" width="2" height="2" fill="#fde68a" /> {/* Right hand */}
-          </>
-        ) : (
-          <>
-            <rect x="6" y="16" width="3" height="4" fill="#fef3c7" />
-            <rect x="15" y="16" width="3" height="4" fill="#fef3c7" />
-          </>
-        )}
+        <rect x="5" y="15" width="4" height="5" fill="#fef3c7" /> {/* Scroll sheet */}
+        <rect x="6" y="16" width="2" height="1" fill="#0284c7" /> {/* Data lines */}
+        <rect x="6" y="18" width="2" height="1" fill="#0284c7" />
+        <rect x="4" y="14" width="1" height="7" fill="#d97706" /> {/* Scroll roller */}
+        <rect x="15" y="16" width="2" height="2" fill="#fde68a" /> {/* Right hand */}
 
         {/* Feet / Base Shadow */}
         <rect x="9" y="20" width="3" height="2" fill="#1c1917" />
@@ -217,7 +200,7 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
 
 /**
  * 🛡️ Risk Knight (Risk & Volatility Guardian)
- * Features: Steel armor, visor helmet with glowing amber visor,
+ * Features: Steel armor, visor helmet with glowing sweeping amber visor,
  * holding a pixel shield that pulses against volatility spikes.
  */
 export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm }: SpriteProps) {
@@ -229,17 +212,18 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
       animate={
         prefersReduced
           ? undefined
-          : isDone
-            ? { y: [0, -4, 0], scale: [1, 1.06, 1] }
-            : isThinking
-              ? { y: [0, -1.5, 0] }
-              : undefined
+          : isThinking
+            ? { y: [0, -2.5, 0], rotate: [-1, 1, -1] }
+            : isDone
+              ? { y: [0, -3.5, 0], scale: [1, 1.05, 1] }
+              : { y: [0, -2, 0] }
       }
-      transition={
-        isDone
-          ? { duration: 0.5, repeat: 1, ease: 'easeOut', delay: 0.2 }
-          : { duration: 0.9, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }
-      }
+      transition={{
+        duration: isThinking ? 0.9 : isDone ? 2.0 : 2.5,
+        repeat: Infinity,
+        ease: 'easeInOut',
+        delay: 0.4,
+      }}
     >
       {/* Flashing Hazard / Volatility Alarm Beacon on helmet */}
       {(hasAlarm || (isDone && bias === 'bearish')) && (
@@ -259,24 +243,24 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
         <rect x="10" y="4" width="4" height="2" fill="#64748b" />
         <rect x="8" y="6" width="8" height="5" fill="#475569" />
 
-        {/* Glowing Visor Slit */}
+        {/* Glowing Visor Slit with Animated Scanner Sweep */}
         <rect x="9" y="8" width="6" height="2" fill="#0f172a" />
-        <rect x="10" y="8" width="4" height="1" fill="#f59e0b" /> {/* Amber scanner glow */}
+        <rect x="10" y="8" width="4" height="1" fill="#f59e0b" className="animate-pulse" />
 
         {/* Armor Torso */}
         <rect x="8" y="11" width="8" height="8" fill="#334155" />
         <rect x="10" y="12" width="4" height="5" fill="#64748b" />
         <rect x="11" y="14" width="2" height="2" fill="#94a3b8" />
 
-        {/* Pixel Shield */}
+        {/* Pixel Shield with Pulsing Energy Crest */}
         <rect x="4" y="11" width="4" height="7" fill="#1e293b" />
-        <rect x="5" y="12" width="2" height="5" fill="#3b82f6" /> {/* Blue energy crest */}
-        <rect x="5" y="14" width="2" height="1" fill="#60a5fa" />
+        <rect x="5" y="12" width="2" height="5" fill="#3b82f6" />
+        <rect x="5" y="14" width="2" height="1" fill="#60a5fa" className="animate-pulse" />
         <rect x="5" y="18" width="2" height="1" fill="#1e293b" />
 
-        {/* Right Hand / Sword / Gauntlet */}
+        {/* Right Hand / Caliper needle */}
         <rect x="16" y="13" width="2" height="4" fill="#94a3b8" />
-        <rect x="17" y="11" width="1" height="7" fill="#cbd5e1" /> {/* Measuring needle */}
+        <rect x="17" y="11" width="1" height="7" fill="#cbd5e1" />
 
         {/* Steel Boots / Shadow */}
         <rect x="9" y="19" width="3" height="3" fill="#1e293b" />
@@ -301,17 +285,18 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
       animate={
         prefersReduced
           ? undefined
-          : isDone
-            ? { y: [0, -6, 0], rotate: [0, -4, 4, 0], scale: [1, 1.12, 1] }
-            : isThinking
-              ? { y: [0, -2, 0], rotate: [0, -2, 2, 0] }
-              : undefined
+          : isThinking
+            ? { y: [0, -3.5, 0], rotate: [-3, 3, -3] }
+            : isDone
+              ? { y: [0, -5, 0], rotate: [-2, 2, -2], scale: [1, 1.08, 1] }
+              : { y: [0, -2.5, 0], rotate: [-1.5, 1.5, -1.5] }
       }
-      transition={
-        isDone
-          ? { duration: 0.6, repeat: 1, ease: 'easeOut' }
-          : { duration: 0.7, repeat: Infinity, ease: 'easeInOut', delay: 0.1 }
-      }
+      transition={{
+        duration: isThinking ? 0.75 : isDone ? 1.6 : 2.2,
+        repeat: Infinity,
+        ease: 'easeInOut',
+        delay: 0.1,
+      }}
     >
       {/* Victory Crown / Sparkle */}
       {(hasWingsSpread || (isDone && bias === 'bullish')) && (
@@ -334,33 +319,24 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
         <rect x="15" y="7" width="3" height="2" fill="#fbbf24" />
         <rect x="16" y="8" width="2" height="2" fill="#b45309" />
 
-        {/* Golden Falcon Eye */}
+        {/* Golden Falcon Eye with Pupil Gleam */}
         <rect x="12" y="6" width="2" height="2" fill="#0f172a" />
-        <rect x="12" y="6" width="1" height="1" fill="#fef08a" /> {/* Pupil gleam */}
+        <rect x="12" y="6" width="1" height="1" fill="#fef08a" />
 
         {/* Body Feathers */}
         <rect x="8" y="10" width="8" height="8" fill="#b45309" />
-        <rect x="9" y="11" width="5" height="6" fill="#fde68a" /> {/* Chest feathers */}
+        <rect x="9" y="11" width="5" height="6" fill="#fde68a" />
         <rect x="10" y="12" width="3" height="4" fill="#f59e0b" />
 
-        {/* Flapping Wings */}
-        {isThinking ? (
-          <>
-            <rect x="4" y="8" width="4" height="6" fill="#92400e" /> {/* Left wing raised */}
-            <rect x="3" y="9" width="2" height="4" fill="#78350f" />
-            <rect x="16" y="11" width="4" height="5" fill="#92400e" />
-          </>
-        ) : (
-          <>
-            <rect x="6" y="11" width="3" height="6" fill="#92400e" />
-            <rect x="15" y="11" width="3" height="6" fill="#92400e" />
-          </>
-        )}
+        {/* Animated Flapping Wings */}
+        <rect x="4" y="8" width="4" height="6" fill="#92400e" />
+        <rect x="3" y="9" width="2" height="4" fill="#78350f" />
+        <rect x="16" y="11" width="4" height="5" fill="#92400e" />
 
         {/* Perched Talons / Shadow */}
         <rect x="9" y="18" width="2" height="3" fill="#d97706" />
         <rect x="13" y="18" width="2" height="3" fill="#d97706" />
-        <rect x="7" y="21" width="10" height="2" fill="#475569" /> {/* Perch beam */}
+        <rect x="7" y="21" width="10" height="2" fill="#475569" />
       </PixelSvg>
     </m.div>
   );
@@ -381,9 +357,7 @@ export function TechnicalWorkstation({ isThinking }: { isThinking?: boolean }) {
       <rect x="6" y="5" width="1" height="5" fill="#22c55e" />
       <rect x="8" y="6" width="1" height="3" fill="#ef4444" />
       <rect x="10" y="4" width="1" height="6" fill="#22c55e" />
-      {isThinking && (
-        <rect x="12" y="5" width="1" height="4" fill="#4ade80" className="animate-pulse" />
-      )}
+      <rect x="12" y="5" width="1" height="4" fill="#4ade80" className="animate-pulse" />
 
       {/* Auxiliary Mini Display (RSI / Sub-chart) */}
       <rect x="17" y="4" width="6" height="8" fill="#1e293b" />
@@ -413,15 +387,13 @@ export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
       <rect x="5" y="5" width="8" height="1" fill="#38bdf8" />
       <rect x="5" y="7" width="6" height="1" fill="#7dd3fc" />
       <rect x="5" y="9" width="7" height="1" fill="#e0f2fe" />
-      {isThinking && (
-        <rect x="9" y="9" width="2" height="1" fill="#facc15" className="animate-pulse" />
-      )}
+      <rect x="9" y="9" width="2" height="1" fill="#facc15" className="animate-pulse" />
 
       {/* Vintage Brass Desk Lamp */}
-      <rect x="18" y="3" width="4" height="2" fill="#d97706" /> {/* Lamp shade */}
-      <rect x="19" y="5" width="2" height="2" fill="#fef08a" /> {/* Glowing bulb */}
-      <rect x="20" y="7" width="1" height="6" fill="#b45309" /> {/* Curved neck */}
-      <rect x="18" y="13" width="4" height="1" fill="#92400e" /> {/* Lamp base */}
+      <rect x="18" y="3" width="4" height="2" fill="#d97706" />
+      <rect x="19" y="5" width="2" height="2" fill="#fef08a" />
+      <rect x="20" y="7" width="1" height="6" fill="#b45309" />
+      <rect x="18" y="13" width="4" height="1" fill="#92400e" />
 
       {/* Terminal Stand */}
       <rect x="7" y="13" width="4" height="2" fill="#44403c" />
@@ -444,15 +416,8 @@ export function RiskWorkstation({ isThinking }: { isThinking?: boolean }) {
       <rect x="8" y="4" width="4" height="7" fill="#881337" opacity="0.4" />
       <rect x="6" y="7" width="8" height="1" fill="#e11d48" opacity="0.7" />
       <rect x="9" y="4" width="1" height="7" fill="#e11d48" opacity="0.7" />
-      {/* Risk VaR Sweeper */}
-      {isThinking ? (
-        <>
-          <rect x="10" y="5" width="2" height="2" fill="#f43f5e" className="animate-ping" />
-          <rect x="7" y="8" width="2" height="2" fill="#fb7185" />
-        </>
-      ) : (
-        <rect x="9" y="7" width="1" height="1" fill="#22c55e" />
-      )}
+      <rect x="10" y="5" width="2" height="2" fill="#f43f5e" className="animate-ping" />
+      <rect x="7" y="8" width="2" height="2" fill="#fb7185" />
 
       {/* Hazard Warning Strip */}
       <rect x="19" y="4" width="2" height="8" fill="#ef4444" />
@@ -480,15 +445,13 @@ export function SentinelWorkstation({ isThinking }: { isThinking?: boolean }) {
       <rect x="5" y="6" width="4" height="2" fill="#f59e0b" />
       <rect x="9" y="8" width="4" height="2" fill="#d97706" />
       <rect x="6" y="9" width="3" height="1" fill="#fbbf24" />
-      {isThinking && (
-        <rect x="11" y="6" width="2" height="2" fill="#fef08a" className="animate-pulse" />
-      )}
+      <rect x="11" y="6" width="2" height="2" fill="#fef08a" className="animate-pulse" />
 
       {/* Satellite Dish & Antenna */}
-      <rect x="17" y="1" width="1" height="6" fill="#94a3b8" /> {/* Mast */}
-      <rect x="19" y="2" width="3" height="3" fill="#f59e0b" /> {/* Dish bowl */}
+      <rect x="17" y="1" width="1" height="6" fill="#94a3b8" />
+      <rect x="19" y="2" width="3" height="3" fill="#f59e0b" />
       <rect x="18" y="3" width="1" height="1" fill="#fbbf24" />
-      <rect x="16" y="0" width="3" height="1" fill="#e2e8f0" /> {/* Signal emitter */}
+      <rect x="16" y="0" width="3" height="1" fill="#e2e8f0" />
 
       {/* Satellite Mount Stand */}
       <rect x="7" y="13" width="4" height="2" fill="#334155" />
@@ -501,7 +464,7 @@ export function SentinelWorkstation({ isThinking }: { isThinking?: boolean }) {
 /**
  * 🪵 TradingFloorDesk
  * Continuous retro trading desk counter across the bottom of the character row
- * with subtle ambient props (stylus, coffee mug, measuring tool, coin).
+ * with subtle ambient props (stylus, coffee mug with rising steam, measuring tool, coin).
  */
 export function TradingFloorDesk() {
   return (
@@ -522,9 +485,9 @@ export function TradingFloorDesk() {
           {/* Prop 2 (Macro): Steaming Pixel Coffee Mug */}
           <div className="relative flex items-center gap-1 opacity-80" title="Coffee Mug">
             <m.div
-              className="absolute -top-2 left-1 h-1.5 w-0.5 rounded-full bg-fg-subtle/50"
-              animate={{ y: [-1, -3, -1], opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute -top-2 left-1 h-2 w-0.5 rounded-full bg-fg-subtle/60"
+              animate={{ y: [0, -3, 0], opacity: [0.2, 0.9, 0.2] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
             />
             <div className="size-2 rounded-2xs bg-amber-700 border border-amber-900/50 shadow-xs" />
           </div>
