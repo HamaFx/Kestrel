@@ -158,7 +158,7 @@ async function updateOwnedQueueRow(
     .returning();
   const row = rows[0];
   if (!row) {
-    if (status === 'complete') metrics.increment('queue_stale_lease_completion_total');
+    if (status === 'succeeded') metrics.increment('queue_stale_lease_completion_total');
     throw new FullAnalysisQueueOwnershipError();
   }
   return row;
@@ -195,7 +195,7 @@ export async function heartbeatFullAnalysisQueue(
 export async function completeFullAnalysisQueue(
   input: FullAnalysisLeaseInput & { result: Record<string, unknown> },
 ): Promise<FullAnalysisQueueRow> {
-  return updateOwnedQueueRow(input, 'complete', {
+  return updateOwnedQueueRow(input, 'succeeded', {
     result: input.result,
     leaseExpiresAt: null,
     completedAt: new Date(),
@@ -284,7 +284,7 @@ export async function purgeOldFullAnalysisQueue(
     .delete(schema.fullAnalysisQueue)
     .where(
       and(
-        inArray(schema.fullAnalysisQueue.status, ['complete', 'failed']),
+        inArray(schema.fullAnalysisQueue.status, ['succeeded', 'failed', 'cancelled', 'blocked']),
         lt(schema.fullAnalysisQueue.updatedAt, retentionCutoff),
       ),
     )

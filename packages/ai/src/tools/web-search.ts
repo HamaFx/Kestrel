@@ -29,7 +29,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { completeStep, recordStep } from '../diagnostics';
-import { sanitizeExternalText, sanitizeExternalUrl } from '../mastra/external-content';
+import { quarantineExternalText, sanitizeExternalText, sanitizeExternalUrl } from '../mastra/external-content';
 import { maybeGetToolContext } from '../tool-context';
 
 const webLog = createCategorizedLogger('ai', { component: 'web-search' });
@@ -68,7 +68,8 @@ type ProviderItem = {
   published_date?: unknown;
 };
 
-type CacheEntry = { expiresAt: number; value: WebSearchOutput };
+type CacheEntry = { cachedAt: number; expiresAt: number; value: WebSearchOutput };
+type ProviderAttempt = NonNullable<WebSearchOutput['providerAttempts']>[number];
 
 const CACHE_MAX_ENTRIES = 256;
 const searchCache = new Map<string, CacheEntry>();
@@ -110,14 +111,23 @@ export function normalizeWebSearchResults(
     if (seen.has(url)) continue;
     seen.add(url);
 
-    const title = sanitizeExternalText(stringValue(item.title) || parsed.hostname, 240);
-    const content = sanitizeExternalText(
+    const titleResult = quarantineExternalText(
+      stringValue(item.title) || parsed.hostname,
+      240,
+    );
+    const contentResult = quarantineExternalText(
       stringValue(item.content) ||
         textValue(item.highlights) ||
         stringValue((item as ProviderItem & { highlight?: unknown }).highlight),
       1800,
     );
-    const snippet = sanitizeExternalText(stringValue(item.snippet) || content, 500);
+    const snippetResult = quarantineExternalText(
+      stringValue(item.snippet) || contentResult.text,
+      500,
+    );
+    const title = titleResult.text;
+    const content = contentResult.text;
+    const snippet = snippetResult.text;
 
     sources.push({
       id: `${provider}:${createHash('sha256').update(url).digest('hex').slice(0, 16)}`,
@@ -222,18 +232,31 @@ export const webSearchTool = tool({
 
     const parentSignal = options?.abortSignal ?? ctx?.signal ?? undefined;
     const failures: string[] = [];
+    const providerAttempts: ProviderAttempt[] = [];
 
     for (const provider of providers) {
       const cacheKey = buildSearchCacheKey(effectiveInput, provider);
       const cached = readCache(cacheKey);
       if (cached) {
         completeStep('web_search', 'completed', Date.now() - startedAt, {
-          status: cached.status,
+          status: cached.value.status,
           provider,
           cacheHit: true,
-          resultCount: cached.sources.length,
+          resultCount: cached.value.sources.length,
+          cacheAgeSeconds: Math.max(0, Math.floor((Date.now() - cached.cachedAt) / 1000)),
         });
-        return { ...cached, query, cacheHit: true };
+        const cacheAgeSeconds = Math.max(0, Math.floor((Date.now() - cached.cachedAt) / 1000));
+        return {
+          ...cached.value,
+          query,
+          cacheHit: true,
+          cachedAt: new Date(cached.cachedAt).toISOString(),
+          expiresAt: new Date(cached.expiresAt).toISOString(),
+          cacheAgeSeconds,
+          message: cached.value.message
+            ? `${cached.value.message} Cached ${cacheAgeSeconds}s ago.`
+            : `Cached web research from ${new Date(cached.cachedAt).toISOString()}.`,
+        };
       }
 
       const providerStartedAt = Date.now();
@@ -246,15 +269,31 @@ export const webSearchTool = tool({
       try {
         const items = await searchProvider(provider, query, effectiveInput, config, parentSignal);
         const sources = normalizeWebSearchResults(provider, items, effectiveInput.maxResults);
+        const quarantinedCount = sources.filter((source) =>
+          [source.title, source.snippet, source.content ?? ''].some((value) =>
+            value.startsWith('[External content quarantined:'),
+          ),
+        ).length;
+        const attempt: ProviderAttempt = {
+          provider,
+          status: sources.length > 0 ? 'success' : 'empty',
+          latencyMs: Date.now() - providerStartedAt,
+        };
+        providerAttempts.push(attempt);
         const result: WebSearchOutput = {
           status: sources.length > 0 ? 'success' : 'empty',
           provider,
           query,
           sources,
           cacheHit: false,
+          providerAttempts,
           ...(sources.length === 0
             ? { message: 'The live web search returned no usable sources.' }
-            : {}),
+            : quarantinedCount > 0
+              ? {
+                  message: `${quarantinedCount} web source(s) contained instruction-like text and were quarantined.`,
+                }
+              : {}),
         };
         writeCache(cacheKey, result, config.cacheTtlMs);
         completeStep(
@@ -283,6 +322,12 @@ export const webSearchTool = tool({
       } catch (error) {
         const message = safeErrorMessage(error);
         failures.push(`${provider}: ${message}`);
+        providerAttempts.push({
+          provider,
+          status: 'failed',
+          latencyMs: Date.now() - providerStartedAt,
+          error: message,
+        });
         completeStep(`web_search_provider:${provider}`, 'failed', Date.now() - providerStartedAt, {
           provider,
           error: message,
@@ -316,6 +361,7 @@ export const webSearchTool = tool({
       status: 'error',
       provider: null,
       sources: [],
+      providerAttempts,
       message:
         'Live web research failed for every configured provider. Use the other fundamental tools and state that web research was unavailable.',
     };
@@ -518,14 +564,14 @@ function buildQuery(input: SearchInput): string {
   return context ? `${input.query} (${context})` : input.query;
 }
 
-function readCache(key: string): WebSearchOutput | null {
+function readCache(key: string): CacheEntry | null {
   const entry = searchCache.get(key);
   if (!entry) return null;
   if (entry.expiresAt <= Date.now()) {
     searchCache.delete(key);
     return null;
   }
-  return entry.value;
+  return entry;
 }
 
 function writeCache(key: string, value: WebSearchOutput, ttlMs: number): void {
@@ -533,7 +579,8 @@ function writeCache(key: string, value: WebSearchOutput, ttlMs: number): void {
     const oldest = searchCache.keys().next().value;
     if (typeof oldest === 'string') searchCache.delete(oldest);
   }
-  searchCache.set(key, { expiresAt: Date.now() + ttlMs, value });
+  const cachedAt = Date.now();
+  searchCache.set(key, { cachedAt, expiresAt: cachedAt + ttlMs, value });
 }
 
 function stringValue(value: unknown): string {

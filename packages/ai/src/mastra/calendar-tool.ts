@@ -22,7 +22,7 @@ import { getCalendarTool } from '../tools/get-calendar';
 import { createEvidenceId } from './evidence';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
 import { executeMastraTool } from './telemetry';
-import { EXTERNAL_CONTENT_TRUST_WARNING, sanitizeExternalText } from './external-content';
+import { EXTERNAL_CONTENT_TRUST_WARNING, quarantineExternalText } from './external-content';
 import { XAUUSD } from './types';
 
 const InputSchema = z.object({
@@ -64,9 +64,23 @@ export const xauusdCalendarTool = createTool({
         },
         context.abortSignal,
       );
+      const sanitizedItems = data.items.map((item) => {
+        const title = quarantineExternalText(item.title, 240);
+        const source = quarantineExternalText(item.source, 240);
+        return {
+          ...item,
+          title: title.text,
+          source: source.text,
+          quarantined: title.quarantined || source.quarantined,
+        };
+      });
+      const quarantinedCount = sanitizedItems.filter((item) => item.quarantined).length;
       const warnings = [
         EXTERNAL_CONTENT_TRUST_WARNING,
         'The cached economic-events table does not expose provider ingestion freshness metadata',
+        ...(quarantinedCount > 0
+          ? [`${quarantinedCount} calendar item(s) contained instruction-like text and were quarantined`]
+          : []),
         ...(data.pipelinePending
           ? ['The calendar ingestion pipeline has not populated the cache']
           : []),
@@ -77,11 +91,7 @@ export const xauusdCalendarTool = createTool({
 
       const sanitizedData = {
         ...data,
-        items: data.items.map((item) => ({
-          ...item,
-          title: sanitizeExternalText(item.title, 240),
-          source: sanitizeExternalText(item.source, 240),
-        })),
+        items: sanitizedItems.map(({ quarantined: _quarantined, ...item }) => item),
       };
 
       return OutputSchema.parse({

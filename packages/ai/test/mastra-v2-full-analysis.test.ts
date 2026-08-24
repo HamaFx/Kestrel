@@ -38,7 +38,7 @@ const INPUT = {
   userId: 'user-1',
   threadId: 'thread-1',
   userMessageText: 'Analyze XAUUSD',
-  userMessageParts: [{ type: 'text', text: 'Analyze XAUUSD' }],
+  userMessageParts: [{ type: 'text' as const, text: 'Analyze XAUUSD' }],
   idempotencyKey: 'full:thread-1:message-1',
   modelSnapshot: {
     modelId: 'google/gemini-2.5-flash',
@@ -100,7 +100,7 @@ describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
       await completeFullAnalysisRun(runId!, 'worker-1', { finalText: 'done', mode: 'full' });
 
       const poll = await getFullAnalysisRun('user-1', runId!);
-      expect(poll?.status).toBe('complete');
+      expect(poll?.status).toBe('succeeded');
       expect(poll?.result).toMatchObject({ finalText: 'done' });
       expect(poll?.completedAt).not.toBeNull();
       expect(await getFullAnalysisRun('user-2', runId!)).toBeNull();

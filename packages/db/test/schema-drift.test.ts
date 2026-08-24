@@ -110,6 +110,8 @@ function getSchemaTableColumns(): Map<string, string[]> {
     'share.ts',
     'push.ts',
     'memory.ts',
+    'memory-backfill.ts',
+    'memory-projection.ts',
     'daily-ai-spend.ts',
     'rate-limits.ts',
     'live-ticks.ts',
@@ -129,6 +131,7 @@ function getSchemaTableColumns(): Map<string, string[]> {
     'telegram-updates.ts',
     'ai-feedback.ts',
     'eval-datasets.ts',
+    'ai-quality-results.ts',
   ];
   for (const file of files) {
     try {
@@ -199,7 +202,9 @@ describe('Phase 6 — Task 28: Schema drift detection', () => {
       );
       const dbCols = new Set(rows.map((r: Record<string, unknown>) => r.column_name));
       for (const col of schemaCols) {
-        expect(dbCols.has(col)).toBe(true);
+        if (!dbCols.has(col)) {
+          throw new Error(`Schema drift: ${tableName}.${col} is missing; database columns: ${[...dbCols].join(', ')}`);
+        }
       }
     }
   });

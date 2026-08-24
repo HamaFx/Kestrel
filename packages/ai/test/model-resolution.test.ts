@@ -1,151 +1,79 @@
-/**
- * Copyright 2026 Kestrel
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { describe, expect, it } from 'vitest';
+const { resolveChatModel, resolveModelForProvider } = vi.hoisted(() => ({
+  resolveChatModel: vi.fn((settings: { chatModel: string | null }) => ({
+    model: { modelId: settings.chatModel ?? 'default' },
+    modelId: settings.chatModel ?? 'google/gemini-2.5-flash',
+    providerId: 'google' as const,
+    bareModelId: settings.chatModel?.split(':').at(-1) ?? 'gemini-2.5-flash',
+  })),
+  resolveModelForProvider: vi.fn(() => ({
+    model: { modelId: 'snapshot' },
+    modelId: 'google/gemini-2.5-flash',
+    providerId: 'google' as const,
+    bareModelId: 'gemini-2.5-flash',
+  })),
+}));
 
-import { pickNextFallbackProvider, toModelDomain } from '../src/model-resolution';
+vi.mock('../src/model-chat', () => ({ resolveChatModel, resolveModelForProvider }));
 
-describe('toModelDomain', () => {
-  it('maps fundamental to fundamental', () => {
-    expect(toModelDomain('fundamental')).toBe('fundamental');
-  });
+import { resolveMastraModel } from '../src/model-resolution';
 
-  it('maps technical to technical', () => {
-    expect(toModelDomain('technical')).toBe('technical');
-  });
+const settings = { aiApiKeys: null, chatModel: null };
+const env = {} as never;
 
-  it('maps generic to technical (fallback)', () => {
-    expect(toModelDomain('generic')).toBe('technical');
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
+  delete process.env.MASTRA_MODE_MODEL;
+  delete process.env.MASTRA_WORKER_MODEL;
+  delete process.env.MASTRA_XAUUSD_MODEL;
 });
 
-describe('pickNextFallbackProvider', () => {
-  it('returns null for empty chain', () => {
-    const result = pickNextFallbackProvider([], 'google', null, undefined, 'technical');
-    expect(result).toBeNull();
-  });
-
-  it('returns null when no subsequent provider has a key', () => {
-    const result = pickNextFallbackProvider(
-      ['google', 'anthropic'],
+describe('resolveMastraModel', () => {
+  it('uses an immutable snapshot for worker jobs', () => {
+    const result = resolveMastraModel({
+      purpose: 'worker',
+      settings,
+      env,
+      domain: 'technical',
+      snapshot: { providerId: 'google', bareModelId: 'gemini-2.5-flash' },
+    });
+    expect(resolveModelForProvider).toHaveBeenCalledWith(
       'google',
-      {}, // decrypted keys — no key for anthropic
-      undefined,
+      settings,
+      env,
+      'gemini-2.5-flash',
       'technical',
     );
-    expect(result).toBeNull();
+    expect(resolveChatModel).not.toHaveBeenCalled();
+    expect(result.modelId).toBe('google/gemini-2.5-flash');
   });
 
-  it('picks the next provider with a valid key', () => {
-    const result = pickNextFallbackProvider(
-      ['google', 'anthropic'],
-      'google',
-      { anthropic: 'sk-ant-xxx' },
-      undefined,
+  it('applies explicit overrides before operator pins', () => {
+    process.env.MASTRA_MODE_MODEL = 'openai:gpt-4.1-mini';
+    resolveMastraModel({
+      purpose: 'mode',
+      settings,
+      env,
+      domain: 'technical',
+      modelOverride: 'google:gemini-2.5-flash',
+    });
+    expect(resolveChatModel).toHaveBeenCalledWith(
+      { aiApiKeys: null, chatModel: 'google:gemini-2.5-flash' },
+      env,
       'technical',
     );
-    expect(result).not.toBeNull();
-    expect(result!.providerId).toBe('anthropic');
-    expect(result!.modelId).toBeTypeOf('string');
   });
 
-  it('skips providers past current in the chain', () => {
-    const result = pickNextFallbackProvider(
-      ['google', 'openai', 'anthropic'],
-      'openai',
-      { google: 'key', anthropic: 'sk-ant-xxx' },
-      undefined,
-      'technical',
-    );
-    // Should skip google (before openai) and pick anthropic
-    expect(result!.providerId).toBe('anthropic');
-  });
-
-  it('uses envGoogleKey for google provider', () => {
-    const result = pickNextFallbackProvider(
-      ['google', 'openai'],
-      'google',
-      { openai: 'sk-xxx' },
-      undefined,
-      'technical',
-    );
-    // google key is not in decrypted keys but envGoogleKey is set
-    // Actually, envGoogleKey is undefined, so google has no key
-    // Only openai has a key
-    expect(result!.providerId).toBe('openai');
-  });
-
-  it('uses envGoogleKey when google is in chain after current', () => {
-    const result = pickNextFallbackProvider(
-      ['openai', 'google'],
-      'openai',
-      {},
-      'AIzaSyGoogleKey123',
-      'technical',
-    );
-    // Google should work because envGoogleKey is set
-    expect(result!.providerId).toBe('google');
-    expect(result!.modelId).toBeTypeOf('string');
-  });
-
-  it('returns null when current provider is not in chain', () => {
-    const result = pickNextFallbackProvider(
-      ['google', 'openai'],
-      'unknown-provider',
-      { google: 'key' },
-      undefined,
-      'technical',
-    );
-    // Start from -1 (not found), search from index 0
-    expect(result!.providerId).toBe('google');
-  });
-
-  it('returns the first provider when current is not found and first has key', () => {
-    const result = pickNextFallbackProvider(
-      ['google', 'openai'],
-      undefined,
-      { openai: 'sk-xxx' },
-      undefined,
-      'technical',
-    );
-    // current undefined → defaults to 'google'
-    // google has no key in decryptedByokKeys and no envGoogleKey
-    // Should find openai
-    expect(result!.providerId).toBe('openai');
-  });
-
-  it('rejects providers with empty key strings', () => {
-    const result = pickNextFallbackProvider(
-      ['google', 'openai'],
-      'google',
-      { openai: '' },
-      undefined,
-      'technical',
-    );
-    expect(result).toBeNull();
-  });
-
-  it('rejects providers with whitespace-only keys', () => {
-    const result = pickNextFallbackProvider(
-      ['google', 'openai'],
-      'google',
-      { openai: '   ' },
-      undefined,
-      'technical',
-    );
-    expect(result).toBeNull();
+  it('rejects malformed overrides', () => {
+    expect(() =>
+      resolveMastraModel({
+        purpose: 'canonical-chat',
+        settings,
+        env,
+        domain: 'summary',
+        modelOverride: 'not-qualified',
+      }),
+    ).toThrow(/provider:model/);
   });
 });

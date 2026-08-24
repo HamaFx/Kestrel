@@ -603,6 +603,20 @@
       "when": 1787350000001,
       "tag": "0086_full_analysis_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1787350000002,
+      "tag": "0087_memory_backfill_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1787350000003,
+      "tag": "0088_memory_projection_state",
+      "breakpoints": true
     }
   ]
 }

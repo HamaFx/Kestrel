@@ -17,6 +17,7 @@
 export {
   MASTRA_CAPABILITIES,
   CANONICAL_READ_ONLY_TOOL_NAMES,
+  LEGACY_DOMAIN_TOOL_NAMES,
   evaluateMastraCapability,
   getMastraCapability,
   type MastraCapability,
@@ -27,8 +28,17 @@ export {
   type MastraCapabilityRejectionReason,
   type MastraCapabilityScope,
   type MastraCapabilityToolName,
+  type MastraContentTrust,
   type MastraEvidencePolicy,
 } from './capabilities';
+export {
+  CAPABILITY_REGISTRY,
+  CANONICAL_TOOL_REGISTRY,
+  canonicalReadOnlyToolNames,
+  isReadOnlyCapability,
+  toolsForCapability,
+  toolsForRoutingDomain,
+} from './capability-registry';
 export {
   collectSymbolResearchPacket,
   serializeSymbolResearchPacket,
@@ -127,6 +137,7 @@ export {
   type MastraMutationDecision,
   type MastraMutationName,
   type MastraMutationRequest,
+  type MastraMutationVerificationOptions,
   type MutationConfirmationToken,
   type StoredMutationConfirmation,
   type SystemActionId,
@@ -270,6 +281,8 @@ export {
   errorCodeForMastra,
   executeMastraTool,
   finishMastraRun,
+  isMastraTelemetryDegraded,
+  resetMastraTelemetryHealth,
   getMastraGenerationStats,
   mastraOutcomeForError,
   MASTRA_XAUUSD_AGENT_ID,

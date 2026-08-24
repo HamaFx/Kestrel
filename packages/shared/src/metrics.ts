@@ -77,6 +77,7 @@ export const METRIC_NAMES = [
   'guardrail_degraded_total',
   'scorer_missing_input_total',
   'mastra_unpriced_model_total',
+  'mastra_telemetry_degraded_total',
 ] as const;
 
 export type MetricName = (typeof METRIC_NAMES)[number];

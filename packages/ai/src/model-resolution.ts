@@ -14,37 +14,100 @@
  * limitations under the License.
  */
 
-// Model resolution helpers — extracted from agent.ts (MT-2).
-//
-// These are shared between the single-agent retry loop in agent.ts and
-// the multi-agent orchestrator. Keeping them here avoids duplication
-// and makes the fallback chain logic independently testable.
+// Model resolution helpers — shared by the single-agent retry loop,
+// multi-agent orchestration, and all Mastra composition edges.
 
+import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
 
-import { BYOK_PROVIDERS } from './byok-providers';
-import type { ModelDomain } from './model';
-import type { RoutingDomain } from './routing';
+import { BYOK_PROVIDERS, type ModelDomain } from './byok-providers';
+import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
+import type { ResolveModelEnv } from './vertex-factory';
+
+export type { ChatModelResolution } from './model-chat';
+
+export type MastraModelPurpose = 'canonical-chat' | 'mode' | 'xauusd' | 'worker';
+
+export interface MastraModelSnapshot {
+  providerId: string;
+  bareModelId: string;
+}
+
+export interface ResolveMastraModelInput {
+  purpose: MastraModelPurpose;
+  settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>;
+  env: ResolveModelEnv;
+  domain: ModelDomain;
+  modelOverride?: string | null;
+  /** Immutable enqueue-time selection. When present, no provider failover is allowed. */
+  snapshot?: MastraModelSnapshot;
+}
+
+function configuredOverride(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const separator = value.indexOf(':');
+  if (separator <= 0 || separator === value.length - 1) {
+    throw new Error('Mastra model overrides must use the provider:model format.');
+  }
+  return value;
+}
+
+function pinnedModelFor(purpose: MastraModelPurpose): string | null {
+  if (purpose === 'mode') return process.env.MASTRA_MODE_MODEL ?? process.env.MASTRA_XAUUSD_MODEL ?? null;
+  if (purpose === 'xauusd') return process.env.MASTRA_XAUUSD_MODEL ?? null;
+  if (purpose === 'worker') return process.env.MASTRA_WORKER_MODEL ?? process.env.MASTRA_MODE_MODEL ?? null;
+  return null;
+}
+
+/**
+ * Resolve every Mastra model through one contract.
+ *
+ * `snapshot` is authoritative for durable worker jobs. Otherwise the caller's
+ * explicit override wins, then the purpose-specific operator pin, then the
+ * user's normal chat selection/default. XAUUSD reports intentionally ignore a
+ * normal chat selection unless explicitly overridden or pinned because that
+ * pipeline has a bounded technical-model contract.
+ */
+export function resolveMastraModel(args: ResolveMastraModelInput): ChatModelResolution {
+  if (args.snapshot) {
+    const providerId = args.snapshot.providerId as ProviderId;
+    return resolveModelForProvider(
+      providerId,
+      args.settings,
+      args.env,
+      args.snapshot.bareModelId,
+      args.domain,
+    );
+  }
+
+  const selected = configuredOverride(args.modelOverride) ?? pinnedModelFor(args.purpose);
+  if (selected) {
+    return resolveChatModel(
+      { aiApiKeys: args.settings.aiApiKeys, chatModel: selected },
+      args.env,
+      args.domain,
+    );
+  }
+
+  if (args.purpose === 'xauusd') {
+    return resolveChatModel(
+      { aiApiKeys: args.settings.aiApiKeys, chatModel: null },
+      args.env,
+      args.domain,
+    );
+  }
+  return resolveChatModel(args.settings, args.env, args.domain);
+}
 
 // ---------------------------------------------------------------------------
-// P2-6 — Domain-to-model-tier mapping.
-//
-// Maps a routing domain to the corresponding ModelDomain tier.
-// 'generic' has no specific tier → falls back to 'technical'.
+// Legacy fallback helpers retained for non-Mastra callers.
 // ---------------------------------------------------------------------------
+
+import type { RoutingDomain } from './routing';
 
 export function toModelDomain(domain: RoutingDomain): ModelDomain {
   return domain === 'generic' ? 'technical' : domain;
 }
-
-// ---------------------------------------------------------------------------
-// P2-8 — Shared fallback provider walker.
-//
-// Walks the user's aiFallbackChain past the current provider, returns
-// the first subsequent provider with a usable key. Picks the
-// domain-appropriate model tier (fundamental→pro, summary→cheap, etc.)
-// instead of always defaulting to 'technical'.
-// ---------------------------------------------------------------------------
 
 export function pickNextFallbackProvider(
   chain: string[],
@@ -63,7 +126,6 @@ export function pickNextFallbackProvider(
 
     if (typeof key === 'string' && key.trim().length > 0) {
       const spec = BYOK_PROVIDERS[pid];
-      // Pick the domain-appropriate tier — not always 'technical'.
       const tier = toModelDomain(routingDomain);
       const modelId = spec?.defaultModels[tier] ?? spec?.defaultModels.technical ?? null;
       return { providerId: pid, modelId };

@@ -420,7 +420,7 @@ function pollJobToStreamResponse(
             }
           }
 
-          if (pollJson.status === 'complete') {
+          if (pollJson.status === 'succeeded' || pollJson.status === 'complete') {
             const finalId = pollJson.result?.messageId ?? id;
             const finalText = pollJson.result?.finalText ?? '';
             controller.enqueue(encodeChunk({ type: 'text-start', id: finalId }));

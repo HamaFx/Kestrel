@@ -57,3 +57,5 @@ export * as aiFeedback from './ai-feedback';
 export * as aiRegressionCases from './ai-regression-cases';
 export * as evalDatasets from './eval-datasets';
 export * as aiShadowComparisons from './ai-shadow-comparisons';
+export * as memoryBackfill from './memory-backfill';
+export * as memoryProjection from './memory-projection';

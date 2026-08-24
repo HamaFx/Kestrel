@@ -21,6 +21,9 @@ export interface ExecuteMutationOnceInput<T extends MutationExecutionBusinessRes
   threadId: string;
   mutation: string;
   inputDigest: string;
+  /** Server-issued approval/run identity; defaults to runId for legacy callers. */
+  approvalId?: string;
+  approvalExpiresAt?: Date;
   execute: (tx: DbClient) => Promise<T>;
   auditMetadata?: Record<string, unknown>;
   /** Optional transaction-capable database handle for integration tests. */
@@ -89,6 +92,8 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
         threadId: input.threadId,
         mutation: input.mutation,
         inputDigest: input.inputDigest,
+        approvalId: input.approvalId ?? input.runId,
+        approvalExpiresAt: input.approvalExpiresAt ?? null,
         status: 'executing',
       })
       .onConflictDoNothing({ target: schema.mutationExecutions.runId })
@@ -110,7 +115,8 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
         existing.userId !== input.userId ||
         existing.threadId !== input.threadId ||
         existing.mutation !== input.mutation ||
-        existing.inputDigest !== input.inputDigest
+        existing.inputDigest !== input.inputDigest ||
+        (existing.approvalId ?? input.runId) !== (input.approvalId ?? input.runId)
       ) {
         throw new MutationExecutionContextError();
       }
@@ -132,6 +138,8 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
       threadId: input.threadId,
       resultId: result.id,
       inputDigest: input.inputDigest,
+      approvalId: input.approvalId ?? input.runId,
+      approvalExpiresAt: input.approvalExpiresAt?.toISOString() ?? null,
     };
 
     await tx.insert(schema.auditLogs).values({

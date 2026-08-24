@@ -312,7 +312,11 @@ describe('mutation workflow', () => {
 
 describe('mutation policy — stored confirmation type', () => {
   it('StoredMutationConfirmation shape is usable', () => {
-    const stored: StoredMutationConfirmation = { digest: 'a'.repeat(64), expiresAt: 123 };
+    const stored: StoredMutationConfirmation = {
+      digest: 'a'.repeat(64),
+      expiresAt: 123,
+      inputDigest: mutationInputDigest(sampleInput()),
+    };
     expect(stored.expiresAt).toBe(123);
   });
 
@@ -323,7 +327,11 @@ describe('mutation policy — stored confirmation type', () => {
       threadId: 'thread-1',
       mutation: input.kind,
       inputDigest: mutationInputDigest(input),
-      confirmation: { digest: 'a'.repeat(64), expiresAt: 2_000 },
+      confirmation: {
+        digest: 'a'.repeat(64),
+        expiresAt: 2_000,
+        inputDigest: mutationInputDigest(input),
+      },
     };
     const run = { snapshot: { value: context } };
 
@@ -338,7 +346,11 @@ describe('mutation policy — stored confirmation type', () => {
       threadId: 'thread-1',
       mutation: input.kind,
       inputDigest: mutationInputDigest(input),
-      confirmation: { digest: 'a'.repeat(64), expiresAt: 2_000 },
+      confirmation: {
+        digest: 'a'.repeat(64),
+        expiresAt: 2_000,
+        inputDigest: mutationInputDigest(input),
+      },
     };
 
     expect(

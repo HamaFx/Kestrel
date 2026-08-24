@@ -31,7 +31,7 @@ const {
   mockPurgeOldRuns,
   mockRunMastraMode,
   mockReserveTurnBudget,
-  mockResolveModelForProvider,
+  mockResolveMastraModel,
   mockAppendUserMessage,
   mockAppendAssistantMessage,
 } = vi.hoisted(() => ({
@@ -47,7 +47,7 @@ const {
   mockPurgeOldRuns: vi.fn(),
   mockRunMastraMode: vi.fn(),
   mockReserveTurnBudget: vi.fn(),
-  mockResolveModelForProvider: vi.fn(),
+  mockResolveMastraModel: vi.fn(),
   mockAppendUserMessage: vi.fn(),
   mockAppendAssistantMessage: vi.fn(),
 }));
@@ -113,7 +113,7 @@ vi.mock('@kestrel/ai/mastra', () => ({
 
 vi.mock('@kestrel/ai', () => ({
   getDb: () => mockDb,
-  resolveModelForProvider: mockResolveModelForProvider,
+  resolveMastraModel: mockResolveMastraModel,
   appendUserMessage: mockAppendUserMessage,
   appendAssistantMessage: mockAppendAssistantMessage,
   DEFAULT_MAX_DAILY_USD: 5,
@@ -144,7 +144,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     mockClaimNextFullAnalysisRun.mockResolvedValueOnce(claimed).mockResolvedValueOnce(null);
     mockRecoverStaleRuns.mockResolvedValue({ requeued: 0, failed: 0 });
     mockPurgeOldRuns.mockResolvedValue(0);
-    mockResolveModelForProvider.mockReturnValue({
+    mockResolveMastraModel.mockReturnValue({
       modelId: 'google/gemini-2.5-flash',
       providerId: 'google',
       bareModelId: 'gemini-2.5-flash',
@@ -218,6 +218,46 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
     expect(mockRequeueFullAnalysisRun).not.toHaveBeenCalled();
     expect(mockFailFullAnalysisRun).not.toHaveBeenCalled();
+  });
+
+  it('fails a run permanently when budget admission rejects the user quota', async () => {
+    const ctx = context();
+    const quotaError = Object.assign(new Error('daily budget exceeded'), {
+      code: 'BUDGET_EXCEEDED',
+      spent: 5,
+      max: 5,
+    });
+    mockReserveTurnBudget.mockRejectedValueOnce(quotaError);
+
+    const result = await runMultiAgentAnalysis(ctx);
+
+    expect(result).toEqual({ processed: 1, note: 'processed=1' });
+    expect(mockFailFullAnalysisRun).toHaveBeenCalledWith(
+      'run-1',
+      expect.any(String),
+      expect.objectContaining({
+        name: 'FullAnalysisQuotaExceededError',
+        code: 'FULL_ANALYSIS_BUDGET_EXCEEDED',
+      }),
+    );
+    expect(mockRequeueFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockRunMastraMode).not.toHaveBeenCalled();
+  });
+
+  it('requeues a transient budget admission failure before model execution', async () => {
+    const ctx = context();
+    mockReserveTurnBudget.mockRejectedValueOnce(new Error('budget database timeout'));
+
+    const result = await runMultiAgentAnalysis(ctx);
+
+    expect(result).toEqual({ processed: 1, note: 'processed=1' });
+    expect(mockRequeueFullAnalysisRun).toHaveBeenCalledWith(
+      'run-1',
+      expect.any(String),
+      expect.stringContaining('retrying automatically'),
+    );
+    expect(mockFailFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockRunMastraMode).not.toHaveBeenCalled();
   });
 
   it('requeues a retryable Mastra provider timeout', async () => {

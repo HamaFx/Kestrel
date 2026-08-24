@@ -28,7 +28,6 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import type { ProviderId } from '@kestrel/shared/encryption';
 import type { AgentMemoryOption } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 
@@ -54,11 +53,7 @@ import {
   type MastraModeOpinion,
   type MastraSpecialistName,
 } from '../mastra-v2/workflows/symbol-research';
-import {
-  resolveChatModel,
-  resolveModelForProvider,
-  type ChatModelResolution,
-} from '../model';
+import { resolveMastraModel, type ChatModelResolution } from '../model';
 import type { ResolveModelEnv } from '../vertex-factory';
 import type { SymbolResearchPacket } from './symbol-research';
 import {
@@ -126,20 +121,13 @@ export function resolveMastraModeModel(
   env: ResolveModelEnv,
   modelOverride?: string | null,
 ): ChatModelResolution {
-  const pinned = process.env.MASTRA_MODE_MODEL ?? process.env.MASTRA_XAUUSD_MODEL;
-  const selected = modelOverride ?? (pinned && pinned.length > 0 ? pinned : null);
-  if (selected) {
-    const separator = selected.indexOf(':');
-    if (separator <= 0 || separator === selected.length - 1) {
-      throw new Error(
-        'Mastra mode model overrides must use the provider:model format.',
-      );
-    }
-    const providerId = selected.slice(0, separator) as ProviderId;
-    const bareModelId = selected.slice(separator + 1);
-    return resolveModelForProvider(providerId, settings, env, bareModelId, 'technical');
-  }
-  return resolveChatModel(settings, env, 'technical');
+  return resolveMastraModel({
+    purpose: 'mode',
+    settings,
+    env,
+    domain: 'technical',
+    ...(modelOverride !== undefined ? { modelOverride } : {}),
+  });
 }
 
 /** Base run context (no packet — the workflow collects it inside its first step). */
@@ -426,12 +414,13 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       runId: args.runId,
       model: resolution.modelId,
       providerId: resolution.providerId,
-      startedAt,
-      inputTokens: 0,
-      outputTokens: 0,
-      toolCalls: 0,
-      steps: 0,
-      outcome: mastraOutcomeForError(error, args.signal),
+      startedAt,        inputTokens: 0,
+        outputTokens: 0,
+        usageKnown: false,
+        toolCalls: 0,
+        steps: 0,
+        outcome: mastraOutcomeForError(error, args.signal),
+
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       error,
     });

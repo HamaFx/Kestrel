@@ -22,7 +22,11 @@ import {
   parseMutationRunContext,
   verifyMutationConfirmationToken,
 } from '@kestrel/ai/mastra';
-import { getMutationExecution, MutationExecutionConflictError } from '@kestrel/db';
+import {
+  createAuditLog,
+  getMutationExecution,
+  MutationExecutionConflictError,
+} from '@kestrel/db';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -79,6 +83,7 @@ export const POST = withAuth(async (req: Request, { user }) => {
     stored: context.confirmation,
     mutation: context.mutation,
     userId: context.userId,
+    inputDigest: context.inputDigest,
   });
   if (!tokenValid) {
     return NextResponse.json(
@@ -113,6 +118,14 @@ export const POST = withAuth(async (req: Request, { user }) => {
 
   try {
     await cancelMutationWorkflow(workflow, { runId, userId: context.userId });
+    await createAuditLog(context.userId, `mutation.${context.mutation}.canceled`, {
+      mutation: context.mutation,
+      runId,
+      threadId: context.threadId,
+      approvalId: runId,
+      approvalExpiresAt: new Date(context.confirmation.expiresAt).toISOString(),
+      inputDigest: context.inputDigest,
+    });
     return NextResponse.json({ ok: true, status: 'canceled', runId });
   } catch (error) {
     if (error instanceof MutationExecutionConflictError) {

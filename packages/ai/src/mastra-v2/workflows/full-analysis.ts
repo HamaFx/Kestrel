@@ -32,11 +32,13 @@ import {
   type FullAnalysisQueueRow,
 } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { UserMessagePartsSchema } from '@kestrel/shared';
 import type { WorkflowsStorage } from '@mastra/core/storage';
 import type { WorkflowRunState } from '@mastra/core/workflows';
 import { z } from 'zod';
 
 import { getDb } from '../../db';
+import { normalizeWorkflowStatus, toApiWorkflowStatus, toMastraWorkflowStatus } from '../../workflow-status';
 import { getKestrelMastra } from '../instance';
 
 const flog = createCategorizedLogger('ai', { component: 'mastra-full-analysis' });
@@ -52,7 +54,7 @@ export const FullAnalysisPayloadSchema = z
     userId: z.string().min(1),
     threadId: z.string().min(1),
     userMessageText: z.string(),
-    userMessageParts: z.unknown(),
+    userMessageParts: UserMessagePartsSchema,
     idempotencyKey: z.string().min(1),
     traceId: z.string().min(1).optional(),
     attemptCount: z.number().int().nonnegative(),
@@ -76,7 +78,7 @@ export type FullAnalysisPayload = z.infer<typeof FullAnalysisPayloadSchema>;
 /** Public shape returned by the polling endpoint. */
 export interface FullAnalysisRunView {
   id: string;
-  status: 'pending' | 'running' | 'complete' | 'failed';
+  status: import('../../workflow-status').WorkflowStatus;
   progress: Array<Record<string, unknown>>;
   result: Record<string, unknown> | null;
   error: string | null;
@@ -93,7 +95,7 @@ export interface FullAnalysisEnqueueInput {
   userId: string;
   threadId: string;
   userMessageText: string;
-  userMessageParts: unknown;
+  userMessageParts: z.input<typeof UserMessagePartsSchema>;
   idempotencyKey: string;
   traceId?: string;
   /** Exact resolved model snapshot captured before the queue row is created. */
@@ -235,14 +237,10 @@ async function projectQueueRow(row: FullAnalysisQueueRow): Promise<void> {
     });
     const snapshot = parseSnapshot(existing?.snapshot);
     const hasDurableExecution = isResearchWorkflowInput(snapshot?.context?.input);
-    const status =
-      row.status === 'complete'
-        ? 'success'
-        : row.status === 'failed'
-          ? 'failed'
-          : row.status === 'pending' && hasDurableExecution
-            ? 'running'
-            : row.status;
+    const normalizedStatus = normalizeWorkflowStatus(
+      row.status === 'pending' && hasDurableExecution ? 'running' : row.status,
+    );
+    const status = toMastraWorkflowStatus(normalizedStatus);
     const next = {
       ...(snapshot ?? minimalSnapshot(row.runId, status, payload)),
       runId: row.runId,
@@ -288,7 +286,7 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
       userId: input.userId,
       threadId: input.threadId,
       userMessageText: input.userMessageText,
-      userMessageParts: input.userMessageParts,
+      userMessageParts: UserMessagePartsSchema.parse(input.userMessageParts),
       idempotencyKey: input.idempotencyKey,
       ...(input.traceId ? { traceId: input.traceId } : {}),
       modelSnapshot: input.modelSnapshot,
@@ -484,7 +482,9 @@ export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<n
   const db = getDb();
   const terminalRows = (await listFullAnalysisQueueRows(undefined, db)).filter(
     (row) =>
-      (row.status === 'complete' || row.status === 'failed') &&
+      (['succeeded', 'failed', 'cancelled', 'blocked'] as const).includes(
+        normalizeWorkflowStatus(row.status) as 'succeeded' | 'failed' | 'cancelled' | 'blocked',
+      ) &&
       row.updatedAt < retentionCutoff,
   );
   const deleted = await purgeOldFullAnalysisQueue(retentionCutoff, db);
@@ -538,11 +538,13 @@ export async function getFullAnalysisRun(
     // Polling is DB-authoritative. Mastra snapshots are projection data and
     // must not make an accepted DB job appear complete without a worker-owned
     // terminal transition in the queue.
-    const status = row.status;
+    const status = normalizeWorkflowStatus(row.status);
     const result: Record<string, unknown> | null = row.result ?? null;
     const error: string | null =
       status === 'failed'
-        ? 'Full analysis could not be completed. No partial answer was returned.'
+        ? row.error?.startsWith('Daily AI budget exceeded (')
+          ? row.error
+          : 'Full analysis could not be completed. No partial answer was returned.'
         : null;
     const completedAt: string | null = row.completedAt?.toISOString() ?? null;
 

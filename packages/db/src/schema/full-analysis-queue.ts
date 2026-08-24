@@ -9,7 +9,7 @@ import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'dr
 
 import { organization, users } from './auth';
 
-export type FullAnalysisQueueStatus = 'pending' | 'running' | 'complete' | 'failed';
+export type FullAnalysisQueueStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'blocked';
 
 /**
  * Database-owned queue and lease ledger for durable Full-analysis work.

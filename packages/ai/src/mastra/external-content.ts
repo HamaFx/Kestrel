@@ -35,7 +35,33 @@ export function sanitizeExternalUrl(value: unknown): string | null {
 }
 
 /** Mark provider text for prompt construction without allowing it to become an instruction. */
-export function wrapExternalContent(value: unknown, maxLength = 2_000): string {
+const INSTRUCTION_LIKE_EXTERNAL_CONTENT =
+  /\b(?:ignore|disregard|override|forget)\b[\s\S]{0,80}\b(?:instruction|system|developer|policy|rule)|\b(?:system prompt|developer message|assistant instructions|follow these instructions|execute this command)\b/i;
+
+/** Detect common prompt-injection directives embedded in provider content. */
+export function containsExternalInstructions(value: unknown): boolean {
+  const text = sanitizeExternalText(value, 4_000);
+  return text.length > 0 && INSTRUCTION_LIKE_EXTERNAL_CONTENT.test(text);
+}
+
+/**
+ * Sanitize external text and quarantine content that looks like an embedded
+ * instruction. The source URL/title remains available for citation, but the
+ * suspicious payload is never passed to the model as ordinary evidence.
+ */
+export function quarantineExternalText(
+  value: unknown,
+  maxLength = 2_000,
+): { text: string; quarantined: boolean } {
   const text = sanitizeExternalText(value, maxLength);
+  if (!text) return { text: '', quarantined: false };
+  if (containsExternalInstructions(text)) {
+    return { text: '[External content quarantined: instruction-like text detected.]', quarantined: true };
+  }
+  return { text, quarantined: false };
+}
+
+export function wrapExternalContent(value: unknown, maxLength = 2_000): string {
+  const { text } = quarantineExternalText(value, maxLength);
   return text ? `[UNTRUSTED EXTERNAL DATA]\n${text}\n[/UNTRUSTED EXTERNAL DATA]` : '';
 }

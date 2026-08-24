@@ -113,6 +113,7 @@ export async function runMastraCanonicalChatStreamService(
 
     const stream: MastraCanonicalChatStream = await runMastraCanonicalChatStream(aiArgs);
     const messageId = crypto.randomUUID();
+    let terminalStatus: 'persisted' | 'persistence-failed' | 'interrupted' | 'failed' = 'failed';
 
     // Build a lazy text iterable that yields chunks immediately, then
     // persists and emits metadata once the stream completes.
@@ -146,9 +147,15 @@ export async function runMastraCanonicalChatStreamService(
             } as UIMessage['parts'][number],
           ],
         };
-        await appendAssistantMessage(input.userId, input.threadId, assistantMessage, {
-          idempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:assistant`,
-        });
+        try {
+          await appendAssistantMessage(input.userId, input.threadId, assistantMessage, {
+            idempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:assistant`,
+          });
+          terminalStatus = 'persisted';
+        } catch (error) {
+          terminalStatus = 'persistence-failed';
+          throw error;
+        }
         void maybeGenerateThreadTitle({
           userId: input.userId,
           threadId: input.threadId,
@@ -167,8 +174,10 @@ export async function runMastraCanonicalChatStreamService(
       meta: { id: messageId, data: { engine: 'mastra', canonical: true, runId } },
       signal: input.signal,
       onAbort: async () => {
+        terminalStatus = 'interrupted';
         await finalizer.abort();
       },
+      onComplete: () => terminalStatus,
     });
   } catch (error) {
     if (input.signal?.aborted) await finalizer.abort();

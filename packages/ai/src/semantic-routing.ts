@@ -30,6 +30,7 @@
 //   - Confidence threshold of 0.7 → borderline classifications use keyword fallback
 
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
 import { runMastraStructured } from './mastra/text-runner';
@@ -59,6 +60,18 @@ type ModelIdString = string;
 interface CacheEntry {
   result: SemanticClassification;
   at: number;
+}
+
+export interface SemanticRoutingAccounting {
+  /** Called once for a cache miss after the classifier call completes. */
+  onComplete?: (event: {
+    modelId: string;
+    inputChars: number;
+    outputChars: number;
+    cached: false;
+    success: boolean;
+    latencyMs: number;
+  }) => void | Promise<void>;
 }
 
 const CACHE_TTL_MS = 60_000; // 60 seconds
@@ -100,8 +113,11 @@ export async function classifyTurnLLM(
   modelId: ModelIdString,
   env: ResolveModelEnv,
   signal?: AbortSignal | null,
+  accounting?: SemanticRoutingAccounting,
 ): Promise<SemanticClassification | null> {
-  const cacheKey = `${modelId}:${userText.slice(0, 200)}`;
+  const normalizedText = userText.normalize('NFKC').replace(/\s+/g, ' ').trim();
+  const cacheKey = `${modelId}:${createHash('sha256').update(normalizedText).digest('hex')}`;
+  const startedAt = Date.now();
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
@@ -111,6 +127,8 @@ export async function classifyTurnLLM(
   const timeout = setTimeout(() => controller.abort(), 2_000);
   if (signal) signal.addEventListener('abort', () => controller.abort(), { once: true });
 
+  let success = false;
+  let outputChars = 0;
   try {
     const model = resolveModel(modelId, env);
     // Guard: resolveModel returns string in gateway mode, but generateObject
@@ -147,9 +165,11 @@ EXAMPLES:
       confidence: result.object.confidence,
       rationale: result.object.rationale,
     };
+    outputChars = JSON.stringify(classification).length;
 
     if (classification.confidence >= 0.7) {
       cacheSet(cacheKey, classification);
+      success = true;
       return classification;
     }
     return null;
@@ -163,5 +183,21 @@ EXAMPLES:
     return null;
   } finally {
     clearTimeout(timeout);
+    if (accounting?.onComplete) {
+      try {
+        await accounting.onComplete({
+          modelId,
+          inputChars: normalizedText.length,
+          outputChars,
+          cached: false,
+          success,
+          latencyMs: Date.now() - startedAt,
+        });
+      } catch (error) {
+        semanticLog.warn('semantic routing accounting failed', {
+          err: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 }

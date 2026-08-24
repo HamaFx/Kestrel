@@ -28,6 +28,8 @@ export {
   beginMastraRun,
   createMastraRunFinalizer,
   finishMastraRun,
+  isMastraTelemetryDegraded,
+  resetMastraTelemetryHealth,
   type MastraRunObservation,
 } from './run-telemetry';
 export { executeMastraTool } from './tool-telemetry';

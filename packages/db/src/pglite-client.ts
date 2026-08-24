@@ -203,7 +203,8 @@ export async function applyMigrations(dataDir?: string): Promise<void> {
   const db = await getPGliteDb(dataDir);
   const journal = readJournal();
 
-  // Create tracking table
+  // Create tracking table. Keep the migration runner tolerant of a
+  // previously applied schema that predates newly added migration metadata.
   await db.execute(
     `CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
       id SERIAL PRIMARY KEY,

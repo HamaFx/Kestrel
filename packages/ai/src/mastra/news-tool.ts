@@ -22,7 +22,7 @@ import { getNewsTool } from '../tools/get-news';
 import { createEvidenceId } from './evidence';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
 import { executeMastraTool } from './telemetry';
-import { EXTERNAL_CONTENT_TRUST_WARNING, sanitizeExternalText } from './external-content';
+import { EXTERNAL_CONTENT_TRUST_WARNING, quarantineExternalText } from './external-content';
 import { XauusdSymbolSchema } from './tool-schemas';
 import { XAUUSD } from './types';
 
@@ -70,9 +70,23 @@ export const xauusdNewsTool = createTool({
           latest === null || item.publishedAt > latest ? item.publishedAt : latest,
         null,
       );
+      const sanitizedItems = data.items.map((item) => {
+        const title = quarantineExternalText(item.title, 240);
+        const summary = quarantineExternalText(item.summary, 1_800);
+        return {
+          ...item,
+          title: title.text,
+          summary: summary.text,
+          quarantined: title.quarantined || summary.quarantined,
+        };
+      });
+      const quarantinedCount = sanitizedItems.filter((item) => item.quarantined).length;
       const warnings = [
         EXTERNAL_CONTENT_TRUST_WARNING,
         'The cached news table does not expose provider ingestion freshness metadata',
+        ...(quarantinedCount > 0
+          ? [`${quarantinedCount} news item(s) contained instruction-like text and were quarantined`]
+          : []),
         ...(data.pipelinePending
           ? ['The news ingestion pipeline has not populated the cache']
           : []),
@@ -83,11 +97,7 @@ export const xauusdNewsTool = createTool({
 
       const sanitizedData = {
         ...data,
-        items: data.items.map((item) => ({
-          ...item,
-          title: sanitizeExternalText(item.title, 240),
-          summary: sanitizeExternalText(item.summary, 1_800),
-        })),
+        items: sanitizedItems.map(({ quarantined: _quarantined, ...item }) => item),
       };
 
       return OutputSchema.parse({

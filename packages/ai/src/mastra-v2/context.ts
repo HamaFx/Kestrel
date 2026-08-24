@@ -40,6 +40,15 @@ import type { MastraDBMessage, StorageThreadType } from '@mastra/core/memory';
 import type { Memory } from '@mastra/memory';
 
 import { listMessages } from '../persistence';
+import {
+  claimMemoryBackfill,
+  completeMemoryBackfill,
+  failMemoryBackfill,
+  getMemoryBackfillState,
+  markMemoryProjectionFailed,
+  markMemoryProjectionProjected,
+  type MemoryBackfillClaim,
+} from '@kestrel/db';
 
 const mlog = createCategorizedLogger('ai', { component: 'mastra-memory-context' });
 
@@ -168,26 +177,110 @@ async function performThreadHistoryBackfill(args: {
   excludeMessageIdempotencyKey?: string;
 }): Promise<number> {
   const { memory, userId, threadId, excludeMessageIdempotencyKey } = args;
+  let durableClaim = false;
+  let durableStateBeforeClaim: Awaited<ReturnType<typeof getMemoryBackfillState>> = null;
   try {
+    // Read the marker before claiming so an already-populated native thread
+    // remains untouched on first migration use, while an interrupted durable
+    // migration can reconcile only the legacy message IDs it still lacks.
+    try {
+      durableStateBeforeClaim = await getMemoryBackfillState(userId, threadId);
+    } catch {
+      durableStateBeforeClaim = null;
+    }
+
+    // The durable claim is best effort for local/self-hosted deployments that
+    // have not applied the migration yet. The process-local wrapper still
+    // prevents duplicate work in that fallback mode.
+    try {
+      const claim: MemoryBackfillClaim = await claimMemoryBackfill(userId, threadId);
+      if (!claim.claimed) return 0;
+      durableClaim = true;
+    } catch (stateError) {
+      mlog.warn('Durable memory backfill state unavailable; using local guard', {
+        threadId,
+        error: stateError instanceof Error ? stateError.message : String(stateError),
+      });
+    }
+
     // The Drizzle history is authoritative for legacy threads. Create the
     // Mastra thread lazily after confirming there is history to migrate.
     const existingThread = await memory.getThreadById({ threadId, resourceId: userId });
-    // The legacy Drizzle table is the authoritative source for this
-    // migration. Check it before writing rather than using `recall()`, which
-    // may include synthetic memory context and is not a reliable empty-thread
-    // sentinel on every storage backend.
+    let existingMessageIds = new Set<string>();
+    if (existingThread) {
+      const existingMessages = await memory.recall({
+        threadId,
+        resourceId: userId,
+        perPage: BACKFILL_LIMIT,
+      });
+      existingMessageIds = new Set(
+        existingMessages.messages
+          .map((message) => message.id)
+          .filter((id): id is string => typeof id === 'string'),
+      );
+      // A pre-existing native thread was not created by this migration. Do
+      // not duplicate its history. Only a durable prior claim is allowed to
+      // enter the ID reconciliation path below after an interrupted copy.
+      if (existingMessageIds.size > 0 && !durableStateBeforeClaim) {
+        if (durableClaim) await completeMemoryBackfill(userId, threadId, 0, null);
+        return 0;
+      }
+    }
+    // The legacy Drizzle table is authoritative for the migration. Compare
+    // IDs, rather than treating one existing message as proof of completion,
+    // so a process killed during saveMessages can be repaired safely.
     const listedRows = await listMessages(userId, threadId, BACKFILL_LIMIT);
     const rows = (Array.isArray(listedRows) ? listedRows : []).filter(
+      (row) =>
+        (!excludeMessageIdempotencyKey || row.idempotencyKey !== excludeMessageIdempotencyKey) &&
+        !existingMessageIds.has(row.id),
+    );
+    const allRows = (Array.isArray(listedRows) ? listedRows : []).filter(
       (row) => !excludeMessageIdempotencyKey || row.idempotencyKey !== excludeMessageIdempotencyKey,
     );
 
-    if (rows.length === 0) return 0;
+    if (allRows.length === 0) {
+      if (durableClaim) await completeMemoryBackfill(userId, threadId, 0, null);
+      return 0;
+    }
+    if (rows.length === 0) {
+      if (durableClaim) {
+        const latest = allRows.at(-1);
+        await completeMemoryBackfill(
+          userId,
+          threadId,
+          allRows.length,
+          latest ? new Date(latest.createdAt) : null,
+        );
+      }
+      return 0;
+    }
     if (!existingThread) {
       await memory.createThread({ threadId, resourceId: userId, title: 'Kestrel thread' });
     }
     await memory.saveMessages({
       messages: rows.map((row) => toMastraMessage(row, userId, threadId)),
     });
+    const projectedMessage = allRows.at(-1);
+    if (projectedMessage) {
+      try {
+        await markMemoryProjectionProjected(userId, threadId, projectedMessage.id);
+      } catch (projectionStateError) {
+        mlog.warn('Could not persist memory projection checkpoint', {
+          threadId,
+          error: projectionStateError instanceof Error ? projectionStateError.message : String(projectionStateError),
+        });
+      }
+    }
+    const latest = allRows.at(-1);
+    if (durableClaim) {
+      await completeMemoryBackfill(
+        userId,
+        threadId,
+        allRows.length,
+        latest ? new Date(latest.createdAt) : null,
+      );
+    }
     mlog.info('Backfilled thread history into Mastra memory', {
       userId,
       threadId,
@@ -195,6 +288,23 @@ async function performThreadHistoryBackfill(args: {
     });
     return rows.length;
   } catch (error) {
+    if (durableClaim) {
+      try {
+        await failMemoryBackfill(userId, threadId, error);
+      } catch (stateError) {
+        mlog.warn('Could not persist memory backfill failure state', {
+          error: stateError instanceof Error ? stateError.message : String(stateError),
+        });
+      }
+    }
+    try {
+      await markMemoryProjectionFailed(userId, threadId, error);
+    } catch (projectionError) {
+      mlog.warn('Could not persist memory projection failure state', {
+        threadId,
+        error: projectionError instanceof Error ? projectionError.message : String(projectionError),
+      });
+    }
     mlog.warn('Thread-history backfill skipped (non-fatal)', {
       threadId,
       error: error instanceof Error ? error.message : String(error),

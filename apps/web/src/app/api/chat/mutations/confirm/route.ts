@@ -22,7 +22,6 @@ import {
   getKestrelMastra,
   MutationKindSchema,
   parseMutationRunContext,
-  verifyMutationConfirmationToken,
   runMutationWorkflow,
   type MutationExecutor,
 } from '@kestrel/ai/mastra';
@@ -131,7 +130,14 @@ function mutationSummary(input: Parameters<MutationExecutor>[0]): string {
 function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: string) {
   return async (
     input: Parameters<MutationExecutor>[0],
-    context: { runId: string; userId: string; threadId: string; inputDigest: string },
+    context: {
+      runId: string;
+      userId: string;
+      threadId: string;
+      inputDigest: string;
+      approvalId: string;
+      approvalExpiresAt: number;
+    },
   ) =>
     executeMutationOnce({
       runId: context.runId,
@@ -139,7 +145,13 @@ function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: str
       threadId: context.threadId,
       mutation: kind,
       inputDigest: context.inputDigest,
-      auditMetadata: { kind: input.kind },
+      approvalId: context.approvalId,
+      approvalExpiresAt: new Date(context.approvalExpiresAt),
+      auditMetadata: {
+        kind: input.kind,
+        approvalId: context.approvalId,
+        approvalExpiresAt: new Date(context.approvalExpiresAt).toISOString(),
+      },
       execute: async (tx) => {
         const summary = mutationSummary(input);
         switch (kind) {
@@ -242,25 +254,30 @@ export const POST = withAuth(async (req: Request, { user }) => {
     );
   }
 
-  assertMastraMutationAllowed({
-    mutation: context.mutation,
-    userId: context.userId,
-    threadId: context.threadId,
-    confirmed: true,
-    approvalId: runId,
-  });
-
-  const tokenValid = verifyMutationConfirmationToken({
-    token: confirmationToken,
-    stored: context.confirmation,
-    mutation: context.mutation,
-    userId: context.userId,
-  });
-  if (!tokenValid) {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Mutation confirmation token is invalid or expired' } },
-      { status: 403 },
-    );
+  try {
+    assertMastraMutationAllowed({
+      mutation: context.mutation,
+      userId: context.userId,
+      threadId: context.threadId,
+      approval: {
+        approvalId: runId,
+        userId: context.userId,
+        threadId: context.threadId,
+        mutation: context.mutation,
+        inputDigest: context.inputDigest,
+        expiresAt: context.confirmation.expiresAt,
+        confirmationToken,
+        confirmation: context.confirmation,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'MastraMutationPolicyError') {
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: error.message } },
+        { status: 403 },
+      );
+    }
+    throw error;
   }
 
   const existingExecution = await getMutationExecution(runId, user.userId);
