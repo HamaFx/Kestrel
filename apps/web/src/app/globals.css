@@ -587,3 +587,73 @@ html[data-reduce-motion='force'] *::after {
     display: none;
   }
 }
+
+/* -------------------------------------------------------------------------
+ * 8-Bit Pixel Quant Desk Sprite Animations
+ * Authentic stepped keyframes guarantee continuous motion across all browsers.
+ * ------------------------------------------------------------------------- */
+@keyframes pixel-float-wizard {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(-1deg); }
+}
+
+@keyframes pixel-nod-mage {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes pixel-breathe-knight {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-3px) scale(1.02); }
+}
+
+@keyframes pixel-flutter-falcon {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-5px) rotate(-3deg); }
+  50% { transform: translateY(-2px) rotate(0deg); }
+  75% { transform: translateY(-6px) rotate(3deg); }
+}
+
+@keyframes pixel-steam-rise {
+  0% { transform: translateY(0px); opacity: 0.2; }
+  50% { transform: translateY(-4px); opacity: 0.9; }
+  100% { transform: translateY(-8px); opacity: 0; }
+}
+
+@keyframes pixel-sparkle-spin {
+  0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.6; }
+  50% { transform: scale(1.25) rotate(15deg); opacity: 1; }
+}
+
+@keyframes pixel-scanner-sweep {
+  0%, 100% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+}
+
+.animate-pixel-wizard {
+  animation: pixel-float-wizard 2s steps(4) infinite;
+}
+
+.animate-pixel-mage {
+  animation: pixel-nod-mage 2.4s steps(4) infinite;
+}
+
+.animate-pixel-knight {
+  animation: pixel-breathe-knight 2.2s steps(4) infinite;
+}
+
+.animate-pixel-falcon {
+  animation: pixel-flutter-falcon 1.6s steps(6) infinite;
+}
+
+.animate-pixel-steam {
+  animation: pixel-steam-rise 1.5s linear infinite;
+}
+
+.animate-pixel-sparkle {
+  animation: pixel-sparkle-spin 1.2s ease-in-out infinite;
+}
+
+.animate-pixel-scanner {
+  animation: pixel-scanner-sweep 1.2s steps(4) infinite;
+}
