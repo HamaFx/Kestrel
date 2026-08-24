@@ -19,9 +19,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { cn } from '@/lib/cn';
+import { getSessionInfo } from '@/lib/session';
+
 
 import {
   ChartWizardSprite,
@@ -251,26 +253,167 @@ function CharacterProfileCard({
 /**
  * 🕹️ PixelDeskStandby
  * Rendered on the Chat Welcome Screen and Dashboard Widget.
- * The 4 animated specialists are actively on standby, ready to answer questions or run analysis.
+ * The 4 animated specialists are actively on standby, merged with session-aware recommended prompts.
  */
 export function PixelDeskStandby({
   pinnedSymbol,
   onSelectPrompt,
+  disabled,
+  now,
   className,
 }: {
   pinnedSymbol?: string | null;
   onSelectPrompt?: (prompt: string) => void;
+  disabled?: boolean;
+  now?: Date;
   className?: string;
 }) {
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const sessionInfo = useMemo(() => getSessionInfo(now ?? new Date()), [now]);
+  const session = sessionInfo.session;
   const activeSymbol = pinnedSymbol ?? 'XAUUSD';
 
-  const PROMPTS: Record<string, string> = {
-    technical: `Analyze ${activeSymbol} 15m/1h SMC liquidity sweeps, order blocks & market structure`,
-    fundamental: `Provide macro catalyst outlook on real yields, DXY, and central bank policy for ${activeSymbol}`,
-    risk: `Calculate optimal 1% risk position sizing, ATR cones & stop loss invalidation for ${activeSymbol}`,
-    sentiment: `Check institutional CFTC COT positioning and retail sentiment regime for ${activeSymbol}`,
-  };
+  // Dynamic session-aware recommended prompts organized by specialist discipline
+  const SPECIALIST_ACTIONS = useMemo(() => {
+    const s = activeSymbol.toUpperCase();
+    switch (session) {
+      case 'london':
+        return {
+          technical: {
+            badge: '🧙‍♂️ 15m SMC',
+            title: `London Open ${s} SMC`,
+            desc: `Top-down ${s} 4H→15M order blocks`,
+            prompt: `London open structure & SMC order blocks for ${s}`,
+          },
+          fundamental: {
+            badge: '📰 Macro',
+            title: 'European Catalyst',
+            desc: 'London session news & yields',
+            prompt: `European news & macroeconomic yields affecting ${s}`,
+          },
+          risk: {
+            badge: '🛡️ 1% Sizing',
+            title: '1% Risk Guard',
+            desc: `Alert ${s} below London low`,
+            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
+          },
+          sentiment: {
+            badge: '🦅 COT Flow',
+            title: 'Whale Tracker',
+            desc: 'Commercial vs retail bias',
+            prompt: `Check CFTC institutional positioning & sentiment regime for ${s}`,
+          },
+        };
+      case 'ny':
+        return {
+          technical: {
+            badge: '🧙‍♂️ 15m SMC',
+            title: `NY Session ${s} Plan`,
+            desc: `Top-down ${s} 4H→15M structure`,
+            prompt: `NY session plan and SMC liquidity sweeps for ${s}`,
+          },
+          fundamental: {
+            badge: '📰 Macro',
+            title: 'USD Yields & News',
+            desc: 'NY session calendar & catalysts',
+            prompt: `NY session economic calendar and USD macro yields for ${s}`,
+          },
+          risk: {
+            badge: '🛡️ 1% Sizing',
+            title: '1% Risk Guard',
+            desc: `Alert ${s} break of high`,
+            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
+          },
+          sentiment: {
+            badge: '🦅 COT Flow',
+            title: 'Whale Tracker',
+            desc: 'Institutional order flow',
+            prompt: `Check CFTC institutional positioning & sentiment regime for ${s}`,
+          },
+        };
+      case 'asian':
+        return {
+          technical: {
+            badge: '🧙‍♂️ 15m SMC',
+            title: `Asian Range ${s}`,
+            desc: 'Asian session structure & sweeps',
+            prompt: `Asian session range, liquidity pools & key levels for ${s}`,
+          },
+          fundamental: {
+            badge: '📰 Macro',
+            title: 'Asian News Impact',
+            desc: 'Global catalysts & yields',
+            prompt: `Asian session macro news impact and economic calendar for ${s}`,
+          },
+          risk: {
+            badge: '🛡️ 1% Sizing',
+            title: '1% Risk Guard',
+            desc: `Alert ${s} break of Asian range`,
+            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
+          },
+          sentiment: {
+            badge: '🦅 COT Flow',
+            title: 'Whale Tracker',
+            desc: 'Asian session sentiment check',
+            prompt: `Check CFTC institutional positioning & sentiment regime for ${s}`,
+          },
+        };
+      case 'weekend':
+        return {
+          technical: {
+            badge: '🧙‍♂️ 15m SMC',
+            title: 'Weekly Structure',
+            desc: `Multi-timeframe ${s} recap`,
+            prompt: `Weekly multi-timeframe structure recap and key levels for ${s}`,
+          },
+          fundamental: {
+            badge: '📰 Macro',
+            title: 'Next Week Outlook',
+            desc: 'Central bank & macro preview',
+            prompt: `Next week economic calendar and central bank preview for ${s}`,
+          },
+          risk: {
+            badge: '🛡️ 1% Sizing',
+            title: '1% Risk Guard',
+            desc: 'Set alert for Sunday open',
+            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
+          },
+          sentiment: {
+            badge: '🦅 COT Flow',
+            title: 'Weekly COT Check',
+            desc: 'Whale positioning review',
+            prompt: `Weekly ${s} sentiment & CFTC COT institutional positioning check`,
+          },
+        };
+      default: // closed
+        return {
+          technical: {
+            badge: '🧙‍♂️ 15m SMC',
+            title: 'Daily Close Recap',
+            desc: `How did ${s} close today?`,
+            prompt: `How did ${s} close today? Daily bias recap & market structure`,
+          },
+          fundamental: {
+            badge: '📰 Macro',
+            title: "Tomorrow's News",
+            desc: `Tomorrow's ${s} news outlook`,
+            prompt: `Tomorrow's economic news outlook and macro catalysts for ${s}`,
+          },
+          risk: {
+            badge: '🛡️ 1% Sizing',
+            title: '1% Risk Guard',
+            desc: `Set an alert for ${s} tomorrow`,
+            prompt: `Calculate optimal 1% risk position sizing and ATR invalidation for ${s}`,
+          },
+          sentiment: {
+            badge: '🦅 COT Flow',
+            title: 'Whale Tracker',
+            desc: 'Session flow summary',
+            prompt: `Check CFTC institutional positioning & sentiment regime for ${s}`,
+          },
+        };
+    }
+  }, [activeSymbol, session]);
 
   return (
     <div
@@ -291,7 +434,7 @@ export function PixelDeskStandby({
         }}
       />
 
-      {/* Header Bar */}
+      {/* Header Bar with Live Session Sync */}
       <div className="border-border/60 flex items-center justify-between border-b pb-2">
         <div className="flex items-center gap-1.5">
           <span className="bg-bull inline-block size-2 rounded-xs animate-pulse shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
@@ -299,8 +442,8 @@ export function PixelDeskStandby({
             KESTREL QUANT DESK
           </span>
         </div>
-        <span className="border-bull/40 bg-bull/10 text-bull rounded-xs border px-1.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-semibold tracking-wide uppercase">
-          STANDBY READY
+        <span className="border-bull/40 bg-bull/10 text-bull rounded-xs border px-1.5 py-0.5 font-mono text-[8.5px] sm:text-[10px] font-semibold tracking-wide uppercase">
+          {sessionInfo.label.toUpperCase()} · STANDBY READY
         </span>
       </div>
 
@@ -310,10 +453,11 @@ export function PixelDeskStandby({
           {/* Desk 1: Chart Wizard */}
           <motion.button
             type="button"
+            disabled={disabled}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
-            className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation"
+            className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation disabled:opacity-50"
             title="Click to view Chart Wizard profile"
           >
             <UnifiedDeskBubble tag="SMC" text="15m Ready" theme="technical" />
@@ -330,10 +474,11 @@ export function PixelDeskStandby({
           {/* Desk 2: Macro Mage */}
           <motion.button
             type="button"
+            disabled={disabled}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')}
-            className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation"
+            className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation disabled:opacity-50"
             title="Click to view Macro Mage profile"
           >
             <UnifiedDeskBubble tag="FRED" text="Macro Data" theme="fundamental" />
@@ -350,10 +495,11 @@ export function PixelDeskStandby({
           {/* Desk 3: Risk Knight */}
           <motion.button
             type="button"
+            disabled={disabled}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
-            className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation"
+            className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation disabled:opacity-50"
             title="Click to view Risk Knight profile"
           >
             <UnifiedDeskBubble tag="VaR" text="1% Guard" theme="risk" />
@@ -370,10 +516,11 @@ export function PixelDeskStandby({
           {/* Desk 4: Sentinel Falcon */}
           <motion.button
             type="button"
+            disabled={disabled}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
-            className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation"
+            className="group relative flex flex-col items-center gap-0.5 sm:gap-1 cursor-pointer touch-manipulation disabled:opacity-50"
             title="Click to view Sentinel Falcon profile"
           >
             <UnifiedDeskBubble tag="COT" text="Whale Scanner" theme="sentiment" />
@@ -403,8 +550,9 @@ export function PixelDeskStandby({
             {onSelectPrompt && (
               <button
                 type="button"
-                onClick={() => onSelectPrompt(PROMPTS[selectedProfile] ?? '')}
-                className="bg-brand/10 hover:bg-brand/20 text-brand border-brand/40 flex w-full items-center justify-center gap-1.5 rounded-xs border py-2 font-mono text-xs font-bold tracking-wide uppercase transition-colors cursor-pointer touch-manipulation"
+                disabled={disabled}
+                onClick={() => onSelectPrompt(SPECIALIST_ACTIONS[selectedProfile as keyof typeof SPECIALIST_ACTIONS]?.prompt ?? '')}
+                className="bg-brand/10 hover:bg-brand/20 text-brand border-brand/40 flex w-full items-center justify-center gap-1.5 rounded-xs border py-2 font-mono text-xs font-bold tracking-wide uppercase transition-colors cursor-pointer touch-manipulation disabled:opacity-50"
               >
                 <span>▶ Deploy {CHARACTER_PROFILES[selectedProfile]?.name} on {activeSymbol}</span>
               </button>
@@ -413,55 +561,88 @@ export function PixelDeskStandby({
         )}
       </AnimatePresence>
 
-      {/* Quick Launch Action Strip (if prompt callback provided) */}
+      {/* Merged Recommended Prompts / Quick Action Hub */}
       {onSelectPrompt && !selectedProfile && (
         <div className="flex flex-col gap-1.5 pt-1">
-          <span className="text-fg-subtle font-mono text-[9.5px] sm:text-[10px] uppercase font-bold tracking-wider">
-            Quick Launch Specialist Models:
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-fg-subtle font-mono text-[9.5px] sm:text-[10px] uppercase font-bold tracking-wider">
+              Recommended Specialist Briefs:
+            </span>
+            <span className="text-fg-subtle/80 font-mono text-[9px]">
+              Target: <strong className="text-fg">{activeSymbol}</strong>
+            </span>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {/* Technical Brief */}
             <button
               type="button"
-              onClick={() => onSelectPrompt(PROMPTS.technical!)}
-              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bull/50 flex items-center justify-between gap-1.5 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation"
+              disabled={disabled}
+              onClick={() => onSelectPrompt(SPECIALIST_ACTIONS.technical.prompt)}
+              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bull/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
             >
-              <span className="text-bull font-mono text-xs font-bold">🧙‍♂️ 15m SMC</span>
-              <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
-                Order blocks & sweeps
-              </span>
+              <div className="flex flex-col gap-0.5 truncate">
+                <span className="text-bull font-mono text-xs font-bold">
+                  {SPECIALIST_ACTIONS.technical.badge}
+                </span>
+                <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
+                  {SPECIALIST_ACTIONS.technical.desc}
+                </span>
+              </div>
+              <span className="text-fg-subtle group-hover:text-bull font-mono text-xs shrink-0">→</span>
             </button>
 
+            {/* Macro Brief */}
             <button
               type="button"
-              onClick={() => onSelectPrompt(PROMPTS.fundamental!)}
-              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-sky-400/50 flex items-center justify-between gap-1.5 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation"
+              disabled={disabled}
+              onClick={() => onSelectPrompt(SPECIALIST_ACTIONS.fundamental.prompt)}
+              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-sky-400/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
             >
-              <span className="text-sky-400 font-mono text-xs font-bold">📰 Macro</span>
-              <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
-                Yields & Fed catalyst
-              </span>
+              <div className="flex flex-col gap-0.5 truncate">
+                <span className="text-sky-400 font-mono text-xs font-bold">
+                  {SPECIALIST_ACTIONS.fundamental.badge}
+                </span>
+                <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
+                  {SPECIALIST_ACTIONS.fundamental.desc}
+                </span>
+              </div>
+              <span className="text-fg-subtle group-hover:text-sky-400 font-mono text-xs shrink-0">→</span>
             </button>
 
+            {/* Risk Brief */}
             <button
               type="button"
-              onClick={() => onSelectPrompt(PROMPTS.risk!)}
-              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bear/50 flex items-center justify-between gap-1.5 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation"
+              disabled={disabled}
+              onClick={() => onSelectPrompt(SPECIALIST_ACTIONS.risk.prompt)}
+              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bear/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
             >
-              <span className="text-bear font-mono text-xs font-bold">🛡️ 1% Sizing</span>
-              <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
-                ATR VaR stop loss
-              </span>
+              <div className="flex flex-col gap-0.5 truncate">
+                <span className="text-bear font-mono text-xs font-bold">
+                  {SPECIALIST_ACTIONS.risk.badge}
+                </span>
+                <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
+                  {SPECIALIST_ACTIONS.risk.desc}
+                </span>
+              </div>
+              <span className="text-fg-subtle group-hover:text-bear font-mono text-xs shrink-0">→</span>
             </button>
 
+            {/* Sentiment Brief */}
             <button
               type="button"
-              onClick={() => onSelectPrompt(PROMPTS.sentiment!)}
-              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-amber-400/50 flex items-center justify-between gap-1.5 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation"
+              disabled={disabled}
+              onClick={() => onSelectPrompt(SPECIALIST_ACTIONS.sentiment.prompt)}
+              className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-amber-400/50 flex items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all cursor-pointer group touch-manipulation disabled:opacity-50"
             >
-              <span className="text-amber-400 font-mono text-xs font-bold">🦅 COT</span>
-              <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
-                Whale positioning
-              </span>
+              <div className="flex flex-col gap-0.5 truncate">
+                <span className="text-amber-400 font-mono text-xs font-bold">
+                  {SPECIALIST_ACTIONS.sentiment.badge}
+                </span>
+                <span className="text-fg-subtle group-hover:text-fg font-mono text-[9.5px] sm:text-[10px] truncate">
+                  {SPECIALIST_ACTIONS.sentiment.desc}
+                </span>
+              </div>
+              <span className="text-fg-subtle group-hover:text-amber-400 font-mono text-xs shrink-0">→</span>
             </button>
           </div>
         </div>
@@ -469,6 +650,7 @@ export function PixelDeskStandby({
     </div>
   );
 }
+
 
 
 /**
