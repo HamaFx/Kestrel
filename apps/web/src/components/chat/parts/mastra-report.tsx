@@ -17,6 +17,7 @@
  */
 import { IconAlertTriangle, IconCircleCheck, IconClock, IconDatabase } from '@tabler/icons-react';
 
+import { AgentDeliberation } from './agent-deliberation';
 import { MastraReportScenarios } from './mastra-report-scenarios';
 import {
   MastraReportMetaSchema,
@@ -26,8 +27,47 @@ import {
 
 export function MastraReportPart({ data }: { data: unknown }) {
   const parsed = MastraReportMetaSchema.safeParse(data);
-  if (!parsed.success) return null;
-  return <MastraReportCard meta={parsed.data} />;
+  if (parsed.success) {
+    return <MastraReportCard meta={parsed.data} />;
+  }
+
+  if (
+    data &&
+    typeof data === 'object' &&
+    'agentOpinions' in data &&
+    Array.isArray((data as { agentOpinions?: unknown }).agentOpinions)
+  ) {
+    const multiData = data as {
+      mode?: string;
+      agentOpinions: Array<{
+        agentName: string;
+        bias: 'bullish' | 'bearish' | 'neutral';
+        confidence: number;
+        reasoning: string;
+      }>;
+    };
+    const agents = multiData.agentOpinions.map((op) => ({
+      agentName: op.agentName,
+      status: 'done' as const,
+      opinion: {
+        agentName: op.agentName,
+        bias: op.bias,
+        confidence: op.confidence,
+        reasoning: op.reasoning,
+      },
+    }));
+    return (
+      <div className="mt-3 w-full">
+        <AgentDeliberation
+          agents={agents}
+          mode={multiData.mode ?? 'full'}
+          status="complete"
+        />
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
