@@ -145,29 +145,6 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
         <rect x="12" y="20" width="3" height="2" fill="#1e1b4b" />
         <rect x="7" y="22" width="10" height="1" fill="#0f172a" opacity="0.4" />
       </PixelSvg>
-
-      {/* Floating Mini 8-bit Chart Bubble */}
-      {isThinking && (
-        <span
-          className="bg-bg-elev-2 border-bull/50 text-bull pointer-events-none absolute -top-3 -right-2 flex items-center rounded-xs border px-1 py-0.5 font-mono text-[9px] font-bold shadow-xs motion-safe:animate-pulse"
-        >
-          ▲15m
-        </span>
-      )}
-      {isDone && bias && (
-        <span
-          className={cn(
-            'pointer-events-none absolute -top-3 -right-2 flex items-center rounded-xs border px-1 py-0.5 font-mono text-[9px] font-bold shadow-xs',
-            bias === 'bullish'
-              ? 'border-bull/60 bg-bull/10 text-bull'
-              : bias === 'bearish'
-                ? 'border-bear/60 bg-bear/10 text-bear'
-                : 'border-border bg-bg-elev-2 text-fg-muted',
-          )}
-        >
-          {bias === 'bullish' ? '▲BUY' : bias === 'bearish' ? '▼SELL' : '■NEUT'}
-        </span>
-      )}
     </m.div>
   );
 }
@@ -235,29 +212,6 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
         <rect x="12" y="20" width="3" height="2" fill="#1c1917" />
         <rect x="7" y="22" width="10" height="1" fill="#0f172a" opacity="0.4" />
       </PixelSvg>
-
-      {/* Floating Mini 8-bit Macro Indicator */}
-      {isThinking && (
-        <span
-          className="bg-bg-elev-2 border-info/50 text-info pointer-events-none absolute -top-3 -right-2 flex items-center rounded-xs border px-1 py-0.5 font-mono text-[9px] font-bold shadow-xs motion-safe:animate-pulse"
-        >
-          FED·CPI
-        </span>
-      )}
-      {isDone && bias && (
-        <span
-          className={cn(
-            'pointer-events-none absolute -top-3 -right-2 flex items-center rounded-xs border px-1 py-0.5 font-mono text-[9px] font-bold shadow-xs',
-            bias === 'bullish'
-              ? 'border-bull/60 bg-bull/10 text-bull'
-              : bias === 'bearish'
-                ? 'border-bear/60 bg-bear/10 text-bear'
-                : 'border-border bg-bg-elev-2 text-fg-muted',
-          )}
-        >
-          {bias === 'bullish' ? 'GROWTH' : bias === 'bearish' ? 'RECESS' : 'STEADY'}
-        </span>
-      )}
     </m.div>
   );
 }
@@ -330,22 +284,6 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
         <rect x="12" y="19" width="3" height="3" fill="#1e293b" />
         <rect x="7" y="22" width="10" height="1" fill="#0f172a" opacity="0.4" />
       </PixelSvg>
-
-      {/* Floating Mini 8-bit Risk Indicator */}
-      {isThinking && (
-        <span
-          className="bg-bg-elev-2 border-warn/50 text-warn pointer-events-none absolute -top-3 -right-2 flex items-center rounded-xs border px-1 py-0.5 font-mono text-[9px] font-bold shadow-xs motion-safe:animate-pulse"
-        >
-          VaR 0.7
-        </span>
-      )}
-      {isDone && bias && (
-        <span
-          className="border-bull/60 bg-bull/10 text-bull pointer-events-none absolute -top-3 -right-2 flex items-center rounded-xs border px-1 py-0.5 font-mono text-[9px] font-bold shadow-xs"
-        >
-          🛡️SAFE
-        </span>
-      )}
     </m.div>
   );
 }
@@ -425,15 +363,6 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
         <rect x="13" y="18" width="2" height="3" fill="#d97706" />
         <rect x="7" y="21" width="10" height="2" fill="#475569" /> {/* Perch beam */}
       </PixelSvg>
-
-      {/* Floating Consensus Coin */}
-      {isDone && (
-        <span
-          className="border-brand/60 bg-brand/10 text-brand pointer-events-none absolute -top-3 -right-2 flex items-center rounded-xs border px-1 py-0.5 font-mono text-[9px] font-bold shadow-xs"
-        >
-          ★FUSION
-        </span>
-      )}
     </m.div>
   );
 }

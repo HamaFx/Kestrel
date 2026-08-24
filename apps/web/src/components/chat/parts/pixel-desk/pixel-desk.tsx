@@ -39,12 +39,15 @@ const QUANT_STATUS_STEPS = [
   'Synthesizing Committee Multi-Desk Consensus…',
 ];
 
-const THINKING_BUBBLES: Record<number, { agent: string; text: string; theme: 'technical' | 'fundamental' | 'risk' | 'sentiment' }> = {
-  0: { agent: 'technical', text: 'Scanning 15m/1h vectors…', theme: 'technical' },
-  1: { agent: 'technical', text: 'Liquidity levels mapped', theme: 'technical' },
-  2: { agent: 'fundamental', text: 'Checking macro calendar…', theme: 'fundamental' },
-  3: { agent: 'risk', text: 'Simulating VaR cones…', theme: 'risk' },
-  4: { agent: 'sentiment', text: 'Locking consensus!', theme: 'sentiment' },
+const THINKING_BUBBLES: Record<
+  number,
+  { agent: string; tag: string; text: string; theme: 'technical' | 'fundamental' | 'risk' | 'sentiment' }
+> = {
+  0: { agent: 'technical', tag: '15m/1h', text: 'Scanning price vectors…', theme: 'technical' },
+  1: { agent: 'technical', tag: 'SMC', text: 'Liquidity levels mapped', theme: 'technical' },
+  2: { agent: 'fundamental', tag: 'MACRO', text: 'Checking news & yields…', theme: 'fundamental' },
+  3: { agent: 'risk', tag: 'VaR', text: 'Simulating stop cones…', theme: 'risk' },
+  4: { agent: 'sentiment', tag: 'FUSION', text: 'Locking in consensus!', theme: 'sentiment' },
 };
 
 export interface CharacterProfile {
@@ -120,26 +123,30 @@ interface PixelDeskDeliberationProps {
 }
 
 /**
- * 💬 PixelSpeechBubble
- * Crisp, thematic, spring-animated dialogue balloon with pointer beak.
+ * 💬 Unified Status / Speech Bubble
+ * Clean, single-bubble system with optional tag and status styling.
  */
-function PixelSpeechBubble({
+function UnifiedDeskBubble({
+  tag,
   text,
   theme = 'technical',
   side = 'top',
 }: {
+  tag?: string;
   text: string;
-  theme?: 'technical' | 'fundamental' | 'risk' | 'sentiment';
+  theme?: 'technical' | 'fundamental' | 'risk' | 'sentiment' | 'bullish' | 'bearish' | 'neutral';
   side?: 'top' | 'bottom';
 }) {
-  const themeBorder =
-    theme === 'technical'
-      ? 'border-bull/60 text-bull'
-      : theme === 'fundamental'
-        ? 'border-sky-400/60 text-sky-400'
-        : theme === 'risk'
-          ? 'border-bear/60 text-bear'
-          : 'border-amber-400/60 text-amber-400';
+  const themeClasses =
+    theme === 'bullish' || theme === 'technical'
+      ? 'border-bull/60 text-bull shadow-[0_2px_8px_rgba(34,197,94,0.15)]'
+      : theme === 'bearish' || theme === 'risk'
+        ? 'border-bear/60 text-bear shadow-[0_2px_8px_rgba(244,63,94,0.15)]'
+        : theme === 'fundamental'
+          ? 'border-sky-400/60 text-sky-400 shadow-[0_2px_8px_rgba(56,189,248,0.15)]'
+          : theme === 'sentiment'
+            ? 'border-amber-400/60 text-amber-400 shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
+            : 'border-border text-fg-muted';
 
   return (
     <m.div
@@ -148,17 +155,22 @@ function PixelSpeechBubble({
       exit={{ opacity: 0, y: side === 'top' ? 2 : -2, scale: 0.92 }}
       transition={{ type: 'spring', damping: 18, stiffness: 320 }}
       className={cn(
-        'pointer-events-none absolute z-20 flex w-max max-w-[135px] flex-col items-center select-none',
-        side === 'top' ? '-top-8 left-1/2 -translate-x-1/2' : '-bottom-8 left-1/2 -translate-x-1/2',
+        'pointer-events-none absolute z-20 flex w-max max-w-[145px] flex-col items-center select-none',
+        side === 'top' ? '-top-7 left-1/2 -translate-x-1/2' : '-bottom-7 left-1/2 -translate-x-1/2',
       )}
     >
       <div
         className={cn(
-          'bg-bg-elev-3/95 rounded-xs border px-1.5 py-0.5 font-mono text-[9px] font-bold leading-tight shadow-md backdrop-blur-xs',
-          themeBorder,
+          'bg-bg-elev-3/95 flex items-center gap-1 rounded-xs border px-1.5 py-0.5 font-mono text-[9px] font-bold leading-none backdrop-blur-xs',
+          themeClasses,
         )}
       >
-        {text}
+        {tag && (
+          <span className="opacity-75 font-semibold text-[8px] uppercase tracking-wide">
+            [{tag}]
+          </span>
+        )}
+        <span className="truncate">{text}</span>
       </div>
       <div
         className={cn(
@@ -235,7 +247,7 @@ function CharacterProfileCard({
 /**
  * 🎮 PixelDeskThinking
  * Active during in-flight generation / background analysis.
- * Renders the 4 pixel quants actively working at their CRT stations with speech bubbles and card popovers.
+ * Renders the 4 pixel quants actively working at their CRT stations with ONE unified bubble at a time.
  */
 export function PixelDeskThinking({ className }: { className?: string }) {
   const [stepIdx, setStepIdx] = useState(0);
@@ -286,7 +298,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
       </div>
 
       {/* The 8-Bit Trading Floor / Character Row */}
-      <div className="flex items-end justify-around gap-2 px-1 pt-5 pb-2">
+      <div className="flex items-end justify-around gap-2 px-1 pt-6 pb-2">
         {/* Desk 1: Chart Wizard */}
         <m.button
           type="button"
@@ -298,7 +310,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
         >
           <AnimatePresence>
             {activeBubble?.agent === 'technical' && (
-              <PixelSpeechBubble text={activeBubble.text} theme="technical" />
+              <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="technical" />
             )}
           </AnimatePresence>
           <ChartWizardSprite isThinking={true} />
@@ -322,7 +334,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
         >
           <AnimatePresence>
             {activeBubble?.agent === 'fundamental' && (
-              <PixelSpeechBubble text={activeBubble.text} theme="fundamental" />
+              <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="fundamental" />
             )}
           </AnimatePresence>
           <MacroMageSprite isThinking={true} />
@@ -346,7 +358,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
         >
           <AnimatePresence>
             {activeBubble?.agent === 'risk' && (
-              <PixelSpeechBubble text={activeBubble.text} theme="risk" />
+              <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="risk" />
             )}
           </AnimatePresence>
           <RiskKnightSprite isThinking={true} />
@@ -370,7 +382,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
         >
           <AnimatePresence>
             {activeBubble?.agent === 'sentiment' && (
-              <PixelSpeechBubble text={activeBubble.text} theme="sentiment" />
+              <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="sentiment" />
             )}
           </AnimatePresence>
           <KestrelFalconSprite isThinking={true} />
@@ -422,8 +434,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
 
 /**
  * 🏆 PixelDeskDeliberation
- * Renders the settled committee view with pixel characters in their final victory poses,
- * bias tags, consensus meter, Tug-of-War battle bar, animated verdict stamp, and expandable specialist rationales.
+ * Renders the settled committee view with ONE unified call bubble above each specialist character.
  */
 export function PixelDeskDeliberation({
   opinions,
@@ -519,8 +530,8 @@ export function PixelDeskDeliberation({
         </m.div>
       </div>
 
-      {/* The 4 Pixel Agents in Settled Poses with Dissent / Debate Bubbles */}
-      <div className="flex items-end justify-around gap-2 px-1 pt-5 pb-1">
+      {/* The 4 Pixel Agents in Settled Poses with ONE Unified Call Badge each */}
+      <div className="flex items-end justify-around gap-2 px-1 pt-6 pb-1">
         {/* Technical */}
         <m.button
           type="button"
@@ -530,9 +541,10 @@ export function PixelDeskDeliberation({
           className="group relative flex flex-col items-center gap-1 cursor-pointer"
           title="Click to view Chart Wizard profile"
         >
-          {isDisputed && techOp?.bias === 'bullish' && (
-            <PixelSpeechBubble text="Structure is Buy" theme="technical" />
-          )}
+          <UnifiedDeskBubble
+            text={techOp?.bias === 'bullish' ? '▲ BUY' : techOp?.bias === 'bearish' ? '▼ SELL' : '■ NEUT'}
+            theme={techOp?.bias ?? 'bullish'}
+          />
           <ChartWizardSprite
             isDone={true}
             bias={techOp?.bias ?? 'bullish'}
@@ -556,6 +568,10 @@ export function PixelDeskDeliberation({
           className="group relative flex flex-col items-center gap-1 cursor-pointer"
           title="Click to view Macro Mage profile"
         >
+          <UnifiedDeskBubble
+            text={macroOp?.bias === 'bullish' ? '▲ GROWTH' : macroOp?.bias === 'bearish' ? '▼ RECESS' : '■ STEADY'}
+            theme={macroOp?.bias ?? 'bullish'}
+          />
           <MacroMageSprite isDone={true} bias={macroOp?.bias ?? 'bullish'} />
           <div className="flex flex-col items-center gap-0.5">
             <RetroCrtMonitor isThinking={false} />
@@ -575,9 +591,10 @@ export function PixelDeskDeliberation({
           className="group relative flex flex-col items-center gap-1 cursor-pointer"
           title="Click to view Risk Knight profile"
         >
-          {isDisputed && riskOp?.bias !== 'bullish' && (
-            <PixelSpeechBubble text="Caution: Volatility" theme="risk" />
-          )}
+          <UnifiedDeskBubble
+            text={riskOp?.bias === 'bullish' ? '🛡️ SAFE' : '⚠️ CAUTION'}
+            theme={riskOp?.bias === 'bullish' ? 'bullish' : 'risk'}
+          />
           <RiskKnightSprite
             isDone={true}
             bias={riskOp?.bias ?? 'bullish'}
@@ -601,9 +618,10 @@ export function PixelDeskDeliberation({
           className="group relative flex flex-col items-center gap-1 cursor-pointer"
           title="Click to view Sentinel Falcon profile"
         >
-          {!isDisputed && (
-            <PixelSpeechBubble text="Consensus locked" theme="sentiment" />
-          )}
+          <UnifiedDeskBubble
+            text={!isDisputed ? '★ CONSENSUS' : '⚠️ DISPUTED'}
+            theme={!isDisputed ? 'bullish' : 'sentiment'}
+          />
           <KestrelFalconSprite
             isDone={true}
             bias={sentOp?.bias ?? 'bullish'}
