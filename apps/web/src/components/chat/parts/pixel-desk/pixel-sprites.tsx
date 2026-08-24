@@ -51,7 +51,7 @@ function PixelSvg({
   return (
     <svg
       viewBox={viewBox}
-      className={cn('size-10 shrink-0 select-none', className)}
+      className={cn('size-8 sm:size-10 shrink-0 select-none', className)}
       style={{ shapeRendering: 'crispEdges', imageRendering: 'pixelated' }}
       aria-hidden="true"
     >
@@ -329,7 +329,8 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
  */
 export function TechnicalWorkstation({ isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 24 18" className="size-7 opacity-90">
+    <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
+
       {/* Primary CRT Monitor */}
       <rect x="1" y="2" width="15" height="11" fill="#1e293b" />
       <rect x="2" y="3" width="13" height="9" fill="#052e16" />
@@ -360,7 +361,7 @@ export function TechnicalWorkstation({ isThinking }: { isThinking?: boolean }) {
  */
 export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 24 18" className="size-7 opacity-90">
+    <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
       {/* Macro Data Terminal Screen */}
       <rect x="2" y="2" width="14" height="11" fill="#1c1917" />
       <rect x="3" y="3" width="12" height="9" fill="#0c4a6e" />
@@ -389,7 +390,7 @@ export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
  */
 export function RiskWorkstation({ isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 24 18" className="size-7 opacity-90">
+    <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
       {/* Heavy Armored Monitor Chassis */}
       <rect x="2" y="2" width="16" height="11" fill="#1e293b" />
       <rect x="3" y="3" width="14" height="9" fill="#18181b" />
@@ -418,7 +419,7 @@ export function RiskWorkstation({ isThinking }: { isThinking?: boolean }) {
  */
 export function SentinelWorkstation({ isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 24 18" className="size-7 opacity-90">
+    <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
       {/* High-Tech Whale Terminal */}
       <rect x="2" y="3" width="14" height="10" fill="#1e293b" />
       <rect x="3" y="4" width="12" height="8" fill="#451a03" />
@@ -456,7 +457,8 @@ export function TradingFloorDesk() {
         <div className="bg-border/60 absolute inset-x-0 top-0 h-[1px]" />
 
         {/* Ambient Desk Props Spanned Across Positions */}
-        <div className="flex h-full items-center justify-around px-4">
+        <div className="flex h-full items-center justify-around px-2 sm:px-4">
+
           {/* Prop 1 (Technical): Stylus & Sticky Pad */}
           <div className="flex items-center gap-1 opacity-70">
             <div className="h-1.5 w-3 rounded-2xs bg-amber-400/80 shadow-xs" title="Sticky Note" />
