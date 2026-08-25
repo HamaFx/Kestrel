@@ -97,7 +97,11 @@ function errorJson(code: string, message: string, status: number): Response {
 
 /** Only allow presentation preferences into the AI request boundary. */
 function sanitizeCustomInstructions(value: string): string | undefined {
-  const normalized = value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, 2_000);
+  const controlCharacters = new RegExp(
+    `[${String.fromCharCode(0)}-${String.fromCharCode(31)}${String.fromCharCode(127)}]`,
+    'g',
+  );
+  const normalized = value.replace(controlCharacters, ' ').trim().slice(0, 2_000);
   if (!normalized) return undefined;
   if (
     /\b(?:ignore|system|developer|tool|function|execute|mutation|safety|policy|reveal|secret|memory|permission|instruction|jailbreak|override)\b/i.test(
@@ -276,6 +280,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
               userMessageParts: userParts.data,
               idempotencyKey: `full:${body.threadId}:${last.id}`,
               traceId: traceIdStorage.getStore() ?? crypto.randomUUID(),
+              maxDailyUsd: settings.maxDailyUsd ?? serverEnv.MAX_DAILY_USD ?? 5,
               modelSnapshot: {
                 modelId: resolvedModel.modelId,
                 providerId: resolvedModel.providerId,
@@ -297,7 +302,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
             log.error({ err: String(enqueueError), threadId: body.threadId }, 'Full-analysis enqueue threw');
             return errorJson(
               'INTERNAL',
-              'Failed to queue analysis job: ' + (enqueueError instanceof Error ? enqueueError.message : 'unknown error'),
+              'Failed to queue analysis job.',
               500,
             );
           }

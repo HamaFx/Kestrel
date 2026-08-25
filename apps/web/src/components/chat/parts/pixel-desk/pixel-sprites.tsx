@@ -137,7 +137,7 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
  * Features: Crimson/amber scholar cowl, spectacles, scrolling through
  * animated data parchment and macro rate ledgers.
  */
-export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteProps) {
+export function MacroMageSprite({ className, isThinking, isDone, bias: _bias }: SpriteProps) {
   return (
     <motion.div
       className={cn(
@@ -327,7 +327,7 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
  * 🖥️ Workstation 1: Technical Dual-Screen Terminal
  * Features: Multi-timeframe candlestick screen with sub-oscillator display.
  */
-export function TechnicalWorkstation({ isThinking }: { isThinking?: boolean }) {
+export function TechnicalWorkstation({ isThinking: _isThinking }: { isThinking?: boolean }) {
   return (
     <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
 
@@ -359,7 +359,7 @@ export function TechnicalWorkstation({ isThinking }: { isThinking?: boolean }) {
  * 📚 Workstation 2: Macro News Ledger & Brass Lamp
  * Features: Open economic parchment ledger, desk lamp, and ticker lines.
  */
-export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
+export function MacroWorkstation({ isThinking: _isThinking }: { isThinking?: boolean }) {
   return (
     <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
       {/* Macro Data Terminal Screen */}
@@ -388,7 +388,7 @@ export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
  * 🛡️ Workstation 3: Tactical VaR Radar Terminal
  * Features: Tactical circular radar sweep screen with armor plating.
  */
-export function RiskWorkstation({ isThinking }: { isThinking?: boolean }) {
+export function RiskWorkstation({ isThinking: _isThinking }: { isThinking?: boolean }) {
   return (
     <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
       {/* Heavy Armored Monitor Chassis */}
@@ -417,7 +417,7 @@ export function RiskWorkstation({ isThinking }: { isThinking?: boolean }) {
  * 🛰️ Workstation 4: Sentinel Satellite & Whale Scanner
  * Features: High-altitude antenna array, satellite dish, and institutional flow grid.
  */
-export function SentinelWorkstation({ isThinking }: { isThinking?: boolean }) {
+export function SentinelWorkstation({ isThinking: _isThinking }: { isThinking?: boolean }) {
   return (
     <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
       {/* High-Tech Whale Terminal */}

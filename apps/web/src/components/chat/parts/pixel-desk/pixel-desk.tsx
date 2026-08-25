@@ -273,7 +273,6 @@ export function PixelDeskStandby({
   const [customSymbol, setCustomSymbol] = useState<string | null>(null);
 
   const sessionInfo = useMemo(() => getSessionInfo(now ?? new Date()), [now]);
-  const session = sessionInfo.session;
   const activeSymbol = (customSymbol ?? pinnedSymbol ?? 'XAUUSD').toUpperCase();
 
   // Dynamic session-aware recommended prompts organized by specialist discipline

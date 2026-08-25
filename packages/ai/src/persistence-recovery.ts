@@ -24,8 +24,8 @@ import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { getDb } from './db';
-import { persistTraceStrict, type PersistedTrace } from './diagnostics/trace-persistence';
-import { saveAgentOpinions, type SaveOpinionsArgs } from './multi-agent/persistence';
+import { persistTraceStrict } from './diagnostics/trace-persistence';
+import { saveAgentOpinions } from './multi-agent/persistence';
 import { appendAssistantMessage, appendUserMessage } from './persistence/message-persistence';
 import {
   recordTelemetry,

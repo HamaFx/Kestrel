@@ -77,9 +77,9 @@ export const linkCommand: BotCommand = {
           '/help — See all commands',
         ].join('\n'),
       };
-    } catch (err) {
+    } catch {
       return {
-        text: `Linking failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+        text: 'Linking could not be completed right now. Please try again later.',
       };
     }
   },

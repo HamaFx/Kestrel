@@ -31,6 +31,8 @@ export interface BotContext {
   platform: BotPlatform;
   /** The bot token for sending responses back. */
   botToken?: string;
+  /** Deadline propagated to AI-backed commands. */
+  signal?: AbortSignal;
 }
 
 /** A bot response — either text or an image (for /chart). */

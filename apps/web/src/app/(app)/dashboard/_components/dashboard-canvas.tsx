@@ -149,11 +149,7 @@ const ALL_WIDGETS: WidgetType[] = [
 ];
 
 
-export function DashboardCanvas({
-  marginUsagePct = 0,
-  marginDetail,
-  ...props
-}: DashboardCanvasProps) {
+export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
   const [layout, setLayout, hydrated] = useLocalStorage<WidgetConfig[]>(
     LAYOUT_STORAGE_KEY,
     DEFAULT_LAYOUT,

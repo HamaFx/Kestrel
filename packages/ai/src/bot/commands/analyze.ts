@@ -71,15 +71,16 @@ export const analyzeCommand: BotCommand = {
         prompt: `Please provide a full analysis of ${symbol}. Include technical, fundamental, and risk assessment.`,
         system:
           'You are Kestrel answering a Telegram market-analysis request. Use only trusted evidence, disclose missing data, use scenario language, never place trades, and keep the answer mobile-friendly.',
+        ...(ctx.signal ? { signal: ctx.signal } : {}),
       });
       return {
         text:
           mastraText ??
           `Mastra could not complete the analysis of ${symbol}. Please try again in the web app.`,
       };
-    } catch (err) {
+    } catch {
       return {
-        text: `Analysis failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+        text: 'Analysis could not be completed right now. Please try again later.',
       };
     }
   },

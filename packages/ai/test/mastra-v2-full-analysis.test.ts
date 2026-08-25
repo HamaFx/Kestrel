@@ -40,6 +40,7 @@ const INPUT = {
   userMessageText: 'Analyze XAUUSD',
   userMessageParts: [{ type: 'text' as const, text: 'Analyze XAUUSD' }],
   idempotencyKey: 'full:thread-1:message-1',
+  maxDailyUsd: 5,
   modelSnapshot: {
     modelId: 'google/gemini-2.5-flash',
     providerId: 'google',

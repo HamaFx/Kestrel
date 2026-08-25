@@ -77,6 +77,7 @@ export const committeeCommand: BotCommand = {
         prompt: `Run a full committee analysis of ${symbol}. Include consensus, disagreement, risk warnings, and invalidation conditions.`,
         system:
           'You are Kestrel coordinating a read-only Mastra committee summary. Use only supplied evidence, do not invent current market facts, use scenario language, and never place trades or create mutations.',
+        ...(ctx.signal ? { signal: ctx.signal } : {}),
       });
 
       return {
@@ -84,9 +85,9 @@ export const committeeCommand: BotCommand = {
           text ??
           `Mastra could not complete the committee analysis of ${symbol}. Please try again in the web app.`,
       };
-    } catch (err) {
+    } catch {
       return {
-        text: `Committee failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+        text: 'The committee analysis could not be completed right now. Please try again later.',
       };
     }
   },

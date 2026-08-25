@@ -29,7 +29,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { completeStep, recordStep } from '../diagnostics';
-import { quarantineExternalText, sanitizeExternalText, sanitizeExternalUrl } from '../mastra/external-content';
+import { quarantineExternalText, sanitizeExternalUrl } from '../mastra/external-content';
 import { maybeGetToolContext } from '../tool-context';
 
 const webLog = createCategorizedLogger('ai', { component: 'web-search' });

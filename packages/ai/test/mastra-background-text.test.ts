@@ -20,7 +20,7 @@ import { runMastraBackgroundText } from '../src/mastra/background-text';
 
 const mocks = vi.hoisted(() => ({
   reserveTurnBudget: vi.fn(),
-  resolveChatModel: vi.fn(),
+  resolveMastraModel: vi.fn(),
   generate: vi.fn(),
   beginMastraRun: vi.fn(),
   finishMastraRun: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('../src/budget-reservation', () => ({
   reserveTurnBudget: mocks.reserveTurnBudget,
 }));
 vi.mock('../src/model', () => ({
-  resolveChatModel: mocks.resolveChatModel,
+  resolveMastraModel: mocks.resolveMastraModel,
 }));
 vi.mock('../src/cost', () => ({
   DEFAULT_MAX_DAILY_USD: 5,
@@ -80,10 +80,11 @@ describe('runMastraBackgroundText', () => {
     budget.reconcile.mockResolvedValue(undefined);
     budget.release.mockResolvedValue(undefined);
     mocks.reserveTurnBudget.mockResolvedValue(budget);
-    mocks.resolveChatModel.mockReturnValue({
+    mocks.resolveMastraModel.mockReturnValue({
       model: {},
       modelId: 'google/gemini-3.6-flash',
       providerId: 'google',
+      bareModelId: 'gemini-3.6-flash',
     });
     mocks.generate.mockResolvedValue({ text: 'bounded result' });
     mocks.getMastraGenerationStats.mockReturnValue({
