@@ -22,10 +22,11 @@
 import {
   appendAssistantMessage,
   appendUserMessage,
-  DEFAULT_MAX_DAILY_USD,
   getDb,
   resolveMastraModel,
+  resumeTurnBudget,
   reserveTurnBudget,
+  DEFAULT_MAX_DAILY_USD,
   withDiagnostics,
   type BudgetHandle,
 } from '@kestrel/ai';
@@ -207,18 +208,27 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
             `Enqueue-time model ${expectedModel} is unavailable; no provider failover is permitted.`,
           );
         }
-        try {
-          budget = await reserveTurnBudget({
+        if (payload.budgetReservationId) {
+          budget = resumeTurnBudget({
             userId: payload.userId,
+            reservationId: payload.budgetReservationId,
             estimateUsd: 0.05,
             maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
-            correlation: { threadId: payload.threadId, runId },
           });
-        } catch (error) {
-          if (isBudgetExceededError(error)) {
-            throw new FullAnalysisQuotaExceededError(error.spent, error.max);
+        } else {
+          try {
+            budget = await reserveTurnBudget({
+              userId: payload.userId,
+              estimateUsd: 0.05,
+              maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
+              correlation: { threadId: payload.threadId, runId },
+            });
+          } catch (error) {
+            if (isBudgetExceededError(error)) {
+              throw new FullAnalysisQuotaExceededError(error.spent, error.max);
+            }
+            throw new FullAnalysisBudgetAdmissionError(error);
           }
-          throw new FullAnalysisBudgetAdmissionError(error);
         }
 
         await appendUserMessage(payload.userId, payload.threadId, userMessage, {

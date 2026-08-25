@@ -28,7 +28,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { getUserWithSettings, schema } from '@kestrel/db';
+import { getUserWithSettings, schema, type DbClient } from '@kestrel/db';
 import { KNOWN_BYOK_PROVIDERS } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, eq, gte, sql } from 'drizzle-orm';
@@ -189,6 +189,8 @@ interface BudgetCorrelation {
   jobId?: string;
 }
 
+type BudgetDb = Pick<DbClient, 'execute'>;
+
 /**
  * Atomically reserve `estimatedUsd` against today's running counter for
  * the given user. Returns `{ ok: true }` iff the reservation fits under
@@ -200,6 +202,7 @@ export async function tryReserveBudget(
   capUsd: number,
   now = new Date(),
   correlation?: BudgetCorrelation,
+  db?: BudgetDb,
 ): Promise<BudgetReservation> {
   const day = utcDayKey(now);
   const activeDiagnostic = getDiagnosticContext();
@@ -231,7 +234,11 @@ export async function tryReserveBudget(
   }
 
   const reservationId = randomUUID();
-  const outcome = await getDb().transaction(async (tx) => {
+  const ledgerThreadId = ledgerCorrelation?.threadId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ledgerCorrelation.threadId)
+    ? ledgerCorrelation.threadId
+    : null;
+  const reserve = async (tx: BudgetDb) => {
     const rows = await tx.execute<{ total_usd_cents: number | string }>(
       sql`
         INSERT INTO daily_ai_spend (user_id, day, total_usd_cents)
@@ -242,16 +249,12 @@ export async function tryReserveBudget(
         RETURNING total_usd_cents
       `,
     );
-    // Handle both Drizzle RowList (array directly) and mock/legacy patterns
-    // that wrap results in { rows: [...] }.
     const list = (
       Array.isArray(rows) ? rows : ((rows as { rows?: unknown[] }).rows ?? [])
     ) as Array<{ total_usd_cents: number | string }>;
     const first = list[0];
     if (!first) return null;
 
-    // This insert is in the same transaction as the counter reservation.
-    // A crash or ledger failure therefore rolls back both operations.
     await tx.execute(
       sql`
         INSERT INTO ai_budget_reservations
@@ -259,7 +262,7 @@ export async function tryReserveBudget(
         VALUES (
           ${reservationId},
           ${userId},
-          ${ledgerCorrelation?.threadId ?? null},
+          ${ledgerThreadId},
           ${day},
           ${estCents},
           'reserved',
@@ -270,7 +273,8 @@ export async function tryReserveBudget(
       `,
     );
     return { totalCents: Number(first.total_usd_cents) };
-  });
+  };
+  const outcome = await (db ? reserve(db) : getDb().transaction((tx) => reserve(tx)));
 
   if (!outcome) {
     const spent = await reservedSpendUsd(userId, now);

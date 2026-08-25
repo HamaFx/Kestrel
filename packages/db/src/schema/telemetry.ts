@@ -16,7 +16,6 @@
 
 import { sql } from 'drizzle-orm';
 import {
-  boolean,
   doublePrecision,
   index,
   integer,

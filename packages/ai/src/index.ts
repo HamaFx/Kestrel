@@ -26,7 +26,7 @@ export {
 // Every consumer of @kestrel/ai gets db + llmClient registered.
 import './services';
 
-export { reserveTurnBudget, type BudgetHandle } from './budget-reservation';
+export { reserveTurnBudget, resumeTurnBudget, type BudgetHandle } from './budget-reservation';
 export { toolRegistry, type ToolRegistry } from './tools';
 export {
   getThreadStateHandler,

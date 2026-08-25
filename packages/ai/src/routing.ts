@@ -43,7 +43,7 @@ import { derivePlannerModel, type ResolveModelEnv } from './model';
 // P2-1 — Keyword patterns externalized to routing-keywords.ts.
 // Keep the config auditable and tunable without modifying domain logic.
 import { FUNDAMENTAL_PATTERNS, SUMMARY_PATTERNS, TECHNICAL_PATTERNS } from './routing-keywords';
-import { classifyTurnLLM } from './semantic-routing';
+import { classifyTurnLLM, type SemanticRoutingAccounting } from './semantic-routing';
 
 const routingLog = createCategorizedLogger('ai', { component: 'routing' });
 
@@ -105,7 +105,7 @@ export interface RouteTurnOptions {
     /** AI env subset for model resolution. */
     env: ResolveModelEnv;
     signal?: AbortSignal | null;
-    accounting?: import('./semantic-routing').SemanticRoutingAccounting;
+    accounting?: SemanticRoutingAccounting;
   };
 }
 

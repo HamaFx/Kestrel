@@ -25,6 +25,25 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '../db';
 
 /**
+ * Atomically claim an update before processing it. The database path is the
+ * production default; the in-memory guard remains available for tests and
+ * local environments where no database is configured.
+ */
+export async function claimTelegramUpdate(updateId: number): Promise<boolean> {
+  try {
+    const db = getDb();
+    const result = await db.execute(
+      sql`INSERT INTO telegram_updates (update_id) VALUES (${updateId}) ON CONFLICT (update_id) DO NOTHING RETURNING update_id`,
+    );
+    const rows = (result as { rows?: unknown[] }).rows ?? (Array.isArray(result) ? result : []);
+    return rows.length > 0;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') throw error;
+    return !isDuplicateUpdate(updateId);
+  }
+}
+
+/**
  * Copyright 2026 Kestrel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -124,12 +143,9 @@ export class DbTelegramIdempotency {
       const result = await db.execute(
         sql`INSERT INTO telegram_updates (update_id) VALUES (${updateId}) ON CONFLICT (update_id) DO NOTHING RETURNING update_id`,
       );
-      // If the row was inserted (not a conflict), it's not a duplicate.
-      // The row count tells us: 0 = duplicate (conflict), 1 = new.
       const rows = (result as { rows?: unknown[] }).rows ?? (Array.isArray(result) ? result : []);
       return rows.length === 0;
     } catch {
-      // Table doesn't exist or DB unavailable — fall back to in-memory.
       return this.fallbackCheck(updateId);
     }
   }

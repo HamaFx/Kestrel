@@ -140,11 +140,7 @@ function CellSession() {
 
 function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
   const open = entries.filter((e) => e.outcome === 'open');
-  let totalR = 0;
-  for (const e of open) {
-    totalR += 1;
-  }
-  const totalRRounded = Math.round(totalR * 10) / 10;
+  const totalRRounded = Math.round(open.length * 10) / 10;
 
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">

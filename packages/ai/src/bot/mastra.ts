@@ -44,6 +44,7 @@ export async function tryMastraBotMessage(args: {
   userMessage: UIMessage;
   prompt: string;
   system: string;
+  signal?: AbortSignal;
 }): Promise<string | null> {
   const { settings } = await getUserWithSettings(args.userId);
   if (!settings) return null;
@@ -58,6 +59,7 @@ export async function tryMastraBotMessage(args: {
     system: args.system,
     settings,
     env: botEnv(),
+    ...(args.signal ? { signal: args.signal } : {}),
   });
   if (result.text.length === 0) return null;
 
