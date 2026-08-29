@@ -44,7 +44,7 @@ import {
   REQUIRED_HEALTH_ENV_VARS,
   withRateLimit,
 } from '@/lib/services/api-boundary';
-import { getTelemetryStartupCheck, isMastraTelemetryDegraded, validateTelemetryStartup } from '@kestrel/ai';
+import { getTelemetryStartupCheck, isMastraTelemetryDegraded, validateTelemetryStartup } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

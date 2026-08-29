@@ -39,9 +39,24 @@ import {
 
 // AI agent and persistence APIs.
 export {
+  assertMastraMutationAllowed,
+  assertRegisteredSystemAction,
+  cancelMutationWorkflow,
+  createMutationWorkflow,
+  getKestrelMastra,
+  MutationKindSchema,
+  parseMutationRunContext,
+  runMutationWorkflow,
+  type MutationExecutor,
+  verifyMutationConfirmationToken,
+  resolveMastraModeModel,
+  classifyMutationRequest,
+  isMastraMutationEnabled,
+  MutationExtractionError,
   enqueueFullAnalysis,
   getFullAnalysisQueueHealth,
   getFullAnalysisRun,
+  toMastraRunView,
   fullAnalysisRunId,
   type FullAnalysisRunView,
 } from '@kestrel/ai/mastra';
@@ -90,6 +105,10 @@ export {
   listAgentOpinions,
   withDiagnostics,
   flushLangfuse,
+  appendAssistantMessage,
+  getTelemetryStartupCheck,
+  isMastraTelemetryDegraded,
+  validateTelemetryStartup,
 } from '@kestrel/ai';
 
 // These persistence functions use the supported AI persistence subpath so the
@@ -102,6 +121,7 @@ export {
   forkThread,
 } from '@kestrel/ai/persistence';
 export type { FeedbackAnnotationInput, PromptResult } from '@kestrel/ai';
+export type { RunTelemetryRow } from '@kestrel/ai/mastra';
 export { BudgetExceededError } from '@kestrel/ai/cost';
 
 // Database queries and infrastructure used by controllers that do not yet
@@ -113,6 +133,12 @@ export {
   runRetentionCleanup,
   lazyPurgeExpiredTokens,
   getUserWithSettings,
+  requireTenantIdForUser,
+  createAuditLog,
+  getMutationExecution,
+  executeMutationOnce,
+  MutationExecutionConflictError,
+  MutationExecutionContextError,
   updateUserSettingsField,
   getUserApiKeys,
   getUserById,
@@ -168,7 +194,7 @@ export {
   schema,
 } from '@kestrel/db';
 
-export type { PaymentRow } from '@kestrel/db';
+export type { PaymentRow, DiagnosticTraceRow } from '@kestrel/db';
 export const updatePaymentStatus = updatePaymentStatusDb;
 export const updateSubscriptionFromPayment = updateSubscriptionFromPaymentDb;
 
@@ -207,6 +233,7 @@ export {
   metrics,
   TimeframeSchema,
   isTimeframe,
+  UserMessagePartsSchema,
 } from '@kestrel/shared';
 export { configuredProviders, decryptByok, PROVIDER_IDS } from '@kestrel/shared/encryption';
 export { REQUIRED_HEALTH_ENV_VARS } from '@kestrel/shared/env-secrets';

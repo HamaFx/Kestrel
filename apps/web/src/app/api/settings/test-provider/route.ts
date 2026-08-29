@@ -16,7 +16,6 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { requireTenantIdForUser } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -24,6 +23,7 @@ import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import {
   getDb,
   PROVIDER_IDS,
+  requireTenantIdForUser,
   schema,
   testProviderKey,
   type ProviderId,

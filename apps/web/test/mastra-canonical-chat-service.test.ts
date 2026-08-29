@@ -41,6 +41,31 @@ vi.mock('@kestrel/ai', () => ({
 }));
 vi.mock('@kestrel/db', () => ({
   getUserWithSettings: mocks.getUserWithSettings,
+  getDb: vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue([]),
+  }),
+  requireTenantIdForUser: vi.fn().mockResolvedValue('tenant-user-1'),
+  hasTenantDbScope: vi.fn().mockReturnValue(false),
+  schema: {
+    organizationMember: { orgId: 'orgId', userId: 'userId' },
+    organization: { id: 'id', deletedAt: 'deletedAt' },
+    chatMessages: {
+      id: 'id',
+      threadId: 'threadId',
+      role: 'role',
+      content: 'content',
+      parts: 'parts',
+      idempotencyKey: 'idempotencyKey',
+      createdAt: 'createdAt',
+      tenantId: 'tenantId',
+    },
+    chatThreads: { id: 'id', userId: 'userId', tenantId: 'tenantId' },
+  },
 }));
 vi.mock('@/lib/env', () => ({
   getServerEnv: mocks.getServerEnv,

@@ -19,7 +19,9 @@
 // The proxy lets Vercel serverless functions reach BiQuote through this
 // worker VM when BiQuote is unreachable from the Vercel network.
 //
-// SECURITY: binds to 127.0.0.1 only — NOT exposed to the public internet.
+// SECURITY: the caller should bind this server to localhost or a private
+// interface. Do not expose the health/proxy port publicly without a firewall
+// and WORKER_HEALTH_TOKEN.
 // The BiQuote proxy requires bearer-token auth when BIQUOTE_PROXY_TOKEN is set.
 // PR-11: In production, a missing BIQUOTE_PROXY_TOKEN makes proxy requests
 // return 503 (Service Unavailable) rather than 500 — the proxy is an
@@ -135,27 +137,40 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
       }
       return;
     }
-    // Health endpoint — returns real worker state (tick age, SignalR status, uptime).
-    // It is bearer-protected in production because the VM port is externally
-    // reachable for the Vercel production verifier.
-    if (req.url === '/health' || req.url === '/api/health' || req.url === '/') {
+    // Health endpoints — `/health` and `/api/health` remain compatibility
+    // aliases. `/health/live` is process liveness only; `/health/ready`
+    // reports feed readiness for orchestrators and uptime checks.
+    if (
+      req.url === '/health' ||
+      req.url === '/api/health' ||
+      req.url === '/' ||
+      req.url === '/health/live' ||
+      req.url === '/health/ready'
+    ) {
       if (!hasValidHealthToken(req)) {
         res.writeHead(HEALTH_TOKEN ? 401 : 503, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'unauthorized' }));
         return;
       }
+      const liveOnly = req.url === '/health/live';
       const lastTickAt = getLastTickAt();
       const ageMs = Date.now() - lastTickAt;
-      const healthy = lastTickAt > 0 && ageMs < 120_000;
+      const ready = lastTickAt > 0 && ageMs < 120_000 && isSignalRConnected();
+      const healthy = liveOnly || ready;
       res.writeHead(healthy ? 200 : 503, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
-          status: healthy ? 'ok' : 'degraded',
-          lastTickAgeMs: ageMs,
-          signalrConnected: isSignalRConnected(),
-          droppedTicks: deps.getDroppedTicks?.() ?? 0,
+          status: liveOnly ? 'ok' : ready ? 'ok' : 'degraded',
+          ...(liveOnly
+            ? { live: true }
+            : {
+                ready,
+                lastTickAgeMs: ageMs,
+                signalrConnected: isSignalRConnected(),
+                droppedTicks: deps.getDroppedTicks?.() ?? 0,
+                proxyConfigured: deps.isProxyConfigured?.() ?? Boolean(PROXY_TOKEN),
+              }),
           uptimeMs: process.uptime() * 1000,
-          proxyConfigured: deps.isProxyConfigured?.() ?? Boolean(PROXY_TOKEN),
         }),
       );
     } else {

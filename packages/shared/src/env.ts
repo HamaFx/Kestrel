@@ -247,6 +247,11 @@ const RuntimeEnv = z.object({
   WEB_SEARCH_CACHE_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(600),
   WEB_SEARCH_TIMEOUT_MS: z.coerce.number().int().min(2000).max(20000).default(8000),
 
+  /** Deterministic no-network market-data mode for local development. */
+  KESTREL_OFFLINE_MODE: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
   /** Explicit opt-in for exporting prompts and model outputs to Langfuse. */
   LANGFUSE_RECORD_IO: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
