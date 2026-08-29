@@ -17,6 +17,9 @@
 // Public barrel for @kestrel/shared. Anything not exported here is private to
 // the package — never reach into deep paths from consumers.
 
+// Runtime capability diagnostics
+export * from './capabilities';
+
 // Domain primitives
 export * from './symbols';
 export * from './symbol-catalog';

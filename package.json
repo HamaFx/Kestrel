@@ -41,6 +41,7 @@
     "check:release-archive": "node scripts/check-release-archive.mjs",
     "generate:sbom": "node scripts/generate-sbom.mjs",
     "check:dependency-report": "node scripts/check-dependency-report.mjs",
+    "licenses:generate": "node scripts/generate-license-report.mjs",
     "docker:prune": "node scripts/docker-prune-safe.mjs",
     "eval:publish": "node scripts/publish-langfuse-eval.mjs",
     "build:packages": "pnpm --filter @kestrel/shared build && pnpm --filter @kestrel/indicators build && pnpm --filter @kestrel/db build && pnpm --filter @kestrel/data build && pnpm --filter @kestrel/ai build && pnpm --filter @kestrel/test-utils build",

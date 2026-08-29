@@ -25,9 +25,8 @@ import {
   isMastraMutationEnabled,
   MutationExtractionError,
   resolveMastraModeModel,
-} from '@kestrel/ai/mastra';
-import { getUserWithSettings } from '@kestrel/db';
-import { UserMessagePartsSchema } from '@kestrel/shared';
+} from '@/lib/services/api-boundary';
+import { UserMessagePartsSchema } from '@/lib/services/api-boundary';
 import type { UIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -40,6 +39,7 @@ import {
   enqueueFullAnalysis,
   extractUserMessageText,
   getThread,
+  getUserWithSettings,
   listMessages,
   resolveMode,
   traceIdStorage,

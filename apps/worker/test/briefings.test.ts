@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as ai from '@kestrel/ai';
+import { emitPostEvent, emitPreEvent, findHighImpactEventsInWindow } from '@kestrel/ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runBriefings } from '../src/jobs/briefings';
@@ -43,18 +43,18 @@ const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
 
 beforeEach(() => {
-  vi.mocked(ai.emitPreEvent).mockReset();
-  vi.mocked(ai.emitPostEvent).mockReset();
-  vi.mocked(ai.findHighImpactEventsInWindow).mockReset();
+  vi.mocked(emitPreEvent).mockReset();
+  vi.mocked(emitPostEvent).mockReset();
+  vi.mocked(findHighImpactEventsInWindow).mockReset();
 });
 
 describe('runBriefings', () => {
   it('emits pre + post for each candidate and reports counts', async () => {
-    vi.mocked(ai.findHighImpactEventsInWindow)
+    vi.mocked(findHighImpactEventsInWindow)
       .mockResolvedValueOnce([{ id: 'e1' }, { id: 'e2' }])
       .mockResolvedValueOnce([{ id: 'e3' }]);
-    vi.mocked(ai.emitPreEvent).mockResolvedValue({ emitted: true });
-    vi.mocked(ai.emitPostEvent).mockResolvedValue({ emitted: true });
+    vi.mocked(emitPreEvent).mockResolvedValue({ emitted: true });
+    vi.mocked(emitPostEvent).mockResolvedValue({ emitted: true });
 
     const r = await runBriefings({
       log,
@@ -67,10 +67,10 @@ describe('runBriefings', () => {
   });
 
   it('continues past per-event failures', async () => {
-    vi.mocked(ai.findHighImpactEventsInWindow)
+    vi.mocked(findHighImpactEventsInWindow)
       .mockResolvedValueOnce([{ id: 'e1' }, { id: 'e2' }])
       .mockResolvedValueOnce([]);
-    vi.mocked(ai.emitPreEvent)
+    vi.mocked(emitPreEvent)
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce({ emitted: true });
 
@@ -86,15 +86,15 @@ describe('runBriefings', () => {
 
   it('honours abort signal between candidates', async () => {
     const ac = new AbortController();
-    vi.mocked(ai.findHighImpactEventsInWindow)
+    vi.mocked(findHighImpactEventsInWindow)
       .mockResolvedValueOnce([{ id: 'e1' }, { id: 'e2' }])
       .mockResolvedValueOnce([]);
-    vi.mocked(ai.emitPreEvent).mockImplementationOnce(async () => {
+    vi.mocked(emitPreEvent).mockImplementationOnce(async () => {
       ac.abort();
       return { emitted: true };
     });
 
     await runBriefings({ log, signal: ac.signal, tenantRouter: testRouter });
-    expect(ai.emitPreEvent).toHaveBeenCalledTimes(1);
+    expect(emitPreEvent).toHaveBeenCalledTimes(1);
   });
 });

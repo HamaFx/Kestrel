@@ -33,10 +33,8 @@
 
 import { and, eq, gte, sql } from 'drizzle-orm';
 
-import { requireTenantIdForUser } from '@kestrel/db';
-
 import { errorResponse, withAuth } from '@/lib/api';
-import { getDb, schema } from '@/lib/services/api-boundary';
+import { getDb, requireTenantIdForUser, schema } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

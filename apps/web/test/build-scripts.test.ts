@@ -18,7 +18,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, renameSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
@@ -31,6 +31,7 @@ const precacheFile = resolve(process.cwd(), 'public/sw-precache.json');
 
 describe('build scripts', () => {
   let originalSw: Buffer | null = null;
+  let originalPrecache: Buffer | null = null;
 
   it('uses the single build wrapper without lifecycle duplicates', async () => {
     const pkg = JSON.parse(await readFile(resolve(process.cwd(), 'package.json'), 'utf8')) as {
@@ -45,6 +46,9 @@ describe('build scripts', () => {
     if (existsSync(swFile)) {
       originalSw = readFileSync(swFile);
     }
+    if (existsSync(precacheFile)) {
+      originalPrecache = readFileSync(precacheFile);
+    }
   });
 
   afterAll(() => {
@@ -56,11 +60,21 @@ describe('build scripts', () => {
       }
     }
     if (originalSw) {
-      // Restore the committed service worker; the test overwrote it.
+      writeFileSync(swFile, originalSw);
+    } else {
       try {
-        execSync('git checkout -- public/sw.js public/sw-precache.json', { cwd: process.cwd() });
+        if (existsSync(swFile)) unlinkSync(swFile);
       } catch {
-        // Not a git checkout or file not tracked — best effort.
+        // best effort cleanup
+      }
+    }
+    if (originalPrecache) {
+      writeFileSync(precacheFile, originalPrecache);
+    } else {
+      try {
+        if (existsSync(precacheFile)) unlinkSync(precacheFile);
+      } catch {
+        // best effort cleanup
       }
     }
   });

@@ -36,6 +36,7 @@ import * as biquote from './biquote';
 import { fetchCandles1m } from './candles-1m';
 import * as finnhub from './finnhub';
 import { fetchLiveTick } from './live-ticks';
+import { offlineMarketDataProvider } from './offline';
 import {
   marketDataProviders,
   type MarketDataProvider,
@@ -235,6 +236,9 @@ const binanceProvider: MarketDataProvider = {
 
 /** Build the provider list — all providers registered; key checks happen at call time. */
 function buildProviderList(): MarketDataProvider[] {
+  if (process.env.KESTREL_OFFLINE_MODE === '1' || process.env.KESTREL_OFFLINE_MODE === 'true') {
+    return [offlineMarketDataProvider];
+  }
   return [liveTicksProvider, biquoteProvider, binanceProvider, createFinnhubProvider()];
 }
 

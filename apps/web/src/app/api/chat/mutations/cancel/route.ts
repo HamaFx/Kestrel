@@ -21,12 +21,12 @@ import {
   MutationKindSchema,
   parseMutationRunContext,
   verifyMutationConfirmationToken,
-} from '@kestrel/ai/mastra';
+} from '@/lib/services/api-boundary';
 import {
   createAuditLog,
   getMutationExecution,
   MutationExecutionConflictError,
-} from '@kestrel/db';
+} from '@/lib/services/api-boundary';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 

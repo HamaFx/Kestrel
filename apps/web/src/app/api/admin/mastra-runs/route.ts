@@ -16,8 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getKestrelMastra, toMastraRunView, type RunTelemetryRow } from '@kestrel/ai/mastra';
-import { getDb, schema } from '@kestrel/db';
+import { getKestrelMastra, toMastraRunView, type RunTelemetryRow } from '@/lib/services/api-boundary';
+import { getDb, schema } from '@/lib/services/api-boundary';
 import { and, desc, gt, isNotNull, like, or } from 'drizzle-orm';
 import { z } from 'zod';
 

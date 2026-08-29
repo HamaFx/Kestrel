@@ -25,7 +25,7 @@ import type {
 } from '@/lib/services/admin-dtos';
 import { getDiagnosticTraceForAdmin } from '@/lib/services/api-boundary';
 
-import type { DiagnosticTraceRow } from '@kestrel/db';
+import type { DiagnosticTraceRow } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

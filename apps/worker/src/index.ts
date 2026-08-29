@@ -31,6 +31,7 @@
 //   5. heartbeat to healthchecks.io every 30s while the consumer is alive.
 
 import { getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
+import { getCapabilityReport } from '@kestrel/shared';
 import { closeDb } from '@kestrel/db';
 
 import { Candle1mAggregator, type ClosedCandle } from './aggregator/candle-1m.js';
@@ -451,6 +452,12 @@ export async function main(): Promise<void> {
       '██║  ██╗███████╗███████║   ██║   ██║  ██║███████╗███████╗',
       '╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝',
     ].join('\n'),
+  });
+
+  const capabilityReport = getCapabilityReport(process.env);
+  log.info('worker capabilities', {
+    enabled: capabilityReport.enabled,
+    disabled: capabilityReport.disabled,
   });
 
   log.info('worker starting', {
