@@ -23,7 +23,12 @@
 
 import { createHash } from 'node:crypto';
 
-import type { WebSearchOutput, WebSearchProvider, WebSearchSource } from '@kestrel/shared';
+import {
+  assertSafeOutboundUrl,
+  type WebSearchOutput,
+  type WebSearchProvider,
+  type WebSearchSource,
+} from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -597,7 +602,10 @@ async function fetchJson(
 }
 
 function assertAllowedProviderUrl(value: string): void {
-  const url = new URL(value);
+  const url = assertSafeOutboundUrl(value, {
+    protocols: ['https:'],
+    hosts: ['api.exa.ai', 'api.tavily.com', 'api.search.brave.com'],
+  });
   if (url.protocol !== 'https:') {
     throw new Error('web search provider URL must use HTTPS');
   }

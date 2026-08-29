@@ -40,23 +40,23 @@ describe('ping', () => {
   });
 
   it('GETs the bare UUID URL on a success ping', async () => {
-    await ping('abc-123');
+    await ping('abc12345');
     const url = String(
       (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0],
     );
-    expect(url).toBe('https://hc-ping.com/abc-123');
+    expect(url).toBe('https://hc-ping.com/abc12345');
   });
 
   it('appends /fail or /start to the URL for non-success statuses', async () => {
-    await ping('abc', 'fail');
-    await ping('abc', 'start');
+    await ping('abc12345', 'fail');
+    await ping('abc12345', 'start');
     const calls = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls;
-    expect(String(calls[0]?.[0])).toBe('https://hc-ping.com/abc/fail');
-    expect(String(calls[1]?.[0])).toBe('https://hc-ping.com/abc/start');
+    expect(String(calls[0]?.[0])).toBe('https://hc-ping.com/abc12345/fail');
+    expect(String(calls[1]?.[0])).toBe('https://hc-ping.com/abc12345/start');
   });
 
   it('POSTs when a body is provided', async () => {
-    await ping('abc', 'success', 'duration=42ms');
+    await ping('abc12345', 'success', 'duration=42ms');
     const init = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as
       RequestInit | undefined;
     expect(init?.method).toBe('POST');
@@ -68,7 +68,7 @@ describe('ping', () => {
       .fn()
       .mockRejectedValue(new Error('network down')) as unknown as typeof fetch;
     let captured: unknown = null;
-    await ping('abc', 'success', undefined, (e) => {
+    await ping('abc12345', 'success', undefined, (e) => {
       captured = e;
     });
     expect(captured).toBeInstanceOf(Error);
@@ -77,22 +77,22 @@ describe('ping', () => {
 
 describe('withHeartbeat', () => {
   it('emits start + success on a successful run', async () => {
-    const result = await withHeartbeat('abc', async () => 42);
+    const result = await withHeartbeat('abc12345', async () => 42);
     expect(result).toBe(42);
 
     const calls = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls;
-    expect(String(calls[0]?.[0])).toBe('https://hc-ping.com/abc/start');
-    expect(String(calls[1]?.[0])).toBe('https://hc-ping.com/abc');
+    expect(String(calls[0]?.[0])).toBe('https://hc-ping.com/abc12345/start');
+    expect(String(calls[1]?.[0])).toBe('https://hc-ping.com/abc12345');
   });
 
   it('emits start + fail on an error and re-throws', async () => {
     const fn = (): Promise<number> => Promise.reject(new Error('boom'));
 
-    await expect(withHeartbeat('abc', fn)).rejects.toThrow('boom');
+    await expect(withHeartbeat('abc12345', fn)).rejects.toThrow('boom');
 
     const calls = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls;
-    expect(String(calls[0]?.[0])).toBe('https://hc-ping.com/abc/start');
-    expect(String(calls[1]?.[0])).toBe('https://hc-ping.com/abc/fail');
+    expect(String(calls[0]?.[0])).toBe('https://hc-ping.com/abc12345/start');
+    expect(String(calls[1]?.[0])).toBe('https://hc-ping.com/abc12345/fail');
     const failInit = calls[1]?.[1] as RequestInit | undefined;
     expect(failInit?.body).toBe('boom');
   });

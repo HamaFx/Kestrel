@@ -26,7 +26,7 @@ Do not advertise multi-user self-hosting until the tenant/RLS and worker-isolati
 
 The project is ready for a public OSS preview when:
 
-- no secret is present in the release tree or Git history;
+- no secret is present in the release tree or Git history (the current read-only scanner must have no unresolved findings);
 - `pnpm check:oss-release`, `pnpm typecheck`, `pnpm lint`, focused tests, and the full hermetic test suite pass;
 - Docker, PGlite, and hosted-style startup paths are smoke-tested from a clean checkout;
 - all privileged routes have behavioral authorization coverage;
@@ -42,7 +42,7 @@ The project is ready for a public OSS preview when:
 
 ### Tasks
 
-1. Run a vetted secret scanner against the full Git history and current tracked tree.
+1. Run the repository scanners against the full Git history and current tracked tree (`pnpm check:git-history-secrets`, `pnpm check:oss-release`).
 2. Inspect all environment variants, backups, Vercel files, certificates, service-account material, and generated artifacts.
 3. Rotate every credential if historical exposure is found.
 4. Confirm only placeholder values exist in `.env.example`.
@@ -87,6 +87,13 @@ The project is ready for a public OSS preview when:
 
 ## Phase 2 — outbound network and content security
 
+**Implementation status:** SSRF, upload, and CSP code hardening implemented; clean-host operational verification remains.
+
+- Shared `assertSafeOutboundUrl` now rejects unsafe protocols, credentials, loopback/private/link-local/metadata/reserved addresses.
+- Web-search provider calls, worker BiQuote proxy, and health-alert webhooks use the policy.
+
+
+
 **Priority:** P1
 
 ### SSRF tasks
@@ -122,6 +129,8 @@ The project is ready for a public OSS preview when:
 - CSP and hostile-content tests pass without regressions.
 
 ## Phase 3 — deployment and supply-chain integrity
+
+**Implementation status:** Repository-controlled release checks and metadata consistency are implemented. External provenance, SBOM publication, and clean-host verification remain operational.
 
 **Priority:** P1
 
@@ -213,12 +222,12 @@ OSS single-user boundary               PASS in prior verification
 
 Still requiring external or operational verification:
 
-- Git-history secret scan and credential rotation.
-- Exact Docker image and GitHub Action digest verification.
+- Maintainer confirmation that historical example values were never real credentials; revoke any that were.
+- Independent verification of Docker/Compose image digest provenance.
 - SBOM/provenance publication.
-- Clean Docker, PGlite, and hosted deployment smoke tests.
+- Clean Docker upgrade, PGlite, and hosted deployment smoke tests.
 - DNS-aware SSRF tests with a controlled resolver.
-- Full retention/deletion and worker restart tests.
+- Full Docker/clean-host upgrade, retention, deletion, and worker restart verification remains operational work; disposable backup/restore smoke test passed.
 - Full hermetic suite and complete E2E verification.
 
 ## Release policy

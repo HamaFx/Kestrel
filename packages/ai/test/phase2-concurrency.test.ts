@@ -22,6 +22,14 @@ vi.mock('../src/db', () => ({
   getDb: vi.fn(),
 }));
 
+vi.mock('@kestrel/db', () => ({
+  requireTenantIdForUser: vi.fn(async () => 'tenant-1'),
+  schema: {
+    chatThreads: {},
+    alerts: {},
+  },
+}));
+
 function mockDb(value: unknown): void {
   vi.mocked(getDb).mockReturnValue(value as never);
 }

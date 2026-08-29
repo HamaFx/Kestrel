@@ -32,6 +32,7 @@ vi.mock('@kestrel/data', () => ({
 }));
 
 vi.mock('@kestrel/db', () => ({
+  hasTenantDbScope: () => false,
   getDb: () => ({
     update: () => ({ set: () => ({ where: () => Promise.resolve([]) }) }),
     // Phase A: the evaluator now joins users + userSettings to pull per-user

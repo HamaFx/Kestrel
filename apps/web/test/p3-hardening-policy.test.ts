@@ -51,7 +51,7 @@ describe('P3 production hardening policy', () => {
   it('builds compiled k6 scripts and inspects them fail-closed in CI', () => {
     const buildIndex = loadtestWorkflow.indexOf('name: Build k6 test scripts');
     const inspectIndex = loadtestWorkflow.indexOf('name: Inspect k6 test scripts (dry-run)');
-    const runIndex = loadtestWorkflow.indexOf('uses: grafana/run-k6-action@v1');
+    const runIndex = loadtestWorkflow.indexOf('grafana/run-k6-action@');
     expect(buildIndex).toBeGreaterThanOrEqual(0);
     expect(inspectIndex).toBeGreaterThan(buildIndex);
     expect(runIndex).toBeGreaterThan(inspectIndex);

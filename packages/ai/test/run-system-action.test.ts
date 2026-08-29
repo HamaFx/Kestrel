@@ -35,6 +35,7 @@ vi.mock('@kestrel/db', () => {
   };
 
   return {
+    hasTenantDbScope: vi.fn(() => false),
     getDb: () => ({
       select: () => ({
         from: (table: unknown) => ({

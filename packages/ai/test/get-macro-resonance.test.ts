@@ -22,6 +22,8 @@ import { withToolContext } from '../src/tool-context';
 import { getIntermarketResonanceTool } from '../src/tools/get-intermarket-resonance';
 
 vi.mock('@kestrel/db', () => ({
+  hasTenantDbScope: vi.fn(() => false),
+  requireTenantIdForUser: vi.fn(async () => 'tenant-1'),
   getDb: () => ({
     select: () => ({
       from: () => ({

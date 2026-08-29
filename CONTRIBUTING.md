@@ -10,7 +10,7 @@ Thank you for considering a contribution to Kestrel. This document is the defini
 
 | Requirement | Version                                      | Verify             |
 | ----------- | -------------------------------------------- | ------------------ |
-| Node.js     | ≥ 20.11                                      | `node --version`   |
+| Node.js     | ≥ 22.13.0                                    | `node --version`   |
 | pnpm        | 9.15.4 (pinned via `packageManager`)         | `pnpm --version`   |
 | Git         | any                                          | `git --version`    |
 | Docker      | optional, for full-feature dev with pgvector | `docker --version` |

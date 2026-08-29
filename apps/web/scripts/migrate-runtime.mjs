@@ -33,6 +33,13 @@ const multiUserEnabled = ['1', 'true'].includes((process.env.MULTI_USER_ENABLED 
 const rlsEnabled = ['1', 'true'].includes(
   (process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS ?? '').toLowerCase(),
 );
+const registrationMode = (process.env.REGISTRATION_MODE ?? 'owner-first').toLowerCase();
+if (registrationMode === 'open' && !multiUserEnabled) {
+  console.error(
+    '[runtime-migrate] registrationMode === \'open\' requires MULTI_USER_ENABLED=true; refusing an unsafe single-user configuration.',
+  );
+  process.exit(1);
+}
 if (multiUserEnabled !== rlsEnabled) {
   console.error(
     '[runtime-migrate] MULTI_USER_ENABLED and KESTREL_ENABLE_RLS must be enabled together; refusing an unsafe partial configuration.',

@@ -16,6 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { assertSafeOutboundUrl } from '@kestrel/shared';
+
 import { createScopedLoggerWithContext } from '@/lib/logger';
 
 import type { HealthSloResponse } from './admin-dtos';
@@ -55,10 +57,7 @@ export async function deliverHealthAlert(
 
   let parsedUrl: URL;
   try {
-    parsedUrl = new URL(webhookUrl);
-    if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
-      return { status: 'skipped', reason: 'invalid_url' };
-    }
+    parsedUrl = assertSafeOutboundUrl(webhookUrl, { protocols: ['https:'] });
   } catch {
     return { status: 'skipped', reason: 'invalid_url' };
   }

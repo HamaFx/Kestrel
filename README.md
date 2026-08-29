@@ -96,7 +96,7 @@ The easiest path is the built-in setup wizard. It explains each choice and creat
 
 You need:
 
-- [Node.js 20.11+](https://nodejs.org/)
+- [Node.js 22.13+](https://nodejs.org/)
 - [pnpm 9+](https://pnpm.io/installation) — or Node.js Corepack enabled
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) only if you want **Full mode**
 
@@ -235,7 +235,7 @@ Kestrel does not bundle AI access. You bring the provider account and pay the pr
 “Set an alert if XAUUSD closes above yesterday’s high.”
 ```
 
-### Use 33 focused AI tools
+### Use 31 focused AI tools
 
 The agent routes work to typed tools instead of relying on free-form model guesses.
 

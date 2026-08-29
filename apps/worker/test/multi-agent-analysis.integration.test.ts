@@ -81,7 +81,7 @@ const payload = {
   },
 };
 
-const claimed = { runId: 'run-1', payload };
+const claimed = { runId: 'run-1', tenantId: 'tenant-1', payload };
 
 const mockDb = {
   select: () => ({
@@ -135,6 +135,7 @@ vi.mock('@kestrel/shared/logger', async (importOriginal) => {
 });
 
 vi.mock('drizzle-orm', () => ({
+  and: vi.fn(),
   eq: vi.fn(),
 }));
 
@@ -171,7 +172,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     return {
       log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
       signal: new AbortController().signal,
-      tenantRouter: { owns: () => true } as never,
+      tenantRouter: { isMyTenant: () => true } as never,
     };
   }
 

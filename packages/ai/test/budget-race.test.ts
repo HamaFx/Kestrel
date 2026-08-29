@@ -50,6 +50,7 @@ function chunkValues(stmt: unknown): unknown[] {
 
 vi.mock('@kestrel/db', () => {
   return {
+    hasTenantDbScope: vi.fn(() => false),
     requireTenantIdForUser: vi.fn(async () => 'tenant-1'),
     getDb: () => {
       const execute = vi.fn(async (statement: unknown) => {
