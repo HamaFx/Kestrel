@@ -17,6 +17,7 @@
 // Public barrel for @kestrel/db.
 
 export * from './schema/index';
+export { getTenantIdForUser, requireTenantIdForUser } from './tenant';
 export * from './schema/memory-backfill';
 export * from './schema/memory-projection';
 // PF-15 — Export `getDbRO` so consumers can route read queries to
@@ -29,9 +30,14 @@ export {
   closeDb,
   closeReplicaDb,
   withTenantDb,
+  withTenantDbFresh,
   withTenantDbRO,
+  withAdminDb,
   withDbRetry,
   checkDbHealth,
+  isRlsEnabled,
+  hasTenantDbScope,
+  getTenantDbScope,
   schema,
   type DbClient,
 } from './client';
@@ -161,6 +167,8 @@ export { listActiveTenants, type OrganizationRow } from './queries/tenants';
 export {
   listDiagnosticTraces,
   getDiagnosticTrace,
+  listDiagnosticTracesForAdmin,
+  getDiagnosticTraceForAdmin,
   listTraceExplorerEvents,
   type DiagnosticTraceRow,
   type TraceExplorerEvent,
@@ -286,6 +294,7 @@ export {
   createAuditLog,
   incrementTokenVersion,
   updateUserDisplayName,
+  deleteUserAccount,
   type AuthUserRow,
 } from './queries/auth';
 export {

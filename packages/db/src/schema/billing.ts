@@ -118,6 +118,8 @@ export const subscriptions = pgTable(
     trialEnd: timestamp('trial_end', { withTimezone: true }),
     /** Whether the user canceled (vs. system expiration) */
     canceledAt: timestamp('canceled_at', { withTimezone: true }),
+    /** Last provider payment status accepted into this subscription projection. */
+    lastPaymentStatus: text('last_payment_status'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -222,6 +224,9 @@ export const billingWebhookDlq = pgTable(
   (t) => [
     index('billing_webhook_dlq_status_idx').on(t.status),
     index('billing_webhook_dlq_received_at_idx').on(t.receivedAt),
+    index('billing_webhook_dlq_replayed_at_idx')
+      .on(t.replayedAt)
+      .where(sql`${t.status} = 'replayed' AND ${t.replayedAt} IS NOT NULL`),
     uniqueIndex('billing_webhook_dlq_event_idx').on(t.provider, t.eventId, t.eventType),
   ],
 );

@@ -59,6 +59,7 @@ export const rateLimits = pgTable(
   (t) => [
     primaryKey({ columns: [t.userId, t.endpointGroup, t.windowStart] }),
     index('rate_limits_user_idx').on(t.userId),
+    index('rate_limits_window_start_idx').on(t.windowStart),
   ],
 );
 

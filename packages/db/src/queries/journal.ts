@@ -19,6 +19,7 @@
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 export type JournalRow = typeof schema.journalEntries.$inferSelect;
 export type CreateJournalInput = typeof schema.journalEntries.$inferInsert;
@@ -33,6 +34,8 @@ export async function listJournalEntries(
   ];
   if (opts?.symbol) conditions.push(eq(schema.journalEntries.symbol, opts.symbol));
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  conditions.push(eq(schema.journalEntries.tenantId, tenantId));
   return db
     .select()
     .from(schema.journalEntries)
@@ -44,47 +47,77 @@ export async function listJournalEntries(
 
 export async function getJournalEntry(id: string, userId: string): Promise<JournalRow | undefined> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select()
     .from(schema.journalEntries)
-    .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId)))
+    .where(
+      and(
+        eq(schema.journalEntries.id, id),
+        eq(schema.journalEntries.userId, userId),
+        eq(schema.journalEntries.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   return rows[0];
 }
 
 export async function createJournalEntry(input: CreateJournalInput): Promise<JournalRow> {
   const db = getDb();
-  const rows = await db.insert(schema.journalEntries).values(input).returning();
+  const tenantId = await requireTenantIdForUser(input.userId);
+  const rows = await db
+    .insert(schema.journalEntries)
+    .values({ ...input, tenantId })
+    .returning();
   return rows[0]!;
 }
 
 export async function updateJournalEntry(
   id: string,
   userId: string,
-  data: Partial<Omit<JournalRow, 'id' | 'userId' | 'createdAt'>>,
+  data: Partial<Omit<JournalRow, 'id' | 'userId' | 'tenantId' | 'createdAt'>>,
 ): Promise<JournalRow | undefined> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .update(schema.journalEntries)
     .set({ ...data, updatedAt: new Date() })
-    .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId)))
+    .where(
+      and(
+        eq(schema.journalEntries.id, id),
+        eq(schema.journalEntries.userId, userId),
+        eq(schema.journalEntries.tenantId, tenantId),
+      ),
+    )
     .returning();
   return rows[0];
 }
 
 export async function deleteJournalEntry(id: string, userId: string): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .update(schema.journalEntries)
     .set({ deletedAt: new Date() })
-    .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId)));
+    .where(
+      and(
+        eq(schema.journalEntries.id, id),
+        eq(schema.journalEntries.userId, userId),
+        eq(schema.journalEntries.tenantId, tenantId),
+      ),
+    );
 }
 
 export async function countJournalEntriesByUser(userId: string): Promise<number> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select({ total: count() })
     .from(schema.journalEntries)
-    .where(and(eq(schema.journalEntries.userId, userId), isNull(schema.journalEntries.deletedAt)));
+    .where(and(
+        eq(schema.journalEntries.userId, userId),
+        eq(schema.journalEntries.tenantId, tenantId),
+        isNull(schema.journalEntries.deletedAt),
+      ));
   return rows[0]?.total ?? 0;
 }

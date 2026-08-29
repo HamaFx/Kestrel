@@ -21,6 +21,7 @@ import { randomBytes } from 'node:crypto';
 
 import {
   createAuditLog,
+  deleteUserAccount,
   deleteUserSessions as dbDeleteUserSessions,
   listUserSessions as dbListUserSessions,
   revokeUserSession as dbRevokeUserSession,
@@ -358,11 +359,7 @@ export async function changePasswordAction(
 
   // FEAT-03: Audit log for password changed
   try {
-    await db.insert(schema.auditLogs).values({
-      userId: session.user.id,
-      action: 'password_changed',
-      metadata: {},
-    });
+    await createAuditLog(session.user.id, 'password_changed');
   } catch {
     /* fail open */
   }
@@ -421,21 +418,7 @@ export async function deleteAccountAction(
   }
 
   try {
-    const now = new Date();
-    await db
-      .update(schema.users)
-      .set({
-        deletedAt: now,
-        tokenVersion: sql`${schema.users.tokenVersion} + 1`,
-        name: null,
-        image: null,
-        email: `deleted-${session.user.id}@deleted.invalid`,
-        hashedPassword: null,
-        twoFactorSecret: null,
-        twoFactorEnabled: false,
-      })
-      .where(eq(schema.users.id, session.user.id));
-    await db.delete(schema.userSessions).where(eq(schema.userSessions.userId, session.user.id));
+    await deleteUserAccount(session.user.id);
     await signOut({ redirectTo: '/' });
     return { ok: true as const };
   } catch (err) {

@@ -17,6 +17,8 @@
 // Drizzle client. Node runtime only — postgres-js does not work on Edge.
 // Routes that touch this module must export `runtime = 'nodejs'`.
 
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -25,6 +27,18 @@ import * as schema from './schema/index';
 
 let _client: ReturnType<typeof drizzle> | null = null;
 let _sql: ReturnType<typeof postgres> | null = null;
+
+interface TenantDbScope {
+  tenantId: string;
+  db: DbClient;
+}
+
+// RLS context is request-scoped. The transaction client is carried through
+// async work so repositories that call getDb() directly still use the tenant
+// transaction established by the web boundary.
+const tenantDbScope = new AsyncLocalStorage<TenantDbScope>();
+const adminDbScope = new AsyncLocalStorage<DbClient>();
+
 
 /**
  * Default per-runtime pool size. Phase 2 hardening §4.
@@ -96,7 +110,12 @@ let _replicaSql: ReturnType<typeof postgres> | null = null;
  * connection when no replica is configured (single-node deployments).
  */
 export function getDbRO(): DbClient {
+  const tenantScope = tenantDbScope.getStore();
+  if (tenantScope) return tenantScope.db;
+  const adminScope = adminDbScope.getStore();
+  if (adminScope) return adminScope;
   assertTenantIsolationConfig();
+
   if (_replicaClient) return _replicaClient;
 
   const url = process.env.DATABASE_URL_REPLICA;
@@ -172,8 +191,7 @@ function resolveSslOptions(): false | { rejectUnauthorized: boolean; ca?: string
   return { rejectUnauthorized: false };
 }
 
-export function getDb(): DbClient {
-  assertTenantIsolationConfig();
+function getPrimaryDb(): DbClient {
   if (_client) return _client;
 
   // Accept DATABASE_URL or POSTGRES_URL (the Supabase Vercel integration
@@ -205,6 +223,37 @@ export function getDb(): DbClient {
 
   _client = drizzle(_sql, { schema });
   return _client;
+}
+
+export function getDb(): DbClient {
+  assertTenantIsolationConfig();
+  const tenantScope = tenantDbScope.getStore();
+  if (tenantScope) return tenantScope.db;
+  const adminScope = adminDbScope.getStore();
+  if (adminScope) return adminScope;
+  // Worker jobs are cross-tenant by design. They must never inherit the
+  // web application's non-privileged connection when shared mode is active.
+  if ((process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker') {
+    return getAdminDb();
+  }
+  return getPrimaryDb();
+}
+
+
+export async function withAdminDb<T>(work: (db: DbClient) => Promise<T>): Promise<T> {
+  assertTenantIsolationConfig();
+  const db = getAdminDb();
+  return adminDbScope.run(db, () => work(db));
+}
+
+/** Whether the current async execution context has a tenant transaction. */
+export function hasTenantDbScope(): boolean {
+  return tenantDbScope.getStore() !== undefined;
+}
+
+/** Return the current tenant transaction, if one is active. */
+export function getTenantDbScope(): { tenantId: string; db: DbClient } | null {
+  return tenantDbScope.getStore() ?? null;
 }
 
 /** For tests / scripts only — closes the replica pool. */
@@ -239,7 +288,7 @@ export async function closeDb(): Promise<void> {
  * Phase 3 §3.6 — gated behind KESTREL_ENABLE_RLS env var. The old
  * HAMAFX_ENABLE_RLS name remains a read-only compatibility fallback.
  */
-function isRlsEnabled(): boolean {
+export function isRlsEnabled(): boolean {
   const value = process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS;
   return value === 'true' || value === '1';
 }
@@ -250,11 +299,6 @@ function assertTenantIsolationConfig(): void {
   if (multiUserEnabled && !isRlsEnabled()) {
     throw new Error(
       '[db] MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS=true; refusing to open a database connection without tenant isolation.',
-    );
-  }
-  if (isRlsEnabled()) {
-    throw new Error(
-      '[db] RLS/multi-user mode is disabled in this open-source release until every user-data query establishes tenant context. Keep KESTREL_ENABLE_RLS=0.',
     );
   }
 }
@@ -271,16 +315,36 @@ function assertTenantIsolationConfig(): void {
  * For read-only operations, prefer `withTenantDbRO` which skips the
  * transaction when RLS is disabled.
  */
+export async function withTenantDbFresh<T>(
+  tenantId: string,
+  work: (db: DbClient) => Promise<T>,
+): Promise<T> {
+  assertTenantIsolationConfig();
+  return getPrimaryDb().transaction(async (tx) => {
+    const scopedDb = tx as unknown as DbClient;
+    if (isRlsEnabled()) {
+      // Supabase exposes the non-bypass `authenticated` role for data-plane
+      // access. Switch roles inside the transaction before setting the tenant
+      // GUC so RLS is enforced even though the pool connects as postgres.
+      await tx.execute(sql`SET LOCAL ROLE authenticated`);
+      await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
+    }
+    return tenantDbScope.run({ tenantId, db: scopedDb }, () => work(scopedDb));
+  });
+}
+
+/**
+ * Run work inside a tenant transaction, reusing an active same-tenant scope
+ * when one exists. Use withTenantDbFresh for independent stream lifecycles.
+ */
 export async function withTenantDb<T>(
   tenantId: string,
   work: (db: DbClient) => Promise<T>,
 ): Promise<T> {
-  return getDb().transaction(async (tx) => {
-    if (isRlsEnabled()) {
-      await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
-    }
-    return work(tx as unknown as DbClient);
-  });
+  assertTenantIsolationConfig();
+  const current = tenantDbScope.getStore();
+  if (current?.tenantId === tenantId) return work(current.db);
+  return withTenantDbFresh(tenantId, work);
 }
 
 /**
@@ -297,7 +361,8 @@ export async function withTenantDb<T>(
 export async function withTenantDbRO<T>(
   tenantId: string,
   work: (db: DbClient) => Promise<T>,
-): Promise<T> {
+): Promise<T> {  const current = tenantDbScope.getStore();
+  if (current?.tenantId === tenantId) return work(current.db);
   if (!isRlsEnabled()) {
     // PF-15: Use read replica when available
     return work(getDbRO());
@@ -305,10 +370,15 @@ export async function withTenantDbRO<T>(
   const db = getDbRO();
   return db.transaction(async (tx) => {
     await tx.execute(sql`SET TRANSACTION READ ONLY`);
-    await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
-    return work(tx as unknown as DbClient);
+    if (isRlsEnabled()) {
+      await tx.execute(sql`SET LOCAL ROLE authenticated`);
+      await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
+    }
+    const scopedDb = tx as unknown as DbClient;
+    return tenantDbScope.run({ tenantId, db: scopedDb }, () => work(scopedDb));
   });
 }
+
 
 /**
  * Retry a database operation on transient errors (connection drops,
@@ -437,8 +507,12 @@ export function getAdminDb(): DbClient {
 
   const adminUrl = process.env.ADMIN_DATABASE_URL;
   if (!adminUrl) {
-    // Fallback: no admin role configured — use the regular connection.
-    // In self-host / legacy mode (no RLS), this is correct.
+    if (isRlsEnabled()) {
+      throw new Error(
+        '[db] ADMIN_DATABASE_URL is required for worker/admin operations when RLS is enabled; refusing to fall back to a tenant-scoped connection.',
+      );
+    }
+    // Fallback is safe only in self-host / legacy mode where RLS is disabled.
     return getDb();
   }
 

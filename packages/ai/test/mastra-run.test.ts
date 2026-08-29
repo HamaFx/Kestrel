@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => {
   class FakeVerificationError extends Error {}
   return {
     resolveChatModel: vi.fn(),
+    resolveMastraModel: vi.fn(),
     resolveEmbeddingModel: vi.fn(() => 'openai/text-embedding-3-small'),
     createXauusdMastraAgent: vi.fn(),
     collectXauusdResearchPacket: vi.fn(),
@@ -50,6 +51,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('../src/model', () => ({
   resolveChatModel: mocks.resolveChatModel,
+  resolveMastraModel: mocks.resolveMastraModel,
   resolveEmbeddingModel: mocks.resolveEmbeddingModel,
 }));
 vi.mock('../src/mastra/agent', () => ({
@@ -82,6 +84,13 @@ const env = {} as Parameters<typeof resolveXauusdMastraModel>[1];
 describe('Mastra BYOK runner', () => {
   beforeEach(() => {
     mocks.resolveChatModel.mockReset();
+    mocks.resolveMastraModel.mockReset().mockImplementation((args: { settings: typeof settings; env: typeof env; domain: string; modelOverride?: string | null }) =>
+      mocks.resolveChatModel(
+        { aiApiKeys: args.settings.aiApiKeys, chatModel: args.modelOverride ?? args.settings.chatModel ?? null },
+        args.env,
+        args.domain,
+      ),
+    );
     mocks.createXauusdMastraAgent.mockReset();
     mocks.collectXauusdResearchPacket.mockReset().mockResolvedValue({
       packetId: 'packet-1',

@@ -17,7 +17,7 @@
 // P1 — Thread persistence (SRP split from persistence.ts).
 // Thread CRUD + fork logic. Messages and telemetry live in their own modules.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { Symbol } from '@kestrel/shared';
 import { and, asc, desc, eq, lt, or, sql } from 'drizzle-orm';
 
@@ -85,7 +85,12 @@ export async function listThreads(
 ): Promise<{ threads: DbThread[]; nextCursor: string | null }> {
   const boundedLimit = Math.max(1, Math.min(Math.trunc(limit) || 50, 100));
   const cursor = decodeThreadCursor(beforeCursor);
-  const userFilter = eq(schema.chatThreads.userId, userId);
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const userFilter = and(
+    eq(schema.chatThreads.userId, userId),
+    eq(schema.chatThreads.tenantId, tenantId),
+  );
   // PostgreSQL timestamps have microsecond precision while JavaScript Dates
   // have milliseconds. Paginate on the same millisecond bucket that is
   // encoded in the cursor, then use the UUID tie-breaker within that bucket.
@@ -102,7 +107,7 @@ export async function listThreads(
       : lt(updatedAtBucket, new Date(cursor.updatedAt))
     : undefined;
 
-  const query = getDb()
+  const query = db
     .select()
     .from(schema.chatThreads)
     .where(cursorFilter ? and(userFilter, cursorFilter) : userFilter)
@@ -120,10 +125,18 @@ export async function listThreads(
 }
 
 export async function getThread(userId: string, id: string): Promise<DbThread | null> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.id, id), eq(schema.chatThreads.userId, userId)))
+    .where(
+      and(
+        eq(schema.chatThreads.id, id),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   const row = rows[0];
   return row ? rowToThread(row) : null;
@@ -133,10 +146,13 @@ export async function createThread(
   userId: string,
   opts: { pinnedSymbol?: Symbol | null } = {},
 ): Promise<DbThread> {
-  const inserted = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const inserted = await db
     .insert(schema.chatThreads)
     .values({
       userId,
+      tenantId,
       title: null,
       pinnedSymbol: opts.pinnedSymbol ?? null,
       modelOverride: null,
@@ -155,10 +171,18 @@ export async function updateThreadTitle(
   title: string,
   source: 'llm' | 'fallback',
 ): Promise<boolean> {
-  const updated = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const updated = await db
     .update(schema.chatThreads)
     .set({ title, titleSource: source, updatedAt: new Date() })
-    .where(and(eq(schema.chatThreads.id, id), eq(schema.chatThreads.userId, userId)))
+    .where(
+      and(
+        eq(schema.chatThreads.id, id),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .returning({ id: schema.chatThreads.id });
   return updated.length > 0;
 }
@@ -168,10 +192,18 @@ export async function updateThreadPinnedSymbol(
   id: string,
   pinnedSymbol: Symbol | null,
 ): Promise<boolean> {
-  const updated = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const updated = await db
     .update(schema.chatThreads)
     .set({ pinnedSymbol, updatedAt: new Date() })
-    .where(and(eq(schema.chatThreads.id, id), eq(schema.chatThreads.userId, userId)))
+    .where(
+      and(
+        eq(schema.chatThreads.id, id),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .returning({ id: schema.chatThreads.id });
   return updated.length > 0;
 }
@@ -181,22 +213,47 @@ export async function updateThreadAnalysisMode(
   id: string,
   analysisMode: string | null,
 ): Promise<boolean> {
-  const updated = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const updated = await db
     .update(schema.chatThreads)
     .set({ analysisMode, updatedAt: new Date() })
-    .where(and(eq(schema.chatThreads.id, id), eq(schema.chatThreads.userId, userId)))
+    .where(
+      and(
+        eq(schema.chatThreads.id, id),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .returning({ id: schema.chatThreads.id });
   return updated.length > 0;
 }
 
 export async function deleteThread(userId: string, id: string): Promise<void> {
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .delete(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.id, id), eq(schema.chatThreads.userId, userId)));
+    .where(
+      and(
+        eq(schema.chatThreads.id, id),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    );
 }
 
 export async function deleteAllThreads(userId: string): Promise<void> {
-  await getDb().delete(schema.chatThreads).where(eq(schema.chatThreads.userId, userId));
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
+    .delete(schema.chatThreads)
+    .where(
+      and(
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    );
 }
 
 function rowToThread(row: typeof schema.chatThreads.$inferSelect): DbThread {
@@ -242,20 +299,38 @@ export interface ForkThreadResult {
 
 export async function forkThread(input: ForkThreadInput): Promise<ForkThreadResult> {
   const { userId, sourceThreadId, atMessageId, newText } = input;
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
 
-  const [source] = await getDb()
+  const [source] = await db
     .select()
     .from(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.id, sourceThreadId), eq(schema.chatThreads.userId, userId)))
+    .where(
+      and(
+        eq(schema.chatThreads.id, sourceThreadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   if (!source) throw new Error(`thread not found: ${sourceThreadId}`);
 
-  const sourceMessages = await getDb()
+  const sourceMessages = await db
     .select()
     .from(schema.chatMessages)
-    .where(eq(schema.chatMessages.threadId, sourceThreadId))
+    .innerJoin(
+      schema.chatThreads,
+      and(
+        eq(schema.chatMessages.threadId, schema.chatThreads.id),
+        eq(schema.chatMessages.tenantId, tenantId),
+        eq(schema.chatThreads.id, sourceThreadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .orderBy(asc(schema.chatMessages.createdAt), asc(schema.chatMessages.id))
-    .limit(MAX_FORK_MESSAGES + 1);
+    .limit(MAX_FORK_MESSAGES + 1)
+    .then((rows) => rows.map(({ chat_messages }) => chat_messages));
   if (sourceMessages.length > MAX_FORK_MESSAGES) {
     throw new Error(`thread is too long to fork (maximum ${MAX_FORK_MESSAGES} messages)`);
   }
@@ -273,11 +348,12 @@ export async function forkThread(input: ForkThreadInput): Promise<ForkThreadResu
     throw new Error(`can only edit user messages, got role=${target.role}`);
 
   const newTitle = deriveForkedTitle(newText);
-  return getDb().transaction(async (tx) => {
+  return db.transaction(async (tx) => {
     const [created] = await tx
       .insert(schema.chatThreads)
       .values({
         userId,
+        tenantId,
         title: newTitle,
         pinnedSymbol: source.pinnedSymbol ?? null,
         analysisMode: null,
@@ -288,6 +364,7 @@ export async function forkThread(input: ForkThreadInput): Promise<ForkThreadResu
     const cut = sourceMessages.slice(0, editIdx + 1);
     const rows = cut.map((m, i) => ({
       threadId: newThreadId,
+      tenantId,
       role: m.role,
       content: i === editIdx ? newText : m.content,
       parts: m.parts ?? null,
@@ -305,7 +382,13 @@ export async function forkThread(input: ForkThreadInput): Promise<ForkThreadResu
     await tx
       .update(schema.chatThreads)
       .set({ updatedAt: new Date() })
-      .where(and(eq(schema.chatThreads.id, newThreadId), eq(schema.chatThreads.userId, userId)));
+      .where(
+        and(
+          eq(schema.chatThreads.id, newThreadId),
+          eq(schema.chatThreads.userId, userId),
+          eq(schema.chatThreads.tenantId, tenantId),
+        ),
+      );
 
     return {
       newThreadId,

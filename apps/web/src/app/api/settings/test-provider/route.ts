@@ -16,6 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { requireTenantIdForUser } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -54,17 +55,20 @@ export const POST = withAuth<void>(async (req, { user }) => {
   // overwrites the previous row rather than accumulating history.
   // The health badge on /settings/api-keys reads from this table.
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(user.userId, db);
   const testedAt = new Date();
   await db
     .delete(schema.providerTests)
     .where(
       and(
         eq(schema.providerTests.userId, user.userId),
+        eq(schema.providerTests.tenantId, tenantId),
         eq(schema.providerTests.providerId, body.provider),
       ),
     );
   await db.insert(schema.providerTests).values({
     userId: user.userId,
+    tenantId,
     providerId: body.provider,
     ok: result.ok,
     error: result.ok ? null : (result.error ?? 'unknown error'),

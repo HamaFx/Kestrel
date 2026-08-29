@@ -7,6 +7,7 @@
 import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 
 import { getDb, schema, type DbClient } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 import { metrics } from '@kestrel/shared';
 import type {
   FullAnalysisQueueRow,
@@ -58,11 +59,13 @@ export async function enqueueFullAnalysisQueue(
   input: EnqueueFullAnalysisQueueInput,
 ): Promise<FullAnalysisQueueRow> {
   const db = input.db ?? getDb();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
   await db
     .insert(schema.fullAnalysisQueue)
     .values({
       runId: input.runId,
       userId: input.userId,
+      tenantId,
       threadId: input.threadId,
       idempotencyKey: input.idempotencyKey,
       payload: input.payload,
@@ -298,7 +301,13 @@ export async function getFullAnalysisQueueRow(
   db: DbClient = getDb(),
 ): Promise<FullAnalysisQueueRow | null> {
   const conditions = [eq(schema.fullAnalysisQueue.runId, runId)];
-  if (userId) conditions.push(eq(schema.fullAnalysisQueue.userId, userId));
+  if (userId) {
+    const tenantId = await requireTenantIdForUser(userId, db);
+    conditions.push(
+      eq(schema.fullAnalysisQueue.userId, userId),
+      eq(schema.fullAnalysisQueue.tenantId, tenantId),
+    );
+  }
   const rows = await db.select().from(schema.fullAnalysisQueue).where(and(...conditions)).limit(1);
   return rows[0] ?? null;
 }

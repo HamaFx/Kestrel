@@ -19,7 +19,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { estimateCostUsd } from '../cost';
@@ -87,13 +87,16 @@ export interface TelemetryInput {
 
 export async function recordTelemetry(t: TelemetryInput): Promise<void> {
   const userId = t.userId ?? '__system__';
+  const db = getDb();
+  const tenantId = userId === '__system__' ? undefined : await requireTenantIdForUser(userId, db);
   const context = getDiagnosticContext();
   const idempotencyKey = t.idempotencyKey ?? `telemetry.turn:${randomUUID()}`;
   try {
-    await getDb()
+    await db
       .insert(schema.chatTelemetry)
       .values({
         userId,
+        ...(tenantId ? { tenantId } : {}),
         threadId: t.threadId,
         messageId: t.messageId,
         traceId: t.traceId ?? context?.traceId ?? null,
@@ -149,13 +152,16 @@ export interface ToolTelemetryInput {
 
 export async function recordToolTelemetry(t: ToolTelemetryInput): Promise<boolean> {
   const userId = t.userId ?? '__system__';
+  const db = getDb();
+  const tenantId = userId === '__system__' ? undefined : await requireTenantIdForUser(userId, db);
   const context = getDiagnosticContext();
   const idempotencyKey = t.idempotencyKey ?? `telemetry.tool:${randomUUID()}`;
   try {
-    await getDb()
+    await db
       .insert(schema.chatToolTelemetry)
       .values({
         userId,
+        ...(tenantId ? { tenantId } : {}),
         threadId: t.threadId,
         messageId: t.messageId,
         traceId: t.traceId ?? context?.traceId ?? null,

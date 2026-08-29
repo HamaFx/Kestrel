@@ -191,6 +191,11 @@ const BillingEnv = z.object({
   NOWPAYMENTS_API_KEY: z.string().min(1).optional(),
   NOWPAYMENTS_IPN_SECRET: z.string().min(1).optional(),
   NOWPAYMENTS_API_BASE: z.string().url().default('https://api-sandbox.nowpayments.io'),
+  /** Hosted OSS deployments keep billing disabled unless explicitly opted in. */
+  BILLING_ENABLED: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
 });
 
 const PublicEnv = z.object({
@@ -257,6 +262,8 @@ const RuntimeEnv = z.object({
   PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(3),
   CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
   ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(7),
+  BILLING_WEBHOOK_DLQ_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
+  AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
   PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
   BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
 
@@ -284,6 +291,14 @@ const RuntimeEnv = z.object({
   PER_USER_BRIEFINGS: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
     .default('0')
+    .transform((v) => v === '1' || v === 'true'),
+  /**
+   * OSS runtime boundary. The public self-hosted release is single-user
+   * until every tenant-aware query and worker path is covered by RLS tests.
+   */
+  OSS_SINGLE_USER_MODE: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('1')
     .transform((v) => v === '1' || v === 'true'),
 });
 
@@ -321,17 +336,19 @@ export const ServerEnvSchema = z
       'MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS=true. Multi-user PostgreSQL deployments must fail closed instead of running without database tenant isolation.',
     path: ['KESTREL_ENABLE_RLS'],
   })
-  .refine((env) => !env.MULTI_USER_ENABLED && !env.KESTREL_ENABLE_RLS, {
+  .refine((env) => env.REGISTRATION_MODE !== 'open' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS), {
     message:
-      'Multi-user/RLS mode is disabled in this open-source release until every user-data query establishes tenant context. Keep MULTI_USER_ENABLED=0 and KESTREL_ENABLE_RLS=0, and use owner-first registration.',
-    path: ['MULTI_USER_ENABLED'],
+      'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
+    path: ['REGISTRATION_MODE'],
   })
   .refine(
-    (env) => env.REGISTRATION_MODE !== 'open' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS),
+    (env) =>
+      !env.OSS_SINGLE_USER_MODE ||
+      (!env.MULTI_USER_ENABLED && !env.KESTREL_ENABLE_RLS && env.REGISTRATION_MODE === 'owner-first'),
     {
       message:
-        'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
-      path: ['REGISTRATION_MODE'],
+        'Multi-user/RLS mode is disabled in OSS_SINGLE_USER_MODE. Keep MULTI_USER_ENABLED=0, KESTREL_ENABLE_RLS=0, and REGISTRATION_MODE=owner-first.',
+      path: ['OSS_SINGLE_USER_MODE'],
     },
   );
 
@@ -357,6 +374,37 @@ export function resolveDirectDatabaseUrl(
   if (!url) {
     throw new Error(
       'Neither DIRECT_URL, POSTGRES_URL_NON_POOLING, DATABASE_URL, nor POSTGRES_URL is set',
+    );
+  }
+  return url;
+}
+
+/** Return true for Supabase/PgBouncer transaction-pooler URLs. */
+export function isTransactionPoolerUrl(value: string): boolean {
+  const parsed = new URL(value);
+  // Supabase's session pooler uses the same `*.pooler.supabase.com` host
+  // family on port 5432 and supports session-bound operations. Only the
+  // transaction-mode endpoint (6543) is unsafe for migrations.
+  return parsed.port === '6543';
+}
+
+/**
+ * Resolve the URL allowed for migrations and other session-bound operations.
+ * A runtime pooler URL is never accepted because PgBouncer transaction mode
+ * can silently discard session-bound DDL.
+ */
+export function resolveMigrationDatabaseUrl(
+  env: Pick<ServerEnv, 'DIRECT_URL' | 'POSTGRES_URL_NON_POOLING'>,
+): string {
+  const url = env.DIRECT_URL || env.POSTGRES_URL_NON_POOLING;
+  if (!url) {
+    throw new Error(
+      'DIRECT_URL or POSTGRES_URL_NON_POOLING is required for migrations; runtime pooler URLs are not accepted',
+    );
+  }
+  if (isTransactionPoolerUrl(url)) {
+    throw new Error(
+      'Migration database URL points to a transaction pooler. Use the Supabase direct/session URL on port 5432.',
     );
   }
   return url;

@@ -18,7 +18,7 @@
 import 'server-only';
 
 import { getDb } from '@kestrel/ai';
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS, normalizeSymbol } from '@kestrel/shared';
 import type { PROVIDER_IDS } from '@kestrel/shared/byok';
 import { decryptByok, encryptByok, type ByokPayload } from '@kestrel/shared/encryption';
@@ -97,6 +97,7 @@ export async function completeOnboardingAction(formData: FormData) {
 
     // The database catalog is authoritative at the user boundary.
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(userId, db);
     const activeRows = await db
       .select({ symbol: schema.symbolCatalog.symbol })
       .from(schema.symbolCatalog)
@@ -140,7 +141,12 @@ export async function completeOnboardingAction(formData: FormData) {
           onboardingProgress: schema.userSettings.onboardingProgress,
         })
         .from(schema.userSettings)
-        .where(eq(schema.userSettings.userId, userId));
+        .where(
+          and(
+            eq(schema.userSettings.userId, userId),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
       const currentKeys = decryptByok(existing?.aiApiKeys) ?? {};
       const merged: ByokPayload = { ...currentKeys };
       if (payload.apiKeys) {
@@ -163,11 +169,17 @@ export async function completeOnboardingAction(formData: FormData) {
       const existingSettings = await tx
         .select({ userId: schema.userSettings.userId })
         .from(schema.userSettings)
-        .where(eq(schema.userSettings.userId, userId));
+        .where(
+          and(
+            eq(schema.userSettings.userId, userId),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
 
       if (existingSettings.length === 0) {
         await tx.insert(schema.userSettings).values({
           userId,
+          tenantId,
           defaultSymbol: requestedDefault,
           timezone: payload.timezone || 'UTC',
           aiApiKeys: encryptedKeys,
@@ -186,20 +198,33 @@ export async function completeOnboardingAction(formData: FormData) {
               ? { onboardingProgress: mergedProgress }
               : {}),
           })
-          .where(eq(schema.userSettings.userId, userId));
+          .where(
+            and(
+              eq(schema.userSettings.userId, userId),
+              eq(schema.userSettings.tenantId, tenantId),
+            ),
+          );
       }
 
       // 3. Add default or custom watchlist.
       try {
         const watchSymbols = requestedSymbols;
 
-        await tx.delete(schema.userSymbols).where(eq(schema.userSymbols.userId, userId));
+        await tx
+          .delete(schema.userSymbols)
+          .where(
+            and(
+              eq(schema.userSymbols.userId, userId),
+              eq(schema.userSymbols.tenantId, tenantId),
+            ),
+          );
 
         await tx
           .insert(schema.userSymbols)
           .values(
             watchSymbols.map((symbol, i) => ({
               userId,
+              tenantId,
               symbol,
               displayOrder: i,
             })),

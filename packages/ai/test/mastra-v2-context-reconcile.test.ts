@@ -5,6 +5,8 @@ const {
   completeMemoryBackfill,
   failMemoryBackfill,
   getMemoryBackfillState,
+  markMemoryProjectionFailed,
+  markMemoryProjectionProjected,
 } = vi.hoisted(() => ({
   claimMemoryBackfill: vi.fn(),
   completeMemoryBackfill: vi.fn(),
@@ -20,6 +22,8 @@ vi.mock('@kestrel/db', () => ({
   completeMemoryBackfill,
   failMemoryBackfill,
   getMemoryBackfillState,
+  markMemoryProjectionFailed,
+  markMemoryProjectionProjected,
 }));
 vi.mock('../src/persistence', () => ({ listMessages }));
 

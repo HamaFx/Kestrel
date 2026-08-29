@@ -19,6 +19,7 @@ import { createHmac } from 'node:crypto';
 
 import { getDb } from '@kestrel/ai';
 import {
+  createAuditLog,
   createUserWithSettings,
   createVerificationToken,
   schema,
@@ -588,11 +589,7 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
     // FEAT-03: Audit log for password reset
     if (userId) {
       try {
-        await db.insert(schema.auditLogs).values({
-          userId,
-          action: 'password_reset',
-          metadata: {},
-        });
+        await createAuditLog(userId, 'password_reset');
       } catch {
         /* fail open */
       }

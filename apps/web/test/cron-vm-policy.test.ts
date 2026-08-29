@@ -118,6 +118,15 @@ describe('cron VM operational policy', () => {
     expect(sudoers).toContain('/usr/local/sbin/kestrel-sync-systemd-units');
   });
 
+  it('keeps the documented billing DLQ retention setting in the operator contract', () => {
+    const deployment = read('docs/08-deployment.md');
+    const workerEnv = read('apps/worker/src/env.ts');
+    expect(deployment).toContain('BILLING_WEBHOOK_DLQ_RETENTION_DAYS=90');
+    expect(deployment).toContain('AI_EVALUATION_RETENTION_DAYS=90');
+    expect(workerEnv).toContain('BILLING_WEBHOOK_DLQ_RETENTION_DAYS');
+    expect(workerEnv).toContain('AI_EVALUATION_RETENTION_DAYS');
+  });
+
   it('provisions the documented billing DLQ timer', () => {
     const provisioner = read('infra/cron-vm/_provision-docker.sh');
     const unit = read('infra/cron-vm/units/kestrel-billing-dlq.timer');

@@ -18,7 +18,7 @@
 
 // API keys domain actions: BYOK key management, export/import, market data provider selection.
 import { getDb, testProviderKey } from '@kestrel/ai';
-import { schema, withRateLimit } from '@kestrel/db';
+import { requireTenantIdForUser, schema, withRateLimit } from '@kestrel/db';
 import {
   decryptByok,
   decryptSecret,
@@ -63,13 +63,19 @@ export async function updateApiKeysAction(
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     const [oldSettings] = await db
       .select({
         aiApiKeys: schema.userSettings.aiApiKeys,
         aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
       })
       .from(schema.userSettings)
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
     const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
     const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
 
@@ -124,7 +130,12 @@ export async function updateApiKeysAction(
           aiApiKeys: Object.keys(keys).length > 0 ? encryptByok(keys) : null,
           aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
         })
-        .where(eq(schema.userSettings.userId, userId));
+        .where(
+          and(
+            eq(schema.userSettings.userId, userId),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
 
       for (const tr of testResults) {
         await tx
@@ -132,12 +143,14 @@ export async function updateApiKeysAction(
           .where(
             and(
               eq(schema.providerTests.userId, userId),
+              eq(schema.providerTests.tenantId, tenantId),
               eq(schema.providerTests.providerId, tr.id),
             ),
           );
         if (tr.action === 'upsert') {
           await tx.insert(schema.providerTests).values({
             userId,
+            tenantId,
             providerId: tr.id,
             ok: tr.ok!,
             error: tr.ok ? null : (tr.error ?? 'unknown error'),
@@ -214,10 +227,16 @@ export async function exportKeysAction(
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     const [settings] = await db
       .select({ aiApiKeys: schema.userSettings.aiApiKeys })
       .from(schema.userSettings)
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     const encryptedPayload = settings?.aiApiKeys;
     if (!encryptedPayload) {
@@ -289,6 +308,7 @@ export async function importKeysAction(
     }
 
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
 
     const now = new Date().toISOString();
     const newUpdatedAt: Record<string, string> = {};
@@ -302,7 +322,12 @@ export async function importKeysAction(
         aiApiKeys: encryptByok(validKeys),
         aiApiKeysUpdatedAt: newUpdatedAt,
       })
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     revalidatePath('/settings/api-keys');
     return { ok: true as const, data: { importedCount: Object.keys(validKeys).length } };
@@ -336,12 +361,18 @@ export async function updateMarketDataProviderAction(formData: FormData): Promis
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     await db
       .update(schema.userSettings)
       .set({
         marketDataProvider: provider,
       })
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     revalidatePath('/settings/api-keys');
     revalidatePath('/settings');

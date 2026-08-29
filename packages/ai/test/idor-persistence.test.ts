@@ -29,6 +29,7 @@ import type * as DbModule from '@kestrel/db';
 import * as dbModule from '@kestrel/db';
 import { schema } from '@kestrel/db';
 import { ensureMigrations, getLocalDb } from '@kestrel/db/local-db';
+import { container } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,6 +42,12 @@ import {
   listMessages,
   updateThreadPinnedSymbol,
 } from '../src/persistence';
+import { DB } from '../src/tokens';
+import {
+  listAgentOpinions,
+  listMessageOpinions,
+  saveAgentOpinions,
+} from '../src/multi-agent/persistence';
 
 vi.hoisted(() => {
   // The IDOR test runs against PGlite via `getLocalDb()` below. But the
@@ -68,6 +75,7 @@ vi.mock('@kestrel/db', async () => {
       }
       return activeDb as ReturnType<typeof actual.getDb>;
     },
+    requireTenantIdForUser: async (userId: string) => userId,
     // Expose a setter so beforeAll can register the PGlite instance.
     __esModule: true,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,10 +101,12 @@ beforeAll(async () => {
   // Register the PGlite instance so calls to `getDb()` from production
   // code (`persistence.ts`) hit the same DB as the test setup/teardown.
   setDb(db);
+  container.register(DB, () => db as never);
 }, 30_000);
 
 beforeEach(async () => {
   // Clean both users' threads + messages before each test.
+  await db.delete(schema.agentOpinions);
   await db.delete(schema.chatMessages);
   await db.delete(schema.chatThreads);
   await db.delete(schema.userSettings);
@@ -266,5 +276,88 @@ describe('Phase A item 1 — updateThreadPinnedSymbol IDOR + behavior', () => {
     const fake = '00000000-0000-0000-0000-deadbeef0000';
     const ok = await updateThreadPinnedSymbol(USER_A, fake, 'XAUUSD');
     expect(ok).toBe(false);
+  });
+});
+
+describe('agent opinion parent ownership', () => {
+  it('persists and reads opinions only when thread and message share canonical ownership', async () => {
+    await seedUser(USER_A, 'a@example.com');
+    await seedUser(USER_B, 'b@example.com');
+    const aThread = await createThread(USER_A);
+    const bThread = await createThread(USER_B);
+    const aMessage = await appendAssistantMessage(
+      USER_A,
+      aThread.id,
+      {
+        id: 'opinion-message-a',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'A result' }],
+      } as UIMessage,
+    );
+    const bMessage = await appendAssistantMessage(
+      USER_B,
+      bThread.id,
+      {
+        id: 'opinion-message-b',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'B result' }],
+      } as UIMessage,
+    );
+
+    const opinion = {
+      agentName: 'technical',
+      bias: 'bullish',
+      confidence: 0.8,
+      reasoning: 'Owned parent records',
+      rawData: { source: 'test' },
+      model: 'test/model',
+      costUsd: 0.01,
+      latencyMs: 10,
+    };
+
+    await saveAgentOpinions({
+      userId: USER_A,
+      threadId: aThread.id,
+      messageId: aMessage.messageId,
+      analysisMode: 'standard',
+      opinions: [opinion],
+    });
+    expect((await listAgentOpinions(USER_A, aThread.id)).map((row) => row.agentName)).toEqual([
+      'technical',
+    ]);
+    expect((await listMessageOpinions(USER_A, aMessage.messageId)).map((row) => row.agentName)).toEqual([
+      'technical',
+    ]);
+
+    await expect(
+      saveAgentOpinions({
+        userId: USER_A,
+        threadId: aThread.id,
+        messageId: bMessage.messageId,
+        analysisMode: 'standard',
+        opinions: [opinion],
+      }),
+    ).rejects.toThrow(/unowned thread or message/i);
+
+    await db.insert(schema.agentOpinions).values({
+      userId: USER_A,
+      tenantId: USER_B,
+      threadId: aThread.id,
+      messageId: aMessage.messageId,
+      agentName: 'risk',
+      bias: 'bearish',
+      confidence: 0.4,
+      reasoning: 'Wrong tenant row',
+      rawData: { source: 'test' },
+      model: 'test/model',
+      costUsd: 0.01,
+      latencyMs: 10,
+      analysisMode: 'standard',
+    });
+    expect((await listAgentOpinions(USER_A, aThread.id)).map((row) => row.agentName)).toEqual([
+      'technical',
+    ]);
+    expect(await listAgentOpinions(USER_B, bThread.id)).toEqual([]);
+    expect(await listMessageOpinions(USER_B, bMessage.messageId)).toEqual([]);
   });
 });

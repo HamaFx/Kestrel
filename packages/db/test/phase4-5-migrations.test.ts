@@ -71,9 +71,25 @@ describe('Phase 4 — Security (file checks)', () => {
     expect(clientSource).toContain('SUPABASE_CA_CERT');
   });
 
-  it('RLS policy plan document exists', () => {
-    // Assertions removed per user request
+  it('migration apply keeps production TLS verification fail-closed', () => {
+    const migrationSources = [
+      readFileSync(join(HERE, '..', 'scripts', 'migrate-apply.mjs'), 'utf-8'),
+      readFileSync(join(HERE, '..', 'scripts', 'migrate-status.mjs'), 'utf-8'),
+      readFileSync(join(HERE, '..', 'scripts', 'migration-reconcile.mjs'), 'utf-8'),
+      readFileSync(join(HERE, '..', 'drizzle.config.ts'), 'utf-8'),
+      readFileSync(join(HERE, '..', '..', '..', 'apps', 'web', 'scripts', 'migrate-runtime.mjs'), 'utf-8'),
+    ];
+
+    for (const source of migrationSources) {
+      expect(source).toContain('rejectUnauthorized: true');
+      expect(source).toContain('DB_DISABLE_SSL');
+      expect(source).toContain('KESTREL_LOCAL_DOCKER');
+    }
+
+    expect(migrationSources[0]).not.toContain("databaseUrl.includes('supabase.co')");
+    expect(migrationSources[0]).not.toContain("databaseUrl.includes('supabase.com')");
   });
+
 
   it('auth.ts comment documents telegramBotToken encryption', () => {
     const authSource = readFileSync(join(HERE, '..', 'src', 'schema', 'auth.ts'), 'utf-8');

@@ -104,6 +104,7 @@ export * from './billing';
 // Errors & Logging
 export * from './errors';
 export * from './observability';
+export * from './url-safety';
 // Phase D — typed counters/histograms for AI + worker SLIs
 export * from './metrics';
 // Logger is server-only (uses node:async_hooks / node:stream). Import from
@@ -118,7 +119,15 @@ export * from './bug-report';
 export {} from './encryption';
 
 // Env (server-only — do NOT import from client code)
-export { ServerEnvSchema, parseServerEnv, resolveDatabaseUrl, pickAiEnv } from './env';
+export {
+  ServerEnvSchema,
+  parseServerEnv,
+  resolveDatabaseUrl,
+  resolveDirectDatabaseUrl,
+  resolveMigrationDatabaseUrl,
+  isTransactionPoolerUrl,
+  pickAiEnv,
+} from './env';
 export type { ServerEnv, AiEnvKeys } from './env';
 // BYOK type re-exports (intentionally NOT pulling node:crypto into
 // the client bundle).

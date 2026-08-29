@@ -73,6 +73,7 @@ function makeThenable(value: unknown): Record<string, unknown> {
 vi.mock('@kestrel/db', () => {
   const fromResult = makeFromResult();
   return {
+    hasTenantDbScope: () => false,
     getDb: () => ({
       select: vi.fn(() => ({ from: vi.fn(() => fromResult) })),
     }),
@@ -151,6 +152,19 @@ describe('getAdminUser', () => {
 
     expect(result.admin).toEqual({ userId: 'u-789', email: 'solo@example.com', name: 'Solo' });
     expect(result.reason).toBe('authenticated');
+  });
+
+  it('returns forbidden when a second regular account exists without an explicit admin', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'u-789' } });
+    pushWhereResult([{ id: 'u-789', email: 'first@example.com', name: 'First', role: 'user' }]);
+    // The exact-one-user predicate returns no rows once another regular user exists.
+    pushWhereResult([]);
+    pushOrderByLimitResult([]);
+
+    const result = await getAdminUser();
+
+    expect(result.admin).toBeNull();
+    expect(result.reason).toBe('forbidden');
   });
 
   it('returns forbidden when user record is missing', async () => {

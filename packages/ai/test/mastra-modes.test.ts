@@ -21,6 +21,7 @@ import { extractSymbolFromPrompt, isSafeSymbolResearchPrompt } from '../src/mast
 
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
+  resolveMastraModel: vi.fn(),
   resolveEmbeddingModel: vi.fn(() => 'openai/text-embedding-3-small'),
   collectSymbolResearchPacket: vi.fn(),
   beginMastraRun: vi.fn(),
@@ -32,6 +33,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../src/model', () => ({
   resolveChatModel: mocks.resolveChatModel,
+  resolveMastraModel: mocks.resolveMastraModel,
   resolveEmbeddingModel: mocks.resolveEmbeddingModel,
 }));
 vi.mock('../src/mastra/symbol-research', async () => {
@@ -116,6 +118,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.failRisk = false;
   mocks.rateLimitFailures = 0;
+  mocks.resolveMastraModel.mockImplementation((args: { settings: typeof settings; env: typeof env; domain: string; modelOverride?: string | null }) =>
+    mocks.resolveChatModel(
+      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.modelOverride ?? args.settings.chatModel ?? null },
+      args.env,
+      args.domain,
+    ),
+  );
   mocks.resolveChatModel.mockReturnValue({
     model: {},
     modelId: 'google/gemini-3.6-flash',

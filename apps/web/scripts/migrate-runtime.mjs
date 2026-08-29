@@ -33,11 +33,9 @@ const multiUserEnabled = ['1', 'true'].includes((process.env.MULTI_USER_ENABLED 
 const rlsEnabled = ['1', 'true'].includes(
   (process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS ?? '').toLowerCase(),
 );
-const registrationMode = process.env.REGISTRATION_MODE ?? 'owner-first';
-if (multiUserEnabled || rlsEnabled || registrationMode === 'open') {
+if (multiUserEnabled !== rlsEnabled) {
   console.error(
-    '[runtime-migrate] Multi-user/RLS and open-registration modes are disabled in this open-source release. ' +
-      'Set MULTI_USER_ENABLED=0, KESTREL_ENABLE_RLS=0, and REGISTRATION_MODE=owner-first (or disabled) until every user-data query establishes tenant context.',
+    '[runtime-migrate] MULTI_USER_ENABLED and KESTREL_ENABLE_RLS must be enabled together; refusing an unsafe partial configuration.',
   );
   process.exit(1);
 }
@@ -54,7 +52,7 @@ function resolveSslOptions() {
       '[runtime-migrate] DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true.',
     );
   }
-  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\\\n/g, '\\n').trim();
+  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
   if (ca) return { ca, rejectUnauthorized: true };
   return process.env.NODE_ENV === 'production'
     ? { rejectUnauthorized: true }
@@ -111,11 +109,10 @@ try {
   });
 
   // Migration 0038 creates RLS policies unconditionally because Drizzle
-  // migrations are deployment-wide. This release runs the complete schema
-  // in single-user mode, so remove RLS after every migration on any
-  // self-hosted Postgres target; otherwise direct user-scoped queries would
-  // see no rows without an app.current_tenant transaction setting.
-  const tenantTables = [
+  // migrations are deployment-wide. Only legacy single-user deployments
+  // disable them. Shared mode must leave RLS enabled and forced.
+  if (!rlsEnabled) {
+    const tenantTables = [
     'agent_opinions', 'alerts', 'audit_logs', 'bot_links', 'briefings_emitted',
     'chat_telemetry', 'chat_threads', 'chat_tool_telemetry', 'daily_ai_spend',
     'decision_signal_feedback', 'decision_signal_outcomes', 'decision_signals',
@@ -124,11 +121,14 @@ try {
     'push_subscriptions', 'rate_limits', 'shared_snapshots', 'user_sessions',
     'user_settings', 'user_symbols', 'chat_messages',
   ];
-  for (const table of tenantTables) {
+    for (const table of tenantTables) {
     await sql.unsafe(`ALTER TABLE "${table}" NO FORCE ROW LEVEL SECURITY`);
     await sql.unsafe(`ALTER TABLE "${table}" DISABLE ROW LEVEL SECURITY`);
+    }
+    console.log('[runtime-migrate] Single-user mode: tenant RLS disabled.');
+  } else {
+    console.log('[runtime-migrate] Shared mode: tenant RLS remains enabled and forced.');
   }
-  console.log('[runtime-migrate] Single-user mode: tenant RLS disabled.');
 
   console.log('[runtime-migrate] Migrations completed successfully.');
 } catch (error) {

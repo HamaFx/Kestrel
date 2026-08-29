@@ -21,7 +21,8 @@ import { z } from 'zod';
 import { withAdminAuth } from '@/lib/admin-auth';
 import { parseSearchParams } from '@/lib/api';
 import type { DiagnosticTraceSummary } from '@/lib/services/admin-dtos';
-import { listDiagnosticTraces } from '@/lib/services/api-boundary';
+import { listDiagnosticTracesForAdmin } from '@/lib/services/api-boundary';
+import type { DiagnosticTraceRow } from '@kestrel/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -34,9 +35,9 @@ const querySchema = z.object({
 export const GET = withAdminAuth(async (req) => {
   const { threadId, limit } = parseSearchParams(req, querySchema);
 
-  const rows = await listDiagnosticTraces({ threadId, limit });
+  const rows = await listDiagnosticTracesForAdmin({ threadId, limit });
 
-  const traces: DiagnosticTraceSummary[] = rows.map((row) => ({
+  const traces: DiagnosticTraceSummary[] = (rows as DiagnosticTraceRow[]).map((row) => ({
     id: row.id,
     threadId: row.threadId ?? '',
     userId: row.userId ?? '',

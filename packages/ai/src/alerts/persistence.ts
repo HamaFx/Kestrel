@@ -18,7 +18,7 @@
 // and the AI `set_alert` tool. SQL stays here so all callers see the same
 // row → DTO mapping.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
   AlertChannelSchema,
   AlertRuleSchema,
@@ -50,7 +50,9 @@ export async function listAlerts(
   userId: string,
   opts: { activeOnly?: boolean; limit?: number } = {},
 ): Promise<Alert[]> {
-  const filters = [eq(schema.alerts.userId, userId)];
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const filters = [eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)];
   if (opts.activeOnly) filters.push(eq(schema.alerts.active, true));
 
   const rows = await getDb()
@@ -91,7 +93,8 @@ export async function listEvaluable(): Promise<Alert[]> {
   // active rows and filter in JS. The set is small — the cron
   // pulls only active alerts that haven't fired-and-deactivated,
   // and after Phase 17 the snoozed set is a subset of that.
-  const rows = await getDb()
+  const db = getDb();
+  const rows = await db
     .select()
     .from(schema.alerts)
     .where(and(eq(schema.alerts.active, true), isNull(schema.alerts.firedAt)))
@@ -113,10 +116,12 @@ export async function listEvaluable(): Promise<Alert[]> {
 }
 
 export async function getAlert(userId: string, id: string): Promise<Alert | null> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.alerts)
-    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)))
+    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)))
     .limit(1);
   const row = rows[0];
   return row ? rowToAlert(row) : null;
@@ -132,10 +137,13 @@ export async function createAlert(input: CreateAlertInput): Promise<Alert> {
   // caught this already; the bound is a defensive guard.
   const snoozeHours = Math.max(0, Math.min(168, Math.trunc(input.snoozeHours ?? 0)));
 
-  const inserted = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
+  const inserted = await db
     .insert(schema.alerts)
     .values({
       userId: input.userId,
+      tenantId,
       rule,
       channels,
       note: input.note ?? null,
@@ -183,10 +191,12 @@ export async function updateAlert(
 
   if (Object.keys(patch).length === 0) return getAlert(userId, id);
 
-  const updated = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const updated = await db
     .update(schema.alerts)
     .set(patch)
-    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)))
+    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)))
     .returning();
   return updated[0] ? rowToAlert(updated[0]) : null;
 }
@@ -205,13 +215,16 @@ export async function claimAlertDelivery(
   leaseMs = 30 * 60_000,
 ): Promise<boolean> {
   const staleBefore = new Date(claimedAt.getTime() - leaseMs);
-  const claimed = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const claimed = await db
     .update(schema.alerts)
     .set({ deliveryClaimedAt: claimedAt })
     .where(
       and(
         eq(schema.alerts.id, id),
         eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
         eq(schema.alerts.active, true),
         isNull(schema.alerts.firedAt),
         or(
@@ -230,13 +243,16 @@ export async function releaseAlertDeliveryClaim(
   id: string,
   claimedAt: Date,
 ): Promise<void> {
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .update(schema.alerts)
     .set({ deliveryClaimedAt: null })
     .where(
       and(
         eq(schema.alerts.id, id),
         eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
         eq(schema.alerts.deliveryClaimedAt, claimedAt),
       ),
     );
@@ -249,9 +265,11 @@ export async function markFired(
   when = new Date(),
   claimedAt?: Date,
 ): Promise<boolean> {
-  const predicates = [eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)];
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const predicates = [eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)];
   if (claimedAt) predicates.push(eq(schema.alerts.deliveryClaimedAt, claimedAt));
-  const updated = await getDb()
+  const updated = await db
     .update(schema.alerts)
     .set({ firedAt: when, active: false, deliveryClaimedAt: null })
     .where(and(...predicates))
@@ -270,9 +288,11 @@ export async function markFiredSnoozed(
   when = new Date(),
   claimedAt?: Date,
 ): Promise<boolean> {
-  const predicates = [eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)];
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const predicates = [eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)];
   if (claimedAt) predicates.push(eq(schema.alerts.deliveryClaimedAt, claimedAt));
-  const updated = await getDb()
+  const updated = await db
     .update(schema.alerts)
     .set({ lastFiredAt: when, deliveryClaimedAt: null })
     .where(and(...predicates))
@@ -340,16 +360,20 @@ export async function setRulePreviousValue(
   // we patched may be stale, but the schema check still keeps malformed
   // shapes from landing in the DB.
   const validated = AlertRuleSchema.parse(next);
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .update(schema.alerts)
     .set({ rule: validated })
-    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)));
+    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)));
 }
 
 export async function deleteAlert(userId: string, id: string): Promise<void> {
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .delete(schema.alerts)
-    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId)));
+    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)));
 }
 
 function rowToAlert(row: typeof schema.alerts.$inferSelect): Alert {

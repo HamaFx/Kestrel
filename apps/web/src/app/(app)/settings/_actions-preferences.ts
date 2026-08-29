@@ -18,7 +18,12 @@
 
 // Preferences domain actions: profile, UI, AI prefs, notifications, usage budget, symbols, locale.
 import { getDb } from '@kestrel/ai';
-import { schema, updateUserDisplayName, withRateLimit } from '@kestrel/db';
+import {
+  requireTenantIdForUser,
+  schema,
+  updateUserDisplayName,
+  withRateLimit,
+} from '@kestrel/db';
 import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import * as Sentry from '@sentry/nextjs';
 import { and, eq, sql } from 'drizzle-orm';
@@ -91,10 +96,16 @@ export async function updateUIPrefsAction(prefs: {
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     await db
       .update(schema.userSettings)
       .set(prefs)
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     revalidatePath('/settings');
     return { ok: true as const };
@@ -123,10 +134,16 @@ export async function updateAiPrefsAction(customInstructions: string): Promise<A
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     await db
       .update(schema.userSettings)
       .set({ customInstructions })
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     revalidatePath('/settings');
     return { ok: true as const };
@@ -155,10 +172,16 @@ export async function updateDisabledToolsAction(disabledTools: string[]): Promis
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     await db
       .update(schema.userSettings)
       .set({ disabledTools })
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     revalidatePath('/settings/agent');
     return { ok: true as const };
@@ -189,12 +212,18 @@ export async function updateNotificationPrefsAction(
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     // Merge with existing notification preferences to preserve nested
     // fields like noiseConfig that aren't managed through this action.
     const [existing] = await db
       .select({ notificationPreferences: schema.userSettings.notificationPreferences })
       .from(schema.userSettings)
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
     const merged = {
       ...((existing?.notificationPreferences as Record<string, unknown>) || {}),
       ...prefs,
@@ -202,7 +231,12 @@ export async function updateNotificationPrefsAction(
     await db
       .update(schema.userSettings)
       .set({ notificationPreferences: merged as Record<string, Record<string, boolean>> })
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     revalidatePath('/settings');
     return { ok: true as const };
@@ -251,6 +285,7 @@ export async function updateUsageSettingsAction(formData: FormData): Promise<Act
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     await db
       .update(schema.userSettings)
       .set({
@@ -259,7 +294,12 @@ export async function updateUsageSettingsAction(formData: FormData): Promise<Act
           Object.keys(providerSpendingThresholds).length > 0 ? providerSpendingThresholds : null,
         spendAlertsConfig: { email: emailAlert, telegram: telegramAlert },
       })
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     revalidatePath('/settings/usage');
     return { ok: true as const };
@@ -298,6 +338,7 @@ export async function addSymbolAction(formData: FormData): Promise<ActionResult>
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
 
     const inCatalog = await db
       .select({ symbol: schema.symbolCatalog.symbol })
@@ -320,7 +361,12 @@ export async function addSymbolAction(formData: FormData): Promise<ActionResult>
         maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`,
       })
       .from(schema.userSymbols)
-      .where(eq(schema.userSymbols.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSymbols.userId, session.user.id),
+          eq(schema.userSymbols.tenantId, tenantId),
+        ),
+      );
 
     const nextOrder = (orderResult[0]?.maxOrder ?? -1) + 1;
 
@@ -328,6 +374,7 @@ export async function addSymbolAction(formData: FormData): Promise<ActionResult>
       .insert(schema.userSymbols)
       .values({
         userId: session.user.id,
+        tenantId,
         symbol,
         displayOrder: nextOrder,
       })
@@ -367,10 +414,15 @@ export async function removeSymbolAction(formData: FormData): Promise<ActionResu
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     await db
       .delete(schema.userSymbols)
       .where(
-        and(eq(schema.userSymbols.userId, session.user.id), eq(schema.userSymbols.symbol, symbol)),
+        and(
+          eq(schema.userSymbols.userId, session.user.id),
+          eq(schema.userSymbols.tenantId, tenantId),
+          eq(schema.userSymbols.symbol, symbol),
+        ),
       );
 
     revalidatePath('/settings/symbols');
@@ -404,10 +456,16 @@ export async function updateLocaleAction(locale: string): Promise<ActionResult> 
 
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     await db
       .update(schema.userSettings)
       .set({ language: locale })
-      .where(eq(schema.userSettings.userId, session.user.id));
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
 
     revalidatePath('/settings');
     return { ok: true };

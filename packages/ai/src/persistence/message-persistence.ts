@@ -17,7 +17,7 @@
 // P1 — Message persistence (SRP split from persistence.ts).
 // Message CRUD + parts stripping. Thread and telemetry live in their own modules.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { getMessageText } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import { and, asc, eq } from 'drizzle-orm';
@@ -50,7 +50,9 @@ export async function listMessages(
   // Enforce ownership in the message query itself. Keeping the owner
   // predicate on the joined thread prevents a future refactor from turning
   // the pre-check into a time-of-check/time-of-use authorization gap.
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select({
       id: schema.chatMessages.id,
       threadId: schema.chatMessages.threadId,
@@ -65,7 +67,9 @@ export async function listMessages(
     .where(
       and(
         eq(schema.chatMessages.threadId, threadId),
+        eq(schema.chatMessages.tenantId, tenantId),
         eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
       ),
     )
     .orderBy(asc(schema.chatMessages.createdAt))
@@ -89,12 +93,20 @@ export async function appendUserMessage(
 ): Promise<void> {
   const text = extractText(message);
   const idempotencyKey = options?.idempotencyKey ?? `ui:${message.id}`;
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   try {
-    await getDb().transaction(async (tx) => {
+    await db.transaction(async (tx) => {
       const ownedThread = await tx
         .select({ id: schema.chatThreads.id })
         .from(schema.chatThreads)
-        .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)))
+        .where(
+          and(
+            eq(schema.chatThreads.id, threadId),
+            eq(schema.chatThreads.userId, userId),
+            eq(schema.chatThreads.tenantId, tenantId),
+          ),
+        )
         .limit(1);
       if (ownedThread.length === 0) throw new Error(`thread not found: ${threadId}`);
 
@@ -102,6 +114,7 @@ export async function appendUserMessage(
         .insert(schema.chatMessages)
         .values({
           threadId,
+          tenantId,
           role: 'user',
           content: text,
           parts: stripPartsForStorage(message.parts ?? null),
@@ -111,7 +124,13 @@ export async function appendUserMessage(
       await tx
         .update(schema.chatThreads)
         .set({ updatedAt: new Date() })
-        .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)));
+        .where(
+          and(
+            eq(schema.chatThreads.id, threadId),
+            eq(schema.chatThreads.userId, userId),
+            eq(schema.chatThreads.tenantId, tenantId),
+          ),
+        );
     });
   } catch (err) {
     const context = getDiagnosticContext();
@@ -148,12 +167,20 @@ export async function appendAssistantMessage(
 ): Promise<{ messageId: string }> {
   const text = extractText(message);
   const idempotencyKey = options?.idempotencyKey ?? `ui:${message.id}`;
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   try {
-    return await getDb().transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
       const ownedThread = await tx
         .select({ id: schema.chatThreads.id })
         .from(schema.chatThreads)
-        .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)))
+        .where(
+          and(
+            eq(schema.chatThreads.id, threadId),
+            eq(schema.chatThreads.userId, userId),
+            eq(schema.chatThreads.tenantId, tenantId),
+          ),
+        )
         .limit(1);
       if (ownedThread.length === 0) throw new Error(`thread not found: ${threadId}`);
 
@@ -161,6 +188,7 @@ export async function appendAssistantMessage(
         .insert(schema.chatMessages)
         .values({
           threadId,
+          tenantId,
           role: 'assistant',
           content: text,
           parts: stripPartsForStorage(message.parts ?? null),
@@ -173,7 +201,12 @@ export async function appendAssistantMessage(
         const [existing] = await tx
           .select({ id: schema.chatMessages.id })
           .from(schema.chatMessages)
-          .where(eq(schema.chatMessages.idempotencyKey, idempotencyKey))
+          .where(
+            and(
+              eq(schema.chatMessages.idempotencyKey, idempotencyKey),
+              eq(schema.chatMessages.tenantId, tenantId),
+            ),
+          )
           .limit(1);
         if (existing) return { messageId: existing.id };
         throw new Error(`assistant message insert returned no row: ${idempotencyKey}`);
@@ -181,7 +214,13 @@ export async function appendAssistantMessage(
       await tx
         .update(schema.chatThreads)
         .set({ updatedAt: new Date() })
-        .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)));
+        .where(
+          and(
+            eq(schema.chatThreads.id, threadId),
+            eq(schema.chatThreads.userId, userId),
+            eq(schema.chatThreads.tenantId, tenantId),
+          ),
+        );
       return { messageId: messageRow.id };
     });
   } catch (err) {

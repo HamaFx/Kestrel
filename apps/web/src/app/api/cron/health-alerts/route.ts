@@ -53,5 +53,5 @@ export async function GET(request: Request): Promise<Response> {
         delivery.status === 'skipped' ? `:${delivery.reason}` : ''
       }`,
     };
-  });
+  }, { requireAdminSession: true });
 }

@@ -33,6 +33,8 @@
 
 import { and, eq, gte, sql } from 'drizzle-orm';
 
+import { requireTenantIdForUser } from '@kestrel/db';
+
 import { errorResponse, withAuth } from '@/lib/api';
 import { getDb, schema } from '@/lib/services/api-boundary';
 
@@ -42,6 +44,7 @@ export const dynamic = 'force-dynamic';
 export const GET = withAuth<void>(async (_req, { user }) => {
   try {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(user.userId, db);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Per-agent breakdown (specialist agents only — they have rows in agent_opinions).
@@ -53,9 +56,26 @@ export const GET = withAuth<void>(async (_req, { user }) => {
         avgLatencyMs: sql<number>`coalesce(avg(${schema.agentOpinions.latencyMs}), 0)::int`,
       })
       .from(schema.agentOpinions)
+      .innerJoin(
+        schema.chatThreads,
+        and(
+          eq(schema.chatThreads.id, schema.agentOpinions.threadId),
+          eq(schema.chatThreads.userId, user.userId),
+          eq(schema.chatThreads.tenantId, tenantId),
+        ),
+      )
+      .innerJoin(
+        schema.chatMessages,
+        and(
+          eq(schema.chatMessages.id, schema.agentOpinions.messageId),
+          eq(schema.chatMessages.threadId, schema.agentOpinions.threadId),
+          eq(schema.chatMessages.tenantId, tenantId),
+        ),
+      )
       .where(
         and(
           eq(schema.agentOpinions.userId, user.userId),
+          eq(schema.agentOpinions.tenantId, tenantId),
           gte(schema.agentOpinions.createdAt, thirtyDaysAgo),
         ),
       )
@@ -69,9 +89,26 @@ export const GET = withAuth<void>(async (_req, { user }) => {
         totalCostUsd: sql<number>`coalesce(sum(${schema.agentOpinions.costUsd}), 0)::float8`,
       })
       .from(schema.agentOpinions)
+      .innerJoin(
+        schema.chatThreads,
+        and(
+          eq(schema.chatThreads.id, schema.agentOpinions.threadId),
+          eq(schema.chatThreads.userId, user.userId),
+          eq(schema.chatThreads.tenantId, tenantId),
+        ),
+      )
+      .innerJoin(
+        schema.chatMessages,
+        and(
+          eq(schema.chatMessages.id, schema.agentOpinions.messageId),
+          eq(schema.chatMessages.threadId, schema.agentOpinions.threadId),
+          eq(schema.chatMessages.tenantId, tenantId),
+        ),
+      )
       .where(
         and(
           eq(schema.agentOpinions.userId, user.userId),
+          eq(schema.agentOpinions.tenantId, tenantId),
           gte(schema.agentOpinions.createdAt, thirtyDaysAgo),
         ),
       )

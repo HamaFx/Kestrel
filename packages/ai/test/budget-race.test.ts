@@ -50,6 +50,7 @@ function chunkValues(stmt: unknown): unknown[] {
 
 vi.mock('@kestrel/db', () => {
   return {
+    requireTenantIdForUser: vi.fn(async () => 'tenant-1'),
     getDb: () => {
       const execute = vi.fn(async (statement: unknown) => {
         const chunks = ((statement as { queryChunks?: unknown[] })?.queryChunks ?? []) as unknown[];
@@ -68,10 +69,10 @@ vi.mock('@kestrel/db', () => {
 
         // tryReserveBudget INSERT: (userId, day, estCents, userId, day, estCents, estCents, capCents)
         if (text.includes('INSERT INTO daily_ai_spend') && text.includes('<=')) {
-          // values: userId (0), day (1), estCents (2), estCents (3), estCents (4), capCents (5)
-          const day = String(values[1]);
-          const estCents = Number(values[2]);
-          const capCents = Number(values[5]);
+          // values: userId (0), tenantId (1), day (2), estCents (3), estCents (4), estCents (5), capCents (6)
+          const day = String(values[2]);
+          const estCents = Number(values[3]);
+          const capCents = Number(values[6]);
           const row = dailyState.get(day);
           if (!row) {
             if (estCents <= capCents) {
@@ -88,8 +89,8 @@ vi.mock('@kestrel/db', () => {
         }
         // applyBudgetDelta: INSERT with GREATEST
         if (text.includes('INSERT INTO daily_ai_spend')) {
-          const day = String(values[1]);
-          const deltaCents = Number(values[2]);
+          const day = String(values[2]);
+          const deltaCents = Number(values[3]);
           const row = dailyState.get(day);
           if (!row) {
             dailyState.set(day, { totalCents: Math.max(0, deltaCents) });
@@ -114,8 +115,8 @@ vi.mock('@kestrel/db', () => {
       };
     },
     schema: {
-      dailyAiSpend: { userId: 'user_id', day: 'day', totalUsdCents: 'total_usd_cents' },
-      chatTelemetry: { userId: 'user_id', estCostUsd: 'est_cost_usd', createdAt: 'created_at' },
+      dailyAiSpend: { userId: 'user_id', tenantId: 'tenant_id', day: 'day', totalUsdCents: 'total_usd_cents' },
+      chatTelemetry: { userId: 'user_id', tenantId: 'tenant_id', estCostUsd: 'est_cost_usd', createdAt: 'created_at' },
     },
   };
 });

@@ -1,5 +1,8 @@
 name: ci-fast
 
+permissions:
+  contents: read
+
 on:
   pull_request:
 
@@ -25,6 +28,7 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:oss-release
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
       # Knip is report-only until its baseline is fully reviewed; it must not

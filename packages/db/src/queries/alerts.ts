@@ -23,12 +23,14 @@
 import { and, desc, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
 export interface AlertRow {
   id: string;
   userId: string;
+  tenantId: string;
   rule: unknown;
   channels: string[];
   note: string | null;
@@ -62,10 +64,16 @@ export interface UpdateAlertInput {
  */
 export async function listAlerts(userId: string, limit: number = 50): Promise<AlertRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select()
     .from(schema.alerts)
-    .where(eq(schema.alerts.userId, userId))
+    .where(
+      and(
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    )
     .orderBy(desc(schema.alerts.createdAt))
     .limit(limit);
 }
@@ -75,10 +83,17 @@ export async function listAlerts(userId: string, limit: number = 50): Promise<Al
  */
 export async function getAlert(userId: string, alertId: string): Promise<AlertRow | null> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select()
     .from(schema.alerts)
-    .where(and(eq(schema.alerts.id, alertId), eq(schema.alerts.userId, userId)))
+    .where(
+      and(
+        eq(schema.alerts.id, alertId),
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   return rows[0] ?? null;
 }
@@ -88,10 +103,12 @@ export async function getAlert(userId: string, alertId: string): Promise<AlertRo
  */
 export async function createAlert(input: CreateAlertInput): Promise<AlertRow> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(input.userId);
   const rows = await db
     .insert(schema.alerts)
     .values({
       userId: input.userId,
+      tenantId,
       rule: input.rule,
       channels: input.channels ?? ['email'],
       note: input.note ?? null,
@@ -110,6 +127,7 @@ export async function updateAlert(
   input: UpdateAlertInput,
 ): Promise<AlertRow | null> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .update(schema.alerts)
     .set({
@@ -119,7 +137,13 @@ export async function updateAlert(
       ...(input.active !== undefined ? { active: input.active } : {}),
       ...(input.snoozeHours !== undefined ? { snoozeHours: input.snoozeHours } : {}),
     })
-    .where(and(eq(schema.alerts.id, alertId), eq(schema.alerts.userId, userId)))
+    .where(
+      and(
+        eq(schema.alerts.id, alertId),
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    )
     .returning();
   return rows[0] ?? null;
 }
@@ -129,9 +153,16 @@ export async function updateAlert(
  */
 export async function deleteAlert(userId: string, alertId: string): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.alerts)
-    .where(and(eq(schema.alerts.id, alertId), eq(schema.alerts.userId, userId)));
+    .where(
+      and(
+        eq(schema.alerts.id, alertId),
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    );
 }
 
 /**
@@ -139,10 +170,17 @@ export async function deleteAlert(userId: string, alertId: string): Promise<void
  */
 export async function listActiveAlerts(userId: string): Promise<AlertRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select()
     .from(schema.alerts)
-    .where(and(eq(schema.alerts.userId, userId), eq(schema.alerts.active, true)));
+    .where(
+      and(
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+        eq(schema.alerts.active, true),
+      ),
+    );
 }
 
 /**
@@ -150,6 +188,7 @@ export async function listActiveAlerts(userId: string): Promise<AlertRow[]> {
  */
 export async function markAlertFired(userId: string, alertId: string): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const now = new Date();
   await db
     .update(schema.alerts)
@@ -157,5 +196,11 @@ export async function markAlertFired(userId: string, alertId: string): Promise<v
       firedAt: now,
       lastFiredAt: now,
     })
-    .where(and(eq(schema.alerts.id, alertId), eq(schema.alerts.userId, userId)));
+    .where(
+      and(
+        eq(schema.alerts.id, alertId),
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    );
 }

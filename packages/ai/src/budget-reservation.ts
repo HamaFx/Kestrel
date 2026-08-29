@@ -37,6 +37,7 @@ export async function reserveTurnBudget(args: {
   userId: string;
   estimateUsd?: number;
   maxDailyUsd: number;
+  tenantId?: string;
   correlation?: {
     threadId?: string;
     traceId?: string;
@@ -54,6 +55,7 @@ export async function reserveTurnBudget(args: {
         new Date(),
         args.correlation,
         args.db,
+        args.tenantId,
       )
     : await tryReserveBudget(args.userId, estimateUsd, args.maxDailyUsd);
   if (!reservation.ok) {

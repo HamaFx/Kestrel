@@ -28,7 +28,7 @@
 
 import { randomBytes } from 'crypto';
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 
 import { getDb } from '../db';
@@ -108,12 +108,14 @@ export async function resolveLinkCode(
     return null;
   }
 
-  // Link the user in the database
+  // Link the user in the database using current membership as the source of truth.
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(pending.userId, db);
   await db
     .insert(schema.botLinks)
     .values({
       userId: pending.userId,
+      tenantId,
       platform,
       chatId: String(chatId),
     })
@@ -121,6 +123,7 @@ export async function resolveLinkCode(
       target: [schema.botLinks.platform, schema.botLinks.chatId],
       set: {
         userId: pending.userId,
+        tenantId,
         linkedAt: new Date(),
       },
     });
@@ -145,6 +148,13 @@ export async function resolveBotUser(
   const [link] = await db
     .select({ userId: schema.botLinks.userId })
     .from(schema.botLinks)
+    .innerJoin(
+      schema.organizationMember,
+      and(
+        eq(schema.organizationMember.userId, schema.botLinks.userId),
+        eq(schema.organizationMember.orgId, schema.botLinks.tenantId),
+      ),
+    )
     .where(and(eq(schema.botLinks.platform, platform), eq(schema.botLinks.chatId, String(chatId))))
     .limit(1);
 
@@ -157,9 +167,16 @@ export async function resolveBotUser(
  */
 export async function unlinkBot(userId: string, platform: string = 'telegram'): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.botLinks)
-    .where(and(eq(schema.botLinks.userId, userId), eq(schema.botLinks.platform, platform)));
+    .where(
+      and(
+        eq(schema.botLinks.userId, userId),
+        eq(schema.botLinks.tenantId, tenantId),
+        eq(schema.botLinks.platform, platform),
+      ),
+    );
 }
 
 /**
@@ -170,10 +187,17 @@ export async function getBotLink(
   platform: string = 'telegram',
 ): Promise<{ chatId: string; linkedAt: Date } | null> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const [link] = await db
     .select({ chatId: schema.botLinks.chatId, linkedAt: schema.botLinks.linkedAt })
     .from(schema.botLinks)
-    .where(and(eq(schema.botLinks.userId, userId), eq(schema.botLinks.platform, platform)))
+    .where(
+      and(
+        eq(schema.botLinks.userId, userId),
+        eq(schema.botLinks.tenantId, tenantId),
+        eq(schema.botLinks.platform, platform),
+      ),
+    )
     .limit(1);
 
   return link ?? null;

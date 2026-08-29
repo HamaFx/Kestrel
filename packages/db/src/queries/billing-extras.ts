@@ -21,6 +21,7 @@ import { randomUUID } from 'node:crypto';
 import { and, desc, eq, isNull, lt, or } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 /** Get all active plans. */
 export async function listActivePlans() {
@@ -38,10 +39,11 @@ export async function getPlan(planId: string) {
 /** Get a user's subscription. Returns null if not subscribed. */
 export async function getUserSubscription(userId: string) {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId);
   const [sub] = await db
     .select()
     .from(schema.subscriptions)
-    .where(eq(schema.subscriptions.tenantId, userId))
+    .where(eq(schema.subscriptions.tenantId, tenantId))
     .limit(1);
   return sub ?? null;
 }
@@ -49,10 +51,11 @@ export async function getUserSubscription(userId: string) {
 /** Get a user's payment history, newest first, limited to `limit` rows. */
 export async function getUserPayments(userId: string, limit: number = 50) {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId);
   return db
     .select()
     .from(schema.payments)
-    .where(eq(schema.payments.tenantId, userId))
+    .where(eq(schema.payments.tenantId, tenantId))
     .orderBy(desc(schema.payments.createdAt))
     .limit(limit);
 }
@@ -66,10 +69,11 @@ export async function upsertSubscription(
   data: { planId: string; nowpaymentsInvoiceId: string },
 ): Promise<string> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId);
   const existing = await db
     .select({ id: schema.subscriptions.id })
     .from(schema.subscriptions)
-    .where(eq(schema.subscriptions.tenantId, userId))
+    .where(eq(schema.subscriptions.tenantId, tenantId))
     .limit(1);
 
   if (existing.length > 0) {
@@ -82,14 +86,19 @@ export async function upsertSubscription(
         nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
         updatedAt: new Date(),
       })
-      .where(eq(schema.subscriptions.id, sub.id));
+      .where(
+        and(
+          eq(schema.subscriptions.id, sub.id),
+          eq(schema.subscriptions.tenantId, tenantId),
+        ),
+      );
     return sub.id;
   }
 
   const [newSub] = await db
     .insert(schema.subscriptions)
     .values({
-      tenantId: userId,
+      tenantId,
       planId: data.planId,
       status: 'active',
       nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
@@ -115,11 +124,12 @@ export async function claimCheckoutAttempt(data: {
   | { kind: 'conflict' }
 > {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(data.userId);
   const processingToken = randomUUID();
   const [inserted] = await db
     .insert(schema.billingCheckoutAttempts)
     .values({
-      tenantId: data.userId,
+      tenantId,
       planId: data.planId,
       idempotencyKey: data.idempotencyKey,
       status: 'pending',
@@ -141,7 +151,7 @@ export async function claimCheckoutAttempt(data: {
     .from(schema.billingCheckoutAttempts)
     .where(
       and(
-        eq(schema.billingCheckoutAttempts.tenantId, data.userId),
+        eq(schema.billingCheckoutAttempts.tenantId, tenantId),
         eq(schema.billingCheckoutAttempts.idempotencyKey, data.idempotencyKey),
       ),
     )
@@ -291,11 +301,12 @@ export async function createPayment(data: {
   payCurrency: string;
 }) {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(data.userId);
   const [payment] = await db
     .insert(schema.payments)
     .values({
       subscriptionId: data.subscriptionId,
-      tenantId: data.userId,
+      tenantId,
       ...(data.nowpaymentsPaymentId ? { nowpaymentsPaymentId: data.nowpaymentsPaymentId } : {}),
       nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
       status: 'waiting',
@@ -312,7 +323,12 @@ export async function createPayment(data: {
   const [existing] = await db
     .select()
     .from(schema.payments)
-    .where(eq(schema.payments.nowpaymentsInvoiceId, data.nowpaymentsInvoiceId))
+    .where(
+      and(
+        eq(schema.payments.nowpaymentsInvoiceId, data.nowpaymentsInvoiceId),
+        eq(schema.payments.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   if (!existing) {
     throw new Error(

@@ -8,6 +8,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { getDb, schema, type DbClient } from '../client';
 import type { MutationExecutionRow } from '../schema/mutation-executions';
+import { requireTenantIdForUser } from '../tenant';
 
 export interface MutationExecutionBusinessResult {
   id: string;
@@ -24,7 +25,7 @@ export interface ExecuteMutationOnceInput<T extends MutationExecutionBusinessRes
   /** Server-issued approval/run identity; defaults to runId for legacy callers. */
   approvalId?: string;
   approvalExpiresAt?: Date;
-  execute: (tx: DbClient) => Promise<T>;
+  execute: (tx: DbClient, tenantId: string) => Promise<T>;
   auditMetadata?: Record<string, unknown>;
   /** Optional transaction-capable database handle for integration tests. */
   db?: DbClient;
@@ -40,6 +41,7 @@ export async function getMutationExecution(
   userId: string,
   db: DbClient = getDb(),
 ): Promise<MutationExecutionRow | null> {
+  const tenantId = await requireTenantIdForUser(userId, db);
   const [row] = await db
     .select()
     .from(schema.mutationExecutions)
@@ -47,6 +49,7 @@ export async function getMutationExecution(
       and(
         eq(schema.mutationExecutions.runId, runId),
         eq(schema.mutationExecutions.userId, userId),
+        eq(schema.mutationExecutions.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -84,6 +87,7 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
   const db = input.db ?? getDb();
 
   return db.transaction(async (tx) => {
+    const tenantId = await requireTenantIdForUser(input.userId, tx as unknown as DbClient);
     const claimed = await tx
       .insert(schema.mutationExecutions)
       .values({
@@ -94,6 +98,7 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
         inputDigest: input.inputDigest,
         approvalId: input.approvalId ?? input.runId,
         approvalExpiresAt: input.approvalExpiresAt ?? null,
+        tenantId,
         status: 'executing',
       })
       .onConflictDoNothing({ target: schema.mutationExecutions.runId })
@@ -113,6 +118,7 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
       }
       if (
         existing.userId !== input.userId ||
+        existing.tenantId !== tenantId ||
         existing.threadId !== input.threadId ||
         existing.mutation !== input.mutation ||
         existing.inputDigest !== input.inputDigest ||
@@ -130,7 +136,7 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
       };
     }
 
-    const result = await input.execute(tx as unknown as DbClient);
+    const result = await input.execute(tx as unknown as DbClient, tenantId);
     const metadata = {
       ...(input.auditMetadata ?? {}),
       mutation: input.mutation,
@@ -144,6 +150,7 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
 
     await tx.insert(schema.auditLogs).values({
       userId: input.userId,
+      tenantId,
       action: `mutation.${input.mutation}.executed`,
       metadata,
     });
@@ -160,6 +167,8 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
       .where(
         and(
           eq(schema.mutationExecutions.runId, input.runId),
+          eq(schema.mutationExecutions.userId, input.userId),
+          eq(schema.mutationExecutions.tenantId, tenantId),
           eq(schema.mutationExecutions.status, 'executing'),
         ),
       );

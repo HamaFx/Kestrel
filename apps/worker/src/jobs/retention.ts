@@ -16,7 +16,8 @@
 
 // DB-1: Retention cleanup job — runs daily to purge stale rows from
 // operational tables (rate_limits, chat_telemetry, tool_telemetry,
-// diagnostic_traces, provider_daily_quota, and recovery ledgers).
+// diagnostic_traces, provider_daily_quota, Full-analysis queue, and recovery
+// ledgers).
 
 import { pruneMastraStorage } from '@kestrel/ai/mastra';
 import { runRetentionCleanup, runVacuumAnalyze } from '@kestrel/db';
@@ -37,7 +38,14 @@ export async function runRetention(ctx: JobContext): Promise<JobResult> {
     providerDailyQuotaDeleted: result.providerDailyQuotaDeleted,
     cronRunsDeleted: result.cronRunsDeleted,
     outboxDeleted: result.outboxDeleted,
+    fullAnalysisQueueDeleted: result.fullAnalysisQueueDeleted,
+    billingWebhookDlqDeleted: result.billingWebhookDlqDeleted,
+    aiShadowComparisonsDeleted: result.aiShadowComparisonsDeleted,
+    aiQualityResultsDeleted: result.aiQualityResultsDeleted,
     budgetReservationsDeleted: result.budgetReservationsDeleted,
+    telegramUpdatesDeleted: result.telegramUpdatesDeleted,
+    sharedSnapshotsDeleted: result.sharedSnapshotsDeleted,
+    notificationNoiseStateDeleted: result.notificationNoiseStateDeleted,
   });
 
   // Mastra runtime storage retention (messages 90d, threads 180d,

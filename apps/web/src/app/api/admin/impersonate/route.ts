@@ -32,7 +32,11 @@ const impersonateSchema = z.object({
 });
 
 export const POST = withAdminAuth(async (req, { user: admin }) => {
-  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_IMPERSONATION !== 'true') {
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.ENABLE_IMPERSONATION !== 'true' ||
+    process.env.ALLOW_INSECURE_DEV_AUTH !== 'true'
+  ) {
     return Response.json(
       { error: { code: 'FORBIDDEN', message: 'Impersonation is disabled' } },
       { status: 403 },

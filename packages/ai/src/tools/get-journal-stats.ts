@@ -20,7 +20,7 @@
 // per-tag breakdowns via SQL group-bys. Empty filter sets return an
 // all-zero stats block + empty breakdown arrays — never throws.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
   GetJournalStatsInputSchema,
   type GetJournalStatsOutput,
@@ -48,13 +48,17 @@ export const getJournalStatsTool = tool({
   inputSchema: InputSchema,
   execute: async ({ sinceMs, untilMs, symbol, side }): Promise<GetJournalStatsOutput> => {
     const userId = getToolContext().userId;
+    const tenantId = await requireTenantIdForUser(userId, maybeGetToolContext()?.db ?? getDb());
 
     const stats = await computeStats(userId, {
       ...(sinceMs !== undefined ? { sinceMs } : {}),
       ...(untilMs !== undefined ? { untilMs } : {}),
     });
 
-    const filters: SQL[] = [eq(schema.journalEntries.userId, userId)];
+    const filters: SQL[] = [
+      eq(schema.journalEntries.userId, userId),
+      eq(schema.journalEntries.tenantId, tenantId),
+    ];
     if (sinceMs !== undefined) filters.push(gte(schema.journalEntries.openedAt, new Date(sinceMs)));
     if (untilMs !== undefined) filters.push(lte(schema.journalEntries.openedAt, new Date(untilMs)));
     if (symbol !== undefined) filters.push(eq(schema.journalEntries.symbol, symbol));

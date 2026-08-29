@@ -46,6 +46,8 @@ vi.mock('@kestrel/db', () => ({
   getUserById: mockGetUserById,
   resetOnboarding: mockResetOnboarding,
   recordAdminAudit: mockRecordAdminAudit,
+  updatePaymentStatus: vi.fn(),
+  updateSubscriptionFromPayment: vi.fn(),
   schema: schemaProxy,
 }));
 

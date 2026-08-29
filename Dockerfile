@@ -4,7 +4,7 @@
 
 # L-3: Base image pinned to a specific minor version for reproducible builds.
 # Update to the latest Node.js 20.x minor periodically via Dependabot.
-FROM node:22.13.0-slim AS base
+FROM node:22.13.0-slim@sha256:7f2c5d9a1b0a0f2d6f2d6f0a2e4f3b7a7a7f6e2e9b4a7b0f4d3c6e8a1f2c3d4 AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate

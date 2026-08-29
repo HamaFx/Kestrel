@@ -28,7 +28,12 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { getUserWithSettings, schema, type DbClient } from '@kestrel/db';
+import {
+  getUserWithSettings,
+  requireTenantIdForUser,
+  schema,
+  type DbClient,
+} from '@kestrel/db';
 import { KNOWN_BYOK_PROVIDERS } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, eq, gte, sql } from 'drizzle-orm';
@@ -166,10 +171,12 @@ export async function dailySpendUsd(userId: string, now = new Date()): Promise<n
  */
 export async function reservedSpendUsd(userId: string, now = new Date()): Promise<number> {
   const day = utcDayKey(now);
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select({ cents: schema.dailyAiSpend.totalUsdCents })
     .from(schema.dailyAiSpend)
-    .where(sql`${schema.dailyAiSpend.userId} = ${userId} AND ${schema.dailyAiSpend.day} = ${day}`)
+    .where(sql`${schema.dailyAiSpend.userId} = ${userId} AND ${schema.dailyAiSpend.tenantId} = ${tenantId} AND ${schema.dailyAiSpend.day} = ${day}`)
     .limit(1);
   return Number(rows[0]?.cents ?? 0) / 100;
 }
@@ -203,8 +210,10 @@ export async function tryReserveBudget(
   now = new Date(),
   correlation?: BudgetCorrelation,
   db?: BudgetDb,
+  tenantIdOverride?: string,
 ): Promise<BudgetReservation> {
   const day = utcDayKey(now);
+  const tenantId = tenantIdOverride ?? (await requireTenantIdForUser(userId, getDb()));
   const activeDiagnostic = getDiagnosticContext();
   const ledgerCorrelation = correlation ?? activeDiagnostic ?? undefined;
   const estCents = Math.max(0, Math.ceil(estimatedUsd * 100));
@@ -241,8 +250,8 @@ export async function tryReserveBudget(
   const reserve = async (tx: BudgetDb) => {
     const rows = await tx.execute<{ total_usd_cents: number | string }>(
       sql`
-        INSERT INTO daily_ai_spend (user_id, day, total_usd_cents)
-        VALUES (${userId}, ${day}, ${estCents})
+        INSERT INTO daily_ai_spend (user_id, tenant_id, day, total_usd_cents)
+        VALUES (${userId}, ${tenantId}, ${day}, ${estCents})
         ON CONFLICT (user_id, day) DO UPDATE
           SET total_usd_cents = daily_ai_spend.total_usd_cents + ${estCents}
           WHERE daily_ai_spend.total_usd_cents + ${estCents} <= ${capCents}
@@ -258,10 +267,11 @@ export async function tryReserveBudget(
     await tx.execute(
       sql`
         INSERT INTO ai_budget_reservations
-          (id, user_id, thread_id, day, reserved_usd_cents, status, trace_id, run_id, job_id)
+          (id, user_id, tenant_id, thread_id, day, reserved_usd_cents, status, trace_id, run_id, job_id)
         VALUES (
           ${reservationId},
           ${userId},
+          ${tenantId},
           ${ledgerThreadId},
           ${day},
           ${estCents},
@@ -301,10 +311,12 @@ export async function applyBudgetDelta(
   const day = utcDayKey(now);
   const cents = Math.round(deltaUsd * 100);
   if (cents === 0) return;
-  await getDb().execute(
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db.execute(
     sql`
-      INSERT INTO daily_ai_spend (user_id, day, total_usd_cents)
-      VALUES (${userId}, ${day}, GREATEST(0, ${cents}))
+      INSERT INTO daily_ai_spend (user_id, tenant_id, day, total_usd_cents)
+      VALUES (${userId}, ${tenantId}, ${day}, GREATEST(0, ${cents}))
       ON CONFLICT (user_id, day) DO UPDATE
         SET total_usd_cents = GREATEST(0, daily_ai_spend.total_usd_cents + ${cents})
     `,
@@ -313,6 +325,7 @@ export async function applyBudgetDelta(
 
 interface StoredReservation {
   user_id: string;
+  tenant_id: string;
   day: string;
   reserved_usd_cents: number | string;
   status: string;
@@ -347,7 +360,7 @@ export async function reconcileBudgetReservation(
     const reservationRows = resultRows<StoredReservation>(
       await tx.execute(
         sql`
-        SELECT user_id, day, reserved_usd_cents, status
+        SELECT user_id, tenant_id, day, reserved_usd_cents, status
         FROM ai_budget_reservations
         WHERE id = ${reservationId}
         FOR UPDATE
@@ -364,7 +377,9 @@ export async function reconcileBudgetReservation(
           sql`
           UPDATE daily_ai_spend
           SET total_usd_cents = GREATEST(0, total_usd_cents + ${deltaCents})
-          WHERE user_id = ${reservation.user_id} AND day = ${reservation.day}
+          WHERE user_id = ${reservation.user_id}
+            AND tenant_id = ${reservation.tenant_id}
+            AND day = ${reservation.day}
           RETURNING user_id
         `,
         ),
@@ -379,7 +394,10 @@ export async function reconcileBudgetReservation(
             status = 'reconciled',
             resolved_at = ${resolvedAt},
             last_error = NULL
-        WHERE id = ${reservationId} AND status = 'reserved'
+        WHERE id = ${reservationId}
+          AND user_id = ${reservation.user_id}
+          AND tenant_id = ${reservation.tenant_id}
+          AND status = 'reserved'
       `,
     );
     return true;
@@ -396,7 +414,7 @@ export async function releaseBudgetReservation(
     const reservationRows = resultRows<StoredReservation>(
       await tx.execute(
         sql`
-        SELECT user_id, day, reserved_usd_cents, status
+        SELECT user_id, tenant_id, day, reserved_usd_cents, status
         FROM ai_budget_reservations
         WHERE id = ${reservationId}
         FOR UPDATE
@@ -411,7 +429,9 @@ export async function releaseBudgetReservation(
         sql`
         UPDATE daily_ai_spend
         SET total_usd_cents = GREATEST(0, total_usd_cents - ${Number(reservation.reserved_usd_cents)})
-        WHERE user_id = ${reservation.user_id} AND day = ${reservation.day}
+        WHERE user_id = ${reservation.user_id}
+          AND tenant_id = ${reservation.tenant_id}
+          AND day = ${reservation.day}
         RETURNING user_id
       `,
       ),
@@ -425,7 +445,10 @@ export async function releaseBudgetReservation(
             status = 'released',
             resolved_at = ${resolvedAt},
             last_error = NULL
-        WHERE id = ${reservationId} AND status = 'reserved'
+        WHERE id = ${reservationId}
+          AND user_id = ${reservation.user_id}
+          AND tenant_id = ${reservation.tenant_id}
+          AND status = 'reserved'
       `,
     );
     return true;
@@ -502,13 +525,18 @@ export class BudgetExceededError extends Error {
 
 export async function getMonthlySpend(userId: string, now = new Date()): Promise<number> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const startOfMonthStr = startOfMonth.toISOString().slice(0, 10);
   const rows = await db
     .select({ totalCents: sql<number>`coalesce(sum(${schema.dailyAiSpend.totalUsdCents}), 0)` })
     .from(schema.dailyAiSpend)
     .where(
-      and(eq(schema.dailyAiSpend.userId, userId), gte(schema.dailyAiSpend.day, startOfMonthStr)),
+      and(
+        eq(schema.dailyAiSpend.userId, userId),
+        eq(schema.dailyAiSpend.tenantId, tenantId),
+        gte(schema.dailyAiSpend.day, startOfMonthStr),
+      ),
     );
   return (rows[0]?.totalCents ?? 0) / 100;
 }
@@ -519,6 +547,7 @@ export async function getProviderMonthlySpend(
   now = new Date(),
 ): Promise<number> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const rows = await db
     .select({
@@ -529,6 +558,7 @@ export async function getProviderMonthlySpend(
     .where(
       and(
         eq(schema.chatTelemetry.userId, userId),
+        eq(schema.chatTelemetry.tenantId, tenantId),
         gte(schema.chatTelemetry.createdAt, startOfMonth),
       ),
     );
@@ -615,6 +645,7 @@ export async function checkBudgetAlertsAndThresholds(
   now = new Date(),
 ): Promise<{ blocked: boolean; blockedReason?: string; nonEssentialDisabled: boolean }> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const [userSettings] = await db
     .select({
       monthlyBudgetLimit: schema.userSettings.monthlyBudgetLimit,
@@ -623,7 +654,12 @@ export async function checkBudgetAlertsAndThresholds(
       spendAlertsState: schema.userSettings.spendAlertsState,
     })
     .from(schema.userSettings)
-    .where(eq(schema.userSettings.userId, userId));
+    .where(
+      and(
+        eq(schema.userSettings.userId, userId),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    );
 
   if (!userSettings) {
     return { blocked: false, nonEssentialDisabled: false };
@@ -726,7 +762,12 @@ export async function checkBudgetAlertsAndThresholds(
           providerAlerted?: string[];
         } | null,
       })
-      .where(eq(schema.userSettings.userId, userId));
+      .where(
+        and(
+          eq(schema.userSettings.userId, userId),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
   }
 
   return { blocked: false, nonEssentialDisabled };

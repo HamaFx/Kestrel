@@ -63,6 +63,7 @@ function thenableResolver(v: unknown) {
 }
 
 vi.mock('@kestrel/db', () => ({
+  requireTenantIdForUser: vi.fn(async () => 'tenant-1'),
   getDb: () => ({
     select: () => ({
       from: () => ({
@@ -75,10 +76,28 @@ vi.mock('@kestrel/db', () => ({
     ) => callback({ execute: (query: unknown) => mockTransactionExecute(query) }),
   }),
   schema: {
-    chatTelemetry: {},
-    dailyAiSpend: {},
+    chatTelemetry: {
+      userId: 'chatTelemetry.userId',
+      tenantId: 'chatTelemetry.tenantId',
+      model: 'chatTelemetry.model',
+      estCostUsd: 'chatTelemetry.estCostUsd',
+      createdAt: 'chatTelemetry.createdAt',
+    },
+    dailyAiSpend: {
+      userId: 'dailyAiSpend.userId',
+      tenantId: 'dailyAiSpend.tenantId',
+      day: 'dailyAiSpend.day',
+      totalUsdCents: 'dailyAiSpend.totalUsdCents',
+    },
     users: {},
-    userSettings: {},
+    userSettings: {
+      userId: 'userSettings.userId',
+      tenantId: 'userSettings.tenantId',
+      monthlyBudgetLimit: 'userSettings.monthlyBudgetLimit',
+      providerSpendingThresholds: 'userSettings.providerSpendingThresholds',
+      spendAlertsConfig: 'userSettings.spendAlertsConfig',
+      spendAlertsState: 'userSettings.spendAlertsState',
+    },
   },
 }));
 

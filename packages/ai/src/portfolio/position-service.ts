@@ -19,7 +19,7 @@
 // CRUD for portfolio_positions and portfolio_settings tables.
 // Row ↔ domain object mapping follows the same pattern as decision-signals.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type {
   ClosePositionInput,
   CreatePositionInput,
@@ -40,10 +40,13 @@ export async function createPosition(
   userId: string,
   input: CreatePositionInput,
 ): Promise<PortfolioPosition> {
-  const [row] = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const [row] = await db
     .insert(schema.portfolioPositions)
     .values({
       userId,
+      tenantId,
       symbol: input.symbol,
       direction: input.direction,
       lotSize: input.lotSize,
@@ -60,12 +63,15 @@ export async function createPosition(
 }
 
 export async function listOpenPositions(userId: string): Promise<PortfolioPosition[]> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.portfolioPositions)
     .where(
       and(
         eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
         eq(schema.portfolioPositions.status, 'open'),
       ),
     )
@@ -75,10 +81,17 @@ export async function listOpenPositions(userId: string): Promise<PortfolioPositi
 }
 
 export async function listAllPositions(userId: string, limit = 100): Promise<PortfolioPosition[]> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.portfolioPositions)
-    .where(eq(schema.portfolioPositions.userId, userId))
+    .where(
+      and(
+        eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
+      ),
+    )
     .orderBy(desc(schema.portfolioPositions.openedAt))
     .limit(limit);
 
@@ -89,12 +102,15 @@ export async function getPosition(
   userId: string,
   positionId: string,
 ): Promise<PortfolioPosition | null> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.portfolioPositions)
     .where(
       and(
         eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
         eq(schema.portfolioPositions.id, positionId),
       ),
     )
@@ -108,7 +124,9 @@ export async function closePosition(
   positionId: string,
   input: ClosePositionInput,
 ): Promise<PortfolioPosition | null> {
-  const [row] = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const [row] = await db
     .update(schema.portfolioPositions)
     .set({
       status: 'closed',
@@ -118,6 +136,7 @@ export async function closePosition(
     .where(
       and(
         eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
         eq(schema.portfolioPositions.id, positionId),
         eq(schema.portfolioPositions.status, 'open'),
       ),
@@ -128,11 +147,14 @@ export async function closePosition(
 }
 
 export async function deletePosition(userId: string, positionId: string): Promise<void> {
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .delete(schema.portfolioPositions)
     .where(
       and(
         eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
         eq(schema.portfolioPositions.id, positionId),
       ),
     );
@@ -143,10 +165,17 @@ export async function deletePosition(userId: string, positionId: string): Promis
 // ---------------------------------------------------------------------------
 
 export async function getPortfolioSettings(userId: string): Promise<PortfolioSettings> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.portfolioSettings)
-    .where(eq(schema.portfolioSettings.userId, userId))
+    .where(
+      and(
+        eq(schema.portfolioSettings.userId, userId),
+        eq(schema.portfolioSettings.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (rows.length === 0) {
@@ -175,10 +204,13 @@ export async function savePortfolioSettings(
   const current = await getPortfolioSettings(userId);
   const merged = { ...current, ...updates };
 
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .insert(schema.portfolioSettings)
     .values({
       userId,
+      tenantId,
       accountBalance: merged.accountBalance ?? null,
       baseCurrency: merged.baseCurrency,
       maxRiskPerTradePct: merged.maxRiskPerTradePct,

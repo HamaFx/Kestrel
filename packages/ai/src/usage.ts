@@ -20,7 +20,7 @@
 // modest in personal mode (low single digits of turns/day), so a 30-day
 // scan is well under 100 ms even cold.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { KNOWN_BYOK_PROVIDERS } from '@kestrel/shared';
 import { and, desc, eq, gte, lte } from 'drizzle-orm';
 
@@ -44,10 +44,17 @@ export interface TelemetryRow {
 
 /** Last N telemetry rows, newest-first. Used for the recent-turns panel. */
 export async function listTelemetry(userId: string, limit = 30): Promise<TelemetryRow[]> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.chatTelemetry)
-    .where(eq(schema.chatTelemetry.userId, userId))
+    .where(
+      and(
+        eq(schema.chatTelemetry.userId, userId),
+        eq(schema.chatTelemetry.tenantId, tenantId),
+      ),
+    )
     .orderBy(desc(schema.chatTelemetry.createdAt))
     .limit(limit);
   return rows.map(rowToTelemetry);
@@ -134,24 +141,31 @@ export async function computeUsage(userId: string, now = new Date()): Promise<Us
   const sevenStart = new Date(todayStart.getTime() - 6 * DAY_MS);
   const thirtyStart = new Date(todayStart.getTime() - 29 * DAY_MS);
   const thirtyStartDay = thirtyStart.toISOString().slice(0, 10);
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
 
   const [rows, spendRows] = await Promise.all([
-    getDb()
+    db
       .select()
       .from(schema.chatTelemetry)
       .where(
         and(
           eq(schema.chatTelemetry.userId, userId),
+          eq(schema.chatTelemetry.tenantId, tenantId),
           gte(schema.chatTelemetry.createdAt, thirtyStart),
           lte(schema.chatTelemetry.createdAt, now),
         ),
       )
       .orderBy(desc(schema.chatTelemetry.createdAt)),
-    getDb()
+    db
       .select()
       .from(schema.dailyAiSpend)
       .where(
-        and(eq(schema.dailyAiSpend.userId, userId), gte(schema.dailyAiSpend.day, thirtyStartDay)),
+        and(
+          eq(schema.dailyAiSpend.userId, userId),
+          eq(schema.dailyAiSpend.tenantId, tenantId),
+          gte(schema.dailyAiSpend.day, thirtyStartDay),
+        ),
       )
       .limit(30),
   ]);

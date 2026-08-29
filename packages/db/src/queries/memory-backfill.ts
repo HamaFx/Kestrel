@@ -7,6 +7,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 const LEASE_MS = 5 * 60 * 1000;
 
@@ -22,12 +23,14 @@ export async function claimMemoryBackfill(
   threadId: string,
   db = getDb(),
 ): Promise<MemoryBackfillClaim> {
+  const tenantId = await requireTenantIdForUser(userId, db);
   const now = new Date();
   const leaseUntil = new Date(now.getTime() + LEASE_MS);
   const rows = await db
     .insert(schema.memoryBackfillState)
     .values({
       userId,
+      tenantId,
       threadId,
       status: 'running',
       updatedAt: leaseUntil,
@@ -51,6 +54,7 @@ export async function completeMemoryBackfill(
   copiedThroughCreatedAt: Date | null,
   db = getDb(),
 ): Promise<void> {
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .update(schema.memoryBackfillState)
     .set({
@@ -61,7 +65,11 @@ export async function completeMemoryBackfill(
       completedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(and(eq(schema.memoryBackfillState.userId, userId), eq(schema.memoryBackfillState.threadId, threadId)));
+    .where(and(
+      eq(schema.memoryBackfillState.userId, userId),
+      eq(schema.memoryBackfillState.tenantId, tenantId),
+      eq(schema.memoryBackfillState.threadId, threadId),
+    ));
 }
 
 export async function failMemoryBackfill(
@@ -70,6 +78,7 @@ export async function failMemoryBackfill(
   error: unknown,
   db = getDb(),
 ): Promise<void> {
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .update(schema.memoryBackfillState)
     .set({
@@ -77,7 +86,11 @@ export async function failMemoryBackfill(
       lastError: (error instanceof Error ? error.message : String(error)).slice(0, 2_000),
       updatedAt: new Date(),
     })
-    .where(and(eq(schema.memoryBackfillState.userId, userId), eq(schema.memoryBackfillState.threadId, threadId)));
+    .where(and(
+      eq(schema.memoryBackfillState.userId, userId),
+      eq(schema.memoryBackfillState.tenantId, tenantId),
+      eq(schema.memoryBackfillState.threadId, threadId),
+    ));
 }
 
 export async function getMemoryBackfillState(
@@ -85,10 +98,15 @@ export async function getMemoryBackfillState(
   threadId: string,
   db = getDb(),
 ) {
+  const tenantId = await requireTenantIdForUser(userId, db);
   const [row] = await db
     .select()
     .from(schema.memoryBackfillState)
-    .where(and(eq(schema.memoryBackfillState.userId, userId), eq(schema.memoryBackfillState.threadId, threadId)))
+    .where(and(
+      eq(schema.memoryBackfillState.userId, userId),
+      eq(schema.memoryBackfillState.tenantId, tenantId),
+      eq(schema.memoryBackfillState.threadId, threadId),
+    ))
     .limit(1);
   return row ?? null;
 }

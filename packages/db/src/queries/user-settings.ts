@@ -18,9 +18,10 @@
 // Duplicated across agent.ts, chat/route.ts, cost.ts, and usage-alerts.ts
 // — extracted here to keep field selection consistent and reduce drift.
 
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 export interface UserWithSettings {
   settings: typeof schema.userSettings.$inferSelect | null;
@@ -37,18 +38,27 @@ export interface UserWithSettings {
  */
 export async function getUserWithSettings(userId: string): Promise<UserWithSettings> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const [settings, userRow] = await Promise.all([
     db
       .select()
       .from(schema.userSettings)
-      .where(eq(schema.userSettings.userId, userId))
+      .where(
+        and(
+          eq(schema.userSettings.userId, userId),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      )
       .then((rows) => rows[0] ?? null),
     db
       .select({ name: schema.users.name, email: schema.users.email, plan: schema.organization.plan })
       .from(schema.users)
       .leftJoin(
         schema.organizationMember,
-        eq(schema.organizationMember.userId, schema.users.id),
+        and(
+          eq(schema.organizationMember.userId, schema.users.id),
+          eq(schema.organizationMember.orgId, tenantId),
+        ),
       )
       .leftJoin(
         schema.organization,
@@ -78,8 +88,14 @@ export async function updateUserSettingsField<
   K extends keyof typeof schema.userSettings.$inferInsert,
 >(userId: string, field: K, value: (typeof schema.userSettings.$inferInsert)[K]): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .update(schema.userSettings)
     .set({ [field]: value } as Partial<typeof schema.userSettings.$inferInsert>)
-    .where(eq(schema.userSettings.userId, userId));
+    .where(
+      and(
+        eq(schema.userSettings.userId, userId),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    );
 }

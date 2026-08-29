@@ -94,6 +94,20 @@ describe('session validation outage policy', () => {
     expect(chain.limit).toHaveBeenCalledOnce();
   });
 
+  it('invalidates a token when its session row belongs to another user', async () => {
+    const chain = validSelectChain([{ tv: 3, sessionId: null }]);
+    const session = { user: { id: 'user-1' }, expires: 'future' };
+
+    const result = await validateSession(
+      dbWithSelect(chain.select, vi.fn()),
+      token({ sessionId: 'session-owned-by-user-2' }),
+      session,
+      2_000,
+    );
+
+    expect(result).toEqual({ user: undefined, expires: '0' });
+  });
+
   it('keeps a valid session and advances validation timestamps when checks succeed', async () => {
     const chain = validSelectChain();
     const set = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });

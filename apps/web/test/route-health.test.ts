@@ -29,6 +29,8 @@ vi.mock('@kestrel/db', () => ({
   getDb: vi.fn(() => ({ execute: mockDbExecute })),
   listFullAnalysisQueueRows: mockListFullAnalysisQueueRows,
   withRateLimit: mockWithRateLimit,
+  updatePaymentStatus: vi.fn(),
+  updateSubscriptionFromPayment: vi.fn(),
   schema: {},
 }));
 

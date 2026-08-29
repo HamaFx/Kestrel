@@ -26,11 +26,11 @@
 
 import * as crypto from 'crypto';
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { type ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
 import type { UIMessage } from 'ai';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { getBotDispatcher, resolveBotUser, type BotContext, type BotResponse } from '../bot';
 import { tryMastraBotMessage } from '../bot/mastra';
@@ -330,18 +330,27 @@ async function handleFreeFormMessage(
 
   try {
     // Ensure the chat thread exists in the database
-    const existingThread = await getDb()
+    const db = getDb();
+    const tenantId = await requireTenantIdForUser(userId, db);
+    const existingThread = await db
       .select()
       .from(schema.chatThreads)
-      .where(eq(schema.chatThreads.id, threadId))
+      .where(
+        and(
+          eq(schema.chatThreads.id, threadId),
+          eq(schema.chatThreads.userId, userId),
+          eq(schema.chatThreads.tenantId, tenantId),
+        ),
+      )
       .limit(1);
 
     if (existingThread.length === 0) {
-      await getDb()
+      await db
         .insert(schema.chatThreads)
         .values({
           id: threadId,
           userId,
+          tenantId,
           title: `Telegram Chat (${chatId})`,
           titleSource: 'fallback',
           pinnedSymbol: null,

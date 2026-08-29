@@ -27,7 +27,12 @@
 // This is the DIP implementation: consumers depend on the container
 // abstraction, not on the @kestrel/db module-level singleton.
 
-import { getDb as getRawDb, type DbClient } from '@kestrel/db';
+import {
+  getAdminDb as getRawAdminDb,
+  getDb as getRawDb,
+  hasTenantDbScope,
+  type DbClient,
+} from '@kestrel/db';
 import { container } from '@kestrel/shared';
 
 import { DB } from './tokens';
@@ -43,5 +48,14 @@ container.register(DB, () => getRawDb());
  * Returns the singleton Drizzle database client via the DI container.
  */
 export function getDb(): DbClient {
+  // The container caches the process-wide fallback client. Never use that
+  // cached instance inside a tenant request, because RLS must run on the
+  // transaction carrying app.current_tenant.
+  if (hasTenantDbScope()) return getRawDb();
+  // Worker/cron AI code performs cross-tenant work and must use the explicit
+  // BYPASSRLS admin connection when shared mode is enabled.
+  if ((process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker') {
+    return getRawAdminDb();
+  }
   return container.resolve(DB);
 }

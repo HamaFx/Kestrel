@@ -17,9 +17,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { BYOK_PROVIDERS_LIST, computeUsage, type ProviderBreakdown } from '@kestrel/ai';
-import { getDb, getUserWithSettings, schema } from '@kestrel/db';
+import {
+  getDb,
+  getUserWithSettings,
+  requireTenantIdForUser,
+  schema,
+} from '@kestrel/db';
 import { decryptByok, type ProviderId } from '@kestrel/shared/encryption';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
@@ -66,6 +71,7 @@ export default async function ApiKeysSettingsPage({
   // for the user to click "Test". Single round-trip; the row PK
   // is (userId, providerId) so the result is naturally keyed.
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(session.user.id, db);
   const healthRows = await db
     .select({
       providerId: schema.providerTests.providerId,
@@ -75,7 +81,12 @@ export default async function ApiKeysSettingsPage({
       rateLimit: schema.providerTests.rateLimit,
     })
     .from(schema.providerTests)
-    .where(eq(schema.providerTests.userId, session.user.id));
+    .where(
+      and(
+        eq(schema.providerTests.userId, session.user.id),
+        eq(schema.providerTests.tenantId, tenantId),
+      ),
+    );
   const healthByProvider = new Map(
     healthRows.map((h) => [
       h.providerId,

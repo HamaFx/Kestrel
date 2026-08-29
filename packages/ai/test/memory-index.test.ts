@@ -26,7 +26,13 @@ const { mockValues, mockInsert, mockEmbedTexts } = vi.hoisted(() => {
 });
 
 vi.mock('@kestrel/db', () => ({
+  requireTenantIdForUser: vi.fn(async () => 'tenant-a'),
   schema: {
+    journalEntries: {
+      id: {},
+      userId: {},
+      tenantId: {},
+    },
     memoryEmbeddings: {
       userId: {},
       kind: {},
@@ -72,6 +78,7 @@ describe('rememberThreadSynopsis', () => {
     expect(mockValues).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-a',
+        tenantId: 'tenant-a',
         sourceId: 'thread-a',
         kind: 'thread_synopsis',
       }),

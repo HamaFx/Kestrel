@@ -23,7 +23,7 @@
 // Noise config and route config are stored as JSONB in the existing
 // user_settings table (notificationPreferences field).
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
   DEFAULT_NOISE_CONFIG,
   DEFAULT_ROUTE_CONFIG,
@@ -48,12 +48,14 @@ export class DbNoiseState implements NoiseState {
 
   async hasSeen(dedupKey: string, _ttlSeconds: number): Promise<boolean> {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(this.userId, db);
     const rows = await db
       .select({ expiresAt: schema.notificationNoiseState.expiresAt })
       .from(schema.notificationNoiseState)
       .where(
         and(
           eq(schema.notificationNoiseState.userId, this.userId),
+          eq(schema.notificationNoiseState.tenantId, tenantId),
           eq(schema.notificationNoiseState.dedupKey, dedupKey),
         ),
       )
@@ -64,6 +66,7 @@ export class DbNoiseState implements NoiseState {
 
   async inCooldown(cooldownKey: string, cooldownSeconds: number): Promise<boolean> {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(this.userId, db);
     const cutoff = new Date(Date.now() - cooldownSeconds * 1000);
     const rows = await db
       .select({ lastSentAt: schema.notificationNoiseState.lastSentAt })
@@ -71,6 +74,7 @@ export class DbNoiseState implements NoiseState {
       .where(
         and(
           eq(schema.notificationNoiseState.userId, this.userId),
+          eq(schema.notificationNoiseState.tenantId, tenantId),
           eq(schema.notificationNoiseState.routeType, cooldownKey),
         ),
       )
@@ -80,6 +84,7 @@ export class DbNoiseState implements NoiseState {
 
   async record(dedupKey: string, cooldownKey: string): Promise<void> {
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(this.userId, db);
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h expiry
 
@@ -87,6 +92,7 @@ export class DbNoiseState implements NoiseState {
       .insert(schema.notificationNoiseState)
       .values({
         userId: this.userId,
+        tenantId,
         dedupKey,
         routeType: cooldownKey,
         lastSentAt: now,
@@ -125,10 +131,16 @@ interface NotificationPreferencesWithNoise {
 
 export async function getNoiseConfig(userId: string): Promise<NoiseConfig> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select({ notificationPreferences: schema.userSettings.notificationPreferences })
     .from(schema.userSettings)
-    .where(eq(schema.userSettings.userId, userId))
+    .where(
+      and(
+        eq(schema.userSettings.userId, userId),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   const prefs = rows[0]?.notificationPreferences as NotificationPreferencesWithNoise | null;
@@ -146,11 +158,17 @@ export async function saveNoiseConfig(
   const merged = { ...current, ...config };
 
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   // Fetch current prefs, merge noise config, save back
   const rows = await db
     .select({ notificationPreferences: schema.userSettings.notificationPreferences })
     .from(schema.userSettings)
-    .where(eq(schema.userSettings.userId, userId))
+    .where(
+      and(
+        eq(schema.userSettings.userId, userId),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   const existing = (rows[0]?.notificationPreferences ?? {}) as NotificationPreferencesWithNoise;
@@ -163,11 +181,12 @@ export async function saveNoiseConfig(
     .insert(schema.userSettings)
     .values({
       userId,
+      tenantId,
       notificationPreferences: updated,
     })
     .onConflictDoUpdate({
       target: schema.userSettings.userId,
-      set: { notificationPreferences: updated },
+      set: { tenantId, notificationPreferences: updated },
     });
 
   return merged;
@@ -175,10 +194,16 @@ export async function saveNoiseConfig(
 
 export async function getRouteConfig(userId: string): Promise<RouteConfig> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select({ notificationPreferences: schema.userSettings.notificationPreferences })
     .from(schema.userSettings)
-    .where(eq(schema.userSettings.userId, userId))
+    .where(
+      and(
+        eq(schema.userSettings.userId, userId),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   const prefs = rows[0]?.notificationPreferences as NotificationPreferencesWithNoise | null;
@@ -196,10 +221,16 @@ export async function saveRouteConfig(
   const merged = { ...current, ...config };
 
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select({ notificationPreferences: schema.userSettings.notificationPreferences })
     .from(schema.userSettings)
-    .where(eq(schema.userSettings.userId, userId))
+    .where(
+      and(
+        eq(schema.userSettings.userId, userId),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   const existing = (rows[0]?.notificationPreferences ?? {}) as NotificationPreferencesWithNoise;
@@ -212,11 +243,12 @@ export async function saveRouteConfig(
     .insert(schema.userSettings)
     .values({
       userId,
+      tenantId,
       notificationPreferences: updated,
     })
     .onConflictDoUpdate({
       target: schema.userSettings.userId,
-      set: { notificationPreferences: updated },
+      set: { tenantId, notificationPreferences: updated },
     });
 
   return merged;

@@ -38,7 +38,10 @@ export function assertProductionSecurity(): void {
     );
   }
 
-  if (process.env.AUTH_MODE === 'legacy' && process.env.NODE_ENV === 'production') {
+  if (
+    process.env.AUTH_MODE === 'legacy' &&
+    process.env.NODE_ENV === 'production'
+  ) {
     throw new Error(
       '[SECURITY] AUTH_MODE=legacy is forbidden in production. ' +
         'Legacy auth mode bypasses all authentication and must only be used in development. ' +

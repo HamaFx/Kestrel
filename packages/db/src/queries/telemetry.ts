@@ -19,6 +19,7 @@
 import { and, between, desc, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 export type TelemetryRow = typeof schema.chatTelemetry.$inferSelect;
 
@@ -29,6 +30,8 @@ export async function listTelemetry(
   const conditions = [eq(schema.chatTelemetry.userId, userId)];
   if (opts?.from && opts?.to)
     conditions.push(between(schema.chatTelemetry.createdAt, opts.from, opts.to));
+  const tenantId = await requireTenantIdForUser(userId, getDb());
+  conditions.push(eq(schema.chatTelemetry.tenantId, tenantId));
   const db = getDb();
   return db
     .select()
@@ -42,7 +45,10 @@ export async function recordTelemetry(
   data: Omit<typeof schema.chatTelemetry.$inferInsert, 'id' | 'createdAt'>,
 ): Promise<TelemetryRow> {
   const db = getDb();
-  const rows = await db.insert(schema.chatTelemetry).values(data).returning();
+  const values = data.userId === '__system__'
+    ? data
+    : { ...data, tenantId: await requireTenantIdForUser(data.userId, db) };
+  const rows = await db.insert(schema.chatTelemetry).values(values).returning();
   return rows[0]!;
 }
 
@@ -56,6 +62,7 @@ export async function getDailySpend(
   end.setUTCDate(end.getUTCDate() + 1);
 
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select({
       estCostUsd: schema.chatTelemetry.estCostUsd,
@@ -66,6 +73,7 @@ export async function getDailySpend(
     .where(
       and(
         eq(schema.chatTelemetry.userId, userId),
+        eq(schema.chatTelemetry.tenantId, tenantId),
         between(schema.chatTelemetry.createdAt, start, end),
       ),
     );

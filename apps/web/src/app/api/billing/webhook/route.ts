@@ -109,17 +109,19 @@ export async function processVerifiedIpnPayload(payload: IpnPayload): Promise<vo
     throw new Error('Payment row not found for IPN');
   }
 
-  await updatePaymentStatus(payment.id, {
+  const paymentUpdated = await updatePaymentStatus(payment.id, {
     status: mapPaymentStatus(payment_status),
     nowpaymentsPaymentId: payment_id,
     txHash: txid ?? payment.txHash,
     payAmount: pay_amount ?? payment.payAmount,
     payCurrency: pay_currency ?? payment.payCurrency,
     ipnPayload: payload,
+    tenantId: payment.tenantId,
   });
 
-  if (payment.subscriptionId) {
+  if (paymentUpdated && payment.subscriptionId) {
     await updateSubscriptionFromPayment(payment.subscriptionId, payment_status, {
+      tenantId: payment.tenantId,
       ...(invoice_id ? { invoiceId: invoice_id } : {}),
     });
   }
@@ -130,6 +132,9 @@ export async function processVerifiedIpnPayload(payload: IpnPayload): Promise<vo
 export async function POST(req: Request): Promise<Response> {
   const env = getServerEnv();
   const logger = createScopedLoggerWithContext({ component: 'billing-webhook' });
+  if (!env.BILLING_ENABLED) {
+    return new Response('Not Found', { status: 404 });
+  }
   const rawBody = await req.text();
   const signature = req.headers.get('x-nowpayments-sig') ?? '';
   const ipnSecret = env.NOWPAYMENTS_IPN_SECRET;
@@ -177,6 +182,10 @@ export async function POST(req: Request): Promise<Response> {
     rawBody: payload,
   });
 
+  if (claim.kind === 'conflict') {
+    logger.error({ payment_id, payment_status }, 'Conflicting IPN payload for existing event key');
+    return new Response('Conflicting event payload', { status: 409 });
+  }
   if (claim.kind === 'processed') {
     logger.info({ payment_id, payment_status }, 'IPN already processed, skipping');
     return new Response('OK', { status: 200 });

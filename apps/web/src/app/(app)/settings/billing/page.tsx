@@ -24,6 +24,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { getServerEnv } from '@/lib/env';
 
 import { BillingPlans } from './_components/billing-plans';
 import { PaymentHistory } from './_components/payment-history';
@@ -42,6 +43,17 @@ export default async function BillingPage() {
   }
 
   const userId = session.user.id;
+  if (!getServerEnv().BILLING_ENABLED) {
+    return (
+      <div className="flex max-w-2xl flex-col gap-2">
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Billing unavailable</h2>
+        <p className="text-fg-subtle text-sm">
+          Billing is disabled in this self-hosted deployment. Enable it explicitly only when
+          NOWPayments is configured and its operational requirements are understood.
+        </p>
+      </div>
+    );
+  }
 
   const allPlans = await listActivePlans();
   const subscription = await getUserSubscription(userId);

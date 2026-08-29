@@ -19,6 +19,7 @@
 import { and, desc, eq, gte, lte, type SQL } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 import type {
   ShadowComparisonAgent,
   ShadowComparisonOutcome,
@@ -50,10 +51,13 @@ export interface RecordAiShadowComparisonInput {
 export async function recordAiShadowComparison(
   input: RecordAiShadowComparisonInput,
 ): Promise<AiShadowComparisonRow> {
-  const [row] = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
+  const [row] = await db
     .insert(schema.aiShadowComparisons)
     .values({
       userId: input.userId,
+      tenantId,
       threadId: input.threadId,
       promptSha256: input.promptSha256,
       primaryAgent: input.primaryAgent,
@@ -87,9 +91,18 @@ export interface ListAiShadowComparisonsOptions {
 }
 
 export async function listAiShadowComparisons(
-  options: ListAiShadowComparisonsOptions = {},
+  options: ListAiShadowComparisonsOptions & { userId?: string } = {},
 ): Promise<AiShadowComparisonRow[]> {
   const conditions: SQL[] = [];
+  if (options.userId) {
+    conditions.push(
+      eq(schema.aiShadowComparisons.userId, options.userId),
+      eq(
+        schema.aiShadowComparisons.tenantId,
+        await requireTenantIdForUser(options.userId),
+      ),
+    );
+  }
   if (options.from) conditions.push(gte(schema.aiShadowComparisons.createdAt, options.from));
   if (options.to) conditions.push(lte(schema.aiShadowComparisons.createdAt, options.to));
   if (options.primaryAgent)

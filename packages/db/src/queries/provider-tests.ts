@@ -16,9 +16,10 @@
 
 // Provider health test query helpers.
 
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 /**
  * Get the latest health test results for all providers for a user.
@@ -26,6 +27,7 @@ import { getDb, schema } from '../client';
  */
 export async function getProviderHealthForUser(userId: string) {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select({
       providerId: schema.providerTests.providerId,
@@ -34,7 +36,12 @@ export async function getProviderHealthForUser(userId: string) {
       testedAt: schema.providerTests.testedAt,
     })
     .from(schema.providerTests)
-    .where(eq(schema.providerTests.userId, userId));
+    .where(
+      and(
+        eq(schema.providerTests.userId, userId),
+        eq(schema.providerTests.tenantId, tenantId),
+      ),
+    );
 }
 
 /**
@@ -43,10 +50,16 @@ export async function getProviderHealthForUser(userId: string) {
  */
 export async function getUserApiKeys(userId: string): Promise<string | null> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const [settings] = await db
     .select({ aiApiKeys: schema.userSettings.aiApiKeys })
     .from(schema.userSettings)
-    .where(eq(schema.userSettings.userId, userId));
+    .where(
+      and(
+        eq(schema.userSettings.userId, userId),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    );
   const val = settings?.aiApiKeys;
   return val != null ? String(val) : null;
 }

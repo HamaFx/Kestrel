@@ -25,6 +25,7 @@ import { schema } from '@kestrel/db';
 import { eq, sql } from 'drizzle-orm';
 
 import { auth } from '@/auth';
+import { getServerEnv } from '@/lib/env';
 
 import { createRequestLogger } from './logger';
 
@@ -61,8 +62,9 @@ export async function getAdminUser(): Promise<AdminAuthResult> {
     return { admin: null, reason: 'forbidden' };
   }
 
-  // Admin if role is 'admin' OR if this is a single-user deployment
-  // (no users with role='admin' exist, meaning the sole user is the operator)
+  // Explicit admin roles are always accepted. Implicit admin access is only
+  // available under the OSS single-user invariant; shared deployments must
+  // provision an explicit admin role instead.
   if (user.role === 'admin') {
     return {
       admin: { userId: user.id, email: user.email, name: user.name },
@@ -70,18 +72,23 @@ export async function getAdminUser(): Promise<AdminAuthResult> {
     };
   }
 
-  // Single-user deployment check: if no admin role exists, the earliest
-  // created user is treated as admin. Previously this was two sequential
-  // queries (count admins then fetch earliest user), which had a TOCTOU
-  // window. Now collapsed into a single atomic sub-query:
-  //   SELECT id FROM users ORDER BY created_at LIMIT 1
-  //   WHERE NOT EXISTS (SELECT 1 FROM users WHERE role = 'admin')
-  // This ensures the earliest-user decision is atomic — concurrent first-time
-  // registrations cannot both be promoted.
+  if (!getServerEnv().OSS_SINGLE_USER_MODE) {
+    return { admin: null, reason: 'forbidden' };
+  }
+
+  // In the OSS single-user deployment, the sole account is the operator.
+  // Single-user deployment check: only the sole account may be treated as
+  // the implicit admin. Keep the count and role checks in one statement so a
+  // second regular account cannot leave the earliest account privileged.
+  // The database snapshot makes this decision atomic for each authorization
+  // check; explicit admin roles remain the preferred production path.
   const [firstUserSingleQuery] = await db
     .select({ id: schema.users.id })
     .from(schema.users)
-    .where(sql`NOT EXISTS (SELECT 1 FROM ${schema.users} WHERE ${schema.users.role} = 'admin')`)
+    .where(
+      sql`NOT EXISTS (SELECT 1 FROM ${schema.users} WHERE ${schema.users.role} = 'admin')
+        AND (SELECT count(*) FROM ${schema.users}) = 1`,
+    )
     .orderBy(schema.users.createdAt)
     .limit(1);
 

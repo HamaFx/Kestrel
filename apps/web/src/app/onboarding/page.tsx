@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getDb, schema } from '@kestrel/db';
+import { getDb, requireTenantIdForUser, schema } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
@@ -32,10 +32,16 @@ export default async function OnboardingPage() {
   }
 
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(session.user.id, db);
   const [settings] = await db
     .select()
     .from(schema.userSettings)
-    .where(eq(schema.userSettings.userId, session.user.id));
+    .where(
+      and(
+        eq(schema.userSettings.userId, session.user.id),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    );
 
   if (settings?.onboardingCompleted) {
     redirect('/chat');

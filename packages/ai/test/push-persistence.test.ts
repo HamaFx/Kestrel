@@ -21,10 +21,12 @@ vi.mock('../src/db', () => ({
 }));
 
 vi.mock('@kestrel/db', () => ({
+  requireTenantIdForUser: vi.fn().mockResolvedValue('tenant-a'),
   schema: {
     pushSubscriptions: {
       endpoint: 'push.endpoint',
       userId: 'push.user_id',
+      tenantId: 'push.tenant_id',
     },
   },
 }));
@@ -32,6 +34,7 @@ vi.mock('@kestrel/db', () => ({
 vi.mock('drizzle-orm', () => ({
   and: (...conditions: unknown[]) => ({ conditions }),
   eq: (left: unknown, right: unknown) => ({ left, right }),
+  sql: (_strings: TemplateStringsArray, ...values: unknown[]) => ({ queryChunks: values }),
 }));
 
 const USER_A = 'user-a';
@@ -80,7 +83,9 @@ describe('savePushSubscription ownership', () => {
 
     expect(result.userId).toBe(USER_A);
     expect(result.p256dh).toBe('new-p256dh');
-    expect(mocks.lastConflictConfig?.setWhere).toMatchObject({ right: USER_A });
+    expect(mocks.lastConflictConfig?.setWhere).toMatchObject({
+      queryChunks: expect.arrayContaining([USER_A, 'tenant-a']),
+    });
   });
 
   it('rejects a cross-user endpoint claim without returning a subscription', async () => {
@@ -96,7 +101,9 @@ describe('savePushSubscription ownership', () => {
       }),
     ).rejects.toBeInstanceOf(PushSubscriptionConflictError);
 
-    expect(mocks.lastConflictConfig?.setWhere).toMatchObject({ right: USER_B });
+    expect(mocks.lastConflictConfig?.setWhere).toMatchObject({
+      queryChunks: expect.arrayContaining([USER_B, 'tenant-a']),
+    });
     expect(mocks.returning).toHaveBeenCalledOnce();
   });
 });

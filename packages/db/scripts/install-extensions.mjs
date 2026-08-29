@@ -12,7 +12,32 @@ if (!databaseUrl) {
   throw new Error('Set DIRECT_URL, POSTGRES_URL_NON_POOLING, DATABASE_URL, or POSTGRES_URL before installing database extensions.');
 }
 
-const sql = postgres(databaseUrl, { prepare: false, max: 1 });
+function resolveSslOption() {
+  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  if (ca) return { ca, rejectUnauthorized: true };
+
+  if (process.env.DB_DISABLE_SSL === 'true') {
+    if (
+      process.env.NODE_ENV !== 'production' ||
+      (process.env.KESTREL_LOCAL_DOCKER ?? process.env.HAMAFX_LOCAL_DOCKER) === 'true'
+    ) {
+      return false;
+    }
+    throw new Error(
+      'DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; configure verified TLS for production databases.',
+    );
+  }
+
+  const productionTls =
+    process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  return productionTls ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
+}
+
+const sql = postgres(databaseUrl, {
+  prepare: false,
+  max: 1,
+  ssl: resolveSslOption(),
+});
 
 try {
   await sql`CREATE SCHEMA IF NOT EXISTS public`;
