@@ -31,8 +31,11 @@ jobs:
       - run: pnpm check:oss-release
       - run: pnpm check:p0-release
       - run: pnpm check:p3-release
+      - run: pnpm check:route-security
+      - run: pnpm check:env-contract
       - run: pnpm check:release-archive
       - run: pnpm check:dependency-report
+      - run: pnpm check:env-contract
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
       # Knip is report-only until its baseline is fully reviewed; it must not

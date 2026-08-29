@@ -24,7 +24,6 @@ import {
   DEFAULT_MAX_DAILY_USD,
   estimateCostUsd,
   extractUserMessageText,
-  listMessages,
   reserveTurnBudget,
 } from '@kestrel/ai';
 import {
@@ -36,6 +35,7 @@ import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
+import { listMessages } from '@kestrel/ai/persistence';
 import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra-thread-title';
 import { createMastraStreamFinalizer } from '@/lib/services/mastra-stream-finalizer';

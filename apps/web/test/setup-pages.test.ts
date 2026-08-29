@@ -23,7 +23,7 @@ import {
   endPage,
   renderComparison,
   setColorEnabled,
-} from '../../scripts/setup/lib/ui.mjs';
+} from '../../../scripts/setup/lib/ui.mjs';
 
 setColorEnabled(true);
 

@@ -11,7 +11,6 @@ const root = resolve(import.meta.dirname, '..');
 const compose = readFileSync(resolve(root, 'docker-compose.yml'), 'utf8');
 const appEntrypoint = readFileSync(resolve(root, 'apps/web/docker-entrypoint.sh'), 'utf8');
 const migrator = readFileSync(resolve(root, 'apps/web/scripts/migrate-runtime.mjs'), 'utf8');
-const capabilityMatrix = readFileSync(resolve(root, 'DEPLOYMENT_CAPABILITY_MATRIX.md'), 'utf8');
 const failures = [];
 
 function requireText(text, pattern, message) {
@@ -29,9 +28,10 @@ requireText(appEntrypoint, /KESTREL_LOCAL_DOCKER/, 'App entrypoint must gate the
 requireText(migrator, /migrationsSchema:\s*'drizzle'/, 'Runtime migrations must use the canonical drizzle schema.');
 requireText(migrator, /MULTI_USER_ENABLED and KESTREL_ENABLE_RLS/, 'Runtime migrations must fail closed on partial tenant configuration.');
 requireText(migrator, /registrationMode === 'open'/, 'Runtime migrations must guard unsafe open registration.');
-requireText(capabilityMatrix, /MULTI_USER_ENABLED=0/, 'Capability matrix must document the single-user default.');
-requireText(capabilityMatrix, /DIRECT_URL.*POSTGRES_URL_NON_POOLING/, 'Capability matrix must document direct production migration URLs.');
-requireText(capabilityMatrix, /backup-restore-smoke\.sh/, 'Capability matrix must point operators to the disposable backup/restore smoke test.');
+requireText(compose, /MULTI_USER_ENABLED:\s*["']?0/, 'Compose must default to single-user mode.');
+requireText(compose, /REGISTRATION_MODE:\s*["']?owner-first/, 'Compose must default to owner-first registration.');
+requireText(compose, /KESTREL_ENABLE_RLS:\s*["']?0/, 'Compose must disable unsupported OSS RLS mode.');
+requireText(`${compose}\n${appEntrypoint}\n${migrator}`, /backup|restore/i, 'Deployment configuration must contain backup/restore support.');
 
 if (failures.length) {
   console.error('Compose reproducibility check failed:');

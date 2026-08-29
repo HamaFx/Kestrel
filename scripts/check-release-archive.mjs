@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 
-const forbidden = /(^|\/)(?:\.env(?:\.|$)|\.kestrel(?:\/|$)|node_modules(?:\/|$)|\.next(?:\/|$)|dist(?:\/|$)|coverage(?:\/|$)|artifacts(?:\/|$)|.*\.(?:pem|key|p12|pfx))$/i;
+const forbidden = /(^|\/)(?:\.env(?:\.|$)|\.kestrel(?:\/|$)|node_modules(?:\/|$)|\.next(?:\/|$)|dist(?:\/|$)|coverage(?:\/|$)|artifacts(?:\/|$)|.*\.(?:pem|key|p12|pfx|bak|dump|sql\.gz))$/i;
 const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean);
 const failures = files.filter((file) => forbidden.test(file));
 

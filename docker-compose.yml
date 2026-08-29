@@ -39,10 +39,11 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    # Docker's default json-file logger is bounded to prevent disk exhaustion.
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
+        max-size: "10m"
         max-file: "3"
 
   langfuse:
@@ -78,7 +79,7 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
+        max-size: "10m"
         max-file: "3"
 
   backup:
@@ -145,6 +146,11 @@ services:
       # flag prevents the production DB client from attempting TLS against it.
       DB_DISABLE_SSL: "true"
       NODE_ENV: production
+      # OSS release boundary: shared multi-user/RLS mode is intentionally disabled.
+      MULTI_USER_ENABLED: "0"
+      REGISTRATION_MODE: owner-first
+      KESTREL_ENABLE_RLS: "0"
+      OSS_SINGLE_USER_MODE: "1"
       # PERF-06: Tune the postgres-js connection pool. 5 connections per web
       # instance covers concurrent tool calls + budget + telemetry without
       # exhausting Supabase's transaction pooler ceiling.
@@ -173,10 +179,11 @@ services:
         reservations:
           memory: 256m
     restart: unless-stopped
+    # Docker's default json-file logger is bounded to prevent disk exhaustion.
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
+        max-size: "10m"
         max-file: "3"
 
   worker:
@@ -186,6 +193,11 @@ services:
     environment:
       DATABASE_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
       NODE_ENV: production
+      # OSS release boundary: shared multi-user/RLS mode is intentionally disabled.
+      MULTI_USER_ENABLED: "0"
+      REGISTRATION_MODE: owner-first
+      KESTREL_ENABLE_RLS: "0"
+      OSS_SINGLE_USER_MODE: "1"
       WORKER_MODE: docker
       KESTREL_LOCAL_DOCKER: "true"
       # The bundled Postgres service is plain TCP; production deployments
@@ -216,10 +228,11 @@ services:
         reservations:
           memory: 128m
     restart: unless-stopped
+    # Docker's default json-file logger is bounded to prevent disk exhaustion.
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
+        max-size: "10m"
         max-file: "3"
 
 # Keep the historical volume names by default so moving an existing VM from

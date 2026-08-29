@@ -26,7 +26,7 @@ import {
   multiselect,
   select,
   text,
-} from '../../scripts/setup/lib/prompts.mjs';
+} from '../../../scripts/setup/lib/prompts.mjs';
 
 /**
  * Fake stdin: an EventEmitter that also exposes the TTY/raw-mode API.

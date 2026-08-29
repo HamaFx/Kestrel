@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console -- CLI report output is its public interface. */
 
 /**
  * Read-only production migration/schema reconciliation report.

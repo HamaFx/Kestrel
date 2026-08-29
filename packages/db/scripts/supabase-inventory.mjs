@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console -- Read-only inventory output is the CLI contract. */
 
 /**
  * Read-only Supabase/PostgreSQL inventory.

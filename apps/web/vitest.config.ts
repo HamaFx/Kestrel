@@ -21,6 +21,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
+  esbuild: { target: 'esnext' },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -28,7 +29,7 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'node',
+    environment: 'jsdom',
     include: ['test/**/*.test.{ts,tsx}'],
     setupFiles: ['./test/vitest.setup.ts'],
     coverage: {

@@ -33,6 +33,12 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:oss-release
+      - run: pnpm check:p0-release
+      - run: pnpm check:p3-release
+      - run: pnpm check:route-security
+      - run: pnpm check:env-contract
+      - run: pnpm check:release-archive
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
 

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// eslint-disable-next-line no-restricted-imports -- Tests mock the public AI barrel to preserve job wiring coverage.
 import * as ai from '@kestrel/ai';
 import * as data from '@kestrel/data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

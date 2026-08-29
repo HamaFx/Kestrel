@@ -22,6 +22,7 @@ import { withAdminAuth } from '@/lib/admin-auth';
 import { parseSearchParams } from '@/lib/api';
 import type { DiagnosticTraceSummary } from '@/lib/services/admin-dtos';
 import { listDiagnosticTracesForAdmin } from '@/lib/services/api-boundary';
+
 import type { DiagnosticTraceRow } from '@kestrel/db';
 
 export const runtime = 'nodejs';

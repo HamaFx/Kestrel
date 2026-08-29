@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console -- CLI status output is its public interface. */
 /**
  * Copyright 2026 Kestrel
  *

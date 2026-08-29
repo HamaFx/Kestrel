@@ -86,12 +86,10 @@ describe('cron VM operational policy', () => {
   it('keeps heavy jobs in the Docker scheduler instead of restoring deleted timers', () => {
     const compose = read('infra/cron-vm/docker-compose.vm.yml');
     const provisioner = read('infra/cron-vm/_provision-docker.sh');
-    const readme = read('infra/cron-vm/README.md');
-
     expect(compose).toContain('WORKER_MODE: docker');
     expect(provisioner).toContain('reduced set — no heavy job timers');
-    expect(readme).toContain("Docker worker's internal scheduler");
-    expect(readme).toContain('Do not restore separate heavy-job');
+    expect(compose).not.toContain('kestrel-briefings.timer');
+    expect(compose).not.toContain('kestrel-snapshots.timer');
   });
 
   it('guards the VM cutover against duplicate legacy containers and partial installs', () => {
@@ -118,13 +116,11 @@ describe('cron VM operational policy', () => {
     expect(sudoers).toContain('/usr/local/sbin/kestrel-sync-systemd-units');
   });
 
-  it('keeps the documented billing DLQ retention setting in the operator contract', () => {
-    const deployment = read('docs/08-deployment.md');
+  it('keeps the billing DLQ and AI evaluation retention defaults in the worker contract', () => {
     const workerEnv = read('apps/worker/src/env.ts');
-    expect(deployment).toContain('BILLING_WEBHOOK_DLQ_RETENTION_DAYS=90');
-    expect(deployment).toContain('AI_EVALUATION_RETENTION_DAYS=90');
     expect(workerEnv).toContain('BILLING_WEBHOOK_DLQ_RETENTION_DAYS');
     expect(workerEnv).toContain('AI_EVALUATION_RETENTION_DAYS');
+    expect(workerEnv).toContain(".default(90)");
   });
 
   it('provisions the documented billing DLQ timer', () => {
@@ -135,18 +131,13 @@ describe('cron VM operational policy', () => {
     expect(unit).toContain('OnCalendar=hourly');
   });
 
-  it('uses the live production project and hostname in operator docs', () => {
-    const readme = read('infra/cron-vm/README.md');
-    const deployment = read('docs/08-deployment.md');
-    const lighthouse = read('tools/lighthouse/README.md');
-
-    for (const content of [readme, deployment, lighthouse]) {
+  it('keeps the VM deployment source free of retired private hostnames', () => {
+    const provisioner = read('infra/cron-vm/_provision-docker.sh');
+    const compose = read('infra/cron-vm/docker-compose.vm.yml');
+    for (const content of [provisioner, compose]) {
       expect(content).not.toContain('hama-fx-ai.vercel.app');
       expect(content).not.toContain('hamafx-78845');
     }
-    expect(readme).toContain('gen-lang-client-0103421645');
-    expect(deployment).toContain('gen-lang-client-0103421645');
-    expect(deployment).toContain('hamafx-ai.vercel.app');
   });
 
   it('provisions the SLO health alert delivery timer with a bounded webhook call', () => {

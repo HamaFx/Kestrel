@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* eslint-disable no-console -- Seed progress is intentionally printed to the CLI. */
+
 // Seed the three billing plans: Free ($0), Pro ($15/mo), Enterprise ($49/mo).
 //
 // Amounts are placeholders — the owner must confirm actual pricing before

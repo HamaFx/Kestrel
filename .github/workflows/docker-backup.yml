@@ -29,5 +29,8 @@ jobs:
       - name: Generate disposable Compose secrets
         run: ./docker/init-secrets.sh
 
+      - name: Validate Compose image references
+        run: pnpm check:compose-images
+
       - name: Run backup/restore smoke test
         run: ./docker/backup-restore-smoke.sh

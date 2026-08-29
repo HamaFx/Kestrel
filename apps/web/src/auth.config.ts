@@ -68,6 +68,8 @@ export const authConfig: NextAuthConfig = {
   // itself. (Conditionally spread because `exactOptionalPropertyTypes`
   // forbids assigning `undefined` to `secret: string | string[]`.)
   ...(nextAuthSecret ? { secret: nextAuthSecret } : {}),
+  // Host trust is required for reverse-proxy deployments. Production URL
+  // construction uses the explicit application URL, not request host headers.
   trustHost: true,
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 }, // 30 days (FEAT-04: remember me)
   pages: {

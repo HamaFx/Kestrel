@@ -23,16 +23,16 @@ import { resolve } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { parseFlags } from '../../scripts/setup/index.mjs';
-import { MARKET_DATA_PROVIDERS, parseMarketFlag } from '../../scripts/setup/lib/market-data.mjs';
-import { loadSecretTemplate } from '../../scripts/setup/lib/secrets.mjs';
-import * as configStep from '../../scripts/setup/steps/config.mjs';
-import * as detectStep from '../../scripts/setup/steps/detect-existing.mjs';
-import * as installStep from '../../scripts/setup/steps/install.mjs';
-import * as launchStep from '../../scripts/setup/steps/launch.mjs';
-import * as marketStep from '../../scripts/setup/steps/market-data.mjs';
-import * as modeStep from '../../scripts/setup/steps/mode.mjs';
-import * as prereqsStep from '../../scripts/setup/steps/prereqs.mjs';
+import { parseFlags } from '../../../scripts/setup/index.mjs';
+import { MARKET_DATA_PROVIDERS, parseMarketFlag } from '../../../scripts/setup/lib/market-data.mjs';
+import { loadSecretTemplate } from '../../../scripts/setup/lib/secrets.mjs';
+import * as configStep from '../../../scripts/setup/steps/config.mjs';
+import * as detectStep from '../../../scripts/setup/steps/detect-existing.mjs';
+import * as installStep from '../../../scripts/setup/steps/install.mjs';
+import * as launchStep from '../../../scripts/setup/steps/launch.mjs';
+import * as marketStep from '../../../scripts/setup/steps/market-data.mjs';
+import * as modeStep from '../../../scripts/setup/steps/mode.mjs';
+import * as prereqsStep from '../../../scripts/setup/steps/prereqs.mjs';
 
 const root = resolve(process.cwd(), '../..');
 
@@ -133,7 +133,7 @@ describe('setup wizard flags', () => {
   });
 
   it('rejects unknown modes at the main() level', async () => {
-    const { main } = await import('../../scripts/setup/index.mjs');
+    const { main } = await import('../../../scripts/setup/index.mjs');
     // Inject a silent io so the error message does not pollute test output.
     const silent = { write: () => {}, line: () => {}, isTTY: false };
     const code = await main(['--mode=banana'], { io: silent });
@@ -141,7 +141,7 @@ describe('setup wizard flags', () => {
   });
 
   it('emits a machine-readable JSON result with --json', async () => {
-    const { main } = await import('../../scripts/setup/index.mjs');
+    const { main } = await import('../../../scripts/setup/index.mjs');
     const silent = { write: () => {}, line: () => {}, isTTY: false };
     const jsonOut = { buffer: '', write: (s: string) => (jsonOut.buffer += s) };
     const code = await main(['--mode=simple', '--dry-run', '--json'], {
@@ -158,7 +158,7 @@ describe('setup wizard flags', () => {
   }, 15000);
 
   it('emits a JSON error for invalid modes with --json', async () => {
-    const { main } = await import('../../scripts/setup/index.mjs');
+    const { main } = await import('../../../scripts/setup/index.mjs');
     const silent = { write: () => {}, line: () => {}, isTTY: false };
     const jsonOut = { buffer: '', write: (s: string) => (jsonOut.buffer += s) };
     const code = await main(['--mode=banana', '--json'], { io: silent, jsonStream: jsonOut });

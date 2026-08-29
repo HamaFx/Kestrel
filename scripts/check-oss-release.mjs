@@ -24,6 +24,7 @@ const ENV_REFERENCE_PATTERN = /process\.env(?:\[['"]([A-Z][A-Z0-9_]*)['"]\]|\.([
 const IGNORED_ENV_KEYS = new Set([
   'NODE_ENV', 'PATH', 'HOME', 'HOSTNAME', 'CI', 'VERCEL', 'VERCEL_ENV', 'NEXT_PHASE',
   'NEXT_RUNTIME', 'PORT', 'ANALYZE', 'VITEST', 'DEBUG', 'FORCE_COLOR', 'NO_COLOR',
+  'TZ', 'PWD', 'OLDPWD', 'SHLVL', 'TERM', 'USER', 'LOGNAME', 'TMPDIR',
 ]);
 
 function trackedFiles() {

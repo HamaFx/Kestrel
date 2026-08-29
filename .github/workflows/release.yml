@@ -31,6 +31,30 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate release contracts
+        run: |
+          pnpm check:oss-release
+          pnpm check:p0-release
+          pnpm check:p3-release
+          pnpm check:env-contract
+          pnpm check:route-security
+          pnpm check:release-archive
+          pnpm check:dependency-report
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@e11e3a6c4d7f2bfa4e0fb8f7d35a4f1c7d37e1b1 # v0.20.0
+
+      - name: Generate SBOM
+        run: pnpm generate:sbom
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: source-sbom
+          path: artifacts/sbom/source.spdx.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@e87c8ed249971350e47fab7515075f44eb134e5b # v1.7.0
