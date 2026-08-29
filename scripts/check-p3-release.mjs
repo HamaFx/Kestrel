@@ -11,6 +11,8 @@ const pkg = JSON.parse(read('package.json'));
 if (pkg.engines?.node !== '>=22.13.0') failures.push('package.json Node engine must be >=22.13.0');
 if (!read('README.md').includes('Node.js 22.13')) failures.push('README must document Node.js 22.13+');
 if (!read('CONTRIBUTING.md').includes('22.13')) failures.push('CONTRIBUTING.md must document Node.js 22.13+');
+if (!existsSync(resolve(root, 'scripts/check-route-security.mjs'))) failures.push('scripts/check-route-security.mjs: route security classification check is missing');
+if (!existsSync(resolve(root, 'scripts/check-env-contract.mjs'))) failures.push('scripts/check-env-contract.mjs: environment contract check is missing');
 
 for (const file of ['Dockerfile', 'Dockerfile.worker']) {
   const lines = read(file).split('\n').filter((line) => /^\s*FROM\s+/i.test(line));

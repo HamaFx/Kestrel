@@ -54,6 +54,10 @@ import { createKestrelMastra, MASTRA_DEFAULT_PORT } from './instance.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
+const log = {
+  info: (message: string, data?: unknown) => console.info(`[studio] ${message}`, data ?? ''),
+  warn: (message: string, data?: unknown) => console.warn(`[studio] ${message}`, data ?? ''),
+};
 
 /** Locate the prebuilt Studio UI assets shipped inside the `mastra` CLI package. */
 function resolveStudioPath(): string {
@@ -94,17 +98,14 @@ async function main(): Promise<void> {
 
   const port = Number(process.env.MASTRA_SERVER_PORT ?? '') || MASTRA_DEFAULT_PORT;
 
-  console.log(`[studio] building Mastra server (studio: ${studioPath})`);
+  log.info(`building Mastra server (studio: ${studioPath})`);
   await createNodeServer(instance, {
     studio: true,
     isDev: true,
     tools: {},
   });
 
-  console.log('');
-  console.log(`  Mastra Studio ready at http://localhost:${port}`);
-  console.log(`  (serving ${studioPath})`);
-  console.log('');
+  log.info(`Mastra Studio ready at http://localhost:${port} (serving ${studioPath})`);
 }
 
 main().catch((err: unknown) => {
@@ -188,11 +189,10 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
       instance as unknown as { __registerFsWorkflows: (wfs: Record<string, unknown>) => void }
     ).__registerFsWorkflows(workflows);
 
-    console.log('[studio] registered canonical agents + workflows');
+    log.info('registered canonical agents + workflows');
   } catch (err) {
-    console.warn(
-      '[studio] canonical component registration skipped:',
-      err instanceof Error ? err.message : String(err),
-    );
+    log.warn('[studio] canonical component registration skipped', {
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 }

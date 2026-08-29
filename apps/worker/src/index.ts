@@ -442,16 +442,16 @@ export async function main(): Promise<void> {
     log.warn('Mastra storage init failed (non-fatal; lazy init will retry)', { err: String(err) });
   });
 
-  console.log(
-    [
+  log.info('worker starting', {
+    banner: [
       '██╗  ██╗███████╗███████╗████████╗██████╗ ███████╗██╗',
-      '██║ ██╔╝██╔════╝██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║',
+      '██║ ██╔╝██╔════╝██╔════╝╚══██╔══╝██████╔╝██╔════╝██║',
       '█████╔╝ █████╗  ███████╗   ██║   ██████╔╝█████╗  ██║',
       '██╔═██╗ ██╔══╝  ╚════██║   ██║   ██╔══██╗██╔══╝  ██║',
       '██║  ██╗███████╗███████║   ██║   ██║  ██║███████╗███████╗',
       '╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝',
     ].join('\n'),
-  );
+  });
 
   log.info('worker starting', {
     nodeVersion: process.version,

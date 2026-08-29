@@ -1,4 +1,4 @@
 {
   "extends": "@kestrel/config/typescript/base",
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts"]
 }

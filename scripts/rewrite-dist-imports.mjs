@@ -28,6 +28,11 @@ function rewriteSpecifier(file, specifier) {
   return `${specifier}/${path.basename(resolved)}`.replace(/\/index\.js$/, '/index.js').replace(/\/([^/]+)\/\1\.js$/, '/$1.js');
 }
 
+if (!fs.existsSync(distDir)) {
+  console.error(`Distribution directory does not exist: ${distDir}`);
+  process.exit(1);
+}
+
 const files = walk(distDir).filter((file) => file.endsWith('.js'));
 const importPattern = /(from\s*["']|import\s*\(\s*["']|import\s*["'])(\.[^"']+)(["'])/g;
 

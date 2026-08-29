@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console -- CLI completion output is its public interface. */
 /**
  * P3: Rotate ENCRYPTION_SECRET for encrypted database fields.
  *

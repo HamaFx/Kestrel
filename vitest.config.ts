@@ -20,7 +20,7 @@ export default defineConfig({
   esbuild: {
     // TypeScript keeps the ES2024 type-check target; Vitest/esbuild uses the
     // latest target it understands for test transforms.
-    target: 'es2022',
+    target: 'esnext',
   },
   test: {
     server: {

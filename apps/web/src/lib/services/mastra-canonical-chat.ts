@@ -23,7 +23,6 @@ import {
   appendUserMessage,
   DEFAULT_MAX_DAILY_USD,
   estimateCostUsd,
-  listMessages,
   reserveTurnBudget,
 } from '@kestrel/ai';
 import { runMastraCanonicalChat, type MastraCanonicalChatResult } from '@kestrel/ai/mastra';
@@ -31,6 +30,7 @@ import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
+import { listMessages } from '@kestrel/ai/persistence';
 
 export interface RunMastraCanonicalChatInput {
   userId: string;

@@ -160,12 +160,12 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
  * parses HTML into a DOM tree and removes disallowed nodes/attributes.
  * The allow-list is minimal: only the tags/attrs Shiki actually emits.
  */
-function sanitizeShikiHtml(html: string): string {
+export function sanitizeShikiHtml(html: string): string {
   // DOMPurify requires a DOM environment. This function is only called
   // from ShikiCode's render path after the effect sets `html` (client-
   // side only), so the SSR branch is dead in practice — kept as a
   // defensive guard in case a future caller invokes it during SSR.
-  if (typeof window === 'undefined') return html;
+  if (typeof window === 'undefined') return '';
   return DOMPurify.sanitize(html, {
     // Shiki emits <pre class="shiki ..." style="..." tabindex="0">
     // wrapping <code> with <span style="color:..."> tokens. The
@@ -174,6 +174,7 @@ function sanitizeShikiHtml(html: string): string {
     // auto on .shiki). Stripping it would be an a11y regression.
     ALLOWED_TAGS: ['pre', 'code', 'span', 'br'],
     ALLOWED_ATTR: ['class', 'style', 'tabindex'],
+    FORBID_ATTR: ['data-x'],
   });
 }
 

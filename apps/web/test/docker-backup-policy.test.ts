@@ -34,7 +34,7 @@ describe('Docker-local backup policy', () => {
     expect(compose).toContain('backup-data:/var/lib/postgresql/backups');
     expect(compose).not.toContain('backup-data:/var/lib/hamafx/backups');
     const backupService = compose.split('  backup:\n')[1]?.split('\n  app:\n')[0] ?? '';
-    expect(backupService).toContain('image: postgres:16-alpine');
+    expect(backupService).toMatch(/image: postgres:16-alpine(?:@sha256:[a-f0-9]{64})?/);
     expect(backupService).toContain('entrypoint: ["/usr/local/bin/backup-entrypoint.sh"]');
     expect(readFileSync(resolve(root, 'docker/backup-entrypoint.sh'), 'utf8')).toContain(
       'su-exec postgres',

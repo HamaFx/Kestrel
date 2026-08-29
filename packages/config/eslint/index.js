@@ -68,6 +68,7 @@ export default [
             {
               name: '@kestrel/ai',
               importNames: ['runChat', 'createThread', 'listThreads', 'getThread', 'listMessages'],
+              allowTypeImports: true,
               message:
                 'Prefer sub-path imports — use @kestrel/ai/agent, @kestrel/ai/persistence, etc.',
             },

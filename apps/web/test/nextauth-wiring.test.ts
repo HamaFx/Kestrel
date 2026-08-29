@@ -27,6 +27,8 @@
 // (cookies/headers), which doesn't exist in a bare vitest run. End-to-end
 // auth behaviour is covered by the integration test in auth-flow.test.ts.
 
+import { resolve } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import { handlers, signIn, signOut } from '../src/auth';
@@ -62,7 +64,7 @@ describe('NextAuth wiring', () => {
     // re-introduce the stub form. Belt-and-braces alongside the runtime
     // shape checks above.
     const fs = await import('node:fs/promises');
-    const src = await fs.readFile(new URL('../src/auth.ts', import.meta.url), 'utf8');
+    const src = await fs.readFile(resolve(process.cwd(), 'src/auth.ts'), 'utf8');
     expect(src).toMatch(/NextAuth\(/);
     expect(src).toMatch(/Credentials\(/);
     expect(src).toMatch(/getDb\(/);

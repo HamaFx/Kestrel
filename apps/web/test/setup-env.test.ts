@@ -22,7 +22,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { diffEnv, parseEnv, serializeEnv, upsertEnvFile } from '../../scripts/setup/lib/env.mjs';
+import { diffEnv, parseEnv, serializeEnv, upsertEnvFile } from '../../../scripts/setup/lib/env.mjs';
 
 let dir: string;
 

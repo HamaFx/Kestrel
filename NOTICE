@@ -1,0 +1,23 @@
+Kestrel
+
+Copyright 2026 Kestrel contributors.
+
+Kestrel is distributed under the Apache License, Version 2.0. See LICENSE.
+
+Third-party software
+--------------------
+
+Kestrel depends on third-party open-source packages. Their copyright and
+license terms remain governed by their respective package metadata and license
+files. Downstream redistributors should generate and include a dependency
+license report for the exact lockfile and release artifact they distribute.
+
+Kestrel also integrates with external AI, market-data, charting, notification,
+and storage providers. Those services, APIs, trademarks, data feeds, rate
+limits, and redistribution rights are governed by their own terms. Kestrel
+neither grants nor represents any right to redistribute third-party data or
+provider content.
+
+The project branding and visual assets are not implied to be trademarks or
+assets of any integrated provider. Provider names are used only to identify
+optional integrations.
