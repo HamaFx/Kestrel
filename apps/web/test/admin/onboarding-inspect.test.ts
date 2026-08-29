@@ -34,6 +34,8 @@ const mockDecryptByok = vi.hoisted(() => vi.fn());
 vi.mock('@kestrel/db', () => ({
   getUserWithSettings: mockGetUserWithSettings,
   listUserSymbols: mockListUserSymbols,
+  updatePaymentStatus: vi.fn(),
+  updateSubscriptionFromPayment: vi.fn(),
   schema: { users: {}, userSettings: {} },
 }));
 

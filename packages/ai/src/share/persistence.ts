@@ -21,7 +21,7 @@
 // at `/share/[id]` verifies the token, looks up the row by id, and
 // renders title + body + (optional) overlay.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { AnnotateChartOutput, Symbol, Timeframe } from '@kestrel/shared';
 import { eq } from 'drizzle-orm';
 
@@ -62,10 +62,13 @@ function rowToSnapshot(row: typeof schema.sharedSnapshots.$inferSelect): Snapsho
 }
 
 export async function createSnapshot(args: CreateSnapshotArgs): Promise<SnapshotRow> {
-  const inserted = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(args.userId, db);
+  const inserted = await db
     .insert(schema.sharedSnapshots)
     .values({
       userId: args.userId,
+      tenantId,
       title: args.title,
       body: args.body,
       overlay: (args.overlay ?? null) as Record<string, unknown> | null,

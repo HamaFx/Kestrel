@@ -21,6 +21,7 @@ import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 import type { RegressionCaseStatus } from '../schema/ai-regression-cases';
 
 export type AiRegressionCaseRow = typeof schema.aiRegressionCases.$inferSelect;
@@ -29,6 +30,8 @@ export interface ListAiRegressionCasesOptions {
   limit?: number;
   offset?: number;
   status?: RegressionCaseStatus;
+  /** Restrict results for non-admin callers. */
+  userId?: string;
 }
 
 /**
@@ -50,12 +53,27 @@ export async function syncAiRegressionCase(
     })
     .from(schema.aiMessageFeedback)
     .innerJoin(schema.chatMessages, eq(schema.chatMessages.id, schema.aiMessageFeedback.messageId))
-    .where(eq(schema.aiMessageFeedback.id, feedbackId))
+    .innerJoin(schema.chatThreads, eq(schema.chatThreads.id, schema.aiMessageFeedback.threadId))
+    .where(
+      and(
+        eq(schema.aiMessageFeedback.id, feedbackId),
+        eq(schema.chatMessages.threadId, schema.aiMessageFeedback.threadId),
+        eq(schema.chatThreads.userId, schema.aiMessageFeedback.userId),
+        eq(schema.chatThreads.tenantId, schema.aiMessageFeedback.tenantId),
+        eq(schema.chatMessages.tenantId, schema.aiMessageFeedback.tenantId),
+        eq(schema.chatThreads.id, schema.chatMessages.threadId),
+      ),
+    )
     .limit(1);
   const source = feedbackRows[0];
   if (!source) return null;
 
-  const prompt = await findNearestPrompt(source.feedback.threadId, source.assistantCreatedAt);
+  const prompt = await findNearestPrompt(
+    source.feedback.threadId,
+    source.feedback.userId,
+    source.feedback.tenantId,
+    source.assistantCreatedAt,
+  );
   const isFailure =
     source.feedback.reviewStatus === 'reviewed' && source.feedback.reviewerLabel === 'fail';
 
@@ -63,7 +81,13 @@ export async function syncAiRegressionCase(
     await db
       .update(schema.aiRegressionCases)
       .set({ status: 'dismissed', updatedAt: new Date() })
-      .where(eq(schema.aiRegressionCases.feedbackId, feedbackId));
+      .where(
+      and(
+        eq(schema.aiRegressionCases.feedbackId, feedbackId),
+        eq(schema.aiRegressionCases.userId, source.feedback.userId),
+        eq(schema.aiRegressionCases.tenantId, source.feedback.tenantId),
+      ),
+    );
     return null;
   }
 
@@ -100,10 +124,18 @@ export async function syncAiRegressionCase(
 export async function listAiRegressionCases(
   options: ListAiRegressionCasesOptions = {},
 ): Promise<AiRegressionCaseRow[]> {
+  const db = getDb();
   const conditions = [];
   if (options.status) conditions.push(eq(schema.aiRegressionCases.status, options.status));
+  if (options.userId) {
+    const tenantId = await requireTenantIdForUser(options.userId, db);
+    conditions.push(
+      eq(schema.aiRegressionCases.userId, options.userId),
+      eq(schema.aiRegressionCases.tenantId, tenantId),
+    );
+  }
 
-  return getDb()
+  return db
     .select()
     .from(schema.aiRegressionCases)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -115,22 +147,43 @@ export async function listAiRegressionCases(
 export async function updateAiRegressionCaseStatus(
   id: string,
   status: RegressionCaseStatus,
+  userId?: string,
 ): Promise<AiRegressionCaseRow | null> {
-  const [row] = await getDb()
+  const db = getDb();
+  const tenantId = userId ? await requireTenantIdForUser(userId, db) : null;
+  const [row] = await db
     .update(schema.aiRegressionCases)
     .set({ status, updatedAt: new Date() })
-    .where(eq(schema.aiRegressionCases.id, id))
+    .where(
+      userId
+        ? and(
+            eq(schema.aiRegressionCases.id, id),
+            eq(schema.aiRegressionCases.userId, userId),
+            eq(schema.aiRegressionCases.tenantId, tenantId!),
+          )
+        : eq(schema.aiRegressionCases.id, id),
+    )
     .returning();
   return row ?? null;
 }
 
-async function findNearestPrompt(threadId: string, assistantCreatedAt: Date): Promise<string> {
+async function findNearestPrompt(
+  threadId: string,
+  sourceOwnerId: string,
+  tenantId: string,
+  assistantCreatedAt: Date,
+): Promise<string> {
   const rows = await getDb()
     .select({ content: schema.chatMessages.content })
     .from(schema.chatMessages)
+    .innerJoin(schema.chatThreads, eq(schema.chatMessages.threadId, schema.chatThreads.id))
     .where(
       and(
         eq(schema.chatMessages.threadId, threadId),
+        eq(schema.chatThreads.id, threadId),
+        eq(schema.chatThreads.userId, sourceOwnerId),
+        eq(schema.chatThreads.tenantId, tenantId),
+        eq(schema.chatMessages.tenantId, tenantId),
         eq(schema.chatMessages.role, 'user'),
         sql`${schema.chatMessages.createdAt} < ${assistantCreatedAt}`,
       ),

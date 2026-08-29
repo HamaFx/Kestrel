@@ -37,10 +37,12 @@ const mockListTraceExplorerEvents = vi.hoisted(() => vi.fn());
 const mockRecordAdminAudit = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
-  listDiagnosticTraces: mockListDiagnosticTraces,
-  getDiagnosticTrace: mockGetDiagnosticTrace,
+  listDiagnosticTracesForAdmin: mockListDiagnosticTraces,
+  getDiagnosticTraceForAdmin: mockGetDiagnosticTrace,
   listTraceExplorerEvents: mockListTraceExplorerEvents,
   recordAdminAudit: mockRecordAdminAudit,
+  updatePaymentStatus: vi.fn(),
+  updateSubscriptionFromPayment: vi.fn(),
   schema: { diagnosticTraces: {} },
 }));
 
@@ -173,6 +175,7 @@ describe('GET /api/admin/diagnostics/trace/[id]', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
+    expect(mockGetDiagnosticTrace).toHaveBeenCalledWith('trace-1');
     expect(body.trace.id).toBe('trace-1');
     expect(body.trace.status).toBe('failed');
     expect(body.trace.steps).toHaveLength(2);

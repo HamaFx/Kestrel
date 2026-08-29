@@ -31,6 +31,8 @@ const rotation = readFileSync(
 );
 const loadtestWorkflow = readFileSync(resolve(root, '.github/workflows/loadtest.yml'), 'utf8');
 const dbPackage = readFileSync(resolve(root, 'packages/db/package.json'), 'utf8');
+const cronHelper = readFileSync(resolve(root, 'apps/web/src/lib/cron.ts'), 'utf8');
+const authSource = readFileSync(resolve(root, 'apps/web/src/auth.ts'), 'utf8');
 
 describe('P3 production hardening policy', () => {
   it('runs a disposable Docker backup/restore workflow with cleanup', () => {
@@ -70,6 +72,19 @@ describe('P3 production hardening policy', () => {
     const chatTest = readFileSync(resolve(root, 'loadtest/tests/load-chat.ts'), 'utf8');
     expect(chatTest).toContain("__ENV['K6_ENABLE_CHAT'] !== 'true'");
     expect(chatTest).not.toContain("name: 'load-chat'");
+  });
+
+  it('does not retain the legacy cron cookie authentication path', () => {
+    expect(cronHelper).not.toContain('hfx_auth');
+    expect(cronHelper).not.toContain('verifyAuthToken');
+    expect(cronHelper).toContain('CRON_SECRET');
+    expect(cronHelper).toContain('getUserFromRequest');
+  });
+
+  it('requires an explicit unsafe development flag for impersonation', () => {
+    expect(authSource).toContain("process.env.ENABLE_IMPERSONATION === 'true'");
+    expect(authSource).toContain("process.env.ALLOW_INSECURE_DEV_AUTH === 'true'");
+    expect(authSource).toContain("process.env.NODE_ENV !== 'production'");
   });
 
   it('requires explicit, fail-closed encryption rotation inputs', () => {

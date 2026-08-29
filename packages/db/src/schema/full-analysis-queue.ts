@@ -45,6 +45,9 @@ export const fullAnalysisQueue = pgTable(
     index('full_analysis_queue_pending_idx').on(table.status, table.createdAt),
     index('full_analysis_queue_lease_idx').on(table.status, table.leaseExpiresAt),
     index('full_analysis_queue_tenant_idx').on(table.tenantId, table.status, table.createdAt),
+    index('full_analysis_queue_terminal_completed_idx')
+      .on(table.completedAt)
+      .where(sql`${table.status} IN ('succeeded', 'failed', 'cancelled', 'blocked') AND ${table.completedAt} IS NOT NULL`),
   ],
 );
 

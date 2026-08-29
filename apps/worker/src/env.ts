@@ -103,6 +103,8 @@ const WorkerEnvSchema = z.object({
   PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(3),
   CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
   ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(7),
+  BILLING_WEBHOOK_DLQ_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
+  AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
   PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
   BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
 

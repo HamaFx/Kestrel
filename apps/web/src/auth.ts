@@ -30,7 +30,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { getDb } from '@kestrel/ai';
-import { schema, withRateLimit } from '@kestrel/db';
+import { createUserSession, schema, withRateLimit } from '@kestrel/db';
 import { decryptSecret } from '@kestrel/shared/encryption';
 import { logErrorContext } from '@kestrel/shared/logger';
 import bcrypt from 'bcryptjs';
@@ -71,7 +71,9 @@ function assertProductionSecurity(): void {
 }
 
 const IMPERSONATION_ENABLED =
-  process.env.NODE_ENV !== 'production' && process.env.ENABLE_IMPERSONATION === 'true';
+  process.env.NODE_ENV !== 'production' &&
+  process.env.ENABLE_IMPERSONATION === 'true' &&
+  process.env.ALLOW_INSECURE_DEV_AUTH === 'true';
 
 const _authEnv = (() => {
   try {
@@ -403,8 +405,9 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
           }),
         ]
       : []),
-    // Dev-only impersonation provider. Only registered when ENABLE_IMPERSONATION
-    // is set and not in production. This provider bypasses password checks
+    // Dev-only impersonation provider. It requires both ENABLE_IMPERSONATION and
+    // the unmistakable ALLOW_INSECURE_DEV_AUTH flag, and is never available in
+    // production. This provider bypasses password checks
     // so an admin can sign in as another user for debugging.
     //
     // H-1: The provider verifies a signed admin challenge token before
@@ -500,16 +503,16 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
         token.emailVerified = user.emailVerified ?? null;
         token.rememberMe = user.rememberMe === true ? true : undefined;
 
-        // P0-4: Create user_sessions row on first JWT mint.
-        // tenantId has a DB-side SQL default; not passing it here
-        // so Postgres applies current_setting('app.current_tenant', true).
+        // P0-4: Create user_sessions row on first JWT mint. The helper
+        // resolves the canonical organization membership before writing.
         const sessionId = user.sessionId || crypto.randomUUID();
         token.sessionId = sessionId;
         try {
-          const db = getDb();
-          await db.execute(
-            sql`INSERT INTO ${schema.userSessions} (id, user_id, device_name, ip)
-                VALUES (${sessionId}, ${user.id}, ${(user.deviceName as string) ?? null}, ${(user.ip as string) ?? null})`,
+          await createUserSession(
+            sessionId,
+            user.id,
+            (user.deviceName as string) ?? null,
+            (user.ip as string) ?? null,
           );
         } catch (err) {
           // Session validation can only revoke tracked sessions. Never mint an

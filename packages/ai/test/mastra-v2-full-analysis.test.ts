@@ -57,6 +57,12 @@ async function withQueueStorage<T>(
   await db.execute(
     `INSERT INTO "user" ("id", "email") VALUES ('user-1', 'full-analysis@example.com')`,
   );
+  await db.execute(
+    `INSERT INTO "organization" ("id", "name") VALUES ('user-1', 'Full analysis workspace') ON CONFLICT ("id") DO NOTHING`,
+  );
+  await db.execute(
+    `INSERT INTO "organization_member" ("org_id", "user_id", "role") VALUES ('user-1', 'user-1', 'owner') ON CONFLICT ("org_id", "user_id") DO NOTHING`,
+  );
   container.register(DB, () => db as never);
 
   const file = join(dir, 'mastra.db');
@@ -92,6 +98,7 @@ describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
 
       const claimed = await claimNextFullAnalysisRun('worker-1');
       expect(claimed?.runId).toBe(runId);
+      expect(claimed?.tenantId).toBe('user-1');
       expect(claimed?.payload.userId).toBe('user-1');
       expect(claimed?.payload.attemptCount).toBe(1);
       expect(claimed?.payload.workerRunId).toBe('worker-1');

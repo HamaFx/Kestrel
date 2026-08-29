@@ -48,5 +48,6 @@ export const cronRuns = pgTable(
   (t) => [
     primaryKey({ columns: [t.jobName, t.runDate], name: 'cron_runs_pkey' }),
     index('cron_runs_status_idx').on(t.status),
+    index('cron_runs_started_at_idx').on(t.startedAt),
   ],
 );

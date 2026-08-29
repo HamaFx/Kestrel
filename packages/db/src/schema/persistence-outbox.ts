@@ -79,6 +79,9 @@ export const persistenceOutbox = pgTable(
     index('persistence_outbox_pending_idx').on(table.status, table.nextAttemptAt),
     index('persistence_outbox_tenant_idx').on(table.tenantId, table.createdAt),
     index('persistence_outbox_trace_idx').on(table.traceId, table.createdAt),
+    index('persistence_outbox_terminal_updated_idx')
+      .on(table.updatedAt)
+      .where(sql`${table.status} IN ('completed', 'dead')`),
   ],
 );
 

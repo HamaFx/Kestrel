@@ -30,6 +30,10 @@
 const HC_BASE = 'https://hc-ping.com';
 const HC_TIMEOUT_MS = 5_000;
 
+function isValidHealthchecksUuid(uuid: string): boolean {
+  return /^[a-f0-9-]{8,128}$/i.test(uuid);
+}
+
 export type PingStatus = 'start' | 'success' | 'fail';
 
 /**
@@ -42,7 +46,7 @@ export async function ping(
   body?: string,
   onError?: (err: unknown) => void,
 ): Promise<void> {
-  if (!uuid) return;
+  if (!uuid || !isValidHealthchecksUuid(uuid)) return;
   const suffix = status === 'success' ? '' : `/${status}`;
   const url = `${HC_BASE}/${uuid}${suffix}`;
   try {

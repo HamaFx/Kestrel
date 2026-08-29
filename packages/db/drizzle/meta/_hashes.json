@@ -343,6 +343,34 @@
     {
       "tag": "0086_full_analysis_queue",
       "hash": "0d8e93db7e1fd3a274966448724e0c1512cf9f27ae72d37cc34c445a174510d0"
+    },
+    {
+      "tag": "0087_memory_backfill_state",
+      "hash": "5b11d131136db3555b8ab92de3103238bb03db6bd1a08be9f344eb78ce2cfe2c"
+    },
+    {
+      "tag": "0088_memory_projection_state",
+      "hash": "00e5d0088b09c1c731dbbda27eaf14aa23ce4bf17843674d4a563072f10f1486"
+    },
+    {
+      "tag": "0089_exact_budget_cents",
+      "hash": "ae0fb549b098988129e288f1c6367c53b7f61649cb5908016973e94a4aed0b2c"
+    },
+    {
+      "tag": "0090_rls_late_tenant_tables",
+      "hash": "b620bb7df7a6bbd38837ab5a7e92bfb5a2bceac4c128b73db5b859ac47695c16"
+    },
+    {
+      "tag": "0091_billing_status_checkpoint",
+      "hash": "c4271786af6da505d4e3ad41eb178cfbdcdbdc9ebbaffe0e78666c44ed32e8fe"
+    },
+    {
+      "tag": "0092_diagnostic_trace_created_at_idx",
+      "hash": "a5a59dd94753773e1a09d3a704a902a1734ad23e7694f4e52ace51229ad4cf4f"
+    },
+    {
+      "tag": "0093_retention_predicate_indexes",
+      "hash": "9e3bee346cfe1c1b77ae740e5eafd2b9e3681cbeb0a70a30dfadc7eb12eb01be"
     }
   ]
 }

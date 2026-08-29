@@ -117,6 +117,7 @@ beforeEach(() => {
   mockGetServerEnv.mockReturnValue({
     NOWPAYMENTS_API_KEY: 'api-key',
     NOWPAYMENTS_IPN_SECRET: 'ipn-secret',
+    BILLING_ENABLED: true,
     NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
   });
   mockGetPlan.mockResolvedValue(PLAN);
@@ -156,6 +157,36 @@ beforeEach(() => {
 });
 
 describe('billing P1 safety gate', () => {
+  it('returns not found for checkout when billing is disabled', async () => {
+    mockGetServerEnv.mockReturnValueOnce({ BILLING_ENABLED: false });
+
+    const response = await checkout(
+      new Request('http://localhost/api/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ planId: PLAN.id }),
+        headers: { 'content-type': 'application/json', 'idempotency-key': 'checkout-1' },
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(404);
+    expect(mockGetPlan).not.toHaveBeenCalled();
+    expect(mockCreateInvoice).not.toHaveBeenCalled();
+  });
+
+  it('rejects disabled billing webhooks before signature processing', async () => {
+    mockGetServerEnv.mockReturnValueOnce({ BILLING_ENABLED: false });
+
+    const response = await webhook(
+      new Request('http://localhost/api/billing/webhook', {
+        method: 'POST',
+        body: '{}',
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(mockVerifyIpnSignature).not.toHaveBeenCalled();
+  });
   it('requires Idempotency-Key before creating a checkout invoice', async () => {
     const response = await checkout(
       new Request('http://localhost/api/billing/checkout', {
@@ -234,6 +265,26 @@ describe('billing P1 safety gate', () => {
       'payment-1',
       expect.objectContaining({ nowpaymentsPaymentId: 'payment-actual' }),
     );
+  });
+
+  it('rejects a conflicting payload for an existing IPN idempotency key', async () => {
+    mockClaimIpnEvent.mockResolvedValueOnce({
+      kind: 'conflict',
+      event: { id: 'event-1', bodyHash: 'original-hash' },
+    });
+
+    const response = await webhook(
+      new Request('http://localhost/api/billing/webhook', {
+        method: 'POST',
+        body: JSON.stringify({ payment_id: 'payment-1', payment_status: 'finished', txid: 'different-tx' }),
+        headers: { 'x-nowpayments-sig': 'valid-signature' },
+      }),
+    );
+
+    expect(response.status).toBe(409);
+    expect(mockGetPaymentByNowpaymentsId).not.toHaveBeenCalled();
+    expect(mockUpdatePaymentStatus).not.toHaveBeenCalled();
+    expect(mockRecordBillingWebhookFailure).not.toHaveBeenCalled();
   });
 
   it('records authenticated webhook processing failures in the DLQ and acknowledges them', async () => {

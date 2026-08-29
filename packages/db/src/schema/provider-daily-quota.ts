@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { date, integer, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
+import { date, integer, index, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 
 /**
  * Phase A RL-2 — Shared daily quota counter for providers with a daily cap
@@ -31,5 +31,8 @@ export const providerDailyQuota = pgTable(
     day: date('day').notNull(),
     count: integer('count').notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.provider, table.day] })],
+  (table) => [
+    primaryKey({ columns: [table.provider, table.day] }),
+    index('provider_daily_quota_day_idx').on(table.day),
+  ],
 );

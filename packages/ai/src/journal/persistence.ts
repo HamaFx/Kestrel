@@ -25,7 +25,7 @@
 // can recall journal context. The memory call is fire-and-forget — the
 // CRUD response never waits on it.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
   JournalEntrySchema,
   SymbolSchema,
@@ -67,10 +67,15 @@ export async function listEntries(
   userId: string,
   opts: { limit?: number; symbol?: Symbol } = {},
 ): Promise<JournalEntry[]> {
-  const filters = [eq(schema.journalEntries.userId, userId)];
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const filters = [
+    eq(schema.journalEntries.userId, userId),
+    eq(schema.journalEntries.tenantId, tenantId),
+  ];
   if (opts.symbol) filters.push(eq(schema.journalEntries.symbol, opts.symbol));
 
-  const rows = await getDb()
+  const rows = await db
     .select()
     .from(schema.journalEntries)
     .where(filters.length > 0 ? and(...filters) : undefined)
@@ -81,10 +86,12 @@ export async function listEntries(
 }
 
 export async function getEntry(userId: string, id: string): Promise<JournalEntry | null> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.journalEntries)
-    .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId)))
+    .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId), eq(schema.journalEntries.tenantId, tenantId)))
     .limit(1);
   const row = rows[0];
   return row ? rowToEntry(row) : null;
@@ -94,10 +101,13 @@ export async function createEntry(input: CreateJournalInput): Promise<JournalEnt
   const symbol = SymbolSchema.parse(input.symbol);
   const side = TradeSideSchema.parse(input.side);
 
-  const inserted = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
+  const inserted = await db
     .insert(schema.journalEntries)
     .values({
       userId: input.userId,
+      tenantId,
       symbol,
       side,
       openedAt: new Date(input.openedAt),
@@ -142,11 +152,13 @@ export async function updateEntry(
   // concurrent update races: two requests reading the same entry
   // and computing different rMultiple/outcome values would silently
   // overwrite each other without row-level locking.
-  return getDb().transaction(async (tx) => {
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  return db.transaction(async (tx) => {
     const rows = await tx
       .select()
       .from(schema.journalEntries)
-      .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId)))
+      .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId), eq(schema.journalEntries.tenantId, tenantId)))
       .for('update')
       .limit(1);
     const row = rows[0];
@@ -186,7 +198,7 @@ export async function updateEntry(
     const updated = await tx
       .update(schema.journalEntries)
       .set(patch)
-      .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId)))
+      .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId), eq(schema.journalEntries.tenantId, tenantId)))
       .returning();
     if (!updated[0]) return null;
     const entry = rowToEntry(updated[0]);
@@ -202,9 +214,17 @@ export async function updateEntry(
 }
 
 export async function deleteEntry(userId: string, id: string): Promise<boolean> {
-  const result = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const result = await db
     .delete(schema.journalEntries)
-    .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId)))
+    .where(
+      and(
+        eq(schema.journalEntries.id, id),
+        eq(schema.journalEntries.userId, userId),
+        eq(schema.journalEntries.tenantId, tenantId),
+      ),
+    )
     .returning({ id: schema.journalEntries.id });
   return result.length > 0;
 }
@@ -546,13 +566,18 @@ export async function computeStats(
   userId: string,
   opts: { sinceMs?: number; untilMs?: number } = {},
 ): Promise<JournalStats> {
-  const filters = [eq(schema.journalEntries.userId, userId)];
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const filters = [
+    eq(schema.journalEntries.userId, userId),
+    eq(schema.journalEntries.tenantId, tenantId),
+  ];
   if (opts.sinceMs !== undefined)
     filters.push(gte(schema.journalEntries.openedAt, new Date(opts.sinceMs)));
   if (opts.untilMs !== undefined)
     filters.push(lte(schema.journalEntries.openedAt, new Date(opts.untilMs)));
 
-  const rows = await getDb()
+  const rows = await db
     .select()
     .from(schema.journalEntries)
     .where(filters.length > 0 ? and(...filters) : undefined)

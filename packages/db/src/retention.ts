@@ -17,8 +17,9 @@
 // DB-1: Retention cleanup for high-write operational and recovery tables.
 //
 // Shared between the web cron route and the worker job. Cleanup is bounded
-// per statement and only removes terminal records; pending work, active
-// leases, retryable outbox rows, and unresolved budget reservations survive.
+// per statement and only removes disposable/terminal records; pending work,
+// active leases, retryable outbox rows, unresolved budget reservations,
+// active Telegram deduplication rows, and unexpired share snapshots survive.
 
 import { sql } from 'drizzle-orm';
 
@@ -37,6 +38,9 @@ const DEFAULT_RETENTION: Required<RetentionConfig> = {
   providerDailyQuotaRetentionDays: 3,
   cronRunRetentionDays: 30,
   outboxRetentionDays: 30,
+  analysisJobRetentionDays: 7,
+  billingWebhookDlqRetentionDays: 90,
+  aiEvaluationRetentionDays: 90,
   budgetReservationRetentionDays: 90,
 };
 
@@ -53,6 +57,12 @@ export interface RetentionConfig {
   cronRunRetentionDays?: number;
   /** Retention window in days for completed/dead persistence outbox rows. */
   outboxRetentionDays?: number;
+  /** Retention window in days for terminal Full-analysis queue rows. */
+  analysisJobRetentionDays?: number;
+  /** Retention window in days for successfully replayed billing DLQ rows. */
+  billingWebhookDlqRetentionDays?: number;
+  /** Retention window in days for terminal AI evaluation artifacts. */
+  aiEvaluationRetentionDays?: number;
   /** Retention window in days for terminal budget reservation ledger rows. */
   budgetReservationRetentionDays?: number;
 }
@@ -65,7 +75,14 @@ export interface RetentionResult {
   providerDailyQuotaDeleted: number;
   cronRunsDeleted: number;
   outboxDeleted: number;
+  fullAnalysisQueueDeleted: number;
+  billingWebhookDlqDeleted: number;
+  aiShadowComparisonsDeleted: number;
+  aiQualityResultsDeleted: number;
   budgetReservationsDeleted: number;
+  telegramUpdatesDeleted: number;
+  sharedSnapshotsDeleted: number;
+  notificationNoiseStateDeleted: number;
   note: string;
 }
 
@@ -109,6 +126,18 @@ export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
     outboxRetentionDays: envDays(
       'PERSISTENCE_OUTBOX_RETENTION_DAYS',
       DEFAULT_RETENTION.outboxRetentionDays,
+    ),
+    analysisJobRetentionDays: envDays(
+      'ANALYSIS_JOB_RETENTION_DAYS',
+      DEFAULT_RETENTION.analysisJobRetentionDays,
+    ),
+    billingWebhookDlqRetentionDays: envDays(
+      'BILLING_WEBHOOK_DLQ_RETENTION_DAYS',
+      DEFAULT_RETENTION.billingWebhookDlqRetentionDays,
+    ),
+    aiEvaluationRetentionDays: envDays(
+      'AI_EVALUATION_RETENTION_DAYS',
+      DEFAULT_RETENTION.aiEvaluationRetentionDays,
     ),
     budgetReservationRetentionDays: envDays(
       'BUDGET_RESERVATION_RETENTION_DAYS',
@@ -170,7 +199,12 @@ async function deleteBatched(
  * Terminal-only rules:
  * - outbox: completed/dead rows only
  * - analysis jobs: complete/failed rows with a completion timestamp
+ * - billing DLQ: replayed rows with a replay timestamp
+ * - AI evaluations: terminal shadow/quality artifacts
  * - budget ledger: reconciled/released rows only
+ * - Telegram deduplication: processed rows older than one hour
+ * - share snapshots: expired rows only
+ * - notification noise state: expired rows only
  */
 export async function runRetentionCleanup(
   config: RetentionConfig = getRetentionConfigFromEnv(),
@@ -202,6 +236,18 @@ export async function runRetentionCleanup(
       config.outboxRetentionDays,
       DEFAULT_RETENTION.outboxRetentionDays,
     ),
+    analysisJobRetentionDays: boundedDays(
+      config.analysisJobRetentionDays,
+      DEFAULT_RETENTION.analysisJobRetentionDays,
+    ),
+    billingWebhookDlqRetentionDays: boundedDays(
+      config.billingWebhookDlqRetentionDays,
+      DEFAULT_RETENTION.billingWebhookDlqRetentionDays,
+    ),
+    aiEvaluationRetentionDays: boundedDays(
+      config.aiEvaluationRetentionDays,
+      DEFAULT_RETENTION.aiEvaluationRetentionDays,
+    ),
     budgetReservationRetentionDays: boundedDays(
       config.budgetReservationRetentionDays,
       DEFAULT_RETENTION.budgetReservationRetentionDays,
@@ -217,6 +263,18 @@ export async function runRetentionCleanup(
   ).slice(0, 10);
   const cronCutoff = isoCutoff(now, retention.cronRunRetentionDays * 24 * 60 * 60 * 1_000);
   const outboxCutoff = isoCutoff(now, retention.outboxRetentionDays * 24 * 60 * 60 * 1_000);
+  const analysisJobCutoff = isoCutoff(
+    now,
+    retention.analysisJobRetentionDays * 24 * 60 * 60 * 1_000,
+  );
+  const billingWebhookDlqCutoff = isoCutoff(
+    now,
+    retention.billingWebhookDlqRetentionDays * 24 * 60 * 60 * 1_000,
+  );
+  const aiEvaluationCutoff = isoCutoff(
+    now,
+    retention.aiEvaluationRetentionDays * 24 * 60 * 60 * 1_000,
+  );
   const budgetCutoff = isoCutoff(
     now,
     retention.budgetReservationRetentionDays * 24 * 60 * 60 * 1_000,
@@ -243,10 +301,53 @@ export async function runRetentionCleanup(
     'persistence_outbox',
     `status IN ('completed', 'dead') AND updated_at < '${outboxCutoff}'`,
   );
+  const fullAnalysisQueueDeleted = await deleteBatchedWhere(
+    db,
+    'full_analysis_queue',
+    `status IN ('succeeded', 'failed', 'cancelled', 'blocked') AND completed_at IS NOT NULL AND completed_at < '${analysisJobCutoff}'`,
+  );
+  const billingWebhookDlqDeleted = await deleteBatchedWhere(
+    db,
+    'billing_webhook_dlq',
+    `status = 'replayed' AND replayed_at IS NOT NULL AND replayed_at < '${billingWebhookDlqCutoff}'`,
+  );
+  const aiShadowComparisonsDeleted = await deleteBatched(
+    db,
+    'ai_shadow_comparisons',
+    'created_at',
+    aiEvaluationCutoff,
+  );
+  const aiQualityResultsDeleted = await deleteBatched(
+    db,
+    'ai_quality_results',
+    'created_at',
+    aiEvaluationCutoff,
+  );
   const budgetReservationsDeleted = await deleteBatchedWhere(
     db,
     'ai_budget_reservations',
     `status IN ('reconciled', 'released') AND resolved_at IS NOT NULL AND resolved_at < '${budgetCutoff}'`,
+  );
+  // Telegram retries are expected within roughly 24 hours; the schema's
+  // one-hour deduplication window makes older processed IDs disposable.
+  const telegramUpdatesDeleted = await deleteBatched(
+    db,
+    'telegram_updates',
+    'processed_at',
+    rateLimitCutoff,
+  );
+  // Expired share links cannot pass token validation and their snapshots are
+  // no longer reachable through the public share route.
+  const sharedSnapshotsDeleted = await deleteBatchedWhere(
+    db,
+    'shared_snapshots',
+    `expires_at < '${now.toISOString()}'`,
+  );
+  const notificationNoiseStateDeleted = await deleteBatched(
+    db,
+    'notification_noise_state',
+    'expires_at',
+    now.toISOString(),
   );
 
   const counts = {
@@ -257,7 +358,14 @@ export async function runRetentionCleanup(
     providerDailyQuotaDeleted,
     cronRunsDeleted,
     outboxDeleted,
+    fullAnalysisQueueDeleted,
+    billingWebhookDlqDeleted,
+    aiShadowComparisonsDeleted,
+    aiQualityResultsDeleted,
     budgetReservationsDeleted,
+    telegramUpdatesDeleted,
+    sharedSnapshotsDeleted,
+    notificationNoiseStateDeleted,
   };
 
   return {

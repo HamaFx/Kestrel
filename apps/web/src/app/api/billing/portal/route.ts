@@ -20,6 +20,7 @@
 // Auth required.
 
 import { errorResponse, withAuth } from '@/lib/api';
+import { getServerEnv } from '@/lib/env';
 import { getUserPayments, getUserSubscription, listActivePlans } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
@@ -27,6 +28,13 @@ export const dynamic = 'force-dynamic';
 
 export const GET = withAuth<void>(async (_req, { user }) => {
   try {
+    if (!getServerEnv().BILLING_ENABLED) {
+      return Response.json(
+        { error: { code: 'NOT_FOUND', message: 'Billing is disabled in this deployment' } },
+        { status: 404 },
+      );
+    }
+
     const allPlans = await listActivePlans();
     const subscription = await getUserSubscription(user.userId);
     const payments = await getUserPayments(user.userId, 20);

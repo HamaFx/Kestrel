@@ -38,6 +38,7 @@ import { auth } from '@/auth';
 
 import {
   addSymbolAction,
+  exportDataAction,
   exportKeysAction,
   importKeysAction,
   removeSymbolAction,
@@ -81,6 +82,7 @@ const mockGetDb = vi.hoisted(() => vi.fn());
 const mockWithRateLimit = vi.hoisted(() => vi.fn());
 const mockUpdateUserDisplayName = vi.hoisted(() => vi.fn());
 const mockGetUserPasswordHash = vi.hoisted(() => vi.fn());
+const mockRequireTenantIdForUser = vi.hoisted(() => vi.fn());
 // Self-referencing proxy: schema.anything.anything... always returns a truthy
 // object so drizzle column accesses (e.g. schema.symbolCatalog.symbol) don't throw.
 const schemaProxy = vi.hoisted(() => {
@@ -98,6 +100,9 @@ vi.mock('@kestrel/db', () => ({
   withRateLimit: mockWithRateLimit,
   updateUserDisplayName: mockUpdateUserDisplayName,
   getUserPasswordHash: mockGetUserPasswordHash,
+  requireTenantIdForUser: mockRequireTenantIdForUser,
+  updatePaymentStatus: vi.fn(),
+  updateSubscriptionFromPayment: vi.fn(),
   schema: schemaProxy,
 }));
 
@@ -140,9 +145,15 @@ function mockQueryChain(results: unknown[][] = []) {
     orderBy: vi.fn(() => next()),
   };
 
+  const joined = {
+    ...where,
+    where: vi.fn(() => where),
+    innerJoin: vi.fn(() => joined),
+  };
   const from = {
     where: vi.fn(() => where),
     orderBy: vi.fn(() => where),
+    innerJoin: vi.fn(() => joined),
   };
 
   return {
@@ -177,6 +188,7 @@ beforeEach(() => {
   // verifyAccountPassword calls getUserPasswordHash internally, so the mock
   // must return the known hash so bcrypt.compare can succeed.
   mockGetUserPasswordHash.mockResolvedValue(hashedTestPassword);
+  mockRequireTenantIdForUser.mockResolvedValue('tenant-test');
 });
 
 afterEach(() => {
@@ -428,6 +440,94 @@ describe('exportKeysAction', () => {
     const result = await exportKeysAction(TEST_PASSWORD);
     expect(result).toEqual({ ok: false, error: 'read failure' });
     expect(Sentry.captureException).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// exportDataAction (complete tenant-scoped data export)
+// ===========================================================================
+
+describe('exportDataAction', () => {
+  beforeEach(() => {
+    (auth as Mock).mockImplementation(mockNextAuthSession(USER_ID));
+  });
+
+  it('exports all user-owned domains without credential material', async () => {
+    const profile = {
+      id: USER_ID,
+      email: 'user@example.com',
+      name: 'User',
+      image: null,
+      role: 'user',
+      hashedPassword: 'bcrypt-hash',
+      twoFactorSecret: 'encrypted-totp',
+      twoFactorBackupCodes: ['hashed-backup-code'],
+    };
+    const settings = {
+      userId: USER_ID,
+      tenantId: 'tenant-test',
+      aiApiKeys: 'encrypted-byok',
+      telegramBotToken: 'encrypted-telegram',
+      telegramChatId: 'chat-id',
+      defaultSymbol: 'XAUUSD',
+    };
+    const rows = [
+      [{ twoFactorEnabled: false }],
+      [profile],
+      [settings],
+      [[]], // threads; empty means the message query is skipped
+      [[]], // journal entries
+      [[]], // alerts
+      [[]], // symbols
+      [[]], // push subscriptions
+      [[]], // memories
+      [[]], // shared snapshots
+      [[]], // telemetry
+      [[]], // spend
+      [[]], // briefings
+      [[]], // audit logs
+      [[]], // portfolio positions
+      [[]], // portfolio settings
+      [[]], // provider tests
+      [[]], // notification noise state
+      [[]], // bot links
+      [[]], // rate limits
+      [[]], // tool telemetry
+      [[{ id: 'feedback-a' }]],
+      [[{ id: 'regression-a' }]],
+      [[{ id: 'shadow-a' }]],
+      [[{ id: 'quality-a' }]],
+      [[{ runId: 'queue-a' }]],
+      [[{ id: 'outbox-a' }]],
+      [[{ runId: 'mutation-a' }]],
+      [[{ id: 'budget-a' }]],
+      [[{ id: 'opinion-a' }]],
+      [[{ id: 'trace-a', userId: USER_ID }]],
+      [[]], // memory backfill state
+      [[]], // memory projection state
+      [[{ id: 'subscription-a', tenantId: 'tenant-test' }]],
+      [[{ id: 'payment-a', tenantId: 'tenant-test' }]],
+    ];
+    const authDb = mockQueryChain(rows.slice(0, 1));
+    const exportDb = mockQueryChain(rows.slice(1));
+    mockGetDb.mockReturnValueOnce(authDb).mockReturnValueOnce(exportDb);
+
+    const result = await exportDataAction(TEST_PASSWORD);
+    expect(result.ok, result.ok ? undefined : result.error).toBe(true);
+    if (!result.ok) return;
+
+    const serialized = result.data;
+    expect(serialized).toContain('feedback');
+    expect(serialized).toContain('regressionCases');
+    expect(serialized).toContain('toolTelemetry');
+    expect(serialized).toContain('subscriptions');
+    expect(serialized).toContain('payments');
+    expect(serialized).not.toContain('bcrypt-hash');
+    expect(serialized).not.toContain('encrypted-totp');
+    expect(serialized).not.toContain('hashed-backup-code');
+    expect(serialized).not.toContain('encrypted-byok');
+    expect(serialized).not.toContain('encrypted-telegram');
+    expect(serialized).toContain('chat-id');
   });
 });
 

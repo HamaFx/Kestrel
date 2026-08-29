@@ -19,6 +19,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 /** A user session row (selective fields for display). */
 export interface SessionRow {
@@ -34,6 +35,7 @@ export interface SessionRow {
  */
 export async function listUserSessions(userId: string): Promise<SessionRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select({
       id: schema.userSessions.id,
@@ -43,7 +45,12 @@ export async function listUserSessions(userId: string): Promise<SessionRow[]> {
       lastActiveAt: schema.userSessions.lastActiveAt,
     })
     .from(schema.userSessions)
-    .where(eq(schema.userSessions.userId, userId))
+    .where(
+      and(
+        eq(schema.userSessions.userId, userId),
+        eq(schema.userSessions.tenantId, tenantId),
+      ),
+    )
     .orderBy(schema.userSessions.createdAt);
 }
 
@@ -52,9 +59,14 @@ export async function listUserSessions(userId: string): Promise<SessionRow[]> {
  */
 export async function revokeUserSession(sessionId: string, userId: string): Promise<void> {
   const db = getDb();
-  await db
-    .delete(schema.userSessions)
-    .where(and(eq(schema.userSessions.id, sessionId), eq(schema.userSessions.userId, userId)));
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db.delete(schema.userSessions).where(
+    and(
+      eq(schema.userSessions.id, sessionId),
+      eq(schema.userSessions.userId, userId),
+      eq(schema.userSessions.tenantId, tenantId),
+    ),
+  );
 }
 
 /**
@@ -62,5 +74,11 @@ export async function revokeUserSession(sessionId: string, userId: string): Prom
  */
 export async function deleteUserSessions(userId: string): Promise<void> {
   const db = getDb();
-  await db.delete(schema.userSessions).where(eq(schema.userSessions.userId, userId));
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db.delete(schema.userSessions).where(
+    and(
+      eq(schema.userSessions.userId, userId),
+      eq(schema.userSessions.tenantId, tenantId),
+    ),
+  );
 }

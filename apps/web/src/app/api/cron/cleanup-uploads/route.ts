@@ -92,7 +92,7 @@ export async function GET(req: Request): Promise<Response> {
       processed: deleted,
       note: `deleted=${deleted} errors=${errors} cutoff=${cutoff.toISOString().slice(0, 10)}`,
     };
-  });
+  }, { requireAdminSession: true });
 }
 
 /**

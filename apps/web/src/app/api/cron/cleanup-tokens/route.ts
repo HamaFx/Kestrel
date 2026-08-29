@@ -36,5 +36,5 @@ export async function GET(req: Request): Promise<Response> {
 
     log.info('purged expired verification tokens', { count: result });
     return { processed: result, note: `purged ${result} expired tokens at ${now.toISOString()}` };
-  });
+  }, { requireAdminSession: true });
 }

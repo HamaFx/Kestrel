@@ -18,6 +18,15 @@
 
 import 'server-only';
 
+import {
+  getDiagnosticTrace as getDiagnosticTraceDb,
+  listDiagnosticTraces as listDiagnosticTracesDb,
+  getDiagnosticTraceForAdmin as getDiagnosticTraceForAdminDb,
+  listDiagnosticTracesForAdmin as listDiagnosticTracesForAdminDb,
+  updatePaymentStatus as updatePaymentStatusDb,
+  updateSubscriptionFromPayment as updateSubscriptionFromPaymentDb,
+} from '@kestrel/db';
+
 /**
  * Server-only API boundary.
  *
@@ -127,14 +136,10 @@ export {
   markIpnFailed,
   markIpnProcessed,
   recordBillingWebhookFailure,
-  updatePaymentStatus,
-  updateSubscriptionFromPayment,
   countStaleBillingWebhookFailures,
   claimBillingWebhookReplay,
   markBillingWebhookReplayed,
   releaseBillingWebhookReplay,
-  getDiagnosticTrace,
-  listDiagnosticTraces,
   listTraceExplorerEvents,
   listToolTelemetry,
   listAdminAuditLogs,
@@ -162,6 +167,10 @@ export {
   removeUserSymbol,
   schema,
 } from '@kestrel/db';
+
+export type { PaymentRow } from '@kestrel/db';
+export const updatePaymentStatus = updatePaymentStatusDb;
+export const updateSubscriptionFromPayment = updateSubscriptionFromPaymentDb;
 
 // Market-data adapters and provider-specific cron helpers.
 export {
@@ -207,3 +216,30 @@ export { traceIdStorage } from '@kestrel/shared/logger';
 export type { TelegramUpdate } from '@kestrel/ai';
 export type { ProviderId, NoiseConfig, RouteConfig, Symbol, Timeframe } from '@kestrel/shared';
 export type { UIMessage } from 'ai';
+
+/** Admin-only diagnostic query wrappers. */
+export async function getDiagnosticTrace(
+  _user: { userId: string },
+  id: string,
+) {
+  return getDiagnosticTraceDb(_user.userId, id);
+}
+
+export async function listDiagnosticTraces(
+  _user: { userId: string },
+  opts: { threadId?: string; limit?: number } = {},
+) {
+  return listDiagnosticTracesDb(_user.userId, opts);
+}
+
+/** Admin-only trace detail read after `withAdminAuth` has authorized the caller. */
+export async function getDiagnosticTraceForAdmin(id: string) {
+  return getDiagnosticTraceForAdminDb(id);
+}
+
+/** Admin-only cross-user trace list after `withAdminAuth` has authorized the caller. */
+export async function listDiagnosticTracesForAdmin(
+  opts: { threadId?: string; limit?: number } = {},
+) {
+  return listDiagnosticTracesForAdminDb(opts);
+}

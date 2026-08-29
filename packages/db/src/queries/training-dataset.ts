@@ -54,6 +54,7 @@ export async function listReviewedTrainingPairs(
   const promptSql = sql<string>`(
     SELECT p.content FROM chat_messages p
     WHERE p.thread_id = ${assistant.threadId}
+      AND p.tenant_id = ${feedback.tenantId}
       AND p.role = 'user'
       AND p.created_at < ${assistant.createdAt}
     ORDER BY p.created_at DESC
@@ -75,7 +76,22 @@ export async function listReviewedTrainingPairs(
       prompt: promptSql,
     })
     .from(feedback)
-    .innerJoin(assistant, eq(assistant.id, feedback.messageId))
+    .innerJoin(
+      assistant,
+      and(
+        eq(assistant.id, feedback.messageId),
+        eq(assistant.threadId, feedback.threadId),
+        eq(assistant.tenantId, feedback.tenantId),
+      ),
+    )
+    .innerJoin(
+      schema.chatThreads,
+      and(
+        eq(schema.chatThreads.id, feedback.threadId),
+        eq(schema.chatThreads.userId, feedback.userId),
+        eq(schema.chatThreads.tenantId, feedback.tenantId),
+      ),
+    )
     .where(and(eq(feedback.reviewStatus, 'reviewed'), isNotNull(feedback.reviewerLabel)))
     .orderBy(desc(feedback.reviewedAt))
     .limit(Math.min(5000, Math.max(1, limit)))

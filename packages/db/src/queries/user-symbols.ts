@@ -16,19 +16,26 @@
 
 // User symbol watchlist query helpers.
 
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 export type UserSymbolRow = typeof schema.userSymbols.$inferSelect;
 export type UserSymbolInsert = typeof schema.userSymbols.$inferInsert;
 
 export async function listUserSymbols(userId: string): Promise<UserSymbolRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select()
     .from(schema.userSymbols)
-    .where(eq(schema.userSymbols.userId, userId))
+    .where(
+      and(
+        eq(schema.userSymbols.userId, userId),
+        eq(schema.userSymbols.tenantId, tenantId),
+      ),
+    )
     .orderBy(asc(schema.userSymbols.displayOrder));
 }
 
@@ -50,6 +57,7 @@ export async function addUserSymbol(
   displayOrder?: number,
 ): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db.transaction(async (tx) => {
     // Serialize automatic order allocation per user. The caller may still
     // provide an explicit order for imports/onboarding, but normal additions
@@ -60,29 +68,46 @@ export async function addUserSymbol(
       const [row] = await tx
         .select({ maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)` })
         .from(schema.userSymbols)
-        .where(eq(schema.userSymbols.userId, userId));
+        .where(
+          and(
+            eq(schema.userSymbols.userId, userId),
+            eq(schema.userSymbols.tenantId, tenantId),
+          ),
+        );
       nextOrder = Number(row?.maxOrder ?? -1) + 1;
     }
     await tx
       .insert(schema.userSymbols)
-      .values({ userId, symbol, displayOrder: nextOrder })
+      .values({ userId, tenantId, symbol, displayOrder: nextOrder })
       .onConflictDoNothing({ target: [schema.userSymbols.userId, schema.userSymbols.symbol] });
   });
 }
 
 export async function removeUserSymbol(userId: string, symbol: string): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.userSymbols)
-    .where(and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.symbol, symbol)));
+    .where(
+      and(
+        eq(schema.userSymbols.userId, userId),
+        eq(schema.userSymbols.tenantId, tenantId),
+        eq(schema.userSymbols.symbol, symbol),
+      ),
+    );
 }
 
 export async function countUserSymbols(userId: string): Promise<number> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
-    .select({ id: schema.userSymbols.userId })
+    .select({ total: count() })
     .from(schema.userSymbols)
-    .where(eq(schema.userSymbols.userId, userId))
-    .limit(1);
-  return rows.length;
+    .where(
+      and(
+        eq(schema.userSymbols.userId, userId),
+        eq(schema.userSymbols.tenantId, tenantId),
+      ),
+    );
+  return rows[0]?.total ?? 0;
 }

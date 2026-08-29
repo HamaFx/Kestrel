@@ -18,6 +18,7 @@ import {
   purgeOldFullAnalysisQueue,
   recoverStaleFullAnalysisQueue,
   requeueFullAnalysisQueue,
+  requireTenantIdForUser,
   schema,
   type FullAnalysisQueueRow,
 } from '@kestrel/db';
@@ -78,6 +79,7 @@ export interface FullAnalysisRunView {
 
 export interface FullAnalysisClaim {
   runId: string;
+  tenantId: string;
   payload: FullAnalysisPayload;
 }
 
@@ -248,12 +250,14 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
       createdAt: new Date().toISOString(),
     };
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(input.userId, db);
     const row = await db.transaction(async (tx) => {
       const inserted = await tx
         .insert(schema.fullAnalysisQueue)
         .values({
           runId,
           userId: input.userId,
+          tenantId,
           threadId: input.threadId,
           idempotencyKey: input.idempotencyKey,
           payload,
@@ -281,6 +285,7 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
         maxDailyUsd: input.maxDailyUsd,
         correlation: { threadId: input.threadId, runId },
         db: tx,
+        tenantId,
       });
       const updated = await tx
         .update(schema.fullAnalysisQueue)
@@ -318,7 +323,7 @@ export async function claimNextFullAnalysisRun(workerRunId: string, ownsTenant?:
     }
     const claimedPayload = { ...payload, attemptCount: row.attemptCount, workerRunId, startedAt: new Date().toISOString() };
     await projectQueueRow({ ...row, payload: claimedPayload });
-    return { runId: row.runId, payload: claimedPayload };
+    return { runId: row.runId, tenantId: row.tenantId, payload: claimedPayload };
   }
 }
 

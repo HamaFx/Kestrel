@@ -55,6 +55,12 @@ export const POST = withAuth<void>(async (req, { user }) => {
       );
     }
     const env = getServerEnv();
+    if (!env.BILLING_ENABLED) {
+      return Response.json(
+        { error: { code: 'NOT_FOUND', message: 'Billing is disabled in this deployment' } },
+        { status: 404 },
+      );
+    }
 
     const plan = await getPlan(body.planId);
 

@@ -38,11 +38,15 @@ describe('retention cleanup', () => {
     vi.stubEnv('TELEMETRY_RETENTION_DAYS', '-1');
     vi.stubEnv('TRACE_RETENTION_DAYS', '99999');
     vi.stubEnv('RATE_LIMIT_RETENTION_HOURS', '0');
+    vi.stubEnv('BILLING_WEBHOOK_DLQ_RETENTION_DAYS', '-1');
+    vi.stubEnv('AI_EVALUATION_RETENTION_DAYS', '-1');
 
     expect(getRetentionConfigFromEnv()).toMatchObject({
       telemetryRetentionDays: 90,
       traceRetentionDays: 30,
       rateLimitRetentionHours: 2,
+      billingWebhookDlqRetentionDays: 90,
+      aiEvaluationRetentionDays: 90,
     });
   });
 
@@ -54,10 +58,13 @@ describe('retention cleanup', () => {
       providerDailyQuotaRetentionDays: 1,
       cronRunRetentionDays: 1,
       outboxRetentionDays: 1,
+      analysisJobRetentionDays: 1,
+      billingWebhookDlqRetentionDays: 1,
+      aiEvaluationRetentionDays: 1,
       budgetReservationRetentionDays: 1,
     });
 
-    expect(execute).toHaveBeenCalledTimes(8);
+    expect(execute).toHaveBeenCalledTimes(15);
     expect(result).toMatchObject({
       telemetryDeleted: 2,
       toolTelemetryDeleted: 2,
@@ -66,9 +73,19 @@ describe('retention cleanup', () => {
       providerDailyQuotaDeleted: 2,
       cronRunsDeleted: 2,
       outboxDeleted: 2,
+      fullAnalysisQueueDeleted: 2,
+      billingWebhookDlqDeleted: 2,
+      aiShadowComparisonsDeleted: 2,
+      aiQualityResultsDeleted: 2,
       budgetReservationsDeleted: 2,
+      telegramUpdatesDeleted: 2,
+      sharedSnapshotsDeleted: 2,
+      notificationNoiseStateDeleted: 2,
     });
-    expect(result.note).toContain('outboxDeleted=2');
+    expect(result.note).toContain('fullAnalysisQueueDeleted=2');
+    expect(result.note).toContain('billingWebhookDlqDeleted=2');
+    expect(result.note).toContain('aiShadowComparisonsDeleted=2');
+    expect(result.note).toContain('aiQualityResultsDeleted=2');
   });
 
   it('does not issue a second batch when the first batch is full', async () => {
@@ -76,7 +93,7 @@ describe('retention cleanup', () => {
 
     await runRetentionCleanup({ telemetryRetentionDays: 1 });
 
-    expect(execute).toHaveBeenCalledTimes(8);
+    expect(execute).toHaveBeenCalledTimes(15);
   });
 
   it('vacuum analyzes only the bounded operational table list', async () => {

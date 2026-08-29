@@ -8,8 +8,8 @@
  */
 import 'server-only';
 
-import { getDb, schema } from '@kestrel/db';
-import { eq } from 'drizzle-orm';
+import { getDb, requireTenantIdForUser, schema } from '@kestrel/db';
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
@@ -77,11 +77,17 @@ export async function resetOnboardingAction(
 
   const db = getDb();
   try {
+    const tenantId = await requireTenantIdForUser(session.user.id, db);
     if (options.soft) {
       await db
         .update(schema.userSettings)
         .set({ onboardingCompleted: false })
-        .where(eq(schema.userSettings.userId, session.user.id));
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
     } else {
       await db
         .update(schema.userSettings)
@@ -89,7 +95,12 @@ export async function resetOnboardingAction(
           onboardingCompleted: false,
           onboardingProgress: {},
         })
-        .where(eq(schema.userSettings.userId, session.user.id));
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
     }
 
     revalidatePath('/settings');

@@ -20,32 +20,45 @@ import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
+import { resolveMigrationDatabaseUrl } from '@kestrel/shared';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = resolve(__dirname, '..', 'drizzle');
 
-const databaseUrl =
-  process.env.DIRECT_URL ||
-  process.env.POSTGRES_URL_NON_POOLING ||
-  process.env.DATABASE_URL ||
-  process.env.POSTGRES_URL;
-
-if (!databaseUrl) {
-  console.error('[migrate:apply] No database URL found in environment');
+let databaseUrl;
+try {
+  databaseUrl = resolveMigrationDatabaseUrl(process.env);
+} catch (error) {
+  console.error(`[migrate:apply] ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }
 
-const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
-const productionTls =
-  process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+function resolveSslOption() {
+  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  if (ca) return { ca, rejectUnauthorized: true };
 
-const sslOption = ca
-  ? { ca, rejectUnauthorized: true }
-  : process.env.DB_DISABLE_SSL === 'true'
-    ? false
-    : productionTls && !databaseUrl.includes('supabase.co') && !databaseUrl.includes('supabase.com') && !databaseUrl.includes('pooler')
-      ? { rejectUnauthorized: true }
-      : { rejectUnauthorized: false };
+  if (process.env.DB_DISABLE_SSL === 'true') {
+    if (
+      process.env.NODE_ENV !== 'production' ||
+      (process.env.KESTREL_LOCAL_DOCKER ?? process.env.HAMAFX_LOCAL_DOCKER) === 'true'
+    ) {
+      return false;
+    }
+    throw new Error(
+      '[migrate:apply] DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; ' +
+        'configure verified TLS for production databases.',
+    );
+  }
+
+  // Migration connections are privileged and must not silently downgrade
+  // certificate verification. Node's system CA store handles Supabase and
+  // other publicly trusted Postgres endpoints when no explicit CA is set.
+  const productionTls =
+    process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  return productionTls ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
+}
+
+const sslOption = resolveSslOption();
 
 const sql = postgres(databaseUrl, {
   prepare: false,

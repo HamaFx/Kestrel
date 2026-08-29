@@ -36,7 +36,7 @@
 
 import { createHash } from 'node:crypto';
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
   AnalyzeChartImageInputSchema,
   AnalyzeChartImageOutputSchema,
@@ -107,7 +107,9 @@ export const analyzeChartImageTool = tool({
     if (!ctx) return NO_CONTEXT;
     const { threadId, env } = ctx;
 
-    const imagePart = await findLatestImagePart(threadId, ctx.db ?? getDb());
+    const db = ctx.db ?? getDb();
+    const tenantId = await requireTenantIdForUser(ctx.userId, db);
+    const imagePart = await findLatestImagePart(threadId, ctx.userId, tenantId, db);
     if (!imagePart) return NO_IMAGE;
 
     const sourceImageRef = sourceRefFor(imagePart);
@@ -204,11 +206,25 @@ export const analyzeChartImageTool = tool({
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function findLatestImagePart(threadId: string, db: ToolDb): Promise<ImagePartShape | null> {
+async function findLatestImagePart(
+  threadId: string,
+  userId: string,
+  tenantId: string,
+  db: ToolDb,
+): Promise<ImagePartShape | null> {
   const rows = await db
     .select({ parts: schema.chatMessages.parts })
     .from(schema.chatMessages)
-    .where(and(eq(schema.chatMessages.threadId, threadId), eq(schema.chatMessages.role, 'user')))
+    .innerJoin(schema.chatThreads, eq(schema.chatMessages.threadId, schema.chatThreads.id))
+    .where(
+      and(
+        eq(schema.chatMessages.threadId, threadId),
+        eq(schema.chatMessages.tenantId, tenantId),
+        eq(schema.chatMessages.role, 'user'),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .orderBy(desc(schema.chatMessages.createdAt))
     .limit(1);
   const parts = rows[0]?.parts;

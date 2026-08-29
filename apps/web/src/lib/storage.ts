@@ -39,6 +39,7 @@
 
 const CHAT_IMAGES_BUCKET = 'chat-images';
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // mirrors composer-side cap
+const MAX_STORAGE_RESPONSE_BYTES = 256 * 1024;
 
 export interface ChatImageUploadEnv {
   SUPABASE_URL: string;
@@ -84,6 +85,13 @@ export async function uploadChatImage(
   env: ChatImageUploadEnv,
   input: ChatImageUploadInput,
 ): Promise<ChatImageUploadResult> {
+  if (!/^image\/(jpeg|png|webp|gif)$/.test(input.mediaType)) {
+    throw new Error(`media type ${input.mediaType} is not an allowed image type`);
+  }
+  if (!input.userId || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.userId)) {
+    throw new Error('invalid user id for storage path');
+  }
+
   const bytes = input.body instanceof Uint8Array ? input.body : new Uint8Array(input.body);
   if (bytes.byteLength === 0) {
     throw new Error('upload payload is empty');
@@ -95,12 +103,18 @@ export async function uploadChatImage(
     throw new Error(`media type ${input.mediaType} is not an image`);
   }
 
-  const path = buildObjectPath(input.userId, input.filename);
-  const uploadUrl = `${env.SUPABASE_URL.replace(/\/+$/, '')}/storage/v1/object/${CHAT_IMAGES_BUCKET}/${path}`;
+  const safeBase = input.filename.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 64);
+  const path = buildObjectPath(input.userId, safeBase);
+  const base = new URL(env.SUPABASE_URL);
+  if (base.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
+    throw new Error('Supabase Storage requires HTTPS in production');
+  }
+  const uploadUrl = `${base.toString().replace(/\/+$/, '')}/storage/v1/object/${CHAT_IMAGES_BUCKET}/${path}`;
   const uploadedAt = Date.now();
 
   const res = await fetch(uploadUrl, {
     method: 'POST',
+    redirect: 'error',
     headers: {
       authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
       'content-type': input.mediaType,
@@ -115,11 +129,11 @@ export async function uploadChatImage(
   });
 
   if (!res.ok) {
-    const detail = await res.text().catch(() => '<no body>');
+    const detail = (await res.text().catch(() => '<no body>')).slice(0, MAX_STORAGE_RESPONSE_BYTES);
     throw new Error(`Supabase Storage upload failed: HTTP ${res.status} — ${detail.slice(0, 200)}`);
   }
 
-  const publicUrl = `${env.SUPABASE_URL.replace(/\/+$/, '')}/storage/v1/object/public/${CHAT_IMAGES_BUCKET}/${path}`;
+  const publicUrl = `${base.toString().replace(/\/+$/, '')}/storage/v1/object/public/${CHAT_IMAGES_BUCKET}/${path}`;
   return {
     url: publicUrl,
     path,

@@ -19,7 +19,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getDiagnosticContext, withDiagnostics } from '../src/diagnostics/run-context';
 import { recordTelemetry, recordToolTelemetry } from '../src/persistence/telemetry-persistence';
 
-const { insertValues, db } = vi.hoisted(() => {
+const { insertValues, db, selectBuilder } = vi.hoisted(() => {
   const insertValues = vi.fn();
   const insertBuilder = {
     values: insertValues,
@@ -27,10 +27,20 @@ const { insertValues, db } = vi.hoisted(() => {
     onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
   };
   insertValues.mockReturnValue(insertBuilder);
+  const selectBuilder = {
+    from: vi.fn(),
+    innerJoin: vi.fn(),
+    where: vi.fn(),
+    limit: vi.fn().mockResolvedValue([{ tenantId: 'user-1' }]),
+  };
+  selectBuilder.from.mockReturnValue(selectBuilder);
+  selectBuilder.innerJoin.mockReturnValue(selectBuilder);
+  selectBuilder.where.mockReturnValue(selectBuilder);
   const db = {
     insert: vi.fn(() => insertBuilder),
+    select: vi.fn(() => selectBuilder),
   };
-  return { insertValues, db };
+  return { insertValues, db, selectBuilder };
 });
 
 vi.mock('../src/db', () => ({
@@ -41,6 +51,12 @@ describe('telemetry persistence correlation', () => {
   beforeEach(() => {
     insertValues.mockClear();
     db.insert.mockClear();
+    db.select.mockClear();
+    selectBuilder.from.mockClear();
+    selectBuilder.innerJoin.mockClear();
+    selectBuilder.where.mockClear();
+    selectBuilder.limit.mockClear();
+    selectBuilder.limit.mockResolvedValue([{ tenantId: 'user-1' }]);
   });
 
   it('fills turn and tool telemetry correlation fields from the active diagnostic scope', async () => {

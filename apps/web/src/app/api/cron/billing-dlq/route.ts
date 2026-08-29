@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // GET /api/cron/billing-dlq — alert on authenticated billing webhook
-// failures that have remained pending for at least one hour.
+// failures that have remained pending or replaying for at least one hour.
 
 import * as Sentry from '@sentry/nextjs';
 
@@ -34,14 +34,14 @@ export async function GET(req: Request): Promise<Response> {
     const pendingOlderThanHour = await countStaleBillingWebhookFailures(cutoff);
 
     if (pendingOlderThanHour > 0) {
-      Sentry.captureMessage('Billing webhook DLQ has stale pending entries', {
+      Sentry.captureMessage('Billing webhook DLQ has stale entries', {
         level: 'error',
         tags: { component: 'billing-webhook', kind: 'dlq-stale' },
         extra: { pendingOlderThanHour, cutoff: cutoff.toISOString() },
       });
       createScopedLoggerWithContext({ component: 'cron', job: 'billing-dlq' }).error(
         { pendingOlderThanHour, cutoff: cutoff.toISOString() },
-        'billing webhook DLQ contains stale pending entries',
+        'billing webhook DLQ contains stale pending or replaying entries',
       );
     }
 
@@ -49,8 +49,8 @@ export async function GET(req: Request): Promise<Response> {
       processed: pendingOlderThanHour,
       note:
         pendingOlderThanHour > 0
-          ? `${pendingOlderThanHour} pending billing webhook failure(s) older than one hour`
+          ? `${pendingOlderThanHour} pending or replaying billing webhook failure(s) older than one hour`
           : 'No stale billing webhook failures',
     };
-  });
+  }, { requireAdminSession: true });
 }

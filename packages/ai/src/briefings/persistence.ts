@@ -23,7 +23,7 @@
 // Briefings are scoped to the authenticated user. The partial unique index
 // guarantees one dedicated briefing thread per user.
 
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { Symbol } from '@kestrel/shared';
 import { and, desc, gte as dgte, isNotNull as disNotNull, lte as dlte, eq } from 'drizzle-orm';
 
@@ -41,10 +41,17 @@ import type { DbThread } from '../persistence';
  */
 export async function getOrCreateBriefingsThread(userId: string): Promise<DbThread> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const existing = await db
     .select()
     .from(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.isBriefings, true), eq(schema.chatThreads.userId, userId)))
+    .where(
+      and(
+        eq(schema.chatThreads.isBriefings, true),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   const found = existing[0];
@@ -57,6 +64,7 @@ export async function getOrCreateBriefingsThread(userId: string): Promise<DbThre
     .insert(schema.chatThreads)
     .values({
       userId,
+      tenantId,
       title: 'Briefings',
       titleSource: 'llm',
       isBriefings: true,
@@ -72,7 +80,13 @@ export async function getOrCreateBriefingsThread(userId: string): Promise<DbThre
   const raced = await db
     .select()
     .from(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.isBriefings, true), eq(schema.chatThreads.userId, userId)))
+    .where(
+      and(
+        eq(schema.chatThreads.isBriefings, true),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   const winner = raced[0];
   if (!winner) throw new Error(`failed to create or find briefings thread for user ${userId}`);
@@ -99,12 +113,15 @@ export async function wasEmitted(
   eventId: string,
   kind: 'pre' | 'post' | 'weekly_review',
 ): Promise<boolean> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select({ k: schema.briefingsEmitted.kind })
     .from(schema.briefingsEmitted)
     .where(
       and(
         eq(schema.briefingsEmitted.userId, userId),
+        eq(schema.briefingsEmitted.tenantId, tenantId),
         eq(schema.briefingsEmitted.eventId, eventId),
         eq(schema.briefingsEmitted.kind, kind),
       ),
@@ -125,9 +142,11 @@ export async function recordEmitted(
   kind: 'pre' | 'post' | 'weekly_review',
   messageId: string,
 ): Promise<void> {
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .insert(schema.briefingsEmitted)
-    .values({ userId, eventId, kind, messageId })
+    .values({ userId, tenantId, eventId, kind, messageId })
     .onConflictDoNothing({
       target: [
         schema.briefingsEmitted.userId,
@@ -237,7 +256,9 @@ export async function getLatestBriefing(userId: string): Promise<LatestBriefing 
   // 2. Fetch the most recent 50 assistant messages on that thread. 50 is a
   //    generous ceiling — cron emits at most a handful per day, and we
   //    only need the latest.
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select({
       id: schema.chatMessages.id,
       threadId: schema.chatMessages.threadId,
@@ -246,7 +267,12 @@ export async function getLatestBriefing(userId: string): Promise<LatestBriefing 
       createdAt: schema.chatMessages.createdAt,
     })
     .from(schema.chatMessages)
-    .where(eq(schema.chatMessages.threadId, thread.id))
+    .where(
+      and(
+        eq(schema.chatMessages.threadId, thread.id),
+        eq(schema.chatMessages.tenantId, tenantId),
+      ),
+    )
     .orderBy(desc(schema.chatMessages.createdAt))
     .limit(50);
 

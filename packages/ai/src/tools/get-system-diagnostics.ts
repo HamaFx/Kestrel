@@ -15,14 +15,14 @@
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
   GetSystemDiagnosticsInputSchema,
   GetSystemDiagnosticsOutputSchema,
   type GetSystemDiagnosticsOutput,
 } from '@kestrel/shared';
 import { tool } from 'ai';
-import { desc, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import { getDb } from '../db';
@@ -43,6 +43,7 @@ export const getSystemDiagnosticsTool = tool({
   execute: async ({ verbose, forceProbe }): Promise<GetSystemDiagnosticsOutput> => {
     const db = maybeGetToolContext()?.db ?? getDb();
     const ctx = getToolContext();
+    const tenantId = await requireTenantIdForUser(ctx.userId, db);
 
     const dbStart = Date.now();
     let dbStatus: 'connected' | 'error' = 'connected';
@@ -57,11 +58,35 @@ export const getSystemDiagnosticsTool = tool({
     try {
       // Fetch table counts
       const counts = await Promise.all([
-        db.select({ count: sql<number>`count(*)` }).from(schema.journalEntries),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(schema.journalEntries)
+          .where(
+            and(
+              eq(schema.journalEntries.userId, ctx.userId),
+              eq(schema.journalEntries.tenantId, tenantId),
+            ),
+          ),
         db.select({ count: sql<number>`count(*)` }).from(schema.snapshots),
-        db.select({ count: sql<number>`count(*)` }).from(schema.briefingsEmitted),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(schema.briefingsEmitted)
+          .where(
+            and(
+              eq(schema.briefingsEmitted.userId, ctx.userId),
+              eq(schema.briefingsEmitted.tenantId, tenantId),
+            ),
+          ),
         db.select({ count: sql<number>`count(*)` }).from(schema.intermarketResonance),
-        db.select({ count: sql<number>`count(*)` }).from(schema.memoryEmbeddings),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(schema.memoryEmbeddings)
+          .where(
+            and(
+              eq(schema.memoryEmbeddings.userId, ctx.userId),
+              eq(schema.memoryEmbeddings.tenantId, tenantId),
+            ),
+          ),
       ]);
 
       latencyMs = Date.now() - dbStart;
@@ -89,6 +114,7 @@ export const getSystemDiagnosticsTool = tool({
       const cotRecent = await db
         .select({ occurredAt: schema.briefingsEmitted.createdAt })
         .from(schema.briefingsEmitted)
+        .where(eq(schema.briefingsEmitted.tenantId, tenantId))
         .orderBy(desc(schema.briefingsEmitted.createdAt))
         .limit(1);
       cotSyncLastRun = cotRecent[0]?.occurredAt

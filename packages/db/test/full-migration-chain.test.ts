@@ -317,6 +317,20 @@ describe(
       );
       expect(budgetIndexes).toHaveLength(3);
 
+      const { rows: retentionIndexes } = await db.execute(
+        `SELECT indexname FROM pg_indexes
+       WHERE indexname IN (
+           'rate_limits_window_start_idx',
+           'provider_daily_quota_day_idx',
+           'cron_runs_started_at_idx',
+           'persistence_outbox_terminal_updated_idx',
+           'full_analysis_queue_terminal_completed_idx',
+           'billing_webhook_dlq_replayed_at_idx',
+           'ai_budget_reservations_terminal_resolved_idx'
+         )`,
+      );
+      expect(retentionIndexes).toHaveLength(7);
+
       const { rows: outboxIndexes } = await db.execute(
         `SELECT indexname FROM pg_indexes
        WHERE indexname IN (
@@ -380,6 +394,82 @@ describe(
         `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = 'analysis_jobs'`,
       );
       expect(rows).toHaveLength(0);
+    }, 30_000);
+
+    it('diagnostic traces have a created_at retention index after migration 0092', async () => {
+      const db = await getPGliteDb(dir);
+      await applyAll(db);
+      const { rows } = await db.execute(
+        `SELECT indexname FROM pg_indexes
+         WHERE tablename = 'diagnostic_traces' AND indexname = 'diagnostic_traces_created_at_idx'`,
+      );
+      expect(rows).toHaveLength(1);
+    }, 30_000);
+
+    it('subscriptions have a provider status checkpoint after migration 0091', async () => {
+      const db = await getPGliteDb(dir);
+      await applyAll(db);
+      const { rows } = await db.execute(
+        `SELECT data_type FROM information_schema.columns
+         WHERE table_name = 'subscriptions' AND column_name = 'last_payment_status'`,
+      );
+      expect(rows[0]?.data_type).toBe('text');
+    }, 30_000);
+
+    it('AI budget amounts use exact bigint cents after migration 0089', async () => {
+      const db = await getPGliteDb(dir);
+      await applyAll(db);
+      const { rows } = await db.execute(
+        `SELECT table_name, column_name, data_type
+         FROM information_schema.columns
+         WHERE table_name IN ('daily_ai_spend', 'ai_budget_reservations')
+           AND column_name IN ('total_usd_cents', 'reserved_usd_cents', 'actual_usd_cents')
+         ORDER BY table_name, column_name`,
+      );
+      expect(rows).toHaveLength(3);
+      expect(rows.every((row: Record<string, unknown>) => row.data_type === 'bigint')).toBe(true);
+    }, 30_000);
+
+    it('late tenant tables have forced RLS and tenant isolation policies', async () => {
+      const db = await getPGliteDb(dir);
+      await applyAll(db);
+
+      const lateTenantTables = [
+        'subscriptions',
+        'payments',
+        'billing_checkout_attempts',
+        'ai_budget_reservations',
+        'persistence_outbox',
+        'ai_message_feedback',
+        'ai_shadow_comparisons',
+        'ai_regression_cases',
+        'mutation_executions',
+        'full_analysis_queue',
+        'memory_backfill_state',
+        'memory_projection_state',
+        'ai_quality_results',
+      ];
+      const { rows } = await db.execute(
+        `SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity,
+                p.policyname
+         FROM pg_class c
+         LEFT JOIN pg_policies p
+           ON p.schemaname = 'public' AND p.tablename = c.relname
+          AND p.policyname = 'tenant_isolation'
+         WHERE c.relnamespace = 'public'::regnamespace
+           AND c.relname IN (${lateTenantTables.map((table) => `'${table}'`).join(', ')})
+         ORDER BY c.relname`,
+      );
+
+      expect(rows).toHaveLength(lateTenantTables.length);
+      expect(
+        rows.every(
+          (row: Record<string, unknown>) =>
+            row.relrowsecurity === true &&
+            row.relforcerowsecurity === true &&
+            row.policyname === 'tenant_isolation',
+        ),
+      ).toBe(true);
     }, 30_000);
 
     it('cot_reports columns are bigint (Phase 2)', async () => {

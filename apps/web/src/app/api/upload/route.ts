@@ -105,13 +105,21 @@ export const POST = withAuth<void>(async (req, { user }) => {
 
     let uploadBody: ArrayBuffer | Uint8Array = await file.arrayBuffer();
 
-    // PERF-09: Image optimization with sharp
+    // PERF-09: Image optimization with sharp. Decode limits prevent
+    // decompression bombs and unbounded memory use from hostile images.
     if (mediaType.startsWith('image/')) {
       const sharp = (await import('sharp')).default;
-      const optimized = await sharp(uploadBody)
+      const optimized = await sharp(uploadBody, {
+        limitInputPixels: 16_000_000,
+        failOn: 'error',
+      })
+        .rotate()
         .resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 80 })
+        .webp({ quality: 80, effort: 4 })
         .toBuffer();
+      if (optimized.byteLength === 0 || optimized.byteLength > CHAT_IMAGE_MAX_BYTES) {
+        throw validationError('Processed image exceeds the permitted size');
+      }
       uploadBody = new Uint8Array(optimized);
     }
 

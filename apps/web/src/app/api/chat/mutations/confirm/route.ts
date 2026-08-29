@@ -32,6 +32,7 @@ import {
   getMutationExecution,
   schema,
   MutationExecutionConflictError,
+  requireTenantIdForUser,
   MutationExecutionContextError,
 } from '@kestrel/db';
 import { NextResponse } from 'next/server';
@@ -54,10 +55,12 @@ function executorFor(kind: z.infer<typeof MutationKindSchema>, userId: string): 
       case 'set_alert': {
         if (input.kind !== 'set_alert') throw new Error('mutation kind mismatch');
         const db = getDb();
+        const tenantId = await requireTenantIdForUser(userId, db);
         const rows = await db
           .insert(schema.alerts)
           .values({
             userId,
+            tenantId,
             rule: input.rule,
             channels: input.channels ?? ['email'],
             note: input.note ?? null,
@@ -69,10 +72,12 @@ function executorFor(kind: z.infer<typeof MutationKindSchema>, userId: string): 
       case 'log_journal': {
         if (input.kind !== 'log_journal') throw new Error('mutation kind mismatch');
         const db = getDb();
+        const tenantId = await requireTenantIdForUser(userId, db);
         const rows = await db
           .insert(schema.journalEntries)
           .values({
             userId,
+            tenantId,
             symbol: input.symbol,
             side: input.side,
             openedAt: new Date(input.openedAt),
@@ -92,10 +97,12 @@ function executorFor(kind: z.infer<typeof MutationKindSchema>, userId: string): 
       case 'share_snapshot': {
         if (input.kind !== 'share_snapshot') throw new Error('mutation kind mismatch');
         const db = getDb();
+        const tenantId = await requireTenantIdForUser(userId, db);
         const rows = await db
           .insert(schema.sharedSnapshots)
           .values({
             userId,
+            tenantId,
             title: input.title,
             body: input.body,
             symbol: input.symbol ?? null,
@@ -152,7 +159,7 @@ function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: str
         approvalId: context.approvalId,
         approvalExpiresAt: new Date(context.approvalExpiresAt).toISOString(),
       },
-      execute: async (tx) => {
+      execute: async (tx, tenantId) => {
         const summary = mutationSummary(input);
         switch (kind) {
           case 'set_alert': {
@@ -161,6 +168,7 @@ function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: str
               .insert(schema.alerts)
               .values({
                 userId,
+                tenantId,
                 rule: input.rule,
                 channels: input.channels ?? ['email'],
                 note: input.note ?? null,
@@ -175,6 +183,7 @@ function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: str
               .insert(schema.journalEntries)
               .values({
                 userId,
+                tenantId,
                 symbol: input.symbol,
                 side: input.side,
                 openedAt: new Date(input.openedAt),
@@ -197,6 +206,7 @@ function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: str
               .insert(schema.sharedSnapshots)
               .values({
                 userId,
+                tenantId,
                 title: input.title,
                 body: input.body,
                 symbol: input.symbol ?? null,

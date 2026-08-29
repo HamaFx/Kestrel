@@ -17,9 +17,10 @@
 // Onboarding query helpers — admin reset operations.
 
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 export type ResetMode = 'full' | 'soft';
 
@@ -34,6 +35,7 @@ export type ResetMode = 'full' | 'soft';
  */
 export async function resetOnboarding(userId: string, mode: ResetMode = 'soft'): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
 
   await db.transaction(async (tx) => {
     const update: Partial<typeof schema.userSettings.$inferInsert> = {
@@ -45,9 +47,24 @@ export async function resetOnboarding(userId: string, mode: ResetMode = 'soft'):
       update.defaultSymbol = DEFAULT_WATCHLIST_SYMBOLS[0];
       update.timezone = 'UTC';
       update.aiApiKeys = null;
-      await tx.delete(schema.userSymbols).where(eq(schema.userSymbols.userId, userId));
+      await tx
+        .delete(schema.userSymbols)
+        .where(
+          and(
+            eq(schema.userSymbols.userId, userId),
+            eq(schema.userSymbols.tenantId, tenantId),
+          ),
+        );
     }
 
-    await tx.update(schema.userSettings).set(update).where(eq(schema.userSettings.userId, userId));
+    await tx
+      .update(schema.userSettings)
+      .set(update)
+      .where(
+        and(
+          eq(schema.userSettings.userId, userId),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
   });
 }

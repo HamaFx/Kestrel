@@ -79,18 +79,15 @@ if (vercelEnv && vercelEnv !== 'production') {
   process.exit(0);
 }
 
-// Match the runtime migrator and shared environment parser: this OSS
-// release is single-user only. Refuse before opening a production DB
-// connection so an unsupported tenant/RLS mode cannot mutate its schema.
+// Shared mode is supported only when both feature flags are enabled. Refuse
+// an unsafe half-enabled deployment before opening a production connection.
 const multiUserEnabled = ['1', 'true'].includes((process.env.MULTI_USER_ENABLED ?? '').toLowerCase());
 const rlsEnabled = ['1', 'true'].includes(
   (process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS ?? '').toLowerCase(),
 );
-const registrationMode = process.env.REGISTRATION_MODE ?? 'owner-first';
-if (multiUserEnabled || rlsEnabled || registrationMode === 'open') {
+if (multiUserEnabled !== rlsEnabled) {
   console.error(
-    '[predeploy-migrate] Multi-user/RLS and open-registration modes are disabled in this open-source release. ' +
-      'Set MULTI_USER_ENABLED=0, KESTREL_ENABLE_RLS=0, and REGISTRATION_MODE=owner-first (or disabled).',
+    '[predeploy-migrate] MULTI_USER_ENABLED and KESTREL_ENABLE_RLS must be enabled together; refusing an unsafe partial configuration.',
   );
   process.exit(1);
 }
@@ -158,7 +155,7 @@ if (!existsSync(migrationsDir)) {
 try {
   const { default: postgres } = await import('postgres');
   const productionTls = vercelEnv === 'production' || process.env.NODE_ENV === 'production';
-  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\\\n/g, '\\n').trim();
+  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
   const sql = postgres(url, {
     prepare: false,
     ssl: ca

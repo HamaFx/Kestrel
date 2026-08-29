@@ -25,11 +25,16 @@
 // call service → format Response.
 
 import { getCandles, getCandlesWithMeta, getDefaultCache, getPriceWithMeta } from '@kestrel/data';
-import { schema, withRateLimit, withTenantDbRO } from '@kestrel/db';
+import {
+  requireTenantIdForUser,
+  schema,
+  withRateLimit,
+  withTenantDbRO,
+} from '@kestrel/db';
 import { computeIndicator } from '@kestrel/indicators';
 import { BUILTIN_SYMBOLS, type Candle, type IndicatorResult, type Tick } from '@kestrel/shared';
 import { decryptByok } from '@kestrel/shared/encryption';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -73,14 +78,20 @@ export interface IndicatorResultDTO {
 async function loadUserMarketPrefs(
   userId: string,
 ): Promise<{ finnhubKey: string; marketDataProvider: string }> {
-  const [settings] = await withTenantDbRO(userId, async (db) => {
+  const tenantId = await requireTenantIdForUser(userId);
+  const [settings] = await withTenantDbRO(tenantId, async (db) => {
     const rows = await db
       .select({
         aiApiKeys: schema.userSettings.aiApiKeys,
         marketDataProvider: schema.userSettings.marketDataProvider,
       })
       .from(schema.userSettings)
-      .where(eq(schema.userSettings.userId, userId));
+      .where(
+        and(
+          eq(schema.userSettings.userId, userId),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
     return rows;
   });
 

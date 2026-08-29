@@ -31,7 +31,7 @@
 // All paths are guarded by the daily AI budget so a runaway agent loop
 // can't burn embedding spend in a side-effect.
 
-import { schema, withTenantDb } from '@kestrel/db';
+import { requireTenantIdForUser, schema, withTenantDb } from '@kestrel/db';
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ServerEnv, Symbol, ThreadInsight } from '@kestrel/shared';
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
@@ -123,19 +123,20 @@ async function upsertMemory(args: {
   if (args.signal?.aborted) return { stored: false, reason: 'aborted' };
 
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(args.userId, db);
   // Atomic upsert (Phase 1 hardening §8). The previous DELETE + INSERT
   // pair left rows missing forever if the process crashed between the
   // two statements, and concurrent re-embeddings of the same source
   // could collide on the unique constraint. The single `ON CONFLICT`
   // statement keeps the insert and the body refresh in one transaction
   // and matches the (user_id, kind, source_id) unique key (Phase 3 §14).
-  // Phase 3 §3.11 — prefer the real userId. The __system__ fallback is
-  // retained ONLY for the DB insert (the column is NOT NULL with a FK to
-  // users.id, and __system__ exists as a seeded row). Callers should always
-  // pass userId; this fallback ensures we don't break existing paths that
-  // haven't been updated yet.
+  // Resolve tenant membership before the insert so the persisted tenant is
+  // canonical even when the caller supplies an optional tenant hint.
   const effectiveUserId = args.userId;
-  const effectiveTenantId = args.tenantId ?? effectiveUserId;
+  if (args.tenantId !== undefined && args.tenantId !== tenantId) {
+    throw new Error('Memory tenant does not match the user membership.');
+  }
+  const effectiveTenantId = tenantId;
 
   await db
     .insert(schema.memoryEmbeddings)
@@ -202,6 +203,7 @@ export async function rememberJournalEntry(
       and(
         eq(schema.journalEntries.id, args.entryId),
         eq(schema.journalEntries.userId, args.userId),
+        eq(schema.journalEntries.tenantId, await requireTenantIdForUser(args.userId, getDb())),
       ),
     )
     .limit(1);
@@ -328,7 +330,10 @@ export interface SearchMemoryArgs {
  */
 export async function searchMemory(args: SearchMemoryArgs): Promise<MemoryRow[]> {
   const { embedding, limit, kinds, symbol, since } = args;
-  const tenantId = args.tenantId ?? args.userId;
+  const tenantId = await requireTenantIdForUser(args.userId);
+  if (args.tenantId !== undefined && args.tenantId !== tenantId) {
+    throw new Error('Memory search tenant does not match the user membership.');
+  }
   const vec = vectorLiteral(embedding);
 
   // Build dynamic WHERE clauses while keeping drizzle's parametrisation.
@@ -394,7 +399,12 @@ export async function searchMemory(args: SearchMemoryArgs): Promise<MemoryRow[]>
 
 /** Cheap tenant-scoped probe — has this user's requested corpus had any data? */
 export async function countMemory(userId: string, kinds?: MemoryKind[]): Promise<number> {
-  const filters = [eq(schema.memoryEmbeddings.userId, userId)];
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const filters = [
+    eq(schema.memoryEmbeddings.userId, userId),
+    eq(schema.memoryEmbeddings.tenantId, tenantId),
+  ];
   if (kinds && kinds.length > 0) filters.push(inArray(schema.memoryEmbeddings.kind, kinds));
   const rows = await getDb()
     .select({ id: schema.memoryEmbeddings.id })

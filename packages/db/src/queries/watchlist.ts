@@ -20,6 +20,7 @@ import { validationError } from '@kestrel/shared';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 /** A watchlist entry enriched with symbol catalog metadata. */
 export interface WatchlistEntry {
@@ -41,6 +42,7 @@ export interface WatchlistEntry {
  */
 export async function getWatchlistWithCatalog(userId: string): Promise<WatchlistEntry[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select({
       symbol: schema.symbolCatalog.symbol,
@@ -59,6 +61,7 @@ export async function getWatchlistWithCatalog(userId: string): Promise<Watchlist
     .where(
       and(
         eq(schema.userSymbols.userId, userId),
+        eq(schema.userSymbols.tenantId, tenantId),
         eq(schema.symbolCatalog.isActive, true),
         eq(schema.symbolCatalog.tenantId, '__system__'),
       ),
@@ -90,12 +93,18 @@ export async function isSymbolInCatalog(symbol: string): Promise<boolean> {
  */
 export async function getNextDisplayOrder(userId: string): Promise<number> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const [row] = await db
     .select({
       maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`,
     })
     .from(schema.userSymbols)
-    .where(eq(schema.userSymbols.userId, userId));
+    .where(
+      and(
+        eq(schema.userSymbols.userId, userId),
+        eq(schema.userSymbols.tenantId, tenantId),
+      ),
+    );
   return (row?.maxOrder ?? -1) + 1;
 }
 
@@ -115,19 +124,28 @@ export async function reorderWatchlist(userId: string, symbols: string[]): Promi
   }
 
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db.transaction(async (tx) => {
     // Lock the current rows for the duration of validation + update so two
     // reorder requests cannot observe and rewrite different orderings.
     await tx.execute(
       sql`SELECT ${schema.userSymbols.symbol}
           FROM ${schema.userSymbols}
-          WHERE ${eq(schema.userSymbols.userId, userId)}
+          WHERE ${and(
+            eq(schema.userSymbols.userId, userId),
+            eq(schema.userSymbols.tenantId, tenantId),
+          )}
           FOR UPDATE`,
     );
     const existing = await tx
       .select({ symbol: schema.userSymbols.symbol })
       .from(schema.userSymbols)
-      .where(eq(schema.userSymbols.userId, userId));
+      .where(
+        and(
+          eq(schema.userSymbols.userId, userId),
+          eq(schema.userSymbols.tenantId, tenantId),
+        ),
+      );
     const existingSymbols = existing.map((row) => row.symbol);
     if (
       existingSymbols.length !== symbols.length ||
@@ -145,7 +163,11 @@ export async function reorderWatchlist(userId: string, symbols: string[]): Promi
         displayOrder: sql`CASE ${sql.join(whenClauses, sql` `)} ELSE ${schema.userSymbols.displayOrder} END`,
       })
       .where(
-        and(eq(schema.userSymbols.userId, userId), inArray(schema.userSymbols.symbol, symbols)),
+        and(
+          eq(schema.userSymbols.userId, userId),
+          eq(schema.userSymbols.tenantId, tenantId),
+          inArray(schema.userSymbols.symbol, symbols),
+        ),
       );
   });
 }

@@ -19,6 +19,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 // ── Positions ───────────────────────────────────────────────────────────────
 
@@ -27,12 +28,14 @@ export type CreatePositionInput = typeof schema.portfolioPositions.$inferInsert;
 
 export async function listOpenPositions(userId: string): Promise<PositionRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select()
     .from(schema.portfolioPositions)
     .where(
       and(
         eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
         eq(schema.portfolioPositions.status, 'open'),
         isNull(schema.portfolioPositions.deletedAt),
       ),
@@ -44,12 +47,14 @@ export async function listAllPositions(
   userId: string,
   opts?: { status?: string; limit?: number },
 ): Promise<PositionRow[]> {
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const conditions = [
     eq(schema.portfolioPositions.userId, userId),
+    eq(schema.portfolioPositions.tenantId, tenantId),
     isNull(schema.portfolioPositions.deletedAt),
   ];
   if (opts?.status) conditions.push(eq(schema.portfolioPositions.status, opts.status));
-  const db = getDb();
   return db
     .select()
     .from(schema.portfolioPositions)
@@ -60,17 +65,28 @@ export async function listAllPositions(
 
 export async function getPosition(id: string, userId: string): Promise<PositionRow | undefined> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select()
     .from(schema.portfolioPositions)
-    .where(and(eq(schema.portfolioPositions.id, id), eq(schema.portfolioPositions.userId, userId)))
+    .where(
+      and(
+        eq(schema.portfolioPositions.id, id),
+        eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   return rows[0];
 }
 
 export async function createPosition(input: CreatePositionInput): Promise<PositionRow> {
   const db = getDb();
-  const rows = await db.insert(schema.portfolioPositions).values(input).returning();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
+  const rows = await db
+    .insert(schema.portfolioPositions)
+    .values({ ...input, tenantId })
+    .returning();
   return rows[0]!;
 }
 
@@ -80,20 +96,34 @@ export async function closePosition(
   closePrice: number,
 ): Promise<PositionRow | undefined> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .update(schema.portfolioPositions)
     .set({ status: 'closed', closePrice, closedAt: new Date() })
-    .where(and(eq(schema.portfolioPositions.id, id), eq(schema.portfolioPositions.userId, userId)))
+    .where(
+      and(
+        eq(schema.portfolioPositions.id, id),
+        eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
+      ),
+    )
     .returning();
   return rows[0];
 }
 
 export async function deletePosition(id: string, userId: string): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .update(schema.portfolioPositions)
     .set({ deletedAt: new Date() })
-    .where(and(eq(schema.portfolioPositions.id, id), eq(schema.portfolioPositions.userId, userId)));
+    .where(
+      and(
+        eq(schema.portfolioPositions.id, id),
+        eq(schema.portfolioPositions.userId, userId),
+        eq(schema.portfolioPositions.tenantId, tenantId),
+      ),
+    );
 }
 
 // ── Settings ────────────────────────────────────────────────────────────────
@@ -104,24 +134,31 @@ export async function getPortfolioSettings(
   userId: string,
 ): Promise<PortfolioSettingsRow | undefined> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId);
   const rows = await db
     .select()
     .from(schema.portfolioSettings)
-    .where(eq(schema.portfolioSettings.userId, userId))
+    .where(
+      and(
+        eq(schema.portfolioSettings.userId, userId),
+        eq(schema.portfolioSettings.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   return rows[0];
 }
 
 export async function upsertPortfolioSettings(
   userId: string,
-  data: Partial<Omit<PortfolioSettingsRow, 'userId'>>,
+  data: Partial<Omit<PortfolioSettingsRow, 'userId' | 'tenantId'>>,
 ): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId);
   await db
     .insert(schema.portfolioSettings)
-    .values({ userId, ...data })
+    .values({ userId, ...data, tenantId })
     .onConflictDoUpdate({
       target: schema.portfolioSettings.userId,
-      set: { ...data, updatedAt: new Date() },
+      set: { tenantId, ...data, updatedAt: new Date() },
     });
 }

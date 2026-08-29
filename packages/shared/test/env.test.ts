@@ -20,6 +20,8 @@ import {
   parseServerEnv,
   resolveDatabaseUrl,
   resolveDirectDatabaseUrl,
+  resolveMigrationDatabaseUrl,
+  isTransactionPoolerUrl,
   ServerEnvSchema,
 } from '../src/env';
 import { AUTO_GENERATED_SECRETS, generateSecret, SECRET_MIN_BYTES } from '../src/env-secrets';
@@ -37,6 +39,8 @@ afterEach(() => {
   delete process.env.AI_GATEWAY_API_KEY;
   delete process.env.DATABASE_URL;
   delete process.env.POSTGRES_URL;
+  delete process.env.DIRECT_URL;
+  delete process.env.POSTGRES_URL_NON_POOLING;
 });
 
 describe('generateSecret', () => {
@@ -417,6 +421,27 @@ describe('resolveDatabaseUrl', () => {
       POSTGRES_URL: 'postgres://b:pass@localhost:5432/db2',
     });
     expect(url).toBe('postgres://a:pass@localhost:5432/db1');
+  });
+});
+
+describe('database URL classification', () => {
+  it('detects Supabase transaction pooler URLs', () => {
+    expect(isTransactionPoolerUrl('postgres://user:pass@aws-1-us-east-1.pooler.supabase.com:6543/db')).toBe(true);
+    expect(isTransactionPoolerUrl('postgres://user:pass@db.example.com:5432/db')).toBe(false);
+  });
+
+  it('allows Supabase session pooler URLs on port 5432', () => {
+    const url = 'postgres://user:pass@aws-1-us-east-1.pooler.supabase.com:5432/db';
+    expect(isTransactionPoolerUrl(url)).toBe(false);
+    expect(resolveMigrationDatabaseUrl({ POSTGRES_URL_NON_POOLING: url })).toBe(url);
+  });
+
+  it('requires a direct/session URL for migrations', () => {
+    expect(resolveMigrationDatabaseUrl({ DIRECT_URL: 'postgres://user:pass@db.example.com:5432/db' })).toContain('db.example.com');
+    expect(() => resolveMigrationDatabaseUrl({
+      DIRECT_URL: 'postgres://user:pass@aws-1-us-east-1.pooler.supabase.com:6543/db',
+    })).toThrow(/transaction pooler/i);
+    expect(() => resolveMigrationDatabaseUrl({})).toThrow(/DIRECT_URL or POSTGRES_URL_NON_POOLING/);
   });
 });
 

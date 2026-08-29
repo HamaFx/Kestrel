@@ -31,12 +31,28 @@ if (!databaseUrl) {
   );
 }
 
-const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
-const ssl = ca
-  ? { ca, rejectUnauthorized: true }
-  : process.env.DB_DISABLE_SSL === 'true'
-    ? false
-    : { rejectUnauthorized: false };
+function resolveSslOption() {
+  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  if (ca) return { ca, rejectUnauthorized: true };
+
+  if (process.env.DB_DISABLE_SSL === 'true') {
+    if (
+      process.env.NODE_ENV !== 'production' ||
+      (process.env.KESTREL_LOCAL_DOCKER ?? process.env.HAMAFX_LOCAL_DOCKER) === 'true'
+    ) {
+      return false;
+    }
+    throw new Error(
+      'DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; configure verified TLS for production databases.',
+    );
+  }
+
+  const productionTls =
+    process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  return productionTls ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
+}
+
+const ssl = resolveSslOption();
 
 export default defineConfig({
   schema: './src/schema/index.ts',

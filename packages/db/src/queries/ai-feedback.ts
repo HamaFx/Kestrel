@@ -5,9 +5,10 @@
  * you may not use this file except in compliance with the License.
  */
 
-import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 import type { FeedbackReviewStatus } from '../schema/ai-feedback';
 
 export type AiMessageFeedbackRow = typeof schema.aiMessageFeedback.$inferSelect;
@@ -26,6 +27,7 @@ export async function upsertMessageFeedback(
   input: SaveMessageFeedbackInput,
 ): Promise<AiMessageFeedbackRow | null> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
   const ownedMessage = await db
     .select({ id: schema.chatMessages.id })
     .from(schema.chatMessages)
@@ -36,6 +38,8 @@ export async function upsertMessageFeedback(
         eq(schema.chatMessages.threadId, input.threadId),
         eq(schema.chatMessages.role, 'assistant'),
         eq(schema.chatThreads.userId, input.userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+        eq(schema.chatMessages.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -46,6 +50,7 @@ export async function upsertMessageFeedback(
     .insert(schema.aiMessageFeedback)
     .values({
       userId: input.userId,
+      tenantId,
       threadId: input.threadId,
       messageId: input.messageId,
       ...(input.traceId ? { traceId: input.traceId } : {}),
@@ -58,6 +63,7 @@ export async function upsertMessageFeedback(
         rating: input.rating,
         userNote: input.userNote ?? null,
         ...(input.traceId ? { traceId: input.traceId } : {}),
+        tenantId,
         reviewStatus: 'unreviewed',
         reviewerId: null,
         reviewerLabel: null,
@@ -78,18 +84,36 @@ export async function getMessageFeedback(
   messageId: string,
 ): Promise<AiMessageFeedbackRow | null> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const [row] = await db
-    .select()
+    .select({ feedback: schema.aiMessageFeedback })
     .from(schema.aiMessageFeedback)
+    .innerJoin(
+      schema.chatThreads,
+      and(
+        eq(schema.aiMessageFeedback.threadId, schema.chatThreads.id),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
+    .innerJoin(
+      schema.chatMessages,
+      and(
+        eq(schema.chatMessages.id, schema.aiMessageFeedback.messageId),
+        eq(schema.chatMessages.threadId, schema.aiMessageFeedback.threadId),
+        eq(schema.chatMessages.tenantId, tenantId),
+      ),
+    )
     .where(
       and(
         eq(schema.aiMessageFeedback.userId, userId),
+        eq(schema.aiMessageFeedback.tenantId, tenantId),
         eq(schema.aiMessageFeedback.threadId, threadId),
         eq(schema.aiMessageFeedback.messageId, messageId),
       ),
     )
     .limit(1);
-  return row ?? null;
+  return row?.feedback ?? null;
 }
 
 export async function deleteMessageFeedback(
@@ -98,6 +122,7 @@ export async function deleteMessageFeedback(
   messageId: string,
 ): Promise<boolean> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const deleted = await db
     .delete(schema.aiMessageFeedback)
     .where(
@@ -105,6 +130,19 @@ export async function deleteMessageFeedback(
         eq(schema.aiMessageFeedback.userId, userId),
         eq(schema.aiMessageFeedback.threadId, threadId),
         eq(schema.aiMessageFeedback.messageId, messageId),
+        // Keep the child record tied to the caller-owned parent thread even
+        // if legacy data contains inconsistent user/thread columns.
+        sql`EXISTS (
+          SELECT 1
+          FROM ${schema.chatThreads}
+          INNER JOIN ${schema.chatMessages}
+            ON ${schema.chatMessages.threadId} = ${schema.chatThreads.id}
+           AND ${schema.chatMessages.id} = ${schema.aiMessageFeedback.messageId}
+           AND ${schema.chatMessages.tenantId} = ${tenantId}
+          WHERE ${schema.chatThreads.id} = ${schema.aiMessageFeedback.threadId}
+            AND ${schema.chatThreads.userId} = ${userId}
+            AND ${schema.chatThreads.tenantId} = ${tenantId}
+        )`,
       ),
     )
     .returning({ id: schema.aiMessageFeedback.id });

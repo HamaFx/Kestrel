@@ -18,14 +18,15 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 
 export type IpnClaim =
   | { kind: 'claimed'; event: typeof schema.ipnEvents.$inferSelect }
   | { kind: 'processed' }
-  | { kind: 'in_progress' };
+  | { kind: 'in_progress' }
+  | { kind: 'conflict'; event: typeof schema.ipnEvents.$inferSelect };
 
 /**
  * Atomically claim an IPN event for processing.
@@ -68,6 +69,12 @@ export async function claimIpnEvent(data: {
     )
     .limit(1);
 
+  // The idempotency key identifies one immutable provider event. Do not let a
+  // conflicting delivery overwrite the first authenticated payload, even if
+  // the original claim is still active or has already completed.
+  if (existing && existing.bodyHash !== data.bodyHash) {
+    return { kind: 'conflict', event: existing };
+  }
   if (!existing || existing.processed) return { kind: 'processed' };
   const leaseExpired =
     existing.processing &&
@@ -79,10 +86,9 @@ export async function claimIpnEvent(data: {
     .set({
       processing: true,
       processingAt: new Date(),
-      bodyHash: data.bodyHash,
-      rawBody: data.rawBody,
+      // Preserve bodyHash, rawBody, and receivedAt from the first delivery;
+      // they are the immutable audit record for this idempotency key.
       error: null,
-      receivedAt: new Date(),
     })
     .where(
       and(
@@ -205,16 +211,31 @@ export async function recordBillingWebhookFailure(data: {
     });
 }
 
-/** Count pending authenticated webhook failures older than the alert threshold. */
+/**
+ * Count billing webhook failures that need operator attention.
+ *
+ * Pending rows are stale by their receive time. A replaying row is stale by
+ * its replay lease start time; an active lease must not page, but a lease
+ * older than the alert window indicates a crashed or wedged replay worker.
+ */
 export async function countStaleBillingWebhookFailures(cutoff: Date): Promise<number> {
   const db = getDb();
   const [row] = await db
     .select({ count: sql<number>`count(*)` })
     .from(schema.billingWebhookDlq)
     .where(
-      and(
-        eq(schema.billingWebhookDlq.status, 'pending'),
-        lt(schema.billingWebhookDlq.receivedAt, cutoff),
+      or(
+        and(
+          eq(schema.billingWebhookDlq.status, 'pending'),
+          lt(schema.billingWebhookDlq.receivedAt, cutoff),
+        ),
+        and(
+          eq(schema.billingWebhookDlq.status, 'replaying'),
+          or(
+            isNull(schema.billingWebhookDlq.replayStartedAt),
+            lt(schema.billingWebhookDlq.replayStartedAt, cutoff),
+          ),
+        ),
       ),
     );
   return Number(row?.count ?? 0);
@@ -294,10 +315,44 @@ export async function releaseBillingWebhookReplay(
     );
 }
 
-/** Update a payment row status and associated fields. */
+/** Provider order for the mutable payment projection. */
+const PAYMENT_STATUS_RANK: Record<string, number> = {
+  waiting: 10,
+  confirming: 20,
+  confirmed: 30,
+  sending: 40,
+  finished: 50,
+  failed: 50,
+  expired: 50,
+  refunded: 60,
+};
+
+/**
+ * Accept a provider status only when it advances the mutable projection.
+ * Same-status retries are idempotent; terminal statuses cannot replace one
+ * another, while refunded remains the only valid terminal advance.
+ */
+function statusAdvancePredicate(
+  currentStatus: SQL,
+  incomingStatus: string,
+  incomingRank: number,
+): SQL {
+  return sql`(
+    ${currentStatus} IS NULL
+    OR ${currentStatus} = ${incomingStatus}
+    OR (${incomingStatus} = 'refunded' AND ${currentStatus} <> 'refunded')
+    OR (${currentStatus} = 'waiting' AND ${incomingRank} >= 10)
+    OR (${currentStatus} = 'confirming' AND ${incomingRank} >= 20)
+    OR (${currentStatus} = 'confirmed' AND ${incomingRank} >= 30)
+    OR (${currentStatus} = 'sending' AND ${incomingRank} >= 40)
+  )`;
+}
+
+/** Update a payment row status and associated fields without accepting stale regressions. */
 export async function updatePaymentStatus(
   paymentId: string,
   data: {
+    tenantId: string;
     status: string;
     nowpaymentsPaymentId?: string;
     txHash?: string | null;
@@ -305,8 +360,9 @@ export async function updatePaymentStatus(
     payCurrency?: string | null;
     ipnPayload?: unknown;
   },
-): Promise<void> {
+): Promise<boolean> {
   const db = getDb();
+  const incomingRank = PAYMENT_STATUS_RANK[data.status] ?? 0;
   const updateData: Record<string, unknown> = {
     status: data.status,
     updatedAt: new Date(),
@@ -318,7 +374,22 @@ export async function updatePaymentStatus(
   if (data.payCurrency !== undefined) updateData.payCurrency = data.payCurrency;
   if (data.ipnPayload !== undefined) updateData.ipnPayload = data.ipnPayload;
 
-  await db.update(schema.payments).set(updateData).where(eq(schema.payments.id, paymentId));
+  const [updated] = await db
+    .update(schema.payments)
+    .set(updateData)
+    .where(
+      and(
+        eq(schema.payments.id, paymentId),
+        eq(schema.payments.tenantId, data.tenantId),
+        statusAdvancePredicate(
+          sql`${schema.payments.status}`,
+          data.status,
+          incomingRank,
+        ),
+      ),
+    )
+    .returning({ id: schema.payments.id });
+  return Boolean(updated);
 }
 
 /**
@@ -329,12 +400,20 @@ export async function updatePaymentStatus(
 export async function getPaymentByNowpaymentsId(
   nowpaymentsPaymentId: string,
   nowpaymentsInvoiceId?: string,
+  tenantId?: string,
 ) {
   const db = getDb();
   const [byPaymentId] = await db
     .select()
     .from(schema.payments)
-    .where(eq(schema.payments.nowpaymentsPaymentId, nowpaymentsPaymentId))
+    .where(
+      tenantId
+        ? and(
+            eq(schema.payments.nowpaymentsPaymentId, nowpaymentsPaymentId),
+            eq(schema.payments.tenantId, tenantId),
+          )
+        : eq(schema.payments.nowpaymentsPaymentId, nowpaymentsPaymentId),
+    )
     .limit(1);
 
   if (!nowpaymentsInvoiceId) return byPaymentId ?? null;
@@ -342,7 +421,14 @@ export async function getPaymentByNowpaymentsId(
   const [byInvoiceId] = await db
     .select()
     .from(schema.payments)
-    .where(eq(schema.payments.nowpaymentsInvoiceId, nowpaymentsInvoiceId))
+    .where(
+      tenantId
+        ? and(
+            eq(schema.payments.nowpaymentsInvoiceId, nowpaymentsInvoiceId),
+            eq(schema.payments.tenantId, tenantId),
+          )
+        : eq(schema.payments.nowpaymentsInvoiceId, nowpaymentsInvoiceId),
+    )
     .limit(1);
 
   // Older payment rows may not have stored an invoice ID. In that case an
@@ -362,38 +448,81 @@ export type SubscriptionStatus = 'active' | 'past_due' | 'canceled';
 export async function updateSubscriptionFromPayment(
   subscriptionId: string,
   paymentStatus: string,
-  data?: { invoiceId?: string },
-): Promise<void> {
+  data: { tenantId: string; invoiceId?: string },
+): Promise<boolean> {
   const db = getDb();
+  const incomingRank = PAYMENT_STATUS_RANK[paymentStatus] ?? 0;
 
   switch (paymentStatus) {
     case 'finished':
     case 'confirmed': {
       const periodEnd = new Date();
       periodEnd.setMonth(periodEnd.getMonth() + 1);
-      await db
+      const [updated] = await db
         .update(schema.subscriptions)
         .set({
           status: 'active',
           currentPeriodEnd: periodEnd,
+          lastPaymentStatus: paymentStatus,
           ...(data?.invoiceId ? { nowpaymentsInvoiceId: data.invoiceId } : {}),
           updatedAt: new Date(),
         })
-        .where(eq(schema.subscriptions.id, subscriptionId));
-      break;
+        .where(
+          and(
+            eq(schema.subscriptions.id, subscriptionId),
+            eq(schema.subscriptions.tenantId, data.tenantId),
+            statusAdvancePredicate(
+              sql`${schema.subscriptions.lastPaymentStatus}`,
+              paymentStatus,
+              incomingRank,
+            ),
+          ),
+        )
+        .returning({ id: schema.subscriptions.id });
+      return Boolean(updated);
     }
     case 'failed':
-    case 'expired':
-      await db
+    case 'expired': {
+      const [updated] = await db
         .update(schema.subscriptions)
-        .set({ status: 'past_due', updatedAt: new Date() })
-        .where(eq(schema.subscriptions.id, subscriptionId));
-      break;
-    case 'refunded':
-      await db
+        .set({ status: 'past_due', lastPaymentStatus: paymentStatus, updatedAt: new Date() })
+        .where(
+          and(
+            eq(schema.subscriptions.id, subscriptionId),
+            eq(schema.subscriptions.tenantId, data.tenantId),
+            statusAdvancePredicate(
+              sql`${schema.subscriptions.lastPaymentStatus}`,
+              paymentStatus,
+              incomingRank,
+            ),
+          ),
+        )
+        .returning({ id: schema.subscriptions.id });
+      return Boolean(updated);
+    }
+    case 'refunded': {
+      const [updated] = await db
         .update(schema.subscriptions)
-        .set({ status: 'canceled', canceledAt: new Date(), updatedAt: new Date() })
-        .where(eq(schema.subscriptions.id, subscriptionId));
-      break;
+        .set({
+          status: 'canceled',
+          lastPaymentStatus: paymentStatus,
+          canceledAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(schema.subscriptions.id, subscriptionId),
+            eq(schema.subscriptions.tenantId, data.tenantId),
+            statusAdvancePredicate(
+              sql`${schema.subscriptions.lastPaymentStatus}`,
+              paymentStatus,
+              incomingRank,
+            ),
+          ),
+        )
+        .returning({ id: schema.subscriptions.id });
+      return Boolean(updated);
+    }
   }
+  return false;
 }

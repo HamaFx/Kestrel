@@ -15,7 +15,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { date, doublePrecision, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigint, date, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 
@@ -41,8 +41,8 @@ export const aiBudgetReservations = pgTable(
       .references(() => organization.id, { onDelete: 'cascade' }),
     threadId: uuid('thread_id'),
     day: date('day').notNull(),
-    reservedUsdCents: doublePrecision('reserved_usd_cents').notNull(),
-    actualUsdCents: doublePrecision('actual_usd_cents'),
+    reservedUsdCents: bigint('reserved_usd_cents', { mode: 'number' }).notNull(),
+    actualUsdCents: bigint('actual_usd_cents', { mode: 'number' }),
     status: text('status').$type<AiBudgetReservationStatus>().notNull().default('reserved'),
     traceId: text('trace_id'),
     runId: text('run_id'),
@@ -55,6 +55,9 @@ export const aiBudgetReservations = pgTable(
     index('ai_budget_reservations_user_day_idx').on(table.userId, table.day),
     index('ai_budget_reservations_status_idx').on(table.status, table.createdAt),
     index('ai_budget_reservations_trace_idx').on(table.traceId, table.createdAt),
+    index('ai_budget_reservations_terminal_resolved_idx')
+      .on(table.resolvedAt)
+      .where(sql`${table.status} IN ('reconciled', 'released') AND ${table.resolvedAt} IS NOT NULL`),
   ],
 );
 

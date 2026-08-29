@@ -25,6 +25,7 @@ process.env['FRED_API_KEY'] = 'test-fred-key';
 process.env['GOOGLE_GENERATIVE_AI_API_KEY'] = 'test-ai-key';
 
 vi.mock('@kestrel/db', () => ({
+  requireTenantIdForUser: vi.fn().mockResolvedValue('test-tenant'),
   getDb: () => ({
     select: () => ({
       from: () => ({
@@ -56,11 +57,11 @@ vi.mock('@kestrel/db', () => ({
     }),
   }),
   schema: {
-    journalEntries: { id: 'journal_entries' },
+    journalEntries: { id: 'journal_entries', tenantId: 'tenant_id' },
     snapshots: { id: 'snapshots', symbol: 'symbol', kind: 'kind', asOf: 'as_of' },
-    briefingsEmitted: { id: 'briefings_emitted', createdAt: 'created_at' },
+    briefingsEmitted: { id: 'briefings_emitted', tenantId: 'tenant_id', createdAt: 'created_at' },
     intermarketResonance: { id: 'intermarket_resonance', date: 'date' },
-    memoryEmbeddings: { id: 'memory_embeddings' },
+    memoryEmbeddings: { id: 'memory_embeddings', tenantId: 'tenant_id' },
   },
 }));
 

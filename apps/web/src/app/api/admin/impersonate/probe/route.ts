@@ -28,7 +28,9 @@ export const dynamic = 'force-dynamic';
 
 export const GET = withAdminAuth(async () => {
   const enabled =
-    process.env.NODE_ENV !== 'production' && process.env.ENABLE_IMPERSONATION === 'true';
+    process.env.NODE_ENV !== 'production' &&
+    process.env.ENABLE_IMPERSONATION === 'true' &&
+    process.env.ALLOW_INSECURE_DEV_AUTH === 'true';
 
   return Response.json({ enabled });
 });

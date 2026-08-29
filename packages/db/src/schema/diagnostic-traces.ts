@@ -38,6 +38,7 @@ export const diagnosticTraces = pgTable(
     index('diagnostic_traces_user_id_idx').on(t.userId),
     index('diagnostic_traces_thread_id_idx').on(t.threadId),
     index('diagnostic_traces_started_at_idx').on(t.startedAt),
+    index('diagnostic_traces_created_at_idx').on(t.createdAt),
   ],
 );
 

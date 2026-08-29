@@ -50,7 +50,7 @@ import { schema } from '@kestrel/db';
 import { pickAiEnv } from '@kestrel/shared';
 import { traceIdStorage } from '@kestrel/shared/logger';
 import type { UIMessage } from 'ai';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { JobContext, JobResult } from './types.js';
 
@@ -151,7 +151,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
       ctx.log.info('No pending full-analysis runs — done.');
       break;
     }
-    const { runId, payload } = claimed;
+    const { runId, tenantId, payload } = claimed;
     ctx.log.info('Claimed full-analysis run', {
       runId,
       userId: payload.userId,
@@ -182,7 +182,12 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           db
             .select()
             .from(schema.userSettings)
-            .where(eq(schema.userSettings.userId, payload.userId)),
+            .where(
+              and(
+                eq(schema.userSettings.userId, payload.userId),
+                eq(schema.userSettings.tenantId, tenantId),
+              ),
+            ),
         ]);
         if (!userSettings) {
           throw new Error(`User settings not found for userId=${payload.userId}`);
@@ -222,6 +227,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
               estimateUsd: 0.05,
               maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
               correlation: { threadId: payload.threadId, runId },
+              tenantId,
             });
           } catch (error) {
             if (isBudgetExceededError(error)) {

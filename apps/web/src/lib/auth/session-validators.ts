@@ -23,7 +23,7 @@
 
 import { schema, type DbClient } from '@kestrel/db';
 import { logErrorContext } from '@kestrel/shared/logger';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 const TV_CHECK_INTERVAL_SECONDS = 60;
 const LAST_ACTIVE_INTERVAL_SECONDS = 900;
@@ -76,14 +76,15 @@ export async function validateSession(
     return invalidatedSession(session);
   }
 
+  const userId = token.id;
+  if (!userId) {
+    return invalidatedSession(session);
+  }
+
   const lastChecked = token.tvCheckedAt;
   if (!lastChecked || nowSeconds - lastChecked > TV_CHECK_INTERVAL_SECONDS) {
     try {
-      const userId = token.id;
       const sessionId = token.sessionId;
-      if (!userId) {
-        return invalidatedSession(session);
-      }
 
       const [row] = await db
         .select({
@@ -91,7 +92,13 @@ export async function validateSession(
           sessionId: schema.userSessions.id,
         })
         .from(schema.users)
-        .leftJoin(schema.userSessions, eq(schema.userSessions.id, sessionId ?? ''))
+        .leftJoin(
+          schema.userSessions,
+          and(
+            eq(schema.userSessions.id, sessionId ?? ''),
+            eq(schema.userSessions.userId, userId),
+          ),
+        )
         .where(eq(schema.users.id, userId))
         .limit(1);
 
@@ -129,7 +136,12 @@ export async function validateSession(
       await db
         .update(schema.userSessions)
         .set({ lastActiveAt: new Date() })
-        .where(eq(schema.userSessions.id, sessionId));
+        .where(
+          and(
+            eq(schema.userSessions.id, sessionId),
+            eq(schema.userSessions.userId, userId),
+          ),
+        );
       token.lastActiveUpdate = nowSeconds;
     } catch (err) {
       logErrorContext(err, 'auth/last_active_update', {}, 'auth');

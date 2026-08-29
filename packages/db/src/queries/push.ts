@@ -19,16 +19,23 @@
 import { and, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 export type PushSubscriptionRow = typeof schema.pushSubscriptions.$inferSelect;
 export type CreatePushSubscriptionInput = typeof schema.pushSubscriptions.$inferInsert;
 
 export async function listPushSubscriptions(userId: string): Promise<PushSubscriptionRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select()
     .from(schema.pushSubscriptions)
-    .where(eq(schema.pushSubscriptions.userId, userId));
+    .where(
+      and(
+        eq(schema.pushSubscriptions.userId, userId),
+        eq(schema.pushSubscriptions.tenantId, tenantId),
+      ),
+    );
 }
 
 export async function getPushSubscriptionByEndpoint(
@@ -36,6 +43,7 @@ export async function getPushSubscriptionByEndpoint(
   endpoint: string,
 ): Promise<PushSubscriptionRow | undefined> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select()
     .from(schema.pushSubscriptions)
@@ -43,6 +51,7 @@ export async function getPushSubscriptionByEndpoint(
       and(
         eq(schema.pushSubscriptions.endpoint, endpoint),
         eq(schema.pushSubscriptions.userId, userId),
+        eq(schema.pushSubscriptions.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -53,15 +62,26 @@ export async function createPushSubscription(
   input: CreatePushSubscriptionInput,
 ): Promise<PushSubscriptionRow> {
   const db = getDb();
-  const rows = await db.insert(schema.pushSubscriptions).values(input).returning();
+  const tenantId = await requireTenantIdForUser(input.userId);
+  const rows = await db
+    .insert(schema.pushSubscriptions)
+    .values({ ...input, tenantId })
+    .returning();
   return rows[0]!;
 }
 
 export async function deletePushSubscription(id: string, userId: string): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.pushSubscriptions)
-    .where(and(eq(schema.pushSubscriptions.id, id), eq(schema.pushSubscriptions.userId, userId)));
+    .where(
+      and(
+        eq(schema.pushSubscriptions.id, id),
+        eq(schema.pushSubscriptions.userId, userId),
+        eq(schema.pushSubscriptions.tenantId, tenantId),
+      ),
+    );
 }
 
 export async function deletePushSubscriptionByEndpoint(
@@ -69,12 +89,14 @@ export async function deletePushSubscriptionByEndpoint(
   endpoint: string,
 ): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.pushSubscriptions)
     .where(
       and(
         eq(schema.pushSubscriptions.endpoint, endpoint),
         eq(schema.pushSubscriptions.userId, userId),
+        eq(schema.pushSubscriptions.tenantId, tenantId),
       ),
     );
 }

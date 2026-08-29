@@ -26,9 +26,15 @@
 // call service → format Response.
 
 import { getDb, testProviderKey } from '@kestrel/ai';
-import { getUserWithSettings, schema, updateUserSettingsField, withRateLimit } from '@kestrel/db';
+import {
+  getUserWithSettings,
+  requireTenantIdForUser,
+  schema,
+  updateUserSettingsField,
+  withRateLimit,
+} from '@kestrel/db';
 import { decryptByok, PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 // ── Schemas ─────────────────────────────────────────────────────────────────
@@ -123,7 +129,16 @@ export async function updateAnalysisModeService(
   }
 
   const db = getDb();
-  await db.update(schema.userSettings).set(updates).where(eq(schema.userSettings.userId, userId));
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
+    .update(schema.userSettings)
+    .set(updates)
+    .where(
+      and(
+        eq(schema.userSettings.userId, userId),
+        eq(schema.userSettings.tenantId, tenantId),
+      ),
+    );
 }
 
 export async function getFallbackChainService(
@@ -162,10 +177,16 @@ export function bulkTestKeysService(userId: string): Promise<{
     }
 
     const db = getDb();
+    const tenantId = await requireTenantIdForUser(userId, db);
     const [settings] = await db
       .select({ aiApiKeys: schema.userSettings.aiApiKeys })
       .from(schema.userSettings)
-      .where(eq(schema.userSettings.userId, userId));
+      .where(
+        and(
+          eq(schema.userSettings.userId, userId),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
     const decrypted = settings?.aiApiKeys ? decryptByok(settings.aiApiKeys) : null;
 
     const testedAt = new Date();
@@ -225,13 +246,21 @@ export function bulkTestKeysService(userId: string): Promise<{
             .filter((r) => r.status !== 'missing')
             .map((r) => ({
               userId,
+              tenantId,
               providerId: r.provider,
               ok: r.status === 'ok',
               error: r.status === 'failed' ? (r.error ?? 'unknown error') : null,
               testedAt: testedAt.toISOString(),
             }));
           if (rows.length > 0) {
-            await db.delete(schema.providerTests).where(eq(schema.providerTests.userId, userId));
+            await db
+              .delete(schema.providerTests)
+              .where(
+                and(
+                  eq(schema.providerTests.userId, userId),
+                  eq(schema.providerTests.tenantId, tenantId),
+                ),
+              );
             await db.insert(schema.providerTests).values(rows);
           }
 

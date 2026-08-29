@@ -50,5 +50,5 @@ export async function GET(req: Request): Promise<Response> {
       processed: result.total,
       note: `matched=${result.matched} fired=${result.fired} skipped=${result.skipped}${errs}`,
     };
-  });
+  }, { requireAdminSession: true });
 }

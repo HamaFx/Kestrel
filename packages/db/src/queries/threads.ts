@@ -24,12 +24,14 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
 export interface ThreadRow {
   id: string;
   userId: string;
+  tenantId?: string;
   title: string | null;
   pinnedSymbol: string | null;
   modelOverride: string | null;
@@ -72,10 +74,17 @@ export interface CreateMessageInput {
  */
 export async function getThread(userId: string, threadId: string): Promise<ThreadRow | null> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select()
     .from(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)))
+    .where(
+      and(
+        eq(schema.chatThreads.id, threadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   return rows[0] ?? null;
 }
@@ -89,10 +98,16 @@ export async function listThreads(
   offset: number = 0,
 ): Promise<ThreadRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select()
     .from(schema.chatThreads)
-    .where(eq(schema.chatThreads.userId, userId))
+    .where(
+      and(
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .orderBy(desc(schema.chatThreads.updatedAt))
     .limit(limit)
     .offset(offset);
@@ -103,10 +118,12 @@ export async function listThreads(
  */
 export async function createThread(input: CreateThreadInput): Promise<ThreadRow> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
   const rows = await db
     .insert(schema.chatThreads)
     .values({
       userId: input.userId,
+      tenantId,
       title: input.title ?? null,
       pinnedSymbol: input.pinnedSymbol ?? null,
       modelOverride: input.modelOverride ?? null,
@@ -127,10 +144,15 @@ export async function updateThreadTitle(
   titleSource: string,
 ): Promise<boolean> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .update(schema.chatThreads)
     .set({ title, titleSource, updatedAt: sql`now()` })
-    .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)))
+    .where(and(
+      eq(schema.chatThreads.id, threadId),
+      eq(schema.chatThreads.userId, userId),
+      eq(schema.chatThreads.tenantId, tenantId),
+    ))
     .returning({ id: schema.chatThreads.id });
   return rows.length > 0;
 }
@@ -139,14 +161,22 @@ export async function updateThreadTitle(
  * Update a thread's pinned symbol.
  */
 export async function updateThreadPinnedSymbol(
+  userId: string,
   threadId: string,
   pinnedSymbol: string | null,
-): Promise<void> {
+): Promise<boolean> {
   const db = getDb();
-  await db
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .update(schema.chatThreads)
     .set({ pinnedSymbol, updatedAt: sql`now()` })
-    .where(eq(schema.chatThreads.id, threadId));
+    .where(and(
+      eq(schema.chatThreads.id, threadId),
+      eq(schema.chatThreads.userId, userId),
+      eq(schema.chatThreads.tenantId, tenantId),
+    ))
+    .returning({ id: schema.chatThreads.id });
+  return rows.length > 0;
 }
 
 /**
@@ -154,9 +184,14 @@ export async function updateThreadPinnedSymbol(
  */
 export async function deleteThread(userId: string, threadId: string): Promise<void> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.id, threadId), eq(schema.chatThreads.userId, userId)));
+    .where(and(
+      eq(schema.chatThreads.id, threadId),
+      eq(schema.chatThreads.userId, userId),
+      eq(schema.chatThreads.tenantId, tenantId),
+    ));
 }
 
 /**
@@ -165,23 +200,51 @@ export async function deleteThread(userId: string, threadId: string): Promise<vo
  */
 export async function batchDeleteThreads(userId: string, ids: string[]): Promise<{ id: string }[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .delete(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.userId, userId), inArray(schema.chatThreads.id, ids)))
+    .where(
+      and(
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+        inArray(schema.chatThreads.id, ids),
+      ),
+    )
     .returning({ id: schema.chatThreads.id });
 }
 
 // ── Message queries ────────────────────────────────────────────────────
 
 /**
- * List messages for a thread, oldest first.
+ * List messages for a thread, oldest first. The user predicate is required
+ * because this legacy repository API is also imported by server callers.
  */
-export async function listMessages(threadId: string, limit: number = 100): Promise<MessageRow[]> {
+export async function listMessages(
+  userId: string,
+  threadId: string,
+  limit: number = 100,
+): Promise<MessageRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
-    .select()
+    .select({
+      id: schema.chatMessages.id,
+      threadId: schema.chatMessages.threadId,
+      role: schema.chatMessages.role,
+      content: schema.chatMessages.content,
+      parts: schema.chatMessages.parts,
+      createdAt: schema.chatMessages.createdAt,
+    })
     .from(schema.chatMessages)
-    .where(eq(schema.chatMessages.threadId, threadId))
+    .innerJoin(schema.chatThreads, eq(schema.chatMessages.threadId, schema.chatThreads.id))
+    .where(
+      and(
+        eq(schema.chatMessages.threadId, threadId),
+        eq(schema.chatMessages.tenantId, tenantId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .orderBy(schema.chatMessages.createdAt)
     .limit(limit);
 }
@@ -190,15 +253,28 @@ export async function listMessages(threadId: string, limit: number = 100): Promi
  * Append a user message to a thread.
  */
 export async function appendUserMessage(
+  userId: string,
   threadId: string,
   content: string,
   parts?: unknown,
 ): Promise<MessageRow> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const [thread] = await db
+    .select({ id: schema.chatThreads.id })
+    .from(schema.chatThreads)
+    .where(and(
+      eq(schema.chatThreads.id, threadId),
+      eq(schema.chatThreads.userId, userId),
+      eq(schema.chatThreads.tenantId, tenantId),
+    ))
+    .limit(1);
+  if (!thread) throw new Error(`thread not found: ${threadId}`);
   const rows = await db
     .insert(schema.chatMessages)
     .values({
       threadId,
+      tenantId,
       role: 'user',
       content,
       ...(parts ? { parts } : {}),
@@ -211,15 +287,28 @@ export async function appendUserMessage(
  * Append an assistant message to a thread.
  */
 export async function appendAssistantMessage(
+  userId: string,
   threadId: string,
   content: string,
   parts?: unknown,
 ): Promise<MessageRow> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const [thread] = await db
+    .select({ id: schema.chatThreads.id })
+    .from(schema.chatThreads)
+    .where(and(
+      eq(schema.chatThreads.id, threadId),
+      eq(schema.chatThreads.userId, userId),
+      eq(schema.chatThreads.tenantId, tenantId),
+    ))
+    .limit(1);
+  if (!thread) throw new Error(`thread not found: ${threadId}`);
   const rows = await db
     .insert(schema.chatMessages)
     .values({
       threadId,
+      tenantId,
       role: 'assistant',
       content,
       ...(parts ? { parts } : {}),
@@ -231,11 +320,20 @@ export async function appendAssistantMessage(
 /**
  * Count messages in a thread.
  */
-export async function countThreadMessages(threadId: string): Promise<number> {
+export async function countThreadMessages(userId: string, threadId: string): Promise<number> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(schema.chatMessages)
-    .where(eq(schema.chatMessages.threadId, threadId));
+    .innerJoin(schema.chatThreads, eq(schema.chatMessages.threadId, schema.chatThreads.id))
+    .where(
+      and(
+        eq(schema.chatMessages.threadId, threadId),
+        eq(schema.chatMessages.tenantId, tenantId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    );
   return Number(result[0]?.count ?? 0);
 }

@@ -44,6 +44,7 @@
     "migrate:reconcile": "node scripts/migration-reconcile.mjs",
     "migrate:rotate-encryption": "node scripts/rotate-encryption-secret.mjs",
     "migrate:setup-extensions": "node scripts/install-extensions.mjs",
+    "inventory:live": "node scripts/supabase-inventory.mjs",
     "seed:plans": "tsx scripts/seed-plans.ts",
     "studio": "drizzle-kit studio"
   },

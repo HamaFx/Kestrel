@@ -19,6 +19,7 @@
 import { and, eq, gte } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
+import { requireTenantIdForUser } from '../tenant';
 
 export interface AgentOpinionRow {
   agentName: string;
@@ -36,6 +37,7 @@ export async function listMtdAgentOpinions(
   since: Date,
 ): Promise<AgentOpinionRow[]> {
   const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
   return db
     .select({
       agentName: schema.agentOpinions.agentName,
@@ -44,7 +46,27 @@ export async function listMtdAgentOpinions(
       latencyMs: schema.agentOpinions.latencyMs,
     })
     .from(schema.agentOpinions)
+    .innerJoin(
+      schema.chatThreads,
+      and(
+        eq(schema.chatThreads.id, schema.agentOpinions.threadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
+    .innerJoin(
+      schema.chatMessages,
+      and(
+        eq(schema.chatMessages.id, schema.agentOpinions.messageId),
+        eq(schema.chatMessages.threadId, schema.agentOpinions.threadId),
+        eq(schema.chatMessages.tenantId, tenantId),
+      ),
+    )
     .where(
-      and(eq(schema.agentOpinions.userId, userId), gte(schema.agentOpinions.createdAt, since)),
+      and(
+        eq(schema.agentOpinions.userId, userId),
+        eq(schema.agentOpinions.tenantId, tenantId),
+        gte(schema.agentOpinions.createdAt, since),
+      ),
     );
 }

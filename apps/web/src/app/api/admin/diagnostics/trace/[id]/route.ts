@@ -23,7 +23,8 @@ import type {
   DiagnosticTraceError,
   DiagnosticTraceStep,
 } from '@/lib/services/admin-dtos';
-import { getDiagnosticTrace } from '@/lib/services/api-boundary';
+import { getDiagnosticTraceForAdmin } from '@/lib/services/api-boundary';
+import type { DiagnosticTraceRow } from '@kestrel/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,7 @@ export const dynamic = 'force-dynamic';
 export const GET = withAdminAuth<{ id: string }>(async (_req, { user, params }) => {
   const { id } = await params;
 
-  const row = await getDiagnosticTrace(id);
+  const row = await getDiagnosticTraceForAdmin(id);
 
   if (!row) {
     return Response.json(
@@ -40,23 +41,24 @@ export const GET = withAdminAuth<{ id: string }>(async (_req, { user, params }) 
     );
   }
 
-  const traceData = (row.trace ?? {}) as { steps?: unknown; errors?: unknown };
+  const traceRow = row as DiagnosticTraceRow;
+  const traceData = (traceRow.trace ?? {}) as { steps?: unknown; errors?: unknown };
 
-  await recordAdminAudit(user.userId, 'diagnostic.trace.view', row.userId ?? undefined, {
+  await recordAdminAudit(user.userId, 'diagnostic.trace.view', traceRow.userId ?? undefined, {
     traceId: id,
   });
 
   const trace: DiagnosticTraceDetail = {
-    id: row.id,
-    threadId: row.threadId ?? '',
-    userId: row.userId ?? '',
-    startedAt: row.startedAt.toISOString(),
-    stepCount: row.stepCount,
-    errorCount: row.errorCount,
-    status: row.status as 'completed' | 'failed',
-    durationMs: row.durationMs ?? null,
-    summary: row.summary,
-    metadata: (row.metadata ?? null) as DiagnosticTraceDetail['metadata'],
+    id: traceRow.id,
+    threadId: traceRow.threadId ?? '',
+    userId: traceRow.userId ?? '',
+    startedAt: traceRow.startedAt.toISOString(),
+    stepCount: traceRow.stepCount,
+    errorCount: traceRow.errorCount,
+    status: traceRow.status as 'completed' | 'failed',
+    durationMs: traceRow.durationMs ?? null,
+    summary: traceRow.summary,
+    metadata: (traceRow.metadata ?? null) as DiagnosticTraceDetail['metadata'],
     steps: Array.isArray(traceData.steps) ? (traceData.steps as DiagnosticTraceStep[]) : [],
     errors: Array.isArray(traceData.errors) ? (traceData.errors as DiagnosticTraceError[]) : [],
   };

@@ -24,8 +24,8 @@
 // dead — remove it"; the delivery layer calls `deletePushSubscription`
 // or `deletePushSubscriptionByEndpoint` to clean up.
 
-import { schema } from '@kestrel/db';
-import { and, eq } from 'drizzle-orm';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
+import { and, eq, sql } from 'drizzle-orm';
 
 import { getDb } from '../db';
 
@@ -68,10 +68,17 @@ function rowToSub(row: typeof schema.pushSubscriptions.$inferSelect): PushSubscr
 
 /** All active subscriptions. The delivery loop fans out across this list. */
 export async function listPushSubscriptions(userId: string): Promise<PushSubscriptionRow[]> {
-  const rows = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
     .select()
     .from(schema.pushSubscriptions)
-    .where(eq(schema.pushSubscriptions.userId, userId));
+    .where(
+      and(
+        eq(schema.pushSubscriptions.userId, userId),
+        eq(schema.pushSubscriptions.tenantId, tenantId),
+      ),
+    );
   return rows.map(rowToSub);
 }
 
@@ -82,10 +89,13 @@ export async function listPushSubscriptions(userId: string): Promise<PushSubscri
 export async function savePushSubscription(
   args: SavePushSubscriptionArgs,
 ): Promise<PushSubscriptionRow> {
-  const inserted = await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(args.userId, db);
+  const inserted = await db
     .insert(schema.pushSubscriptions)
     .values({
       userId: args.userId,
+      tenantId,
       endpoint: args.endpoint,
       p256dh: args.p256dh,
       auth: args.auth,
@@ -103,7 +113,8 @@ export async function savePushSubscription(
         auth: args.auth,
         userAgent: args.userAgent ?? null,
       },
-      setWhere: eq(schema.pushSubscriptions.userId, args.userId),
+      setWhere: sql`${schema.pushSubscriptions.userId} = ${args.userId}
+        AND ${schema.pushSubscriptions.tenantId} = ${tenantId}`,
     })
     .returning();
   if (inserted.length === 0) {
@@ -113,21 +124,32 @@ export async function savePushSubscription(
 }
 
 export async function deletePushSubscription(userId: string, id: string): Promise<void> {
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .delete(schema.pushSubscriptions)
-    .where(and(eq(schema.pushSubscriptions.id, id), eq(schema.pushSubscriptions.userId, userId)));
+    .where(
+      and(
+        eq(schema.pushSubscriptions.id, id),
+        eq(schema.pushSubscriptions.userId, userId),
+        eq(schema.pushSubscriptions.tenantId, tenantId),
+      ),
+    );
 }
 
 export async function deletePushSubscriptionByEndpoint(
   userId: string,
   endpoint: string,
 ): Promise<void> {
-  await getDb()
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  await db
     .delete(schema.pushSubscriptions)
     .where(
       and(
         eq(schema.pushSubscriptions.endpoint, endpoint),
         eq(schema.pushSubscriptions.userId, userId),
+        eq(schema.pushSubscriptions.tenantId, tenantId),
       ),
     );
 }

@@ -11,6 +11,8 @@ jobs:
     permissions:
       packages: write
       contents: read
+      attestations: write
+      id-token: write
       # INFRA-04: Trivy needs security-events write to upload SARIF.
       security-events: write
     steps:
@@ -44,7 +46,7 @@ jobs:
 
       # INFRA-04: Vulnerability scan — fail on CRITICAL severity.
       - name: Scan Web image with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: kestrel-web:scan
           format: 'sarif'
@@ -53,7 +55,7 @@ jobs:
           exit-code: '1'
 
       - name: Scan Worker image with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: kestrel-worker:scan
           format: 'sarif'
