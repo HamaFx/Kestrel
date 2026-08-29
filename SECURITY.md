@@ -88,14 +88,14 @@ The CSP header is set in `next.config.mjs`:
 
 ```
 default-src 'self';
-script-src 'self' 'unsafe-eval' 'unsafe-inline' https://s3.tradingview.com;
+script-src 'self' 'nonce-<per-request-nonce>' https://s3.tradingview.com https://d3js.org;
 style-src 'self' 'unsafe-inline' https://s3.tradingview.com;
 img-src 'self' data: blob: https:;
 font-src 'self' data:;
 connect-src 'self' wss: https:;
 ```
 
-> **Note:** `'unsafe-eval'` and `'unsafe-inline'` are present for Next.js and TradingView compatibility. Tightening to nonce-based CSP is a future improvement.
+> **Note:** Application script CSP uses per-request nonces. Inline styles remain permitted for framework/component compatibility; script `unsafe-inline` and `unsafe-eval` are not permitted.
 
 ### Self-Hosted Deployment Security
 

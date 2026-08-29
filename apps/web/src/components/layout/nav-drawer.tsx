@@ -41,6 +41,8 @@ import {
   IconShield,
 } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
+
+import { clearKestrelClientState } from '@/lib/cache-isolation';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
@@ -132,7 +134,8 @@ export function NavDrawer({
 
   async function logout() {
     try {
-      // NextAuth handles the server sign-out and full-page redirect.
+      // Clear account-scoped browser state before the sign-out redirect.
+      await clearKestrelClientState();
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to log out. Please try again.');

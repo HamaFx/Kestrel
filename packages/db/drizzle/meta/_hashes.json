@@ -371,6 +371,14 @@
     {
       "tag": "0093_retention_predicate_indexes",
       "hash": "9e3bee346cfe1c1b77ae740e5eafd2b9e3681cbeb0a70a30dfadc7eb12eb01be"
+    },
+    {
+      "tag": "0094_shared_app_role",
+      "hash": "a5fad385a7f7bc2c94ff845b7a00662f708a549c7183bc291495f3662de6f8dc"
+    },
+    {
+      "tag": "0095_local_postgres_roles",
+      "hash": "b34f00f613879d03c286270382b1f705a74d9018365abf7fda60af710e4cecf7"
     }
   ]
 }

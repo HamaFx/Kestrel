@@ -24,6 +24,7 @@ const mockInsert = vi.fn();
 const mockTransaction = vi.fn();
 
 vi.mock('@kestrel/db', () => ({
+  hasTenantDbScope: () => false,
   getDb: () => ({
     insert: mockInsert,
     transaction: mockTransaction,

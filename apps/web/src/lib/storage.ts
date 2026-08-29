@@ -85,7 +85,10 @@ export async function uploadChatImage(
   env: ChatImageUploadEnv,
   input: ChatImageUploadInput,
 ): Promise<ChatImageUploadResult> {
-  if (!/^image\/(jpeg|png|webp|gif)$/.test(input.mediaType)) {
+  if (!input.mediaType.startsWith('image/')) {
+    throw new Error(`media type ${input.mediaType} is not an image`);
+  }
+  if (!/^image\/(jpeg|png|webp|gif|svg\+xml)$/.test(input.mediaType)) {
     throw new Error(`media type ${input.mediaType} is not an allowed image type`);
   }
   if (!input.userId || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.userId)) {
@@ -99,10 +102,6 @@ export async function uploadChatImage(
   if (bytes.byteLength > MAX_UPLOAD_BYTES) {
     throw new Error(`upload exceeds ${MAX_UPLOAD_BYTES} bytes (got ${bytes.byteLength})`);
   }
-  if (!input.mediaType.startsWith('image/')) {
-    throw new Error(`media type ${input.mediaType} is not an image`);
-  }
-
   const safeBase = input.filename.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 64);
   const path = buildObjectPath(input.userId, safeBase);
   const base = new URL(env.SUPABASE_URL);
@@ -118,6 +117,8 @@ export async function uploadChatImage(
     headers: {
       authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
       'content-type': input.mediaType,
+      'cache-control': 'private, max-age=0, no-store',
+      'content-disposition': 'attachment',
       // `x-upsert: 'false'` so we 409 instead of overwriting on the
       // (statistically improbable) collision. The randomised path
       // generator keeps this safe in practice.

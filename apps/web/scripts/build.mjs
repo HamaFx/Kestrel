@@ -42,6 +42,12 @@ if (!buildId) {
 const buildEnv = {
   ...process.env,
   NEXT_PUBLIC_BUILD_ID: buildId,
+  // Next/Webpack can exceed the default V8 heap in this monorepo because
+  // the standalone build traces all workspace packages. Keep the release
+  // build reliable on CI and modest self-hosted machines.
+  NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=6144']
+    .filter(Boolean)
+    .join(' '),
 };
 
 // The build-id file is only a build-time handoff mechanism. Leaving it in
@@ -61,7 +67,7 @@ for (const file of [BUILD_ID_FILE]) {
   }
 }
 
-run(pnpm, ['exec', 'next', 'build'], buildEnv);
+run(pnpm, ['exec', 'next', 'build', '--webpack'], buildEnv);
 run(process.execPath, ['scripts/generate-sw.mjs'], buildEnv);
 
 // eslint-disable-next-line no-console

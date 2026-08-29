@@ -78,9 +78,15 @@ export function startScheduler(log: Logger): () => void {
   log.info('Starting node-cron scheduler for Docker mode');
 
   // WK-2: Clean up stale cron_runs rows from previous crashes before
-  // the first timer fires. Rows stuck in 'started' status for > 5 min
-  // are marked as 'error' so the health endpoint stops reporting them.
-  void cleanupStaleCronRuns(log);
+  // the first timer fires. Do not allow a failed cleanup to become an
+  // unhandled rejection during worker bootstrap.
+  if (
+    process.env.NODE_ENV !== 'test' &&
+    process.env.KESTREL_LOCAL_DOCKER !== 'true' &&
+    process.env.HAMAFX_LOCAL_DOCKER !== 'true'
+  ) {
+    void cleanupStaleCronRuns(log);
+  }
 
   // PF-04 — Schedule all jobs from the JOBS registry.
   // Iterates the registry and sets up cron for every entry with a
@@ -172,6 +178,10 @@ export function startScheduler(log: Logger): () => void {
 async function cleanupStaleCronRuns(log: Logger): Promise<void> {
   try {
     const db = getDb();
+    if (!db || typeof db.execute !== 'function') {
+      log.warn('Skipping stale cron cleanup because the database is unavailable');
+      return;
+    }
     const result = await db.execute(sql`
       UPDATE cron_runs
       SET status = 'error',
@@ -185,7 +195,7 @@ async function cleanupStaleCronRuns(log: Logger): Promise<void> {
     // as an array-like property. Cast to access count of affected rows.
     const count = Array.isArray(result)
       ? result.length
-      : ((result as { length?: number }).length ?? 0);
+      : Number((result as { count?: number; length?: number }).count ?? (result as { length?: number }).length ?? 0);
     if (count > 0) {
       log.warn(`Cleaned up ${count} stale cron_runs row(s) from previous run`);
     }

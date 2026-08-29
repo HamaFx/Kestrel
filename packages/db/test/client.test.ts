@@ -128,6 +128,7 @@ describe('tenant isolation configuration', () => {
   it('refuses RLS mode in the OSS release even when explicitly enabled', async () => {
     vi.stubEnv('DATABASE_URL', 'postgres://mock:5432/db');
     vi.stubEnv('MULTI_USER_ENABLED', '0');
+    vi.stubEnv('OSS_SINGLE_USER_MODE', '1');
     vi.stubEnv('KESTREL_ENABLE_RLS', '1');
     const { getDb } = await import('../src/client');
     expect(() => getDb()).toThrow(/RLS\/multi-user mode is disabled/i);

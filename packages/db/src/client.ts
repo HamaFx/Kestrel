@@ -233,7 +233,10 @@ export function getDb(): DbClient {
   if (adminScope) return adminScope;
   // Worker jobs are cross-tenant by design. They must never inherit the
   // web application's non-privileged connection when shared mode is active.
-  if ((process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker') {
+  if (
+    (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker' &&
+    process.env.ADMIN_DATABASE_URL
+  ) {
     return getAdminDb();
   }
   return getPrimaryDb();
@@ -294,6 +297,11 @@ export function isRlsEnabled(): boolean {
 }
 
 function assertTenantIsolationConfig(): void {
+  const ossSingleUserMode =
+    process.env.OSS_SINGLE_USER_MODE === 'true' || process.env.OSS_SINGLE_USER_MODE === '1';
+  if (ossSingleUserMode && isRlsEnabled()) {
+    throw new Error('[db] RLS/multi-user mode is disabled in OSS single-user mode.');
+  }
   const multiUserEnabled =
     process.env.MULTI_USER_ENABLED === 'true' || process.env.MULTI_USER_ENABLED === '1';
   if (multiUserEnabled && !isRlsEnabled()) {

@@ -110,6 +110,8 @@ const fromResult = {
 };
 
 vi.mock('@kestrel/db', () => ({
+  hasTenantDbScope: vi.fn(() => false),
+  requireTenantIdForUser: vi.fn(async () => 'tenant-1'),
   getDb: vi.fn(() => ({
     select: vi.fn(() => ({
       from: vi.fn(() => fromResult),

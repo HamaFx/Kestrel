@@ -28,7 +28,7 @@ describe('OSS single-user runtime boundary', () => {
         MULTI_USER_ENABLED: '1',
         KESTREL_ENABLE_RLS: '1',
       }),
-    ).toThrow(/OSS_SINGLE_USER_MODE requires/);
+    ).toThrow(/OSS_SINGLE_USER_MODE.*Multi-user\/RLS mode is disabled/);
   });
 
   it('rejects open registration in OSS single-user mode', () => {
@@ -38,7 +38,7 @@ describe('OSS single-user runtime boundary', () => {
         OSS_SINGLE_USER_MODE: '1',
         REGISTRATION_MODE: 'open',
       }),
-    ).toThrow(/REGISTRATION_MODE=open requires/);
+    ).toThrow(/OSS_SINGLE_USER_MODE.*Multi-user\/RLS mode is disabled|REGISTRATION_MODE=open/);
   });
 
   it('allows a future shared configuration only when the OSS boundary is disabled', () => {

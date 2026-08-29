@@ -29,6 +29,8 @@
 import * as http from 'http';
 import { timingSafeEqual } from 'node:crypto';
 
+import { assertSafeOutboundUrl } from '@kestrel/shared';
+
 import type { Logger } from './log.js';
 
 export interface HealthServerDeps {
@@ -109,8 +111,13 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
         return;
       }
       const rest = req.url.slice('/biquote'.length) || '/';
-      const target = `${BIQUOTE_BASE}${rest}`;
+      let target: URL | undefined;
       try {
+        const base = assertSafeOutboundUrl(BIQUOTE_BASE, { protocols: ['https:'] });
+        target = assertSafeOutboundUrl(new URL(rest, base), {
+          protocols: ['https:'],
+          hosts: [base.hostname],
+        });
         const targetRes = await fetch(target, {
           signal: AbortSignal.timeout(10_000),
           headers: { accept: 'application/json' },
@@ -122,7 +129,7 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
         });
         res.end(body);
       } catch (err) {
-        log.error('biquote-proxy error', { target, err: String(err) });
+        log.error('biquote-proxy error', { target: target?.hostname ?? 'invalid', err: String(err) });
         res.writeHead(502, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: String(err) }));
       }

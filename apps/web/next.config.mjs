@@ -18,6 +18,18 @@ const nextConfig = {
   turbopack: {
     root: workspaceRoot,
   },
+  webpack(config, { dev }) {
+    if (!dev) {
+      config.resolve ??= {};
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
 
   transpilePackages: [
     '@kestrel/shared',

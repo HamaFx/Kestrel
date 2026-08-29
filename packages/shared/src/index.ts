@@ -105,6 +105,7 @@ export * from './billing';
 export * from './errors';
 export * from './observability';
 export * from './url-safety';
+export * from './safe-url';
 // Phase D — typed counters/histograms for AI + worker SLIs
 export * from './metrics';
 // Logger is server-only (uses node:async_hooks / node:stream). Import from

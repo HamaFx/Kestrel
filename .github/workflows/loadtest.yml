@@ -32,11 +32,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.13.0
           cache: pnpm
@@ -60,7 +60,7 @@ jobs:
         run: npm run build
 
       - name: Install k6
-        uses: grafana/setup-k6-action@v1
+        uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
         with:
           k6-version: '0.57.0'
 
@@ -101,7 +101,7 @@ jobs:
       # The write-mix smoke test (smoke-write-mix.ts) matches the
       # smoke-*.ts glob automatically.
       - name: Run k6 smoke tests (read + write mix)
-        uses: grafana/run-k6-action@v1
+        uses: grafana/run-k6-action@de51a7390bdf0ac85a3bef493691bd71d4c7c158 # v1
         with:
           path: ${{ inputs.test || 'loadtest/dist/tests/smoke-*.js' }}
           flags: >-
@@ -114,7 +114,7 @@ jobs:
       # load tests by setting the test glob explicitly.
       - name: Run k6 load tests (read-mix)
         if: ${{ github.event_name == 'schedule' }}
-        uses: grafana/run-k6-action@v1
+        uses: grafana/run-k6-action@de51a7390bdf0ac85a3bef493691bd71d4c7c158 # v1
         with:
           path: loadtest/dist/tests/load-read-mix.js
           flags: >-
@@ -124,7 +124,7 @@ jobs:
 
       - name: Run k6 load tests (write-mix)
         if: ${{ github.event_name == 'schedule' }}
-        uses: grafana/run-k6-action@v1
+        uses: grafana/run-k6-action@de51a7390bdf0ac85a3bef493691bd71d4c7c158 # v1
         with:
           path: loadtest/dist/tests/load-write-mix.js
           flags: >-
@@ -134,7 +134,7 @@ jobs:
 
       - name: Run guarded Full-mode queue load
         if: ${{ inputs.enableFullMode == true }}
-        uses: grafana/run-k6-action@v1
+        uses: grafana/run-k6-action@de51a7390bdf0ac85a3bef493691bd71d4c7c158 # v1
         with:
           path: loadtest/dist/tests/load-full-mode.js
           flags: >-
@@ -147,7 +147,7 @@ jobs:
 
       - name: Upload k6 results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: k6-results
           path: loadtest/results/

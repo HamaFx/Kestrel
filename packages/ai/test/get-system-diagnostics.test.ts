@@ -25,6 +25,7 @@ process.env['FRED_API_KEY'] = 'test-fred-key';
 process.env['GOOGLE_GENERATIVE_AI_API_KEY'] = 'test-ai-key';
 
 vi.mock('@kestrel/db', () => ({
+  hasTenantDbScope: vi.fn(() => false),
   requireTenantIdForUser: vi.fn().mockResolvedValue('test-tenant'),
   getDb: () => ({
     select: () => ({

@@ -52,6 +52,7 @@ const mockFromChain = {
 const mockFrom = vi.fn().mockReturnValue(mockFromChain);
 
 vi.mock('@kestrel/db', () => ({
+  hasTenantDbScope: () => false,
   getDb: vi.fn(() => ({
     select: vi.fn(() => ({ from: mockFrom })),
   })),

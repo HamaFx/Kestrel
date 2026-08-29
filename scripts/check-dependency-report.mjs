@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const root = process.cwd();
+const failures = [];
+for (const file of ['package.json', 'pnpm-lock.yaml', 'LICENSE']) {
+  if (!existsSync(resolve(root, file))) failures.push(`missing ${file}`);
+}
+const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
+if (packageJson.license !== 'Apache-2.0') failures.push('package license must be Apache-2.0');
+if (!packageJson.packageManager?.startsWith('pnpm@')) failures.push('package manager must be pinned to pnpm');
+if (failures.length) {
+  console.error('Dependency report contract failed:');
+  failures.forEach((failure) => console.error(`- ${failure}`));
+  process.exit(1);
+}
+console.log('Dependency report contract passed. Use pnpm audit and a license tool for networked reports.');

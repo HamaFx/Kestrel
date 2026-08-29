@@ -277,7 +277,7 @@ export function ApiKeyCard({
               if (test.kind !== 'idle') setTest({ kind: 'idle' });
             }}
             placeholder={
-              '{\n  "type": "service_account",\n  "project_id": "...",\n  "client_email": "...",\n  "private_key": "-----BEGIN PRIVATE KEY-----\\n..."\n}'
+              '{\n  "type": "service_account",\n  "project_id": "your-project-id",\n  "client_email": "service-account@your-project.iam.gserviceaccount.com",\n  "private_key": "paste-your-private-key-here"\n}'
             }
             spellCheck={false}
             autoComplete="off"
