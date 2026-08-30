@@ -36,7 +36,7 @@ if (!releaseWorkflow.includes('source-sbom')) failures.push('release workflow mu
 if (!releaseWorkflow.includes('dependency-licenses')) {
   failures.push('release workflow must archive dependency license metadata');
 }
-if (!existsSync(resolve(root, 'DEPENDENCY_LICENSES.md'))) failures.push('dependency license inventory is missing');
+if (!existsSync(resolve(root, 'docs/DEPENDENCY_LICENSES.md'))) failures.push('dependency license inventory is missing');
 
 if (failures.length) {
   console.error('Release metadata contract failed:');
