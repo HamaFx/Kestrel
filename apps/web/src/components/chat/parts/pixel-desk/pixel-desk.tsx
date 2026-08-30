@@ -132,7 +132,7 @@ interface PixelDeskDeliberationProps {
 }
 
 /**
- * 💬 Unified Status / Speech Bubble
+ * Unified Status / Speech Bubble
  * Clean, single-bubble system with optional tag and status styling.
  */
 function UnifiedDeskBubble({
@@ -159,25 +159,25 @@ function UnifiedDeskBubble({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: side === 'top' ? 4 : -4, scale: 0.88 }}
+      initial={{ opacity: 0, y: side === 'top' ? 3 : -3, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: side === 'top' ? 2 : -2, scale: 0.92 }}
       transition={{ type: 'spring', damping: 18, stiffness: 320 }}
       className={cn(
-        'pointer-events-none absolute z-20 flex w-max max-w-[85px] flex-col items-center select-none sm:max-w-[140px]',
+        'pointer-events-none absolute z-20 flex w-max max-w-[72px] flex-col items-center select-none sm:max-w-[120px]',
         side === 'top'
-          ? '-top-6 left-1/2 -translate-x-1/2 sm:-top-7'
-          : '-bottom-6 left-1/2 -translate-x-1/2 sm:-bottom-7',
+          ? '-top-5 left-1/2 -translate-x-1/2 sm:-top-6'
+          : '-bottom-5 left-1/2 -translate-x-1/2 sm:-bottom-6',
       )}
     >
       <div
         className={cn(
-          'bg-bg-elev-3/95 text-caption flex items-center gap-1 rounded-xs border px-1.5 py-0.5 font-mono leading-none font-bold backdrop-blur-xs',
+          'bg-bg-elev-3/95 text-[9px] sm:text-[10px] flex items-center gap-1 rounded-2xs sm:rounded-xs border px-1 py-0.2 sm:px-1.5 sm:py-0.5 font-mono leading-none font-bold backdrop-blur-xs',
           themeClasses,
         )}
       >
         {tag && (
-          <span className="hidden text-caption font-semibold tracking-wide uppercase opacity-75 sm:inline">
+          <span className="hidden text-[9px] font-semibold tracking-wide uppercase opacity-75 sm:inline">
             [{tag}]
           </span>
         )}
@@ -185,10 +185,10 @@ function UnifiedDeskBubble({
       </div>
       <div
         className={cn(
-          'size-0 border-x-[3px] border-x-transparent',
+          'size-0 border-x-[2.5px] border-x-transparent',
           side === 'top'
-            ? 'border-t-border -mt-[1px] border-t-[3px]'
-            : 'border-b-border order-first -mb-[1px] border-b-[3px]',
+            ? 'border-t-border -mt-[1px] border-t-[2.5px]'
+            : 'border-b-border order-first -mb-[1px] border-b-[2.5px]',
         )}
       />
     </motion.div>
@@ -196,7 +196,7 @@ function UnifiedDeskBubble({
 }
 
 /**
- * 🃏 CharacterProfileCard
+ * CharacterProfileCard
  * Sleek 8-bit trading profile card popover with retro glow and stats.
  */
 function CharacterProfileCard({
@@ -208,65 +208,65 @@ function CharacterProfileCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+      initial={{ opacity: 0, y: 4, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 4, scale: 0.96 }}
-      transition={{ duration: 0.16, ease: 'easeOut' }}
+      exit={{ opacity: 0, y: 3, scale: 0.96 }}
+      transition={{ duration: 0.14, ease: 'easeOut' }}
       style={{
         boxShadow: `0 8px 24px -4px ${profile.glowColor}`,
       }}
-      className="border-brand/40 bg-bg-elev-3/95 relative z-30 flex w-full flex-col gap-2 rounded-xs border p-3 shadow-xl backdrop-blur-md sm:p-3.5"
+      className="border-brand/40 bg-bg-elev-3/95 relative z-30 flex w-full flex-col gap-2 rounded-xs border p-2.5 shadow-xl backdrop-blur-md sm:p-3"
     >
-      <div className="border-border/60 flex items-start justify-between border-b pb-2">
+      <div className="border-border/60 flex items-start justify-between border-b pb-1.5 sm:pb-2">
         <div className="flex flex-col gap-0.5">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <span className="text-fg font-mono text-xs font-bold tracking-wide">
+            <span className="text-fg font-mono text-[11px] sm:text-xs font-bold tracking-wide">
               {profile.name}
             </span>
             <span
               className={cn(
-                'text-caption rounded-2xs border px-1.5 py-0.5 font-mono font-semibold uppercase',
+                'text-[9px] sm:text-[10px] rounded-2xs border px-1.5 py-0.2 font-mono font-semibold uppercase',
                 profile.badgeClass,
               )}
             >
               {profile.role}
             </span>
           </div>
-          <span className="text-fg-subtle text-caption font-mono">
+          <span className="text-fg-subtle text-[10px] sm:text-[11px] font-mono">
             {profile.title}
           </span>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[28px] min-w-[28px] cursor-pointer touch-manipulation items-center justify-center rounded-xs p-1 font-mono text-xs leading-none transition-colors"
+          className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[24px] min-w-[24px] cursor-pointer touch-manipulation items-center justify-center rounded-xs p-1 font-mono text-[11px] leading-none transition-colors"
           aria-label="Close character profile"
         >
           ✕
         </button>
       </div>
 
-      <div className="text-caption flex flex-col gap-1.5 font-mono sm:text-body-sm">
+      <div className="text-[10px] sm:text-[11px] flex flex-col gap-1 font-mono">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-fg-subtle text-caption shrink-0 font-bold uppercase">
+          <span className="text-fg-subtle text-[10px] sm:text-[11px] shrink-0 font-bold uppercase">
             Focus:
           </span>
-          <span className="text-fg-muted text-caption leading-snug">
+          <span className="text-fg-muted text-[10px] sm:text-[11px] leading-snug">
             {profile.specialty}
           </span>
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-fg-subtle text-caption shrink-0 font-bold uppercase">
+          <span className="text-fg-subtle text-[10px] sm:text-[11px] shrink-0 font-bold uppercase">
             Tools:
           </span>
-          <span className="text-fg-muted text-caption leading-snug">
+          <span className="text-fg-muted text-[10px] sm:text-[11px] leading-snug">
             {profile.indicators}
           </span>
         </div>
       </div>
 
-      <div className="border-border/40 bg-bg-elev-2 rounded-xs border px-2.5 py-1.5 text-center">
-        <p className="text-brand text-caption font-mono leading-snug italic">
+      <div className="border-border/40 bg-bg-elev-2 rounded-xs border px-2 py-1 text-center">
+        <p className="text-brand text-[10px] sm:text-[11px] font-mono leading-snug italic">
           {profile.motto}
         </p>
       </div>
@@ -275,7 +275,7 @@ function CharacterProfileCard({
 }
 
 /**
- * 🕹️ PixelDeskStandby
+ * PixelDeskStandby
  * Rendered on the Chat Welcome Screen and Dashboard Widget.
  * The 4 animated specialists are actively on standby, merged with session-aware recommended prompts.
  */
@@ -598,7 +598,7 @@ export function PixelDeskStandby({
 
       {/* Merged Interactive Prompt Command Hub */}
       {onSelectPrompt && !selectedProfile && (
-        <div className="flex flex-col gap-2 pt-1">
+        <div className="flex flex-col gap-1.5 pt-1 sm:gap-2">
           {/* Top Bar: Category Tabs & Asset Switcher */}
           <div className="border-border/40 flex flex-wrap items-center justify-between gap-1.5 border-b pb-1.5">
             {/* Category Filter Tabs */}
@@ -607,67 +607,67 @@ export function PixelDeskStandby({
                 type="button"
                 onClick={() => setActiveTab('all')}
                 className={cn(
-                  'text-caption shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-semibold transition-colors',
+                  'text-[10px] sm:text-xs shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-medium transition-colors',
                   activeTab === 'all'
-                    ? 'bg-brand/15 text-brand border-brand/40 border'
+                    ? 'bg-brand/15 text-brand border-brand/40 border font-semibold'
                     : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
                 )}
               >
-                ⚡ Top Picks
+                Top Picks
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('technical')}
                 className={cn(
-                  'text-caption shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-semibold transition-colors',
+                  'text-[10px] sm:text-xs shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-medium transition-colors',
                   activeTab === 'technical'
-                    ? 'bg-bull/15 text-bull border-bull/40 border'
+                    ? 'bg-bull/15 text-bull border-bull/40 border font-semibold'
                     : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
                 )}
               >
-                📊 Technicals
+                Technicals
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('fundamental')}
                 className={cn(
-                  'text-caption shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-semibold transition-colors',
+                  'text-[10px] sm:text-xs shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-medium transition-colors',
                   activeTab === 'fundamental'
-                    ? 'border border-sky-400/40 bg-sky-400/15 text-sky-400'
+                    ? 'border border-sky-400/40 bg-sky-400/15 text-sky-400 font-semibold'
                     : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
                 )}
               >
-                📰 Macro News
+                Macro News
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('risk')}
                 className={cn(
-                  'text-caption shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-semibold transition-colors',
+                  'text-[10px] sm:text-xs shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-medium transition-colors',
                   activeTab === 'risk'
-                    ? 'bg-bear/15 text-bear border-bear/40 border'
+                    ? 'bg-bear/15 text-bear border-bear/40 border font-semibold'
                     : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
                 )}
               >
-                🛡️ Risk Guard
+                Risk Guard
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('sentiment')}
                 className={cn(
-                  'text-caption shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-semibold transition-colors',
+                  'text-[10px] sm:text-xs shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-medium transition-colors',
                   activeTab === 'sentiment'
-                    ? 'border border-amber-400/40 bg-amber-400/15 text-amber-400'
+                    ? 'border border-amber-400/40 bg-amber-400/15 text-amber-400 font-semibold'
                     : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
                 )}
               >
-                📈 Sentiment
+                Sentiment
               </button>
             </div>
 
             {/* Quick Symbol Switcher */}
             <div className="flex items-center gap-1">
-              <span className="text-fg-subtle text-caption font-mono">Pair:</span>
+              <span className="text-fg-subtle text-[10px] sm:text-caption font-mono">Pair:</span>
               <div className="flex items-center gap-0.5">
                 {QUICK_SYMBOLS.map((sym) => (
                   <button
@@ -675,7 +675,7 @@ export function PixelDeskStandby({
                     type="button"
                     onClick={() => setCustomSymbol(sym)}
                     className={cn(
-                      'text-caption rounded-2xs cursor-pointer touch-manipulation px-1 py-0.5 font-mono transition-colors',
+                      'text-[10px] sm:text-caption rounded-2xs cursor-pointer touch-manipulation px-1 py-0.5 font-mono transition-colors',
                       activeSymbol === sym
                         ? 'bg-brand text-bg font-bold shadow-xs'
                         : 'text-fg-subtle hover:text-fg bg-bg-elev-2',
@@ -700,22 +700,22 @@ export function PixelDeskStandby({
                     `Analyze ${activeSymbol} across all 4 desks: Technicals, Macro News, Risk, and Sentiment.`,
                   )
                 }
-                className="from-brand/15 to-bull/15 hover:from-brand/25 hover:to-bull/25 border-brand/50 hover:border-brand group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border bg-gradient-to-r via-amber-500/10 p-2.5 text-left shadow-xs transition-all disabled:opacity-50"
+                className="from-brand/15 to-bull/15 hover:from-brand/25 hover:to-bull/25 border-brand/50 hover:border-brand group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border bg-gradient-to-r via-amber-500/10 p-2 text-left shadow-xs transition-all disabled:opacity-50 sm:p-2.5"
               >
                 <div className="flex items-center gap-2 truncate">
-                  <span className="bg-brand text-bg text-caption flex size-5 shrink-0 items-center justify-center rounded-xs font-mono font-extrabold">
-                    ⚡
+                  <span className="bg-brand text-bg text-[10px] sm:text-caption flex size-4.5 sm:size-5 shrink-0 items-center justify-center rounded-xs font-mono font-extrabold">
+                    ALL
                   </span>
                   <div className="flex flex-col truncate">
-                    <span className="text-fg group-hover:text-brand truncate font-mono text-xs font-bold">
+                    <span className="text-fg group-hover:text-brand truncate font-mono text-[11px] sm:text-xs font-bold">
                       Full Desk Analysis on {activeSymbol}
                     </span>
-                    <span className="text-fg-subtle text-caption truncate font-mono">
-                      Run all 4 specialist models (Technical, Macro, Risk, Sentiment) together
+                    <span className="text-fg-subtle text-[10px] sm:text-caption truncate font-mono">
+                      Run all 4 specialist models together
                     </span>
                   </div>
                 </div>
-                <span className="text-brand shrink-0 font-mono text-xs font-bold">▶ RUN</span>
+                <span className="text-brand shrink-0 font-mono text-[10px] sm:text-xs font-bold">▶ RUN</span>
               </button>
 
               {/* 4 Flagship Specialist Briefs */}
@@ -725,17 +725,17 @@ export function PixelDeskStandby({
                   type="button"
                   disabled={disabled}
                   onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.technical[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bull/50 group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all disabled:opacity-50"
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bull/50 group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all disabled:opacity-50"
                 >
                   <div className="flex flex-col gap-0.5 truncate">
-                    <span className="text-bull font-mono text-xs font-bold">
-                      📊 {SPECIALIST_PROMPT_CATALOG.technical[0]!.title}
+                    <span className="text-bull font-mono text-[11px] sm:text-xs font-semibold">
+                      {SPECIALIST_PROMPT_CATALOG.technical[0]!.title}
                     </span>
-                    <span className="text-fg-subtle group-hover:text-fg text-caption truncate font-mono">
+                    <span className="text-fg-subtle group-hover:text-fg text-[10px] sm:text-caption truncate font-mono">
                       {SPECIALIST_PROMPT_CATALOG.technical[0]!.desc}
                     </span>
                   </div>
-                  <span className="text-fg-subtle group-hover:text-bull shrink-0 font-mono text-xs">
+                  <span className="text-fg-subtle group-hover:text-bull shrink-0 font-mono text-[11px] sm:text-xs">
                     →
                   </span>
                 </button>
@@ -745,17 +745,17 @@ export function PixelDeskStandby({
                   type="button"
                   disabled={disabled}
                   onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.fundamental[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all hover:border-sky-400/50 disabled:opacity-50"
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all hover:border-sky-400/50 disabled:opacity-50"
                 >
                   <div className="flex flex-col gap-0.5 truncate">
-                    <span className="font-mono text-xs font-bold text-sky-400">
-                      📰 {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.title}
+                    <span className="font-mono text-[11px] sm:text-xs font-semibold text-sky-400">
+                      {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.title}
                     </span>
-                    <span className="text-fg-subtle group-hover:text-fg text-caption truncate font-mono">
+                    <span className="text-fg-subtle group-hover:text-fg text-[10px] sm:text-caption truncate font-mono">
                       {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.desc}
                     </span>
                   </div>
-                  <span className="text-fg-subtle shrink-0 font-mono text-xs group-hover:text-sky-400">
+                  <span className="text-fg-subtle shrink-0 font-mono text-[11px] sm:text-xs group-hover:text-sky-400">
                     →
                   </span>
                 </button>
@@ -765,17 +765,17 @@ export function PixelDeskStandby({
                   type="button"
                   disabled={disabled}
                   onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.risk[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bear/50 group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all disabled:opacity-50"
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bear/50 group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all disabled:opacity-50"
                 >
                   <div className="flex flex-col gap-0.5 truncate">
-                    <span className="text-bear font-mono text-xs font-bold">
-                      🛡️ {SPECIALIST_PROMPT_CATALOG.risk[0]!.title}
+                    <span className="text-bear font-mono text-[11px] sm:text-xs font-semibold">
+                      {SPECIALIST_PROMPT_CATALOG.risk[0]!.title}
                     </span>
-                    <span className="text-fg-subtle group-hover:text-fg text-caption truncate font-mono">
+                    <span className="text-fg-subtle group-hover:text-fg text-[10px] sm:text-caption truncate font-mono">
                       {SPECIALIST_PROMPT_CATALOG.risk[0]!.desc}
                     </span>
                   </div>
-                  <span className="text-fg-subtle group-hover:text-bear shrink-0 font-mono text-xs">
+                  <span className="text-fg-subtle group-hover:text-bear shrink-0 font-mono text-[11px] sm:text-xs">
                     →
                   </span>
                 </button>
@@ -785,17 +785,17 @@ export function PixelDeskStandby({
                   type="button"
                   disabled={disabled}
                   onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.sentiment[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all hover:border-amber-400/50 disabled:opacity-50"
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all hover:border-amber-400/50 disabled:opacity-50"
                 >
                   <div className="flex flex-col gap-0.5 truncate">
-                    <span className="font-mono text-xs font-bold text-amber-400">
-                      📈 {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.title}
+                    <span className="font-mono text-[11px] sm:text-xs font-semibold text-amber-400">
+                      {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.title}
                     </span>
-                    <span className="text-fg-subtle group-hover:text-fg text-caption truncate font-mono">
+                    <span className="text-fg-subtle group-hover:text-fg text-[10px] sm:text-caption truncate font-mono">
                       {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.desc}
                     </span>
                   </div>
-                  <span className="text-fg-subtle shrink-0 font-mono text-xs group-hover:text-amber-400">
+                  <span className="text-fg-subtle shrink-0 font-mono text-[11px] sm:text-xs group-hover:text-amber-400">
                     →
                   </span>
                 </button>
@@ -811,7 +811,7 @@ export function PixelDeskStandby({
                   disabled={disabled}
                   onClick={() => onSelectPrompt(item.prompt)}
                   className={cn(
-                    'bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-2 text-left transition-all disabled:opacity-50',
+                    'bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all disabled:opacity-50',
                     activeTab === 'technical'
                       ? 'hover:border-bull/50'
                       : activeTab === 'fundamental'
@@ -824,7 +824,7 @@ export function PixelDeskStandby({
                   <div className="flex items-center gap-2 truncate">
                     <span
                       className={cn(
-                        'text-caption rounded-2xs shrink-0 border px-1.5 py-0.5 font-mono font-bold uppercase',
+                        'text-[9px] sm:text-[10px] rounded-2xs shrink-0 border px-1.5 py-0.2 font-mono font-bold uppercase',
                         activeTab === 'technical'
                           ? 'text-bull border-bull/30 bg-bull/10'
                           : activeTab === 'fundamental'
@@ -837,15 +837,15 @@ export function PixelDeskStandby({
                       {item.tag}
                     </span>
                     <div className="flex flex-col truncate">
-                      <span className="text-fg group-hover:text-brand truncate font-mono text-xs font-semibold">
+                      <span className="text-fg group-hover:text-brand truncate font-mono text-[11px] sm:text-xs font-semibold">
                         {item.title}
                       </span>
-                      <span className="text-fg-subtle text-caption truncate font-mono">
+                      <span className="text-fg-subtle text-[10px] sm:text-caption truncate font-mono">
                         {item.desc}
                       </span>
                     </div>
                   </div>
-                  <span className="text-fg-subtle group-hover:text-fg shrink-0 font-mono text-xs">
+                  <span className="text-fg-subtle group-hover:text-fg shrink-0 font-mono text-[11px] sm:text-xs">
                     →
                   </span>
                 </button>
@@ -859,8 +859,8 @@ export function PixelDeskStandby({
 }
 
 /**
- * 🎮 PixelDeskThinking
- * Active during in-flight generation / background analysis.
+ * PixelDeskThinking
+ * Active deliberation state: shows the 4 pixel agents computing in real time.
  * Renders the 4 pixel specialists at their custom workstations with connected trading desk.
  */
 export function PixelDeskThinking({ className }: { className?: string }) {
@@ -899,20 +899,20 @@ export function PixelDeskThinking({ className }: { className?: string }) {
       />
 
       {/* Header Bar */}
-      <div className="border-border/60 flex items-center justify-between border-b pb-2">
+      <div className="border-border/60 flex items-center justify-between border-b pb-1.5 sm:pb-2">
         <div className="flex items-center gap-1.5">
-          <span className="bg-brand inline-block size-2 animate-pulse rounded-xs shadow-[0_0_6px_rgba(245,110,15,0.4)]" />
-          <span className="text-fg-subtle text-caption font-mono font-bold tracking-wider uppercase">
-            TRADING FLOOR DELIBERATION
+          <span className="bg-brand inline-block size-1.5 sm:size-2 animate-pulse rounded-xs shadow-[0_0_6px_rgba(245,110,15,0.4)]" />
+          <span className="text-fg-subtle text-[10px] sm:text-caption font-mono font-bold tracking-wider uppercase">
+            Trading Floor Deliberation
           </span>
         </div>
-        <span className="border-brand/40 bg-brand/10 text-brand text-caption rounded-xs border px-1.5 py-0.5 font-mono font-semibold tracking-wide uppercase">
-          ANALYZING
+        <span className="border-brand/40 bg-brand/10 text-brand text-[10px] sm:text-caption rounded-xs border px-1.5 py-0.2 sm:py-0.5 font-mono font-semibold tracking-wide uppercase">
+          Analyzing
         </span>
       </div>
 
       {/* The 8-Bit Trading Floor / Character Row with Custom Workstations */}
-      <div className="flex flex-col gap-0 pt-5 sm:pt-6">
+      <div className="flex flex-col gap-0 pt-4 sm:pt-6">
         <div className="flex items-end justify-around gap-1 px-0.5 pb-1 sm:gap-2 sm:px-1">
           {/* Desk 1: Chart Wizard */}
           <motion.button
@@ -937,7 +937,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
               <TechnicalWorkstation isThinking={true} />
               <span className="bg-bull size-1 animate-ping rounded-full opacity-75" />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand text-caption font-mono font-semibold transition-colors">
+            <span className="text-fg-subtle group-hover:text-brand text-[10px] sm:text-caption font-mono font-semibold transition-colors">
               Technical
             </span>
           </motion.button>
@@ -967,7 +967,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
               <MacroWorkstation isThinking={true} />
               <span className="size-1 animate-ping rounded-full bg-sky-400 opacity-75" />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand text-caption font-mono font-semibold transition-colors">
+            <span className="text-fg-subtle group-hover:text-brand text-[10px] sm:text-caption font-mono font-semibold transition-colors">
               Macro
             </span>
           </motion.button>
@@ -991,7 +991,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
               <RiskWorkstation isThinking={true} />
               <span className="bg-bear size-1 animate-ping rounded-full opacity-75" />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand text-caption font-mono font-semibold transition-colors">
+            <span className="text-fg-subtle group-hover:text-brand text-[10px] sm:text-caption font-mono font-semibold transition-colors">
               Risk
             </span>
           </motion.button>
@@ -1019,7 +1019,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
               <SentinelWorkstation isThinking={true} />
               <span className="size-1 animate-ping rounded-full bg-amber-400 opacity-75" />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand text-caption font-mono font-semibold transition-colors">
+            <span className="text-fg-subtle group-hover:text-brand text-[10px] sm:text-caption font-mono font-semibold transition-colors">
               Sentiment
             </span>
           </motion.button>
@@ -1040,19 +1040,19 @@ export function PixelDeskThinking({ className }: { className?: string }) {
       </AnimatePresence>
 
       {/* Telemetry Stage Ticker & Stepped Progress Bar */}
-      <div className="bg-bg-elev-2 border-border/60 flex flex-col gap-1.5 rounded-xs border p-2 sm:gap-2 sm:p-2.5">
+      <div className="bg-bg-elev-2 border-border/60 flex flex-col gap-1 rounded-xs border p-2 sm:gap-2 sm:p-2.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-fg-muted text-caption truncate font-mono sm:text-body-sm">
+          <div className="text-fg-muted text-[10px] sm:text-xs truncate font-mono">
             <span className="text-brand mr-1">▶</span>
             <span>{QUANT_STATUS_STEPS[stepIdx]}</span>
           </div>
-          <span className="text-fg-subtle text-caption shrink-0 font-mono font-bold tabular-nums">
+          <span className="text-fg-subtle text-[10px] sm:text-caption shrink-0 font-mono font-bold tabular-nums">
             {progressPercent}%
           </span>
         </div>
 
         {/* Stepped 8-Bit Progress Bar */}
-        <div className="bg-bg-elev-3 border-border/40 h-2 w-full overflow-hidden rounded-xs border p-[1px]">
+        <div className="bg-bg-elev-3 border-border/40 h-1.5 sm:h-2 w-full overflow-hidden rounded-xs border p-[1px]">
           <motion.div
             className="from-brand to-bull h-full rounded-xs bg-gradient-to-r via-amber-500"
             initial={{ width: '15%' }}
@@ -1066,7 +1066,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
 }
 
 /**
- * 🏆 PixelDeskDeliberation
+ * PixelDeskDeliberation
  * Renders the settled committee view with custom workstations and continuous trading desk.
  */
 export function PixelDeskDeliberation({
@@ -1124,16 +1124,16 @@ export function PixelDeskDeliberation({
       role="region"
       aria-label="Multi-agent committee verdict"
       className={cn(
-        'border-border/80 bg-bg-elev-1 mt-2.5 flex w-full flex-col gap-2.5 rounded-sm border p-3 shadow-sm sm:mt-3 sm:gap-3 sm:p-4',
+        'border-border/80 bg-bg-elev-1 mt-2 flex w-full flex-col gap-2 rounded-sm border p-2.5 shadow-sm sm:mt-3 sm:gap-3 sm:p-3.5',
         className,
       )}
     >
       {/* Header with Animated Retro Stamp */}
-      <div className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b pb-2 sm:pb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="bg-bull inline-block size-2 rounded-xs shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
-          <h4 className="text-fg text-caption font-mono font-bold tracking-wider uppercase sm:text-body-sm">
-            DESK CONSENSUS · {mode.toUpperCase()}
+      <div className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b pb-1.5 sm:pb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="bg-bull inline-block size-1.5 sm:size-2 rounded-xs shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
+          <h4 className="text-fg text-[10px] sm:text-caption font-mono font-bold tracking-wider uppercase">
+            Desk Consensus · {mode.toUpperCase()}
           </h4>
         </div>
 
@@ -1143,7 +1143,7 @@ export function PixelDeskDeliberation({
           animate={{ scale: 1, opacity: 1, rotate: isDisputed ? -5 : 0 }}
           transition={{ type: 'spring', damping: 13, stiffness: 240, delay: 0.12 }}
           className={cn(
-            'text-caption rounded-xs border-2 px-2 py-0.5 font-mono font-extrabold tracking-wider uppercase shadow-xs select-none sm:px-2.5',
+            'text-[9px] sm:text-[10px] rounded-xs border px-1.5 py-0.2 sm:px-2 sm:py-0.5 font-mono font-extrabold tracking-wider uppercase shadow-xs select-none',
             isDisputed
               ? 'border-warn/80 bg-warn/15 text-warn shadow-[0_0_8px_rgba(234,179,8,0.25)]'
               : majorityBias === 'bullish'
@@ -1154,17 +1154,17 @@ export function PixelDeskDeliberation({
           )}
         >
           {isDisputed
-            ? '⚠️ MIXED SIGNALS'
+            ? 'MIXED SIGNALS'
             : majorityBias === 'bullish'
-              ? '★ BUY CONSENSUS'
+              ? 'BUY CONSENSUS'
               : majorityBias === 'bearish'
-                ? '★ SELL CONSENSUS'
-                : '■ NEUTRAL CONSENSUS'}
+                ? 'SELL CONSENSUS'
+                : 'NEUTRAL CONSENSUS'}
         </motion.div>
       </div>
 
       {/* The 4 Pixel Agents in Settled Poses with Custom Workstations & Unified Call Badges */}
-      <div className="flex flex-col gap-0 pt-5 sm:pt-6">
+      <div className="flex flex-col gap-0 pt-4 sm:pt-6">
         <div className="flex items-end justify-around gap-1 px-0.5 pb-1 sm:gap-2 sm:px-1">
           {/* Technical */}
           <motion.button
@@ -1178,10 +1178,10 @@ export function PixelDeskDeliberation({
             <UnifiedDeskBubble
               text={
                 techOp?.bias === 'bullish'
-                  ? '▲ BUY'
+                  ? 'BUY'
                   : techOp?.bias === 'bearish'
-                    ? '▼ SELL'
-                    : '■ NEUT'
+                    ? 'SELL'
+                    : 'NEUT'
               }
               theme={techOp?.bias ?? 'bullish'}
             />
@@ -1203,7 +1203,7 @@ export function PixelDeskDeliberation({
                 )}
               />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand text-caption font-mono font-semibold transition-colors">
+            <span className="text-fg-subtle group-hover:text-brand text-[10px] sm:text-caption font-mono font-semibold transition-colors">
               Technical
             </span>
           </motion.button>
@@ -1222,10 +1222,10 @@ export function PixelDeskDeliberation({
             <UnifiedDeskBubble
               text={
                 macroOp?.bias === 'bullish'
-                  ? '▲ GROWTH'
+                  ? 'GROWTH'
                   : macroOp?.bias === 'bearish'
-                    ? '▼ RECESS'
-                    : '■ STEADY'
+                    ? 'RECESS'
+                    : 'STEADY'
               }
               theme={macroOp?.bias ?? 'bullish'}
             />
@@ -1243,7 +1243,7 @@ export function PixelDeskDeliberation({
                 )}
               />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand text-caption font-mono font-semibold transition-colors">
+            <span className="text-fg-subtle group-hover:text-brand text-[10px] sm:text-caption font-mono font-semibold transition-colors">
               Macro
             </span>
           </motion.button>
@@ -1258,7 +1258,7 @@ export function PixelDeskDeliberation({
             title="Click to view Risk Specialist profile"
           >
             <UnifiedDeskBubble
-              text={riskOp?.bias === 'bullish' ? '🛡️ SAFE' : '⚠️ CAUTION'}
+              text={riskOp?.bias === 'bullish' ? 'SAFE' : 'CAUTION'}
               theme={riskOp?.bias === 'bullish' ? 'bullish' : 'risk'}
             />
             <RiskKnightSprite
@@ -1279,7 +1279,7 @@ export function PixelDeskDeliberation({
                 )}
               />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand text-caption font-mono font-semibold transition-colors">
+            <span className="text-fg-subtle group-hover:text-brand text-[10px] sm:text-caption font-mono font-semibold transition-colors">
               Risk
             </span>
           </motion.button>
@@ -1294,7 +1294,7 @@ export function PixelDeskDeliberation({
             title="Click to view Sentiment Specialist profile"
           >
             <UnifiedDeskBubble
-              text={!isDisputed ? '★ CONSENSUS' : '⚠️ DISPUTED'}
+              text={!isDisputed ? 'CONSENSUS' : 'DISPUTED'}
               theme={!isDisputed ? 'bullish' : 'sentiment'}
             />
             <KestrelFalconSprite
@@ -1315,7 +1315,7 @@ export function PixelDeskDeliberation({
                 )}
               />
             </div>
-            <span className="text-fg-subtle group-hover:text-brand text-caption font-mono font-semibold transition-colors">
+            <span className="text-fg-subtle group-hover:text-brand text-[10px] sm:text-caption font-mono font-semibold transition-colors">
               Sentiment
             </span>
           </motion.button>
@@ -1335,24 +1335,24 @@ export function PixelDeskDeliberation({
         )}
       </AnimatePresence>
 
-      {/* "Bulls vs. Bears" Tug-of-War Battle Bar */}
-      <div className="bg-bg-elev-2 border-border/60 flex flex-col gap-2 rounded-xs border p-2.5 sm:p-3">
-        <div className="text-caption flex items-center justify-between font-mono sm:text-body-sm">
-          <div className="text-bull flex items-center gap-1 font-bold sm:gap-1.5">
-            <span>▲ BULLS</span>
-            <span className="text-caption opacity-80 tabular-nums">({biasCounts.bullish})</span>
+      {/* Bulls vs. Bears Tug-of-War Battle Bar */}
+      <div className="bg-bg-elev-2 border-border/60 flex flex-col gap-1.5 rounded-xs border p-2 sm:gap-2 sm:p-2.5">
+        <div className="text-[10px] sm:text-xs flex items-center justify-between font-mono">
+          <div className="text-bull flex items-center gap-1 font-bold">
+            <span>BULLS</span>
+            <span className="opacity-80 tabular-nums">({biasCounts.bullish})</span>
           </div>
-          <span className="text-fg text-caption font-mono font-semibold tabular-nums sm:text-body-sm">
+          <span className="text-fg font-mono font-semibold tabular-nums">
             Score: {avgConfidence}%
           </span>
-          <div className="text-bear flex items-center gap-1 font-bold sm:gap-1.5">
-            <span className="text-caption opacity-80 tabular-nums">({biasCounts.bearish})</span>
-            <span>▼ BEARS</span>
+          <div className="text-bear flex items-center gap-1 font-bold">
+            <span className="opacity-80 tabular-nums">({biasCounts.bearish})</span>
+            <span>BEARS</span>
           </div>
         </div>
 
         {/* Tug Track with Sliding Glowing Tug Flag */}
-        <div className="bg-bg-elev-3 border-border/40 relative h-2.5 w-full overflow-hidden rounded-xs border">
+        <div className="bg-bg-elev-3 border-border/40 relative h-2 sm:h-2.5 w-full overflow-hidden rounded-xs border">
           {/* Center Midpoint Line */}
           <div className="bg-border/80 absolute inset-y-0 left-1/2 z-10 w-0.5 -translate-x-1/2" />
 
@@ -1379,23 +1379,23 @@ export function PixelDeskDeliberation({
             animate={{ left: `${tugPercent}%` }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
-            <div className="rounded-2xs h-3.5 w-1 bg-white shadow-[0_0_8px_rgba(255,255,255,1)]" />
+            <div className="rounded-2xs h-3 w-1 bg-white shadow-[0_0_8px_rgba(255,255,255,1)]" />
           </motion.div>
         </div>
       </div>
 
       {/* Expandable Agent Rationales */}
       {opinions.length > 0 && (
-        <div className="pt-0.5 sm:pt-1">
+        <div className="pt-0.5">
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="text-fg-muted hover:text-fg text-caption flex w-full cursor-pointer touch-manipulation items-center justify-between font-mono font-semibold transition-colors sm:text-body-sm"
+            className="text-fg-muted hover:text-fg text-[10px] sm:text-xs flex w-full cursor-pointer touch-manipulation items-center justify-between font-mono font-medium transition-colors"
           >
             <span>
-              {expanded ? '▲ Hide Specialist Arguments' : '▼ View Specialist Arguments & Reasoning'}
+              {expanded ? 'Hide Specialist Breakdown' : 'View Specialist Breakdown'}
             </span>
-            <span className="text-caption text-fg-subtle">
+            <span className="text-fg-subtle">
               {opinions.length} Specialist Reports
             </span>
           </button>
@@ -1407,20 +1407,20 @@ export function PixelDeskDeliberation({
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mt-2 flex flex-col gap-1.5 overflow-hidden pt-1 sm:gap-2"
+                className="mt-1.5 flex flex-col gap-1.5 overflow-hidden pt-1"
               >
                 {opinions.map((op) => (
                   <div
                     key={op.agentName}
-                    className="border-border bg-bg-elev-2 text-caption flex flex-col gap-1 rounded-xs border p-2 sm:p-2.5 sm:text-body-sm"
+                    className="border-border bg-bg-elev-2 flex flex-col gap-1 rounded-xs border p-2 sm:p-2.5"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-fg text-caption font-mono font-bold capitalize sm:text-body-sm">
+                      <span className="text-fg text-[11px] sm:text-xs font-mono font-bold capitalize">
                         {op.agentName} Specialist
                       </span>
                       <span
                         className={cn(
-                          'text-caption font-mono font-semibold uppercase',
+                          'text-[10px] sm:text-[11px] font-mono font-semibold uppercase',
                           op.bias === 'bullish'
                             ? 'text-bull'
                             : op.bias === 'bearish'
@@ -1431,7 +1431,7 @@ export function PixelDeskDeliberation({
                         {op.bias} · {Math.round((op.confidence ?? 0.8) * 100)}%
                       </span>
                     </div>
-                    <p className="text-fg-muted text-caption leading-relaxed sm:text-body-sm">
+                    <p className="text-fg-muted text-[10px] sm:text-xs font-mono leading-relaxed">
                       {op.reasoning}
                     </p>
                   </div>

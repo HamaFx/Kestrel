@@ -18,11 +18,15 @@
  * limitations under the License.
  */
 import {
+  IconAlertTriangle,
+  IconBrain,
   IconCheck,
   IconHeartbeat,
   IconListCheck,
+  IconScale,
   IconShieldCheck,
   IconSparkles,
+  IconTarget,
 } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -57,10 +61,10 @@ function getTodayKey(): string {
 }
 
 const MINDSET_OPTIONS = [
-  { id: 'calm', label: 'Calm & Patient', icon: '🧘', desc: 'Ready to wait for A+ setups' },
-  { id: 'focused', label: 'Sharp & Focused', icon: '🎯', desc: '100% focused on execution' },
-  { id: 'neutral', label: 'Neutral & Objective', icon: '⚖️', desc: 'Unbiased market observation' },
-  { id: 'fatigued', label: 'Tired / Distracted', icon: '⚠️', desc: 'Recommend half-risk only' },
+  { id: 'calm', label: 'Calm & Patient', icon: IconBrain, desc: 'Ready to wait for A+ setups' },
+  { id: 'focused', label: 'Sharp & Focused', icon: IconTarget, desc: '100% focused on execution' },
+  { id: 'neutral', label: 'Neutral & Objective', icon: IconScale, desc: 'Unbiased market observation' },
+  { id: 'fatigued', label: 'Tired / Distracted', icon: IconAlertTriangle, desc: 'Recommend half-risk only' },
 ];
 
 const PRESET_RULES = [
@@ -124,9 +128,7 @@ export function PreSessionChecklistDrawer() {
       localStorage.setItem(getTodayKey(), JSON.stringify(newPlan));
       setPlan(newPlan);
       setOpen(false);
-      toast.success('Pre-session gameplan locked in! Trade with discipline today.', {
-        icon: '🛡️',
-      });
+      toast.success('Pre-session gameplan locked in! Trade with discipline today.');
     } catch {
       toast.error('Failed to save session plan.');
     }
@@ -186,6 +188,7 @@ export function PreSessionChecklistDrawer() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {MINDSET_OPTIONS.map((opt) => {
                 const active = mindset === opt.id;
+                const OptIcon = opt.icon;
                 return (
                   <button
                     key={opt.id}
@@ -198,7 +201,7 @@ export function PreSessionChecklistDrawer() {
                         : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg hover:border-border-hover',
                     )}
                   >
-                    <span className="text-base">{opt.icon}</span>
+                    <OptIcon className="size-5 text-brand" />
                     <span className="text-xs font-semibold">{opt.label}</span>
                     <span className="text-fg-subtle text-caption leading-tight">{opt.desc}</span>
                   </button>

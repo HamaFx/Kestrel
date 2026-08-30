@@ -16,7 +16,14 @@
  * limitations under the License.
  */
 import type { ProviderMeta } from '@kestrel/shared';
-import { IconCheck, IconChevronDown, IconLoader2 } from '@tabler/icons-react';
+import {
+  IconBrain,
+  IconCheck,
+  IconChevronDown,
+  IconEye,
+  IconLetterCase,
+  IconLoader2,
+} from '@tabler/icons-react';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
@@ -39,7 +46,7 @@ import { apiFetch, apiMutate } from '@/lib/api-client';
  */
 export type ModelPickerKind = 'chat' | 'vision' | 'embedding';
 
-interface ModelPickerProps {
+export interface ModelPickerProps {
   /** Which domain this picker covers — drives endpoint + filter + copy. */
   kind: ModelPickerKind;
   /**
@@ -94,10 +101,10 @@ const NO_PROVIDERS_COPY: Record<ModelPickerKind, string> = {
   embedding: 'to pick a default embedding model',
 };
 
-const NO_PROVIDERS_EMOJI: Record<ModelPickerKind, string> = {
-  chat: '🧠',
-  vision: '👁️',
-  embedding: '🔡',
+const NO_PROVIDERS_ICONS: Record<ModelPickerKind, typeof IconBrain> = {
+  chat: IconBrain,
+  vision: IconEye,
+  embedding: IconLetterCase,
 };
 
 export function ModelPicker({
@@ -208,9 +215,12 @@ export function ModelPicker({
   }
 
   if (providers.length === 0 || options.length === 0) {
+    const NoProviderIcon = NO_PROVIDERS_ICONS[kind];
     return (
       <div className="border-border bg-bg-elev-1 flex flex-col items-center gap-3 rounded-sm border p-6 text-center">
-        <div className="text-3xl">{NO_PROVIDERS_EMOJI[kind]}</div>
+        <div className="bg-bg-elev-2 text-fg-subtle flex size-10 items-center justify-center rounded-sm">
+          <NoProviderIcon className="size-6" />
+        </div>
         <div>
           <h3 className="text-fg text-sm font-semibold">No providers available</h3>
           <p className="text-caption text-fg-subtle mt-1 max-w-md">

@@ -266,7 +266,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
           <div className="border-brand/40 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 shadow-sm duration-200">
             <div className="flex items-center justify-between">
               <span className="text-caption text-brand font-mono font-bold tracking-wider uppercase">
-                ⚡ Role Layout Presets
+                Role Layout Presets
               </span>
               <span className="text-fg-subtle text-[11px]">
                 Click a preset to instantly restructure your workspace

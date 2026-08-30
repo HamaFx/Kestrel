@@ -34,7 +34,7 @@ import {
   listTelemetry as listDbTelemetry,
   listMtdAgentOpinions,
 } from '@kestrel/db';
-import { IconChartBar } from '@tabler/icons-react';
+import { IconAlertTriangle, IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
 import { redirect } from 'next/navigation';
@@ -240,10 +240,13 @@ function BudgetCard({
           </span>
         </div>
         {isProjectedExceeded && (
-          <div className="bg-warn/5 border-warn/25 text-caption text-warn mt-1 rounded-sm border p-2.5">
-            ⚠️ Based on the last 7 days of usage, you are projected to exceed your monthly budget
-            limit of ${monthlyLimit?.toFixed(2)}. This is an estimate, not an invoice. Consider
-            reviewing your active tools or adjusting your budget.
+          <div className="bg-warn/5 border-warn/25 text-caption text-warn mt-1 flex items-start gap-1.5 rounded-sm border p-2.5">
+            <IconAlertTriangle className="size-4 shrink-0 mt-0.5" />
+            <span>
+              Based on the last 7 days of usage, you are projected to exceed your monthly budget
+              limit of ${monthlyLimit?.toFixed(2)}. This is an estimate, not an invoice. Consider
+              reviewing your active tools or adjusting your budget.
+            </span>
           </div>
         )}
       </div>
