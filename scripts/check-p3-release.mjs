@@ -29,7 +29,14 @@ for (const file of ['Dockerfile', 'Dockerfile.worker']) {
 for (const file of execFileSync('git', ['ls-files', '.github/workflows'], { encoding: 'utf8' }).split('\n').filter(Boolean)) {
   if (/uses:\s*[^\s@]+@(main|master)(?:\s|$)/im.test(read(file))) failures.push(`${file}: mutable branch action reference`);
 }
-for (const file of ['.github/workflows/docker-publish.yml', '.github/workflows/release.yml', 'LICENSE', 'SECURITY.md', 'scripts/check-oss-release.mjs']) {
+for (const file of [
+  '.github/workflows/docker-publish.yml',
+  '.github/workflows/release.yml',
+  'LICENSE',
+  'SECURITY.md',
+  'scripts/check-oss-release.mjs',
+  'DEPENDENCY_LICENSES.md',
+]) {
   if (!existsSync(resolve(root, file))) failures.push(`${file}: required release asset is missing`);
 }
 

@@ -23,7 +23,7 @@ The full documentation set lives in [`docs/`](docs/). Start here:
 | ------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Report a bug                    | [Open a bug report issue](https://github.com/HamaFx/Kestrel/issues/new?template=bug_report.yml)           |
 | Request a feature               | [Open a feature request issue](https://github.com/HamaFx/Kestrel/issues/new?template=feature_request.yml) |
-| Report a security vulnerability | Email **security@kestrel.com** — see [SECURITY.md](SECURITY.md)                                           |
+| Report a security vulnerability | Use GitHub private vulnerability reporting — see [SECURITY.md](SECURITY.md)                              |
 
 ### Questions and Discussion
 

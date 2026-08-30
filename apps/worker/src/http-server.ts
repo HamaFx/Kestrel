@@ -31,7 +31,7 @@
 import * as http from 'http';
 import { timingSafeEqual } from 'node:crypto';
 
-import { assertSafeOutboundUrl } from '@kestrel/shared';
+import { assertSafeOutboundUrl, getCapabilityReport } from '@kestrel/shared';
 
 import type { Logger } from './log.js';
 
@@ -145,7 +145,8 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
       req.url === '/api/health' ||
       req.url === '/' ||
       req.url === '/health/live' ||
-      req.url === '/health/ready'
+      req.url === '/health/ready' ||
+      req.url === '/health/dependencies'
     ) {
       if (!hasValidHealthToken(req)) {
         res.writeHead(HEALTH_TOKEN ? 401 : 503, { 'Content-Type': 'application/json' });
@@ -153,23 +154,28 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
         return;
       }
       const liveOnly = req.url === '/health/live';
+      const dependenciesOnly = req.url === '/health/dependencies';
       const lastTickAt = getLastTickAt();
       const ageMs = Date.now() - lastTickAt;
       const ready = lastTickAt > 0 && ageMs < 120_000 && isSignalRConnected();
-      const healthy = liveOnly || ready;
+      const capabilityReport = getCapabilityReport(process.env);
+      const healthy = liveOnly || dependenciesOnly || ready;
       res.writeHead(healthy ? 200 : 503, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
-          status: liveOnly ? 'ok' : ready ? 'ok' : 'degraded',
+          status: liveOnly || dependenciesOnly ? 'ok' : ready ? 'ok' : 'degraded',
           ...(liveOnly
             ? { live: true }
-            : {
-                ready,
-                lastTickAgeMs: ageMs,
-                signalrConnected: isSignalRConnected(),
-                droppedTicks: deps.getDroppedTicks?.() ?? 0,
-                proxyConfigured: deps.isProxyConfigured?.() ?? Boolean(PROXY_TOKEN),
-              }),
+            : dependenciesOnly
+              ? { capabilities: capabilityReport }
+              : {
+                  ready,
+                  lastTickAgeMs: ageMs,
+                  signalrConnected: isSignalRConnected(),
+                  droppedTicks: deps.getDroppedTicks?.() ?? 0,
+                  proxyConfigured: deps.isProxyConfigured?.() ?? Boolean(PROXY_TOKEN),
+                  capabilities: capabilityReport,
+                }),
           uptimeMs: process.uptime() * 1000,
         }),
       );

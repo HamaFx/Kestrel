@@ -19,6 +19,26 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Extract Docker metadata for web
+        id: meta-web
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5
+        with:
+          images: ghcr.io/${{ github.repository }}/web
+          tags: |
+            type=ref,event=tag
+            type=sha
+            type=raw,value=${{ github.event.release.tag_name }}
+
+      - name: Extract Docker metadata for worker
+        id: meta-worker
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5
+        with:
+          images: ghcr.io/${{ github.repository }}/worker
+          tags: |
+            type=ref,event=tag
+            type=sha
+            type=raw,value=${{ github.event.release.tag_name }}
+
       - name: Log in to GitHub Docker Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -86,7 +106,10 @@ jobs:
           push: true
           provenance: mode=max
           sbom: true
-          tags: ghcr.io/${{ github.repository }}/web:${{ github.ref_name }},ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+          build-args: |
+            DEPLOYED_SHA=${{ github.sha }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          tags: ${{ steps.meta-web.outputs.tags }}
 
       - name: Push Worker image
         id: push-worker
@@ -97,4 +120,7 @@ jobs:
           push: true
           provenance: mode=max
           sbom: true
-          tags: ghcr.io/${{ github.repository }}/worker:${{ github.ref_name }},ghcr.io/${{ github.repository }}/worker:${{ github.sha }}
+          build-args: |
+            DEPLOYED_SHA=${{ github.sha }}
+          labels: ${{ steps.meta-worker.outputs.labels }}
+          tags: ${{ steps.meta-worker.outputs.tags }}

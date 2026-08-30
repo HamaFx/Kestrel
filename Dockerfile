@@ -43,6 +43,11 @@ RUN pnpm --filter=@kestrel/db deploy --prod /runtime/db
 
 # ── Runner ────────────────────────────────────────────────
 FROM base AS runner
+ARG DEPLOYED_SHA=unknown
+LABEL org.opencontainers.image.title="Kestrel web" \
+      org.opencontainers.image.source="https://github.com/HamaFx/Kestrel" \
+      org.opencontainers.image.revision="${DEPLOYED_SHA}" \
+      org.opencontainers.image.version="${DEPLOYED_SHA}"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates postgresql-client \
     && rm -rf /var/lib/apt/lists/*
