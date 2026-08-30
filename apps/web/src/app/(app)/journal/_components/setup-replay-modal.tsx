@@ -324,7 +324,7 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
             )}
 
             {/* Legend Overlay */}
-            <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-3 rounded-xs bg-black/60 px-2 py-1 text-[10px] backdrop-blur-xs">
+            <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-3 rounded-xs bg-black/60 px-2 py-1 text-caption backdrop-blur-xs">
               <div className="flex items-center gap-1">
                 <span className="size-2 rounded-full bg-[#fbbf24]" />
                 <span className="text-zinc-300">EMA 20</span>
@@ -348,13 +348,13 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
           {replay && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
-                <div className="text-fg-subtle flex items-center gap-1 text-[11px] font-semibold tracking-wider uppercase">
+                <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
                   <IconTarget className="size-3.5" />
                   <span>Realized R</span>
                 </div>
                 <div
                   className={cn(
-                    'text-base font-black',
+                    'text-base font-black tabular-nums',
                     (replay.stats.realizedRR ?? 0) > 0 ? 'text-emerald-400' : 'text-rose-400',
                   )}
                 >
@@ -362,48 +362,48 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
                     ? `${replay.stats.realizedRR >= 0 ? '+' : ''}${replay.stats.realizedRR.toFixed(2)} R`
                     : 'N/A'}
                 </div>
-                <span className="text-fg-subtle text-[10px]">
+                <span className="text-fg-subtle text-caption tabular-nums">
                   Planned: {replay.stats.plannedRR ? `${replay.stats.plannedRR.toFixed(2)} R` : '—'}
                 </span>
               </div>
 
               <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
-                <div className="text-fg-subtle flex items-center gap-1 text-[11px] font-semibold tracking-wider uppercase">
+                <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
                   <IconTrendingUp className="size-3.5 text-emerald-400" />
                   <span>Max Runup (MFE)</span>
                 </div>
-                <div className="text-base font-black text-emerald-400">
+                <div className="text-base font-black text-emerald-400 tabular-nums">
                   {replay.mfe.r !== null ? `+${replay.mfe.r.toFixed(2)} R` : '—'}
                 </div>
-                <span className="text-fg-subtle text-[10px]">
+                <span className="text-fg-subtle text-caption tabular-nums">
                   +{replay.mfe.pips.toFixed(1)} pips peak
                 </span>
               </div>
 
               <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
-                <div className="text-fg-subtle flex items-center gap-1 text-[11px] font-semibold tracking-wider uppercase">
+                <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
                   <IconTrendingDown className="size-3.5 text-rose-400" />
                   <span>Max Drawdown (MAE)</span>
                 </div>
-                <div className="text-base font-black text-rose-400">
+                <div className="text-base font-black text-rose-400 tabular-nums">
                   {replay.mae.r !== null ? `-${replay.mae.r.toFixed(2)} R` : '—'}
                 </div>
-                <span className="text-fg-subtle text-[10px]">
+                <span className="text-fg-subtle text-caption tabular-nums">
                   -{replay.mae.pips.toFixed(1)} pips adverse
                 </span>
               </div>
 
               <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
-                <div className="text-fg-subtle flex items-center gap-1 text-[11px] font-semibold tracking-wider uppercase">
+                <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
                   <IconGauge className="size-3.5 text-sky-400" />
                   <span>Efficiency</span>
                 </div>
-                <div className="text-base font-black text-sky-400">
+                <div className="text-base font-black text-sky-400 tabular-nums">
                   {replay.stats.executionEfficiencyPct !== null
                     ? `${replay.stats.executionEfficiencyPct.toFixed(0)}%`
                     : '—'}
                 </div>
-                <span className="text-fg-subtle text-[10px]">
+                <span className="text-fg-subtle text-caption">
                   {replay.stats.durationMs
                     ? `${Math.round(replay.stats.durationMs / 60000)}m hold time`
                     : 'Open position'}
@@ -414,27 +414,27 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
 
           {/* Key Levels List */}
           <div className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-4">
-            <h4 className="text-fg text-xs font-bold tracking-wider uppercase">
-              Execution Coordinates
+            <h4 className="text-fg text-caption font-bold tracking-wider uppercase sm:text-xs">
+              Execution Levels
             </h4>
             <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
               <div>
-                <span className="text-fg-subtle block text-[10px]">Entry Price</span>
-                <span className="font-mono font-bold text-sky-400">{entry.entry}</span>
+                <span className="text-fg-subtle text-caption block font-medium">Entry Price</span>
+                <span className="font-mono font-bold text-sky-400 tabular-nums">{entry.entry}</span>
               </div>
               <div>
-                <span className="text-fg-subtle block text-[10px]">Stop Loss</span>
-                <span className="font-mono font-bold text-rose-400">{entry.stop ?? 'None'}</span>
+                <span className="text-fg-subtle text-caption block font-medium">Stop Loss</span>
+                <span className="font-mono font-bold text-rose-400 tabular-nums">{entry.stop ?? 'None'}</span>
               </div>
               <div>
-                <span className="text-fg-subtle block text-[10px]">Take Profit Target</span>
-                <span className="font-mono font-bold text-emerald-400">
+                <span className="text-fg-subtle text-caption block font-medium">Take Profit Target</span>
+                <span className="font-mono font-bold text-emerald-400 tabular-nums">
                   {entry.target ?? 'None'}
                 </span>
               </div>
               <div>
-                <span className="text-fg-subtle block text-[10px]">Actual Exit</span>
-                <span className="font-mono font-bold text-purple-400">{entry.exit ?? 'Open'}</span>
+                <span className="text-fg-subtle text-caption block font-medium">Actual Exit</span>
+                <span className="font-mono font-bold text-purple-400 tabular-nums">{entry.exit ?? 'Open'}</span>
               </div>
             </div>
           </div>

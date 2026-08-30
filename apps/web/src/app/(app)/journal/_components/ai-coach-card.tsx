@@ -88,14 +88,14 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-fg text-sm font-bold tracking-tight">
-                AI Trading Coach & Leak Detection
+                Trading Performance & Habit Review
               </h3>
-              <span className="bg-brand/10 text-brand rounded-xs px-1.5 py-0.5 text-[10px] font-black uppercase">
+              <span className="bg-brand/10 text-brand text-caption rounded-xs px-1.5 py-0.5 font-bold uppercase">
                 Coach v2
               </span>
             </div>
             <p className="text-fg-subtle text-xs">
-              Automated behavioral psychology, statistical edge analysis & process audit
+              Behavioral insights, risk review & execution audit
             </p>
           </div>
         </div>
@@ -112,7 +112,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
               ? 'Analyzing Habits...'
               : insights
                 ? 'Refresh Insights'
-                : 'Run Coach Diagnostic'}
+                : 'Run Trade Audit'}
           </span>
         </Button>
       </div>
@@ -124,7 +124,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           <p className="text-fg text-xs font-semibold">
             Ready to analyze your trading psychology and edge
           </p>
-          <p className="text-fg-subtle max-w-md text-[11px]">
+          <p className="text-fg-subtle text-caption max-w-md">
             The AI coach cross-analyzes win rate across sessions (London/NY/Asian), hold times, risk
             multiples, and trade notes to detect recurring mistakes.
           </p>
@@ -145,17 +145,17 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           {/* Executive Row */}
           <div className="bg-bg-elev-2 border-border flex flex-col items-start justify-between gap-4 rounded-sm border p-4 sm:flex-row sm:items-center">
             <div className="flex flex-col gap-1">
-              <span className="text-fg-subtle text-[10px] font-bold tracking-wider uppercase">
+              <span className="text-fg-subtle text-caption font-bold tracking-wider uppercase">
                 Coach Assessment & Edge
               </span>
               <p className="text-fg text-xs leading-relaxed">{insights.summary}</p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <div className="flex flex-col items-end">
-                <span className="text-fg-subtle text-[10px] font-semibold uppercase">
+                <span className="text-fg-subtle text-caption font-semibold uppercase">
                   Discipline Score
                 </span>
-                <span className="text-fg-subtle text-[10px]">{insights.modelId}</span>
+                <span className="text-fg-subtle text-caption font-mono">{insights.modelId}</span>
               </div>
               <div
                 className={cn(
@@ -205,8 +205,8 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
 
           {/* Action Rules */}
           <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
-            <h4 className="text-fg text-xs font-bold tracking-wider uppercase">
-              Action Plan: 3 Golden Rules For Next Trading Week
+            <h4 className="text-fg text-caption font-bold tracking-wider uppercase sm:text-xs">
+              Action Plan: 3 Key Rules For Your Next Trading Session
             </h4>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               {insights.actionRules.map((rule, idx) => (
@@ -214,7 +214,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
                   key={idx}
                   className="border-border/80 bg-bg-elev-1 flex items-start gap-2.5 rounded-sm border p-3"
                 >
-                  <span className="bg-brand/10 text-brand flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black">
+                  <span className="bg-brand/10 text-brand text-caption flex size-5 shrink-0 items-center justify-center rounded-full font-bold">
                     {idx + 1}
                   </span>
                   <span className="text-fg text-xs leading-relaxed font-medium">{rule}</span>

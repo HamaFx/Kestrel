@@ -243,7 +243,7 @@ function SliCard({ sli }: { sli: SliSnapshot }) {
         )}
         <h3 className="text-fg truncate text-sm font-semibold">{sli.label}</h3>
         {isInformational && (
-          <span className="text-fg-subtle bg-bg-elev-2 rounded-sm px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+          <span className="text-fg-subtle bg-bg-elev-2 text-caption rounded-sm px-1.5 py-0.5 font-medium tracking-wide uppercase">
             Sentry
           </span>
         )}

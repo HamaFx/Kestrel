@@ -80,17 +80,17 @@ export const LAYOUT_STORAGE_KEY = 'kestrel:dashboard-layout:v1';
 
 /** Human-readable label rendered on the edit-mode toolbar. */
 export const WIDGET_LABELS: Record<WidgetType, string> = {
-  'today-glance': 'Today at a glance',
-  briefing: 'AI briefing',
-  'quant-desk': 'Kestrel Quant Floor',
-  'pnl-heatmap': 'P&L heatmap',
-  'equity-curve': 'Equity curve',
+  'today-glance': 'Today at a Glance',
+  briefing: 'AI Market Briefing',
+  'quant-desk': 'Trading Floor Specialists',
+  'pnl-heatmap': 'P&L Heatmap',
+  'equity-curve': 'Performance Curve',
   watchlist: 'Watchlist',
-  'open-positions': 'Open positions',
-  alerts: 'Alerts',
-  calendar: 'Calendar',
-  'news-pulse': 'News pulse',
-  stats: 'Stats',
+  'open-positions': 'Open Positions',
+  alerts: 'Price Alerts',
+  calendar: 'Economic Calendar',
+  'news-pulse': 'News Pulse',
+  stats: 'Performance Stats',
 };
 
 export type LayoutPresetName = 'default' | 'day_trader' | 'macro' | 'risk';

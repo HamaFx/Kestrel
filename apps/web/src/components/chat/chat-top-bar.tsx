@@ -66,11 +66,11 @@ const MODE_LABELS: Record<AnalysisMode, string> = {
 };
 
 const MODE_DESCRIPTIONS: Record<AnalysisMode, string> = {
-  auto: 'AI picks the best mode',
-  single: 'Fast, one agent',
-  quick: 'Technical only (~3s)',
-  standard: 'Technical + Fundamental (~5s)',
-  full: 'All 4 agents + fusion (~8s)',
+  auto: 'Adaptive desk routing',
+  single: 'Single desk quick answer',
+  quick: 'Technical Desk (~3s)',
+  standard: 'Technical + Macro Desks (~5s)',
+  full: 'Full Desk Analysis & Consensus (~8s)',
 };
 
 export interface ThreadSummary {
@@ -230,7 +230,7 @@ export function ChatTopBar({
         ) : null}
         {isStreaming ? (
           <span className="text-fg-subtle text-caption inline-flex items-center gap-1 font-medium">
-            <IconBolt className="size-2.5 animate-pulse" /> thinking…
+            <IconBolt className="size-2.5 animate-pulse" /> analyzing market…
           </span>
         ) : null}
       </div>

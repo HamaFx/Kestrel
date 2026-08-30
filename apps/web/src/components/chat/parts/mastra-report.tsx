@@ -73,12 +73,14 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
         <div className="flex items-center gap-2">
           <IconDatabase className="text-fg-muted size-4" aria-hidden="true" />
           <span
-            className="border-bull/30 bg-bull/5 text-bull rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
+            className="border-bull/30 bg-bull/5 text-bull text-caption rounded-sm border px-1.5 py-0.5 font-semibold tracking-wide uppercase"
             data-testid="mastra-agent-badge"
           >
-            Mastra
+            Verified Intel
           </span>
-          <h3 className="text-fg text-sm font-semibold">Verified XAUUSD report</h3>
+          <h3 className="text-fg text-sm font-semibold">
+            {report?.symbol ? `${report.symbol} Market Report` : 'Verified Market Report'}
+          </h3>
         </div>
         <div className="text-caption text-fg-subtle flex items-center gap-2">
           <span>{meta.providerId}</span>
@@ -94,8 +96,7 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
         >
           <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>
-            Analysis stopped because required market evidence was unavailable. No report was
-            generated.
+            Live market feed data was unavailable. Report could not be generated.
           </span>
         </div>
       ) : (

@@ -64,20 +64,20 @@ const NO_PIN_PROMPTS: Record<TradingSession, readonly Prompt[]> = {
   asian: [
     { icon: IconTrendingUp, label: "What's moving in Asia today?", fg: 'text-fg' },
     { icon: IconCalendarEvent, label: "Today's calendar", fg: 'text-brand' },
-    { icon: IconChartLine, label: 'Top-down gold 4H→15M', fg: 'text-info' },
+    { icon: IconChartLine, label: 'Top-down gold 4H → 15M', fg: 'text-info' },
     { icon: IconChartBar, label: 'Show me the structure', fg: 'text-info' },
     { icon: IconBell, label: 'Alert gold above 2400', fg: 'text-warn' },
   ],
   london: [
     { icon: IconTrendingUp, label: 'London open — bias on majors?', fg: 'text-fg' },
-    { icon: IconChartLine, label: 'Top-down EURUSD 4H→15M', fg: 'text-info' },
+    { icon: IconChartLine, label: 'Top-down EURUSD 4H → 15M', fg: 'text-info' },
     { icon: IconChartBar, label: 'Show me the structure', fg: 'text-info' },
     { icon: IconCalendarEvent, label: 'London session calendar', fg: 'text-brand' },
     { icon: IconBell, label: 'Alert EURUSD above 1.0900', fg: 'text-warn' },
   ],
   ny: [
     { icon: IconTrendingUp, label: 'NY session plan for XAUUSD', fg: 'text-fg' },
-    { icon: IconChartLine, label: 'Top-down XAUUSD 4H→15M', fg: 'text-info' },
+    { icon: IconChartLine, label: 'Top-down XAUUSD 4H → 15M', fg: 'text-info' },
     { icon: IconChartBar, label: 'Show me the structure', fg: 'text-info' },
     { icon: IconCalendarEvent, label: 'NY session calendar', fg: 'text-brand' },
     { icon: IconBell, label: 'Alert gold above 2400', fg: 'text-warn' },
@@ -85,7 +85,7 @@ const NO_PIN_PROMPTS: Record<TradingSession, readonly Prompt[]> = {
   closed: [
     { icon: IconChartBar, label: 'How did today close?', fg: 'text-info' },
     { icon: IconTrendingUp, label: 'Daily bias recap', fg: 'text-fg' },
-    { icon: IconChartLine, label: 'Top-down gold 4H→15M', fg: 'text-info' },
+    { icon: IconChartLine, label: 'Top-down gold 4H → 15M', fg: 'text-info' },
     { icon: IconCalendarEvent, label: "Tomorrow's calendar", fg: 'text-brand' },
     { icon: IconBell, label: 'Set an alert for tomorrow', fg: 'text-warn' },
   ],
@@ -105,14 +105,14 @@ function generatePinnedPrompts(symbol: string, session: TradingSession): readonl
       return [
         { icon: IconTrendingUp, label: `${s} Asian range and key levels`, fg: 'text-fg' },
         { icon: IconCalendarEvent, label: `${s} news impact today`, fg: 'text-brand' },
-        { icon: IconChartLine, label: `Top-down ${s} 4H→15M`, fg: 'text-info' },
+        { icon: IconChartLine, label: `Top-down ${s} 4H → 15M`, fg: 'text-info' },
         { icon: IconChartBar, label: `${s} Asian session structure`, fg: 'text-info' },
         { icon: IconBell, label: `Alert ${s} break of recent high`, fg: 'text-warn' },
       ];
     case 'london':
       return [
         { icon: IconTrendingUp, label: `London open bias for ${s}`, fg: 'text-fg' },
-        { icon: IconChartLine, label: `Top-down ${s} 4H→15M`, fg: 'text-info' },
+        { icon: IconChartLine, label: `Top-down ${s} 4H → 15M`, fg: 'text-info' },
         { icon: IconChartBar, label: `London session ${s} key levels`, fg: 'text-info' },
         { icon: IconCalendarEvent, label: `European news affecting ${s}`, fg: 'text-brand' },
         { icon: IconBell, label: `Alert ${s} below London low`, fg: 'text-warn' },
@@ -120,7 +120,7 @@ function generatePinnedPrompts(symbol: string, session: TradingSession): readonl
     case 'ny':
       return [
         { icon: IconTrendingUp, label: `NY session plan for ${s}`, fg: 'text-fg' },
-        { icon: IconChartLine, label: `Top-down ${s} 4H→15M`, fg: 'text-info' },
+        { icon: IconChartLine, label: `Top-down ${s} 4H → 15M`, fg: 'text-info' },
         { icon: IconChartBar, label: `${s} news & market correlation`, fg: 'text-info' },
         { icon: IconCalendarEvent, label: `NY session calendar for USD`, fg: 'text-brand' },
         { icon: IconBell, label: `Alert ${s} break of high`, fg: 'text-warn' },
@@ -129,7 +129,7 @@ function generatePinnedPrompts(symbol: string, session: TradingSession): readonl
       return [
         { icon: IconChartBar, label: `How did ${s} close today?`, fg: 'text-info' },
         { icon: IconTrendingUp, label: `${s} daily bias recap`, fg: 'text-fg' },
-        { icon: IconChartLine, label: `Top-down ${s} 4H→15M`, fg: 'text-info' },
+        { icon: IconChartLine, label: `Top-down ${s} 4H → 15M`, fg: 'text-info' },
         { icon: IconCalendarEvent, label: `Tomorrow's ${s} news outlook`, fg: 'text-brand' },
         { icon: IconBell, label: `Set an alert for ${s} tomorrow`, fg: 'text-warn' },
       ];

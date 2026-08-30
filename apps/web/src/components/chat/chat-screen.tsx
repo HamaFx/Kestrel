@@ -433,17 +433,17 @@ export function ChatScreen({
             <div className="border-border/60 bg-bg-elev-1 flex items-center justify-between border-b px-3 py-1.5 text-xs">
               <div className="flex items-center gap-2 font-mono">
                 <span className="text-fg font-bold tracking-tight">{activeChartSymbol}</span>
-                <span className="text-fg-subtle text-[11px]">TradingView</span>
+                <span className="text-fg-subtle text-caption">TradingView</span>
               </div>
               <div className="flex items-center gap-1">
                 <Segmented
                   size="sm"
                   value={splitTf}
                   options={[
-                    { value: '5m', label: '5m' },
-                    { value: '15m', label: '15m' },
-                    { value: '1h', label: '1h' },
-                    { value: '4h', label: '4h' },
+                    { value: '5m', label: '5M' },
+                    { value: '15m', label: '15M' },
+                    { value: '1h', label: '1H' },
+                    { value: '4h', label: '4H' },
                     { value: '1d', label: '1D' },
                   ]}
                   onChange={(tf) => setSplitTf(tf as Timeframe)}

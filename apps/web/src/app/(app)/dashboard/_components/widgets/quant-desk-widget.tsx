@@ -35,20 +35,20 @@ export function QuantDeskWidget() {
   return (
     <Card
       as="section"
-      aria-label="Kestrel Quant Floor"
+      aria-label="Trading Floor Specialists"
       className="flex flex-col gap-2.5 p-2.5 sm:gap-3 sm:p-4"
     >
       <header className="border-border/60 flex items-center justify-between gap-2 border-b pb-2 sm:pb-2.5">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <IconCpu className="text-brand size-4 sm:size-4.5" />
-          <h3 className="text-fg text-body-sm font-semibold">Kestrel Quant Floor</h3>
-          <span className="bg-bull/10 text-bull border-bull/30 rounded-xs border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase sm:text-[10px]">
+          <h3 className="text-fg text-body-sm font-semibold">Trading Floor Specialists</h3>
+          <span className="bg-bull/10 text-bull border-bull/30 text-caption rounded-xs border px-1.5 py-0.5 font-mono font-semibold uppercase">
             LIVE DESK
           </span>
         </div>
         <Link
           href="/chat"
-          className="text-fg-subtle hover:text-brand inline-flex touch-manipulation items-center gap-1 font-mono text-[11px] font-semibold transition-colors sm:text-xs"
+          className="text-fg-subtle hover:text-brand text-caption inline-flex touch-manipulation items-center gap-1 font-mono font-semibold transition-colors sm:text-body-sm"
         >
           <span className="hidden sm:inline">Open Chat Desk</span>
           <span className="sm:hidden">Open</span>

@@ -43,7 +43,7 @@ export function TimeframePicker({ value, onChange, options = TIMEFRAMES }: Timef
       role="tablist"
       variant="accent"
       groupId="tf-indicator"
-      options={options.map((tf) => ({ value: tf, label: tf }))}
+      options={options.map((tf) => ({ value: tf, label: tf.toUpperCase() }))}
     />
   );
 }

@@ -151,12 +151,12 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
       <div className="border-border/60 flex items-center justify-between gap-2 border-b pb-3">
         <div className="text-caption text-fg-subtle flex items-center gap-2 font-semibold tracking-wider uppercase">
           <IconCpu className="size-3.5" />
-          <span>Multi-Agent {mode} mode</span>
+          <span>Desk Deliberation · {mode} Mode</span>
         </div>
 
         {!allDone && (
           <div className="flex items-center gap-2">
-            <span className="text-fg-subtle font-mono text-[11px] tabular-nums">
+            <span className="text-fg-subtle text-caption font-mono tabular-nums">
               {doneCount}/{agents.length} Synced
             </span>
             <div className="bg-bg-elev-3 h-1.5 w-16 overflow-hidden rounded-full">
@@ -222,14 +222,14 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-            aria-label={`Committee verdict: ${dissent ? 'mixed' : (opinions[0]?.opinion?.bias ?? 'neutral')}, ${avgConfidence}% confidence`}
+            aria-label={`Desk verdict: ${dissent ? 'mixed' : (opinions[0]?.opinion?.bias ?? 'neutral')}, ${avgConfidence}% confidence`}
             className="border-border bg-bg-elev-2 flex flex-col gap-3 rounded-sm border p-3.5 shadow-xs"
           >
             {/* Confidence meter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-fg text-sm font-semibold">Committee confidence</span>
-                <span className="text-fg text-sm font-bold tabular-nums">{avgConfidence}%</span>
+                <span className="text-fg text-body-sm font-semibold">Desk Confidence</span>
+                <span className="text-fg text-body-sm font-bold tabular-nums">{avgConfidence}%</span>
               </div>
               <div className="bg-bg-elev-3 h-1.5 w-full overflow-hidden rounded-sm">
                 <m.div
@@ -256,7 +256,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
             {opinions.length > 0 ? (
               <details className="group/details mt-1">
                 <summary className="text-body-sm text-fg-muted hover:text-fg cursor-pointer list-none select-none">
-                  View agent opinions
+                  View Specialist Breakdowns
                 </summary>
                 <div className="border-border/60 mt-2 flex flex-col gap-2 border-t pt-2">
                   {opinions.map((a) => {
@@ -278,7 +278,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
                             {op.bias} · {Math.round(op.confidence * 100)}%
                           </span>
                         </div>
-                        <p className="text-fg-muted mt-1 text-xs leading-[1.4]">{op.reasoning}</p>
+                        <p className="text-fg-muted text-caption mt-1 leading-relaxed">{op.reasoning}</p>
                       </div>
                     );
                   })}

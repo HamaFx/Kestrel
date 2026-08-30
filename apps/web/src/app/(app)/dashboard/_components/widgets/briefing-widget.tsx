@@ -131,7 +131,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
         {briefing.symbol ? (
           <Link
             href={`/chat?prompt=${encodeURIComponent(`Analyze ${briefing.symbol} daily macro catalysts and market bias`)}`}
-            className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 rounded-2xs inline-flex items-center gap-1 border px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase transition-colors"
+            className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 text-caption rounded-2xs inline-flex items-center gap-1 border px-1.5 py-0.5 font-mono font-bold uppercase transition-colors"
             title={`Open chat with ${briefing.symbol} gameplan`}
           >
             <span>Focus · {briefing.symbol}</span>

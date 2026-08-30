@@ -64,7 +64,7 @@ const MINDSET_OPTIONS = [
 ];
 
 const PRESET_RULES = [
-  'Wait for 15m candle close confirmation before entering',
+  'Wait for 15M candle close confirmation before entering',
   'Strict 1:2 minimum Risk-to-Reward on every execution',
   'Zero trading during high-impact news releases',
   'Max 2 trades per session — quality over quantity',
@@ -200,7 +200,7 @@ export function PreSessionChecklistDrawer() {
                   >
                     <span className="text-base">{opt.icon}</span>
                     <span className="text-xs font-semibold">{opt.label}</span>
-                    <span className="text-fg-subtle text-[10px] leading-tight">{opt.desc}</span>
+                    <span className="text-fg-subtle text-caption leading-tight">{opt.desc}</span>
                   </button>
                 );
               })}
@@ -214,7 +214,7 @@ export function PreSessionChecklistDrawer() {
                 <IconShieldCheck className="text-danger size-3.5" />
                 2. Max Daily Drawdown Budget
               </span>
-              <span className="text-danger font-mono text-xs font-bold">
+              <span className="text-danger font-mono text-xs font-bold tabular-nums">
                 -{maxDailyR.toFixed(1)}R Hard Stop
               </span>
             </div>
@@ -230,7 +230,7 @@ export function PreSessionChecklistDrawer() {
                     type="button"
                     onClick={() => setMaxDailyR(r)}
                     className={cn(
-                      'rounded-sm border px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                      'rounded-sm border px-3 py-1.5 font-mono text-xs font-semibold tabular-nums transition-all',
                       active
                         ? 'border-danger bg-danger/15 text-danger ring-danger font-bold ring-1'
                         : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg',
@@ -329,7 +329,7 @@ export function PreSessionChecklistDrawer() {
               className="gap-2 font-semibold"
             >
               <IconShieldCheck className="size-4" />
-              Lock In Gameplan
+              Lock In Daily Gameplan
             </Button>
           </div>
         </div>
