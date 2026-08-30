@@ -187,7 +187,7 @@ function CellAiNudge({
           href="/chat"
           className="text-brand text-caption font-mono font-semibold hover:underline"
         >
-          Launch Copilot →
+          Ask AI →
         </Link>
       </div>
       <p className="text-fg text-body-sm line-clamp-1 leading-snug">{nudge}</p>

@@ -505,7 +505,7 @@ export function Composer({
               disabled={disabled}
               maxLength={MAX_TEXT_CHARS}
               className={cn(
-                'text-fg placeholder:text-fg-subtle text-body w-full resize-none bg-transparent px-2 py-2.5 leading-[1.4] focus:outline-none',
+                'text-fg placeholder:text-fg-subtle text-[13px] sm:text-sm w-full resize-none bg-transparent px-2 py-2.5 leading-[1.4] focus:outline-none',
                 'max-h-[40dvh] min-h-[44px] transition-colors duration-150',
                 '[field-sizing:content]',
               )}

@@ -86,27 +86,27 @@
   --leading-tight: 1.2;
 
   /* ── Core fluid sizes (viewport-responsive) ── */
-  --text-xs: clamp(0.6875rem, 0.65rem + 0.2vw, 0.75rem);
-  --text-sm: clamp(0.8125rem, 0.72rem + 0.5vw, 0.875rem);
-  --text-base: clamp(0.9375rem, 0.85rem + 0.5vw, 1rem);
-  --text-lg: clamp(1.0625rem, 0.95rem + 0.6vw, 1.125rem);
+  --text-xs: clamp(0.6875rem, 0.65rem + 0.15vw, 0.75rem);
+  --text-sm: clamp(0.75rem, 0.72rem + 0.25vw, 0.8125rem);
+  --text-base: clamp(0.8125rem, 0.78rem + 0.35vw, 0.875rem);
+  --text-lg: clamp(0.9375rem, 0.875rem + 0.4vw, 1.0625rem);
 
   /* ── Display / heading — used for page headers, auth titles, hero ── */
-  --text-display-2xl: clamp(2.25rem, 1.5rem + 3.5vw, 3.5rem);
-  --text-display-xl: clamp(1.75rem, 1.2rem + 2.5vw, 2.5rem);
-  --text-display-lg: clamp(1.25rem, 1rem + 1vw, 1.5rem);
+  --text-display-2xl: clamp(1.75rem, 1.35rem + 2vw, 2.5rem);
+  --text-display-xl: clamp(1.35rem, 1.15rem + 1.2vw, 1.75rem);
+  --text-display-lg: clamp(1.0625rem, 0.95rem + 0.6vw, 1.25rem);
 
-  /* ── Body — fixed sizes for consistent reading rhythm ── */
-  --text-body-lg: 1.0625rem;
-  --text-body: 0.9375rem;
-  --text-body-sm: 0.8125rem;
-  --text-caption: 0.6875rem;
+  /* ── Body — compact, clean, responsive reading rhythm ── */
+  --text-body-lg: clamp(0.875rem, 0.825rem + 0.25vw, 0.9375rem);
+  --text-body: clamp(0.8125rem, 0.765rem + 0.25vw, 0.875rem);
+  --text-body-sm: clamp(0.725rem, 0.685rem + 0.2vw, 0.78125rem);
+  --text-caption: clamp(0.625rem, 0.585rem + 0.15vw, 0.6875rem);
 
   /* ── Numeric — dedicated scale for price tables, P&L, stats ── */
-  --text-numeric-xl: 1.5rem;
-  --text-numeric-lg: 1.125rem;
-  --text-numeric: 0.875rem;
-  --text-numeric-sm: 0.75rem;
+  --text-numeric-xl: clamp(1.25rem, 1.1rem + 0.8vw, 1.5rem);
+  --text-numeric-lg: clamp(0.9375rem, 0.875rem + 0.4vw, 1.0625rem);
+  --text-numeric: clamp(0.8125rem, 0.765rem + 0.25vw, 0.875rem);
+  --text-numeric-sm: clamp(0.6875rem, 0.65rem + 0.15vw, 0.75rem);
 
   /* ── Tracking — four step scale ── */
   --tracking-tight: -0.02em;

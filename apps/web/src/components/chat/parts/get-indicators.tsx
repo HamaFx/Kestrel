@@ -98,9 +98,9 @@ function IndicatorValue({ result, decimals }: { result: IndicatorResult; decimal
       const tone = v > 70 ? 'text-bear' : v < 30 ? 'text-bull' : 'text-fg-muted';
       // Phase 1.2b — RSI gauge arc next to the numeric value.
       return (
-        <span className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5">
           <RsiGauge value={v} />
-          <span className={cn('text-fg text-base', tone)}>{v.toFixed(1)}</span>
+          <span className={cn('text-fg text-sm sm:text-base font-semibold', tone)}>{v.toFixed(1)}</span>
         </span>
       );
     }
@@ -112,7 +112,7 @@ function IndicatorValue({ result, decimals }: { result: IndicatorResult; decimal
       const sign = hist > 0 ? '+' : '';
       return (
         <>
-          <span className={cn('text-base', tone)}>
+          <span className={cn('text-sm sm:text-base font-semibold', tone)}>
             {sign}
             {hist.toFixed(decimals)}
           </span>
@@ -128,7 +128,7 @@ function IndicatorValue({ result, decimals }: { result: IndicatorResult; decimal
       const lower = readNullableNumber(rec.lower);
       if (upper === null || middle === null || lower === null) return <Empty />;
       return (
-        <span className="text-fg text-sm">
+        <span className="text-fg text-xs sm:text-sm">
           {upper.toFixed(decimals)}
           <span className="text-fg-subtle"> / </span>
           {middle.toFixed(decimals)}
@@ -145,7 +145,7 @@ function IndicatorValue({ result, decimals }: { result: IndicatorResult; decimal
       const s1 = readNullableNumber(rec.s1);
       if (pp === null || r1 === null || s1 === null) return <Empty />;
       return (
-        <span className="text-fg text-sm">
+        <span className="text-fg text-xs sm:text-sm">
           {pp.toFixed(decimals)}
           <span className="text-fg-subtle"> / </span>
           {r1.toFixed(decimals)}
@@ -160,7 +160,7 @@ function IndicatorValue({ result, decimals }: { result: IndicatorResult; decimal
       const v = readNumber(last);
       if (v === null) return <Empty />;
       // No sign colouring for level / volatility indicators.
-      return <span className="text-fg text-base">{v.toFixed(decimals)}</span>;
+      return <span className="text-fg text-sm sm:text-base font-semibold">{v.toFixed(decimals)}</span>;
     }
   }
 }

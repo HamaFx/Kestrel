@@ -36,11 +36,11 @@ import {
 } from './pixel-sprites';
 
 const QUANT_STATUS_STEPS = [
-  'Reading 15m/1h/4h Candlestick Vectors…',
-  'Scanning Asian Session Liquidity & Order Blocks…',
-  'Evaluating Technical Moving Averages & RSI…',
-  'Calculating VaR Volatility & Support Cones…',
-  'Synthesizing Committee Multi-Desk Consensus…',
+  'Reading 15m, 1h & 4h charts…',
+  'Checking key support, resistance & levels…',
+  'Evaluating moving averages & RSI…',
+  'Calculating risk & stop loss levels…',
+  'Combining all 4 specialist desk views…',
 ];
 
 const THINKING_BUBBLES: Record<
@@ -52,11 +52,11 @@ const THINKING_BUBBLES: Record<
     theme: 'technical' | 'fundamental' | 'risk' | 'sentiment';
   }
 > = {
-  0: { agent: 'technical', tag: '15m/1h', text: 'Scanning price vectors…', theme: 'technical' },
-  1: { agent: 'technical', tag: 'SMC', text: 'Liquidity levels mapped', theme: 'technical' },
-  2: { agent: 'fundamental', tag: 'MACRO', text: 'Checking news & yields…', theme: 'fundamental' },
-  3: { agent: 'risk', tag: 'VaR', text: 'Simulating stop cones…', theme: 'risk' },
-  4: { agent: 'sentiment', tag: 'FUSION', text: 'Locking in consensus!', theme: 'sentiment' },
+  0: { agent: 'technical', tag: 'CHARTS', text: 'Checking price action…', theme: 'technical' },
+  1: { agent: 'technical', tag: 'LEVELS', text: 'Key levels mapped', theme: 'technical' },
+  2: { agent: 'fundamental', tag: 'NEWS', text: 'Checking news & yields…', theme: 'fundamental' },
+  3: { agent: 'risk', tag: 'RISK', text: 'Setting stop loss…', theme: 'risk' },
+  4: { agent: 'sentiment', tag: 'SUMMARY', text: 'Consensus ready!', theme: 'sentiment' },
 };
 
 export interface CharacterProfile {
@@ -74,47 +74,47 @@ export interface CharacterProfile {
 export const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
   technical: {
     id: 'technical',
-    name: 'Chart Wizard',
-    role: 'Technical Analyst',
+    name: 'Chart Analyst',
+    role: 'Technical Desk',
     badgeClass: 'text-bull border-bull/40 bg-bull/10',
     glowColor: 'rgba(34, 197, 94, 0.25)',
-    title: 'Master of SMC & Candlestick Vectors',
-    specialty: '15m/1h Structure, FVGs, Order Blocks & Liquidity Sweeps',
-    indicators: 'EMA (20/50/200), RSI-14, MACD (12/26/9), ATR Cones',
-    motto: '“Trend is your friend until market structure breaks.”',
+    title: 'Charts, Levels & Trends',
+    specialty: '15m/1h structure, trends, order blocks & key levels',
+    indicators: 'EMAs (20/50/200), RSI-14, MACD, Support/Resistance',
+    motto: '“Trade the trend and respect your levels.”',
   },
   fundamental: {
     id: 'fundamental',
-    name: 'Macro Mage',
-    role: 'Macro Specialist',
+    name: 'Macro Analyst',
+    role: 'Macro News Desk',
     badgeClass: 'text-sky-400 border-sky-400/40 bg-sky-400/10',
     glowColor: 'rgba(56, 189, 248, 0.25)',
-    title: 'Scholar of Global Economic Catalysts',
-    specialty: 'Central Bank Policy, Real Yields, DXY, Inflation & NFP',
-    indicators: 'FRED 10Y Yields, Economic Calendar, COT Index',
-    motto: '“Macro sets the weather; technicals set the sail.”',
+    title: 'Economic News & Catalysts',
+    specialty: 'Interest rates, inflation, economic calendar & news events',
+    indicators: 'Economic Calendar, Bond Yields, Dollar Index',
+    motto: '“Understand the big picture before entering the market.”',
   },
   risk: {
     id: 'risk',
-    name: 'Risk Knight',
-    role: 'Capital Guardian',
+    name: 'Risk Manager',
+    role: 'Risk Desk',
     badgeClass: 'text-bear border-bear/40 bg-bear/10',
     glowColor: 'rgba(244, 63, 94, 0.25)',
-    title: 'Defender of the Trading Balance',
-    specialty: '1% Max Risk Sizing, VaR Stop Loss Cones & Invalidation',
-    indicators: 'ATR-14 Forward Volatility, 1:2 Min R:R, Max Drawdown Guard',
-    motto: '“Rule 1: Protect your capital. Rule 2: Never forget Rule 1.”',
+    title: 'Position Sizing & Capital Protection',
+    specialty: '1% position sizing, stop losses, and risk/reward ratios',
+    indicators: 'ATR Volatility, 1:2+ R:R, Max Drawdown Limits',
+    motto: '“Protect your capital first. Profit comes second.”',
   },
   sentiment: {
     id: 'sentiment',
-    name: 'Sentinel Falcon',
-    role: 'Market Scout',
+    name: 'Market Scout',
+    role: 'Sentiment Desk',
     badgeClass: 'text-amber-400 border-amber-400/40 bg-amber-400/10',
     glowColor: 'rgba(245, 158, 11, 0.25)',
-    title: 'High-Altitude Whale Tracker',
-    specialty: 'CFTC Institutional Positioning & Retail Sentiment Regimes',
-    indicators: 'Commercial vs Non-Commercial COT, Social Sentiment',
-    motto: '“Hunt alongside institutional whales, never with the herd.”',
+    title: 'Market Sentiment & Flow',
+    specialty: 'Institutional positioning, COT data & market sentiment',
+    indicators: 'COT positioning, market sentiment, volume trends',
+    motto: '“Follow institutional flow, not the crowd.”',
   },
 };
 
