@@ -20,6 +20,7 @@ import { BYOK_PROVIDERS_LIST, computeUsage, type ProviderBreakdown } from '@kest
 import { getDb, getUserWithSettings, requireTenantIdForUser, schema } from '@kestrel/db';
 import { decryptByok, type ProviderId } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
+import { IconKey } from '@tabler/icons-react';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
@@ -226,7 +227,9 @@ export default async function ApiKeysSettingsPage({
       {/* Empty state when no providers are configured. */}
       {totalConfigured === 0 ? (
         <div className="border-border bg-bg-elev-1 flex flex-col items-center gap-3 rounded-sm border p-6 text-center">
-          <div className="text-3xl">🔑</div>
+          <div className="bg-bg-elev-2 text-fg-subtle flex size-10 items-center justify-center rounded-sm">
+            <IconKey className="size-6 text-brand" />
+          </div>
           <div>
             <h3 className="text-fg text-sm font-semibold">No API keys configured yet</h3>
             <p className="text-caption text-fg-subtle mt-1 max-w-md">

@@ -17,7 +17,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconCircleCheck, IconCircleX, IconDatabase, IconLoader2 } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconCircleCheck,
+  IconCircleX,
+  IconDatabase,
+  IconLoader2,
+} from '@tabler/icons-react';
 import { useActionState, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
@@ -146,8 +152,9 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
               <span className="text-fg text-xs font-semibold">{p.name}</span>
               <span className="text-fg-subtle text-xs leading-normal">{p.description}</span>
               {p.warn && (
-                <span className="text-warn mt-1 text-xs font-semibold">
-                  ⚠️ Note: Finnhub API key is not set above. Please add it to enable this provider.
+                <span className="text-warn mt-1 inline-flex items-center gap-1 text-xs font-semibold">
+                  <IconAlertTriangle className="size-3.5 shrink-0" />
+                  <span>Note: Finnhub API key is not set above. Please add it to enable this provider.</span>
                 </span>
               )}
             </div>

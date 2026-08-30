@@ -28,6 +28,7 @@
  * limitations under the License.
  */
 import type { SetAlertOutput } from '@kestrel/shared';
+import { IconBell } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
 import { cn } from '@/lib/cn';
@@ -52,9 +53,7 @@ export function SetAlertPart({ output, state, errorMessage }: SetAlertPartProps)
   return (
     <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
       <div className="flex items-start gap-2">
-        <span aria-hidden className="text-base leading-6">
-          🔔
-        </span>
+        <IconBell className="text-brand size-4 mt-0.5 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="text-fg-muted text-xs">Alert created</div>
           <div className="text-fg mt-0.5 text-sm font-medium break-words">{output.describes}</div>

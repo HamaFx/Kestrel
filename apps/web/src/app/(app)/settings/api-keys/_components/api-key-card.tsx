@@ -17,8 +17,10 @@
  */
 import type { ProviderMeta } from '@kestrel/shared';
 import {
+  IconAlertTriangle,
   IconCircleCheck,
   IconCircleX,
+  IconClock,
   IconCopy,
   IconEye,
   IconEyeOff,
@@ -198,7 +200,7 @@ export function ApiKeyCard({
 
       {keyAgeDays !== null && keyAgeDays >= 90 && (
         <div className="border-warn/20 bg-warn/5 text-caption text-warn flex items-start gap-2.5 rounded-sm border p-3">
-          <span className="shrink-0 text-sm">⚠️</span>
+          <IconAlertTriangle className="size-4 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-0.5">
             <span className="text-fg font-semibold">Consider rotating your API key</span>
             <p className="text-fg-subtle text-xs">
@@ -212,7 +214,7 @@ export function ApiKeyCard({
       {health?.rateLimit && (
         <div className="border-border bg-bg-elev-2/40 text-caption text-fg-subtle flex flex-col gap-1.5 rounded-sm border p-3 shadow-sm">
           <div className="text-fg flex items-center gap-1.5 font-semibold">
-            <span>⏱️</span>
+            <IconClock className="size-3.5" />
             <span>API Rate Limits</span>
           </div>
           <div className="mt-0.5 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">

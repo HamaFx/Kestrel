@@ -60,7 +60,7 @@ function PixelSvg({
 }
 
 /**
- * 📈 Chart Wizard (Technical Analyst)
+ * Chart Wizard (Technical Analyst)
  * Features: Purple/indigo wizard hat with glowing star, wand casting gestures,
  * spectacles, animated robe, casting candlestick vectors.
  */
@@ -138,7 +138,7 @@ export function ChartWizardSprite({
 }
 
 /**
- * 🧙 Macro Mage (Fundamental Specialist)
+ * Macro Mage (Fundamental Specialist)
  * Features: Crimson/amber scholar cowl, spectacles, scrolling through
  * animated data parchment and macro rate ledgers.
  */
@@ -194,7 +194,7 @@ export function MacroMageSprite({ className, isThinking, isDone, bias: _bias }: 
 }
 
 /**
- * 🛡️ Risk Knight (Risk & Volatility Guardian)
+ * Risk Knight (Risk & Volatility Guardian)
  * Features: Steel armor, visor helmet with glowing sweeping amber visor,
  * holding a pixel shield that pulses against volatility spikes.
  */
@@ -256,7 +256,7 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
 }
 
 /**
- * 🦅 Kestrel Falcon (Sentinel & Committee Lead)
+ * Kestrel Falcon (Sentinel & Committee Lead)
  * Features: Sharp falcon beak, amber feathers, animated flapping wings,
  * scanning left and right to lock in the final consensus.
  */
@@ -287,12 +287,10 @@ export function KestrelFalconSprite({
         delay: 0.1,
       }}
     >
-      {/* Victory Crown / Sparkle */}
+      {/* Victory Glow Sparkle */}
       {(hasWingsSpread || (isDone && bias === 'bullish')) && (
-        <div className="pointer-events-none absolute -top-3.5 left-1/2 z-10 -translate-x-1/2">
-          <span className="text-caption font-mono font-bold text-amber-400 drop-shadow-xs select-none">
-            👑
-          </span>
+        <div className="pointer-events-none absolute -top-2 left-1/2 z-10 -translate-x-1/2">
+          <span className="size-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)] block animate-ping" />
         </div>
       )}
 
@@ -329,7 +327,7 @@ export function KestrelFalconSprite({
 }
 
 /**
- * 🖥️ Workstation 1: Technical Dual-Screen Terminal
+ * Workstation 1: Technical Dual-Screen Terminal
  * Features: Multi-timeframe candlestick screen with sub-oscillator display and live climbing wicks.
  */
 export function TechnicalWorkstation({ isThinking }: { isThinking?: boolean }) {
@@ -381,7 +379,7 @@ export function TechnicalWorkstation({ isThinking }: { isThinking?: boolean }) {
 }
 
 /**
- * 📚 Workstation 2: Macro News Ledger & Brass Lamp
+ * Workstation 2: Macro News Ledger & Brass Lamp
  * Features: Open economic parchment ledger, desk lamp, and scrolling ticker lines.
  */
 export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
@@ -429,7 +427,7 @@ export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
 }
 
 /**
- * 🛡️ Workstation 3: Tactical VaR Radar Terminal
+ * Workstation 3: Tactical VaR Radar Terminal
  * Features: Tactical circular radar sweep screen with armor plating and hazard beacon.
  */
 export function RiskWorkstation({ isThinking }: { isThinking?: boolean }) {
@@ -475,7 +473,7 @@ export function RiskWorkstation({ isThinking }: { isThinking?: boolean }) {
 }
 
 /**
- * 🛰️ Workstation 4: Sentinel Satellite & Whale Scanner
+ * Workstation 4: Sentinel Satellite & Whale Scanner
  * Features: High-altitude antenna array, satellite dish, and institutional flow grid.
  */
 export function SentinelWorkstation({ isThinking }: { isThinking?: boolean }) {

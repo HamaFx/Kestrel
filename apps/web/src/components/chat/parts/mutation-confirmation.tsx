@@ -27,6 +27,15 @@
  * limitations under the License.
  */
 import { MutationConfirmResultSchema, type MutationDraftPayload } from '@kestrel/shared';
+import {
+  IconBell,
+  IconCheck,
+  IconClock,
+  IconFileText,
+  IconSettings,
+  IconShare,
+  IconX,
+} from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -41,11 +50,11 @@ const KIND_LABELS: Record<MutationDraftPayload['mutation'], string> = {
   run_system_action: 'System action',
 };
 
-const KIND_ICONS: Record<MutationDraftPayload['mutation'], string> = {
-  set_alert: '🔔',
-  log_journal: '📓',
-  share_snapshot: '🔗',
-  run_system_action: '⚙️',
+const KIND_ICONS: Record<MutationDraftPayload['mutation'], typeof IconBell> = {
+  set_alert: IconBell,
+  log_journal: IconFileText,
+  share_snapshot: IconShare,
+  run_system_action: IconSettings,
 };
 
 type CardState =
@@ -125,9 +134,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
     return (
       <Card as="section" className="border-border bg-bg-elev-1 p-3" aria-label="Mutation confirmed">
         <div className="flex items-start gap-2">
-          <span aria-hidden className="text-base leading-6">
-            ✅
-          </span>
+          <IconCheck className="text-bull size-4.5 mt-0.5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="text-fg-muted text-xs">{KIND_LABELS[payload.mutation]} confirmed</div>
             <div className="text-fg mt-0.5 text-sm font-medium break-words">{state.summary}</div>
@@ -141,9 +148,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
     return (
       <Card as="section" className="border-border bg-bg-elev-1 p-3" aria-label="Mutation declined">
         <div className="flex items-start gap-2">
-          <span aria-hidden className="text-base leading-6">
-            ✖️
-          </span>
+          <IconX className="text-danger size-4.5 mt-0.5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="text-fg-muted text-xs">Not executed</div>
             <div className="text-fg mt-0.5 text-sm">
@@ -156,6 +161,8 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
     );
   }
 
+  const KindIcon = KIND_ICONS[payload.mutation] ?? IconSettings;
+
   return (
     <Card
       as="section"
@@ -163,9 +170,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
       aria-label={`${KIND_LABELS[payload.mutation]} confirmation`}
     >
       <div className="flex items-start gap-2">
-        <span aria-hidden className="text-base leading-6">
-          {KIND_ICONS[payload.mutation]}
-        </span>
+        <KindIcon className="text-brand size-4.5 mt-0.5 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="text-fg-muted text-xs">Confirmation required</div>
           <div className="text-fg mt-0.5 text-sm font-medium break-words">{payload.summary}</div>
