@@ -120,6 +120,18 @@ docker compose up -d --build
 
 Open **[http://localhost:3000](http://localhost:3000)** to access your instance.
 
+#### Optional: Langfuse AI trace viewer
+
+Observability is opt-in and off by default. To also run the bundled Langfuse v3 trace viewer (ClickHouse, Redis, MinIO, and the Langfuse worker are started automatically) at `http://localhost:3001`:
+
+```bash
+./docker/init-secrets.sh   # generates the LANGFUSE_* keys in .env
+
+docker compose --profile observability up -d --build
+```
+
+The setup wizard (`pnpm setup`) can enable the profile for you and walks you through connecting your Langfuse project keys. Traces from the app appear after the first chat once `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` are set in `.env`.
+
 ---
 
 ## 🚀 Self-Hosted Deployment Profiles

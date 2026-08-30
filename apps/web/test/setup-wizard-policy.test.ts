@@ -48,6 +48,11 @@ const REQUIRED_SECRETS = [
   'BACKUP_MAX_AGE_SECONDS',
   'LANGFUSE_NEXTAUTH_SECRET',
   'LANGFUSE_SALT',
+  'LANGFUSE_ENCRYPTION_KEY',
+  'LANGFUSE_CLICKHOUSE_PASSWORD',
+  'LANGFUSE_REDIS_PASSWORD',
+  'LANGFUSE_S3_ACCESS_KEY_ID',
+  'LANGFUSE_S3_SECRET_ACCESS_KEY',
   'AUTH_SECRET',
   'NEXTAUTH_URL',
   'CRON_SECRET',
@@ -118,6 +123,41 @@ describe('setup wizard structure', () => {
     const wrapper = readFileSync(resolve(root, 'scripts/setup.mjs'), 'utf8');
     expect(wrapper).toContain("import { main } from './setup/index.mjs'");
     expect(wrapper).toContain('process.exitCode = code');
+  });
+
+  it('gates the Langfuse stack behind the opt-in observability profile', () => {
+    const compose = readFileSync(resolve(root, 'docker-compose.yml'), 'utf8');
+    // Split top-level `  name:` blocks so each service is checked in isolation.
+    const blocks = new Map();
+    let current = null;
+    for (const line of compose.split('\n')) {
+      const match = line.match(/^  ([a-z0-9-]+):/);
+      if (match) current = match[1];
+      if (current) blocks.set(current, [...(blocks.get(current) ?? []), line]);
+    }
+    for (const service of ['langfuse', 'langfuse-worker', 'clickhouse', 'redis', 'minio']) {
+      expect(
+        blocks.get(service)?.join('\n'),
+        `${service} must be defined in docker-compose.yml`,
+      ).toBeDefined();
+      expect(
+        blocks.get(service)?.join('\n'),
+        `${service} must live behind the observability profile`,
+      ).toContain('profiles: ["observability"]');
+    }
+    // The default `docker compose up` (no profile) must not publish Langfuse.
+    expect(compose).toContain('# Langfuse is opt-in: use `docker compose --profile observability up -d`.');
+  });
+
+  it('guides the user through connecting the Langfuse project keys (the non-automatable step)', () => {
+    const launch = readFileSync(resolve(root, 'scripts/setup/steps/launch.mjs'), 'utf8');
+    expect(launch).toContain('Connect your app to Langfuse');
+    expect(launch).toContain('LANGFUSE_PUBLIC_KEY=pk-');
+    expect(launch).toContain('LANGFUSE_SECRET_KEY=sk-');
+    expect(launch).toContain('docker compose restart app');
+    // The endpoint is deterministic, so the wizard records it automatically
+    // (the internal Compose URL the app exports to, not the host-facing port).
+    expect(launch).toContain("LANGFUSE_BASE_URL: 'http://langfuse:3000'");
   });
 });
 
@@ -201,6 +241,7 @@ describe('setup wizard flags', () => {
     expect(parsed.dryRun).toBe(true);
     expect(parsed.configFile).toBe('.env.local');
     expect(Array.isArray(parsed.marketProviders)).toBe(true);
+    expect(parsed.langfuseEnabled).toBe(false); // opt-in, off by default
   }, 15000);
 
   it('emits a JSON error for invalid modes with --json', async () => {
