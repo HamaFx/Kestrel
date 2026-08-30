@@ -262,19 +262,19 @@ export async function select(io, opts) {
         const render = () => {
           const rows = options.map((option, i) => {
             const active = i === index;
-            const cursor = active ? paint('›', 'cyan') : ' ';
-            const label = active ? paint(optionLabel(option), 'cyan', 'bold') : optionLabel(option);
+            const cursor = active ? paint('›', 'brand') : ' ';
+            const label = active ? paint(optionLabel(option), 'brand', 'bold') : optionLabel(option);
             const desc = option.description ? paint(`  ${option.description}`, 'dim') : '';
             return `  ${cursor} ${label}${desc}`;
           });
           renderer.render(
-            [`${paint('❯', 'cyan')} ${message}`, ...rows, '', `  ${KEY_HINT_SELECT}`].join('\n'),
+            [`${paint('❯', 'brand')} ${message}`, ...rows, '', `  ${KEY_HINT_SELECT}`].join('\n'),
           );
         };
 
         const finish = (value) => {
           renderer.clear();
-          io.line(`${paint('✔', 'green')} ${message}`);
+          io.line(`${paint('✔', 'success')} ${message}`);
           io.line(`  ${options.find((o) => o.value === value)?.label ?? value}`);
         };
 
@@ -340,19 +340,19 @@ export async function multiselect(io, opts) {
         const render = () => {
           const rows = options.map((option, i) => {
             const active = i === index;
-            const cursor = active ? paint('›', 'cyan') : ' ';
-            const box = selected.has(i) ? paint('◉', 'cyan') : paint('○', 'dim');
+            const cursor = active ? paint('›', 'brand') : ' ';
+            const box = selected.has(i) ? paint('◉', 'brand') : paint('○', 'dim');
             const label = active ? paint(optionLabel(option), 'bold') : optionLabel(option);
             const desc = option.description ? paint(`  ${option.description}`, 'dim') : '';
             return `  ${cursor} ${box} ${label}${desc}`;
           });
           const footer = flash ?? `  ${KEY_HINT_MULTI}`;
-          renderer.render([`${paint('❯', 'cyan')} ${message}`, ...rows, '', footer].join('\n'));
+          renderer.render([`${paint('❯', 'brand')} ${message}`, ...rows, '', footer].join('\n'));
         };
 
         const finish = (values) => {
           renderer.clear();
-          io.line(`${paint('✔', 'green')} ${message}`);
+          io.line(`${paint('✔', 'success')} ${message}`);
           if (values.length === 0) io.line(`  ${paint('(none selected)', 'dim')}`);
           else
             io.line(
@@ -383,7 +383,7 @@ export async function multiselect(io, opts) {
               if (values.length < min) {
                 flash = paint(
                   `  ⚠ Select at least ${min} option${min > 1 ? 's' : ''} to continue`,
-                  'yellow',
+                  'warn',
                 );
               } else {
                 finish(values);
@@ -432,18 +432,18 @@ export async function confirm(io, opts) {
         const render = () => {
           const rows = labels.map((label, i) => {
             const active = i === index;
-            const cursor = active ? paint('›', 'cyan') : ' ';
-            const styled = active ? paint(label, 'cyan', 'bold') : label;
+            const cursor = active ? paint('›', 'brand') : ' ';
+            const styled = active ? paint(label, 'brand', 'bold') : label;
             return `  ${cursor} ${styled}`;
           });
           renderer.render(
-            [`${paint('❯', 'cyan')} ${message}`, ...rows, '', `  ${KEY_HINT_CONFIRM}`].join('\n'),
+            [`${paint('❯', 'brand')} ${message}`, ...rows, '', `  ${KEY_HINT_CONFIRM}`].join('\n'),
           );
         };
 
         const finish = (value) => {
           renderer.clear();
-          io.line(`${paint('✔', 'green')} ${message}`);
+          io.line(`${paint('✔', 'success')} ${message}`);
           io.line(`  ${labels[value ? 0 : 1]}`);
         };
 
@@ -507,10 +507,10 @@ export async function text(io, opts) {
         const render = () => {
           const input =
             value.length > 0
-              ? `${visible(value)}${paint('▌', 'cyan')}`
+              ? `${visible(value)}${paint('▌', 'brand')}`
               : paint(placeholder || 'type here', 'dim');
-          const rows = [`${paint('❯', 'cyan')} ${message}`, `  ${input}`];
-          if (error) rows.push(`  ${paint(`⚠ ${error}`, 'yellow')}`);
+          const rows = [`${paint('❯', 'brand')} ${message}`, `  ${input}`];
+          if (error) rows.push(`  ${paint(`⚠ ${error}`, 'warn')}`);
           rows.push('', `  ${paint('enter to confirm · esc to cancel', 'dim')}`);
           renderer.render(rows.join('\n'));
         };
@@ -518,7 +518,7 @@ export async function text(io, opts) {
         const finish = () => {
           renderer.clear();
           const shown = mask ? paint(`•`.repeat(value.length), 'dim') : value;
-          io.line(`${paint('✔', 'green')} ${message}`);
+          io.line(`${paint('✔', 'success')} ${message}`);
           io.line(`  ${shown}`);
         };
 

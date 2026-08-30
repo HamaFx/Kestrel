@@ -76,7 +76,7 @@ export async function run(ctx) {
   // piping it without draining can fill the pipe buffer and deadlock the
   // child (a spinner would run forever). The user sees real progress.
   io.line();
-  io.line(`  ${paint(`Running ${packageManagerLabel(manager)} install...`, 'cyan')}`);
+  io.line(`  ${paint(`Running ${packageManagerLabel(manager)} install...`, 'info')}`);
   try {
     await runCommand(manager.command, [...manager.prefix, 'install', '--frozen-lockfile'], {
       cwd: repoRoot,
@@ -107,7 +107,7 @@ export async function run(ctx) {
       fail(io, 'pnpm install failed — try running it manually: pnpm install --frozen-lockfile');
       return 'abort';
     }
-    io.line(`  ${paint('Retrying without the lockfile...', 'cyan')}`);
+    io.line(`  ${paint('Retrying without the lockfile...', 'info')}`);
     try {
       await runCommand(manager.command, [...manager.prefix, 'install'], {
         cwd: repoRoot,

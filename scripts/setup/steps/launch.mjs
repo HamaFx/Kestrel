@@ -49,7 +49,7 @@ function printSummary(ctx) {
   const keys = Object.keys(answers.marketKeys ?? {});
   const summaryLines = [
     `${paint('Mode:', 'bold')}           ${answers.mode === 'docker' ? 'Full mode (Docker)' : 'Simple mode'}`,
-    `${paint('AI providers:', 'bold')}     ${paint('BYOK — add keys after registration', 'cyan')}`,
+    `${paint('AI providers:', 'bold')}     ${paint('BYOK — add keys after registration', 'muted')}`,
     `${paint('Market data:', 'bold')}      ${
       keys.length > 0
         ? keys.map((k) => k.replace('_API_KEY', '')).join(', ')
@@ -61,7 +61,7 @@ function printSummary(ctx) {
     '  2. Register at /register',
     '  3. Add your AI key in the onboarding wizard',
   ];
-  box(io, 'Setup Summary', summaryLines, { color: 'green', minWidth: 52 });
+  box(io, 'Setup Summary', summaryLines, { color: 'success', minWidth: 52 });
 }
 
 function printGettingStarted(io) {
@@ -74,7 +74,7 @@ function printGettingStarted(io) {
       '   (or walk through the onboarding wizard)',
       '3. Ask: "What is the current XAUUSD price?"',
     ],
-    'green',
+    'info',
   );
 }
 
@@ -92,7 +92,7 @@ function printCompactSummary(ctx) {
     `${paint('Config file:', 'bold')} ${answers.mode === 'docker' ? '.env' : '.env.local'}`,
     `${paint('App URL:', 'bold')}     ${APP_URL}`,
   ];
-  box(io, 'Setup complete', lines, { color: 'green', minWidth: 44 });
+  box(io, 'Setup complete', lines, { color: 'success', minWidth: 44 });
 }
 
 export async function run(ctx) {
@@ -116,9 +116,9 @@ export async function run(ctx) {
     : `${packageManagerLabel(getPackageManager())} dev:local`;
 
   io.line();
-  io.line(`  ${paint('Ready to launch! 🚀', 'bold', 'green')}`);
+  io.line(`  ${paint('Ready to launch! 🚀', 'bold', 'brand')}`);
   io.line();
-  io.line(`  ${paint('Start command:', 'bold')} ${paint(startCommand, 'green')}`);
+  io.line(`  ${paint('Start command:', 'bold')} ${paint(startCommand, 'brand')}`);
   io.line(`  ${paint('App URL:', 'bold')}       ${APP_URL}`);
   if (isDocker) io.line(`  ${paint('Langfuse:', 'bold')}      http://localhost:3001`);
   io.line(`  ${paint('Register:', 'bold')}      ${APP_URL}/register`);
@@ -131,7 +131,7 @@ export async function run(ctx) {
 
   if (flags.noLaunch) {
     info(io, 'Skipping launch (--no-launch). Run it whenever you are ready:');
-    io.line(`  ${paint(startCommand, 'green')}`);
+    io.line(`  ${paint(startCommand, 'brand')}`);
     return 'ok';
   }
 
@@ -144,13 +144,13 @@ export async function run(ctx) {
   if (!start) {
     io.line();
     info(io, 'Run when ready:');
-    io.line(`  ${paint(startCommand, 'green')}`);
+    io.line(`  ${paint(startCommand, 'brand')}`);
     return 'ok';
   }
 
   io.line();
   io.line(
-    `  ${paint(isDocker ? 'Building & starting Docker stack...' : 'Starting Kestrel...', 'cyan')}`,
+    `  ${paint(isDocker ? 'Building & starting Docker stack...' : 'Starting Kestrel...', 'info')}`,
   );
   io.line(`  ${paint('Press Ctrl+C to stop', 'dim')}`);
   io.line();
@@ -275,19 +275,19 @@ function printLaunchFailure(io, buildOutput) {
   const diagnosis = diagnoseComposeError(buildOutput);
   if (diagnosis) {
     io.line();
-    box(io, 'What went wrong', [diagnosis.summary], { color: 'red', minWidth: 46 });
+    box(io, 'What went wrong', [diagnosis.summary], { color: 'danger', minWidth: 46 });
     box(
       io,
       'How to fix',
       diagnosis.fixes.map((fix, index) => `${index + 1}. ${fix}`),
-      { color: 'cyan', minWidth: 46 },
+      { color: 'info', minWidth: 46 },
     );
   } else {
     io.line();
     warn(io, 'No recognizable error pattern — the raw output above has the details.');
   }
   io.line();
-  info(io, `Retry anytime with: ${paint('docker compose up -d --build', 'green')}`);
+  info(io, `Retry anytime with: ${paint('docker compose up -d --build', 'brand')}`);
   info(io, `More help: ${paint('docs/troubleshooting.md', 'dim')}`);
   io.line();
 }

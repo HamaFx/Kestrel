@@ -37,11 +37,11 @@ function showDiff(io, diff) {
   }
   for (const change of diff) {
     if (change.new === undefined) {
-      io.line(`  ${paint('~', 'yellow')} ${change.key}: ${paint('removed', 'yellow')}`);
+      io.line(`  ${paint('~', 'warn')} ${change.key}: ${paint('removed', 'warn')}`);
     } else if (change.old === undefined) {
-      io.line(`  ${paint('+', 'green')} ${change.key} = ${change.new}`);
+      io.line(`  ${paint('+', 'success')} ${change.key} = ${change.new}`);
     } else {
-      io.line(`  ${paint('~', 'yellow')} ${change.key}: ${change.old} → ${change.new}`);
+      io.line(`  ${paint('~', 'warn')} ${change.key}: ${change.old} → ${change.new}`);
     }
   }
 }
