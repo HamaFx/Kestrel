@@ -55,23 +55,23 @@ There were also noisy but non-failing test/build messages involving service-work
 
 ## Overall score
 
-| Area | Status | Assessment |
-|---|---:|---|
-| Code organization | Good | Clear monorepo and package layering |
-| Authentication | Good, needs review | Strong implementation, but complex and hard to maintain |
-| Single-user OSS safety boundary | Good | Explicit fail-closed configuration |
-| Multi-user readiness | Not complete | Correctly disabled, should not be advertised as ready |
-| Database/migrations | Good but operationally risky | Large migration history and complex roles/RLS |
-| Docker deployment | Promising | Needs actual clean-machine validation and better separation |
-| Vercel + GCE deployment | Maintainer-specific | Not a general OSS deployment target |
-| API security | Good baseline | Static route checks are useful but insufficient alone |
-| Secrets handling | Good baseline | Environment tree contains too many modes and compatibility paths |
-| CI | Strong coverage | Important failures are currently hidden or split across workflows |
-| Tests | Broad | Full suite must remain green |
-| Licensing/compliance | Incomplete | Dependency and provider licensing remains operator responsibility |
-| Contributor experience | Moderate | Setup exists, but architecture and operational complexity are high |
-| Release process | Incomplete | Versioning and package publishing do not match the application’s release model |
-| OSS readiness | Conditional | Suitable for controlled beta release after P0/P1 fixes |
+| Area                            |                       Status | Assessment                                                                     |
+| ------------------------------- | ---------------------------: | ------------------------------------------------------------------------------ |
+| Code organization               |                         Good | Clear monorepo and package layering                                            |
+| Authentication                  |           Good, needs review | Strong implementation, but complex and hard to maintain                        |
+| Single-user OSS safety boundary |                         Good | Explicit fail-closed configuration                                             |
+| Multi-user readiness            |                 Not complete | Correctly disabled, should not be advertised as ready                          |
+| Database/migrations             | Good but operationally risky | Large migration history and complex roles/RLS                                  |
+| Docker deployment               |                    Promising | Needs actual clean-machine validation and better separation                    |
+| Vercel + GCE deployment         |          Maintainer-specific | Not a general OSS deployment target                                            |
+| API security                    |                Good baseline | Static route checks are useful but insufficient alone                          |
+| Secrets handling                |                Good baseline | Environment tree contains too many modes and compatibility paths               |
+| CI                              |              Strong coverage | Important failures are currently hidden or split across workflows              |
+| Tests                           |                        Broad | Full suite must remain green                                                   |
+| Licensing/compliance            |                   Incomplete | Dependency and provider licensing remains operator responsibility              |
+| Contributor experience          |                     Moderate | Setup exists, but architecture and operational complexity are high             |
+| Release process                 |                   Incomplete | Versioning and package publishing do not match the application’s release model |
+| OSS readiness                   |                  Conditional | Suitable for controlled beta release after P0/P1 fixes                         |
 
 ---
 

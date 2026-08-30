@@ -1,18 +1,19 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type Account, type Profile, type Session, type User } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 
-import { provisionUserOnSignIn } from '@/lib/auth/provision-user';
 import { handleJwtCallback, handleSessionCallback } from '@/lib/auth/callbacks';
 import { generateImpersonationChallenge } from '@/lib/auth/impersonation';
 import { createAuthProviders } from '@/lib/auth/providers';
-import { assertProductionSecurity } from '@/lib/security-invariants';
+import { provisionUserOnSignIn } from '@/lib/auth/provision-user';
 import { getAuthEnv } from '@/lib/env';
+import { assertProductionSecurity } from '@/lib/security-invariants';
 
 import { authConfig } from './auth.config';
 
 export { generateImpersonationChallenge };
 
-// NextAuth's inferred provider type is not portable across pnpm store layouts.
-// Keep the structural cast local so the public auth exports remain stable.
+// Auth.js's generated handler types reference private package paths under
+// pnpm's layout; retain the narrow compatibility cast only at this boundary.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _nextAuth = NextAuth as any;
 
@@ -29,10 +30,24 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
   providers: createAuthProviders(authEnv),
   callbacks: {
     ...authConfig.callbacks,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async signIn({ user, account, profile }: { user: any; account: any; profile: any }) {
+    async signIn({
+      user,
+      account,
+      profile,
+    }: {
+      user: User & {
+        tokenVersion?: number;
+        emailVerified?: Date | null;
+        rememberMe?: boolean;
+        sessionId?: string;
+        deviceName?: string | null;
+        ip?: string | null;
+      };
+      account?: Account | null;
+      profile?: Profile;
+    }) {
       assertProductionSecurity();
-      const decision = await provisionUserOnSignIn({ user, account, profile });
+      const decision = await provisionUserOnSignIn({ user, account: account ?? null, profile });
       if (!decision.allow) return false;
       if (decision.userFields) {
         user.id = decision.userFields.id;
@@ -43,12 +58,16 @@ export const { handlers, auth, signIn, signOut } = _nextAuth({
       }
       return true;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async jwt({ token, user }: { token: any; user: any }) {
+    async jwt({
+      token,
+      user,
+    }: {
+      token: JWT;
+      user?: User & Parameters<typeof handleJwtCallback>[1];
+    }) {
       return handleJwtCallback(token, user);
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       return handleSessionCallback(session, token);
     },
   },

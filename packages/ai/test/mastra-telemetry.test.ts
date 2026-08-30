@@ -21,8 +21,8 @@ import {
   executeMastraTool,
   finishMastraRun,
   getMastraGenerationStats,
-  mastraOutcomeForError,
   isMastraTelemetryDegraded,
+  mastraOutcomeForError,
   resetMastraTelemetryHealth,
 } from '../src/mastra/telemetry';
 

@@ -19,10 +19,9 @@
  * Usage:
  *   EVAL_COOKIE="authjs.session-token=..." node scripts/run-eval-nightly.mjs
  */
-
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -63,5 +62,5 @@ if (useCases) args.push('--cases');
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const result = spawnSync(pnpm, args, { cwd: root, stdio: 'inherit' });
 
-const exitCode = result.error ? 1 : result.status ?? (result.signal ? 1 : 0);
+const exitCode = result.error ? 1 : (result.status ?? (result.signal ? 1 : 0));
 process.exitCode = exitCode;

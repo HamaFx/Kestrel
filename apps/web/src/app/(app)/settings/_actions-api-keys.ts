@@ -131,10 +131,7 @@ export async function updateApiKeysAction(
           aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
         })
         .where(
-          and(
-            eq(schema.userSettings.userId, userId),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
+          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
         );
 
       for (const tr of testResults) {

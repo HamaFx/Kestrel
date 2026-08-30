@@ -142,10 +142,7 @@ export async function completeOnboardingAction(formData: FormData) {
         })
         .from(schema.userSettings)
         .where(
-          and(
-            eq(schema.userSettings.userId, userId),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
+          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
         );
       const currentKeys = decryptByok(existing?.aiApiKeys) ?? {};
       const merged: ByokPayload = { ...currentKeys };
@@ -170,10 +167,7 @@ export async function completeOnboardingAction(formData: FormData) {
         .select({ userId: schema.userSettings.userId })
         .from(schema.userSettings)
         .where(
-          and(
-            eq(schema.userSettings.userId, userId),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
+          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
         );
 
       if (existingSettings.length === 0) {
@@ -199,10 +193,7 @@ export async function completeOnboardingAction(formData: FormData) {
               : {}),
           })
           .where(
-            and(
-              eq(schema.userSettings.userId, userId),
-              eq(schema.userSettings.tenantId, tenantId),
-            ),
+            and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
           );
       }
 
@@ -213,10 +204,7 @@ export async function completeOnboardingAction(formData: FormData) {
         await tx
           .delete(schema.userSymbols)
           .where(
-            and(
-              eq(schema.userSymbols.userId, userId),
-              eq(schema.userSymbols.tenantId, tenantId),
-            ),
+            and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)),
           );
 
         await tx

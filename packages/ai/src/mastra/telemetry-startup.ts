@@ -24,9 +24,13 @@ export interface TelemetryStartupCheck {
 let lastCheck: TelemetryStartupCheck | null = null;
 let previousStatus: TelemetryStartupStatus | null = null;
 
-export function validateTelemetryStartup(env: NodeJS.ProcessEnv = process.env): TelemetryStartupCheck {
+export function validateTelemetryStartup(
+  env: NodeJS.ProcessEnv = process.env,
+): TelemetryStartupCheck {
   const failures: string[] = [];
-  const langfuseConfigured = Boolean(env.LANGFUSE_PUBLIC_KEY && env.LANGFUSE_SECRET_KEY && env.LANGFUSE_BASE_URL);
+  const langfuseConfigured = Boolean(
+    env.LANGFUSE_PUBLIC_KEY && env.LANGFUSE_SECRET_KEY && env.LANGFUSE_BASE_URL,
+  );
   const degraded = isMastraTelemetryDegraded();
   if (degraded) failures.push('one or more telemetry exporters reported a runtime failure');
 

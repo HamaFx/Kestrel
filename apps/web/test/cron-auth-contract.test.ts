@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { withCronAuth } from '@/lib/cron';
+
 const mockGetAuthEnv = vi.hoisted(() => vi.fn());
 const mockGetUserFromRequest = vi.hoisted(() => vi.fn());
 
@@ -9,8 +11,6 @@ vi.mock('@/lib/logger', () => ({
   createScopedLoggerWithContext: () => ({ error: vi.fn() }),
 }));
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
-
-import { withCronAuth } from '@/lib/cron';
 
 beforeEach(() => {
   vi.clearAllMocks();

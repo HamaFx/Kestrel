@@ -116,10 +116,7 @@ export function normalizeWebSearchResults(
     if (seen.has(url)) continue;
     seen.add(url);
 
-    const titleResult = quarantineExternalText(
-      stringValue(item.title) || parsed.hostname,
-      240,
-    );
+    const titleResult = quarantineExternalText(stringValue(item.title) || parsed.hostname, 240);
     const contentResult = quarantineExternalText(
       stringValue(item.content) ||
         textValue(item.highlights) ||
@@ -458,9 +455,7 @@ async function fetchExa(
   return arrayValue(response.results).map((item) => ({
     ...item,
     content:
-      item.content ??
-      item.highlights ??
-      (item as ProviderItem & { highlight?: unknown }).highlight,
+      item.content ?? item.highlights ?? (item as ProviderItem & { highlight?: unknown }).highlight,
     publishedAt: item.publishedDate,
   }));
 }

@@ -31,14 +31,14 @@ import {
   type MastraCanonicalChatStream,
   type RunMastraCanonicalChatArgs,
 } from '@kestrel/ai/mastra';
+import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
-import { listMessages } from '@kestrel/ai/persistence';
+import { createMastraStreamFinalizer } from '@/lib/services/mastra-stream-finalizer';
 import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra-thread-title';
-import { createMastraStreamFinalizer } from '@/lib/services/mastra-stream-finalizer';
 
 export interface RunMastraCanonicalChatStreamInput {
   userId: string;

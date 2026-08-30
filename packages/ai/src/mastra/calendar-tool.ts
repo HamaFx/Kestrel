@@ -20,9 +20,9 @@ import { z } from 'zod';
 
 import { getCalendarTool } from '../tools/get-calendar';
 import { createEvidenceId } from './evidence';
+import { EXTERNAL_CONTENT_TRUST_WARNING, quarantineExternalText } from './external-content';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
 import { executeMastraTool } from './telemetry';
-import { EXTERNAL_CONTENT_TRUST_WARNING, quarantineExternalText } from './external-content';
 import { XAUUSD } from './types';
 
 const InputSchema = z.object({
@@ -79,7 +79,9 @@ export const xauusdCalendarTool = createTool({
         EXTERNAL_CONTENT_TRUST_WARNING,
         'The cached economic-events table does not expose provider ingestion freshness metadata',
         ...(quarantinedCount > 0
-          ? [`${quarantinedCount} calendar item(s) contained instruction-like text and were quarantined`]
+          ? [
+              `${quarantinedCount} calendar item(s) contained instruction-like text and were quarantined`,
+            ]
           : []),
         ...(data.pipelinePending
           ? ['The calendar ingestion pipeline has not populated the cache']

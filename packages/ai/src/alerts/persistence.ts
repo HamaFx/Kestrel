@@ -121,7 +121,13 @@ export async function getAlert(userId: string, id: string): Promise<Alert | null
   const rows = await db
     .select()
     .from(schema.alerts)
-    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)))
+    .where(
+      and(
+        eq(schema.alerts.id, id),
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   const row = rows[0];
   return row ? rowToAlert(row) : null;
@@ -196,7 +202,13 @@ export async function updateAlert(
   const updated = await db
     .update(schema.alerts)
     .set(patch)
-    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)))
+    .where(
+      and(
+        eq(schema.alerts.id, id),
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    )
     .returning();
   return updated[0] ? rowToAlert(updated[0]) : null;
 }
@@ -267,7 +279,11 @@ export async function markFired(
 ): Promise<boolean> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  const predicates = [eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)];
+  const predicates = [
+    eq(schema.alerts.id, id),
+    eq(schema.alerts.userId, userId),
+    eq(schema.alerts.tenantId, tenantId),
+  ];
   if (claimedAt) predicates.push(eq(schema.alerts.deliveryClaimedAt, claimedAt));
   const updated = await db
     .update(schema.alerts)
@@ -290,7 +306,11 @@ export async function markFiredSnoozed(
 ): Promise<boolean> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  const predicates = [eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)];
+  const predicates = [
+    eq(schema.alerts.id, id),
+    eq(schema.alerts.userId, userId),
+    eq(schema.alerts.tenantId, tenantId),
+  ];
   if (claimedAt) predicates.push(eq(schema.alerts.deliveryClaimedAt, claimedAt));
   const updated = await db
     .update(schema.alerts)
@@ -365,7 +385,13 @@ export async function setRulePreviousValue(
   await db
     .update(schema.alerts)
     .set({ rule: validated })
-    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)));
+    .where(
+      and(
+        eq(schema.alerts.id, id),
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    );
 }
 
 export async function deleteAlert(userId: string, id: string): Promise<void> {
@@ -373,7 +399,13 @@ export async function deleteAlert(userId: string, id: string): Promise<void> {
   const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.alerts)
-    .where(and(eq(schema.alerts.id, id), eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)));
+    .where(
+      and(
+        eq(schema.alerts.id, id),
+        eq(schema.alerts.userId, userId),
+        eq(schema.alerts.tenantId, tenantId),
+      ),
+    );
 }
 
 function rowToAlert(row: typeof schema.alerts.$inferSelect): Alert {

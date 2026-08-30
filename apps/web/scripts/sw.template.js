@@ -240,7 +240,8 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetValue = (event.notification.data && event.notification.data.url) || '/alerts';
-  const target = typeof targetValue === 'string' && targetValue.startsWith('/') ? targetValue : '/alerts';
+  const target =
+    typeof targetValue === 'string' && targetValue.startsWith('/') ? targetValue : '/alerts';
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });

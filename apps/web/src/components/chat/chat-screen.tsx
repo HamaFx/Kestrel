@@ -58,7 +58,6 @@ import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useThreadTitle } from '@/hooks/use-thread-title';
 import { apiFetch, apiMutate } from '@/lib/api-client';
 import { createKestrelChatTransport, type AgentProgress } from '@/lib/chat-transport';
-import { PixelDeskStandby } from './parts/pixel-desk/pixel-desk';
 import { cn } from '@/lib/cn';
 import { getCsrfToken } from '@/lib/csrf';
 
@@ -68,7 +67,7 @@ import { Composer } from './composer';
 import { ComposerActionChips } from './composer-action-chips';
 import { MessageList } from './message-list';
 import { AgentDeliberation } from './parts/agent-deliberation';
-
+import { PixelDeskStandby } from './parts/pixel-desk/pixel-desk';
 
 interface ChatScreenProps {
   threadId: string;
@@ -645,7 +644,7 @@ function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProp
       <KestrelBrand variant="lockup" decorative priority className="w-36 opacity-95" />
 
       {/* Unified 8-Bit Pixel Quant Floor & Recommended Prompts Hub */}
-      <div className="w-full max-w-xl flex justify-center">
+      <div className="flex w-full max-w-xl justify-center">
         <PixelDeskStandby
           pinnedSymbol={pinnedSymbol}
           onSelectPrompt={onSelect}
@@ -655,5 +654,3 @@ function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProp
     </div>
   );
 }
-
-

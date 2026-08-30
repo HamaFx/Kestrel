@@ -34,6 +34,11 @@ import type { UIMessage } from 'ai';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  listAgentOpinions,
+  listMessageOpinions,
+  saveAgentOpinions,
+} from '../src/multi-agent/persistence';
+import {
   appendAssistantMessage,
   appendUserMessage,
   createThread,
@@ -43,11 +48,6 @@ import {
   updateThreadPinnedSymbol,
 } from '../src/persistence';
 import { DB } from '../src/tokens';
-import {
-  listAgentOpinions,
-  listMessageOpinions,
-  saveAgentOpinions,
-} from '../src/multi-agent/persistence';
 
 vi.hoisted(() => {
   // The IDOR test runs against PGlite via `getLocalDb()` below. But the
@@ -285,24 +285,16 @@ describe('agent opinion parent ownership', () => {
     await seedUser(USER_B, 'b@example.com');
     const aThread = await createThread(USER_A);
     const bThread = await createThread(USER_B);
-    const aMessage = await appendAssistantMessage(
-      USER_A,
-      aThread.id,
-      {
-        id: 'opinion-message-a',
-        role: 'assistant',
-        parts: [{ type: 'text', text: 'A result' }],
-      } as UIMessage,
-    );
-    const bMessage = await appendAssistantMessage(
-      USER_B,
-      bThread.id,
-      {
-        id: 'opinion-message-b',
-        role: 'assistant',
-        parts: [{ type: 'text', text: 'B result' }],
-      } as UIMessage,
-    );
+    const aMessage = await appendAssistantMessage(USER_A, aThread.id, {
+      id: 'opinion-message-a',
+      role: 'assistant',
+      parts: [{ type: 'text', text: 'A result' }],
+    } as UIMessage);
+    const bMessage = await appendAssistantMessage(USER_B, bThread.id, {
+      id: 'opinion-message-b',
+      role: 'assistant',
+      parts: [{ type: 'text', text: 'B result' }],
+    } as UIMessage);
 
     const opinion = {
       agentName: 'technical',
@@ -325,9 +317,9 @@ describe('agent opinion parent ownership', () => {
     expect((await listAgentOpinions(USER_A, aThread.id)).map((row) => row.agentName)).toEqual([
       'technical',
     ]);
-    expect((await listMessageOpinions(USER_A, aMessage.messageId)).map((row) => row.agentName)).toEqual([
-      'technical',
-    ]);
+    expect(
+      (await listMessageOpinions(USER_A, aMessage.messageId)).map((row) => row.agentName),
+    ).toEqual(['technical']);
 
     await expect(
       saveAgentOpinions({

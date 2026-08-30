@@ -91,7 +91,13 @@ export async function getEntry(userId: string, id: string): Promise<JournalEntry
   const rows = await db
     .select()
     .from(schema.journalEntries)
-    .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId), eq(schema.journalEntries.tenantId, tenantId)))
+    .where(
+      and(
+        eq(schema.journalEntries.id, id),
+        eq(schema.journalEntries.userId, userId),
+        eq(schema.journalEntries.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   const row = rows[0];
   return row ? rowToEntry(row) : null;
@@ -158,7 +164,13 @@ export async function updateEntry(
     const rows = await tx
       .select()
       .from(schema.journalEntries)
-      .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId), eq(schema.journalEntries.tenantId, tenantId)))
+      .where(
+        and(
+          eq(schema.journalEntries.id, id),
+          eq(schema.journalEntries.userId, userId),
+          eq(schema.journalEntries.tenantId, tenantId),
+        ),
+      )
       .for('update')
       .limit(1);
     const row = rows[0];
@@ -198,7 +210,13 @@ export async function updateEntry(
     const updated = await tx
       .update(schema.journalEntries)
       .set(patch)
-      .where(and(eq(schema.journalEntries.id, id), eq(schema.journalEntries.userId, userId), eq(schema.journalEntries.tenantId, tenantId)))
+      .where(
+        and(
+          eq(schema.journalEntries.id, id),
+          eq(schema.journalEntries.userId, userId),
+          eq(schema.journalEntries.tenantId, tenantId),
+        ),
+      )
       .returning();
     if (!updated[0]) return null;
     const entry = rowToEntry(updated[0]);

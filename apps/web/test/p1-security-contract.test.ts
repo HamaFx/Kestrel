@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
 import { globSync } from 'glob';
 import { describe, expect, it } from 'vitest';
 
@@ -22,7 +23,9 @@ describe('P1 security contracts', () => {
   });
 
   it('does not permit inline scripts in the application CSP', () => {
-    expect(read('src/proxy.ts')).not.toContain("script-src 'self' 'nonce-${nonce}' 'unsafe-inline'");
+    expect(read('src/proxy.ts')).not.toContain(
+      "script-src 'self' 'nonce-${nonce}' 'unsafe-inline'",
+    );
   });
 
   it('rejects SVG and active content in uploads', () => {

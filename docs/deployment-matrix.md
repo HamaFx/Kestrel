@@ -4,13 +4,13 @@ Kestrel's public release is a **single-user self-hosted beta**. Shared multi-use
 
 ## Supported profiles
 
-| Profile | Database | Worker | Intended use | Status |
-|---|---|---:|---|---|
-| Simple | Embedded PGlite | No | Local development and evaluation | Supported |
-| Docker single-user | PostgreSQL + pgvector | Yes | Complete local/self-hosted stack | Supported |
-| External PostgreSQL single-user | Operator-managed PostgreSQL | Optional | Advanced self-hosting | Supported with operator responsibility |
-| Maintainer Vercel/VM | Supabase + Vercel + GCE worker | Yes | Kestrel's own deployment topology | Maintainer-specific |
-| Shared multi-user/RLS | PostgreSQL + RLS | Required | Future hosted/shared deployments | Not supported |
+| Profile                         | Database                       |   Worker | Intended use                      | Status                                 |
+| ------------------------------- | ------------------------------ | -------: | --------------------------------- | -------------------------------------- |
+| Simple                          | Embedded PGlite                |       No | Local development and evaluation  | Supported                              |
+| Docker single-user              | PostgreSQL + pgvector          |      Yes | Complete local/self-hosted stack  | Supported                              |
+| External PostgreSQL single-user | Operator-managed PostgreSQL    | Optional | Advanced self-hosting             | Supported with operator responsibility |
+| Maintainer Vercel/VM            | Supabase + Vercel + GCE worker |      Yes | Kestrel's own deployment topology | Maintainer-specific                    |
+| Shared multi-user/RLS           | PostgreSQL + RLS               | Required | Future hosted/shared deployments  | Not supported                          |
 
 ## Security boundary
 
@@ -24,6 +24,17 @@ REGISTRATION_MODE=owner-first
 ```
 
 Do not expose a shared instance to unrelated users. Enabling multi-user or RLS flags does not make the deployment supported; the complete tenant-isolation proof is still a future milestone.
+
+## Profile validation
+
+Each supported profile should be selected explicitly. The runtime rejects unsafe combinations rather than silently choosing a fallback:
+
+- Public OSS deployments must remain single-user with `OSS_SINGLE_USER_MODE=1`, `MULTI_USER_ENABLED=0`, `KESTREL_ENABLE_RLS=0`, and `REGISTRATION_MODE=owner-first`.
+- `MULTI_USER_ENABLED=1` requires `KESTREL_ENABLE_RLS=1`, but the combination remains unsupported by the public release.
+- Production worker deployments require both `WORKER_HEALTH_TOKEN` and `BIQUOTE_PROXY_TOKEN`.
+- Production database connections require a configured database URL and verified TLS, except for the explicit local Docker profile.
+
+Use `pnpm verify:local` and `pnpm check:env-contract` before starting a deployment.
 
 ## External integrations
 

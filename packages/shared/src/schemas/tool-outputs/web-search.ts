@@ -47,13 +47,18 @@ export const WebSearchOutputSchema = z.object({
   expiresAt: z.string().datetime().optional(),
   cacheAgeSeconds: z.number().int().nonnegative().optional(),
   /** Safe provider-attempt summary; error text is sanitized and bounded. */
-  providerAttempts: z.array(
-    z.object({
-      provider: WebSearchProviderSchema,
-      status: z.enum(['success', 'empty', 'failed']),
-      latencyMs: z.number().int().nonnegative(),
-      error: z.string().max(180).optional(),
-    }).strict(),
-  ).max(3).optional(),
+  providerAttempts: z
+    .array(
+      z
+        .object({
+          provider: WebSearchProviderSchema,
+          status: z.enum(['success', 'empty', 'failed']),
+          latencyMs: z.number().int().nonnegative(),
+          error: z.string().max(180).optional(),
+        })
+        .strict(),
+    )
+    .max(3)
+    .optional(),
 });
 export type WebSearchOutput = z.infer<typeof WebSearchOutputSchema>;

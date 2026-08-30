@@ -48,7 +48,8 @@ describe('assertProductionSecurity', () => {
     else process.env.NEXTAUTH_SECRET = originalEnv.NEXTAUTH_SECRET;
     if (originalEnv.ENABLE_IMPERSONATION === undefined) delete process.env.ENABLE_IMPERSONATION;
     else process.env.ENABLE_IMPERSONATION = originalEnv.ENABLE_IMPERSONATION;
-    if (originalEnv.ALLOW_INSECURE_DEV_AUTH === undefined) delete process.env.ALLOW_INSECURE_DEV_AUTH;
+    if (originalEnv.ALLOW_INSECURE_DEV_AUTH === undefined)
+      delete process.env.ALLOW_INSECURE_DEV_AUTH;
     else process.env.ALLOW_INSECURE_DEV_AUTH = originalEnv.ALLOW_INSECURE_DEV_AUTH;
   });
 

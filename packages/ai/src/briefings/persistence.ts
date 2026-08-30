@@ -268,10 +268,7 @@ export async function getLatestBriefing(userId: string): Promise<LatestBriefing 
     })
     .from(schema.chatMessages)
     .where(
-      and(
-        eq(schema.chatMessages.threadId, thread.id),
-        eq(schema.chatMessages.tenantId, tenantId),
-      ),
+      and(eq(schema.chatMessages.threadId, thread.id), eq(schema.chatMessages.tenantId, tenantId)),
     )
     .orderBy(desc(schema.chatMessages.createdAt))
     .limit(50);

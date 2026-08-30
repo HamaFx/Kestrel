@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -17,7 +16,9 @@ else if (!semverPattern.test(version)) {
   failures.push(`package.json application version is not valid SemVer: ${version}`);
 }
 if (version === '0.0.0') {
-  failures.push('package.json application version must be changed from the placeholder 0.0.0 before release');
+  failures.push(
+    'package.json application version must be changed from the placeholder 0.0.0 before release',
+  );
 }
 
 const releaseTag = `v${version}`;
@@ -27,11 +28,16 @@ if (!releaseWorkflow.includes('branches:\n      - main')) {
   failures.push('release workflow must remain explicit about its main-branch release automation');
 }
 if (!dockerWorkflow.includes('type=raw,value=${{ github.event.release.tag_name }}')) {
-  failures.push(`Docker workflow must publish the GitHub release tag ${releaseTag} when a release is published`);
+  failures.push(
+    `Docker workflow must publish the GitHub release tag ${releaseTag} when a release is published`,
+  );
 }
 
 for (const image of ['web', 'worker']) {
-  if (!dockerWorkflow.includes('type=sha') || !dockerWorkflow.includes(`images: ghcr.io/${'${{ github.repository }}'}/${image}`)) {
+  if (
+    !dockerWorkflow.includes('type=sha') ||
+    !dockerWorkflow.includes(`images: ghcr.io/${'${{ github.repository }}'}/${image}`)
+  ) {
     failures.push(`Docker workflow must publish an immutable SHA tag for ${image}`);
   }
 }
@@ -48,11 +54,13 @@ if (!dockerWorkflow.includes('type=sha')) {
   failures.push('Docker workflow must configure SHA-derived metadata tags');
 }
 
-if (!releaseWorkflow.includes('source-sbom')) failures.push('release workflow must archive the source SBOM');
+if (!releaseWorkflow.includes('source-sbom'))
+  failures.push('release workflow must archive the source SBOM');
 if (!releaseWorkflow.includes('dependency-licenses')) {
   failures.push('release workflow must archive dependency license metadata');
 }
-if (!existsSync(resolve(root, 'docs/DEPENDENCY_LICENSES.md'))) failures.push('dependency license inventory is missing');
+if (!existsSync(resolve(root, 'docs/DEPENDENCY_LICENSES.md')))
+  failures.push('dependency license inventory is missing');
 
 if (failures.length) {
   console.error('Release metadata contract failed:');

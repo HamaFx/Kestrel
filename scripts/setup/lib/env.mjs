@@ -144,13 +144,7 @@ function backupEnvFile(filePath) {
 export function upsertEnvFile(
   filePath,
   values,
-  {
-    backup = true,
-    dryRun = false,
-    maskDiff = undefined,
-    replace = false,
-    removeKeys = [],
-  } = {},
+  { backup = true, dryRun = false, maskDiff = undefined, replace = false, removeKeys = [] } = {},
 ) {
   const existing = readEnvFile(filePath);
   const target = replace ? new Map() : new Map(existing.entries);

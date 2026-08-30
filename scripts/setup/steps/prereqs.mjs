@@ -32,9 +32,7 @@ export function run(ctx) {
   const { io } = ctx;
 
   if (ctx.pageMode) {
-    io.line(
-      `  ${paint('Welcome!', 'bold', 'cyan')} Let us get Kestrel running on your computer.`,
-    );
+    io.line(`  ${paint('Welcome!', 'bold', 'cyan')} Let us get Kestrel running on your computer.`);
     io.line(`  ${paint("We'll check your environment, then configure and launch it.", 'dim')}`);
     io.line();
   }

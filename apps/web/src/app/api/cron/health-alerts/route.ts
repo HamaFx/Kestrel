@@ -34,24 +34,28 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
-  return withCronAuth(request, async () => {
-    const snapshot = await computeHealthSloService(getDb(), {
-      hours: Number.parseInt(process.env.ALERT_WINDOW_HOURS ?? '1', 10) || 1,
-    });
-    const delivery = await deliverHealthAlert(snapshot);
+  return withCronAuth(
+    request,
+    async () => {
+      const snapshot = await computeHealthSloService(getDb(), {
+        hours: Number.parseInt(process.env.ALERT_WINDOW_HOURS ?? '1', 10) || 1,
+      });
+      const delivery = await deliverHealthAlert(snapshot);
 
-    if (delivery.status === 'failed') {
-      createScopedLoggerWithContext({ component: 'cron', job: 'health-alerts' }).error(
-        { deliveryStatus: delivery.status, reason: delivery.reason },
-        'health alert delivery failed after SLO evaluation',
-      );
-    }
+      if (delivery.status === 'failed') {
+        createScopedLoggerWithContext({ component: 'cron', job: 'health-alerts' }).error(
+          { deliveryStatus: delivery.status, reason: delivery.reason },
+          'health alert delivery failed after SLO evaluation',
+        );
+      }
 
-    return {
-      processed: snapshot.anomalies.length,
-      note: `${snapshot.overall}; webhook=${delivery.status}${
-        delivery.status === 'skipped' ? `:${delivery.reason}` : ''
-      }`,
-    };
-  }, { requireAdminSession: true });
+      return {
+        processed: snapshot.anomalies.length,
+        note: `${snapshot.overall}; webhook=${delivery.status}${
+          delivery.status === 'skipped' ? `:${delivery.reason}` : ''
+        }`,
+      };
+    },
+    { requireAdminSession: true },
+  );
 }

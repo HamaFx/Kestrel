@@ -18,12 +18,7 @@
 
 // Preferences domain actions: profile, UI, AI prefs, notifications, usage budget, symbols, locale.
 import { getDb } from '@kestrel/ai';
-import {
-  requireTenantIdForUser,
-  schema,
-  updateUserDisplayName,
-  withRateLimit,
-} from '@kestrel/db';
+import { requireTenantIdForUser, schema, updateUserDisplayName, withRateLimit } from '@kestrel/db';
 import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import * as Sentry from '@sentry/nextjs';
 import { and, eq, sql } from 'drizzle-orm';

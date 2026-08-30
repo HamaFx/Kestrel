@@ -13,13 +13,24 @@ describe('safe outbound URLs', () => {
   });
 
   it('rejects private, loopback, link-local, and metadata addresses', () => {
-    for (const host of ['127.0.0.1', '10.0.0.1', '172.16.0.1', '192.168.1.1', '169.254.169.254', 'localhost', '[::1]', '[fd00::1]']) {
+    for (const host of [
+      '127.0.0.1',
+      '10.0.0.1',
+      '172.16.0.1',
+      '192.168.1.1',
+      '169.254.169.254',
+      'localhost',
+      '[::1]',
+      '[fd00::1]',
+    ]) {
       expect(isSafeOutboundUrl(`https://${host}/`)).toBe(false);
     }
   });
 
   it('supports an explicit host allowlist', () => {
     expect(isSafeOutboundUrl('https://api.example.com', { hosts: ['api.example.com'] })).toBe(true);
-    expect(isSafeOutboundUrl('https://other.example.com', { hosts: ['api.example.com'] })).toBe(false);
+    expect(isSafeOutboundUrl('https://other.example.com', { hosts: ['api.example.com'] })).toBe(
+      false,
+    );
   });
 });

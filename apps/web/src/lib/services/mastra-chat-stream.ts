@@ -36,8 +36,8 @@ import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
 import { createMastraChatMeta } from '@/lib/mastra-chat-meta';
-import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
 import { createMastraStreamFinalizer } from '@/lib/services/mastra-stream-finalizer';
+import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra-thread-title';
 
 export interface RunMastraXauusdConversationStreamInput {

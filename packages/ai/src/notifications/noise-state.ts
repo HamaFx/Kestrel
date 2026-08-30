@@ -135,12 +135,7 @@ export async function getNoiseConfig(userId: string): Promise<NoiseConfig> {
   const rows = await db
     .select({ notificationPreferences: schema.userSettings.notificationPreferences })
     .from(schema.userSettings)
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    )
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)))
     .limit(1);
 
   const prefs = rows[0]?.notificationPreferences as NotificationPreferencesWithNoise | null;
@@ -163,12 +158,7 @@ export async function saveNoiseConfig(
   const rows = await db
     .select({ notificationPreferences: schema.userSettings.notificationPreferences })
     .from(schema.userSettings)
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    )
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)))
     .limit(1);
 
   const existing = (rows[0]?.notificationPreferences ?? {}) as NotificationPreferencesWithNoise;
@@ -198,12 +188,7 @@ export async function getRouteConfig(userId: string): Promise<RouteConfig> {
   const rows = await db
     .select({ notificationPreferences: schema.userSettings.notificationPreferences })
     .from(schema.userSettings)
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    )
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)))
     .limit(1);
 
   const prefs = rows[0]?.notificationPreferences as NotificationPreferencesWithNoise | null;
@@ -225,12 +210,7 @@ export async function saveRouteConfig(
   const rows = await db
     .select({ notificationPreferences: schema.userSettings.notificationPreferences })
     .from(schema.userSettings)
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    )
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)))
     .limit(1);
 
   const existing = (rows[0]?.notificationPreferences ?? {}) as NotificationPreferencesWithNoise;

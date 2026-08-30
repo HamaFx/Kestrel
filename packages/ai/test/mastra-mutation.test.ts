@@ -358,7 +358,9 @@ describe('mutation policy — stored confirmation type', () => {
         snapshot: { value: { ...context, userId: 'u2' } },
       }),
     ).toEqual({ ...context, userId: 'u2' });
-    expect(parseMutationRunContext({ snapshot: { value: { ...context, inputDigest: 'bad' } } })).toBeNull();
+    expect(
+      parseMutationRunContext({ snapshot: { value: { ...context, inputDigest: 'bad' } } }),
+    ).toBeNull();
     expect(parseMutationRunContext({ snapshot: '{not-json' })).toBeNull();
   });
 });

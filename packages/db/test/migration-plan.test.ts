@@ -15,7 +15,10 @@ function fixture(files: Record<string, string>) {
   const dir = mkdtempSync(join(tmpdir(), 'kestrel-migration-plan-'));
   dirs.push(dir);
   mkdirSync(join(dir, 'meta'));
-  writeFileSync(join(dir, 'meta', '_journal.json'), JSON.stringify({ entries: [{ tag: '0001_init' }] }));
+  writeFileSync(
+    join(dir, 'meta', '_journal.json'),
+    JSON.stringify({ entries: [{ tag: '0001_init' }] }),
+  );
   for (const [file, content] of Object.entries(files)) writeFileSync(join(dir, file), content);
   return dir;
 }

@@ -36,7 +36,6 @@ describe('ownership-scoped diagnostic and billing queries', { timeout: 60_000 },
     pglite = await getPGliteDb(dir);
 
     await seedTwoTenantBillingAndTraceData(sql);
-
   });
 
   afterEach(async () => {
@@ -49,7 +48,9 @@ describe('ownership-scoped diagnostic and billing queries', { timeout: 60_000 },
     const { getTenantIdForUser, requireTenantIdForUser } = await import('../src/tenant');
 
     expect(await getTenantIdForUser(TWO_TENANT_IDS.userA)).toBe(TWO_TENANT_IDS.tenantA);
-    await expect(requireTenantIdForUser('missing-user')).rejects.toThrow(/organization membership/i);
+    await expect(requireTenantIdForUser('missing-user')).rejects.toThrow(
+      /organization membership/i,
+    );
 
     expect(await getDiagnosticTrace('user-a', 'trace-b')).toBeNull();
     expect((await listDiagnosticTraces('user-a')).map((row) => row.id)).toEqual(['trace-a']);
@@ -158,8 +159,10 @@ describe('ownership-scoped diagnostic and billing queries', { timeout: 60_000 },
   });
 
   it('scopes settings, symbols, provider health, and sessions to the canonical tenant', async () => {
-    const { getUserWithSettings, updateUserSettingsField } = await import('../src/queries/user-settings');
-    const { getUserApiKeys, getProviderHealthForUser } = await import('../src/queries/provider-tests');
+    const { getUserWithSettings, updateUserSettingsField } =
+      await import('../src/queries/user-settings');
+    const { getUserApiKeys, getProviderHealthForUser } =
+      await import('../src/queries/provider-tests');
     const { listUserSymbols, countUserSymbols } = await import('../src/queries/user-symbols');
     const { listUserSessions, revokeUserSession } = await import('../src/queries/user-sessions');
 
@@ -186,9 +189,13 @@ describe('ownership-scoped diagnostic and billing queries', { timeout: 60_000 },
     expect((await getUserWithSettings(TWO_TENANT_IDS.userA)).settings).toBeNull();
     expect(await getUserApiKeys(TWO_TENANT_IDS.userA)).toBeNull();
     expect(await getProviderHealthForUser(TWO_TENANT_IDS.userA)).toEqual([]);
-    expect((await listUserSymbols(TWO_TENANT_IDS.userA)).map((row) => row.symbol)).toEqual(['XAUUSD']);
+    expect((await listUserSymbols(TWO_TENANT_IDS.userA)).map((row) => row.symbol)).toEqual([
+      'XAUUSD',
+    ]);
     expect(await countUserSymbols(TWO_TENANT_IDS.userA)).toBe(1);
-    expect((await listUserSessions(TWO_TENANT_IDS.userA)).map((row) => row.id)).toEqual(['session-a']);
+    expect((await listUserSessions(TWO_TENANT_IDS.userA)).map((row) => row.id)).toEqual([
+      'session-a',
+    ]);
 
     await revokeUserSession('session-b', TWO_TENANT_IDS.userA);
     const remainingWrongTenantSession = await pglite.execute<{ id: string }>(
@@ -388,9 +395,11 @@ describe('ownership-scoped diagnostic and billing queries', { timeout: 60_000 },
 
     await deleteUserAccount(userId);
 
-    const user = await pglite.execute<{ email: string; deletedAt: string | null; hashedPassword: string | null }>(
-      `SELECT "email", "deletedAt", "hashedPassword" FROM "user" WHERE "id" = '${userId}'`,
-    );
+    const user = await pglite.execute<{
+      email: string;
+      deletedAt: string | null;
+      hashedPassword: string | null;
+    }>(`SELECT "email", "deletedAt", "hashedPassword" FROM "user" WHERE "id" = '${userId}'`);
     expect(user.rows[0]).toMatchObject({
       email: `deleted-${userId}@deleted.invalid`,
       deletedAt: expect.anything(),
@@ -457,8 +466,12 @@ describe('ownership-scoped diagnostic and billing queries', { timeout: 60_000 },
       VALUES ('shared-org-a', '${TWO_TENANT_IDS.userA}', 'member')
     `);
 
-    await expect(getTenantIdForUser(TWO_TENANT_IDS.userA)).rejects.toThrow(/multiple active organization memberships/i);
-    await expect(requireTenantIdForUser(TWO_TENANT_IDS.userA)).rejects.toThrow(/multiple active organization memberships/i);
+    await expect(getTenantIdForUser(TWO_TENANT_IDS.userA)).rejects.toThrow(
+      /multiple active organization memberships/i,
+    );
+    await expect(requireTenantIdForUser(TWO_TENANT_IDS.userA)).rejects.toThrow(
+      /multiple active organization memberships/i,
+    );
 
     await sql(`UPDATE "organization" SET "deleted_at" = now() WHERE "id" = 'shared-org-a'`);
     expect(await getTenantIdForUser(TWO_TENANT_IDS.userA)).toBe(TWO_TENANT_IDS.tenantA);
@@ -573,13 +586,12 @@ describe('ownership-scoped diagnostic and billing queries', { timeout: 60_000 },
   });
 
   it('allows billing writes only for the payment tenant', async () => {
-    const {
-      getPaymentByNowpaymentsId,
-      updatePaymentStatus,
-      updateSubscriptionFromPayment,
-    } = await import('../src/queries/ipn-events');
+    const { getPaymentByNowpaymentsId, updatePaymentStatus, updateSubscriptionFromPayment } =
+      await import('../src/queries/ipn-events');
 
-    expect(await getPaymentByNowpaymentsId('payment-b', undefined, TWO_TENANT_IDS.tenantA)).toBeNull();
+    expect(
+      await getPaymentByNowpaymentsId('payment-b', undefined, TWO_TENANT_IDS.tenantA),
+    ).toBeNull();
 
     await updatePaymentStatus(UUID('720000000002'), {
       tenantId: TWO_TENANT_IDS.tenantA,
@@ -598,7 +610,9 @@ describe('ownership-scoped diagnostic and billing queries', { timeout: 60_000 },
     expect(payment.rows[0]?.status).toBe('waiting');
     expect(subscription.rows[0]?.status).toBe('active');
 
-    expect(await getPaymentByNowpaymentsId('payment-b', undefined, TWO_TENANT_IDS.tenantB)).not.toBeNull();
+    expect(
+      await getPaymentByNowpaymentsId('payment-b', undefined, TWO_TENANT_IDS.tenantB),
+    ).not.toBeNull();
     await updatePaymentStatus(UUID('720000000002'), {
       tenantId: TWO_TENANT_IDS.tenantB,
       status: 'finished',

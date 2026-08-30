@@ -48,7 +48,11 @@ const {
   mockMastraCanonicalResponse: vi.fn(() => new Response('canonical', { status: 200 })),
   mockMastraChatResponse: vi.fn(() => new Response('xauusd', { status: 200 })),
   mockMastraModeResponse: vi.fn(() => new Response('mode', { status: 200 })),
-  mockResolveMastraModeModel: vi.fn(() => ({ modelId: 'google/gemini-3.6-flash', providerId: 'google', bareModelId: 'gemini-3.6-flash' })),
+  mockResolveMastraModeModel: vi.fn(() => ({
+    modelId: 'google/gemini-3.6-flash',
+    providerId: 'google',
+    bareModelId: 'gemini-3.6-flash',
+  })),
 }));
 
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
@@ -152,7 +156,11 @@ vi.mock('@/lib/services/api-boundary', () => ({
   traceIdStorage: { getStore: () => 'trace-route-1' },
   isMastraMutationEnabled: () => false,
   classifyMutationRequest: () => null,
-  resolveMastraModeModel: () => ({ modelId: 'google/gemini-3.6-flash', providerId: 'google', bareModelId: 'gemini-3.6-flash' }),
+  resolveMastraModeModel: () => ({
+    modelId: 'google/gemini-3.6-flash',
+    providerId: 'google',
+    bareModelId: 'gemini-3.6-flash',
+  }),
   withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<Response>) => fn(),
   withRateLimit: mockWithRateLimit,
   UserMessagePartsSchema: z.array(z.unknown()).transform((parts) => parts),
@@ -194,8 +202,14 @@ describe('POST /api/chat Mastra boundary', () => {
       },
     });
     mockEnqueueFullAnalysis.mockResolvedValue('run-1');
-    mockResolveMastraModeModel.mockReturnValue({ modelId: 'google/gemini-3.6-flash', providerId: 'google', bareModelId: 'gemini-3.6-flash' });
-    mockGetUserWithSettings.mockResolvedValue({ settings: { maxDailyUsd: 5, aiApiKeys: null, chatModel: null } });
+    mockResolveMastraModeModel.mockReturnValue({
+      modelId: 'google/gemini-3.6-flash',
+      providerId: 'google',
+      bareModelId: 'gemini-3.6-flash',
+    });
+    mockGetUserWithSettings.mockResolvedValue({
+      settings: { maxDailyUsd: 5, aiApiKeys: null, chatModel: null },
+    });
     mockRunMastraXauusdChat.mockResolvedValue({
       result: { text: 'xauusd result' },
       runId: 'run-1',

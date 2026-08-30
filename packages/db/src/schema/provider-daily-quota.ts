@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { date, integer, index, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
+import { date, index, integer, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 
 /**
  * Phase A RL-2 — Shared daily quota counter for providers with a daily cap

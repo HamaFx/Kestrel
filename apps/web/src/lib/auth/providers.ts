@@ -1,13 +1,13 @@
-import { eq } from 'drizzle-orm';
 import { getDb } from '@kestrel/ai';
 import { schema } from '@kestrel/db';
+import { logErrorContext } from '@kestrel/shared/logger';
+import { eq } from 'drizzle-orm';
+import type { Provider } from 'next-auth/providers';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
-import type { Provider } from 'next-auth/providers';
 
 import { authorizeCredentials } from './credentials-authorize';
 import { verifyImpersonationChallenge } from './impersonation';
-import { logErrorContext } from '@kestrel/shared/logger';
 
 export function createAuthProviders(authEnv: Record<string, string | undefined>): Provider[] {
   const providers: Provider[] = [
@@ -54,12 +54,29 @@ export function createAuthProviders(authEnv: Record<string, string | undefined>)
           const userId = typeof credentials?.userId === 'string' ? credentials.userId : '';
           const challenge = typeof credentials?.challenge === 'string' ? credentials.challenge : '';
           if (!userId || !challenge || !verifyImpersonationChallenge(challenge)) {
-            logErrorContext(new Error('Impersonation challenge verification failed'), 'auth/impersonation_challenge', { userId }, 'auth');
+            logErrorContext(
+              new Error('Impersonation challenge verification failed'),
+              'auth/impersonation_challenge',
+              { userId },
+              'auth',
+            );
             return null;
           }
-          const [user] = await getDb().select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+          const [user] = await getDb()
+            .select()
+            .from(schema.users)
+            .where(eq(schema.users.id, userId))
+            .limit(1);
           if (!user) return null;
-          return { id: user.id, email: user.email, name: user.name, image: user.image, tokenVersion: user.tokenVersion, sessionId: '', rememberMe: false };
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            tokenVersion: user.tokenVersion,
+            sessionId: '',
+            rememberMe: false,
+          };
         },
       }),
     );

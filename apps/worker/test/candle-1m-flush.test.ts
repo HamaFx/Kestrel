@@ -79,7 +79,9 @@ describe('flushClosedCandle', () => {
     const controller = new AbortController();
     controller.abort();
 
-    await expect(flushClosedCandle({ db, log, bar: BAR, signal: controller.signal })).rejects.toMatchObject({
+    await expect(
+      flushClosedCandle({ db, log, bar: BAR, signal: controller.signal }),
+    ).rejects.toMatchObject({
       name: 'AbortError',
     });
     expect(db.insert).not.toHaveBeenCalled();

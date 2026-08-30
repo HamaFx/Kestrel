@@ -4,15 +4,12 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
+import { metrics } from '@kestrel/shared';
 import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 
 import { getDb, schema, type DbClient } from '../client';
+import type { FullAnalysisQueueRow, FullAnalysisQueueStatus } from '../schema/full-analysis-queue';
 import { requireTenantIdForUser } from '../tenant';
-import { metrics } from '@kestrel/shared';
-import type {
-  FullAnalysisQueueRow,
-  FullAnalysisQueueStatus,
-} from '../schema/full-analysis-queue';
 
 export interface EnqueueFullAnalysisQueueInput {
   runId: string;
@@ -308,7 +305,11 @@ export async function getFullAnalysisQueueRow(
       eq(schema.fullAnalysisQueue.tenantId, tenantId),
     );
   }
-  const rows = await db.select().from(schema.fullAnalysisQueue).where(and(...conditions)).limit(1);
+  const rows = await db
+    .select()
+    .from(schema.fullAnalysisQueue)
+    .where(and(...conditions))
+    .limit(1);
   return rows[0] ?? null;
 }
 

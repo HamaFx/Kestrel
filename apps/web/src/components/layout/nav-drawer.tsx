@@ -41,8 +41,6 @@ import {
   IconShield,
 } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
-
-import { clearKestrelClientState } from '@/lib/cache-isolation';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
@@ -50,6 +48,7 @@ import { toast } from 'sonner';
 import { Drawer as DrawerPrimitive } from 'vaul';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import { clearKestrelClientState } from '@/lib/cache-isolation';
 import { cn } from '@/lib/cn';
 
 import { useNavDrawer } from './nav-drawer-context';

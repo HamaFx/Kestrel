@@ -23,7 +23,6 @@
  *
  * This command never applies migrations and never prints secret values.
  */
-
 import { execFileSync } from 'node:child_process';
 
 const timeoutMs = 15_000;
@@ -62,13 +61,18 @@ async function checkEndpoint(name, url, headers = {}) {
 }
 
 function verifyMigrationConfiguration() {
-  const production = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  const production =
+    process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
   if (!production && process.env.VERIFY_MIGRATIONS !== '1') return;
   if (!process.env.DIRECT_URL && !process.env.POSTGRES_URL_NON_POOLING) {
-    throw new Error('DIRECT_URL or POSTGRES_URL_NON_POOLING is required for migration verification');
+    throw new Error(
+      'DIRECT_URL or POSTGRES_URL_NON_POOLING is required for migration verification',
+    );
   }
   if (process.env.VERIFY_MIGRATIONS !== '1') {
-    console.log('[verify-production] migration connection configured (status check skipped; set VERIFY_MIGRATIONS=1 to run it)');
+    console.log(
+      '[verify-production] migration connection configured (status check skipped; set VERIFY_MIGRATIONS=1 to run it)',
+    );
     return;
   }
 
@@ -89,18 +93,30 @@ function verifyObservabilityConfiguration() {
   ];
   const configured = langfuse.every(Boolean);
   const partial = langfuse.some(Boolean) && !configured;
-  if (partial) throw new Error('Langfuse configuration is partial; set all LANGFUSE_PUBLIC_KEY/SECRET_KEY/BASE_URL values or none');
-  if (configured && process.env.LANGFUSE_RECORD_IO !== '1' && process.env.LANGFUSE_RECORD_IO !== 'true') {
+  if (partial)
+    throw new Error(
+      'Langfuse configuration is partial; set all LANGFUSE_PUBLIC_KEY/SECRET_KEY/BASE_URL values or none',
+    );
+  if (
+    configured &&
+    process.env.LANGFUSE_RECORD_IO !== '1' &&
+    process.env.LANGFUSE_RECORD_IO !== 'true'
+  ) {
     console.log('[verify-production] Langfuse: configured with prompt/output capture disabled');
   } else if (configured) {
-    console.warn('[verify-production] WARNING: LANGFUSE_RECORD_IO is enabled; confirm privacy approval before production use');
+    console.warn(
+      '[verify-production] WARNING: LANGFUSE_RECORD_IO is enabled; confirm privacy approval before production use',
+    );
   } else {
     console.log('[verify-production] Langfuse: disabled');
   }
 }
 
 export async function verifyProduction() {
-  const productionUrl = requiredUrl('PRODUCTION_URL', process.env.PRODUCTION_URL ?? process.env.NEXT_PUBLIC_APP_URL);
+  const productionUrl = requiredUrl(
+    'PRODUCTION_URL',
+    process.env.PRODUCTION_URL ?? process.env.NEXT_PUBLIC_APP_URL,
+  );
   await checkEndpoint('web public health', new URL('/api/health/public', productionUrl));
 
   if (process.env.WORKER_HEALTH_URL) {
@@ -115,12 +131,15 @@ export async function verifyProduction() {
 
   if (process.env.VERIFY_ALERTS === '1') {
     const cronSecret = process.env.PRODUCTION_CRON_SECRET ?? process.env.CRON_SECRET;
-    if (!cronSecret) throw new Error('CRON_SECRET or PRODUCTION_CRON_SECRET is required when VERIFY_ALERTS=1');
+    if (!cronSecret)
+      throw new Error('CRON_SECRET or PRODUCTION_CRON_SECRET is required when VERIFY_ALERTS=1');
     await checkEndpoint('SLO alert contract', new URL('/api/health/alerts', productionUrl), {
       authorization: `Bearer ${cronSecret}`,
     });
   } else {
-    console.log('[verify-production] SLO alert contract: skipped (set VERIFY_ALERTS=1 to verify it)');
+    console.log(
+      '[verify-production] SLO alert contract: skipped (set VERIFY_ALERTS=1 to verify it)',
+    );
   }
 
   verifyMigrationConfiguration();
@@ -131,7 +150,9 @@ export async function verifyProduction() {
 const isEntryPoint = process.argv[1]?.endsWith('verify-production.mjs') ?? false;
 if (isEntryPoint) {
   verifyProduction().catch((error) => {
-    console.error(`[verify-production] FAILED: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `[verify-production] FAILED: ${error instanceof Error ? error.message : String(error)}`,
+    );
     process.exitCode = 1;
   });
 }

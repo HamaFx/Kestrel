@@ -99,12 +99,7 @@ export async function getNextDisplayOrder(userId: string): Promise<number> {
       maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`,
     })
     .from(schema.userSymbols)
-    .where(
-      and(
-        eq(schema.userSymbols.userId, userId),
-        eq(schema.userSymbols.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)));
   return (row?.maxOrder ?? -1) + 1;
 }
 
@@ -140,12 +135,7 @@ export async function reorderWatchlist(userId: string, symbols: string[]): Promi
     const existing = await tx
       .select({ symbol: schema.userSymbols.symbol })
       .from(schema.userSymbols)
-      .where(
-        and(
-          eq(schema.userSymbols.userId, userId),
-          eq(schema.userSymbols.tenantId, tenantId),
-        ),
-      );
+      .where(and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)));
     const existingSymbols = existing.map((row) => row.symbol);
     if (
       existingSymbols.length !== symbols.length ||

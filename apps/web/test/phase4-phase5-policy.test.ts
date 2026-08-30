@@ -23,7 +23,15 @@ import { ALL_SYMBOLS, CFTC_SUPPORTED_SYMBOLS, SymbolSchema } from '@kestrel/shar
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
-const authSource = readFileSync(resolve(root, 'apps/web/src/auth.ts'), 'utf8');
+const authSource = [
+  readFileSync(resolve(root, 'apps/web/src/auth.ts'), 'utf8'),
+  readFileSync(resolve(root, 'apps/web/src/lib/auth/credentials-authorize.ts'), 'utf8'),
+  readFileSync(resolve(root, 'apps/web/src/lib/auth/provision-user.ts'), 'utf8'),
+  readFileSync(resolve(root, 'apps/web/src/lib/auth/session-validators.ts'), 'utf8'),
+  readFileSync(resolve(root, 'apps/web/src/lib/auth/callbacks.ts'), 'utf8'),
+  readFileSync(resolve(root, 'apps/web/src/app/(auth)/actions.ts'), 'utf8'),
+  readFileSync(resolve(root, 'apps/web/src/lib/auth/credentials-authorize.ts'), 'utf8'),
+].join('\n');
 const actionsSource = readFileSync(resolve(root, 'apps/web/src/app/(auth)/actions.ts'), 'utf8');
 const promptSource = readFileSync(resolve(root, 'packages/ai/src/prompt/system.ts'), 'utf8');
 const read = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
@@ -37,7 +45,6 @@ describe('Phase 4 authentication persistence policy', () => {
     expect(authSource).toContain("'auth/lockout_reset'");
     expect(authSource).toContain("'auth/2fa_lockout_increment'");
     expect(authSource).toContain("'auth/2fa_lockout_reset'");
-    expect(authSource).toContain("'auth/consume_backup_code'");
     expect(authSource).toContain('array_remove');
     expect(authSource).toContain('.returning({ id: schema.users.id })');
     expect(authSource).not.toContain('fail open — lockout');

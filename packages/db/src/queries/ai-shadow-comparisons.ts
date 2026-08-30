@@ -19,12 +19,12 @@
 import { and, desc, eq, gte, lte, type SQL } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
-import { requireTenantIdForUser } from '../tenant';
 import type {
   ShadowComparisonAgent,
   ShadowComparisonOutcome,
   ShadowOverlap,
 } from '../schema/ai-shadow-comparisons';
+import { requireTenantIdForUser } from '../tenant';
 
 export type AiShadowComparisonRow = typeof schema.aiShadowComparisons.$inferSelect;
 
@@ -97,10 +97,7 @@ export async function listAiShadowComparisons(
   if (options.userId) {
     conditions.push(
       eq(schema.aiShadowComparisons.userId, options.userId),
-      eq(
-        schema.aiShadowComparisons.tenantId,
-        await requireTenantIdForUser(options.userId),
-      ),
+      eq(schema.aiShadowComparisons.tenantId, await requireTenantIdForUser(options.userId)),
     );
   }
   if (options.from) conditions.push(gte(schema.aiShadowComparisons.createdAt, options.from));

@@ -1,26 +1,33 @@
 #!/usr/bin/env node
-
+import { spawn } from 'node:child_process';
 import {
   cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline/promises';
 
 const REPOSITORY = 'HamaFx/Kestrel';
 const RELEASES_URL = `https://api.github.com/repos/${REPOSITORY}/releases/latest`;
 const ROOT = resolve(import.meta.dirname, '..');
 const VERSION_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
-const PROTECTED_PATHS = new Set(['.env', '.env.local', '.kestrel', '.hamafx', 'node_modules', '.next', '.git']);
+const PROTECTED_PATHS = new Set([
+  '.env',
+  '.env.local',
+  '.kestrel',
+  '.hamafx',
+  'node_modules',
+  '.next',
+  '.git',
+]);
 const DEFAULT_HEALTH_URL = 'http://localhost:3000/api/health/public';
 
 export function parseFlags(argv) {
@@ -35,7 +42,9 @@ export function parseFlags(argv) {
 }
 
 export function normalizeVersion(value) {
-  const match = String(value ?? '').trim().match(VERSION_PATTERN);
+  const match = String(value ?? '')
+    .trim()
+    .match(VERSION_PATTERN);
   if (!match) return null;
   return {
     raw: String(value).trim(),
@@ -63,9 +72,9 @@ export function compareVersions(left, right) {
 export function isStableRelease(release) {
   return Boolean(
     release &&
-      release.draft === false &&
-      release.prerelease === false &&
-      normalizeVersion(release.tag_name),
+    release.draft === false &&
+    release.prerelease === false &&
+    normalizeVersion(release.tag_name),
   );
 }
 
@@ -116,25 +125,28 @@ export function printHelp(output = console.log) {
   output('  --help, -h  Show this help');
   output('');
   output('The updater uses the newest stable GitHub release.');
-  output('It creates a backup, preserves your configuration and data, and checks the app after updating.');
+  output(
+    'It creates a backup, preserves your configuration and data, and checks the app after updating.',
+  );
 }
 
 function write(output, message) {
   output(message);
 }
 
-function ask(question, { yes = false, initial = false, input = process.stdin, output = process.stdout } = {}) {
+function ask(
+  question,
+  { yes = false, initial = false, input = process.stdin, output = process.stdout } = {},
+) {
   if (yes) return Promise.resolve(initial);
   if (!input.isTTY || !output.isTTY) return Promise.resolve(initial);
   const readline = createInterface({ input, output });
-  return readline
-    .question(`${question} [${initial ? 'Y/n' : 'y/N'}] `)
-    .then((answer) => {
-      readline.close();
-      const normalized = answer.trim().toLowerCase();
-      if (!normalized) return initial;
-      return normalized === 'y' || normalized === 'yes';
-    });
+  return readline.question(`${question} [${initial ? 'Y/n' : 'y/N'}] `).then((answer) => {
+    readline.close();
+    const normalized = answer.trim().toLowerCase();
+    if (!normalized) return initial;
+    return normalized === 'y' || normalized === 'yes';
+  });
 }
 
 function runCommand(command, args, options = {}) {
@@ -148,7 +160,8 @@ function runCommand(command, args, options = {}) {
     child.once('error', reject);
     child.once('exit', (code, signal) => {
       if (code === 0) resolvePromise();
-      else reject(new Error(`${command} exited with ${signal ? `signal ${signal}` : `code ${code}`}`));
+      else
+        reject(new Error(`${command} exited with ${signal ? `signal ${signal}` : `code ${code}`}`));
     });
   });
 }
@@ -167,7 +180,8 @@ function runCommandResult(command, args, cwd) {
 
 export async function getTrackedChanges(root = ROOT, runner = runCommandResult) {
   const result = await runner('git', ['status', '--porcelain=v1'], root);
-  if (result.code !== 0) throw new Error(`Unable to inspect local changes: ${result.stderr.trim()}`);
+  if (result.code !== 0)
+    throw new Error(`Unable to inspect local changes: ${result.stderr.trim()}`);
   return result.stdout
     .split('\n')
     .map((line) => line.slice(3).trim())
@@ -176,7 +190,8 @@ export async function getTrackedChanges(root = ROOT, runner = runCommandResult) 
 }
 
 export function detectMode(root = ROOT) {
-  const docker = existsSync(resolve(root, 'docker-compose.yml')) && existsSync(resolve(root, '.env'));
+  const docker =
+    existsSync(resolve(root, 'docker-compose.yml')) && existsSync(resolve(root, '.env'));
   return docker ? 'docker' : 'simple';
 }
 
@@ -232,12 +247,21 @@ async function downloadRelease(release, destination, fetchImpl = globalThis.fetc
   const archivePath = resolve(destination, 'release.zip');
   writeFileSync(archivePath, archive, { mode: 0o600 });
   mkdirSync(resolve(destination, 'source'), { recursive: true });
-  await runCommand(process.platform === 'win32' ? 'powershell.exe' : 'unzip', process.platform === 'win32'
-    ? ['-NoProfile', '-Command', `Expand-Archive -LiteralPath '${archivePath.replaceAll("'", "''")}' -DestinationPath '${resolve(destination, 'source').replaceAll("'", "''")}' -Force`]
-    : ['-q', archivePath, '-d', resolve(destination, 'source')], { stdio: 'ignore' });
+  await runCommand(
+    process.platform === 'win32' ? 'powershell.exe' : 'unzip',
+    process.platform === 'win32'
+      ? [
+          '-NoProfile',
+          '-Command',
+          `Expand-Archive -LiteralPath '${archivePath.replaceAll("'", "''")}' -DestinationPath '${resolve(destination, 'source').replaceAll("'", "''")}' -Force`,
+        ]
+      : ['-q', archivePath, '-d', resolve(destination, 'source')],
+    { stdio: 'ignore' },
+  );
   const entries = requireDirectoryNamesRecursive(resolve(destination, 'source'));
   const rootDirectory = entries.find((entry) => existsSync(resolve(entry, 'package.json')));
-  if (!rootDirectory) throw new Error('The release archive does not contain a valid Kestrel package.json.');
+  if (!rootDirectory)
+    throw new Error('The release archive does not contain a valid Kestrel package.json.');
   validateReleaseRoot(rootDirectory);
   return rootDirectory;
 }
@@ -259,16 +283,40 @@ async function makeBackup(root, mode, output) {
   mkdirSync(destination, { recursive: true, mode: 0o700 });
   if (mode === 'simple') {
     const data = resolve(root, '.kestrel', 'data');
-    if (existsSync(data)) cpSync(data, resolve(destination, 'data'), { recursive: true, preserveTimestamps: true });
-    writeFileSync(resolve(destination, 'README.txt'), 'Simple-mode PGlite data backup. Keep the matching .env.local and ENCRYPTION_SECRET safe.\n', { mode: 0o600 });
+    if (existsSync(data))
+      cpSync(data, resolve(destination, 'data'), { recursive: true, preserveTimestamps: true });
+    writeFileSync(
+      resolve(destination, 'README.txt'),
+      'Simple-mode PGlite data backup. Keep the matching .env.local and ENCRYPTION_SECRET safe.\n',
+      { mode: 0o600 },
+    );
   } else {
-    writeFileSync(resolve(destination, 'README.txt'), 'Docker database backup created by Kestrel updater. Keep the matching .env and ENCRYPTION_SECRET safe.\n', { mode: 0o600 });
+    writeFileSync(
+      resolve(destination, 'README.txt'),
+      'Docker database backup created by Kestrel updater. Keep the matching .env and ENCRYPTION_SECRET safe.\n',
+      { mode: 0o600 },
+    );
     try {
-      await runCommand('docker', ['compose', 'run', '--rm', '--no-deps', 'backup', '/bin/sh', '/usr/local/bin/backup-db.sh', '--once'], { cwd: root });
+      await runCommand(
+        'docker',
+        [
+          'compose',
+          'run',
+          '--rm',
+          '--no-deps',
+          'backup',
+          '/bin/sh',
+          '/usr/local/bin/backup-db.sh',
+          '--once',
+        ],
+        { cwd: root },
+      );
       write(output, 'Docker database backup completed.');
     } catch (error) {
       rmSync(destination, { recursive: true, force: true });
-      throw new Error(`Docker database backup failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Docker database backup failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
   return destination;
@@ -285,7 +333,10 @@ export function replaceSource(root, releaseRoot) {
   try {
     for (const entry of requireDirectoryEntries(releaseRoot)) {
       if (!PROTECTED_PATHS.has(entry)) {
-        cpSync(resolve(releaseRoot, entry), resolve(staging, entry), { recursive: true, force: true });
+        cpSync(resolve(releaseRoot, entry), resolve(staging, entry), {
+          recursive: true,
+          force: true,
+        });
       }
     }
     validateReleaseRoot(staging);
@@ -310,7 +361,9 @@ export function replaceSource(root, releaseRoot) {
     return previous;
   } catch (error) {
     rmSync(staging, { recursive: true, force: true });
-    throw new Error(`Could not safely replace Kestrel source: ${error instanceof Error ? error.message : String(error)}. Previous source is preserved at ${previous}.`);
+    throw new Error(
+      `Could not safely replace Kestrel source: ${error instanceof Error ? error.message : String(error)}. Previous source is preserved at ${previous}.`,
+    );
   }
 }
 
@@ -321,12 +374,20 @@ function requireDirectoryEntries(directory) {
 function writeInstallMetadata(root, release) {
   const metadataDirectory = resolve(root, '.kestrel');
   mkdirSync(metadataDirectory, { recursive: true, mode: 0o700 });
-  writeFileSync(resolve(metadataDirectory, 'install.json'), `${JSON.stringify({
-    version: normalizeVersion(release.tag_name).version,
-    releaseTag: release.tag_name,
-    source: 'github',
-    updatedAt: new Date().toISOString(),
-  }, null, 2)}\n`, { mode: 0o600 });
+  writeFileSync(
+    resolve(metadataDirectory, 'install.json'),
+    `${JSON.stringify(
+      {
+        version: normalizeVersion(release.tag_name).version,
+        releaseTag: release.tag_name,
+        source: 'github',
+        updatedAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    )}\n`,
+    { mode: 0o600 },
+  );
 }
 
 async function applyDockerUpdate(root, output, dependencies = {}) {
@@ -334,7 +395,11 @@ async function applyDockerUpdate(root, output, dependencies = {}) {
   await runCommand('docker', ['compose', 'up', '-d', '--build'], { cwd: root });
   const started = Date.now();
   while (Date.now() - started < 180_000) {
-    const result = await runCommandResult('curl', ['-fsS', dependencies.healthUrl ?? DEFAULT_HEALTH_URL], root);
+    const result = await runCommandResult(
+      'curl',
+      ['-fsS', dependencies.healthUrl ?? DEFAULT_HEALTH_URL],
+      root,
+    );
     if (result.code === 0) return true;
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 2_000));
   }
@@ -357,7 +422,10 @@ export async function main(argv = process.argv.slice(2), dependencies = {}) {
   }
   const root = resolve(dependencies.root ?? ROOT);
   const installed = getInstalledVersion(root);
-  if (!installed) throw new Error('This does not look like a Kestrel installation: application version not found.');
+  if (!installed)
+    throw new Error(
+      'This does not look like a Kestrel installation: application version not found.',
+    );
   const release = await fetchLatestRelease(dependencies.fetchImpl);
   const latest = normalizeVersion(release.tag_name);
   write(output, 'Kestrel updater');
@@ -376,18 +444,28 @@ export async function main(argv = process.argv.slice(2), dependencies = {}) {
 
   const changed = await getTrackedChanges(root, dependencies.runCommandResult ?? runCommandResult);
   if (changed.length > 0) {
-    throw new Error(`Update stopped because local project files were changed: ${changed.join(', ')}`);
+    throw new Error(
+      `Update stopped because local project files were changed: ${changed.join(', ')}`,
+    );
   }
 
   const mode = detectMode(root);
   write(output, `Installation mode: ${mode === 'docker' ? 'Docker' : 'Simple/PGlite'}`);
-  const backupApproved = await ask('Create a backup before updating?', { yes: flags.yes, initial: true, ...dependencies });
+  const backupApproved = await ask('Create a backup before updating?', {
+    yes: flags.yes,
+    initial: true,
+    ...dependencies,
+  });
   let backupPath = null;
   if (backupApproved) {
     backupPath = await makeBackup(root, mode, output, dependencies);
     write(output, `Backup created: ${backupPath}`);
   } else {
-    const proceed = await ask('Continue without a backup? This is less safe.', { yes: flags.yes, initial: false, ...dependencies });
+    const proceed = await ask('Continue without a backup? This is less safe.', {
+      yes: flags.yes,
+      initial: false,
+      ...dependencies,
+    });
     if (!proceed) {
       write(output, 'Update cancelled.');
       return 130;
@@ -400,7 +478,11 @@ export async function main(argv = process.argv.slice(2), dependencies = {}) {
     const releaseRoot = await downloadRelease(release, temporary, dependencies.fetchImpl);
     const migrationChanges = hasMigrationChanges(root, releaseRoot);
     if (migrationChanges) {
-      const approved = await ask('This release includes database migrations. Continue?', { yes: flags.yes, initial: false, ...dependencies });
+      const approved = await ask('This release includes database migrations. Continue?', {
+        yes: flags.yes,
+        initial: false,
+        ...dependencies,
+      });
       if (!approved) {
         write(output, 'Update cancelled before changing application files.');
         return 130;

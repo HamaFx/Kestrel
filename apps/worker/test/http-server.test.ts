@@ -33,7 +33,9 @@ async function request(
   try {
     return await fetch(`http://127.0.0.1:${address.port}${path}`, init);
   } finally {
-    await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 }
 
@@ -95,11 +97,14 @@ describe('worker health server', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.BIQUOTE_PROXY_TOKEN;
 
-    const response = await request(createProxyServer({
-      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
-      getLastTickAt: () => Date.now(),
-      isSignalRConnected: () => true,
-    }), '/biquote/api/XAUUSD/ohlc');
+    const response = await request(
+      createProxyServer({
+        log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
+        getLastTickAt: () => Date.now(),
+        isSignalRConnected: () => true,
+      }),
+      '/biquote/api/XAUUSD/ohlc',
+    );
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toMatchObject({
       status: 'error',

@@ -7,13 +7,7 @@
 import { estimateCostUsd } from './cost';
 
 export type AuxiliaryCallKind =
-  | 'semantic-routing'
-  | 'guardrail'
-  | 'embedding'
-  | 'title'
-  | 'planner'
-  | 'scorer'
-  | 'specialist';
+  'semantic-routing' | 'guardrail' | 'embedding' | 'title' | 'planner' | 'scorer' | 'specialist';
 
 export interface AuxiliaryUsage {
   kind: AuxiliaryCallKind;
@@ -35,9 +29,16 @@ export function normalizeUsage(input: {
   runId?: string;
   threadId?: string;
 }): AuxiliaryUsage {
-  const inputTokens = Number.isFinite(input.inputTokens) && (input.inputTokens ?? 0) >= 0 ? input.inputTokens ?? 0 : 0;
-  const outputTokens = Number.isFinite(input.outputTokens) && (input.outputTokens ?? 0) >= 0 ? input.outputTokens ?? 0 : 0;
-  const usageKnown = input.usageKnown ?? (input.inputTokens !== undefined || input.outputTokens !== undefined);
+  const inputTokens =
+    Number.isFinite(input.inputTokens) && (input.inputTokens ?? 0) >= 0
+      ? (input.inputTokens ?? 0)
+      : 0;
+  const outputTokens =
+    Number.isFinite(input.outputTokens) && (input.outputTokens ?? 0) >= 0
+      ? (input.outputTokens ?? 0)
+      : 0;
+  const usageKnown =
+    input.usageKnown ?? (input.inputTokens !== undefined || input.outputTokens !== undefined);
   return {
     kind: input.kind,
     model: input.model,

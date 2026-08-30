@@ -28,11 +28,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { ProviderError, toAppError } from '@kestrel/data';
-import {
-  getAdminDb,
-  requireTenantIdForUser,
-  withTenantDbFresh,
-} from '@kestrel/db';
+import { getAdminDb, requireTenantIdForUser, withTenantDbFresh } from '@kestrel/db';
 import { AppError, formatErrorResponse, validationError, type ErrorCode } from '@kestrel/shared';
 import * as Sentry from '@sentry/nextjs';
 import { ZodError, type z } from 'zod';
@@ -152,9 +148,7 @@ export function withAuth<T>(
       // downstream repository and AI calls inside the tenant transaction.
       if (process.env.MULTI_USER_ENABLED === 'true' || process.env.MULTI_USER_ENABLED === '1') {
         const tenantId = await requireTenantIdForUser(user.userId, getAdminDb());
-        return await withTenantDbFresh(tenantId, () =>
-          handler(req, { params: ctx.params, user }),
-        );
+        return await withTenantDbFresh(tenantId, () => handler(req, { params: ctx.params, user }));
       }
       return await handler(req, { params: ctx.params, user });
     } catch (err) {

@@ -26,10 +26,7 @@ export interface MastraStreamResponseMeta {
 }
 
 export type MastraStreamTerminalStatus =
-  | 'persisted'
-  | 'persistence-failed'
-  | 'interrupted'
-  | 'failed';
+  'persisted' | 'persistence-failed' | 'interrupted' | 'failed';
 
 export interface MastraStreamResponseOptions {
   readonly meta?: MastraStreamResponseMeta;

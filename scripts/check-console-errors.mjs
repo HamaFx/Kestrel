@@ -15,16 +15,12 @@
  * Usage: node scripts/check-console-errors.mjs
  * Exit 0 = pass, exit 1 = violations found.
  */
-
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 
-const SCAN_DIRS = [
-  'apps/web/src',
-  'packages/ai/src',
-];
+const SCAN_DIRS = ['apps/web/src', 'packages/ai/src'];
 
 const ALLOW_LIST = new Set([
   'apps/web/src/lib/logger.ts',
@@ -88,10 +84,14 @@ for (const scanDir of SCAN_DIRS) {
 
 if (violations > 0) {
   console.error(`\n❌ Found ${violations} console.*() call(s) in apps/web or packages/ai.`);
-  console.error('   Use the structured pino logger (createRequestLogger / createScopedLoggerWithContext) instead.');
+  console.error(
+    '   Use the structured pino logger (createRequestLogger / createScopedLoggerWithContext) instead.',
+  );
   console.error('   See docs/review/07-observability-monitoring-review.md §OBS-09 for context.\n');
   process.exit(1);
 } else {
-  console.log('✅ No console.error/warn/info calls found in apps/web or packages/ai (allow-listed files excluded).');
+  console.log(
+    '✅ No console.error/warn/info calls found in apps/web or packages/ai (allow-listed files excluded).',
+  );
   process.exit(0);
 }

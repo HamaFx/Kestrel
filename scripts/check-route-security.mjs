@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -37,7 +36,9 @@ for (const relative of routes) {
     /(POST|PUT|PATCH)\s*=|export const (POST|PUT|PATCH)/.test(source) &&
     source.includes('req.json()')
   ) {
-    bodyParserFailures.push(`${relative}: state-changing route must use parseJsonBody instead of req.json()`);
+    bodyParserFailures.push(
+      `${relative}: state-changing route must use parseJsonBody instead of req.json()`,
+    );
   }
   const isAdmin = relative.includes('/admin/');
   const isCron = relative.includes('/cron/');
@@ -62,14 +63,18 @@ for (const relative of routes) {
     continue;
   }
   if (relative.includes('/billing/webhook/') || relative.includes('/telegram/webhook/')) {
-    if (!hasWebhookValidation) failures.push(`${relative}: webhook route lacks recognizable signature validation`);
+    if (!hasWebhookValidation)
+      failures.push(`${relative}: webhook route lacks recognizable signature validation`);
     continue;
   }
   if (!hasAuth && !intentionalPublic.has(relative)) {
     // Static wrappers may be imported through aliases or composed helpers;
     // keep this check focused on routes with no recognizable boundary at all.
     const hasBoundaryImport = /from ['\"]@\/lib\/(?:api|admin-auth|cron)['\"]/.test(source);
-    if (!hasBoundaryImport) failures.push(`${relative}: route is unclassified; use withAuth, compose, or add it to the intentional boundary allowlist`);
+    if (!hasBoundaryImport)
+      failures.push(
+        `${relative}: route is unclassified; use withAuth, compose, or add it to the intentional boundary allowlist`,
+      );
   }
 }
 

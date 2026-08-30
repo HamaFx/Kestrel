@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { backfillThreadHistoryIfNeeded } from '../src/mastra-v2/context';
+
 const {
   claimMemoryBackfill,
   completeMemoryBackfill,
@@ -26,8 +28,6 @@ vi.mock('@kestrel/db', () => ({
   markMemoryProjectionProjected,
 }));
 vi.mock('../src/persistence', () => ({ listMessages }));
-
-import { backfillThreadHistoryIfNeeded } from '../src/mastra-v2/context';
 
 beforeEach(() => {
   vi.clearAllMocks();

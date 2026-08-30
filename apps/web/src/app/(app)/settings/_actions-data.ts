@@ -111,10 +111,7 @@ export async function exportDataAction(
       .select()
       .from(schema.userSettings)
       .where(
-        and(
-          eq(schema.userSettings.userId, userId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
       );
     const threads = await db
       .select()
@@ -140,7 +137,9 @@ export async function exportDataAction(
     const journalEntries = await db
       .select()
       .from(schema.journalEntries)
-      .where(and(eq(schema.journalEntries.userId, userId), eq(schema.journalEntries.tenantId, tenantId)));
+      .where(
+        and(eq(schema.journalEntries.userId, userId), eq(schema.journalEntries.tenantId, tenantId)),
+      );
     const alerts = await db
       .select()
       .from(schema.alerts)
@@ -161,114 +160,219 @@ export async function exportDataAction(
     const memories = await db
       .select()
       .from(schema.memoryEmbeddings)
-      .where(and(eq(schema.memoryEmbeddings.userId, userId), eq(schema.memoryEmbeddings.tenantId, tenantId)));
+      .where(
+        and(
+          eq(schema.memoryEmbeddings.userId, userId),
+          eq(schema.memoryEmbeddings.tenantId, tenantId),
+        ),
+      );
     const sharedSnapshots = await db
       .select()
       .from(schema.sharedSnapshots)
-      .where(and(eq(schema.sharedSnapshots.userId, userId), eq(schema.sharedSnapshots.tenantId, tenantId)));
+      .where(
+        and(
+          eq(schema.sharedSnapshots.userId, userId),
+          eq(schema.sharedSnapshots.tenantId, tenantId),
+        ),
+      );
     const telemetry = await db
       .select()
       .from(schema.chatTelemetry)
-      .where(and(eq(schema.chatTelemetry.userId, userId), eq(schema.chatTelemetry.tenantId, tenantId)));
+      .where(
+        and(eq(schema.chatTelemetry.userId, userId), eq(schema.chatTelemetry.tenantId, tenantId)),
+      );
     const spend = await db
       .select()
       .from(schema.dailyAiSpend)
-      .where(and(eq(schema.dailyAiSpend.userId, userId), eq(schema.dailyAiSpend.tenantId, tenantId)));
+      .where(
+        and(eq(schema.dailyAiSpend.userId, userId), eq(schema.dailyAiSpend.tenantId, tenantId)),
+      );
     const briefings = await db
       .select()
       .from(schema.briefingsEmitted)
-      .where(and(eq(schema.briefingsEmitted.userId, userId), eq(schema.briefingsEmitted.tenantId, tenantId)));
+      .where(
+        and(
+          eq(schema.briefingsEmitted.userId, userId),
+          eq(schema.briefingsEmitted.tenantId, tenantId),
+        ),
+      );
     const auditLogs = await db
       .select()
       .from(schema.auditLogs)
       .where(and(eq(schema.auditLogs.userId, userId), eq(schema.auditLogs.tenantId, tenantId)));
-    const [portfolioPositions, portfolioSettings, providerTests, notificationNoiseState, botLinks, rateLimits, toolTelemetry, feedback, regressionCases, shadowComparisons, qualityResults, fullAnalysisQueue, persistenceOutbox, mutationExecutions, budgetReservations, agentOpinions, traces, memoryBackfillState, memoryProjectionState, billingSubscriptions, billingPayments] =
-      await Promise.all([
-        db
-          .select()
-          .from(schema.portfolioPositions)
-          .where(and(eq(schema.portfolioPositions.userId, userId), eq(schema.portfolioPositions.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.portfolioSettings)
-          .where(and(eq(schema.portfolioSettings.userId, userId), eq(schema.portfolioSettings.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.providerTests)
-          .where(and(eq(schema.providerTests.userId, userId), eq(schema.providerTests.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.notificationNoiseState)
-          .where(and(eq(schema.notificationNoiseState.userId, userId), eq(schema.notificationNoiseState.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.botLinks)
-          .where(and(eq(schema.botLinks.userId, userId), eq(schema.botLinks.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.rateLimits)
-          .where(and(eq(schema.rateLimits.userId, userId), eq(schema.rateLimits.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.chatToolTelemetry)
-          .where(and(eq(schema.chatToolTelemetry.userId, userId), eq(schema.chatToolTelemetry.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.aiMessageFeedback)
-          .where(and(eq(schema.aiMessageFeedback.userId, userId), eq(schema.aiMessageFeedback.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.aiRegressionCases)
-          .where(and(eq(schema.aiRegressionCases.userId, userId), eq(schema.aiRegressionCases.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.aiShadowComparisons)
-          .where(and(eq(schema.aiShadowComparisons.userId, userId), eq(schema.aiShadowComparisons.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.aiQualityResults)
-          .where(and(eq(schema.aiQualityResults.userId, userId), eq(schema.aiQualityResults.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.fullAnalysisQueue)
-          .where(and(eq(schema.fullAnalysisQueue.userId, userId), eq(schema.fullAnalysisQueue.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.persistenceOutbox)
-          .where(and(eq(schema.persistenceOutbox.userId, userId), eq(schema.persistenceOutbox.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.mutationExecutions)
-          .where(and(eq(schema.mutationExecutions.userId, userId), eq(schema.mutationExecutions.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.aiBudgetReservations)
-          .where(and(eq(schema.aiBudgetReservations.userId, userId), eq(schema.aiBudgetReservations.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.agentOpinions)
-          .where(and(eq(schema.agentOpinions.userId, userId), eq(schema.agentOpinions.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.diagnosticTraces)
-          .where(eq(schema.diagnosticTraces.userId, userId)),
-        db
-          .select()
-          .from(schema.memoryBackfillState)
-          .where(and(eq(schema.memoryBackfillState.userId, userId), eq(schema.memoryBackfillState.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.memoryProjectionState)
-          .where(and(eq(schema.memoryProjectionState.userId, userId), eq(schema.memoryProjectionState.tenantId, tenantId))),
-        db
-          .select()
-          .from(schema.subscriptions)
-          .where(eq(schema.subscriptions.tenantId, tenantId)),
-        db
-          .select()
-          .from(schema.payments)
-          .where(eq(schema.payments.tenantId, tenantId)),
-      ]);
+    const [
+      portfolioPositions,
+      portfolioSettings,
+      providerTests,
+      notificationNoiseState,
+      botLinks,
+      rateLimits,
+      toolTelemetry,
+      feedback,
+      regressionCases,
+      shadowComparisons,
+      qualityResults,
+      fullAnalysisQueue,
+      persistenceOutbox,
+      mutationExecutions,
+      budgetReservations,
+      agentOpinions,
+      traces,
+      memoryBackfillState,
+      memoryProjectionState,
+      billingSubscriptions,
+      billingPayments,
+    ] = await Promise.all([
+      db
+        .select()
+        .from(schema.portfolioPositions)
+        .where(
+          and(
+            eq(schema.portfolioPositions.userId, userId),
+            eq(schema.portfolioPositions.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.portfolioSettings)
+        .where(
+          and(
+            eq(schema.portfolioSettings.userId, userId),
+            eq(schema.portfolioSettings.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.providerTests)
+        .where(
+          and(eq(schema.providerTests.userId, userId), eq(schema.providerTests.tenantId, tenantId)),
+        ),
+      db
+        .select()
+        .from(schema.notificationNoiseState)
+        .where(
+          and(
+            eq(schema.notificationNoiseState.userId, userId),
+            eq(schema.notificationNoiseState.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.botLinks)
+        .where(and(eq(schema.botLinks.userId, userId), eq(schema.botLinks.tenantId, tenantId))),
+      db
+        .select()
+        .from(schema.rateLimits)
+        .where(and(eq(schema.rateLimits.userId, userId), eq(schema.rateLimits.tenantId, tenantId))),
+      db
+        .select()
+        .from(schema.chatToolTelemetry)
+        .where(
+          and(
+            eq(schema.chatToolTelemetry.userId, userId),
+            eq(schema.chatToolTelemetry.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.aiMessageFeedback)
+        .where(
+          and(
+            eq(schema.aiMessageFeedback.userId, userId),
+            eq(schema.aiMessageFeedback.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.aiRegressionCases)
+        .where(
+          and(
+            eq(schema.aiRegressionCases.userId, userId),
+            eq(schema.aiRegressionCases.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.aiShadowComparisons)
+        .where(
+          and(
+            eq(schema.aiShadowComparisons.userId, userId),
+            eq(schema.aiShadowComparisons.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.aiQualityResults)
+        .where(
+          and(
+            eq(schema.aiQualityResults.userId, userId),
+            eq(schema.aiQualityResults.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.fullAnalysisQueue)
+        .where(
+          and(
+            eq(schema.fullAnalysisQueue.userId, userId),
+            eq(schema.fullAnalysisQueue.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.persistenceOutbox)
+        .where(
+          and(
+            eq(schema.persistenceOutbox.userId, userId),
+            eq(schema.persistenceOutbox.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.mutationExecutions)
+        .where(
+          and(
+            eq(schema.mutationExecutions.userId, userId),
+            eq(schema.mutationExecutions.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.aiBudgetReservations)
+        .where(
+          and(
+            eq(schema.aiBudgetReservations.userId, userId),
+            eq(schema.aiBudgetReservations.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.agentOpinions)
+        .where(
+          and(eq(schema.agentOpinions.userId, userId), eq(schema.agentOpinions.tenantId, tenantId)),
+        ),
+      db.select().from(schema.diagnosticTraces).where(eq(schema.diagnosticTraces.userId, userId)),
+      db
+        .select()
+        .from(schema.memoryBackfillState)
+        .where(
+          and(
+            eq(schema.memoryBackfillState.userId, userId),
+            eq(schema.memoryBackfillState.tenantId, tenantId),
+          ),
+        ),
+      db
+        .select()
+        .from(schema.memoryProjectionState)
+        .where(
+          and(
+            eq(schema.memoryProjectionState.userId, userId),
+            eq(schema.memoryProjectionState.tenantId, tenantId),
+          ),
+        ),
+      db.select().from(schema.subscriptions).where(eq(schema.subscriptions.tenantId, tenantId)),
+      db.select().from(schema.payments).where(eq(schema.payments.tenantId, tenantId)),
+    ]);
 
     // Strip identity and secret material from exported records. OAuth rows,
     // password hashes, TOTP state, and encrypted integration credentials are
@@ -287,13 +391,22 @@ export async function exportDataAction(
             updatedAt: profile.updatedAt,
           }
         : null,
-      settings: settings.map(({ userId: _userId, aiApiKeys: _aiApiKeys, telegramBotToken: _telegramBotToken, ...safe }) => safe),
+      settings: settings.map(
+        ({
+          userId: _userId,
+          aiApiKeys: _aiApiKeys,
+          telegramBotToken: _telegramBotToken,
+          ...safe
+        }) => safe,
+      ),
       threads: threads.map(({ userId: _userId, ...thread }) => thread),
       messages: messages.map(({ message }) => message),
       journalEntries: journalEntries.map(({ userId: _userId, ...entry }) => entry),
       alerts: alerts.map(({ userId: _userId, ...alert }) => alert),
       symbols: symbols.map(({ userId: _userId, ...symbol }) => symbol),
-      pushSubscriptions: pushSubscriptions.map(({ userId: _userId, ...subscription }) => subscription),
+      pushSubscriptions: pushSubscriptions.map(
+        ({ userId: _userId, ...subscription }) => subscription,
+      ),
       memories: memories.map(({ userId: _userId, ...memory }) => memory),
       sharedSnapshots: sharedSnapshots.map(({ userId: _userId, ...snapshot }) => snapshot),
       telemetry: telemetry.map(({ userId: _userId, ...turn }) => turn),

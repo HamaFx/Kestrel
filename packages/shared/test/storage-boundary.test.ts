@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { deleteStorageObjects, listStorageObjects } from '@kestrel/data/adapters/storage';
+import { describe, expect, it } from 'vitest';
 
 describe('storage adapter boundaries', () => {
   it('rejects insecure production storage URLs before making a request', async () => {

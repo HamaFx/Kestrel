@@ -33,6 +33,10 @@ const loadtestWorkflow = readFileSync(resolve(root, '.github/workflows/loadtest.
 const dbPackage = readFileSync(resolve(root, 'packages/db/package.json'), 'utf8');
 const cronHelper = readFileSync(resolve(root, 'apps/web/src/lib/cron.ts'), 'utf8');
 const authSource = readFileSync(resolve(root, 'apps/web/src/auth.ts'), 'utf8');
+const authProvidersSource = readFileSync(
+  resolve(root, 'apps/web/src/lib/auth/providers.ts'),
+  'utf8',
+);
 
 describe('P3 production hardening policy', () => {
   it('runs a disposable Docker backup/restore workflow with cleanup', () => {
@@ -82,9 +86,9 @@ describe('P3 production hardening policy', () => {
   });
 
   it('requires an explicit unsafe development flag for impersonation', () => {
-    expect(authSource).toContain("process.env.ENABLE_IMPERSONATION === 'true'");
-    expect(authSource).toContain("process.env.ALLOW_INSECURE_DEV_AUTH === 'true'");
-    expect(authSource).toContain("process.env.NODE_ENV !== 'production'");
+    expect(authProvidersSource).toContain("process.env.ENABLE_IMPERSONATION === 'true'");
+    expect(authProvidersSource).toContain("process.env.ALLOW_INSECURE_DEV_AUTH === 'true'");
+    expect(authProvidersSource).toContain("process.env.NODE_ENV !== 'production'");
   });
 
   it('requires explicit, fail-closed encryption rotation inputs', () => {

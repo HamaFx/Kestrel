@@ -188,9 +188,11 @@ describe('withAdminAuth', () => {
     mockAuth.mockResolvedValue(null);
 
     const handler = withAdminAuth(async () => Response.json({ ok: true }));
-    const res = await handler(new Request('http://localhost/api/admin/test', {
-      headers: { 'x-request-id': 'admin-req-1' },
-    }));
+    const res = await handler(
+      new Request('http://localhost/api/admin/test', {
+        headers: { 'x-request-id': 'admin-req-1' },
+      }),
+    );
 
     expect(res.status).toBe(401);
     expect(res.headers.get('x-request-id')).toBe('admin-req-1');

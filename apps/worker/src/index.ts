@@ -29,8 +29,8 @@
 //   5. heartbeat to healthchecks.io every 30s while the consumer is alive.
 
 import { getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
-import { getCapabilityReport } from '@kestrel/shared';
 import { closeDb } from '@kestrel/db';
+import { getCapabilityReport } from '@kestrel/shared';
 
 import { Candle1mAggregator, type ClosedCandle } from './aggregator/candle-1m.js';
 import { BinanceStreamConsumer } from './binance/index.js';
@@ -182,7 +182,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   let candleFailureCount = 0;
 
   const aggregator = new Candle1mAggregator((bar: ClosedCandle) => {
-    // STAB-21: Race flushClosedCandle against a 10s safety timeout.
+    // Race flushClosedCandle against a 10s safety timeout.
     // The callback is fire-and-forget (void), so a hung DB connection
     // would silently accumulate unresolved promises. The timeout ensures
     // the callback always settles so GC can reclaim resources.
@@ -469,7 +469,7 @@ export async function main(): Promise<void> {
 
   if (env.WORKER_MODE === 'docker') {
     const stopScheduler = startScheduler(log);
-    // STAB-10: Register scheduler stop function so cron tasks are
+    // Register scheduler stop function so cron tasks are
     // torn down cleanly on shutdown.
     onShutdown(stopScheduler);
   }
@@ -494,7 +494,7 @@ export async function main(): Promise<void> {
   const worker = await runWorker({ env, log });
 
   // ── HTTP server: health checks + BiQuote REST proxy ──────────────────
-  // STAB-03: Wrap post-startup initialisation in try/catch so the worker's
+  // Wrap post-startup initialisation in try/catch so the worker's
   // stop() is always called if the health server or shutdown registrations
   // fail. This ensures timers (heartbeat, flush, batch) are properly cleared.
   // healthServer is hoisted so the catch block can close the port.
@@ -571,7 +571,7 @@ export async function main(): Promise<void> {
       await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
     });
   } catch (err) {
-    // STAB-03: Clean up worker resources if post-startup initialisation
+    // Clean up worker resources if post-startup initialisation
     // fails. Without this, internal timers (heartbeat, flush, batch)
     // would leak because onShutdown was never registered.
     log.error('post-startup initialisation failed — tearing down worker', { err: String(err) });

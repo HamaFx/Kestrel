@@ -74,7 +74,8 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
               lastTickAgeMs: ageMs,
               signalrConnected: isSignalRConnected(),
               droppedTicks: deps.getDroppedTicks?.() ?? 0,
-              proxyConfigured: deps.isProxyConfigured?.() ?? Boolean(process.env.BIQUOTE_PROXY_TOKEN),
+              proxyConfigured:
+                deps.isProxyConfigured?.() ?? Boolean(process.env.BIQUOTE_PROXY_TOKEN),
               capabilities: getCapabilityReport(process.env),
             }),
       uptimeMs: process.uptime() * 1000,
@@ -100,11 +101,21 @@ function createProxyHandler(deps: HealthServerDeps): http.RequestListener {
         'Retry-After': '86400',
         'X-Content-Type-Options': 'nosniff',
       });
-      res.end(JSON.stringify({ status: 'error', message: 'BiQuote proxy not configured', ...(deps.getRequestId ? { requestId: deps.getRequestId() } : {}) }));
+      res.end(
+        JSON.stringify({
+          status: 'error',
+          message: 'BiQuote proxy not configured',
+          ...(deps.getRequestId ? { requestId: deps.getRequestId() } : {}),
+        }),
+      );
       return;
     }
     if (proxyToken && req.headers.authorization !== `Bearer ${proxyToken}`) {
-      sendJson(res, 403, { status: 'error', message: 'forbidden', ...(deps.getRequestId ? { requestId: deps.getRequestId() } : {}) });
+      sendJson(res, 403, {
+        status: 'error',
+        message: 'forbidden',
+        ...(deps.getRequestId ? { requestId: deps.getRequestId() } : {}),
+      });
       return;
     }
 
@@ -125,8 +136,15 @@ function createProxyHandler(deps: HealthServerDeps): http.RequestListener {
       });
       res.end(await upstream.text());
     } catch (err) {
-      deps.log.error('biquote-proxy error', { target: target?.hostname ?? 'invalid', err: String(err) });
-      sendJson(res, 502, { status: 'error', message: 'BiQuote upstream request failed', ...(deps.getRequestId ? { requestId: deps.getRequestId() } : {}) });
+      deps.log.error('biquote-proxy error', {
+        target: target?.hostname ?? 'invalid',
+        err: String(err),
+      });
+      sendJson(res, 502, {
+        status: 'error',
+        message: 'BiQuote upstream request failed',
+        ...(deps.getRequestId ? { requestId: deps.getRequestId() } : {}),
+      });
     }
   };
 }

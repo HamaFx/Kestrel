@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Phase B — query helpers for multi-tenant scoping.
+// Phase 7 — query helpers for multi-tenant scoping.
 //
 // The plan documents called for `withUserScope(table, userId)` as a
 // helper to DRY up the `.where(eq(table.userId, userId))` pattern that
@@ -27,7 +27,7 @@
 //
 //     const thread = await getDb().select().from(chatThreads).where(eq(chatThreads.userId, userId))
 //
-// DESIGN DECISION (Phase 7 §34): The codebase currently uses `eq()`
+// DESIGN DECISION: the codebase currently uses `eq()`
 // directly in most persistence files. Rather than force a mass
 // refactor that risks breaking working queries, we keep this helper
 // exported and available. New persistence code SHOULD use it; existing

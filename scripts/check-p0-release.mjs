@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -21,12 +20,16 @@ function source(path) {
   return readFileSync(join(root, path), 'utf8');
 }
 
-const adminRoutes = trackedFiles().filter((path) => /^apps\/web\/src\/app\/api\/admin\/.*\/route\.ts$/.test(path));
+const adminRoutes = trackedFiles().filter((path) =>
+  /^apps\/web\/src\/app\/api\/admin\/.*\/route\.ts$/.test(path),
+);
 for (const path of adminRoutes) {
   if (!source(path).includes('withAdminAuth')) failures.push(`${path}: missing withAdminAuth`);
 }
 
-const cronRoutes = trackedFiles().filter((path) => /^apps\/web\/src\/app\/api\/cron\/.*\/route\.ts$/.test(path));
+const cronRoutes = trackedFiles().filter((path) =>
+  /^apps\/web\/src\/app\/api\/cron\/.*\/route\.ts$/.test(path),
+);
 for (const path of cronRoutes) {
   if (!source(path).includes('withCronAuth')) failures.push(`${path}: missing withCronAuth`);
 }
@@ -56,4 +59,6 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`P0 release check passed (${adminRoutes.length} admin routes, ${cronRoutes.length} cron routes).`);
+console.log(
+  `P0 release check passed (${adminRoutes.length} admin routes, ${cronRoutes.length} cron routes).`,
+);

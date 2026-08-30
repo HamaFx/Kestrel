@@ -28,12 +28,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import {
-  getUserWithSettings,
-  requireTenantIdForUser,
-  schema,
-  type DbClient,
-} from '@kestrel/db';
+import { getUserWithSettings, requireTenantIdForUser, schema, type DbClient } from '@kestrel/db';
 import { KNOWN_BYOK_PROVIDERS } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, eq, gte, sql } from 'drizzle-orm';
@@ -110,7 +105,12 @@ export function estimateKnownCostUsd(
 ): number {
   const rate = resolveModelRate(model);
   if (!rate) throw new UnknownModelPricingError(model);
-  if (!Number.isFinite(inputTokens) || !Number.isFinite(outputTokens) || inputTokens < 0 || outputTokens < 0) {
+  if (
+    !Number.isFinite(inputTokens) ||
+    !Number.isFinite(outputTokens) ||
+    inputTokens < 0 ||
+    outputTokens < 0
+  ) {
     throw new Error('token counts must be finite and non-negative');
   }
   return (inputTokens / 1_000_000) * rate.inputPerM + (outputTokens / 1_000_000) * rate.outputPerM;
@@ -176,7 +176,9 @@ export async function reservedSpendUsd(userId: string, now = new Date()): Promis
   const rows = await db
     .select({ cents: schema.dailyAiSpend.totalUsdCents })
     .from(schema.dailyAiSpend)
-    .where(sql`${schema.dailyAiSpend.userId} = ${userId} AND ${schema.dailyAiSpend.tenantId} = ${tenantId} AND ${schema.dailyAiSpend.day} = ${day}`)
+    .where(
+      sql`${schema.dailyAiSpend.userId} = ${userId} AND ${schema.dailyAiSpend.tenantId} = ${tenantId} AND ${schema.dailyAiSpend.day} = ${day}`,
+    )
     .limit(1);
   return Number(rows[0]?.cents ?? 0) / 100;
 }
@@ -243,10 +245,13 @@ export async function tryReserveBudget(
   }
 
   const reservationId = randomUUID();
-  const ledgerThreadId = ledgerCorrelation?.threadId &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ledgerCorrelation.threadId)
-    ? ledgerCorrelation.threadId
-    : null;
+  const ledgerThreadId =
+    ledgerCorrelation?.threadId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      ledgerCorrelation.threadId,
+    )
+      ? ledgerCorrelation.threadId
+      : null;
   const reserve = async (tx: BudgetDb) => {
     const rows = await tx.execute<{ total_usd_cents: number | string }>(
       sql`
@@ -654,12 +659,7 @@ export async function checkBudgetAlertsAndThresholds(
       spendAlertsState: schema.userSettings.spendAlertsState,
     })
     .from(schema.userSettings)
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
 
   if (!userSettings) {
     return { blocked: false, nonEssentialDisabled: false };
@@ -763,10 +763,7 @@ export async function checkBudgetAlertsAndThresholds(
         } | null,
       })
       .where(
-        and(
-          eq(schema.userSettings.userId, userId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
       );
   }
 

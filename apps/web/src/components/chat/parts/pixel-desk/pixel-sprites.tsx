@@ -17,7 +17,6 @@
  */
 
 // SPDX-License-Identifier: Apache-2.0
-
 import { motion } from 'motion/react';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -51,7 +50,7 @@ function PixelSvg({
   return (
     <svg
       viewBox={viewBox}
-      className={cn('size-8 sm:size-10 shrink-0 select-none', className)}
+      className={cn('size-8 shrink-0 select-none sm:size-10', className)}
       style={{ shapeRendering: 'crispEdges', imageRendering: 'pixelated' }}
       aria-hidden="true"
     >
@@ -65,11 +64,17 @@ function PixelSvg({
  * Features: Purple/indigo wizard hat with glowing star, wand casting gestures,
  * spectacles, animated robe, casting candlestick vectors.
  */
-export function ChartWizardSprite({ className, isThinking, isDone, bias, isSparkling }: SpriteProps) {
+export function ChartWizardSprite({
+  className,
+  isThinking,
+  isDone,
+  bias,
+  isSparkling,
+}: SpriteProps) {
   return (
     <motion.div
       className={cn(
-        'relative inline-flex items-center justify-center animate-pixel-wizard',
+        'animate-pixel-wizard relative inline-flex items-center justify-center',
         className,
       )}
       animate={
@@ -87,9 +92,13 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
     >
       {/* Floating Golden Sparks for high-confidence / bullish celebration */}
       {(isSparkling || (isDone && bias === 'bullish')) && (
-        <div className="pointer-events-none absolute -top-4 -left-1 flex items-center gap-1 z-10 animate-pixel-sparkle">
-          <span className="text-amber-400 font-mono text-[9px] font-bold select-none leading-none">✦</span>
-          <span className="text-yellow-300 font-mono text-[7px] font-bold select-none leading-none">✧</span>
+        <div className="animate-pixel-sparkle pointer-events-none absolute -top-4 -left-1 z-10 flex items-center gap-1">
+          <span className="font-mono text-[9px] leading-none font-bold text-amber-400 select-none">
+            ✦
+          </span>
+          <span className="font-mono text-[7px] leading-none font-bold text-yellow-300 select-none">
+            ✧
+          </span>
         </div>
       )}
 
@@ -100,7 +109,6 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
         <rect x="9" y="6" width="6" height="3" fill="#4f46e5" />
         <rect x="7" y="9" width="10" height="2" fill="#3730a3" />
         <rect x="11" y="5" width="2" height="2" fill="#fbbf24" /> {/* Gold Star */}
-
         {/* Wizard Face & Eyeglasses */}
         <rect x="8" y="11" width="8" height="4" fill="#fed7aa" />
         <rect x="9" y="12" width="2" height="2" fill="#312e81" /> {/* Spectacles Frame */}
@@ -108,21 +116,18 @@ export function ChartWizardSprite({ className, isThinking, isDone, bias, isSpark
         <rect x="13" y="12" width="2" height="2" fill="#312e81" />
         <rect x="14" y="12" width="1" height="1" fill="#67e8f9" />
         <rect x="11" y="12" width="2" height="1" fill="#fbbf24" /> {/* Gold Bridge */}
-
         {/* Beard & Smile */}
         <rect x="10" y="14" width="4" height="2" fill="#e0e7ff" />
         <rect x="11" y="16" width="2" height="1" fill="#c7d2fe" />
-
         {/* Robe Body */}
         <rect x="8" y="14" width="8" height="6" fill="#3730a3" />
         <rect x="10" y="14" width="4" height="6" fill="#4338ca" />
-
         {/* Active Hand / Wand casting */}
         <rect x="6" y="16" width="2" height="2" fill="#fed7aa" />
         <rect x="16" y="16" width="2" height="2" fill="#fed7aa" />
         <rect x="18" y="13" width="1" height="5" fill="#facc15" /> {/* Wand shaft */}
-        <rect x="18" y="12" width="2" height="2" fill="#4ade80" className="animate-pulse" /> {/* Tip */}
-
+        <rect x="18" y="12" width="2" height="2" fill="#4ade80" className="animate-pulse" />{' '}
+        {/* Tip */}
         {/* Feet / Shadow */}
         <rect x="9" y="20" width="3" height="2" fill="#1e1b4b" />
         <rect x="12" y="20" width="3" height="2" fill="#1e1b4b" />
@@ -141,7 +146,7 @@ export function MacroMageSprite({ className, isThinking, isDone, bias: _bias }: 
   return (
     <motion.div
       className={cn(
-        'relative inline-flex items-center justify-center animate-pixel-mage',
+        'animate-pixel-mage relative inline-flex items-center justify-center',
         className,
       )}
       animate={
@@ -163,25 +168,22 @@ export function MacroMageSprite({ className, isThinking, isDone, bias: _bias }: 
         <rect x="9" y="3" width="6" height="2" fill="#b45309" />
         <rect x="8" y="5" width="8" height="3" fill="#92400e" />
         <rect x="7" y="7" width="10" height="2" fill="#78350f" />
-
         {/* Face */}
         <rect x="9" y="8" width="6" height="5" fill="#fde68a" />
         <rect x="10" y="9" width="1" height="2" fill="#451a03" /> {/* Eyes */}
         <rect x="13" y="9" width="1" height="2" fill="#451a03" />
-        <rect x="10" y="9" width="2" height="1" fill="#38bdf8" opacity="0.8" /> {/* Glasses shine */}
+        <rect x="10" y="9" width="2" height="1" fill="#38bdf8" opacity="0.8" />{' '}
+        {/* Glasses shine */}
         <rect x="11" y="11" width="2" height="1" fill="#d97706" /> {/* Mustache */}
-
         {/* Scholar Robe Body */}
         <rect x="8" y="13" width="8" height="7" fill="#451a03" />
         <rect x="10" y="13" width="4" height="7" fill="#b45309" />
-
         {/* Animated Macro Data Scroll in hands */}
         <rect x="5" y="15" width="4" height="5" fill="#fef3c7" /> {/* Scroll sheet */}
         <rect x="6" y="16" width="2" height="1" fill="#0284c7" /> {/* Data lines */}
         <rect x="6" y="18" width="2" height="1" fill="#0284c7" />
         <rect x="4" y="14" width="1" height="7" fill="#d97706" /> {/* Scroll roller */}
         <rect x="15" y="16" width="2" height="2" fill="#fde68a" /> {/* Right hand */}
-
         {/* Feet / Base Shadow */}
         <rect x="9" y="20" width="3" height="2" fill="#1c1917" />
         <rect x="12" y="20" width="3" height="2" fill="#1c1917" />
@@ -200,7 +202,7 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
   return (
     <motion.div
       className={cn(
-        'relative inline-flex items-center justify-center animate-pixel-knight',
+        'animate-pixel-knight relative inline-flex items-center justify-center',
         className,
       )}
       animate={
@@ -219,8 +221,8 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
     >
       {/* Flashing Hazard / Volatility Alarm Beacon on helmet */}
       {(hasAlarm || (isDone && bias === 'bearish')) && (
-        <div className="pointer-events-none absolute -top-3.5 left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
-          <div className="size-2 rounded-xs bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse" />
+        <div className="pointer-events-none absolute -top-3.5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center">
+          <div className="size-2 animate-pulse rounded-xs bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
         </div>
       )}
 
@@ -229,26 +231,21 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
         <rect x="11" y="2" width="2" height="2" fill="#ef4444" /> {/* Red feather crest */}
         <rect x="10" y="4" width="4" height="2" fill="#64748b" />
         <rect x="8" y="6" width="8" height="5" fill="#475569" />
-
         {/* Glowing Visor Slit with Animated Scanner Sweep */}
         <rect x="9" y="8" width="6" height="2" fill="#0f172a" />
         <rect x="10" y="8" width="4" height="1" fill="#f59e0b" className="animate-pixel-scanner" />
-
         {/* Armor Torso */}
         <rect x="8" y="11" width="8" height="8" fill="#334155" />
         <rect x="10" y="12" width="4" height="5" fill="#64748b" />
         <rect x="11" y="14" width="2" height="2" fill="#94a3b8" />
-
         {/* Pixel Shield with Pulsing Energy Crest */}
         <rect x="4" y="11" width="4" height="7" fill="#1e293b" />
         <rect x="5" y="12" width="2" height="5" fill="#3b82f6" />
         <rect x="5" y="14" width="2" height="1" fill="#60a5fa" className="animate-pulse" />
         <rect x="5" y="18" width="2" height="1" fill="#1e293b" />
-
         {/* Right Hand / Caliper needle */}
         <rect x="16" y="13" width="2" height="4" fill="#94a3b8" />
         <rect x="17" y="11" width="1" height="7" fill="#cbd5e1" />
-
         {/* Steel Boots / Shadow */}
         <rect x="9" y="19" width="3" height="3" fill="#1e293b" />
         <rect x="12" y="19" width="3" height="3" fill="#1e293b" />
@@ -263,11 +260,17 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
  * Features: Sharp falcon beak, amber feathers, animated flapping wings,
  * scanning left and right to lock in the final consensus.
  */
-export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWingsSpread }: SpriteProps) {
+export function KestrelFalconSprite({
+  className,
+  isThinking,
+  isDone,
+  bias,
+  hasWingsSpread,
+}: SpriteProps) {
   return (
     <motion.div
       className={cn(
-        'relative inline-flex items-center justify-center animate-pixel-falcon',
+        'animate-pixel-falcon relative inline-flex items-center justify-center',
         className,
       )}
       animate={
@@ -286,8 +289,10 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
     >
       {/* Victory Crown / Sparkle */}
       {(hasWingsSpread || (isDone && bias === 'bullish')) && (
-        <div className="pointer-events-none absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-          <span className="text-amber-400 font-mono text-[10px] font-bold select-none drop-shadow-xs">👑</span>
+        <div className="pointer-events-none absolute -top-3.5 left-1/2 z-10 -translate-x-1/2">
+          <span className="font-mono text-[10px] font-bold text-amber-400 drop-shadow-xs select-none">
+            👑
+          </span>
         </div>
       )}
 
@@ -329,8 +334,7 @@ export function KestrelFalconSprite({ className, isThinking, isDone, bias, hasWi
  */
 export function TechnicalWorkstation({ isThinking: _isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
-
+    <PixelSvg viewBox="0 0 24 18" className="size-5.5 opacity-90 sm:size-7">
       {/* Primary CRT Monitor */}
       <rect x="1" y="2" width="15" height="11" fill="#1e293b" />
       <rect x="2" y="3" width="13" height="9" fill="#052e16" />
@@ -361,7 +365,7 @@ export function TechnicalWorkstation({ isThinking: _isThinking }: { isThinking?:
  */
 export function MacroWorkstation({ isThinking: _isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
+    <PixelSvg viewBox="0 0 24 18" className="size-5.5 opacity-90 sm:size-7">
       {/* Macro Data Terminal Screen */}
       <rect x="2" y="2" width="14" height="11" fill="#1c1917" />
       <rect x="3" y="3" width="12" height="9" fill="#0c4a6e" />
@@ -390,7 +394,7 @@ export function MacroWorkstation({ isThinking: _isThinking }: { isThinking?: boo
  */
 export function RiskWorkstation({ isThinking: _isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
+    <PixelSvg viewBox="0 0 24 18" className="size-5.5 opacity-90 sm:size-7">
       {/* Heavy Armored Monitor Chassis */}
       <rect x="2" y="2" width="16" height="11" fill="#1e293b" />
       <rect x="3" y="3" width="14" height="9" fill="#18181b" />
@@ -419,7 +423,7 @@ export function RiskWorkstation({ isThinking: _isThinking }: { isThinking?: bool
  */
 export function SentinelWorkstation({ isThinking: _isThinking }: { isThinking?: boolean }) {
   return (
-    <PixelSvg viewBox="0 0 24 18" className="size-5.5 sm:size-7 opacity-90">
+    <PixelSvg viewBox="0 0 24 18" className="size-5.5 opacity-90 sm:size-7">
       {/* High-Tech Whale Terminal */}
       <rect x="2" y="3" width="14" height="10" fill="#1e293b" />
       <rect x="3" y="4" width="12" height="8" fill="#451a03" />
@@ -452,36 +456,36 @@ export function TradingFloorDesk() {
   return (
     <div className="relative w-full">
       {/* Continuous Mahogany / Carbon Desk Surface */}
-      <div className="bg-bg-elev-3 relative h-4 w-full rounded-xs border-t border-border/80 shadow-md">
+      <div className="bg-bg-elev-3 border-border/80 relative h-4 w-full rounded-xs border-t shadow-md">
         {/* Subtle Bevel Highlight Line */}
         <div className="bg-border/60 absolute inset-x-0 top-0 h-[1px]" />
 
         {/* Ambient Desk Props Spanned Across Positions */}
         <div className="flex h-full items-center justify-around px-2 sm:px-4">
-
           {/* Prop 1 (Technical): Stylus & Sticky Pad */}
           <div className="flex items-center gap-1 opacity-70">
-            <div className="h-1.5 w-3 rounded-2xs bg-amber-400/80 shadow-xs" title="Sticky Note" />
-            <div className="h-0.5 w-3 bg-fg-subtle" />
+            <div className="rounded-2xs h-1.5 w-3 bg-amber-400/80 shadow-xs" title="Sticky Note" />
+            <div className="bg-fg-subtle h-0.5 w-3" />
           </div>
 
           {/* Prop 2 (Macro): Steaming Pixel Coffee Mug */}
           <div className="relative flex items-center gap-1 opacity-80" title="Coffee Mug">
-            <div
-              className="absolute -top-2.5 left-1 h-2 w-0.5 rounded-full bg-fg-subtle/80 animate-pixel-steam"
-            />
-            <div className="size-2 rounded-2xs bg-amber-700 border border-amber-900/50 shadow-xs" />
+            <div className="bg-fg-subtle/80 animate-pixel-steam absolute -top-2.5 left-1 h-2 w-0.5 rounded-full" />
+            <div className="rounded-2xs size-2 border border-amber-900/50 bg-amber-700 shadow-xs" />
           </div>
 
           {/* Prop 3 (Risk): Caliper & Vault Lock */}
           <div className="flex items-center gap-1 opacity-70">
-            <div className="h-1.5 w-2 rounded-2xs bg-slate-500 border border-slate-600 shadow-xs" />
+            <div className="rounded-2xs h-1.5 w-2 border border-slate-600 bg-slate-500 shadow-xs" />
             <div className="h-0.5 w-2.5 bg-red-400/70" />
           </div>
 
           {/* Prop 4 (Sentinel): Gold Coin & Compass */}
           <div className="flex items-center gap-1 opacity-80">
-            <div className="size-2 rounded-full bg-amber-400 border border-amber-600 shadow-xs" title="Institutional Coin" />
+            <div
+              className="size-2 rounded-full border border-amber-600 bg-amber-400 shadow-xs"
+              title="Institutional Coin"
+            />
           </div>
         </div>
 

@@ -152,7 +152,8 @@ function outputToolCalls(value: unknown): Array<{ name: string }> {
   if (Array.isArray(candidate.toolCalls)) {
     return candidate.toolCalls.flatMap((call) => {
       if (!call || typeof call !== 'object') return [];
-      const name = (call as { toolName?: unknown; name?: unknown }).toolName ??
+      const name =
+        (call as { toolName?: unknown; name?: unknown }).toolName ??
         (call as { name?: unknown }).name;
       return typeof name === 'string' ? [{ name }] : [];
     });

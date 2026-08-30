@@ -50,10 +50,7 @@ export async function listTelemetry(userId: string, limit = 30): Promise<Telemet
     .select()
     .from(schema.chatTelemetry)
     .where(
-      and(
-        eq(schema.chatTelemetry.userId, userId),
-        eq(schema.chatTelemetry.tenantId, tenantId),
-      ),
+      and(eq(schema.chatTelemetry.userId, userId), eq(schema.chatTelemetry.tenantId, tenantId)),
     )
     .orderBy(desc(schema.chatTelemetry.createdAt))
     .limit(limit);

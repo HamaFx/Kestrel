@@ -12,15 +12,17 @@ export const EXTERNAL_CONTENT_TRUST_WARNING =
 /** Strip markup, control characters, and excessive whitespace from provider text. */
 export function sanitizeExternalText(value: unknown, maxLength = 2_000): string {
   if (typeof value !== 'string') return '';
-  return value
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]*>/g, ' ')
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001F\u007F]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength);
+  return (
+    value
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u001F\u007F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, maxLength)
+  );
 }
 
 /** Accept only web URLs that cannot execute local or script schemes. */
@@ -56,7 +58,10 @@ export function quarantineExternalText(
   const text = sanitizeExternalText(value, maxLength);
   if (!text) return { text: '', quarantined: false };
   if (containsExternalInstructions(text)) {
-    return { text: '[External content quarantined: instruction-like text detected.]', quarantined: true };
+    return {
+      text: '[External content quarantined: instruction-like text detected.]',
+      quarantined: true,
+    };
   }
   return { text, quarantined: false };
 }

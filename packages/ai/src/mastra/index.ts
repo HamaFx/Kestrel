@@ -90,7 +90,6 @@ export {
   runXauusdMastra,
   runXauusdMastraConversation,
   runXauusdMastraConversationStream,
-  runXauusdMastraProofWithByok,
   type RunXauusdMastraArgs,
   type XauusdMastraConversationStream,
   type XauusdMastraModel,

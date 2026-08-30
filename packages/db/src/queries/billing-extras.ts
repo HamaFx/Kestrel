@@ -86,12 +86,7 @@ export async function upsertSubscription(
         nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(schema.subscriptions.id, sub.id),
-          eq(schema.subscriptions.tenantId, tenantId),
-        ),
-      );
+      .where(and(eq(schema.subscriptions.id, sub.id), eq(schema.subscriptions.tenantId, tenantId)));
     return sub.id;
   }
 

@@ -46,7 +46,9 @@ describe('isRetryableAnalysisError', () => {
   });
 
   it('treats budget infrastructure admission failures as retryable', () => {
-    expect(isRetryableAnalysisError(new FullAnalysisBudgetAdmissionError(new Error('database timeout')))).toBe(true);
+    expect(
+      isRetryableAnalysisError(new FullAnalysisBudgetAdmissionError(new Error('database timeout'))),
+    ).toBe(true);
   });
 
   it('classifies a strict Full-mode error by its preserved underlying cause', () => {

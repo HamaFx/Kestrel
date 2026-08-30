@@ -25,8 +25,8 @@ import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
 import { getServerEnv } from '@/lib/env';
-import { getRequestId } from '@/lib/request-id';
 import { createScopedLoggerWithContext } from '@/lib/logger';
+import { getRequestId } from '@/lib/request-id';
 import {
   handleTelegramWebhook,
   telegramApiCall,

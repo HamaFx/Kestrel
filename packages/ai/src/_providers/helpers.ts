@@ -30,6 +30,8 @@ export interface HcnsecToolCall {
 }
 
 /** Default indicator bundle used when HCNSEC omits the required list. */
+const HCNSEC_MAX_RESPONSE_BYTES = 2_000_000;
+
 const HCNSEC_DEFAULT_INDICATORS = [
   { kind: 'rsi', params: {} },
   { kind: 'macd', params: {} },
@@ -335,7 +337,7 @@ export const hcnsecFetch: FetchFunction = async (input, init) => {
   if (!response.ok || !hasTools || !response.body) return response;
 
   if (contentType.includes('text/event-stream')) {
-    const raw = await response.text();
+    const raw = await readBoundedResponseText(response);
     const headers = new Headers(response.headers);
     headers.delete('content-length');
     headers.delete('content-encoding');
@@ -347,7 +349,7 @@ export const hcnsecFetch: FetchFunction = async (input, init) => {
   }
 
   if (contentType.includes('application/json')) {
-    const raw = await response.text();
+    const raw = await readBoundedResponseText(response);
     try {
       const normalized = normalizeHcnsecJsonPayload(JSON.parse(raw) as unknown);
       const headers = new Headers(response.headers);
@@ -369,6 +371,42 @@ export const hcnsecFetch: FetchFunction = async (input, init) => {
 
   return response;
 };
+
+async function readBoundedResponseText(response: Response): Promise<string> {
+  const declaredLength = Number(response.headers.get('content-length') ?? '0');
+  if (Number.isFinite(declaredLength) && declaredLength > HCNSEC_MAX_RESPONSE_BYTES) {
+    throw new Error(`HCNSEC response exceeds ${HCNSEC_MAX_RESPONSE_BYTES} bytes`);
+  }
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > HCNSEC_MAX_RESPONSE_BYTES) {
+        await reader.cancel('response too large');
+        throw new Error(`HCNSEC response exceeds ${HCNSEC_MAX_RESPONSE_BYTES} bytes`);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return new TextDecoder().decode(concatBytes(chunks, total));
+}
+
+function concatBytes(chunks: Uint8Array[], total: number): Uint8Array {
+  const output = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return output;
+}
 
 /** Full capability set — vision + tools + jsonMode + streaming. */
 export const CAPS_FULL = {

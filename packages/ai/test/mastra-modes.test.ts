@@ -118,12 +118,21 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.failRisk = false;
   mocks.rateLimitFailures = 0;
-  mocks.resolveMastraModel.mockImplementation((args: { settings: typeof settings; env: typeof env; domain: string; modelOverride?: string | null }) =>
-    mocks.resolveChatModel(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.modelOverride ?? args.settings.chatModel ?? null },
-      args.env,
-      args.domain,
-    ),
+  mocks.resolveMastraModel.mockImplementation(
+    (args: {
+      settings: typeof settings;
+      env: typeof env;
+      domain: string;
+      modelOverride?: string | null;
+    }) =>
+      mocks.resolveChatModel(
+        {
+          aiApiKeys: args.settings.aiApiKeys,
+          chatModel: args.modelOverride ?? args.settings.chatModel ?? null,
+        },
+        args.env,
+        args.domain,
+      ),
   );
   mocks.resolveChatModel.mockReturnValue({
     model: {},

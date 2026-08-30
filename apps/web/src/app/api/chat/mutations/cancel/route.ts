@@ -14,23 +14,21 @@
 // context from the persisted workflow snapshot and never accepts thread/user
 // identity from the client.
 
-import {
-  cancelMutationWorkflow,
-  createMutationWorkflow,
-  getKestrelMastra,
-  MutationKindSchema,
-  parseMutationRunContext,
-  verifyMutationConfirmationToken,
-} from '@/lib/services/api-boundary';
-import {
-  createAuditLog,
-  getMutationExecution,
-  MutationExecutionConflictError,
-} from '@/lib/services/api-boundary';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { parseJsonBody, withAuth } from '@/lib/api';
+import {
+  cancelMutationWorkflow,
+  createAuditLog,
+  createMutationWorkflow,
+  getKestrelMastra,
+  getMutationExecution,
+  MutationExecutionConflictError,
+  MutationKindSchema,
+  parseMutationRunContext,
+  verifyMutationConfirmationToken,
+} from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -82,7 +80,9 @@ export const POST = withAuth(async (req: Request, { user }) => {
   });
   if (!tokenValid) {
     return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Mutation confirmation token is invalid or expired' } },
+      {
+        error: { code: 'FORBIDDEN', message: 'Mutation confirmation token is invalid or expired' },
+      },
       { status: 403 },
     );
   }

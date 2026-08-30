@@ -20,8 +20,8 @@ import 'server-only';
 
 import {
   getDiagnosticTrace as getDiagnosticTraceDb,
-  listDiagnosticTraces as listDiagnosticTracesDb,
   getDiagnosticTraceForAdmin as getDiagnosticTraceForAdminDb,
+  listDiagnosticTraces as listDiagnosticTracesDb,
   listDiagnosticTracesForAdmin as listDiagnosticTracesForAdminDb,
   updatePaymentStatus as updatePaymentStatusDb,
   updateSubscriptionFromPayment as updateSubscriptionFromPaymentDb,
@@ -245,10 +245,7 @@ export type { ProviderId, NoiseConfig, RouteConfig, Symbol, Timeframe } from '@k
 export type { UIMessage } from 'ai';
 
 /** Admin-only diagnostic query wrappers. */
-export async function getDiagnosticTrace(
-  _user: { userId: string },
-  id: string,
-) {
+export async function getDiagnosticTrace(_user: { userId: string }, id: string) {
   return getDiagnosticTraceDb(_user.userId, id);
 }
 

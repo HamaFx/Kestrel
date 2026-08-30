@@ -1,13 +1,28 @@
-import { createUserSession } from '@kestrel/db';
 import { getDb } from '@kestrel/ai';
-import { AuthError } from 'next-auth';
+import { createUserSession } from '@kestrel/db';
+import { logErrorContext } from '@kestrel/shared/logger';
+import { AuthError, type Session, type User } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
+
+import { assertProductionSecurity } from '@/lib/security-invariants';
 
 import { validateSession } from './session-validators';
-import { assertProductionSecurity } from '@/lib/security-invariants';
-import { logErrorContext } from '@kestrel/shared/logger';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function handleJwtCallback(token: any, user: any): Promise<any> {
+type AuthUser = User & {
+  tokenVersion?: number;
+  emailVerified?: Date | null;
+  rememberMe?: boolean;
+  sessionId?: string;
+  deviceName?: string | null;
+  ip?: string | null;
+};
+
+type AuthSession = Session & {
+  sessionId?: string;
+  user?: Session['user'] & { emailVerified?: Date | null };
+};
+
+export async function handleJwtCallback(token: JWT, user?: AuthUser): Promise<JWT> {
   assertProductionSecurity();
   if (user) {
     token.id = user.id;
@@ -17,14 +32,9 @@ export async function handleJwtCallback(token: any, user: any): Promise<any> {
     const sessionId = user.sessionId || crypto.randomUUID();
     token.sessionId = sessionId;
     try {
-      await createUserSession(
-        sessionId,
-        user.id,
-        (user.deviceName as string) ?? null,
-        (user.ip as string) ?? null,
-      );
+      await createUserSession(sessionId, user.id ?? '', user.deviceName ?? null, user.ip ?? null);
     } catch (err) {
-      logErrorContext(err, 'auth/session_insert', { userId: user.id, sessionId }, 'auth');
+      logErrorContext(err, 'auth/session_insert', { userId: user.id ?? '', sessionId }, 'auth');
       throw new AuthError('SESSION_SYSTEM_ERROR');
     }
   }
@@ -32,11 +42,15 @@ export async function handleJwtCallback(token: any, user: any): Promise<any> {
   return token;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function handleSessionCallback(session: any, token: any): Promise<any> {
+export async function handleSessionCallback(
+  session: AuthSession,
+  token: JWT & { id?: string; emailVerified?: Date | null; sessionId?: string },
+): Promise<AuthSession> {
   assertProductionSecurity();
   if (session.user && token.id) session.user.id = token.id;
-  if (token.emailVerified !== undefined) session.user.emailVerified = token.emailVerified;
+  if (token.emailVerified !== undefined && session.user) {
+    session.user.emailVerified = token.emailVerified;
+  }
   if (token.sessionId) session.sessionId = token.sessionId;
 
   let db;
@@ -47,12 +61,8 @@ export async function handleSessionCallback(session: any, token: any): Promise<a
     return { ...session, user: undefined, expires: '0' };
   }
 
-  const invalidated = await validateSession(
-    db,
-    token,
-    session,
-    Math.floor(Date.now() / 1000),
-    { failClosed: true },
-  );
-  return invalidated ?? session;
+  const invalidated = await validateSession(db, token, session, Math.floor(Date.now() / 1000), {
+    failClosed: true,
+  });
+  return (invalidated as AuthSession | null) ?? session;
 }

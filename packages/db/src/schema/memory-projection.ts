@@ -15,9 +15,14 @@ export type MemoryProjectionStatus = 'pending' | 'projected' | 'failed';
 export const memoryProjectionState = pgTable(
   'memory_projection_state',
   {
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     threadId: text('thread_id').notNull(),
-    tenantId: text('tenant_id').notNull().default(sql`current_setting('app.current_tenant', true)`).references(() => organization.id, { onDelete: 'cascade' }),
+    tenantId: text('tenant_id')
+      .notNull()
+      .default(sql`current_setting('app.current_tenant', true)`)
+      .references(() => organization.id, { onDelete: 'cascade' }),
     lastProjectedMessageId: text('last_projected_message_id'),
     status: text('status').$type<MemoryProjectionStatus>().notNull().default('pending'),
     lastError: text('last_error'),

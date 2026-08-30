@@ -42,7 +42,9 @@ export function normalizeWorkflowStatus(value: unknown): WorkflowStatus {
   }
 }
 
-export function toMastraWorkflowStatus(status: WorkflowStatus): 'pending' | 'running' | 'success' | 'failed' {
+export function toMastraWorkflowStatus(
+  status: WorkflowStatus,
+): 'pending' | 'running' | 'success' | 'failed' {
   switch (status) {
     case 'succeeded':
       return 'success';
@@ -57,7 +59,9 @@ export function toMastraWorkflowStatus(status: WorkflowStatus): 'pending' | 'run
   }
 }
 
-export function toApiWorkflowStatus(status: WorkflowStatus): 'pending' | 'running' | 'complete' | 'failed' {
+export function toApiWorkflowStatus(
+  status: WorkflowStatus,
+): 'pending' | 'running' | 'complete' | 'failed' {
   switch (status) {
     case 'succeeded':
       return 'complete';

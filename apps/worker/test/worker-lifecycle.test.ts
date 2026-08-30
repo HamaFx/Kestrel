@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(resolve(process.cwd(), 'src/index.ts'), 'utf8');
@@ -8,7 +9,9 @@ describe('worker lifecycle contracts', () => {
   it('starts both consumers before declaring readiness', () => {
     expect(source.indexOf('await consumer.start()')).toBeGreaterThan(-1);
     expect(source.indexOf('await binanceConsumer.start()')).toBeGreaterThan(-1);
-    expect(source.indexOf('notifyReady()')).toBeGreaterThan(source.indexOf('await binanceConsumer.start()'));
+    expect(source.indexOf('notifyReady()')).toBeGreaterThan(
+      source.indexOf('await binanceConsumer.start()'),
+    );
   });
 
   it('cleans up the worker when HTTP listener startup fails', () => {

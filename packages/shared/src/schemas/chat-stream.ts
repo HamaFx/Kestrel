@@ -56,7 +56,10 @@ export const UserMessageTextPartSchema = z.object({
 export const UserMessageFilePartSchema = z.object({
   type: z.literal('file'),
   url: z.string().url().max(2_048),
-  mediaType: z.string().regex(/^[a-z]+\/[a-z0-9.+-]+$/i).max(120),
+  mediaType: z
+    .string()
+    .regex(/^[a-z]+\/[a-z0-9.+-]+$/i)
+    .max(120),
   filename: z.string().max(255).optional(),
 });
 export const UserMessagePartSchema = z.discriminatedUnion('type', [

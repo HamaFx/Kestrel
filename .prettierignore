@@ -1,6 +1,8 @@
 node_modules
 .next
 .turbo
+test-results
+playwright-report
 dist
 build
 coverage

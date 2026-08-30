@@ -19,8 +19,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { RequestContext } from '@mastra/core/request-context';
-import { createStep, Workflow } from '@mastra/core/workflows';
-import type { WorkflowRunState } from '@mastra/core/workflows';
+import { createStep, Workflow, type WorkflowRunState } from '@mastra/core/workflows';
 import { LibSQLStore } from '@mastra/libsql';
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

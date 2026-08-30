@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -14,10 +13,7 @@ function walk(dir) {
 
 function resolveImport(fromFile, specifier) {
   const base = path.resolve(path.dirname(fromFile), specifier);
-  const candidates = [
-    `${base}.js`,
-    path.join(base, 'index.js'),
-  ];
+  const candidates = [`${base}.js`, path.join(base, 'index.js')];
   return candidates.find((candidate) => fs.existsSync(candidate));
 }
 
@@ -25,7 +21,9 @@ function rewriteSpecifier(file, specifier) {
   if (!specifier.startsWith('.') || path.extname(specifier)) return specifier;
   const resolved = resolveImport(file, specifier);
   if (!resolved) return specifier;
-  return `${specifier}/${path.basename(resolved)}`.replace(/\/index\.js$/, '/index.js').replace(/\/([^/]+)\/\1\.js$/, '/$1.js');
+  return `${specifier}/${path.basename(resolved)}`
+    .replace(/\/index\.js$/, '/index.js')
+    .replace(/\/([^/]+)\/\1\.js$/, '/$1.js');
 }
 
 if (!fs.existsSync(distDir)) {

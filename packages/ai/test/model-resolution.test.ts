@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resolveMastraModel } from '../src/model-resolution';
+
 const { resolveChatModel, resolveModelForProvider } = vi.hoisted(() => ({
   resolveChatModel: vi.fn((settings: { chatModel: string | null }) => ({
     model: { modelId: settings.chatModel ?? 'default' },
@@ -16,8 +18,6 @@ const { resolveChatModel, resolveModelForProvider } = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/model-chat', () => ({ resolveChatModel, resolveModelForProvider }));
-
-import { resolveMastraModel } from '../src/model-resolution';
 
 const settings = { aiApiKeys: null, chatModel: null };
 const env = {} as never;

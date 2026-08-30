@@ -11,10 +11,9 @@
  *   LANGFUSE_BASE_URL=https://cloud.langfuse.com \
  *   pnpm eval:publish
  */
-
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const datasetName = process.env.LANGFUSE_EVAL_DATASET ?? 'kestrel-agent-regression';
@@ -23,7 +22,9 @@ const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
 const secretKey = process.env.LANGFUSE_SECRET_KEY;
 
 if (!baseUrl || !publicKey || !secretKey) {
-  console.error('[eval:publish] LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, and LANGFUSE_SECRET_KEY are required');
+  console.error(
+    '[eval:publish] LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, and LANGFUSE_SECRET_KEY are required',
+  );
   process.exit(1);
 }
 
@@ -55,14 +56,17 @@ async function ensureDataset() {
     },
     body: JSON.stringify({
       name: datasetName,
-      description: 'Kestrel agent mode, specialist, tool, citation, sentiment, and fallback regression cases',
+      description:
+        'Kestrel agent mode, specialist, tool, citation, sentiment, and fallback regression cases',
       metadata: { source: 'packages/ai/src/eval/cases.json', version: '2026-08' },
     }),
   });
   if (response.status === 409) return;
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Langfuse dataset creation returned HTTP ${response.status}: ${text.slice(0, 300)}`);
+    throw new Error(
+      `Langfuse dataset creation returned HTTP ${response.status}: ${text.slice(0, 300)}`,
+    );
   }
 }
 

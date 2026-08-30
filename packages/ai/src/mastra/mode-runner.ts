@@ -47,8 +47,8 @@ import {
   createSymbolResearchWorkflow,
   MastraModeStrictFailureError,
   REQUEST_CONTEXT_SCHEMA,
-  SymbolResearchWorkflowInputSchema,
   SPECIALISTS_BY_MODE,
+  SymbolResearchWorkflowInputSchema,
   type MastraAnalysisMode,
   type MastraModeOpinion,
   type MastraSpecialistName,
@@ -278,7 +278,9 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       runId: args.runId,
       workflowId: args.workflowId ?? 'symbol-research',
       stepId: args.mode,
-      message: hasDurableWorkflowState ? 'Symbol-research workflow run resumed' : 'Symbol-research workflow run started',
+      message: hasDurableWorkflowState
+        ? 'Symbol-research workflow run resumed'
+        : 'Symbol-research workflow run started',
       meta: {
         mode: args.mode,
         symbol: args.symbol,
@@ -287,16 +289,17 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         hasDurableWorkflowState,
       },
     });
-    const result = persistedStatus === 'success' && persisted?.result
-      ? ({
-          status: 'success',
-          result: persisted.result,
-          steps: persisted.steps,
-        } as never)
-      : hasDurableWorkflowState &&
-          ['running', 'suspended', 'waiting', 'paused', 'pending'].includes(persistedStatus ?? '')
-        ? await run.restart({ requestContext, tracingOptions })
-        : await run.start({ inputData, requestContext, tracingOptions });
+    const result =
+      persistedStatus === 'success' && persisted?.result
+        ? ({
+            status: 'success',
+            result: persisted.result,
+            steps: persisted.steps,
+          } as never)
+        : hasDurableWorkflowState &&
+            ['running', 'suspended', 'waiting', 'paused', 'pending'].includes(persistedStatus ?? '')
+          ? await run.restart({ requestContext, tracingOptions })
+          : await run.start({ inputData, requestContext, tracingOptions });
     logWorkflowEnd({
       runId: args.runId,
       workflowId: args.workflowId ?? 'symbol-research',
@@ -414,12 +417,13 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       runId: args.runId,
       model: resolution.modelId,
       providerId: resolution.providerId,
-      startedAt,        inputTokens: 0,
-        outputTokens: 0,
-        usageKnown: false,
-        toolCalls: 0,
-        steps: 0,
-        outcome: mastraOutcomeForError(error, args.signal),
+      startedAt,
+      inputTokens: 0,
+      outputTokens: 0,
+      usageKnown: false,
+      toolCalls: 0,
+      steps: 0,
+      outcome: mastraOutcomeForError(error, args.signal),
 
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       error,

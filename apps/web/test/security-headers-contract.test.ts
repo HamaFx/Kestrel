@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
@@ -23,7 +24,7 @@ describe('security header and deployment contracts', () => {
     const source = read('apps/web/src/proxy.ts');
 
     expect(source).toContain('Content-Security-Policy');
-    expect(source).toContain("nonce-${nonce}");
+    expect(source).toContain('nonce-${nonce}');
     expect(source).not.toContain("script-src 'self' 'nonce-${nonce}' 'unsafe-inline'");
   });
 

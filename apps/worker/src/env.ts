@@ -16,9 +16,8 @@
 
 // Worker environment validation.
 //
-// Phase 8 PR-5 starts minimal — DATABASE_URL and the optional health-check
-// UUIDs the orchestration code already references. New env vars land in
-// later PRs as the consumer / aggregator / job runner come online.
+// The worker validates only the runtime settings it consumes. Optional
+// integrations remain no-ops when their credentials are absent.
 //
 // We deliberately *don't* re-use `parseServerEnv` from `@kestrel/shared`
 // because the worker is a different runtime — it doesn't need APP_PASSWORD,

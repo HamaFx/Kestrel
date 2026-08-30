@@ -75,7 +75,7 @@ export abstract class BaseWsConsumer {
     this.destroyed = true;
     this.clearTimers();
     if (this.ws) {
-      // STAB-23: Use removeAllListeners + property nulling instead of
+      // Remove listeners and clear the socket reference instead of
       // reassigning no-op listeners. Some WebSocket implementations
       // (including the `ws` library) keep internal listener arrays even
       // after .close(). Removing them explicitly prevents potential memory

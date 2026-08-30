@@ -46,7 +46,11 @@ describe('production security boundaries', () => {
     vi.doMock('@/auth', () => ({ signIn }));
     vi.doMock('@/lib/services/api-boundary', () => ({ getUserById, createUserWithSettings }));
     vi.doMock('@/lib/logger', () => ({
-      createScopedLoggerWithContext: () => ({ warn: vi.fn(), info: vi.fn(), errorContext: vi.fn() }),
+      createScopedLoggerWithContext: () => ({
+        warn: vi.fn(),
+        info: vi.fn(),
+        errorContext: vi.fn(),
+      }),
     }));
 
     const { GET } = await import('@/app/api/dev/login/route');
@@ -60,8 +64,10 @@ describe('production security boundaries', () => {
 
   it('reports impersonation disabled in production', async () => {
     vi.doMock('@/lib/admin-auth', () => ({
-      withAdminAuth: (handler: (request: Request, context: { user: { userId: string } }) => Promise<Response>) =>
-        async (request: Request) => handler(request, { user: { userId: 'admin' } }),
+      withAdminAuth:
+        (handler: (request: Request, context: { user: { userId: string } }) => Promise<Response>) =>
+        async (request: Request) =>
+          handler(request, { user: { userId: 'admin' } }),
     }));
     vi.doMock('@/auth', () => ({
       generateImpersonationChallenge: vi.fn(),

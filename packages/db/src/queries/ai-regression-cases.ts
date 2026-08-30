@@ -21,8 +21,8 @@ import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
-import { requireTenantIdForUser } from '../tenant';
 import type { RegressionCaseStatus } from '../schema/ai-regression-cases';
+import { requireTenantIdForUser } from '../tenant';
 
 export type AiRegressionCaseRow = typeof schema.aiRegressionCases.$inferSelect;
 
@@ -82,12 +82,12 @@ export async function syncAiRegressionCase(
       .update(schema.aiRegressionCases)
       .set({ status: 'dismissed', updatedAt: new Date() })
       .where(
-      and(
-        eq(schema.aiRegressionCases.feedbackId, feedbackId),
-        eq(schema.aiRegressionCases.userId, source.feedback.userId),
-        eq(schema.aiRegressionCases.tenantId, source.feedback.tenantId),
-      ),
-    );
+        and(
+          eq(schema.aiRegressionCases.feedbackId, feedbackId),
+          eq(schema.aiRegressionCases.userId, source.feedback.userId),
+          eq(schema.aiRegressionCases.tenantId, source.feedback.tenantId),
+        ),
+      );
     return null;
   }
 

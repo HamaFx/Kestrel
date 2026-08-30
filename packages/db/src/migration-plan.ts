@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface MigrationEntry {
@@ -42,7 +42,9 @@ export function buildMigrationPlan(migrationsDir: string): MigrationPlan {
     plan.push({
       ...entry,
       file,
-      hash: createHash('sha256').update(readFileSync(join(migrationsDir, file))).digest('hex'),
+      hash: createHash('sha256')
+        .update(readFileSync(join(migrationsDir, file)))
+        .digest('hex'),
     });
   }
 

@@ -29,8 +29,9 @@
 //   - In-memory LRU cache for identical messages (60s TTL)
 //   - Confidence threshold of 0.7 → borderline classifications use keyword fallback
 
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { createHash } from 'node:crypto';
+
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { z } from 'zod';
 
 import { runMastraStructured } from './mastra/text-runner';

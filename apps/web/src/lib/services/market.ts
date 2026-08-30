@@ -25,12 +25,7 @@
 // call service → format Response.
 
 import { getCandles, getCandlesWithMeta, getDefaultCache, getPriceWithMeta } from '@kestrel/data';
-import {
-  requireTenantIdForUser,
-  schema,
-  withRateLimit,
-  withTenantDbRO,
-} from '@kestrel/db';
+import { requireTenantIdForUser, schema, withRateLimit, withTenantDbRO } from '@kestrel/db';
 import { computeIndicator } from '@kestrel/indicators';
 import { BUILTIN_SYMBOLS, type Candle, type IndicatorResult, type Tick } from '@kestrel/shared';
 import { decryptByok } from '@kestrel/shared/encryption';
@@ -87,10 +82,7 @@ async function loadUserMarketPrefs(
       })
       .from(schema.userSettings)
       .where(
-        and(
-          eq(schema.userSettings.userId, userId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
       );
     return rows;
   });

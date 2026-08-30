@@ -8,7 +8,6 @@
 // Thresholds: Performance >= 90, Accessibility >= 95.
 // On any miss the script lists the failing route+category+score and exits 1.
 // A crash exits 2; a clean run exits 0.
-
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -229,11 +228,7 @@ async function main() {
 
     const stem = routeToFileStem(route);
     try {
-      await fs.writeFile(
-        path.join(outDir, `${stem}.json`),
-        JSON.stringify(lhr, null, 2),
-        'utf8',
-      );
+      await fs.writeFile(path.join(outDir, `${stem}.json`), JSON.stringify(lhr, null, 2), 'utf8');
     } catch (e) {
       // Per requirement 4.3: per-route write failure is logged but non-fatal.
       console.warn(
@@ -249,9 +244,7 @@ async function main() {
     if (a11y < A11Y_THRESHOLD) {
       failures.push({ route, category: 'accessibility', score: a11y, threshold: A11Y_THRESHOLD });
     }
-    console.log(
-      `[lighthouse] ${route} perf=${perf} a11y=${a11y} ${passed ? 'PASS' : 'FAIL'}`,
-    );
+    console.log(`[lighthouse] ${route} perf=${perf} a11y=${a11y} ${passed ? 'PASS' : 'FAIL'}`);
   }
 
   try {
@@ -282,6 +275,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error('[lighthouse] crashed:', e instanceof Error ? e.stack ?? e.message : e);
+  console.error('[lighthouse] crashed:', e instanceof Error ? (e.stack ?? e.message) : e);
   process.exit(2);
 });

@@ -32,53 +32,53 @@ Do not advertise shared hosting, SaaS, or independently audited production secur
 
 All of the following passed:
 
-| Check | Result |
-|---|---:|
-| `pnpm typecheck` | Passed |
-| Full Turbo/Vitest suite | Passed |
-| Tests | 14 packages, approximately 3,500+ assertions |
-| `pnpm turbo run lint` | Passed |
-| Single-user release contract | Passed |
-| OSS release contract | Passed |
-| P0 release check | Passed |
-| P3 release check | Passed |
-| Route-security check | Passed |
-| Environment contract | Passed |
-| Compose reproducibility check | Passed |
-| Release archive check | Passed |
-| Release metadata check | Passed |
-| Dependency-report contract | Passed |
+| Check                         |                                       Result |
+| ----------------------------- | -------------------------------------------: |
+| `pnpm typecheck`              |                                       Passed |
+| Full Turbo/Vitest suite       |                                       Passed |
+| Tests                         | 14 packages, approximately 3,500+ assertions |
+| `pnpm turbo run lint`         |                                       Passed |
+| Single-user release contract  |                                       Passed |
+| OSS release contract          |                                       Passed |
+| P0 release check              |                                       Passed |
+| P3 release check              |                                       Passed |
+| Route-security check          |                                       Passed |
+| Environment contract          |                                       Passed |
+| Compose reproducibility check |                                       Passed |
+| Release archive check         |                                       Passed |
+| Release metadata check        |                                       Passed |
+| Dependency-report contract    |                                       Passed |
 
 Important qualification: many Turbo results were cache hits. The repository’s own current audit documentation also says clean-machine, full app-stack restore, previous-release upgrade, off-host backup, and independent security review remain incomplete.
 
 # Ratings
 
-| Area | Rating | Assessment |
-|---|---:|---|
-| Single-user boundary | **8.5/10** | Explicit, fail-closed, enforced in Compose, env parsing, DB, and migrations |
-| Authentication | **8/10** | Strong controls: bcrypt, lockout, 2FA, backup codes, sessions, token versioning |
-| Authorization/API boundaries | **7/10** | Good wrappers and route inventory; runtime ownership still needs HTTP-level proof |
-| CSRF protection | **8/10** | Double-submit token with secure cookie handling |
-| Session security | **8/10** | Persisted sessions, revocation, token-version checks, fail-closed DB behavior |
-| BYOK encryption | **8/10** | AES-GCM and secret handling are thoughtfully implemented |
-| Database integrity | **7.5/10** | Extensive constraints/migrations, but large migration surface increases risk |
-| RLS/shared-mode safety | **3/10** | Correctly disabled; not ready for multi-user use |
-| PGlite/simple mode | **8/10** | Excellent convenience path; behavior differs from real PostgreSQL |
-| Docker deployment | **7/10** | Good defaults and health gates; clean-install/upgrade proof remains |
-| Worker reliability | **7/10** | Good reconnect, buffering, shutdown, and health mechanisms |
-| Worker network security | **6/10** | Host binding is safe in Compose, but container listens on all interfaces |
-| Backup/restore | **7/10** | Local logical restore tested; off-host DR not completed |
-| Migration safety | **6.5/10** | Fail-closed startup, but startup migration locking/recovery needs stronger guarantees |
-| AI/provider safety | **7.5/10** | BYOK, budgets, routing, safeguards; provider behavior remains nondeterministic |
-| Privacy/telemetry | **7.5/10** | Opt-in defaults are good; deletion/redaction proofs should expand |
-| CI/CD | **7/10** | Broad coverage, but some gates are duplicated or non-blocking |
-| Dependency hygiene | **7/10** | Lockfile and scanning exist; upgrade policy/license verification incomplete |
-| Licensing/compliance | **6/10** | Apache baseline is good; third-party asset/provider audit incomplete |
-| Documentation | **7.5/10** | Honest and detailed; still somewhat fragmented and internally complex |
-| Contributor experience | **6.5/10** | Good tooling, but architecture is intimidating for new contributors |
-| Performance | **7/10** | Pool/timeouts/bundle checks exist; test and runtime complexity remain |
-| Maintainability | **6.5/10** | Strong engineering effort but too much code for the supported product scope |
-| Release readiness | **7/10** | Suitable for beta, conditional for production-like self-hosting |
+| Area                         |     Rating | Assessment                                                                            |
+| ---------------------------- | ---------: | ------------------------------------------------------------------------------------- |
+| Single-user boundary         | **8.5/10** | Explicit, fail-closed, enforced in Compose, env parsing, DB, and migrations           |
+| Authentication               |   **8/10** | Strong controls: bcrypt, lockout, 2FA, backup codes, sessions, token versioning       |
+| Authorization/API boundaries |   **7/10** | Good wrappers and route inventory; runtime ownership still needs HTTP-level proof     |
+| CSRF protection              |   **8/10** | Double-submit token with secure cookie handling                                       |
+| Session security             |   **8/10** | Persisted sessions, revocation, token-version checks, fail-closed DB behavior         |
+| BYOK encryption              |   **8/10** | AES-GCM and secret handling are thoughtfully implemented                              |
+| Database integrity           | **7.5/10** | Extensive constraints/migrations, but large migration surface increases risk          |
+| RLS/shared-mode safety       |   **3/10** | Correctly disabled; not ready for multi-user use                                      |
+| PGlite/simple mode           |   **8/10** | Excellent convenience path; behavior differs from real PostgreSQL                     |
+| Docker deployment            |   **7/10** | Good defaults and health gates; clean-install/upgrade proof remains                   |
+| Worker reliability           |   **7/10** | Good reconnect, buffering, shutdown, and health mechanisms                            |
+| Worker network security      |   **6/10** | Host binding is safe in Compose, but container listens on all interfaces              |
+| Backup/restore               |   **7/10** | Local logical restore tested; off-host DR not completed                               |
+| Migration safety             | **6.5/10** | Fail-closed startup, but startup migration locking/recovery needs stronger guarantees |
+| AI/provider safety           | **7.5/10** | BYOK, budgets, routing, safeguards; provider behavior remains nondeterministic        |
+| Privacy/telemetry            | **7.5/10** | Opt-in defaults are good; deletion/redaction proofs should expand                     |
+| CI/CD                        |   **7/10** | Broad coverage, but some gates are duplicated or non-blocking                         |
+| Dependency hygiene           |   **7/10** | Lockfile and scanning exist; upgrade policy/license verification incomplete           |
+| Licensing/compliance         |   **6/10** | Apache baseline is good; third-party asset/provider audit incomplete                  |
+| Documentation                | **7.5/10** | Honest and detailed; still somewhat fragmented and internally complex                 |
+| Contributor experience       | **6.5/10** | Good tooling, but architecture is intimidating for new contributors                   |
+| Performance                  |   **7/10** | Pool/timeouts/bundle checks exist; test and runtime complexity remain                 |
+| Maintainability              | **6.5/10** | Strong engineering effort but too much code for the supported product scope           |
+| Release readiness            |   **7/10** | Suitable for beta, conditional for production-like self-hosting                       |
 
 # Findings
 
@@ -143,7 +143,7 @@ The audit documentation already acknowledges this gap.
 `apps/worker/src/index.ts` listens on:
 
 ```ts
-healthServer.listen(8081, '0.0.0.0')
+healthServer.listen(8081, '0.0.0.0');
 ```
 
 Compose currently publishes no worker port to the host, which is good. But:
@@ -377,7 +377,7 @@ This is functional but complex. Operators may assume an `env_file` value overrid
 `auth.config.ts` uses:
 
 ```ts
-trustHost: true
+trustHost: true;
 ```
 
 This is often necessary behind reverse proxies, but it places responsibility on the deployment topology. The code comments mention this, but a self-hosting operator could expose the app directly or misconfigure forwarded hosts.
@@ -409,7 +409,7 @@ The CSP is thoughtful, but the repository’s stated best-practice target should
 The worker proxy returns:
 
 ```ts
-message: String(err)
+message: String(err);
 ```
 
 Even though logs redact the target host, the response can expose internal fetch, URL, DNS, or TLS details to callers.

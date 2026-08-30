@@ -78,9 +78,9 @@ export function EquityCurveWidget({ entries }: EquityCurveWidgetProps) {
               type="button"
               onClick={() => setTimeframe(tf)}
               className={cn(
-                'rounded-2xs px-1.5 py-0.5 font-mono text-[10px] uppercase font-semibold transition-colors cursor-pointer touch-manipulation',
+                'rounded-2xs cursor-pointer touch-manipulation px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase transition-colors',
                 timeframe === tf
-                  ? 'bg-brand/15 text-brand border border-brand/40 font-bold'
+                  ? 'bg-brand/15 text-brand border-brand/40 border font-bold'
                   : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
               )}
             >
@@ -95,4 +95,3 @@ export function EquityCurveWidget({ entries }: EquityCurveWidgetProps) {
     </Card>
   );
 }
-

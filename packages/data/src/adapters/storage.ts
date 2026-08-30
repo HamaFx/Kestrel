@@ -43,12 +43,15 @@ export async function listStorageObjects(
   bucket: string,
   prefix: string,
 ): Promise<StorageObjectInfo[]> {
-  const res = await fetch(`${storageBaseUrl(env)}/storage/v1/object/list/${encodeURIComponent(bucket)}`, {
-    method: 'POST',
-    redirect: 'error',
-    headers: storageHeaders(env),
-    body: JSON.stringify({ prefix, limit: 1000, offset: 0 }),
-  });
+  const res = await fetch(
+    `${storageBaseUrl(env)}/storage/v1/object/list/${encodeURIComponent(bucket)}`,
+    {
+      method: 'POST',
+      redirect: 'error',
+      headers: storageHeaders(env),
+      body: JSON.stringify({ prefix, limit: 1000, offset: 0 }),
+    },
+  );
 
   if (!res.ok) {
     const detail = await res.text().catch(() => '<no body>');
@@ -56,7 +59,8 @@ export async function listStorageObjects(
   }
 
   const body = await res.text();
-  if (body.length > 256 * 1024) throw new Error('Supabase Storage list response exceeded safety limit');
+  if (body.length > 256 * 1024)
+    throw new Error('Supabase Storage list response exceeded safety limit');
   let json: unknown;
   try {
     json = JSON.parse(body);
@@ -84,12 +88,15 @@ export async function deleteStorageObjects(
   if (paths.some((path) => path.includes('..') || path.startsWith('/'))) {
     throw new Error('Storage delete path is invalid');
   }
-  const res = await fetch(`${storageBaseUrl(env)}/storage/v1/object/${encodeURIComponent(bucket)}`, {
-    method: 'DELETE',
-    redirect: 'error',
-    headers: storageHeaders(env),
-    body: JSON.stringify({ prefixes: paths }),
-  });
+  const res = await fetch(
+    `${storageBaseUrl(env)}/storage/v1/object/${encodeURIComponent(bucket)}`,
+    {
+      method: 'DELETE',
+      redirect: 'error',
+      headers: storageHeaders(env),
+      body: JSON.stringify({ prefixes: paths }),
+    },
+  );
 
   if (!res.ok) {
     const detail = await res.text().catch(() => '<no body>');

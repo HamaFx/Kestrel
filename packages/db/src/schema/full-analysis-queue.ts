@@ -9,7 +9,8 @@ import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'dr
 
 import { organization, users } from './auth';
 
-export type FullAnalysisQueueStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'blocked';
+export type FullAnalysisQueueStatus =
+  'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'blocked';
 
 /**
  * Database-owned queue and lease ledger for durable Full-analysis work.
@@ -47,7 +48,9 @@ export const fullAnalysisQueue = pgTable(
     index('full_analysis_queue_tenant_idx').on(table.tenantId, table.status, table.createdAt),
     index('full_analysis_queue_terminal_completed_idx')
       .on(table.completedAt)
-      .where(sql`${table.status} IN ('succeeded', 'failed', 'cancelled', 'blocked') AND ${table.completedAt} IS NOT NULL`),
+      .where(
+        sql`${table.status} IN ('succeeded', 'failed', 'cancelled', 'blocked') AND ${table.completedAt} IS NOT NULL`,
+      ),
   ],
 );
 

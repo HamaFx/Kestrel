@@ -133,12 +133,7 @@ export async function updateAnalysisModeService(
   await db
     .update(schema.userSettings)
     .set(updates)
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
 }
 
 export async function getFallbackChainService(
@@ -182,10 +177,7 @@ export function bulkTestKeysService(userId: string): Promise<{
       .select({ aiApiKeys: schema.userSettings.aiApiKeys })
       .from(schema.userSettings)
       .where(
-        and(
-          eq(schema.userSettings.userId, userId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
       );
     const decrypted = settings?.aiApiKeys ? decryptByok(settings.aiApiKeys) : null;
 
