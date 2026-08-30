@@ -228,8 +228,8 @@ export function EntryForm({ onCreated }: EntryFormProps) {
         variant="tone"
         size="md"
         options={[
-          { value: 'long', label: 'long ↑', tone: 'bull' },
-          { value: 'short', label: 'short ↓', tone: 'bear' },
+          { value: 'long', label: 'LONG ↑', tone: 'bull' },
+          { value: 'short', label: 'SHORT ↓', tone: 'bear' },
         ]}
       />
 

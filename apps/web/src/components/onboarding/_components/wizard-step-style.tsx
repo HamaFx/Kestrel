@@ -39,14 +39,14 @@ const STYLES = [
     id: 'scalper' as const,
     title: 'Scalper',
     icon: IconBolt,
-    timeframe: '1m - 15m',
+    timeframe: '1M - 15M',
     desc: 'Capture fast-paced price action and micro-trends.',
   },
   {
     id: 'day_trader' as const,
     title: 'Day Trader',
     icon: IconChartCandle,
-    timeframe: '5m - 1H',
+    timeframe: '5M - 1H',
     desc: 'Intraday execution with clean daily closes.',
   },
   {
@@ -60,7 +60,7 @@ const STYLES = [
     id: 'position' as const,
     title: 'Position Trader',
     icon: IconBuildingBank,
-    timeframe: 'Daily+',
+    timeframe: '1D+',
     desc: 'Macro trends, long-term fundamentals.',
   },
 ];
@@ -104,7 +104,7 @@ export function WizardStepStyle({
                   {style.timeframe}
                 </span>
               </div>
-              <p className="text-fg-subtle text-xs leading-[1.4] sm:text-sm">{style.desc}</p>
+              <p className="text-fg-subtle text-caption leading-relaxed sm:text-body-sm">{style.desc}</p>
               {active && (
                 <span className="text-brand absolute right-3 bottom-3">
                   <IconCheck className="size-4" />

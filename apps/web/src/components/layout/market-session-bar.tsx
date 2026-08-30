@@ -91,7 +91,7 @@ export function MarketSessionBar() {
               <span
                 key={s.id}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold tracking-wider transition-colors',
+                  'text-caption inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-semibold tracking-wider transition-colors',
                   active
                     ? 'bg-bull/15 text-bull border-bull/30 border'
                     : 'bg-bg-elev-2 text-fg-subtle/70 border-border/40 border',
@@ -114,7 +114,7 @@ export function MarketSessionBar() {
           <>
             <div className="bg-border h-3 w-px shrink-0" />
             <span
-              className="bg-brand/15 border-brand/40 text-brand inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold tracking-wider"
+              className="bg-brand/15 border-brand/40 text-brand text-caption inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 font-semibold tracking-wider"
               title="High volatility killzone window"
             >
               <IconFlame className="text-brand size-3 animate-pulse" />
@@ -124,7 +124,7 @@ export function MarketSessionBar() {
         )}
       </div>
 
-      <div className="text-fg-subtle/80 hidden shrink-0 items-center gap-2 text-[10px] sm:flex">
+      <div className="text-fg-subtle/80 text-caption hidden shrink-0 items-center gap-2 sm:flex">
         <span>24H FX/GOLD</span>
       </div>
     </div>

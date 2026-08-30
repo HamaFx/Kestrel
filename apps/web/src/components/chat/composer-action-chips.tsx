@@ -54,9 +54,9 @@ export function ComposerActionChips({
     () => [
       {
         id: 'order-flow',
-        label: '15m Order Flow',
+        label: '15M Order Flow',
         icon: IconActivity,
-        prompt: `Analyze 15m order flow, fair value gaps, and current market structure for ${symbol}`,
+        prompt: `Analyze 15M order flow, fair value gaps, and current market structure for ${symbol}`,
       },
       {
         id: 'liquidity',
@@ -66,7 +66,7 @@ export function ComposerActionChips({
       },
       {
         id: 'confluence',
-        label: 'Top-Down 4H→15M',
+        label: '4H → 15M Confluence',
         icon: IconChartLine,
         prompt: `Give a multi-timeframe top-down confluence breakdown for ${symbol} (4H -> 1H -> 15M)`,
       },
@@ -78,13 +78,13 @@ export function ComposerActionChips({
       },
       {
         id: 'fvg-map',
-        label: 'FVG & Imbalances',
+        label: 'Fair Value Gaps',
         icon: IconChartBar,
-        prompt: `Map all active 15m and 1h Fair Value Gaps and imbalance zones for ${symbol}`,
+        prompt: `Map all active 15M and 1H Fair Value Gaps and imbalance zones for ${symbol}`,
       },
       {
         id: 'risk-check',
-        label: 'Risk & Invalidation',
+        label: 'Risk & Key Levels',
         icon: IconShieldCheck,
         prompt: `What is the logical stop loss placement and trade invalidation level for ${symbol}?`,
       },

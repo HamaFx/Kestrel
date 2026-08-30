@@ -190,7 +190,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
               {pipsDiff.toFixed(1)}p
             </span>
           ) : null}
-          <span className="text-fg-subtle text-[10px] tabular-nums">
+          <span className="text-fg-subtle text-caption tabular-nums">
             {entry.openedAt ? formatRelative(entry.openedAt) : ''}
           </span>
         </div>

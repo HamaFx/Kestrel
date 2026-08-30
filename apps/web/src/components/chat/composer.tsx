@@ -95,7 +95,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
   },
   {
     command: '/journal',
-    description: 'Draft a journal entry (buy/sell, symbol, R)',
+    description: 'Log a trade setup (direction, symbol, R)',
     icon: <IconNotebook className="size-4" />,
     placeholder: '/journal buy XAUUSD 2R',
   },
@@ -109,7 +109,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
   },
   {
     command: '/analyze',
-    description: 'Run full AI analysis on a symbol',
+    description: 'Run full desk analysis on a symbol',
     icon: <IconTerminal2 className="size-4" />,
     placeholder: '/analyze XAUUSD',
   },
@@ -123,7 +123,7 @@ export function Composer({
   onStop,
   isStreaming,
   disabled,
-  placeholder = 'Ask anything…',
+  placeholder = 'Ask about price action, key levels, or market news…',
 }: ComposerProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<ComposerImage[]>([]);

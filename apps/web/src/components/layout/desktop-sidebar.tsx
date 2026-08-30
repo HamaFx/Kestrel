@@ -210,7 +210,7 @@ export function DesktopSidebar({
                 <span className="text-fg truncate text-xs font-semibold">
                   {userName || 'Trader'}
                 </span>
-                <span className="text-fg-subtle truncate text-[10px]">{userEmail || ''}</span>
+                <span className="text-fg-subtle text-caption truncate">{userEmail || ''}</span>
               </div>
             )}
           </div>

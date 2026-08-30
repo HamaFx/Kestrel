@@ -84,11 +84,9 @@ export function FollowUpSuggestions({ message, onSelect, disabled }: FollowUpSug
       transition={{ duration: 0.3, delay: 0.1 }}
       className="border-border/40 mt-3 flex flex-col gap-1.5 border-t pt-2"
     >
-      <div className="text-caption text-fg-subtle flex items-center gap-1.5">
+      <div className="text-caption text-fg-subtle flex items-center gap-1.5 font-semibold tracking-wider uppercase">
         <IconSparkles className="text-brand size-3" />
-        <span className="text-[10px] font-semibold tracking-wider uppercase">
-          Suggested Follow-ups
-        </span>
+        <span>Suggested Next Steps</span>
       </div>
 
       <div className="flex flex-wrap gap-1.5">

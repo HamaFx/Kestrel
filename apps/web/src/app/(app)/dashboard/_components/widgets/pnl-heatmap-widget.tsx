@@ -191,7 +191,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
     >
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-fg text-body-sm font-semibold">P&L heatmap</span>
+          <span className="text-fg text-body-sm font-semibold">P&L Heatmap</span>
           <span className="text-fg-subtle text-caption tabular-nums">
             {totals.count} trades · {totals.r >= 0 ? '+' : ''}
             {totals.r.toFixed(1)}R
@@ -226,7 +226,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
             {DOW_LABELS.map((d) => (
               <span
                 key={d}
-                className="text-fg-subtle sm:text-caption text-[10px] tracking-wider uppercase"
+                className="text-fg-subtle text-caption font-medium tracking-wider uppercase"
               >
                 {d}
               </span>
@@ -250,7 +250,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
                   aria-label={`${cell.key}: ${sign}${cell.totalR.toFixed(1)}R, ${cell.count} trades${isToday ? ', today' : ''}`}
                   className={cn(
                     'flex aspect-square min-h-[28px] w-full touch-manipulation items-center justify-center rounded-sm tabular-nums sm:min-h-[34px] md:min-h-[38px]',
-                    'sm:text-caption font-mono text-[11px] font-medium',
+                    'text-caption font-mono font-medium',
                     cell.totalR > 0 && 'text-bull font-bold',
                     cell.totalR < 0 && 'text-bear font-bold',
                     cell.totalR === 0 && 'text-fg-muted',
