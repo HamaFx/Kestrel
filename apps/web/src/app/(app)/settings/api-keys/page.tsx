@@ -17,12 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { BYOK_PROVIDERS_LIST, computeUsage, type ProviderBreakdown } from '@kestrel/ai';
-import {
-  getDb,
-  getUserWithSettings,
-  requireTenantIdForUser,
-  schema,
-} from '@kestrel/db';
+import { getDb, getUserWithSettings, requireTenantIdForUser, schema } from '@kestrel/db';
 import { decryptByok, type ProviderId } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';

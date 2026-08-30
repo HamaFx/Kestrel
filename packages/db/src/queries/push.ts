@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// PF-01 Phase 2 — Push subscription query helpers.
+// Push subscription query helpers.
 
 import { and, eq } from 'drizzle-orm';
 

@@ -120,7 +120,7 @@ describe('cron VM operational policy', () => {
     const workerEnv = read('apps/worker/src/env.ts');
     expect(workerEnv).toContain('BILLING_WEBHOOK_DLQ_RETENTION_DAYS');
     expect(workerEnv).toContain('AI_EVALUATION_RETENTION_DAYS');
-    expect(workerEnv).toContain(".default(90)");
+    expect(workerEnv).toContain('.default(90)');
   });
 
   it('provisions the documented billing DLQ timer', () => {

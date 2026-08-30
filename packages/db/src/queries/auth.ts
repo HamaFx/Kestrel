@@ -350,12 +350,7 @@ export async function updateUserApiKeys(
       aiApiKeys: encryptedKeys,
       ...(keysUpdatedAt !== null ? { aiApiKeysUpdatedAt: keysUpdatedAt } : {}),
     })
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
 }
 
 /**
@@ -392,9 +387,7 @@ export async function deleteUserAccount(userId: string): Promise<void> {
     // Remove rows that reference chat messages/feedback before deleting the
     // owning threads. Explicit deletes also cover legacy rows whose denormalized
     // parent IDs were inconsistent but whose user_id still identifies ownership.
-    await tx
-      .delete(schema.aiRegressionCases)
-      .where(eq(schema.aiRegressionCases.userId, userId));
+    await tx.delete(schema.aiRegressionCases).where(eq(schema.aiRegressionCases.userId, userId));
     await tx.delete(schema.aiMessageFeedback).where(eq(schema.aiMessageFeedback.userId, userId));
     await tx.delete(schema.agentOpinions).where(eq(schema.agentOpinions.userId, userId));
     await tx.delete(schema.briefingsEmitted).where(eq(schema.briefingsEmitted.userId, userId));
@@ -407,12 +400,16 @@ export async function deleteUserAccount(userId: string): Promise<void> {
     await tx
       .delete(schema.memoryProjectionState)
       .where(eq(schema.memoryProjectionState.userId, userId));
-    await tx.delete(schema.aiShadowComparisons).where(eq(schema.aiShadowComparisons.userId, userId));
+    await tx
+      .delete(schema.aiShadowComparisons)
+      .where(eq(schema.aiShadowComparisons.userId, userId));
     await tx.delete(schema.aiQualityResults).where(eq(schema.aiQualityResults.userId, userId));
     await tx.delete(schema.fullAnalysisQueue).where(eq(schema.fullAnalysisQueue.userId, userId));
     await tx.delete(schema.persistenceOutbox).where(eq(schema.persistenceOutbox.userId, userId));
     await tx.delete(schema.mutationExecutions).where(eq(schema.mutationExecutions.userId, userId));
-    await tx.delete(schema.aiBudgetReservations).where(eq(schema.aiBudgetReservations.userId, userId));
+    await tx
+      .delete(schema.aiBudgetReservations)
+      .where(eq(schema.aiBudgetReservations.userId, userId));
     await tx.delete(schema.dailyAiSpend).where(eq(schema.dailyAiSpend.userId, userId));
     await tx.delete(schema.chatToolTelemetry).where(eq(schema.chatToolTelemetry.userId, userId));
     await tx.delete(schema.chatTelemetry).where(eq(schema.chatTelemetry.userId, userId));
@@ -438,9 +435,7 @@ export async function deleteUserAccount(userId: string): Promise<void> {
     // Membership is account-owned. The organization itself is retained when
     // billing/audit rows still reference it, so this does not destroy tenant
     // financial history.
-    await tx
-      .delete(schema.organizationMember)
-      .where(eq(schema.organizationMember.userId, userId));
+    await tx.delete(schema.organizationMember).where(eq(schema.organizationMember.userId, userId));
 
     const now = new Date();
     await tx

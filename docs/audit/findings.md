@@ -14,19 +14,19 @@ The technical foundation is strong: a real pnpm/Turborepo monorepo, typed packag
 
 ## Ratings
 
-| Area | Rating | Assessment |
-|---|---:|---|
-| Beginner local Simple/PGlite install | 8/10 | Strong setup wizard and lightweight path; clean-machine proof remains important |
-| Docker single-user self-hosting | 7/10 | Promising and guarded; requires clean install and recovery rehearsal |
-| Contributor onboarding | 7/10 | Good tooling, but the repository is complex for non-senior contributors |
-| Public GitHub presentation | 7/10 | Clear positioning, but maintainer assumptions and links need strict separation |
-| Security baseline | 7/10 | Thoughtful controls; no independent security audit |
-| API security | 7/10 | Good wrappers and static checks; runtime authorization needs HTTP tests |
-| Database/migrations | 7/10 | Extensive coverage, but many migrations and mode combinations increase upgrade risk |
-| CI/CD and release hygiene | 7/10 | Broad checks; release/version/provenance contract is incomplete |
-| Licensing/compliance | 6/10 | Apache-2.0 baseline; dependency and asset inventory incomplete |
-| Multi-user/shared hosting | 3/10 | Correctly disabled; isolation proof is incomplete |
-| Production-grade OSS release | 6.5/10 | Conditional until P0/P1 operational gaps are closed |
+| Area                                 | Rating | Assessment                                                                          |
+| ------------------------------------ | -----: | ----------------------------------------------------------------------------------- |
+| Beginner local Simple/PGlite install |   8/10 | Strong setup wizard and lightweight path; clean-machine proof remains important     |
+| Docker single-user self-hosting      |   7/10 | Promising and guarded; requires clean install and recovery rehearsal                |
+| Contributor onboarding               |   7/10 | Good tooling, but the repository is complex for non-senior contributors             |
+| Public GitHub presentation           |   7/10 | Clear positioning, but maintainer assumptions and links need strict separation      |
+| Security baseline                    |   7/10 | Thoughtful controls; no independent security audit                                  |
+| API security                         |   7/10 | Good wrappers and static checks; runtime authorization needs HTTP tests             |
+| Database/migrations                  |   7/10 | Extensive coverage, but many migrations and mode combinations increase upgrade risk |
+| CI/CD and release hygiene            |   7/10 | Broad checks; release/version/provenance contract is incomplete                     |
+| Licensing/compliance                 |   6/10 | Apache-2.0 baseline; dependency and asset inventory incomplete                      |
+| Multi-user/shared hosting            |   3/10 | Correctly disabled; isolation proof is incomplete                                   |
+| Production-grade OSS release         | 6.5/10 | Conditional until P0/P1 operational gaps are closed                                 |
 
 ## Supported public contract
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -31,23 +30,36 @@ writeFileSync(envFile, `TEST_POSTGRES_ADMIN_URL=${url}\nRUN_POSTGRES_RLS_TESTS=1
 
 try {
   run('docker', [
-    'run', '--detach', '--rm', '--name', container,
-    '--publish', `127.0.0.1:${hostPort}:5432`,
-    '--env', 'POSTGRES_USER=postgres',
-    '--env', `POSTGRES_PASSWORD=${password}`,
+    'run',
+    '--detach',
+    '--rm',
+    '--name',
+    container,
+    '--publish',
+    `127.0.0.1:${hostPort}:5432`,
+    '--env',
+    'POSTGRES_USER=postgres',
+    '--env',
+    `POSTGRES_PASSWORD=${password}`,
     'pgvector/pgvector:pg16',
   ]);
 
   for (let attempt = 0; attempt < 30; attempt += 1) {
-    const result = spawnSync('docker', ['exec', container, 'pg_isready', '-U', 'postgres'], { encoding: 'utf8' });
+    const result = spawnSync('docker', ['exec', container, 'pg_isready', '-U', 'postgres'], {
+      encoding: 'utf8',
+    });
     if (result.status === 0) break;
     if (attempt === 29) throw new Error('PostgreSQL did not become ready within 30 seconds');
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
   }
 
-  run('pnpm', ['--filter', '@kestrel/db', 'test', '--', '--run', 'test/postgres-rls-isolation.test.ts'], {
-    env: { ...process.env, RUN_POSTGRES_RLS_TESTS: '1', TEST_POSTGRES_ADMIN_URL: url },
-  });
+  run(
+    'pnpm',
+    ['--filter', '@kestrel/db', 'test', '--', '--run', 'test/postgres-rls-isolation.test.ts'],
+    {
+      env: { ...process.env, RUN_POSTGRES_RLS_TESTS: '1', TEST_POSTGRES_ADMIN_URL: url },
+    },
+  );
 } finally {
   cleanup();
 }

@@ -37,10 +37,7 @@ export async function getProviderHealthForUser(userId: string) {
     })
     .from(schema.providerTests)
     .where(
-      and(
-        eq(schema.providerTests.userId, userId),
-        eq(schema.providerTests.tenantId, tenantId),
-      ),
+      and(eq(schema.providerTests.userId, userId), eq(schema.providerTests.tenantId, tenantId)),
     );
 }
 
@@ -54,12 +51,7 @@ export async function getUserApiKeys(userId: string): Promise<string | null> {
   const [settings] = await db
     .select({ aiApiKeys: schema.userSettings.aiApiKeys })
     .from(schema.userSettings)
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
   const val = settings?.aiApiKeys;
   return val != null ? String(val) : null;
 }

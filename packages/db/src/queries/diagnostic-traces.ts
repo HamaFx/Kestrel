@@ -220,9 +220,12 @@ export async function listTraceExplorerEvents(
   const opinionCorrelationConditions: SQL[] = [];
   if (filters.messageId)
     opinionCorrelationConditions.push(eq(schema.agentOpinions.messageId, filters.messageId));
-  if (filters.threadId) opinionCorrelationConditions.push(eq(schema.agentOpinions.threadId, filters.threadId));
+  if (filters.threadId)
+    opinionCorrelationConditions.push(eq(schema.agentOpinions.threadId, filters.threadId));
   if (correlatedMessageIds.length > 0)
-    opinionCorrelationConditions.push(inArray(schema.agentOpinions.messageId, correlatedMessageIds));
+    opinionCorrelationConditions.push(
+      inArray(schema.agentOpinions.messageId, correlatedMessageIds),
+    );
   if (correlatedThreadIds.length > 0)
     opinionCorrelationConditions.push(inArray(schema.agentOpinions.threadId, correlatedThreadIds));
 
@@ -230,7 +233,8 @@ export async function listTraceExplorerEvents(
   // outside the OR group so a matching thread/message ID cannot bypass it.
   const opinionConditions: SQL[] = [];
   if (filters.userId) opinionConditions.push(eq(schema.agentOpinions.userId, filters.userId));
-  if (opinionCorrelationConditions.length > 0) opinionConditions.push(or(...opinionCorrelationConditions)!);
+  if (opinionCorrelationConditions.length > 0)
+    opinionConditions.push(or(...opinionCorrelationConditions)!);
 
   const opinions =
     opinionConditions.length > 0

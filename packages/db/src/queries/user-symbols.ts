@@ -30,12 +30,7 @@ export async function listUserSymbols(userId: string): Promise<UserSymbolRow[]> 
   return db
     .select()
     .from(schema.userSymbols)
-    .where(
-      and(
-        eq(schema.userSymbols.userId, userId),
-        eq(schema.userSymbols.tenantId, tenantId),
-      ),
-    )
+    .where(and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)))
     .orderBy(asc(schema.userSymbols.displayOrder));
 }
 
@@ -69,10 +64,7 @@ export async function addUserSymbol(
         .select({ maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)` })
         .from(schema.userSymbols)
         .where(
-          and(
-            eq(schema.userSymbols.userId, userId),
-            eq(schema.userSymbols.tenantId, tenantId),
-          ),
+          and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)),
         );
       nextOrder = Number(row?.maxOrder ?? -1) + 1;
     }
@@ -103,11 +95,6 @@ export async function countUserSymbols(userId: string): Promise<number> {
   const rows = await db
     .select({ total: count() })
     .from(schema.userSymbols)
-    .where(
-      and(
-        eq(schema.userSymbols.userId, userId),
-        eq(schema.userSymbols.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)));
   return rows[0]?.total ?? 0;
 }

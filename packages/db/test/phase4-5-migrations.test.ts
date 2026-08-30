@@ -77,7 +77,10 @@ describe('Phase 4 — Security (file checks)', () => {
       readFileSync(join(HERE, '..', 'scripts', 'migrate-status.mjs'), 'utf-8'),
       readFileSync(join(HERE, '..', 'scripts', 'migration-reconcile.mjs'), 'utf-8'),
       readFileSync(join(HERE, '..', 'drizzle.config.ts'), 'utf-8'),
-      readFileSync(join(HERE, '..', '..', '..', 'apps', 'web', 'scripts', 'migrate-runtime.mjs'), 'utf-8'),
+      readFileSync(
+        join(HERE, '..', '..', '..', 'apps', 'web', 'scripts', 'migrate-runtime.mjs'),
+        'utf-8',
+      ),
     ];
 
     for (const source of migrationSources) {
@@ -89,7 +92,6 @@ describe('Phase 4 — Security (file checks)', () => {
     expect(migrationSources[0]).not.toContain("databaseUrl.includes('supabase.co')");
     expect(migrationSources[0]).not.toContain("databaseUrl.includes('supabase.com')");
   });
-
 
   it('auth.ts comment documents telegramBotToken encryption', () => {
     const authSource = readFileSync(join(HERE, '..', 'src', 'schema', 'auth.ts'), 'utf-8');
@@ -179,15 +181,9 @@ describe('Phase 5 — Migration System', () => {
     expect(result).not.toContain('CREATE INDEX');
   });
 
-  it('run_drizzle.py has been deprecated (MIG-2)', () => {
+  it('legacy migration wrapper is absent', () => {
     const runDrizzlePath = join(HERE, '..', 'run_drizzle.py');
-    expect(existsSync(runDrizzlePath)).toBe(true);
-
-    const content = readFileSync(runDrizzlePath, 'utf-8');
-    expect(content).toContain('deprecated');
-    // The original pexpect wrapper code should be gone
-    expect(content).not.toContain('pexpect.spawn');
-    expect(content).not.toContain('child.send');
+    expect(existsSync(runDrizzlePath)).toBe(false);
   });
 
   it('migration 0007 no longer creates daily_ai_spend', () => {

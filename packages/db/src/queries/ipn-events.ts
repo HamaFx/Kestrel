@@ -381,11 +381,7 @@ export async function updatePaymentStatus(
       and(
         eq(schema.payments.id, paymentId),
         eq(schema.payments.tenantId, data.tenantId),
-        statusAdvancePredicate(
-          sql`${schema.payments.status}`,
-          data.status,
-          incomingRank,
-        ),
+        statusAdvancePredicate(sql`${schema.payments.status}`, data.status, incomingRank),
       ),
     )
     .returning({ id: schema.payments.id });

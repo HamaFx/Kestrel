@@ -23,7 +23,6 @@ import { RequestContext } from '@mastra/core/request-context';
 import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
 import { estimateCostUsd } from '../cost';
-import { canonicalReadOnlyToolNames } from './capability-registry';
 import { prepareKestrelMemory } from '../mastra-v2/context';
 import { buildConversationScorers, type BuiltScorers } from '../mastra-v2/evals/scorers';
 import { buildGuardrailInputProcessors } from '../mastra-v2/guardrails';
@@ -34,6 +33,7 @@ import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '.
 import { DB } from '../tokens';
 import { withToolContext, type ToolContext } from '../tool-context';
 import { domainToolFilter } from '../tools/by-domain';
+import { canonicalReadOnlyToolNames } from './capability-registry';
 import { adaptLegacyReadOnlyTool } from './legacy-tool-adapter';
 import {
   beginMastraRun,
@@ -256,8 +256,17 @@ export async function runMastraCanonicalChat(
 ): Promise<MastraCanonicalChatResult> {
   const startedAt = Date.now();
   const setup = await setupCanonicalChat(args);
-  const { runId, agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
-    setup;
+  const {
+    runId,
+    agent,
+    routing,
+    resolution,
+    callMemory,
+    requestContext,
+    context,
+    messages,
+    scorers,
+  } = setup;
   beginMastraRun({
     runId,
     threadId: args.threadId,
@@ -352,8 +361,17 @@ export async function runMastraCanonicalChatStream(
 ): Promise<MastraCanonicalChatStream> {
   const startedAt = Date.now();
   const setup = await setupCanonicalChat(args);
-  const { runId, agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
-    setup;
+  const {
+    runId,
+    agent,
+    routing,
+    resolution,
+    callMemory,
+    requestContext,
+    context,
+    messages,
+    scorers,
+  } = setup;
   beginMastraRun({
     runId,
     threadId: args.threadId,

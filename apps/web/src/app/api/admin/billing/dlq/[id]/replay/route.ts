@@ -43,12 +43,7 @@ export const POST = withAdminAuth<Params>(async (req, { params }) => {
   const { id } = await params;
   const entry = await claimBillingWebhookReplay(id);
   if (!entry) {
-    return jsonApiError(
-      'NOT_FOUND',
-      'DLQ entry is missing or already being replayed',
-      404,
-      req,
-    );
+    return jsonApiError('NOT_FOUND', 'DLQ entry is missing or already being replayed', 404, req);
   }
 
   try {

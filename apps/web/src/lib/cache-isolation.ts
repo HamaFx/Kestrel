@@ -19,7 +19,9 @@ export async function clearKestrelClientState(): Promise<void> {
   if ('caches' in window) {
     try {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((key) => key.startsWith('kestrel-')).map((key) => caches.delete(key)));
+      await Promise.all(
+        keys.filter((key) => key.startsWith('kestrel-')).map((key) => caches.delete(key)),
+      );
     } catch {
       // Cache cleanup is best effort; service-worker activation also rotates caches.
     }

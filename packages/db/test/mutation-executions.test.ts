@@ -11,7 +11,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { closePGliteDb, applyMigrations, getPGliteDb } from '../src/pglite-client';
+import { applyMigrations, closePGliteDb, getPGliteDb } from '../src/pglite-client';
 import {
   executeMutationOnce,
   MutationExecutionContextError,
@@ -33,8 +33,12 @@ describe('executeMutationOnce', { timeout: 30_000 }, () => {
     dir = mkdtempSync(join(tmpdir(), 'kestrel-mutation-ledger-'));
     await applyMigrations(dir);
     db = await getPGliteDb(dir);
-    await db.execute(`ALTER TABLE "mutation_executions" ADD COLUMN IF NOT EXISTS "approval_id" text`);
-    await db.execute(`ALTER TABLE "mutation_executions" ADD COLUMN IF NOT EXISTS "approval_expires_at" timestamptz`);
+    await db.execute(
+      `ALTER TABLE "mutation_executions" ADD COLUMN IF NOT EXISTS "approval_id" text`,
+    );
+    await db.execute(
+      `ALTER TABLE "mutation_executions" ADD COLUMN IF NOT EXISTS "approval_expires_at" timestamptz`,
+    );
     await db.execute(
       `INSERT INTO "user" ("id", "email") VALUES ('${USER_ID}', 'mutation-test@example.com')`,
     );
@@ -144,7 +148,10 @@ describe('executeMutationOnce', { timeout: 30_000 }, () => {
       }),
     ]);
     expect(auditRows).toEqual([
-      expect.objectContaining({ action: 'mutation.run_system_action.executed', tenant_id: USER_ID }),
+      expect.objectContaining({
+        action: 'mutation.run_system_action.executed',
+        tenant_id: USER_ID,
+      }),
     ]);
   });
 

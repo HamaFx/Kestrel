@@ -168,8 +168,17 @@ export class GuardrailUnavailableError extends Error {
 export function buildConversationGuardrails(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
-): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[]; mode: GuardrailMode } {
-  return buildGuardrailInputProcessors({ settings, env, strategy: 'rewrite', mode: 'availability' });
+): {
+  processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
+  warnings: string[];
+  mode: GuardrailMode;
+} {
+  return buildGuardrailInputProcessors({
+    settings,
+    env,
+    strategy: 'rewrite',
+    mode: 'availability',
+  });
 }
 
 /**
@@ -179,7 +188,11 @@ export function buildConversationGuardrails(
 export function buildResearchGuardrails(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
-): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[]; mode: GuardrailMode } {
+): {
+  processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
+  warnings: string[];
+  mode: GuardrailMode;
+} {
   // Production research is fail-closed as agreed. Local development and
   // hermetic tests may still run without a judge key; they keep the
   // deterministic Unicode normalizer and expose the degradation warning.
@@ -200,6 +213,10 @@ export function buildResearchGuardrails(
 export function buildResearchGuardrailsAvailability(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
-): { processors: Array<UnicodeNormalizer | PromptInjectionDetector>; warnings: string[]; mode: GuardrailMode } {
+): {
+  processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
+  warnings: string[];
+  mode: GuardrailMode;
+} {
   return buildGuardrailInputProcessors({ settings, env, strategy: 'block', mode: 'availability' });
 }

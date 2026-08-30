@@ -51,7 +51,12 @@ const SECTIONS = [
   ['Postgres', ['POSTGRES_PASSWORD', 'POSTGRES_VOLUME_NAME']],
   [
     'Local Docker backups',
-    ['BACKUP_VOLUME_NAME', 'BACKUP_INTERVAL_SECONDS', 'BACKUP_RETENTION_DAYS', 'BACKUP_MAX_AGE_SECONDS'],
+    [
+      'BACKUP_VOLUME_NAME',
+      'BACKUP_INTERVAL_SECONDS',
+      'BACKUP_RETENTION_DAYS',
+      'BACKUP_MAX_AGE_SECONDS',
+    ],
   ],
   ['Langfuse (LLM observability)', ['LANGFUSE_NEXTAUTH_SECRET', 'LANGFUSE_SALT']],
   ['NextAuth (app authentication)', ['AUTH_SECRET', 'NEXTAUTH_URL']],
@@ -114,8 +119,8 @@ async function main() {
       return 0;
     }
     const existing = readEnvFile(target).entries;
-    const legacyAliasesPresent = Object.entries(LEGACY_ENV_ALIASES).some(
-      ([legacyKey]) => existing.has(legacyKey),
+    const legacyAliasesPresent = Object.entries(LEGACY_ENV_ALIASES).some(([legacyKey]) =>
+      existing.has(legacyKey),
     );
     if (hasAllSecrets(target) && !legacyAliasesPresent) {
       console.log('✓ .env already exists and is complete — leaving it untouched.');

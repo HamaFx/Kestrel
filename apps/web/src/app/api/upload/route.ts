@@ -100,10 +100,13 @@ export const POST = withAuth<void>(async (req, { user }) => {
     if (file.size === 0) {
       throw validationError('Image payload is empty');
     }
-    if (file.name.length > 128 || [...file.name].some((char) => {
-      const code = char.charCodeAt(0);
-      return code <= 0x1f || code === 0x7f;
-    })) {
+    if (
+      file.name.length > 128 ||
+      [...file.name].some((char) => {
+        const code = char.charCodeAt(0);
+        return code <= 0x1f || code === 0x7f;
+      })
+    ) {
       throw validationError('Invalid image filename');
     }
 

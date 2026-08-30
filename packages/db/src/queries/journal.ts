@@ -114,10 +114,12 @@ export async function countJournalEntriesByUser(userId: string): Promise<number>
   const rows = await db
     .select({ total: count() })
     .from(schema.journalEntries)
-    .where(and(
+    .where(
+      and(
         eq(schema.journalEntries.userId, userId),
         eq(schema.journalEntries.tenantId, tenantId),
         isNull(schema.journalEntries.deletedAt),
-      ));
+      ),
+    );
   return rows[0]?.total ?? 0;
 }

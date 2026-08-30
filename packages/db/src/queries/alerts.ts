@@ -68,12 +68,7 @@ export async function listAlerts(userId: string, limit: number = 50): Promise<Al
   return db
     .select()
     .from(schema.alerts)
-    .where(
-      and(
-        eq(schema.alerts.userId, userId),
-        eq(schema.alerts.tenantId, tenantId),
-      ),
-    )
+    .where(and(eq(schema.alerts.userId, userId), eq(schema.alerts.tenantId, tenantId)))
     .orderBy(desc(schema.alerts.createdAt))
     .limit(limit);
 }

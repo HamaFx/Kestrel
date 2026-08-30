@@ -102,12 +102,7 @@ export async function listThreads(
   return db
     .select()
     .from(schema.chatThreads)
-    .where(
-      and(
-        eq(schema.chatThreads.userId, userId),
-        eq(schema.chatThreads.tenantId, tenantId),
-      ),
-    )
+    .where(and(eq(schema.chatThreads.userId, userId), eq(schema.chatThreads.tenantId, tenantId)))
     .orderBy(desc(schema.chatThreads.updatedAt))
     .limit(limit)
     .offset(offset);
@@ -148,11 +143,13 @@ export async function updateThreadTitle(
   const rows = await db
     .update(schema.chatThreads)
     .set({ title, titleSource, updatedAt: sql`now()` })
-    .where(and(
-      eq(schema.chatThreads.id, threadId),
-      eq(schema.chatThreads.userId, userId),
-      eq(schema.chatThreads.tenantId, tenantId),
-    ))
+    .where(
+      and(
+        eq(schema.chatThreads.id, threadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .returning({ id: schema.chatThreads.id });
   return rows.length > 0;
 }
@@ -170,11 +167,13 @@ export async function updateThreadPinnedSymbol(
   const rows = await db
     .update(schema.chatThreads)
     .set({ pinnedSymbol, updatedAt: sql`now()` })
-    .where(and(
-      eq(schema.chatThreads.id, threadId),
-      eq(schema.chatThreads.userId, userId),
-      eq(schema.chatThreads.tenantId, tenantId),
-    ))
+    .where(
+      and(
+        eq(schema.chatThreads.id, threadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .returning({ id: schema.chatThreads.id });
   return rows.length > 0;
 }
@@ -187,11 +186,13 @@ export async function deleteThread(userId: string, threadId: string): Promise<vo
   const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.chatThreads)
-    .where(and(
-      eq(schema.chatThreads.id, threadId),
-      eq(schema.chatThreads.userId, userId),
-      eq(schema.chatThreads.tenantId, tenantId),
-    ));
+    .where(
+      and(
+        eq(schema.chatThreads.id, threadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    );
 }
 
 /**
@@ -263,11 +264,13 @@ export async function appendUserMessage(
   const [thread] = await db
     .select({ id: schema.chatThreads.id })
     .from(schema.chatThreads)
-    .where(and(
-      eq(schema.chatThreads.id, threadId),
-      eq(schema.chatThreads.userId, userId),
-      eq(schema.chatThreads.tenantId, tenantId),
-    ))
+    .where(
+      and(
+        eq(schema.chatThreads.id, threadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   if (!thread) throw new Error(`thread not found: ${threadId}`);
   const rows = await db
@@ -297,11 +300,13 @@ export async function appendAssistantMessage(
   const [thread] = await db
     .select({ id: schema.chatThreads.id })
     .from(schema.chatThreads)
-    .where(and(
-      eq(schema.chatThreads.id, threadId),
-      eq(schema.chatThreads.userId, userId),
-      eq(schema.chatThreads.tenantId, tenantId),
-    ))
+    .where(
+      and(
+        eq(schema.chatThreads.id, threadId),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   if (!thread) throw new Error(`thread not found: ${threadId}`);
   const rows = await db

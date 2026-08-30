@@ -12,11 +12,10 @@
  *   pnpm test:e2e:local -- --shards=4 --project=chromium
  *   pnpm test:e2e:local -- --shards=2 --grep="Accessibility"
  */
-
+import { spawnSync } from 'node:child_process';
 import { closeSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = parseArgs(process.argv.slice(2));
@@ -26,7 +25,10 @@ if (onlyShard !== null && onlyShard > shards) {
   throw new Error('--only-shard must be less than or equal to --shards');
 }
 const outputRoot = process.env.E2E_OUTPUT_DIR ?? 'artifacts/e2e-local';
-const outputDir = resolve(root, onlyShard ? `${outputRoot}/shard-${onlyShard}-of-${shards}` : outputRoot);
+const outputDir = resolve(
+  root,
+  onlyShard ? `${outputRoot}/shard-${onlyShard}-of-${shards}` : outputRoot,
+);
 const project = args.project ?? process.env.E2E_PROJECT ?? 'chromium';
 const grep = args.grep;
 const file = args.file;
@@ -38,9 +40,8 @@ const startedAt = new Date().toISOString();
 const results = [];
 let failed = false;
 
-const shardNumbers = onlyShard === null
-  ? Array.from({ length: shards }, (_, index) => index + 1)
-  : [onlyShard];
+const shardNumbers =
+  onlyShard === null ? Array.from({ length: shards }, (_, index) => index + 1) : [onlyShard];
 
 for (const shard of shardNumbers) {
   const logPath = resolve(outputDir, `shard-${shard}-of-${shards}.log`);
@@ -70,9 +71,7 @@ for (const shard of shardNumbers) {
   });
   closeSync(logFd);
 
-  const exitCode = result.error
-    ? null
-    : result.status ?? (result.signal ? 1 : 0);
+  const exitCode = result.error ? null : (result.status ?? (result.signal ? 1 : 0));
   const entry = {
     shard,
     totalShards: shards,
@@ -89,7 +88,9 @@ for (const shard of shardNumbers) {
     `[e2e-local] shard ${shard}/${shards} ${exitCode === 0 ? 'passed' : 'failed'} — ${logPath}\n`,
   );
   if (failed) {
-    process.stdout.write('[e2e-local] stopping after the first failed shard; inspect its log and rerun with --shards/--grep as needed.\n');
+    process.stdout.write(
+      '[e2e-local] stopping after the first failed shard; inspect its log and rerun with --shards/--grep as needed.\n',
+    );
     break;
   }
 }

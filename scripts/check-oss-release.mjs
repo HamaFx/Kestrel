@@ -22,14 +22,37 @@ const IGNORED_SCAN_PATHS = [
 const CANONICAL_ENV_FILES = ['packages/shared/src/env.ts', 'apps/worker/src/env.ts'];
 const ENV_REFERENCE_PATTERN = /process\.env(?:\[['"]([A-Z][A-Z0-9_]*)['"]\]|\.([A-Z][A-Z0-9_]*))/g;
 const IGNORED_ENV_KEYS = new Set([
-  'NODE_ENV', 'PATH', 'HOME', 'HOSTNAME', 'CI', 'VERCEL', 'VERCEL_ENV', 'NEXT_PHASE',
-  'NEXT_RUNTIME', 'PORT', 'ANALYZE', 'VITEST', 'DEBUG', 'FORCE_COLOR', 'NO_COLOR',
-  'TZ', 'PWD', 'OLDPWD', 'SHLVL', 'TERM', 'USER', 'LOGNAME', 'TMPDIR',
+  'NODE_ENV',
+  'PATH',
+  'HOME',
+  'HOSTNAME',
+  'CI',
+  'VERCEL',
+  'VERCEL_ENV',
+  'NEXT_PHASE',
+  'NEXT_RUNTIME',
+  'PORT',
+  'ANALYZE',
+  'VITEST',
+  'DEBUG',
+  'FORCE_COLOR',
+  'NO_COLOR',
+  'TZ',
+  'PWD',
+  'OLDPWD',
+  'SHLVL',
+  'TERM',
+  'USER',
+  'LOGNAME',
+  'TMPDIR',
 ]);
 
 function trackedFiles() {
   try {
-    return execFileSync('git', ['ls-files', '-co', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
+    return execFileSync('git', ['ls-files', '-co', '--exclude-standard'], {
+      cwd: root,
+      encoding: 'utf8',
+    })
       .split('\n')
       .filter(Boolean);
   } catch {
@@ -46,7 +69,9 @@ for (const relative of CANONICAL_ENV_FILES) {
       if (key && !IGNORED_ENV_KEYS.has(key)) referencedEnvVars.add(key);
     }
   } catch (error) {
-    failures.push(`unable to read canonical environment schema ${relative}: ${error instanceof Error ? error.message : String(error)}`);
+    failures.push(
+      `unable to read canonical environment schema ${relative}: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -61,14 +86,20 @@ for (const relative of trackedFiles()) {
   }
   if (isExample || relative.includes('/test/') || relative.startsWith('test/')) continue;
   if (relative === 'scripts/check-oss-release.mjs') continue;
-  if (relative === 'apps/web/src/app/(app)/settings/api-keys/_components/api-key-card.tsx') continue;
+  if (relative === 'apps/web/src/app/(app)/settings/api-keys/_components/api-key-card.tsx')
+    continue;
   let text;
   try {
     text = readFileSync(path, 'utf8');
   } catch {
     continue;
   }
-  if (/\.md$/i.test(relative) || /(?:Dockerfile|docker-compose)/i.test(relative) || /\.sql$/i.test(relative)) continue;
+  if (
+    /\.md$/i.test(relative) ||
+    /(?:Dockerfile|docker-compose)/i.test(relative) ||
+    /\.sql$/i.test(relative)
+  )
+    continue;
   for (const pattern of SECRET_LIKE_PATTERNS) {
     if (pattern.test(text)) {
       failures.push(`${relative}: secret-like content detected; use a placeholder or redact it`);
@@ -80,13 +111,19 @@ for (const relative of trackedFiles()) {
 const examplePath = join(root, '.env.example');
 try {
   const example = readFileSync(examplePath, 'utf8');
-  const templateKeys = new Set([...example.matchAll(TEMPLATE_KEY_PATTERN)].map((match) => match[1]));
+  const templateKeys = new Set(
+    [...example.matchAll(TEMPLATE_KEY_PATTERN)].map((match) => match[1]),
+  );
   const missingTemplateKeys = [...referencedEnvVars].filter((key) => !templateKeys.has(key)).sort();
   if (missingTemplateKeys.length) {
-    failures.push(`.env.example is missing canonical environment variables: ${missingTemplateKeys.join(', ')}`);
+    failures.push(
+      `.env.example is missing canonical environment variables: ${missingTemplateKeys.join(', ')}`,
+    );
   }
 } catch (error) {
-  failures.push(`unable to read .env.example: ${error instanceof Error ? error.message : String(error)}`);
+  failures.push(
+    `unable to read .env.example: ${error instanceof Error ? error.message : String(error)}`,
+  );
 }
 
 if (process.env.NODE_ENV === 'production' && process.env.AUTH_MODE === 'legacy') {

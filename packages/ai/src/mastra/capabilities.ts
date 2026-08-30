@@ -28,27 +28,71 @@ export type MastraContentTrust = 'trusted' | 'untrusted';
  */
 export const LEGACY_DOMAIN_TOOL_NAMES = {
   summary: [
-    'get_price', 'set_alert', 'log_journal', 'search_knowledge', 'get_news',
-    'get_calendar', 'get_cot', 'get_journal_stats', 'get_social_sentiment',
+    'get_price',
+    'set_alert',
+    'log_journal',
+    'search_knowledge',
+    'get_news',
+    'get_calendar',
+    'get_cot',
+    'get_journal_stats',
+    'get_social_sentiment',
   ],
   vision: [
-    'get_price', 'set_alert', 'log_journal', 'search_knowledge', 'analyze_chart_image',
-    'get_candles', 'get_indicators', 'get_market_structure', 'get_session_levels',
+    'get_price',
+    'set_alert',
+    'log_journal',
+    'search_knowledge',
+    'analyze_chart_image',
+    'get_candles',
+    'get_indicators',
+    'get_market_structure',
+    'get_session_levels',
   ],
   fundamental: [
-    'get_price', 'set_alert', 'log_journal', 'search_knowledge', 'get_news',
-    'get_calendar', 'get_cot', 'analyze_fundamental', 'get_correlation',
-    'get_intermarket', 'get_intermarket_resonance', 'get_seasonality',
-    'get_social_sentiment', 'compute_risk', 'forecast_volatility', 'verify_call',
+    'get_price',
+    'set_alert',
+    'log_journal',
+    'search_knowledge',
+    'get_news',
+    'get_calendar',
+    'get_cot',
+    'analyze_fundamental',
+    'get_correlation',
+    'get_intermarket',
+    'get_intermarket_resonance',
+    'get_seasonality',
+    'get_social_sentiment',
+    'compute_risk',
+    'forecast_volatility',
+    'verify_call',
     'web_search',
   ],
   technical: [
-    'get_price', 'set_alert', 'log_journal', 'search_knowledge', 'get_candles',
-    'get_indicators', 'get_market_structure', 'get_session_levels', 'analyze_technical',
-    'analyze_chart_image', 'annotate_chart', 'compute_position_health',
-    'get_journal_stats', 'replay_setup', 'get_portfolio_snapshot',
+    'get_price',
+    'set_alert',
+    'log_journal',
+    'search_knowledge',
+    'get_candles',
+    'get_indicators',
+    'get_market_structure',
+    'get_session_levels',
+    'analyze_technical',
+    'analyze_chart_image',
+    'annotate_chart',
+    'compute_position_health',
+    'get_journal_stats',
+    'replay_setup',
+    'get_portfolio_snapshot',
   ],
-} as const satisfies Record<Exclude<MastraCapabilityMode, 'single' | 'quick' | 'standard' | 'full' | 'auto'> | 'summary' | 'vision' | 'fundamental' | 'technical', readonly string[]>;
+} as const satisfies Record<
+  | Exclude<MastraCapabilityMode, 'single' | 'quick' | 'standard' | 'full' | 'auto'>
+  | 'summary'
+  | 'vision'
+  | 'fundamental'
+  | 'technical',
+  readonly string[]
+>;
 
 /**
  * Explicit legacy-tool boundary for the canonical conversational agent.

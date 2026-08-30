@@ -345,17 +345,15 @@ async function handleFreeFormMessage(
       .limit(1);
 
     if (existingThread.length === 0) {
-      await db
-        .insert(schema.chatThreads)
-        .values({
-          id: threadId,
-          userId,
-          tenantId,
-          title: `Telegram Chat (${chatId})`,
-          titleSource: 'fallback',
-          pinnedSymbol: null,
-          modelOverride: null,
-        });
+      await db.insert(schema.chatThreads).values({
+        id: threadId,
+        userId,
+        tenantId,
+        title: `Telegram Chat (${chatId})`,
+        titleSource: 'fallback',
+        pinnedSymbol: null,
+        modelOverride: null,
+      });
     }
 
     const signal = AbortSignal.timeout(TELEGRAM_AI_TIMEOUT_MS);

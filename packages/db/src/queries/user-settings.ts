@@ -44,14 +44,15 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
       .select()
       .from(schema.userSettings)
       .where(
-        and(
-          eq(schema.userSettings.userId, userId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
       )
       .then((rows) => rows[0] ?? null),
     db
-      .select({ name: schema.users.name, email: schema.users.email, plan: schema.organization.plan })
+      .select({
+        name: schema.users.name,
+        email: schema.users.email,
+        plan: schema.organization.plan,
+      })
       .from(schema.users)
       .leftJoin(
         schema.organizationMember,
@@ -60,10 +61,7 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
           eq(schema.organizationMember.orgId, tenantId),
         ),
       )
-      .leftJoin(
-        schema.organization,
-        eq(schema.organization.id, schema.organizationMember.orgId),
-      )
+      .leftJoin(schema.organization, eq(schema.organization.id, schema.organizationMember.orgId))
       .where(eq(schema.users.id, userId))
       .then((rows) => rows[0] ?? null),
   ]);
@@ -92,10 +90,5 @@ export async function updateUserSettingsField<
   await db
     .update(schema.userSettings)
     .set({ [field]: value } as Partial<typeof schema.userSettings.$inferInsert>)
-    .where(
-      and(
-        eq(schema.userSettings.userId, userId),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
 }

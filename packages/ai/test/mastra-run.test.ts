@@ -84,13 +84,24 @@ const env = {} as Parameters<typeof resolveXauusdMastraModel>[1];
 describe('Mastra BYOK runner', () => {
   beforeEach(() => {
     mocks.resolveChatModel.mockReset();
-    mocks.resolveMastraModel.mockReset().mockImplementation((args: { settings: typeof settings; env: typeof env; domain: string; modelOverride?: string | null }) =>
-      mocks.resolveChatModel(
-        { aiApiKeys: args.settings.aiApiKeys, chatModel: args.modelOverride ?? args.settings.chatModel ?? null },
-        args.env,
-        args.domain,
-      ),
-    );
+    mocks.resolveMastraModel
+      .mockReset()
+      .mockImplementation(
+        (args: {
+          settings: typeof settings;
+          env: typeof env;
+          domain: string;
+          modelOverride?: string | null;
+        }) =>
+          mocks.resolveChatModel(
+            {
+              aiApiKeys: args.settings.aiApiKeys,
+              chatModel: args.modelOverride ?? args.settings.chatModel ?? null,
+            },
+            args.env,
+            args.domain,
+          ),
+      );
     mocks.createXauusdMastraAgent.mockReset();
     mocks.collectXauusdResearchPacket.mockReset().mockResolvedValue({
       packetId: 'packet-1',

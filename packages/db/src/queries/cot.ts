@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// PF-01 Phase 2 — COT report query helpers.
+// COT report query helpers.
 
 import { desc, eq } from 'drizzle-orm';
 

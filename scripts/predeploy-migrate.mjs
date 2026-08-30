@@ -81,7 +81,9 @@ if (vercelEnv && vercelEnv !== 'production') {
 
 // Shared mode is supported only when both feature flags are enabled. Refuse
 // an unsafe half-enabled deployment before opening a production connection.
-const multiUserEnabled = ['1', 'true'].includes((process.env.MULTI_USER_ENABLED ?? '').toLowerCase());
+const multiUserEnabled = ['1', 'true'].includes(
+  (process.env.MULTI_USER_ENABLED ?? '').toLowerCase(),
+);
 const rlsEnabled = ['1', 'true'].includes(
   (process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS ?? '').toLowerCase(),
 );
@@ -92,8 +94,7 @@ if (multiUserEnabled !== rlsEnabled) {
   process.exit(1);
 }
 
-const isProductionDeploy =
-  vercelEnv === 'production' || process.env.NODE_ENV === 'production';
+const isProductionDeploy = vercelEnv === 'production' || process.env.NODE_ENV === 'production';
 const envVars = isProductionDeploy
   ? [
       { name: 'DIRECT_URL', val: process.env.DIRECT_URL },
@@ -131,7 +132,10 @@ if (!url) {
 console.log('[predeploy-migrate] Using %s — %s', urlName, redactUrl(url));
 
 if (!isProductionDeploy && (urlName === 'DATABASE_URL' || urlName === 'POSTGRES_URL')) {
-  console.warn('[predeploy-migrate] WARNING: %s may be a pooled connection (e.g. PgBouncer).', urlName);
+  console.warn(
+    '[predeploy-migrate] WARNING: %s may be a pooled connection (e.g. PgBouncer).',
+    urlName,
+  );
   console.warn('[predeploy-migrate] DDL through a pooler can fail or hang. Set DIRECT_URL or');
   console.warn('[predeploy-migrate] POSTGRES_URL_NON_POOLING for reliable migrations.');
 }
@@ -183,15 +187,11 @@ try {
       if (!existsSync(sqlPath)) {
         throw new Error(`Migration file is missing for journal entry ${entry.tag}`);
       }
-      const fileHash = createHash('sha256')
-        .update(readFileSync(sqlPath))
-        .digest('hex');
+      const fileHash = createHash('sha256').update(readFileSync(sqlPath)).digest('hex');
       currentHashes.set(fileHash, entry.tag);
     }
 
-    const unknownAppliedHashes = [...appliedHashes].filter(
-      (hash) => !currentHashes.has(hash),
-    );
+    const unknownAppliedHashes = [...appliedHashes].filter((hash) => !currentHashes.has(hash));
     if (unknownAppliedHashes.length > 0) {
       throw new Error(
         `${unknownAppliedHashes.length} applied migration hash(es) are absent from the current journal; refusing to apply migrations until history is reconciled`,
@@ -202,17 +202,12 @@ try {
     const pendingCount = journal.entries.filter((entry) => {
       const sqlPath = join(migrationsDir, `${entry.tag}.sql`);
       if (!existsSync(sqlPath)) return false;
-      const fileHash = createHash('sha256')
-        .update(readFileSync(sqlPath))
-        .digest('hex');
+      const fileHash = createHash('sha256').update(readFileSync(sqlPath)).digest('hex');
       return !appliedHashes.has(fileHash);
     }).length;
 
     if (pendingCount > 0) {
-      console.log(
-        `[predeploy-migrate] %d pending migration(s) will be applied.`,
-        pendingCount,
-      );
+      console.log(`[predeploy-migrate] %d pending migration(s) will be applied.`, pendingCount);
     } else {
       console.log('[predeploy-migrate] All migrations are already applied.');
     }
@@ -241,7 +236,6 @@ try {
     },
   });
   console.log('[predeploy-migrate] OK — pending migrations applied');
-
 } catch (err) {
   console.error('[predeploy-migrate] FAILED — migration step errored.');
   console.error('[predeploy-migrate] The build will not proceed. Fix the migration and re-deploy.');

@@ -26,7 +26,9 @@ const lines = [
 mkdirSync(dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, lines.join('\n'));
 
-const jsonPath = resolve(process.env.LICENSE_JSON_OUTPUT ?? 'artifacts/licenses/dependency-licenses.json');
+const jsonPath = resolve(
+  process.env.LICENSE_JSON_OUTPUT ?? 'artifacts/licenses/dependency-licenses.json',
+);
 mkdirSync(dirname(jsonPath), { recursive: true });
 writeFileSync(
   jsonPath,

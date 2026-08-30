@@ -11,9 +11,9 @@ packages:
 patchedDependencies:
   typescript-paths@1.5.2: patches/typescript-paths@1.5.2.patch
 
-# Phase 8 PR-18 — Sentry transitively pulls @opentelemetry/api 1.9.0,
-# while drizzle-orm wants 1.9.1. Pinning here forces a single copy
-# across the workspace.
+# Sentry transitively pulls @opentelemetry/api 1.9.0, while drizzle-orm wants
+# 1.9.1. Pinning here forces a single copy across the workspace. The js-yaml,
+# nanoid, and shell-quote pins apply the patched releases for their advisories.
 overrides:
   "@opentelemetry/api": "1.9.1"
   "@auth/core": "0.41.3"
@@ -21,6 +21,7 @@ overrides:
   fast-uri: "3.1.5"
   shell-quote: "1.9.0"
   protobufjs: "7.6.5"
-  js-yaml: "4.3.0"
+  js-yaml: "4.3.1"
+  "nanoid@3": "3.3.18"
   "brace-expansion@^1.0.0": "1.1.18"
   "brace-expansion@^5.0.0": "5.0.9"

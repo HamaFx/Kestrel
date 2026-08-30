@@ -8,18 +8,17 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { LibSQLStore } from '@mastra/libsql';
+import { applyMigrations, closePGliteDb, getPGliteDb } from '@kestrel/db/pglite';
 import { container } from '@kestrel/shared';
+import { LibSQLStore } from '@mastra/libsql';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { applyMigrations, closePGliteDb, getPGliteDb } from '@kestrel/db/pglite';
 import {
   _resetKestrelMastra,
   _setKestrelMastraForTest,
   createKestrelMastra,
   initializeKestrelMastra,
 } from '../src/mastra-v2';
-import { DB } from '../src/tokens';
 import {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
@@ -33,6 +32,7 @@ import {
   requeueFullAnalysisRun,
   touchFullAnalysisRun,
 } from '../src/mastra-v2/workflows/full-analysis';
+import { DB } from '../src/tokens';
 
 const INPUT = {
   userId: 'user-1',
@@ -142,7 +142,9 @@ describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
         claimNextFullAnalysisRun('worker-2'),
       ]);
       expect([first?.runId, second?.runId].filter(Boolean)).toEqual([runId]);
-      expect([first?.payload.workerRunId, second?.payload.workerRunId].filter(Boolean)).toHaveLength(1);
+      expect(
+        [first?.payload.workerRunId, second?.payload.workerRunId].filter(Boolean),
+      ).toHaveLength(1);
     });
   });
 
@@ -213,8 +215,9 @@ describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
       await expect(touchFullAnalysisRun(runId!, 'worker-2')).rejects.toMatchObject({
         code: 'FULL_ANALYSIS_LEASE_LOST',
       });
-      await expect(failFullAnalysisRun(runId!, 'worker-1', new Error('model unavailable'))).resolves
-        .toBeUndefined();
+      await expect(
+        failFullAnalysisRun(runId!, 'worker-1', new Error('model unavailable')),
+      ).resolves.toBeUndefined();
       expect((await getFullAnalysisRun('user-1', runId!))?.status).toBe('failed');
     });
   });

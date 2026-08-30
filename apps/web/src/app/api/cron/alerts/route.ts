@@ -34,21 +34,25 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function GET(req: Request): Promise<Response> {
-  return withCronAuth(req, async () => {
-    const result = await evaluateAlerts({ ...(req.signal ? { signal: req.signal } : {}) });
+  return withCronAuth(
+    req,
+    async () => {
+      const result = await evaluateAlerts({ ...(req.signal ? { signal: req.signal } : {}) });
 
-    // OBS-04 (Phase 5.3): Capture per-alert errors to Sentry + pino logger
-    if (result.errors.length > 0) {
-      const log = createScopedLoggerWithContext({ component: 'cron', job: 'alerts' });
-      for (const alertErr of result.errors) {
-        log.error({ err: String(alertErr) }, 'alert evaluation error');
+      // OBS-04 (Phase 5.3): Capture per-alert errors to Sentry + pino logger
+      if (result.errors.length > 0) {
+        const log = createScopedLoggerWithContext({ component: 'cron', job: 'alerts' });
+        for (const alertErr of result.errors) {
+          log.error({ err: String(alertErr) }, 'alert evaluation error');
+        }
       }
-    }
 
-    const errs = result.errors.length ? `, errors=${result.errors.length}` : '';
-    return {
-      processed: result.total,
-      note: `matched=${result.matched} fired=${result.fired} skipped=${result.skipped}${errs}`,
-    };
-  }, { requireAdminSession: true });
+      const errs = result.errors.length ? `, errors=${result.errors.length}` : '';
+      return {
+        processed: result.total,
+        note: `matched=${result.matched} fired=${result.fired} skipped=${result.skipped}${errs}`,
+      };
+    },
+    { requireAdminSession: true },
+  );
 }

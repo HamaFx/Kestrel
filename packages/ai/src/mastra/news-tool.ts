@@ -20,9 +20,9 @@ import { z } from 'zod';
 
 import { getNewsTool } from '../tools/get-news';
 import { createEvidenceId } from './evidence';
+import { EXTERNAL_CONTENT_TRUST_WARNING, quarantineExternalText } from './external-content';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
 import { executeMastraTool } from './telemetry';
-import { EXTERNAL_CONTENT_TRUST_WARNING, quarantineExternalText } from './external-content';
 import { XauusdSymbolSchema } from './tool-schemas';
 import { XAUUSD } from './types';
 
@@ -85,7 +85,9 @@ export const xauusdNewsTool = createTool({
         EXTERNAL_CONTENT_TRUST_WARNING,
         'The cached news table does not expose provider ingestion freshness metadata',
         ...(quarantinedCount > 0
-          ? [`${quarantinedCount} news item(s) contained instruction-like text and were quarantined`]
+          ? [
+              `${quarantinedCount} news item(s) contained instruction-like text and were quarantined`,
+            ]
           : []),
         ...(data.pipelinePending
           ? ['The news ingestion pipeline has not populated the cache']

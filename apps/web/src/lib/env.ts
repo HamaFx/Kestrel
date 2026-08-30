@@ -22,10 +22,10 @@
 //   - getServerEnv(): the full ServerEnv (Auth + DB + AI + Cache + Providers + ...).
 //     Used by route handlers that actually need those keys.
 //
-// Phase A: added NEXTAUTH_SECRET for NextAuth.js v5 JWT signing.
-// APP_PASSWORD is now optional — used only for legacy admin bootstrapping.
+// Auth.js uses AUTH_SECRET as the canonical JWT signing secret. Legacy
+// aliases remain readable only for upgrade compatibility.
 //
-// Phase 10 (setup UX): secrets are OPTIONAL in dev mode. The first call
+// Development secrets are optional. The first call
 // to either getter triggers `loadOrGenerateDevSecrets()` which:
 //   - reads `.kestrel/dev-secrets.json` if present (falling back to the
 //     pre-rebrand `.hamafx/dev-secrets.json` during upgrades),
@@ -172,6 +172,17 @@ export function getServerEnv(): ServerEnv {
   loadOrGenerateDevSecrets();
   if (process.env.HAMAFX_ENABLE_RLS !== undefined && process.env.KESTREL_ENABLE_RLS === undefined) {
     console.warn('[env] HAMAFX_ENABLE_RLS is deprecated; use KESTREL_ENABLE_RLS instead.');
+  }
+  if (process.env.HAMAFX_RUNTIME !== undefined && process.env.KESTREL_RUNTIME === undefined) {
+    process.env.KESTREL_RUNTIME = process.env.HAMAFX_RUNTIME;
+    console.warn('[env] HAMAFX_RUNTIME is deprecated; use KESTREL_RUNTIME instead.');
+  }
+  if (
+    process.env.HAMAFX_LOCAL_DOCKER !== undefined &&
+    process.env.KESTREL_LOCAL_DOCKER === undefined
+  ) {
+    process.env.KESTREL_LOCAL_DOCKER = process.env.HAMAFX_LOCAL_DOCKER;
+    console.warn('[env] HAMAFX_LOCAL_DOCKER is deprecated; use KESTREL_LOCAL_DOCKER instead.');
   }
   _serverEnv = parseServerEnv();
   return _serverEnv;

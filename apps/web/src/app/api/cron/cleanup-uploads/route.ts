@@ -40,59 +40,66 @@ const RETENTION_DAYS = 7;
 
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'cleanup-uploads' });
-  return withCronAuth(req, async () => {
-    const env = getServerEnv();
-    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-      return { processed: 0, note: 'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — skipped' };
-    }
-
-    const base = env.SUPABASE_URL.replace(/\/+$/, '');
-    const headers = {
-      authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-      'content-type': 'application/json',
-    };
-
-    // Build the list of date-prefixes that are old enough to delete.
-    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    const prefixesToDelete = buildExpiredPrefixes(cutoff);
-
-    let deleted = 0;
-    let errors = 0;
-
-    for (const prefix of prefixesToDelete) {
-      // List objects under this prefix.
-      const listRes = await fetch(`${base}/storage/v1/object/list/${BUCKET}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ prefix, limit: 1000, offset: 0 }),
-      });
-      if (!listRes.ok) {
-        log.warn('list failed', { prefix, status: listRes.status });
-        errors += 1;
-        continue;
+  return withCronAuth(
+    req,
+    async () => {
+      const env = getServerEnv();
+      if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+        return {
+          processed: 0,
+          note: 'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — skipped',
+        };
       }
-      const objects = (await listRes.json()) as Array<{ name: string }>;
-      if (!Array.isArray(objects) || objects.length === 0) continue;
 
-      const paths = objects.map((o) => `${prefix}/${o.name}`);
-      const delRes = await fetch(`${base}/storage/v1/object/${BUCKET}`, {
-        method: 'DELETE',
-        headers,
-        body: JSON.stringify({ prefixes: paths }),
-      });
-      if (!delRes.ok) {
-        log.warn('delete failed', { prefix, status: delRes.status });
-        errors += 1;
-        continue;
+      const base = env.SUPABASE_URL.replace(/\/+$/, '');
+      const headers = {
+        authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'content-type': 'application/json',
+      };
+
+      // Build the list of date-prefixes that are old enough to delete.
+      const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+      const prefixesToDelete = buildExpiredPrefixes(cutoff);
+
+      let deleted = 0;
+      let errors = 0;
+
+      for (const prefix of prefixesToDelete) {
+        // List objects under this prefix.
+        const listRes = await fetch(`${base}/storage/v1/object/list/${BUCKET}`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ prefix, limit: 1000, offset: 0 }),
+        });
+        if (!listRes.ok) {
+          log.warn('list failed', { prefix, status: listRes.status });
+          errors += 1;
+          continue;
+        }
+        const objects = (await listRes.json()) as Array<{ name: string }>;
+        if (!Array.isArray(objects) || objects.length === 0) continue;
+
+        const paths = objects.map((o) => `${prefix}/${o.name}`);
+        const delRes = await fetch(`${base}/storage/v1/object/${BUCKET}`, {
+          method: 'DELETE',
+          headers,
+          body: JSON.stringify({ prefixes: paths }),
+        });
+        if (!delRes.ok) {
+          log.warn('delete failed', { prefix, status: delRes.status });
+          errors += 1;
+          continue;
+        }
+        deleted += paths.length;
       }
-      deleted += paths.length;
-    }
 
-    return {
-      processed: deleted,
-      note: `deleted=${deleted} errors=${errors} cutoff=${cutoff.toISOString().slice(0, 10)}`,
-    };
-  }, { requireAdminSession: true });
+      return {
+        processed: deleted,
+        note: `deleted=${deleted} errors=${errors} cutoff=${cutoff.toISOString().slice(0, 10)}`,
+      };
+    },
+    { requireAdminSession: true },
+  );
 }
 
 /**

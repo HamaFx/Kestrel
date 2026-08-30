@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -33,7 +33,9 @@ describe('Kestrel updater', () => {
 
   it('accepts only stable releases', () => {
     expect(isStableRelease({ tag_name: 'v1.0.0', draft: false, prerelease: false })).toBe(true);
-    expect(isStableRelease({ tag_name: 'v1.0.0-beta.1', draft: false, prerelease: true })).toBe(false);
+    expect(isStableRelease({ tag_name: 'v1.0.0-beta.1', draft: false, prerelease: true })).toBe(
+      false,
+    );
     expect(isStableRelease({ tag_name: 'v1.0.0', draft: true, prerelease: false })).toBe(false);
   });
 
@@ -68,11 +70,13 @@ describe('Kestrel updater', () => {
   });
 
   it('reports GitHub failures without changing files', async () => {
-    await expect(main(['--dry-run'], {
-      root: process.cwd(),
-      output: () => {},
-      fetchImpl: async () => ({ ok: false, status: 503, statusText: 'Unavailable' }),
-    })).rejects.toThrow('GitHub could not be reached');
+    await expect(
+      main(['--dry-run'], {
+        root: process.cwd(),
+        output: () => {},
+        fetchImpl: async () => ({ ok: false, status: 503, statusText: 'Unavailable' }),
+      }),
+    ).rejects.toThrow('GitHub could not be reached');
   });
 
   it('reports no update without changing files', async () => {

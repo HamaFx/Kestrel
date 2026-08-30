@@ -94,10 +94,7 @@ export async function validateSession(
         .from(schema.users)
         .leftJoin(
           schema.userSessions,
-          and(
-            eq(schema.userSessions.id, sessionId ?? ''),
-            eq(schema.userSessions.userId, userId),
-          ),
+          and(eq(schema.userSessions.id, sessionId ?? ''), eq(schema.userSessions.userId, userId)),
         )
         .where(eq(schema.users.id, userId))
         .limit(1);
@@ -136,12 +133,7 @@ export async function validateSession(
       await db
         .update(schema.userSessions)
         .set({ lastActiveAt: new Date() })
-        .where(
-          and(
-            eq(schema.userSessions.id, sessionId),
-            eq(schema.userSessions.userId, userId),
-          ),
-        );
+        .where(and(eq(schema.userSessions.id, sessionId), eq(schema.userSessions.userId, userId)));
       token.lastActiveUpdate = nowSeconds;
     } catch (err) {
       logErrorContext(err, 'auth/last_active_update', {}, 'auth');

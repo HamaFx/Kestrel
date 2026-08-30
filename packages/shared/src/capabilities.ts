@@ -33,7 +33,9 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
     {
       name: 'offline-market-data',
       status: offlineMode ? 'enabled' : 'disabled',
-      reason: offlineMode ? 'deterministic synthetic provider; no market-data network requests are made' : 'KESTREL_OFFLINE_MODE is not enabled',
+      reason: offlineMode
+        ? 'deterministic synthetic provider; no market-data network requests are made'
+        : 'KESTREL_OFFLINE_MODE is not enabled',
     },
     {
       name: 'database',
@@ -50,13 +52,11 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
         configured(env.GOOGLE_VERTEX_PROJECT)
           ? 'enabled'
           : 'disabled',
-      ...(
-        configured(env.AI_GATEWAY_API_KEY) ||
-        configured(env.GOOGLE_GENERATIVE_AI_API_KEY) ||
-        configured(env.GOOGLE_VERTEX_PROJECT)
-          ? {}
-          : { reason: 'no server-level AI fallback; configure BYOK in the application' }
-      ),
+      ...(configured(env.AI_GATEWAY_API_KEY) ||
+      configured(env.GOOGLE_GENERATIVE_AI_API_KEY) ||
+      configured(env.GOOGLE_VERTEX_PROJECT)
+        ? {}
+        : { reason: 'no server-level AI fallback; configure BYOK in the application' }),
     },
     {
       name: 'biquote',
@@ -76,7 +76,9 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
     {
       name: 'telegram',
       status: configured(env.TELEGRAM_BOT_TOKEN) ? 'enabled' : 'disabled',
-      ...(configured(env.TELEGRAM_BOT_TOKEN) ? {} : { reason: 'TELEGRAM_BOT_TOKEN is not configured' }),
+      ...(configured(env.TELEGRAM_BOT_TOKEN)
+        ? {}
+        : { reason: 'TELEGRAM_BOT_TOKEN is not configured' }),
     },
     {
       name: 'email',
@@ -96,24 +98,26 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
         configured(env.LANGFUSE_BASE_URL)
           ? 'enabled'
           : 'disabled',
-      ...(
-        configured(env.LANGFUSE_PUBLIC_KEY) &&
-        configured(env.LANGFUSE_SECRET_KEY) &&
-        configured(env.LANGFUSE_BASE_URL)
-          ? {}
-          : { reason: 'Langfuse public key, secret key, and base URL must all be configured' }
-      ),
+      ...(configured(env.LANGFUSE_PUBLIC_KEY) &&
+      configured(env.LANGFUSE_SECRET_KEY) &&
+      configured(env.LANGFUSE_BASE_URL)
+        ? {}
+        : { reason: 'Langfuse public key, secret key, and base URL must all be configured' }),
     },
     {
       name: 'langfuse-prompt-output-capture',
-      status: env.LANGFUSE_RECORD_IO === '1' || env.LANGFUSE_RECORD_IO === 'true' ? 'enabled' : 'disabled',
+      status:
+        env.LANGFUSE_RECORD_IO === '1' || env.LANGFUSE_RECORD_IO === 'true'
+          ? 'enabled'
+          : 'disabled',
       ...(env.LANGFUSE_RECORD_IO === '1' || env.LANGFUSE_RECORD_IO === 'true'
         ? { reason: 'prompt/output capture is explicitly enabled' }
         : { reason: 'privacy-preserving default' }),
     },
     {
       name: 'billing',
-      status: env.BILLING_ENABLED === '1' || env.BILLING_ENABLED === 'true' ? 'enabled' : 'disabled',
+      status:
+        env.BILLING_ENABLED === '1' || env.BILLING_ENABLED === 'true' ? 'enabled' : 'disabled',
       ...(env.BILLING_ENABLED === '1' || env.BILLING_ENABLED === 'true'
         ? {}
         : { reason: 'BILLING_ENABLED is not enabled' }),
@@ -122,7 +126,11 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
 
   return {
     capabilities,
-    enabled: capabilities.filter((capability) => capability.status === 'enabled').map((capability) => capability.name),
-    disabled: capabilities.filter((capability) => capability.status === 'disabled').map((capability) => capability.name),
+    enabled: capabilities
+      .filter((capability) => capability.status === 'enabled')
+      .map((capability) => capability.name),
+    disabled: capabilities
+      .filter((capability) => capability.status === 'disabled')
+      .map((capability) => capability.name),
   };
 }

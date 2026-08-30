@@ -105,9 +105,7 @@ export function recordsToGateObserved(
   const cases = [...groups.values()].map((group) => {
     const allPassed = group.every(pass);
     const citationRecord = group.find((r) => r.scorerId === 'kestrel-citation');
-    const groundingFailure = group.find(
-      (r) => r.scorerId === 'kestrel-grounding' && r.score < 1,
-    );
+    const groundingFailure = group.find((r) => r.scorerId === 'kestrel-grounding' && r.score < 1);
     return {
       id: group[0]!.runId,
       prompt: '',
@@ -134,15 +132,14 @@ export function recordsToGateObserved(
   });
 
   return evaluateEvalQualityGate(cases, {
-      ...effectiveThresholds,
-      minCaseCount: Math.max(effectiveThresholds.minCaseCount, 1),
-      // Override the runner-specific citation minimum with the mean of the
-      // citation records (allows the gate to run with only score records).
-      ...(citationScores.length > 0
-        ? { minCitationScore: effectiveThresholds.minCitationScore }
-        : {}),
-    },
-  );
+    ...effectiveThresholds,
+    minCaseCount: Math.max(effectiveThresholds.minCaseCount, 1),
+    // Override the runner-specific citation minimum with the mean of the
+    // citation records (allows the gate to run with only score records).
+    ...(citationScores.length > 0
+      ? { minCitationScore: effectiveThresholds.minCitationScore }
+      : {}),
+  });
 }
 
 /**

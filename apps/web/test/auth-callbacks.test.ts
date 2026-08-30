@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
 const source = readFileSync(resolve(root, 'apps/web/src/lib/auth/callbacks.ts'), 'utf8');
@@ -8,7 +9,7 @@ const source = readFileSync(resolve(root, 'apps/web/src/lib/auth/callbacks.ts'),
 describe('auth callback extraction', () => {
   it('keeps JWT session creation and fail-closed handling in the helper', () => {
     expect(source).toContain('createUserSession');
-    expect(source).toContain("SESSION_SYSTEM_ERROR");
+    expect(source).toContain('SESSION_SYSTEM_ERROR');
     expect(source).toContain('handleJwtCallback');
   });
 

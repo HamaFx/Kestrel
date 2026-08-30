@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { parseServerEnv } from '@kestrel/shared';
+import { describe, expect, it } from 'vitest';
 
 const baseEnv = {
   NODE_ENV: 'development',

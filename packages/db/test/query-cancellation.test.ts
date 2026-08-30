@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { abortError, withCancellablePostgresQuery } from '../src/query-cancellation';
+
 const end = vi.fn().mockResolvedValue(undefined);
 const client = Object.assign(vi.fn(), { end });
 
 vi.mock('postgres', () => ({ default: vi.fn(() => client) }));
-
-import { abortError, withCancellablePostgresQuery } from '../src/query-cancellation';
 
 describe('withCancellablePostgresQuery', () => {
   it('forwards the abort signal and closes the dedicated connection', async () => {

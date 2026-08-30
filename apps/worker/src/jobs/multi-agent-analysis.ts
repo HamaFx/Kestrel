@@ -22,21 +22,21 @@
 import {
   appendAssistantMessage,
   appendUserMessage,
+  DEFAULT_MAX_DAILY_USD,
   getDb,
+  reserveTurnBudget,
   resolveMastraModel,
   resumeTurnBudget,
-  reserveTurnBudget,
-  DEFAULT_MAX_DAILY_USD,
   withDiagnostics,
   type BudgetHandle,
 } from '@kestrel/ai';
 import {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
-  FullAnalysisLeaseLostError,
   extractSymbolFromPrompt,
   failFullAnalysisRun,
   FULL_ANALYSIS_WORKFLOW_ID,
+  FullAnalysisLeaseLostError,
   isSafeSymbolResearchPrompt,
   maybeGenerateThreadTitle,
   purgeOldFullAnalysisRuns,
@@ -143,9 +143,8 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
   let processed = 0;
 
   for (let i = 0; i < MAX_JOBS_PER_RUN; i++) {
-    const claimed = await claimNextFullAnalysisRun(
-      workerRunId,
-      (userId) => ctx.tenantRouter.isMyTenant(userId),
+    const claimed = await claimNextFullAnalysisRun(workerRunId, (userId) =>
+      ctx.tenantRouter.isMyTenant(userId),
     );
     if (!claimed) {
       ctx.log.info('No pending full-analysis runs — done.');

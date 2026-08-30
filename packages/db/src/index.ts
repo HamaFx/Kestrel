@@ -99,7 +99,7 @@ export {
   type CreateAlertInput,
   type UpdateAlertInput,
 } from './queries/alerts';
-// PF-01 Phase 2 — Additional query helpers
+// Additional query helpers
 export {
   listJournalEntries,
   getJournalEntry,
@@ -193,10 +193,7 @@ export {
   type UserWithSettingsRow,
 } from './queries/users';
 export { recordAdminAudit, listAdminAuditLogs } from './queries/admin-audit';
-export type {
-  MutationExecutionRow,
-  MutationExecutionInsert,
-} from './schema/mutation-executions';
+export type { MutationExecutionRow, MutationExecutionInsert } from './schema/mutation-executions';
 export {
   executeMutationOnce,
   getMutationExecution,
@@ -352,4 +349,8 @@ export {
   getMemoryProjectionState,
 } from './queries/memory-projection';
 export * as queries from './queries';
-export { withCancellablePostgresQuery, abortError, type CancellableQueryOptions } from './query-cancellation';
+export {
+  withCancellablePostgresQuery,
+  abortError,
+  type CancellableQueryOptions,
+} from './query-cancellation';

@@ -22,7 +22,9 @@ describe('scheduler behavior invariants', () => {
       return 'first';
     });
     await Promise.resolve();
-    await expect(runWithGuard(running, 'job', async () => 'overlap')).resolves.toEqual({ skipped: true });
+    await expect(runWithGuard(running, 'job', async () => 'overlap')).resolves.toEqual({
+      skipped: true,
+    });
     release();
     await expect(first).resolves.toEqual({ skipped: false, value: 'first' });
     await expect(runWithGuard(running, 'job', async () => 'retry')).resolves.toEqual({

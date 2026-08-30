@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  CAPABILITY_REGISTRY,
-  isReadOnlyCapability,
-  toolsForCapability,
-} from '../src/mastra';
+import { CAPABILITY_REGISTRY, isReadOnlyCapability, toolsForCapability } from '../src/mastra';
 
 describe('capability registry', () => {
   it('shares the reviewed capability definitions', () => {

@@ -153,9 +153,7 @@ export function extractMastraSymbol(prompt: string): string | null {
 /** Generalized read-only symbol eligibility for Quick/Standard/Full Mastra modes. */
 export function isMastraSymbolCandidate(prompt: string): boolean {
   return (
-    extractMastraSymbol(prompt) !== null &&
-    !isInjectionAttempt(prompt) &&
-    !isMutationIntent(prompt)
+    extractMastraSymbol(prompt) !== null && !isInjectionAttempt(prompt) && !isMutationIntent(prompt)
   );
 }
 

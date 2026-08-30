@@ -41,10 +41,12 @@ import { withAuth } from '@/lib/api';
 import {
   getDb,
   getFullAnalysisQueueHealth,
+  getTelemetryStartupCheck,
+  isMastraTelemetryDegraded,
   REQUIRED_HEALTH_ENV_VARS,
+  validateTelemetryStartup,
   withRateLimit,
 } from '@/lib/services/api-boundary';
-import { getTelemetryStartupCheck, isMastraTelemetryDegraded, validateTelemetryStartup } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -180,7 +182,8 @@ export const GET = withAuth<void>(async (req, { user }) => {
   const analysisOk = analysisCheck.ok && (analysisCheck.stalePending ?? 0) === 0;
   const telemetryDegraded = isMastraTelemetryDegraded();
   const telemetryStartup = validateTelemetryStartup();
-  const allOk = dbCheck.ok && envCheck.ok && pgvectorCheck.ok && cronOk && analysisOk && !telemetryDegraded;
+  const allOk =
+    dbCheck.ok && envCheck.ok && pgvectorCheck.ok && cronOk && analysisOk && !telemetryDegraded;
   const status = allOk ? 'ok' : 'error';
   const httpStatus = allOk ? 200 : 503;
 

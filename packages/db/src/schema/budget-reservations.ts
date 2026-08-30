@@ -57,7 +57,9 @@ export const aiBudgetReservations = pgTable(
     index('ai_budget_reservations_trace_idx').on(table.traceId, table.createdAt),
     index('ai_budget_reservations_terminal_resolved_idx')
       .on(table.resolvedAt)
-      .where(sql`${table.status} IN ('reconciled', 'released') AND ${table.resolvedAt} IS NOT NULL`),
+      .where(
+        sql`${table.status} IN ('reconciled', 'released') AND ${table.resolvedAt} IS NOT NULL`,
+      ),
   ],
 );
 

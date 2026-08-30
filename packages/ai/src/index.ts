@@ -1,3 +1,7 @@
+// P2-3 — Auto-bootstrap DI container services on first import.
+// Every consumer of @kestrel/ai gets db + llmClient registered.
+import './services';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -17,14 +21,7 @@
 // Public barrel for @kestrel/ai. The route handler imports from here.
 export * from './workflow-status';
 export * from './mastra/telemetry-startup';
-export {
-  isMastraTelemetryDegraded,
-  resetMastraTelemetryHealth,
-} from './mastra/telemetry';
-
-// P2-3 — Auto-bootstrap DI container services on first import.
-// Every consumer of @kestrel/ai gets db + llmClient registered.
-import './services';
+export { isMastraTelemetryDegraded, resetMastraTelemetryHealth } from './mastra/telemetry';
 
 export { reserveTurnBudget, resumeTurnBudget, type BudgetHandle } from './budget-reservation';
 export { toolRegistry, type ToolRegistry } from './tools';

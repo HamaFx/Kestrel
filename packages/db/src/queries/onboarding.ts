@@ -50,10 +50,7 @@ export async function resetOnboarding(userId: string, mode: ResetMode = 'soft'):
       await tx
         .delete(schema.userSymbols)
         .where(
-          and(
-            eq(schema.userSymbols.userId, userId),
-            eq(schema.userSymbols.tenantId, tenantId),
-          ),
+          and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)),
         );
     }
 
@@ -61,10 +58,7 @@ export async function resetOnboarding(userId: string, mode: ResetMode = 'soft'):
       .update(schema.userSettings)
       .set(update)
       .where(
-        and(
-          eq(schema.userSettings.userId, userId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
       );
   });
 }

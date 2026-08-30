@@ -1,9 +1,5 @@
+import { claimNextFullAnalysisQueue, recoverStaleFullAnalysisQueue } from '@kestrel/db';
 import { describe, expect, it } from 'vitest';
-
-import {
-  claimNextFullAnalysisQueue,
-  recoverStaleFullAnalysisQueue,
-} from '@kestrel/db';
 
 describe('Full-analysis resilience contracts', () => {
   it('supports one winner when workers compete for a pending job', async () => {

@@ -45,12 +45,7 @@ export async function listUserSessions(userId: string): Promise<SessionRow[]> {
       lastActiveAt: schema.userSessions.lastActiveAt,
     })
     .from(schema.userSessions)
-    .where(
-      and(
-        eq(schema.userSessions.userId, userId),
-        eq(schema.userSessions.tenantId, tenantId),
-      ),
-    )
+    .where(and(eq(schema.userSessions.userId, userId), eq(schema.userSessions.tenantId, tenantId)))
     .orderBy(schema.userSessions.createdAt);
 }
 
@@ -60,13 +55,15 @@ export async function listUserSessions(userId: string): Promise<SessionRow[]> {
 export async function revokeUserSession(sessionId: string, userId: string): Promise<void> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  await db.delete(schema.userSessions).where(
-    and(
-      eq(schema.userSessions.id, sessionId),
-      eq(schema.userSessions.userId, userId),
-      eq(schema.userSessions.tenantId, tenantId),
-    ),
-  );
+  await db
+    .delete(schema.userSessions)
+    .where(
+      and(
+        eq(schema.userSessions.id, sessionId),
+        eq(schema.userSessions.userId, userId),
+        eq(schema.userSessions.tenantId, tenantId),
+      ),
+    );
 }
 
 /**
@@ -75,10 +72,7 @@ export async function revokeUserSession(sessionId: string, userId: string): Prom
 export async function deleteUserSessions(userId: string): Promise<void> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  await db.delete(schema.userSessions).where(
-    and(
-      eq(schema.userSessions.userId, userId),
-      eq(schema.userSessions.tenantId, tenantId),
-    ),
-  );
+  await db
+    .delete(schema.userSessions)
+    .where(and(eq(schema.userSessions.userId, userId), eq(schema.userSessions.tenantId, tenantId)));
 }

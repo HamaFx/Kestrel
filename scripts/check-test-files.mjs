@@ -1,5 +1,5 @@
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,9 +20,10 @@ let failed = false;
 
 // Phase 7 task 7.13 — also flag files with zero real assertions.
 // We read each test file and check for at least one `it(`, `test(`, or
-// `it.todo(` call that isn't commented out. Files with only `.skip` are
+// `it.each(...)` call that isn't commented out. Files with only `.skip` are
 // also flagged.
-const ASSERTION_RE = /^\s*(?:it|test)\.(?:todo|skip|only|concurrent)\s*\(|^\s*(?:it|test)\s*\(/;
+const ASSERTION_RE = /^\s*(?:it|test)(?:\.each\s*|\.(?:todo|skip|only|concurrent)\s*)?\(/;
+const PARAMETERIZED_ASSERTION_RE = /^\s*(?:it|test)\.each\s*\(/;
 
 function countAssertions(filePath) {
   const content = readFileSync(filePath, 'utf-8');
@@ -34,7 +35,7 @@ function countAssertions(filePath) {
     const trimmed = line.trim();
     // Skip comments
     if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) continue;
-    if (ASSERTION_RE.test(line)) {
+    if (ASSERTION_RE.test(line) || PARAMETERIZED_ASSERTION_RE.test(line)) {
       count++;
       hasAny = true;
       if (!line.includes('.skip')) {
@@ -84,7 +85,9 @@ for (const pkg of packages) {
   }
 
   if (zeroAssertionFiles.length > 0) {
-    console.error(`❌ ${pkg.name} has ${zeroAssertionFiles.length} test file(s) with ZERO assertions:`);
+    console.error(
+      `❌ ${pkg.name} has ${zeroAssertionFiles.length} test file(s) with ZERO assertions:`,
+    );
     for (const f of zeroAssertionFiles) {
       console.error(`   ${f.replace(root + '/', '')}`);
     }
@@ -92,7 +95,9 @@ for (const pkg of packages) {
   }
 
   if (allSkipFiles.length > 0) {
-    console.warn(`⚠  ${pkg.name} has ${allSkipFiles.length} test file(s) with all-skipped assertions:`);
+    console.warn(
+      `⚠  ${pkg.name} has ${allSkipFiles.length} test file(s) with all-skipped assertions:`,
+    );
     for (const f of allSkipFiles) {
       console.warn(`   ${f.replace(root + '/', '')}`);
     }
@@ -104,7 +109,9 @@ for (const pkg of packages) {
 }
 
 if (failed) {
-  console.error('\n❌ Some packages have missing or empty test files. Add tests or update the test script.');
+  console.error(
+    '\n❌ Some packages have missing or empty test files. Add tests or update the test script.',
+  );
   process.exit(1);
 } else {
   console.log('\n✓ All packages with test scripts have test files with real assertions.');

@@ -20,8 +20,8 @@ import { z } from 'zod';
 
 import { getSentimentService } from '../sentiment';
 import { createEvidenceId, freshnessFromAge } from './evidence';
-import { executeMastraTool } from './telemetry';
 import { EXTERNAL_CONTENT_TRUST_WARNING } from './external-content';
+import { executeMastraTool } from './telemetry';
 import { XauusdSymbolSchema } from './tool-schemas';
 import { XAUUSD } from './types';
 
@@ -60,7 +60,8 @@ export const xauusdSocialSentimentTool = createTool({
         available,
       });
       const fetchedAt = new Date(data.fetchedAt).toISOString();
-      const warnings = [EXTERNAL_CONTENT_TRUST_WARNING,
+      const warnings = [
+        EXTERNAL_CONTENT_TRUST_WARNING,
         'Sentiment is contextual and must not be presented as verified price, candle, or structure evidence',
         ...(available
           ? []

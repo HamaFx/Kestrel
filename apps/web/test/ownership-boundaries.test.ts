@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { GET as getAlertRoute } from '@/app/api/alerts/[id]/route';
+import { GET as getThreadRoute } from '@/app/api/chat/threads/[id]/route';
+import { GET as getJournalRoute } from '@/app/api/journal/[id]/route';
+
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockGetThread = vi.hoisted(() => vi.fn());
 const mockGetJournalEntry = vi.hoisted(() => vi.fn());
@@ -25,10 +29,6 @@ vi.mock('@/lib/services/alerts', () => ({
   deleteAlertService: vi.fn(),
   AlertPatchSchema: { parse: vi.fn() },
 }));
-
-import { GET as getThreadRoute } from '@/app/api/chat/threads/[id]/route';
-import { GET as getJournalRoute } from '@/app/api/journal/[id]/route';
-import { GET as getAlertRoute } from '@/app/api/alerts/[id]/route';
 
 const USER_ID = 'owner-user';
 const OTHER_ID = 'different-user';

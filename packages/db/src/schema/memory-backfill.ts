@@ -13,7 +13,9 @@ import { organization, users } from './auth';
 export const memoryBackfillState = pgTable(
   'memory_backfill_state',
   {
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     threadId: text('thread_id').notNull(),
     tenantId: text('tenant_id')
       .notNull()

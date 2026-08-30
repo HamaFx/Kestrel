@@ -27,10 +27,7 @@ import { getDb } from './db';
 import { persistTraceStrict } from './diagnostics/trace-persistence';
 import { saveAgentOpinions } from './multi-agent/persistence';
 import { appendAssistantMessage, appendUserMessage } from './persistence/message-persistence';
-import {
-  recordTelemetry,
-  recordToolTelemetry,
-} from './persistence/telemetry-persistence';
+import { recordTelemetry, recordToolTelemetry } from './persistence/telemetry-persistence';
 
 const rlog = createCategorizedLogger('ai', { component: 'persistence-recovery' });
 const LOCK_TTL_MS = 5 * 60 * 1000;
@@ -54,68 +51,137 @@ function resultRows<T>(result: unknown): T[] {
   return [];
 }
 
-const StoredMessageSchema = z.object({
-  id: z.string().min(1),
-  role: z.enum(['user', 'assistant', 'system', 'tool']),
-  parts: z.array(z.unknown()).max(100),
-}).strict();
+const StoredMessageSchema = z
+  .object({
+    id: z.string().min(1),
+    role: z.enum(['user', 'assistant', 'system', 'tool']),
+    parts: z.array(z.unknown()).max(100),
+  })
+  .strict();
 
-const MessageReplaySchema = z.object({
-  userId: z.string().min(1),
-  threadId: z.string().min(1),
-  message: StoredMessageSchema,
-  idempotencyKey: z.string().min(1),
-}).strict();
+const MessageReplaySchema = z
+  .object({
+    userId: z.string().min(1),
+    threadId: z.string().min(1),
+    message: StoredMessageSchema,
+    idempotencyKey: z.string().min(1),
+  })
+  .strict();
 
-const OpinionsReplaySchema = z.object({
-  userId: z.string().min(1),
-  threadId: z.string().min(1),
-  messageId: z.string().min(1),
-  analysisMode: z.string().min(1),
-  opinions: z.array(z.object({
-    agentName: z.string().min(1), bias: z.string(), confidence: z.number().finite(),
-    reasoning: z.string(), rawData: z.record(z.unknown()), model: z.string().min(1),
-    costUsd: z.number().finite().nonnegative(), latencyMs: z.number().finite().nonnegative(),
-  }).strict()).max(20),
-}).strict();
+const OpinionsReplaySchema = z
+  .object({
+    userId: z.string().min(1),
+    threadId: z.string().min(1),
+    messageId: z.string().min(1),
+    analysisMode: z.string().min(1),
+    opinions: z
+      .array(
+        z
+          .object({
+            agentName: z.string().min(1),
+            bias: z.string(),
+            confidence: z.number().finite(),
+            reasoning: z.string(),
+            rawData: z.record(z.unknown()),
+            model: z.string().min(1),
+            costUsd: z.number().finite().nonnegative(),
+            latencyMs: z.number().finite().nonnegative(),
+          })
+          .strict(),
+      )
+      .max(20),
+  })
+  .strict();
 
 const TelemetryKindSchema = z.enum([
-  'title_generated', 'title_failed', 'title_skipped_budget',
-  'routing_fundamental', 'routing_technical', 'routing_summary', 'routing_vision', 'routing_generic',
-  'plan_generated', 'plan_skipped_budget', 'plan_failed',
-  'multi_specialist_technical', 'multi_specialist_fundamental', 'multi_specialist_risk',
-  'multi_specialist_sentiment', 'multi_specialist_technical_failed', 'multi_specialist_fundamental_failed',
-  'multi_specialist_risk_failed', 'multi_specialist_sentiment_failed', 'multi_specialist_decision',
-  'multi_agent_turn', 'mastra_xauusd_poc', 'mastra_xauusd_poc_failed', 'mastra_mode', 'mastra_mode_failed',
-  'mastra_full_job', 'mastra_full_job_failed', 'mastra_worker_task', 'mastra_worker_task_failed',
-  'mastra_canonical_chat', 'mastra_canonical_chat_failed', 'turn_failed',
+  'title_generated',
+  'title_failed',
+  'title_skipped_budget',
+  'routing_fundamental',
+  'routing_technical',
+  'routing_summary',
+  'routing_vision',
+  'routing_generic',
+  'plan_generated',
+  'plan_skipped_budget',
+  'plan_failed',
+  'multi_specialist_technical',
+  'multi_specialist_fundamental',
+  'multi_specialist_risk',
+  'multi_specialist_sentiment',
+  'multi_specialist_technical_failed',
+  'multi_specialist_fundamental_failed',
+  'multi_specialist_risk_failed',
+  'multi_specialist_sentiment_failed',
+  'multi_specialist_decision',
+  'multi_agent_turn',
+  'mastra_xauusd_poc',
+  'mastra_xauusd_poc_failed',
+  'mastra_mode',
+  'mastra_mode_failed',
+  'mastra_full_job',
+  'mastra_full_job_failed',
+  'mastra_worker_task',
+  'mastra_worker_task_failed',
+  'mastra_canonical_chat',
+  'mastra_canonical_chat_failed',
+  'turn_failed',
 ]);
 
-const TelemetryReplaySchema = z.object({
-  threadId: z.string().min(1), userId: z.string().nullable(), messageId: z.string().nullable(),
-  traceId: z.string().nullable().default(null), runId: z.string().nullable().default(null), jobId: z.string().nullable().default(null),
-  idempotencyKey: z.string().nullable().default(null), model: z.string().min(1), inputTokens: z.number().int().nonnegative(),
-  outputTokens: z.number().int().nonnegative(), toolCalls: z.number().int().nonnegative(), ms: z.number().int().nonnegative(),
-  usageKnown: z.boolean().optional().default(true),
-  kind: TelemetryKindSchema.nullable().default(null),
-}).strict();
+const TelemetryReplaySchema = z
+  .object({
+    threadId: z.string().min(1),
+    userId: z.string().nullable(),
+    messageId: z.string().nullable(),
+    traceId: z.string().nullable().default(null),
+    runId: z.string().nullable().default(null),
+    jobId: z.string().nullable().default(null),
+    idempotencyKey: z.string().nullable().default(null),
+    model: z.string().min(1),
+    inputTokens: z.number().int().nonnegative(),
+    outputTokens: z.number().int().nonnegative(),
+    toolCalls: z.number().int().nonnegative(),
+    ms: z.number().int().nonnegative(),
+    usageKnown: z.boolean().optional().default(true),
+    kind: TelemetryKindSchema.nullable().default(null),
+  })
+  .strict();
 
-const ToolTelemetryReplaySchema = z.object({
-  threadId: z.string().nullable(), userId: z.string().nullable(), messageId: z.string().nullable(),
-  traceId: z.string().nullable().default(null), runId: z.string().nullable().default(null), jobId: z.string().nullable().default(null),
-  idempotencyKey: z.string().nullable().default(null), tool: z.string().min(1), ms: z.number().int().nonnegative(),
-  ok: z.boolean(), errorCode: z.string().nullable(), outputChars: z.number().int().nonnegative().nullable(),
-}).strict();
+const ToolTelemetryReplaySchema = z
+  .object({
+    threadId: z.string().nullable(),
+    userId: z.string().nullable(),
+    messageId: z.string().nullable(),
+    traceId: z.string().nullable().default(null),
+    runId: z.string().nullable().default(null),
+    jobId: z.string().nullable().default(null),
+    idempotencyKey: z.string().nullable().default(null),
+    tool: z.string().min(1),
+    ms: z.number().int().nonnegative(),
+    ok: z.boolean(),
+    errorCode: z.string().nullable(),
+    outputChars: z.number().int().nonnegative().nullable(),
+  })
+  .strict();
 
-const TraceReplaySchema = z.object({
-  traceId: z.string().min(1), userId: z.string().min(1), threadId: z.string().min(1), startedAt: z.number().finite(),
-  durationMs: z.number().finite().nonnegative(), stepCount: z.number().int().nonnegative(), errorCount: z.number().int().nonnegative(),
-  status: z.enum(['completed', 'failed']), trace: z.record(z.unknown()),
-}).strict();
+const TraceReplaySchema = z
+  .object({
+    traceId: z.string().min(1),
+    userId: z.string().min(1),
+    threadId: z.string().min(1),
+    startedAt: z.number().finite(),
+    durationMs: z.number().finite().nonnegative(),
+    stepCount: z.number().int().nonnegative(),
+    errorCount: z.number().int().nonnegative(),
+    status: z.enum(['completed', 'failed']),
+    trace: z.record(z.unknown()),
+  })
+  .strict();
 
 function parseReplay<T>(schema: z.ZodType<T>, payload: unknown, operation: string): T {
   const parsed = schema.safeParse(payload);
-  if (!parsed.success) throw new Error(`Invalid ${operation} outbox payload: ${parsed.error.message}`);
+  if (!parsed.success)
+    throw new Error(`Invalid ${operation} outbox payload: ${parsed.error.message}`);
   return parsed.data;
 }
 
@@ -216,12 +282,9 @@ async function replayOne(item: ClaimedFailure): Promise<void> {
   switch (item.operation) {
     case 'message.user': {
       const input = parseReplay(MessageReplaySchema, payload, item.operation);
-      await appendUserMessage(
-        input.userId,
-        input.threadId,
-        input.message as unknown as UIMessage,
-        { idempotencyKey: input.idempotencyKey },
-      );
+      await appendUserMessage(input.userId, input.threadId, input.message as unknown as UIMessage, {
+        idempotencyKey: input.idempotencyKey,
+      });
       return;
     }
     case 'message.assistant': {
@@ -259,20 +322,22 @@ async function replayOne(item: ClaimedFailure): Promise<void> {
     }
     case 'telemetry.tool': {
       const input = parseReplay(ToolTelemetryReplaySchema, payload, item.operation);
-      if (!(await recordToolTelemetry({
-        threadId: input.threadId,
-        userId: input.userId ?? null,
-        messageId: input.messageId,
-        traceId: input.traceId ?? null,
-        runId: input.runId ?? null,
-        jobId: input.jobId ?? null,
-        idempotencyKey: input.idempotencyKey ?? null,
-        tool: input.tool,
-        ms: input.ms,
-        ok: input.ok,
-        errorCode: input.errorCode ?? null,
-        outputChars: input.outputChars ?? null,
-      }))) {
+      if (
+        !(await recordToolTelemetry({
+          threadId: input.threadId,
+          userId: input.userId ?? null,
+          messageId: input.messageId,
+          traceId: input.traceId ?? null,
+          runId: input.runId ?? null,
+          jobId: input.jobId ?? null,
+          idempotencyKey: input.idempotencyKey ?? null,
+          tool: input.tool,
+          ms: input.ms,
+          ok: input.ok,
+          errorCode: input.errorCode ?? null,
+          outputChars: input.outputChars ?? null,
+        }))
+      ) {
         throw new Error('tool telemetry replay returned false');
       }
       return;
@@ -308,7 +373,11 @@ export async function replayPersistenceFailures(limit = 25): Promise<{
       completed += 1;
     } catch (err) {
       await markFailed(item, err);
-      if (item.attemptCount >= item.maxAttempts || (err instanceof Error && err.message.startsWith('Invalid '))) dead += 1;
+      if (
+        item.attemptCount >= item.maxAttempts ||
+        (err instanceof Error && err.message.startsWith('Invalid '))
+      )
+        dead += 1;
       else failed += 1;
       rlog.error('persistence outbox replay failed', {
         outboxId: item.id,

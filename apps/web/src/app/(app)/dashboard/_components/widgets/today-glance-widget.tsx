@@ -78,7 +78,7 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
           <span>Next event</span>
         </div>
         {upcoming?.currency && (
-          <span className="bg-warn/10 text-warn border-warn/30 rounded-2xs border px-1 py-0.2 font-mono text-[9px] font-bold">
+          <span className="bg-warn/10 text-warn border-warn/30 rounded-2xs py-0.2 border px-1 font-mono text-[9px] font-bold">
             {upcoming.currency}
           </span>
         )}
@@ -115,16 +115,16 @@ function CellSession() {
           <IconCompass className="text-fg size-3.5" />
           <span>Session</span>
         </div>
-        {active && (
-          <span className="flex size-1.5 rounded-full bg-bull animate-pulse" />
-        )}
+        {active && <span className="bg-bull flex size-1.5 animate-pulse rounded-full" />}
       </div>
       <div className="flex items-center justify-between gap-1">
         <span className="text-fg text-body-sm font-semibold">{sessionInfo.label}</span>
         <span
           className={cn(
-            'text-[10px] inline-flex items-center rounded-2xs px-1.5 py-0.5 font-mono font-semibold uppercase',
-            active ? 'bg-bull/10 text-bull border border-bull/30' : 'bg-bg-elev-2 text-fg-muted border border-border',
+            'rounded-2xs inline-flex items-center px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase',
+            active
+              ? 'bg-bull/10 text-bull border-bull/30 border'
+              : 'bg-bg-elev-2 text-fg-muted border-border border',
           )}
         >
           {active ? 'Live' : 'Closed'}
@@ -185,7 +185,7 @@ function CellAiNudge({
         </div>
         <Link
           href="/chat"
-          className="text-brand hover:underline font-mono text-[10px] font-semibold"
+          className="text-brand font-mono text-[10px] font-semibold hover:underline"
         >
           Copilot →
         </Link>
@@ -194,4 +194,3 @@ function CellAiNudge({
     </div>
   );
 }
-

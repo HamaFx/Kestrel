@@ -17,20 +17,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { withAdminAuth } from '@/lib/admin-auth';
+import { jsonApiError } from '@/lib/api-errors';
 import { recordAdminAudit } from '@/lib/services/admin';
 import type {
   DiagnosticTraceDetail,
   DiagnosticTraceError,
   DiagnosticTraceStep,
 } from '@/lib/services/admin-dtos';
-import { getDiagnosticTraceForAdmin } from '@/lib/services/api-boundary';
-
-import type { DiagnosticTraceRow } from '@/lib/services/api-boundary';
+import { getDiagnosticTraceForAdmin, type DiagnosticTraceRow } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-import { jsonApiError } from '@/lib/api-errors';
 
 export const GET = withAdminAuth<{ id: string }>(async (req, { user, params }) => {
   const { id } = await params;

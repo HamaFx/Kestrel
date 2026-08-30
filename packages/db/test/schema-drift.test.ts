@@ -203,7 +203,9 @@ describe('Phase 6 — Task 28: Schema drift detection', () => {
       const dbCols = new Set(rows.map((r: Record<string, unknown>) => r.column_name));
       for (const col of schemaCols) {
         if (!dbCols.has(col)) {
-          throw new Error(`Schema drift: ${tableName}.${col} is missing; database columns: ${[...dbCols].join(', ')}`);
+          throw new Error(
+            `Schema drift: ${tableName}.${col} is missing; database columns: ${[...dbCols].join(', ')}`,
+          );
         }
       }
     }

@@ -118,7 +118,6 @@ pnpm update
 
 The updater downloads the stable source archive, validates that it is a Kestrel release, preserves operator configuration and data, creates a backup through the existing backup service, rebuilds the local Docker stack, and checks `/api/health/public`. If health fails, it stops and prints log and backup instructions rather than silently rolling back.
 
-
 Docker image publication is tied to a manually published GitHub Release. The release tag is the human-readable version; the commit SHA and image digest provide immutable provenance.
 
 The Docker publication workflow runs when a GitHub release is published. It:

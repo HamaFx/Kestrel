@@ -89,9 +89,7 @@ export function beginMastraRun(
  * Finish one Mastra run. Observability failures are deliberately swallowed so
  * a Grafana/DB/Langfuse outage cannot change the result of the AI run.
  */
-export function createMastraRunFinalizer(): (
-  args: MastraRunObservation,
-) => Promise<void> {
+export function createMastraRunFinalizer(): (args: MastraRunObservation) => Promise<void> {
   let terminalPromise: Promise<void> | null = null;
   return (args) => {
     if (terminalPromise) return terminalPromise;

@@ -24,7 +24,7 @@ import { z } from 'zod';
 
 /**
  * Auth (personal-mode):
- *   - NEXTAUTH_SECRET: HMAC secret for NextAuth.js v5 JWT signing.
+ *   - AUTH_SECRET: HMAC secret for Auth.js JWT signing.
  *   - AUTH_COOKIE_SECRET: legacy cookie signer. Optional — kept for
  *     backward compatibility with personal-mode deployments.
  *   - CRON_SECRET: bearer token Vercel uses to invoke /api/cron/*.
@@ -87,7 +87,7 @@ const DbEnv = z
 // At least one transport must be configured. The resolver in
 // packages/ai/src/model.ts picks per-call based on the model id prefix.
 //
-// Phase 7a: domain-based model routing. The agent classifies each user turn
+// Domain-based model routing classifies each user turn
 // into one of {fundamental, technical, summary, vision, generic} and picks
 // the model from the matching env var below. All defaults stay safe — if
 // you don't set the new vars, behaviour falls back to AI_DEFAULT_MODEL.
@@ -341,15 +341,20 @@ export const ServerEnvSchema = z
       'MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS=true. Multi-user PostgreSQL deployments must fail closed instead of running without database tenant isolation.',
     path: ['KESTREL_ENABLE_RLS'],
   })
-  .refine((env) => env.REGISTRATION_MODE !== 'open' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS), {
-    message:
-      'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
-    path: ['REGISTRATION_MODE'],
-  })
+  .refine(
+    (env) => env.REGISTRATION_MODE !== 'open' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS),
+    {
+      message:
+        'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
+      path: ['REGISTRATION_MODE'],
+    },
+  )
   .refine(
     (env) =>
       !env.OSS_SINGLE_USER_MODE ||
-      (!env.MULTI_USER_ENABLED && !env.KESTREL_ENABLE_RLS && env.REGISTRATION_MODE === 'owner-first'),
+      (!env.MULTI_USER_ENABLED &&
+        !env.KESTREL_ENABLE_RLS &&
+        env.REGISTRATION_MODE === 'owner-first'),
     {
       message:
         'Multi-user/RLS mode is disabled in OSS_SINGLE_USER_MODE. Keep MULTI_USER_ENABLED=0, KESTREL_ENABLE_RLS=0, and REGISTRATION_MODE=owner-first.',
@@ -485,9 +490,14 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
  */
 export const DEPRECATED_ENV_ALIASES = {
   HAMAFX_ENABLE_RLS: 'KESTREL_ENABLE_RLS',
+  HAMAFX_RUNTIME: 'KESTREL_RUNTIME',
+  HAMAFX_LOCAL_DOCKER: 'KESTREL_LOCAL_DOCKER',
+  NEXTAUTH_SECRET: 'AUTH_SECRET',
 } as const;
 
-export function getDeprecatedEnvAliases(input: NodeJS.ProcessEnv = process.env): Array<{ oldName: string; newName: string }> {
+export function getDeprecatedEnvAliases(
+  input: NodeJS.ProcessEnv = process.env,
+): Array<{ oldName: string; newName: string }> {
   return Object.entries(DEPRECATED_ENV_ALIASES)
     .filter(([oldName, newName]) => input[oldName] !== undefined && input[newName] === undefined)
     .map(([oldName, newName]) => ({ oldName, newName }));

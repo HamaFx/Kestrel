@@ -64,7 +64,6 @@ import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { cn } from '@/lib/cn';
 
-
 import { PreSessionChecklistDrawer } from './pre-session-checklist-drawer';
 import { QuickLogTradeDrawer } from './quick-log-trade-drawer';
 import {
@@ -147,7 +146,6 @@ const ALL_WIDGETS: WidgetType[] = [
   'calendar',
   'news-pulse',
 ];
-
 
 export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
   const [layout, setLayout, hydrated] = useLocalStorage<WidgetConfig[]>(
@@ -265,7 +263,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
 
         {/* Role Presets Bar when in Edit Mode */}
         {editMode && (
-          <div className="border-brand/40 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 duration-200 shadow-sm">
+          <div className="border-brand/40 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 shadow-sm duration-200">
             <div className="flex items-center justify-between">
               <span className="text-caption text-brand font-mono font-bold tracking-wider uppercase">
                 ⚡ Role Layout Presets
@@ -284,7 +282,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
                     onClick={() => {
                       persistLayout(preset.layout);
                     }}
-                    className="border-border bg-bg-elev-2 text-fg hover:border-brand hover:text-brand inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer touch-manipulation"
+                    className="border-border bg-bg-elev-2 text-fg hover:border-brand hover:text-brand inline-flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold transition-colors"
                     title={preset.description}
                   >
                     <span>{preset.name}</span>
@@ -295,7 +293,6 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
           </div>
         )}
       </div>
-
 
       {/* Phase 5.6 — Error banner for failed data fetches */}
       {props.hasAnyError ? (
@@ -348,7 +345,6 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
     </div>
   );
 }
-
 
 // ---------------------------------------------------------------------------
 // SortableWidget — wraps each widget in a chrome card with the drag handle,

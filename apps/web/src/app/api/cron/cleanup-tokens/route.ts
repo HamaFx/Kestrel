@@ -30,11 +30,15 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'cleanup-tokens' });
-  return withCronAuth(req, async () => {
-    const now = new Date();
-    const result = await lazyPurgeExpiredTokens();
+  return withCronAuth(
+    req,
+    async () => {
+      const now = new Date();
+      const result = await lazyPurgeExpiredTokens();
 
-    log.info('purged expired verification tokens', { count: result });
-    return { processed: result, note: `purged ${result} expired tokens at ${now.toISOString()}` };
-  }, { requireAdminSession: true });
+      log.info('purged expired verification tokens', { count: result });
+      return { processed: result, note: `purged ${result} expired tokens at ${now.toISOString()}` };
+    },
+    { requireAdminSession: true },
+  );
 }

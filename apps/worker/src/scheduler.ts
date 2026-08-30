@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// STAB-01 + STAB-02: Scheduler with idempotency guards and per-job timeouts.
+// Scheduler with idempotency guards and per-job timeouts.
 //
 // Jobs whose cadence is >= daily use once-per-day idempotency via
 // acquireCronLock (STAB-01). Minute-level jobs (alerts, briefings) are
@@ -33,7 +33,7 @@ import { JOBS } from './jobs/index.js';
 import type { Logger } from './log.js';
 import { tenantRouter } from './tenant-router.js';
 
-// STAB-02: Maximum wall-clock time any scheduled job may run.
+// Maximum wall-clock time any scheduled job may run.
 // Overridable via JOB_TIMEOUT_MS env var for jobs that need more time.
 const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
 
@@ -69,7 +69,7 @@ const SKIP_DAILY_LOCK = new Set<keyof typeof JOBS>([
 ]);
 
 export function startScheduler(log: Logger): () => void {
-  // STAB-10: Keep references to all scheduled tasks so we can stop
+  // Keep references to all scheduled tasks so we can stop
   // them on shutdown. Previously these were fire-and-forget.
   const tasks: ReturnType<typeof cron.schedule>[] = [];
   let multiAgentTimer: NodeJS.Timeout | null = null;
@@ -120,7 +120,7 @@ export function startScheduler(log: Logger): () => void {
   multiAgentTimer = setTimeout(tick, 3_000);
   multiAgentTimer.unref();
 
-  // STAB-19: Periodic cleanup — scan for stuck jobs that exceed 2× the
+  // Periodic cleanup — scan for stuck jobs that exceed 2× the
   // timeout. If a run throws synchronously between _runningJobs.add() and
   // the try block's finally, the entry remains forever. This timer prunes
   // stale entries so the job can run again on its next schedule.
@@ -142,7 +142,7 @@ export function startScheduler(log: Logger): () => void {
   }, 30_000);
   stuckCleanupTimer.unref();
 
-  // STAB-10: Return a stop function that tears down all cron tasks,
+  // Return a stop function that tears down all cron tasks,
   // the multi-agent poll timer, and the stuck-job cleanup timer.
   // In-flight jobs are aborted and allowed a bounded drain window.
   return () => {
@@ -194,7 +194,11 @@ async function cleanupStaleCronRuns(log: Logger): Promise<void> {
     // as an array-like property. Cast to access count of affected rows.
     const count = Array.isArray(result)
       ? result.length
-      : Number((result as { count?: number; length?: number }).count ?? (result as { length?: number }).length ?? 0);
+      : Number(
+          (result as { count?: number; length?: number }).count ??
+            (result as { length?: number }).length ??
+            0,
+        );
     if (count > 0) {
       log.warn(`Cleaned up ${count} stale cron_runs row(s) from previous run`);
     }
@@ -223,7 +227,7 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
   const runId = crypto.randomUUID();
   const jobLog = log.with({ job: name, runId });
 
-  // STAB-01: Acquire an idempotency lock for daily-cadence jobs.
+  // Acquire an idempotency lock for daily-cadence jobs.
   const useLock = !SKIP_DAILY_LOCK.has(name);
   let lock = null;
   if (useLock) {
@@ -238,7 +242,7 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
     } catch (lockErr) {
       // Lock acquisition failed (DB unavailable?). Retry once before
       // proceeding without the lock — a duplicate is acceptable for
-      // idempotent jobs, but a missed run is worse (STAB-07).
+      // idempotent jobs, but a missed run is worse.
       jobLog.warn('Failed to acquire cron lock, retrying once', {
         err: String(lockErr),
       });
@@ -263,7 +267,7 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
     }
   }
 
-  // STAB-02: Race the job against a hard timeout. An abort signal alone is
+  // Race the job against a hard timeout. An abort signal alone is
   // advisory — an uncooperative job that ignores AbortSignal remains pending
   // forever. Racing a rejection promise ensures the scheduler regains control
   // after JOB_TIMEOUT_MS regardless of the job's behaviour.

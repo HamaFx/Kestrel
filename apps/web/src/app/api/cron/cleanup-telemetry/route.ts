@@ -34,32 +34,36 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'cleanup-telemetry' });
-  return withCronAuth(req, async () => {
-    const result = await runRetentionCleanup();
+  return withCronAuth(
+    req,
+    async () => {
+      const result = await runRetentionCleanup();
 
-    log.info('retention cleanup completed', {
-      telemetryDeleted: result.telemetryDeleted,
-      toolTelemetryDeleted: result.toolTelemetryDeleted,
-      tracesDeleted: result.tracesDeleted,
-      rateLimitsDeleted: result.rateLimitsDeleted,
-      providerDailyQuotaDeleted: result.providerDailyQuotaDeleted,
-      cronRunsDeleted: result.cronRunsDeleted,
-      outboxDeleted: result.outboxDeleted,
-      fullAnalysisQueueDeleted: result.fullAnalysisQueueDeleted,
-      billingWebhookDlqDeleted: result.billingWebhookDlqDeleted,
-      aiShadowComparisonsDeleted: result.aiShadowComparisonsDeleted,
-      aiQualityResultsDeleted: result.aiQualityResultsDeleted,
-      budgetReservationsDeleted: result.budgetReservationsDeleted,
-      telegramUpdatesDeleted: result.telegramUpdatesDeleted,
-      sharedSnapshotsDeleted: result.sharedSnapshotsDeleted,
-      notificationNoiseStateDeleted: result.notificationNoiseStateDeleted,
-    });
+      log.info('retention cleanup completed', {
+        telemetryDeleted: result.telemetryDeleted,
+        toolTelemetryDeleted: result.toolTelemetryDeleted,
+        tracesDeleted: result.tracesDeleted,
+        rateLimitsDeleted: result.rateLimitsDeleted,
+        providerDailyQuotaDeleted: result.providerDailyQuotaDeleted,
+        cronRunsDeleted: result.cronRunsDeleted,
+        outboxDeleted: result.outboxDeleted,
+        fullAnalysisQueueDeleted: result.fullAnalysisQueueDeleted,
+        billingWebhookDlqDeleted: result.billingWebhookDlqDeleted,
+        aiShadowComparisonsDeleted: result.aiShadowComparisonsDeleted,
+        aiQualityResultsDeleted: result.aiQualityResultsDeleted,
+        budgetReservationsDeleted: result.budgetReservationsDeleted,
+        telegramUpdatesDeleted: result.telegramUpdatesDeleted,
+        sharedSnapshotsDeleted: result.sharedSnapshotsDeleted,
+        notificationNoiseStateDeleted: result.notificationNoiseStateDeleted,
+      });
 
-    return {
-      processed: Object.values(result)
-        .filter((value): value is number => typeof value === 'number')
-        .reduce((sum, value) => sum + value, 0),
-      note: result.note,
-    };
-  }, { requireAdminSession: true });
+      return {
+        processed: Object.values(result)
+          .filter((value): value is number => typeof value === 'number')
+          .reduce((sum, value) => sum + value, 0),
+        note: result.note,
+      };
+    },
+    { requireAdminSession: true },
+  );
 }

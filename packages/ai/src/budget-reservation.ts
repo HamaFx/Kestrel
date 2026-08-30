@@ -47,17 +47,18 @@ export async function reserveTurnBudget(args: {
   db?: BudgetDb;
 }): Promise<BudgetHandle> {
   const estimateUsd = args.estimateUsd ?? DEFAULT_TURN_ESTIMATE_USD;
-  const reservation = args.db || args.correlation
-    ? await tryReserveBudget(
-        args.userId,
-        estimateUsd,
-        args.maxDailyUsd,
-        new Date(),
-        args.correlation,
-        args.db,
-        args.tenantId,
-      )
-    : await tryReserveBudget(args.userId, estimateUsd, args.maxDailyUsd);
+  const reservation =
+    args.db || args.correlation
+      ? await tryReserveBudget(
+          args.userId,
+          estimateUsd,
+          args.maxDailyUsd,
+          new Date(),
+          args.correlation,
+          args.db,
+          args.tenantId,
+        )
+      : await tryReserveBudget(args.userId, estimateUsd, args.maxDailyUsd);
   if (!reservation.ok) {
     throw new BudgetExceededError(reservation.spent, reservation.max);
   }

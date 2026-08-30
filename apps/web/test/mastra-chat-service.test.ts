@@ -107,7 +107,11 @@ describe('Mastra chat service', () => {
     const result = await runMastraXauusdChat(input);
 
     expect(mocks.reserveTurnBudget).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'user-1', maxDailyUsd: 5, correlation: expect.any(Object) }),
+      expect.objectContaining({
+        userId: 'user-1',
+        maxDailyUsd: 5,
+        correlation: expect.any(Object),
+      }),
     );
     expect(mocks.appendUserMessage).toHaveBeenCalledWith(
       'user-1',

@@ -61,8 +61,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
   'embedding-backfill': {
     name: 'embedding-backfill',
     run: runEmbeddingBackfill,
-    description:
-      'Embed news_articles missing embeddings via the AI Gateway. Phase 8 PR-9 moved this off Vercel.',
+    description: 'Embed news_articles missing embeddings via the AI Gateway.',
     schedule: '0 */6 * * *',
     hcUuidEnvVar: 'HC_JOB_EMBEDDING_BACKFILL_UUID',
   },
@@ -70,22 +69,21 @@ export const JOBS: Record<JobName, JobRegistration> = {
     name: 'briefings',
     run: runBriefings,
     description:
-      'Pre/post-event briefings — scan economic_events for windows around high-impact releases. Phase 8 PR-10.',
+      'Pre/post-event briefings — scan economic_events for windows around high-impact releases.',
     schedule: '*/5 * * * *',
     hcUuidEnvVar: 'HC_JOB_BRIEFINGS_UUID',
   },
   snapshots: {
     name: 'snapshots',
     run: runSnapshots,
-    description:
-      'Daily HLOC + pivots + ATR per symbol; tail-prunes candles_1m to 14 days. Phase 8 PR-11.',
+    description: 'Daily HLOC + pivots + ATR per symbol; tail-prunes candles_1m to 14 days.',
     schedule: '5 0 * * *',
     hcUuidEnvVar: 'HC_JOB_SNAPSHOTS_UUID',
   },
   cot: {
     name: 'cot',
     run: runCoT,
-    description: 'Weekly CFTC Commitment-of-Traders ingestion. Phase 8 PR-12.',
+    description: 'Weekly CFTC Commitment-of-Traders ingestion.',
     schedule: '0 22 * * 5',
     hcUuidEnvVar: 'HC_JOB_COT_UUID',
   },
@@ -93,15 +91,14 @@ export const JOBS: Record<JobName, JobRegistration> = {
     name: 'fred-actuals',
     run: runFredActuals,
     description:
-      'Daily FRED actuals backfill — patches economic_events.actual where it was null at ingestion. Phase 8 PR-13.',
+      'Daily FRED actuals backfill — patches economic_events.actual where it was null at ingestion.',
     schedule: '30 1 * * *',
     hcUuidEnvVar: 'HC_JOB_FRED_ACTUALS_UUID',
   },
   'weekly-review': {
     name: 'weekly-review',
     run: runWeeklyReview,
-    description:
-      'Sunday weekly review — emits a single agent-authored journal review. Phase 8 PR-14.',
+    description: 'Sunday weekly review — emits a single agent-authored journal review.',
     schedule: '0 18 * * 0',
     hcUuidEnvVar: 'HC_JOB_WEEKLY_REVIEW_UUID',
   },

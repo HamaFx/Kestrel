@@ -21,10 +21,10 @@ import { randomBytes } from 'node:crypto';
 
 import {
   createAuditLog,
-  deleteUserAccount,
   deleteUserSessions as dbDeleteUserSessions,
   listUserSessions as dbListUserSessions,
   revokeUserSession as dbRevokeUserSession,
+  deleteUserAccount,
   getDb,
   getTwoFactorSecret,
   incrementTokenVersion,

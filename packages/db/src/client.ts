@@ -39,9 +39,8 @@ interface TenantDbScope {
 const tenantDbScope = new AsyncLocalStorage<TenantDbScope>();
 const adminDbScope = new AsyncLocalStorage<DbClient>();
 
-
 /**
- * Default per-runtime pool size. Phase 2 hardening §4.
+ * Default per-runtime pool size.
  *
  * Web (Vercel): a chat turn fans out into 4 tool calls + a budget
  * reservation + telemetry + message persistence. Pool size 1 serialised
@@ -68,7 +67,8 @@ function resolvePoolMax(): number {
   // Workers set `KESTREL_RUNTIME=worker` in the systemd unit's
   // environment file so we can pick the right default without
   // pulling Vercel-specific env vars into @kestrel/db.
-  const isWorker = (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker';
+  const isWorker =
+    process.env.KESTREL_RUNTIME === 'worker' || process.env.HAMAFX_RUNTIME === 'worker';
   const envOverride = isWorker ? process.env.WORKER_DB_POOL_MAX : process.env.DB_POOL_MAX;
   if (envOverride) {
     const n = Number(envOverride);
@@ -96,7 +96,8 @@ export type DbClient = ReturnType<typeof drizzle>;
 
 function resolveStatementTimeout(): number {
   if (process.env.NODE_ENV === 'test') return 30000;
-  const isWorker = (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker';
+  const isWorker =
+    process.env.KESTREL_RUNTIME === 'worker' || process.env.HAMAFX_RUNTIME === 'worker';
   return isWorker ? DEFAULT_WORKER_STATEMENT_TIMEOUT : DEFAULT_WEB_STATEMENT_TIMEOUT;
 }
 
@@ -164,7 +165,12 @@ function resolveSslOptions(): false | { rejectUnauthorized: boolean; ca?: string
   }
 
   const rawCa = process.env.SUPABASE_CA_CERT;
-  const ca = rawCa ? rawCa.split(/\\n|\n/).join('\n').trim() : undefined;
+  const ca = rawCa
+    ? rawCa
+        .split(/\\n|\n/)
+        .join('\n')
+        .trim()
+    : undefined;
   if (ca) {
     return {
       ca,
@@ -242,7 +248,6 @@ export function getDb(): DbClient {
   return getPrimaryDb();
 }
 
-
 export async function withAdminDb<T>(work: (db: DbClient) => Promise<T>): Promise<T> {
   assertTenantIsolationConfig();
   const db = getAdminDb();
@@ -288,8 +293,8 @@ export async function closeDb(): Promise<void> {
  * When false (self-host / legacy mode), the GUC is not set and policies
  * (if they exist) are bypassed by the connection role.
  *
- * Phase 3 §3.6 — gated behind KESTREL_ENABLE_RLS env var. The old
- * HAMAFX_ENABLE_RLS name remains a read-only compatibility fallback.
+ * Gated behind KESTREL_ENABLE_RLS. The old HAMAFX_ENABLE_RLS name remains
+ * a read-only compatibility fallback for existing installations.
  */
 export function isRlsEnabled(): boolean {
   const value = process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS;
@@ -369,7 +374,8 @@ export async function withTenantDb<T>(
 export async function withTenantDbRO<T>(
   tenantId: string,
   work: (db: DbClient) => Promise<T>,
-): Promise<T> {  const current = tenantDbScope.getStore();
+): Promise<T> {
+  const current = tenantDbScope.getStore();
   if (current?.tenantId === tenantId) return work(current.db);
   if (!isRlsEnabled()) {
     // PF-15: Use read replica when available
@@ -386,7 +392,6 @@ export async function withTenantDbRO<T>(
     return tenantDbScope.run({ tenantId, db: scopedDb }, () => work(scopedDb));
   });
 }
-
 
 /**
  * Retry a database operation on transient errors (connection drops,

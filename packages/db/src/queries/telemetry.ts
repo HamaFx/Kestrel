@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// PF-01 Phase 2 — Chat telemetry query helpers.
+// Chat telemetry query helpers.
 
 import { and, between, desc, eq } from 'drizzle-orm';
 
@@ -45,9 +45,10 @@ export async function recordTelemetry(
   data: Omit<typeof schema.chatTelemetry.$inferInsert, 'id' | 'createdAt'>,
 ): Promise<TelemetryRow> {
   const db = getDb();
-  const values = data.userId === '__system__'
-    ? data
-    : { ...data, tenantId: await requireTenantIdForUser(data.userId, db) };
+  const values =
+    data.userId === '__system__'
+      ? data
+      : { ...data, tenantId: await requireTenantIdForUser(data.userId, db) };
   const rows = await db.insert(schema.chatTelemetry).values(values).returning();
   return rows[0]!;
 }

@@ -276,7 +276,11 @@ describe('billing P1 safety gate', () => {
     const response = await webhook(
       new Request('http://localhost/api/billing/webhook', {
         method: 'POST',
-        body: JSON.stringify({ payment_id: 'payment-1', payment_status: 'finished', txid: 'different-tx' }),
+        body: JSON.stringify({
+          payment_id: 'payment-1',
+          payment_status: 'finished',
+          txid: 'different-tx',
+        }),
         headers: { 'x-nowpayments-sig': 'valid-signature' },
       }),
     );

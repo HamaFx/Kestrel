@@ -26,11 +26,11 @@ import {
   reserveTurnBudget,
 } from '@kestrel/ai';
 import { runMastraCanonicalChat, type MastraCanonicalChatResult } from '@kestrel/ai/mastra';
+import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
-import { listMessages } from '@kestrel/ai/persistence';
 
 export interface RunMastraCanonicalChatInput {
   userId: string;

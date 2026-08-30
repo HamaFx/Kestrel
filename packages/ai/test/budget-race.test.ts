@@ -116,8 +116,18 @@ vi.mock('@kestrel/db', () => {
       };
     },
     schema: {
-      dailyAiSpend: { userId: 'user_id', tenantId: 'tenant_id', day: 'day', totalUsdCents: 'total_usd_cents' },
-      chatTelemetry: { userId: 'user_id', tenantId: 'tenant_id', estCostUsd: 'est_cost_usd', createdAt: 'created_at' },
+      dailyAiSpend: {
+        userId: 'user_id',
+        tenantId: 'tenant_id',
+        day: 'day',
+        totalUsdCents: 'total_usd_cents',
+      },
+      chatTelemetry: {
+        userId: 'user_id',
+        tenantId: 'tenant_id',
+        estCostUsd: 'est_cost_usd',
+        createdAt: 'created_at',
+      },
     },
   };
 });

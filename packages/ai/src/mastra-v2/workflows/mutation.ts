@@ -319,7 +319,10 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
       confirmation: z.object({
         digest: z.string(),
         expiresAt: z.number().int(),
-        inputDigest: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+        inputDigest: z
+          .string()
+          .regex(/^[a-f0-9]{64}$/)
+          .optional(),
       }),
     }),
     execute: async ({ inputData, resumeData, suspend, state, setState, runId }) => {
@@ -432,7 +435,8 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     outputSchema: MutationOutputSchema,
     execute: async ({ inputData, runId, state }) => {
       const inputDigest = mutationInputDigest(inputData.input);
-      const approvalExpiresAt = MutationRunContextSchema.safeParse(state).data?.confirmation.expiresAt ?? now();
+      const approvalExpiresAt =
+        MutationRunContextSchema.safeParse(state).data?.confirmation.expiresAt ?? now();
       const result = deps.executeAtomic
         ? await deps.executeAtomic(inputData.input, {
             runId,
@@ -442,7 +446,6 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
             approvalId: runId,
             approvalExpiresAt,
           })
-
         : await deps.execute(inputData.input);
       const summary = humanSummary(inputData.input);
       if (!deps.executeAtomic && deps.writeAudit) {

@@ -33,13 +33,6 @@
  * `mastra/memory-context.ts` is replaced by native Mastra memory.
  */
 
-import type { UserSettingsRow } from '@kestrel/db/schema';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
-import type { AgentMemoryOption } from '@mastra/core/agent';
-import type { MastraDBMessage, StorageThreadType } from '@mastra/core/memory';
-import type { Memory } from '@mastra/memory';
-
-import { listMessages } from '../persistence';
 import {
   claimMemoryBackfill,
   completeMemoryBackfill,
@@ -49,6 +42,13 @@ import {
   markMemoryProjectionProjected,
   type MemoryBackfillClaim,
 } from '@kestrel/db';
+import type { UserSettingsRow } from '@kestrel/db/schema';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { AgentMemoryOption } from '@mastra/core/agent';
+import type { MastraDBMessage, StorageThreadType } from '@mastra/core/memory';
+import type { Memory } from '@mastra/memory';
+
+import { listMessages } from '../persistence';
 
 const mlog = createCategorizedLogger('ai', { component: 'mastra-memory-context' });
 
@@ -268,7 +268,10 @@ async function performThreadHistoryBackfill(args: {
       } catch (projectionStateError) {
         mlog.warn('Could not persist memory projection checkpoint', {
           threadId,
-          error: projectionStateError instanceof Error ? projectionStateError.message : String(projectionStateError),
+          error:
+            projectionStateError instanceof Error
+              ? projectionStateError.message
+              : String(projectionStateError),
         });
       }
     }

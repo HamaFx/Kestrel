@@ -67,7 +67,13 @@ export async function withCronAuth(
     const admin = await getAdminUser();
     if (!admin.admin) {
       return Response.json(
-        { error: { code: 'FORBIDDEN', message: 'Admin access required', ...(requestId ? { requestId } : {}) } },
+        {
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Admin access required',
+            ...(requestId ? { requestId } : {}),
+          },
+        },
         { status: 403, ...(responseOptions ?? {}) },
       );
     }

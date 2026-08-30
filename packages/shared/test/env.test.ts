@@ -18,11 +18,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   getDeprecatedEnvAliases,
+  isTransactionPoolerUrl,
   parseServerEnv,
   resolveDatabaseUrl,
   resolveDirectDatabaseUrl,
   resolveMigrationDatabaseUrl,
-  isTransactionPoolerUrl,
   ServerEnvSchema,
 } from '../src/env';
 import { AUTO_GENERATED_SECRETS, generateSecret, SECRET_MIN_BYTES } from '../src/env-secrets';
@@ -78,9 +78,9 @@ describe('deprecated environment aliases', () => {
     expect(getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0' })).toEqual([
       { oldName: 'HAMAFX_ENABLE_RLS', newName: 'KESTREL_ENABLE_RLS' },
     ]);
-    expect(
-      getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0', KESTREL_ENABLE_RLS: '0' }),
-    ).toEqual([]);
+    expect(getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0', KESTREL_ENABLE_RLS: '0' })).toEqual(
+      [],
+    );
   });
 });
 
@@ -438,7 +438,9 @@ describe('resolveDatabaseUrl', () => {
 
 describe('database URL classification', () => {
   it('detects Supabase transaction pooler URLs', () => {
-    expect(isTransactionPoolerUrl('postgres://user:pass@aws-1-us-east-1.pooler.supabase.com:6543/db')).toBe(true);
+    expect(
+      isTransactionPoolerUrl('postgres://user:pass@aws-1-us-east-1.pooler.supabase.com:6543/db'),
+    ).toBe(true);
     expect(isTransactionPoolerUrl('postgres://user:pass@db.example.com:5432/db')).toBe(false);
   });
 
@@ -449,10 +451,14 @@ describe('database URL classification', () => {
   });
 
   it('requires a direct/session URL for migrations', () => {
-    expect(resolveMigrationDatabaseUrl({ DIRECT_URL: 'postgres://user:pass@db.example.com:5432/db' })).toContain('db.example.com');
-    expect(() => resolveMigrationDatabaseUrl({
-      DIRECT_URL: 'postgres://user:pass@aws-1-us-east-1.pooler.supabase.com:6543/db',
-    })).toThrow(/transaction pooler/i);
+    expect(
+      resolveMigrationDatabaseUrl({ DIRECT_URL: 'postgres://user:pass@db.example.com:5432/db' }),
+    ).toContain('db.example.com');
+    expect(() =>
+      resolveMigrationDatabaseUrl({
+        DIRECT_URL: 'postgres://user:pass@aws-1-us-east-1.pooler.supabase.com:6543/db',
+      }),
+    ).toThrow(/transaction pooler/i);
     expect(() => resolveMigrationDatabaseUrl({})).toThrow(/DIRECT_URL or POSTGRES_URL_NON_POOLING/);
   });
 });

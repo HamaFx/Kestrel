@@ -20,13 +20,6 @@
 // authentication, persistence, budgets, and the UI transport; Mastra owns
 // agent selection, workflows, tool loops, structured research, and synthesis.
 
-import {
-  classifyMutationRequest,
-  isMastraMutationEnabled,
-  MutationExtractionError,
-  resolveMastraModeModel,
-} from '@/lib/services/api-boundary';
-import { UserMessagePartsSchema } from '@/lib/services/api-boundary';
 import type { UIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -36,13 +29,18 @@ import { createRequestLogger } from '@/lib/logger';
 import {
   AnalysisQueuedEventSchema,
   BudgetExceededError,
+  classifyMutationRequest,
   enqueueFullAnalysis,
   extractUserMessageText,
   getThread,
   getUserWithSettings,
+  isMastraMutationEnabled,
   listMessages,
+  MutationExtractionError,
+  resolveMastraModeModel,
   resolveMode,
   traceIdStorage,
+  UserMessagePartsSchema,
   withDiagnostics,
   withRateLimit,
 } from '@/lib/services/api-boundary';
@@ -299,12 +297,11 @@ export const POST = withAuth<void>(async (req, { user }) => {
               }),
             );
           } catch (enqueueError) {
-            log.error({ err: String(enqueueError), threadId: body.threadId }, 'Full-analysis enqueue threw');
-            return errorJson(
-              'INTERNAL',
-              'Failed to queue analysis job.',
-              500,
+            log.error(
+              { err: String(enqueueError), threadId: body.threadId },
+              'Full-analysis enqueue threw',
             );
+            return errorJson('INTERNAL', 'Failed to queue analysis job.', 500);
           }
         },
         requestId ? { requestId } : {},

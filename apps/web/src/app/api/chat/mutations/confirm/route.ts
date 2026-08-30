@@ -14,31 +14,29 @@
 // workflow snapshot. The business write, audit row, and mutation execution
 // ledger are committed atomically by executeMutationOnce.
 
-import { appendAssistantMessage } from '@/lib/services/api-boundary';
-import {
-  assertMastraMutationAllowed,
-  assertRegisteredSystemAction,
-  createMutationWorkflow,
-  getKestrelMastra,
-  MutationKindSchema,
-  parseMutationRunContext,
-  runMutationWorkflow,
-  type MutationExecutor,
-} from '@/lib/services/api-boundary';
-import {
-  executeMutationOnce,
-  getDb,
-  metrics,
-  getMutationExecution,
-  schema,
-  MutationExecutionConflictError,
-  requireTenantIdForUser,
-  MutationExecutionContextError,
-} from '@/lib/services/api-boundary';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { parseJsonBody, withAuth } from '@/lib/api';
+import {
+  appendAssistantMessage,
+  assertMastraMutationAllowed,
+  assertRegisteredSystemAction,
+  createMutationWorkflow,
+  executeMutationOnce,
+  getDb,
+  getKestrelMastra,
+  getMutationExecution,
+  metrics,
+  MutationExecutionConflictError,
+  MutationExecutionContextError,
+  MutationKindSchema,
+  parseMutationRunContext,
+  requireTenantIdForUser,
+  runMutationWorkflow,
+  schema,
+  type MutationExecutor,
+} from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -379,7 +377,12 @@ export const POST = withAuth(async (req: Request, { user }) => {
     const name = error instanceof Error ? error.name : '';
     if (name === 'MastraMutationPolicyError') {
       return NextResponse.json(
-        { error: { code: 'FORBIDDEN', message: error instanceof Error ? error.message : 'Confirmation rejected' } },
+        {
+          error: {
+            code: 'FORBIDDEN',
+            message: error instanceof Error ? error.message : 'Confirmation rejected',
+          },
+        },
         { status: 403 },
       );
     }
@@ -389,7 +392,12 @@ export const POST = withAuth(async (req: Request, { user }) => {
       error instanceof MutationExecutionContextError
     ) {
       return NextResponse.json(
-        { error: { code: 'CONFLICT', message: error instanceof Error ? error.message : 'Mutation context mismatch' } },
+        {
+          error: {
+            code: 'CONFLICT',
+            message: error instanceof Error ? error.message : 'Mutation context mismatch',
+          },
+        },
         { status: 409 },
       );
     }

@@ -248,12 +248,7 @@ export async function deleteAllThreads(userId: string): Promise<void> {
   const tenantId = await requireTenantIdForUser(userId, db);
   await db
     .delete(schema.chatThreads)
-    .where(
-      and(
-        eq(schema.chatThreads.userId, userId),
-        eq(schema.chatThreads.tenantId, tenantId),
-      ),
-    );
+    .where(and(eq(schema.chatThreads.userId, userId), eq(schema.chatThreads.tenantId, tenantId)));
 }
 
 function rowToThread(row: typeof schema.chatThreads.$inferSelect): DbThread {

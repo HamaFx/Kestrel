@@ -48,10 +48,7 @@ export function MastraReportPart({ data }: { data: unknown }) {
     };
     return (
       <div className="mt-3 w-full">
-        <PixelDeskDeliberation
-          opinions={multiData.agentOpinions}
-          mode={multiData.mode ?? 'full'}
-        />
+        <PixelDeskDeliberation opinions={multiData.agentOpinions} mode={multiData.mode ?? 'full'} />
       </div>
     );
   }

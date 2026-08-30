@@ -233,11 +233,11 @@ function decimals(symbol: Symbol): number {
  * short-timeframe scalps where levels must sit near the live price.
  */
 const INSTRUMENT_VOLATILITY: Record<string, number> = {
-  XAUUSD: 0.015,   // ~$60/day on $4000
+  XAUUSD: 0.015, // ~$60/day on $4000
   XAGUSD: 0.025,
-  BTCUSD: 0.04,    // crypto moves more
+  BTCUSD: 0.04, // crypto moves more
   ETHUSD: 0.04,
-  EURUSD: 0.02,    // forex majors keep the original 2% baseline
+  EURUSD: 0.02, // forex majors keep the original 2% baseline
   GBPUSD: 0.02,
   USDJPY: 0.02,
   USDCHF: 0.02,

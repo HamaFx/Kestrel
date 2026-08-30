@@ -22,6 +22,11 @@ import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
 
 import { BYOK_PROVIDERS, type ModelDomain } from './byok-providers';
 import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
+// ---------------------------------------------------------------------------
+// Legacy fallback helpers retained for non-Mastra callers.
+// ---------------------------------------------------------------------------
+
+import type { RoutingDomain } from './routing';
 import type { ResolveModelEnv } from './vertex-factory';
 
 export type { ChatModelResolution } from './model-chat';
@@ -53,9 +58,11 @@ function configuredOverride(value: string | null | undefined): string | null {
 }
 
 function pinnedModelFor(purpose: MastraModelPurpose): string | null {
-  if (purpose === 'mode') return process.env.MASTRA_MODE_MODEL ?? process.env.MASTRA_XAUUSD_MODEL ?? null;
+  if (purpose === 'mode')
+    return process.env.MASTRA_MODE_MODEL ?? process.env.MASTRA_XAUUSD_MODEL ?? null;
   if (purpose === 'xauusd') return process.env.MASTRA_XAUUSD_MODEL ?? null;
-  if (purpose === 'worker') return process.env.MASTRA_WORKER_MODEL ?? process.env.MASTRA_MODE_MODEL ?? null;
+  if (purpose === 'worker')
+    return process.env.MASTRA_WORKER_MODEL ?? process.env.MASTRA_MODE_MODEL ?? null;
   return null;
 }
 
@@ -98,12 +105,6 @@ export function resolveMastraModel(args: ResolveMastraModelInput): ChatModelReso
   }
   return resolveChatModel(args.settings, args.env, args.domain);
 }
-
-// ---------------------------------------------------------------------------
-// Legacy fallback helpers retained for non-Mastra callers.
-// ---------------------------------------------------------------------------
-
-import type { RoutingDomain } from './routing';
 
 export function toModelDomain(domain: RoutingDomain): ModelDomain {
   return domain === 'generic' ? 'technical' : domain;

@@ -80,9 +80,10 @@ describe('flushLiveTicks', () => {
     const controller = new AbortController();
     controller.abort();
 
-    await expect(
-      flushLiveTicks({ db, buffer: new TickBuffer(), log, }, []),
-    ).resolves.toEqual({ written: 0, totalTicks: 0 });
+    await expect(flushLiveTicks({ db, buffer: new TickBuffer(), log }, [])).resolves.toEqual({
+      written: 0,
+      totalTicks: 0,
+    });
 
     const buffer = new TickBuffer();
     buffer.push(tick('XAUUSD', 2390));

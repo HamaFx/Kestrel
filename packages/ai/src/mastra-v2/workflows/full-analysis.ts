@@ -22,16 +22,20 @@ import {
   schema,
   type FullAnalysisQueueRow,
 } from '@kestrel/db';
-import { and, eq } from 'drizzle-orm';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { UserMessagePartsSchema } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { WorkflowsStorage } from '@mastra/core/storage';
 import type { WorkflowRunState } from '@mastra/core/workflows';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { getDb } from '../../db';
 import { reserveTurnBudget } from '../../budget-reservation';
-import { normalizeWorkflowStatus, toMastraWorkflowStatus, type WorkflowStatus } from '../../workflow-status';
+import { getDb } from '../../db';
+import {
+  normalizeWorkflowStatus,
+  toMastraWorkflowStatus,
+  type WorkflowStatus,
+} from '../../workflow-status';
 import { getKestrelMastra } from '../instance';
 
 const flog = createCategorizedLogger('ai', { component: 'mastra-full-analysis' });
@@ -172,7 +176,11 @@ function projectionContext(payload: FullAnalysisPayload): WorkflowRunState['cont
 function isResearchWorkflowInput(value: unknown): boolean {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Record<string, unknown>;
-  return typeof candidate.prompt === 'string' && typeof candidate.symbol === 'string' && typeof candidate.mode === 'string';
+  return (
+    typeof candidate.prompt === 'string' &&
+    typeof candidate.symbol === 'string' &&
+    typeof candidate.mode === 'string'
+  );
 }
 
 function minimalSnapshot(
@@ -204,13 +212,19 @@ async function projectQueueRow(row: FullAnalysisQueueRow): Promise<void> {
   const store = await workflowsStore();
   if (!store) return;
   try {
-    const existing = await store.getWorkflowRunById({ runId: row.runId, workflowName: FULL_ANALYSIS_WORKFLOW_ID });
+    const existing = await store.getWorkflowRunById({
+      runId: row.runId,
+      workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+    });
     const snapshot = parseSnapshot(existing?.snapshot);
     const normalizedStatus = normalizeWorkflowStatus(
-      row.status === 'pending' && isResearchWorkflowInput(snapshot?.context?.input) ? 'running' : row.status,
+      row.status === 'pending' && isResearchWorkflowInput(snapshot?.context?.input)
+        ? 'running'
+        : row.status,
     );
     const next = {
-      ...(snapshot ?? minimalSnapshot(row.runId, toMastraWorkflowStatus(normalizedStatus), payload)),
+      ...(snapshot ??
+        minimalSnapshot(row.runId, toMastraWorkflowStatus(normalizedStatus), payload)),
       runId: row.runId,
       status: toMastraWorkflowStatus(normalizedStatus),
       context: snapshot?.context ?? projectionContext(payload),
@@ -218,9 +232,18 @@ async function projectQueueRow(row: FullAnalysisQueueRow): Promise<void> {
       ...(row.error ? { error: { name: 'FullAnalysisError', message: row.error } } : {}),
       timestamp: Date.now(),
     } as unknown as WorkflowRunState;
-    await store.persistWorkflowSnapshot({ workflowName: FULL_ANALYSIS_WORKFLOW_ID, runId: row.runId, resourceId: row.userId, snapshot: next });
+    await store.persistWorkflowSnapshot({
+      workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+      runId: row.runId,
+      resourceId: row.userId,
+      snapshot: next,
+    });
   } catch (error) {
-    flog.warn('Full-analysis Mastra projection failed', { runId: row.runId, status: row.status, error: serializeError(error) });
+    flog.warn('Full-analysis Mastra projection failed', {
+      runId: row.runId,
+      status: row.status,
+      error: serializeError(error),
+    });
   }
 }
 
@@ -228,7 +251,10 @@ function payloadFromRow(row: FullAnalysisQueueRow): FullAnalysisPayload | null {
   try {
     return parsePayload(row.payload);
   } catch (error) {
-    flog.error('Full-analysis queue payload is invalid', { runId: row.runId, error: serializeError(error) });
+    flog.error('Full-analysis queue payload is invalid', {
+      runId: row.runId,
+      error: serializeError(error),
+    });
     return null;
   }
 }
@@ -268,14 +294,20 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
           target: [schema.fullAnalysisQueue.userId, schema.fullAnalysisQueue.idempotencyKey],
         })
         .returning();
-      const existing = inserted[0] ?? (await tx
-        .select()
-        .from(schema.fullAnalysisQueue)
-        .where(and(
-          eq(schema.fullAnalysisQueue.userId, input.userId),
-          eq(schema.fullAnalysisQueue.idempotencyKey, input.idempotencyKey),
-        ))
-        .limit(1))[0];
+      const existing =
+        inserted[0] ??
+        (
+          await tx
+            .select()
+            .from(schema.fullAnalysisQueue)
+            .where(
+              and(
+                eq(schema.fullAnalysisQueue.userId, input.userId),
+                eq(schema.fullAnalysisQueue.idempotencyKey, input.idempotencyKey),
+              ),
+            )
+            .limit(1)
+        )[0];
       if (!existing) throw new Error('Full-analysis queue row was not available after enqueue.');
       if (!inserted[0]) return existing;
 
@@ -295,74 +327,197 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
       return updated[0] ?? existing;
     });
     await projectQueueRow(row);
-    flog.info('Enqueued full-analysis run', { runId, userId: input.userId, threadId: input.threadId, queueAuthority: 'database' });
+    flog.info('Enqueued full-analysis run', {
+      runId,
+      userId: input.userId,
+      threadId: input.threadId,
+      queueAuthority: 'database',
+    });
     return runId;
   } catch (error) {
-    flog.error('Failed to enqueue full-analysis run', { userId: input.userId, threadId: input.threadId, error: serializeError(error) });
+    flog.error('Failed to enqueue full-analysis run', {
+      userId: input.userId,
+      threadId: input.threadId,
+      error: serializeError(error),
+    });
     return null;
   }
 }
 
-export async function claimNextFullAnalysisRun(workerRunId: string, ownsTenant?: (userId: string) => boolean): Promise<FullAnalysisClaim | null> {
+export async function claimNextFullAnalysisRun(
+  workerRunId: string,
+  ownsTenant?: (userId: string) => boolean,
+): Promise<FullAnalysisClaim | null> {
   const db = getDb();
   for (;;) {
-    const row = await claimNextFullAnalysisQueue({ workerRunId, leaseMs: FULL_ANALYSIS_LEASE_MS, ...(ownsTenant ? { ownsTenant } : {}), db });
+    const row = await claimNextFullAnalysisQueue({
+      workerRunId,
+      leaseMs: FULL_ANALYSIS_LEASE_MS,
+      ...(ownsTenant ? { ownsTenant } : {}),
+      db,
+    });
     if (!row) return null;
     const payload = payloadFromRow(row);
     if (!payload) {
-      try { await failFullAnalysisQueue({ runId: row.runId, workerRunId, error: 'Invalid Full-analysis payload; job rejected.', db }); } catch (error) { if (!isLeaseError(error)) throw error; }
+      try {
+        await failFullAnalysisQueue({
+          runId: row.runId,
+          workerRunId,
+          error: 'Invalid Full-analysis payload; job rejected.',
+          db,
+        });
+      } catch (error) {
+        if (!isLeaseError(error)) throw error;
+      }
       continue;
     }
     if (!payload.modelSnapshot) {
-      try { await failFullAnalysisQueue({ runId: row.runId, workerRunId, error: 'Full-analysis payload has no model snapshot; legacy job rejected safely.', db }); } catch (error) { if (!isLeaseError(error)) throw error; }
+      try {
+        await failFullAnalysisQueue({
+          runId: row.runId,
+          workerRunId,
+          error: 'Full-analysis payload has no model snapshot; legacy job rejected safely.',
+          db,
+        });
+      } catch (error) {
+        if (!isLeaseError(error)) throw error;
+      }
       continue;
     }
     if (payload.userId !== row.userId || payload.threadId !== row.threadId) {
-      try { await failFullAnalysisQueue({ runId: row.runId, workerRunId, error: 'Full-analysis payload identity does not match the queue row owner; job rejected.', db }); } catch (error) { if (!isLeaseError(error)) throw error; }
+      try {
+        await failFullAnalysisQueue({
+          runId: row.runId,
+          workerRunId,
+          error: 'Full-analysis payload identity does not match the queue row owner; job rejected.',
+          db,
+        });
+      } catch (error) {
+        if (!isLeaseError(error)) throw error;
+      }
       continue;
     }
-    const claimedPayload = { ...payload, attemptCount: row.attemptCount, workerRunId, startedAt: new Date().toISOString() };
+    const claimedPayload = {
+      ...payload,
+      attemptCount: row.attemptCount,
+      workerRunId,
+      startedAt: new Date().toISOString(),
+    };
     await projectQueueRow({ ...row, payload: claimedPayload });
     return { runId: row.runId, tenantId: row.tenantId, payload: claimedPayload };
   }
 }
 
 export async function touchFullAnalysisRun(runId: string, workerRunId: string): Promise<void> {
-  try { await projectQueueRow(await heartbeatFullAnalysisQueue({ runId, workerRunId, leaseMs: FULL_ANALYSIS_LEASE_MS, db: getDb() })); }
-  catch (error) { if (isLeaseError(error)) throw new FullAnalysisLeaseLostError(); throw error; }
+  try {
+    await projectQueueRow(
+      await heartbeatFullAnalysisQueue({
+        runId,
+        workerRunId,
+        leaseMs: FULL_ANALYSIS_LEASE_MS,
+        db: getDb(),
+      }),
+    );
+  } catch (error) {
+    if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
+    throw error;
+  }
 }
 
-export async function completeFullAnalysisRun(runId: string, workerRunId: string, result: Record<string, unknown>): Promise<void> {
-  try { await projectQueueRow(await completeFullAnalysisQueue({ runId, workerRunId, result, db: getDb() })); flog.info('Completed full-analysis run', { runId }); }
-  catch (error) { if (isLeaseError(error)) throw new FullAnalysisLeaseLostError(); throw error; }
+export async function completeFullAnalysisRun(
+  runId: string,
+  workerRunId: string,
+  result: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await projectQueueRow(
+      await completeFullAnalysisQueue({ runId, workerRunId, result, db: getDb() }),
+    );
+    flog.info('Completed full-analysis run', { runId });
+  } catch (error) {
+    if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
+    throw error;
+  }
 }
 
-export async function requeueFullAnalysisRun(runId: string, workerRunId: string, message: string): Promise<void> {
-  try { await projectQueueRow(await requeueFullAnalysisQueue({ runId, workerRunId, error: message, db: getDb() })); flog.warn('Requeued full-analysis run', { runId, message }); }
-  catch (error) { if (isLeaseError(error)) throw new FullAnalysisLeaseLostError(); throw error; }
+export async function requeueFullAnalysisRun(
+  runId: string,
+  workerRunId: string,
+  message: string,
+): Promise<void> {
+  try {
+    await projectQueueRow(
+      await requeueFullAnalysisQueue({ runId, workerRunId, error: message, db: getDb() }),
+    );
+    flog.warn('Requeued full-analysis run', { runId, message });
+  } catch (error) {
+    if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
+    throw error;
+  }
 }
 
-export async function failFullAnalysisRun(runId: string, workerRunId: string, error: unknown): Promise<void> {
-  try { await projectQueueRow(await failFullAnalysisQueue({ runId, workerRunId, error: serializeError(error), db: getDb() })); flog.error('Failed full-analysis run', { runId, error: serializeError(error) }); }
-  catch (transitionError) { if (isLeaseError(transitionError)) throw new FullAnalysisLeaseLostError(); throw transitionError; }
+export async function failFullAnalysisRun(
+  runId: string,
+  workerRunId: string,
+  error: unknown,
+): Promise<void> {
+  try {
+    await projectQueueRow(
+      await failFullAnalysisQueue({
+        runId,
+        workerRunId,
+        error: serializeError(error),
+        db: getDb(),
+      }),
+    );
+    flog.error('Failed full-analysis run', { runId, error: serializeError(error) });
+  } catch (transitionError) {
+    if (isLeaseError(transitionError)) throw new FullAnalysisLeaseLostError();
+    throw transitionError;
+  }
 }
 
-export async function recoverStaleFullAnalysisRuns(staleCutoff: Date, maxAttempts: number): Promise<{ requeued: number; failed: number }> {
+export async function recoverStaleFullAnalysisRuns(
+  staleCutoff: Date,
+  maxAttempts: number,
+): Promise<{ requeued: number; failed: number }> {
   const db = getDb();
   const result = await recoverStaleFullAnalysisQueue(staleCutoff, maxAttempts, db);
-  for (const runId of result.runIds) { const row = await getFullAnalysisQueueRow(runId, undefined, db); if (row) await projectQueueRow(row); }
-  if (result.requeued > 0 || result.failed > 0) flog.warn('Recovered stale full-analysis runs', { requeued: result.requeued, failed: result.failed, maxAttempts });
+  for (const runId of result.runIds) {
+    const row = await getFullAnalysisQueueRow(runId, undefined, db);
+    if (row) await projectQueueRow(row);
+  }
+  if (result.requeued > 0 || result.failed > 0)
+    flog.warn('Recovered stale full-analysis runs', {
+      requeued: result.requeued,
+      failed: result.failed,
+      maxAttempts,
+    });
   return { requeued: result.requeued, failed: result.failed };
 }
 
 export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<number> {
   const db = getDb();
-  const terminalRows = (await listFullAnalysisQueueRows(undefined, db)).filter((row) => (['succeeded', 'failed', 'cancelled', 'blocked'] as const).includes(normalizeWorkflowStatus(row.status) as 'succeeded' | 'failed' | 'cancelled' | 'blocked') && row.updatedAt < retentionCutoff);
+  const terminalRows = (await listFullAnalysisQueueRows(undefined, db)).filter(
+    (row) =>
+      (['succeeded', 'failed', 'cancelled', 'blocked'] as const).includes(
+        normalizeWorkflowStatus(row.status) as 'succeeded' | 'failed' | 'cancelled' | 'blocked',
+      ) && row.updatedAt < retentionCutoff,
+  );
   const deleted = await purgeOldFullAnalysisQueue(retentionCutoff, db);
   const store = await workflowsStore();
   if (store && terminalRows.length > 0) {
-    try { for (const row of terminalRows) await store.deleteWorkflowRunById({ runId: row.runId, workflowName: FULL_ANALYSIS_WORKFLOW_ID }); }
-    catch (error) { flog.warn('Full-analysis Mastra retention projection failed', { error: serializeError(error) }); }
+    try {
+      for (const row of terminalRows)
+        await store.deleteWorkflowRunById({
+          runId: row.runId,
+          workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+        });
+    } catch (error) {
+      flog.warn('Full-analysis Mastra retention projection failed', {
+        error: serializeError(error),
+      });
+    }
   }
   return deleted;
 }
@@ -373,21 +528,45 @@ export async function getFullAnalysisQueueHealth(): Promise<FullAnalysisQueueHea
     const now = Date.now();
     const pending = rows.filter((row) => row.status === 'pending');
     const running = rows.filter((row) => row.status === 'running');
-    return { pending: pending.length, running: running.length, stalePending: pending.filter((row) => now - row.createdAt.getTime() > 10 * 60_000).length, stuckRunning: running.filter((row) => (row.leaseExpiresAt?.getTime() ?? 0) <= now || now - row.updatedAt.getTime() > 30_000).length };
+    return {
+      pending: pending.length,
+      running: running.length,
+      stalePending: pending.filter((row) => now - row.createdAt.getTime() > 10 * 60_000).length,
+      stuckRunning: running.filter(
+        (row) =>
+          (row.leaseExpiresAt?.getTime() ?? 0) <= now || now - row.updatedAt.getTime() > 30_000,
+      ).length,
+    };
   } catch (error) {
     flog.warn('Full-analysis queue health unavailable', { error: serializeError(error) });
     return { pending: 0, running: 0, stalePending: 0, stuckRunning: 0, unavailable: true };
   }
 }
 
-export async function getFullAnalysisRun(userId: string, runId: string): Promise<FullAnalysisRunView | null> {
+export async function getFullAnalysisRun(
+  userId: string,
+  runId: string,
+): Promise<FullAnalysisRunView | null> {
   try {
     const row = await getFullAnalysisQueueRow(runId, userId, getDb());
     if (!row) return null;
     const status = normalizeWorkflowStatus(row.status);
     const result: Record<string, unknown> | null = row.result ?? null;
-    const error: string | null = status === 'failed' ? row.error?.startsWith('Daily AI budget exceeded (') ? row.error : 'Full analysis could not be completed. No partial answer was returned.' : null;
-    return { id: row.runId, status, progress: [], result, error, createdAt: row.createdAt.toISOString(), completedAt: row.completedAt?.toISOString() ?? null };
+    const error: string | null =
+      status === 'failed'
+        ? row.error?.startsWith('Daily AI budget exceeded (')
+          ? row.error
+          : 'Full analysis could not be completed. No partial answer was returned.'
+        : null;
+    return {
+      id: row.runId,
+      status,
+      progress: [],
+      result,
+      error,
+      createdAt: row.createdAt.toISOString(),
+      completedAt: row.completedAt?.toISOString() ?? null,
+    };
   } catch (error) {
     flog.warn('Full-analysis run lookup failed', { runId, error: serializeError(error) });
     return null;

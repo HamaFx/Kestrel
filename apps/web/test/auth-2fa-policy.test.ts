@@ -22,7 +22,10 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
-const authSource = readFileSync(resolve(root, 'apps/web/src/lib/auth/credentials-authorize.ts'), 'utf8');
+const authSource = readFileSync(
+  resolve(root, 'apps/web/src/lib/auth/credentials-authorize.ts'),
+  'utf8',
+);
 const actionsSource = readFileSync(resolve(root, 'apps/web/src/app/(auth)/actions.ts'), 'utf8');
 
 describe('2FA rate-limit security policy', () => {

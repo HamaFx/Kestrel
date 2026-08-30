@@ -83,7 +83,11 @@ describe('loadEnv', () => {
   });
 
   it('accepts a private worker HTTP host override', () => {
-    const env = loadEnv({ ...VALID, WORKER_HTTP_HOST: '127.0.0.1', WORKER_HTTP_PORT: '9090' } as unknown as NodeJS.ProcessEnv);
+    const env = loadEnv({
+      ...VALID,
+      WORKER_HTTP_HOST: '127.0.0.1',
+      WORKER_HTTP_PORT: '9090',
+    } as unknown as NodeJS.ProcessEnv);
     expect(env.WORKER_HTTP_HOST).toBe('127.0.0.1');
     expect(env.WORKER_HTTP_PORT).toBe(9090);
   });

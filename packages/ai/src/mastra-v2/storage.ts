@@ -106,7 +106,12 @@ export function mastraSslOptions(
     );
   }
   const rawCa = e.SUPABASE_CA_CERT ?? process.env.SUPABASE_CA_CERT;
-  const ca = rawCa ? rawCa.split(/\\n|\n/).join('\n').trim() : undefined;
+  const ca = rawCa
+    ? rawCa
+        .split(/\\n|\n/)
+        .join('\n')
+        .trim()
+    : undefined;
   if (ca) return { ca, rejectUnauthorized: true };
   const nodeEnv = e.NODE_ENV ?? process.env.NODE_ENV;
   if (nodeEnv === 'production') return { rejectUnauthorized: true };
@@ -136,7 +141,9 @@ function mastraRetention(): RetentionConfig {
   };
 }
 
-function libsqlUrl(env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env): string {
+function libsqlUrl(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): string {
   const e = env as Record<string, string | undefined>;
   const configured = e.MASTRA_LIBSQL_URL ?? process.env.MASTRA_LIBSQL_URL;
   if (configured && configured.length > 0) return configured;

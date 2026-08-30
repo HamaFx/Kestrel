@@ -17,9 +17,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Standalone Mastra Studio dev server.
+ * Standalone Mastra Studio development server.
  *
- * The `mastra dev` CLI is currently unusable in this repo: its bundler
+ * The current `mastra dev` CLI cannot bundle this workspace reliably: its bundler
  * inlines the whole workspace graph (including `@kestrel/shared` → pino)
  * and then *validates* the bundle by importing it with externals stubbed
  * to `{}`, which crashes on our module-scope `pino(...)` call in

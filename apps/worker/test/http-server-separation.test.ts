@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { createHealthServer, createProxyServer } from '../src/http-server';
 
 const deps = {
@@ -14,7 +15,9 @@ async function request(server: ReturnType<typeof createHealthServer>, path: stri
   try {
     return await fetch(`http://127.0.0.1:${address.port}${path}`);
   } finally {
-    await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 }
 

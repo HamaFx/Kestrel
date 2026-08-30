@@ -26,11 +26,7 @@
  * exported so unit tests can cover validation/normalization without an LLM.
  */
 
-import {
-  AlertChannelSchema,
-  AlertRuleSchema,
-  RunSystemActionInputSchema,
-} from '@kestrel/shared';
+import { AlertChannelSchema, AlertRuleSchema, RunSystemActionInputSchema } from '@kestrel/shared';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
