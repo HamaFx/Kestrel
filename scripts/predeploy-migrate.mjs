@@ -247,6 +247,16 @@ o/bKiIz+Fq8=
 }
 
 try {
+  // Build dependency packages first if dist is absent (fresh Vercel runner)
+  execFileSync('pnpm', ['--filter', '@kestrel/shared', 'build'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  });
+  execFileSync('pnpm', ['--filter', '@kestrel/db', 'build'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  });
+
   // Pass the connection string via DIRECT_URL — drizzle-kit and the
   // extension preflight both prefer a direct/session connection. We use
   // execFileSync so the URL never appears in `ps` output.
