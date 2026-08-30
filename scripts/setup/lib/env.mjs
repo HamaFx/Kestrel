@@ -36,12 +36,19 @@ export function parseEnv(content) {
   const lines = content.split(/\r?\n/);
   const entries = new Map();
   for (const raw of lines) {
-    const line = raw.trim();
-    if (line === '' || line.startsWith('#')) continue;
-    const eq = line.indexOf('=');
+    const trimmed = raw.trim();
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    // A KEY=VALUE line's key is meaningful before the '='. If there is no '='
+    // (and the trimmed line is non-blank/non-comment), skip it.
     if (eq <= 0) continue;
-    const key = line.slice(0, eq).trim();
-    const value = line.slice(eq + 1).trim();
+    const key = trimmed.slice(0, eq).trim();
+    // I1: Split on the trimmed key but slice the value from the ORIGINAL raw
+    // line so leading/trailing whitespace in the value is preserved. Trimming
+    // the whole line (or the value) made the parse→serialize round-trip
+    // lossy — a value with intentional surrounding whitespace was silently
+    // rewritten on the next write.
+    const value = raw.slice(raw.indexOf('=') + 1);
     entries.set(key, value);
   }
   return { lines, entries };

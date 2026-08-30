@@ -23,9 +23,14 @@ import { resolve } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { parseFlags } from '../../../scripts/setup/index.mjs';
+import { upsertEnvFile } from '../../../scripts/setup/lib/env.mjs';
 import { MARKET_DATA_PROVIDERS, parseMarketFlag } from '../../../scripts/setup/lib/market-data.mjs';
-import { loadSecretTemplate } from '../../../scripts/setup/lib/secrets.mjs';
+import {
+  loadSecretTemplate,
+  resolveTemplateValue,
+} from '../../../scripts/setup/lib/secrets.mjs';
+import { parseApiKeys } from '../../../scripts/setup/steps/market-data.mjs';
+import { parseFlags } from '../../../scripts/setup/index.mjs';
 import * as configStep from '../../../scripts/setup/steps/config.mjs';
 import * as detectStep from '../../../scripts/setup/steps/detect-existing.mjs';
 import * as installStep from '../../../scripts/setup/steps/install.mjs';
@@ -87,6 +92,22 @@ describe('setup wizard structure', () => {
     expect(parseMarketFlag('')).toEqual([]);
   });
 
+  it('parses --api-key=ID:VALUE into the env key map (C2)', () => {
+    const { byEnvKey, ids } = parseApiKeys(['finnhub:finnhubsecret1', 'bogus:x', 'fred:fredsecret-by']);
+    expect(byEnvKey.FINNHUB_API_KEY).toBe('finnhubsecret1');
+    expect(byEnvKey.FRED_API_KEY).toBe('fredsecret-by');
+    expect(byEnvKey.BOGUS_API_KEY).toBeUndefined(); // unknown provider ignored
+    expect(ids).toContain('finnhub');
+    expect(ids).toContain('fred');
+    expect(ids.length).toBe(2);
+  });
+
+  it('ignores --api-key specs without a colon or value (C2)', () => {
+    const { byEnvKey, ids } = parseApiKeys(['finnhub', 'finnhub:', 'finnhub:secret']);
+    expect(byEnvKey.FINNHUB_API_KEY).toBe('secret');
+    expect(ids).toEqual(['finnhub']);
+  });
+
   it('keeps graceful abort messaging and exit code 130 in the entry point', () => {
     const source = readFileSync(resolve(root, 'scripts/setup/index.mjs'), 'utf8');
     expect(source).toContain('Setup interrupted. Re-run anytime: pnpm setup');
@@ -130,6 +151,31 @@ describe('setup wizard flags', () => {
     expect(flags.mode).toBe('simple');
     expect(flags.yes).toBe(true);
     expect(flags.help).toBe(true);
+  });
+
+  it('marks --mode/--market/--api-key with a missing value (B3)', () => {
+    const modeFlags = parseFlags(['--mode']);
+    expect(modeFlags.mode).toBeNull();
+    expect(modeFlags.modeMissing).toBe(true);
+
+    const marketFlags = parseFlags(['--market']);
+    expect(marketFlags.market).toBeNull();
+    expect(marketFlags.marketMissing).toBe(true);
+
+    const apiKeyFlags = parseFlags(['--api-key']);
+    expect(apiKeyFlags.apiKeyMissing).toBe(true);
+
+    // A value that looks like a flag is NOT consumed as the mode value.
+    const guarded = parseFlags(['--mode', '--yes', 'simple']);
+    expect(guarded.modeMissing).toBe(true);
+    expect(guarded.yes).toBe(true);
+  });
+
+  it('returns a non-zero code when --mode has no value (B3)', async () => {
+    const { main } = await import('../../../scripts/setup/index.mjs');
+    const silent = { write: () => {}, line: () => {}, isTTY: false };
+    const code = await main(['--mode'], { io: silent });
+    expect(code).toBe(1);
   });
 
   it('rejects unknown modes at the main() level', async () => {
@@ -244,6 +290,46 @@ describe('generate-env.mjs CLI', () => {
     const content = readFileSync(target, 'utf8');
     expect(content).toContain('AUTH_SECRET=already-set');
     expect(content).toContain('POSTGRES_PASSWORD=');
+  });
+
+  it('fresh-start on a complete .env rewrites all secrets instead of no-op (B1)', () => {
+    const target = resolve(dir, '.env');
+    // Complete file with a known AUTH_SECRET.
+    const template = loadSecretTemplate();
+    let content = '';
+    for (const [k, v] of Object.entries(template)) {
+      content += `${k}=${typeof v === 'string' ? v : '0123456789abcdef0123456789abcdef'}\n`;
+    }
+    writeFileSync(target, content);
+
+    // Mimic config.mjs fresh path: regenerate ALL template keys + replace.
+    const all = {};
+    for (const [k, v] of Object.entries(template)) all[k] = resolveTemplateValue(v);
+    const result = upsertEnvFile(target, all, { backup: false, replace: true });
+
+    // Previously this was a silent no-op (missing=0 → values={} → replace dropped
+    // everything with changed=false). Now it must report a change and rewrite.
+    expect(result.changed).toBe(true);
+    const after = readFileSync(target, 'utf8');
+    expect(after).toContain('AUTH_SECRET=');
+    expect(Object.keys(all).length).toBeGreaterThan(10);
+  });
+
+  it('fresh-start on a partial .env preserves the full key set (B1)', () => {
+    const target = resolve(dir, '.env');
+    writeFileSync(target, 'POSTGRES_PASSWORD=my-existing\n');
+
+    const template = loadSecretTemplate();
+    const all = {};
+    for (const [k, v] of Object.entries(template)) all[k] = resolveTemplateValue(v);
+    const result = upsertEnvFile(target, all, { backup: false, replace: true });
+
+    const after = readFileSync(target, 'utf8');
+    // Every canonical key is present after a fresh write (no silent wipe).
+    for (const key of Object.keys(template)) {
+      expect(after, `${key} present after fresh`).toContain(`${key}=`);
+    }
+    expect(result.diff.some((d) => d.key === 'POSTGRES_PASSWORD')).toBe(true);
   });
 
   it('migrates the legacy RLS env key while preserving its value', () => {

@@ -20,7 +20,7 @@
 
 services:
   db:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
     environment:
       # Keep the logical database role names stable for existing Docker volumes.
       # Container, path, and service identifiers use Kestrel; operators can
@@ -47,7 +47,7 @@ services:
         max-file: "3"
 
   langfuse:
-    image: langfuse/langfuse:3
+    image: langfuse/langfuse:3@sha256:a921990b3cf6f62e9452eaf8ab9bea045852375a6883abd1fdbe63afa08defa0
     container_name: kestrel-langfuse
     restart: unless-stopped
     profiles: ["observability"]
@@ -83,7 +83,7 @@ services:
         max-file: "3"
 
   backup:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     # Initialize the fresh named volume as root, then drop to postgres in the
     # repository-owned entrypoint. The backup and restore commands themselves
     # never run with root privileges.

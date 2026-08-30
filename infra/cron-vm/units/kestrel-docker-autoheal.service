@@ -8,7 +8,10 @@ Type=oneshot
 User=kestrel
 Group=kestrel
 ExecStart=/opt/kestrel/scripts/docker-autoheal.sh
-TimeoutStartSec=30
+# B7: docker restart waits for stop_grace_period (30s in the VM compose)
+# before sending SIGKILL, so the total restart can take 35-45s. 90s gives
+# a comfortable margin without risking a half-restarted container.
+TimeoutStartSec=90
 
 NoNewPrivileges=true
 PrivateTmp=true

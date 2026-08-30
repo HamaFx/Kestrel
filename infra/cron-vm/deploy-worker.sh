@@ -42,9 +42,16 @@ echo "$NEW_SHA" > "$INSTALL_DIR/.deployed-sha"
 chmod 644 "$INSTALL_DIR/.deployed-sha"
 
 # ── 4. Build the worker image ────────────────────────────────────────────
+# C5: Tag the current image for instant rollback before building, matching
+# the safety pattern used by docker-update.sh.
+log 'tagging current image for rollback'
+sudo -u kestrel docker tag kestrel-worker:local kestrel-worker:rollback 2>/dev/null || true
+
 log 'building worker Docker image'
 cd "$INSTALL_DIR"
-sudo -u kestrel docker compose build "$SERVICE_NAME" 2>&1
+# P5: DOCKER_BUILDKIT=1 ensures the pnpm store cache mount in Dockerfile.worker
+# is honoured. Without it, every rebuild re-downloads all pnpm packages.
+sudo -u kestrel -E DOCKER_BUILDKIT=1 docker compose build "$SERVICE_NAME" 2>&1
 log 'build complete'
 
 # ── 5. Replace the running container ─────────────────────────────────────
@@ -60,8 +67,12 @@ for i in $(seq 1 60); do
     break
   fi
   if [[ "$i" -eq 60 ]]; then
+    # C5: Rollback to the previous image if the new one fails health check.
     log "WARNING: container not healthy after 120s — status=$status"
     sudo docker logs "kestrel-worker" --tail 10 2>/dev/null || true
+    log 'rolling back to previous image'
+    sudo -u kestrel docker tag kestrel-worker:rollback kestrel-worker:local 2>/dev/null || true
+    sudo -u kestrel docker compose up -d --force-recreate --no-deps "$SERVICE_NAME" 2>/dev/null || true
     exit 1
   fi
   sleep 2

@@ -24,6 +24,28 @@ export const title = 'Market data providers (optional)';
 export const hint = 'Keys are optional — add them later in Settings or the .env file';
 
 /**
+ * Parse `--api-key=ID:VALUE` flags into a map of { envKey, id } so they can
+ * be consumed non-interactively. Returns { byEnvKey, ids } where `ids` are the
+ * provider ids that were supplied a value.
+ */
+export function parseApiKeys(specs) {
+  const byEnvKey = {};
+  const ids = [];
+  for (const spec of specs ?? []) {
+    const sep = spec.indexOf(':');
+    if (sep <= 0) continue;
+    const id = spec.slice(0, sep).trim().toLowerCase();
+    const provider = providerById(id);
+    if (!provider) continue;
+    const value = spec.slice(sep + 1);
+    if (!value) continue;
+    byEnvKey[provider.envKey] = value;
+    ids.push(id);
+  }
+  return { byEnvKey, ids };
+}
+
+/**
  * Keys are optional and stored at the env level (FINNHUB_API_KEY, …).
  * Selection is a checkbox multiselect; keys are typed with masking.
  * ESC anywhere in this step goes back to the previous step.
@@ -31,6 +53,7 @@ export const hint = 'Keys are optional — add them later in Settings or the .en
 export async function run(ctx) {
   const { io, flags } = ctx;
   const auto = flags.yes || flags.json || !io.isTTY || flags.dryRun;
+  const { byEnvKey: apiKeysByEnv, ids: apiKeyIds } = parseApiKeys(flags.apiKeys);
 
   io.line();
   info(io, 'Market data keys are optional — the app works without them.');
@@ -51,6 +74,15 @@ export async function run(ctx) {
   }
 
   let selectedIds;
+  // C2: Providers supplied via --api-key are always selected and their value
+  // is used without prompting — this is the non-interactive path that also
+  // works under --yes / non-TTY (where text() would otherwise return '').
+  const viaApiKey = selectedApiKeyIds => {
+    if (selectedApiKeyIds.length === 0) return false;
+    info(io, `Providers provided via --api-key: ${selectedApiKeyIds.join(', ')}`);
+    return true;
+  };
+
   if (flags.market) {
     selectedIds = parseMarketFlag(flags.market);
     if (selectedIds.length === 0) {
@@ -61,6 +93,9 @@ export async function run(ctx) {
     } else {
       info(io, `Providers selected via --market: ${selectedIds.join(', ')}`);
     }
+  } else if (apiKeyIds.length > 0) {
+    if (viaApiKey(apiKeyIds)) selectedIds = apiKeyIds;
+    else selectedIds = [];
   } else if (auto) {
     selectedIds = [];
   } else {
@@ -80,6 +115,13 @@ export async function run(ctx) {
   for (const id of selectedIds) {
     const provider = providerById(id);
     if (!provider) continue;
+    // Use a value supplied via --api-key first (non-interactive, works under
+    // --yes / non-TTY where text() returns '').
+    if (apiKeysByEnv[provider.envKey]) {
+      marketKeys[provider.envKey] = apiKeysByEnv[provider.envKey];
+      ok(io, `${provider.label} key provided via --api-key ${paint(maskKey(apiKeysByEnv[provider.envKey]), 'dim')}`);
+      continue;
+    }
     if (flags.dryRun) {
       info(io, `[dry-run] would prompt for the ${provider.label} API key (masked input)`);
       continue;

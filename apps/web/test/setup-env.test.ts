@@ -35,13 +35,14 @@ afterEach(() => {
 });
 
 describe('parseEnv', () => {
-  it('parses KEY=VALUE lines and skips comments/blanks', () => {
+  it('parses KEY=VALUE lines, keeps the value verbatim, and skips comments/blanks', () => {
     const { entries, lines } = parseEnv(
       ['# header', '', 'A=1', 'B=hello world', 'C=  spaced  ', 'not-a-key'].join('\n'),
     );
     expect(entries.get('A')).toBe('1');
     expect(entries.get('B')).toBe('hello world');
-    expect(entries.get('C')).toBe('spaced');
+    // I1: value round-trip is lossless — leading/trailing whitespace preserved.
+    expect(entries.get('C')).toBe('  spaced  ');
     expect(entries.has('not-a-key')).toBe(false);
     expect(lines.length).toBe(6);
   });

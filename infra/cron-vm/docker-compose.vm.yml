@@ -36,9 +36,14 @@ services:
     # The worker is stateless: in-memory tick buffer + candle aggregator
     # are rebuilt from provider connections on restart.
 
-    # Health check — replaces systemd WatchdogSec
+    # C4: Health check — replaces systemd WatchdogSec.
+    # Uses /health/live (process liveness) to match the Dockerfile's built-in
+    # HEALTHCHECK and the local docker-compose.yml. /health/ready checks tick
+    # freshness + SignalR connection, which is too strict for an autoheal loop:
+    # a transient SignalR disconnect would trigger a restart that doesn't fix
+    # the underlying provider issue and can worsen backpressure.
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $${WORKER_HEALTH_TOKEN}\" http://localhost:8081/health/ready || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $${WORKER_HEALTH_TOKEN}\" http://localhost:8081/health/live || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

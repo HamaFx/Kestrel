@@ -26,11 +26,22 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      # P7: Set up Buildx so docker compose build uses BuildKit with GHA cache.
+      # This avoids rebuilding from scratch on every workflow run.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Generate disposable Compose secrets
         run: ./docker/init-secrets.sh
 
       - name: Validate Compose image references
+        # C6: Digest pinning is enforced by default in check-compose-images.mjs
         run: pnpm check:compose-images
 
       - name: Run backup/restore smoke test
+        # P7: DOCKER_BUILDKIT=1 + COMPOSE_DOCKER_CLI_BUILD=1 enable BuildKit
+        # so the pnpm cache mount in the Dockerfile is honoured.
+        env:
+          DOCKER_BUILDKIT: '1'
+          COMPOSE_DOCKER_CLI_BUILD: '1'
         run: ./docker/backup-restore-smoke.sh

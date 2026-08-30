@@ -38,6 +38,12 @@ echo "$count" > "$STATE_FILE"
 
 if (( count >= MAX_UNHEALTHY )); then
   log "container unhealthy for $count consecutive checks — restarting"
-  docker restart "$CONTAINER" 2>/dev/null || true
+  # B7: Don't swallow restart failures — log them so an operator can see
+  # why the autoheal didn't recover the container. The VM compose sets
+  # stop_grace_period=30s, so docker restart can take up to 35s; the
+  # systemd unit's TimeoutStartSec was raised to 90s to match.
+  if ! docker restart "$CONTAINER" 2>&1 | tee /dev/stderr; then
+    log "ERROR: docker restart failed for $CONTAINER"
+  fi
   echo 0 > "$STATE_FILE"
 fi

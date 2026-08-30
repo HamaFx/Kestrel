@@ -1,6 +1,7 @@
 FROM node:22.13.0-slim@sha256:87608ec5109795be954baa2f5b0b6da1911423d8b44b58fecda31f81d28bfc0f AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
@@ -15,21 +16,29 @@ COPY packages/db/package.json packages/db/
 COPY packages/indicators/package.json packages/indicators/
 COPY packages/shared/package.json packages/shared/
 
+# OPT-2: pnpm store cache mount persists across builds.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/pnpm-lock.yaml ./
-COPY . .
-
-RUN pnpm turbo run build --filter=@kestrel/worker...
-
-# Prune development dependencies
+# OPT-6: Prune to the production dependency tree here, in the deps stage,
+# where it only re-runs when package.json/lockfile change. Placing it after
+# COPY . . in the builder stage cost ~85s per source-only rebuild.
 RUN pnpm --filter=@kestrel/worker deploy --prod /prod/worker
 
+FROM base AS builder
+# OPT-3: --link creates node_modules as a separate reusable layer.
+COPY --link --from=deps /app/node_modules ./node_modules
+COPY --link --from=deps /app/pnpm-lock.yaml ./
+COPY --link --from=deps /prod/worker ./prod/worker
+COPY --link . .
+
+# OPT-4: Cache turbo's dist and .turbo output across rebuilds.
+RUN --mount=type=cache,id=turbo-worker,target=/app/.turbo \
+    --mount=type=cache,id=dist-worker,target=/app/apps/worker/dist \
+    pnpm turbo run build --filter=@kestrel/worker...
+
 # Copy built dist/ files into the deployed package
-RUN cp -r apps/worker/dist /prod/worker/dist
+RUN cp -r apps/worker/dist prod/worker/dist
 
 FROM node:22.13.0-slim@sha256:87608ec5109795be954baa2f5b0b6da1911423d8b44b58fecda31f81d28bfc0f AS runner
 ARG DEPLOYED_SHA=unknown
@@ -41,9 +50,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --chown=node:node --from=builder /prod/worker ./
+# OPT-5: --chown on COPY instead of a separate chown -R step.
+# --chown with numeric UID (1000:1000 = node user) because --link creates a
+# separate layer where the named user isn't resolvable from /etc/passwd.
+COPY --link --chown=1000:1000 --from=builder /app/prod/worker ./
 
-ARG DEPLOYED_SHA=unknown
 ENV DEPLOYED_SHA=${DEPLOYED_SHA}
 
 ENV NODE_ENV=production
@@ -54,12 +65,11 @@ ENV WORKER_MODE=docker
 # If Google Auth JWT signing fails after this change, verify the
 # normalizePemPrivateKey() function covers your key format.
 
-EXPOSE 8081
 EXPOSE 8081 8082
 
 # SEC-3: Run as non-root user.
 # The Node.js 22 slim image provides uid 1000 as 'node'.
-# Ports 8080/8081 are >1024 so non-root binding works.
+# Ports 8081/8082 are >1024 so non-root binding works.
 USER node
 
 # SEC-3: Container HEALTHCHECK against the real worker health endpoint.

@@ -143,6 +143,8 @@ export async function run(ctx) {
       if (!ready) {
         warn(io, 'Docker Desktop is not running — Full mode is unavailable.');
         warn(io, 'Falling back to Simple mode.');
+        // C3: Record so the --json summary exposes the fallback to scripts.
+        ctx.answers.dockerUnavailable = true;
         mode = 'simple';
       }
     }
@@ -176,6 +178,8 @@ export async function run(ctx) {
 
   if (!docker.ready) {
     info(io, 'Full mode is unavailable because Docker Desktop is not running.');
+    // C3: Record so the --json summary exposes the fallback to scripts.
+    ctx.answers.dockerUnavailable = true;
     mode = 'simple';
   } else {
     const choice = await select(io, {

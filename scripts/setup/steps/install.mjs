@@ -20,7 +20,7 @@ import { resolve } from 'node:path';
 import { getPackageManager, packageManagerLabel } from '../lib/prereqs.mjs';
 import { confirm } from '../lib/prompts.mjs';
 import { runCommand } from '../lib/run.mjs';
-import { fail, info, ok, paint } from '../lib/ui.mjs';
+import { fail, info, ok, paint, warn } from '../lib/ui.mjs';
 
 export const title = 'Installing dependencies';
 
@@ -85,13 +85,35 @@ export async function run(ctx) {
     ok(io, 'Dependencies installed (frozen lockfile)');
     return 'ok';
   } catch {
+    // C1: A fallback `pnpm install` (without --frozen-lockfile) will silently
+    // rewrite pnpm-lock.yaml if a fresh clone's lockfile is out of date with
+    // its package.json files. Only offer it interactively; never auto-run it
+    // in a non-interactive (CI/--yes) context where a lockfile mutation would
+    // go unnoticed.
+    warn(io, 'Frozen install failed — likely a stale lockfile.');
+    if (auto || flags.dryRun) {
+      io.line(
+        `  ${paint("Run 'unlock' or delete pnpm-lock.yaml, fix it, then re-run setup.", 'dim')}`,
+      );
+      fail(io, 'pnpm install failed and the lockfile fallback is disabled in non-interactive mode.');
+      return 'abort';
+    }
+    const retry = await confirm(io, {
+      message: 'Retry with a non-frozen install? This may update pnpm-lock.yaml.',
+      initial: false,
+    });
+    if (retry === 'cancel') return 'abort';
+    if (!retry) {
+      fail(io, 'pnpm install failed — try running it manually: pnpm install --frozen-lockfile');
+      return 'abort';
+    }
     io.line(`  ${paint('Retrying without the lockfile...', 'cyan')}`);
     try {
       await runCommand(manager.command, [...manager.prefix, 'install'], {
         cwd: repoRoot,
         stdio: 'inherit',
       });
-      ok(io, 'Dependencies installed');
+      ok(io, 'Dependencies installed (lockfile may have been updated)');
       return 'ok';
     } catch {
       fail(io, 'pnpm install failed — try running it manually.');
