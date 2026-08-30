@@ -131,6 +131,19 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
-export default withSentryConfig(withBundleAnalyzer(nextConfig), {
-  silent: !process.env.CI,
-});
+const hasSentry = Boolean(
+  process.env.SENTRY_AUTH_TOKEN &&
+    process.env.SENTRY_AUTH_TOKEN.trim() !== '' &&
+    process.env.SENTRY_DSN &&
+    process.env.SENTRY_DSN.trim() !== '',
+);
+
+export default hasSentry
+  ? withSentryConfig(withBundleAnalyzer(nextConfig), {
+      silent: !process.env.CI,
+      widenClientFileUpload: true,
+      hideSourceMaps: true,
+      disableLogger: true,
+      automaticVercelMonitors: false,
+    })
+  : withBundleAnalyzer(nextConfig);
