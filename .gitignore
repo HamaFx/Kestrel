@@ -91,9 +91,8 @@ artifacts/
 !artifacts/licenses/dependency-licenses.json
 .tools/
 
-# teamwork temporary subagent runs
-.agents/*
-!.agents/skills/
-
-# private maintainer-only agent instructions
-AGENTS.private.md
+# AI agent instructions (private)
+AGENTS.md
+AGENTS.*
+CLAUDE.md
+.agents/

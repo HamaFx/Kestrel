@@ -67,7 +67,7 @@ jobs:
         with:
           name: dependency-licenses
           path: |
-            DEPENDENCY_LICENSES.md
+            docs/DEPENDENCY_LICENSES.md
             artifacts/licenses/dependency-licenses.json
           if-no-files-found: error
           retention-days: 90

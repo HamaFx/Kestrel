@@ -2,16 +2,16 @@
 
 Thank you for contributing to Kestrel. This guide covers the supported development workflow for the open-source repository.
 
-> **Public release boundary:** Kestrel is currently a single-user, self-hosted beta. Shared multi-user/RLS hosting is intentionally unsupported. Read [OPEN_SOURCE_DEPLOYMENT_MATRIX.md](OPEN_SOURCE_DEPLOYMENT_MATRIX.md) and [OPEN_SOURCE_READINESS_CURRENT.md](OPEN_SOURCE_READINESS_CURRENT.md) before changing deployment, auth, database, or tenant code.
+> **Public release boundary:** Kestrel is currently a single-user, self-hosted beta. Shared multi-user/RLS hosting is intentionally unsupported. Read [docs/deployment-matrix.md](docs/deployment-matrix.md) and [docs/audit/current-status.md](docs/audit/current-status.md) before changing deployment, auth, database, or tenant code.
 
 ## 1. Prerequisites
 
-| Requirement | Version | Verify |
-| --- | --- | --- |
-| Node.js | `>=22.13.0` | `node --version` |
-| pnpm | `9.15.4` | `pnpm --version` |
-| Git | Any current version | `git --version` |
-| Docker | Optional; required for Docker/PostgreSQL mode | `docker --version` |
+| Requirement | Version                                       | Verify             |
+| ----------- | --------------------------------------------- | ------------------ |
+| Node.js     | `>=22.13.0`                                   | `node --version`   |
+| pnpm        | `9.15.4`                                      | `pnpm --version`   |
+| Git         | Any current version                           | `git --version`    |
+| Docker      | Optional; required for Docker/PostgreSQL mode | `docker --version` |
 
 PGlite boots automatically for local development, so a database installation is not required for Simple mode.
 
@@ -47,17 +47,17 @@ Do not set `MULTI_USER_ENABLED=1`, `KESTREL_ENABLE_RLS=1`, or `REGISTRATION_MODE
 config → shared → db + indicators → data → ai → web + worker
 ```
 
-| Package/app | Path | Responsibility |
-| --- | --- | --- |
-| `@kestrel/config` | `packages/config/` | Shared TypeScript, ESLint, and formatting configuration |
-| `@kestrel/shared` | `packages/shared/` | Zod schemas, environment validation, encryption, logging, shared types |
-| `@kestrel/db` | `packages/db/` | Drizzle schema, migrations, PostgreSQL/PGlite clients |
-| `@kestrel/indicators` | `packages/indicators/` | Technical indicators and market-structure calculations |
-| `@kestrel/data` | `packages/data/` | Market-data providers, adapters, failover, and caching |
-| `@kestrel/ai` | `packages/ai/` | Mastra agents/workflows, typed tools, routing, memory, persistence |
-| `@kestrel/test-utils` | `packages/test-utils/` | Shared test factories, mocks, and Vitest helpers |
-| `@kestrel/web` | `apps/web/` | Next.js 16 PWA, Auth.js, chat, API routes, and UI |
-| `@kestrel/worker` | `apps/worker/` | Persistent worker for feeds, candles, jobs, and health endpoints |
+| Package/app           | Path                   | Responsibility                                                         |
+| --------------------- | ---------------------- | ---------------------------------------------------------------------- |
+| `@kestrel/config`     | `packages/config/`     | Shared TypeScript, ESLint, and formatting configuration                |
+| `@kestrel/shared`     | `packages/shared/`     | Zod schemas, environment validation, encryption, logging, shared types |
+| `@kestrel/db`         | `packages/db/`         | Drizzle schema, migrations, PostgreSQL/PGlite clients                  |
+| `@kestrel/indicators` | `packages/indicators/` | Technical indicators and market-structure calculations                 |
+| `@kestrel/data`       | `packages/data/`       | Market-data providers, adapters, failover, and caching                 |
+| `@kestrel/ai`         | `packages/ai/`         | Mastra agents/workflows, typed tools, routing, memory, persistence     |
+| `@kestrel/test-utils` | `packages/test-utils/` | Shared test factories, mocks, and Vitest helpers                       |
+| `@kestrel/web`        | `apps/web/`            | Next.js 16 PWA, Auth.js, chat, API routes, and UI                      |
+| `@kestrel/worker`     | `apps/worker/`         | Persistent worker for feeds, candles, jobs, and health endpoints       |
 
 ## 4. Coding conventions
 
@@ -154,7 +154,7 @@ CI workflows cover fast PR checks, slower main/nightly checks, container publica
 
 ## 10. Help and conduct
 
-- Start with [README.md](README.md), [OPEN_SOURCE_DEPLOYMENT_MATRIX.md](OPEN_SOURCE_DEPLOYMENT_MATRIX.md), and [SECURITY.md](SECURITY.md).
+- Start with [README.md](README.md), [docs/deployment-matrix.md](docs/deployment-matrix.md), and [SECURITY.md](SECURITY.md).
 - Use GitHub issues for reproducible bugs and feature requests.
 - Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 - Follow [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

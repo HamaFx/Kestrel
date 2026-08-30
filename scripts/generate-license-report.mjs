@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 const lockPath = resolve('pnpm-lock.yaml');
-const outputPath = resolve(process.env.LICENSE_OUTPUT ?? 'DEPENDENCY_LICENSES.md');
+const outputPath = resolve(process.env.LICENSE_OUTPUT ?? 'docs/DEPENDENCY_LICENSES.md');
 const lock = readFileSync(lockPath, 'utf8');
 const packages = new Set();
 for (const line of lock.split('\n')) {

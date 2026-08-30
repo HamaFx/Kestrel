@@ -20,9 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Documentation overhaul:** current procedural docs for the single-user OSS release, replacing the old 15-doc set:
   - `README.md` — public product scope and quick start
-  - `OPEN_SOURCE_DEPLOYMENT_MATRIX.md` — supported deployment profiles
-  - `OPEN_SOURCE_READINESS_CURRENT.md` — current readiness and remaining gates
-  - `OPEN_SOURCE_READINESS_FINDINGS.md` — detailed findings and action record
+  - `docs/deployment-matrix.md` — supported deployment profiles
+  - `docs/audit/` — readiness status, findings, history, and validation records
   - `SECURITY.md` — security policy and operator responsibilities
   - `CONTRIBUTING.md` — development and contribution workflow
 - **Community docs:** `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`, `CODE_OF_CONDUCT.md`

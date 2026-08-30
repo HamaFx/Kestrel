@@ -423,9 +423,10 @@ Yes! Install [Ollama](https://ollama.ai), run your model (e.g. `ollama run llama
 For detailed guides, explore the `docs/` directory:
 
 - 📖 **[Configuration Reference](docs/configuration.md)**: Exhaustive list of all environment variables and secrets.
+- 🚀 **[Deployment Matrix](docs/deployment-matrix.md)**: Detailed matrix of supported self-hosted deployment profiles.
 - 🏛️ **[Architecture Deep-Dive](docs/architecture.md)**: Full breakdown of layered packages, data flow, and worker lifecycle.
 - 🔧 **[Troubleshooting Guide](docs/troubleshooting.md)**: Solutions for common database, network, provider, and build issues.
-- 🚀 **[Release Guide](docs/release.md)**: Validation checklist, Docker image publication, and versioning.
+- 📦 **[Release Guide](docs/release.md)**: Validation checklist, Docker image publication, and versioning.
 - 🛡️ **[Security Policy](SECURITY.md)**: Vulnerability disclosure, encryption architecture, and security practices.
 - 🤝 **[Contributing Guide](CONTRIBUTING.md)**: How to submit bug fixes, features, and new market indicators.
 

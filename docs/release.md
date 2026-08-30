@@ -60,7 +60,7 @@ The PostgreSQL RLS test requires real disposable PostgreSQL and is not replaced 
 Before publishing:
 
 - Confirm `README.md` describes only verified public behavior.
-- Confirm `OPEN_SOURCE_DEPLOYMENT_MATRIX.md` matches Compose and setup behavior.
+- Confirm `docs/deployment-matrix.md` matches Compose and setup behavior.
 - Confirm `docs/configuration.md`, `docs/troubleshooting.md`, and `docs/architecture.md` match source.
 - Confirm `SUPPORT.md`, `SECURITY.md`, and `CONTRIBUTING.md` contain working links and current boundaries.
 - Remove private URLs, project identifiers, credentials, cookies, and customer data from tracked files and release artifacts.

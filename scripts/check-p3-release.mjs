@@ -35,7 +35,7 @@ for (const file of [
   'LICENSE',
   'SECURITY.md',
   'scripts/check-oss-release.mjs',
-  'DEPENDENCY_LICENSES.md',
+  'docs/DEPENDENCY_LICENSES.md',
 ]) {
   if (!existsSync(resolve(root, file))) failures.push(`${file}: required release asset is missing`);
 }

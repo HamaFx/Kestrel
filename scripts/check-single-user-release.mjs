@@ -10,7 +10,7 @@ const compose = read('docker-compose.yml');
 const env = read('packages/shared/src/env.ts');
 const readme = read('README.md');
 const capabilities = read('packages/shared/src/capabilities.ts');
-const findings = read('OPEN_SOURCE_READINESS_FINDINGS.md');
+const findings = read('docs/audit/findings.md');
 
 for (const [pattern, message] of [
   [/MULTI_USER_ENABLED:\s*["']?0/, 'Compose must disable multi-user mode'],
