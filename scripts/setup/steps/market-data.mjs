@@ -66,7 +66,7 @@ export async function run(ctx) {
     for (let i = 0; i < MARKET_DATA_PROVIDERS.length; i++) {
       const p = MARKET_DATA_PROVIDERS[i];
       io.line(
-        `  ${paint(`${i + 1}.`, 'cyan')} ${paint(p.label, 'bold')} ${paint(`(${p.hint})`, 'dim')}`,
+        `  ${paint(`${i + 1}.`, 'brand')} ${paint(p.label, 'bold')} ${paint(`(${p.hint})`, 'dim')}`,
       );
       io.line(`     ${paint('Get key:', 'dim')} ${p.url}`);
     }

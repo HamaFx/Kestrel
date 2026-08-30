@@ -140,7 +140,7 @@ export function parseFlags(argv) {
 }
 
 export function printHelp(io) {
-  io.line(paint('Kestrel setup wizard', 'bold', 'cyan'));
+  io.line(paint('Kestrel setup wizard', 'bold', 'brand'));
   io.line();
   io.line('  Usage:  pnpm setup [options]');
   io.line('          node scripts/setup.mjs [options]');

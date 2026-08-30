@@ -48,6 +48,17 @@ const C = {
   lavender: '\x1b[38;5;183m',
   gray: '\x1b[38;5;245m',
   darkGray: '\x1b[38;5;238m',
+  // Kestrel brand tokens — exact 24-bit colors from apps/web/src/app/globals.css.
+  // Restraint rule from the theme: orange is reserved for identity (banner,
+  // welcome) and interaction (prompt cursors, primary accents); status uses
+  // the dedicated success/danger/warn/info tokens; chrome stays neutral.
+  brand: '\x1b[38;2;245;110;15m', // --color-brand: #f56e0f
+  brandSoft: '\x1b[38;2;255;154;77m', // --color-brand-soft: #ff9a4d
+  success: '\x1b[38;2;22;163;74m', // --color-success: #16a34a
+  danger: '\x1b[38;2;220;38;38m', // --color-danger: #dc2626
+  warn: '\x1b[38;2;245;158;11m', // --color-warn: #f59e0b
+  info: '\x1b[38;2;59;130;246m', // --color-info: #3b82f6
+  muted: '\x1b[38;2;128;128;128m', // --color-fg-muted: #808080
 };
 
 /**
@@ -71,24 +82,24 @@ function stripAnsi(str) {
 }
 
 export function ok(io, msg) {
-  io.line(`  ${paint('✓', 'green')} ${msg}`);
+  io.line(`  ${paint('✓', 'success')} ${msg}`);
 }
 
 export function warn(io, msg) {
-  io.line(`  ${paint('⚠', 'yellow')} ${msg}`);
+  io.line(`  ${paint('⚠', 'warn')} ${msg}`);
 }
 
 export function fail(io, msg) {
-  io.line(`  ${paint('✗', 'red')} ${msg}`);
+  io.line(`  ${paint('✗', 'danger')} ${msg}`);
 }
 
 export function info(io, msg) {
-  io.line(`  ${paint('ℹ', 'sky')} ${msg}`);
+  io.line(`  ${paint('ℹ', 'info')} ${msg}`);
 }
 
 /** Print a box-drawn panel. `lines` may contain pre-painted text. */
 export function box(io, title, lines, opts = {}) {
-  const color = opts.color ?? 'cyan';
+  const color = opts.color ?? 'muted';
   const minWidth = opts.minWidth ?? 50;
   const titleLen = title ? title.length + 4 : 0;
   const maxContent = Math.max(...lines.map((l) => stripAnsi(l).length), titleLen, minWidth);
@@ -123,7 +134,7 @@ export function box(io, title, lines, opts = {}) {
  * Print a "note" panel — a compact informational callout used for
  * short explainers between steps.
  */
-export function note(io, title, lines, color = 'sky') {
+export function note(io, title, lines, color = 'info') {
   box(io, title, lines, { color, minWidth: 44 });
 }
 
@@ -138,7 +149,9 @@ export function printBanner(io) {
     '╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝',
   ];
 
-  const gradientColors = ['cyan', 'sky', 'teal', 'gold', 'coral', 'sky'];
+  // Brand identity: a soft→strong warm fade down the logo. Orange is the
+  // Kestrel identity color, so the banner is its home in the wizard.
+  const gradientColors = ['brandSoft', 'brandSoft', 'brand', 'brand', 'brand', 'brand'];
 
   io.line();
   for (let i = 0; i < logo.length; i++) {
@@ -155,9 +168,9 @@ export function printBanner(io) {
 export function startSpinner(io, msg) {
   const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   let i = 0;
-  io.stdout.write(`  ${paint(frames[0], 'cyan')} ${msg}...`);
+  io.stdout.write(`  ${paint(frames[0], 'brand')} ${msg}...`);
   const interval = setInterval(() => {
-    io.stdout.write(`\r  ${paint(frames[i % frames.length], 'cyan')} ${msg}...`);
+    io.stdout.write(`\r  ${paint(frames[i % frames.length], 'brand')} ${msg}...`);
     i++;
   }, 80);
   return {
@@ -176,7 +189,7 @@ export function startSpinner(io, msg) {
  */
 export function stepHeader(io, { index, total, title }) {
   io.line();
-  io.line(`  ${paint(`[${index}/${total}]`, 'dim')} ${paint(title, 'bold', 'cyan')}`);
+  io.line(`  ${paint(`[${index}/${total}]`, 'dim')} ${paint(title, 'bold', 'brand')}`);
   io.line(`  ${paint('─'.repeat(52), 'darkGray')}`);
 }
 
@@ -209,7 +222,7 @@ function progressBar(fraction, cells = 12) {
   const clamped = Math.max(0, Math.min(1, fraction));
   const filled = Math.round(clamped * cells);
   const bar = '█'.repeat(filled) + '░'.repeat(cells - filled);
-  return paint(bar, filled >= cells ? 'green' : 'cyan');
+  return paint(bar, filled >= cells ? 'success' : 'brand');
 }
 
 function pageWidth(io) {
@@ -230,7 +243,7 @@ export function beginPage(io, { pageMode, step, total, title }) {
   hideCursor(io);
   io.line();
   io.line(
-    `  ${paint('◆ Kestrel Setup', 'bold', 'cyan')}${paint('  ·  ', 'dim')}${paint(`Step ${step} of ${total}`, 'dim')}   ${progressBar(step / total)}`,
+    `  ${paint('◆ Kestrel Setup', 'bold', 'brand')}${paint('  ·  ', 'dim')}${paint(`Step ${step} of ${total}`, 'dim')}   ${progressBar(step / total)}`,
   );
   io.line();
   io.line(`  ${paint(title, 'bold')}`);
@@ -257,7 +270,7 @@ export function renderComparison({ leftTitle, rightTitle, left, right, width = 6
   const half = Math.max(Math.floor((width - gap) / 2), 16);
 
   const mark = (icon) =>
-    icon === '✓' ? paint('✓', 'green') : icon === '!' ? paint('!', 'yellow') : paint('✗', 'red');
+    icon === '✓' ? paint('✓', 'success') : icon === '!' ? paint('!', 'warn') : paint('✗', 'danger');
   const cell = (icon, text, w) => {
     const raw = `${icon} ${text}`;
     const fitted = raw.length > w ? `${raw.slice(0, w - 1)}…` : raw;
@@ -269,7 +282,7 @@ export function renderComparison({ leftTitle, rightTitle, left, right, width = 6
   const rows = Math.max(left.length, right.length);
   const out = [];
   out.push(
-    `${padTo(paint(fitTitle(leftTitle, half), 'bold', 'cyan'), half)}${' '.repeat(gap)}${paint(fitTitle(rightTitle, half), 'bold', 'teal')}`,
+    `${padTo(paint(fitTitle(leftTitle, half), 'bold', 'brand'), half)}${' '.repeat(gap)}${paint(fitTitle(rightTitle, half), 'bold', 'muted')}`,
   );
   out.push(
     `${paint('─'.repeat(half), 'darkGray')}${' '.repeat(gap)}${paint('─'.repeat(half), 'darkGray')}`,

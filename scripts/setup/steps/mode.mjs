@@ -43,7 +43,7 @@ const DOCKER_FEATURES = [
 
 function featureRow([icon, feat, desc]) {
   const iconPainted =
-    icon === '✓' ? paint('✓', 'green') : icon === '!' ? paint('!', 'yellow') : paint('✗', 'red');
+    icon === '✓' ? paint('✓', 'success') : icon === '!' ? paint('!', 'warn') : paint('✗', 'danger');
   return `${iconPainted}  ${feat.padEnd(28)} ${paint(desc, 'dim')}`;
 }
 
@@ -58,7 +58,7 @@ function printModeBoxes(io) {
       '',
       `${paint('What it does:', 'bold')} runs the app on this computer`,
     ],
-    { color: 'cyan', minWidth: 54 },
+    { color: 'muted', minWidth: 54 },
   );
   io.line();
   box(
@@ -71,7 +71,7 @@ function printModeBoxes(io) {
       '',
       `${paint('What it does:', 'bold')} runs the complete app automatically`,
     ],
-    { color: 'teal', minWidth: 54 },
+    { color: 'brand', minWidth: 54 },
   );
   io.line();
 }
@@ -95,7 +95,7 @@ function printByokNote(io, compact) {
       'Supported: Gemini · Vertex · Anthropic · OpenAI · Groq ·',
       'Mistral · OpenRouter · xAI · DeepSeek · IAMHC API',
     ],
-    'cyan',
+    'info',
   );
 }
 
@@ -151,10 +151,10 @@ export async function run(ctx) {
     ctx.answers.mode = mode;
     io.line();
     io.line(
-      `  ${paint('→', 'green')} Selected: ${paint(
+      `  ${paint('→', 'success')} Selected: ${paint(
         mode === 'docker' ? 'Full mode (Docker)' : 'Simple mode',
         'bold',
-        mode === 'docker' ? 'teal' : 'cyan',
+        mode === 'docker' ? 'brand' : 'muted',
       )} ${paint('(from --mode)', 'dim')}`,
     );
     printByokNote(io, ctx.pageMode);
@@ -206,7 +206,7 @@ export async function run(ctx) {
   ctx.answers.mode = mode;
   io.line();
   io.line(
-    `  ${paint('→', 'green')} Selected: ${paint(mode === 'docker' ? 'Full mode (Docker)' : 'Simple mode', 'bold', mode === 'docker' ? 'teal' : 'cyan')}`,
+    `  ${paint('→', 'success')} Selected: ${paint(mode === 'docker' ? 'Full mode (Docker)' : 'Simple mode', 'bold', mode === 'docker' ? 'brand' : 'muted')}`,
   );
   printByokNote(io, ctx.pageMode);
   return 'ok';

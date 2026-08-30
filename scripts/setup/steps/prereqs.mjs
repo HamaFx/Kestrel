@@ -32,7 +32,7 @@ export function run(ctx) {
   const { io } = ctx;
 
   if (ctx.pageMode) {
-    io.line(`  ${paint('Welcome!', 'bold', 'cyan')} Let us get Kestrel running on your computer.`);
+    io.line(`  ${paint('Welcome!', 'bold', 'brand')} Let us get Kestrel running on your computer.`);
     io.line(`  ${paint("We'll check your environment, then configure and launch it.", 'dim')}`);
     io.line();
   }
@@ -64,7 +64,7 @@ export function run(ctx) {
   if (docker.ready) ok(io, `Docker ${paint(docker.version ?? '', 'dim')} is running`);
   else if (docker.installed) {
     io.line(
-      `  ${paint('⚠', 'yellow')} Docker is installed but not running — start Docker Desktop for Full mode`,
+      `  ${paint('⚠', 'warn')} Docker is installed but not running — start Docker Desktop for Full mode`,
     );
   } else {
     io.line(
