@@ -69,7 +69,15 @@ For Docker database host-port conflicts, set a local `POSTGRES_PUBLISHED_PORT`, 
 POSTGRES_PUBLISHED_PORT=127.0.0.1:5433
 ```
 
+For Docker web-app port conflicts (default 3000), set a local `APP_PUBLISHED_PORT`, for example:
+
+```dotenv
+APP_PUBLISHED_PORT=127.0.0.1:3001
+```
+
 The application still reaches the database through the internal Compose network.
+
+The setup wizard detects busy host ports before building and offers to remap them automatically.
 
 ## Simple/PGlite issues
 

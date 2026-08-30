@@ -20,6 +20,7 @@
  */
 
 import { execFileSync, spawn } from 'node:child_process';
+import { createConnection } from 'node:net';
 
 import { hasBin } from './prereqs.mjs';
 import { info } from './ui.mjs';
@@ -48,6 +49,93 @@ export function checkComposeConfig(cwd) {
   } catch (err) {
     const stderr = err?.stderr?.toString?.() ?? String(err?.message ?? err);
     return { ok: false, error: stderr };
+  }
+}
+
+/** True when a TCP host:port currently has a listener. */
+export function isPortInUse(port, host = '127.0.0.1', timeoutMs = 750) {
+  return new Promise((resolvePromise) => {
+    const socket = createConnection({ host, port });
+    let settled = false;
+    const done = (inUse) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolvePromise(inUse);
+    };
+    // A reachable listener means the port is taken; a refusal or timeout
+    // means nothing is bound there (localhost refuses immediately).
+    socket.setTimeout(timeoutMs, () => done(false));
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+  });
+}
+
+/** Find the first free host port at or above `start`. Returns null when none is found. */
+export async function findFreePort(start, host = '127.0.0.1', maxTries = 50) {
+  for (let port = start; port < start + maxTries; port++) {
+    if (!(await isPortInUse(port, host))) return port;
+  }
+  return null;
+}
+
+/**
+ * Resolve the host ports the stack publishes via `docker compose config`.
+ * Returns [{ service, host, port, target }] or null when the config
+ * cannot be resolved (docker missing or compose broken). Profile-gated
+ * services (e.g. langfuse) are excluded by compose itself.
+ */
+export function getComposeHostPorts(cwd) {
+  try {
+    const out = execFileSync('docker', ['compose', 'config', '--format', 'json'], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const config = JSON.parse(out);
+    const ports = [];
+    for (const [service, def] of Object.entries(config.services ?? {})) {
+      for (const p of def.ports ?? []) {
+        if (p.published === undefined) continue;
+        ports.push({
+          service,
+          host: p.host_ip ?? '0.0.0.0',
+          port: Number(p.published),
+          target: p.target,
+        });
+      }
+    }
+    return ports;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Host ports already published by this compose project's own running
+ * containers. The wizard skips these in its conflict check: a port held
+ * by the project itself (e.g. re-running setup on a live stack) is not a
+ * conflict — compose reuses the container instead of rebinding.
+ */
+export function getOwnPublishedPorts(cwd) {
+  try {
+    const out = execFileSync('docker', ['compose', 'ps', '--format', 'json'], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const parsed = JSON.parse(out);
+    const containers = Array.isArray(parsed) ? parsed : Object.values(parsed ?? {});
+    const ports = new Set();
+    for (const container of containers) {
+      for (const entry of String(container.Ports ?? '').split(',')) {
+        const match = entry.trim().match(/^(?:[^:]+:)?(\d+)->\d+\/tcp$/);
+        if (match) ports.add(Number(match[1]));
+      }
+    }
+    return ports;
+  } catch {
+    return new Set();
   }
 }
 
