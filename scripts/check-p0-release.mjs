@@ -32,11 +32,14 @@ for (const path of cronRoutes) {
 }
 
 const security = source('SECURITY.md');
-if (!/security@[a-z0-9.-]+\.[a-z]{2,}/i.test(security)) {
-  failures.push('SECURITY.md: no public security contact email');
+if (!security.includes("GitHub's private vulnerability reporting")) {
+  failures.push('SECURITY.md: private vulnerability reporting instructions are missing');
 }
 if (!security.includes('do not open a public issue')) {
   failures.push('SECURITY.md: vulnerability reporting instructions are incomplete');
+}
+if (/security@[a-z0-9.-]+\.[a-z]{2,}/i.test(security)) {
+  failures.push('SECURITY.md: contains an unverified public security email address');
 }
 
 const scanner = source('scripts/check-oss-release.mjs');

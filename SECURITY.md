@@ -14,12 +14,16 @@ We provide security updates for the `main` branch and the latest stable release.
 
 If you discover a security vulnerability in Kestrel, **do not open a public issue**.
 
-Instead, email **security@kestrel.com** with:
+Use GitHub's private vulnerability reporting for this repository (the **Report a vulnerability** button in the repository's **Security** tab). If private reporting is unavailable, open a minimal issue asking the maintainers to enable it; do not include exploit details or secrets in that issue.
+
+Include the following in the private report:
 
 1. A description of the vulnerability
 2. Steps to reproduce the issue
 3. The potential impact (data exposure, privilege escalation, financial impact, etc.)
 4. Any suggested mitigations
+
+If private reporting is unavailable, contact the maintainers through the repository's current GitHub profile/contact channels rather than relying on an unverified email address.
 
 **Response timeline:**
 

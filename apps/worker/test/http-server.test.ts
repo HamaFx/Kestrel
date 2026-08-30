@@ -57,6 +57,22 @@ describe('worker health server', () => {
     await expect(response.json()).resolves.toMatchObject({ status: 'degraded', ready: false });
   });
 
+  it('exposes a redacted capability report for operators', async () => {
+    const response = await request(createServer(Date.now(), true), '/health/dependencies');
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.status).toBe('ok');
+    expect(body.capabilities).toEqual(
+      expect.objectContaining({
+        enabled: expect.any(Array),
+        disabled: expect.any(Array),
+        capabilities: expect.arrayContaining([
+          expect.objectContaining({ name: 'langfuse-prompt-output-capture', status: 'disabled' }),
+        ]),
+      }),
+    );
+  });
+
   it('keeps /health as a readiness-compatible alias', async () => {
     const response = await request(createServer(Date.now(), true), '/health');
     expect(response.status).toBe(200);

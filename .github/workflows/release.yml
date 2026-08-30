@@ -40,18 +40,35 @@ jobs:
           pnpm check:route-security
           pnpm check:release-archive
           pnpm check:dependency-report
+          pnpm check:single-user-release
 
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@e11e3a6c4d7f2bfa4e0fb8f7d35a4f1c7d37e1b1 # v0.20.0
 
+      - name: Validate release metadata
+        run: pnpm check:release-metadata
+
       - name: Generate SBOM
         run: pnpm generate:sbom
+
+      - name: Generate dependency license inventory
+        run: pnpm licenses:generate
 
       - name: Upload SBOM
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: source-sbom
           path: artifacts/sbom/source.spdx.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload dependency license inventory
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dependency-licenses
+          path: |
+            DEPENDENCY_LICENSES.md
+            artifacts/licenses/dependency-licenses.json
           if-no-files-found: error
           retention-days: 90
 

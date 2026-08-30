@@ -9,6 +9,8 @@ describe('offlineMarketDataProvider', () => {
     expect(secondPrice).toEqual(firstPrice);
 
     const candles = await offlineMarketDataProvider.fetchCandles!('XAUUSD', '1h', 3);
+    const repeatedCandles = await offlineMarketDataProvider.fetchCandles!('XAUUSD', '1h', 3);
+    expect(candles).toEqual(repeatedCandles);
     expect(candles).toHaveLength(3);
     if (!candles) throw new Error('offline provider returned no candles');
     expect(candles.every((candle) => candle.source === 'offline')).toBe(true);

@@ -35,6 +35,8 @@ jobs:
       - run: pnpm check:env-contract
       - run: pnpm check:release-archive
       - run: pnpm check:dependency-report
+      - run: pnpm check:release-metadata
+      - run: pnpm check:single-user-release
       - run: pnpm check:env-contract
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck

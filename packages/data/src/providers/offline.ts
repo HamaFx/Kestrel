@@ -16,7 +16,10 @@ export const offlineMarketDataProvider: MarketDataProvider = {
   async fetchCandles(symbol: Symbol, tf: Timeframe, count: number): Promise<Candle[]> {
     const seed = [...symbol].reduce((total, char) => total + char.charCodeAt(0), 0);
     const step = tf === '1m' ? 60_000 : tf === '1h' ? 3_600_000 : 86_400_000;
-    const now = Math.floor(Date.now() / step) * step;
+    // Keep fixtures reproducible across calls and machines. The synthetic
+    // provider is used by offline development and acceptance tests, so its
+    // candle timestamps must not drift with wall-clock time.
+    const now = 1_700_000_000_000 - (1_700_000_000_000 % step);
     const base = 100 + (seed % 10_000) / 100;
     return Array.from({ length: count }, (_, index) => {
       const close = Number((base + ((index * 17 + seed) % 100) / 100).toFixed(5));

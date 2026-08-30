@@ -39,8 +39,43 @@ jobs:
       - run: pnpm check:route-security
       - run: pnpm check:env-contract
       - run: pnpm check:release-archive
+      - run: pnpm check:dependency-report
+      - run: pnpm check:release-metadata
+      - run: pnpm check:single-user-release
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
+
+  postgres-rls-tests:
+    name: Real PostgreSQL RLS Isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: kestrel-ci-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run real PostgreSQL RLS isolation test
+        env:
+          RUN_POSTGRES_RLS_TESTS: '1'
+          TEST_POSTGRES_ADMIN_URL: postgres://postgres:kestrel-ci-password@127.0.0.1:5432/postgres
+        run: pnpm --filter @kestrel/db test -- --run test/postgres-rls-isolation.test.ts
 
   unit-tests:
     name: Unit & Integration Tests

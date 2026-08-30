@@ -32,6 +32,8 @@ requireText(compose, /MULTI_USER_ENABLED:\s*["']?0/, 'Compose must default to si
 requireText(compose, /REGISTRATION_MODE:\s*["']?owner-first/, 'Compose must default to owner-first registration.');
 requireText(compose, /KESTREL_ENABLE_RLS:\s*["']?0/, 'Compose must disable unsupported OSS RLS mode.');
 requireText(`${compose}\n${appEntrypoint}\n${migrator}`, /backup|restore/i, 'Deployment configuration must contain backup/restore support.');
+requireText(compose, /127\.0\.0\.1:5432/, 'Default database publishing must bind to localhost.');
+requireText(compose, /MULTI_USER_ENABLED:\s*["']?0/, 'Compose must keep shared mode disabled until P2 isolation is proven.');
 
 if (failures.length) {
   console.error('Compose reproducibility check failed:');
