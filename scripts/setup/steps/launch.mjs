@@ -16,10 +16,12 @@
 
 import { resolve } from 'node:path';
 
-import { upsertEnvFile } from '../lib/env.mjs';
+import { readEnvFile, upsertEnvFile } from '../lib/env.mjs';
 import { getPackageManager, packageManagerLabel } from '../lib/prereqs.mjs';
 import { confirm } from '../lib/prompts.mjs';
 import {
+  checkComposeConfig,
+  diagnoseComposeError,
   findFreePort,
   getComposeHostPorts,
   getOwnPublishedPorts,
@@ -181,16 +183,33 @@ export async function run(ctx) {
     // back to plain (non-animated) output when stdout/stderr are not a
     // terminal, so build progress prints once instead of every second.
     // Output is forwarded through `io` — in --json mode that keeps stdout
-    // pure for the JSON result (wizard text goes to stderr there).
+    // pure for the JSON result (wizard text goes to stderr there). A tail
+    // of the output is also captured so a failure can be diagnosed.
+    let buildOutput = '';
+    const capture = (chunk) => {
+      buildOutput += chunk;
+      if (buildOutput.length > 64 * 1024) buildOutput = buildOutput.slice(-64 * 1024);
+    };
     const child = spawn('docker', ['compose', 'up', '-d', '--build'], {
       cwd: repoRoot,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: buildEnv,
     });
-    child.stdout?.on('data', (chunk) => io.write(chunk));
-    child.stderr?.on('data', (chunk) => io.write(chunk));
+    child.stdout?.on('data', (chunk) => {
+      io.write(chunk);
+      capture(chunk);
+    });
+    child.stderr?.on('data', (chunk) => {
+      io.write(chunk);
+      capture(chunk);
+    });
     child.on('error', (err) => {
-      warn(io, `Failed to start Docker: ${err.message}`);
+      if (err.code === 'ENOENT') {
+        fail(io, "Docker doesn't appear to be installed (not found on your PATH).");
+        info(io, 'Install Docker (https://docs.docker.com/get-docker/), then re-run the setup wizard.');
+      } else {
+        fail(io, `Failed to start Docker: ${err.message}`);
+      }
     });
     child.on('exit', async (code) => {
       if (code === 0) {
@@ -205,7 +224,9 @@ export async function run(ctx) {
         }
         printDockerHints(io, effective.appPort);
       } else {
-        fail(io, 'Docker compose failed. Check the output above.');
+        // Turn the raw compose output into a clear diagnosis instead of
+        // just "check the output above".
+        printLaunchFailure(io, buildOutput);
       }
     });
     // The wizard stays attached to the stack log until the user stops it.
@@ -247,6 +268,48 @@ function printDockerHints(io, appPort = 3000) {
   io.line();
 }
 
+/** Explain a failed `docker compose up` with targeted, actionable help. */
+function printLaunchFailure(io, buildOutput) {
+  io.line();
+  fail(io, 'Docker compose failed to start the stack.');
+  const diagnosis = diagnoseComposeError(buildOutput);
+  if (diagnosis) {
+    io.line();
+    box(io, 'What went wrong', [diagnosis.summary], { color: 'red', minWidth: 46 });
+    box(
+      io,
+      'How to fix',
+      diagnosis.fixes.map((fix, index) => `${index + 1}. ${fix}`),
+      { color: 'cyan', minWidth: 46 },
+    );
+  } else {
+    io.line();
+    warn(io, 'No recognizable error pattern — the raw output above has the details.');
+  }
+  io.line();
+  info(io, `Retry anytime with: ${paint('docker compose up -d --build', 'green')}`);
+  info(io, `More help: ${paint('docs/troubleshooting.md', 'dim')}`);
+  io.line();
+}
+
+/**
+ * Best-effort port list when `docker compose config` is unavailable:
+ * the documented defaults, honoring any overrides already in .env.
+ */
+function defaultHostPorts(repoRoot) {
+  const { entries } = readEnvFile(resolve(repoRoot, '.env'));
+  const hostPort = (key, fallback) => {
+    const raw = String(entries.get(key) ?? fallback);
+    const match = raw.match(/:(\d+)$/);
+    const port = Number(match ? match[1] : raw);
+    return Number.isInteger(port) && port > 0 ? port : Number(fallback.split(':').pop());
+  };
+  return [
+    { service: 'db', host: '127.0.0.1', port: hostPort('POSTGRES_PUBLISHED_PORT', '127.0.0.1:5432'), target: 5432 },
+    { service: 'app', host: '127.0.0.1', port: hostPort('APP_PUBLISHED_PORT', '127.0.0.1:3000'), target: 3000 },
+  ];
+}
+
 /**
  * Verify the published host ports are free before the build starts. On a
  * conflict the user is offered a remap (e.g. 5432 → 127.0.0.1:5433)
@@ -259,8 +322,12 @@ async function ensureFreePorts(ctx, repoRoot, envPath) {
   const { io, flags } = ctx;
   let hostPorts = getComposeHostPorts(repoRoot);
   if (hostPorts === null) {
-    warn(io, 'Could not resolve the stack ports — skipping the pre-flight port check.');
-    return { appPort: 3000 };
+    // Never skip the check silently: say why compose config failed, then
+    // check the documented defaults as an explicit best effort.
+    const { error } = checkComposeConfig(repoRoot);
+    warn(io, 'Could not read the stack ports from docker compose — checking the default ports instead.');
+    if (error) io.line(paint(`  ${error.trim().split('\n')[0]}`, 'dim'));
+    hostPorts = defaultHostPorts(repoRoot);
   }
   const ownPorts = getOwnPublishedPorts(repoRoot);
   const auto = flags.yes || flags.json || !io.isTTY;
