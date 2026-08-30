@@ -80,6 +80,94 @@ export async function findFreePort(start, host = '127.0.0.1', maxTries = 50) {
 }
 
 /**
+ * Turn raw `docker compose` failure output into a friendly, actionable
+ * diagnosis. Returns { title, summary, fixes } or null when nothing is
+ * recognized — the caller then falls back to a generic message.
+ */
+export function diagnoseComposeError(output = '') {
+  // Strip ANSI so the matchers see clean text regardless of progress mode.
+  const text = String(output).replace(/\x1b\[[0-9;]*[A-Za-z]/g, '');
+
+  const portMatch = text.match(/bind for ([\d.]+):(\d+) failed: port is already allocated/i);
+  if (portMatch) {
+    const host = portMatch[1];
+    const port = portMatch[2];
+    return {
+      title: 'Port conflict',
+      summary: `Another process or container is already using port ${port} (${host}).`,
+      fixes: [
+        `Find what's holding it: ss -ltnp | grep :${port}   (macOS: lsof -i :${port})`,
+        `Stop that process/container, or remap the port in .env and re-run` +
+          ' (POSTGRES_PUBLISHED_PORT for the database, APP_PUBLISHED_PORT for the web app).',
+        'The wizard normally catches this before building — if you see it anyway,',
+        'something else grabbed the port during the build.',
+      ],
+    };
+  }
+
+  if (/port is already allocated/i.test(text)) {
+    return {
+      title: 'Port conflict',
+      summary: 'A host port the stack needs is already in use.',
+      fixes: [
+        "Find what's holding it: ss -ltnp | grep -E ':(3000|5432|3001|8081|8082)'   (macOS: lsof -i :3000 -i :5432)",
+        'Stop that process/container, or remap the port in .env and re-run',
+        '(POSTGRES_PUBLISHED_PORT / APP_PUBLISHED_PORT).',
+      ],
+    };
+  }
+
+  if (/cannot connect to the docker daemon|is the docker daemon running/i.test(text)) {
+    return {
+      title: 'Docker is not running',
+      summary: 'The Docker daemon could not be reached.',
+      fixes: [
+        'Start Docker Desktop, or run: sudo systemctl start docker',
+        'Wait until Docker is ready, then re-run the setup wizard.',
+      ],
+    };
+  }
+
+  if (/permission denied.*docker/i.test(text) || /got permission denied/i.test(text)) {
+    return {
+      title: 'Docker permission denied',
+      summary: 'Your user does not have permission to talk to the Docker daemon.',
+      fixes: [
+        'Add your user to the docker group: sudo usermod -aG docker $USER',
+        'Log out and back in (or re-run with sudo), then re-run the setup wizard.',
+      ],
+    };
+  }
+
+  if (/no space left on device/i.test(text)) {
+    return {
+      title: 'Disk full',
+      summary: 'The build ran out of disk space.',
+      fixes: [
+        'Free up space — docker system prune -a removes unused images and containers — then re-run.',
+      ],
+    };
+  }
+
+  if (
+    /failed to solve|failed to fetch|unable to resolve|network is unreachable|i\/o timeout|connection (refused|timed out)|temporary failure/i.test(
+      text,
+    )
+  ) {
+    return {
+      title: 'Network error',
+      summary: 'A network problem interrupted the build (pulling images or fetching dependencies).',
+      fixes: [
+        'Check your connection and re-run — BuildKit keeps completed steps cached,',
+        'so the build resumes where it left off.',
+      ],
+    };
+  }
+
+  return null;
+}
+
+/**
  * Resolve the host ports the stack publishes via `docker compose config`.
  * Returns [{ service, host, port, target }] or null when the config
  * cannot be resolved (docker missing or compose broken). Profile-gated
