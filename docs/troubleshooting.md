@@ -72,10 +72,10 @@ POSTGRES_PUBLISHED_PORT=127.0.0.1:5433
 For Docker web-app port conflicts (default 3000), set a local `APP_PUBLISHED_PORT`, for example:
 
 ```dotenv
-APP_PUBLISHED_PORT=127.0.0.1:3001
+APP_PUBLISHED_PORT=127.0.0.1:3002
 ```
 
-The application still reaches the database through the internal Compose network.
+Avoid `3001`: that is Langfuse's published port when the observability profile is enabled, and `9090` belongs to MinIO. The application still reaches the database through the internal Compose network.
 
 The setup wizard detects busy host ports before building and offers to remap them automatically.
 
