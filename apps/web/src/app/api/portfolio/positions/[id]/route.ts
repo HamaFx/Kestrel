@@ -18,7 +18,7 @@
 
 // PF-22 — /api/portfolio/positions/[id] — get / close / delete (thin controller).
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import {
   AppError,
   ClosePositionInputSchema,
@@ -46,8 +46,7 @@ export const GET = withAuth<{ id: string }>(async (_req, { user, params }) => {
 export const PATCH = withAuth<{ id: string }>(async (req, { user, params }) => {
   try {
     const { id } = await params;
-    const body = await req.json();
-    const input = ClosePositionInputSchema.parse(body);
+    const input = await parseJsonBody(req, ClosePositionInputSchema);
     const position = await closePositionService(user.userId, id, input);
     if (!position) {
       return errorResponse(new AppError('NOT_FOUND', 'Position not found or already closed', 404));

@@ -298,6 +298,23 @@ describe('withAuth', () => {
     expect(body.error.code).toBe('VALIDATION');
   });
 
+  it('rejects forged identity headers and does not invoke the protected handler', async () => {
+    vi.mocked(mockAuth).mockResolvedValue(null);
+    const handler = vi.fn(async () => Response.json({ ok: true }));
+    const protectedHandler = withAuth(async (request, context) => handler(request, context));
+    const req = mockRequest('http://localhost', {
+      headers: {
+        'x-user-id': 'forged-user',
+        'x-user-id-sig': 'forged-signature',
+        'x-request-id': 'req-forged',
+      },
+    });
+
+    const res = await protectedHandler(req, { params: Promise.resolve({}) });
+    expect(res.status).toBe(401);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it('propagates x-request-id in 401 response', async () => {
     const req = mockRequest('http://localhost', {
       headers: { 'x-request-id': 'my-req-id' },

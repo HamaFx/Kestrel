@@ -29,7 +29,7 @@
 
 import { z } from 'zod';
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import {
   AppError,
   conflict,
@@ -63,28 +63,20 @@ export const POST = withAuth<void>(async (req, { user }) => {
     return Response.json({ missing }, { status: 503 });
   }
 
-  let raw: unknown;
+  let parsed: z.infer<typeof BodySchema>;
   try {
-    raw = await req.json();
+    parsed = await parseJsonBody(req, BodySchema);
   } catch {
-    raw = null;
+    return errorResponse(new AppError('VALIDATION', 'Invalid request body', 400), req);
   }
-  const parsed = BodySchema.safeParse(raw);
-  if (!parsed.success) {
-    return errorResponse(
-      new AppError('VALIDATION', 'Invalid request body', 400, { issues: parsed.error.issues }),
-      req,
-    );
-  }
-
   const userAgent = req.headers.get('user-agent') ?? null;
   let row: Awaited<ReturnType<typeof savePushSubscription>>;
   try {
     row = await savePushSubscription({
       userId: user.userId,
-      endpoint: parsed.data.endpoint,
-      p256dh: parsed.data.keys.p256dh,
-      auth: parsed.data.keys.auth,
+      endpoint: parsed.endpoint,
+      p256dh: parsed.keys.p256dh,
+      auth: parsed.keys.auth,
       userAgent,
     });
   } catch (error) {

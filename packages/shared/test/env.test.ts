@@ -17,6 +17,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  getDeprecatedEnvAliases,
   parseServerEnv,
   resolveDatabaseUrl,
   resolveDirectDatabaseUrl,
@@ -69,6 +70,17 @@ describe('AUTO_GENERATED_SECRETS', () => {
     for (const key of AUTO_GENERATED_SECRETS) {
       expect(SECRET_MIN_BYTES[key]).toBeGreaterThanOrEqual(16);
     }
+  });
+});
+
+describe('deprecated environment aliases', () => {
+  it('reports legacy aliases only when the canonical name is absent', () => {
+    expect(getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0' })).toEqual([
+      { oldName: 'HAMAFX_ENABLE_RLS', newName: 'KESTREL_ENABLE_RLS' },
+    ]);
+    expect(
+      getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0', KESTREL_ENABLE_RLS: '0' }),
+    ).toEqual([]);
   });
 });
 

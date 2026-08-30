@@ -212,9 +212,13 @@ services:
       db:
         condition: service_healthy
     # INFRA-01: Worker exposes a lightweight HTTP health server on port 8081.
+    # Health port is intentionally not published by default; use a private
+    # override only when an operator needs host/orchestrator access.
     # See apps/worker/src/index.ts — it responds { status: 'ok' } at /.
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/health/live || exit 1"]
+      # Production health endpoints require the token; keep the token out of
+      # the command line and let Compose expand it inside the container.
+      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $${WORKER_HEALTH_TOKEN}\" http://localhost:8081/health/live || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -10,6 +10,7 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const compose = readFileSync(resolve(root, 'docker-compose.yml'), 'utf8');
 const appEntrypoint = readFileSync(resolve(root, 'apps/web/docker-entrypoint.sh'), 'utf8');
+const vmCompose = readFileSync(resolve(root, 'infra/cron-vm/docker-compose.vm.yml'), 'utf8');
 const migrator = readFileSync(resolve(root, 'apps/web/scripts/migrate-runtime.mjs'), 'utf8');
 const failures = [];
 
@@ -33,6 +34,9 @@ requireText(compose, /REGISTRATION_MODE:\s*["']?owner-first/, 'Compose must defa
 requireText(compose, /KESTREL_ENABLE_RLS:\s*["']?0/, 'Compose must disable unsupported OSS RLS mode.');
 requireText(`${compose}\n${appEntrypoint}\n${migrator}`, /backup|restore/i, 'Deployment configuration must contain backup/restore support.');
 requireText(compose, /127\.0\.0\.1:5432/, 'Default database publishing must bind to localhost.');
+requireText(compose, /Authorization: Bearer \$\$\{WORKER_HEALTH_TOKEN\}/, 'Worker healthcheck must send the production health token.');
+requireText(compose, /Health port is intentionally not published by default/, 'Worker health exposure must remain explicitly private by default.');
+requireText(vmCompose, /127\.0\.0\.1:8082:8082/, 'Worker proxy listener must bind privately in the VM deployment.');
 requireText(compose, /MULTI_USER_ENABLED:\s*["']?0/, 'Compose must keep shared mode disabled until P2 isolation is proven.');
 
 if (failures.length) {

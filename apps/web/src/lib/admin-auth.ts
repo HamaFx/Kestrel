@@ -28,6 +28,7 @@ import { auth } from '@/auth';
 import { getServerEnv } from '@/lib/env';
 
 import { createRequestLogger } from './logger';
+import { getRequestId } from './request-id';
 
 export interface AdminUser {
   userId: string;
@@ -114,7 +115,11 @@ export function withAdminAuth<T = Record<string, never>>(
       const message =
         reason === 'unauthenticated' ? 'Authentication required' : 'Admin access required';
       log.warn('admin route access denied', { reason });
-      return Response.json({ error: { code, message } }, { status });
+      const requestId = getRequestId(req);
+      return Response.json(
+        { error: { code, message, ...(requestId ? { requestId } : {}) } },
+        { status, headers: requestId ? { 'x-request-id': requestId } : undefined },
+      );
     }
     log.info('admin route accessed', { userId: admin.userId });
     return handler(req, { user: admin, params: ctx?.params ?? Promise.resolve({} as T) });

@@ -170,19 +170,16 @@ export function getAuthEnv(): AuthEnv {
 export function getServerEnv(): ServerEnv {
   if (_serverEnv) return _serverEnv;
   loadOrGenerateDevSecrets();
+  if (process.env.HAMAFX_ENABLE_RLS !== undefined && process.env.KESTREL_ENABLE_RLS === undefined) {
+    console.warn('[env] HAMAFX_ENABLE_RLS is deprecated; use KESTREL_ENABLE_RLS instead.');
+  }
   _serverEnv = parseServerEnv();
   return _serverEnv;
 }
 
-// MED-05: Fail closed if legacy authentication reaches a production process or build.
-// A production artifact must never be created with authentication disabled.
-if (process.env.AUTH_MODE === 'legacy' && process.env.NODE_ENV === 'production') {
-  throw new Error(
-    '[SECURITY] AUTH_MODE=legacy is forbidden in production. ' +
-      'Legacy auth mode bypasses all authentication and must only be used in development. ' +
-      'Unset AUTH_MODE or set it to "normal" for production deployments.',
-  );
-}
+// Production authentication invariants are enforced at request/boot boundaries
+// by the shared security-invariants module. Avoid throwing here so build-time
+// environment evaluation remains hermetic.
 
 // P2-5: Loud boot warning when AUTH_MODE=legacy is on in dev
 if (process.env.AUTH_MODE === 'legacy' && process.env.NODE_ENV !== 'production') {

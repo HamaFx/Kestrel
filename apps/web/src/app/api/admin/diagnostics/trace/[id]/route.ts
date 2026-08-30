@@ -30,16 +30,15 @@ import type { DiagnosticTraceRow } from '@/lib/services/api-boundary';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export const GET = withAdminAuth<{ id: string }>(async (_req, { user, params }) => {
+import { jsonApiError } from '@/lib/api-errors';
+
+export const GET = withAdminAuth<{ id: string }>(async (req, { user, params }) => {
   const { id } = await params;
 
   const row = await getDiagnosticTraceForAdmin(id);
 
   if (!row) {
-    return Response.json(
-      { error: { code: 'NOT_FOUND', message: 'Trace not found' } },
-      { status: 404 },
-    );
+    return jsonApiError('NOT_FOUND', 'Trace not found', 404, req);
   }
 
   const traceRow = row as DiagnosticTraceRow;

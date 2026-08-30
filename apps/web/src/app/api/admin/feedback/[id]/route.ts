@@ -20,6 +20,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/admin-auth';
 import { errorResponse, parseJsonBody } from '@/lib/api';
+import { jsonApiError } from '@/lib/api-errors';
 import { recordAdminAudit } from '@/lib/services/admin';
 import { reviewMessageFeedback } from '@/lib/services/api-boundary';
 
@@ -46,10 +47,7 @@ export const PATCH = withAdminAuth<{ id: string }>(async (req, { user, params })
       ...(body.reviewerNote ? { reviewerNote: body.reviewerNote } : {}),
     });
     if (!row) {
-      return Response.json(
-        { error: { code: 'NOT_FOUND', message: 'Feedback not found' } },
-        { status: 404 },
-      );
+      return jsonApiError('NOT_FOUND', 'Feedback not found', 404, req);
     }
     await recordAdminAudit(user.userId, 'ai.feedback.review', row.userId, {
       feedbackId: row.id,

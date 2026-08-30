@@ -483,6 +483,16 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
  * Parse process.env into a typed env object. Throws a readable error listing
  * every missing/invalid variable. Cache the result at module-scope in callers.
  */
+export const DEPRECATED_ENV_ALIASES = {
+  HAMAFX_ENABLE_RLS: 'KESTREL_ENABLE_RLS',
+} as const;
+
+export function getDeprecatedEnvAliases(input: NodeJS.ProcessEnv = process.env): Array<{ oldName: string; newName: string }> {
+  return Object.entries(DEPRECATED_ENV_ALIASES)
+    .filter(([oldName, newName]) => input[oldName] !== undefined && input[newName] === undefined)
+    .map(([oldName, newName]) => ({ oldName, newName }));
+}
+
 export function parseServerEnv(input: NodeJS.ProcessEnv = process.env): ServerEnv {
   // Accept the pre-rebrand variable during upgrades, but normalize all
   // application behavior to the Kestrel name before validation.

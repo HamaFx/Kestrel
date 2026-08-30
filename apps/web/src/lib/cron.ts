@@ -27,6 +27,7 @@ import * as Sentry from '@sentry/nextjs';
 import { getUserFromRequest } from './api';
 import { getAuthEnv } from './env';
 import { createScopedLoggerWithContext } from './logger';
+import { getRequestId } from './request-id';
 
 function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -46,6 +47,8 @@ export async function withCronAuth(
   options: { requireAdminSession?: boolean } = {},
 ): Promise<Response> {
   const env = getAuthEnv();
+  const requestId = getRequestId(req);
+  const responseOptions = requestId ? { headers: { 'x-request-id': requestId } } : undefined;
 
   const header = req.headers.get('authorization') ?? '';
   const expected = `Bearer ${env.CRON_SECRET}`;
@@ -63,12 +66,18 @@ export async function withCronAuth(
     const { getAdminUser } = await import('./admin-auth');
     const admin = await getAdminUser();
     if (!admin.admin) {
-      return Response.json({ error: { code: 'FORBIDDEN', message: 'Admin access required' } }, { status: 403 });
+      return Response.json(
+        { error: { code: 'FORBIDDEN', message: 'Admin access required', ...(requestId ? { requestId } : {}) } },
+        { status: 403, ...(responseOptions ?? {}) },
+      );
     }
   }
 
   if (!hasBearerAuth && !hasSessionAuth) {
-    return Response.json({ error: { code: 'AUTH', message: 'Unauthorized' } }, { status: 401 });
+    return Response.json(
+      { error: { code: 'AUTH', message: 'Unauthorized', ...(requestId ? { requestId } : {}) } },
+      { status: 401, ...(responseOptions ?? {}) },
+    );
   }
 
   try {

@@ -32,6 +32,9 @@ export interface FlushClosedCandleArgs {
   db: ReturnType<typeof getDb>;
   log: Logger;
   bar: ClosedCandle;
+  signal?: AbortSignal;
+  /** Optional driver-specific cancellation hook for an already-issued query. */
+  cancel?: () => void | Promise<void>;
 }
 
 /**
@@ -40,7 +43,8 @@ export interface FlushClosedCandleArgs {
  */
 export async function flushClosedCandle(args: FlushClosedCandleArgs): Promise<void> {
   const { bar } = args;
-  await args.db
+  if (args.signal?.aborted) throw new DOMException('Candle flush aborted', 'AbortError');
+  const writePromise = args.db
     .insert(candles1m)
     .values({
       symbol: bar.symbol,
@@ -54,4 +58,25 @@ export async function flushClosedCandle(args: FlushClosedCandleArgs): Promise<vo
       source: bar.source,
     })
     .onConflictDoNothing();
+  if (args.signal) {
+    await Promise.race([
+      writePromise,
+      new Promise<never>((_, reject) => {
+        if (args.signal?.aborted) {
+          reject(new DOMException('Candle flush aborted', 'AbortError'));
+          return;
+        }
+        args.signal?.addEventListener(
+          'abort',
+          () => {
+            void args.cancel?.();
+            reject(new DOMException('Candle flush aborted', 'AbortError'));
+          },
+          { once: true },
+        );
+      }),
+    ]);
+  } else {
+    await writePromise;
+  }
 }

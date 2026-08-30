@@ -59,6 +59,27 @@ describe('TickBuffer', () => {
     expect(drained.map((d) => d.tick.symbol).sort()).toEqual(['EURUSD', 'GBPUSD', 'XAUUSD']);
   });
 
+  it('does not remove a slot changed after the snapshot', () => {
+    const buf = new TickBuffer();
+    buf.push(tick('XAUUSD', 2390));
+    const snapshot = buf.peek();
+
+    buf.push(tick('XAUUSD', 2391));
+    expect(buf.drain(snapshot)).toEqual([]);
+    expect(buf.peek()[0]?.tick.mid).toBe(2391);
+  });
+
+  it('drains unchanged snapshot slots while retaining newly added symbols', () => {
+    const buf = new TickBuffer();
+    buf.push(tick('XAUUSD', 2390));
+    const snapshot = buf.peek();
+    buf.push(tick('EURUSD', 1.085));
+
+    const drained = buf.drain(snapshot);
+    expect(drained.map((entry) => entry.tick.symbol)).toEqual(['XAUUSD']);
+    expect(buf.peek().map((entry) => entry.tick.symbol)).toEqual(['EURUSD']);
+  });
+
   it('clears after drain', () => {
     const buf = new TickBuffer();
     buf.push(tick('XAUUSD', 2390));

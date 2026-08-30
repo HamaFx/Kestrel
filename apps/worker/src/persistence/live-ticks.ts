@@ -36,6 +36,9 @@ export interface LiveTicksWriterArgs {
   db: ReturnType<typeof getDb>;
   buffer: TickBuffer;
   log: Logger;
+  signal?: AbortSignal;
+  /** Optional driver-specific cancellation hook for an already-issued query. */
+  cancel?: () => void | Promise<void>;
 }
 
 /**
@@ -56,6 +59,7 @@ export async function flushLiveTicks(
   totalTicks: number;
 }> {
   if (drained.length === 0) return { written: 0, totalTicks: 0 };
+  if (args.signal?.aborted) throw new DOMException('Live tick flush aborted', 'AbortError');
 
   const totalTicks = drained.reduce((sum, d) => sum + d.observed, 0);
   const rows = drained.map(({ tick }) => toRow(tick));
@@ -63,7 +67,7 @@ export async function flushLiveTicks(
   // ON CONFLICT (symbol) DO UPDATE — the symbol is the PK, so we collapse
   // to a single row per instrument. `updated_at` is bumped via DEFAULT now()
   // on the conflict path too.
-  await args.db
+  const writePromise = args.db
     .insert(liveTicks)
     .values(rows)
     .onConflictDoUpdate({
@@ -77,6 +81,28 @@ export async function flushLiveTicks(
         updatedAt: sql`now()`,
       },
     });
+
+  if (args.signal) {
+    await Promise.race([
+      writePromise,
+      new Promise<never>((_, reject) => {
+        if (args.signal?.aborted) {
+          reject(new DOMException('Live tick flush aborted', 'AbortError'));
+          return;
+        }
+        args.signal?.addEventListener(
+          'abort',
+          () => {
+            void args.cancel?.();
+            reject(new DOMException('Live tick flush aborted', 'AbortError'));
+          },
+          { once: true },
+        );
+      }),
+    ]);
+  } else {
+    await writePromise;
+  }
 
   return { written: rows.length, totalTicks };
 }

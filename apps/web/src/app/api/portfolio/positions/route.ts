@@ -18,7 +18,7 @@
 
 // PF-22 — /api/portfolio/positions — list / create positions (thin controller).
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import {
   CreatePositionInputSchema,
   createPositionService,
@@ -41,8 +41,7 @@ export const GET = withAuth<void>(async (req, { user }) => {
 
 export const POST = withAuth<void>(async (req, { user }) => {
   try {
-    const body = await req.json();
-    const input = CreatePositionInputSchema.parse(body);
+    const input = await parseJsonBody(req, CreatePositionInputSchema);
     const result = await createPositionService(user.userId, input);
     return Response.json(result, { status: 201 });
   } catch (err) {

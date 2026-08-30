@@ -25,7 +25,7 @@ export async function register() {
     // Fail closed during the Node server startup path as well as in
     // request callbacks. Vault loading must happen first because it may
     // provide AUTH_SECRET for managed deployments.
-    const { assertProductionSecurity } = await import('./auth.config');
+    const { assertProductionSecurity } = await import('./lib/security-invariants');
     assertProductionSecurity();
     // Start Langfuse only in the Node runtime. Never import the exporter in
     // Edge middleware or client bundles because it depends on Node APIs.

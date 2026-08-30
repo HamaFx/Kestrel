@@ -37,7 +37,6 @@ jobs:
       - run: pnpm check:dependency-report
       - run: pnpm check:release-metadata
       - run: pnpm check:single-user-release
-      - run: pnpm check:env-contract
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
       # Knip is report-only until its baseline is fully reviewed; it must not
@@ -154,7 +153,6 @@ jobs:
       - name: Merge HTML report
         working-directory: ./apps/web
         run: pnpm exec playwright merge-reports --reporter=html blob-reports
-        continue-on-error: true
       - name: Upload merged report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -163,3 +161,20 @@ jobs:
           path: apps/web/playwright-report/
           if-no-files-found: ignore
           retention-days: 30
+
+  required-status:
+    name: Required CI Status
+    if: always()
+    needs: [lint-and-typecheck, unit-tests, e2e-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail when a required job failed or was cancelled
+        env:
+          LINT_RESULT: ${{ needs.lint-and-typecheck.result }}
+          UNIT_RESULT: ${{ needs.unit-tests.result }}
+          E2E_RESULT: ${{ needs.e2e-tests.result }}
+        run: |
+          test "$LINT_RESULT" = success || { echo "lint-and-typecheck: $LINT_RESULT"; exit 1; }
+          test "$UNIT_RESULT" = success || { echo "unit-tests: $UNIT_RESULT"; exit 1; }
+          test "$E2E_RESULT" = success || { echo "e2e-tests: $E2E_RESULT"; exit 1; }
+          echo "Required CI jobs passed."

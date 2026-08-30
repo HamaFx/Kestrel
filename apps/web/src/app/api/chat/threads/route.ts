@@ -20,7 +20,7 @@
 
 import { z } from 'zod';
 
-import { errorResponse, getUserFromRequest, parseJsonBody } from '@/lib/api';
+import { parseJsonBody, withAuth } from '@/lib/api';
 import { createThreadService, listThreadsService } from '@/lib/services/chat';
 
 const CreateBodySchema = z.object({ pinnedSymbol: z.string().nullable().optional() }).default({});
@@ -28,39 +28,17 @@ const CreateBodySchema = z.object({ pinnedSymbol: z.string().nullable().optional
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request): Promise<Response> {
-  const user = await getUserFromRequest(req);
-  if (!user) {
-    return Response.json(
-      { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-      { status: 401 },
-    );
-  }
-  try {
-    const url = new URL(req.url);
-    const rawLimit = Number(url.searchParams.get('limit') ?? '50');
-    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 100) : 50;
-    const beforeCursor = url.searchParams.get('before');
-    const result = await listThreadsService(user.userId, limit, beforeCursor);
-    return Response.json(result);
-  } catch (err) {
-    return errorResponse(err);
-  }
-}
+export const GET = withAuth<void>(async (req, { user }) => {
+  const url = new URL(req.url);
+  const rawLimit = Number(url.searchParams.get('limit') ?? '50');
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 100) : 50;
+  const beforeCursor = url.searchParams.get('before');
+  const result = await listThreadsService(user.userId, limit, beforeCursor);
+  return Response.json(result);
+});
 
-export async function POST(req: Request): Promise<Response> {
-  const user = await getUserFromRequest(req);
-  if (!user) {
-    return Response.json(
-      { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-      { status: 401 },
-    );
-  }
-  try {
-    const { pinnedSymbol } = await parseJsonBody(req, CreateBodySchema);
-    const result = await createThreadService(user.userId, pinnedSymbol ?? null);
-    return Response.json(result, { status: 201 });
-  } catch (err) {
-    return errorResponse(err);
-  }
-}
+export const POST = withAuth<void>(async (req, { user }) => {
+  const { pinnedSymbol } = await parseJsonBody(req, CreateBodySchema);
+  const result = await createThreadService(user.userId, pinnedSymbol ?? null);
+  return Response.json(result, { status: 201 });
+});

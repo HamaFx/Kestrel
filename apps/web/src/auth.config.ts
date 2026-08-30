@@ -22,34 +22,12 @@
 
 import type { NextAuthConfig } from 'next-auth';
 
+import { assertProductionSecurity } from '@/lib/security-invariants';
+
 // P2-3 / C-2: Production invariants are checked when the proxy handles a
 // request, not at module evaluation time. Next.js evaluates this config
 // during `next build`; request-time checks keep builds hermetic without
 // creating an environment-variable bypass that could weaken runtime auth.
-export function assertProductionSecurity(): void {
-  if (
-    process.env.NODE_ENV === 'production' &&
-    !process.env.AUTH_SECRET &&
-    !process.env.NEXTAUTH_SECRET
-  ) {
-    throw new Error(
-      '[SECURITY] AUTH_SECRET (or NEXTAUTH_SECRET) must be set in production. ' +
-        'Generate: node -e "console.log(crypto.randomBytes(32).toString(\'hex\'))"',
-    );
-  }
-
-  if (
-    process.env.AUTH_MODE === 'legacy' &&
-    process.env.NODE_ENV === 'production'
-  ) {
-    throw new Error(
-      '[SECURITY] AUTH_MODE=legacy is forbidden in production. ' +
-        'Legacy auth mode bypasses all authentication and must only be used in development. ' +
-        'Unset AUTH_MODE or set it to "normal" for production deployments.',
-    );
-  }
-}
-
 // Dev fallback: ensures the request proxy never runs without a
 // signing secret (which would cause MissingSecret errors and break
 // the auth gate). In production AUTH_SECRET must be set explicitly.

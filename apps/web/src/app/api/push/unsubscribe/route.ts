@@ -26,8 +26,8 @@
 
 import { z } from 'zod';
 
-import { errorResponse, withAuth } from '@/lib/api';
-import { AppError, deletePushSubscriptionByEndpoint } from '@/lib/services/api-boundary';
+import { parseJsonBody, withAuth } from '@/lib/api';
+import { deletePushSubscriptionByEndpoint } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,20 +37,8 @@ const BodySchema = z.object({
 });
 
 export const POST = withAuth<void>(async (req, { user }) => {
-  let raw: unknown;
-  try {
-    raw = await req.json();
-  } catch {
-    raw = null;
-  }
-  const parsed = BodySchema.safeParse(raw);
-  if (!parsed.success) {
-    return errorResponse(
-      new AppError('VALIDATION', 'Invalid request body', 400, { issues: parsed.error.issues }),
-      req,
-    );
-  }
+  const parsed = await parseJsonBody(req, BodySchema);
 
-  await deletePushSubscriptionByEndpoint(user.userId, parsed.data.endpoint);
+  await deletePushSubscriptionByEndpoint(user.userId, parsed.endpoint);
   return Response.json({ ok: true }, { status: 200 });
 });

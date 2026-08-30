@@ -24,7 +24,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { validateSession, type SessionToken } from '../src/lib/auth/session-validators';
 
-const authSource = readFileSync(resolve(process.cwd(), 'src/auth.ts'), 'utf8');
+const authSource = readFileSync(resolve(process.cwd(), 'src/lib/auth/callbacks.ts'), 'utf8');
 
 function token(overrides: Partial<SessionToken> = {}): SessionToken {
   return {
@@ -55,7 +55,8 @@ describe('session validation outage policy', () => {
   it('invalidates the session when auth cannot acquire the database client', () => {
     expect(authSource).toContain('auth/session_database_unavailable');
     expect(authSource).toContain("return { ...session, user: undefined, expires: '0' }");
-    expect(authSource).toContain('validateSession(db, token, session, now, { failClosed: true })');
+    expect(authSource).toContain('validateSession(');
+    expect(authSource).toContain('failClosed: true');
   });
 
   it('invalidates the session when the revocation query fails by default', async () => {

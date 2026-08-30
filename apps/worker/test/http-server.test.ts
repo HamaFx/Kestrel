@@ -7,7 +7,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createHealthServer } from '../src/http-server';
+import { createHealthServer, createProxyServer } from '../src/http-server';
 
 function createServer(lastTickAt: number, connected: boolean) {
   return createHealthServer({
@@ -22,12 +22,16 @@ function createServer(lastTickAt: number, connected: boolean) {
   });
 }
 
-async function request(server: ReturnType<typeof createHealthServer>, path: string) {
+async function request(
+  server: ReturnType<typeof createHealthServer>,
+  path: string,
+  init?: RequestInit,
+) {
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('server did not bind');
   try {
-    return await fetch(`http://127.0.0.1:${address.port}${path}`);
+    return await fetch(`http://127.0.0.1:${address.port}${path}`, init);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
@@ -35,6 +39,7 @@ async function request(server: ReturnType<typeof createHealthServer>, path: stri
 
 afterEach(() => {
   delete process.env.WORKER_HEALTH_TOKEN;
+  delete process.env.BIQUOTE_PROXY_TOKEN;
   delete process.env.NODE_ENV;
 });
 
@@ -73,9 +78,43 @@ describe('worker health server', () => {
     );
   });
 
+  it('requires the health token in production', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.WORKER_HEALTH_TOKEN = 'health-secret';
+
+    const unauthorized = await request(createServer(Date.now(), true), '/health/live');
+    expect(unauthorized.status).toBe(401);
+
+    const authorized = await request(createServer(Date.now(), true), '/health/live', {
+      headers: { authorization: 'Bearer health-secret' },
+    });
+    expect(authorized.status).toBe(200);
+  });
+
+  it('rejects an unconfigured production BiQuote proxy without exposing internals', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.BIQUOTE_PROXY_TOKEN;
+
+    const response = await request(createProxyServer({
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
+      getLastTickAt: () => Date.now(),
+      isSignalRConnected: () => true,
+    }), '/biquote/api/XAUUSD/ohlc');
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      status: 'error',
+      message: 'BiQuote proxy not configured',
+    });
+  });
+
   it('keeps /health as a readiness-compatible alias', async () => {
     const response = await request(createServer(Date.now(), true), '/health');
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ status: 'ok', ready: true });
+  });
+
+  it('does not expose an unauthenticated catch-all route on the health listener', async () => {
+    const response = await request(createServer(Date.now(), true), '/internal');
+    expect(response.status).toBe(404);
   });
 });

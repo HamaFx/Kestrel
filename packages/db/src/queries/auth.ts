@@ -111,7 +111,7 @@ export async function createUserWithSettings(input: CreateUserInput): Promise<vo
       // Serialize the check and insert so two concurrent first-run requests
       // cannot both become the owner of a fresh deployment.
       await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(hashtext('hamafx:first-user-registration'))`,
+        sql`SELECT pg_advisory_xact_lock(hashtext('kestrel:first-user-registration'))`,
       );
       const [existingUser] = await tx
         .select({ id: schema.users.id })

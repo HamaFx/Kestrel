@@ -16,7 +16,7 @@
 
 import { z } from 'zod';
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import { updateUserSettingsField } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
@@ -34,8 +34,7 @@ const ProgressSchema = z.object({
 
 export const POST = withAuth<void>(async (req, { user }) => {
   try {
-    const body = await req.json();
-    const parsed = ProgressSchema.parse(body);
+    const parsed = await parseJsonBody(req, ProgressSchema);
 
     await updateUserSettingsField(
       user.userId,

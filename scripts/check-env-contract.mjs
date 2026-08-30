@@ -28,7 +28,7 @@ for (const key of ['AUTH_SECRET', 'CRON_SECRET', 'ENCRYPTION_SECRET', 'BYOK_ENAB
   if (!exampleKeys.has(key) && !templateKeys.has(key)) failures.push(`OSS environment contract is missing ${key}`);
 }
 
-for (const key of ['POSTGRES_PASSWORD', 'AUTH_SECRET', 'CRON_SECRET', 'ENCRYPTION_SECRET', 'BYOK_ENABLED', 'MULTI_USER_ENABLED', 'REGISTRATION_MODE', 'KESTREL_ENABLE_RLS']) {
+for (const key of ['POSTGRES_PASSWORD', 'AUTH_SECRET', 'CRON_SECRET', 'ENCRYPTION_SECRET', 'BYOK_ENABLED', 'MULTI_USER_ENABLED', 'REGISTRATION_MODE', 'KESTREL_ENABLE_RLS', 'OSS_SINGLE_USER_MODE', 'WORKER_HEALTH_TOKEN', 'BIQUOTE_PROXY_TOKEN']) {
   if (!templateKeys.has(key)) failures.push('secret-template.json is missing ' + key);
 }
 
@@ -47,6 +47,10 @@ if (!/DIRECT_URL.*POSTGRES_URL_NON_POOLING/.test(shared)) failures.push('Shared 
 // The worker consumes the application connection; migration URL selection is
 // intentionally centralized in the web/db migration scripts rather than duplicated here.
 if (!/DATABASE_URL|POSTGRES_URL/.test(worker)) failures.push('Worker env must define database URL handling');
+if (!/WORKER_HEALTH_TOKEN\s*:\s*optionalNonEmpty/.test(worker)) failures.push('Worker env must define WORKER_HEALTH_TOKEN');
+if (!/BIQUOTE_PROXY_TOKEN\s*:\s*optionalNonEmpty/.test(worker)) failures.push('Worker env must define BIQUOTE_PROXY_TOKEN');
+if (!/WORKER_HEALTH_TOKEN/.test(read('docs/configuration.md'))) failures.push('Configuration docs must describe WORKER_HEALTH_TOKEN');
+if (!/BIQUOTE_PROXY_TOKEN/.test(read('docs/configuration.md'))) failures.push('Configuration docs must describe BIQUOTE_PROXY_TOKEN');
 
 if (failures.length) {
   console.error('Environment contract check failed:');

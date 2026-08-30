@@ -20,7 +20,7 @@
 // GET  /api/notifications/route-config
 // PUT  /api/notifications/route-config
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import {
   getRouteConfig,
   RouteConfigSchema,
@@ -42,7 +42,7 @@ export const GET = withAuth<void>(async (_req, { user }) => {
 
 export const PUT = withAuth<void>(async (req, { user }) => {
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req, RouteConfigSchema);
     const partial = RouteConfigSchema.partial().parse(body);
 
     // Clean undefined values to prevent overwriting existing settings with undefined during spread merges

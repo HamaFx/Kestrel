@@ -22,20 +22,20 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
-const authSource = readFileSync(resolve(root, 'apps/web/src/auth.ts'), 'utf8');
+const authSource = readFileSync(resolve(root, 'apps/web/src/lib/auth/credentials-authorize.ts'), 'utf8');
 const actionsSource = readFileSync(resolve(root, 'apps/web/src/app/(auth)/actions.ts'), 'utf8');
 
 describe('2FA rate-limit security policy', () => {
   it('fails closed when the database-backed limiter is unavailable', () => {
     const rateLimitBlockStart = authSource.indexOf("withRateLimit(user.id, '2fa_verify', 10)");
-    const rateLimitBlockEnd = authSource.indexOf('if (!rateLimitAllowed)', rateLimitBlockStart);
+    const rateLimitBlockEnd = authSource.indexOf('const secret =', rateLimitBlockStart);
 
     expect(rateLimitBlockStart).toBeGreaterThan(-1);
     expect(rateLimitBlockEnd).toBeGreaterThan(rateLimitBlockStart);
 
     const rateLimitBlock = authSource.slice(rateLimitBlockStart, rateLimitBlockEnd);
     expect(rateLimitBlock).toContain("throw new AuthError('2FA_SYSTEM_ERROR')");
-    expect(rateLimitBlock).toContain('2FA rate limiting is a security control');
+    expect(authSource).toContain('auth/2fa_rate_limit_unavailable');
     expect(rateLimitBlock).not.toContain('fail open');
   });
 

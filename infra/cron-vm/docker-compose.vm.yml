@@ -24,11 +24,13 @@ services:
       WORKER_MODE: docker
       KESTREL_RUNTIME: worker
 
-    # Port 8081 is externally reachable only through the GCP firewall;
-    # /health requires WORKER_HEALTH_TOKEN. The BiQuote proxy remains
-    # bearer-protected separately and should not be used by Vercel.
+    # Keep both listeners host-private. Do not publish either port on
+    # 0.0.0.0 or expose them through a public firewall rule.
+    # /health requires WORKER_HEALTH_TOKEN; /biquote requires
+    # BIQUOTE_PROXY_TOKEN in production.
     ports:
-      - "127.0.0.1:8081:8081"   # Authenticated worker health endpoint; expose through an explicit private proxy/firewall override
+      - "127.0.0.1:8081:8081"   # Private health access only
+      - "127.0.0.1:8082:8082"   # Private proxy access only
 
     # No persistent volumes — all state lives in Supabase Postgres.
     # The worker is stateless: in-memory tick buffer + candle aggregator

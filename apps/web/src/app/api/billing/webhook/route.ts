@@ -25,6 +25,7 @@ import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
 import { getServerEnv } from '@/lib/env';
+import { getRequestId } from '@/lib/request-id';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { verifyIpnSignature } from '@/lib/nowpayments';
 import {
@@ -131,9 +132,14 @@ export async function processVerifiedIpnPayload(payload: IpnPayload): Promise<vo
 
 export async function POST(req: Request): Promise<Response> {
   const env = getServerEnv();
-  const logger = createScopedLoggerWithContext({ component: 'billing-webhook' });
+  const requestId = getRequestId(req);
+  const responseHeaders = requestId ? { 'x-request-id': requestId } : undefined;
+  const logger = createScopedLoggerWithContext({
+    component: 'billing-webhook',
+    ...(requestId ? { requestId } : {}),
+  });
   if (!env.BILLING_ENABLED) {
-    return new Response('Not Found', { status: 404 });
+    return new Response('Not Found', { status: 404, headers: responseHeaders });
   }
   const rawBody = await req.text();
   const signature = req.headers.get('x-nowpayments-sig') ?? '';
@@ -141,7 +147,7 @@ export async function POST(req: Request): Promise<Response> {
 
   if (!ipnSecret) {
     logger.error('NOWPAYMENTS_IPN_SECRET is not configured');
-    return new Response('Server misconfigured', { status: 500 });
+    return new Response('Server misconfigured', { status: 500, headers: responseHeaders });
   }
 
   const isValid = await verifyIpnSignature(rawBody, signature, ipnSecret);
@@ -158,7 +164,7 @@ export async function POST(req: Request): Promise<Response> {
       extra: { signaturePresent: Boolean(signature) },
     });
     logger.warn({ signaturePresent: !!signature }, 'Invalid IPN signature');
-    return new Response('Unauthorized', { status: 401 });
+    return new Response('Unauthorized', { status: 401, headers: responseHeaders });
   }
 
   let payload: IpnPayload;
@@ -168,7 +174,7 @@ export async function POST(req: Request): Promise<Response> {
     payload = parsed.data as IpnPayload;
   } catch {
     logger.warn('Invalid JSON or unsupported fields in IPN body');
-    return new Response('Bad Request', { status: 400 });
+    return new Response('Bad Request', { status: 400, headers: responseHeaders });
   }
 
   const { payment_id, payment_status } = payload;
@@ -223,7 +229,7 @@ export async function POST(req: Request): Promise<Response> {
         { err: String(dlqError), payment_id },
         'Failed to persist billing webhook DLQ entry',
       );
-      return new Response('Internal Server Error', { status: 500 });
+      return new Response('Internal Server Error', { status: 500, headers: responseHeaders });
     }
     // The event is authenticated and safely recorded for replay. A 200
     // prevents NOWPayments from retrying forever while preserving the failure.

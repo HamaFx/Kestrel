@@ -20,6 +20,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/admin-auth';
 import { parseJsonBody } from '@/lib/api';
+import { jsonApiError } from '@/lib/api-errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,10 +31,7 @@ const flushSchema = z.object({
 
 export const POST = withAdminAuth(async (req) => {
   if (process.env.NODE_ENV === 'production') {
-    return Response.json(
-      { error: { code: 'FORBIDDEN', message: 'Flush is dev-only' } },
-      { status: 403 },
-    );
+    return jsonApiError('FORBIDDEN', 'Flush is dev-only', 403, req);
   }
 
   const { target } = await parseJsonBody(req, flushSchema);

@@ -127,7 +127,7 @@ Before a production-like deployment:
 7. Apply migrations through the reviewed migration path.
 8. Verify `drizzle.__drizzle_migrations` and application health afterward.
 
-Migration failures must fail the release. Do not bypass validation or delete migration records to force startup.
+Migration failures must fail the release. Do not bypass validation or delete migration records to force startup. Runtime migrations serialize concurrent starters with a PostgreSQL advisory lock. After an interrupted deployment, inspect the migration log and `drizzle.__drizzle_migrations`, then retry the same reviewed image; PostgreSQL releases the lock when the migration connection closes. Restore only under the documented backup/restore procedure, preserving the matching `ENCRYPTION_SECRET`.
 
 ## Release validation after publication
 

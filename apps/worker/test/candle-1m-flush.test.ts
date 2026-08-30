@@ -74,6 +74,32 @@ describe('flushClosedCandle', () => {
     expect(v['source']).toBe('biquote-signalr');
   });
 
+  it('rejects immediately when the abort signal is already cancelled', async () => {
+    const { db } = makeFakeDb();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(flushClosedCandle({ db, log, bar: BAR, signal: controller.signal })).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  it('settles with AbortError when the database write remains pending', async () => {
+    const insert = vi.fn(() => ({
+      values: vi.fn(() => ({
+        onConflictDoNothing: vi.fn(() => new Promise<void>(() => {})),
+      })),
+    }));
+    const db = { insert } as unknown as FlushClosedCandleArgs['db'];
+    const controller = new AbortController();
+
+    const pending = flushClosedCandle({ db, log, bar: BAR, signal: controller.signal });
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
   it('preserves all OHLC values exactly (no rounding)', async () => {
     const { db, captured } = makeFakeDb();
     const bar: ClosedCandle = { ...BAR, o: 2390.123456, h: 2391.987654, l: 2389.000001 };

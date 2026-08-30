@@ -38,10 +38,13 @@ interface Slot {
   tick: NormalizedTick;
   /** Count of ticks observed for this symbol since the last drain. */
   observed: number;
+  /** Monotonic revision incremented whenever this slot changes. */
+  revision: number;
 }
 
 export class TickBuffer {
   private readonly slots = new Map<Symbol, Slot>();
+  private nextRevision = 1;
 
   /**
    * Record a tick. Replaces any existing tick for the symbol so the buffer
@@ -52,8 +55,9 @@ export class TickBuffer {
     if (existing) {
       existing.tick = tick;
       existing.observed += 1;
+      existing.revision = this.nextRevision++;
     } else {
-      this.slots.set(tick.symbol, { tick, observed: 1 });
+      this.slots.set(tick.symbol, { tick, observed: 1, revision: this.nextRevision++ });
     }
   }
 
@@ -63,11 +67,11 @@ export class TickBuffer {
    * `drain()` only after successfully persisting the peeked data so
    * ticks are never irretrievably lost (C1 fix — RELIABILITY_AUDIT_REPORT.md).
    */
-  peek(): Array<{ tick: NormalizedTick; observed: number }> {
+  peek(): Array<{ tick: NormalizedTick; observed: number; revision: number }> {
     if (this.slots.size === 0) return [];
-    const out: Array<{ tick: NormalizedTick; observed: number }> = [];
+    const out: Array<{ tick: NormalizedTick; observed: number; revision: number }> = [];
     for (const slot of this.slots.values()) {
-      out.push({ tick: slot.tick, observed: slot.observed });
+      out.push({ tick: slot.tick, observed: slot.observed, revision: slot.revision });
     }
     return out;
   }
@@ -81,14 +85,23 @@ export class TickBuffer {
    * has been successfully persisted. If `drain()` is called before the
    * DB write and the write fails, those ticks are permanently lost.
    */
-  drain(): Array<{ tick: NormalizedTick; observed: number }> {
-    if (this.slots.size === 0) return [];
-    const out: Array<{ tick: NormalizedTick; observed: number }> = [];
-    for (const slot of this.slots.values()) {
-      out.push({ tick: slot.tick, observed: slot.observed });
+  drain(
+    snapshot?: Array<{ tick: NormalizedTick; observed: number; revision: number }>,
+  ): Array<{ tick: NormalizedTick; observed: number }> {
+    if (!snapshot) {
+      const out = this.peek().map(({ tick, observed }) => ({ tick, observed }));
+      this.slots.clear();
+      return out;
     }
-    this.slots.clear();
-    return out;
+
+    const drained: Array<{ tick: NormalizedTick; observed: number }> = [];
+    for (const item of snapshot) {
+      const current = this.slots.get(item.tick.symbol);
+      if (!current || current.revision !== item.revision) continue;
+      drained.push({ tick: current.tick, observed: current.observed });
+      this.slots.delete(item.tick.symbol);
+    }
+    return drained;
   }
 
   /** Test helper / introspection. */

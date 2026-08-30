@@ -75,6 +75,23 @@ describe('flushLiveTicks', () => {
     expect(r).toEqual({ written: 0, totalTicks: 0 });
   });
 
+  it('rejects immediately when the abort signal is already cancelled', async () => {
+    const { db } = makeFakeDb();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      flushLiveTicks({ db, buffer: new TickBuffer(), log, }, []),
+    ).resolves.toEqual({ written: 0, totalTicks: 0 });
+
+    const buffer = new TickBuffer();
+    buffer.push(tick('XAUUSD', 2390));
+    await expect(
+      flushLiveTicks({ db, buffer, log, signal: controller.signal }, buffer.peek()),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
   it('UPSERTs one row per buffered symbol', async () => {
     const { db, captured } = makeFakeDb();
     const buffer = new TickBuffer();
