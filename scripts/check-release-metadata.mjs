@@ -7,12 +7,29 @@ const root = resolve(import.meta.dirname, '..');
 const failures = [];
 const read = (file) => readFileSync(resolve(root, file), 'utf8');
 const packageJson = JSON.parse(read('package.json'));
+const version = packageJson.version;
+const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
-// Version selection is a maintainer release decision. This contract verifies
-// reproducibility and provenance without forcing a version before publication.
-if (!packageJson.version) failures.push('package.json must declare a version');
+// The application has its own release version. Workspace package versions may
+// be managed separately and must not be treated as the application release.
+if (!version) failures.push('package.json must declare an application version');
+else if (!semverPattern.test(version)) {
+  failures.push(`package.json application version is not valid SemVer: ${version}`);
+}
+if (version === '0.0.0') {
+  failures.push('package.json application version must be changed from the placeholder 0.0.0 before release');
+}
 
+const releaseTag = `v${version}`;
+const releaseWorkflow = read('.github/workflows/release.yml');
 const dockerWorkflow = read('.github/workflows/docker-publish.yml');
+if (!releaseWorkflow.includes('branches:\n      - main')) {
+  failures.push('release workflow must remain explicit about its main-branch release automation');
+}
+if (!dockerWorkflow.includes('type=raw,value=${{ github.event.release.tag_name }}')) {
+  failures.push(`Docker workflow must publish the GitHub release tag ${releaseTag} when a release is published`);
+}
+
 for (const image of ['web', 'worker']) {
   if (!dockerWorkflow.includes('type=sha') || !dockerWorkflow.includes(`images: ghcr.io/${'${{ github.repository }}'}/${image}`)) {
     failures.push(`Docker workflow must publish an immutable SHA tag for ${image}`);
@@ -31,7 +48,6 @@ if (!dockerWorkflow.includes('type=sha')) {
   failures.push('Docker workflow must configure SHA-derived metadata tags');
 }
 
-const releaseWorkflow = read('.github/workflows/release.yml');
 if (!releaseWorkflow.includes('source-sbom')) failures.push('release workflow must archive the source SBOM');
 if (!releaseWorkflow.includes('dependency-licenses')) {
   failures.push('release workflow must archive dependency license metadata');

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Beginner-friendly updates:** `pnpm update` checks the newest stable GitHub Release, asks before backups and migrations, preserves local configuration/data, rebuilds Docker installations, and reports health failures.
+- **Update documentation:** Added the complete update plan plus user-facing update and recovery instructions.
 - **Documentation overhaul:** current procedural docs for the single-user OSS release, replacing the old 15-doc set:
   - `README.md` — public product scope and quick start
   - `docs/deployment-matrix.md` — supported deployment profiles
@@ -43,9 +45,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.0.0] — Pre-release
+## [0.1.0] — First public beta
 
-Kestrel is in pre-release development. The project has shipped through Phases 0–9 plus UX upgrade Phases A–E, but has not yet tagged a formal release.
+The first planned stable application release for the single-user, self-hosted OSS beta. The application release version is independent from workspace package versions.
+
+## [0.0.0] — Historical pre-release
+
+The historical development series shipped through Phases 0–9 plus UX upgrade Phases A–E before the first formal application release.
 
 ### Shipped Features (cumulative)
 

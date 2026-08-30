@@ -83,6 +83,32 @@ The application still reaches the database through the internal Compose network.
 
 Simple mode does not provide pgvector or PostgreSQL RLS. Vector features use the supported fallback and PostgreSQL-only isolation tests cannot run against PGlite.
 
+## Updating Kestrel
+
+From the Kestrel project folder, run:
+
+```bash
+pnpm update
+```
+
+The command checks the newest stable GitHub Release. Use this preview command to inspect the update without changing anything:
+
+```bash
+pnpm update --dry-run
+```
+
+The updater stops if it finds local project-file changes. It preserves `.env`, `.env.local`, `.kestrel/`, and Docker volumes. Do not delete those paths while troubleshooting an update.
+
+If a Docker update finishes but the health check fails, inspect:
+
+```bash
+docker compose logs --tail=200 app
+docker compose logs --tail=200 worker
+docker compose ps
+```
+
+Keep the backup location printed by the updater and preserve the matching `ENCRYPTION_SECRET`.
+
 ## Docker issues
 
 ### `POSTGRES_PASSWORD` is missing
