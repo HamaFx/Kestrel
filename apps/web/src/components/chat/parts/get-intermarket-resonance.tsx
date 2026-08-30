@@ -90,24 +90,24 @@ export function GetIntermarketResonancePart({
       </header>
 
       {/* Main Stats Block */}
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-2">
-          <span className="text-fg-subtle block text-xs font-medium uppercase">10Y Real Yield</span>
-          <span className="text-fg mt-0.5 block text-base font-extrabold tabular-nums">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-1.5 sm:p-2">
+          <span className="text-fg-subtle block text-[11px] sm:text-xs font-medium uppercase">10Y Real Yield</span>
+          <span className="text-fg mt-0.5 block text-xs sm:text-sm md:text-base font-bold tabular-nums">
             {roundedYield}%
           </span>
         </div>
-        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-2">
-          <span className="text-fg-subtle block text-xs font-medium uppercase">10Y Breakeven</span>
-          <span className="text-fg mt-0.5 block text-base font-extrabold tabular-nums">
+        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-1.5 sm:p-2">
+          <span className="text-fg-subtle block text-[11px] sm:text-xs font-medium uppercase">10Y Breakeven</span>
+          <span className="text-fg mt-0.5 block text-xs sm:text-sm md:text-base font-bold tabular-nums">
             {roundedInflation}%
           </span>
         </div>
-        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-2">
-          <span className="text-fg-subtle block text-xs font-medium uppercase">
+        <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-1.5 sm:p-2">
+          <span className="text-fg-subtle block text-[11px] sm:text-xs font-medium uppercase">
             z-score divergence
           </span>
-          <span className={`mt-0.5 block text-base font-extrabold tabular-nums ${regimeColor}`}>
+          <span className={`mt-0.5 block text-xs sm:text-sm md:text-base font-bold tabular-nums ${regimeColor}`}>
             {roundedDivergence >= 0 ? `+${roundedDivergence}` : roundedDivergence} SD
           </span>
         </div>
