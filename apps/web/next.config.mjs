@@ -131,16 +131,14 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
-const hasSentry = Boolean(
-  process.env.SENTRY_AUTH_TOKEN &&
-    process.env.SENTRY_AUTH_TOKEN.trim() !== '' &&
-    process.env.SENTRY_DSN &&
-    process.env.SENTRY_DSN.trim() !== '',
-);
+// Avoid failing builds when Sentry auth tokens are invalid/expired.
+// Runtime Sentry monitoring remains active via sentry.server.config.ts / sentry.edge.config.ts.
+const enableSentryReleaseUpload = process.env.ENABLE_SENTRY_RELEASE_UPLOAD === 'true';
 
-export default hasSentry
+export default enableSentryReleaseUpload
   ? withSentryConfig(withBundleAnalyzer(nextConfig), {
-      silent: !process.env.CI,
+      silent: true,
+      telemetry: false,
       widenClientFileUpload: true,
       hideSourceMaps: true,
       disableLogger: true,
