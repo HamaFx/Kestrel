@@ -126,6 +126,13 @@ Open **[http://localhost:3000](http://localhost:3000)** to access your instance.
 
 Kestrel offers three self-hosted deployment profiles designed for complete data sovereignty:
 
+<p align="center">
+  <img src="docs/assets/deployment-profiles.svg" alt="Kestrel Self-Hosted Deployment Profiles" width="100%" style="max-width: 900px; border-radius: 10px;">
+</p>
+
+<details>
+<summary>🔍 <strong>View Diagram Source</strong></summary>
+
 ```mermaid
 graph TD
     subgraph Profile 1: Simple Local / Vibe Coder
@@ -146,6 +153,8 @@ graph TD
         B3 --> D3[Worker Container]
     end
 ```
+
+</details>
 
 ### Profile Matrix
 
@@ -180,6 +189,13 @@ graph TD
 
 Kestrel uses a multi-agent orchestration architecture built on **Mastra**. Rather than relying on a single generic LLM prompt, specialized agents evaluate market conditions independently before synthesizing a final research report.
 
+<p align="center">
+  <img src="docs/assets/multi-agent-committee.svg" alt="Kestrel Mastra Multi-Agent Architecture" width="100%" style="max-width: 920px; border-radius: 10px;">
+</p>
+
+<details>
+<summary>🔍 <strong>View Diagram Source</strong></summary>
+
 ```mermaid
 flowchart LR
     User([User Prompt / Chart]) --> Router{Mode Selector}
@@ -196,6 +212,8 @@ flowchart LR
     Fusion --> Guard[Citation & Budget Verification]
     Guard --> Report
 ```
+
+</details>
 
 ### Analysis Modes
 
