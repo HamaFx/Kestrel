@@ -67,7 +67,7 @@ for (const file of [BUILD_ID_FILE]) {
   }
 }
 
-run(pnpm, ['exec', 'next', 'build', '--webpack'], buildEnv);
+run(pnpm, ['exec', 'next', 'build'], buildEnv);
 run(process.execPath, ['scripts/generate-sw.mjs'], buildEnv);
 
 // eslint-disable-next-line no-console
