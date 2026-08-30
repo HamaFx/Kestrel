@@ -142,9 +142,19 @@ export async function run(ctx) {
   const { spawn } = await import('node:child_process');
 
   if (isDocker) {
+    // B2: The Dockerfiles use BuildKit-only cache mounts
+    // (--mount=type=cache,id=pnpm). Without DOCKER_BUILDKIT=1 the pnpm store
+    // cache is silently ignored, forcing a full dependency re-download on
+    // every rebuild. This matches the env set in the VM and CI build paths.
+    const buildEnv = {
+      ...process.env,
+      DOCKER_BUILDKIT: '1',
+      COMPOSE_DOCKER_CLI_BUILD: '1',
+    };
     const child = spawn('docker', ['compose', 'up', '-d', '--build'], {
       cwd: repoRoot,
       stdio: 'inherit',
+      env: buildEnv,
     });
     child.on('error', (err) => {
       warn(io, `Failed to start Docker: ${err.message}`);

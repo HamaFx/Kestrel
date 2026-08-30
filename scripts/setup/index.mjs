@@ -96,10 +96,36 @@ export function parseFlags(argv) {
     else if (arg === '--json') flags.json = true;
     else if (arg === '--no-color') flags.noColor = true;
     else if (arg.startsWith('--mode=')) flags.mode = arg.slice('--mode='.length);
-    else if (arg === '--mode') flags.mode = argv[++i] ?? null;
-    else if (arg.startsWith('--market=')) flags.market = arg.slice('--market='.length);
-    else if (arg === '--market') flags.market = argv[++i] ?? null;
-    else if (arg === '--') {
+    else if (arg === '--mode') {
+      // B3: A trailing `--mode` (no value) must not silently fall through to
+      // an interactive prompt. Detect the missing value so main() can error.
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith('-')) {
+        flags.modeMissing = true;
+      } else {
+        flags.mode = next;
+        i++;
+      }
+    } else if (arg.startsWith('--market=')) flags.market = arg.slice('--market='.length);
+    else if (arg === '--market') {
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith('-')) {
+        flags.marketMissing = true;
+      } else {
+        flags.market = next;
+        i++;
+      }
+    } else if (arg.startsWith('--api-key=')) {
+      flags.apiKeys = [...(flags.apiKeys ?? []), arg.slice('--api-key='.length)];
+    } else if (arg === '--api-key') {
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith('-')) {
+        flags.apiKeyMissing = true;
+      } else {
+        flags.apiKeys = [...(flags.apiKeys ?? []), next];
+        i++;
+      }
+    } else if (arg === '--') {
       positional.push(...argv.slice(i + 1));
       break;
     } else if (arg.startsWith('-')) {
@@ -122,6 +148,8 @@ export function printHelp(io) {
   io.line('  Options:');
   io.line('    --mode=simple|docker   Skip the mode question');
   io.line('    --market=ID,ID         Market providers to configure (e.g. finnhub,fred)');
+  io.line('    --api-key=ID:VALUE     Provide a market API key non-interactively');
+  io.line('                            (repeatable, e.g. --api-key=finnhub:KEY)');
   io.line('    --fresh                Regenerate config (previous config is backed up)');
   io.line('    --skip-install         Do not install dependencies');
   io.line('    --no-launch            Do not start the app afterwards');
@@ -152,6 +180,9 @@ function buildResult(ctx, flags) {
   return {
     ok: true,
     mode: answers.mode,
+    // C3: Surfaces whether Docker mode was requested but unavailable so
+    // that scripted (--json) consumers can detect the fallback.
+    modeFallback: answers.dockerUnavailable === true,
     configFile: answers.mode === 'docker' ? '.env' : '.env.local',
     marketProviders: answers.marketProviders,
     marketKeysConfigured: Object.keys(answers.marketKeys),
@@ -187,6 +218,33 @@ export async function main(argv = process.argv.slice(2), { io: customIo, jsonStr
   if (flags.version) {
     io.line(getVersion());
     return 0;
+  }
+  if (flags.modeMissing) {
+    const errMsg = '--mode requires a value (use --mode=simple or --mode=docker)';
+    if (jsonMode) writeJson({ ok: false, error: errMsg });
+    else {
+      io.line();
+      fail(io, errMsg);
+    }
+    return 1;
+  }
+  if (flags.apiKeyMissing) {
+    const errMsg = '--api-key requires a value (use --api-key=ID:VALUE, e.g. finnhub:KEY)';
+    if (jsonMode) writeJson({ ok: false, error: errMsg });
+    else {
+      io.line();
+      fail(io, errMsg);
+    }
+    return 1;
+  }
+  if (flags.marketMissing) {
+    const errMsg = '--market requires a value (use --market=ID,ID)';
+    if (jsonMode) writeJson({ ok: false, error: errMsg });
+    else {
+      io.line();
+      fail(io, errMsg);
+    }
+    return 1;
   }
   if (flags.mode && !['simple', 'docker'].includes(flags.mode)) {
     if (jsonMode) {

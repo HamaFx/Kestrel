@@ -14,13 +14,15 @@
 
 services:
   db:
-    image: pgvector/pgvector:pg16
+    # B5: Pin to the same digest as production for version consistency.
+    image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
     environment:
       POSTGRES_DB: kestrel
       POSTGRES_USER: kestrel
       POSTGRES_PASSWORD: loadtest
+    # S1: Bind to localhost only — even throwaway DBs should not be public.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata-loadtest:/var/lib/postgresql/data
     healthcheck:
@@ -87,7 +89,8 @@ services:
   # One-off service: seeds live_ticks so the price endpoint works
   # without a running worker.  Runs once after the app is healthy.
   seed-ticks:
-    image: pgvector/pgvector:pg16
+    # B5: Pin to the same digest as the db service.
+    image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
     depends_on:
       app:
         condition: service_healthy

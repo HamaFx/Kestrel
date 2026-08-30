@@ -19,7 +19,11 @@ import { resolve } from 'node:path';
 import { readEnvFile, upsertEnvFile } from '../lib/env.mjs';
 import { confirm } from '../lib/prompts.mjs';
 import { checkComposeConfig } from '../lib/run.mjs';
-import { missingSecrets } from '../lib/secrets.mjs';
+import {
+  loadSecretTemplate,
+  missingSecrets,
+  resolveTemplateValue,
+} from '../lib/secrets.mjs';
 import { info, ok, paint, warn } from '../lib/ui.mjs';
 
 export const title = 'Generating secrets & writing config';
@@ -79,8 +83,24 @@ export async function run(ctx) {
   // Assemble values to write.
   let values;
   if (isDocker) {
-    const { missing } = missingSecrets(envPath);
-    values = { ...missing, ...marketKeys };
+    if (fresh) {
+      // B1: A fresh start must regenerate ALL template keys, not just the
+      // ones currently missing. Using only `missing` together with
+      // `replace: true` wiped out existing secrets on a partial .env (the
+      // values map only contained absent keys, so replace dropped the rest)
+      // and was a silent no-op on a complete .env. Regenerate the full
+      // canonical set so an existing partial file is properly rewritten and
+      // a complete file is actually refreshed.
+      const template = loadSecretTemplate();
+      const all = {};
+      for (const [key, entry] of Object.entries(template)) {
+        all[key] = resolveTemplateValue(entry);
+      }
+      values = { ...all, ...marketKeys };
+    } else {
+      const { missing } = missingSecrets(envPath);
+      values = { ...missing, ...marketKeys };
+    }
   } else {
     values = { BYOK_ENABLED: '1', ...marketKeys };
   }

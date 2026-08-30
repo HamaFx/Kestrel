@@ -76,6 +76,11 @@ jobs:
 
       # Bring up throwaway SUT with AUTH_MODE=legacy and lifted rate limits
       - name: Start throwaway SUT
+        # P7: DOCKER_BUILDKIT=1 + COMPOSE_DOCKER_CLI_BUILD=1 enable BuildKit
+        # so the pnpm cache mount in the Dockerfile is honoured.
+        env:
+          DOCKER_BUILDKIT: '1'
+          COMPOSE_DOCKER_CLI_BUILD: '1'
         run: docker compose -f loadtest/docker-compose.loadtest.yml up -d --wait
 
       - name: Wait for SUT to be ready

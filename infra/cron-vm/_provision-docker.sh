@@ -115,6 +115,17 @@ apt-get install -y -qq curl git logrotate sudo postgresql-client \
   docker.io docker-compose-v2
 
 log 'enabling Docker (starts on boot, survives reboots)'
+# P5: Enable BuildKit so the Dockerfiles' --mount=type=cache pnpm store
+# cache mount is actually honoured. Without BuildKit the cache mount is
+# silently ignored, causing every rebuild to re-download all pnpm packages.
+install -d -m 755 /etc/docker
+cat > /etc/docker/daemon.json <<'DAEMON'
+{
+  "features": {
+    "buildkit": true
+  }
+}
+DAEMON
 systemctl enable --now docker
 usermod -aG docker kestrel
 
@@ -252,7 +263,9 @@ systemctl start kestrel-webhook.service 2>/dev/null || log 'WARNING: webhook ser
 
 log 'building and starting the worker container (first build takes ~2-3 min)'
 cd "$INSTALL_DIR"
-sudo -u kestrel docker compose build 2>&1
+# P5: DOCKER_BUILDKIT=1 ensures the pnpm cache mount is honoured even if
+# the daemon-level feature setting is not yet active (e.g. first boot).
+sudo -u kestrel -E DOCKER_BUILDKIT=1 docker compose build 2>&1
 sudo -u kestrel docker compose up -d 2>&1
 
 log 'waiting for worker to become healthy (up to 120s)'

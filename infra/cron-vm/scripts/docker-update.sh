@@ -164,8 +164,10 @@ fi
 docker tag kestrel-worker:local kestrel-worker:rollback 2>/dev/null || true
 
 # Build the new image (Docker layer cache makes this fast)
+# P5: DOCKER_BUILDKIT=1 ensures the pnpm store cache mount in Dockerfile.worker
+# is honoured. Without it, every rebuild re-downloads all pnpm packages.
 log "building Docker image"
-if ! docker compose -f "$COMPOSE_FILE" build --quiet 2>&1; then
+if ! DOCKER_BUILDKIT=1 docker compose -f "$COMPOSE_FILE" build --quiet 2>&1; then
   log "docker compose build failed — rolling back"
   sync_host_files_for_commit "$PREV_SHA" >/dev/null 2>&1 || true
   ping_hc fail "build failed at $NEW_SHA"
@@ -200,7 +202,7 @@ if [[ "$HEALTH_STATUS" != "healthy" ]]; then
   docker tag kestrel-worker:rollback kestrel-worker:local 2>/dev/null || true
   sync_host_files_for_commit "$PREV_SHA" >/dev/null 2>&1 || true
   docker compose -f "$COMPOSE_FILE" build --quiet 2>/dev/null || true
-  docker compose -f "$COMPOSE_FILE" up -d --force-recreate --no-deps worker 2>/dev/null || true
+  DOCKER_BUILDKIT=1 docker compose -f "$COMPOSE_FILE" up -d --force-recreate --no-deps worker 2>/dev/null || true
   ping_hc fail "health check failed (status: $HEALTH_STATUS) at $NEW_SHA, rolled back to $PREV_SHA"
   exit 1
 fi
