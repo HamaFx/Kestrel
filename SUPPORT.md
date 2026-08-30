@@ -4,51 +4,53 @@
 
 ### Documentation
 
-The full documentation set lives in [`docs/`](docs/). Start here:
+The current public documentation is maintained in the repository root. Start here:
 
-| Doc                                                                        | Read when                                                            |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| [docs/01-architecture.md](docs/01-architecture.md)                         | You want to understand how the system works                          |
-| [docs/02-data-flows.md](docs/02-data-flows.md)                             | You need to understand data providers, AI providers, or integrations |
-| [docs/03-backend-api.md](docs/03-backend-api.md)                           | You're working on API routes or database schema                      |
-| [docs/04-frontend-ux.md](docs/04-frontend-ux.md)                           | You're working on the frontend                                       |
-| [docs/10-security.md](docs/10-security.md)                         | You're touching auth, encryption, RLS, or billing                    |
-| [docs/11-self-hosting.md](docs/11-self-hosting.md)                         | You're deploying or self-hosting                                     |
-| [docs/07-agent-understanding.md](docs/07-agent-understanding.md)           | You're an AI coding agent about to work on this repo                 |
-| [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md)                   | You need to set up a local dev environment                           |
+| Document | Read when |
+| --- | --- |
+| [README.md](README.md) | You want the public scope and quick start |
+| [OPEN_SOURCE_DEPLOYMENT_MATRIX.md](OPEN_SOURCE_DEPLOYMENT_MATRIX.md) | You need supported deployment profiles |
+| [OPEN_SOURCE_READINESS_CURRENT.md](OPEN_SOURCE_READINESS_CURRENT.md) | You need current readiness status and release gates |
+| [docs/configuration.md](docs/configuration.md) | You need environment-variable details |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | You are diagnosing setup or runtime failures |
+| [docs/architecture.md](docs/architecture.md) | You need to understand system boundaries |
+| [SECURITY.md](SECURITY.md) | You are touching auth, encryption, RLS, or deployment security |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | You are contributing code or documentation |
 
 ### Bugs and Feature Requests
 
-| Need                            | Where                                                                                                     |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Report a bug                    | [Open a bug report issue](https://github.com/HamaFx/Kestrel/issues/new?template=bug_report.yml)           |
-| Request a feature               | [Open a feature request issue](https://github.com/HamaFx/Kestrel/issues/new?template=feature_request.yml) |
-| Report a security vulnerability | Use GitHub private vulnerability reporting — see [SECURITY.md](SECURITY.md)                              |
+| Need | Where |
+| --- | --- |
+| Report a bug | [Open a bug report issue](https://github.com/HamaFx/Kestrel/issues/new?template=bug_report.yml) |
+| Request a feature | [Open a feature request issue](https://github.com/HamaFx/Kestrel/issues/new?template=feature_request.yml) |
+| Report a security vulnerability | Use GitHub private vulnerability reporting as described in [SECURITY.md](SECURITY.md) |
 
 ### Questions and Discussion
 
-| Platform           | Use                                                         |
-| ------------------ | ----------------------------------------------------------- |
-| GitHub Issues      | Bug reports, feature requests, specific technical questions |
-| GitHub Discussions | General questions, ideas, show-and-tell (if enabled)        |
+| Platform | Use |
+| --- | --- |
+| GitHub Issues | Bug reports, feature requests, and specific technical questions |
+| GitHub Discussions | General questions, ideas, and show-and-tell, if enabled |
 
 ### Before You Ask
 
-1. **Search existing issues** — your question may already be answered
-2. **Read the relevant doc** — the docs are comprehensive and cite file paths
-3. **Check [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md) §10** — common failures and fixes are documented
-4. **Include context** — your OS, Node version, error message, and steps to reproduce
+1. Search existing issues; your question may already be answered.
+2. Read the relevant documentation above.
+3. Include your OS, Node.js version, pnpm version, Docker version if relevant, error message, and reproduction steps.
+4. Never include passwords, API keys, database URLs, session tokens, or private user data.
 
 ## Self-Hosting Support
 
-If you're self-hosting Kestrel:
+If you are self-hosting Kestrel:
 
-1. Read [docs/11-self-hosting.md](docs/11-self-hosting.md) for Docker Compose setup
-2. Read [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md) for environment variable configuration
-3. Read [docs/10-security.md](docs/10-security.md) for security considerations when running your own instance
+1. Read [README.md](README.md) for the supported quick starts.
+2. Read [OPEN_SOURCE_DEPLOYMENT_MATRIX.md](OPEN_SOURCE_DEPLOYMENT_MATRIX.md) for deployment, health, and backup requirements.
+3. Read [docs/configuration.md](docs/configuration.md) and [docs/troubleshooting.md](docs/troubleshooting.md) for configuration and recovery guidance.
+4. Read [SECURITY.md](SECURITY.md) before exposing an instance beyond localhost.
+5. State clearly whether you are using Simple/PGlite, Docker Compose, external PostgreSQL, or the maintainer-specific Vercel/GCE topology.
 
-Self-hosters are responsible for their own infrastructure security, TLS, and secret management.
+Self-hosters are responsible for their infrastructure security, TLS, firewall, backups, provider terms, and secret management. Shared multi-user/RLS hosting is not supported by the current OSS release.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor guide.
