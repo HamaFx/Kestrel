@@ -187,6 +187,7 @@ function buildResult(ctx, flags) {
     marketProviders: answers.marketProviders,
     marketKeysConfigured: Object.keys(answers.marketKeys),
     existingAction: answers.existingAction,
+    langfuseEnabled: answers.langfuseEnabled === true,
     dryRun: flags.dryRun,
   };
 }

@@ -112,8 +112,41 @@ export async function run(ctx) {
     io.line();
   }
 
+  // Langfuse observability is opt-in (compose profile `observability`).
+  // Offer it here so the launch command, port pre-flight, and the final
+  // interfaces list can all reflect the choice.
+  let langfuseEnabled = false;
+  if (isDocker) {
+    const enableLangfuse = await confirm(io, {
+      message: 'Enable Langfuse observability at http://localhost:3001? (AI trace viewer)',
+      initial: false,
+      auto: flags.yes || flags.json || !io.isTTY,
+    });
+    if (enableLangfuse === 'cancel') return 'abort';
+    langfuseEnabled = enableLangfuse;
+    ctx.answers.langfuseEnabled = langfuseEnabled;
+    if (langfuseEnabled) {
+      ok(io, 'Langfuse enabled — trace viewer at http://localhost:3001.');
+      // The endpoint is deterministic; only the project keys are created in
+      // the Langfuse UI later. Record the base URL now so the app just needs
+      // LANGFUSE_PUBLIC_KEY/SECRET_KEY once the user has created a project.
+      // The app runs inside the Compose network, so it must export to the
+      // internal service URL (langfuse:3000), not the host-facing 3001.
+      if (!flags.dryRun) {
+        const envPath = resolve(repoRoot, '.env');
+        const { changed } = upsertEnvFile(
+          envPath,
+          { LANGFUSE_BASE_URL: 'http://langfuse:3000' },
+          { backup: false },
+        );
+        if (changed) info(io, 'Saved LANGFUSE_BASE_URL=http://langfuse:3000 to .env');
+      }
+    }
+  }
+
+  const profileArgs = langfuseEnabled ? ['--profile', 'observability'] : [];
   const startCommand = isDocker
-    ? 'docker compose up -d --build'
+    ? `docker compose${langfuseEnabled ? ' --profile observability' : ''} up -d --build`
     : `${packageManagerLabel(getPackageManager())} dev:local`;
 
   io.line();
@@ -121,7 +154,13 @@ export async function run(ctx) {
   io.line();
   io.line(`  ${paint('Start command:', 'bold')} ${paint(startCommand, 'brand')}`);
   io.line(`  ${paint('App URL:', 'bold')}       ${APP_URL}`);
-  if (isDocker) io.line(`  ${paint('Langfuse:', 'bold')}      http://localhost:3001`);
+  if (isDocker) {
+    io.line(
+      langfuseEnabled
+        ? `  ${paint('Langfuse:', 'bold')}      http://localhost:3001`
+        : `  ${paint('Langfuse:', 'bold')}      ${paint('http://localhost:3001 (opt-in — not enabled)', 'dim')}`,
+    );
+  }
   io.line(`  ${paint('Register:', 'bold')}      ${APP_URL}/register`);
   io.line();
 
@@ -133,6 +172,7 @@ export async function run(ctx) {
   if (flags.noLaunch) {
     info(io, 'Skipping launch (--no-launch). Run it whenever you are ready:');
     io.line(`  ${paint(startCommand, 'brand')}`);
+    if (langfuseEnabled) printLangfuseConnectGuide(io);
     return 'ok';
   }
 
@@ -161,9 +201,10 @@ export async function run(ctx) {
   if (isDocker) {
     // Pre-flight: catch host port conflicts BEFORE the multi-minute image
     // build, and offer a one-line remap (written to .env) instead of
-    // failing after everything has already been built.
+    // failing after everything has already been built. When Langfuse is
+    // enabled its profile service (127.0.0.1:3001) is included.
     const envPath = resolve(repoRoot, '.env');
-    const effective = await ensureFreePorts(ctx, repoRoot, envPath);
+    const effective = await ensureFreePorts(ctx, repoRoot, envPath, profileArgs);
     if (effective === null) return 'abort';
     const appUrl = `http://localhost:${effective.appPort}`;
     const healthUrl = `${appUrl}/api/health/public`;
@@ -191,7 +232,7 @@ export async function run(ctx) {
       buildOutput += chunk;
       if (buildOutput.length > 64 * 1024) buildOutput = buildOutput.slice(-64 * 1024);
     };
-    const child = spawn('docker', ['compose', 'up', '-d', '--build'], {
+    const child = spawn('docker', ['compose', ...profileArgs, 'up', '-d', '--build'], {
       cwd: repoRoot,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: buildEnv,
@@ -237,7 +278,12 @@ export async function run(ctx) {
           info(io, `You can still try opening: ${paint(appUrl, 'brand')}`);
           io.line();
         }
-        printDockerHints(io, effective.appPort);
+        printDockerHints(io, {
+          appPort: effective.appPort,
+          dbPort: effective.dbPort,
+          langfuseEnabled,
+        });
+        if (langfuseEnabled) printLangfuseConnectGuide(io);
       } else {
         // Turn the raw compose output into a clear diagnosis instead of
         // just "check the output above".
@@ -275,11 +321,48 @@ export async function run(ctx) {
   return 'ok';
 }
 
-function printDockerHints(io, appPort = 3000) {
+function printDockerHints(io, { appPort = 3000, dbPort = 5432, langfuseEnabled = false } = {}) {
   io.line();
-  io.line(`  ${paint('Web app:', 'bold')}    http://localhost:${appPort}`);
-  io.line(`  ${paint('Logs:', 'dim')}       docker compose logs -f app`);
-  io.line(`  ${paint('Stop:', 'dim')}       docker compose down`);
+  box(
+    io,
+    'Interfaces',
+    [
+      `${paint('Web app:', 'bold')}    http://localhost:${appPort}`,
+      `${paint('Register:', 'bold')}   http://localhost:${appPort}/register`,
+      langfuseEnabled
+        ? `${paint('Langfuse:', 'bold')}    http://localhost:3001  ${paint('(AI trace viewer)', 'dim')}`
+        : `${paint('Langfuse:', 'bold')}    ${paint('not enabled', 'dim')}  → docker compose --profile observability up -d`,
+      `${paint('Database:', 'bold')}   127.0.0.1:${dbPort}  ${paint('(Postgres)', 'dim')}`,
+      '',
+      `${paint('Logs:', 'bold')}       docker compose logs -f app`,
+      `${paint('Stop:', 'bold')}       docker compose down`,
+    ],
+    { color: 'brand', minWidth: 46 },
+  );
+  io.line();
+}
+
+/**
+ * Walk the user through the one step the wizard cannot automate: creating a
+ * project in the Langfuse UI and connecting its keys to the app.
+ */
+function printLangfuseConnectGuide(io) {
+  io.line();
+  box(
+    io,
+    'Connect your app to Langfuse',
+    [
+      `1. Open ${paint('http://localhost:3001', 'brand')} and create your account (first run)`,
+      '2. Create a project, e.g. "kestrel"',
+      '3. Open Project Settings → API Keys and copy the Public & Secret keys',
+      `4. Add them to ${paint('.env', 'brand')} (LANGFUSE_BASE_URL is already set):`,
+      `   ${paint('LANGFUSE_PUBLIC_KEY=pk-…', 'brand')}`,
+      `   ${paint('LANGFUSE_SECRET_KEY=sk-…', 'brand')}`,
+      `5. Restart the app: ${paint('docker compose restart app', 'brand')}`,
+      'Traces from your next chat will appear in Langfuse.',
+    ],
+    { color: 'info', minWidth: 48 },
+  );
   io.line();
 }
 
@@ -311,7 +394,7 @@ function printLaunchFailure(io, buildOutput) {
  * Best-effort port list when `docker compose config` is unavailable:
  * the documented defaults, honoring any overrides already in .env.
  */
-function defaultHostPorts(repoRoot) {
+function defaultHostPorts(repoRoot, langfuseEnabled = false) {
   const { entries } = readEnvFile(resolve(repoRoot, '.env'));
   const hostPort = (key, fallback) => {
     const raw = String(entries.get(key) ?? fallback);
@@ -322,6 +405,14 @@ function defaultHostPorts(repoRoot) {
   return [
     { service: 'db', host: '127.0.0.1', port: hostPort('POSTGRES_PUBLISHED_PORT', '127.0.0.1:5432'), target: 5432 },
     { service: 'app', host: '127.0.0.1', port: hostPort('APP_PUBLISHED_PORT', '127.0.0.1:3000'), target: 3000 },
+    // Observability profile ports, mirrored from the compose file for the
+    // best-effort fallback when `docker compose config` is unavailable.
+    ...(langfuseEnabled
+      ? [
+          { service: 'langfuse', host: '127.0.0.1', port: 3001, target: 3000 },
+          { service: 'minio', host: '127.0.0.1', port: 9090, target: 9000 },
+        ]
+      : []),
   ];
 }
 
@@ -333,18 +424,19 @@ function defaultHostPorts(repoRoot) {
  * Ports held by this compose project's own running containers are not
  * conflicts (compose reuses them).
  */
-async function ensureFreePorts(ctx, repoRoot, envPath) {
+async function ensureFreePorts(ctx, repoRoot, envPath, profileArgs = []) {
   const { io, flags } = ctx;
-  let hostPorts = getComposeHostPorts(repoRoot);
+  const langfuseEnabled = profileArgs.includes('observability');
+  let hostPorts = getComposeHostPorts(repoRoot, profileArgs);
   if (hostPorts === null) {
     // Never skip the check silently: say why compose config failed, then
     // check the documented defaults as an explicit best effort.
     const { error } = checkComposeConfig(repoRoot);
     warn(io, 'Could not read the stack ports from docker compose — checking the default ports instead.');
     if (error) io.line(paint(`  ${error.trim().split('\n')[0]}`, 'dim'));
-    hostPorts = defaultHostPorts(repoRoot);
+    hostPorts = defaultHostPorts(repoRoot, langfuseEnabled);
   }
-  const ownPorts = getOwnPublishedPorts(repoRoot);
+  const ownPorts = getOwnPublishedPorts(repoRoot, profileArgs);
   const auto = flags.yes || flags.json || !io.isTTY;
 
   for (const entry of hostPorts) {
@@ -357,7 +449,10 @@ async function ensureFreePorts(ctx, repoRoot, envPath) {
       warn(io, `Port ${entry.port} (${entry.service}) is already in use — the stack may fail to start.`);
       continue;
     }
-    const freePort = await findFreePort(remap.start, '127.0.0.1');
+    // Never remap onto another service's published port (e.g. the app onto
+    // Langfuse's 3001 when the observability profile is enabled).
+    const reserved = new Set(hostPorts.filter((e) => e.service !== entry.service).map((e) => e.port));
+    const freePort = await findFreePort(remap.start, '127.0.0.1', 50, reserved);
     if (freePort === null) {
       warn(io, `No free port found near ${entry.port} for the ${remap.label}. Free one up and re-run.`);
       return null;
@@ -379,5 +474,6 @@ async function ensureFreePorts(ctx, repoRoot, envPath) {
   }
 
   const appEntry = hostPorts.find((entry) => entry.service === 'app');
-  return { appPort: appEntry?.port ?? 3000 };
+  const dbEntry = hostPorts.find((entry) => entry.service === 'db');
+  return { appPort: appEntry?.port ?? 3000, dbPort: dbEntry?.port ?? 5432 };
 }

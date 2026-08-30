@@ -72,8 +72,9 @@ export function isPortInUse(port, host = '127.0.0.1', timeoutMs = 750) {
 }
 
 /** Find the first free host port at or above `start`. Returns null when none is found. */
-export async function findFreePort(start, host = '127.0.0.1', maxTries = 50) {
+export async function findFreePort(start, host = '127.0.0.1', maxTries = 50, exclude = new Set()) {
   for (let port = start; port < start + maxTries; port++) {
+    if (exclude.has(port)) continue;
     if (!(await isPortInUse(port, host))) return port;
   }
   return null;
@@ -173,9 +174,9 @@ export function diagnoseComposeError(output = '') {
  * cannot be resolved (docker missing or compose broken). Profile-gated
  * services (e.g. langfuse) are excluded by compose itself.
  */
-export function getComposeHostPorts(cwd) {
+export function getComposeHostPorts(cwd, profileArgs = []) {
   try {
-    const out = execFileSync('docker', ['compose', 'config', '--format', 'json'], {
+    const out = execFileSync('docker', ['compose', ...profileArgs, 'config', '--format', 'json'], {
       cwd,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -205,9 +206,9 @@ export function getComposeHostPorts(cwd) {
  * by the project itself (e.g. re-running setup on a live stack) is not a
  * conflict — compose reuses the container instead of rebinding.
  */
-export function getOwnPublishedPorts(cwd) {
+export function getOwnPublishedPorts(cwd, profileArgs = []) {
   try {
-    const out = execFileSync('docker', ['compose', 'ps', '--format', 'json'], {
+    const out = execFileSync('docker', ['compose', ...profileArgs, 'ps', '--format', 'json'], {
       cwd,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
