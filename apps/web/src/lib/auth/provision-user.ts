@@ -121,7 +121,7 @@ export async function provisionUserOnSignIn(input: SignInInput): Promise<SignInD
         const t = tx as unknown as typeof db;
         if (registrationMode === 'owner-first') {
           await t.execute(
-            sql`SELECT pg_advisory_xact_lock(hashtext('hamafx:first-user-registration'))`,
+            sql`SELECT pg_advisory_xact_lock(hashtext('kestrel:first-user-registration'))`,
           );
           const [existingUser] = await t
             .select({ id: schema.users.id })

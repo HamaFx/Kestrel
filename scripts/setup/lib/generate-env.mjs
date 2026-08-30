@@ -56,10 +56,17 @@ const SECTIONS = [
   ['Langfuse (LLM observability)', ['LANGFUSE_NEXTAUTH_SECRET', 'LANGFUSE_SALT']],
   ['NextAuth (app authentication)', ['AUTH_SECRET', 'NEXTAUTH_URL']],
   ['Cron authentication', ['CRON_SECRET']],
+  ['Worker health/proxy authentication', ['WORKER_HEALTH_TOKEN', 'BIQUOTE_PROXY_TOKEN']],
   ['Encryption (BYOK key encryption at rest)', ['ENCRYPTION_SECRET']],
   [
     'Safe self-hosted defaults',
-    ['BYOK_ENABLED', 'MULTI_USER_ENABLED', 'REGISTRATION_MODE', 'KESTREL_ENABLE_RLS'],
+    [
+      'BYOK_ENABLED',
+      'MULTI_USER_ENABLED',
+      'REGISTRATION_MODE',
+      'KESTREL_ENABLE_RLS',
+      'OSS_SINGLE_USER_MODE',
+    ],
   ],
 ];
 

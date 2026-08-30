@@ -16,7 +16,7 @@
 
 import { z } from 'zod';
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import { ALL_SYMBOLS, createJournalEntry, withRateLimit } from '@/lib/services/api-boundary';
 
 const ImportRowSchema = z.object({
@@ -63,8 +63,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         { status: 429, headers: { 'Retry-After': '60' } },
       );
     }
-    const body = await req.json();
-    const { trades } = ImportPayloadSchema.parse(body);
+    const { trades } = await parseJsonBody(req, ImportPayloadSchema);
 
     const created = [];
 

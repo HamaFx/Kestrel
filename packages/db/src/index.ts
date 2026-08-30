@@ -352,3 +352,4 @@ export {
   getMemoryProjectionState,
 } from './queries/memory-projection';
 export * as queries from './queries';
+export { withCancellablePostgresQuery, abortError, type CancellableQueryOptions } from './query-cancellation';

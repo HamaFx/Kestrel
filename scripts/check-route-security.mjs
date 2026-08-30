@@ -12,6 +12,11 @@ const routes = execFileSync('git', ['ls-files', 'apps/web/src/app/api'], {
   .split('\n')
   .filter((file) => file.endsWith('/route.ts'));
 
+const intentionalRawBody = new Set([
+  'apps/web/src/app/api/telegram/webhook/route.ts',
+  'apps/web/src/app/api/billing/webhook/route.ts',
+]);
+
 const intentionalPublic = new Set([
   'apps/web/src/app/api/health/public/route.ts',
   'apps/web/src/app/api/auth/[...nextauth]/route.ts',
@@ -24,8 +29,16 @@ const intentionalPublic = new Set([
 ]);
 
 const failures = [];
+const bodyParserFailures = [];
 for (const relative of routes) {
   const source = readFileSync(join(root, relative), 'utf8');
+  if (
+    !intentionalRawBody.has(relative) &&
+    /(POST|PUT|PATCH)\s*=|export const (POST|PUT|PATCH)/.test(source) &&
+    source.includes('req.json()')
+  ) {
+    bodyParserFailures.push(`${relative}: state-changing route must use parseJsonBody instead of req.json()`);
+  }
   const isAdmin = relative.includes('/admin/');
   const isCron = relative.includes('/cron/');
   const hasAuth = /(?:withAuth|compose)(?:<[^>]+>)?\s*\(/.test(source) || /withAuth/.test(source);
@@ -60,9 +73,9 @@ for (const relative of routes) {
   }
 }
 
-if (failures.length) {
+if (failures.length || bodyParserFailures.length) {
   console.error('Route security classification failed:');
-  for (const failure of failures) console.error(`- ${failure}`);
+  for (const failure of [...failures, ...bodyParserFailures]) console.error(`- ${failure}`);
   process.exit(1);
 }
 

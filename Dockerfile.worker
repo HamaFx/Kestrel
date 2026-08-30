@@ -55,7 +55,7 @@ ENV WORKER_MODE=docker
 # normalizePemPrivateKey() function covers your key format.
 
 EXPOSE 8081
-EXPOSE 8080
+EXPOSE 8081 8082
 
 # SEC-3: Run as non-root user.
 # The Node.js 22 slim image provides uid 1000 as 'node'.
@@ -63,9 +63,10 @@ EXPOSE 8080
 USER node
 
 # SEC-3: Container HEALTHCHECK against the real worker health endpoint.
-# Production containers set WORKER_HEALTH_TOKEN; development containers may
-# omit it and use the unauthenticated development-only path.
+# Production containers always set WORKER_HEALTH_TOKEN via the runtime
+# environment. The token is expanded inside the container, never baked into
+# the image or exposed as a build argument.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD if [ -n "$WORKER_HEALTH_TOKEN" ]; then curl -fsS -H "Authorization: Bearer $WORKER_HEALTH_TOKEN" http://localhost:8081/health; else curl -fsS http://localhost:8081/health; fi
+  CMD curl -fsS -H "Authorization: Bearer $${WORKER_HEALTH_TOKEN}" http://localhost:8081/health/live
 
 CMD ["node", "dist/index.js"]

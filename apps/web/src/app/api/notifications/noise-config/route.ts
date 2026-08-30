@@ -20,7 +20,7 @@
 // GET  /api/notifications/noise-config
 // PUT  /api/notifications/noise-config
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import {
   getNoiseConfig,
   NoiseConfigSchema,
@@ -42,9 +42,8 @@ export const GET = withAuth<void>(async (_req, { user }) => {
 
 export const PUT = withAuth<void>(async (req, { user }) => {
   try {
-    const body = await req.json();
     // Validate partial config — allow partial updates
-    const partial = NoiseConfigSchema.partial().parse(body);
+    const partial = await parseJsonBody(req, NoiseConfigSchema.partial());
 
     // Clean undefined values to prevent overwriting existing settings with undefined during spread merges
     const cleaned = Object.fromEntries(

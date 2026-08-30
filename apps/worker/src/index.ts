@@ -16,12 +16,10 @@
 
 // Kestrel worker entry point.
 //
-// Phase 8 PR-6: the worker now holds a persistent BiQuote SignalR
-// connection. Ticks flow into `TickBuffer`, which is drained once per
-// second and UPSERTed into `live_ticks`. The 1m candle aggregator (PR-7)
-// will plug into the same tick stream alongside the buffer.
-//
-// Phase 9a: Binance WebSocket consumer for live crypto klines.
+// The worker holds persistent market-data connections. Ticks flow into
+// `TickBuffer`, which is drained once per second and upserted into
+// `live_ticks`; the candle aggregator consumes the same validated stream.
+// Binance WebSocket data is handled alongside the primary feed.
 //
 // Lifecycle:
 //   1. loadEnv — fail fast if required env is missing.
@@ -38,7 +36,7 @@ import { Candle1mAggregator, type ClosedCandle } from './aggregator/candle-1m.js
 import { BinanceStreamConsumer } from './binance/index.js';
 import { loadEnv, type WorkerEnv } from './env.js';
 import { ping } from './healthchecks.js';
-import { createHealthServer } from './http-server.js';
+import { createHealthServer, createProxyServer } from './http-server.js';
 import { createLogger, type Logger } from './log.js';
 import { flushClosedCandle } from './persistence/candles-1m.js';
 import { flushLiveTicks } from './persistence/live-ticks.js';
@@ -110,8 +108,8 @@ export interface RunWorkerArgs {
   /** Override the heartbeat interval (tests use a tiny number or 0 to disable). */
   heartbeatIntervalMs?: number;
   /**
-   * Tap that fires on every validated tick — used by PR-7 to feed the
-   * candle aggregator without re-walking BiquoteTickSchema.
+   * Tap that fires on every validated tick so the candle aggregator can
+   * consume the same validated event without re-walking its schema.
    */
   onTick?: (tick: NormalizedTick) => void;
 }
@@ -189,9 +187,10 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     // would silently accumulate unresolved promises. The timeout ensures
     // the callback always settles so GC can reclaim resources.
     const CANDLE_FLUSH_TIMEOUT_MS = 10_000;
+    const flushController = new AbortController();
     const flushPromise = (async () => {
       try {
-        await flushClosedCandle({ db, log, bar });
+        await flushClosedCandle({ db, log, bar, signal: flushController.signal });
         log.info('candle closed', {
           symbol: bar.symbol,
           t: new Date(bar.t).toISOString(),
@@ -226,6 +225,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
     const timeoutPromise = new Promise<void>((resolve) => {
       setTimeout(() => {
+        flushController.abort();
         log.warn('flushClosedCandle timed out', { symbol: bar.symbol });
         resolve();
       }, CANDLE_FLUSH_TIMEOUT_MS);
@@ -320,10 +320,9 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     // Peek the buffer BEFORE the DB write. Only drain() on success
     // so ticks are never lost on transient DB failures (C1 fix).
     //
-    // Note: ticks arriving between peek() and drain() will be cleared
-    // by drain() even though they're newer than the peeked data.
-    // This is acceptable because (a) the window is <50ms in practice,
-    // (b) the next flush cycle captures everything arriving after drain().
+    // Drain only the revisions that were successfully persisted. Ticks
+    // arriving while the DB write is in flight remain queued for the next
+    // cycle instead of being silently discarded.
     const drained = buffer.peek();
     if (drained.length === 0) {
       scheduleFlush();
@@ -334,7 +333,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     try {
       const r = await flushLiveTicks({ db, buffer, log }, drained);
       // DB write succeeded — now safe to drain the buffer.
-      buffer.drain();
+      buffer.drain(drained);
       if (r.written > 0) {
         log.info('flushed live_ticks', { written: r.written, ticks: r.totalTicks });
       }
@@ -406,7 +405,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
       const drained = buffer.peek();
       if (drained.length > 0) {
         await flushLiveTicks({ db, buffer, log }, drained);
-        buffer.drain();
+        buffer.drain(drained);
       }
     } catch (err) {
       log.warn('final flush on stop failed', { err: String(err) });
@@ -422,7 +421,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 }
 
 export async function main(): Promise<void> {
-  // Phase 3 §3.9 — load secrets from vault (GCP Secret Manager) before
+  // Load secrets from the configured vault before
   // loadEnv() runs. No-op when SECRETS_VAULT_PROVIDER is unset or 'none'.
   const { loadSecretsFromVault } = await import('@kestrel/shared/vault');
   await loadSecretsFromVault();
@@ -500,6 +499,7 @@ export async function main(): Promise<void> {
   // fail. This ensures timers (heartbeat, flush, batch) are properly cleared.
   // healthServer is hoisted so the catch block can close the port.
   let healthServer: ReturnType<typeof createHealthServer> | null = null;
+  let proxyServer: ReturnType<typeof createProxyServer> | null = null;
   try {
     healthServer = createHealthServer({
       log,
@@ -507,18 +507,59 @@ export async function main(): Promise<void> {
       isSignalRConnected: () => worker.consumer.isStarted(),
       // H4 fix — expose dropped-tick counter for health monitoring.
       getDroppedTicks: () => worker.consumer.droppedTicks(),
+      getRequestId: () => env.DEPLOYED_SHA,
+    });
+    proxyServer = createProxyServer({
+      log,
+      getLastTickAt: worker.getLastTickAt,
+      isSignalRConnected: () => worker.consumer.isStarted(),
+      getDroppedTicks: () => worker.consumer.droppedTicks(),
+      getRequestId: () => env.DEPLOYED_SHA,
     });
 
     // Bind on all container interfaces so Docker's published localhost port
     // can reach the server. Compose keeps the host-side port bound to
     // 127.0.0.1, so this does not expose the worker publicly.
-    healthServer.listen(8081, '0.0.0.0', () => {
-      log.info('Health server listening on 0.0.0.0:8081');
+    await new Promise<void>((resolve, reject) => {
+      const onError = (error: Error) => {
+        healthServer?.off('listening', onListening);
+        reject(error);
+      };
+      const onListening = () => {
+        healthServer?.off('error', onError);
+        log.info('Health server listening', {
+          host: env.WORKER_HTTP_HOST ?? '127.0.0.1',
+          port: env.WORKER_HTTP_PORT,
+        });
+        resolve();
+      };
+      healthServer!.once('error', onError);
+      healthServer!.once('listening', onListening);
+      healthServer!.listen(env.WORKER_HTTP_PORT, env.WORKER_HTTP_HOST ?? '127.0.0.1');
     });
 
     onShutdown(() => closeDb());
+    await new Promise<void>((resolve, reject) => {
+      const onError = (error: Error) => {
+        proxyServer?.off('listening', onListening);
+        reject(error);
+      };
+      const onListening = () => {
+        proxyServer?.off('error', onError);
+        log.info('Proxy server listening', {
+          host: env.WORKER_HTTP_HOST ?? '127.0.0.1',
+          port: env.WORKER_PROXY_PORT,
+        });
+        resolve();
+      };
+      proxyServer!.once('error', onError);
+      proxyServer!.once('listening', onListening);
+      proxyServer!.listen(env.WORKER_PROXY_PORT, env.WORKER_HTTP_HOST ?? '127.0.0.1');
+    });
+
     onShutdown(() => {
       healthServer!.close();
+      proxyServer?.close();
       return worker.stop();
     });
     onShutdown(() => flushSentry(2_000));
@@ -535,6 +576,9 @@ export async function main(): Promise<void> {
     // would leak because onShutdown was never registered.
     log.error('post-startup initialisation failed — tearing down worker', { err: String(err) });
     healthServer?.close();
+    // The proxy may have been created before its listener bound.
+    // Close is idempotent for an unbound server.
+    proxyServer?.close();
     await worker.stop();
     throw err;
   }

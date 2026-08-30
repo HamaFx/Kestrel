@@ -51,8 +51,16 @@ const WorkerEnvSchema = z.object({
 
   /** Optional override; defaults to https://biquote.io in the consumer. */
   BIQUOTE_BASE_URL: optionalUrl,
-  /** Bearer token required by the externally reachable health endpoint. */
+  /** Bearer token required by the health endpoint. */
   WORKER_HEALTH_TOKEN: optionalNonEmpty,
+  /** Bearer token required for the BiQuote proxy in production. */
+  BIQUOTE_PROXY_TOKEN: optionalNonEmpty,
+  /** Bind address for the worker HTTP listener; keep private by default. */
+  WORKER_HTTP_HOST: optionalNonEmpty,
+  /** Port for the worker health listener. */
+  WORKER_HTTP_PORT: z.coerce.number().int().min(1).max(65535).default(8081),
+  /** Port for the optional BiQuote proxy listener. */
+  WORKER_PROXY_PORT: z.coerce.number().int().min(1).max(65535).default(8082),
   /** SignalR hub URL. Defaults to BiQuote's documented endpoint. */
   BIQUOTE_HUB_URL: z.string().url().default('https://biquote.io/hubs/tick'),
 
@@ -164,6 +172,12 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
       .map((i) => `  - ${i.path.join('.') || '(root)'}: ${i.message}`)
       .join('\n');
     throw new Error(`Invalid worker environment:\n${issues}`);
+  }
+  if (result.data.NODE_ENV === 'production' && !result.data.WORKER_HEALTH_TOKEN) {
+    throw new Error('WORKER_HEALTH_TOKEN must be set in production');
+  }
+  if (result.data.NODE_ENV === 'production' && !result.data.BIQUOTE_PROXY_TOKEN) {
+    throw new Error('BIQUOTE_PROXY_TOKEN must be set in production');
   }
   if (!result.data.DATABASE_URL && !result.data.POSTGRES_URL) {
     // PGlite mode: embedded Postgres, no remote DB URL needed.

@@ -58,7 +58,6 @@ const _activeControllers = new Set<AbortController>();
 // retries. The job is already idempotent per-article (query filters for
 // `embedding IS NULL`), so removing the daily lock lets each 6-hour
 // timer firing run independently and self-heal within the same day.
-// (Phase 6 task 6.2 - 05 section 3 job 1)
 const SKIP_DAILY_LOCK = new Set<keyof typeof JOBS>([
   'alerts',
   'briefings',
@@ -83,7 +82,7 @@ export function startScheduler(log: Logger): () => void {
   if (
     process.env.NODE_ENV !== 'test' &&
     process.env.KESTREL_LOCAL_DOCKER !== 'true' &&
-    process.env.HAMAFX_LOCAL_DOCKER !== 'true'
+    process.env.KESTREL_LOCAL_DOCKER_LEGACY !== 'true'
   ) {
     void cleanupStaleCronRuns(log);
   }

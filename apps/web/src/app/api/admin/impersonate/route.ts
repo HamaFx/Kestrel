@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { generateImpersonationChallenge, signIn } from '@/auth';
 import { withAdminAuth } from '@/lib/admin-auth';
 import { parseJsonBody } from '@/lib/api';
+import { jsonApiError } from '@/lib/api-errors';
 import { recordAdminAudit } from '@/lib/services/admin';
 import { getUserById } from '@/lib/services/api-boundary';
 
@@ -37,10 +38,7 @@ export const POST = withAdminAuth(async (req, { user: admin }) => {
     process.env.ENABLE_IMPERSONATION !== 'true' ||
     process.env.ALLOW_INSECURE_DEV_AUTH !== 'true'
   ) {
-    return Response.json(
-      { error: { code: 'FORBIDDEN', message: 'Impersonation is disabled' } },
-      { status: 403 },
-    );
+    return jsonApiError('FORBIDDEN', 'Impersonation is disabled', 403, req);
   }
 
   const { userId } = await parseJsonBody(req, impersonateSchema);
@@ -48,10 +46,7 @@ export const POST = withAdminAuth(async (req, { user: admin }) => {
   const targetUser = await getUserById(userId);
 
   if (!targetUser) {
-    return Response.json(
-      { error: { code: 'NOT_FOUND', message: 'User not found' } },
-      { status: 404 },
-    );
+    return jsonApiError('NOT_FOUND', 'User not found', 404, req);
   }
 
   try {
@@ -66,6 +61,6 @@ export const POST = withAdminAuth(async (req, { user: admin }) => {
     return Response.json({ ok: true, redirect: '/chat' });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: { code: 'INTERNAL', message } }, { status: 500 });
+    return jsonApiError('INTERNAL', message, 500, req);
   }
 });

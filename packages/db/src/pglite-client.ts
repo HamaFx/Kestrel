@@ -136,7 +136,7 @@ function readJournal(): Array<{ tag: string }> {
  * renaming a migration file in a future commit — keep the old name as
  * the key, the new name as the value.
  *
- * History:
+ * Historical compatibility:
  *   fd346ce — synced migration file names with their journal entries
  *             (e.g. 0003_phase_3 → 0003_alert_system). Persisted
  *             PGlite DBs from before that commit still hold the OLD

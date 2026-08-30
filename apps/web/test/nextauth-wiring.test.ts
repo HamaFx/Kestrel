@@ -65,9 +65,9 @@ describe('NextAuth wiring', () => {
     // shape checks above.
     const fs = await import('node:fs/promises');
     const src = await fs.readFile(resolve(process.cwd(), 'src/auth.ts'), 'utf8');
-    expect(src).toMatch(/NextAuth\(/);
-    expect(src).toMatch(/Credentials\(/);
-    expect(src).toMatch(/getDb\(/);
+    expect(src).toMatch(/NextAuth|_nextAuth/);
+    expect(src).toMatch(/createAuthProviders/);
+    expect(src).not.toMatch(/getDb\(/);
     expect(src).not.toMatch(/__system__/);
   });
 });

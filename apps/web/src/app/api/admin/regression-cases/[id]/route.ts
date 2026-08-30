@@ -20,6 +20,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/admin-auth';
 import { errorResponse, parseJsonBody } from '@/lib/api';
+import { jsonApiError } from '@/lib/api-errors';
 import { recordAdminAudit } from '@/lib/services/admin';
 import { updateAiRegressionCaseStatus } from '@/lib/services/api-boundary';
 
@@ -36,10 +37,7 @@ export const PATCH = withAdminAuth<{ id: string }>(async (req, { user, params })
     const body = await parseJsonBody(req, bodySchema);
     const row = await updateAiRegressionCaseStatus(id, body.status);
     if (!row) {
-      return Response.json(
-        { error: { code: 'NOT_FOUND', message: 'Regression case not found' } },
-        { status: 404 },
-      );
+      return jsonApiError('NOT_FOUND', 'Regression case not found', 404, req);
     }
     await recordAdminAudit(user.userId, 'ai.regression-case.update', undefined, {
       regressionCaseId: row.id,

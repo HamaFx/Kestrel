@@ -32,6 +32,9 @@ describe('loadEnv', () => {
     expect(env.BIQUOTE_HUB_URL).toBe('https://biquote.io/hubs/tick');
     expect(env.DEPLOYED_SHA).toBe('unknown');
     expect(env.NODE_ENV).toBe('test');
+    expect(env.WORKER_HTTP_PORT).toBe(8081);
+    expect(env.WORKER_PROXY_PORT).toBe(8082);
+    expect(env.WORKER_HTTP_HOST).toBeUndefined();
   });
 
   it('accepts POSTGRES_URL as an alternative to DATABASE_URL', () => {
@@ -41,10 +44,29 @@ describe('loadEnv', () => {
     expect(env.POSTGRES_URL).toBe('postgres://user:pw@localhost:5432/db');
   });
 
-  it('throws when neither DATABASE_URL nor POSTGRES_URL is set in production', () => {
+  it('throws when neither database URL nor production worker tokens are set', () => {
     expect(() => loadEnv({ NODE_ENV: 'production' } as unknown as NodeJS.ProcessEnv)).toThrow(
-      /DATABASE_URL or POSTGRES_URL/,
+      /WORKER_HEALTH_TOKEN|BIQUOTE_PROXY_TOKEN|DATABASE_URL or POSTGRES_URL/,
     );
+  });
+
+  it('requires health and proxy tokens in production', () => {
+    const base = {
+      DATABASE_URL: VALID.DATABASE_URL,
+      NODE_ENV: 'production',
+    } as unknown as NodeJS.ProcessEnv;
+
+    expect(() => loadEnv(base)).toThrow(/WORKER_HEALTH_TOKEN/);
+    expect(() =>
+      loadEnv({ ...base, WORKER_HEALTH_TOKEN: 'health-token' } as unknown as NodeJS.ProcessEnv),
+    ).toThrow(/BIQUOTE_PROXY_TOKEN/);
+    expect(
+      loadEnv({
+        ...base,
+        WORKER_HEALTH_TOKEN: 'health-token',
+        BIQUOTE_PROXY_TOKEN: 'proxy-token',
+      } as unknown as NodeJS.ProcessEnv).BIQUOTE_PROXY_TOKEN,
+    ).toBe('proxy-token');
   });
 
   it('allows missing DATABASE_URL in development (PGlite mode)', () => {
@@ -52,6 +74,18 @@ describe('loadEnv', () => {
     expect(env.DATABASE_URL).toBeUndefined();
     expect(env.POSTGRES_URL).toBeUndefined();
     expect(env.NODE_ENV).toBe('development');
+  });
+
+  it('validates the worker HTTP port', () => {
+    expect(() =>
+      loadEnv({ ...VALID, WORKER_HTTP_PORT: '70000' } as unknown as NodeJS.ProcessEnv),
+    ).toThrow(/Invalid worker environment/);
+  });
+
+  it('accepts a private worker HTTP host override', () => {
+    const env = loadEnv({ ...VALID, WORKER_HTTP_HOST: '127.0.0.1', WORKER_HTTP_PORT: '9090' } as unknown as NodeJS.ProcessEnv);
+    expect(env.WORKER_HTTP_HOST).toBe('127.0.0.1');
+    expect(env.WORKER_HTTP_PORT).toBe(9090);
   });
 
   it('rejects malformed URLs', () => {

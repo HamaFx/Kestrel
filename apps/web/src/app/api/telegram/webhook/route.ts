@@ -25,6 +25,7 @@ import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
 import { getServerEnv } from '@/lib/env';
+import { getRequestId } from '@/lib/request-id';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
   handleTelegramWebhook,
@@ -118,21 +119,24 @@ export async function GET(): Promise<Response> {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const requestId = getRequestId(req);
+  const responseHeaders = requestId ? { 'x-request-id': requestId } : undefined;
   const log = createScopedLoggerWithContext({
     component: 'telegram',
     route: '/api/telegram/webhook',
+    ...(requestId ? { requestId } : {}),
   });
   const env = getServerEnv();
 
   if (process.env.NODE_ENV === 'production' && !env.TELEGRAM_SECRET_TOKEN) {
     log.error('TELEGRAM_SECRET_TOKEN is required in production');
-    return new Response('Server misconfigured', { status: 500 });
+    return new Response('Server misconfigured', { status: 500, headers: responseHeaders });
   }
 
   const secretToken = req.headers.get('x-telegram-bot-api-secret-token');
   if (env.TELEGRAM_SECRET_TOKEN && !safeSecretEquals(secretToken, env.TELEGRAM_SECRET_TOKEN)) {
     console.warn('[telegram-webhook] Invalid secret token');
-    return new Response('Unauthorized', { status: 401 });
+    return new Response('Unauthorized', { status: 401, headers: responseHeaders });
   }
 
   let update;
@@ -140,7 +144,7 @@ export async function POST(req: Request): Promise<Response> {
     update = TelegramUpdateSchema.parse(await req.json());
   } catch (err) {
     log.errorContext(err, 'parseWebhookPayload', {});
-    return new Response('Bad Request', { status: 400 });
+    return new Response('Bad Request', { status: 400, headers: responseHeaders });
   }
 
   // Return 500 on handler errors so Telegram retries the update.
@@ -153,6 +157,6 @@ export async function POST(req: Request): Promise<Response> {
       extra: { updateId: update.update_id },
     });
     log.errorContext(err, 'handleTelegramWebhook', { updateId: update.update_id });
-    return new Response('Internal Server Error', { status: 500 });
+    return new Response('Internal Server Error', { status: 500, headers: responseHeaders });
   }
 }

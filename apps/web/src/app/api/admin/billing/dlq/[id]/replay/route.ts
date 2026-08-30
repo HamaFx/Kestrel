@@ -25,6 +25,7 @@ import {
   type IpnPayload,
 } from '@/app/api/billing/webhook/route';
 import { withAdminAuth } from '@/lib/admin-auth';
+import { jsonApiError } from '@/lib/api-errors';
 import {
   claimBillingWebhookReplay,
   markBillingWebhookReplayed,
@@ -38,13 +39,15 @@ interface Params {
   id: string;
 }
 
-export const POST = withAdminAuth<Params>(async (_req, { params }) => {
+export const POST = withAdminAuth<Params>(async (req, { params }) => {
   const { id } = await params;
   const entry = await claimBillingWebhookReplay(id);
   if (!entry) {
-    return Response.json(
-      { error: { code: 'NOT_FOUND', message: 'DLQ entry is missing or already being replayed' } },
-      { status: 404 },
+    return jsonApiError(
+      'NOT_FOUND',
+      'DLQ entry is missing or already being replayed',
+      404,
+      req,
     );
   }
 
@@ -66,9 +69,6 @@ export const POST = withAdminAuth<Params>(async (_req, { params }) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (entry.replayToken) await releaseBillingWebhookReplay(id, message, entry.replayToken);
-    return Response.json(
-      { error: { code: 'REPLAY_FAILED', message: 'DLQ replay failed', requestId: id } },
-      { status: 422 },
-    );
+    return jsonApiError('REPLAY_FAILED', 'DLQ replay failed', 422, req);
   }
 });

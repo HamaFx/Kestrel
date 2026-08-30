@@ -18,7 +18,7 @@
 
 // PF-22 — /api/portfolio/settings — get / update settings (thin controller).
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import {
   getPortfolioSettingsService,
   PortfolioUpdateSettingsSchema,
@@ -39,8 +39,7 @@ export const GET = withAuth<void>(async (_req, { user }) => {
 
 export const PUT = withAuth<void>(async (req, { user }) => {
   try {
-    const body = await req.json();
-    const input = PortfolioUpdateSettingsSchema.parse(body);
+    const input = await parseJsonBody(req, PortfolioUpdateSettingsSchema);
     const result = await savePortfolioSettingsService(user.userId, input);
     return Response.json(result);
   } catch (err) {

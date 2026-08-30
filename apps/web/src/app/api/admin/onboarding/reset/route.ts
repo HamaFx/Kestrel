@@ -20,6 +20,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/admin-auth';
 import { parseJsonBody } from '@/lib/api';
+import { jsonApiError } from '@/lib/api-errors';
 import { recordAdminAudit } from '@/lib/services/admin';
 import { getUserById, resetOnboarding } from '@/lib/services/api-boundary';
 
@@ -42,10 +43,7 @@ export const POST = withAdminAuth(async (req, { user: admin }) => {
   const targetUser = await getUserById(targetUserId);
 
   if (!targetUser) {
-    return Response.json(
-      { error: { code: 'NOT_FOUND', message: 'User not found' } },
-      { status: 404 },
-    );
+    return jsonApiError('NOT_FOUND', 'User not found', 404, req);
   }
 
   await resetOnboarding(targetUserId, body.mode);

@@ -27,7 +27,7 @@ describe('auth host and production security contract', () => {
     delete process.env.NEXTAUTH_SECRET;
     process.env.AUTH_MODE = 'normal';
 
-    const { assertProductionSecurity } = await import('../src/auth.config');
+    const { assertProductionSecurity } = await import('../src/lib/security-invariants');
     expect(() => assertProductionSecurity()).toThrow(/AUTH_SECRET/);
   });
 
@@ -37,7 +37,7 @@ describe('auth host and production security contract', () => {
     delete process.env.NEXTAUTH_SECRET;
     process.env.AUTH_MODE = 'legacy';
 
-    const { assertProductionSecurity } = await import('../src/auth.config');
+    const { assertProductionSecurity } = await import('../src/lib/security-invariants');
     expect(() => assertProductionSecurity()).toThrow(/AUTH_MODE=legacy/);
   });
 

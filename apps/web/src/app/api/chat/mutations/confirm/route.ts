@@ -38,7 +38,7 @@ import {
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { withAuth } from '@/lib/api';
+import { parseJsonBody, withAuth } from '@/lib/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -226,21 +226,16 @@ function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: str
 }
 
 export const POST = withAuth(async (req: Request, { user }) => {
-  const parsed = ConfirmBodySchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
+  let parsed: z.infer<typeof ConfirmBodySchema>;
+  try {
+    parsed = await parseJsonBody(req, ConfirmBodySchema);
+  } catch {
     return NextResponse.json(
-      {
-        error: {
-          code: 'VALIDATION',
-          message: 'Invalid confirmation body',
-          details: parsed.error.issues,
-        },
-      },
+      { error: { code: 'VALIDATION', message: 'Invalid confirmation body' } },
       { status: 400 },
     );
   }
-
-  const { runId, confirmationToken } = parsed.data;
+  const { runId, confirmationToken } = parsed;
   const mastra = getKestrelMastra().instance;
   const run = await findMutationRun(runId);
   if (!run) {

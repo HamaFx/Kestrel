@@ -21,7 +21,13 @@ docker compose logs --tail=100 db
 curl -fsS http://localhost:3000/api/health/public
 ```
 
-For the worker, use `/health/live` for process liveness and `/health/ready` for feed/database readiness. Production health requests may require `WORKER_HEALTH_TOKEN`.
+For the worker, use `/health/live` for process liveness and `/health/ready` for feed/database readiness. Production worker startup requires `WORKER_HEALTH_TOKEN` and `BIQUOTE_PROXY_TOKEN`; health requests must include the health bearer token:
+
+```bash
+curl -fsS -H "Authorization: Bearer $WORKER_HEALTH_TOKEN" http://127.0.0.1:8081/health/live
+```
+
+Keep ports `8081` and `8082` private. Health uses `8081`; the optional BiQuote proxy uses `8082`. Publishing either publicly expands the attack surface even when the route requires a token.
 
 ## Setup wizard problems
 

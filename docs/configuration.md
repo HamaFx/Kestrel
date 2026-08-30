@@ -159,8 +159,9 @@ Never enable billing without reviewing webhook safety, legal terms, idempotency,
 | Variable | Default/required | Description |
 | --- | --- | --- |
 | `WORKER_MODE` | `systemd` | `systemd` uses external scheduling; `docker` uses internal scheduling |
-| `WORKER_HEALTH_TOKEN` | Optional locally; production recommended | Bearer token for worker health endpoints |
+| `WORKER_HEALTH_TOKEN` | Required in production; optional locally | Bearer token for worker health endpoints |
 | `BIQUOTE_HUB_URL` | BiQuote SignalR URL | Live market feed endpoint |
+| `BIQUOTE_PROXY_TOKEN` | Required in production; optional locally | Bearer token for the worker’s BiQuote proxy |
 | `BINANCE_CRYPTO_SYMBOLS` | Catalog default | Comma-separated crypto symbols |
 | `BINANCE_WS_URL` | Optional | Binance WebSocket base URL |
 | `WORKER_DB_POOL_MAX` | Code default | Worker PostgreSQL pool size |
@@ -168,7 +169,7 @@ Never enable billing without reviewing webhook safety, legal terms, idempotency,
 | `EVAL_REPORTS_DIR` | Derived default | Evaluation report directory |
 | `DEPLOYED_SHA` | `unknown` | Deployment revision label |
 
-The worker exposes `/health/live` and `/health/ready`. Keep its health/proxy port private unless explicitly protected.
+The worker exposes `/health/live` and `/health/ready` on port `8081`, and the optional `/biquote` proxy on port `8082`. Both bind privately by default; if either must be reachable by an orchestrator, use a private network or loopback binding and pass the matching bearer token. Production worker startup fails without both `WORKER_HEALTH_TOKEN` and `BIQUOTE_PROXY_TOKEN`. Never expose either port directly to the public internet.
 
 ## Docker-only settings
 
@@ -187,7 +188,7 @@ Run `./docker/init-secrets.sh` instead of manually inventing secret values. Exis
 
 ## Deprecated and compatibility variables
 
-`HAMAFX_ENABLE_RLS` is accepted as a compatibility alias and normalized to `KESTREL_ENABLE_RLS`. Prefer the Kestrel name in all new configuration. Other legacy compatibility variables may exist in migration or upgrade code; check the canonical schemas before adding one.
+`HAMAFX_ENABLE_RLS` is accepted as a compatibility alias and normalized to `KESTREL_ENABLE_RLS`. Prefer the Kestrel name in all new configuration. The alias is temporary compatibility behavior and should be removed after existing deployments have migrated. Other legacy compatibility variables may exist in migration or upgrade code; check the canonical schemas before adding one. State-changing JSON API routes use the bounded `parseJsonBody` helper, which enforces a size limit and body-read timeout; new routes must use it instead of calling `req.json()` directly.
 
 ## Configuration changes
 

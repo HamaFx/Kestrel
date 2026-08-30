@@ -24,10 +24,10 @@
 //
 // Usage: pnpm --filter @kestrel/db migrate:status
 
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { buildMigrationPlan, assertMigrationPlanIsConsistent } from '../dist/migration-plan.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
@@ -38,37 +38,25 @@ if (!existsSync(journalPath)) {
   process.exit(1);
 }
 
-const journal = JSON.parse(readFileSync(journalPath, 'utf-8'));
-const journalEntries = journal.entries || [];
-
-const sqlFiles = readdirSync(DRIZZLE_DIR).filter((f) => f.endsWith('.sql'));
+const plan = buildMigrationPlan(DRIZZLE_DIR);
+try { assertMigrationPlanIsConsistent(plan); } catch (error) { console.error(`[migrate:status] ${error.message}`); process.exit(1); }
+const journalEntries = plan.entries;
+const sqlFiles = plan.entries.map((entry) => entry.file);
 
 console.log('\nMigration Status\n');
 console.log(`   Journal entries: ${journalEntries.length}`);
 console.log(`   SQL files found: ${sqlFiles.length}\n`);
 
-let allFilesExist = true;
-for (const entry of journalEntries) {
-  const fileExists = sqlFiles.some((f) => f.startsWith(entry.tag));
-  const status = fileExists ? 'OK' : 'MISSING';
-  if (!fileExists) allFilesExist = false;
-  console.log(`   [${status}]  ${entry.tag}`);
-}
+for (const entry of journalEntries) console.log(`   [OK]  ${entry.tag}`);
+for (const tag of plan.missingTags) console.log(`   [MISSING]  ${tag}`);
+for (const file of plan.unjournaledFiles) console.log(`   [UNJOURNALED]  ${file}`);
 
-const journalTags = new Set(journalEntries.map((entry) => entry.tag));
-const unjournaledFiles = sqlFiles.filter(
-  (file) => ![...journalTags].some((tag) => file.startsWith(`${tag}.`)),
-);
-for (const file of unjournaledFiles) {
-  console.log(`   [UNJOURNALED]  ${file}`);
-}
-
-if (!allFilesExist) {
+if (plan.missingTags.length > 0) {
   console.log('\nSome migration files are missing. Run `pnpm migrate:gen` to regenerate.\n');
   process.exit(1);
 }
 
-if (unjournaledFiles.length > 0) {
+if (plan.unjournaledFiles.length > 0) {
   console.log('\nSome SQL files are not present in _journal.json. Register or remove them before deploying.\n');
   process.exit(1);
 }
@@ -119,11 +107,7 @@ async function checkDatabase() {
       `;
 
       const appliedHashes = new Set(rows.map((r) => r.hash));
-      const journalHashes = new Set();
-      for (const entry of journalEntries) {
-        const sqlPath = join(DRIZZLE_DIR, `${entry.tag}.sql`);
-        journalHashes.add(createHash('sha256').update(readFileSync(sqlPath)).digest('hex'));
-      }
+      const journalHashes = new Set(journalEntries.map((entry) => entry.hash));
       const unknownAppliedHashes = [...appliedHashes].filter((hash) => !journalHashes.has(hash));
       if (unknownAppliedHashes.length > 0) {
         console.error(
@@ -136,9 +120,7 @@ async function checkDatabase() {
 
       const pending = [];
       for (const entry of journalEntries) {
-        const sqlPath = join(DRIZZLE_DIR, `${entry.tag}.sql`);
-        const fileContent = readFileSync(sqlPath);
-        const fileHash = createHash('sha256').update(fileContent).digest('hex');
+        const fileHash = entry.hash;
         if (!appliedHashes.has(fileHash)) {
           pending.push({ tag: entry.tag, hash: fileHash });
         }

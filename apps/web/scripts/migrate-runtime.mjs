@@ -70,6 +70,12 @@ const redactUrl = (url) => url.replace(/:[^/@]+@/, ':***@');
 console.log(`[runtime-migrate] Applying migrations using ${redactUrl(databaseUrl)}`);
 
 const sql = postgres(databaseUrl, {
+  // Prevent concurrent app replicas/processes from applying migrations or
+  // changing the single-user RLS state at the same time. PostgreSQL advisory
+  // locks are connection-scoped and released automatically if this process
+  // exits unexpectedly.
+  onnotice: () => {},
+
   prepare: false,
   max: 1,
   connect_timeout: 10,
@@ -79,6 +85,9 @@ const sql = postgres(databaseUrl, {
 });
 
 try {
+  await sql`SELECT pg_advisory_lock(hashtext('kestrel:runtime-migrations'))`;
+  console.log('[runtime-migrate] Acquired migration lock.');
+
   // The migration chain uses unqualified vector and gen_random_uuid names.
   // Install/repair both extensions before Drizzle opens its migration
   // transaction so fresh PostgreSQL and legacy extensions-schema databases
@@ -145,5 +154,11 @@ try {
   );
   process.exitCode = 1;
 } finally {
+  try {
+    await sql`SELECT pg_advisory_unlock(hashtext('kestrel:runtime-migrations'))`;
+  } catch {
+    // The connection may already be unavailable; PostgreSQL releases the
+    // advisory lock automatically when it closes.
+  }
   await sql.end({ timeout: 5 });
 }

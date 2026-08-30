@@ -30,7 +30,7 @@ import {
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { withAuth } from '@/lib/api';
+import { parseJsonBody, withAuth } from '@/lib/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,21 +41,16 @@ const CancelBodySchema = z.object({
 });
 
 export const POST = withAuth(async (req: Request, { user }) => {
-  const parsed = CancelBodySchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
+  let parsed: z.infer<typeof CancelBodySchema>;
+  try {
+    parsed = await parseJsonBody(req, CancelBodySchema);
+  } catch {
     return NextResponse.json(
-      {
-        error: {
-          code: 'VALIDATION',
-          message: 'Invalid cancellation body',
-          details: parsed.error.issues,
-        },
-      },
+      { error: { code: 'VALIDATION', message: 'Invalid cancellation body' } },
       { status: 400 },
     );
   }
-
-  const { runId, confirmationToken } = parsed.data;
+  const { runId, confirmationToken } = parsed;
   const run = await findMutationRun(runId);
   if (!run) {
     return NextResponse.json(

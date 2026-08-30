@@ -22,6 +22,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/admin-auth';
 import { parseJsonBody } from '@/lib/api';
+import { jsonApiError } from '@/lib/api-errors';
 import { LastAdminError, SelfDemoteError, updateUserRoleService } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';
@@ -49,21 +50,15 @@ export const PATCH = withAdminAuth<Params>(async (req, { user, params }) => {
     return Response.json(result);
   } catch (err) {
     if (err instanceof LastAdminError) {
-      return Response.json(
-        { error: { code: 'LAST_ADMIN', message: err.message } },
-        { status: 409 },
-      );
+      return jsonApiError('LAST_ADMIN', err.message, 409, req);
     }
 
     if (err instanceof SelfDemoteError) {
-      return Response.json(
-        { error: { code: 'SELF_DEMOTE', message: err.message } },
-        { status: 409 },
-      );
+      return jsonApiError('SELF_DEMOTE', err.message, 409, req);
     }
 
     if (err instanceof Error && err.message === 'User not found') {
-      return Response.json({ error: { code: 'NOT_FOUND', message: err.message } }, { status: 404 });
+      return jsonApiError('NOT_FOUND', err.message, 404, req);
     }
 
     throw err;
