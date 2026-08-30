@@ -1,0 +1,130 @@
+# AGENTS.private.md — Kestrel Maintainer Operations
+
+> **Private, local-only instructions.** Copy this file to `AGENTS.private.md` and fill in deployment-specific values locally. Never commit the populated file, secrets, tokens, cookies, database URLs, provider credentials, or private incident data.
+>
+> This file supplements the public `AGENTS.md`; it does not override repository safety rules, migration rules, or the single-user OSS boundary.
+
+## Scope
+
+These instructions apply only to the maintainer-operated deployment:
+
+- Vercel web application
+- GCE VM worker running Docker
+- Managed PostgreSQL/Supabase database
+- Maintainer-only monitoring, cron, provider proxy, and backup services
+
+This topology is not the supported public OSS deployment contract. Public users should follow `README.md` and `OPEN_SOURCE_DEPLOYMENT_MATRIX.md`.
+
+## Private deployment inventory
+
+Fill these values locally, never in a tracked file:
+
+```text
+Vercel project:
+Vercel team/scope:
+Production URL:
+GCE instance/zone:
+Worker deployment directory:
+Database provider/project:
+Worker health URL:
+Monitoring dashboards:
+Backup destination:
+
+Secret source:
+Production deploy owner:
+Rollback owner:
+Incident contact:
+```
+
+## Non-negotiable safety rules
+
+- Never paste secrets, API keys, cookies, database URLs, service-account JSON, or private logs into agent prompts or repository files.
+- Never run `git push`, deployment, production migration, database mutation, backup deletion, or rollback without explicit operator approval.
+- Never use `drizzle-kit push` against production.
+- Production migrations require a direct database connection (`DIRECT_URL` or `POSTGRES_URL_NON_POOLING`), not a transaction pooler.
+- Back up the database and confirm `ENCRYPTION_SECRET` recovery material before destructive maintenance.
+- Verify the target environment before every command. Do not assume the current shell, Vercel project, GCE host, or database is correct.
+- Keep the OSS runtime boundary fail-closed unless a separately approved shared-hosting change has passed its full isolation gate.
+
+## Deployment workflow
+
+1. Inspect the current deployment, Git revision, environment, worker health, and database migration status.
+2. Review the diff and relevant tests.
+3. Run local typecheck, lint, tests, and release/security checks.
+4. Build the application and containers using the repository’s pinned toolchain.
+5. Apply database migrations through the approved direct connection only.
+6. Deploy the web application and worker through the established maintainer mechanism.
+7. Verify public web health, authenticated smoke paths, worker liveness/readiness, logs, scheduled jobs, and provider connectivity.
+8. Record the deployed source revision, image digests, migration state, and rollback information.
+
+Do not combine unrelated schema, application, worker, and infrastructure changes in one unreviewed production operation.
+
+## Vercel operations
+
+Use the Vercel CLI only after confirming the project and scope from local maintainer configuration. Prefer read-only inspection first:
+
+```bash
+vercel whoami
+vercel list <project> --scope <team>
+vercel logs --project <project> --scope <team> --limit 50
+```
+
+Pulling environment variables writes secrets to a local file. Treat the result as sensitive and delete it securely when no longer needed. Never include the output in a bug report or commit.
+
+Production migration requirements:
+
+- Confirm the deployment environment explicitly.
+- Use `DIRECT_URL` or `POSTGRES_URL_NON_POOLING`.
+- Review `scripts/predeploy-migrate.mjs` before changing migration behavior.
+- Confirm migration success independently after deployment.
+
+## GCE worker operations
+
+The worker runs in Docker and owns the heavy scheduled jobs in the maintainer topology. Host timers may invoke lightweight application endpoints only when explicitly configured.
+
+Before restarting or updating the worker:
+
+- Check current container health and recent logs.
+- Confirm no migration or backup operation is in progress.
+- Confirm the worker scheduler will not overlap with another scheduler.
+- Preserve the previous image/source revision for rollback.
+- Verify `/health/live` and `/health/ready` after restart.
+
+Do not expose worker ports publicly unless the firewall, token, reverse proxy, and threat model have been reviewed.
+
+## Database and backup operations
+
+- Follow the migration rules in public `AGENTS.md`.
+- Never edit an applied migration.
+- Check migration status before and after deployment.
+- Confirm backups are recent before schema changes.
+- Local backup volumes do not protect against host loss; verify off-host copies.
+- Losing `ENCRYPTION_SECRET` makes stored BYOK credentials unrecoverable.
+- Test restore procedures on disposable infrastructure before relying on them for incident recovery.
+
+## Monitoring and incidents
+
+When investigating an incident:
+
+1. Establish the time window and affected deployment revision.
+2. Check web health, worker health, database connectivity, queue depth, provider failures, and recent deploys.
+3. Determine whether the issue is isolated to the maintainer topology or affects the public OSS code path.
+4. Preserve relevant redacted logs and diagnostic identifiers.
+5. Prefer mitigation and rollback over speculative production edits.
+6. Record the root cause, impact, timeline, mitigation, and follow-up tests.
+
+Never disclose private monitoring URLs, customer data, secrets, or unredacted logs in public issues or release notes.
+
+## Release checklist
+
+- [ ] Public `AGENTS.md`, README, security policy, and deployment matrix are accurate.
+- [ ] Current-tree and Git-history secret scans pass.
+- [ ] Typecheck, lint, tests, build, and release checks pass.
+- [ ] Database backup exists and restore material is available.
+- [ ] Direct migration connection confirmed.
+- [ ] Web and worker source revisions recorded.
+- [ ] Worker liveness/readiness verified.
+- [ ] Public web health and critical smoke paths verified.
+- [ ] Optional telemetry and provider behavior reviewed.
+- [ ] Rollback image/revision identified.
+- [ ] No private values entered into tracked files or public artifacts.

@@ -88,3 +88,6 @@ artifacts/
 # teamwork temporary subagent runs
 .agents/*
 !.agents/skills/
+
+# private maintainer-only agent instructions
+AGENTS.private.md

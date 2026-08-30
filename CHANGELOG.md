@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to HamaFX-Ai are documented in this file.
+All notable changes to Kestrel are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -19,17 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Documentation overhaul:** current procedural docs for the single-user OSS release, replacing the old 15-doc set:
-  - `docs/01-architecture.md` — system design and deployment modes
-  - `docs/02-data-flows.md` — provider flows and licensing responsibilities
-  - `docs/03-backend-api.md` — API architecture and route-boundary rules
-  - `docs/04-frontend-ux.md` — frontend architecture and UX requirements
-  - `docs/10-security.md` — auth, BYOK encryption, RLS, and self-hosting security
-  - `docs/11-self-hosting.md` — deployment entry point
-  - `docs/07-agent-understanding.md` — coding-agent guide
-  - `docs/08-agent-setup-run.md` — setup and troubleshooting
-  - `docs/14-oss-release-checklist.md` — public-release boundary and operator checklist
-- **Advanced community docs:** `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`, `CODE_OF_CONDUCT.md`
-- Legacy documentation references were removed from the public guide; the current procedural docs live in `docs/`.
+  - `README.md` — public product scope and quick start
+  - `OPEN_SOURCE_DEPLOYMENT_MATRIX.md` — supported deployment profiles
+  - `OPEN_SOURCE_READINESS_CURRENT.md` — current readiness and remaining gates
+  - `OPEN_SOURCE_READINESS_FINDINGS.md` — detailed findings and action record
+  - `SECURITY.md` — security policy and operator responsibilities
+  - `CONTRIBUTING.md` — development and contribution workflow
+- **Community docs:** `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`, `CODE_OF_CONDUCT.md`
+- Legacy documentation references were removed from the public guide; the current public documentation lives in the repository root and the implementation directories.
 
 ### Changed
 
@@ -39,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Documented the historical auth hardening work in `docs/10-security.md`:
+- Documented the historical auth hardening work in `SECURITY.md` and the current auth implementation:
   - Token-version invalidation
   - Signed user-header protection
   - Deleted-user session validation
@@ -49,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.0] — Pre-release
 
-HamaFX-Ai is in pre-release development. The project has shipped through Phases 0–9 plus UX upgrade Phases A–E, but has not yet tagged a formal release.
+Kestrel is in pre-release development. The project has shipped through Phases 0–9 plus UX upgrade Phases A–E, but has not yet tagged a formal release.
 
 ### Shipped Features (cumulative)
 

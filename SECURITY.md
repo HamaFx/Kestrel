@@ -42,7 +42,7 @@ Please practice responsible disclosure. We commit to not taking legal action aga
 
 Kestrel uses NextAuth.js v5 with a Credentials provider (email + password, bcrypt). Sessions are JWT-based with a 30-day expiry. Account lockout activates after 5 failed login attempts (15-minute lockout).
 
-**Auth hardening completed** — see [docs/10-security.md](docs/10-security.md) for the current self-hosted security model.
+**Auth hardening completed** — see the current implementation at `apps/web/src/auth.ts` and `apps/web/src/auth.config.ts`, plus [OPEN_SOURCE_READINESS_CURRENT.md](OPEN_SOURCE_READINESS_CURRENT.md) for release status.
 
 | Issue                                                                                                   | Severity | Status   |
 | ------------------------------------------------------------------------------------------------------- | -------- | -------- |
@@ -116,7 +116,7 @@ Self-hosters are responsible for:
 
 ### Data Provider Licensing
 
-Kestrel integrates with multiple market data providers (BiQuote, Finnhub, Marketaux, FRED, Binance, CFTC). **No provider terms of service are included in this repository.** If you redistribute market data to paying subscribers, you are responsible for verifying each provider's redistribution terms and obtaining appropriate licenses. See [docs/02-data-flows.md](docs/02-data-flows.md) for the licensing responsibility guidance.
+Kestrel integrates with multiple market data providers (BiQuote, Finnhub, Marketaux, FRED, Binance, CFTC). **No provider terms of service are included in this repository.** If you redistribute market data to paying subscribers, you are responsible for verifying each provider's redistribution terms and obtaining appropriate licenses. See [OPEN_SOURCE_DEPLOYMENT_MATRIX.md](OPEN_SOURCE_DEPLOYMENT_MATRIX.md) for the provider and licensing responsibility guidance.
 
 ## Security Measures in CI/CD
 

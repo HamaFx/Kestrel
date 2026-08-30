@@ -1,412 +1,162 @@
 # Contributing to Kestrel
 
-> **First time here?** Read [docs/07-agent-understanding.md](docs/07-agent-understanding.md) for project architecture, [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md) to get a local instance running, and [docs/14-oss-release-checklist.md](docs/14-oss-release-checklist.md) for the public-release boundary.
+Thank you for contributing to Kestrel. This guide covers the supported development workflow for the open-source repository.
 
-Thank you for considering a contribution to Kestrel. This document is the definitive guide for contributors — from first clone to merged PR.
-
----
+> **Public release boundary:** Kestrel is currently a single-user, self-hosted beta. Shared multi-user/RLS hosting is intentionally unsupported. Read [OPEN_SOURCE_DEPLOYMENT_MATRIX.md](OPEN_SOURCE_DEPLOYMENT_MATRIX.md) and [OPEN_SOURCE_READINESS_CURRENT.md](OPEN_SOURCE_READINESS_CURRENT.md) before changing deployment, auth, database, or tenant code.
 
 ## 1. Prerequisites
 
-| Requirement | Version                                      | Verify             |
-| ----------- | -------------------------------------------- | ------------------ |
-| Node.js     | ≥ 22.13.0                                    | `node --version`   |
-| pnpm        | 9.15.4 (pinned via `packageManager`)         | `pnpm --version`   |
-| Git         | any                                          | `git --version`    |
-| Docker      | optional, for full-feature dev with pgvector | `docker --version` |
+| Requirement | Version | Verify |
+| --- | --- | --- |
+| Node.js | `>=22.13.0` | `node --version` |
+| pnpm | `9.15.4` | `pnpm --version` |
+| Git | Any current version | `git --version` |
+| Docker | Optional; required for Docker/PostgreSQL mode | `docker --version` |
 
-No database installation required for local dev — PGlite (embedded Postgres) boots automatically.
+PGlite boots automatically for local development, so a database installation is not required for Simple mode.
 
----
-
-## 2. Quick Start
-
-### Interactive Setup (Recommended)
+## 2. Quick start
 
 ```bash
-# Fork and clone
 git clone https://github.com/<your-username>/Kestrel.git
 cd Kestrel
-
-# Run the setup wizard — checks prerequisites, explains BYOK, generates secrets
 pnpm setup
 ```
 
-The wizard handles everything: prerequisite checks, mode selection (Local Dev vs Docker), BYOK explanation, optional market data key collection, secret generation, and startup.
+The setup wizard supports Simple/PGlite and Docker modes, generated local secrets, dry-run output, JSON output, and optional launch. Configure an AI provider key after registering through **Settings → API Keys**.
 
-> **BYOK:** Kestrel uses Bring Your Own Key — no server-level AI keys are needed. After registering, add your AI provider key (Google Gemini, OpenAI, Anthropic, Groq, etc.) via the onboarding wizard or Settings → API Keys.
-
-### Manual Setup
+Manual Simple-mode setup:
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Enable BYOK mode
-echo 'BYOK_ENABLED=1' >> .env.local
-
-# Start dev server (PGlite auto-boots, secrets auto-generate)
+pnpm install --frozen-lockfile
 pnpm dev:local
-
-# Open http://localhost:3000 and register
-# → The onboarding wizard will guide you through adding your first AI provider key
 ```
 
-Fresh self-hosted deployments are single-user only. Shared PostgreSQL mode is intentionally disabled in this OSS release; do not set `MULTI_USER_ENABLED=1` or `KESTREL_ENABLE_RLS=1`.
+Manual Docker setup:
 
-Auth secrets (`AUTH_SECRET`, `ENCRYPTION_SECRET`, `CRON_SECRET`) auto-generate to `.kestrel/dev-secrets.json` on first boot. See [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md) for full setup details.
-
----
-
-## 3. Monorepo Structure
-
-Kestrel is a Turborepo monorepo with a strict dependency chain:
-
+```bash
+./docker/init-secrets.sh
+docker compose up -d --build
 ```
+
+Do not set `MULTI_USER_ENABLED=1`, `KESTREL_ENABLE_RLS=1`, or `REGISTRATION_MODE=open` for the public single-user release.
+
+## 3. Repository structure
+
+```text
 config → shared → db + indicators → data → ai → web + worker
 ```
 
-| Package               | Path                   | Responsibility                                                                                  |
-| --------------------- | ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `@kestrel/config`     | `packages/config/`     | Shared ESLint, Prettier, TypeScript configs                                                     |
-| `@kestrel/shared`     | `packages/shared/`     | Zod schemas, env validation, encryption, billing types                                          |
-| `@kestrel/db`         | `packages/db/`         | Drizzle ORM schema (46 tables), Postgres/PGlite client, migrations                              |
-| `@kestrel/indicators` | `packages/indicators/` | Technical indicators (RSI, MACD, ATR, Bollinger, SMC)                                           |
-| `@kestrel/data`       | `packages/data/`       | Market data providers (BiQuote, Finnhub, Marketaux, FRED, etc.) with failover                   |
-| `@kestrel/ai`         | `packages/ai/`         | AI agent core — Mastra agents/workflows, 31 read-only tools, model routing, memory, persistence |
-| `@kestrel/test-utils` | `packages/test-utils/` | Shared test factories, mocks, vitest helpers                                                    |
-| `@kestrel/web`        | `apps/web/`            | Next.js 16 PWA — 29 pages, 78 API routes, auth, chat, charts                                    |
-| `@kestrel/worker`     | `apps/worker/`         | Node.js daemon — SignalR consumer, tick processing, scheduled jobs                              |
+| Package/app | Path | Responsibility |
+| --- | --- | --- |
+| `@kestrel/config` | `packages/config/` | Shared TypeScript, ESLint, and formatting configuration |
+| `@kestrel/shared` | `packages/shared/` | Zod schemas, environment validation, encryption, logging, shared types |
+| `@kestrel/db` | `packages/db/` | Drizzle schema, migrations, PostgreSQL/PGlite clients |
+| `@kestrel/indicators` | `packages/indicators/` | Technical indicators and market-structure calculations |
+| `@kestrel/data` | `packages/data/` | Market-data providers, adapters, failover, and caching |
+| `@kestrel/ai` | `packages/ai/` | Mastra agents/workflows, typed tools, routing, memory, persistence |
+| `@kestrel/test-utils` | `packages/test-utils/` | Shared test factories, mocks, and Vitest helpers |
+| `@kestrel/web` | `apps/web/` | Next.js 16 PWA, Auth.js, chat, API routes, and UI |
+| `@kestrel/worker` | `apps/worker/` | Persistent worker for feeds, candles, jobs, and health endpoints |
 
-**Rule:** No package may import upstream of itself in the dependency chain. `shared` is the foundation — everything depends on it, it depends on nothing but `config`.
+## 4. Coding conventions
 
-See [docs/01-architecture.md](docs/01-architecture.md) for the full architecture diagram.
+- Use `kebab-case.ts` for modules and `PascalCase.tsx` for React components.
+- Keep TypeScript strict and avoid `any` unless the reason is documented.
+- Validate package boundaries and external input with the existing Zod schemas.
+- Use `import type` for type-only imports.
+- Keep request-scoped state in `AsyncLocalStorage`; do not use module-level mutable request state.
+- Inside `packages/ai`, resolve database and model dependencies through the typed DI tokens. In apps and other packages, use the project’s existing direct database convention.
+- Preserve the standardized `{ data }` / `{ error }` API envelope.
+- Do not log decrypted provider keys, tokens, passwords, or raw sensitive prompts.
 
----
+### Database rules
 
-## 4. Coding Conventions
+- Define tables in `packages/db/src/schema/` and export them from the schema index.
+- User-owned data must preserve the project’s ownership and tenant columns/constraints.
+- New migrations must be idempotent and compatible with PGlite where applicable.
+- Generate migrations with `pnpm --filter @kestrel/db migrate:gen`.
+- Never edit an applied migration.
+- Never run `drizzle-kit push` against production.
+- Use a direct migration connection (`DIRECT_URL` or `POSTGRES_URL_NON_POOLING`), not a transaction pooler.
+- Add tests for schema drift, constraints, migration idempotency, and ownership behavior.
 
-### 4.1 File Naming
+### AI tools
 
-| Pattern          | Example                             | Where                      |
-| ---------------- | ----------------------------------- | -------------------------- |
-| `kebab-case.ts`  | `get-candles.ts`, `memory-index.ts` | Modules, tools, utilities  |
-| `PascalCase.tsx` | `ChatScreen.tsx`, `NavDrawer.tsx`   | React components           |
-| `_prefix.ts`     | `_extensions.ts`, `_provision.sh`   | Private/internal files     |
-| `*.test.ts`      | `candle-1m.test.ts`                 | Test files (co-located)    |
-| `route.ts`       | `api/chat/route.ts`                 | Next.js API route handlers |
-| `page.tsx`       | `(app)/chat/page.tsx`               | Next.js pages              |
+Follow the existing `inputSchema → module augmentation → execute` pattern. Add the input/output schema, implementation, registry entry, tool name, UI part where needed, and tests. Use `getToolContext()` rather than global state.
 
-### 4.2 TypeScript
+### API routes
 
-- **Strict mode** — `tsconfig.base.json` with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`
-- No `any` without an `eslint-disable` comment explaining why
-- Zod validation at every package boundary — input schemas, output schemas, env validation
-- Use `import type` for type-only imports
+Use the established auth, admin, cron, CSRF, rate-limit, body-parser, and response-envelope wrappers. Validate request bodies at the boundary and add route tests for anonymous access, invalid input, ownership, and authorization failures.
 
-### 4.3 Database
+## 5. Verification workflow
 
-- Drizzle ORM with `pgTable()` definitions in `packages/db/src/schema/`
-- All user-data tables must have `user_id` (text FK → `user.id`) and `tenant_id` (text) columns
-- UUIDs via `gen_random_uuid()` (pgcrypto)
-- Soft-delete via `deletedAt` timestamp column
-- pgvector for embeddings (`vector(1536)` in Postgres, `real[]` in PGlite)
-- **New tables must work in PGlite** — no RLS, no pgvector-specific features without fallback
-- **Shared deployments are blocked** — this OSS release rejects `MULTI_USER_ENABLED=1` and `KESTREL_ENABLE_RLS=1` until every user-data query establishes tenant context.
-
-### 4.4 Error Handling
-
-- Use standardized error codes from `packages/shared/src/errors.ts`
-- API responses follow the envelope: `{ data: ... }` or `{ error: { code, message, details } }`
-- Data layer: `ProviderError` / `ProviderEmptyError` for provider failures
-- AI layer: `BudgetExceededError` for cost guardrail
-
-### 4.5 State & Context
-
-- `AsyncLocalStorage` via `withToolContext()` / `withDiagnostics()` — no global state
-- Each tool call accesses context via `getToolContext()` (threadId, env, signal, budget)
-- `withTenantDb()` sets `app.current_tenant` GUC for RLS when enabled
-- Never use module-level mutable state for request-scoped data
-
-### 4.6 Exports
-
-- Every package has `src/index.ts` barrel export
-- Deep imports via `exports` field in `package.json` (e.g., `@kestrel/db/schema`, `@kestrel/db/client`)
-- Published `@kestrel/*` packages are ESM-only; TypeScript consumers should use `moduleResolution: "NodeNext"` (or `node16`) and import them from ESM-compatible code.
-- No circular dependencies — the dependency chain is strictly layered
-
----
-
-## 5. Development Workflow
-
-### 5.1 Branching
+Run the relevant checks before opening a PR:
 
 ```bash
-# Create a feature branch from main
-git checkout main
-git pull origin main
-git checkout -b feat/your-feature-name
-```
-
-**Branch naming conventions:**
-
-| Prefix      | Use                   |
-| ----------- | --------------------- |
-| `feat/`     | New feature           |
-| `fix/`      | Bug fix               |
-| `docs/`     | Documentation only    |
-| `refactor/` | Code refactoring      |
-| `test/`     | Test improvements     |
-| `chore/`    | Tooling, deps, config |
-
-### 5.2 Committing
-
-We use [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`
-
-**Examples:**
-
-```
-feat(ai): add get_social_sentiment tool for retail positioning
-fix(auth): check tokenVersion in JWT callback
-docs: update architecture diagram for worker changes
-refactor(data): extract circuit breaker to its own module
-```
-
-### 5.3 Before You Push
-
-```bash
-# Typecheck
 pnpm typecheck
-
-# Lint
 pnpm lint
-
-# Run all tests
 pnpm turbo run test -- --run
-
-# Build (catches next build errors)
-pnpm turbo run build
-
-# Bundle-size guard (run after build)
-pnpm --filter @kestrel/web bundle-size:check
-# If the guard fails legitimately, update `apps/web/bundle-size-limits.json`
-# so limits sit ~10% above the largest observed chunk.
+pnpm build
 ```
 
-All four must pass. CI will run them again but catching locally saves time.
-
-### 5.4 Pull Request
-
-1. Push your branch to your fork
-2. Open a PR against `main` using the [PR template](.github/PULL_REQUEST_TEMPLATE.md)
-3. CI runs automatically: lint + typecheck + build + unit tests + coverage
-4. Address any review feedback
-5. Squash-merge when approved
-
-**PR size guideline:** Keep PRs under 500 lines of diff where possible. Break large features into stacked PRs. If a PR must be large, explain why in the description.
-
----
-
-## 6. Testing
-
-### 6.1 Test Stack
-
-| Runner          | Scope              | Files                                           |
-| --------------- | ------------------ | ----------------------------------------------- |
-| Vitest          | Unit + integration | 173 test files, 590+ test cases                 |
-| Playwright      | E2E                | 16 spec files in `apps/web/tests/e2e/`          |
-| AI Eval Harness | AI quality         | `packages/ai/src/eval/` (manual, nightly in CI) |
-
-### 6.2 Running Tests
+For release-facing changes, also run:
 
 ```bash
-# All packages
-pnpm turbo run test -- --run
-
-# Single package
-pnpm --filter @kestrel/ai test -- --run
-pnpm --filter @kestrel/web test -- --run
-pnpm --filter @kestrel/data test -- --run
-pnpm --filter @kestrel/worker test -- --run
-pnpm --filter @kestrel/db test -- --run
-pnpm --filter @kestrel/shared test -- --run
-pnpm --filter @kestrel/indicators test -- --run
-
-# With coverage
-pnpm turbo run test -- --coverage
-
-# E2E (requires running app)
-pnpm --filter @kestrel/web exec playwright test
-
-# Watch mode (dev only — never in CI)
-pnpm --filter @kestrel/indicators test
+pnpm check:oss-release
+pnpm check:p0-release
+pnpm check:p3-release
+pnpm check:route-security
+pnpm check:env-contract
+pnpm check:release-archive
+pnpm check:dependency-report
+pnpm check:single-user-release
 ```
 
-> **Always use `-- --run`** with vitest. Without it, vitest enters watch mode and hangs in CI.
+E2E tests require a running app:
 
-### 6.3 Writing Tests
+```bash
+pnpm dev:local
+pnpm test:e2e
+```
 
-- **Co-locate** test files next to the module: `get-candles.ts` → `get-candles.test.ts`
-- Use `@kestrel/test-utils` for shared factories (`users.ts`, `threads.ts`, `candles.ts`) and mocks (`db.ts`, `fetch.ts`, `llm.ts`)
-- Every new tool must have a test in `packages/ai/test/`
-- Every new API route should have a test in `apps/web/test/`
-- Every new indicator must have a test in `packages/indicators/test/`
-- Test file guard: `pnpm test:empty-guard` ensures no empty test files
+## 6. Testing expectations
 
-### 6.4 E2E Tests
+- Co-locate unit tests with the module or use the package’s existing `test/` convention.
+- Add tests for every new AI tool, API route, provider, indicator, migration, and security-sensitive behavior.
+- Use shared fixtures and mocks from `@kestrel/test-utils`.
+- Always pass `--run` to Vitest in CI/non-interactive commands.
+- PostgreSQL-only RLS tests must use disposable PostgreSQL and must not claim PGlite proves RLS.
+- E2E tests should cover auth, ownership, CSRF, responsive behavior, accessibility, health, and critical user journeys.
 
-E2E tests use Playwright with a real app instance:
+## 7. Pull requests
 
-| Spec                        | Tests                                                              |
-| --------------------------- | ------------------------------------------------------------------ |
-| `auth.spec.ts`              | Login, register, logout                                            |
-| `chat.spec.ts`              | Chat flow, tool rendering                                          |
-| `chat-ui.spec.ts`           | Chat UI component testing                                          |
-| `isolation.spec.ts`         | Ownership/isolation coverage (shared mode remains disabled in OSS) |
-| `multi-agent.spec.ts`       | Committee deliberation                                             |
-| `service-worker.spec.ts`    | PWA service worker                                                 |
-| `settings.spec.ts`          | Settings pages                                                     |
-| `navigation.spec.ts`        | All routes load without errors                                     |
-| `dashboard.spec.ts`         | Dashboard widget rendering                                         |
-| `responsive.spec.ts`        | Mobile viewport, no horizontal scroll                              |
-| `accessibility.spec.ts`     | Labels, landmarks, headings, skip link                             |
-| `api-health.spec.ts`        | API endpoint smoke tests                                           |
-| `theme-tokens.spec.ts`      | Theme and design tokens                                            |
-| `admin-dashboard.spec.ts`   | Admin dashboard pages                                              |
-| `nav-drawer.spec.ts`        | Navigation drawer functionality                                    |
-| `onboarding-replay.spec.ts` | Onboarding wizard replay                                           |
+1. Create a branch from `main` using `feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `chore/`, `perf/`, or `ci/`.
+2. Keep changes focused; split large work where practical.
+3. Update user-facing documentation and changelog entries when behavior changes.
+4. Include migration, environment, deployment, security, and rollback implications in the PR description.
+5. Run the required checks and use the PR template.
 
-E2E tests require:
+## 8. High-risk areas
 
-- Running app (`pnpm dev:local`)
-- PGlite or Postgres
-- At least one AI provider key
+- **Auth and ownership:** never regress to a single-password gate or remove user scoping.
+- **BYOK encryption:** never log or expose decrypted credentials; protect `ENCRYPTION_SECRET`.
+- **RLS/shared mode:** remains unsupported until complete tenant isolation is proven across web, worker, cache, memory, exports, shares, notifications, billing, and telemetry.
+- **Risk calculations:** preserve precision and test edge cases.
+- **Request proxy:** keep it lightweight and security-focused; do not add database work there.
+- **Billing/webhooks:** preserve signature verification, idempotency, and failure handling; hosted billing is not part of the default OSS path.
 
----
+## 9. Releases and CI
 
-## 7. Adding New Features
+Changesets are available for package release metadata, but the application/Docker release contract is maintained separately and must include source revision, image metadata, SBOM/provenance, and deployment notes when applicable. Do not assume published workspace packages alone constitute a complete Kestrel release.
 
-### 7.1 Adding an AI Tool
+CI workflows cover fast PR checks, slower main/nightly checks, container publication, dependency/security analysis, and release automation. Keep release-critical jobs fail-closed; do not hide failures with `continue-on-error`.
 
-1. **Define schema** in `packages/shared/src/schemas/tool-outputs/<tool-name>.ts` (Zod input + output)
-2. **Implement tool** in `packages/ai/src/tools/<tool-name>.ts` — follow the existing pattern (InputSchema, execute function)
-3. **Register** in `packages/ai/src/tools/index.ts` with `withTelemetry('<tool_name>', tool)`
-4. **Add tool name** to `packages/shared/src/ai/tool-names.ts`
-5. **Add UI part** in `apps/web/src/components/chat/parts/<tool-name>.tsx`
-6. **Register UI part** in `apps/web/src/components/chat/parts/registry.tsx`
-7. **Write tests** in `packages/ai/test/<tool-name>.test.ts`
-8. **Update docs** if the tool changes user-facing behavior
+## 10. Help and conduct
 
-### 7.2 Adding a Database Table
+- Start with [README.md](README.md), [OPEN_SOURCE_DEPLOYMENT_MATRIX.md](OPEN_SOURCE_DEPLOYMENT_MATRIX.md), and [SECURITY.md](SECURITY.md).
+- Use GitHub issues for reproducible bugs and feature requests.
+- Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+- Follow [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-1. **Define schema** in `packages/db/src/schema/<name>.ts` using `pgTable()`
-2. **Export** from `packages/db/src/schema/index.ts`
-3. **Add `user_id` and `tenant_id`** columns (if user-data table)
-4. **Generate migration:** `pnpm --filter @kestrel/db migrate:gen`
-5. **Test PGlite compatibility** — no RLS, no pgvector-specific features without fallback
-6. **Add RLS policy** if the table contains user data (migrations 0035–0039 pattern)
-7. **Write tests** in `packages/db/test/`
-8. **Update docs/03-backend-api.md** ER reference
-
-### 7.3 Adding an API Route
-
-1. **Create route** at `apps/web/src/app/api/<path>/route.ts`
-2. **Use `withAuth()` wrapper** for authenticated routes (extracts `user.userId`)
-3. **Validate body** with `parseJsonBody(req, ZodSchema)`
-4. **Use standardized response envelope** (`{ data }` or `{ error: { code, message } }`)
-5. **Add rate limiting** with `withRateLimit()` if needed
-6. **Write tests** in `apps/web/test/route-<name>.test.ts`
-7. **Update docs/03-backend-api.md** route table
-
-### 7.4 Adding a Data Provider
-
-1. **Create provider directory** at `packages/data/src/providers/<name>/`
-2. **Implement** `index.ts` (exports), `rest.ts` (API calls), `map.ts` (symbol/timeframe mapping)
-3. **Add to failover chain** in the relevant adapter (`packages/data/src/adapters/`)
-4. **Add env var** to `.env.example` and `packages/shared/src/env.ts` (Zod validation)
-5. **Write tests** in `packages/data/test/<name>-*.test.ts`
-6. **Update docs/02-data-flows.md** provider table
-
----
-
-## 8. High-Risk Areas
-
-Read [docs/07-agent-understanding.md](docs/07-agent-understanding.md) for the full list. Summary:
-
-| Area             | Risk                               | Rule                                                                                                                                                                                     |
-| ---------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth code        | Session validation, user isolation | Do NOT regress to single-password gate. The current OSS runtime is single-user; preserve ownership scoping and the explicit shared-mode safety gate.                                     |
-| BYOK encryption  | User API keys at rest              | Never log decrypted keys. Use `redactSecrets()` in all diagnostic output.                                                                                                                |
-| Live-money paths | Risk calculations affect trading   | All risk math must be tested. Never round or simplify without instruction.                                                                                                               |
-| RLS policies     | Tenant isolation                   | Shared mode is blocked in this OSS release. New user-data tables still need RLS policies + `tenant_id`; the single-user runtime removes them because tenant context is not yet complete. |
-| Billing webhook  | Real money                         | HMAC-SHA512 verification before any business logic.                                                                                                                                      |
-| Request proxy    | Node.js runtime                    | No direct DB calls; keep auth/security boundary logic small and request-scoped in `proxy.ts`.                                                                                            |
-
----
-
-## 9. Release Process
-
-Releases are managed via [Changesets](https://github.com/changesets/changesets):
-
-1. **Add a changeset** when you make a user-facing change:
-
-   ```bash
-   pnpm changeset
-   ```
-
-   This creates a file in `.changeset/` describing the change and version bump.
-
-2. **Release PR:** When changesets accumulate, the `release.yml` GitHub Action creates a "Version Packages" PR that bumps versions and updates `CHANGELOG.md`.
-
-3. **Publish:** Merging the release PR triggers `changesets/action` to publish packages.
-
-4. **Docker images:** Published on GitHub Release via `docker-publish.yml` workflow (Trivy-scanned, pushed to `ghcr.io`).
-
----
-
-## 10. CI/CD
-
-| Workflow         | Trigger                | What it does                                                       |
-| ---------------- | ---------------------- | ------------------------------------------------------------------ |
-| `ci-fast`        | Pull request           | Lint + typecheck + build + unit tests + coverage + test file guard |
-| `ci-slow`        | Push to main + nightly | Lint + typecheck + unit tests + E2E (Playwright) + nightly AI eval |
-| `docker-publish` | Release published      | Build + Trivy scan + push to GHCR                                  |
-| `release`        | Push to main           | Changesets release PR                                              |
-| `codeql`         | Push/PR + weekly       | CodeQL security analysis                                           |
-| `stale`          | Daily                  | Mark stale issues (30d) and PRs (45d)                              |
-| `pr-labeler`     | PR opened              | Auto-label based on changed files                                  |
-
-CI must pass before merge. E2E and AI evals run only on `main` and nightly (not on PRs).
-
----
-
-## 11. Getting Help
-
-- **Architecture questions:** Read [docs/01-architecture.md](docs/01-architecture.md)
-- **Setup issues:** Read [docs/08-agent-setup-run.md](docs/08-agent-setup-run.md) (Common Failures & Fixes)
-- **Security questions:** Read [docs/10-security.md](docs/10-security.md)
-- **Bugs:** [Open an issue](https://github.com/HamaFx/Kestrel/issues) using the bug report template
-- **Feature requests:** [Open an issue](https://github.com/HamaFx/Kestrel/issues) using the feature request template
-- **Security vulnerabilities:** See [SECURITY.md](SECURITY.md) — do NOT open a public issue
-
----
-
-## 12. Code of Conduct
-
-Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md). Please be respectful and professional.
-
----
-
-## 13. License
-
-By contributing, you agree that your contributions will be licensed under the [Apache-2.0 License](LICENSE).
+Contributions are licensed under Apache-2.0.

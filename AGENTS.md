@@ -1,367 +1,283 @@
 # AGENTS.md — Kestrel Development Guide
 
-> **For AI coding agents (Claude Code, Codex, Cursor, Gemini CLI, etc.) working on this repository.**
-> Read this FIRST before making any changes. It is the canonical source of truth for the project.
+> **For AI coding agents working on this repository.** Read this file before making changes. It is the public, repository-safe source of truth for engineering work. Maintainer-only infrastructure instructions belong in the untracked local `AGENTS.private.md`, copied from `AGENTS.private.md.example`.
 
-## Project Identity
+## Project identity and release boundary
 
-**Kestrel** is an open-source, multi-tenant, chat-driven AI trading copilot for **gold, forex, and crypto**: **XAUUSD** (primary), a canonical forex catalog, and supported Binance crypto pairs. It runs as a Next.js 16 PWA with a persistent Node.js worker daemon. The AI agent runs on Mastra (agents + durable workflows) over the Vercel AI SDK model transport, with 31 read-only tool definitions, domain-based model routing, and verified-report workflows.
+Kestrel is an open-source, BYOK, chat-driven AI market-research workspace for gold, forex, and supported crypto pairs. It is a Next.js 16 / React 19 PWA with a persistent Node.js worker, Mastra agents and durable workflows, typed market-data tools, model routing, memory, verification, and operational guardrails.
 
-- **License**: Apache-2.0
-- **Status**: In production on Vercel + GCE VM. Phases 0–9 shipped (incl. multi-tenant v2.0). UX Upgrade Plan Phases A/B/C/D/E shipped.
-- **Auth**: NextAuth.js v5 (Credentials provider, JWT strategy) + Drizzle adapter. BYOK per user (10-provider registry). Strict `userId` scoping on all user-data tables.
-- **Repo**: [github.com/HamaFx/Kestrel](https://github.com/HamaFx/Kestrel)
+- **License:** Apache-2.0
+- **Package manager:** pnpm 9.15.4
+- **Node.js:** >=22.13.0
+- **Repository:** https://github.com/HamaFx/Kestrel
+- **Public release:** single-user self-hosted beta
+- **Supported public profiles:** Simple/PGlite and Docker Compose/PostgreSQL; external PostgreSQL is operator-managed
+- **Not supported publicly:** shared multi-user hosting, open registration for unrelated users, runtime RLS mode, hosted SaaS operation, or claims of an independent security audit
 
-> **Auth status:** The auth system has been hardened. Features include: JWT session management, bcrypt password hashing, account lockout (5 attempts → 15 min), TOTP 2FA (enforced at login), timing-safe user enumeration prevention, signed `x-user-id` header (HMAC-SHA256) for route defense-in-depth, `userSessions` table for active session tracking with revoke support, and `tokenVersion` for "sign out everywhere". See [`auth.ts`](./apps/web/src/auth.ts) and [`auth.config.ts`](./apps/web/src/auth.config.ts) for the canonical implementation.
+The maintainer-operated Vercel/GCE/managed-database deployment is a separate private topology. Do not document its project names, URLs, team identifiers, credentials, cookies, monitoring endpoints, or environment values in tracked files.
 
-## Quick Reference
+## Open-source contributor context
 
-> Production operations note: the worker runs in Docker on the GCE VM with its internal scheduler. Host systemd timers are reserved for light Vercel pokes and maintenance. Backups are prepared for Backblaze B2 but intentionally remain skipped until the operator configures the account.
+This repository is developed and released as open-source software under Apache-2.0. Treat every tracked change as potentially visible to users, contributors, security researchers, and downstream redistributors.
 
-| Question              | Answer                                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Package manager       | pnpm 9.15.4                                                                                                                           |
-| Node                  | >= 22.13.0                                                                                                                            |
-| Monorepo tool         | Turborepo 2                                                                                                                           |
-| Framework             | Next.js 16 App Router + React 19                                                                                                      |
-| Styling               | Tailwind CSS v4 + shadcn/ui (Radix)                                                                                                   |
-| AI SDK                | Vercel AI SDK v5 (`ai` package)                                                                                                       |
-| Models                | Google Vertex AI + 10-provider BYOK registry                                                                                          |
-| DB                    | Postgres (Supabase) + pgvector. Drizzle ORM (50 tables across 35 schema definition files)                                             |
-| Local DB              | PGlite (embedded Postgres, zero setup)                                                                                                |
-| Charts                | TradingView lightweight-charts v5                                                                                                     |
-| Tests                 | Vitest (233 test files). Playwright E2E (16 spec files).                                                                              |
-| Lint                  | ESLint flat config in `packages/config/eslint`                                                                                        |
-| TypeScript            | Strict mode with `noUncheckedIndexedAccess`; the web app currently opts out of `exactOptionalPropertyTypes` for compatibility         |
-| AI Tools              | 31 registered tool definitions in `packages/ai/src/tools/` (read-only; mutations run through the gated Mastra confirmation workflows) |
-| Semantic routing      | Default on (`AI_SEMANTIC_ROUTING_ENABLED=false` to disable); LLM classification with keyword fallback                                 |
-| Guardrails            | UnicodeNormalizer + PromptInjectionDetector on all agents incl. text-runner (extraction/routing)                                      |
-| Custom scorers        | Grounding + citation scorers always-on (deterministic, no LLM judge); prebuilt scorers sampled (5% conversation, 10% research)        |
-| Full-analysis queue   | Database-owned atomic claims, lease heartbeats, stale recovery, and worker ownership tokens                                          |
-| Architecture snapshot | `docs/architecture-explorer.html` + `docs/architecture-explorer.json` — static reference artifacts                                    |
-| Request proxy         | 190 lines. Handles auth, CSRF, CSP, request-id                                                                                        |
+### Publicly supported OSS scope
+
+Contributors may rely on and improve these public paths:
+
+- Simple local development with embedded PGlite.
+- Docker Compose single-user deployment with PostgreSQL and pgvector.
+- Operator-managed external PostgreSQL for a single-user instance.
+- BYOK AI configuration through the application.
+- Optional market-data, email, storage, notifications, and observability integrations when explicitly configured.
+- Public tests, release checks, setup tooling, backups, health checks, and documentation.
+
+### Experimental and maintainer-only scope
+
+These areas require extra caution and must not be advertised as generally supported:
+
+- Shared multi-user hosting and runtime RLS mode.
+- Tenant-aware worker, cache, memory, export, share, upload, notification, billing, and telemetry paths that are not covered by the complete isolation gate.
+- Maintainer Vercel/GCE/managed-database infrastructure.
+- Private provider proxies, monitoring, cron endpoints, staging environments, and production secrets.
+- Hosted billing and maintainer-operated SaaS behavior.
+
+Label changes to these areas clearly as experimental or maintainer-only. Do not silently make an unsupported mode appear production-ready.
+
+### OSS contribution requirements
+
+Before submitting an OSS-facing change:
+
+1. Confirm behavior against source and tests rather than stale docs or architecture snapshots.
+2. Preserve clean-checkout setup with no private environment required.
+3. Keep credentials, private URLs, customer data, provider secrets, and maintainer identifiers out of code, fixtures, screenshots, logs, docs, and commits.
+4. Update public documentation when commands, environment variables, deployment profiles, security boundaries, or user-visible behavior change.
+5. Add or update tests for the supported Simple/Docker paths and relevant negative/security cases.
+6. Run the release and security contract checks listed below.
+7. Explain whether the change affects public OSS users, experimental functionality, or only the private maintainer topology.
+
+### Public source-of-truth order
+
+When sources disagree, use this order:
+
+1. Current implementation and its tests.
+2. Environment schemas, Compose files, package manifests, and release checks.
+3. Current root-level OSS documents: `README.md`, `OPEN_SOURCE_DEPLOYMENT_MATRIX.md`, `OPEN_SOURCE_READINESS_CURRENT.md`, `SECURITY.md`, and `CONTRIBUTING.md`.
+4. `docs/architecture-explorer.html` and `.json`, which are static informational snapshots only.
+
+### Required OSS runtime boundary
+
+Fresh public deployments must remain fail-closed with:
+
+```text
+OSS_SINGLE_USER_MODE=1
+MULTI_USER_ENABLED=0
+KESTREL_ENABLE_RLS=0
+REGISTRATION_MODE=owner-first
+```
+
+The repository contains experimental tenant/RLS infrastructure, but complete isolation across every web, worker, cache, memory, export, share, upload, notification, billing, and telemetry path has not been proven. Do not enable or advertise shared mode without a separately reviewed isolation matrix and security gate.
+
+## Before changing code
+
+1. Read the relevant source and tests; do not rely on stale documentation or generated snapshots.
+2. Search for existing conventions, wrappers, schemas, providers, and tests before adding new abstractions.
+3. Check the package dependency direction and runtime boundary.
+4. Identify whether the change affects auth, ownership, secrets, migrations, providers, billing, worker scheduling, or public release behavior.
+5. Keep changes focused and prefer editing existing files.
+6. Never expose secrets or private deployment information in code, logs, tests, documentation, commits, or issue reports.
+
+## Repository map
+
+```text
+apps/web       Next.js PWA, Auth.js, chat, API routes, UI, public health
+apps/worker    Node.js daemon, feeds, tick processing, jobs, health server
+packages/ai    Mastra agents/workflows, typed tools, routing, memory, persistence
+packages/data  market-data adapters, providers, failover, caching
+packages/db    Drizzle schema, migrations, PostgreSQL/PGlite clients
+packages/indicators technical indicators and market structure
+packages/shared schemas, environment validation, encryption, logging, types
+packages/config shared TypeScript/ESLint/formatting configuration
+packages/test-utils test factories, mocks, and Vitest helpers
+infra/         maintainer-specific deployment assets; not the OSS contract
+scripts/       setup, development, migration, release, and verification tools
+docs/          static architecture artifacts only; not generated at build time
+```
+
+Dependency direction:
+
+```text
+config → shared → db + indicators → data → ai → web + worker
+```
+
+Do not introduce circular dependencies or import a downstream package from an upstream package.
 
 ## Commands
 
 ```bash
-# Development (local, zero setup — PGlite auto-boots)
-pnpm dev:local              # http://localhost:3000
+# Install
+pnpm install --frozen-lockfile
 
-# Development (with remote DB)
-pnpm dev                    # starts web only (turbo run dev)
+# Simple local development; PGlite boots when no remote DB URL is configured
+pnpm dev:local
 
-# Docker (full features, pgvector included)
+# Docker single-user stack
 ./docker/init-secrets.sh
-docker compose up -d
+docker compose up -d --build
 
-# Testing
-pnpm turbo run test -- --run    # all packages
-pnpm --filter @kestrel/web test  # single package
-pnpm --filter @kestrel/web exec playwright test  # E2E
-
-# Typecheck & Lint
+# Quality
 pnpm typecheck
 pnpm lint
+pnpm turbo run test -- --run
+pnpm build
 
-# Build
-pnpm --filter @kestrel/web build
+# E2E; requires a running app
+pnpm test:e2e
 ```
 
-## Architecture snapshot
-
-The repository keeps `docs/architecture-explorer.html` and
-`docs/architecture-explorer.json` as static reference artifacts. They are
-not part of the application build or runtime and are updated manually when a
-refreshed architecture view is useful.
-
-## Migrations
+Release/security contract checks:
 
 ```bash
-pnpm --filter @kestrel/db migrate:gen     # generate from schema changes
-pnpm --filter @kestrel/db migrate:apply   # apply to DATABASE_URL
-# Vercel prod deploys run scripts/predeploy-migrate.mjs automatically.
+pnpm check:oss-release
+pnpm check:p0-release
+pnpm check:p3-release
+pnpm check:route-security
+pnpm check:env-contract
+pnpm check:release-archive
+pnpm check:dependency-report
+pnpm check:single-user-release
 ```
 
-### Migration Rules (load-bearing — do NOT violate)
+Always use `-- --run` with Vitest in non-interactive commands. Do not run production-affecting scripts, deploys, migrations, backups, restores, or external-service operations without explicit operator approval.
 
-- **Never run `drizzle-kit push` against production.** It drops columns/tables not in the schema (e.g., `tenant_id` on 10 global tables, `symbol_catalog.n_data_symbol`). Always use `migrate:gen` + `migrate:apply`.
-- **Never edit applied migration files.** Editing changes the SHA-256 hash, causing drizzle-kit to re-apply on the next deploy — typically failing on non-idempotent DDL. Create a NEW migration to fix issues.
-- **Always use a direct connection for migrations.** Use `DIRECT_URL` or `POSTGRES_URL_NON_POOLING` (port 5432), never the Supabase pooler (port 6543 / `DATABASE_URL`). PgBouncer in transaction mode silently drops DDL.
-- **All new migrations must be idempotent.** Use `IF NOT EXISTS` / `IF EXISTS` / `DO $$ ... IF NOT EXISTS ... $$` guards. A CI test verifies every migration can be applied twice against PGlite.
-- **Run `pnpm --filter @kestrel/db migrate:status` before deploying** to check for pending migrations.
-- **The tracking table is `drizzle.__drizzle_migrations`** (not `public`). The config pins `migrationsSchema: 'drizzle'`.
+## Database and migrations
 
-## Vercel CLI & Environment Variables
-
-> The project **hamafx-ai** is deployed on Vercel (production: https://hamafx-ai.vercel.app).
-> Your Vercel team is **Hama Projects** (org: `mahamad-ahmads-projects`).
-> A `.vercel/project.json` at the repo root links this project automatically.
-
-```
-# Check authentication status
-vercel whoami
-
-# Pull environment variables to .env.local (works from repo root!)
-vercel env pull .env.local
-
-# Pull production env vars instead of development
-vercel env pull .env.local --environment production
-
-# Link the project (only needed on fresh clones)
-cd apps/web && vercel link --project hamafx-ai --yes
-
-# View recent request logs (may need --scope on fresh auth)
-vercel logs --project hamafx-ai --scope mahamad-ahmads-projects --limit 50
-
-# Stream live logs (use Ctrl+C to stop)
-vercel logs --project hamafx-ai --scope mahamad-ahmads-projects --follow
-
-# List recent deployments
-vercel list hamafx-ai --scope mahamad-ahmads-projects
+```bash
+pnpm --filter @kestrel/db migrate:gen
+pnpm --filter @kestrel/db migrate:apply
 ```
 
-**Common gotchas for AI agents:**
+Migration rules are load-bearing:
 
-- The `.env.local` file is **gitignored** — do NOT commit it. It contains secrets (DB creds, API keys).
-- Auth tokens are stored via the Vercel CLI credential helper (not in `~/.vercel/config.json`). If auth breaks, run `vercel logout && vercel login`.
-- Env vars pulled include DB creds (`POSTGRES_URL`, `POSTGRES_HOST`), Supabase (`NEXT_PUBLIC_SUPABASE_URL`), AI model config, API secrets, and Google Vertex credentials.
+- Never use `drizzle-kit push` against production.
+- Never edit an applied migration. Create a new migration instead.
+- New migrations must be idempotent using appropriate `IF EXISTS`, `IF NOT EXISTS`, or guarded `DO $$` logic.
+- Use a direct migration connection: `DIRECT_URL` or `POSTGRES_URL_NON_POOLING`. Do not use a transaction pooler for DDL.
+- Check migration status before deployment and verify the result afterward.
+- The migration tracking table is `drizzle.__drizzle_migrations`.
+- New database features must work in PGlite where applicable; PostgreSQL-only behavior such as RLS, roles, grants, BYPASSRLS, extensions, and pgvector requires real PostgreSQL tests.
+- Preserve ownership constraints and user/tenant scoping. User ID predicates are not a substitute for proven tenant isolation.
+- Add schema drift, constraint, migration idempotency, and ownership tests for new database behavior.
 
+The container runtime may apply migrations during startup. Treat migration failures as deployment failures; do not bypass them or mutate production manually without a reviewed recovery plan.
+
+## Security and privacy
+
+- Preserve Auth.js/NextAuth credentials authentication, bcrypt hashing, lockout, TOTP policy, persisted sessions, token-version invalidation, CSRF protection, and signed user-header validation.
+- Protect strict `userId` ownership scoping in every user-data query and route.
+- Keep the request proxy lightweight. Do not add database work to the request boundary.
+- Use the existing auth, admin, cron, webhook, CSRF, rate-limit, body-size, and response-envelope wrappers.
+- Validate external input with the project’s Zod schemas.
+- Never log decrypted BYOK keys, passwords, session tokens, cookies, database URLs, provider credentials, or unredacted sensitive prompts.
+- `ENCRYPTION_SECRET` is required to decrypt stored BYOK credentials. Losing it makes those credentials unrecoverable.
+- Keep Sentry, Langfuse, and prompt/output capture opt-in and disclose data egress and retention when enabling them.
+- Do not weaken CSP, TLS verification, cookie protections, request limits, or signature verification to make a test pass.
+- Billing/webhook code must retain signature verification, idempotency, and failure handling; hosted billing is not part of the default OSS path.
+
+## AI and tools
+
+AI tools follow this pattern:
+
+```text
+inputSchema → module augmentation → execute → typed output → registry
 ```
 
-# AI Evals (manual, not in CI)
-pnpm --filter @kestrel/ai eval -- --base-url http://localhost:3000 --cookie "authjs.session-token=..." --cases
+Rules:
+
+- Use existing tool context through `getToolContext()` and `AsyncLocalStorage`; never use global request state.
+- Inside `packages/ai`, resolve database/model dependencies through typed DI tokens (`DB`, `LLM_CLIENT`); do not bypass the container with direct database resolution.
+- In apps and other packages, follow the existing direct `getDb()` convention.
+- Add schemas, registry entries, tool names, UI parts where needed, and tests for every new tool.
+- Preserve mutation confirmation workflows; read-only tools must not gain hidden mutation behavior.
+- Keep prompt-injection detection, Unicode normalization, citation enforcement, budgets, rate limits, and loop limits intact.
+- Provider behavior, prices, rate limits, licensing, and redistribution rights are operator responsibilities.
+- `KESTREL_OFFLINE_MODE=1` provides deterministic synthetic market-data behavior; it does not replace a configured AI model for normal chat flows.
+
+## Market data and failover
+
+- Use the existing `runWithFailover([{ name, run }])` pattern.
+- Do not add direct provider calls that bypass health-aware ordering, caching, or provider error classification.
+- Validate provider inputs and outputs at package boundaries.
+- Treat external content as untrusted input and preserve SSRF protections for web search/fetch paths.
+- Never claim live, current, or accurate market data without the appropriate tool result and citation behavior.
+
+## Worker and scheduling
+
+The worker handles live feeds, tick buffering, one-minute candle aggregation, durable jobs, and health endpoints. The canonical health endpoints are:
+
+```text
+/health/live   process liveness
+/health/ready  dependency/feed readiness
 ```
 
-## Monorepo Structure
-
-```
-Kestrel/
-├── apps/
-│   ├── web/              # Next.js 16 PWA (frontend + API routes)
-│   └── worker/           # Node.js daemon (SignalR consumer, tick processing, job runner)
-├── packages/
-│   ├── ai/               # AI agent core — Mastra agents/workflows, 31 read-only tools, routing, memory, persistence
-│   ├── data/             # Market data adapters — price, candles, news, failover, caching
-│   ├── db/               # Drizzle schema (50 tables across 35 files) + Postgres/PGlite client
-│   ├── indicators/       # Technical indicators — SMA, EMA, RSI, MACD, SMC structure
-│   ├── shared/           # Zod schemas, domain types, env validation, error codes, encryption
-│   ├── config/           # Shared ESLint, Prettier, TS configs (not compiled)
-│   └── test-utils/       # Shared test factories, mocks, vitest helpers
-├── tools/
-│   └── lighthouse/       # Lighthouse performance audit runner
-├── docs/                 # Procedural guides + static architecture snapshot
-├── infra/cron-vm/        # GCE VM setup script + systemd units
-├── scripts/              # dev.ts (local dev entrypoint), predeploy-migrate.mjs
-```
-
-**Dependency chain:** `config` → `shared` → `db` + `indicators` → `data` → `ai` → `web` + `worker`
-
-## Architecture at a Glance
-
-```
-Browser (PWA)
-    │
-    ├── /api/chat ──▶ Mastra-owned chat (canonical agent / mode workflows / XAUUSD agent / mutation drafts)
-    │                    │
-    │                    ├── routeTurn() ──▶ pick model (fundamental/technical/summary/vision)
-    │                    ├── runPlanner() ──▶ plan-then-act pre-step
-    │                    ├── buildLiveSnapshot() ──▶ prices, session, health
-    │                    ├── compactThread() ──▶ rolling summary
-    │                    ├── tryReserveBudget() ──▶ atomic budget guard
-    │                    └── enforceCitations() ──▶ post-finish fact-check
-    ├── /api/market/* ──▶ @kestrel/data ──▶ providers (BiQuote→Finnhub failover)
-    │
-    └── Request proxy (190 lines): NextAuth JWT check, CSRF, CSP, request-id
-
-Worker (GCE VM, Docker)
-    │
-    ├── SignalR consumer ──▶ TickBuffer ──▶ live_ticks (1Hz flush)
-    ├── Candle1mAggregator ──▶ candles_1m (UPSERT on close)
-    ├── Docker internal scheduler ──▶ heavy jobs (briefings, snapshots, cot, etc.)
-    └── Host systemd timers ──▶ light Vercel /api/cron/* pokes + maintenance
-```
-
-## Key Patterns
-
-### 1. Architecture snapshot
-
-The checked-in HTML and JSON are intentionally a static reference snapshot.
-They are useful for browsing the architecture or giving an AI agent a compact
-model, but they are not generated during builds and may become stale after
-substantial code changes.
-
-### 2. Failover Everywhere
-
-Data layer uses `runWithFailover([{name, run()}])` with health-aware ordering. Pinned providers (live_ticks, candles_1m) keep position. SWR = stale-while-revalidate at every level.
-
-### 3. Atomic Budget Guard
-
-`tryReserveBudget()`: single `INSERT..ON CONFLICT DO UPDATE WHERE total+candidate <= cap`. Concurrent turns at 99% cap serialize correctly.
-
-### 4. Zod at Boundaries
-
-Every data shape crossing package boundaries validates through `@kestrel/shared` schemas. Tool inputs → `InputSchema`, tool outputs → `ToolOutputMap`.
-
-### 5. AsyncLocalStorage for Context
-
-`withToolContext()` eliminates global state. Each tool call has threadId, env, signal, budget snapshot via `getToolContext()`.
-
-### 6. Plan-Then-Act
-
-For fundamental/technical turns: cheap model generates JSON plan, persisted as system message, rendered as "Thinking" pill in UI.
-
-### 7. Citation Enforcement
-
-`enforceCitations()` scans every assistant turn for unsupported price/event claims. Appends `data-citation-warning` part if model cites numbers without tool calls.
-
-### 8. DB-Access Convention (DIP-1)
-
-**Rule:** Inside `packages/ai`, resolve `db` / `llmClient` via the typed DI container tokens (`DB`, `LLM_CLIENT` from `./tokens`). Everywhere else (`apps/web`, `apps/worker`, other packages), import `getDb` directly from `@kestrel/db`.
-
-```ts
-// packages/ai — use the container
-
-// typed as LlmClient
-
-// apps/web, apps/worker — direct imports
-import { getDb } from '@kestrel/db';
-
-import { DB, LLM_CLIENT } from './tokens';
-
-const db = container.resolve(DB); // typed as DbClient
-const client = container.resolve(LLM_CLIENT);
-
-const db = getDb();
-```
-
-**Tokens are typed:** `DB` is `Token<DbClient>`, `LLM_CLIENT` is `Token<LlmClient>`. Use `token<T>(key)` from `@kestrel/shared` to create new ones. Never use string literals — `container.resolve<T>('db')` has no compile-time link between the string and `T`.
-
-**Rationale:** The AI runtime benefits from injectable `db`/`llmClient` for testing long agent flows. Next.js server actions/route handlers are already the composition edge and read cleanly with direct `getDb()`. The split prevents the test-footgun where `container.register('db', …)` silently fails to intercept direct `getDb()` importers.
-
-### 9. Content Security Policy
-
-The request proxy sets the application's standard per-request CSP nonce. The
-architecture HTML/JSON snapshot is not served by the app and has no runtime
-CSP exception or deployment-specific route.
-
-## File Naming Conventions
-
-| Pattern                           | Example                                  |
-| --------------------------------- | ---------------------------------------- |
-| `kebab-case.ts` for modules       | `get-candles.ts`, `memory-index.ts`      |
-| `PascalCase` for React components | `ChatScreen.tsx`, `NavDrawer.tsx`        |
-| `_prefix.ts` for private/internal | `_extensions.ts`, `_provision-docker.sh` |
-| `.test.ts` for test files         | `candle-1m.test.ts`                      |
-| `route.ts` for API route handlers | `api/chat/route.ts`                      |
-| `page.tsx` for Next.js pages      | `(app)/chat/page.tsx`                    |
-
-## Common Pitfalls
-
-### Request Proxy Constraints
-
-- The proxy runs on Node.js by default: keep direct database work out of the request boundary
-- `@kestrel/db` is not imported by the proxy; keep the auth/security boundary lightweight
-- Auth env is split: `getAuthEnv()` (Edge-safe) vs `getServerEnv()` (full)
-
-### PGlite vs Postgres
-
-- PGlite runs embedded Postgres via WASM, stored in `.kestrel/data/`
-- pgvector NOT available in PGlite — vector tables use `real[]` fallback
-- When adding new DB features: ensure they work without pgvector
-- **drizzle-orm ≥0.45.2 error wrapping:** PGlite errors thrown through drizzle are wrapped with a `"Failed query: {SQL}"` prefix. The original PGlite error is stored in `err.cause`. Any code that inspects PGlite error messages (e.g., checking for `"already exists"`, `"does not exist"`, `"cannot insert multiple commands"`) must extract the underlying message via `err instanceof Error && err.cause instanceof Error ? err.cause.message : err.message`. See `packages/db/src/pglite-client.ts` (both `executeWithFallback()` and `applyMigrations()`) and the test files `schema-drift.test.ts` / `full-migration-chain.test.ts` for the canonical pattern.
-
-### Supabase Pooler
-
-- Uses transaction mode: `prepare: false` on Postgres client
-- Pool sizes: 5 (web), 3 (worker). Controlled via `DB_POOL_MAX` / `WORKER_DB_POOL_MAX`
-
-### Test Commands
-
-- Always use `-- --run` flag with vitest to avoid watch mode
-- `pnpm turbo run test -- --run` runs all packages
-- Individual: `pnpm --filter @kestrel/worker test -- --run`
-
-### CSP & Nonce System
-
-- The proxy sets a `'strict-dynamic'` CSP with a per-request nonce.
-- Scripts in application routes must carry a matching `nonce` attribute.
-- The architecture snapshot is documentation-only and is not copied into `public/`.
-
-## What NOT to Change
-
-- **Auth flow**: NextAuth v5 (Credentials provider) with strict per-user
-  `userId` scoping. Multi-tenant is load-bearing — do not regress to a
-  single-password gate.
-- **Request proxy**: Keep the request-boundary security logic lightweight. Don't add database calls there.
-- **Provider failover**: `runWithFailover()` pattern. Don't add direct provider calls.
-- **Tool pattern**: `inputSchema → module augmentation → execute`. Don't break the tool registry.
-- **AsyncLocalStorage**: tools use `getToolContext()`. Don't use global state.
-- **Architecture snapshot**: `docs/architecture-explorer.html` and `docs/architecture-explorer.json` are informational artifacts, not runtime dependencies.
-
-## Admin Debugging & Logging
-
-### Admin Dashboard
-
-A dedicated `/admin` page is available for admin users. It provides a centralized debugging interface for:
-
-- **Onboarding Control** — reset and replay the onboarding wizard (soft or full reset)
-- **Cron History** — view recent cron job runs
-- **Tool Telemetry** — inspect recent AI tool calls
-- **Diagnostic Traces** — browse persisted chat diagnostic traces
-- **User Management** — list users and their onboarding status
-- **Feature Flags** — toggle runtime feature flags
-- **Log Stream** — stream logs in real-time (dev only)
-
-An **Onboarding Reset** card is also available in `/settings` for quick access.
-
-Admin access is determined by `apps/web/src/lib/admin-auth.ts`:
-
-- A user with `role = 'admin'` is always an admin.
-- In single-user deployments (no users with `role = 'admin'`), the sole authenticated user is treated as admin for self-hosting convenience.
-
-### Logging
-
-The project uses a single pino logger from `packages/shared/src/logger.ts` across both web and worker:
-
-- **Categories** — every log line carries a `category` field (e.g., `auth`, `db`, `ai`, `cron`, `admin`)
-- **Trace correlation** — `traceIdStorage` injects `traceId` automatically inside diagnostic scopes
-- **Structured errors** — `logErrorContext()` enriches error logs with code, stack, file, line, cause, and error-pattern metadata
-- **AI-agent-friendly logs** — `logForAgent()` produces logs with `agentLog: true` for easy filtering
-- **Error patterns** — `packages/shared/src/error-patterns.ts` catalogs known failure modes with suggested fixes
-- **Bug reports** — `packages/shared/src/bug-report.ts` generates redacted, AI-agent-friendly bug reports
-- **Diagnostic trace persistence** — traces are saved to `diagnostic_traces` and optionally to `DEBUG_TRACE_PATH`
-- **Worker migration** — `apps/worker/src/log.ts` delegates to the shared pino logger
-
-### Useful Admin/Debug Env Vars
-
-| Variable               | Purpose                                                 |
-| ---------------------- | ------------------------------------------------------- |
-| `LOG_LEVEL`            | `trace`, `debug`, `info`, `warn`, `error`               |
-| `DEBUG_TRACE_PATH`     | Optional directory to write diagnostic trace JSON files |
-| `ENABLE_LOG_STREAM`    | Set to `true` in dev to enable `/api/admin/logs/stream` |
-| `ENABLE_IMPERSONATION` | Set to `true` in dev to enable user impersonation       |
-
-## Documentation Index
-
-The project keeps procedural documentation alongside a small static architecture snapshot. The snapshot is not generated during builds and should be treated as informational.
-
-| Artifact                          | Description                                      |
-| --------------------------------- | ------------------------------------------------ |
-| `docs/architecture-explorer.html` | Self-contained interactive architecture snapshot |
-| `docs/architecture-explorer.json` | Machine-readable architecture snapshot           |
-
-### Manual (procedural — kept because they describe HOW to do things, not WHAT exists)
-
-| Doc                                                     | Description                                                             |
-| ------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `docs/13-first-run-setup.md`                            | Step-by-step setup instructions                                         |
-| `docs/14-nextjs-16-architecture-guide.md`               | Next.js 16 & React 19 architecture guide, best practices & gap analysis |
-| `docs/15-typescript-architecture-and-upgrade-report.md` | TypeScript architecture, modern compiler research & upgrade report      |
-| `docs/11-self-hosting.md`                               | Docker/self-hosting guide                                               |
-| `docs/08-deployment.md`                                 | Deploy procedures                                                       |
-| `docs/09-testing.md`                                    | Test conventions & patterns                                             |
-| `docs/10-security.md`                                   | Security practices & rationale                                          |
-| `docs/INCIDENT-RESPONSE.md`                             | Incident runbook                                                        |
-| `docs/BILLING-WEBHOOK-SAFETY-GATE.md`                   | Operational safety procedure                                            |
-| `docs/AI-AGENT-ARCHITECTURE.md`                         | Current AI and Mastra implementation boundary                           |
-| `docs/AI-AGENT-VALIDATION-LOG.md`                       | Dated AI/Mastra validation and deployment evidence                      |
+Compatibility aliases may exist, but new code should use the canonical paths. Keep worker health/proxy ports private by default and require explicit operator controls before public exposure.
+
+Define one scheduler owner per deployment profile. Avoid overlapping embedded, Docker, VM, Vercel, and manual cron mechanisms. Preserve job leases, heartbeats, stale recovery, idempotency, timeouts, and graceful shutdown.
+
+## Frontend and API conventions
+
+- Use React Server Components by default; add client components only for browser state, events, or APIs that require them.
+- Preserve accessible labels, keyboard navigation, semantic landmarks, responsive behavior, and the existing design tokens.
+- Keep CSP nonces on scripts that require them.
+- API responses use `{ data: ... }` or `{ error: { code, message, details } }`.
+- Add anonymous, invalid-input, ownership, authorization, CSRF, rate-limit, and oversized-body tests for security-sensitive routes.
+- Do not expose internal errors, credentials, stack traces, or provider secrets to clients.
+
+## Testing expectations
+
+Every change should include the narrowest useful regression test. In particular:
+
+- New tools: AI package tests and UI part tests where applicable.
+- New API routes: route tests for auth, validation, ownership, and failure paths.
+- New providers: mocked provider tests, failover tests, empty/error responses, and licensing notes.
+- New indicators/risk logic: edge-case and property tests; preserve numerical precision.
+- New tables/migrations: PGlite compatibility, migration-chain, constraints, and ownership tests.
+- New security behavior: request-boundary and negative tests.
+- PostgreSQL RLS tests: disposable real PostgreSQL only; PGlite cannot prove RLS.
+- E2E changes: update the relevant Playwright coverage and avoid test-order dependence.
+
+## File naming
+
+- `kebab-case.ts` for modules, utilities, and tools
+- `PascalCase.tsx` for React components
+- `_prefix.ts` for private/internal modules
+- `.test.ts` / `.test.tsx` for Vitest tests
+- `route.ts` for Next.js route handlers
+- `page.tsx` for App Router pages
+
+## Release and documentation rules
+
+- Public documentation must describe only verified behavior and supported profiles.
+- Keep maintainer-specific Vercel/GCE/Supabase details out of public docs and tracked agent instructions.
+- Update `README.md`, `OPEN_SOURCE_DEPLOYMENT_MATRIX.md`, `docs/README.md`, `docs/configuration.md`, `docs/troubleshooting.md`, `docs/architecture.md`, `docs/release.md`, readiness records, and `CHANGELOG.md` when public behavior or release boundaries change.
+- Treat `docs/architecture-explorer.html` and `.json` as static informational snapshots; do not make runtime code depend on them.
+- Run current-tree and Git-history secret scans before public release.
+- Audit dependency licenses, fonts, icons, images, screenshots, provider trademarks, and sample data before redistribution.
+- Record application version, source revision, image digest, migration state, SBOM/provenance, and rollback information for releases.
+
+## What not to change casually
+
+- Authentication, authorization, ownership, or single-user safety gates
+- Request-proxy security logic
+- Provider failover and SSRF protections
+- BYOK encryption and secret redaction
+- Migration history or migration tracking behavior
+- AI tool registration and mutation confirmation boundaries
+- AsyncLocalStorage request context
+- Worker lease/idempotency/scheduler behavior
+- Public release disclaimers and unsupported-mode guards
+
+If a change affects one of these areas, explain the invariant, add regression tests, and document the operational impact.
+
+## Maintainer-only instructions
+
+For private production operations, copy `AGENTS.private.md.example` to the local, ignored `AGENTS.private.md` and populate it without secrets in tracked files. It supplements this file but does not override its safety rules. The example covers deployment review, migration approval, worker operations, backup/restore, monitoring, incidents, and rollback.
