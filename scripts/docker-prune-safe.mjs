@@ -17,10 +17,17 @@ if (!apply) {
   process.exit(0);
 }
 
+// P3: Remove stopped containers and unused images. `image prune --all`
+// also clears tagged-but-unused images (e.g. accumulated
+// kestrel-worker:rollback tags) that plain `image prune` leaves behind.
+// The 168h (7-day) age filter keeps recent tagged images (current deploy,
+// the rollback tag) for fast rollback. Shared image layers in use by a
+// running/recent container are never removed.
 console.log('\nRemoving unused build cache...');
 command(['builder', 'prune', '--force']);
-console.log('Removing stopped containers and dangling images...');
+console.log('Removing stopped containers...');
 command(['container', 'prune', '--force']);
-command(['image', 'prune', '--force']);
+console.log('Removing unused images older than 168h (dangling + old tags)...');
+command(['image', 'prune', '--all', '--force', '--filter', 'until=168h']);
 console.log('Cleanup complete. Remaining usage:');
 command(['system', 'df']);

@@ -50,7 +50,7 @@ ping_hc() {
   local url="https://hc-ping.com/$HC_UUID"
   [[ "$status" != "success" ]] && url="$url/$status"
   if [[ -n "$body" ]]; then
-    curl -fsS -m 5 --data "$body" "$url" >/dev/null 2>&1 || true
+    curl -fsS -m 5 --data-raw "$body" "$url" >/dev/null 2>&1 || true
   else
     curl -fsS -m 5 "$url" >/dev/null 2>&1 || true
   fi
