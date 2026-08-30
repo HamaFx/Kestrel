@@ -36,19 +36,25 @@ yarn-error.log*
 pnpm-debug.log*
 
 # editor
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
+.vscode/
 .idea/
+.fleet/
+.zed/
+.cursor/
+.cline/
 
 # os
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
 
 # vercel
-.vercel/**
-# Track project link config so AI agents can pull env from repo root
-!.vercel/project.json
+.vercel/
+
+# hermes & local tool runs
+.hermes/
 
 # drizzle — keep the migration journal but ignore the heavy snapshots
 packages/db/drizzle/meta/*
