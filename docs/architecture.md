@@ -212,7 +212,7 @@ The code contains experimental multi-tenant/RLS infrastructure, but shared mode 
 - Web container
 - Worker container
 - Local logical backup service
-- Optional Langfuse profile
+- Optional observability profile (Langfuse v3 + ClickHouse, Redis, MinIO, and Langfuse worker)
 - Localhost-bound ports by default
 
 ### External PostgreSQL
