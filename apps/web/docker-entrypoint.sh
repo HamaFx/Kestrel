@@ -44,5 +44,12 @@ if [ -n "$MIGRATION_DATABASE_URL" ]; then
   echo "Migrations applied."
 fi
 
+# Docker sets HOSTNAME to the container ID at runtime. Next.js standalone
+# server.js binds to process.env.HOSTNAME || '0.0.0.0', so without this it
+# listens only on the container's internal IP: the host port mapping works,
+# but in-container loopback healthchecks (localhost:3000) fail. Bind to all
+# interfaces instead.
+unset HOSTNAME
+
 echo "Starting Kestrel on port ${PORT:-3000}..."
 exec node apps/web/server.js

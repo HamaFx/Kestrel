@@ -138,8 +138,19 @@ try {
     'user_settings', 'user_symbols', 'chat_messages',
   ];
     for (const table of tenantTables) {
-    await sql.unsafe(`ALTER TABLE "${table}" NO FORCE ROW LEVEL SECURITY`);
-    await sql.unsafe(`ALTER TABLE "${table}" DISABLE ROW LEVEL SECURITY`);
+      // The list mirrors migration 0038's RLS cutover, but later migrations
+      // may drop tables (0052 removed the decision_signals feature set, and
+      // 0084 removed analysis_jobs is not listed; future drops are possible).
+      // Skip tables that no longer exist so a stale list entry cannot block
+      // the app from starting.
+      const [exists] = await sql`
+        SELECT 1 FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relname = ${table} AND n.nspname = 'public' AND c.relkind = 'r'
+      `;
+      if (!exists) continue;
+      await sql.unsafe(`ALTER TABLE "${table}" NO FORCE ROW LEVEL SECURITY`);
+      await sql.unsafe(`ALTER TABLE "${table}" DISABLE ROW LEVEL SECURITY`);
     }
     console.log('[runtime-migrate] Single-user mode: tenant RLS disabled.');
   } else {

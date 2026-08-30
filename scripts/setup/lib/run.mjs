@@ -212,8 +212,7 @@ export function getOwnPublishedPorts(cwd) {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
-    const parsed = JSON.parse(out);
-    const containers = Array.isArray(parsed) ? parsed : Object.values(parsed ?? {});
+    const containers = composePsContainers(out);
     const ports = new Set();
     for (const container of containers) {
       for (const entry of String(container.Ports ?? '').split(',')) {
@@ -227,8 +226,13 @@ export function getOwnPublishedPorts(cwd) {
   }
 }
 
-/** Poll an HTTP endpoint until it responds OK. */
-export async function waitForApp(url, timeoutMs = 120_000) {
+/**
+ * Poll an HTTP endpoint until it responds OK.
+ * `shouldAbort` is called each cycle; when it returns true the wait ends
+ * early (used to detect a crash-looping container instead of burning the
+ * whole timeout).
+ */
+export async function waitForApp(url, timeoutMs = 120_000, { shouldAbort } = {}) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     try {
@@ -237,9 +241,55 @@ export async function waitForApp(url, timeoutMs = 120_000) {
     } catch {
       // server still starting
     }
+    if (shouldAbort?.()) return false;
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 2_000));
   }
   return false;
+}
+
+/**
+ * Normalize `docker compose ps --format json` output — compose emits a
+ * single object (one container), newline-delimited objects (several), or a
+ * JSON array (older versions). Returns an array of container objects.
+ */
+function composePsContainers(out) {
+  const parsed = JSON.parse(out);
+  if (Array.isArray(parsed)) return parsed;
+  if (parsed && typeof parsed === 'object' && 'State' in parsed) return [parsed];
+  // Newline-delimited JSON objects.
+  return String(out)
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
+/**
+ * Best-effort state of a compose service's container:
+ * 'running' | 'restarting' | 'exited' | null (unknown / not found).
+ */
+export function getComposeServiceState(cwd, service) {
+  try {
+    const out = execFileSync('docker', ['compose', 'ps', '--format', 'json', service], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const containers = composePsContainers(out);
+    const state = String(containers[0]?.State ?? '').toLowerCase();
+    if (state === 'running') return 'running';
+    if (state === 'restarting') return 'restarting';
+    if (state === 'exited') return 'exited';
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** Open a URL in the platform browser; prints the URL on headless boxes. */

@@ -24,6 +24,7 @@ import {
   diagnoseComposeError,
   findFreePort,
   getComposeHostPorts,
+  getComposeServiceState,
   getOwnPublishedPorts,
   isPortInUse,
   openBrowser,
@@ -214,13 +215,27 @@ export async function run(ctx) {
     child.on('exit', async (code) => {
       if (code === 0) {
         const spinner = startSpinner(io, 'Waiting for the app to become ready');
-        const ready = await waitForApp(healthUrl, 180_000);
+        // Abort early when the app container is crash-looping instead of
+        // burning the full timeout on a stack that will never come up.
+        const ready = await waitForApp(healthUrl, 180_000, {
+          shouldAbort: () => getComposeServiceState(repoRoot, 'app') === 'restarting',
+        });
         spinner.stop(ready ? 'The app is ready' : null);
         if (ready) {
           ok(io, 'Full mode is ready. Opening it in your browser.');
           openBrowser(io, appUrl);
         } else {
-          warn(io, 'The app is still warming up. Open the URL in a moment.');
+          const state = getComposeServiceState(repoRoot, 'app');
+          if (state === 'restarting') {
+            warn(io, 'The app container is crash-looping (restarting repeatedly).');
+          } else {
+            warn(io, 'The app did not become ready within 3 minutes.');
+          }
+          io.line();
+          info(io, 'Diagnose it with:');
+          io.line(`  ${paint('docker compose ps', 'brand')}  ${paint('·', 'dim')}  ${paint('docker compose logs app', 'brand')}`);
+          info(io, `You can still try opening: ${paint(appUrl, 'brand')}`);
+          io.line();
         }
         printDockerHints(io, effective.appPort);
       } else {
