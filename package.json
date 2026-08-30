@@ -1,6 +1,6 @@
 {
   "name": "kestrel",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The Open-Source, Single-User BYOK AI Trading Platform",
   "license": "Apache-2.0",
   "packageManager": "pnpm@9.15.4",
@@ -13,6 +13,7 @@
     "dev": "turbo run dev",
     "dev:local": "tsx scripts/dev.ts",
     "setup": "node scripts/setup.mjs",
+    "update": "node scripts/update.mjs",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

@@ -6,6 +6,22 @@ This document describes the public Kestrel release process. It is intentionally 
 
 The current public release is a **single-user self-hosted beta**. Do not release or advertise shared multi-user/RLS hosting, open registration, hosted SaaS operation, or independent security-audit completion without completing the documented future gates.
 
+## Application version contract
+
+Kestrel application releases use independent semantic versions in the root `package.json`, currently `0.1.0` for the first planned public beta. Workspace package versions remain implementation/package metadata and do not define the application release version.
+
+Stable releases are manually selected by the maintainer and published as matching Git tags and GitHub Releases:
+
+```text
+package.json: 0.1.0
+tag:            v0.1.0
+GitHub Release: Kestrel v0.1.0
+```
+
+The `main` branch is the development channel and is not the stable update channel for ordinary self-hosted users. The `pnpm update` command uses the newest published stable GitHub Release, not `main`. It preserves `.env`, `.env.local`, `.kestrel/`, and Docker volumes; users should create and verify a backup before migration releases.
+
+Every stable release should include release notes, migration notes, known limitations, source revision, Docker image tags/digests, SBOM/provenance metadata, and rollback guidance where applicable.
+
 ## Release inputs
 
 A release should identify:
@@ -19,7 +35,7 @@ A release should identify:
 - Release notes and known limitations
 - Rollback source revision/image
 
-The repository currently uses `0.0.0` pre-release application metadata and Changesets for package publishing. Do not imply that publishing workspace packages alone is a complete application release.
+Changesets remain available for package publishing, but publishing workspace packages alone is not a complete application release. The application version and matching GitHub Release/tag are the public release identity.
 
 ## Local pre-release checks
 
@@ -93,6 +109,17 @@ Describe the behavior change and appropriate version bump. The release workflow 
 Review the generated version changes and changelog before merging. Application and Docker release notes must still be maintained explicitly.
 
 ## Docker release
+
+The public source-based update path is:
+
+```bash
+pnpm update
+```
+
+The updater downloads the stable source archive, validates that it is a Kestrel release, preserves operator configuration and data, creates a backup through the existing backup service, rebuilds the local Docker stack, and checks `/api/health/public`. If health fails, it stops and prints log and backup instructions rather than silently rolling back.
+
+
+Docker image publication is tied to a manually published GitHub Release. The release tag is the human-readable version; the commit SHA and image digest provide immutable provenance.
 
 The Docker publication workflow runs when a GitHub release is published. It:
 
