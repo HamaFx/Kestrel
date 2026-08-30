@@ -54,7 +54,8 @@ for (const key of [
 }
 
 for (const key of composeKeys) {
-  if (key === 'POSTGRES_PUBLISHED_PORT') continue;
+  // Host ports, not secrets — remapped by the setup wizard at launch.
+  if (key === 'POSTGRES_PUBLISHED_PORT' || key === 'APP_PUBLISHED_PORT') continue;
   if (!exampleKeys.has(key) && !templateKeys.has(key)) {
     failures.push(`Compose variable ${key} is absent from .env.example and secret-template.json`);
   }

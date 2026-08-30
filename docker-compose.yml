@@ -16,7 +16,9 @@
 #
 # For production overrides (custom domain, TLS, resource limits),
 # create a docker-compose.override.yml — Docker Compose auto-loads it.
-# Set POSTGRES_PUBLISHED_PORT=127.0.0.1:5433 when host port 5432 is occupied.
+# Set POSTGRES_PUBLISHED_PORT=127.0.0.1:5433 when host port 5432 is
+# occupied, or APP_PUBLISHED_PORT=127.0.0.1:3001 when host port 3000 is.
+# The setup wizard does this automatically.
 
 services:
   db:
@@ -138,7 +140,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "127.0.0.1:3000:3000"
+      # APP_PUBLISHED_PORT lets operators (or the setup wizard) remap the
+      # host port when 3000 is already taken. Binds localhost only.
+      - "127.0.0.1:${APP_PUBLISHED_PORT:-3000}:3000"
     environment:
       DATABASE_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
       KESTREL_LOCAL_DOCKER: "true"

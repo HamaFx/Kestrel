@@ -226,7 +226,7 @@ describe('secret template — single source of truth', () => {
     const compose = readFileSync(resolve(root, 'docker-compose.yml'), 'utf8');
     const refs = [...compose.matchAll(/\$\{([A-Z0-9_]+)(?::-(?:[^}]*))?\}/g)].map((m) => m[1]);
     for (const key of refs) {
-      if (key === 'POSTGRES_PUBLISHED_PORT') continue; // host port, not a secret
+      if (key === 'POSTGRES_PUBLISHED_PORT' || key === 'APP_PUBLISHED_PORT') continue; // host ports, not secrets
       expect(template, `docker-compose.yml references ${key}`).toHaveProperty(key);
     }
   });

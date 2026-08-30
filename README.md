@@ -413,6 +413,9 @@ Simply run `pnpm dev:local`! Kestrel embeds **PGlite**, a lightweight WebAssembl
 
 - For web port 3000: Set `PORT=3005` in your `.env.local` or run `PORT=3005 pnpm dev:local`.
 - For Docker Postgres port 5432: Set `POSTGRES_PUBLISHED_PORT=127.0.0.1:5433` in your `.env` before running `docker compose up -d`.
+- For Docker web port 3000: Set `APP_PUBLISHED_PORT=127.0.0.1:3001` in your `.env` before running `docker compose up -d`.
+
+The setup wizard detects busy ports and offers to remap them automatically.
 
 </details>
 
