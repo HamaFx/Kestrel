@@ -8,7 +8,10 @@ Type=oneshot
 User=root
 NoNewPrivileges=true
 PrivateTmp=true
-ExecStart=/usr/bin/docker image prune -f
+# P3: --all also removes old tagged-but-unused images (accumulated
+# kestrel-worker:rollback tags). The 168h age filter keeps recent tagged
+# images (current deploy) so rollback still works after a weekly prune.
+ExecStart=/usr/bin/docker image prune --all -f --filter until=168h
 
 StandardOutput=journal
 StandardError=journal

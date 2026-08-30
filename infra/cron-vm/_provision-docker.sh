@@ -142,10 +142,18 @@ fi
 log 'ensuring GCP firewall rules (SSH only — port 8081 NOT exposed)'
 GCP_PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
 : "${GCP_PROJECT_ID:?Set GCP_PROJECT_ID before provisioning the VM}"
+# S3: SSH is NOT opened to the whole internet by default. When
+# ADMIN_SSH_CIDRS is unset we restrict SSH to Google's IAP TCP forwarding
+# range, which requires Identity-Aware Proxy tunneling (least privilege).
+# Operators hosting elsewhere can pin their static egress IP by passing
+#   ADMIN_SSH_CIDRS=203.0.113.5/32 sudo bash _provision-docker.sh
+ADMIN_SSH_CIDRS="${ADMIN_SSH_CIDRS:-35.235.240.0/20}"
 if ! gcloud compute firewall-rules describe kestrel-allow-ssh --project="$GCP_PROJECT_ID" 2>/dev/null; then
   gcloud compute firewall-rules create kestrel-allow-ssh \
-    --network default --allow tcp:22 --source-ranges 0.0.0.0/0 \
+    --network default --allow tcp:22 --source-ranges "$ADMIN_SSH_CIDRS" \
+    --description 'SSH via IAP by default; override with ADMIN_SSH_CIDRS' \
     --project "$GCP_PROJECT_ID" --quiet
+  log "SSH firewall restricted to source $ADMIN_SSH_CIDRS"
 fi
 
 log 'cloning the repo into /opt/kestrel/app (Docker build context)'
