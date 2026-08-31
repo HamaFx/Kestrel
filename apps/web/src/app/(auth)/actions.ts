@@ -37,6 +37,7 @@ import { z } from 'zod';
 import { signIn } from '@/auth';
 import { recordAuthEvent } from '@/lib/auth-anomaly';
 import { generateToken, hashToken } from '@/lib/auth-tokens';
+import { isFailedSignIn } from '@/lib/auth/sign-in-result';
 import { getServerEnv } from '@/lib/env';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { passwordSchema } from '@/lib/validation';
@@ -65,9 +66,6 @@ interface SignInResult {
   error?: string | null;
 }
 
-function isFailedSignIn(result: SignInResult): boolean {
-  return result.ok !== true;
-}
 
 function invalidCredentialsState(): AuthActionState {
   recordAuthEvent('login_failure');
