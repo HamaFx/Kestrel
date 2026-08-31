@@ -112,7 +112,7 @@ function OverallBanner({ data }: { data: HealthSloData }) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-4 rounded-sm border p-5 sm:flex-row sm:items-center sm:justify-between',
         config.bg,
       )}
     >
@@ -233,7 +233,7 @@ function SliCard({ sli }: { sli: SliSnapshot }) {
         : 'border-danger/20';
 
   return (
-    <div className={cn('rounded-lg border p-4 transition-colors', borderColor)}>
+    <div className={cn('rounded-sm border p-4 transition-colors', borderColor)}>
       <div className="mb-3 flex items-center gap-2">
         <span className={cn('size-2 rounded-full', statusDot)} aria-hidden="true" />
         {isInformational ? (
@@ -280,7 +280,7 @@ function AnomalyList({ anomalies }: { anomalies: string[] }) {
   if (anomalies.length === 0) return null;
 
   return (
-    <div className="bg-warn/5 border-warn/25 rounded-lg border p-4">
+    <div className="bg-warn/5 border-warn/25 rounded-sm border p-4">
       <div className="mb-2 flex items-center gap-2">
         <IconAlertTriangle className="text-warn size-4" aria-hidden="true" />
         <h3 className="text-warn text-sm font-semibold">
@@ -454,7 +454,7 @@ export function AdminSystemHealth() {
         </div>
 
         {/* Summary Footer */}
-        <div className="border-border rounded-lg border p-4">
+        <div className="border-border rounded-sm border p-4">
           <p className="text-fg-subtle text-xs">
             SLO targets from{' '}
             <code className="bg-bg-elev-2 rounded-sm px-1 py-0.5 text-xs">

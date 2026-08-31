@@ -255,7 +255,7 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
               <div
                 className={cn(
                   'flex size-10 items-center justify-center rounded-sm text-sm font-black',
-                  isLong ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400',
+                  isLong ? 'bg-bull/10 text-bull' : 'bg-bear/10 text-bear',
                 )}
               >
                 {isLong ? (
@@ -272,10 +272,10 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
                   <span
                     className={cn(
                       'rounded-xs px-2 py-0.5 text-xs font-black uppercase',
-                      isWin && 'bg-emerald-500/10 text-emerald-400',
-                      isLoss && 'bg-rose-500/10 text-rose-400',
-                      entry.outcome === 'breakeven' && 'bg-zinc-500/10 text-zinc-400',
-                      entry.outcome === 'open' && 'bg-sky-500/10 text-sky-400',
+                      isWin && 'bg-bull/10 text-bull',
+                      isLoss && 'bg-bear/10 text-bear',
+                      entry.outcome === 'breakeven' && 'bg-neutral/10 text-neutral',
+                      entry.outcome === 'open' && 'bg-info/10 text-info',
                     )}
                   >
                     {entry.outcome}
@@ -326,20 +326,20 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
             {/* Legend Overlay */}
             <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-3 rounded-xs bg-black/60 px-2 py-1 text-caption backdrop-blur-xs">
               <div className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-[#fbbf24]" />
-                <span className="text-zinc-300">EMA 20</span>
+                <span className="bg-warn size-2 rounded-full" />
+                <span className="text-fg-muted">EMA 20</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-[#38bdf8]" />
-                <span className="text-zinc-300">EMA 50</span>
+                <span className="bg-info size-2 rounded-full" />
+                <span className="text-fg-muted">EMA 50</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-[#10b981]" />
-                <span className="text-zinc-300">Target</span>
+                <span className="bg-bull size-2 rounded-full" />
+                <span className="text-fg-muted">Target</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="size-2 rounded-full bg-[#ef4444]" />
-                <span className="text-zinc-300">Stop</span>
+                <span className="bg-bear size-2 rounded-full" />
+                <span className="text-fg-muted">Stop</span>
               </div>
             </div>
           </div>
@@ -355,7 +355,7 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
                 <div
                   className={cn(
                     'text-base font-black tabular-nums',
-                    (replay.stats.realizedRR ?? 0) > 0 ? 'text-emerald-400' : 'text-rose-400',
+                    (replay.stats.realizedRR ?? 0) > 0 ? 'text-bull' : 'text-bear',
                   )}
                 >
                   {replay.stats.realizedRR !== null
@@ -369,10 +369,10 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
 
               <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
                 <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
-                  <IconTrendingUp className="size-3.5 text-emerald-400" />
+                  <IconTrendingUp className="text-bull size-3.5" />
                   <span>Max Runup (MFE)</span>
                 </div>
-                <div className="text-base font-black text-emerald-400 tabular-nums">
+                <div className="text-bull text-base font-black tabular-nums">
                   {replay.mfe.r !== null ? `+${replay.mfe.r.toFixed(2)} R` : '—'}
                 </div>
                 <span className="text-fg-subtle text-caption tabular-nums">
@@ -382,10 +382,10 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
 
               <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
                 <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
-                  <IconTrendingDown className="size-3.5 text-rose-400" />
+                  <IconTrendingDown className="text-bear size-3.5" />
                   <span>Max Drawdown (MAE)</span>
                 </div>
-                <div className="text-base font-black text-rose-400 tabular-nums">
+                <div className="text-bear text-base font-black tabular-nums">
                   {replay.mae.r !== null ? `-${replay.mae.r.toFixed(2)} R` : '—'}
                 </div>
                 <span className="text-fg-subtle text-caption tabular-nums">
@@ -395,10 +395,10 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
 
               <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
                 <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
-                  <IconGauge className="size-3.5 text-sky-400" />
+                  <IconGauge className="text-info size-3.5" />
                   <span>Efficiency</span>
                 </div>
-                <div className="text-base font-black text-sky-400 tabular-nums">
+                <div className="text-info text-base font-black tabular-nums">
                   {replay.stats.executionEfficiencyPct !== null
                     ? `${replay.stats.executionEfficiencyPct.toFixed(0)}%`
                     : '—'}
@@ -420,21 +420,21 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
             <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
               <div>
                 <span className="text-fg-subtle text-caption block font-medium">Entry Price</span>
-                <span className="font-mono font-bold text-sky-400 tabular-nums">{entry.entry}</span>
+                <span className="text-info font-mono font-bold tabular-nums">{entry.entry}</span>
               </div>
               <div>
                 <span className="text-fg-subtle text-caption block font-medium">Stop Loss</span>
-                <span className="font-mono font-bold text-rose-400 tabular-nums">{entry.stop ?? 'None'}</span>
+                <span className="text-bear font-mono font-bold tabular-nums">{entry.stop ?? 'None'}</span>
               </div>
               <div>
                 <span className="text-fg-subtle text-caption block font-medium">Take Profit Target</span>
-                <span className="font-mono font-bold text-emerald-400 tabular-nums">
+                <span className="text-bull font-mono font-bold tabular-nums">
                   {entry.target ?? 'None'}
                 </span>
               </div>
               <div>
                 <span className="text-fg-subtle text-caption block font-medium">Actual Exit</span>
-                <span className="font-mono font-bold text-purple-400 tabular-nums">{entry.exit ?? 'Open'}</span>
+                <span className="text-fg font-mono font-bold tabular-nums">{entry.exit ?? 'Open'}</span>
               </div>
             </div>
           </div>

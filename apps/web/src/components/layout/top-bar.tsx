@@ -51,19 +51,21 @@ export function TopBar({ title, right }: TopBarProps) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-12 w-full items-center justify-between',
+        'sticky top-0 z-30 flex min-h-12 h-[calc(3rem+env(safe-area-inset-top,0px))] w-full items-center justify-between',
         'border-border bg-bg/90 pt-safe border-b px-3 backdrop-blur-md',
       )}
     >
-      <NavTrigger />
+      <div className="flex items-center gap-2">
+        <NavTrigger className="lg:hidden" />
 
-      <KestrelBrand
-        variant="mark"
-        showName
-        label={title ?? 'Kestrel'}
-        href="/chat"
-        className="group px-1 transition-opacity hover:opacity-80"
-      />
+        <KestrelBrand
+          variant="mark"
+          showName
+          label={title ?? 'Kestrel'}
+          href="/chat"
+          className="group px-1 transition-opacity hover:opacity-80"
+        />
+      </div>
 
       <div className="flex min-w-[44px] items-center justify-end gap-2">{right}</div>
     </header>

@@ -55,7 +55,7 @@ interface JournalResponse {
   stats: JournalStats;
 }
 
-export function JournalView() {
+export function JournalView({ initialData }: { initialData?: JournalResponse } = {}) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'overview' | 'analytics' | 'trades'>('overview');
@@ -66,6 +66,7 @@ export function JournalView() {
     queryFn: async () => {
       return apiFetch<JournalResponse>('/api/journal');
     },
+    initialData,
     staleTime: 10_000,
   });
 

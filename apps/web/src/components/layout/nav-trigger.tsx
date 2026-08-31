@@ -22,9 +22,11 @@
 // only one drawer instance lives in the DOM.
 import { IconMenu2 } from '@tabler/icons-react';
 
+import { cn } from '@/lib/cn';
+
 import { useNavDrawer } from './nav-drawer-context';
 
-export function NavTrigger() {
+export function NavTrigger({ className }: { className?: string }) {
   const { open, setOpen } = useNavDrawer();
   return (
     <button
@@ -33,7 +35,10 @@ export function NavTrigger() {
       aria-expanded={open}
       aria-controls="sidebar-nav"
       onClick={() => setOpen(true)}
-      className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-all active:scale-95"
+      className={cn(
+        'text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-all active:scale-95',
+        className,
+      )}
     >
       <IconMenu2 className="size-5" />
     </button>

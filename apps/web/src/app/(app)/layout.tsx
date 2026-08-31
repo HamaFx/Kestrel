@@ -96,7 +96,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <main
                 id="main-content"
                 tabIndex={-1}
-                className="mx-auto w-full max-w-2xl px-4 pt-4 focus:outline-none xl:max-w-7xl xl:px-6"
+                className="mx-auto w-full max-w-2xl px-4 pt-4 focus:outline-none md:max-w-4xl lg:max-w-5xl xl:max-w-7xl xl:px-6"
                 style={{
                   viewTransitionName: 'main-content',
                   paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',

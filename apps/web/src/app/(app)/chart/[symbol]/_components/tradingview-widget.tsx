@@ -20,6 +20,8 @@ import { Link } from 'next-view-transitions';
 import Script from 'next/script';
 import { useEffect, useId, useRef, useState } from 'react';
 
+import { Skeleton } from '@/components/ui/skeleton';
+
 interface TradingViewGlobal {
   widget: new (config: TradingViewWidgetConfig) => unknown;
 }
@@ -157,7 +159,8 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
     if (tv) tryCreate(tv);
   };
 
-  const height = 'calc(100dvh - 3.75rem)';
+  const height =
+    'calc(100dvh - 9.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))';
 
   return (
     <>
@@ -169,7 +172,7 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
         onError={() => setState('failed')}
       />
 
-      <div className="relative w-full" style={{ height }}>
+      <div className="relative min-h-[400px] w-full" style={{ height }}>
         {/* The TradingView container — always rendered so the widget has a target. */}
         <div
           id={containerId}
@@ -180,9 +183,9 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
 
         {/* Loading skeleton — shown on top until the widget fills the container. */}
         {state === 'loading' && (
-          <div className="bg-bg-elev-1 border-border absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-sm border">
-            <div className="bg-bg-elev-2 h-3 w-48 animate-pulse rounded-sm" />
-            <div className="bg-bg-elev-2 h-3 w-32 animate-pulse rounded-sm" />
+          <div className="bg-bg-elev-1 border-border absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-sm border p-4">
+            <Skeleton decorative className="h-3 w-48" />
+            <Skeleton decorative className="h-3 w-32" />
             <p className="text-fg-subtle mt-2 text-xs">Loading chart...</p>
           </div>
         )}
