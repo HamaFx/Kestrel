@@ -313,7 +313,7 @@ export function EntryForm({ onCreated }: EntryFormProps) {
               alt="Trade chart"
               width={80}
               height={80}
-              className="border-border h-20 rounded-md border object-cover"
+              className="border-border h-20 rounded-sm border object-cover"
               unoptimized
             />
             <button

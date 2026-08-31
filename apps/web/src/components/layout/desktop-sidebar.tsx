@@ -123,7 +123,7 @@ export function DesktopSidebar({
         </div>
 
         {/* Primary Nav List */}
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1" aria-label="Main Navigation">
           {PRIMARY_ITEMS.map((item) => {
             const active = isActive(item);
             const Icon = item.icon;
@@ -132,6 +132,8 @@ export function DesktopSidebar({
                 key={item.href}
                 href={item.href}
                 prefetch={true}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
                   'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
                   active
@@ -145,6 +147,7 @@ export function DesktopSidebar({
                     'size-5 shrink-0',
                     active ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
                   )}
+                  aria-hidden="true"
                 />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
@@ -159,6 +162,8 @@ export function DesktopSidebar({
           <Link
             href="/admin"
             prefetch={true}
+            aria-label="Admin"
+            aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
             className={cn(
               'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
               pathname.startsWith('/admin')
@@ -172,6 +177,7 @@ export function DesktopSidebar({
                 'size-5 shrink-0',
                 pathname.startsWith('/admin') ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
               )}
+              aria-hidden="true"
             />
             {!collapsed && <span className="truncate">Admin</span>}
           </Link>
@@ -180,6 +186,8 @@ export function DesktopSidebar({
         <Link
           href="/settings"
           prefetch={true}
+          aria-label="Settings"
+          aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
           className={cn(
             'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
             pathname.startsWith('/settings')
@@ -195,6 +203,7 @@ export function DesktopSidebar({
                 ? 'text-brand'
                 : 'text-fg-subtle group-hover:text-fg',
             )}
+            aria-hidden="true"
           />
           {!collapsed && <span className="truncate">Settings</span>}
         </Link>

@@ -16,8 +16,11 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { computeStats, listEntries } from '@kestrel/ai';
+import type { JournalEntry, JournalStats } from '@kestrel/shared';
 import type { Metadata } from 'next';
 
+import { auth } from '@/auth';
 import { PageHeader } from '@/components/layout/page-header';
 
 import { JournalView } from './_components/journal-view';
@@ -27,14 +30,33 @@ export const metadata: Metadata = {
   description: 'Track trade executions, equity growth, R-multiples, and AI post-trade reviews.',
 };
 
-export default function JournalPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function JournalPage() {
+  let initialData: { entries: JournalEntry[]; stats: JournalStats } | undefined;
+
+  if (process.env.AUTH_MODE !== 'legacy') {
+    const session = await auth();
+    if (session?.user?.id) {
+      try {
+        const [entries, stats] = await Promise.all([
+          listEntries(session.user.id),
+          computeStats(session.user.id),
+        ]);
+        initialData = { entries, stats };
+      } catch {
+        // Fall back gracefully to client-side hydration if server prefetch fails
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Journal"
         description="Log, tag, and review your trades with integrated analytics."
       />
-      <JournalView />
+      <JournalView initialData={initialData} />
     </div>
   );
 }

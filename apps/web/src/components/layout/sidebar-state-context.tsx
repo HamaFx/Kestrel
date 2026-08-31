@@ -39,10 +39,13 @@ export function SidebarStateProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultSidebarState: SidebarStateContextValue = {
+  collapsed: true,
+  setCollapsed: () => {},
+  toggle: () => {},
+};
+
 export function useSidebarState() {
   const ctx = useContext(SidebarStateContext);
-  if (!ctx) {
-    throw new Error('useSidebarState must be used within SidebarStateProvider');
-  }
-  return ctx;
+  return ctx ?? defaultSidebarState;
 }

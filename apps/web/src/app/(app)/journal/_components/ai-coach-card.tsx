@@ -69,12 +69,12 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
   }
 
   const gradeColors: Record<string, string> = {
-    'A+': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    A: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    B: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-    C: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    D: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    F: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    'A+': 'bg-bull/10 text-bull border-bull/20',
+    A: 'bg-bull/10 text-bull border-bull/20',
+    B: 'bg-info/10 text-info border-info/20',
+    C: 'bg-warn/10 text-warn border-warn/20',
+    D: 'bg-warn/10 text-warn border-warn/20',
+    F: 'bg-bear/10 text-bear border-bear/20',
   };
 
   return (
@@ -172,14 +172,14 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Strengths */}
             <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
-              <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-emerald-400 uppercase">
+              <div className="text-bull flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
                 <IconShieldCheck className="size-4" />
                 <span>Identified Edges & Strengths</span>
               </div>
               <ul className="flex flex-col gap-2">
                 {insights.strengths.map((str, i) => (
                   <li key={i} className="text-fg-muted flex items-start gap-2 text-xs">
-                    <IconCircleCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
+                    <IconCircleCheck className="text-bull mt-0.5 size-3.5 shrink-0" />
                     <span>{str}</span>
                   </li>
                 ))}
@@ -188,14 +188,14 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
 
             {/* Leaks */}
             <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
-              <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-rose-400 uppercase">
+              <div className="text-bear flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
                 <IconAlertTriangle className="size-4" />
                 <span>Psychological & Execution Leaks</span>
               </div>
               <ul className="flex flex-col gap-2">
                 {insights.leaks.map((leak, i) => (
                   <li key={i} className="text-fg-muted flex items-start gap-2 text-xs">
-                    <IconFlame className="mt-0.5 size-3.5 shrink-0 text-rose-400" />
+                    <IconFlame className="text-bear mt-0.5 size-3.5 shrink-0" />
                     <span>{leak}</span>
                   </li>
                 ))}

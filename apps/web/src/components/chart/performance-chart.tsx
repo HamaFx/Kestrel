@@ -27,6 +27,7 @@ import { IconAward, IconTrendingUp } from '@tabler/icons-react';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { useEffect, useMemo, useRef } from 'react';
 
+import { SERIES_BEAR_HEX, SERIES_BULL_HEX } from './chart-colors';
 import { buildEquityCurve } from './performance-chart-data';
 
 interface PerformanceChartProps {
@@ -127,8 +128,8 @@ export function PerformanceChart({
       chartRef.current = chart;
 
       const areaSeries = chart.addSeries(lc.AreaSeries, {
-        lineColor: totalR >= 0 ? '#eab308' : '#f0594a',
-        topColor: totalR >= 0 ? 'rgba(234, 179, 8, 0.2)' : 'rgba(240, 89, 74, 0.2)',
+        lineColor: totalR >= 0 ? SERIES_BULL_HEX : SERIES_BEAR_HEX,
+        topColor: totalR >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
         bottomColor: 'rgba(0, 0, 0, 0)',
         lineWidth: 2,
         priceLineVisible: false,
@@ -155,8 +156,8 @@ export function PerformanceChart({
     const series = seriesRef.current;
     if (!series) return;
     series.applyOptions({
-      lineColor: totalR >= 0 ? '#eab308' : '#f0594a',
-      topColor: totalR >= 0 ? 'rgba(234, 179, 8, 0.2)' : 'rgba(240, 89, 74, 0.2)',
+      lineColor: totalR >= 0 ? SERIES_BULL_HEX : SERIES_BEAR_HEX,
+      topColor: totalR >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
     });
   }, [totalR]);
 

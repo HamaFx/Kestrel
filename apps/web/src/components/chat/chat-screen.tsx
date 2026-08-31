@@ -58,6 +58,7 @@ import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useThreadTitle } from '@/hooks/use-thread-title';
 import { apiFetch, apiMutate } from '@/lib/api-client';
 import { createKestrelChatTransport, type AgentProgress } from '@/lib/chat-transport';
+import { useSidebarState } from '@/components/layout/sidebar-state-context';
 import { cn } from '@/lib/cn';
 import { getCsrfToken } from '@/lib/csrf';
 
@@ -102,6 +103,7 @@ export function ChatScreen({
   initialCustomInstructions,
   autoSubmitPrompt,
 }: ChatScreenProps) {
+  const { collapsed } = useSidebarState();
   const lastUserTextRef = useRef<string>('');
   const autoSubmittedRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -410,7 +412,12 @@ export function ChatScreen({
   }, [messages]);
 
   return (
-    <div className="bg-bg paint-isolated fixed inset-0 z-50 flex flex-col">
+    <div
+      className={cn(
+        'bg-bg paint-isolated fixed inset-0 z-30 flex flex-col transition-[left] duration-200 ease-in-out',
+        collapsed ? 'lg:left-16' : 'lg:left-56',
+      )}
+    >
       <ChatTopBar
         threadId={threadId}
         title={title}

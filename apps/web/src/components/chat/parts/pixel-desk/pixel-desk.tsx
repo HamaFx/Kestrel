@@ -87,7 +87,7 @@ export const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
     id: 'fundamental',
     name: 'Macro Analyst',
     role: 'Macro News Desk',
-    badgeClass: 'text-sky-400 border-sky-400/40 bg-sky-400/10',
+    badgeClass: 'text-info border-info/40 bg-info/10',
     glowColor: 'rgba(56, 189, 248, 0.25)',
     title: 'Economic News & Catalysts',
     specialty: 'Interest rates, inflation, economic calendar & news events',
@@ -109,7 +109,7 @@ export const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
     id: 'sentiment',
     name: 'Market Scout',
     role: 'Sentiment Desk',
-    badgeClass: 'text-amber-400 border-amber-400/40 bg-amber-400/10',
+    badgeClass: 'text-warn border-warn/40 bg-warn/10',
     glowColor: 'rgba(245, 158, 11, 0.25)',
     title: 'Market Sentiment & Flow',
     specialty: 'Institutional positioning, COT data & market sentiment',
@@ -152,9 +152,9 @@ function UnifiedDeskBubble({
       : theme === 'bearish' || theme === 'risk'
         ? 'border-bear/60 text-bear shadow-[0_2px_8px_rgba(244,63,94,0.15)]'
         : theme === 'fundamental'
-          ? 'border-sky-400/60 text-sky-400 shadow-[0_2px_8px_rgba(56,189,248,0.15)]'
+          ? 'border-info/60 text-info shadow-[0_2px_8px_rgba(56,189,248,0.15)]'
           : theme === 'sentiment'
-            ? 'border-amber-400/60 text-amber-400 shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
+            ? 'border-warn/60 text-warn shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
             : 'border-border text-fg-muted';
 
   return (
@@ -485,13 +485,13 @@ export function PixelDeskStandby({
             <MacroMageSprite />
             <div className="flex flex-col items-center gap-0.5">
               <MacroWorkstation />
-              <span className="size-1 rounded-full bg-sky-400" />
+              <span className="bg-info size-1 rounded-full" />
             </div>
             <span
               className={cn(
                 'text-caption font-mono font-semibold transition-colors',
                 activeTab === 'fundamental'
-                  ? 'font-bold text-sky-400'
+                  ? 'text-info font-bold'
                   : 'text-fg-subtle group-hover:text-brand',
               )}
             >
@@ -547,13 +547,13 @@ export function PixelDeskStandby({
             <KestrelFalconSprite />
             <div className="flex flex-col items-center gap-0.5">
               <SentinelWorkstation />
-              <span className="size-1 rounded-full bg-amber-400" />
+              <span className="bg-warn size-1 rounded-full" />
             </div>
             <span
               className={cn(
                 'text-caption font-mono font-semibold transition-colors',
                 activeTab === 'sentiment'
-                  ? 'font-bold text-amber-400'
+                  ? 'text-warn font-bold'
                   : 'text-fg-subtle group-hover:text-brand',
               )}
             >
@@ -633,7 +633,7 @@ export function PixelDeskStandby({
                 className={cn(
                   'text-[10px] sm:text-xs shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-medium transition-colors',
                   activeTab === 'fundamental'
-                    ? 'border border-sky-400/40 bg-sky-400/15 text-sky-400 font-semibold'
+                    ? 'border border-info/40 bg-info/15 text-info font-semibold'
                     : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
                 )}
               >
@@ -657,7 +657,7 @@ export function PixelDeskStandby({
                 className={cn(
                   'text-[10px] sm:text-xs shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono font-medium transition-colors',
                   activeTab === 'sentiment'
-                    ? 'border border-amber-400/40 bg-amber-400/15 text-amber-400 font-semibold'
+                    ? 'border border-warn/40 bg-warn/15 text-warn font-semibold'
                     : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
                 )}
               >
@@ -745,17 +745,17 @@ export function PixelDeskStandby({
                   type="button"
                   disabled={disabled}
                   onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.fundamental[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all hover:border-sky-400/50 disabled:opacity-50"
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all hover:border-info/50 disabled:opacity-50"
                 >
                   <div className="flex flex-col gap-0.5 truncate">
-                    <span className="font-mono text-[11px] sm:text-xs font-semibold text-sky-400">
+                    <span className="font-mono text-[11px] sm:text-xs font-semibold text-info">
                       {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.title}
                     </span>
                     <span className="text-fg-subtle group-hover:text-fg text-[10px] sm:text-caption truncate font-mono">
                       {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.desc}
                     </span>
                   </div>
-                  <span className="text-fg-subtle shrink-0 font-mono text-[11px] sm:text-xs group-hover:text-sky-400">
+                  <span className="text-fg-subtle shrink-0 font-mono text-[11px] sm:text-xs group-hover:text-info">
                     →
                   </span>
                 </button>
@@ -785,17 +785,17 @@ export function PixelDeskStandby({
                   type="button"
                   disabled={disabled}
                   onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.sentiment[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all hover:border-amber-400/50 disabled:opacity-50"
+                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 sm:p-2 text-left transition-all hover:border-warn/50 disabled:opacity-50"
                 >
                   <div className="flex flex-col gap-0.5 truncate">
-                    <span className="font-mono text-[11px] sm:text-xs font-semibold text-amber-400">
+                    <span className="font-mono text-[11px] sm:text-xs font-semibold text-warn">
                       {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.title}
                     </span>
                     <span className="text-fg-subtle group-hover:text-fg text-[10px] sm:text-caption truncate font-mono">
                       {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.desc}
                     </span>
                   </div>
-                  <span className="text-fg-subtle shrink-0 font-mono text-[11px] sm:text-xs group-hover:text-amber-400">
+                  <span className="text-fg-subtle shrink-0 font-mono text-[11px] sm:text-xs group-hover:text-warn">
                     →
                   </span>
                 </button>
@@ -815,10 +815,10 @@ export function PixelDeskStandby({
                     activeTab === 'technical'
                       ? 'hover:border-bull/50'
                       : activeTab === 'fundamental'
-                        ? 'hover:border-sky-400/50'
+                        ? 'hover:border-info/50'
                         : activeTab === 'risk'
                           ? 'hover:border-bear/50'
-                          : 'hover:border-amber-400/50',
+                          : 'hover:border-warn/50',
                   )}
                 >
                   <div className="flex items-center gap-2 truncate">
@@ -828,10 +828,10 @@ export function PixelDeskStandby({
                         activeTab === 'technical'
                           ? 'text-bull border-bull/30 bg-bull/10'
                           : activeTab === 'fundamental'
-                            ? 'border-sky-400/30 bg-sky-400/10 text-sky-400'
+                            ? 'border-info/30 bg-info/10 text-info'
                             : activeTab === 'risk'
                               ? 'text-bear border-bear/30 bg-bear/10'
-                              : 'border-amber-400/30 bg-amber-400/10 text-amber-400',
+                              : 'border-warn/30 bg-warn/10 text-warn',
                       )}
                     >
                       {item.tag}
