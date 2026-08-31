@@ -41,6 +41,7 @@ interface PasswordFieldProps {
   error?: boolean;
   /** ID of the error element for aria-describedby linking. */
   errorId?: string;
+  className?: string;
 }
 
 export function PasswordField({
@@ -59,6 +60,7 @@ export function PasswordField({
   showStrengthMeter,
   error,
   errorId,
+  className,
 }: PasswordFieldProps) {
   const [show, setShow] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
@@ -96,13 +98,14 @@ export function PasswordField({
           onKeyUp={(e) =>
             setCapsLockOn((e.nativeEvent as KeyboardEvent).getModifierState?.('CapsLock') ?? false)
           }
+          className={cn('pr-11', className)}
           {...(error !== undefined ? { error } : {})}
           {...(error && errorId ? { 'aria-describedby': errorId } : {})}
         />
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="text-fg-muted hover:text-fg focus-visible:ring-fg absolute top-1/2 right-2 -translate-y-1/2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+          className="text-fg-muted hover:text-fg focus-visible:ring-brand absolute top-1/2 right-1.5 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
           aria-label={show ? 'Hide password' : 'Show password'}
           aria-pressed={show}
         >

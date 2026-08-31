@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconCheck } from '@tabler/icons-react';
+import { IconCheck, IconLock } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useActionState, useEffect, useState } from 'react';
 
@@ -44,6 +44,13 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1 text-left">
+        <h2 className="text-fg text-lg font-bold tracking-tight">Create your account</h2>
+        <p className="text-fg-subtle text-xs">
+          Get started with your private market intelligence workspace
+        </p>
+      </div>
+
       <OAuthButtons callbackUrl="/onboarding" action="Sign up" disabled={pending || success} />
 
       <form action={action} className="flex w-full flex-col gap-5">
@@ -138,6 +145,12 @@ export default function RegisterPage() {
           Sign in
         </Link>
       </p>
+
+      {/* Security Reassurance */}
+      <div className="border-border/60 text-fg-subtle text-caption flex items-center justify-center gap-1.5 border-t pt-4 text-center">
+        <IconLock className="size-3.5 shrink-0 opacity-70" />
+        <span>End-to-end encrypted session · BYOK credentials secured</span>
+      </div>
     </div>
   );
 }

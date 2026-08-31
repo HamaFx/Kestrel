@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconCheck } from '@tabler/icons-react';
+import { IconCheck, IconLock, IconShieldCheck } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useActionState, useEffect, useState } from 'react';
@@ -35,6 +35,7 @@ function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, { error: '' });
   const [success, setSuccess] = useState(false);
   const [requires2FA, setRequires2FA] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   useEffect(() => {
@@ -44,11 +45,30 @@ function LoginForm() {
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1 text-left">
+        <h2 className="text-fg text-lg font-bold tracking-tight">Sign in to your account</h2>
+        <p className="text-fg-subtle text-xs">
+          Access your market intelligence workspace, custom agents & live feeds
+        </p>
+      </div>
+
       <OAuthButtons callbackUrl={next || '/chat'} action="Sign in" disabled={pending || success} />
 
       <div>
         <form action={action} className="flex w-full flex-col gap-5">
           <input type="hidden" name="next" value={next} />
+
+          {requires2FA && (
+            <div className="bg-brand/10 border-brand/25 flex items-center gap-3 rounded-sm border p-3">
+              <IconShieldCheck className="text-brand size-5 shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-fg text-xs font-bold">Two-Factor Authentication</span>
+                <span className="text-fg-subtle text-caption">
+                  Enter the 6-digit code from your authenticator app
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <label htmlFor="email" className="text-fg text-sm font-semibold">
@@ -58,6 +78,8 @@ function LoginForm() {
               id="email"
               name="email"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               autoFocus={!requires2FA}
               required
@@ -102,13 +124,13 @@ function LoginForm() {
           )}
 
           <div className="-mt-3 flex items-center justify-between">
-            <label className="text-fg-muted hover:text-fg flex cursor-pointer items-center gap-2 text-xs transition-colors">
+            <label className="text-fg-muted hover:text-fg flex cursor-pointer items-center gap-2 text-xs transition-colors select-none">
               <input
                 type="checkbox"
                 name="rememberMe"
                 value="true"
                 defaultChecked
-                className="border-border rounded-sm"
+                className="accent-brand border-border size-4 cursor-pointer rounded-xs focus:ring-1 focus:ring-brand"
               />
               Remember me
             </label>
@@ -150,7 +172,7 @@ function LoginForm() {
       </p>
 
       {/* P3-1: Resend verification email */}
-      <ResendVerification />
+      <ResendVerification defaultEmail={email} />
 
       {process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true' && (
         <div className="border-border flex flex-col items-center gap-2 border-t pt-4">
@@ -165,16 +187,28 @@ function LoginForm() {
           </button>
         </div>
       )}
+
+      {/* Security Reassurance */}
+      <div className="border-border/60 text-fg-subtle text-caption flex items-center justify-center gap-1.5 border-t pt-4 text-center">
+        <IconLock className="size-3.5 shrink-0 opacity-70" />
+        <span>End-to-end encrypted session · BYOK credentials secured</span>
+      </div>
     </div>
   );
 }
 
-/** P3-1: Inline resend-verification trigger for users who missed the email. */
-function ResendVerification() {
-  const [email, setEmail] = useState('');
+/** P3-1: Inline resend-verification trigger with smart prefill. */
+function ResendVerification({ defaultEmail }: { defaultEmail?: string }) {
+  const [email, setEmail] = useState(defaultEmail ?? '');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (defaultEmail && !email) {
+      setEmail(defaultEmail);
+    }
+  }, [defaultEmail, email]);
 
   async function handleResend() {
     if (!email || !email.includes('@')) {
