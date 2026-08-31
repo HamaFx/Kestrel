@@ -117,6 +117,27 @@ try {
     }
   }
 
+  // Ensure Supabase compatibility roles exist before migrations run so that
+  // migrations like 0069 and 0070 succeed on standalone/Docker Postgres instances.
+  await sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+        CREATE ROLE service_role NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
+        CREATE ROLE postgres NOLOGIN;
+      END IF;
+    END
+    $$;
+  `;
+
   const db = drizzle(sql);
   await migrate(db, {
     migrationsFolder: '/app/packages/db/drizzle',
