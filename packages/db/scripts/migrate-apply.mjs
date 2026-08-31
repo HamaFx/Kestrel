@@ -63,7 +63,7 @@ CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
 o/bKiIz+Fq8=
 -----END CERTIFICATE-----`;
 
-  if (databaseUrl && (databaseUrl.includes('supabase.co') || databaseUrl.includes('supabase.com'))) {
+  if (databaseUrl && /\bsupabase\.(?:co|com)\b/i.test(databaseUrl)) {
     return { ca: SUPABASE_ROOT_CA_2021, rejectUnauthorized: true };
   }
 
@@ -103,6 +103,27 @@ const sql = postgres(databaseUrl, {
 });
 
 try {
+  // Ensure Supabase compatibility roles exist before migrations run so that
+  // migrations like 0069 and 0070 succeed on standalone/Docker Postgres instances.
+  await sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+        CREATE ROLE service_role NOLOGIN;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
+        CREATE ROLE postgres NOLOGIN;
+      END IF;
+    END
+    $$;
+  `;
+
   const db = drizzle(sql);
   const startedAt = Date.now();
   console.log('[migrate:apply] Applying migrations using postgres.js...');
