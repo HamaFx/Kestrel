@@ -70,7 +70,7 @@ export function StatCard({ icon, label, value, tone = 'fg', sparkline }: StatCar
         TONE_TINT[tone],
       )}
     >
-      <div className="text-fg-subtle text-caption relative flex items-center gap-1.5 font-semibold tracking-wider uppercase">
+      <div className="text-fg-subtle text-xs relative flex items-center gap-1.5 font-semibold tracking-wider uppercase">
         {icon ? (
           <span className={cn('inline-flex h-4 w-4 items-center justify-center', TONE_CLASS[tone])}>
             {icon}
@@ -80,7 +80,7 @@ export function StatCard({ icon, label, value, tone = 'fg', sparkline }: StatCar
       </div>
       <div
         className={cn(
-          'font-mono text-lg leading-none font-bold tracking-tight tabular-nums',
+          'font-mono text-numeric-lg sm:text-numeric-xl leading-none font-bold tracking-tight tabular-nums',
           TONE_CLASS[tone],
         )}
       >

@@ -105,7 +105,7 @@ export function EventCard({ event }: EventCardProps) {
 
       <div className="flex flex-col gap-2.5 px-4 py-3.5 pb-5 pl-5">
         {/* Meta strip — currency glyph + country + time + countdown */}
-        <div className="text-body-sm flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
+        <div className="text-xs flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
           <span
             className="text-fg font-bold uppercase tabular-nums"
             title={importance.label}
@@ -120,7 +120,7 @@ export function EventCard({ event }: EventCardProps) {
             ·
           </span>
           <span className="text-fg-muted">{event.country}</span>
-          <span aria-hidden className="text-fg-subtle opacity-50">
+          <span aria-hidden="true" className="text-fg-subtle opacity-50">
             ·
           </span>
           <time dateTime={date.toISOString()} className="text-fg-muted">
@@ -128,14 +128,14 @@ export function EventCard({ event }: EventCardProps) {
           </time>
           {isFuture ? (
             <>
-              <span aria-hidden className="text-fg-subtle opacity-50">
+              <span aria-hidden="true" className="text-fg-subtle opacity-50">
                 ·
               </span>
               <Countdown ms={event.date - now} imminent={isImminent} />
             </>
           ) : event.actual !== null ? (
             <>
-              <span aria-hidden className="text-fg-subtle opacity-50">
+              <span aria-hidden="true" className="text-fg-subtle opacity-50">
                 ·
               </span>
               <span className="text-fg-subtle">released</span>
@@ -144,7 +144,7 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-fg text-body line-clamp-2 leading-snug font-semibold">{event.title}</h3>
+        <h3 className="text-fg text-sm sm:text-base line-clamp-2 leading-snug font-semibold">{event.title}</h3>
 
         {/* Data row — actual / forecast / previous + beat/miss */}
         {(event.actual !== null || event.forecast !== null || event.previous !== null) && (
@@ -164,7 +164,7 @@ export function EventCard({ event }: EventCardProps) {
         >
           <Link
             href={`/chat?prompt=${askPrompt}`}
-            className="bg-bg-elev-2 text-fg-muted hover:text-fg text-body-sm inline-flex min-h-8 items-center gap-1 rounded-sm px-3 py-1.5 font-medium transition-colors"
+            className="bg-bg-elev-2 text-fg-muted hover:text-fg text-xs inline-flex min-h-[32px] items-center gap-1.5 rounded-sm px-3 py-1.5 font-medium transition-colors"
           >
             <IconBolt className="size-3.5" />
             Ask AI
@@ -181,7 +181,7 @@ export function EventCard({ event }: EventCardProps) {
 function DataRow({ event }: { event: EconomicEvent }) {
   const beat = beatMiss(event);
   return (
-    <dl className="text-body-sm flex flex-wrap items-center gap-x-4 gap-y-1.5 tabular-nums">
+    <dl className="text-xs sm:text-sm flex flex-wrap items-center gap-x-4 gap-y-1.5 tabular-nums">
       {event.actual !== null && (
         <Stat label="actual" value={event.actual} unit={event.unit} emphasis />
       )}

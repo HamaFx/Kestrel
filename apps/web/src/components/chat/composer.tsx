@@ -409,7 +409,7 @@ export function Composer({
                   type="button"
                   aria-label={`Remove ${img.name}`}
                   onClick={() => removeImage(img.id)}
-                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg text-caption absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-sm border leading-none focus:outline-none focus-visible:ring-2"
+                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg text-xs absolute -top-2 -right-2 inline-flex size-7 items-center justify-center rounded-sm border leading-none focus:outline-none focus-visible:ring-2"
                 >
                   ×
                 </button>
@@ -505,7 +505,7 @@ export function Composer({
               disabled={disabled}
               maxLength={MAX_TEXT_CHARS}
               className={cn(
-                'text-fg placeholder:text-fg-subtle text-[13px] sm:text-sm w-full resize-none bg-transparent px-2 py-2.5 leading-[1.4] focus:outline-none',
+                'text-fg placeholder:text-fg-subtle text-[16px] sm:text-sm w-full resize-none bg-transparent px-2 py-2.5 leading-[1.4] focus:outline-none',
                 'max-h-[40dvh] min-h-[44px] transition-colors duration-150',
                 '[field-sizing:content]',
               )}

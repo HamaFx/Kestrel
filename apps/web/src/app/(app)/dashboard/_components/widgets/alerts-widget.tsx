@@ -56,12 +56,12 @@ export function AlertsWidget({ alerts, limit = 5 }: AlertsWidgetProps) {
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <IconBell className="text-fg-subtle size-4" />
-          <span className="text-fg text-body-sm font-semibold">Alerts</span>
+          <span className="text-fg text-sm font-semibold">Alerts</span>
           {rows.length > 0 ? (
-            <span className="text-fg-subtle text-caption tabular-nums">{rows.length}</span>
+            <span className="text-fg-subtle text-xs tabular-nums">({rows.length})</span>
           ) : null}
         </div>
-        <Link href="/alerts" className="text-fg-subtle hover:text-fg text-caption">
+        <Link href="/alerts" className="text-fg-subtle hover:text-fg text-xs font-medium">
           Manage
         </Link>
       </header>
@@ -80,15 +80,15 @@ export function AlertsWidget({ alerts, limit = 5 }: AlertsWidgetProps) {
           {rows.map((a) => (
             <li
               key={a.id}
-              className="border-divider flex items-center justify-between gap-3 border-b py-2 last:border-0"
+              className="border-divider flex items-center justify-between gap-3 border-b py-2.5 last:border-0"
             >
-              <div className="flex min-w-0 flex-col">
-                <span className="text-fg text-body-sm font-semibold">{a.rule.symbol}</span>
-                <span className="text-fg-subtle text-caption truncate">{summariseRule(a)}</span>
+              <div className="flex min-w-0 flex-col font-mono">
+                <span className="text-fg text-sm font-semibold">{a.rule.symbol}</span>
+                <span className="text-fg-subtle text-xs truncate">{summariseRule(a)}</span>
               </div>
               <span
                 className={cn(
-                  'text-caption shrink-0 rounded-sm px-1.5 py-0.5 font-bold',
+                  'text-xs shrink-0 rounded-sm px-2 py-0.5 font-bold uppercase',
                   a.active ? 'bg-success/10 text-success' : 'bg-fg-muted/10 text-fg-muted',
                 )}
               >

@@ -62,14 +62,14 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <IconNews className="text-fg-subtle size-4" />
-          <span id="news-pulse-heading" className="text-fg text-body-sm font-semibold">
+          <span id="news-pulse-heading" className="text-fg text-sm font-semibold">
             News pulse
           </span>
-          <span className={cn('text-caption font-semibold tabular-nums', leanTone)}>
+          <span className={cn('text-xs font-semibold tabular-nums', leanTone)}>
             {leanLabel}
           </span>
         </div>
-        <Link href="/news" className="text-fg-subtle hover:text-fg text-caption">
+        <Link href="/news" className="text-fg-subtle hover:text-fg text-xs font-medium">
           Open news
         </Link>
       </header>
@@ -78,46 +78,46 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
       <div
         role="img"
         aria-label={`${total} articles: ${counts.positive} positive, ${counts.negative} negative, ${counts.neutral} neutral`}
-        className="bg-bg-elev-2 flex h-1.5 w-full overflow-hidden rounded-sm"
+        className="bg-bg-elev-2 flex h-2 w-full overflow-hidden rounded-sm"
       >
         <div className="bg-bull h-full" style={{ width: `${pct(counts.positive)}%` }} />
         <div className="bg-fg-muted h-full" style={{ width: `${pct(counts.neutral)}%` }} />
         <div className="bg-bear h-full" style={{ width: `${pct(counts.negative)}%` }} />
       </div>
 
-      <div className="text-fg-subtle text-caption flex items-center justify-between tabular-nums">
+      <div className="text-fg-subtle text-xs flex items-center justify-between font-mono tabular-nums">
         <span>{counts.positive} bull</span>
         <span>{counts.neutral} neut</span>
         <span>{counts.negative} bear</span>
       </div>
 
       {top || bottom ? (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2.5">
           {top ? (
-            <li className="border-divider border-l-bull/50 border-l-2 pl-2">
-              <span className="text-fg-subtle text-caption tracking-wider uppercase">
+            <li className="border-divider border-l-bull/50 flex flex-col gap-0.5 border-l-2 pl-2.5">
+              <span className="text-fg-subtle text-xs tracking-wider uppercase font-semibold">
                 Most positive
               </span>
               <a
                 href={top.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-fg hover:text-fg text-body-sm line-clamp-2"
+                className="text-fg hover:text-brand text-sm line-clamp-2 leading-snug transition-colors"
               >
                 {top.title}
               </a>
             </li>
           ) : null}
           {bottom && bottom.id !== top?.id ? (
-            <li className="border-divider border-l-bear/50 border-l-2 pl-2">
-              <span className="text-fg-subtle text-caption tracking-wider uppercase">
+            <li className="border-divider border-l-bear/50 flex flex-col gap-0.5 border-l-2 pl-2.5">
+              <span className="text-fg-subtle text-xs tracking-wider uppercase font-semibold">
                 Most negative
               </span>
               <a
                 href={bottom.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-fg hover:text-fg text-body-sm line-clamp-2"
+                className="text-fg hover:text-brand text-sm line-clamp-2 leading-snug transition-colors"
               >
                 {bottom.title}
               </a>

@@ -204,7 +204,7 @@ function ResendVerification() {
               setEmail(e.target.value);
               setError('');
             }}
-            className="h-9 flex-1 text-sm"
+            className="h-10 flex-1 text-[16px] sm:text-sm"
             aria-label="Email for verification resend"
           />
           <Button

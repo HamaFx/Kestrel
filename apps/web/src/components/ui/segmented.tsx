@@ -64,7 +64,7 @@ interface SegmentedBaseProps<T extends string> {
   variant?: SegmentedVariant;
   /** Unique layout-id key. Defaults to a useId() so each instance is isolated. */
   groupId?: string;
-  size?: 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md';
   className?: string;
 }
 
@@ -81,17 +81,15 @@ interface LinkModeProps<T extends string> extends SegmentedBaseProps<T> {
 export type SegmentedProps<T extends string> = ButtonModeProps<T> | LinkModeProps<T>;
 
 const SIZE: Record<NonNullable<SegmentedBaseProps<string>['size']>, string> = {
-  // sm = 40px (h-10) so the inner button still clears 44pt when the
-  // segmented sits inside a row that already has a tap-target frame
-  // (e.g. chart sub-header where the wrapper is 44+).
-  sm: 'h-10 text-body-sm',
-  // md = 48px — default for forms. Sits in the thumb zone of bottom drawers.
-  md: 'h-12 text-body-sm',
+  xs: 'h-8 text-xs',
+  sm: 'h-9 sm:h-10 text-xs sm:text-sm',
+  md: 'h-11 sm:h-12 text-sm',
 };
 
 const ITEM_PAD: Record<NonNullable<SegmentedBaseProps<string>['size']>, string> = {
-  sm: 'px-3 py-2',
-  md: 'px-4 py-2.5',
+  xs: 'px-2 py-1',
+  sm: 'px-2.5 sm:px-3 py-1.5 sm:py-2',
+  md: 'px-3.5 sm:px-4 py-2 sm:py-2.5',
 };
 
 export function Segmented<T extends string>(props: SegmentedProps<T>) {
@@ -172,7 +170,7 @@ export function Segmented<T extends string>(props: SegmentedProps<T>) {
       {label ? (
         <span
           className={cn(
-            'text-fg-subtle text-body-sm tracking-wide uppercase',
+            'text-fg-subtle text-xs font-semibold tracking-wide uppercase',
             srLabel && 'sr-only',
           )}
         >
@@ -194,9 +192,11 @@ export function Segmented<T extends string>(props: SegmentedProps<T>) {
       >
         {options.map((opt, optIndex) => {
           const active = opt.value === value;
+          const minWClass = size === 'xs' ? 'min-w-[32px]' : size === 'sm' ? 'min-w-[36px] sm:min-w-[44px]' : 'min-w-[44px]';
           const baseItem = cn(
-            'relative inline-flex min-w-[44px] items-center justify-center rounded-sm font-semibold tabular-nums transition-colors',
+            'relative inline-flex items-center justify-center rounded-sm font-semibold tabular-nums transition-colors',
             'focus-visible:ring-fg focus:outline-none focus-visible:ring-2',
+            minWClass,
             ITEM_PAD[size],
             SIZE[size],
             !active && 'text-fg-muted hover:text-fg',

@@ -126,7 +126,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <IconEye className="text-fg-subtle size-4" />
-          <span className="text-fg text-body-sm font-semibold">Market overview</span>
+          <span className="text-fg text-sm font-semibold">Market overview</span>
           <Badge tone="brand" className="hidden sm:inline-flex">
             Live
           </Badge>
@@ -136,7 +136,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
             <button
               type="button"
               onClick={() => setShowAddMenu((v) => !v)}
-              className="text-fg-subtle hover:text-fg text-caption hover:bg-bg-elev-2 flex items-center gap-0.5 rounded-sm p-1 transition-colors"
+              className="text-fg-subtle hover:text-fg text-xs hover:bg-bg-elev-2 flex min-h-[30px] items-center gap-1 rounded-sm px-2 py-1 font-medium transition-colors"
               title="Add symbol to watchlist"
             >
               <IconPlus className="size-3.5" />
@@ -151,7 +151,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
                   key={sym}
                   type="button"
                   onClick={() => addSymbol(sym)}
-                  className="text-fg hover:bg-bg-elev-3 w-full rounded-xs px-2 py-1 text-left font-mono text-xs font-medium transition-colors"
+                  className="text-fg hover:bg-bg-elev-3 w-full rounded-xs px-2.5 py-1.5 text-left font-mono text-xs font-medium transition-colors"
                 >
                   {sym}
                 </button>
@@ -161,7 +161,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
 
           <Link
             href={`/chart/${list[0] ?? 'XAUUSD'}`}
-            className="text-fg-subtle hover:text-fg text-caption ml-1"
+            className="text-fg-subtle hover:text-fg text-xs ml-1 font-medium"
           >
             Open chart
           </Link>
@@ -257,20 +257,20 @@ function WatchRow({
   );
 
   return (
-    <li className="border-divider group flex items-center justify-between gap-2 border-b py-2 last:border-0">
+    <li className="border-divider group flex items-center justify-between gap-2 border-b py-2.5 last:border-0">
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex min-w-0 flex-col font-mono">
           <Link
             href={`/chart/${tick.symbol}`}
-            className="text-fg text-body-sm hover:text-brand flex items-center gap-1 font-bold tracking-tight transition-colors"
+            className="text-fg text-sm hover:text-brand flex items-center gap-1.5 font-bold tracking-tight transition-colors"
             title={`Open ${tick.symbol} chart`}
           >
             <span>{tick.symbol}</span>
-            <IconChartLine className="text-fg-subtle size-3 opacity-0 transition-opacity group-hover:opacity-100" />
+            <IconChartLine className="text-fg-subtle size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
           </Link>
           <span
             className={cn(
-              'text-caption -mx-1 inline-flex w-fit items-center rounded-sm px-1 tabular-nums transition-colors duration-500',
+              'text-xs font-mono font-medium -mx-1 inline-flex w-fit items-center rounded-sm px-1 tabular-nums transition-colors duration-500',
               flash === 'bull' && 'bg-bull/15 text-bull',
               flash === 'bear' && 'bg-bear/15 text-bear',
               flash === null && 'text-fg-subtle',
@@ -294,7 +294,7 @@ function WatchRow({
 
         <span
           className={cn(
-            'text-caption w-4 text-center font-bold tabular-nums',
+            'text-xs w-4 text-center font-bold tabular-nums',
             isBull ? 'text-bull' : 'text-bear',
           )}
           aria-label={isBull ? 'Trending up' : 'Trending down'}
@@ -305,11 +305,11 @@ function WatchRow({
         {/* 1-Click Ask AI Copilot */}
         <Link
           href={`/chat?prompt=${aiPrompt}`}
-          className="text-fg-subtle hover:text-brand hover:bg-brand/10 rounded-sm p-1 transition-colors"
+          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm p-1.5 transition-colors"
           title={`Ask AI Copilot to analyze ${tick.symbol}`}
           aria-label={`Ask AI Copilot to analyze ${tick.symbol}`}
         >
-          <IconBolt className="text-brand size-3.5" />
+          <IconBolt className="text-brand size-4" />
         </Link>
 
         {/* Remove symbol button in edit hover */}
@@ -317,11 +317,11 @@ function WatchRow({
           <button
             type="button"
             onClick={onRemove}
-            className="text-fg-subtle hover:text-danger rounded-sm p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+            className="text-fg-subtle hover:text-danger inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
             title={`Remove ${tick.symbol} from watchlist`}
             aria-label={`Remove ${tick.symbol}`}
           >
-            <IconX className="size-3" />
+            <IconX className="size-3.5" />
           </button>
         )}
       </div>

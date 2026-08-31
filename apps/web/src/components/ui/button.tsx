@@ -33,7 +33,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
-type Size = 'sm' | 'md' | 'lg';
+type Size = 'xs' | 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -51,9 +51,10 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-10 px-3 text-sm rounded-sm', // 40px
-  md: 'h-12 px-4 text-sm rounded-sm', // 48px (comfortable thumb hit area)
-  lg: 'h-14 px-5 text-base rounded-sm', // 56px (prominent CTA)
+  xs: 'h-8 px-2.5 text-xs rounded-sm', // 32px (compact toolbars/chips)
+  sm: 'h-10 px-3 text-xs sm:text-sm rounded-sm', // 40px (dense action rows)
+  md: 'h-12 px-4 text-sm font-semibold rounded-sm', // 48px (comfortable thumb hit area)
+  lg: 'h-14 px-5 text-base font-semibold rounded-sm', // 56px (prominent CTA)
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

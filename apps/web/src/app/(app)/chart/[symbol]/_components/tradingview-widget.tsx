@@ -157,7 +157,7 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
     if (tv) tryCreate(tv);
   };
 
-  const height = 'calc(100vh - 4rem)';
+  const height = 'calc(100dvh - 3.75rem)';
 
   return (
     <>

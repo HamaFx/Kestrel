@@ -90,7 +90,9 @@ describe('Composer', () => {
     it('renders textarea with default placeholder', () => {
       render(<Composer onSubmit={vi.fn()} />);
       const textarea = screen.getByRole('textbox', { name: /chat message input/i });
-      expect(textarea.getAttribute('placeholder')).toBe('Ask anything…');
+      expect(textarea.getAttribute('placeholder')).toBe(
+        'Ask about price action, key levels, or market news…',
+      );
     });
 
     it('renders textarea with custom placeholder', () => {

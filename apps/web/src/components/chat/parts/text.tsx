@@ -34,7 +34,7 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
   // User bubbles never need markdown formatting — the user typed it
   // verbatim and we should render it the same way they typed it.
   if (role === 'user') {
-    return <p className="text-[13px] sm:text-sm leading-[1.45] whitespace-pre-line">{text}</p>;
+    return <p className="text-sm sm:text-base leading-relaxed whitespace-pre-line">{text}</p>;
   }
 
   // While streaming, skip expensive ReactMarkdown + Shiki parsing.
@@ -43,7 +43,7 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
   // the layout doesn't jump when the finished markdown render swaps in.
   if (isStreaming) {
     return (
-      <div className="md-prose text-fg space-y-1.5 text-[13px] sm:text-sm leading-[1.45] tracking-tight whitespace-pre-line">
+      <div className="md-prose text-fg space-y-2 text-sm sm:text-base leading-relaxed tracking-normal whitespace-pre-line">
         {text}
         <span
           aria-hidden="true"
@@ -54,32 +54,32 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
   }
 
   return (
-    <div className="md-prose text-fg space-y-1.5 text-[13px] sm:text-sm leading-[1.45] tracking-tight">
+    <div className="md-prose text-fg space-y-2 text-sm sm:text-base leading-relaxed tracking-normal">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h1 className="text-fg mt-3 mb-1.5 text-sm sm:text-base font-bold tracking-tight">{children}</h1>
+            <h1 className="text-fg mt-4 mb-2 text-base sm:text-lg font-bold tracking-tight">{children}</h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-fg mt-2.5 mb-1 text-[13px] sm:text-sm font-semibold tracking-tight">{children}</h2>
+            <h2 className="text-fg mt-3 mb-1.5 text-sm sm:text-base font-semibold tracking-tight">{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-fg-muted mt-2 mb-1 text-xs sm:text-[13px] font-semibold uppercase tracking-wide">{children}</h3>
+            <h3 className="text-brand mt-2.5 mb-1 text-xs sm:text-sm font-semibold uppercase tracking-wider">{children}</h3>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="border-brand/40 bg-brand/5 text-fg-muted my-2 border-l-2 pl-2.5 py-1 text-xs sm:text-sm leading-normal italic">
+            <blockquote className="border-brand/40 bg-brand/5 text-fg-muted my-2.5 border-l-2 pl-3 py-1.5 text-xs sm:text-sm leading-relaxed italic">
               {children}
             </blockquote>
           ),
           hr: () => <hr className="border-divider my-3" />,
           p: ({ children }) => (
-            <p className="text-fg my-1 text-[13px] sm:text-sm leading-[1.45] whitespace-pre-line">{children}</p>
+            <p className="text-fg my-1.5 text-sm sm:text-base leading-relaxed whitespace-pre-line">{children}</p>
           ),
-          ul: ({ children }) => <ul className="my-1.5 list-none space-y-1 pl-0">{children}</ul>,
-          ol: ({ children }) => <ol className="my-1.5 list-none space-y-1 pl-0">{children}</ol>,
+          ul: ({ children }) => <ul className="my-2 list-none space-y-1.5 pl-0">{children}</ul>,
+          ol: ({ children }) => <ol className="my-2 list-none space-y-1.5 pl-0">{children}</ol>,
           li: ({ children }) => (
-            <li className="text-fg flex gap-1.5 text-[13px] sm:text-sm leading-[1.45]">
+            <li className="text-fg flex gap-2 text-sm sm:text-base leading-relaxed">
               <span className="text-fg-subtle select-none">›</span>
               <span className="flex-1">{children}</span>
             </li>
@@ -96,7 +96,7 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
           ),
           table: ({ children }) => (
             <div className="border-divider my-3 overflow-x-auto rounded-sm border">
-              <table className="border-divider w-full table-auto text-right font-mono text-xs">
+              <table className="border-divider w-full table-auto text-right font-mono text-xs sm:text-sm">
                 {children}
               </table>
             </div>
@@ -109,12 +109,12 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
             <tr className="border-divider hover:bg-bg-elev-1 transition-colors">{children}</tr>
           ),
           th: ({ children }) => (
-            <th className="text-fg-subtle border-divider border-r px-3 py-1.5 text-left font-semibold tracking-wider uppercase last:border-r-0">
+            <th className="text-fg-subtle border-divider border-r px-3 py-2 text-left font-semibold tracking-wider uppercase last:border-r-0">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="text-fg border-divider border-r px-3 py-1.5 tabular-nums last:border-r-0">
+            <td className="text-fg border-divider border-r px-3 py-2 tabular-nums last:border-r-0">
               {children}
             </td>
           ),
@@ -124,7 +124,7 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
             if (!match) {
               return (
                 <code
-                  className="bg-bg-elev-2 text-fg-muted border-border rounded-sm border px-1.5 py-0.5 font-mono text-xs"
+                  className="bg-bg-elev-2 text-fg-muted border-border rounded-sm border px-1.5 py-0.5 font-mono text-xs sm:text-sm"
                   {...props}
                 >
                   {children}

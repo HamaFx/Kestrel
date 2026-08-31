@@ -70,7 +70,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
 
   if (!briefing) {
     return (
-      <Card as="section" className="p-2">
+      <Card as="section">
         <EmptyState
           icon={<IconBolt className="size-6" />}
           title="No briefing yet"
@@ -91,15 +91,15 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Icon className="text-fg size-4" />
-          <span className="text-fg text-body-sm font-semibold">AI Briefing</span>
+          <span className="text-fg text-sm font-semibold">AI Briefing</span>
           <span
             className={cn(
-              'text-caption rounded-sm px-1.5 py-0.5 font-medium',
+              'text-xs rounded-sm px-2 py-0.5 font-semibold uppercase',
               briefing.kind === 'pre'
-                ? 'bg-warn/10 text-warn'
+                ? 'bg-warn/10 text-warn border border-warn/30'
                 : briefing.kind === 'post'
-                  ? 'bg-info/10 text-info'
-                  : 'bg-bg-elev-2 text-fg',
+                  ? 'bg-info/10 text-info border border-info/30'
+                  : 'bg-bg-elev-2 text-fg border border-border',
             )}
           >
             {meta.label}
@@ -107,15 +107,15 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
         </div>
         <time
           dateTime={new Date(briefing.createdAt).toISOString()}
-          className="text-fg-subtle text-caption tabular-nums"
+          className="text-fg-subtle text-xs tabular-nums"
         >
           {formatRelative(briefing.createdAt)}
         </time>
       </header>
 
       {briefing.eventTitle ? (
-        <p className="text-fg-muted text-body-sm">
-          <span className="text-fg-subtle text-caption mr-1 tracking-wider uppercase">Source</span>
+        <p className="text-fg-muted text-sm">
+          <span className="text-fg-subtle text-xs mr-1 tracking-wider uppercase font-semibold">Source</span>
           {briefing.eventTitle}
           {briefing.eventDate
             ? ` · ${new Date(briefing.eventDate).toUTCString().slice(5, 22)}`
@@ -123,7 +123,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
         </p>
       ) : null}
 
-      <div className="border-divider md-prose text-fg-muted text-body-sm flex max-h-[220px] flex-col gap-2 overflow-y-auto border-y py-2 leading-relaxed">
+      <div className="border-divider md-prose text-fg-muted text-sm flex max-h-[220px] flex-col gap-2 overflow-y-auto border-y py-2.5 leading-relaxed">
         {markdownContent}
       </div>
 
@@ -131,18 +131,18 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
         {briefing.symbol ? (
           <Link
             href={`/chat?prompt=${encodeURIComponent(`Analyze ${briefing.symbol} daily macro catalysts and market bias`)}`}
-            className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 text-caption rounded-2xs inline-flex items-center gap-1 border px-1.5 py-0.5 font-mono font-bold uppercase transition-colors"
+            className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 text-xs rounded-2xs inline-flex min-h-[28px] items-center gap-1 border px-2 py-0.5 font-mono font-bold uppercase transition-colors"
             title={`Open chat with ${briefing.symbol} gameplan`}
           >
             <span>Focus · {briefing.symbol}</span>
-            <IconBolt className="size-3" />
+            <IconBolt className="size-3.5" />
           </Link>
         ) : (
           <span />
         )}
         <Link
           href="/chat"
-          className="text-fg-subtle hover:text-brand text-body-sm inline-flex items-center gap-1 font-mono text-xs font-semibold transition-colors"
+          className="text-fg-subtle hover:text-brand inline-flex min-h-[28px] items-center gap-1 font-mono text-xs font-semibold transition-colors"
         >
           <span>Open Chat Desk</span>
           <IconArrowRight className="size-3.5" />

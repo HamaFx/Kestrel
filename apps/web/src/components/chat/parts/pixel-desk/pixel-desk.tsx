@@ -239,34 +239,34 @@ function CharacterProfileCard({
         <button
           type="button"
           onClick={onClose}
-          className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[24px] min-w-[24px] cursor-pointer touch-manipulation items-center justify-center rounded-xs p-1 font-mono text-[11px] leading-none transition-colors"
+          className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[30px] min-w-[30px] cursor-pointer touch-manipulation items-center justify-center rounded-xs p-1 font-mono text-xs leading-none transition-colors"
           aria-label="Close character profile"
         >
           ✕
         </button>
       </div>
 
-      <div className="text-[10px] sm:text-[11px] flex flex-col gap-1 font-mono">
+      <div className="text-xs flex flex-col gap-1.5 font-mono">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-fg-subtle text-[10px] sm:text-[11px] shrink-0 font-bold uppercase">
+          <span className="text-fg-subtle text-xs shrink-0 font-bold uppercase">
             Focus:
           </span>
-          <span className="text-fg-muted text-[10px] sm:text-[11px] leading-snug">
+          <span className="text-fg-muted text-xs leading-snug">
             {profile.specialty}
           </span>
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-fg-subtle text-[10px] sm:text-[11px] shrink-0 font-bold uppercase">
+          <span className="text-fg-subtle text-xs shrink-0 font-bold uppercase">
             Tools:
           </span>
-          <span className="text-fg-muted text-[10px] sm:text-[11px] leading-snug">
+          <span className="text-fg-muted text-xs leading-snug">
             {profile.indicators}
           </span>
         </div>
       </div>
 
-      <div className="border-border/40 bg-bg-elev-2 rounded-xs border px-2 py-1 text-center">
-        <p className="text-brand text-[10px] sm:text-[11px] font-mono leading-snug italic">
+      <div className="border-border/40 bg-bg-elev-2 rounded-xs border px-2.5 py-1.5 text-center">
+        <p className="text-brand text-xs font-mono leading-snug italic">
           {profile.motto}
         </p>
       </div>

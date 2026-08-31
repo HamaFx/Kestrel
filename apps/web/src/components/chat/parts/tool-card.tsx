@@ -72,7 +72,7 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="border-divider flex w-full items-center justify-between gap-2 border-b px-3 py-2 text-left text-xs"
+        className="border-divider flex w-full min-h-[38px] items-center justify-between gap-2 border-b px-3 py-2 text-left text-xs sm:text-sm"
         aria-expanded={expanded}
         aria-controls={contentId}
       >
@@ -121,7 +121,7 @@ function Section({ label, data }: { label: string; data: unknown }) {
   return (
     <div>
       <div className="text-fg-subtle mb-0.5 text-xs tracking-wide uppercase">{label}</div>
-      <pre className="bg-bg-elev-2 text-caption max-h-40 overflow-auto rounded-sm p-2 leading-tight">
+      <pre className="bg-bg-elev-2 text-xs max-h-40 overflow-auto rounded-sm p-2.5 font-mono leading-tight">
         {safeStringify(data)}
       </pre>
     </div>
