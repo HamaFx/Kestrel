@@ -51,13 +51,7 @@ export function OAuthButtons({ callbackUrl, action, disabled }: OAuthButtonsProp
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative flex items-center">
-        <div className="border-border flex-grow border-t" />
-        <span className="text-fg-muted mx-3 flex-shrink text-xs">or continue with</span>
-        <div className="border-border flex-grow border-t" />
-      </div>
-
+    <div className="flex flex-col gap-4">
       <Button
         type="button"
         variant="secondary"
@@ -70,6 +64,14 @@ export function OAuthButtons({ callbackUrl, action, disabled }: OAuthButtonsProp
         <IconBrandGoogle className="size-5" />
         {action} with Google
       </Button>
+
+      <div className="relative flex items-center">
+        <div className="border-border flex-grow border-t" />
+        <span className="text-fg-subtle mx-3 flex-shrink text-caption uppercase tracking-wider font-semibold">
+          or continue with email
+        </span>
+        <div className="border-border flex-grow border-t" />
+      </div>
     </div>
   );
 }
