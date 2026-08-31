@@ -38,12 +38,12 @@ export function PageHeader({ title, description, icon, children }: PageHeaderPro
               {icon}
             </span>
           ) : null}
-          <h1 className="text-fg text-display-lg font-bold tracking-tight">{title}</h1>
+          <h1 className="text-fg text-display-lg sm:text-display-xl font-bold tracking-tight">{title}</h1>
         </div>
         {children ? <div className="flex items-center gap-2">{children}</div> : null}
       </div>
       {description ? (
-        <p className="text-fg-muted text-body-sm leading-[1.4]">{description}</p>
+        <p className="text-fg-muted text-sm sm:text-base leading-normal">{description}</p>
       ) : null}
     </header>
   );

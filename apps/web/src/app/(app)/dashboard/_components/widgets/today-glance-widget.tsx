@@ -71,29 +71,29 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
   const upcoming = events.filter((e) => e.date > now).sort((a, b) => a.date - b.date)[0];
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">
-      <div className="text-fg-subtle text-caption flex items-center justify-between font-semibold tracking-wider uppercase">
+    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
+      <div className="text-fg-subtle text-xs flex items-center justify-between font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
-          <IconClock className="text-warn size-3.5" />
+          <IconClock className="text-warn size-4" />
           <span>Next event</span>
         </div>
         {upcoming?.currency && (
-          <span className="bg-warn/10 text-warn border-warn/30 text-caption rounded-2xs border px-1 py-0.5 font-mono font-bold">
+          <span className="bg-warn/10 text-warn border-warn/30 text-xs rounded-2xs border px-1.5 py-0.5 font-mono font-bold">
             {upcoming.currency}
           </span>
         )}
       </div>
       {upcoming ? (
         <div className="flex flex-col gap-0.5">
-          <span className="text-fg text-body-sm line-clamp-1 font-semibold" title={upcoming.title}>
+          <span className="text-fg text-sm line-clamp-1 font-semibold" title={upcoming.title}>
             {upcoming.title}
           </span>
-          <span className="text-warn text-caption font-mono font-medium tabular-nums">
+          <span className="text-warn text-xs font-mono font-medium tabular-nums">
             {formatCountdown(upcoming.date - now)}
           </span>
         </div>
       ) : (
-        <span className="text-fg-muted text-caption">No high-impact events today</span>
+        <span className="text-fg-muted text-xs">No high-impact events today</span>
       )}
     </div>
   );
@@ -109,19 +109,19 @@ function CellSession() {
   const active = sessionInfo.session !== 'closed' && sessionInfo.session !== 'weekend';
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">
-      <div className="text-fg-subtle text-caption flex items-center justify-between font-semibold tracking-wider uppercase">
+    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
+      <div className="text-fg-subtle text-xs flex items-center justify-between font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
-          <IconCompass className="text-fg size-3.5" />
+          <IconCompass className="text-fg size-4" />
           <span>Session</span>
         </div>
-        {active && <span className="bg-bull flex size-1.5 animate-pulse rounded-full" />}
+        {active && <span className="bg-bull flex size-2 animate-pulse rounded-full" />}
       </div>
       <div className="flex items-center justify-between gap-1">
-        <span className="text-fg text-body-sm font-semibold">{sessionInfo.label}</span>
+        <span className="text-fg text-sm font-semibold">{sessionInfo.label}</span>
         <span
           className={cn(
-            'text-caption rounded-2xs inline-flex items-center px-1.5 py-0.5 font-mono font-semibold uppercase',
+            'text-xs rounded-2xs inline-flex items-center px-1.5 py-0.5 font-mono font-semibold uppercase',
             active
               ? 'bg-bull/10 text-bull border-bull/30 border'
               : 'bg-bg-elev-2 text-fg-muted border-border border',
@@ -143,19 +143,19 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
   const totalRRounded = Math.round(open.length * 10) / 10;
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">
-      <div className="text-fg-subtle text-caption flex items-center gap-1.5 font-semibold tracking-wider uppercase">
-        <IconAlertTriangle className="text-danger size-3.5" />
+    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
+      <div className="text-fg-subtle text-xs flex items-center gap-1.5 font-semibold tracking-wider uppercase">
+        <IconAlertTriangle className="text-danger size-4" />
         <span>Open risk</span>
       </div>
       {open.length === 0 ? (
-        <span className="text-fg-muted text-caption">No open risk</span>
+        <span className="text-fg-muted text-xs">No open risk</span>
       ) : (
         <div className="flex items-baseline justify-between gap-1 font-mono">
-          <span className="text-fg text-body-sm font-semibold">
+          <span className="text-fg text-sm font-semibold">
             {open.length} {open.length === 1 ? 'pos' : 'positions'}
           </span>
-          <span className="text-danger text-caption font-bold tabular-nums">
+          <span className="text-danger text-xs font-bold tabular-nums">
             {totalRRounded}R at risk
           </span>
         </div>
@@ -177,20 +177,20 @@ function CellAiNudge({
 }) {
   const nudge = briefingNudge ?? `Ask AI about today's bias for ${defaultSymbol}`;
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-1.5 rounded-sm border p-3 shadow-xs">
-      <div className="text-fg-subtle text-caption flex items-center justify-between font-semibold tracking-wider uppercase">
+    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
+      <div className="text-fg-subtle text-xs flex items-center justify-between font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
-          <IconBolt className="text-brand size-3.5" />
+          <IconBolt className="text-brand size-4" />
           <span>AI Insight</span>
         </div>
         <Link
           href="/chat"
-          className="text-brand text-caption font-mono font-semibold hover:underline"
+          className="text-brand text-xs font-mono font-semibold hover:underline"
         >
           Ask AI →
         </Link>
       </div>
-      <p className="text-fg text-body-sm line-clamp-1 leading-snug">{nudge}</p>
+      <p className="text-fg text-sm line-clamp-1 leading-snug">{nudge}</p>
     </div>
   );
 }

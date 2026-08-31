@@ -130,27 +130,27 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
   );
 
   return (
-    <li className="border-divider group flex items-center justify-between gap-2 border-b py-2 last:border-0">
-      <div className="flex min-w-0 items-center gap-2">
+    <li className="border-divider group flex items-center justify-between gap-2 border-b py-2.5 last:border-0">
+      <div className="flex min-w-0 items-center gap-2.5">
         <span
           className={cn(
-            'inline-flex size-5 shrink-0 items-center justify-center rounded-sm',
+            'inline-flex size-6 shrink-0 items-center justify-center rounded-sm',
             entry.side === 'long' ? 'bg-bull/15 text-bull' : 'bg-bear/15 text-bear',
           )}
         >
           {entry.side === 'long' ? (
-            <IconArrowUpRight className="size-3.5" />
+            <IconArrowUpRight className="size-4" />
           ) : (
-            <IconArrowDownRight className="size-3.5" />
+            <IconArrowDownRight className="size-4" />
           )}
         </span>
         <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-1.5 font-mono">
-            <span className="text-fg text-body-sm font-semibold">{entry.symbol}</span>
+            <span className="text-fg text-sm font-semibold">{entry.symbol}</span>
             {curPrice && (
               <span
                 className={cn(
-                  'text-caption rounded-sm px-1 tabular-nums transition-colors duration-500',
+                  'text-xs font-mono font-medium rounded-sm px-1 tabular-nums transition-colors duration-500',
                   flash === 'bull' && 'bg-bull/20 text-bull',
                   flash === 'bear' && 'bg-bear/20 text-bear',
                   flash === null && 'text-fg-subtle',
@@ -160,7 +160,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
               </span>
             )}
           </div>
-          <span className="text-fg-subtle text-caption tabular-nums">
+          <span className="text-fg-subtle text-xs tabular-nums">
             {entry.entry !== null ? `Entry ${entry.entry.toFixed(decimals)}` : 'Entry —'}
             {entry.stop !== null ? ` · SL ${entry.stop.toFixed(decimals)}` : ''}
           </span>
@@ -182,7 +182,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
           ) : curPrice ? (
             <span
               className={cn(
-                'text-caption font-bold tabular-nums',
+                'text-xs font-bold tabular-nums',
                 isProfitable ? 'text-bull' : 'text-bear',
               )}
             >
@@ -190,7 +190,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
               {pipsDiff.toFixed(1)}p
             </span>
           ) : null}
-          <span className="text-fg-subtle text-caption tabular-nums">
+          <span className="text-fg-subtle text-xs tabular-nums">
             {entry.openedAt ? formatRelative(entry.openedAt) : ''}
           </span>
         </div>
@@ -198,11 +198,11 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
         {/* 1-Click Ask AI Copilot */}
         <Link
           href={`/chat?prompt=${aiPrompt}`}
-          className="text-fg-subtle hover:text-brand hover:bg-brand/10 rounded-sm p-1 transition-colors"
+          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm p-1.5 transition-colors"
           title={`Ask AI Copilot to review ${entry.symbol} position`}
           aria-label={`Ask AI Copilot to review ${entry.symbol} position`}
         >
-          <IconBolt className="text-brand size-3.5" />
+          <IconBolt className="text-brand size-4" />
         </Link>
       </div>
     </li>

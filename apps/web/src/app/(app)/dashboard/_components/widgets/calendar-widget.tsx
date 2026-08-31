@@ -74,9 +74,9 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <IconCalendar className="text-fg-subtle size-4" />
-          <span className="text-fg text-body-sm font-semibold">Calendar</span>
+          <span className="text-fg text-sm font-semibold">Calendar</span>
         </div>
-        <Link href="/calendar" className="text-fg-subtle hover:text-fg text-caption">
+        <Link href="/calendar" className="text-fg-subtle hover:text-fg text-xs font-medium">
           View all
         </Link>
       </header>
@@ -108,11 +108,11 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
             return (
               <li
                 key={e.id}
-                className="border-divider group flex items-center justify-between gap-2 border-b py-2 last:border-0"
+                className="border-divider group flex items-center justify-between gap-2 border-b py-2.5 last:border-0"
               >
                 <div className="flex min-w-0 flex-col">
-                  <span className="text-fg text-body-sm truncate font-semibold">{e.title}</span>
-                  <span className="text-fg-subtle text-caption tabular-nums">
+                  <span className="text-fg text-sm truncate font-semibold">{e.title}</span>
+                  <span className="text-fg-subtle text-xs tabular-nums">
                     {date.toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
@@ -129,7 +129,7 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                 <div className="flex shrink-0 items-center gap-1.5">
                   <span
                     className={cn(
-                      'text-caption rounded-sm px-1.5 py-0.5 font-bold',
+                      'text-xs rounded-sm px-1.5 py-0.5 font-mono font-bold uppercase',
                       importanceTone,
                     )}
                   >
@@ -139,11 +139,11 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                   {/* 1-Click Ask AI Copilot */}
                   <Link
                     href={`/chat?prompt=${aiPrompt}`}
-                    className="text-fg-subtle hover:text-brand hover:bg-brand/10 rounded-sm p-1 transition-colors"
+                    className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm p-1.5 transition-colors"
                     title={`Get AI event gameplan for ${e.title}`}
                     aria-label={`Get AI event gameplan for ${e.title}`}
                   >
-                    <IconBolt className="text-brand size-3.5" />
+                    <IconBolt className="text-brand size-4" />
                   </Link>
                 </div>
               </li>

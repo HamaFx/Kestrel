@@ -43,7 +43,7 @@ export function SettingsSection({
       <header className="flex items-center gap-3 px-0.5">
         {icon ? (
           <span
-            className="text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm"
+            className="text-fg inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm"
             style={{
               background: iconColor,
             }}
@@ -54,11 +54,11 @@ export function SettingsSection({
         <div className="flex flex-col gap-0.5">
           <h2
             id={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}
-            className="text-fg text-sm font-semibold tracking-tight"
+            className="text-fg text-sm sm:text-base font-semibold tracking-tight"
           >
             {title}
           </h2>
-          {description ? <p className="text-fg-subtle text-caption">{description}</p> : null}
+          {description ? <p className="text-fg-subtle text-xs leading-normal">{description}</p> : null}
         </div>
       </header>
       <div className="flex flex-col gap-3">{children}</div>

@@ -221,7 +221,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-fg text-xl font-bold tracking-tight">Dashboard</h1>
+            <h1 className="text-fg text-display-lg sm:text-display-xl font-bold tracking-tight">Dashboard</h1>
             <PreSessionChecklistDrawer />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -265,10 +265,10 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
         {editMode && (
           <div className="border-brand/40 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 shadow-sm duration-200">
             <div className="flex items-center justify-between">
-              <span className="text-caption text-brand font-mono font-bold tracking-wider uppercase">
+              <span className="text-xs text-brand font-mono font-bold tracking-wider uppercase">
                 Role Layout Presets
               </span>
-              <span className="text-fg-subtle text-[11px]">
+              <span className="text-fg-subtle text-xs">
                 Click a preset to instantly restructure your workspace
               </span>
             </div>
@@ -406,7 +406,7 @@ function SortableWidget({
               type="button"
               aria-label={`Toggle span for ${WIDGET_LABELS[widget.type]}`}
               onClick={onToggleSpan}
-              className="text-fg-subtle hover:text-fg bg-bg-elev-2 border-border/80 rounded-xs border px-1.5 py-0.5 font-mono text-[11px]"
+              className="text-fg-subtle hover:text-fg bg-bg-elev-2 border-border/80 rounded-xs border px-2 py-0.5 font-mono text-xs"
               title={`Current span: ${widget.span}/3 columns (click to cycle)`}
             >
               {widget.span}/3 col
@@ -415,9 +415,9 @@ function SortableWidget({
               type="button"
               aria-label={`Remove ${WIDGET_LABELS[widget.type]}`}
               onClick={onRemove}
-              className="text-fg-subtle hover:text-danger p-0.5"
+              className="text-fg-subtle hover:text-danger p-1"
             >
-              <IconX className="size-3.5" />
+              <IconX className="size-4" />
             </button>
           </div>
         </div>
@@ -502,10 +502,10 @@ function AddWidgetMenu({
   return (
     <details ref={ref} className="relative">
       <summary
-        className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 text-fg text-caption inline-flex cursor-pointer list-none items-center gap-1 rounded-sm border px-2 py-1"
+        className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 text-fg text-xs inline-flex min-h-[32px] cursor-pointer list-none items-center gap-1.5 rounded-sm border px-2.5 py-1 font-medium"
         aria-label="Add widget"
       >
-        <IconPlus className="size-3.5" />
+        <IconPlus className="size-4" />
         Add widget
       </summary>
       <div className="border-border bg-bg-elev-1 absolute right-0 z-10 mt-1 flex min-w-[180px] flex-col rounded-sm border p-1 shadow-lg">
@@ -514,7 +514,7 @@ function AddWidgetMenu({
             key={t}
             type="button"
             onClick={() => onAdd(t)}
-            className="text-fg hover:bg-bg-elev-2 text-caption rounded-sm px-2 py-1 text-left"
+            className="text-fg hover:bg-bg-elev-2 text-xs rounded-sm px-2.5 py-1.5 text-left font-medium"
           >
             {WIDGET_LABELS[t]}
           </button>

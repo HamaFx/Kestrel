@@ -202,7 +202,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
             type="button"
             onClick={() => shiftMonth(-1)}
             aria-label="Previous month"
-            className="text-fg-subtle hover:text-fg inline-flex size-7 items-center justify-center rounded-sm"
+            className="text-fg-subtle hover:text-fg inline-flex min-h-[32px] min-w-[32px] sm:size-8 items-center justify-center rounded-sm hover:bg-bg-elev-2 transition-colors"
           >
             <IconChevronLeft className="size-4" />
           </button>
@@ -210,7 +210,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
             type="button"
             onClick={() => shiftMonth(1)}
             aria-label="Next month"
-            className="text-fg-subtle hover:text-fg inline-flex size-7 items-center justify-center rounded-sm"
+            className="text-fg-subtle hover:text-fg inline-flex min-h-[32px] min-w-[32px] sm:size-8 items-center justify-center rounded-sm hover:bg-bg-elev-2 transition-colors"
           >
             <IconChevronRight className="size-4" />
           </button>
@@ -219,14 +219,14 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
 
       {months.map((m, mi) => (
         <div key={mi} className="flex flex-col gap-1.5 sm:gap-2">
-          <span className="text-fg text-body-sm font-semibold">{m.label}</span>
+          <span className="text-fg text-sm font-semibold">{m.label}</span>
 
           {/* Day-of-week header */}
           <div className="grid grid-cols-7 gap-1 text-center sm:gap-1.5">
             {DOW_LABELS.map((d) => (
               <span
                 key={d}
-                className="text-fg-subtle text-caption font-medium tracking-wider uppercase"
+                className="text-fg-subtle text-xs font-semibold tracking-wider uppercase"
               >
                 {d}
               </span>
@@ -250,7 +250,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
                   aria-label={`${cell.key}: ${sign}${cell.totalR.toFixed(1)}R, ${cell.count} trades${isToday ? ', today' : ''}`}
                   className={cn(
                     'flex aspect-square min-h-[28px] w-full touch-manipulation items-center justify-center rounded-sm tabular-nums sm:min-h-[34px] md:min-h-[38px]',
-                    'text-caption font-mono font-medium',
+                    'text-xs font-mono font-medium',
                     cell.totalR > 0 && 'text-bull font-bold',
                     cell.totalR < 0 && 'text-bear font-bold',
                     cell.totalR === 0 && 'text-fg-muted',

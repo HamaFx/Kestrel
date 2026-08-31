@@ -221,7 +221,7 @@ describe('AgentDeliberation', () => {
   describe('verdict reveal — all done', () => {
     it('shows the committee confidence panel', () => {
       render(<AgentDeliberation agents={allDoneWithVerdict()} mode="full" />);
-      expect(screen.getByText(/Committee confidence/i)).toBeTruthy();
+      expect(screen.getByText(/Desk Confidence/i)).toBeTruthy();
     });
 
     it('calculates average confidence correctly', () => {
@@ -238,9 +238,9 @@ describe('AgentDeliberation', () => {
       expect(screen.queryByText(/System Telemetry/i)).toBeNull();
     });
 
-    it('shows "View agent opinions" details element', () => {
+    it('shows "View Specialist Breakdowns" details element', () => {
       render(<AgentDeliberation agents={allDoneWithVerdict()} mode="full" />);
-      expect(screen.getByText(/View agent opinions/i)).toBeTruthy();
+      expect(screen.getByText(/View Specialist Breakdowns/i)).toBeTruthy();
     });
   });
 
@@ -276,12 +276,12 @@ describe('AgentDeliberation', () => {
   describe('expandable agent opinions', () => {
     it('shows opinion reasoning when details are expanded', () => {
       render(<AgentDeliberation agents={allDoneWithVerdict()} mode="standard" />);
-      const details = screen.getByText(/View agent opinions/i).closest('details');
+      const details = screen.getByText(/View Specialist Breakdowns/i).closest('details');
       expect(details).toBeTruthy();
       expect(details!.hasAttribute('open')).toBe(false);
 
       // Click to expand
-      const summary = screen.getByText(/View agent opinions/i);
+      const summary = screen.getByText(/View Specialist Breakdowns/i);
       fireEvent.click(summary);
       expect(details!.hasAttribute('open')).toBe(true);
       expect(screen.getByText(/Strong trend on 4H/)).toBeTruthy();
@@ -294,14 +294,14 @@ describe('AgentDeliberation', () => {
     it('has aria-label on the verdict panel with bias and confidence', () => {
       render(<AgentDeliberation agents={allDoneWithVerdict()} mode="standard" />);
       // With 2 bullish, 1 bearish → dissent (mixed), avg confidence 72%
-      const verdictEl = screen.getByLabelText(/Committee verdict/i);
+      const verdictEl = screen.getByLabelText(/Desk verdict/i);
       expect(verdictEl).toBeTruthy();
       expect(verdictEl.getAttribute('aria-label')).toMatch(/mixed.*72%/);
     });
 
     it('reports no dissent when all agents agree', () => {
       render(<AgentDeliberation agents={singleAgentDone()} mode="standard" />);
-      const verdictEl = screen.getByLabelText(/Committee verdict/i);
+      const verdictEl = screen.getByLabelText(/Desk verdict/i);
       expect(verdictEl).toBeTruthy();
     });
   });

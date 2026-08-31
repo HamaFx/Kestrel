@@ -78,7 +78,7 @@ describe('MastraReportCard', () => {
     render(<MastraReportCard meta={baseMeta} />);
 
     expect(screen.getByRole('region', { name: 'Verified XAUUSD report' })).toBeTruthy();
-    expect(screen.getByTestId('mastra-agent-badge')).toHaveTextContent('Mastra');
+    expect(screen.getByTestId('mastra-agent-badge')).toHaveTextContent('Verified Intel');
     expect(screen.getByText('neutral')).toBeTruthy();
     expect(screen.getByText('Gold has mixed signals; wait for confirmation.')).toBeTruthy();
     expect(screen.getByText('Bullish continuation')).toBeTruthy();
@@ -93,7 +93,7 @@ describe('MastraReportCard', () => {
     render(<MastraReportCard meta={{ ...baseMeta, researchStatus: 'blocked', report: null }} />);
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      /required market evidence was unavailable/i,
+      /live market feed data was unavailable/i,
     );
     expect(screen.queryByText('Bullish continuation')).toBeNull();
   });

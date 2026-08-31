@@ -57,7 +57,7 @@ export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist:
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search symbols…"
-            className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-4 pl-10 text-sm focus:outline-none"
+            className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-4 pl-10 text-[16px] sm:text-sm focus:outline-none"
           />
         </div>
       ) : null}

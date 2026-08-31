@@ -336,12 +336,12 @@ function MessageImpl({
                     type="button"
                     onClick={copy}
                     aria-label={copied ? 'Copied' : 'Copy message'}
-                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
+                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] sm:size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
                   >
                     {copied ? (
-                      <IconCheck className="text-success size-3.5" />
+                      <IconCheck className="text-success size-4 sm:size-3.5" />
                     ) : (
-                      <IconCopy className="size-3.5" />
+                      <IconCopy className="size-4 sm:size-3.5" />
                     )}
                   </button>
                 </Tooltip>
@@ -355,9 +355,9 @@ function MessageImpl({
                       setIsEditing(true);
                     }}
                     aria-label="Edit prompt"
-                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
+                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] sm:size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
                   >
-                    <IconEdit className="size-3.5" />
+                    <IconEdit className="size-4 sm:size-3.5" />
                   </button>
                 </Tooltip>
               ) : null}
@@ -368,9 +368,9 @@ function MessageImpl({
                       type="button"
                       onClick={() => onRegenerate()}
                       aria-label="Regenerate response"
-                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
+                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] sm:size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
                     >
-                      <IconArrowBackUp className="size-3.5" />
+                      <IconArrowBackUp className="size-4 sm:size-3.5" />
                     </button>
                   </Tooltip>
                   <Tooltip label="Regenerate with…">
@@ -382,7 +382,7 @@ function MessageImpl({
                       }
                       aria-label="Regenerate with a different model"
                       data-action={REGEN_MENU_TRIGGER}
-                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg border-divider inline-flex size-8 items-center justify-center rounded-sm border border-l transition-colors focus:outline-none focus-visible:ring-2"
+                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg border-divider inline-flex min-h-[36px] min-w-[36px] sm:size-8 items-center justify-center rounded-sm border border-l transition-colors focus:outline-none focus-visible:ring-2"
                       style={
                         hasPopoverSupport
                           ? ({ anchorName: `--regen-btn-${message.id}` } as CSSProperties)
