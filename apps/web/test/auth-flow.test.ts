@@ -29,6 +29,7 @@ import bcrypt from 'bcryptjs';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+import { isFailedSignIn } from '../src/lib/auth/sign-in-result';
 import { sanitizeNext } from '../src/app/(auth)/actions';
 
 const registerSchema = z.object({
@@ -173,6 +174,23 @@ describe('bcrypt cost parsing (FEAT-05 gradual re-hashing)', () => {
     const cost = parseBcryptCost(hash);
     expect(cost).toBeLessThan(12);
     expect(cost).toBe(8);
+  });
+});
+
+describe('isFailedSignIn (next-auth beta.32 contract)', () => {
+  it('treats a string result (redirect URL) as success', () => {
+    // next-auth >= beta.32 with { redirect: false } returns the redirect
+    // URL string on success — never { ok: true }. See actions.ts for details.
+    expect(isFailedSignIn('/chat')).toBe(false);
+    expect(isFailedSignIn('http://localhost:3000/onboarding')).toBe(false);
+  });
+
+  it('treats an explicit { ok: false } result as failure', () => {
+    expect(isFailedSignIn({ ok: false, error: 'CredentialsSignin' })).toBe(true);
+  });
+
+  it('treats { ok: true } as success', () => {
+    expect(isFailedSignIn({ ok: true })).toBe(false);
   });
 });
 
