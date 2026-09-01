@@ -124,6 +124,11 @@ export async function runMastraXauusdChat(
       threadId: input.threadId,
       firstUser: input.prompt,
       firstAssistant: completedRun.result.text,
+      accounting: {
+        onComplete: (costUsd) => {
+          void costUsd;
+        },
+      },
     });
 
     await budget.reconcile(observedCost);

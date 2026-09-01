@@ -54,6 +54,7 @@ import {
   type SymbolResearchPacket,
 } from '../../mastra/symbol-research';
 import { getMastraGenerationStats, type MastraGenerationStats } from '../../mastra/telemetry';
+import { verifyMastraOpinion } from './opinion-verifier';
 
 export type MastraAnalysisMode = 'single' | 'quick' | 'standard' | 'full';
 export type MastraSpecialistName = 'technical' | 'fundamental' | 'risk' | 'sentiment';
@@ -198,6 +199,12 @@ export interface SymbolResearchWorkflowDeps {
   researchInputProcessors?: Array<InputProcessorOrWorkflow>;
   /** Phase 6 — sampled live scorers for research agents (from `buildResearchScorers`). */
   scorers?: MastraScorers;
+  /** Aggregate child-call cost sink owned by the parent turn. */
+  onChildCost?: (costUsd: number) => void | Promise<void>;
+  /** Optional progress sink for durable queue projections. */
+  onProgress?: (
+    step: MastraSpecialistName | 'collect-packet' | 'verify' | 'fusion',
+  ) => void | Promise<void>;
 }
 
 function specialistInstructions(name: MastraSpecialistName, packet: SymbolResearchPacket): string {
@@ -311,6 +318,8 @@ export function createSymbolResearchWorkflow(
     outputSchema: CollectPacketOutputSchema,
     execute: async ({ inputData, abortSignal, bail }) => {
       const signal = deps.signal ?? abortSignal;
+      await deps.onProgress?.('collect-packet');
+      await deps.onProgress?.('collect-packet');
       const packet = await collectSymbolResearchPacket(inputData.symbol, signal);
       if (packet.status === 'blocked') {
         const text = `I could not complete ${packet.symbol} ${inputData.mode} analysis because required market data is unavailable.\n\n${packet.missingData.join('\n')}`;
@@ -340,6 +349,8 @@ export function createSymbolResearchWorkflow(
       // return an explicit failure marker so non-strict modes can continue.
       retries: 1,
       execute: async ({ inputData, requestContext, abortSignal }) => {
+        await deps.onProgress?.(name);
+        await deps.onProgress?.(name);
         const startedAt = Date.now();
         const signal = deps.signal ?? abortSignal;
         try {
@@ -369,6 +380,30 @@ export function createSymbolResearchWorkflow(
           });
           const stats = getMastraGenerationStats(result);
           const opinion = OpinionSchema.parse(result.object);
+          const candidateOpinion: MastraModeOpinion = {
+            agentName: name,
+            bias: opinion.bias,
+            confidence: opinion.confidence,
+            reasoning: opinion.reasoning,
+            rawData: opinion.details,
+            model: deps.modelId,
+            providerId: deps.providerId,
+            inputTokens: stats.inputTokens,
+            outputTokens: stats.outputTokens,
+            costUsd: 0,
+            latencyMs: Date.now() - startedAt,
+          };
+          const opinionVerification = verifyMastraOpinion(candidateOpinion, inputData.packet);
+          if (!opinionVerification.ok) {
+            return {
+              ok: false,
+              agentName: name,
+              error: `Opinion verification failed: ${opinionVerification.findings.join('; ')}`,
+              latencyMs: Date.now() - startedAt,
+            };
+          }
+          const costUsd = estimateCostUsd(deps.modelId, stats.inputTokens, stats.outputTokens);
+          await deps.onChildCost?.(costUsd);
           return {
             ok: true,
             agentName: name,
@@ -376,7 +411,7 @@ export function createSymbolResearchWorkflow(
             stats,
             model: deps.modelId,
             providerId: deps.providerId,
-            costUsd: estimateCostUsd(deps.modelId, stats.inputTokens, stats.outputTokens),
+            costUsd,
             latencyMs: Date.now() - startedAt,
           };
         } catch (error) {
@@ -398,6 +433,7 @@ export function createSymbolResearchWorkflow(
     inputSchema: z.unknown(),
     outputSchema: VerifyOutputSchema,
     execute: async ({ getStepResult }) => {
+      await deps.onProgress?.('verify');
       const failedAgents: MastraSpecialistName[] = [];
       // Inside a step, getStepResult returns the raw step output (not the
       // { status, output } wrapper that appears on the run result's steps).
@@ -420,6 +456,8 @@ export function createSymbolResearchWorkflow(
     retries: 1,
     execute: async ({ requestContext, getStepResult, abortSignal }) => {
       const signal = deps.signal ?? abortSignal;
+      await deps.onProgress?.('fusion');
+      await deps.onProgress?.('fusion');
       const collect = getStepResult('collect-packet') as {
         packet: SymbolResearchPacket;
         prompt: string;
@@ -489,7 +527,11 @@ export function createSymbolResearchWorkflow(
           maxSteps: 1,
           ...(signal ? { abortSignal: signal } : {}),
         });
-        executionStats.push(getMastraGenerationStats(fusionResult));
+        const fusionStats = getMastraGenerationStats(fusionResult);
+        executionStats.push(fusionStats);
+        await deps.onChildCost?.(
+          estimateCostUsd(deps.modelId, fusionStats.inputTokens, fusionStats.outputTokens),
+        );
         finalText = fusionResult.text;
       }
 

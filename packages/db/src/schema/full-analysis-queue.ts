@@ -36,6 +36,7 @@ export const fullAnalysisQueue = pgTable(
     workerRunId: text('worker_run_id'),
     leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }),
     result: jsonb('result').$type<Record<string, unknown>>(),
+    progress: jsonb('progress').$type<Array<Record<string, unknown>>>().notNull().default([]),
     error: text('error'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

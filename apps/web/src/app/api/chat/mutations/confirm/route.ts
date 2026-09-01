@@ -14,6 +14,7 @@
 // workflow snapshot. The business write, audit row, and mutation execution
 // ledger are committed atomically by executeMutationOnce.
 
+import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -22,11 +23,13 @@ import {
   appendAssistantMessage,
   assertMastraMutationAllowed,
   assertRegisteredSystemAction,
+  assertSystemActionAuthorized,
   createMutationWorkflow,
   executeMutationOnce,
   getDb,
   getKestrelMastra,
   getMutationExecution,
+  getUserRole,
   metrics,
   MutationExecutionConflictError,
   MutationExecutionContextError,
@@ -158,6 +161,15 @@ function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, userId: str
         approvalExpiresAt: new Date(context.approvalExpiresAt).toISOString(),
       },
       execute: async (tx, tenantId) => {
+        if (kind === 'run_system_action') {
+          if (input.kind !== 'run_system_action') throw new Error('mutation kind mismatch');
+          const [caller] = await tx
+            .select({ role: schema.users.role })
+            .from(schema.users)
+            .where(eq(schema.users.id, userId))
+            .limit(1);
+          assertSystemActionAuthorized(input.action, caller?.role === 'admin');
+        }
         const summary = mutationSummary(input);
         switch (kind) {
           case 'set_alert': {
@@ -257,11 +269,18 @@ export const POST = withAuth(async (req: Request, { user }) => {
     );
   }
 
+  const isAdmin =
+    context.mutation === 'run_system_action'
+      ? (await getUserRole(user.userId)) === 'admin'
+      : undefined;
+
   try {
     assertMastraMutationAllowed({
       mutation: context.mutation,
       userId: context.userId,
       threadId: context.threadId,
+      isAdmin: isAdmin === true,
+      ...(context.systemAction ? { systemAction: context.systemAction } : {}),
       approval: {
         approvalId: runId,
         userId: context.userId,
@@ -312,6 +331,7 @@ export const POST = withAuth(async (req: Request, { user }) => {
     threadId: context.threadId,
     execute: executorFor(context.mutation, context.userId),
     executeAtomic: atomicExecutorFor(context.mutation, context.userId),
+    isAdmin: isAdmin === true,
     mastra,
   });
 

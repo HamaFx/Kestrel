@@ -59,7 +59,10 @@ CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
 o/bKiIz+Fq8=
 -----END CERTIFICATE-----`;
 
-  if (databaseUrl && (databaseUrl.includes('supabase.co') || databaseUrl.includes('supabase.com'))) {
+  if (
+    databaseUrl &&
+    (databaseUrl.includes('supabase.co') || databaseUrl.includes('supabase.com'))
+  ) {
     return { ca: SUPABASE_ROOT_CA_2021, rejectUnauthorized: true };
   }
 

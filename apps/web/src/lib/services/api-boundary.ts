@@ -41,6 +41,7 @@ import {
 export {
   assertMastraMutationAllowed,
   assertRegisteredSystemAction,
+  assertSystemActionAuthorized,
   cancelMutationWorkflow,
   createMutationWorkflow,
   getKestrelMastra,
@@ -50,6 +51,8 @@ export {
   type MutationExecutor,
   verifyMutationConfirmationToken,
   resolveMastraModeModel,
+  decideMastraExecution,
+  type MastraExecutionDecision,
   classifyMutationRequest,
   isMastraMutationEnabled,
   MutationExtractionError,
@@ -142,6 +145,7 @@ export {
   updateUserSettingsField,
   getUserApiKeys,
   getUserById,
+  getUserRole,
   createUserWithSettings,
   findVerificationToken,
   deleteVerificationToken,
@@ -234,6 +238,7 @@ export {
   TimeframeSchema,
   isTimeframe,
   UserMessagePartsSchema,
+  PresentationPreferencesSchema,
 } from '@kestrel/shared';
 export { configuredProviders, decryptByok, PROVIDER_IDS } from '@kestrel/shared/encryption';
 export { REQUIRED_HEALTH_ENV_VARS } from '@kestrel/shared/env-secrets';

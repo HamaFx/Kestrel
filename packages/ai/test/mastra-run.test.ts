@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => {
   return {
     resolveChatModel: vi.fn(),
     resolveMastraModel: vi.fn(),
+    resolveMastraExecutionModel: vi.fn(),
     resolveEmbeddingModel: vi.fn(() => 'openai/text-embedding-3-small'),
     createXauusdMastraAgent: vi.fn(),
     collectXauusdResearchPacket: vi.fn(),
@@ -52,6 +53,7 @@ const mocks = vi.hoisted(() => {
 vi.mock('../src/model', () => ({
   resolveChatModel: mocks.resolveChatModel,
   resolveMastraModel: mocks.resolveMastraModel,
+  resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,
   resolveEmbeddingModel: mocks.resolveEmbeddingModel,
 }));
 vi.mock('../src/mastra/agent', () => ({
@@ -84,7 +86,7 @@ const env = {} as Parameters<typeof resolveXauusdMastraModel>[1];
 describe('Mastra BYOK runner', () => {
   beforeEach(() => {
     mocks.resolveChatModel.mockReset();
-    mocks.resolveMastraModel
+    mocks.resolveMastraExecutionModel
       .mockReset()
       .mockImplementation(
         (args: {

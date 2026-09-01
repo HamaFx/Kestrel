@@ -51,7 +51,7 @@ export function TopBar({ title, right }: TopBarProps) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex min-h-12 h-[calc(3rem+env(safe-area-inset-top,0px))] w-full items-center justify-between',
+        'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full items-center justify-between',
         'border-border bg-bg/90 pt-safe border-b px-3 backdrop-blur-md',
       )}
     >

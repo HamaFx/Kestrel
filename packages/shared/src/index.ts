@@ -38,6 +38,7 @@ export * from './schemas/calendar';
 export * from './schemas/indicator';
 export * from './schemas/structure';
 export * from './schemas/chat';
+export * from './schemas/ai-preferences';
 export * from './schemas/alerts';
 export * from './schemas/journal';
 // F2 — Portfolio Management

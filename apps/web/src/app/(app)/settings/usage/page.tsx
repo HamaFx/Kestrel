@@ -241,7 +241,7 @@ function BudgetCard({
         </div>
         {isProjectedExceeded && (
           <div className="bg-warn/5 border-warn/25 text-caption text-warn mt-1 flex items-start gap-1.5 rounded-sm border p-2.5">
-            <IconAlertTriangle className="size-4 shrink-0 mt-0.5" />
+            <IconAlertTriangle className="mt-0.5 size-4 shrink-0" />
             <span>
               Based on the last 7 days of usage, you are projected to exceed your monthly budget
               limit of ${monthlyLimit?.toFixed(2)}. This is an estimate, not an invoice. Consider

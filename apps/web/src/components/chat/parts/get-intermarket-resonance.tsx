@@ -90,24 +90,30 @@ export function GetIntermarketResonancePart({
       </header>
 
       {/* Main Stats Block */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+      <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
         <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-1.5 sm:p-2">
-          <span className="text-fg-subtle block text-[11px] sm:text-xs font-medium uppercase">10Y Real Yield</span>
-          <span className="text-fg mt-0.5 block text-xs sm:text-sm md:text-base font-bold tabular-nums">
+          <span className="text-fg-subtle block text-[11px] font-medium uppercase sm:text-xs">
+            10Y Real Yield
+          </span>
+          <span className="text-fg mt-0.5 block text-xs font-bold tabular-nums sm:text-sm md:text-base">
             {roundedYield}%
           </span>
         </div>
         <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-1.5 sm:p-2">
-          <span className="text-fg-subtle block text-[11px] sm:text-xs font-medium uppercase">10Y Breakeven</span>
-          <span className="text-fg mt-0.5 block text-xs sm:text-sm md:text-base font-bold tabular-nums">
+          <span className="text-fg-subtle block text-[11px] font-medium uppercase sm:text-xs">
+            10Y Breakeven
+          </span>
+          <span className="text-fg mt-0.5 block text-xs font-bold tabular-nums sm:text-sm md:text-base">
             {roundedInflation}%
           </span>
         </div>
         <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-1.5 sm:p-2">
-          <span className="text-fg-subtle block text-[11px] sm:text-xs font-medium uppercase">
+          <span className="text-fg-subtle block text-[11px] font-medium uppercase sm:text-xs">
             z-score divergence
           </span>
-          <span className={`mt-0.5 block text-xs sm:text-sm md:text-base font-bold tabular-nums ${regimeColor}`}>
+          <span
+            className={`mt-0.5 block text-xs font-bold tabular-nums sm:text-sm md:text-base ${regimeColor}`}
+          >
             {roundedDivergence >= 0 ? `+${roundedDivergence}` : roundedDivergence} SD
           </span>
         </div>

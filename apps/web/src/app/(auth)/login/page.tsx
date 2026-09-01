@@ -123,7 +123,7 @@ function LoginForm() {
                 name="rememberMe"
                 value="true"
                 defaultChecked
-                className="accent-brand border-border size-4 cursor-pointer rounded-xs focus:ring-1 focus:ring-brand"
+                className="accent-brand border-border focus:ring-brand size-4 cursor-pointer rounded-xs focus:ring-1"
               />
               Remember me
             </label>

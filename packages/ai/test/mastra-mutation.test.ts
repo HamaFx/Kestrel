@@ -231,6 +231,26 @@ describe('mutation workflow', () => {
     return createMutationWorkflow(deps);
   }
 
+  function buildSystemWorkflow(isAdmin: boolean) {
+    return createMutationWorkflow({
+      mutation: 'run_system_action' as const,
+      userId: 'u1',
+      threadId: 't1',
+      isAdmin,
+      execute: async (input: MutationInput) => {
+        executed.push({ input, runId: 'run-ref' });
+        return {
+          id: input.kind === 'run_system_action' ? `system:${input.action}` : 'unexpected',
+        };
+      },
+      writeAudit: async (userId: string, action: string, metadata: Record<string, unknown>) => {
+        audited.push({ userId, action, metadata });
+      },
+      mastra: mastraInstance,
+      secret: SECRET,
+    });
+  }
+
   it('drafts → suspends with a confirmation payload (no write executes)', async () => {
     const workflow = buildWorkflow();
     const result = await runMutationWorkflow(workflow, { input: sampleInput() });
@@ -258,6 +278,39 @@ describe('mutation workflow', () => {
     expect(state?.status).toBe('canceled');
     expect(executed).toHaveLength(0);
     expect(audited).toHaveLength(0);
+  });
+
+  it('requires admin authorization and binds the registered system action', async () => {
+    const input: MutationInput = {
+      kind: 'run_system_action',
+      action: 'resonance_sync',
+      params: {},
+    };
+
+    await expect(runMutationWorkflow(buildSystemWorkflow(false), { input })).rejects.toThrow(
+      /administrator authorization/i,
+    );
+    expect(executed).toHaveLength(0);
+    expect(audited).toHaveLength(0);
+
+    const adminWorkflow = buildSystemWorkflow(true);
+    const draft = await runMutationWorkflow(adminWorkflow, { input });
+    const workflowStorage = await mastraInstance.getStorage()?.getStore('workflows');
+    const persisted = parseMutationRunContext(
+      await workflowStorage?.getWorkflowRunById({
+        runId: draft.runId,
+        workflowName: 'mutation-run_system_action',
+      }),
+    );
+    expect(persisted?.systemAction).toBe('resonance_sync');
+
+    const result = await runMutationWorkflow(adminWorkflow, {
+      runId: draft.runId,
+      resumeData: { confirmationToken: draft.suspendPayload!.confirmationToken },
+    });
+    expect(result.status).toBe('executed');
+    expect(executed).toHaveLength(1);
+    expect(audited).toHaveLength(1);
   });
 
   it('resumes with the correct token → executes the write + audit exactly once', async () => {

@@ -40,6 +40,10 @@ export interface MaybeGenerateThreadTitleArgs {
   /** Plain text of the assistant reply just persisted. */
   firstAssistant: string;
   env: ResolveModelEnv;
+  /** Optional budget/cost sink supplied by the parent turn. */
+  accounting?: {
+    onComplete?: (costUsd: number) => void | Promise<void>;
+  };
 }
 
 export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArgs): Promise<void> {
@@ -68,6 +72,7 @@ export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArg
       firstAssistant,
       titleModelId,
       env,
+      ...(args.accounting ? { accounting: args.accounting } : {}),
     });
     await updateThreadTitle(userId, threadId, result.title, result.source);
     tilog.debug(

@@ -21,6 +21,7 @@ import { runMastraBackgroundText } from '../src/mastra/background-text';
 const mocks = vi.hoisted(() => ({
   reserveTurnBudget: vi.fn(),
   resolveMastraModel: vi.fn(),
+  resolveMastraExecutionModel: vi.fn(),
   generate: vi.fn(),
   beginMastraRun: vi.fn(),
   finishMastraRun: vi.fn(),
@@ -33,6 +34,7 @@ vi.mock('../src/budget-reservation', () => ({
 }));
 vi.mock('../src/model', () => ({
   resolveMastraModel: mocks.resolveMastraModel,
+  resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,
 }));
 vi.mock('../src/cost', () => ({
   DEFAULT_MAX_DAILY_USD: 5,
@@ -80,7 +82,7 @@ describe('runMastraBackgroundText', () => {
     budget.reconcile.mockResolvedValue(undefined);
     budget.release.mockResolvedValue(undefined);
     mocks.reserveTurnBudget.mockResolvedValue(budget);
-    mocks.resolveMastraModel.mockReturnValue({
+    mocks.resolveMastraExecutionModel.mockReturnValue({
       model: {},
       modelId: 'google/gemini-3.6-flash',
       providerId: 'google',

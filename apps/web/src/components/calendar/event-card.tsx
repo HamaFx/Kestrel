@@ -105,7 +105,7 @@ export function EventCard({ event }: EventCardProps) {
 
       <div className="flex flex-col gap-2.5 px-4 py-3.5 pb-5 pl-5">
         {/* Meta strip — currency glyph + country + time + countdown */}
-        <div className="text-xs flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums">
           <span
             className="text-fg font-bold uppercase tabular-nums"
             title={importance.label}
@@ -144,7 +144,9 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-fg text-sm sm:text-base line-clamp-2 leading-snug font-semibold">{event.title}</h3>
+        <h3 className="text-fg line-clamp-2 text-sm leading-snug font-semibold sm:text-base">
+          {event.title}
+        </h3>
 
         {/* Data row — actual / forecast / previous + beat/miss */}
         {(event.actual !== null || event.forecast !== null || event.previous !== null) && (
@@ -164,7 +166,7 @@ export function EventCard({ event }: EventCardProps) {
         >
           <Link
             href={`/chat?prompt=${askPrompt}`}
-            className="bg-bg-elev-2 text-fg-muted hover:text-fg text-xs inline-flex min-h-[32px] items-center gap-1.5 rounded-sm px-3 py-1.5 font-medium transition-colors"
+            className="bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-[32px] items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium transition-colors"
           >
             <IconBolt className="size-3.5" />
             Ask AI
@@ -181,7 +183,7 @@ export function EventCard({ event }: EventCardProps) {
 function DataRow({ event }: { event: EconomicEvent }) {
   const beat = beatMiss(event);
   return (
-    <dl className="text-xs sm:text-sm flex flex-wrap items-center gap-x-4 gap-y-1.5 tabular-nums">
+    <dl className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs tabular-nums sm:text-sm">
       {event.actual !== null && (
         <Stat label="actual" value={event.actual} unit={event.unit} emphasis />
       )}

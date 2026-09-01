@@ -28,11 +28,11 @@ describe('domainToolFilter', () => {
     expect(tools.get_candles).toBeDefined();
   });
 
-  it('includes always-present tools in fundamental domain', () => {
+  it('excludes mutation tools from the fundamental domain', () => {
     const tools = domainToolFilter('fundamental', 'pro');
     expect(tools.get_price).toBeDefined();
-    expect(tools.set_alert).toBeDefined();
-    expect(tools.log_journal).toBeDefined();
+    expect(tools.set_alert).toBeUndefined();
+    expect(tools.log_journal).toBeUndefined();
   });
 
   it('includes fundamental-specific tools', () => {
@@ -68,11 +68,11 @@ describe('domainToolFilter', () => {
     expect(tools.analyze_technical).toBeUndefined();
   });
 
-  it('includes always-present tools in technical domain', () => {
+  it('excludes mutation tools from the technical domain', () => {
     const tools = domainToolFilter('technical', 'pro');
     expect(tools.get_price).toBeDefined();
-    expect(tools.set_alert).toBeDefined();
-    expect(tools.log_journal).toBeDefined();
+    expect(tools.set_alert).toBeUndefined();
+    expect(tools.log_journal).toBeUndefined();
   });
 
   it('includes technical-specific tools', () => {

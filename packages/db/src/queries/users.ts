@@ -52,6 +52,20 @@ export async function getUserById(userId: string): Promise<UserRow | undefined> 
 }
 
 /**
+ * Read the authenticated user's current role for a server-side authorization
+ * decision. The role is never accepted from request or model input.
+ */
+export async function getUserRole(userId: string): Promise<string | null> {
+  const db = getDb();
+  const [row] = await db
+    .select({ role: schema.users.role })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  return row?.role ?? null;
+}
+
+/**
  * List users with their settings joined in, ordered by creation date (newest first).
  * Optional `q` filters by email or name (case-insensitive substring match).
  */

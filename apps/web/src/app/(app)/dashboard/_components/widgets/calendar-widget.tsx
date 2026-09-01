@@ -111,7 +111,7 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                 className="border-divider group flex items-center justify-between gap-2 border-b py-2.5 last:border-0"
               >
                 <div className="flex min-w-0 flex-col">
-                  <span className="text-fg text-sm truncate font-semibold">{e.title}</span>
+                  <span className="text-fg truncate text-sm font-semibold">{e.title}</span>
                   <span className="text-fg-subtle text-xs tabular-nums">
                     {date.toLocaleDateString(undefined, {
                       month: 'short',
@@ -129,7 +129,7 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                 <div className="flex shrink-0 items-center gap-1.5">
                   <span
                     className={cn(
-                      'text-xs rounded-sm px-1.5 py-0.5 font-mono font-bold uppercase',
+                      'rounded-sm px-1.5 py-0.5 font-mono text-xs font-bold uppercase',
                       importanceTone,
                     )}
                   >

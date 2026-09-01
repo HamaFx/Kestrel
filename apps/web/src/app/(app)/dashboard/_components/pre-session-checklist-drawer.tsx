@@ -63,8 +63,18 @@ function getTodayKey(): string {
 const MINDSET_OPTIONS = [
   { id: 'calm', label: 'Calm & Patient', icon: IconBrain, desc: 'Ready to wait for A+ setups' },
   { id: 'focused', label: 'Sharp & Focused', icon: IconTarget, desc: '100% focused on execution' },
-  { id: 'neutral', label: 'Neutral & Objective', icon: IconScale, desc: 'Unbiased market observation' },
-  { id: 'fatigued', label: 'Tired / Distracted', icon: IconAlertTriangle, desc: 'Recommend half-risk only' },
+  {
+    id: 'neutral',
+    label: 'Neutral & Objective',
+    icon: IconScale,
+    desc: 'Unbiased market observation',
+  },
+  {
+    id: 'fatigued',
+    label: 'Tired / Distracted',
+    icon: IconAlertTriangle,
+    desc: 'Recommend half-risk only',
+  },
 ];
 
 const PRESET_RULES = [
@@ -201,7 +211,7 @@ export function PreSessionChecklistDrawer() {
                         : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg hover:border-border-hover',
                     )}
                   >
-                    <OptIcon className="size-5 text-brand" />
+                    <OptIcon className="text-brand size-5" />
                     <span className="text-xs font-semibold">{opt.label}</span>
                     <span className="text-fg-subtle text-caption leading-tight">{opt.desc}</span>
                   </button>

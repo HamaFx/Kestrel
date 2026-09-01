@@ -121,6 +121,10 @@ export async function seedWorkingMemoryFromSettings(args: WorkingMemorySeedArgs)
   try {
     const existing = await memory.getWorkingMemory({ threadId, resourceId: userId });
     if (existing) return false;
+    // Re-check immediately before writing so a concurrent first request
+    // cannot overwrite memory that was initialized after the initial read.
+    const current = await memory.getWorkingMemory({ threadId, resourceId: userId });
+    if (current) return false;
     await memory.updateWorkingMemory({
       threadId,
       resourceId: userId,

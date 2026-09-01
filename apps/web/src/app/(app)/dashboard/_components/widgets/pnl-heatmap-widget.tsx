@@ -202,7 +202,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
             type="button"
             onClick={() => shiftMonth(-1)}
             aria-label="Previous month"
-            className="text-fg-subtle hover:text-fg inline-flex min-h-[32px] min-w-[32px] sm:size-8 items-center justify-center rounded-sm hover:bg-bg-elev-2 transition-colors"
+            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm transition-colors sm:size-8"
           >
             <IconChevronLeft className="size-4" />
           </button>
@@ -210,7 +210,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
             type="button"
             onClick={() => shiftMonth(1)}
             aria-label="Next month"
-            className="text-fg-subtle hover:text-fg inline-flex min-h-[32px] min-w-[32px] sm:size-8 items-center justify-center rounded-sm hover:bg-bg-elev-2 transition-colors"
+            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm transition-colors sm:size-8"
           >
             <IconChevronRight className="size-4" />
           </button>
@@ -250,7 +250,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
                   aria-label={`${cell.key}: ${sign}${cell.totalR.toFixed(1)}R, ${cell.count} trades${isToday ? ', today' : ''}`}
                   className={cn(
                     'flex aspect-square min-h-[28px] w-full touch-manipulation items-center justify-center rounded-sm tabular-nums sm:min-h-[34px] md:min-h-[38px]',
-                    'text-xs font-mono font-medium',
+                    'font-mono text-xs font-medium',
                     cell.totalR > 0 && 'text-bull font-bold',
                     cell.totalR < 0 && 'text-bear font-bold',
                     cell.totalR === 0 && 'text-fg-muted',

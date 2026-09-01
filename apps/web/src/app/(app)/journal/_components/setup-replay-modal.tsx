@@ -324,7 +324,7 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
             )}
 
             {/* Legend Overlay */}
-            <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-3 rounded-xs bg-black/60 px-2 py-1 text-caption backdrop-blur-xs">
+            <div className="text-caption pointer-events-none absolute top-2 left-2 flex items-center gap-3 rounded-xs bg-black/60 px-2 py-1 backdrop-blur-xs">
               <div className="flex items-center gap-1">
                 <span className="bg-warn size-2 rounded-full" />
                 <span className="text-fg-muted">EMA 20</span>
@@ -424,17 +424,23 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
               </div>
               <div>
                 <span className="text-fg-subtle text-caption block font-medium">Stop Loss</span>
-                <span className="text-bear font-mono font-bold tabular-nums">{entry.stop ?? 'None'}</span>
+                <span className="text-bear font-mono font-bold tabular-nums">
+                  {entry.stop ?? 'None'}
+                </span>
               </div>
               <div>
-                <span className="text-fg-subtle text-caption block font-medium">Take Profit Target</span>
+                <span className="text-fg-subtle text-caption block font-medium">
+                  Take Profit Target
+                </span>
                 <span className="text-bull font-mono font-bold tabular-nums">
                   {entry.target ?? 'None'}
                 </span>
               </div>
               <div>
                 <span className="text-fg-subtle text-caption block font-medium">Actual Exit</span>
-                <span className="text-fg font-mono font-bold tabular-nums">{entry.exit ?? 'Open'}</span>
+                <span className="text-fg font-mono font-bold tabular-nums">
+                  {entry.exit ?? 'Open'}
+                </span>
               </div>
             </div>
           </div>

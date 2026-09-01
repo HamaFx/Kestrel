@@ -30,7 +30,6 @@ export function mastraModeResponse(
   const events = [
     { type: 'text-start', id: messageId },
     { type: 'text-delta', id: messageId, delta: input.finalText },
-    { type: 'text-end', id: messageId },
     {
       type: 'data-multi-agent-meta',
       id: messageId,
@@ -46,6 +45,8 @@ export function mastraModeResponse(
         agentOpinions: input.agentOpinions,
       },
     },
+    { type: 'text-end', id: messageId },
+    { type: 'turn-complete', id: messageId, status: 'persisted' },
   ];
 
   return new Response(events.map(encode).join(''), {

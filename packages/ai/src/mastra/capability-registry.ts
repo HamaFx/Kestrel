@@ -37,6 +37,15 @@ export function toolsForRoutingDomain(domain: LegacyRoutingDomain): readonly str
   return CANONICAL_TOOL_REGISTRY.byDomain[domain];
 }
 
+/** Domain tools are always read-only; mutations belong only to the mutation capability. */
+export function readOnlyToolsForRoutingDomain(domain: LegacyRoutingDomain): readonly string[] {
+  return CANONICAL_TOOL_REGISTRY.byDomain[domain].filter((tool) =>
+    CANONICAL_TOOL_REGISTRY.readOnly.includes(
+      tool as (typeof CANONICAL_TOOL_REGISTRY.readOnly)[number],
+    ),
+  );
+}
+
 export function canonicalReadOnlyToolNames(): readonly string[] {
   return CANONICAL_TOOL_REGISTRY.readOnly;
 }

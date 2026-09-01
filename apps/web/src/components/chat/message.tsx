@@ -336,7 +336,7 @@ function MessageImpl({
                     type="button"
                     onClick={copy}
                     aria-label={copied ? 'Copied' : 'Copy message'}
-                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] sm:size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
+                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
                   >
                     {copied ? (
                       <IconCheck className="text-success size-4 sm:size-3.5" />
@@ -355,7 +355,7 @@ function MessageImpl({
                       setIsEditing(true);
                     }}
                     aria-label="Edit prompt"
-                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] sm:size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
+                    className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
                   >
                     <IconEdit className="size-4 sm:size-3.5" />
                   </button>
@@ -368,7 +368,7 @@ function MessageImpl({
                       type="button"
                       onClick={() => onRegenerate()}
                       aria-label="Regenerate response"
-                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] sm:size-8 items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2"
+                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
                     >
                       <IconArrowBackUp className="size-4 sm:size-3.5" />
                     </button>
@@ -382,7 +382,7 @@ function MessageImpl({
                       }
                       aria-label="Regenerate with a different model"
                       data-action={REGEN_MENU_TRIGGER}
-                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg border-divider inline-flex min-h-[36px] min-w-[36px] sm:size-8 items-center justify-center rounded-sm border border-l transition-colors focus:outline-none focus-visible:ring-2"
+                      className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg border-divider inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-sm border border-l transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
                       style={
                         hasPopoverSupport
                           ? ({ anchorName: `--regen-btn-${message.id}` } as CSSProperties)

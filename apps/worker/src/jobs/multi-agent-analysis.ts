@@ -44,6 +44,7 @@ import {
   requeueFullAnalysisRun,
   runMastraMode,
   touchFullAnalysisRun,
+  updateFullAnalysisProgress,
   type FullAnalysisPayload,
 } from '@kestrel/ai/mastra';
 import { schema } from '@kestrel/db';
@@ -143,8 +144,8 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
   let processed = 0;
 
   for (let i = 0; i < MAX_JOBS_PER_RUN; i++) {
-    const claimed = await claimNextFullAnalysisRun(workerRunId, (userId) =>
-      ctx.tenantRouter.isMyTenant(userId),
+    const claimed = await claimNextFullAnalysisRun(workerRunId, (tenantId) =>
+      ctx.tenantRouter.isMyTenant(tenantId),
     );
     if (!claimed) {
       ctx.log.info('No pending full-analysis runs — done.');
@@ -176,6 +177,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
       let budget: BudgetHandle | null = null;
       let modeResult: Awaited<ReturnType<typeof runMastraMode>> | null = null;
       let observedCost = 0;
+      let childCostUsd = 0;
       try {
         const [[userSettings]] = await Promise.all([
           db
@@ -259,6 +261,13 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
               backfillExcludeMessageIdempotencyKey: `analysis-job:${runId}:user`,
               telemetryKind: 'mastra_full_job',
               resumeExisting: true,
+              onChildCost: (costUsd) => {
+                childCostUsd += costUsd;
+              },
+              onProgress: async (step) => {
+                ctx.log.info('Full-analysis workflow progress', { runId, step });
+                await updateFullAnalysisProgress(runId, workerRunId, step);
+              },
             }),
           {
             ...(payload.traceId ? { traceId: payload.traceId } : {}),
@@ -266,7 +275,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
             jobId: runId,
           },
         );
-        observedCost = modeResult.totalCostUsd;
+        observedCost = modeResult.totalCostUsd + childCostUsd;
 
         await touchFullAnalysisRun(runId, workerRunId);
         if (leaseLost) throw new FullAnalysisLeaseLostError();

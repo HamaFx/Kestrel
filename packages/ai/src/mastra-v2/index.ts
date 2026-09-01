@@ -104,6 +104,7 @@ export {
   FullAnalysisLeaseLostError,
   FullAnalysisPayloadSchema,
   FULL_ANALYSIS_LEASE_MS,
+  updateFullAnalysisProgress,
 } from './workflows/full-analysis';
 export {
   assertMastraRegistryComplete,

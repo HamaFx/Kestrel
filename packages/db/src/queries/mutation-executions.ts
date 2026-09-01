@@ -122,7 +122,9 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
         existing.threadId !== input.threadId ||
         existing.mutation !== input.mutation ||
         existing.inputDigest !== input.inputDigest ||
-        (existing.approvalId ?? input.runId) !== (input.approvalId ?? input.runId)
+        (existing.approvalId ?? input.runId) !== (input.approvalId ?? input.runId) ||
+        (existing.approvalExpiresAt?.getTime() ?? null) !==
+          (input.approvalExpiresAt?.getTime() ?? null)
       ) {
         throw new MutationExecutionContextError();
       }
@@ -155,7 +157,7 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
       metadata,
     });
 
-    await tx
+    const finalized = await tx
       .update(schema.mutationExecutions)
       .set({
         status: 'executed',
@@ -171,7 +173,14 @@ export async function executeMutationOnce<T extends MutationExecutionBusinessRes
           eq(schema.mutationExecutions.tenantId, tenantId),
           eq(schema.mutationExecutions.status, 'executing'),
         ),
+      )
+      .returning({ runId: schema.mutationExecutions.runId });
+
+    if (finalized.length !== 1) {
+      throw new MutationExecutionConflictError(
+        'Mutation execution claim was lost before finalization.',
       );
+    }
 
     return { result, replayed: false };
   });

@@ -379,6 +379,10 @@
     {
       "tag": "0095_local_postgres_roles",
       "hash": "b34f00f613879d03c286270382b1f705a74d9018365abf7fda60af710e4cecf7"
+    },
+    {
+      "tag": "0096_full_analysis_progress",
+      "hash": "58c1c981c538e7eebec80421e8424c1bf2fb4305ee658f498774d0bd204b2303"
     }
   ]
 }

@@ -143,6 +143,11 @@ export async function runMastraXauusdConversationStreamChat(
           threadId: input.threadId,
           firstUser: input.prompt,
           firstAssistant: completed.result.text,
+          accounting: {
+            onComplete: (costUsd) => {
+              void costUsd;
+            },
+          },
         });
         await finalizer.complete(observedCost);
       } catch (error) {

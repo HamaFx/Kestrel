@@ -19,6 +19,7 @@
 // Preferences domain actions: profile, UI, AI prefs, notifications, usage budget, symbols, locale.
 import { getDb } from '@kestrel/ai';
 import { requireTenantIdForUser, schema, updateUserDisplayName, withRateLimit } from '@kestrel/db';
+import { PresentationPreferencesSchema } from '@kestrel/shared';
 import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import * as Sentry from '@sentry/nextjs';
 import { and, eq, sql } from 'drizzle-orm';
@@ -117,6 +118,11 @@ export async function updateUIPrefsAction(prefs: {
  * Server action to update AI preferences (custom instructions).
  */
 export async function updateAiPrefsAction(customInstructions: string): Promise<ActionResult> {
+  const parsedInstructions =
+    PresentationPreferencesSchema.shape.customInstructions.safeParse(customInstructions);
+  if (!parsedInstructions.success) {
+    return { ok: false as const, error: 'Custom instructions must be at most 2,000 characters.' };
+  }
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
@@ -132,7 +138,7 @@ export async function updateAiPrefsAction(customInstructions: string): Promise<A
     const tenantId = await requireTenantIdForUser(session.user.id, db);
     await db
       .update(schema.userSettings)
-      .set({ customInstructions })
+      .set({ customInstructions: parsedInstructions.data ?? '' })
       .where(
         and(
           eq(schema.userSettings.userId, session.user.id),

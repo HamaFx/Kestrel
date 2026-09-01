@@ -29,8 +29,8 @@ import bcrypt from 'bcryptjs';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { isFailedSignIn } from '../src/lib/auth/sign-in-result';
 import { sanitizeNext } from '../src/app/(auth)/actions';
+import { isFailedSignIn } from '../src/lib/auth/sign-in-result';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),

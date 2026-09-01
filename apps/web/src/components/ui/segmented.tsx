@@ -192,7 +192,12 @@ export function Segmented<T extends string>(props: SegmentedProps<T>) {
       >
         {options.map((opt, optIndex) => {
           const active = opt.value === value;
-          const minWClass = size === 'xs' ? 'min-w-[32px]' : size === 'sm' ? 'min-w-[36px] sm:min-w-[44px]' : 'min-w-[44px]';
+          const minWClass =
+            size === 'xs'
+              ? 'min-w-[32px]'
+              : size === 'sm'
+                ? 'min-w-[36px] sm:min-w-[44px]'
+                : 'min-w-[44px]';
           const baseItem = cn(
             'relative inline-flex items-center justify-center rounded-sm font-semibold tabular-nums transition-colors',
             'focus-visible:ring-fg focus:outline-none focus-visible:ring-2',

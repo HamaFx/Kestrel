@@ -52,10 +52,12 @@ import { z } from 'zod';
 import {
   assertMastraMutationAllowed,
   assertMastraMutationDraftAllowed,
-  assertRegisteredSystemAction,
+  assertSystemActionAuthorized,
+  isRegisteredSystemAction,
   MUTATION_TOKEN_TTL_MS,
   storedConfirmationForToken,
   verifyMutationConfirmationToken,
+  type SystemActionId,
 } from '../../mastra/mutation-policy';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../logger';
 import { runTracingOptions } from '../telemetry';
@@ -186,6 +188,11 @@ export interface MutationWorkflowDeps {
   threadId: string;
   /** Executes the Drizzle write. Owned by the web route (DIP-1). */
   execute: MutationExecutor;
+  /**
+   * Current server-side role decision for operator actions. Missing/false
+   * fails closed; this value is never accepted from workflow input.
+   */
+  isAdmin?: boolean;
   /** Legacy test/studio hook. Production callers must provide executeAtomic. */
   writeAudit?: (userId: string, action: string, metadata: Record<string, unknown>) => Promise<void>;
   /** Transactional, idempotent executor used by the production confirmation route. */
@@ -204,6 +211,8 @@ export interface MutationRunContext {
   userId: string;
   threadId: string;
   mutation: MutationKind;
+  /** Bound system action for operator mutations; absent for other mutations. */
+  systemAction?: SystemActionId;
   inputDigest: string;
   confirmation: { digest: string; expiresAt: number; inputDigest: string };
 }
@@ -257,10 +266,16 @@ export function mutationInputDigest(input: MutationInput): string {
   return createHash('sha256').update(stableSerialize(input)).digest('hex');
 }
 
+const SystemActionIdSchema = z.custom<SystemActionId>(
+  (value) => typeof value === 'string' && isRegisteredSystemAction(value),
+  'Unregistered system action',
+);
+
 const MutationRunContextSchema = z.object({
   userId: z.string().min(1),
   threadId: z.string().min(1),
   mutation: MutationKindSchema,
+  systemAction: SystemActionIdSchema.optional(),
   inputDigest: z.string().regex(/^[a-f0-9]{64}$/),
   confirmation: z.object({
     digest: z.string().min(1),
@@ -284,7 +299,24 @@ export function parseMutationRunContext(run: unknown): MutationRunContext | null
   if (!snapshot || typeof snapshot !== 'object') return null;
   const state = (snapshot as { value?: unknown }).value;
   const parsed = MutationRunContextSchema.safeParse(state);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) return null;
+
+  // With `exactOptionalPropertyTypes`, Zod's optional field is typed as
+  // `systemAction?: SystemActionId | undefined`, while the trusted context
+  // interface models omission as a genuinely absent property. Normalize the
+  // parsed value so callers never receive an explicit `undefined` field.
+  if (parsed.data.systemAction === undefined) {
+    const { systemAction: _systemAction, ...context } = parsed.data;
+    return context;
+  }
+  return {
+    userId: parsed.data.userId,
+    threadId: parsed.data.threadId,
+    mutation: parsed.data.mutation,
+    systemAction: parsed.data.systemAction,
+    inputDigest: parsed.data.inputDigest,
+    confirmation: parsed.data.confirmation,
+  };
 }
 
 /**
@@ -316,6 +348,7 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
       threadId: z.string(),
       mutation: MutationKindSchema,
       inputDigest: z.string(),
+      systemAction: SystemActionIdSchema.optional(),
       confirmation: z.object({
         digest: z.string(),
         expiresAt: z.number().int(),
@@ -329,7 +362,7 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
       // First pass — validate + dry-run + issue token + suspend.
       if (!resumeData) {
         if (inputData.kind === 'run_system_action') {
-          assertRegisteredSystemAction(inputData.action);
+          assertSystemActionAuthorized(inputData.action, deps.isAdmin === true);
         }
         // Draft gate before any state is written: enabled + valid context.
         // Confirmation is intentionally NOT required here — this is the start
@@ -351,10 +384,12 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
         };
         if (secret) storedOptions.secret = secret;
         const stored = storedConfirmationForToken(token, storedOptions);
+        const systemAction = inputData.kind === 'run_system_action' ? inputData.action : undefined;
         await setState({
           userId: deps.userId,
           threadId: deps.threadId,
           mutation,
+          ...(systemAction ? { systemAction } : {}),
           inputDigest,
           confirmation: {
             digest: stored.digest,
@@ -376,7 +411,7 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
 
       // Resume pass — confirm: timing-safe token + expiry + policy.
       if (inputData.kind === 'run_system_action') {
-        assertRegisteredSystemAction(inputData.action);
+        assertSystemActionAuthorized(inputData.action, deps.isAdmin === true);
       }
       const persisted = MutationRunContextSchema.safeParse(state);
       if (!persisted.success || persisted.data.mutation !== mutation) {
@@ -389,6 +424,14 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
       }
       if (mutationInputDigest(inputData) !== persisted.data.inputDigest) {
         const error = new Error('Persisted mutation input has changed.');
+        error.name = 'MastraMutationContextError';
+        throw error;
+      }
+      if (
+        mutation === 'run_system_action' &&
+        (inputData.kind !== 'run_system_action' || persisted.data.systemAction !== inputData.action)
+      ) {
+        const error = new Error('Persisted system action has changed.');
         error.name = 'MastraMutationContextError';
         throw error;
       }
@@ -411,6 +454,8 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
           mutation,
           userId: deps.userId,
           threadId: (state as MutationState | undefined)?.threadId ?? deps.threadId,
+          isAdmin: deps.isAdmin === true,
+          ...(persisted.data.systemAction ? { systemAction: persisted.data.systemAction } : {}),
           approval: {
             approvalId: runId,
             userId: deps.userId,
@@ -434,6 +479,9 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     inputSchema: ConfirmedInputSchema,
     outputSchema: MutationOutputSchema,
     execute: async ({ inputData, runId, state }) => {
+      if (inputData.input.kind === 'run_system_action') {
+        assertSystemActionAuthorized(inputData.input.action, deps.isAdmin === true);
+      }
       const inputDigest = mutationInputDigest(inputData.input);
       const approvalExpiresAt =
         MutationRunContextSchema.safeParse(state).data?.confirmation.expiresAt ?? now();

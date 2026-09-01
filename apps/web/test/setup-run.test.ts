@@ -105,7 +105,9 @@ describe('diagnoseComposeError', () => {
   });
 
   it('explains a docker permission problem', () => {
-    const result = diagnoseComposeError('permission denied while trying to connect to the Docker daemon socket');
+    const result = diagnoseComposeError(
+      'permission denied while trying to connect to the Docker daemon socket',
+    );
     expect(result?.title).toBe('Docker permission denied');
     expect(result?.fixes.join(' ')).toContain('usermod -aG docker');
   });
@@ -127,7 +129,9 @@ describe('diagnoseComposeError', () => {
   });
 
   it('ignores ANSI color codes in the output', () => {
-    const result = diagnoseComposeError('\u001b[31mBind for 0.0.0.0:5432 failed: port is already allocated\u001b[0m');
+    const result = diagnoseComposeError(
+      '\u001b[31mBind for 0.0.0.0:5432 failed: port is already allocated\u001b[0m',
+    );
     expect(result?.title).toBe('Port conflict');
   });
 });

@@ -52,13 +52,13 @@ import { toast } from 'sonner';
 
 import { TradingViewWidget } from '@/app/(app)/chart/[symbol]/_components/tradingview-widget';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import { useSidebarState } from '@/components/layout/sidebar-state-context';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { Segmented } from '@/components/ui/segmented';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useThreadTitle } from '@/hooks/use-thread-title';
 import { apiFetch, apiMutate } from '@/lib/api-client';
 import { createKestrelChatTransport, type AgentProgress } from '@/lib/chat-transport';
-import { useSidebarState } from '@/components/layout/sidebar-state-context';
 import { cn } from '@/lib/cn';
 import { getCsrfToken } from '@/lib/csrf';
 
@@ -131,6 +131,8 @@ export function ChatScreen({
   // next page load. The prop comes from the server component and is
   // stable for the lifetime of this client view.
   const customInstructions = initialCustomInstructions ?? '';
+  const responseStyle: 'default' | 'concise' | 'technical' | 'risk-first' = 'default';
+  const citeSources = false;
 
   // Phase 1.5 — thread summary header state.
   const [summary, setSummary] = useState<{
@@ -157,7 +159,7 @@ export function ChatScreen({
           // may be deferred, so clearing it in the composer can race this read.
           singleTurnOverrideRef.current = null;
           const csrf = getCsrfToken();
-          const prefs = { customInstructions };
+          const prefs = { customInstructions, responseStyle, citeSources };
           const prefsJson = customInstructions ? JSON.stringify(prefs) : null;
 
           const reqBody = {
@@ -179,7 +181,7 @@ export function ChatScreen({
         },
         onAgentProgress: (p) => onAgentProgressRef.current(p),
       }),
-    [threadId, customInstructions],
+    [threadId, customInstructions, responseStyle, citeSources],
   );
 
   useEffect(() => {

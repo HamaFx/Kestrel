@@ -16,7 +16,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { evaluateMastraCapability, getMastraCapability, MASTRA_CAPABILITIES } from '../src/mastra';
+import {
+  CANONICAL_READ_ONLY_TOOL_NAMES,
+  evaluateMastraCapability,
+  getMastraCapability,
+  MASTRA_CAPABILITIES,
+} from '../src/mastra';
 
 describe('Mastra capability policy', () => {
   it('declares the current XAUUSD research capability explicitly', () => {
@@ -28,6 +33,14 @@ describe('Mastra capability policy', () => {
       evidencePolicy: 'required',
       supportsAbort: true,
     });
+  });
+
+  it('keeps every mutation tool out of the canonical read-only allowlist', () => {
+    const mutationTools = ['set_alert', 'log_journal', 'share_snapshot', 'run_system_action'];
+
+    for (const mutationTool of mutationTools) {
+      expect(CANONICAL_READ_ONLY_TOOL_NAMES).not.toContain(mutationTool);
+    }
   });
 
   it('declares the conversational narrow-tool allowlist and step budget', () => {

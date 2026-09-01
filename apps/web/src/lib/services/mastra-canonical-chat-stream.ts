@@ -30,6 +30,7 @@ import {
   runMastraCanonicalChatStream,
   type MastraCanonicalChatStream,
   type RunMastraCanonicalChatArgs,
+  type SemanticRoutingAccounting,
 } from '@kestrel/ai/mastra';
 import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
@@ -45,6 +46,8 @@ export interface RunMastraCanonicalChatStreamInput {
   threadId: string;
   userMessage: UIMessage;
   customInstructions?: string;
+  responseStyle?: 'default' | 'concise' | 'technical' | 'risk-first';
+  citeSources?: boolean;
   modelOverride?: string | null;
   signal?: AbortSignal;
 }
@@ -57,6 +60,7 @@ export async function runMastraCanonicalChatStreamService(
 
   const env = getServerEnv();
   const runId = crypto.randomUUID();
+  let auxiliaryCostUsd = 0;
   const budget = await reserveTurnBudget({
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
@@ -105,12 +109,30 @@ export async function runMastraCanonicalChatStreamService(
       plan: user?.plan ?? null,
       env,
       ...(input.customInstructions ? { customInstructions: input.customInstructions } : {}),
+      responseStyle: input.responseStyle,
+      citeSources: input.citeSources,
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
       backfillExcludeMessageIdempotencyKey: currentUserKey,
       runId,
+      auxiliaryAccounting: {
+        onComplete: async ({
+          modelId,
+          inputChars,
+          outputChars,
+        }: Parameters<NonNullable<SemanticRoutingAccounting['onComplete']>>[0]) => {
+          const auxiliaryCost = estimateCostUsd(
+            modelId,
+            Math.ceil(inputChars / 4),
+            Math.ceil(outputChars / 4),
+          );
+          // The parent reservation remains authoritative; the final primary
+          // run reconciliation includes auxiliary work through this child
+          // accumulator.
+          auxiliaryCostUsd += auxiliaryCost;
+        },
+      },
     };
-
     const stream: MastraCanonicalChatStream = await runMastraCanonicalChatStream(aiArgs);
     const messageId = crypto.randomUUID();
     let terminalStatus: 'persisted' | 'persistence-failed' | 'interrupted' | 'failed' = 'failed';
@@ -121,11 +143,12 @@ export async function runMastraCanonicalChatStreamService(
       try {
         yield* stream.text;
         const completed = await stream.completion;
-        const observedCost = estimateCostUsd(
-          completed.modelId,
-          completed.stats.inputTokens,
-          completed.stats.outputTokens,
-        );
+        const observedCost =
+          estimateCostUsd(
+            completed.modelId,
+            completed.stats.inputTokens,
+            completed.stats.outputTokens,
+          ) + auxiliaryCostUsd;
         const assistantMessage: UIMessage = {
           id: messageId,
           role: 'assistant',
@@ -143,6 +166,7 @@ export async function runMastraCanonicalChatStreamService(
                 observedCost,
                 totalLatencyMs: completed.totalLatencyMs,
                 toolNames: completed.toolNames,
+                evidence: completed.evidence,
               },
             } as UIMessage['parts'][number],
           ],
@@ -161,6 +185,11 @@ export async function runMastraCanonicalChatStreamService(
           threadId: input.threadId,
           firstUser: extractUserMessageText(input.userMessage),
           firstAssistant: completed.text,
+          accounting: {
+            onComplete: (costUsd) => {
+              auxiliaryCostUsd += costUsd;
+            },
+          },
         });
         await finalizer.complete(observedCost);
       } catch (error) {

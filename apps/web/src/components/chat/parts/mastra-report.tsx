@@ -95,9 +95,7 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
           className="border-warn/30 bg-warn/5 text-warn flex items-start gap-2 rounded-sm border p-2 text-xs"
         >
           <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>
-            Live market feed data was unavailable. Report could not be generated.
-          </span>
+          <span>Live market feed data was unavailable. Report could not be generated.</span>
         </div>
       ) : (
         <ReportBody report={report} qualityWarning={qualityWarning} />

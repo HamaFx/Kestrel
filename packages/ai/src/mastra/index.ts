@@ -15,6 +15,16 @@
  */
 
 export {
+  decideMastraExecution,
+  capabilityForRoute,
+  capabilityDefinitionForRoute,
+  type MastraExecutionDecision,
+  type MastraExecutionDecisionInput,
+  type MastraExecutionRoute,
+} from './execution-decision';
+export { PERSISTENCE_OWNERSHIP, persistenceOwnerFor } from './persistence-boundary';
+export type { DrizzlePersistenceOwner, MastraPersistenceOwner } from './persistence-boundary';
+export {
   MASTRA_CAPABILITIES,
   CANONICAL_READ_ONLY_TOOL_NAMES,
   LEGACY_DOMAIN_TOOL_NAMES,
@@ -38,6 +48,7 @@ export {
   isReadOnlyCapability,
   toolsForCapability,
   toolsForRoutingDomain,
+  readOnlyToolsForRoutingDomain,
 } from './capability-registry';
 export {
   collectSymbolResearchPacket,
@@ -49,6 +60,16 @@ export {
   type SymbolResearchPacket,
   type SymbolResearchEvidence,
 } from './symbol-research';
+export {
+  verifyMastraOpinion,
+  type OpinionVerification,
+} from '../mastra-v2/workflows/opinion-verifier';
+export { checkCanonicalEvidence, type CanonicalEvidenceCheck } from './canonical-evidence';
+export {
+  summarizeConfidenceCalibration,
+  type ConfidenceObservation,
+  type ConfidenceCalibrationSummary,
+} from './confidence';
 export {
   runMastraMode,
   MastraModeStrictFailureError,
@@ -73,6 +94,7 @@ export {
   FULL_ANALYSIS_LEASE_MS,
   requeueFullAnalysisRun,
   touchFullAnalysisRun,
+  updateFullAnalysisProgress,
   FULL_ANALYSIS_WORKFLOW_ID,
   type FullAnalysisClaim,
   type FullAnalysisEnqueueInput,
@@ -124,6 +146,7 @@ export {
   assertMastraMutationAllowed,
   assertMastraMutationDraftAllowed,
   assertRegisteredSystemAction,
+  assertSystemActionAuthorized,
   isRegisteredSystemAction,
   SYSTEM_ACTION_REGISTRY,
   evaluateMastraMutation,
@@ -235,6 +258,7 @@ export {
 } from './title';
 export { maybeGenerateThreadTitle, type MaybeGenerateThreadTitleArgs } from './title-service';
 export { classifyMutationRequest, isMastraMutationEnabled } from './mutation-detect';
+export type { SemanticRoutingAccounting } from '../semantic-routing';
 export { resolveModel, type ResolveModelEnv } from '../model';
 export {
   buildMutationInput,

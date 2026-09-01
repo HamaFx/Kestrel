@@ -200,7 +200,7 @@ export function ApiKeyCard({
 
       {keyAgeDays !== null && keyAgeDays >= 90 && (
         <div className="border-warn/20 bg-warn/5 text-caption text-warn flex items-start gap-2.5 rounded-sm border p-3">
-          <IconAlertTriangle className="size-4 shrink-0 mt-0.5" />
+          <IconAlertTriangle className="mt-0.5 size-4 shrink-0" />
           <div className="flex flex-col gap-0.5">
             <span className="text-fg font-semibold">Consider rotating your API key</span>
             <p className="text-fg-subtle text-xs">

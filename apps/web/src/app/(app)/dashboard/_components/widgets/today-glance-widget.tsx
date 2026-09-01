@@ -72,23 +72,23 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
 
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
-      <div className="text-fg-subtle text-xs flex items-center justify-between font-semibold tracking-wider uppercase">
+      <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
           <IconClock className="text-warn size-4" />
           <span>Next event</span>
         </div>
         {upcoming?.currency && (
-          <span className="bg-warn/10 text-warn border-warn/30 text-xs rounded-2xs border px-1.5 py-0.5 font-mono font-bold">
+          <span className="bg-warn/10 text-warn border-warn/30 rounded-2xs border px-1.5 py-0.5 font-mono text-xs font-bold">
             {upcoming.currency}
           </span>
         )}
       </div>
       {upcoming ? (
         <div className="flex flex-col gap-0.5">
-          <span className="text-fg text-sm line-clamp-1 font-semibold" title={upcoming.title}>
+          <span className="text-fg line-clamp-1 text-sm font-semibold" title={upcoming.title}>
             {upcoming.title}
           </span>
-          <span className="text-warn text-xs font-mono font-medium tabular-nums">
+          <span className="text-warn font-mono text-xs font-medium tabular-nums">
             {formatCountdown(upcoming.date - now)}
           </span>
         </div>
@@ -110,7 +110,7 @@ function CellSession() {
 
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
-      <div className="text-fg-subtle text-xs flex items-center justify-between font-semibold tracking-wider uppercase">
+      <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
           <IconCompass className="text-fg size-4" />
           <span>Session</span>
@@ -121,7 +121,7 @@ function CellSession() {
         <span className="text-fg text-sm font-semibold">{sessionInfo.label}</span>
         <span
           className={cn(
-            'text-xs rounded-2xs inline-flex items-center px-1.5 py-0.5 font-mono font-semibold uppercase',
+            'rounded-2xs inline-flex items-center px-1.5 py-0.5 font-mono text-xs font-semibold uppercase',
             active
               ? 'bg-bull/10 text-bull border-bull/30 border'
               : 'bg-bg-elev-2 text-fg-muted border-border border',
@@ -144,7 +144,7 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
 
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
-      <div className="text-fg-subtle text-xs flex items-center gap-1.5 font-semibold tracking-wider uppercase">
+      <div className="text-fg-subtle flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
         <IconAlertTriangle className="text-danger size-4" />
         <span>Open risk</span>
       </div>
@@ -178,19 +178,16 @@ function CellAiNudge({
   const nudge = briefingNudge ?? `Ask AI about today's bias for ${defaultSymbol}`;
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
-      <div className="text-fg-subtle text-xs flex items-center justify-between font-semibold tracking-wider uppercase">
+      <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
           <IconBolt className="text-brand size-4" />
           <span>AI Insight</span>
         </div>
-        <Link
-          href="/chat"
-          className="text-brand text-xs font-mono font-semibold hover:underline"
-        >
+        <Link href="/chat" className="text-brand font-mono text-xs font-semibold hover:underline">
           Ask AI →
         </Link>
       </div>
-      <p className="text-fg text-sm line-clamp-1 leading-snug">{nudge}</p>
+      <p className="text-fg line-clamp-1 text-sm leading-snug">{nudge}</p>
     </div>
   );
 }

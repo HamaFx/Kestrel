@@ -22,6 +22,7 @@ import { extractSymbolFromPrompt, isSafeSymbolResearchPrompt } from '../src/mast
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
   resolveMastraModel: vi.fn(),
+  resolveMastraExecutionModel: vi.fn(),
   resolveEmbeddingModel: vi.fn(() => 'openai/text-embedding-3-small'),
   collectSymbolResearchPacket: vi.fn(),
   beginMastraRun: vi.fn(),
@@ -34,6 +35,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../src/model', () => ({
   resolveChatModel: mocks.resolveChatModel,
   resolveMastraModel: mocks.resolveMastraModel,
+  resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,
   resolveEmbeddingModel: mocks.resolveEmbeddingModel,
 }));
 vi.mock('../src/mastra/symbol-research', async () => {
@@ -118,7 +120,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.failRisk = false;
   mocks.rateLimitFailures = 0;
-  mocks.resolveMastraModel.mockImplementation(
+  mocks.resolveMastraExecutionModel.mockImplementation(
     (args: {
       settings: typeof settings;
       env: typeof env;
