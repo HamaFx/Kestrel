@@ -125,19 +125,19 @@ Keep service-role credentials server-only. The VAPID public keys must match exac
 
 Sentry and Langfuse are optional and should remain disabled unless deliberately configured. Langfuse stays **off by default**: the bundled Docker stack only starts it with `docker compose --profile observability up -d`, which also brings up the ClickHouse, Redis, MinIO (S3), and Langfuse worker containers Langfuse v3 requires. The trace viewer is then at `http://localhost:3001`. The setup wizard (`pnpm setup`) can enable the profile and records `LANGFUSE_BASE_URL=http://langfuse:3000` in `.env` (the internal Compose service URL the app exports to — the host-facing viewer stays at `http://localhost:3001`); the project keys still have to be created in the Langfuse UI (Project Settings → API Keys) and added as `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY`.
 
-| Variable                       | Default   | Description                           |
-| ------------------------------ | --------- | ------------------------------------- |
-| `SENTRY_DSN`                   | unset     | Optional server-side Sentry reporting |
-| `LANGFUSE_PUBLIC_KEY`          | unset     | Optional Langfuse key                 |
-| `LANGFUSE_SECRET_KEY`          | unset     | Optional Langfuse secret              |
-| `LANGFUSE_BASE_URL`            | unset     | Langfuse endpoint                     |
-| `LANGFUSE_RELEASE`             | unset     | Release label                         |
-| `LANGFUSE_TRACING_ENVIRONMENT` | unset     | Environment label                     |
-| `LANGFUSE_RECORD_IO`           | `0`       | Explicit prompt/output capture opt-in |
-| `TELEMETRY_RETENTION_DAYS`     | `90`      | Telemetry retention                   |
-| `TRACE_RETENTION_DAYS`         | `30`      | Diagnostic trace retention            |
-| `CRON_RUN_RETENTION_DAYS`      | `30`      | Cron history retention                |
-| `AI_EVALUATION_RETENTION_DAYS` | `90`      | AI evaluation retention               |
+| Variable                       | Default | Description                           |
+| ------------------------------ | ------- | ------------------------------------- |
+| `SENTRY_DSN`                   | unset   | Optional server-side Sentry reporting |
+| `LANGFUSE_PUBLIC_KEY`          | unset   | Optional Langfuse key                 |
+| `LANGFUSE_SECRET_KEY`          | unset   | Optional Langfuse secret              |
+| `LANGFUSE_BASE_URL`            | unset   | Langfuse endpoint                     |
+| `LANGFUSE_RELEASE`             | unset   | Release label                         |
+| `LANGFUSE_TRACING_ENVIRONMENT` | unset   | Environment label                     |
+| `LANGFUSE_RECORD_IO`           | `0`     | Explicit prompt/output capture opt-in |
+| `TELEMETRY_RETENTION_DAYS`     | `90`    | Telemetry retention                   |
+| `TRACE_RETENTION_DAYS`         | `30`    | Diagnostic trace retention            |
+| `CRON_RUN_RETENTION_DAYS`      | `30`    | Cron history retention                |
+| `AI_EVALUATION_RETENTION_DAYS` | `90`    | AI evaluation retention               |
 
 Review privacy, retention, and provider terms before enabling telemetry or prompt/output capture.
 

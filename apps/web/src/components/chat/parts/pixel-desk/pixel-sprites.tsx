@@ -290,7 +290,7 @@ export function KestrelFalconSprite({
       {/* Victory Glow Sparkle */}
       {(hasWingsSpread || (isDone && bias === 'bullish')) && (
         <div className="pointer-events-none absolute -top-2 left-1/2 z-10 -translate-x-1/2">
-          <span className="size-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)] block animate-ping" />
+          <span className="block size-1.5 animate-ping rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
         </div>
       )}
 
@@ -402,7 +402,9 @@ export function MacroWorkstation({ isThinking }: { isThinking?: boolean }) {
         className={isThinking ? 'animate-pulse' : undefined}
       />
       {/* Live In-flight Wire Line */}
-      {isThinking && <rect x="5" y="10" width="4" height="1" fill="#38bdf8" className="animate-pulse" />}
+      {isThinking && (
+        <rect x="5" y="10" width="4" height="1" fill="#38bdf8" className="animate-pulse" />
+      )}
 
       {/* Vintage Brass Desk Lamp */}
       <rect x="18" y="3" width="4" height="2" fill="#d97706" />
@@ -591,7 +593,10 @@ export function TradingFloorDesk({
           </div>
 
           {/* Prop 4 (Sentinel): Institutional Gold Coin & Ticker Tape */}
-          <div className="flex items-center gap-1.5 opacity-85" title="Live Tape & Institutional Coin">
+          <div
+            className="flex items-center gap-1.5 opacity-85"
+            title="Live Tape & Institutional Coin"
+          >
             <div className="size-2 rounded-full border border-amber-600 bg-amber-400 shadow-xs" />
             {isThinking && (
               <motion.div

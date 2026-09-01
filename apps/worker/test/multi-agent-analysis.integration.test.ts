@@ -172,7 +172,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     return {
       log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
       signal: new AbortController().signal,
-      tenantRouter: { isMyTenant: () => true } as never,
+      tenantRouter: { isMyTenant: (tenantId: string) => tenantId === 'tenant-1' } as never,
     };
   }
 
@@ -181,7 +181,15 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     const result = await runMultiAgentAnalysis(ctx);
 
     expect(result).toEqual({ processed: 1, note: 'processed=1' });
-    expect(mockClaimNextFullAnalysisRun).toHaveBeenCalled();
+    expect(mockClaimNextFullAnalysisRun).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Function),
+    );
+    const ownsTenant = mockClaimNextFullAnalysisRun.mock.calls[0]?.[1] as (
+      tenantId: string,
+    ) => boolean;
+    expect(ownsTenant('tenant-1')).toBe(true);
+    expect(ownsTenant('user-1')).toBe(false);
     expect(mockRunMastraMode).toHaveBeenCalledWith(
       expect.objectContaining({
         threadId: 'thread-1',

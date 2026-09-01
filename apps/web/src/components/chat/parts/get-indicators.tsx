@@ -100,7 +100,9 @@ function IndicatorValue({ result, decimals }: { result: IndicatorResult; decimal
       return (
         <span className="inline-flex items-center gap-1.5">
           <RsiGauge value={v} />
-          <span className={cn('text-fg text-sm sm:text-base font-semibold', tone)}>{v.toFixed(1)}</span>
+          <span className={cn('text-fg text-sm font-semibold sm:text-base', tone)}>
+            {v.toFixed(1)}
+          </span>
         </span>
       );
     }
@@ -112,7 +114,7 @@ function IndicatorValue({ result, decimals }: { result: IndicatorResult; decimal
       const sign = hist > 0 ? '+' : '';
       return (
         <>
-          <span className={cn('text-sm sm:text-base font-semibold', tone)}>
+          <span className={cn('text-sm font-semibold sm:text-base', tone)}>
             {sign}
             {hist.toFixed(decimals)}
           </span>
@@ -160,7 +162,9 @@ function IndicatorValue({ result, decimals }: { result: IndicatorResult; decimal
       const v = readNumber(last);
       if (v === null) return <Empty />;
       // No sign colouring for level / volatility indicators.
-      return <span className="text-fg text-sm sm:text-base font-semibold">{v.toFixed(decimals)}</span>;
+      return (
+        <span className="text-fg text-sm font-semibold sm:text-base">{v.toFixed(decimals)}</span>
+      );
     }
   }
 }

@@ -44,7 +44,7 @@ import {
   type MutationKind,
   type MutationSuspendPayload,
 } from '@kestrel/ai/mastra';
-import { getUserWithSettings, type UserSettingsRow } from '@kestrel/db';
+import { getUserRole, getUserWithSettings, type UserSettingsRow } from '@kestrel/db';
 import type { LanguageModel } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
@@ -87,6 +87,8 @@ export async function startMutationDraft(
 
   assertMastraMutationDraftAllowed({ mutation: kind, userId, threadId });
 
+  const isAdmin =
+    kind === 'run_system_action' ? (await getUserRole(userId)) === 'admin' : undefined;
   const { settings } = await getUserWithSettings(userId);
   const settingsRow = settings as unknown as
     Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> | null | undefined;
@@ -128,6 +130,7 @@ export async function startMutationDraft(
     execute: async () => {
       throw new Error('mutation executor is only wired on the confirm route');
     },
+    ...(isAdmin !== undefined ? { isAdmin } : {}),
     writeAudit: async () => {},
     mastra,
   });

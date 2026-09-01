@@ -53,7 +53,11 @@ import {
   type MastraModeOpinion,
   type MastraSpecialistName,
 } from '../mastra-v2/workflows/symbol-research';
-import { resolveMastraModel, type ChatModelResolution } from '../model';
+import {
+  resolveMastraExecutionModel,
+  resolveMastraModel,
+  type ChatModelResolution,
+} from '../model';
 import type { ResolveModelEnv } from '../vertex-factory';
 import type { SymbolResearchPacket } from './symbol-research';
 import {
@@ -100,6 +104,10 @@ export interface RunMastraModeArgs {
   workflowId?: string;
   /** Restart an existing persisted workflow run instead of duplicating its steps. */
   resumeExisting?: boolean;
+  /** Aggregate cost of specialist/fusion child model calls. */
+  onChildCost?: (costUsd: number) => void | Promise<void>;
+  /** Progress sink for durable workflow status projection. */
+  onProgress?: (step: string) => void | Promise<void>;
 }
 
 export interface MastraModeResult {
@@ -121,13 +129,21 @@ export function resolveMastraModeModel(
   env: ResolveModelEnv,
   modelOverride?: string | null,
 ): ChatModelResolution {
-  return resolveMastraModel({
+  return resolveMastraExecutionModelIfAvailable({
     purpose: 'mode',
     settings,
     env,
     domain: 'technical',
     ...(modelOverride !== undefined ? { modelOverride } : {}),
   });
+}
+
+function resolveMastraExecutionModelIfAvailable(
+  args: Parameters<typeof resolveMastraExecutionModel>[0],
+): ChatModelResolution {
+  const resolver = resolveMastraExecutionModel as typeof resolveMastraExecutionModel | undefined;
+  if (resolver) return resolver(args);
+  return resolveMastraModel(args);
 }
 
 /** Base run context (no packet — the workflow collects it inside its first step). */
@@ -225,6 +241,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         inputProcessors: guardrails as never,
         scorers: researchScorers as never,
         ...(args.signal ? { signal: args.signal } : {}),
+        ...(args.onChildCost ? { onChildCost: args.onChildCost } : {}),
+        ...(args.onProgress ? { onProgress: args.onProgress } : {}),
         mastra: getKestrelMastra().instance,
       },
       args.mode,

@@ -108,11 +108,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
         >
           <IconSparkles className={cn('mr-1.5 size-3.5', loading && 'animate-spin')} />
           <span>
-            {loading
-              ? 'Analyzing Habits...'
-              : insights
-                ? 'Refresh Insights'
-                : 'Run Trade Audit'}
+            {loading ? 'Analyzing Habits...' : insights ? 'Refresh Insights' : 'Run Trade Audit'}
           </span>
         </Button>
       </div>

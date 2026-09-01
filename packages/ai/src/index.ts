@@ -50,6 +50,7 @@ export {
   resolveChatModel,
   resolveModelForProvider,
   resolveMastraModel,
+  resolveMastraExecutionModel,
   resolveVisionModel,
   resolveEmbeddingModel,
   derivePlannerModel,
@@ -62,6 +63,7 @@ export {
   type MastraModelPurpose,
   type MastraModelSnapshot,
   type ResolveMastraModelInput,
+  type MastraResolvedModel,
   type VisionModelResolution,
   type EmbeddingModelResolution,
   type DomainRoutingStrategy,
@@ -253,6 +255,7 @@ export {
   type RoutingDecision,
   type RoutingDomain,
 } from './routing';
+export type { SemanticRoutingAccounting } from './semantic-routing';
 
 // Phase 7b — memory index
 export {
@@ -341,6 +344,16 @@ export {
   isCircuitOpen,
   _resetCircuits,
 } from './model-circuit-breaker';
+
+// Canonical Mastra execution decision facade.
+export {
+  decideMastraExecution,
+  capabilityForRoute,
+  capabilityDefinitionForRoute,
+  type MastraExecutionDecision,
+  type MastraExecutionDecisionInput,
+  type MastraExecutionRoute,
+} from './mastra/execution-decision';
 
 // Mastra-owned mode selection and historical opinion persistence.
 export {

@@ -65,9 +65,7 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
           <span id="news-pulse-heading" className="text-fg text-sm font-semibold">
             News pulse
           </span>
-          <span className={cn('text-xs font-semibold tabular-nums', leanTone)}>
-            {leanLabel}
-          </span>
+          <span className={cn('text-xs font-semibold tabular-nums', leanTone)}>{leanLabel}</span>
         </div>
         <Link href="/news" className="text-fg-subtle hover:text-fg text-xs font-medium">
           Open news
@@ -85,7 +83,7 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
         <div className="bg-bear h-full" style={{ width: `${pct(counts.negative)}%` }} />
       </div>
 
-      <div className="text-fg-subtle text-xs flex items-center justify-between font-mono tabular-nums">
+      <div className="text-fg-subtle flex items-center justify-between font-mono text-xs tabular-nums">
         <span>{counts.positive} bull</span>
         <span>{counts.neutral} neut</span>
         <span>{counts.negative} bear</span>
@@ -95,14 +93,14 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
         <ul className="flex flex-col gap-2.5">
           {top ? (
             <li className="border-divider border-l-bull/50 flex flex-col gap-0.5 border-l-2 pl-2.5">
-              <span className="text-fg-subtle text-xs tracking-wider uppercase font-semibold">
+              <span className="text-fg-subtle text-xs font-semibold tracking-wider uppercase">
                 Most positive
               </span>
               <a
                 href={top.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-fg hover:text-brand text-sm line-clamp-2 leading-snug transition-colors"
+                className="text-fg hover:text-brand line-clamp-2 text-sm leading-snug transition-colors"
               >
                 {top.title}
               </a>
@@ -110,14 +108,14 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
           ) : null}
           {bottom && bottom.id !== top?.id ? (
             <li className="border-divider border-l-bear/50 flex flex-col gap-0.5 border-l-2 pl-2.5">
-              <span className="text-fg-subtle text-xs tracking-wider uppercase font-semibold">
+              <span className="text-fg-subtle text-xs font-semibold tracking-wider uppercase">
                 Most negative
               </span>
               <a
                 href={bottom.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-fg hover:text-brand text-sm line-clamp-2 leading-snug transition-colors"
+                className="text-fg hover:text-brand line-clamp-2 text-sm leading-snug transition-colors"
               >
                 {bottom.title}
               </a>

@@ -54,11 +54,13 @@ export function SettingsSection({
         <div className="flex flex-col gap-0.5">
           <h2
             id={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}
-            className="text-fg text-sm sm:text-base font-semibold tracking-tight"
+            className="text-fg text-sm font-semibold tracking-tight sm:text-base"
           >
             {title}
           </h2>
-          {description ? <p className="text-fg-subtle text-xs leading-normal">{description}</p> : null}
+          {description ? (
+            <p className="text-fg-subtle text-xs leading-normal">{description}</p>
+          ) : null}
         </div>
       </header>
       <div className="flex flex-col gap-3">{children}</div>

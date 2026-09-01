@@ -58,7 +58,6 @@ export function mastraChatResponse(input: MastraChatResponseInput): Response {
   const events = [
     { type: 'text-start', id: input.messageId },
     { type: 'text-delta', id: input.messageId, delta: input.text },
-    { type: 'text-end', id: input.messageId },
     {
       type: 'data-multi-agent-meta',
       id: input.messageId,
@@ -68,6 +67,8 @@ export function mastraChatResponse(input: MastraChatResponseInput): Response {
       // available after a page reload from persisted history.
       data: meta,
     },
+    { type: 'text-end', id: input.messageId },
+    { type: 'turn-complete', id: input.messageId, status: 'persisted' },
   ];
 
   return new Response(events.map(encodeEvent).join(''), {

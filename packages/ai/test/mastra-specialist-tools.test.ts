@@ -54,11 +54,18 @@ describe('Mastra specialist tool adaptation', () => {
     ).toThrow('Cannot adapt malformed');
   });
 
-  it('rejects mutation tools even if a caller accidentally includes one', () => {
-    expect(() =>
-      adaptLegacyReadOnlyTools({
-        set_alert: { description: 'write alert' } as never,
-      }),
-    ).toThrow('mutation tools are forbidden');
+  it('rejects every mutation tool even if a caller accidentally includes one', () => {
+    for (const mutationTool of [
+      'set_alert',
+      'log_journal',
+      'share_snapshot',
+      'run_system_action',
+    ]) {
+      expect(() =>
+        adaptLegacyReadOnlyTools({
+          [mutationTool]: { description: 'write tool' } as never,
+        }),
+      ).toThrow('mutation tools are forbidden');
+    }
   });
 });

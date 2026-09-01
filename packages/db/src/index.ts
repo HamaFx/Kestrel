@@ -184,6 +184,7 @@ export { listCronRuns, deleteOldCronRuns, type CronRunRow } from './queries/cron
 export { lazyPurgeExpiredTokens } from './queries/verification-tokens';
 export {
   getUserById,
+  getUserRole,
   getUserPasswordHash,
   listUsersWithSettings,
   countUsers,
@@ -213,6 +214,7 @@ export {
   enqueueFullAnalysisQueue,
   claimNextFullAnalysisQueue,
   heartbeatFullAnalysisQueue,
+  updateFullAnalysisQueueProgress,
   completeFullAnalysisQueue,
   failFullAnalysisQueue,
   requeueFullAnalysisQueue,

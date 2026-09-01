@@ -33,6 +33,7 @@ const {
   mockMastraChatResponse,
   mockMastraModeResponse,
   mockResolveMastraModeModel,
+  mockDecideMastraExecution,
 } = vi.hoisted(() => ({
   mockEnqueueFullAnalysis: vi.fn(),
   mockGetUserWithSettings: vi.fn(),
@@ -48,6 +49,7 @@ const {
   mockMastraCanonicalResponse: vi.fn(() => new Response('canonical', { status: 200 })),
   mockMastraChatResponse: vi.fn(() => new Response('xauusd', { status: 200 })),
   mockMastraModeResponse: vi.fn(() => new Response('mode', { status: 200 })),
+  mockDecideMastraExecution: vi.fn(),
   mockResolveMastraModeModel: vi.fn(() => ({
     modelId: 'google/gemini-3.6-flash',
     providerId: 'google',
@@ -135,6 +137,7 @@ vi.mock('@kestrel/ai/mastra', () => ({
   isMastraMutationEnabled: vi.fn(() => false),
   MutationExtractionError: class MutationExtractionError extends Error {},
   resolveMastraModeModel: mockResolveMastraModeModel,
+  decideMastraExecution: mockDecideMastraExecution,
 }));
 
 vi.mock('@/lib/services/api-boundary', () => ({
@@ -161,9 +164,11 @@ vi.mock('@/lib/services/api-boundary', () => ({
     providerId: 'google',
     bareModelId: 'gemini-3.6-flash',
   }),
+  decideMastraExecution: mockDecideMastraExecution,
   withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<Response>) => fn(),
   withRateLimit: mockWithRateLimit,
   UserMessagePartsSchema: z.array(z.unknown()).transform((parts) => parts),
+  PresentationPreferencesSchema: z.object({ customInstructions: z.string().optional() }),
 }));
 
 function request(body: Record<string, unknown>): Request {
@@ -202,6 +207,23 @@ describe('POST /api/chat Mastra boundary', () => {
       },
     });
     mockEnqueueFullAnalysis.mockResolvedValue('run-1');
+    mockDecideMastraExecution.mockImplementation(
+      async ({ mode, symbol }: { mode: string; symbol: string | null }) => ({
+        route:
+          mode === 'full'
+            ? 'full-analysis-queue'
+            : symbol === 'XAUUSD'
+              ? 'xauusd-research'
+              : mode === 'quick' || mode === 'standard'
+                ? 'symbol-research'
+                : 'canonical-chat',
+        routing: { domain: 'generic', planRequired: false, rationale: 'test' },
+        capability: null,
+        model: null,
+        modelPurpose: 'canonical-chat',
+        symbol,
+      }),
+    );
     mockResolveMastraModeModel.mockReturnValue({
       modelId: 'google/gemini-3.6-flash',
       providerId: 'google',

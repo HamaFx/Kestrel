@@ -92,9 +92,7 @@ describe('MastraReportCard', () => {
   it('shows a clear fail-closed message when research is blocked', () => {
     render(<MastraReportCard meta={{ ...baseMeta, researchStatus: 'blocked', report: null }} />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      /live market feed data was unavailable/i,
-    );
+    expect(screen.getByRole('alert')).toHaveTextContent(/live market feed data was unavailable/i);
     expect(screen.queryByText('Bullish continuation')).toBeNull();
   });
 

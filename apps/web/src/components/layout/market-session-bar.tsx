@@ -74,7 +74,7 @@ export function MarketSessionBar() {
   return (
     <div
       aria-label="Global market trading sessions"
-      className="border-border/50 bg-bg-elev-1/60 text-xs flex items-center justify-between border-b px-3 py-1 font-mono"
+      className="border-border/50 bg-bg-elev-1/60 flex items-center justify-between border-b px-3 py-1 font-mono text-xs"
     >
       <div className="scrollbar-hide flex items-center gap-3 overflow-x-auto py-0.5">
         <div className="text-fg-subtle flex shrink-0 items-center gap-1.5">
@@ -91,7 +91,7 @@ export function MarketSessionBar() {
               <span
                 key={s.id}
                 className={cn(
-                  'text-xs inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-semibold tracking-wider transition-colors',
+                  'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-semibold tracking-wider transition-colors',
                   active
                     ? 'bg-bull/15 text-bull border-bull/30 border'
                     : 'bg-bg-elev-2 text-fg-subtle/70 border-border/40 border',

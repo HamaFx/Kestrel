@@ -96,6 +96,7 @@
     {"idx":91,"version":"7","when":1787350000007,"tag":"0092_diagnostic_trace_created_at_idx","breakpoints":true},
     {"idx":92,"version":"7","when":1787350000008,"tag":"0093_retention_predicate_indexes","breakpoints":true},
     {"idx":93,"version":"7","when":1787350000009,"tag":"0094_shared_app_role","breakpoints":true},
-    {"idx":94,"version":"7","when":1787350000010,"tag":"0095_local_postgres_roles","breakpoints":true}
+    {"idx":94,"version":"7","when":1787350000010,"tag":"0095_local_postgres_roles","breakpoints":true},
+    {"idx":95,"version":"7","when":1787350000011,"tag":"0096_full_analysis_progress","breakpoints":true}
   ]
 }

@@ -105,9 +105,11 @@ const ArticleCardInner = memo(
           rel="noopener noreferrer"
           className="block px-4 py-4 pb-5 pl-5"
         >
-          <h3 className="text-fg text-sm sm:text-base line-clamp-3 leading-snug font-semibold">{title}</h3>
+          <h3 className="text-fg line-clamp-3 text-sm leading-snug font-semibold sm:text-base">
+            {title}
+          </h3>
 
-          <div className="text-fg-subtle text-xs mt-2 flex flex-wrap items-center gap-x-2 tabular-nums">
+          <div className="text-fg-subtle mt-2 flex flex-wrap items-center gap-x-2 text-xs tabular-nums">
             <span className="text-fg-muted font-medium">{article.publisher ?? article.source}</span>
             <span aria-hidden className="opacity-50">
               ·
@@ -138,7 +140,9 @@ const ArticleCardInner = memo(
           </div>
 
           {summary ? (
-            <p className="text-fg-muted text-xs sm:text-sm mt-2 line-clamp-2 leading-normal">{summary}</p>
+            <p className="text-fg-muted mt-2 line-clamp-2 text-xs leading-normal sm:text-sm">
+              {summary}
+            </p>
           ) : null}
         </a>
 
@@ -152,7 +156,7 @@ const ArticleCardInner = memo(
           <a
             href={`/chat?prompt=${askPrompt}`}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-elev-2 text-fg-muted hover:text-fg text-xs inline-flex min-h-[32px] items-center gap-1.5 rounded-sm px-3 py-1.5 font-medium transition-colors"
+            className="bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-[32px] items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium transition-colors"
           >
             <IconBolt className="size-3.5" />
             Ask AI

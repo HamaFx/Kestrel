@@ -24,7 +24,7 @@ export interface ClaimFullAnalysisQueueOptions {
   workerRunId: string;
   leaseMs: number;
   /** Optional tenant partition predicate evaluated before the atomic claim. */
-  ownsTenant?: (userId: string) => boolean;
+  ownsTenant?: (tenantId: string) => boolean;
   db?: DbClient;
 }
 
@@ -90,7 +90,8 @@ export async function enqueueFullAnalysisQueue(
 
 /**
  * Atomically claim one pending row. Concurrent workers may read the same
- * candidate, but only one conditional UPDATE can return it.
+ * candidate, but only one conditional UPDATE can return it. Partition
+ * predicates receive the persisted tenant ID, never a user ID.
  */
 export async function claimNextFullAnalysisQueue(
   options: ClaimFullAnalysisQueueOptions,
@@ -99,14 +100,17 @@ export async function claimNextFullAnalysisQueue(
   const now = new Date();
   const leaseExpiresAt = new Date(now.getTime() + options.leaseMs);
   const candidates = await db
-    .select({ runId: schema.fullAnalysisQueue.runId, userId: schema.fullAnalysisQueue.userId })
+    .select({
+      runId: schema.fullAnalysisQueue.runId,
+      tenantId: schema.fullAnalysisQueue.tenantId,
+    })
     .from(schema.fullAnalysisQueue)
     .where(eq(schema.fullAnalysisQueue.status, 'pending'))
     .orderBy(asc(schema.fullAnalysisQueue.createdAt))
     .limit(100);
 
   for (const candidate of candidates) {
-    if (options.ownsTenant && !options.ownsTenant(candidate.userId)) continue;
+    if (options.ownsTenant && !options.ownsTenant(candidate.tenantId)) continue;
     const claimed = await db
       .update(schema.fullAnalysisQueue)
       .set({
@@ -189,6 +193,27 @@ export async function heartbeatFullAnalysisQueue(
     metrics.increment('queue_stale_lease_completion_total');
     throw new FullAnalysisQueueOwnershipError();
   }
+  return row;
+}
+
+export async function updateFullAnalysisQueueProgress(
+  input: FullAnalysisLeaseInput & { progress: Array<Record<string, unknown>> },
+): Promise<FullAnalysisQueueRow> {
+  const db = input.db ?? getDb();
+  const rows = await db
+    .update(schema.fullAnalysisQueue)
+    .set({ progress: input.progress, updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.fullAnalysisQueue.runId, input.runId),
+        eq(schema.fullAnalysisQueue.workerRunId, input.workerRunId),
+        eq(schema.fullAnalysisQueue.status, 'running'),
+        gt(schema.fullAnalysisQueue.leaseExpiresAt, new Date()),
+      ),
+    )
+    .returning();
+  const row = rows[0];
+  if (!row) throw new FullAnalysisQueueOwnershipError();
   return row;
 }
 

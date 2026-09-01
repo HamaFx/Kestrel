@@ -27,7 +27,11 @@ import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../mastra-v2
 import { createKestrelMemory, type CreateKestrelMemoryArgs } from '../mastra-v2/memory';
 import { runTracingOptions } from '../mastra-v2/telemetry';
 import { createXauusdReportWorkflow } from '../mastra-v2/workflows/xauusd-report';
-import { resolveMastraModel, type ChatModelResolution } from '../model';
+import {
+  resolveMastraExecutionModel,
+  resolveMastraModel,
+  type ChatModelResolution,
+} from '../model';
 import { telemetryConfig } from '../telemetry';
 import type { ResolveModelEnv } from '../vertex-factory';
 import { createXauusdMastraAgent } from './agent';
@@ -92,7 +96,8 @@ export function resolveXauusdMastraModel(
     aiApiKeys: settings.aiApiKeys,
     chatModel: selectedModel,
   };
-  return resolveMastraModel({
+  const resolver = resolveMastraExecutionModel as typeof resolveMastraExecutionModel | undefined;
+  return (resolver ?? resolveMastraModel)({
     purpose: 'xauusd',
     settings: mastraSettings,
     env,

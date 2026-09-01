@@ -104,7 +104,9 @@ export function WizardStepStyle({
                   {style.timeframe}
                 </span>
               </div>
-              <p className="text-fg-subtle text-caption leading-relaxed sm:text-body-sm">{style.desc}</p>
+              <p className="text-fg-subtle text-caption sm:text-body-sm leading-relaxed">
+                {style.desc}
+              </p>
               {active && (
                 <span className="text-brand absolute right-3 bottom-3">
                   <IconCheck className="size-4" />

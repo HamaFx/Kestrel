@@ -150,7 +150,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
             {curPrice && (
               <span
                 className={cn(
-                  'text-xs font-mono font-medium rounded-sm px-1 tabular-nums transition-colors duration-500',
+                  'rounded-sm px-1 font-mono text-xs font-medium tabular-nums transition-colors duration-500',
                   flash === 'bull' && 'bg-bull/20 text-bull',
                   flash === 'bear' && 'bg-bear/20 text-bear',
                   flash === null && 'text-fg-subtle',

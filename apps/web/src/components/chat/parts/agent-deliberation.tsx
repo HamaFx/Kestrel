@@ -229,7 +229,9 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-fg text-body-sm font-semibold">Desk Confidence</span>
-                <span className="text-fg text-body-sm font-bold tabular-nums">{avgConfidence}%</span>
+                <span className="text-fg text-body-sm font-bold tabular-nums">
+                  {avgConfidence}%
+                </span>
               </div>
               <div className="bg-bg-elev-3 h-1.5 w-full overflow-hidden rounded-sm">
                 <m.div
@@ -278,7 +280,9 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
                             {op.bias} · {Math.round(op.confidence * 100)}%
                           </span>
                         </div>
-                        <p className="text-fg-muted text-caption mt-1 leading-relaxed">{op.reasoning}</p>
+                        <p className="text-fg-muted text-caption mt-1 leading-relaxed">
+                          {op.reasoning}
+                        </p>
                       </div>
                     );
                   })}

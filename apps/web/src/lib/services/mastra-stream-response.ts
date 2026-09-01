@@ -25,8 +25,18 @@ export interface MastraStreamResponseMeta {
   readonly data: Record<string, unknown>;
 }
 
-export type MastraStreamTerminalStatus =
-  'persisted' | 'persistence-failed' | 'interrupted' | 'failed';
+export const MASTRA_STREAM_TERMINAL_STATUSES = [
+  'persisted',
+  'persistence-failed',
+  'interrupted',
+  'failed',
+] as const;
+
+export type MastraStreamTerminalStatus = (typeof MASTRA_STREAM_TERMINAL_STATUSES)[number];
+
+export function isMastraStreamTerminalStatus(value: string): value is MastraStreamTerminalStatus {
+  return (MASTRA_STREAM_TERMINAL_STATUSES as readonly string[]).includes(value);
+}
 
 export interface MastraStreamResponseOptions {
   readonly meta?: MastraStreamResponseMeta;
@@ -96,8 +106,8 @@ export function mastraStreamResponse(
             encode({ type: 'data-multi-agent-meta', id: options.meta.id, data: options.meta.data }),
           );
         }
-        controller.enqueue(encode({ type: 'text-end', id: messageId }));
         const status = options.onComplete ? await notifyCompletion() : 'persisted';
+        controller.enqueue(encode({ type: 'text-end', id: messageId }));
         controller.enqueue(encode({ type: 'turn-complete', id: messageId, status }));
         ended = true;
       } catch (error) {

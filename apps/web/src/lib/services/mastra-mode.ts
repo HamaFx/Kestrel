@@ -58,6 +58,7 @@ export async function runMastraModeChat(
     correlation: { threadId: input.threadId, runId },
   });
   let result: MastraModeResult | null = null;
+  let childCostUsd = 0;
 
   try {
     await appendUserMessage(input.userId, input.threadId, input.userMessage, {
@@ -76,6 +77,9 @@ export async function runMastraModeChat(
       ...(input.signal ? { signal: input.signal } : {}),
       backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey,
       telemetryKind: 'mastra_mode',
+      onChildCost: (costUsd) => {
+        childCostUsd += costUsd;
+      },
     });
 
     const assistantMessage: UIMessage = {
@@ -107,8 +111,16 @@ export async function runMastraModeChat(
       threadId: input.threadId,
       firstUser: input.prompt,
       firstAssistant: result.finalText,
+      accounting: {
+        onComplete: (costUsd) => {
+          // The mode workflow has already reconciled its aggregate cost. This
+          // callback is retained for observability and future child-ledger
+          // aggregation without changing the user-facing result.
+          void costUsd;
+        },
+      },
     });
-    const observedCost = result.totalCostUsd;
+    const observedCost = result.totalCostUsd + childCostUsd;
     await budget.reconcile(observedCost);
     return { ...result, runId, observedCost, messageId: persisted.messageId };
   } catch (error) {

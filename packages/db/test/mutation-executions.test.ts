@@ -119,6 +119,8 @@ describe('executeMutationOnce', { timeout: 30_000 }, () => {
       threadId: THREAD_ID,
       mutation: 'run_system_action',
       inputDigest: 'b'.repeat(64),
+      approvalId: 'approval-1',
+      approvalExpiresAt: new Date('2026-08-31T12:00:00.000Z'),
       execute: async () => {
         calls += 1;
         return { id: 'system:maintenance' };
@@ -131,6 +133,13 @@ describe('executeMutationOnce', { timeout: 30_000 }, () => {
     expect(first).toEqual({ result: { id: 'system:maintenance' }, replayed: false });
     expect(second).toEqual({ result: { id: 'system:maintenance' }, replayed: true });
     expect(calls).toBe(1);
+
+    await expect(
+      executeMutationOnce({
+        ...input,
+        approvalExpiresAt: new Date('2026-08-31T13:00:00.000Z'),
+      }),
+    ).rejects.toThrow(MutationExecutionContextError);
 
     const { rows: ledgerRows } = await db.execute(
       `SELECT run_id, status, tenant_id, result_id FROM "mutation_executions" WHERE run_id = '${RUN_ID}'`,

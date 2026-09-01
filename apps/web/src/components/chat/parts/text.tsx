@@ -34,7 +34,7 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
   // User bubbles never need markdown formatting — the user typed it
   // verbatim and we should render it the same way they typed it.
   if (role === 'user') {
-    return <p className="text-sm sm:text-base leading-relaxed whitespace-pre-line">{text}</p>;
+    return <p className="text-sm leading-relaxed whitespace-pre-line sm:text-base">{text}</p>;
   }
 
   // While streaming, skip expensive ReactMarkdown + Shiki parsing.
@@ -43,7 +43,7 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
   // the layout doesn't jump when the finished markdown render swaps in.
   if (isStreaming) {
     return (
-      <div className="md-prose text-fg space-y-2 text-sm sm:text-base leading-relaxed tracking-normal whitespace-pre-line">
+      <div className="md-prose text-fg space-y-2 text-sm leading-relaxed tracking-normal whitespace-pre-line sm:text-base">
         {text}
         <span
           aria-hidden="true"
@@ -54,32 +54,40 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
   }
 
   return (
-    <div className="md-prose text-fg space-y-2 text-sm sm:text-base leading-relaxed tracking-normal">
+    <div className="md-prose text-fg space-y-2 text-sm leading-relaxed tracking-normal sm:text-base">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h1 className="text-fg mt-4 mb-2 text-base sm:text-lg font-bold tracking-tight">{children}</h1>
+            <h1 className="text-fg mt-4 mb-2 text-base font-bold tracking-tight sm:text-lg">
+              {children}
+            </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-fg mt-3 mb-1.5 text-sm sm:text-base font-semibold tracking-tight">{children}</h2>
+            <h2 className="text-fg mt-3 mb-1.5 text-sm font-semibold tracking-tight sm:text-base">
+              {children}
+            </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-brand mt-2.5 mb-1 text-xs sm:text-sm font-semibold uppercase tracking-wider">{children}</h3>
+            <h3 className="text-brand mt-2.5 mb-1 text-xs font-semibold tracking-wider uppercase sm:text-sm">
+              {children}
+            </h3>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="border-brand/40 bg-brand/5 text-fg-muted my-2.5 border-l-2 pl-3 py-1.5 text-xs sm:text-sm leading-relaxed italic">
+            <blockquote className="border-brand/40 bg-brand/5 text-fg-muted my-2.5 border-l-2 py-1.5 pl-3 text-xs leading-relaxed italic sm:text-sm">
               {children}
             </blockquote>
           ),
           hr: () => <hr className="border-divider my-3" />,
           p: ({ children }) => (
-            <p className="text-fg my-1.5 text-sm sm:text-base leading-relaxed whitespace-pre-line">{children}</p>
+            <p className="text-fg my-1.5 text-sm leading-relaxed whitespace-pre-line sm:text-base">
+              {children}
+            </p>
           ),
           ul: ({ children }) => <ul className="my-2 list-none space-y-1.5 pl-0">{children}</ul>,
           ol: ({ children }) => <ol className="my-2 list-none space-y-1.5 pl-0">{children}</ol>,
           li: ({ children }) => (
-            <li className="text-fg flex gap-2 text-sm sm:text-base leading-relaxed">
+            <li className="text-fg flex gap-2 text-sm leading-relaxed sm:text-base">
               <span className="text-fg-subtle select-none">›</span>
               <span className="flex-1">{children}</span>
             </li>

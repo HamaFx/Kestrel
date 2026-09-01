@@ -154,7 +154,9 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
               {p.warn && (
                 <span className="text-warn mt-1 inline-flex items-center gap-1 text-xs font-semibold">
                   <IconAlertTriangle className="size-3.5 shrink-0" />
-                  <span>Note: Finnhub API key is not set above. Please add it to enable this provider.</span>
+                  <span>
+                    Note: Finnhub API key is not set above. Please add it to enable this provider.
+                  </span>
                 </span>
               )}
             </div>

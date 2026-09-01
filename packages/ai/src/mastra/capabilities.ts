@@ -22,15 +22,13 @@ export type MastraCapabilityScope = 'read-only' | 'user-scoped' | 'admin';
 export type MastraContentTrust = 'trusted' | 'untrusted';
 
 /**
- * Reviewed legacy-tool exposure by routing domain. This is the single source
- * for domain filtering; a tool is not exposed merely because it exists in the
- * broad legacy registry.
+ * Reviewed read-only legacy-tool exposure by routing domain. Mutations are
+ * intentionally defined only by the mutation capability below; a tool is not
+ * exposed merely because it exists in the broad legacy registry.
  */
 export const LEGACY_DOMAIN_TOOL_NAMES = {
   summary: [
     'get_price',
-    'set_alert',
-    'log_journal',
     'search_knowledge',
     'get_news',
     'get_calendar',
@@ -40,8 +38,6 @@ export const LEGACY_DOMAIN_TOOL_NAMES = {
   ],
   vision: [
     'get_price',
-    'set_alert',
-    'log_journal',
     'search_knowledge',
     'analyze_chart_image',
     'get_candles',
@@ -51,8 +47,6 @@ export const LEGACY_DOMAIN_TOOL_NAMES = {
   ],
   fundamental: [
     'get_price',
-    'set_alert',
-    'log_journal',
     'search_knowledge',
     'get_news',
     'get_calendar',
@@ -70,8 +64,6 @@ export const LEGACY_DOMAIN_TOOL_NAMES = {
   ],
   technical: [
     'get_price',
-    'set_alert',
-    'log_journal',
     'search_knowledge',
     'get_candles',
     'get_indicators',
@@ -95,10 +87,9 @@ export const LEGACY_DOMAIN_TOOL_NAMES = {
 >;
 
 /**
- * Explicit legacy-tool boundary for the canonical conversational agent.
- * Keep this list here rather than deriving it from the full registry: adding
- * a new tool must require an intentional policy review before it is exposed
- * to general conversation.
+ * Explicit read-only legacy-tool boundary for the canonical conversational
+ * agent. Keep this list here rather than deriving it from the full registry:
+ * adding a new tool requires an intentional policy review.
  */
 export const CANONICAL_READ_ONLY_TOOL_NAMES = [
   'get_price',

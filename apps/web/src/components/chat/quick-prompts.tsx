@@ -181,11 +181,11 @@ export const QuickPrompts = memo(function QuickPrompts({
             type="button"
             disabled={disabled}
             onClick={() => onSelect(p.label)}
-            className="border-border bg-bg-elev-1 text-fg hover:bg-bg-elev-3 focus-visible:ring-fg flex min-h-[44px] items-center gap-2.5 rounded-sm border px-3 py-2.5 text-left text-xs sm:text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-50"
+            className="border-border bg-bg-elev-1 text-fg hover:bg-bg-elev-3 focus-visible:ring-fg flex min-h-[44px] items-center gap-2.5 rounded-sm border px-3 py-2.5 text-left text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-50 sm:text-sm"
           >
             <span
               className={cn(
-                'border-border bg-bg-elev-2 inline-flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-sm border',
+                'border-border bg-bg-elev-2 inline-flex size-7 shrink-0 items-center justify-center rounded-sm border sm:size-8',
                 p.fg,
               )}
             >

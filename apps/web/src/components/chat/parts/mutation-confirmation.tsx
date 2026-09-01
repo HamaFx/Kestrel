@@ -30,7 +30,6 @@ import { MutationConfirmResultSchema, type MutationDraftPayload } from '@kestrel
 import {
   IconBell,
   IconCheck,
-  IconClock,
   IconFileText,
   IconSettings,
   IconShare,
@@ -134,7 +133,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
     return (
       <Card as="section" className="border-border bg-bg-elev-1 p-3" aria-label="Mutation confirmed">
         <div className="flex items-start gap-2">
-          <IconCheck className="text-bull size-4.5 mt-0.5 shrink-0" aria-hidden />
+          <IconCheck className="text-bull mt-0.5 size-4.5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="text-fg-muted text-xs">{KIND_LABELS[payload.mutation]} confirmed</div>
             <div className="text-fg mt-0.5 text-sm font-medium break-words">{state.summary}</div>
@@ -148,7 +147,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
     return (
       <Card as="section" className="border-border bg-bg-elev-1 p-3" aria-label="Mutation declined">
         <div className="flex items-start gap-2">
-          <IconX className="text-danger size-4.5 mt-0.5 shrink-0" aria-hidden />
+          <IconX className="text-danger mt-0.5 size-4.5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="text-fg-muted text-xs">Not executed</div>
             <div className="text-fg mt-0.5 text-sm">
@@ -170,7 +169,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
       aria-label={`${KIND_LABELS[payload.mutation]} confirmation`}
     >
       <div className="flex items-start gap-2">
-        <KindIcon className="text-brand size-4.5 mt-0.5 shrink-0" aria-hidden />
+        <KindIcon className="text-brand mt-0.5 size-4.5 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="text-fg-muted text-xs">Confirmation required</div>
           <div className="text-fg mt-0.5 text-sm font-medium break-words">{payload.summary}</div>

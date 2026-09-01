@@ -38,6 +38,13 @@ export interface MastraModelSnapshot {
   bareModelId: string;
 }
 
+/** Immutable, auditable result shared by every Mastra execution path. */
+export interface MastraResolvedModel extends ChatModelResolution {
+  purpose: MastraModelPurpose;
+  domain: ModelDomain;
+  snapshot: MastraModelSnapshot;
+}
+
 export interface ResolveMastraModelInput {
   purpose: MastraModelPurpose;
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>;
@@ -104,6 +111,16 @@ export function resolveMastraModel(args: ResolveMastraModelInput): ChatModelReso
     );
   }
   return resolveChatModel(args.settings, args.env, args.domain);
+}
+
+export function resolveMastraExecutionModel(args: ResolveMastraModelInput): MastraResolvedModel {
+  const resolution = resolveMastraModel(args);
+  return {
+    ...resolution,
+    purpose: args.purpose,
+    domain: args.domain,
+    snapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+  };
 }
 
 export function toModelDomain(domain: RoutingDomain): ModelDomain {

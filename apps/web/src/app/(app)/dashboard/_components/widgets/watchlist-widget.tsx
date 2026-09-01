@@ -136,7 +136,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
             <button
               type="button"
               onClick={() => setShowAddMenu((v) => !v)}
-              className="text-fg-subtle hover:text-fg text-xs hover:bg-bg-elev-2 flex min-h-[30px] items-center gap-1 rounded-sm px-2 py-1 font-medium transition-colors"
+              className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[30px] items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors"
               title="Add symbol to watchlist"
             >
               <IconPlus className="size-3.5" />
@@ -161,7 +161,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
 
           <Link
             href={`/chart/${list[0] ?? 'XAUUSD'}`}
-            className="text-fg-subtle hover:text-fg text-xs ml-1 font-medium"
+            className="text-fg-subtle hover:text-fg ml-1 text-xs font-medium"
           >
             Open chart
           </Link>
@@ -262,7 +262,7 @@ function WatchRow({
         <div className="flex min-w-0 flex-col font-mono">
           <Link
             href={`/chart/${tick.symbol}`}
-            className="text-fg text-sm hover:text-brand flex items-center gap-1.5 font-bold tracking-tight transition-colors"
+            className="text-fg hover:text-brand flex items-center gap-1.5 text-sm font-bold tracking-tight transition-colors"
             title={`Open ${tick.symbol} chart`}
           >
             <span>{tick.symbol}</span>
@@ -270,7 +270,7 @@ function WatchRow({
           </Link>
           <span
             className={cn(
-              'text-xs font-mono font-medium -mx-1 inline-flex w-fit items-center rounded-sm px-1 tabular-nums transition-colors duration-500',
+              '-mx-1 inline-flex w-fit items-center rounded-sm px-1 font-mono text-xs font-medium tabular-nums transition-colors duration-500',
               flash === 'bull' && 'bg-bull/15 text-bull',
               flash === 'bear' && 'bg-bear/15 text-bear',
               flash === null && 'text-fg-subtle',
@@ -294,7 +294,7 @@ function WatchRow({
 
         <span
           className={cn(
-            'text-xs w-4 text-center font-bold tabular-nums',
+            'w-4 text-center text-xs font-bold tabular-nums',
             isBull ? 'text-bull' : 'text-bear',
           )}
           aria-label={isBull ? 'Trending up' : 'Trending down'}

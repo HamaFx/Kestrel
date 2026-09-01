@@ -23,18 +23,15 @@ import { resolve } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { parseFlags } from '../../../scripts/setup/index.mjs';
 import { upsertEnvFile } from '../../../scripts/setup/lib/env.mjs';
 import { MARKET_DATA_PROVIDERS, parseMarketFlag } from '../../../scripts/setup/lib/market-data.mjs';
-import {
-  loadSecretTemplate,
-  resolveTemplateValue,
-} from '../../../scripts/setup/lib/secrets.mjs';
-import { parseApiKeys } from '../../../scripts/setup/steps/market-data.mjs';
-import { parseFlags } from '../../../scripts/setup/index.mjs';
+import { loadSecretTemplate, resolveTemplateValue } from '../../../scripts/setup/lib/secrets.mjs';
 import * as configStep from '../../../scripts/setup/steps/config.mjs';
 import * as detectStep from '../../../scripts/setup/steps/detect-existing.mjs';
 import * as installStep from '../../../scripts/setup/steps/install.mjs';
 import * as launchStep from '../../../scripts/setup/steps/launch.mjs';
+import { parseApiKeys } from '../../../scripts/setup/steps/market-data.mjs';
 import * as marketStep from '../../../scripts/setup/steps/market-data.mjs';
 import * as modeStep from '../../../scripts/setup/steps/mode.mjs';
 import * as prereqsStep from '../../../scripts/setup/steps/prereqs.mjs';
@@ -98,7 +95,11 @@ describe('setup wizard structure', () => {
   });
 
   it('parses --api-key=ID:VALUE into the env key map (C2)', () => {
-    const { byEnvKey, ids } = parseApiKeys(['finnhub:finnhubsecret1', 'bogus:x', 'fred:fredsecret-by']);
+    const { byEnvKey, ids } = parseApiKeys([
+      'finnhub:finnhubsecret1',
+      'bogus:x',
+      'fred:fredsecret-by',
+    ]);
     expect(byEnvKey.FINNHUB_API_KEY).toBe('finnhubsecret1');
     expect(byEnvKey.FRED_API_KEY).toBe('fredsecret-by');
     expect(byEnvKey.BOGUS_API_KEY).toBeUndefined(); // unknown provider ignored
@@ -146,7 +147,9 @@ describe('setup wizard structure', () => {
       ).toContain('profiles: ["observability"]');
     }
     // The default `docker compose up` (no profile) must not publish Langfuse.
-    expect(compose).toContain('# Langfuse is opt-in: use `docker compose --profile observability up -d`.');
+    expect(compose).toContain(
+      '# Langfuse is opt-in: use `docker compose --profile observability up -d`.',
+    );
   });
 
   it('guides the user through connecting the Langfuse project keys (the non-automatable step)', () => {

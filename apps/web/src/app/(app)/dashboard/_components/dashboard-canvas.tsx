@@ -221,7 +221,9 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-fg text-display-lg sm:text-display-xl font-bold tracking-tight">Dashboard</h1>
+            <h1 className="text-fg text-display-lg sm:text-display-xl font-bold tracking-tight">
+              Dashboard
+            </h1>
             <PreSessionChecklistDrawer />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -265,7 +267,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
         {editMode && (
           <div className="border-brand/40 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 shadow-sm duration-200">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-brand font-mono font-bold tracking-wider uppercase">
+              <span className="text-brand font-mono text-xs font-bold tracking-wider uppercase">
                 Role Layout Presets
               </span>
               <span className="text-fg-subtle text-xs">
@@ -502,7 +504,7 @@ function AddWidgetMenu({
   return (
     <details ref={ref} className="relative">
       <summary
-        className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 text-fg text-xs inline-flex min-h-[32px] cursor-pointer list-none items-center gap-1.5 rounded-sm border px-2.5 py-1 font-medium"
+        className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 text-fg inline-flex min-h-[32px] cursor-pointer list-none items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs font-medium"
         aria-label="Add widget"
       >
         <IconPlus className="size-4" />
@@ -514,7 +516,7 @@ function AddWidgetMenu({
             key={t}
             type="button"
             onClick={() => onAdd(t)}
-            className="text-fg hover:bg-bg-elev-2 text-xs rounded-sm px-2.5 py-1.5 text-left font-medium"
+            className="text-fg hover:bg-bg-elev-2 rounded-sm px-2.5 py-1.5 text-left text-xs font-medium"
           >
             {WIDGET_LABELS[t]}
           </button>

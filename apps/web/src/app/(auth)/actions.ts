@@ -61,12 +61,6 @@ export interface AuthActionState {
   email?: string;
 }
 
-interface SignInResult {
-  ok: boolean;
-  error?: string | null;
-}
-
-
 function invalidCredentialsState(): AuthActionState {
   recordAuthEvent('login_failure');
   return { error: 'Invalid email or password' };

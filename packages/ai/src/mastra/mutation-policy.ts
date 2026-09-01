@@ -55,6 +55,21 @@ export function assertRegisteredSystemAction(action: string): asserts action is 
   }
 }
 
+/**
+ * Enforce the authorization policy for a registered system action.
+ * Registration and authorization are separate checks: a known action is not
+ * executable unless the current server-side caller satisfies its policy.
+ */
+export function assertSystemActionAuthorized(
+  action: string,
+  isAdmin: boolean,
+): asserts action is SystemActionId {
+  assertRegisteredSystemAction(action);
+  if (SYSTEM_ACTION_REGISTRY[action].requiresAdmin && !isAdmin) {
+    throw mutationPolicyError('admin-required');
+  }
+}
+
 export interface VerifiedMutationApproval {
   /** Server-issued, durable approval identity. */
   approvalId: string;
@@ -74,6 +89,10 @@ export interface MastraMutationRequest {
   mutation: MastraMutationName;
   userId: string;
   threadId: string;
+  /** Current server-side authorization state; never sourced from the client. */
+  isAdmin?: boolean;
+  /** Registered system action bound to the approval proof. */
+  systemAction?: string;
   /** Server-produced approval; a client boolean is intentionally not accepted. */
   approval: VerifiedMutationApproval;
 }
@@ -94,7 +113,9 @@ export type MastraMutationDecision =
         | 'confirmation-required'
         | 'invalid-context'
         | 'token-expired'
-        | 'token-invalid';
+        | 'token-invalid'
+        | 'admin-required'
+        | 'unregistered-action';
     };
 
 /**
@@ -111,6 +132,14 @@ export function evaluateMastraMutation(
   }
   if (process.env.ENABLE_MASTRA_MUTATIONS !== 'true') {
     return { allowed: false, mutation: request.mutation, reason: 'disabled' };
+  }
+  if (request.mutation === 'run_system_action') {
+    if (!request.systemAction || !isRegisteredSystemAction(request.systemAction)) {
+      return { allowed: false, mutation: request.mutation, reason: 'unregistered-action' };
+    }
+    if (SYSTEM_ACTION_REGISTRY[request.systemAction].requiresAdmin && request.isAdmin !== true) {
+      return { allowed: false, mutation: request.mutation, reason: 'admin-required' };
+    }
   }
   const approval = request.approval;
   if (
@@ -193,7 +222,11 @@ function mutationPolicyError(
           ? 'Mastra mutation confirmation token has expired.'
           : reason === 'token-invalid'
             ? 'Mastra mutation confirmation token is invalid.'
-            : 'Mastra mutation context is invalid.',
+            : reason === 'admin-required'
+              ? 'Administrator authorization is required for this system action.'
+              : reason === 'unregistered-action'
+                ? 'The requested system action is not registered.'
+                : 'Mastra mutation context is invalid.',
   );
   error.name = 'MastraMutationPolicyError';
   Object.assign(error, {

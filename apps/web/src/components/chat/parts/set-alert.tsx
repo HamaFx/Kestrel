@@ -53,7 +53,7 @@ export function SetAlertPart({ output, state, errorMessage }: SetAlertPartProps)
   return (
     <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
       <div className="flex items-start gap-2">
-        <IconBell className="text-brand size-4 mt-0.5 shrink-0" aria-hidden />
+        <IconBell className="text-brand mt-0.5 size-4 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="text-fg-muted text-xs">Alert created</div>
           <div className="text-fg mt-0.5 text-sm font-medium break-words">{output.describes}</div>

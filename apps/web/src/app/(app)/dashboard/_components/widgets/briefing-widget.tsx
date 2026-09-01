@@ -94,12 +94,12 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
           <span className="text-fg text-sm font-semibold">AI Briefing</span>
           <span
             className={cn(
-              'text-xs rounded-sm px-2 py-0.5 font-semibold uppercase',
+              'rounded-sm px-2 py-0.5 text-xs font-semibold uppercase',
               briefing.kind === 'pre'
-                ? 'bg-warn/10 text-warn border border-warn/30'
+                ? 'bg-warn/10 text-warn border-warn/30 border'
                 : briefing.kind === 'post'
-                  ? 'bg-info/10 text-info border border-info/30'
-                  : 'bg-bg-elev-2 text-fg border border-border',
+                  ? 'bg-info/10 text-info border-info/30 border'
+                  : 'bg-bg-elev-2 text-fg border-border border',
             )}
           >
             {meta.label}
@@ -115,7 +115,9 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
 
       {briefing.eventTitle ? (
         <p className="text-fg-muted text-sm">
-          <span className="text-fg-subtle text-xs mr-1 tracking-wider uppercase font-semibold">Source</span>
+          <span className="text-fg-subtle mr-1 text-xs font-semibold tracking-wider uppercase">
+            Source
+          </span>
           {briefing.eventTitle}
           {briefing.eventDate
             ? ` · ${new Date(briefing.eventDate).toUTCString().slice(5, 22)}`
@@ -123,7 +125,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
         </p>
       ) : null}
 
-      <div className="border-divider md-prose text-fg-muted text-sm flex max-h-[220px] flex-col gap-2 overflow-y-auto border-y py-2.5 leading-relaxed">
+      <div className="border-divider md-prose text-fg-muted flex max-h-[220px] flex-col gap-2 overflow-y-auto border-y py-2.5 text-sm leading-relaxed">
         {markdownContent}
       </div>
 
@@ -131,7 +133,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
         {briefing.symbol ? (
           <Link
             href={`/chat?prompt=${encodeURIComponent(`Analyze ${briefing.symbol} daily macro catalysts and market bias`)}`}
-            className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 text-xs rounded-2xs inline-flex min-h-[28px] items-center gap-1 border px-2 py-0.5 font-mono font-bold uppercase transition-colors"
+            className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 rounded-2xs inline-flex min-h-[28px] items-center gap-1 border px-2 py-0.5 font-mono text-xs font-bold uppercase transition-colors"
             title={`Open chat with ${briefing.symbol} gameplan`}
           >
             <span>Focus · {briefing.symbol}</span>

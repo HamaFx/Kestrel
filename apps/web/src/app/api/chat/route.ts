@@ -30,6 +30,7 @@ import {
   AnalysisQueuedEventSchema,
   BudgetExceededError,
   classifyMutationRequest,
+  decideMastraExecution,
   enqueueFullAnalysis,
   extractUserMessageText,
   getThread,
@@ -37,6 +38,7 @@ import {
   isMastraMutationEnabled,
   listMessages,
   MutationExtractionError,
+  PresentationPreferencesSchema,
   resolveMastraModeModel,
   resolveMode,
   traceIdStorage,
@@ -168,11 +170,17 @@ export const POST = withAuth<void>(async (req, { user }) => {
 
   const aiPrefsHeader = req.headers.get('X-AI-Prefs');
   let customInstructions: string | undefined;
+  let responseStyle: 'default' | 'concise' | 'technical' | 'risk-first' = 'default';
+  let citeSources = false;
   if (aiPrefsHeader) {
     try {
-      const prefs = JSON.parse(aiPrefsHeader) as { customInstructions?: unknown };
-      if (typeof prefs.customInstructions === 'string') {
-        customInstructions = sanitizeCustomInstructions(prefs.customInstructions);
+      const parsedPrefs = PresentationPreferencesSchema.safeParse(JSON.parse(aiPrefsHeader));
+      if (parsedPrefs.success) {
+        if (typeof parsedPrefs.data.customInstructions === 'string') {
+          customInstructions = sanitizeCustomInstructions(parsedPrefs.data.customInstructions);
+        }
+        responseStyle = parsedPrefs.data.responseStyle ?? 'default';
+        citeSources = parsedPrefs.data.citeSources ?? false;
       }
     } catch {
       // Malformed optional preferences do not invalidate the chat request.
@@ -189,13 +197,28 @@ export const POST = withAuth<void>(async (req, { user }) => {
     ? extractLatestMastraReport(await listMessages(user.userId, body.threadId, 100))
     : null;
   const resolvedMode = resolveMode(analysisMode, userText);
+  // Build one auditable policy/model decision at the boundary. Existing
+  // route-specific services remain responsible for persistence and streaming;
+  // this decision is used for parity validation and future migration.
+  const { settings: userSettings } = await getUserWithSettings(user.userId);
+  const executionDecision = userSettings
+    ? await decideMastraExecution({
+        userMessage,
+        mode: resolvedMode,
+        modelOverride: body.modelOverride ?? null,
+        settings: userSettings,
+        env: serverEnv,
+        symbol: extractMastraSymbol(userText),
+        mutationRequested: false,
+      })
+    : null;
 
   // Injection/jailbreak attempts are always blocked — no model should
   // process them regardless of mutation capability.
   if (isInjectionAttempt(userText)) {
     return errorJson(
       'READ_ONLY_REQUEST_REQUIRED',
-      'This request is not eligible for the read-only Mastra research capabilities.',
+      'I can help with read-only research, but I cannot process instruction-overriding requests. Please ask for a market explanation, analysis, or scenario review.',
       422,
     );
   }
@@ -222,6 +245,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
         if (error instanceof MutationExtractionError) {
           return errorJson('MUTATION_EXTRACTION_FAILED', error.message, 422);
         }
+        if (error instanceof Error && error.name === 'MastraMutationPolicyError') {
+          return errorJson('FORBIDDEN', error.message, 403);
+        }
         log.error(
           { err: String(error), threadId: body.threadId, mutation: mutationKind },
           'Mutation draft failed',
@@ -242,7 +268,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
   if (isMutationIntent(userText)) {
     return errorJson(
       'READ_ONLY_REQUEST_REQUIRED',
-      'Trade execution requests must go through the confirmation workflow.',
+      'I can analyze a trade idea, but I cannot execute trades from chat. Please rephrase this as a read-only analysis request, or use the confirmation workflow for an explicitly supported action.',
       422,
     );
   }
@@ -252,8 +278,8 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // run (pending snapshot) and the worker claims it. Explicit model
     // overrides are not yet serializable on the run payload, so reject them
     // clearly instead of silently selecting another model.
-    if (resolvedMode === 'full') {
-      const { settings } = await getUserWithSettings(user.userId);
+    if (executionDecision?.route === 'full-analysis-queue') {
+      const settings = userSettings;
       if (!settings) {
         return errorJson('ONBOARDING_REQUIRED', 'User settings not found.', 409);
       }
@@ -321,8 +347,11 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // completes. Ordinary XAUUSD conversation (kind === 'conversation') streams
     // provider tokens immediately.
     if (
-      (symbol === 'XAUUSD' && (isMastraXauusdCandidate(userText) || hasReportFollowup)) ||
-      (resolvedMode === 'single' && symbol === 'XAUUSD' && priorReport !== null)
+      (executionDecision?.route === 'xauusd-conversation' ||
+        executionDecision?.route === 'xauusd-research') &&
+      ((symbol === 'XAUUSD' && isMastraXauusdCandidate(userText)) ||
+        hasReportFollowup ||
+        (resolvedMode === 'single' && symbol === 'XAUUSD' && priorReport !== null))
     ) {
       const kind = mastraXauusdChatKind(userText, priorReport !== null);
       if (kind === 'conversation') {
@@ -365,7 +394,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // Quick and Standard modes use the bounded shared-packet Mastra mode
     // workflow when the user has explicitly named a supported symbol.
     // Symbol-free prompts in these modes fall through to canonical chat.
-    if ((resolvedMode === 'quick' || resolvedMode === 'standard') && symbol !== null) {
+    if (executionDecision?.route === 'symbol-research' && symbol !== null) {
       if (!isMastraSymbolCandidate(userText)) {
         return errorJson(
           'UNSUPPORTED_RESEARCH_SCOPE',
@@ -395,6 +424,8 @@ export const POST = withAuth<void>(async (req, { user }) => {
       userMessage,
       modelOverride: body.modelOverride ?? null,
       ...(customInstructions ? { customInstructions } : {}),
+      responseStyle,
+      citeSources,
       signal,
     });
   } catch (error) {

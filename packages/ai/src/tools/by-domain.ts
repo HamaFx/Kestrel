@@ -28,8 +28,9 @@
  *   - vision: chart-image analysis plus supporting technical data
  *   - generic: keep all tools (fallback for unclassified messages)
  *
- * Tools listed as 'always' are included in every domain (e.g. set_alert,
- * log_journal, summarize_thread — user-facing actions).
+ * Mutation tools are intentionally excluded here. They are handled only by
+ * the explicit confirmation workflow; canonical Mastra agents apply an
+ * additional read-only allowlist at their composition boundary.
  */
 
 import type { Tool } from 'ai';

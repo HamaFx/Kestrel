@@ -20,7 +20,11 @@ import { RequestContext } from '@mastra/core/request-context';
 
 import { reserveTurnBudget } from '../budget-reservation';
 import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } from '../cost';
-import { resolveMastraModel, type ChatModelResolution } from '../model';
+import {
+  resolveMastraExecutionModel,
+  resolveMastraModel,
+  type ChatModelResolution,
+} from '../model';
 import { telemetryConfig } from '../telemetry';
 import type { ResolveModelEnv } from '../vertex-factory';
 import {
@@ -58,7 +62,8 @@ function resolveBackgroundModel(
   settings: RunMastraBackgroundTextArgs['settings'],
   env: ResolveModelEnv,
 ): ChatModelResolution {
-  return resolveMastraModel({
+  const resolver = resolveMastraExecutionModel as typeof resolveMastraExecutionModel | undefined;
+  return (resolver ?? resolveMastraModel)({
     purpose: 'worker',
     settings,
     env,

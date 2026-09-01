@@ -84,11 +84,11 @@ export function AlertsWidget({ alerts, limit = 5 }: AlertsWidgetProps) {
             >
               <div className="flex min-w-0 flex-col font-mono">
                 <span className="text-fg text-sm font-semibold">{a.rule.symbol}</span>
-                <span className="text-fg-subtle text-xs truncate">{summariseRule(a)}</span>
+                <span className="text-fg-subtle truncate text-xs">{summariseRule(a)}</span>
               </div>
               <span
                 className={cn(
-                  'text-xs shrink-0 rounded-sm px-2 py-0.5 font-bold uppercase',
+                  'shrink-0 rounded-sm px-2 py-0.5 text-xs font-bold uppercase',
                   a.active ? 'bg-success/10 text-success' : 'bg-fg-muted/10 text-fg-muted',
                 )}
               >

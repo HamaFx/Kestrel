@@ -31,6 +31,7 @@ import {
   recoverStaleFullAnalysisRuns,
   requeueFullAnalysisRun,
   touchFullAnalysisRun,
+  updateFullAnalysisProgress,
 } from '../src/mastra-v2/workflows/full-analysis';
 import { DB } from '../src/tokens';
 
@@ -205,6 +206,20 @@ describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
         `SELECT status, error FROM "full_analysis_queue" WHERE run_id = '${runId}'`,
       );
       expect(row.rows[0]).toMatchObject({ status: 'failed' });
+    });
+  });
+
+  it('persists progress and exposes it through the polling view', async () => {
+    await withQueueStorage(async () => {
+      const runId = await enqueueFullAnalysis(INPUT);
+      await claimNextFullAnalysisRun('worker-1');
+      await updateFullAnalysisProgress(runId!, 'worker-1', 'collect-packet');
+      await updateFullAnalysisProgress(runId!, 'worker-1', 'technical');
+      const poll = await getFullAnalysisRun('user-1', runId!);
+      expect(poll?.progress).toEqual([
+        { type: 'data-agent-progress', data: { step: 'collect-packet' } },
+        { type: 'data-agent-progress', data: { step: 'technical' } },
+      ]);
     });
   });
 

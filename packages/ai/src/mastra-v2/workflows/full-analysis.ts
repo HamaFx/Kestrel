@@ -20,6 +20,7 @@ import {
   requeueFullAnalysisQueue,
   requireTenantIdForUser,
   schema,
+  updateFullAnalysisQueueProgress,
   type FullAnalysisQueueRow,
 } from '@kestrel/db';
 import { UserMessagePartsSchema } from '@kestrel/shared';
@@ -229,6 +230,7 @@ async function projectQueueRow(row: FullAnalysisQueueRow): Promise<void> {
       status: toMastraWorkflowStatus(normalizedStatus),
       context: snapshot?.context ?? projectionContext(payload),
       ...(row.result ? { result: row.result } : {}),
+      ...(row.progress ? { progress: row.progress } : {}),
       ...(row.error ? { error: { name: 'FullAnalysisError', message: row.error } } : {}),
       timestamp: Date.now(),
     } as unknown as WorkflowRunState;
@@ -346,7 +348,7 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
 
 export async function claimNextFullAnalysisRun(
   workerRunId: string,
-  ownsTenant?: (userId: string) => boolean,
+  ownsTenant?: (tenantId: string) => boolean,
 ): Promise<FullAnalysisClaim | null> {
   const db = getDb();
   for (;;) {
@@ -405,6 +407,26 @@ export async function claimNextFullAnalysisRun(
     };
     await projectQueueRow({ ...row, payload: claimedPayload });
     return { runId: row.runId, tenantId: row.tenantId, payload: claimedPayload };
+  }
+}
+
+export async function updateFullAnalysisProgress(
+  runId: string,
+  workerRunId: string,
+  step: string,
+): Promise<void> {
+  try {
+    const row = await getFullAnalysisQueueRow(runId, undefined, getDb());
+    const progress = [
+      ...(row?.progress ?? []),
+      { type: 'data-agent-progress', data: { step } },
+    ].slice(-50);
+    await projectQueueRow(
+      await updateFullAnalysisQueueProgress({ runId, workerRunId, progress, db: getDb() }),
+    );
+  } catch (error) {
+    if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
+    throw error;
   }
 }
 
@@ -561,7 +583,7 @@ export async function getFullAnalysisRun(
     return {
       id: row.runId,
       status,
-      progress: [],
+      progress: row.progress ?? [],
       result,
       error,
       createdAt: row.createdAt.toISOString(),
