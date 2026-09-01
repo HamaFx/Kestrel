@@ -24,6 +24,7 @@ import {
   DEFAULT_MAX_DAILY_USD,
   estimateCostUsd,
   reserveTurnBudget,
+  createGenerationLedger,
 } from '@kestrel/ai';
 import {
   runXauusdMastraConversationStream,
@@ -33,6 +34,7 @@ import {
 import { getThread, getUserWithSettings } from '@kestrel/db';
 import { notFound } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
+import type { ExecutionPlan } from '@kestrel/ai/mastra';
 
 import { getServerEnv } from '@/lib/env';
 import { createMastraChatMeta } from '@/lib/mastra-chat-meta';
@@ -50,6 +52,7 @@ export interface RunMastraXauusdConversationStreamInput {
   /** Prevent native memory backfill from duplicating this persisted request. */
   backfillExcludeMessageIdempotencyKey?: string;
   priorReport?: XauusdResearchReport | null;
+  executionPlan?: ExecutionPlan;
 }
 
 export async function runMastraXauusdConversationStreamChat(
@@ -69,6 +72,7 @@ export async function runMastraXauusdConversationStreamChat(
     correlation: { threadId: input.threadId, runId },
   });
   let assistantMessageId = runId;
+  const ledger = createGenerationLedger();
 
   const finalizer = createMastraStreamFinalizer({
     budget,
@@ -102,6 +106,8 @@ export async function runMastraXauusdConversationStreamChat(
         ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
         : {}),
       ...(input.priorReport ? { followup: true, priorReport: input.priorReport } : {}),
+      ...(input.executionPlan ? { executionPlan: input.executionPlan } : {}),
+      ledger,
     });
 
     const messageId = crypto.randomUUID();
@@ -112,11 +118,7 @@ export async function runMastraXauusdConversationStreamChat(
       try {
         yield* stream.text;
         const completed = await stream.completion;
-        observedCost = estimateCostUsd(
-          completed.modelId,
-          completed.stats.inputTokens,
-          completed.stats.outputTokens,
-        );
+        observedCost = ledger.total();
         const meta = createMastraChatMeta({
           runId,
           modelId: completed.modelId,
@@ -126,6 +128,11 @@ export async function runMastraXauusdConversationStreamChat(
           packetId: completed.packet.packetId,
           observedCost,
           report: null,
+          executionOutcome: 'completed',
+          answerOutcome: 'ready',
+          memoryMode: 'native',
+          modelSnapshot: undefined,
+          terminalReason: 'stream-completed',
         });
         const assistantMessage: UIMessage = {
           id: messageId,
@@ -143,11 +150,8 @@ export async function runMastraXauusdConversationStreamChat(
           threadId: input.threadId,
           firstUser: input.prompt,
           firstAssistant: completed.result.text,
-          accounting: {
-            onComplete: (costUsd) => {
-              void costUsd;
-            },
-          },
+          ledger,
+          ledgerId: `title:${runId}`,
         });
         await finalizer.complete(observedCost);
       } catch (error) {

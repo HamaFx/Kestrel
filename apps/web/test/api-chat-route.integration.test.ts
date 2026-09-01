@@ -165,6 +165,34 @@ vi.mock('@/lib/services/api-boundary', () => ({
     bareModelId: 'gemini-3.6-flash',
   }),
   decideMastraExecution: mockDecideMastraExecution,
+  createExecutionPlan: vi.fn(async ({ mode, symbol, modelOverride, userMessage, tenantId }) => {
+    const text = userMessage.parts
+      .filter((part: { type?: string; text?: string }) => part.type === 'text')
+      .map((part: { text?: string }) => part.text ?? '')
+      .join(' ');
+    const plannedSymbol = symbol ?? (/xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : null);
+    return {
+      version: 1,
+      route: mode === 'full' ? 'full-analysis' : plannedSymbol === 'XAUUSD' ? 'xauusd-conversation' : plannedSymbol ? 'symbol-research' : 'canonical-chat',
+      capabilityId: plannedSymbol === 'XAUUSD' ? 'xauusd-conversation' : plannedSymbol ? 'symbol-research' : null,
+      capabilityVersion: 'test',
+      symbol: plannedSymbol,
+      mode,
+      model: modelOverride ? { providerId: 'google', bareModelId: modelOverride.split(':')[1] ?? modelOverride } : null,
+      toolPolicy: { capabilityId: null, tools: [], readOnly: true, requiresConfirmation: false },
+      evidencePolicy: { required: Boolean(plannedSymbol), externalData: Boolean(plannedSymbol), contentTrust: plannedSymbol ? 'untrusted' : null },
+      memoryPolicy: { mode: 'native', required: true, scope: 'user-thread' },
+      maxSteps: 6,
+      maxDurationMs: 55_000,
+      streaming: !plannedSymbol && mode !== 'full',
+      mutationRequested: false,
+      tenantId: tenantId ?? null,
+      xauusdChatKind: plannedSymbol === 'XAUUSD' ? 'research' : null,
+      reportFollowup: false,
+      symbolCandidate: Boolean(plannedSymbol),
+      xauusdCandidate: plannedSymbol === 'XAUUSD',
+    };
+  }),
   withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<Response>) => fn(),
   withRateLimit: mockWithRateLimit,
   UserMessagePartsSchema: z.array(z.unknown()).transform((parts) => parts),
@@ -211,9 +239,9 @@ describe('POST /api/chat Mastra boundary', () => {
       async ({ mode, symbol }: { mode: string; symbol: string | null }) => ({
         route:
           mode === 'full'
-            ? 'full-analysis-queue'
+            ? 'full-analysis'
             : symbol === 'XAUUSD'
-              ? 'xauusd-research'
+              ? 'xauusd-conversation'
               : mode === 'quick' || mode === 'standard'
                 ? 'symbol-research'
                 : 'canonical-chat',

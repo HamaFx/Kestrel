@@ -34,6 +34,12 @@ export const MASTRA_STREAM_TERMINAL_STATUSES = [
 
 export type MastraStreamTerminalStatus = (typeof MASTRA_STREAM_TERMINAL_STATUSES)[number];
 
+export interface MastraStreamTerminalMetadata {
+  executionOutcome: 'completed' | 'failed' | 'cancelled';
+  answerOutcome: 'ready' | 'blocked' | 'degraded' | 'partial';
+  terminalReason?: string;
+}
+
 export function isMastraStreamTerminalStatus(value: string): value is MastraStreamTerminalStatus {
   return (MASTRA_STREAM_TERMINAL_STATUSES as readonly string[]).includes(value);
 }

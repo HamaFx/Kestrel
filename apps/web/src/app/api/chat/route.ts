@@ -30,7 +30,7 @@ import {
   AnalysisQueuedEventSchema,
   BudgetExceededError,
   classifyMutationRequest,
-  decideMastraExecution,
+  createExecutionPlan,
   enqueueFullAnalysis,
   extractUserMessageText,
   getThread,
@@ -49,23 +49,12 @@ import {
 import { runMastraCanonicalChatStreamService } from '@/lib/services/mastra-canonical-chat-stream';
 import { runMastraXauusdChat } from '@/lib/services/mastra-chat';
 import { mastraChatResponse } from '@/lib/services/mastra-chat-response';
-import {
-  extractMastraSymbol,
-  isInjectionAttempt,
-  isMastraSymbolCandidate,
-  isMastraXauusdCandidate,
-  isMastraXauusdFollowupCandidate,
-  isMutationIntent,
-  mastraXauusdChatKind,
-} from '@/lib/services/mastra-chat-routing';
+import { isInjectionAttempt, isMutationIntent } from '@/lib/services/mastra-chat-routing';
 import { runMastraXauusdConversationStreamChat } from '@/lib/services/mastra-chat-stream';
 import { runMastraModeChat } from '@/lib/services/mastra-mode';
 import { mastraModeResponse } from '@/lib/services/mastra-mode-response';
 import { startMutationDraft } from '@/lib/services/mastra-mutation-draft';
-import {
-  extractLatestMastraReport,
-  mayReferToMastraReport,
-} from '@/lib/services/mastra-report-context';
+import { extractLatestMastraReport } from '@/lib/services/mastra-report-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -193,23 +182,26 @@ export const POST = withAuth<void>(async (req, { user }) => {
   const analysisMode = body.analysisMode ?? 'single';
   const userMessage = { ...last, parts: userParts.data } as UIMessage;
   const userText = extractUserMessageText(userMessage);
-  const priorReport = mayReferToMastraReport(userText)
-    ? extractLatestMastraReport(await listMessages(user.userId, body.threadId, 100))
-    : null;
   const resolvedMode = resolveMode(analysisMode, userText);
   // Build one auditable policy/model decision at the boundary. Existing
   // route-specific services remain responsible for persistence and streaming;
   // this decision is used for parity validation and future migration.
   const { settings: userSettings } = await getUserWithSettings(user.userId);
-  const executionDecision = userSettings
-    ? await decideMastraExecution({
+  const provisionalReport =
+    /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(userText) &&
+    !/\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i.test(userText)
+      ? await listMessages(user.userId, body.threadId, 100)
+      : [];
+  const priorReportAvailable = extractLatestMastraReport(provisionalReport) !== null;
+  const executionPlan = userSettings
+    ? await createExecutionPlan({
         userMessage,
         mode: resolvedMode,
         modelOverride: body.modelOverride ?? null,
         settings: userSettings,
         env: serverEnv,
-        symbol: extractMastraSymbol(userText),
-        mutationRequested: false,
+        tenantId: user.userId,
+        priorReportAvailable,
       })
     : null;
 
@@ -278,7 +270,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // run (pending snapshot) and the worker claims it. Explicit model
     // overrides are not yet serializable on the run payload, so reject them
     // clearly instead of silently selecting another model.
-    if (executionDecision?.route === 'full-analysis-queue') {
+    if (executionPlan?.route === 'full-analysis') {
       const settings = userSettings;
       if (!settings) {
         return errorJson('ONBOARDING_REQUIRED', 'User settings not found.', 409);
@@ -310,6 +302,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
                 providerId: resolvedModel.providerId,
                 bareModelId: resolvedModel.bareModelId,
               },
+              executionPlan: executionPlan ?? undefined,
             });
             if (!runId) {
               log.error({ threadId: body.threadId }, 'Full-analysis queue enqueue failed');
@@ -336,8 +329,10 @@ export const POST = withAuth<void>(async (req, { user }) => {
 
     const timeout = AbortSignal.timeout(ROUTE_TIMEOUT_MS);
     const signal = req.signal ? AbortSignal.any([req.signal, timeout]) : timeout;
-    const symbol = extractMastraSymbol(userText);
-    const hasReportFollowup = priorReport !== null && isMastraXauusdFollowupCandidate(userText);
+    const symbol = executionPlan?.symbol ?? null;
+    const priorReport = executionPlan?.reportFollowup
+      ? extractLatestMastraReport(provisionalReport)
+      : null;
 
     // Deep XAUUSD analysis and verified-report follow-ups retain their
     // specialized packet/report verifier. This path is always preferred over
@@ -347,15 +342,13 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // completes. Ordinary XAUUSD conversation (kind === 'conversation') streams
     // provider tokens immediately.
     if (
-      (executionDecision?.route === 'xauusd-conversation' ||
-        executionDecision?.route === 'xauusd-research') &&
-      ((symbol === 'XAUUSD' && isMastraXauusdCandidate(userText)) ||
-        hasReportFollowup ||
-        (resolvedMode === 'single' && symbol === 'XAUUSD' && priorReport !== null))
+      executionPlan?.route === 'xauusd-conversation' ||
+      executionPlan?.route === 'xauusd-research'
     ) {
-      const kind = mastraXauusdChatKind(userText, priorReport !== null);
+      const kind = executionPlan.xauusdChatKind ?? 'research';
       if (kind === 'conversation') {
         return runMastraXauusdConversationStreamChat({
+          executionPlan: executionPlan ?? undefined,
           userId: user.userId,
           threadId: body.threadId,
           userMessage,
@@ -367,6 +360,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         });
       }
       const run = await runMastraXauusdChat({
+        executionPlan: executionPlan ?? undefined,
         userId: user.userId,
         threadId: body.threadId,
         userMessage,
@@ -394,21 +388,15 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // Quick and Standard modes use the bounded shared-packet Mastra mode
     // workflow when the user has explicitly named a supported symbol.
     // Symbol-free prompts in these modes fall through to canonical chat.
-    if (executionDecision?.route === 'symbol-research' && symbol !== null) {
-      if (!isMastraSymbolCandidate(userText)) {
-        return errorJson(
-          'UNSUPPORTED_RESEARCH_SCOPE',
-          'Mastra requires a read-only research request with this symbol.',
-          422,
-        );
-      }
+    if (executionPlan?.route === 'symbol-research' && symbol !== null) {
       const run = await runMastraModeChat({
+        executionPlan: executionPlan ?? undefined,
         userId: user.userId,
         threadId: body.threadId,
         userMessage,
         prompt: userText,
         symbol,
-        mode: resolvedMode === 'quick' || resolvedMode === 'standard' ? resolvedMode : 'single',
+        mode: executionPlan.mode === 'quick' || executionPlan.mode === 'standard' ? executionPlan.mode : 'single',
         modelOverride: body.modelOverride ?? null,
         signal,
         backfillExcludeMessageIdempotencyKey: `mastra-mode:${body.threadId}:${userMessage.id}:user`,
@@ -419,6 +407,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     // Ordinary symbol-free conversation is handled by the streaming canonical
     // Mastra agent, which owns the reviewed read-only Kestrel tool allowlist.
     return runMastraCanonicalChatStreamService({
+      executionPlan: executionPlan ?? undefined,
       userId: user.userId,
       threadId: body.threadId,
       userMessage,

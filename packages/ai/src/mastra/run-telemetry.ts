@@ -25,7 +25,7 @@ import { getKestrelMastra } from '../mastra-v2/instance';
 import { flushMastraObservability } from '../mastra-v2/telemetry';
 import { recordTelemetry } from '../persistence';
 import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';
-import type { MastraRunOutcome } from './stats';
+import type { MastraAnswerOutcome, MastraRunOutcome } from './stats';
 
 const mlog = createCategorizedLogger('ai', {
   component: 'mastra-xauusd-run',
@@ -57,6 +57,12 @@ export interface MastraRunObservation {
   toolCalls: number;
   steps: number;
   outcome: MastraRunOutcome;
+  /** Whether an answer was ready, blocked by evidence, or degraded. */
+  answerOutcome?: MastraAnswerOutcome;
+  /** Memory execution mode used by this run. */
+  memoryMode?: 'native' | 'explicit-history' | 'disabled';
+  /** Immutable resolved model identity used for this run. */
+  modelSnapshot?: { providerId: string; bareModelId: string };
   /** Identifies the run type for telemetry breakdown. */
   telemetryKind?:
     | 'mastra_xauusd_poc'
@@ -103,6 +109,9 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
   const status = args.outcome === 'success' ? 'completed' : 'failed';
   completeStep('mastra_xauusd_run', status, durationMs, {
     outcome: args.outcome,
+    answerOutcome: args.answerOutcome,
+    memoryMode: args.memoryMode,
+    modelSnapshot: args.modelSnapshot,
     model: args.model,
     providerId: args.providerId,
     toolCalls: args.toolCalls,
@@ -130,6 +139,7 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
         model: args.model,
         providerId: args.providerId,
         outcome: args.outcome,
+        answerOutcome: args.answerOutcome,
       },
       'ai',
     );

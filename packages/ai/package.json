@@ -123,6 +123,10 @@
     "./mastra": {
       "types": "./dist/mastra/index.d.ts",
       "import": "./dist/mastra/index.js"
+    },
+    "./mastra/routing-policy": {
+      "types": "./dist/mastra/routing-policy.d.ts",
+      "import": "./dist/mastra/routing-policy.js"
     }
   },
   "scripts": {

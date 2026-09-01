@@ -54,6 +54,11 @@ export function mastraChatResponse(input: MastraChatResponseInput): Response {
     packetId: input.packetId,
     observedCost: input.observedCost,
     report: input.report,
+    executionOutcome: 'completed',
+    answerOutcome: input.report ? 'ready' : 'blocked',
+    terminalReason: 'buffered-completed',
+    memoryMode: 'native',
+    modelSnapshot: { providerId: input.providerId, bareModelId: input.modelId },
   });
   const events = [
     { type: 'text-start', id: input.messageId },

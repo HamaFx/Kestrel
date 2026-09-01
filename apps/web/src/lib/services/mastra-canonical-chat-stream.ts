@@ -25,12 +25,14 @@ import {
   estimateCostUsd,
   extractUserMessageText,
   reserveTurnBudget,
+  createGenerationLedger,
 } from '@kestrel/ai';
 import {
   runMastraCanonicalChatStream,
   type MastraCanonicalChatStream,
   type RunMastraCanonicalChatArgs,
   type SemanticRoutingAccounting,
+  type ExecutionPlan,
 } from '@kestrel/ai/mastra';
 import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
@@ -50,6 +52,7 @@ export interface RunMastraCanonicalChatStreamInput {
   citeSources?: boolean;
   modelOverride?: string | null;
   signal?: AbortSignal;
+  executionPlan?: ExecutionPlan;
 }
 
 export async function runMastraCanonicalChatStreamService(
@@ -60,6 +63,7 @@ export async function runMastraCanonicalChatStreamService(
 
   const env = getServerEnv();
   const runId = crypto.randomUUID();
+  const ledger = createGenerationLedger();
   let auxiliaryCostUsd = 0;
   const budget = await reserveTurnBudget({
     userId: input.userId,
@@ -115,6 +119,8 @@ export async function runMastraCanonicalChatStreamService(
       ...(input.signal ? { signal: input.signal } : {}),
       backfillExcludeMessageIdempotencyKey: currentUserKey,
       runId,
+      executionPlan: input.executionPlan,
+      ledger,
       auxiliaryAccounting: {
         onComplete: async ({
           modelId,
@@ -126,10 +132,8 @@ export async function runMastraCanonicalChatStreamService(
             Math.ceil(inputChars / 4),
             Math.ceil(outputChars / 4),
           );
-          // The parent reservation remains authoritative; the final primary
-          // run reconciliation includes auxiliary work through this child
-          // accumulator.
-          auxiliaryCostUsd += auxiliaryCost;
+          ledger.recordCost(`semantic-routing:${runId}`, 'semantic-routing', auxiliaryCost);
+          auxiliaryCostUsd = ledger.total();
         },
       },
     };
@@ -143,12 +147,7 @@ export async function runMastraCanonicalChatStreamService(
       try {
         yield* stream.text;
         const completed = await stream.completion;
-        const observedCost =
-          estimateCostUsd(
-            completed.modelId,
-            completed.stats.inputTokens,
-            completed.stats.outputTokens,
-          ) + auxiliaryCostUsd;
+        const observedCost = ledger.total();
         const assistantMessage: UIMessage = {
           id: messageId,
           role: 'assistant',
@@ -167,6 +166,11 @@ export async function runMastraCanonicalChatStreamService(
                 totalLatencyMs: completed.totalLatencyMs,
                 toolNames: completed.toolNames,
                 evidence: completed.evidence,
+                executionOutcome: 'completed',
+                answerOutcome: completed.answerOutcome,
+                memoryMode: completed.memoryMode,
+                modelSnapshot: completed.modelSnapshot,
+                terminalReason: 'stream-completed',
               },
             } as UIMessage['parts'][number],
           ],
@@ -185,11 +189,8 @@ export async function runMastraCanonicalChatStreamService(
           threadId: input.threadId,
           firstUser: extractUserMessageText(input.userMessage),
           firstAssistant: completed.text,
-          accounting: {
-            onComplete: (costUsd) => {
-              auxiliaryCostUsd += costUsd;
-            },
-          },
+          ledger,
+          ledgerId: `title:${runId}`,
         });
         await finalizer.complete(observedCost);
       } catch (error) {
@@ -206,7 +207,7 @@ export async function runMastraCanonicalChatStreamService(
         terminalStatus = 'interrupted';
         await finalizer.abort();
       },
-      onComplete: () => terminalStatus,
+      onComplete: () => terminalStatus === 'persisted' ? 'persisted' : terminalStatus,
     });
   } catch (error) {
     if (input.signal?.aborted) await finalizer.abort();

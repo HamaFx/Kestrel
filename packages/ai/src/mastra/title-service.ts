@@ -27,6 +27,7 @@ import { getUserWithSettings } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { deriveTitleModel, type ResolveModelEnv } from '../model';
+import type { GenerationLedger } from '../generation-ledger';
 import { getThread, updateThreadTitle } from '../persistence';
 import { generateThreadTitle } from './title';
 
@@ -44,6 +45,8 @@ export interface MaybeGenerateThreadTitleArgs {
   accounting?: {
     onComplete?: (costUsd: number) => void | Promise<void>;
   };
+  ledger?: GenerationLedger;
+  ledgerId?: string;
 }
 
 export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArgs): Promise<void> {
@@ -73,6 +76,8 @@ export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArg
       titleModelId,
       env,
       ...(args.accounting ? { accounting: args.accounting } : {}),
+      ...(args.ledger ? { ledger: args.ledger } : {}),
+      ...(args.ledgerId ? { ledgerId: args.ledgerId } : {}),
     });
     await updateThreadTitle(userId, threadId, result.title, result.source);
     tilog.debug(

@@ -28,6 +28,9 @@ import {
   resolveMastraModel,
   resumeTurnBudget,
   withDiagnostics,
+  createExecutionLifecycle,
+  createGenerationLedger,
+  restoreGenerationLedger,
   type BudgetHandle,
 } from '@kestrel/ai';
 import {
@@ -37,6 +40,7 @@ import {
   failFullAnalysisRun,
   FULL_ANALYSIS_WORKFLOW_ID,
   FullAnalysisLeaseLostError,
+  FullAnalysisHeartbeatError,
   isSafeSymbolResearchPrompt,
   maybeGenerateThreadTitle,
   purgeOldFullAnalysisRuns,
@@ -46,6 +50,7 @@ import {
   touchFullAnalysisRun,
   updateFullAnalysisProgress,
   type FullAnalysisPayload,
+  parseExecutionPlan,
 } from '@kestrel/ai/mastra';
 import { schema } from '@kestrel/db';
 import { pickAiEnv } from '@kestrel/shared';
@@ -54,6 +59,7 @@ import type { UIMessage } from 'ai';
 import { and, eq } from 'drizzle-orm';
 
 import type { JobContext, JobResult } from './types.js';
+import { createFullAnalysisCoordinator } from './full-analysis-coordinator.js';
 
 const MAX_JOBS_PER_RUN = 3;
 const STALE_JOB_TIMEOUT_MS = 5 * 60 * 1000;
@@ -167,8 +173,12 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         if (error instanceof FullAnalysisLeaseLostError) {
           leaseLost = true;
           leaseAbort.abort(error);
+          ctx.log.error('Full-analysis lease ownership lost', { err: String(error) });
+        } else if (error instanceof FullAnalysisHeartbeatError) {
+          ctx.log.warn('Full-analysis heartbeat infrastructure failure', { err: String(error) });
+        } else {
+          ctx.log.warn('Full-analysis heartbeat failed', { err: String(error) });
         }
-        ctx.log.warn('Full-analysis lease heartbeat failed', { err: String(error) });
       });
     }, HEARTBEAT_MS);
     leaseHeartbeat.unref();
@@ -177,7 +187,11 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
       let budget: BudgetHandle | null = null;
       let modeResult: Awaited<ReturnType<typeof runMastraMode>> | null = null;
       let observedCost = 0;
-      let childCostUsd = 0;
+      let lifecycle: ReturnType<typeof createExecutionLifecycle> | null = null;
+      let coordinator: ReturnType<typeof createFullAnalysisCoordinator> | null = null;
+      const ledger = payload.ledgerSnapshot
+        ? restoreGenerationLedger(payload.ledgerSnapshot)
+        : createGenerationLedger();
       try {
         const [[userSettings]] = await Promise.all([
           db
@@ -198,6 +212,9 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         }
 
         const userMessage = userMessageFromPayload(payload);
+        const executionPlan = payload.executionPlan
+          ? parseExecutionPlan(payload.executionPlan)
+          : undefined;
         const userText = payload.userMessageText;
         const symbol = extractSymbolFromPrompt(userText, userSettings.defaultSymbol ?? 'XAUUSD');
         if (!symbol || !isSafeSymbolResearchPrompt(userText)) {
@@ -237,6 +254,17 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
             throw new FullAnalysisBudgetAdmissionError(error);
           }
         }
+        lifecycle = createExecutionLifecycle(budget);
+        coordinator = createFullAnalysisCoordinator({
+          budget,
+          transitions: {
+            complete: (result) => completeFullAnalysisRun(runId, workerRunId, result),
+            fail: (error) => failFullAnalysisRun(runId, workerRunId, error),
+            requeue: (message) => requeueFullAnalysisRun(runId, workerRunId, message),
+          },
+          isLeaseLost: () => leaseLost,
+          isCancelled: () => ctx.signal.aborted || leaseAbort.signal.aborted,
+        });
 
         await appendUserMessage(payload.userId, payload.threadId, userMessage, {
           idempotencyKey: `analysis-job:${runId}:user`,
@@ -260,10 +288,9 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
               signal: AbortSignal.any([ctx.signal, leaseAbort.signal]),
               backfillExcludeMessageIdempotencyKey: `analysis-job:${runId}:user`,
               telemetryKind: 'mastra_full_job',
+              executionPlan,
+              ledger,
               resumeExisting: true,
-              onChildCost: (costUsd) => {
-                childCostUsd += costUsd;
-              },
               onProgress: async (step) => {
                 ctx.log.info('Full-analysis workflow progress', { runId, step });
                 await updateFullAnalysisProgress(runId, workerRunId, step);
@@ -275,7 +302,10 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
             jobId: runId,
           },
         );
-        observedCost = modeResult.totalCostUsd + childCostUsd;
+        // The workflow stats already include every specialist and fusion
+        // generation. Do not add child costs a second time.
+        observedCost = ledger.total();
+        coordinator?.markResult(observedCost);
 
         await touchFullAnalysisRun(runId, workerRunId);
         if (leaseLost) throw new FullAnalysisLeaseLostError();
@@ -289,6 +319,11 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
               type: 'data-multi-agent-meta',
               data: {
                 engine: 'mastra',
+                executionOutcome: 'completed',
+                answerOutcome: modeResult.answerOutcome,
+                memoryMode: modeResult.memoryMode,
+                modelSnapshot: modeResult.modelSnapshot,
+                terminalReason: 'worker-completed',
                 mode: modeResult.mode,
                 symbol: modeResult.symbol,
                 packetId: modeResult.packet.packetId,
@@ -313,18 +348,19 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           firstUser: userText,
           firstAssistant: modeResult.finalText,
           env,
+          ledger,
+          ledgerId: `title:${runId}`,
         });
 
-        await completeFullAnalysisRun(runId, workerRunId, {
+        await coordinator!.complete({
           finalText: modeResult.finalText,
           agentOpinions: modeResult.agentOpinions,
           mode: modeResult.mode,
-          totalCostUsd: modeResult.totalCostUsd,
+          totalCostUsd: observedCost,
+          ledgerSnapshot: ledger.snapshot(),
           totalLatencyMs: modeResult.totalLatencyMs,
           messageId: persistedAssistant.messageId,
         });
-
-        await budget.reconcile(observedCost);
         budget = null;
         processed++;
         ctx.log.info('Full analysis job completed', {
@@ -334,9 +370,10 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           latencyMs: modeResult.totalLatencyMs,
         });
       } catch (error) {
-        if (budget) {
-          if (modeResult) await budget.reconcile(observedCost);
-          else await budget.release();
+        if (budget && lifecycle) {
+          if (coordinator) await coordinator.settleOnError(error);
+          // Lease loss is deliberately not settled here. The reservation and
+          // queue ownership belong to the surviving/requeued attempt.
           budget = null;
         }
         throw error;

@@ -24,6 +24,21 @@ export * from './mastra/telemetry-startup';
 export { isMastraTelemetryDegraded, resetMastraTelemetryHealth } from './mastra/telemetry';
 
 export { reserveTurnBudget, resumeTurnBudget, type BudgetHandle } from './budget-reservation';
+export {
+  createExecutionLifecycle,
+  terminalMetadata,
+  type ExecutionTerminalState,
+  type ExecutionAnswerOutcome,
+  type ExecutionTerminalMetadata,
+} from './execution-lifecycle';
+export {
+  createGenerationLedger,
+  restoreGenerationLedger,
+  type GenerationKind,
+  type GenerationLedger,
+  type GenerationLedgerEntry,
+  type GenerationLedgerSnapshot,
+} from './generation-ledger';
 export { toolRegistry, type ToolRegistry } from './tools';
 export {
   getThreadStateHandler,
@@ -344,6 +359,18 @@ export {
   isCircuitOpen,
   _resetCircuits,
 } from './model-circuit-breaker';
+
+// Phase 2 — one serializable Mastra execution plan.
+export {
+  createExecutionPlan,
+  parseExecutionPlan,
+  serializeExecutionPlan,
+  resolvedModelSnapshotForPlan,
+  assertExecutionPlanRoute,
+  ExecutionPlanSchema,
+  type ExecutionPlan,
+  type CreateExecutionPlanInput,
+} from './mastra/execution-plan';
 
 // Canonical Mastra execution decision facade.
 export {

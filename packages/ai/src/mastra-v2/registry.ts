@@ -65,6 +65,7 @@ export const MASTRA_COMPONENT_REGISTRY: Record<MastraCapabilityId, MastraCompone
   'xauusd-conversation': { kind: 'agent', key: 'xauusdConversation', phase: 4 },
   'symbol-research': { kind: 'workflow', key: 'symbolResearch', phase: 2 },
   'mutation-workflows': { kind: 'workflow', key: 'mutationWorkflows', phase: 7 },
+  'sensitive-user-read': { kind: 'agent', key: 'sensitiveUserRead', phase: 4 },
 };
 
 export type MastraCapabilityRegistrationId = keyof typeof MASTRA_COMPONENT_REGISTRY;

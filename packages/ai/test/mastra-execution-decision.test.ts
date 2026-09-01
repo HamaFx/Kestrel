@@ -48,6 +48,22 @@ describe('Mastra execution decision facade', () => {
     expect(decision.modelPurpose).toBe('worker');
   });
 
+  it('classifies mutation before selecting a research route', async () => {
+    const decision = await decideMastraExecution({
+      userMessage: message('Please place a trade and set an alert'),
+      symbol: 'XAUUSD',
+      mode: 'standard',
+      settings,
+      env,
+    });
+
+    expect(decision.route).toBe('mutation');
+    expect(decision.capability).toMatchObject({
+      allowed: false,
+      capability: { id: 'mutation-workflows' },
+    });
+  });
+
   it('keeps domain tool lists read-only', () => {
     expect(readOnlyToolsForRoutingDomain('technical')).not.toContain('set_alert');
     expect(readOnlyToolsForRoutingDomain('fundamental')).not.toContain('log_journal');

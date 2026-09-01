@@ -111,6 +111,26 @@ describe('mastraStreamResponse onAbort', () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
+  it('does not invoke completion twice when abort races with persistence failure', async () => {
+    const onComplete = vi.fn().mockReturnValue('persistence-failed');
+    const onAbort = vi.fn().mockResolvedValue(undefined);
+    async function* text(): AsyncIterable<string> {
+      yield 'hello';
+      throw new Error('persistence unavailable');
+    }
+    const response = mastraStreamResponse(text(), 'msg-race', {
+      onComplete,
+      onAbort,
+    });
+    const reader = response.body!.getReader();
+    for (;;) {
+      const { done } = await reader.read();
+      if (done) break;
+    }
+    expect(onComplete).toHaveBeenCalledOnce();
+    expect(onAbort).toHaveBeenCalledOnce();
+  });
+
   it('emits persistence-failed when completion reports a persistence failure', async () => {
     async function* text(): AsyncIterable<string> {
       yield 'hello';

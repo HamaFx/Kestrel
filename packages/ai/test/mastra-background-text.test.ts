@@ -124,6 +124,28 @@ describe('runMastraBackgroundText', () => {
     expect(result.costUsd).toBe(0.004);
   });
 
+  it('records background usage in a supplied ledger exactly once', async () => {
+    const ledger = {
+      record: vi.fn(() => true),
+      recordCost: vi.fn(() => true),
+      recordUsage: vi.fn(() => true),
+      snapshot: vi.fn(() => ({ entries: [], totalCostUsd: 0.004 })),
+      total: vi.fn(() => 0.004),
+    };
+    await runMastraBackgroundText({
+      userId: 'user-1',
+      threadId: 'thread-1',
+      task: 'briefing',
+      prompt: 'Write a briefing',
+      system: 'Use only supplied facts.',
+      settings,
+      env,
+      ledger,
+      ledgerId: 'background:run-1',
+    });
+    expect(ledger.recordCost).toHaveBeenCalledWith('background:run-1', 'auxiliary', 0.004);
+  });
+
   it('releases the reservation when the provider fails', async () => {
     const error = new Error('provider unavailable');
     mocks.generate.mockRejectedValue(error);

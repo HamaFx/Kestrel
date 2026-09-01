@@ -32,6 +32,8 @@ import type { AgentMemoryOption } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 
 import { estimateCostUsd } from '../cost';
+import { createGenerationLedger } from '../generation-ledger';
+import { assertExecutionPlanRoute, type ExecutionPlan } from './execution-plan';
 import { prepareKestrelMemory } from '../mastra-v2/context';
 import { buildResearchScorers } from '../mastra-v2/evals/scorers';
 import { buildResearchGuardrails } from '../mastra-v2/guardrails';
@@ -108,6 +110,8 @@ export interface RunMastraModeArgs {
   onChildCost?: (costUsd: number) => void | Promise<void>;
   /** Progress sink for durable workflow status projection. */
   onProgress?: (step: string) => void | Promise<void>;
+  executionPlan?: ExecutionPlan | undefined;
+  ledger?: import('../generation-ledger').GenerationLedger;
 }
 
 export interface MastraModeResult {
@@ -121,6 +125,12 @@ export interface MastraModeResult {
   stats: MastraGenerationStats;
   totalCostUsd: number;
   totalLatencyMs: number;
+  answerOutcome: 'ready' | 'blocked' | 'degraded';
+  memoryMode: 'native';
+  modelSnapshot: {
+    providerId: string;
+    bareModelId: string;
+  };
   messageId?: string;
 }
 
@@ -175,7 +185,9 @@ function failedAgentsFromRun(
 }
 
 export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraModeResult> {
+  if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'symbol-research');
   const startedAt = Date.now();
+  const generationLedger = args.ledger ?? createGenerationLedger();
   const resolution = resolveMastraModeModel(args.settings, args.env, args.modelOverride);
   beginMastraRun({
     runId: args.runId,
@@ -241,8 +253,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         inputProcessors: guardrails as never,
         scorers: researchScorers as never,
         ...(args.signal ? { signal: args.signal } : {}),
-        ...(args.onChildCost ? { onChildCost: args.onChildCost } : {}),
         ...(args.onProgress ? { onProgress: args.onProgress } : {}),
+        ledger: generationLedger,
         mastra: getKestrelMastra().instance,
       },
       args.mode,
@@ -358,6 +370,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       opinions: MastraModeOpinion[];
       packet: SymbolResearchPacket;
       stats: MastraGenerationStats;
+      totalCostUsd?: number;
     };
 
     if (output.status === 'blocked' || !output.finalText) {
@@ -387,14 +400,20 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         stats,
         totalCostUsd: 0,
         totalLatencyMs: Date.now() - startedAt,
+        answerOutcome: 'blocked',
+        memoryMode: 'native',
+        modelSnapshot: {
+          providerId: resolution.providerId,
+          bareModelId: resolution.bareModelId,
+        },
       };
     }
 
-    const totalCostUsd = estimateCostUsd(
-      resolution.modelId,
-      output.stats.inputTokens,
-      output.stats.outputTokens,
-    );
+    const workflowCostUsd = output.totalCostUsd ?? 0;
+    if (generationLedger.total() === 0 && workflowCostUsd > 0) {
+      generationLedger.recordCost(`workflow:${args.runId}`, 'fusion', workflowCostUsd);
+    }
+    const totalCostUsd = generationLedger.total();
     await finishMastraRun({
       userId: args.userId,
       threadId: args.threadId,
@@ -418,6 +437,12 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       stats: output.stats,
       totalCostUsd,
       totalLatencyMs: Date.now() - startedAt,
+      answerOutcome: output.packet.dataQuality === 'complete' ? 'ready' : 'degraded',
+      memoryMode: 'native',
+      modelSnapshot: {
+        providerId: resolution.providerId,
+        bareModelId: resolution.bareModelId,
+      },
     };
   } catch (error) {
     logWorkflowError({

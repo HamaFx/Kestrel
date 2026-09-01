@@ -46,6 +46,7 @@ import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
 import { estimateCostUsd } from '../../cost';
+import { createGenerationLedger } from '../../generation-ledger';
 import { classifyStreamError } from '../../fallback';
 import {
   collectSymbolResearchPacket,
@@ -179,6 +180,7 @@ export const SymbolResearchWorkflowOutputSchema = z.object({
   packet: SymbolResearchPacketSchema,
   stats: StatsSchema,
   failedAgents: z.array(MastraSpecialistNameSchema),
+  totalCostUsd: z.number().nonnegative().default(0),
 });
 
 export interface SymbolResearchWorkflowDeps {
@@ -199,8 +201,9 @@ export interface SymbolResearchWorkflowDeps {
   researchInputProcessors?: Array<InputProcessorOrWorkflow>;
   /** Phase 6 — sampled live scorers for research agents (from `buildResearchScorers`). */
   scorers?: MastraScorers;
-  /** Aggregate child-call cost sink owned by the parent turn. */
+  /** Deprecated compatibility hook. Parent cost is derived from stats exactly once. */
   onChildCost?: (costUsd: number) => void | Promise<void>;
+  ledger?: import('../../generation-ledger').GenerationLedger;
   /** Optional progress sink for durable queue projections. */
   onProgress?: (
     step: MastraSpecialistName | 'collect-packet' | 'verify' | 'fusion',
@@ -311,6 +314,7 @@ export function createSymbolResearchWorkflow(
 ): Workflow {
   const specialists = SPECIALISTS_BY_MODE[mode];
   const strict = mode === 'full';
+  const generationLedger = deps.ledger ?? createGenerationLedger();
 
   const collectPacketStep = createStep({
     id: 'collect-packet',
@@ -318,7 +322,6 @@ export function createSymbolResearchWorkflow(
     outputSchema: CollectPacketOutputSchema,
     execute: async ({ inputData, abortSignal, bail }) => {
       const signal = deps.signal ?? abortSignal;
-      await deps.onProgress?.('collect-packet');
       await deps.onProgress?.('collect-packet');
       const packet = await collectSymbolResearchPacket(inputData.symbol, signal);
       if (packet.status === 'blocked') {
@@ -330,6 +333,7 @@ export function createSymbolResearchWorkflow(
           packet,
           stats: zeroStats(),
           failedAgents: [],
+          totalCostUsd: 0,
         });
       }
       return { packet, prompt: inputData.prompt, mode: inputData.mode };
@@ -349,7 +353,6 @@ export function createSymbolResearchWorkflow(
       // return an explicit failure marker so non-strict modes can continue.
       retries: 1,
       execute: async ({ inputData, requestContext, abortSignal }) => {
-        await deps.onProgress?.(name);
         await deps.onProgress?.(name);
         const startedAt = Date.now();
         const signal = deps.signal ?? abortSignal;
@@ -403,6 +406,7 @@ export function createSymbolResearchWorkflow(
             };
           }
           const costUsd = estimateCostUsd(deps.modelId, stats.inputTokens, stats.outputTokens);
+          generationLedger.recordCost(`specialist:${name}`, 'specialist', costUsd);
           await deps.onChildCost?.(costUsd);
           return {
             ok: true,
@@ -456,7 +460,6 @@ export function createSymbolResearchWorkflow(
     retries: 1,
     execute: async ({ requestContext, getStepResult, abortSignal }) => {
       const signal = deps.signal ?? abortSignal;
-      await deps.onProgress?.('fusion');
       await deps.onProgress?.('fusion');
       const collect = getStepResult('collect-packet') as {
         packet: SymbolResearchPacket;
@@ -528,10 +531,14 @@ export function createSymbolResearchWorkflow(
           ...(signal ? { abortSignal: signal } : {}),
         });
         const fusionStats = getMastraGenerationStats(fusionResult);
-        executionStats.push(fusionStats);
-        await deps.onChildCost?.(
-          estimateCostUsd(deps.modelId, fusionStats.inputTokens, fusionStats.outputTokens),
+        const fusionCostUsd = estimateCostUsd(
+          deps.modelId,
+          fusionStats.inputTokens,
+          fusionStats.outputTokens,
         );
+        generationLedger.recordCost('fusion', 'fusion', fusionCostUsd);
+        await deps.onChildCost?.(fusionCostUsd);
+        executionStats.push(fusionStats);
         finalText = fusionResult.text;
       }
 
@@ -549,6 +556,7 @@ export function createSymbolResearchWorkflow(
         packet,
         stats,
         failedAgents,
+        totalCostUsd: generationLedger.total(),
       };
     },
   });

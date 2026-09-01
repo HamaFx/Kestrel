@@ -19,6 +19,8 @@
 import type { MastraModeResult } from '@kestrel/ai/mastra';
 import { ChatStreamEventSchema } from '@kestrel/shared';
 
+import { terminalMetadata } from '@kestrel/ai';
+
 function encode(event: unknown): string {
   return `data: ${JSON.stringify(ChatStreamEventSchema.parse(event))}\n\n`;
 }
@@ -34,6 +36,7 @@ export function mastraModeResponse(
       type: 'data-multi-agent-meta',
       id: messageId,
       data: {
+        ...terminalMetadata('completed', input.answerOutcome, 'buffered-completed'),
         engine: 'mastra',
         runId: input.runId,
         mode: input.mode,
@@ -43,6 +46,8 @@ export function mastraModeResponse(
         observedCost: input.observedCost,
         totalLatencyMs: input.totalLatencyMs,
         agentOpinions: input.agentOpinions,
+        modelSnapshot: input.modelSnapshot,
+        memoryMode: input.memoryMode,
       },
     },
     { type: 'text-end', id: messageId },

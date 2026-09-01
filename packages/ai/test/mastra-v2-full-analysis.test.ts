@@ -230,6 +230,8 @@ describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
       await expect(touchFullAnalysisRun(runId!, 'worker-2')).rejects.toMatchObject({
         code: 'FULL_ANALYSIS_LEASE_LOST',
       });
+
+      await expect(touchFullAnalysisRun(runId!, 'worker-1')).resolves.toBeUndefined();
       await expect(
         failFullAnalysisRun(runId!, 'worker-1', new Error('model unavailable')),
       ).resolves.toBeUndefined();

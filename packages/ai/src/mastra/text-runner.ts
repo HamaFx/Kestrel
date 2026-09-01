@@ -71,9 +71,10 @@ export interface MastraTextRunArgs {
   threadId?: string;
   runId?: string;
   signal?: AbortSignal;
-  maxOutputTokens?: number;
   /** Genuine Mastra tools; legacy AI SDK tools must be adapted first. */
   tools?: Record<string, unknown>;
+  /** Maximum generated tokens; enforced by the text runner boundary. */
+  maxOutputTokens?: number;
 }
 
 export interface MastraTextRunResult {
