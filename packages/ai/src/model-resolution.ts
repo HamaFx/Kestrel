@@ -19,6 +19,7 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
+import { z } from 'zod';
 
 import { BYOK_PROVIDERS, type ModelDomain } from './byok-providers';
 import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
@@ -33,9 +34,16 @@ export type { ChatModelResolution } from './model-chat';
 
 export type MastraModelPurpose = 'canonical-chat' | 'mode' | 'xauusd' | 'worker';
 
+export const MastraModelSnapshotSchema = z
+  .object({
+    providerId: z.string().min(1),
+    bareModelId: z.string().min(1),
+  })
+  .strict();
+
 export interface MastraModelSnapshot {
-  providerId: string;
-  bareModelId: string;
+  readonly providerId: string;
+  readonly bareModelId: string;
 }
 
 /** Immutable, auditable result shared by every Mastra execution path. */

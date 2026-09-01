@@ -22,6 +22,7 @@ export {
   outputLength,
   type MastraGenerationStats,
   type MastraRunOutcome,
+  type MastraAnswerOutcome,
   type MastraUsageLike,
 } from './stats';
 export {

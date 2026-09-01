@@ -52,6 +52,7 @@ export function getMastraGenerationStats(result: {
 }
 
 export type MastraRunOutcome = 'success' | 'failed' | 'cancelled';
+export type MastraAnswerOutcome = 'ready' | 'blocked' | 'degraded';
 
 export function mastraOutcomeForError(error: unknown, signal?: AbortSignal): MastraRunOutcome {
   if (signal?.aborted) return 'cancelled';

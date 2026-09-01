@@ -23,6 +23,7 @@ import { RequestContext } from '@mastra/core/request-context';
 import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
 import { estimateCostUsd } from '../cost';
+import { createGenerationLedger } from '../generation-ledger';
 import { prepareKestrelMemory } from '../mastra-v2/context';
 import { buildConversationScorers, type BuiltScorers } from '../mastra-v2/evals/scorers';
 import { buildGuardrailInputProcessors } from '../mastra-v2/guardrails';
@@ -35,6 +36,7 @@ import { DB } from '../tokens';
 import { withToolContext, type ToolContext } from '../tool-context';
 import { domainToolFilter } from '../tools/by-domain';
 import { checkCanonicalEvidence } from './canonical-evidence';
+import { assertExecutionPlanRoute, type ExecutionPlan } from './execution-plan';
 import { canonicalReadOnlyToolNames } from './capability-registry';
 import { adaptLegacyReadOnlyTool } from './legacy-tool-adapter';
 import {
@@ -75,6 +77,9 @@ export interface RunMastraCanonicalChatArgs {
   runId?: string;
   /** Optional accounting sink for auxiliary model calls. */
   auxiliaryAccounting?: SemanticRoutingAccounting;
+  /** Phase 2 planner contract. */
+  executionPlan?: ExecutionPlan;
+  ledger?: import('../generation-ledger').GenerationLedger;
 }
 
 export interface MastraCanonicalChatResult {
@@ -87,6 +92,9 @@ export interface MastraCanonicalChatResult {
   totalLatencyMs: number;
   toolNames: string[];
   evidence: ReturnType<typeof checkCanonicalEvidence>;
+  answerOutcome: 'ready' | 'blocked' | 'degraded';
+  memoryMode: 'native';
+  modelSnapshot: { providerId: string; bareModelId: string };
 }
 
 function resolveCanonicalModel(
@@ -171,7 +179,9 @@ interface CanonicalChatSetup {
 }
 
 async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<CanonicalChatSetup> {
+  if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'canonical-chat');
   const runId = args.runId ?? crypto.randomUUID();
+  const generationLedger = args.ledger ?? createGenerationLedger();
   const semanticRouting = resolveSemanticRoutingConfig(args.settings, args.env, args.signal);
   const routing = await routeTurn({
     userMessage: args.userMessage,
@@ -189,6 +199,11 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
                     modelId,
                     Math.ceil(inputChars / 4),
                     Math.ceil(outputChars / 4),
+                  );
+                  generationLedger.recordCost(
+                    `semantic-routing:${runId}`,
+                    'semantic-routing',
+                    estimatedCostUsd,
                   );
                   mlog.debug('semantic routing call accounted', {
                     modelId,
@@ -233,9 +248,9 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     memory = memoryInstance;
     callMemory = prepared.callOptions;
   } catch (error) {
-    mlog.warn('Native Mastra memory unavailable; falling back to explicit history', {
-      error: error instanceof Error ? error.message : String(error),
-    });
+    // Canonical chat uses native memory as part of its approved execution
+    // contract. Do not silently change semantics to explicit-history mode.
+    throw new Error('Native Mastra memory could not be prepared.', { cause: error });
   }
 
   const requestContext = new RequestContext<Record<string, unknown>>([
@@ -308,6 +323,7 @@ export async function runMastraCanonicalChat(
 ): Promise<MastraCanonicalChatResult> {
   const startedAt = Date.now();
   const setup = await setupCanonicalChat(args);
+  const generationLedger = args.ledger ?? createGenerationLedger();
   const {
     runId,
     agent,
@@ -347,7 +363,9 @@ export async function runMastraCanonicalChat(
     const stats = getMastraGenerationStats(result);
     const toolNames = extractToolNames(result.response?.messages);
     const evidence = checkCanonicalEvidence(result.text, toolNames);
-    const totalCostUsd = estimateCostUsd(resolution.modelId, stats.inputTokens, stats.outputTokens);
+    const primaryCostUsd = estimateCostUsd(resolution.modelId, stats.inputTokens, stats.outputTokens);
+    generationLedger.recordCost(`primary:${runId}`, 'primary', primaryCostUsd);
+    const totalCostUsd = generationLedger.total();
     const totalLatencyMs = Date.now() - startedAt;
     await finishMastraRun({
       userId: args.userId,
@@ -358,6 +376,9 @@ export async function runMastraCanonicalChat(
       startedAt,
       ...stats,
       outcome: 'success',
+      answerOutcome: result.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+      memoryMode: 'native',
+      modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
       telemetryKind: 'mastra_canonical_chat',
     });
     return {
@@ -370,6 +391,9 @@ export async function runMastraCanonicalChat(
       totalLatencyMs,
       toolNames,
       evidence,
+      answerOutcome: result.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+      memoryMode: 'native',
+      modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
     };
   } catch (error) {
     await finishMastraRun({
@@ -404,6 +428,9 @@ export interface MastraCanonicalChatStream {
     totalCostUsd: number;
     totalLatencyMs: number;
     evidence: ReturnType<typeof checkCanonicalEvidence>;
+    answerOutcome: 'ready' | 'blocked' | 'degraded';
+    memoryMode: 'native';
+    modelSnapshot: { providerId: string; bareModelId: string };
   }>;
 }
 
@@ -417,6 +444,7 @@ export async function runMastraCanonicalChatStream(
 ): Promise<MastraCanonicalChatStream> {
   const startedAt = Date.now();
   const setup = await setupCanonicalChat(args);
+  const generationLedger = args.ledger ?? createGenerationLedger();
   const {
     runId,
     agent,
@@ -489,11 +517,13 @@ export async function runMastraCanonicalChatStream(
       const stats = getMastraGenerationStats(full);
       const toolNames = extractToolNames(full.response?.messages);
       const evidence = checkCanonicalEvidence(full.text, toolNames);
-      const totalCostUsd = estimateCostUsd(
+      const primaryCostUsd = estimateCostUsd(
         resolution.modelId,
         stats.inputTokens,
         stats.outputTokens,
       );
+      generationLedger.recordCost(`primary:${runId}`, 'primary', primaryCostUsd);
+      const totalCostUsd = generationLedger.total();
       const totalLatencyMs = Date.now() - startedAt;
       await finishRun({
         userId: args.userId,
@@ -506,6 +536,9 @@ export async function runMastraCanonicalChatStream(
         outcome: args.signal?.aborted
           ? mastraOutcomeForError(args.signal.reason, args.signal)
           : 'success',
+        answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+        memoryMode: 'native',
+        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
         telemetryKind: 'mastra_canonical_chat',
       });
       return {
@@ -518,6 +551,9 @@ export async function runMastraCanonicalChatStream(
         routing,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
+        answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+        memoryMode: 'native' as const,
+        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
       };
     } catch (error) {
       await finishRun({

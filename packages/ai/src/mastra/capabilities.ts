@@ -18,7 +18,7 @@ import { ALL_SYMBOLS, type ToolName } from '@kestrel/shared';
 
 export type MastraCapabilityMode = 'single' | 'quick' | 'standard' | 'full' | 'auto';
 export type MastraEvidencePolicy = 'required' | 'optional' | 'none';
-export type MastraCapabilityScope = 'read-only' | 'user-scoped' | 'admin';
+export type MastraCapabilityScope = 'read-only' | 'sensitive-read' | 'user-scoped' | 'admin';
 export type MastraContentTrust = 'trusted' | 'untrusted';
 
 /**
@@ -91,7 +91,7 @@ export const LEGACY_DOMAIN_TOOL_NAMES = {
  * agent. Keep this list here rather than deriving it from the full registry:
  * adding a new tool requires an intentional policy review.
  */
-export const CANONICAL_READ_ONLY_TOOL_NAMES = [
+export const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
   'get_price',
   'get_candles',
   'get_indicators',
@@ -109,14 +109,21 @@ export const CANONICAL_READ_ONLY_TOOL_NAMES = [
   'analyze_technical',
   'analyze_fundamental',
   'compute_risk',
-  'get_journal_stats',
-  'get_portfolio_snapshot',
-  'compute_position_health',
-  'replay_setup',
   'web_search',
   'search_knowledge',
   'verify_call',
 ] as const;
+
+/** Sensitive user-scoped reads require an explicit capability. */
+export const SENSITIVE_USER_READ_TOOL_NAMES = [
+  'get_journal_stats',
+  'get_portfolio_snapshot',
+  'compute_position_health',
+  'replay_setup',
+] as const;
+
+/** Backwards-compatible alias for reviewed public canonical tools. */
+export const CANONICAL_READ_ONLY_TOOL_NAMES = CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES;
 
 export interface MastraCapability {
   readonly id: string;
@@ -200,6 +207,23 @@ export const MASTRA_CAPABILITIES = {
     evidencePolicy: 'required',
     externalData: true,
     contentTrust: 'untrusted',
+  },
+  'sensitive-user-read': {
+    id: 'sensitive-user-read',
+    version: '1',
+    allowedSymbols: ALL_SYMBOLS,
+    allowedModes: ['single', 'quick', 'standard', 'full', 'auto'],
+    scope: 'sensitive-read',
+    readOnly: true,
+    tools: SENSITIVE_USER_READ_TOOL_NAMES,
+    requiresConfirmation: false,
+    supportsStreaming: true,
+    supportsAbort: true,
+    maxSteps: 3,
+    maxDurationMs: 55_000,
+    evidencePolicy: 'optional',
+    externalData: false,
+    contentTrust: 'trusted',
   },
   'mutation-workflows': {
     id: 'mutation-workflows',

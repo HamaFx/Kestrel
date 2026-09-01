@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   estimateCostUsd: vi.fn(),
   listMessages: vi.fn(),
   reserveTurnBudget: vi.fn(),
+  createExecutionLifecycle: vi.fn(),
   getUserWithSettings: vi.fn(),
   getServerEnv: vi.fn(),
   runMastraCanonicalChat: vi.fn(),
@@ -38,6 +39,14 @@ vi.mock('@kestrel/ai', () => ({
   estimateCostUsd: mocks.estimateCostUsd,
   listMessages: mocks.listMessages,
   reserveTurnBudget: mocks.reserveTurnBudget,
+  createExecutionLifecycle: mocks.createExecutionLifecycle,
+  createGenerationLedger: () => ({
+    record: vi.fn(() => true),
+    recordCost: vi.fn(() => true),
+    recordUsage: vi.fn(() => true),
+    snapshot: () => ({ entries: [], totalCostUsd: 0 }),
+    total: () => 0,
+  }),
 }));
 vi.mock('@kestrel/db', () => ({
   getUserWithSettings: mocks.getUserWithSettings,
@@ -95,10 +104,18 @@ describe('canonical Mastra chat service', () => {
       },
     });
     mocks.getServerEnv.mockReturnValue({ MAX_DAILY_USD: 5, MAX_TOOL_ITERATIONS: 6 });
-    mocks.reserveTurnBudget.mockResolvedValue({
+    const budget = {
       reconcile: vi.fn().mockResolvedValue(undefined),
       release: vi.fn().mockResolvedValue(undefined),
-    });
+    };
+    mocks.reserveTurnBudget.mockResolvedValue(budget);
+    mocks.createExecutionLifecycle.mockImplementation((handle: typeof budget) => ({
+      complete: vi.fn((cost: number) => handle.reconcile(cost)),
+      fail: vi.fn(() => handle.release()),
+      cancel: vi.fn(() => handle.release()),
+      settled: false,
+      state: null,
+    }));
     mocks.listMessages.mockResolvedValue([]);
     mocks.estimateCostUsd.mockReturnValue(0.001);
     mocks.runMastraCanonicalChat.mockResolvedValue({
@@ -121,7 +138,8 @@ describe('canonical Mastra chat service', () => {
       input.userId,
       input.threadId,
       input.userMessage,
+      { idempotencyKey: `ui:${input.userMessage.id}` },
     );
-    expect(mocks.appendUserMessage.mock.calls[0]).toHaveLength(3);
+    expect(mocks.appendUserMessage.mock.calls[0]).toHaveLength(4);
   });
 });

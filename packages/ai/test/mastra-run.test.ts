@@ -171,6 +171,15 @@ describe('Mastra BYOK runner', () => {
     });
   });
 
+  it('keeps a resolved model snapshot stable across repeated resolution', () => {
+    const first = resolveXauusdMastraModel(settings, env);
+    const second = resolveXauusdMastraModel(settings, env);
+    expect({ providerId: first.providerId, bareModelId: first.bareModelId }).toEqual({
+      providerId: second.providerId,
+      bareModelId: second.bareModelId,
+    });
+  });
+
   it('uses the same Kestrel resolver and technical tier (fast model, not the user chat model)', () => {
     const resolved = resolveXauusdMastraModel(settings, env);
 

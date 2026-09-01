@@ -19,6 +19,7 @@ import { Agent } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 
 import { reserveTurnBudget } from '../budget-reservation';
+import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
 import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } from '../cost';
 import {
   resolveMastraExecutionModel,
@@ -45,6 +46,8 @@ export interface RunMastraBackgroundTextArgs {
   signal?: AbortSignal;
   /** Conservative reservation for this bounded background generation. */
   estimateUsd?: number;
+  ledger?: GenerationLedger;
+  ledgerId?: string;
 }
 
 export interface MastraBackgroundTextResult {
@@ -116,6 +119,7 @@ export async function runMastraBackgroundText(
       requestContext,
       toolChoice: 'none',
       maxSteps: 1,
+      ...(args.task === 'title' ? { maxOutputTokens: 80 } : { maxOutputTokens: 2_000 }),
       ...telemetryConfig({
         functionId: `mastra.worker.${args.task}`,
         metadata: { task: args.task, provider: resolution.providerId },
@@ -124,6 +128,8 @@ export async function runMastraBackgroundText(
     });
     const stats = getMastraGenerationStats(result);
     const costUsd = estimateCostUsd(resolution.modelId, stats.inputTokens, stats.outputTokens);
+    const ledger = args.ledger ?? createGenerationLedger();
+    ledger.recordCost(args.ledgerId ?? `background:${runId}`, 'auxiliary', costUsd);
     await finishMastraRun({
       userId: args.userId,
       threadId: args.threadId,
@@ -133,6 +139,7 @@ export async function runMastraBackgroundText(
       startedAt,
       ...stats,
       outcome: 'success',
+      answerOutcome: result.text.trim().length > 0 ? 'ready' : 'degraded',
       telemetryKind: 'mastra_worker_task',
     });
     // The helper owns admission for every caller, including cron, bot, and

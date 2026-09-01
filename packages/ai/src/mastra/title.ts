@@ -27,6 +27,7 @@
 import type { LanguageModel } from 'ai';
 
 import { estimateCostUsd } from '../cost';
+import type { GenerationLedger } from '../generation-ledger';
 import { resolveModel, type ResolveModelEnv } from '../model';
 import { runMastraText } from './text-runner';
 
@@ -44,6 +45,8 @@ export interface GenerateThreadTitleArgs {
   accounting?: {
     onComplete?: (costUsd: number) => void | Promise<void>;
   };
+  ledger?: GenerationLedger;
+  ledgerId?: string;
 }
 
 export interface GenerateThreadTitleResult {
@@ -130,10 +133,16 @@ export async function generateThreadTitle(
       ...(args.signal ? { signal: args.signal } : {}),
       maxOutputTokens: 80,
     });
+    const costUsd = estimateCostUsd(args.titleModelId, result.inputTokens, result.outputTokens);
+    args.ledger?.recordCost(
+      args.ledgerId ?? `title:${args.threadId}`,
+      'title',
+      costUsd,
+    );
     await args.accounting?.onComplete?.(
       // Title output is bounded; use the runner's actual token counts for
       // conservative parent-turn reconciliation.
-      estimateCostUsd(args.titleModelId, result.inputTokens, result.outputTokens),
+      costUsd,
     );
     const cleaned = cleanTitleForPersistence(result.text);
     if (cleaned.length === 0) {

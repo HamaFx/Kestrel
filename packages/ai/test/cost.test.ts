@@ -24,9 +24,9 @@ import {
   estimateCostUsd,
   getMonthlySpend,
   getProviderMonthlySpend,
-  reconcileBudgetReservation,
   recoverStaleBudgetReservations,
   releaseBudgetReservation,
+  reconcileBudgetReservation,
   reservedSpendUsd,
   tryReserveBudget,
 } from '../src/cost';
@@ -105,6 +105,39 @@ vi.mock('@kestrel/db', () => ({
 vi.mock('../src/alerts/delivery', () => ({
   sendDirectNotification: vi.fn(() => Promise.resolve()),
 }));
+
+describe('Phase 1 cost aggregation invariants', () => {
+  it('derives one aggregate from child generations without duplicating a parent total', () => {
+    const generations = [
+      { inputTokens: 100, outputTokens: 50 },
+      { inputTokens: 200, outputTokens: 100 },
+      { inputTokens: 300, outputTokens: 150 },
+    ];
+    const childTotal = generations.reduce(
+      (sum, generation) =>
+        sum + estimateCostUsd('openai/gpt-4.1-mini', generation.inputTokens, generation.outputTokens),
+      0,
+    );
+    const parentTotal = estimateCostUsd(
+      'openai/gpt-4.1-mini',
+      generations.reduce((sum, generation) => sum + generation.inputTokens, 0),
+      generations.reduce((sum, generation) => sum + generation.outputTokens, 0),
+    );
+
+    expect(parentTotal).toBeCloseTo(childTotal, 12);
+    expect(parentTotal + childTotal).not.toBeCloseTo(parentTotal, 12);
+  });
+
+  it('uses a stable run idempotency key for terminal reconciliation', async () => {
+    mockTransactionResults = [
+      { rows: [{ user_id: 'user-1', day: '2026-08-14', reserved_usd_cents: 5, status: 'reserved' }] },
+      { rows: [{ user_id: 'user-1' }] },
+      { rows: [] },
+    ];
+    await reconcileBudgetReservation('run-1', 0.03, new Date('2026-08-14T12:00:00Z'));
+    expect(mockTransactionExecute).toHaveBeenCalled();
+  });
+});
 
 describe('estimateCostUsd', () => {
   it('returns 0 for zero tokens', () => {

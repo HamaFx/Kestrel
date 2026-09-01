@@ -19,17 +19,22 @@
 import 'server-only';
 
 import {
-  appendAssistantMessage,
-  appendUserMessage,
   DEFAULT_MAX_DAILY_USD,
   reserveTurnBudget,
+  createGenerationLedger,
 } from '@kestrel/ai';
-import { runMastraMode, type MastraAnalysisMode, type MastraModeResult } from '@kestrel/ai/mastra';
+import {
+  runMastraMode,
+  type ExecutionPlan,
+  type MastraAnalysisMode,
+  type MastraModeResult,
+} from '@kestrel/ai/mastra';
 import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra-thread-title';
+import { runBufferedExecution } from './mastra-chat-service-lifecycle';
 
 export interface RunMastraModeChatInput {
   userId: string;
@@ -42,6 +47,7 @@ export interface RunMastraModeChatInput {
   signal?: AbortSignal;
   /** Prevent native memory backfill from duplicating this persisted request. */
   backfillExcludeMessageIdempotencyKey?: string;
+  executionPlan?: ExecutionPlan;
 }
 
 export async function runMastraModeChat(
@@ -57,14 +63,16 @@ export async function runMastraModeChat(
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
     correlation: { threadId: input.threadId, runId },
   });
-  let result: MastraModeResult | null = null;
-  let childCostUsd = 0;
-
-  try {
-    await appendUserMessage(input.userId, input.threadId, input.userMessage, {
-      idempotencyKey: `mastra-mode:${input.threadId}:${input.userMessage.id}:user`,
-    });
-    result = await runMastraMode({
+  const ledger = createGenerationLedger();
+  const execution = await runBufferedExecution<MastraModeResult>({
+    budget,
+    userId: input.userId,
+    threadId: input.threadId,
+    userMessage: input.userMessage,
+    userMessageIdempotencyKey: `mastra-mode:${input.threadId}:${input.userMessage.id}:user`,
+    assistantMessageIdempotencyKey: `mastra-mode:${input.threadId}:${input.userMessage.id}:assistant`,
+    execute: async () => {
+      const result = await runMastraMode({
       prompt: input.prompt,
       symbol: input.symbol,
       userId: input.userId,
@@ -77,12 +85,11 @@ export async function runMastraModeChat(
       ...(input.signal ? { signal: input.signal } : {}),
       backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey,
       telemetryKind: 'mastra_mode',
-      onChildCost: (costUsd) => {
-        childCostUsd += costUsd;
-      },
-    });
+      executionPlan: input.executionPlan,
+      ledger,
+      });
 
-    const assistantMessage: UIMessage = {
+      const assistantMessage: UIMessage = {
       id: crypto.randomUUID(),
       role: 'assistant',
       parts: [
@@ -98,34 +105,31 @@ export async function runMastraModeChat(
             dataQuality: result.packet.dataQuality,
             totalCostUsd: result.totalCostUsd,
             totalLatencyMs: result.totalLatencyMs,
+            answerOutcome: result.answerOutcome,
+            memoryMode: result.memoryMode,
+            modelSnapshot: result.modelSnapshot,
             agentOpinions: result.agentOpinions,
           },
         } as UIMessage['parts'][number],
       ],
-    };
-    const persisted = await appendAssistantMessage(input.userId, input.threadId, assistantMessage, {
-      idempotencyKey: `mastra-mode:${input.threadId}:${input.userMessage.id}:assistant`,
-    });
+      };
+      return { result, observedCost: result.totalCostUsd, assistantMessage };
+    },
+    buildAssistantMessage: ({ assistantMessage }) => assistantMessage!,
+    isCancelled: () => input.signal?.aborted === true,
+  });
+  const result = execution.result;
+  const persisted = { messageId: execution.messageId };
     void maybeGenerateThreadTitle({
       userId: input.userId,
       threadId: input.threadId,
       firstUser: input.prompt,
       firstAssistant: result.finalText,
-      accounting: {
-        onComplete: (costUsd) => {
-          // The mode workflow has already reconciled its aggregate cost. This
-          // callback is retained for observability and future child-ledger
-          // aggregation without changing the user-facing result.
-          void costUsd;
-        },
-      },
+      ledger,
+      ledgerId: `title:${runId}`,
     });
-    const observedCost = result.totalCostUsd + childCostUsd;
-    await budget.reconcile(observedCost);
-    return { ...result, runId, observedCost, messageId: persisted.messageId };
-  } catch (error) {
-    if (result) await budget.reconcile(result.totalCostUsd);
-    else await budget.release();
-    throw error;
-  }
+  // `runMastraMode` aggregates specialist and fusion generations into
+  // `totalCostUsd`; the shared coordinator settles that aggregate once.
+  const observedCost = execution.observedCost;
+  return { ...result, runId, observedCost, messageId: persisted.messageId };
 }

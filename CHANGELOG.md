@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Completed Phase 1 of the AI/agentic-system cleanup: Mastra model snapshots, explicit answer/memory metadata, mutation-before-routing classification, bounded background generation, heartbeat/lease error separation, duplicate progress removal, and single-counted committee cost aggregation.
 - Historical documentation indexes and audit/plan artifacts were consolidated into the current architecture, validation, and operational guides.
 - Old numbered and review/audit docs were replaced by the current procedural documentation set.
 - Community security and contribution guides were refreshed for the OSS release.

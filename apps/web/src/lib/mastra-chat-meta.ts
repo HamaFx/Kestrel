@@ -19,7 +19,7 @@
 import type { XauusdResearchReport } from '@kestrel/ai/mastra';
 
 export interface MastraChatMeta {
-  agent: 'mastra-xauusd';
+  agent: 'mastra-xauusd' | 'mastra';
   runId: string;
   modelId: string;
   providerId: string;
@@ -28,8 +28,15 @@ export interface MastraChatMeta {
   packetId: string;
   observedCost: number;
   report: XauusdResearchReport | null;
+  executionOutcome: 'completed' | 'failed' | 'cancelled';
+  answerOutcome: 'ready' | 'blocked' | 'degraded' | 'partial';
+  memoryMode: string;
+  modelSnapshot: unknown;
+  terminalReason: string;
 }
 
-export function createMastraChatMeta(input: Omit<MastraChatMeta, 'agent'>): MastraChatMeta {
-  return { agent: 'mastra-xauusd', ...input };
+export function createMastraChatMeta(
+  input: Omit<MastraChatMeta, 'agent'> & { agent?: MastraChatMeta['agent'] },
+): MastraChatMeta {
+  return { agent: input.agent ?? 'mastra-xauusd', ...input };
 }

@@ -34,6 +34,8 @@ const {
   mockResolveMastraModel,
   mockAppendUserMessage,
   mockAppendAssistantMessage,
+  mockCreateExecutionLifecycle,
+  mockCreateGenerationLedger,
 } = vi.hoisted(() => ({
   mockClaimNextFullAnalysisRun: vi.fn(),
   mockCompleteFullAnalysisRun: vi.fn(),
@@ -50,6 +52,34 @@ const {
   mockResolveMastraModel: vi.fn(),
   mockAppendUserMessage: vi.fn(),
   mockAppendAssistantMessage: vi.fn(),
+  mockCreateGenerationLedger: vi.fn(() => ({
+    record: vi.fn(() => true),
+    recordCost: vi.fn(() => true),
+    recordUsage: vi.fn(() => true),
+    snapshot: () => ({ entries: [], totalCostUsd: 0 }),
+    total: () => 0.04,
+  })),
+  mockCreateExecutionLifecycle: vi.fn((budget: { reconcile: (costUsd: number) => Promise<void>; release: () => Promise<void> }) => {
+    let settled = false;
+    let terminal: Promise<void> | null = null;
+    const once = (operation: () => Promise<void>) => {
+      if (terminal) return terminal;
+      settled = true;
+      terminal = operation();
+      return terminal;
+    };
+    return {
+      complete: (costUsd: number) => once(() => budget.reconcile(costUsd)),
+      fail: () => once(() => budget.release()),
+      cancel: () => once(() => budget.release()),
+      get settled() {
+        return settled;
+      },
+      get state() {
+        return settled ? 'completed' : null;
+      },
+    };
+  }),
 }));
 
 const settingsRow = {
@@ -119,6 +149,8 @@ vi.mock('@kestrel/ai', () => ({
   DEFAULT_MAX_DAILY_USD: 5,
   reserveTurnBudget: mockReserveTurnBudget,
   withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<unknown>) => fn(),
+  createExecutionLifecycle: mockCreateExecutionLifecycle,
+  createGenerationLedger: mockCreateGenerationLedger,
 }));
 
 vi.mock('@kestrel/shared', async (importOriginal) => {
@@ -285,6 +317,28 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     expect(mockFailFullAnalysisRun).not.toHaveBeenCalled();
   });
 
+  it('releases the reservation when assistant persistence fails', async () => {
+    const ctx = context();
+    const budget = {
+      reconcile: vi.fn().mockResolvedValue(undefined),
+      release: vi.fn().mockResolvedValue(undefined),
+    };
+    mockReserveTurnBudget.mockResolvedValueOnce(budget);
+    mockAppendAssistantMessage.mockRejectedValueOnce(new Error('assistant persistence unavailable'));
+
+    const result = await runMultiAgentAnalysis(ctx);
+
+    expect(result).toEqual({ processed: 1, note: 'processed=1' });
+    expect(budget.reconcile).toHaveBeenCalledWith(0.04);
+    expect(budget.release).not.toHaveBeenCalled();
+    expect(mockFailFullAnalysisRun).toHaveBeenCalledWith(
+      'run-1',
+      expect.any(String),
+      expect.any(Error),
+    );
+    expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
+  });
+
   it('commits a terminal failure without a partial result for non-retryable errors', async () => {
     const ctx = context();
     mockRunMastraMode.mockRejectedValueOnce(new Error('invalid structured output'));
@@ -299,6 +353,35 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     );
     expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
     expect(mockRequeueFullAnalysisRun).not.toHaveBeenCalled();
+  });
+
+  it('does not settle twice when queue completion transition fails', async () => {
+    const ctx = context();
+    const budget = {
+      reconcile: vi.fn().mockResolvedValue(undefined),
+      release: vi.fn().mockResolvedValue(undefined),
+    };
+    mockReserveTurnBudget.mockResolvedValueOnce(budget);
+    mockCompleteFullAnalysisRun.mockRejectedValueOnce(new Error('queue completion unavailable'));
+
+    const result = await runMultiAgentAnalysis(ctx);
+
+    expect(result).toEqual({ processed: 1, note: 'processed=1' });
+    expect(budget.reconcile).toHaveBeenCalledWith(0.04);
+    expect(budget.reconcile).toHaveBeenCalledOnce();
+    expect(budget.release).not.toHaveBeenCalled();
+    expect(mockFailFullAnalysisRun).toHaveBeenCalledOnce();
+  });
+
+  it('does not settle twice when queue failure transition fails', async () => {
+    const ctx = context();
+    mockRunMastraMode.mockRejectedValueOnce(new Error('invalid structured output'));
+    mockFailFullAnalysisRun.mockRejectedValueOnce(new Error('queue failure unavailable'));
+
+    await expect(runMultiAgentAnalysis(ctx)).rejects.toThrow('queue failure unavailable');
+
+    expect(mockRunMastraMode).toHaveBeenCalledOnce();
+    expect(mockFailFullAnalysisRun).toHaveBeenCalledOnce();
   });
 
   it('runs stale recovery and retention purge after the queue poll', async () => {

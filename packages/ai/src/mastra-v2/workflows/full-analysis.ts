@@ -31,6 +31,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { reserveTurnBudget } from '../../budget-reservation';
+import type { GenerationLedgerSnapshot } from '../../generation-ledger';
 import { getDb } from '../../db';
 import {
   normalizeWorkflowStatus,
@@ -38,6 +39,7 @@ import {
   type WorkflowStatus,
 } from '../../workflow-status';
 import { getKestrelMastra } from '../instance';
+import { ExecutionPlanSchema, type ExecutionPlan } from '../../mastra/execution-plan';
 
 const flog = createCategorizedLogger('ai', { component: 'mastra-full-analysis' });
 
@@ -59,6 +61,15 @@ export const FullAnalysisPayloadSchema = z
     workerRunId: z.string().min(1).optional(),
     startedAt: z.string().datetime().optional(),
     budgetReservationId: z.string().uuid().optional(),
+    executionPlan: ExecutionPlanSchema.optional(),
+    ledgerSnapshot: z.object({
+      entries: z.array(z.object({
+        id: z.string().min(1),
+        kind: z.enum(['primary', 'auxiliary', 'specialist', 'fusion', 'title', 'semantic-routing']),
+        costUsd: z.number().nonnegative(),
+      })),
+      totalCostUsd: z.number().nonnegative(),
+    }).optional(),
     modelSnapshot: z
       .object({
         modelId: z.string().min(1),
@@ -101,6 +112,8 @@ export interface FullAnalysisEnqueueInput {
     providerId: string;
     bareModelId: string;
   };
+  executionPlan?: ExecutionPlan;
+  ledgerSnapshot?: GenerationLedgerSnapshot;
 }
 
 export interface FullAnalysisQueueHealth {
@@ -109,6 +122,14 @@ export interface FullAnalysisQueueHealth {
   stalePending: number;
   stuckRunning: number;
   unavailable?: boolean;
+}
+
+export class FullAnalysisHeartbeatError extends Error {
+  readonly code = 'FULL_ANALYSIS_HEARTBEAT_FAILED';
+  constructor(message = 'The Full-analysis lease heartbeat failed temporarily.', options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'FullAnalysisHeartbeatError';
+  }
 }
 
 export class FullAnalysisLeaseLostError extends Error {
@@ -274,6 +295,10 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
       idempotencyKey: input.idempotencyKey,
       ...(input.traceId ? { traceId: input.traceId } : {}),
       modelSnapshot: input.modelSnapshot,
+      ...(input.executionPlan ? { executionPlan: ExecutionPlanSchema.parse(input.executionPlan) } : {}),
+      ...(input.ledgerSnapshot
+        ? { ledgerSnapshot: { ...input.ledgerSnapshot, entries: [...input.ledgerSnapshot.entries] } }
+        : {}),
       attemptCount: 0,
       createdAt: new Date().toISOString(),
     };
@@ -373,6 +398,19 @@ export async function claimNextFullAnalysisRun(
       }
       continue;
     }
+    if (payload.executionPlan && payload.executionPlan.route !== 'full-analysis') {
+      try {
+        await failFullAnalysisQueue({
+          runId: row.runId,
+          workerRunId,
+          error: 'Full-analysis payload has an incompatible execution plan route.',
+          db,
+        });
+      } catch (error) {
+        if (!isLeaseError(error)) throw error;
+      }
+      continue;
+    }
     if (!payload.modelSnapshot) {
       try {
         await failFullAnalysisQueue({
@@ -442,7 +480,9 @@ export async function touchFullAnalysisRun(runId: string, workerRunId: string): 
     );
   } catch (error) {
     if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
-    throw error;
+    throw new FullAnalysisHeartbeatError('The Full-analysis heartbeat could not be persisted.', {
+      cause: error,
+    });
   }
 }
 

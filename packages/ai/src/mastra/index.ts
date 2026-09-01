@@ -15,6 +15,26 @@
  */
 
 export {
+  createExecutionPlan,
+  parseExecutionPlan,
+  serializeExecutionPlan,
+  resolvedModelSnapshotForPlan,
+  assertExecutionPlanRoute,
+  ExecutionPlanSchema,
+  type ExecutionPlan,
+  type CreateExecutionPlanInput,
+} from './execution-plan';
+export {
+  extractMastraSymbol,
+  isInjectionAttempt,
+  isMastraSymbolCandidate,
+  isMastraXauusdCandidate,
+  isMastraXauusdFollowupCandidate,
+  isMutationIntent,
+  mastraXauusdChatKind,
+  messageText,
+} from './routing-policy';
+export {
   decideMastraExecution,
   capabilityForRoute,
   capabilityDefinitionForRoute,
@@ -27,6 +47,8 @@ export type { DrizzlePersistenceOwner, MastraPersistenceOwner } from './persiste
 export {
   MASTRA_CAPABILITIES,
   CANONICAL_READ_ONLY_TOOL_NAMES,
+  CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+  SENSITIVE_USER_READ_TOOL_NAMES,
   LEGACY_DOMAIN_TOOL_NAMES,
   evaluateMastraCapability,
   getMastraCapability,
@@ -83,6 +105,7 @@ export {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
   FullAnalysisLeaseLostError,
+  FullAnalysisHeartbeatError,
   enqueueFullAnalysis,
   failFullAnalysisRun,
   fullAnalysisRunId,
@@ -259,7 +282,7 @@ export {
 export { maybeGenerateThreadTitle, type MaybeGenerateThreadTitleArgs } from './title-service';
 export { classifyMutationRequest, isMastraMutationEnabled } from './mutation-detect';
 export type { SemanticRoutingAccounting } from '../semantic-routing';
-export { resolveModel, type ResolveModelEnv } from '../model';
+export { resolveModel, MastraModelSnapshotSchema, type ResolveModelEnv, type MastraModelSnapshot } from '../model';
 export {
   buildMutationInput,
   extractMutationInput,
@@ -313,6 +336,7 @@ export {
   type MastraGenerationStats,
   type MastraRunObservation,
   type MastraRunOutcome,
+  type MastraAnswerOutcome,
   type MastraUsageLike,
 } from './telemetry';
 export type { MastraGenerationResultLike } from './stats';

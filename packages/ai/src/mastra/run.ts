@@ -15,10 +15,13 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import { estimateCostUsd } from '../cost';
+import { createGenerationLedger } from '../generation-ledger';
 import { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
 import { getDiagnosticContext, withDiagnostics } from '../diagnostics';
+import { assertExecutionPlanRoute, type ExecutionPlan } from './execution-plan';
 import { prepareKestrelMemory } from '../mastra-v2/context';
 import { buildConversationScorers, buildResearchScorers } from '../mastra-v2/evals/scorers';
 import { buildConversationGuardrails, buildResearchGuardrails } from '../mastra-v2/guardrails';
@@ -72,6 +75,8 @@ export interface RunXauusdMastraArgs {
   /** When set, answer using the latest verified report instead of creating a new report. */
   followup?: boolean;
   priorReport?: XauusdResearchReport | null;
+  executionPlan?: ExecutionPlan;
+  ledger?: import('../generation-ledger').GenerationLedger;
 }
 
 export function resolveXauusdMastraModel(
@@ -180,10 +185,13 @@ export interface XauusdMastraRunResult {
   modelId: string;
   providerId: string;
   stats: MastraGenerationStats;
+  totalCostUsd: number;
 }
 
 async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<XauusdMastraRunResult> {
+  if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'xauusd-research');
   const startedAt = Date.now();
+  const generationLedger = args.ledger ?? createGenerationLedger();
   let resolution: ChatModelResolution | null = null;
 
   try {
@@ -248,6 +256,14 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         prepared.callOptions,
       );
       const stats = getMastraGenerationStats(result);
+      generationLedger.recordUsage(
+        `primary:${args.runId}`,
+        'primary',
+        resolution.modelId,
+        stats.inputTokens,
+        stats.outputTokens,
+        estimateCostUsd,
+      );
       await finishMastraRun({
         userId: args.userId,
         threadId: args.threadId,
@@ -266,6 +282,7 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         modelId: resolution.modelId,
         providerId: resolution.providerId,
         stats,
+        totalCostUsd: generationLedger.total(),
       };
     }
 
@@ -363,11 +380,20 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         modelId: resolution.modelId,
         providerId: resolution.providerId,
         stats,
+        totalCostUsd: generationLedger.total(),
       };
     }
     const { report, packet } = output;
     const result = output.result as MastraGenerationResultLike;
     const stats = output.stats;
+    generationLedger.recordUsage(
+      `primary:${args.runId}`,
+      'primary',
+      resolution.modelId,
+      stats.inputTokens,
+      stats.outputTokens,
+      estimateCostUsd,
+    );
     await finishMastraRun({
       userId: args.userId,
       threadId: args.threadId,
@@ -386,8 +412,10 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       modelId: resolution.modelId,
       providerId: resolution.providerId,
       stats,
+      totalCostUsd: generationLedger.total(),
     };
   } catch (error) {
+
     const outcome = mastraOutcomeForError(error, args.signal);
     await finishMastraRun({
       userId: args.userId,
@@ -416,9 +444,11 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
  */
 async function executeXauusdMastraConversationRun(
   args: RunXauusdMastraArgs,
-): Promise<XauusdMastraRunResult> {
+): Promise<XauusdMastraRunResult> {  if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'xauusd-conversation');
   const startedAt = Date.now();
+  const generationLedger = args.ledger ?? createGenerationLedger();
   let resolution: ChatModelResolution | null = null;
+
   try {
     resolution = resolveXauusdMastraModel(args.settings, args.env, args.modelOverride);
     beginMastraRun({
@@ -449,6 +479,7 @@ async function executeXauusdMastraConversationRun(
         modelId: resolution.modelId,
         providerId: resolution.providerId,
         stats,
+        totalCostUsd: 0,
       };
     }
     const memory = createKestrelMemory({
@@ -503,6 +534,14 @@ async function executeXauusdMastraConversationRun(
       }),
     });
     const stats = getMastraGenerationStats(result);
+    generationLedger.recordUsage(
+      `primary:${args.runId}`,
+      'primary',
+      resolution.modelId,
+      stats.inputTokens,
+      stats.outputTokens,
+      estimateCostUsd,
+    );
     await finishMastraRun({
       userId: args.userId,
       threadId: args.threadId,
@@ -521,8 +560,10 @@ async function executeXauusdMastraConversationRun(
       modelId: resolution.modelId,
       providerId: resolution.providerId,
       stats,
+      totalCostUsd: generationLedger.total(),
     };
   } catch (error) {
+
     const outcome = mastraOutcomeForError(error, args.signal);
     await finishMastraRun({
       userId: args.userId,
@@ -571,6 +612,7 @@ export async function runXauusdMastraConversationStream(
 ): Promise<XauusdMastraConversationStream> {
   const startedAt = Date.now();
   let resolution: ChatModelResolution | null = null;
+  const generationLedger = args.ledger ?? createGenerationLedger();
   const runner = async () => {
     resolution = resolveXauusdMastraModel(args.settings, args.env, args.modelOverride);
     beginMastraRun({
@@ -604,6 +646,7 @@ export async function runXauusdMastraConversationStream(
           modelId: resolution.modelId,
           providerId: resolution.providerId,
           stats,
+          totalCostUsd: 0,
         }),
       };
     }
@@ -689,6 +732,14 @@ export async function runXauusdMastraConversationStream(
       try {
         const full = await output.getFullOutput();
         const stats = getMastraGenerationStats(full);
+        generationLedger.recordUsage(
+          `primary:${args.runId}`,
+          'primary',
+          resolution.modelId,
+          stats.inputTokens,
+          stats.outputTokens,
+          estimateCostUsd,
+        );
         const result: MastraGenerationResultLike = { text: full.text, totalUsage: full.totalUsage };
         await finishRun({
           userId: args.userId,
@@ -709,8 +760,10 @@ export async function runXauusdMastraConversationStream(
           modelId: resolution.modelId,
           providerId: resolution.providerId,
           stats,
+          totalCostUsd: generationLedger.total(),
         };
       } catch (error) {
+
         await finishRun({
           userId: args.userId,
           threadId: args.threadId,

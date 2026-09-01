@@ -18,6 +18,7 @@
 
 import type { MastraCanonicalChatResult } from '@kestrel/ai/mastra';
 import { ChatStreamEventSchema } from '@kestrel/shared';
+import { terminalMetadata } from '@kestrel/ai';
 
 export function mastraCanonicalResponse(
   input: MastraCanonicalChatResult & {
@@ -35,6 +36,7 @@ export function mastraCanonicalResponse(
       type: 'data-multi-agent-meta',
       id: messageId,
       data: {
+        ...terminalMetadata('completed', input.answerOutcome, 'buffered-completed'),
         engine: 'mastra',
         canonical: true,
         runId: input.runId,
@@ -44,6 +46,9 @@ export function mastraCanonicalResponse(
         observedCost: input.observedCost,
         totalLatencyMs: input.totalLatencyMs,
         toolNames: input.toolNames,
+        answerOutcome: input.answerOutcome,
+        memoryMode: input.memoryMode,
+        modelSnapshot: input.modelSnapshot,
       },
     },
   ];

@@ -19,18 +19,19 @@
 import 'server-only';
 
 import {
-  appendAssistantMessage,
-  appendUserMessage,
   DEFAULT_MAX_DAILY_USD,
   estimateCostUsd,
   reserveTurnBudget,
+  createGenerationLedger,
 } from '@kestrel/ai';
 import { runMastraCanonicalChat, type MastraCanonicalChatResult } from '@kestrel/ai/mastra';
 import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
+import type { ExecutionPlan } from '@kestrel/ai/mastra';
 
 import { getServerEnv } from '@/lib/env';
+import { runBufferedExecution } from './mastra-chat-service-lifecycle';
 
 export interface RunMastraCanonicalChatInput {
   userId: string;
@@ -39,6 +40,7 @@ export interface RunMastraCanonicalChatInput {
   customInstructions?: string;
   modelOverride?: string | null;
   signal?: AbortSignal;
+  executionPlan?: ExecutionPlan;
 }
 
 export async function runMastraCanonicalChatService(
@@ -54,16 +56,18 @@ export async function runMastraCanonicalChatService(
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
     correlation: { threadId: input.threadId, runId },
   });
-  let result: MastraCanonicalChatResult | null = null;
-
-  try {
-    // Use the same transport idempotency key as the legacy chat path. If
-    // Mastra fails after this write and the route falls back, the legacy
-    // appendUserMessage call becomes a no-op instead of duplicating the turn.
-    await appendUserMessage(input.userId, input.threadId, input.userMessage);
-    const historyRows = await listMessages(input.userId, input.threadId, 60);
-    const currentUserKey = `ui:${input.userMessage.id}`;
-    const history: UIMessage[] = historyRows
+  const ledger = createGenerationLedger();
+  const execution = await runBufferedExecution<MastraCanonicalChatResult>({
+    budget,
+    userId: input.userId,
+    threadId: input.threadId,
+    userMessage: input.userMessage,
+    userMessageIdempotencyKey: `ui:${input.userMessage.id}`,
+    assistantMessageIdempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:assistant`,
+    execute: async () => {
+      const historyRows = await listMessages(input.userId, input.threadId, 60);
+      const currentUserKey = `ui:${input.userMessage.id}`;
+      const history: UIMessage[] = historyRows
       // The current user message was persisted above. Exclude that exact
       // idempotency row so canonical-chat receives it once via `latest`, not
       // once from history and once from the request body.
@@ -76,27 +80,25 @@ export async function runMastraCanonicalChatService(
             ? (row.parts as UIMessage['parts'])
             : [{ type: 'text', text: row.content }],
       }));
-    const runEnv = env;
-    result = await runMastraCanonicalChat({
-      userId: input.userId,
+        const runEnv = env;
+      const result = await runMastraCanonicalChat({
+        userId: input.userId,
       threadId: input.threadId,
       userMessage: input.userMessage,
-      history,
-      settings,
-      plan: user?.plan ?? null,
-      env: runEnv,
+        history,
+        settings,
+        plan: user?.plan ?? null,
+        env: runEnv,
       ...(input.customInstructions ? { customInstructions: input.customInstructions } : {}),
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
       backfillExcludeMessageIdempotencyKey: currentUserKey,
       runId,
-    });
-    const observedCost = estimateCostUsd(
-      result.modelId,
-      result.stats.inputTokens,
-      result.stats.outputTokens,
-    );
-    const assistantMessage: UIMessage = {
+      executionPlan: input.executionPlan,
+      ledger,
+      });
+      const observedCost = result.totalCostUsd;
+      const assistantMessage: UIMessage = {
       id: crypto.randomUUID(),
       role: 'assistant',
       parts: [
@@ -106,6 +108,11 @@ export async function runMastraCanonicalChatService(
           data: {
             engine: 'mastra',
             canonical: true,
+            executionOutcome: 'completed',
+            answerOutcome: result.answerOutcome,
+            memoryMode: result.memoryMode,
+            modelSnapshot: result.modelSnapshot,
+            terminalReason: 'buffered-completed',
             runId,
             routingDomain: result.routing.domain,
             modelId: result.modelId,
@@ -116,20 +123,16 @@ export async function runMastraCanonicalChatService(
           },
         } as UIMessage['parts'][number],
       ],
-    };
-    const persisted = await appendAssistantMessage(input.userId, input.threadId, assistantMessage, {
-      idempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:assistant`,
-    });
-    await budget.reconcile(observedCost);
-    return {
-      ...result,
-      runId,
-      observedCost,
-      messageId: persisted.messageId,
-    };
-  } catch (error) {
-    if (result) await budget.reconcile(result.totalCostUsd);
-    else await budget.release();
-    throw error;
-  }
+      };
+      return { result, observedCost, assistantMessage };
+    },
+    buildAssistantMessage: ({ assistantMessage }) => assistantMessage!,
+    isCancelled: () => input.signal?.aborted === true,
+  });
+  return {
+    ...execution.result,
+    runId,
+    observedCost: execution.observedCost,
+    messageId: execution.messageId,
+  };
 }

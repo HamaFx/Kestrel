@@ -27,6 +27,7 @@ import {
 } from '@kestrel/ai/mastra';
 import { getThread, getUserWithSettings } from '@kestrel/db';
 import { notFound } from '@kestrel/shared';
+import type { ExecutionPlan } from '@kestrel/ai/mastra';
 
 import { getServerEnv } from '@/lib/env';
 
@@ -40,6 +41,8 @@ export interface RunMastraXauusdResearchInput {
   telemetryKind?: 'mastra_xauusd_poc';
   followup?: boolean;
   priorReport?: XauusdResearchReport | null;
+  executionPlan?: ExecutionPlan;
+  ledger?: import('@kestrel/ai').GenerationLedger;
 }
 
 type MastraXauusdRunner = (args: RunXauusdMastraArgs) => Promise<XauusdMastraRunResult>;
@@ -68,6 +71,8 @@ async function executeMastraXauusdTurn(
     ...(input.telemetryKind ? { telemetryKind: input.telemetryKind } : {}),
     ...(input.followup ? { followup: true } : {}),
     ...(input.priorReport ? { priorReport: input.priorReport } : {}),
+    ...(input.executionPlan ? { executionPlan: input.executionPlan } : {}),
+    ...(input.ledger ? { ledger: input.ledger } : {}),
   });
 }
 

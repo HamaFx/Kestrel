@@ -54,7 +54,11 @@ export {
   derivePlannerModel,
   deriveTitleModel,
 } from './model-chat';
-export { resolveMastraModel, resolveMastraExecutionModel } from './model-resolution';
+export {
+  resolveMastraModel,
+  resolveMastraExecutionModel,
+  MastraModelSnapshotSchema,
+} from './model-resolution';
 export type {
   ChatModelResolution,
   MastraModelPurpose,

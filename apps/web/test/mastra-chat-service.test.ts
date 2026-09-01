@@ -23,6 +23,8 @@ import { runMastraXauusdChat } from '@/lib/services/mastra-chat';
 const mocks = vi.hoisted(() => ({
   getUserWithSettings: vi.fn(),
   reserveTurnBudget: vi.fn(),
+  createExecutionLifecycle: vi.fn(),
+  createGenerationLedger: vi.fn(),
   appendUserMessage: vi.fn(),
   appendAssistantMessage: vi.fn(),
   estimateCostUsd: vi.fn(),
@@ -37,6 +39,14 @@ vi.mock('@kestrel/ai', () => ({
   appendUserMessage: mocks.appendUserMessage,
   estimateCostUsd: mocks.estimateCostUsd,
   reserveTurnBudget: mocks.reserveTurnBudget,
+  createExecutionLifecycle: mocks.createExecutionLifecycle,
+  createGenerationLedger: () => ({
+    record: vi.fn(() => true),
+    recordCost: vi.fn(() => true),
+    recordUsage: vi.fn(() => true),
+    snapshot: () => ({ entries: [], totalCostUsd: 0 }),
+    total: () => 0,
+  }),
 }));
 vi.mock('@kestrel/db', () => ({
   getUserWithSettings: mocks.getUserWithSettings,
@@ -95,6 +105,7 @@ describe('Mastra chat service', () => {
       result: { text: 'grounded result' },
       report: null,
       packet: { packetId: 'packet-1', status: 'ready', dataQuality: 'partial' },
+      totalCostUsd: 0.002,
     });
     mocks.appendUserMessage.mockResolvedValue(undefined);
     mocks.appendAssistantMessage.mockResolvedValue({ messageId: 'assistant-1' });
@@ -103,6 +114,13 @@ describe('Mastra chat service', () => {
   it('uses the shared budget and persists both messages on success', async () => {
     const budget = budgetHandle();
     mocks.reserveTurnBudget.mockResolvedValue(budget);
+    mocks.createExecutionLifecycle.mockImplementation((handle: typeof budget) => ({
+      complete: vi.fn((cost: number) => handle.reconcile(cost)),
+      fail: vi.fn(() => handle.release()),
+      cancel: vi.fn(() => handle.release()),
+      settled: false,
+      state: null,
+    }));
 
     const result = await runMastraXauusdChat(input);
 
@@ -140,6 +158,13 @@ describe('Mastra chat service', () => {
   it('selects the conversational runner for ordinary Single-mode prompts', async () => {
     const budget = budgetHandle();
     mocks.reserveTurnBudget.mockResolvedValue(budget);
+    mocks.createExecutionLifecycle.mockImplementation((handle: typeof budget) => ({
+      complete: vi.fn((cost: number) => handle.reconcile(cost)),
+      fail: vi.fn(() => handle.release()),
+      cancel: vi.fn(() => handle.release()),
+      settled: false,
+      state: null,
+    }));
 
     const result = await runMastraXauusdChat({ ...input, kind: 'conversation' });
 
@@ -151,6 +176,13 @@ describe('Mastra chat service', () => {
   it('releases the reservation when Mastra fails before producing a run', async () => {
     const budget = budgetHandle();
     mocks.reserveTurnBudget.mockResolvedValue(budget);
+    mocks.createExecutionLifecycle.mockImplementation((handle: typeof budget) => ({
+      complete: vi.fn((cost: number) => handle.reconcile(cost)),
+      fail: vi.fn(() => handle.release()),
+      cancel: vi.fn(() => handle.release()),
+      settled: false,
+      state: null,
+    }));
     mocks.runMastraXauusdResearch.mockRejectedValue(new Error('provider unavailable'));
 
     await expect(runMastraXauusdChat(input)).rejects.toThrow('provider unavailable');
@@ -162,6 +194,13 @@ describe('Mastra chat service', () => {
   it('reconciles actual spend if assistant persistence fails after the model run', async () => {
     const budget = budgetHandle();
     mocks.reserveTurnBudget.mockResolvedValue(budget);
+    mocks.createExecutionLifecycle.mockImplementation((handle: typeof budget) => ({
+      complete: vi.fn((cost: number) => handle.reconcile(cost)),
+      fail: vi.fn(() => handle.release()),
+      cancel: vi.fn(() => handle.release()),
+      settled: false,
+      state: null,
+    }));
     mocks.appendAssistantMessage.mockRejectedValue(new Error('database unavailable'));
 
     await expect(runMastraXauusdChat(input)).rejects.toThrow('database unavailable');
