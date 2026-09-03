@@ -17,6 +17,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Metadata } from 'next';
+import { Link } from 'next-view-transitions';
+import { IconArrowLeft } from '@tabler/icons-react';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
@@ -37,9 +39,28 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         paddingBottom: 'max(env(safe-area-inset-bottom), 24px)',
       }}
     >
-      <div className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 py-8">
-        <header className="flex flex-col items-center gap-5 text-center">
-          <KestrelBrand variant="lockup" decorative priority className="w-auto" />
+      <div className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 py-6">
+        {/* Navigation back to public landing / showcase */}
+        <div className="flex w-full items-center justify-between px-1">
+          <Link
+            href="/landing"
+            className="inline-flex items-center gap-1.5 font-mono text-xs text-fg-subtle transition-colors hover:text-fg active:translate-y-[0.5px]"
+          >
+            <IconArrowLeft className="size-3.5 text-brand" />
+            <span>Showcase</span>
+          </Link>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-fg-subtle/60">
+            Apex Rig
+          </span>
+        </div>
+
+        <header className="flex flex-col items-center gap-4 text-center">
+          <KestrelBrand
+            variant="lockup"
+            href="/landing"
+            priority
+            className="w-auto transition-opacity hover:opacity-90"
+          />
           <div className="flex max-w-sm flex-col gap-2">
             <h1 className="sr-only">Kestrel</h1>
             <p className="text-fg font-display text-lg font-normal tracking-[-0.02em] sm:text-xl">
@@ -60,3 +81,5 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     </main>
   );
 }
+
+

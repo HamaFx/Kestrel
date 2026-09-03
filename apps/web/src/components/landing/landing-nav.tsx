@@ -23,7 +23,11 @@ import { Button } from '@/components/ui/button';
 import { TacticalFlameButton } from '@/components/landing/landing-button';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
-export function LandingNav() {
+export interface LandingNavProps {
+  isAuthenticated?: boolean;
+}
+
+export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -42,7 +46,7 @@ export function LandingNav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Lockup */}
         <div className="flex items-center gap-6">
-          <KestrelBrand variant="lockup" href="/" label="Kestrel" />
+          <KestrelBrand variant="lockup" href="/landing" label="Kestrel" />
 
           <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 lg:flex">
             <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_8px_rgba(63,158,61,0.6)]" />
@@ -84,16 +88,31 @@ export function LandingNav() {
           >
             FAQ
           </a>
+          {isAuthenticated && (
+            <Link
+              href="/chat"
+              className="inline-flex items-center gap-1.5 font-mono text-xs text-brand font-semibold px-2.5 py-1 rounded-md bg-brand/10 border border-brand/25 transition-colors hover:bg-brand/20"
+            >
+              <span className="size-1.5 rounded-full bg-brand animate-pulse" />
+              <span>Terminal</span>
+            </Link>
+          )}
         </nav>
 
         {/* Action CTAs & Mobile Toggle */}
         <div className="flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-fg-muted hover:text-fg">
-              Sign In
-            </Button>
-          </Link>
-          <TacticalFlameButton href="/login" label="Launch Terminal" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
+          {isAuthenticated ? (
+            <TacticalFlameButton href="/chat" label="Open Terminal" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-fg-muted hover:text-fg">
+                  Sign In
+                </Button>
+              </Link>
+              <TacticalFlameButton href="/login" label="Launch Terminal" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
+            </>
+          )}
 
           {/* Mobile Hamburger Toggle */}
           <button
@@ -149,9 +168,9 @@ export function LandingNav() {
               FAQ
             </a>
             <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+              <Link href={isAuthenticated ? '/chat' : '/login'} onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="tactical" size="md" className="w-full">
-                  Launch Terminal
+                  {isAuthenticated ? 'Open Terminal' : 'Launch Terminal'}
                 </Button>
               </Link>
             </div>

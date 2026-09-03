@@ -16,30 +16,24 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 
 import { auth } from '@/auth';
 import { LandingPageView } from '@/components/landing/landing-page-view';
 
-export default async function RootPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ showcase?: string }>;
-}) {
-  const resolvedParams = searchParams ? await searchParams : undefined;
+export const metadata: Metadata = {
+  title: 'Kestrel | The Apex AI Committee for Institutional Gold & Forex',
+  description:
+    'Four autonomous specialist desks synthesize price action structure, macro rate catalysts, 1% risk governance, and institutional COT positioning into a unified market verdict.',
+};
+
+export default async function LandingPage() {
   let session = null;
   try {
     session = await auth();
   } catch (err) {
-    console.warn('[RootPage] auth() check failed or unconfigured, rendering showcase:', err);
+    console.warn('[LandingPage] auth() session lookup error:', err);
   }
 
-  // Authenticated users go straight into the live terminal unless they explicitly requested the showcase
-  if (session?.user && resolvedParams?.showcase !== 'true') {
-    redirect('/chat');
-  }
-
-  // Public visitors (or authenticated visitors requesting the showcase) see the full Hoplite showcase
   return <LandingPageView isAuthenticated={!!session?.user} />;
 }
-
