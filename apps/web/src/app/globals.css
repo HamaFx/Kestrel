@@ -1,121 +1,199 @@
 @import 'tailwindcss';
 
 /* -------------------------------------------------------------------------
- * Theme tokens — Kestrel expressive market workspace (dark-first).
- *
- * Calm near-black surfaces, a warm signal-orange identity, and sharp data
- * geometry give Kestrel a recognizable presence without turning the terminal
- * into a noisy dashboard. Sans-serif UI copy pairs with JetBrains Mono for
- * prices, symbols, charts, code, and technical output.
- *
- * Brand: orange is reserved for Kestrel identity and interaction. Market signals:
- * refined green/red/amber reserved for price/P&L data only.
- * System status: dedicated success/danger tokens (distinct from market
- * bull/bear) for form validation, toasts, and destructive actions.
+ * Typography — The Hoplite & Kestrel Typeface System
+ * ------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Funnel Display';
+  src: url('/fonts/funnel-display-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Funnel Sans';
+  src: url('/fonts/funnel-sans-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/geist-mono-wght-normal.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('/fonts/bebas-neue-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Redaction';
+  src: url('/fonts/redaction-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Redaction';
+  src: url('/fonts/redaction-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Redaction 35';
+  src: url('/fonts/redaction-35-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Redaction 50';
+  src: url('/fonts/redaction-50-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Redaction 70';
+  src: url('/fonts/redaction-70-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Redaction 100';
+  src: url('/fonts/redaction-100-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* -------------------------------------------------------------------------
+ * Theme tokens — Hoplite Neo-Skeuomorphic & Cyber-Industrial System
  * ------------------------------------------------------------------------- */
 
 @theme {
-  /* ── Surfaces — near-black canvas / refined grayscale. ── */
-  --color-bg: #0a0a0a;
-  --color-bg-elev-1: #141414;
-  --color-bg-elev-2: #1e1e1e;
-  --color-bg-elev-3: #2a2a2a;
-  --color-border: #262626;
-  --color-divider: #1e1e1e;
-  --color-overlay: rgba(0, 0, 0, 0.8);
+  /* ── Surfaces — near-black obsidian canvas & refined grayscale ── */
+  --color-bg: #121212;
+  --color-bg-elev-1: #1a1a1a;
+  --color-bg-elev-2: #242424;
+  --color-bg-elev-3: #2d2d2d;
+  --color-border: #2c2c2c;
+  --color-divider: #1f1f1f;
+  --color-overlay: rgba(0, 0, 0, 0.82);
 
-  /* ── Text — from owner's palette photo ── */
+  /* ── Ground tokens for dual-theming ── */
+  --color-ground: #eaeaea;
+  --color-card: #1d1d1d;
+  --color-well: #161616;
+  --color-edge: #2c2c2c;
+  --color-sheen: rgba(255, 255, 255, 0.13);
+  --color-strong: #dadada;
+
+  /* ── Text hierarchy ── */
   --color-fg: #f0f0f0;
-  --color-fg-muted: #808080;
-  --color-fg-subtle: #8e8e8e;
+  --color-fg-muted: #8e8e8e;
+  --color-fg-subtle: #727272;
 
-  /* ── Brand — orange accent (#F07010). Used with EXTREME RESTRAINT. ── */
-  --color-brand: #f56e0f;
-  --color-brand-fg: #0a0a0a;
-  --color-brand-soft: #ff9a4d;
-  --color-brand-glow: rgba(245, 110, 15, 0.15);
-  --color-brand-wash: rgba(245, 110, 15, 0.08);
-  /* Subtle orange-tinted border — low light mixed with the brand colour.
-     Used on "cool places" (active nav, hero panels, focus edges) to give
-     a warm rim without recolouring the entire surface. */
-  --color-brand-border: #402a18;
+  /* ── Brand — Hoplite Forge Flame Orange (#FF3616) ── */
+  --color-brand: #ff3616;
+  --color-brand-fg: #ffffff;
+  --color-brand-soft: #ff632a;
+  --color-brand-glow: rgba(255, 54, 22, 0.22);
+  --color-brand-wash: rgba(255, 54, 22, 0.08);
+  --color-brand-border: #441c14;
 
-  /* ── Accent — aliased to brand for backward compat. Do not use; prefer
-   *    --color-brand everywhere. ── */
-  --color-accent: #f56e0f;
-  --color-accent-glow: rgba(245, 110, 15, 0.15);
+  /* ── Accent aliasing ── */
+  --color-accent: #ff3616;
+  --color-accent-glow: rgba(255, 54, 22, 0.22);
 
-  /* ── Market Signal States — reserved ONLY for price/P&L data ── */
-  --color-bull: #22c55e;
-  --color-bear: #ef4444;
-  --color-neutral: #71717a;
-  --color-warn: #f59e0b;
-  --color-info: #3b82f6;
+  /* ── Market Signal States ── */
+  --color-bull: #3f9e3d;
+  --color-bear: #e02c10;
+  --color-neutral: #8a8a8a;
+  --color-warn: #d98f00;
+  --color-info: #4fa3b5;
 
-  /* ── System Status — DISTINCT from market data. Used for success/error/
-   *    status UI (form validation, toasts, destructive actions, "active"
-   *    badges) so bull/bear stay reserved for price/P&L data only. ── */
-  --color-success: #16a34a;
+  /* ── System Status ── */
+  --color-success: #3f9e3d;
   --color-success-fg: #0a0a0a;
-  --color-danger: #dc2626;
+  --color-danger: #e02c10;
   --color-danger-fg: #ffffff;
 
-  /* ── Radii — SHARP GEOMETRY. Uniform 2px everywhere. ── */
-  --radius-sm: 2px;
-  --radius-md: 2px;
-  --radius-lg: 2px;
-  --radius-xl: 2px;
-  --radius-2xl: 2px;
-  --radius-pill: 2px;
+  /* ── Radii — Transitioning from rigid 2px to structured 4-8px ── */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-pill: 9999px;
 
-  /* ── Shadows — minimal, flat. No glow. ── */
+  /* ── Tactile Instrument Shadows & Inset Highlights ── */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.6);
   --shadow-md: 0 2px 8px -2px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 4px 16px -4px rgba(0, 0, 0, 0.8);
   --shadow-xl: 0 8px 32px -8px rgba(0, 0, 0, 0.9);
-  --shadow-glow-brand: none;
-  --shadow-glow-accent: none;
+  --shadow-chip-inset: inset 0 1.429px 0 rgba(255, 255, 255, 0.25), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-chip: 0 13px 5px rgba(0, 0, 0, 0.03), 0 7px 4px rgba(0, 0, 0, 0.06), 0 3px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.12), var(--shadow-chip-inset);
+  --shadow-well: 0 1px 1px rgba(255, 255, 255, 0.06), inset 0 2px 3px -1px rgba(0, 0, 0, 0.65);
+  --shadow-housing: inset 8.3px 6.1px 5.4px -7.2px rgba(213, 213, 213, 0.18), inset -7.2px 6.1px 5.4px -7.2px rgba(213, 213, 213, 0.18), inset 0 3.3px 2.9px -1.1px rgba(0, 0, 0, 0.35);
+  --shadow-groove: 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 1.5px 2px rgba(0, 0, 0, 0.7);
+  --shadow-keycap: 2px 2.5px 0 -0.5px rgba(0, 0, 0, 0.6), 1px 1px 0 rgba(255, 255, 255, 0.18);
 
-  /* ── Fonts — expressive UI sans + technical mono. ── */
-  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* ── Fonts ── */
+  --font-display: "Funnel Display", "Funnel Sans", sans-serif;
+  --font-sans: "Funnel Sans", -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: "Geist Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --font-redaction: "Redaction", serif;
+  --font-redaction-35: "Redaction 35", serif;
+  --font-redaction-50: "Redaction 50", serif;
+  --font-redaction-70: "Redaction 70", serif;
+  --font-redaction-100: "Redaction 100", serif;
+  --font-bebas: "Bebas Neue", sans-serif;
 
-  /* ── Type scale — refined hierarchy with tighter leading for data density ── */
+  /* ── Type scale ── */
   --leading-prose: 1.5;
   --leading-compact: 1.35;
   --leading-tight: 1.2;
 
-  /* ── Core fluid sizes (viewport-responsive) ── */
   --text-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
   --text-sm: clamp(0.8125rem, 0.78rem + 0.2vw, 0.875rem);
   --text-base: clamp(0.9375rem, 0.9rem + 0.25vw, 1rem);
   --text-lg: clamp(1.0625rem, 1rem + 0.3vw, 1.125rem);
 
-  /* ── Display / heading — used for page headers, auth titles, hero ── */
   --text-display-2xl: clamp(1.875rem, 1.6rem + 1.2vw, 2.25rem);
   --text-display-xl: clamp(1.5rem, 1.35rem + 0.8vw, 1.875rem);
   --text-display-lg: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
 
-  /* ── Body — compact, clean, responsive reading rhythm ── */
   --text-body-lg: clamp(0.9375rem, 0.9rem + 0.25vw, 1rem);
   --text-body: clamp(0.875rem, 0.84rem + 0.2vw, 0.9375rem);
   --text-body-sm: clamp(0.8125rem, 0.78rem + 0.2vw, 0.875rem);
   --text-caption: clamp(0.6875rem, 0.65rem + 0.15vw, 0.75rem);
 
-  /* ── Numeric — dedicated scale for price tables, P&L, stats ── */
   --text-numeric-xl: clamp(1.375rem, 1.25rem + 0.6vw, 1.625rem);
   --text-numeric-lg: clamp(1.125rem, 1.05rem + 0.4vw, 1.25rem);
   --text-numeric: clamp(0.875rem, 0.84rem + 0.2vw, 0.9375rem);
   --text-numeric-sm: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
 
-  /* ── Tracking — four step scale ── */
   --tracking-tight: -0.02em;
   --tracking-normal: 0;
   --tracking-wide: 0.02em;
   --tracking-wider: 0.05em;
 
-  --ease-organic: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-out-organic: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-organic: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-out-organic: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* ── Selected tabs in solid segmented controls get a subtle brand border. ── */
@@ -259,22 +337,60 @@ html {
 }
 
 /* -------------------------------------------------------------------------
- * Flat surface utilities (replacing glass/blur utilities)
+ * Tactile & Neo-Skeuomorphic Surface Utilities (The Hoplite Standard)
  * ------------------------------------------------------------------------- */
 
 @utility surface-panel {
   background: var(--color-bg-elev-1);
   border: 1px solid var(--color-border);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @utility surface-elevated {
   background: var(--color-bg-elev-2);
   border: 1px solid var(--color-border);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @utility surface-flat {
   background: var(--color-bg);
   border: 1px solid var(--color-divider);
+}
+
+@utility surface-well {
+  border: 0.5px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-well);
+}
+
+@utility surface-well-deep {
+  border: 0.5px solid var(--color-border);
+  background: var(--color-well);
+  box-shadow: var(--shadow-well);
+}
+
+@utility surface-chip {
+  border: 0.714px solid var(--color-edge);
+  background: var(--color-bg-elev-2);
+  box-shadow: var(--shadow-chip);
+}
+
+@utility surface-chip-dark {
+  color: #fff;
+  background: #181818;
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 13px 5px rgba(0, 0, 0, 0.05), 0 7px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1.429px 0 rgba(255, 255, 255, 0.3);
+}
+
+@utility surface-chip-destructive {
+  color: #fff;
+  background: var(--color-brand);
+  border: 0.5px solid #d92c10;
+  box-shadow: 0 4px 14px rgba(255, 54, 22, 0.35), inset 0 1.429px 0 rgba(255, 255, 255, 0.3);
+}
+
+@utility tactile-press {
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @utility pt-safe {
@@ -326,6 +442,85 @@ html {
 .fade-in {
   animation: fadeIn 0.25s ease-out both;
 }
+
+/* ── Hoplite Circuit & Hardware Keyframes ── */
+@keyframes setup-card-dot-hop {
+  0% { left: 129px; background: rgba(37,37,37,0.2); }
+  8% { background: #ff3616; }
+  42% { left: 156px; }
+  55% { background: #ff3616; }
+  100% { left: 156px; background: rgba(37,37,37,0.2); }
+}
+
+@keyframes setup-card-trail-grow {
+  0% { width: 2px; opacity: 0; }
+  8% { opacity: 1; }
+  42% { width: 33px; }
+  55% { opacity: 1; }
+  100% { width: 33px; opacity: 0; }
+}
+
+@keyframes setup-card-wash-descend {
+  0% { height: 0px; opacity: 0; }
+  8% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { height: 158px; opacity: 0; }
+}
+
+@keyframes usecase-trace-pulse {
+  0% { stroke-dashoffset: 120; opacity: 0; }
+  10% { opacity: 1; }
+  62% { opacity: 1; }
+  72% { stroke-dashoffset: -24; opacity: 0; }
+  100% { stroke-dashoffset: -24; opacity: 0; }
+}
+
+.usecase-trace-pulse {
+  stroke: #ff3616;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 16 104;
+  animation: usecase-trace-pulse 3.2s linear infinite;
+}
+
+@keyframes usecase-step-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.usecase-step-in {
+  animation: usecase-step-in 350ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes usecase-typing-dot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-1px); }
+}
+
+.usecase-typing-dot {
+  display: inline-block;
+  animation: usecase-typing-dot 1.1s ease-in-out infinite;
+}
+
+@keyframes tick-countdown {
+  0% { background-color: rgba(255, 54, 22, 0.28); }
+  100% { background-color: transparent; }
+}
+
+.tick-flash {
+  animation: tick-countdown 800ms ease-out forwards;
+}
+
+/* ── Typography Utilities ── */
+.font-display { font-family: var(--font-display); }
+.font-sans { font-family: var(--font-sans); }
+.font-mono { font-family: var(--font-mono); }
+.font-redaction { font-family: var(--font-redaction); }
+.font-redaction-35 { font-family: var(--font-redaction-35); }
+.font-redaction-50 { font-family: var(--font-redaction-50); }
+.font-redaction-70 { font-family: var(--font-redaction-70); }
+.font-bebas { font-family: var(--font-bebas); }
 
 @keyframes shimmer {
   0% {

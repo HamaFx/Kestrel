@@ -19,12 +19,32 @@
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { LandingNav } from '@/components/landing/landing-nav';
+import { LandingHero } from '@/components/landing/landing-hero';
+import { LandingStepper } from '@/components/landing/landing-stepper';
+import { LandingArchitecture } from '@/components/landing/landing-architecture';
+import { LandingFAQ } from '@/components/landing/landing-faq';
+import { LandingFooter } from '@/components/landing/landing-footer';
 
 export default async function RootPage() {
   const session = await auth();
+
+  // Authenticated users go straight into the live terminal
   if (session?.user) {
     redirect('/chat');
-  } else {
-    redirect('/login');
   }
+
+  // Public visitors see the full Hoplite-grade showcase
+  return (
+    <div className="flex min-h-screen flex-col bg-[#121212] text-fg selection:bg-brand selection:text-white">
+      <LandingNav />
+      <main className="flex-1">
+        <LandingHero />
+        <LandingStepper />
+        <LandingArchitecture />
+        <LandingFAQ />
+      </main>
+      <LandingFooter />
+    </div>
+  );
 }

@@ -1,0 +1,19 @@
+<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <!-- Sovereign Kestrel Falcon: Geometric Heraldic Raptor -->
+  <g fill="currentColor">
+    <!-- Crest / Crown -->
+    <path d="M60 12 L68 26 L76 20 L73 34 L88 32 L78 44 L92 48 L76 56 L86 64 L70 68 L78 80 L62 76 L66 92 L54 84 L50 96 L46 84 L34 92 L38 76 L22 80 L30 68 L14 64 L24 56 L8 48 L22 44 L12 32 L27 34 L24 20 L32 26 Z" opacity="0.08"/>
+    
+    <!-- Primary Head & Beak -->
+    <path d="M58 16 C66 16 74 20 80 27 L96 29 C99 29.5 101 32 99 34 L88 42 C89 44 89 47 88 50 L104 53 C106 53.5 107 56 105 58 L94 65 C92 72 87 79 80 84 L80 94 L72 94 L72 88 C68 90 63 91 58 91 C53 91 48 90 44 88 L44 94 L36 94 L36 84 C29 79 24 72 22 65 L11 58 C9 56 10 53.5 12 53 L28 50 C27 47 27 44 28 42 L17 34 C15 32 17 29.5 20 29 L36 27 C42 20 50 16 58 16 Z M58 24 C51 24 45 28 42 34 L30 35 L38 41 C36 44 35 48 35 52 L23 54 L31 59 C33 66 38 72 44 76 L44 82 L50 82 L50 78 C53 79 55.5 79.5 58 79.5 C60.5 79.5 63 79 66 78 L66 82 L72 82 L72 76 C78 72 83 66 85 59 L93 54 L81 52 C81 48 80 44 78 41 L86 35 L74 34 C71 28 65 24 58 24 Z"/>
+    
+    <!-- Eye of Horus / Predatory Focus -->
+    <circle cx="50" cy="42" r="4"/>
+    <circle cx="66" cy="42" r="4"/>
+    <path d="M42 36 L58 39 L74 36 L66 40 L58 40 L50 40 Z"/>
+    
+    <!-- Sovereign Talons & Bullion Ingot Base -->
+    <rect x="28" y="98" width="60" height="8" rx="2"/>
+    <rect x="34" y="108" width="48" height="4" rx="1" opacity="0.6"/>
+  </g>
+</svg>

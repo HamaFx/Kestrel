@@ -65,7 +65,7 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
     <section
       role="region"
       aria-label="Verified XAUUSD report"
-      className="border-border bg-bg-elev-1 mt-3 flex flex-col gap-3 rounded-sm border p-3"
+      className="border-border/80 bg-bg-elev-1 surface-chip mt-3 flex flex-col gap-3.5 rounded-xl border border-edge/80 p-4 shadow-[var(--shadow-chip)]"
       data-testid="mastra-report-card"
       data-mastra-agent="mastra-xauusd"
     >

@@ -59,32 +59,39 @@ export function KestrelBrand({
   const isDecorative = decorative && !href;
   const image =
     variant === 'mark' ? (
-      <Image
-        src="/icons/icon-192.png"
-        alt={isDecorative ? '' : 'Kestrel'}
-        aria-hidden={isDecorative || undefined}
-        width={40}
-        height={40}
-        priority={priority}
-        className={cn('shrink-0 rounded-sm object-cover', markSize === 'xs' ? 'size-4' : 'size-7')}
-      />
+      <span className="surface-chip flex items-center justify-center rounded-md p-1.5 bg-bg-elev-2 border border-edge/60 text-brand">
+        <img
+          src="/brand/kestrel-falcon.svg"
+          alt={isDecorative ? '' : 'Kestrel'}
+          aria-hidden={isDecorative || undefined}
+          width={24}
+          height={24}
+          className={cn('shrink-0 text-brand', markSize === 'xs' ? 'size-3.5' : 'size-5')}
+        />
+      </span>
     ) : (
-      <Image
-        src="/brand/kestrel-logo.png"
-        alt={isDecorative ? '' : 'Kestrel'}
-        aria-hidden={isDecorative || undefined}
-        width={160}
-        height={107}
-        priority={priority}
-        className="h-auto w-full object-contain"
-      />
+      <div className="flex items-center gap-2.5">
+        <span className="surface-chip flex items-center justify-center rounded-md p-1.5 bg-bg-elev-2 border border-edge/60 text-brand shadow-sm">
+          <img
+            src="/brand/kestrel-falcon.svg"
+            alt={isDecorative ? '' : 'Kestrel'}
+            aria-hidden={isDecorative || undefined}
+            width={26}
+            height={26}
+            className="size-6 text-brand"
+          />
+        </span>
+        <span className="font-display text-[18px] tracking-[-0.02em] font-normal text-fg">
+          {label}
+        </span>
+      </div>
     );
 
   const content =
     variant === 'mark' && showName ? (
       <span className="inline-flex items-center gap-2">
         {image}
-        <span className="text-fg text-sm font-semibold tracking-tight">{label}</span>
+        <span className="font-display text-[15px] font-normal tracking-[-0.02em] text-fg">{label}</span>
       </span>
     ) : (
       image
@@ -92,7 +99,7 @@ export function KestrelBrand({
 
   const wrapperClassName = cn(
     'inline-flex shrink-0 items-center',
-    variant === 'lockup' ? 'w-36' : undefined,
+    variant === 'lockup' ? 'w-auto' : undefined,
     className,
   );
 

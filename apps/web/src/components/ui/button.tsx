@@ -32,7 +32,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 import { cn } from '@/lib/cn';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'surface' | 'tactical';
 type Size = 'xs' | 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -41,20 +41,26 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
-// Primary/danger get their fills via inlineStyle below (theme tokens).
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand text-brand-fg font-semibold hover:bg-brand/90 border border-brand-border',
-  secondary: 'border border-border bg-bg-elev-1 text-fg hover:bg-bg-elev-2',
-  ghost: 'text-fg-muted hover:text-fg hover:bg-bg-elev-1',
-  danger: 'bg-danger text-white font-semibold hover:bg-danger/90',
-  success: 'bg-success text-black font-semibold hover:bg-success/90',
+  primary:
+    'bg-brand text-white font-medium hover:brightness-110 active:translate-y-[0.5px] border border-brand/40 shadow-[0_4px_14px_rgba(255,54,22,0.3),inset_0_1.4px_0_rgba(255,255,255,0.25)]',
+  secondary:
+    'surface-chip text-fg hover:bg-bg-elev-3 active:translate-y-[0.5px] border border-edge/60',
+  surface:
+    'surface-chip-dark text-white hover:brightness-125 active:translate-y-[0.5px]',
+  ghost: 'text-fg-muted hover:text-fg hover:bg-bg-elev-1 active:translate-y-[0.5px]',
+  danger:
+    'bg-danger text-white font-medium hover:bg-danger/90 active:translate-y-[0.5px] shadow-[0_4px_12px_rgba(224,44,16,0.25)]',
+  success: 'bg-success text-black font-medium hover:bg-success/90 active:translate-y-[0.5px]',
+  tactical:
+    'group relative overflow-hidden rounded-l-md rounded-r-full bg-[#252525] text-white border border-white/10 active:scale-[0.98] transition-transform duration-200',
 };
 
 const sizes: Record<Size, string> = {
-  xs: 'h-8 px-2.5 text-xs rounded-sm', // 32px (compact toolbars/chips)
-  sm: 'h-10 px-3 text-xs sm:text-sm rounded-sm', // 40px (dense action rows)
-  md: 'h-12 px-4 text-sm font-semibold rounded-sm', // 48px (comfortable thumb hit area)
-  lg: 'h-14 px-5 text-base font-semibold rounded-sm', // 56px (prominent CTA)
+  xs: 'h-8 px-2.5 text-xs rounded-sm',
+  sm: 'h-9 px-3 text-xs sm:text-sm rounded-md',
+  md: 'h-10 px-4 text-sm font-medium rounded-md',
+  lg: 'h-12 sm:h-14 px-5 text-base font-medium rounded-md',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -72,9 +78,41 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   ref,
 ) {
   const isDisabled = disabled || loading || false;
-
-  // Variant-driven inline styles removed — flat surfaces only.
   const inlineStyle: React.CSSProperties = style ?? {};
+
+  if (variant === 'tactical') {
+    return (
+      <button
+        ref={ref}
+        type={type}
+        disabled={isDisabled}
+        aria-busy={loading || false}
+        style={inlineStyle}
+        className={cn(
+          'group relative inline-flex items-center justify-between overflow-hidden rounded-l-[6px] rounded-r-full bg-[#252525] py-2 pr-10 pl-4 text-[14px] leading-none tracking-[-0.02em] text-white transition-transform duration-200 active:scale-[0.98] border border-white/10',
+          'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+          className,
+        )}
+        {...rest}
+      >
+        <span aria-hidden="true" className="pointer-events-none absolute top-1 right-1 h-[1.4em] w-[3em] rounded-full bg-[#ff4800]/20 blur-[0.4em] transition-[width] duration-500 group-hover:w-[7em]" />
+        <span aria-hidden="true" className="pointer-events-none absolute top-1 right-1 h-[1.4em] w-[2em] rounded-full bg-[#ff632a]/50 blur-[0.3em] transition-[width] duration-500 group-hover:w-[7em]" />
+        <span aria-hidden="true" className="pointer-events-none absolute top-1 right-1 h-[1.4em] w-[1em] rounded-full bg-[#ff3616] blur-[0.25em] transition-[width] duration-500 group-hover:w-[7em]" />
+        <span className="relative z-10 flex items-center gap-2">
+          {loading ? <IconLoader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+          {children}
+        </span>
+        <svg viewBox="0 0 12 12" className="pointer-events-none absolute top-1/2 right-[0.75em] size-[0.85em] -translate-y-1/2 text-white" aria-hidden="true">
+          <rect x="0" y="5" width="2" height="2" rx="0.5" fill="currentColor" className="transition-[width] duration-300 group-hover:[width:12px]" />
+          <rect x="5" y="0" width="2" height="2" rx="0.5" fill="currentColor" className="transition-[height] duration-300 group-hover:[height:12px]" />
+          <rect x="5" y="5" width="2" height="2" rx="0.5" fill="currentColor" />
+          <rect x="5" y="10" width="2" height="2" rx="0.5" fill="currentColor" />
+          <rect x="10" y="5" width="2" height="2" rx="0.5" fill="currentColor" />
+        </svg>
+      </button>
+    );
+  }
 
   return (
     <button
@@ -84,8 +122,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={loading || false}
       style={inlineStyle}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-sm font-medium',
-        'transition-colors duration-150',
+        'inline-flex items-center justify-center gap-2 rounded-md font-medium',
+        'transition-all duration-150',
         'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none',
         variants[variant],

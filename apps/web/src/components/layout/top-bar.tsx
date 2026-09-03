@@ -52,7 +52,7 @@ export function TopBar({ title, right }: TopBarProps) {
     <header
       className={cn(
         'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full items-center justify-between',
-        'border-border bg-bg/90 pt-safe border-b px-3 backdrop-blur-md',
+        'border-border/80 bg-bg/95 pt-safe border-b px-3.5 backdrop-blur-md shadow-[0_1px_0_rgba(255,255,255,0.03)]',
       )}
     >
       <div className="flex items-center gap-2">
