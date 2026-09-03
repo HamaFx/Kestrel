@@ -27,7 +27,12 @@ import { LandingFAQ } from '@/components/landing/landing-faq';
 import { LandingFooter } from '@/components/landing/landing-footer';
 
 export default async function RootPage() {
-  const session = await auth();
+  let session = null;
+  try {
+    session = await auth();
+  } catch (err) {
+    console.warn('[RootPage] auth() check failed or unconfigured, rendering showcase:', err);
+  }
 
   // Authenticated users go straight into the live terminal
   if (session?.user) {
