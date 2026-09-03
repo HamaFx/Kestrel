@@ -168,16 +168,41 @@ export function loadOrGenerateDevSecrets(): {
   return { generated, store };
 }
 
+const FALLBACK_PREVIEW_SECRET =
+  'a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9';
+
+function normalizeRawSecrets(raw: Record<string, string | undefined>) {
+  if (process.env.VERCEL_ENV === 'preview') {
+    const isInvalid = (v?: string) => !v || v.trim().length < 32;
+    if (isInvalid(raw.AUTH_SECRET)) {
+      raw.AUTH_SECRET =
+        !isInvalid(raw.NEXTAUTH_SECRET)
+          ? raw.NEXTAUTH_SECRET
+          : !isInvalid(raw.AUTH_COOKIE_SECRET)
+            ? raw.AUTH_COOKIE_SECRET
+            : FALLBACK_PREVIEW_SECRET;
+    }
+    if (isInvalid(raw.NEXTAUTH_SECRET)) {
+      raw.NEXTAUTH_SECRET = raw.AUTH_SECRET;
+    }
+    if (isInvalid(raw.ENCRYPTION_SECRET)) {
+      raw.ENCRYPTION_SECRET = raw.AUTH_SECRET;
+    }
+    if (!raw.CRON_SECRET || raw.CRON_SECRET.trim().length < 16) {
+      raw.CRON_SECRET = 'preview-cron-secret-16-bytes';
+    }
+  } else {
+    if (!raw.AUTH_SECRET && raw.NEXTAUTH_SECRET) {
+      raw.AUTH_SECRET = raw.NEXTAUTH_SECRET;
+    }
+  }
+}
+
 export function getAuthEnv(): AuthEnv {
   if (_authEnv) return _authEnv;
   loadOrGenerateDevSecrets();
   const raw = { ...process.env };
-  if (!raw.AUTH_SECRET && raw.NEXTAUTH_SECRET) {
-    raw.AUTH_SECRET = raw.NEXTAUTH_SECRET;
-  }
-  if (!raw.ENCRYPTION_SECRET && (process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV !== 'production')) {
-    raw.ENCRYPTION_SECRET = raw.AUTH_SECRET || raw.NEXTAUTH_SECRET || raw.AUTH_COOKIE_SECRET;
-  }
+  normalizeRawSecrets(raw);
   const result = AuthEnvSchema.safeParse(raw);
   if (!result.success) {
     const issues = result.error.issues
@@ -200,12 +225,7 @@ export function getServerEnv(): ServerEnv {
     console.warn('[env] HAMAFX_RUNTIME is deprecated; use KESTREL_RUNTIME instead.');
   }
   const raw = { ...process.env };
-  if (!raw.AUTH_SECRET && raw.NEXTAUTH_SECRET) {
-    raw.AUTH_SECRET = raw.NEXTAUTH_SECRET;
-  }
-  if (!raw.ENCRYPTION_SECRET && (process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV !== 'production')) {
-    raw.ENCRYPTION_SECRET = raw.AUTH_SECRET || raw.NEXTAUTH_SECRET || raw.AUTH_COOKIE_SECRET;
-  }
+  normalizeRawSecrets(raw);
   if (
     process.env.HAMAFX_LOCAL_DOCKER !== undefined &&
     process.env.KESTREL_LOCAL_DOCKER === undefined

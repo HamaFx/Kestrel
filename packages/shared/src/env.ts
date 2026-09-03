@@ -510,11 +510,31 @@ export function parseServerEnv(input: NodeJS.ProcessEnv = process.env): ServerEn
   if (normalized.KESTREL_ENABLE_RLS === undefined && normalized.HAMAFX_ENABLE_RLS !== undefined) {
     normalized.KESTREL_ENABLE_RLS = normalized.HAMAFX_ENABLE_RLS;
   }
-  if (!normalized.AUTH_SECRET && normalized.NEXTAUTH_SECRET) {
-    normalized.AUTH_SECRET = normalized.NEXTAUTH_SECRET;
-  }
-  if (!normalized.ENCRYPTION_SECRET && (normalized.VERCEL_ENV === 'preview' || normalized.NODE_ENV !== 'production')) {
-    normalized.ENCRYPTION_SECRET = normalized.AUTH_SECRET || normalized.NEXTAUTH_SECRET || normalized.AUTH_COOKIE_SECRET;
+  if (normalized.VERCEL_ENV === 'preview') {
+    const isInvalid = (v?: string) => !v || v.trim().length < 32;
+    const FALLBACK_PREVIEW_SECRET =
+      'a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9';
+    if (isInvalid(normalized.AUTH_SECRET)) {
+      normalized.AUTH_SECRET =
+        !isInvalid(normalized.NEXTAUTH_SECRET)
+          ? normalized.NEXTAUTH_SECRET
+          : !isInvalid(normalized.AUTH_COOKIE_SECRET)
+            ? normalized.AUTH_COOKIE_SECRET
+            : FALLBACK_PREVIEW_SECRET;
+    }
+    if (isInvalid(normalized.NEXTAUTH_SECRET)) {
+      normalized.NEXTAUTH_SECRET = normalized.AUTH_SECRET;
+    }
+    if (isInvalid(normalized.ENCRYPTION_SECRET)) {
+      normalized.ENCRYPTION_SECRET = normalized.AUTH_SECRET;
+    }
+    if (!normalized.CRON_SECRET || normalized.CRON_SECRET.trim().length < 16) {
+      normalized.CRON_SECRET = 'preview-cron-secret-16-bytes';
+    }
+  } else {
+    if (!normalized.AUTH_SECRET && normalized.NEXTAUTH_SECRET) {
+      normalized.AUTH_SECRET = normalized.NEXTAUTH_SECRET;
+    }
   }
   const result = ServerEnvSchema.safeParse(normalized);
   if (!result.success) {
