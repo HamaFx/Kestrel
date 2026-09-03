@@ -271,13 +271,13 @@ export function LandingArchitecture() {
                     key={layer.id}
                     onClick={() => setActiveLayerId(layer.id)}
                     animate={{
-                      top: `${baseTopPercent}%`,
                       y: isActive ? -22 : 0,
                       scale: isActive ? 1.05 : 0.98,
                     }}
                     transition={{ type: 'spring', stiffness: 350, damping: 26 }}
                     className="absolute inset-x-0 cursor-pointer group"
                     style={{
+                      top: `${baseTopPercent}%`,
                       zIndex: isActive ? 40 : 10 + index,
                     }}
                   >
@@ -336,48 +336,39 @@ export function LandingArchitecture() {
 
           {/* Right Column: Active Layer Live Telemetry Console */}
           <div className="lg:col-span-3">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeLayer.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="surface-panel rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl flex flex-col gap-5"
-              >
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="size-2 rounded-full bg-brand animate-pulse shadow-[0_0_8px_#ff3616]" />
-                    <span className="font-mono text-[10px] font-bold text-brand uppercase tracking-wider">
-                      LAYER {activeLayer.num} TELEMETRY
-                    </span>
+            <div className="surface-panel rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl flex flex-col gap-5">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-brand animate-pulse shadow-[0_0_8px_#ff3616]" />
+                  <span className="font-mono text-[10px] font-bold text-brand uppercase tracking-wider">
+                    LAYER {activeLayer.num} TELEMETRY
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] text-fg-subtle">ISOLATED</span>
+              </div>
+
+              <div>
+                <h3 className="font-display text-xl font-normal tracking-tight text-fg">
+                  {activeLayer.title}
+                </h3>
+                <p className="mt-2 font-sans text-xs leading-relaxed text-fg-muted">
+                  {activeLayer.fullDesc}
+                </p>
+              </div>
+
+              {/* Telemetry Metrics */}
+              <div className="flex flex-col gap-2.5 pt-2 border-t border-white/10 font-mono text-xs">
+                {activeLayer.telemetry.map((t, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-lg surface-well p-2.5 bg-black/40 border border-white/5 flex flex-col gap-0.5"
+                  >
+                    <span className="text-[10px] text-fg-subtle">{t.label}</span>
+                    <span className="font-bold text-fg">{t.value}</span>
                   </div>
-                  <span className="font-mono text-[10px] text-fg-subtle">ISOLATED</span>
-                </div>
-
-                <div>
-                  <h3 className="font-display text-xl font-normal tracking-tight text-fg">
-                    {activeLayer.title}
-                  </h3>
-                  <p className="mt-2 font-sans text-xs leading-relaxed text-fg-muted">
-                    {activeLayer.fullDesc}
-                  </p>
-                </div>
-
-                {/* Telemetry Metrics */}
-                <div className="flex flex-col gap-2.5 pt-2 border-t border-white/10 font-mono text-xs">
-                  {activeLayer.telemetry.map((t, idx) => (
-                    <div
-                      key={idx}
-                      className="rounded-lg surface-well p-2.5 bg-black/40 border border-white/5 flex flex-col gap-0.5"
-                    >
-                      <span className="text-[10px] text-fg-subtle">{t.label}</span>
-                      <span className="font-bold text-fg">{t.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            </AnimatePresence>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
