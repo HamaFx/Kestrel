@@ -49,21 +49,36 @@ import {
 } from '@kestrel/shared/env-secrets';
 import { z } from 'zod';
 
+const emptyToUndefined = (v: unknown) =>
+  typeof v === 'string' && v.trim() === '' ? undefined : v;
+
 const AuthEnvSchema = z.object({
   // MED-04: Standardize on AUTH_SECRET (NextAuth v5 convention).
   // NEXTAUTH_SECRET kept as deprecated fallback for backward compatibility.
-  AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 chars').optional(),
-  NEXTAUTH_SECRET: z.string().min(32, 'NEXTAUTH_SECRET must be at least 32 chars').optional(),
-  APP_PASSWORD: z.string().min(4).optional(),
-  AUTH_COOKIE_SECRET: z.string().min(32).optional(),
-  CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 chars').optional(),
-  ENCRYPTION_SECRET: z.string().min(32, 'ENCRYPTION_SECRET must be at least 32 chars').optional(),
+  AUTH_SECRET: z.preprocess(
+    emptyToUndefined,
+    z.string().min(32, 'AUTH_SECRET must be at least 32 chars').optional(),
+  ),
+  NEXTAUTH_SECRET: z.preprocess(
+    emptyToUndefined,
+    z.string().min(32, 'NEXTAUTH_SECRET must be at least 32 chars').optional(),
+  ),
+  APP_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(4).optional()),
+  AUTH_COOKIE_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
+  CRON_SECRET: z.preprocess(
+    emptyToUndefined,
+    z.string().min(16, 'CRON_SECRET must be at least 16 chars').optional(),
+  ),
+  ENCRYPTION_SECRET: z.preprocess(
+    emptyToUndefined,
+    z.string().min(32, 'ENCRYPTION_SECRET must be at least 32 chars').optional(),
+  ),
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
   // FEAT-01: Optional OAuth provider credentials
-  AUTH_GOOGLE_ID: z.string().optional(),
-  AUTH_GOOGLE_SECRET: z.string().optional(),
-  AUTH_GITHUB_ID: z.string().optional(),
-  AUTH_GITHUB_SECRET: z.string().optional(),
+  AUTH_GOOGLE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+  AUTH_GOOGLE_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
+  AUTH_GITHUB_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+  AUTH_GITHUB_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
 export type AuthEnv = z.infer<typeof AuthEnvSchema>;
@@ -156,7 +171,14 @@ export function loadOrGenerateDevSecrets(): {
 export function getAuthEnv(): AuthEnv {
   if (_authEnv) return _authEnv;
   loadOrGenerateDevSecrets();
-  const result = AuthEnvSchema.safeParse(process.env);
+  const raw = { ...process.env };
+  if (!raw.AUTH_SECRET && raw.NEXTAUTH_SECRET) {
+    raw.AUTH_SECRET = raw.NEXTAUTH_SECRET;
+  }
+  if (!raw.ENCRYPTION_SECRET && (process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV !== 'production')) {
+    raw.ENCRYPTION_SECRET = raw.AUTH_SECRET || raw.NEXTAUTH_SECRET || raw.AUTH_COOKIE_SECRET;
+  }
+  const result = AuthEnvSchema.safeParse(raw);
   if (!result.success) {
     const issues = result.error.issues
       .map((i) => `  - ${i.path.join('.') || '(root)'}: ${i.message}`)
@@ -177,6 +199,13 @@ export function getServerEnv(): ServerEnv {
     process.env.KESTREL_RUNTIME = process.env.HAMAFX_RUNTIME;
     console.warn('[env] HAMAFX_RUNTIME is deprecated; use KESTREL_RUNTIME instead.');
   }
+  const raw = { ...process.env };
+  if (!raw.AUTH_SECRET && raw.NEXTAUTH_SECRET) {
+    raw.AUTH_SECRET = raw.NEXTAUTH_SECRET;
+  }
+  if (!raw.ENCRYPTION_SECRET && (process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV !== 'production')) {
+    raw.ENCRYPTION_SECRET = raw.AUTH_SECRET || raw.NEXTAUTH_SECRET || raw.AUTH_COOKIE_SECRET;
+  }
   if (
     process.env.HAMAFX_LOCAL_DOCKER !== undefined &&
     process.env.KESTREL_LOCAL_DOCKER === undefined
@@ -184,7 +213,7 @@ export function getServerEnv(): ServerEnv {
     process.env.KESTREL_LOCAL_DOCKER = process.env.HAMAFX_LOCAL_DOCKER;
     console.warn('[env] HAMAFX_LOCAL_DOCKER is deprecated; use KESTREL_LOCAL_DOCKER instead.');
   }
-  _serverEnv = parseServerEnv();
+  _serverEnv = parseServerEnv(raw);
   return _serverEnv;
 }
 
