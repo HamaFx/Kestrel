@@ -19,16 +19,14 @@
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { LandingNav } from '@/components/landing/landing-nav';
-import { LandingHero } from '@/components/landing/landing-hero';
-import { LandingDesks } from '@/components/landing/landing-desks';
-import { LandingSimulator } from '@/components/landing/landing-simulator';
-import { LandingStepper } from '@/components/landing/landing-stepper';
-import { LandingArchitecture } from '@/components/landing/landing-architecture';
-import { LandingFAQ } from '@/components/landing/landing-faq';
-import { LandingFooter } from '@/components/landing/landing-footer';
+import { LandingPageView } from '@/components/landing/landing-page-view';
 
-export default async function RootPage() {
+export default async function RootPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ showcase?: string }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : undefined;
   let session = null;
   try {
     session = await auth();
@@ -36,24 +34,12 @@ export default async function RootPage() {
     console.warn('[RootPage] auth() check failed or unconfigured, rendering showcase:', err);
   }
 
-  // Authenticated users go straight into the live terminal
-  if (session?.user) {
+  // Authenticated users go straight into the live terminal unless they explicitly requested the showcase
+  if (session?.user && resolvedParams?.showcase !== 'true') {
     redirect('/chat');
   }
 
-  // Public visitors see the full Hoplite-grade showcase
-  return (
-    <div className="flex min-h-screen flex-col bg-[#101112] text-fg selection:bg-brand selection:text-white">
-      <LandingNav />
-      <main className="flex-1">
-        <LandingHero />
-        <LandingDesks />
-        <LandingSimulator />
-        <LandingStepper />
-        <LandingArchitecture />
-        <LandingFAQ />
-      </main>
-      <LandingFooter />
-    </div>
-  );
+  // Public visitors (or authenticated visitors requesting the showcase) see the full Hoplite showcase
+  return <LandingPageView isAuthenticated={!!session?.user} />;
 }
+

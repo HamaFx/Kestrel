@@ -39,6 +39,7 @@ import {
   IconNews,
   IconSettings,
   IconShield,
+  IconWorld,
 } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
 import { Link } from 'next-view-transitions';
@@ -98,6 +99,7 @@ const PRIMARY: readonly NavItem[] = [
 const SECONDARY: readonly NavItem[] = [
   { href: '/alerts', label: 'Alerts', icon: IconBell, description: 'Price triggers' },
   { href: '/journal', label: 'Journal', icon: IconBook, description: 'Trades & R-multiples' },
+  { href: '/landing', label: 'Showcase', icon: IconWorld, description: 'Public landing & architecture' },
   { href: '/settings', label: 'Settings', icon: IconSettings, description: 'Notifications, usage' },
 ];
 
@@ -173,7 +175,7 @@ export function NavDrawer({
 
           {/* Brand */}
           <div className="flex items-center px-5 pt-6 pb-3">
-            <KestrelBrand variant="lockup" className="w-32" />
+            <KestrelBrand variant="lockup" href="/landing" className="w-32" />
           </div>
 
           {/* Identity strip */}

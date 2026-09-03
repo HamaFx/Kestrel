@@ -119,9 +119,16 @@ const TICKER_ITEMS = [
   { symbol: 'US10Y', price: '4.28%', change: '-4.2bp', up: false },
 ];
 
-export function LandingHero() {
+export interface LandingHeroProps {
+  isAuthenticated?: boolean;
+}
+
+export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
   const [activeSymbolIndex, setActiveSymbolIndex] = useState(0);
   const active = SYMBOLS[activeSymbolIndex] ?? SYMBOLS[0]!;
+
+  // Seamless duplication for infinite marquee feel
+  const doubledTicker = [...TICKER_ITEMS, ...TICKER_ITEMS];
 
   return (
     <section className="relative min-h-[92vh] overflow-hidden pt-6 pb-20 lg:pt-14 lg:pb-28">
@@ -139,53 +146,48 @@ export function LandingHero() {
           alt="Sovereign Horus Falcon Neoclassical Sculpture"
           fill
           priority
-          unoptimized
-          sizes="(max-width: 1024px) 100vw, 65vw"
-          className="object-cover object-center"
+          sizes="(max-width: 1024px) 100vw, 62vw"
+          className="object-contain object-right"
         />
       </div>
 
-      {/* ── Hoplite Bottom-Up Ember Heat Gradient ── */}
+      {/* Decorative Grid Accent */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 select-none opacity-80"
-        style={{
-          background:
-            'radial-gradient(ellipse 70% 160% at 85% 100%, rgba(255, 54, 22, 0.26) 0%, rgba(255, 54, 22, 0.10) 35%, rgba(255, 54, 22, 0.02) 60%, transparent 75%)',
-        }}
-      />
-
-      {/* Halftone Texture Overlay */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:24px_24px] opacity-40"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,54,22,0.08),transparent_50%)]"
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Top Market Ticker Strip */}
-        <div className="mb-10 flex items-center justify-between overflow-x-auto rounded-full border border-white/10 bg-[#141516]/80 px-4 py-2 backdrop-blur-md shadow-sm">
-          <div className="flex items-center gap-2 pr-4 border-r border-white/10 shrink-0">
+        <div className="mb-10 flex items-center justify-between overflow-hidden rounded-full border border-white/10 bg-[#141516]/80 px-4 py-2 backdrop-blur-md shadow-sm">
+          <div className="flex items-center gap-2 pr-4 border-r border-white/10 shrink-0 z-10 bg-[#141516]/90">
             <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_6px_#3f9e3d]" />
             <span className="font-mono text-[11px] font-bold tracking-wider text-fg uppercase">
               INTERBANK L2
             </span>
           </div>
 
-          <div className="flex items-center gap-6 overflow-x-auto px-4 text-xs font-mono">
-            {TICKER_ITEMS.map((item) => (
-              <div key={item.symbol} className="flex items-center gap-2 shrink-0">
-                <span className="text-fg-subtle">{item.symbol}</span>
-                <span className="text-fg font-semibold tabular-nums">{item.price}</span>
-                <span className={cn('text-[11px] font-medium tabular-nums', item.up ? 'text-bull' : 'text-bear')}>
-                  {item.change}
-                </span>
-              </div>
-            ))}
+          <div className="relative flex-1 overflow-hidden mask-fade-x">
+            <div className="ticker-track flex items-center gap-8 text-xs font-mono whitespace-nowrap">
+              {doubledTicker.map((item, idx) => (
+                <div key={`${item.symbol}-${idx}`} className="flex items-center gap-2 shrink-0">
+                  <span className="text-fg-subtle">{item.symbol}</span>
+                  <span className="text-fg font-semibold tabular-nums">{item.price}</span>
+                  <span className={cn('text-[11px] font-medium tabular-nums px-1 py-0.2 rounded', item.up ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10')}>
+                    {item.change}
+                  </span>
+                  <span className="text-white/10 select-none ml-2">/</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="hidden lg:flex items-center gap-2 pl-4 border-l border-white/10 text-[11px] font-mono text-fg-subtle shrink-0">
+          <div className="hidden lg:flex items-center gap-2 pl-4 border-l border-white/10 text-[11px] font-mono text-fg-subtle shrink-0 z-10 bg-[#141516]/90">
             <span>FEED LATENCY:</span>
-            <span className="text-bull font-bold tabular-nums">18ms</span>
+            <span className="text-bull font-bold tabular-nums flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-bull animate-ping" />
+              18ms
+            </span>
           </div>
         </div>
 
@@ -216,7 +218,10 @@ export function LandingHero() {
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <TacticalFlameButton href="/login" label="Launch Terminal" />
+              <TacticalFlameButton
+                href={isAuthenticated ? '/chat' : '/login'}
+                label={isAuthenticated ? 'Open Terminal' : 'Launch Terminal'}
+              />
               <a href="#simulator">
                 <Button variant="secondary" size="lg" className="px-5 text-sm font-medium gap-2">
                   <span className="size-2 rounded-full bg-brand animate-pulse" />
