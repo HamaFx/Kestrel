@@ -49,6 +49,7 @@ Trading gold (`XAUUSD`), forex, and crypto requires analyzing price action, inst
 
 - 🧠 **4-Agent AI Committee**: Technical, Fundamental, Risk, and Sentiment specialist agents collaborate using [Mastra](https://mastra.ai) to synthesize multi-factor trade ideas with strict citations and guardrails.
 - 📐 **Institutional Smart Money Concepts (SMC)**: Native detection of Order Blocks, Fair Value Gaps (FVG), Liquidity Sweeps, Asian Session Killzones, and Market Structure Shifts (BOS/CHoCH).
+- 🏛️ **Hoplite Design Standard**: Institutional dark-chrome terminal blending Classical Antiquity with cyber-industrial hardware — Funnel Display typography, Redaction Italic emphasis, Geist Mono tabular figures, recessed instrument wells, and bottom-up ember illumination. See [Design System](docs/design-system.md).
 - ⚡ **Dual Real-Time Feeds**: SignalR sub-second streaming for Gold & Forex, plus Binance WebSockets for 24/7 crypto candles.
 - 🔒 **100% Privacy & Data Sovereignty (BYOK)**: Use your own API keys (OpenAI, Gemini, Anthropic, DeepSeek, Groq, Ollama). Your keys are encrypted at rest on your hardware with `ENCRYPTION_SECRET`. Zero telemetry leaks.
 - 🛠️ **Zero-Friction Self-Hosting**: Run locally in 60 seconds with embedded PGlite (no database installation needed) or launch the full stack with 1-click Docker Compose.
