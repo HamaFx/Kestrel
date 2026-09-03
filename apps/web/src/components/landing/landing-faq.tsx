@@ -59,7 +59,7 @@ export function LandingFAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="relative py-24 bg-[#0d0d0d] overflow-hidden border-t border-white/5">
+    <section id="faq" className="relative py-28 lg:py-36 bg-[#0d0d0d] overflow-hidden border-t border-white/5">
       {/* Halftone Columns Background */}
       <div
         aria-hidden="true"

@@ -56,12 +56,6 @@ export function LandingNav() {
             Live Simulator
           </a>
           <a
-            href="#cases"
-            className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
-          >
-            Case Studies
-          </a>
-          <a
             href="#stepper"
             className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
           >
@@ -119,13 +113,6 @@ export function LandingNav() {
               className="text-brand font-medium transition-colors"
             >
               Live Simulator
-            </a>
-            <a
-              href="#cases"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-fg-muted hover:text-fg transition-colors"
-            >
-              Case Studies
             </a>
             <a
               href="#stepper"

@@ -133,7 +133,7 @@ export function LandingSimulator() {
   };
 
   return (
-    <section id="simulator" className="relative py-24 bg-[#0d0e0f] border-t border-white/5 overflow-hidden">
+    <section id="simulator" className="relative py-28 lg:py-36 bg-[#0d0e0f] border-t border-white/5 overflow-hidden">
       {/* Background Radial Glow */}
       <div
         aria-hidden="true"
