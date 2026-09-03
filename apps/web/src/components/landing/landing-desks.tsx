@@ -19,7 +19,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
-import { IconCheck } from '@tabler/icons-react';
+import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { cn } from '@/lib/cn';
 import {
   ChartWizardSprite,
@@ -147,8 +147,20 @@ const DESKS: DeskSpec[] = [
 ];
 
 export function LandingDesks() {
-  const [selectedId, setSelectedId] = useState<string>('technical');
-  const activeDesk = DESKS.find((d) => d.id === selectedId) ?? DESKS[0]!;
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
+
+  const activeDesk = DESKS[currentIndex] ?? DESKS[0]!;
+
+  const handleNext = () => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % DESKS.length);
+  };
+
+  const handlePrev = () => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + DESKS.length) % DESKS.length);
+  };
 
   return (
     <section id="desks" className="relative py-24 bg-[#101112] border-t border-white/5 overflow-hidden">
@@ -178,33 +190,61 @@ export function LandingDesks() {
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="flex flex-col items-start gap-4 mb-16 max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono">
-            <span className="size-2 rounded-full bg-brand animate-pulse" />
-            <span className="text-brand font-semibold uppercase tracking-wider">
-              Autonomous Syndicate
-            </span>
+        {/* Section Header with Tactical Carousel Controls */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div className="flex flex-col items-start gap-4 max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono">
+              <span className="size-2 rounded-full bg-brand animate-pulse" />
+              <span className="text-brand font-semibold uppercase tracking-wider">
+                Autonomous Phalanx
+              </span>
+            </div>
+
+            <h2 className="font-display text-3xl font-normal tracking-[-0.03em] text-fg sm:text-5xl">
+              THE 4 SPECIALIST DESKS{' '}
+              <span className="font-redaction-35 italic text-brand">Deliberating In Sync</span>
+            </h2>
+            <p className="font-sans text-base text-fg-muted leading-relaxed">
+              Unlike single-prompt trading bots that make emotional decisions, Kestrel operates as an institutional multi-desk trading committee. Each specialist evaluates markets from an independent mathematical lens.
+            </p>
           </div>
 
-          <h2 className="font-display text-3xl font-normal tracking-[-0.03em] text-fg sm:text-5xl">
-            THE 4 SPECIALIST DESKS{' '}
-            <span className="font-redaction-35 italic text-brand">Deliberating In Sync</span>
-          </h2>
-          <p className="font-sans text-base text-fg-muted leading-relaxed">
-            Unlike single-prompt trading bots that make emotional decisions, Kestrel operates as an institutional multi-desk trading committee. Each specialist evaluates markets from an independent mathematical lens.
-          </p>
+          {/* Tactical Carousel Controls */}
+          <div className="flex items-center gap-2 self-start md:self-end">
+            <button
+              type="button"
+              onClick={handlePrev}
+              className="flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-fg hover:border-white/20 transition-colors"
+              aria-label="Previous specialist desk"
+            >
+              <IconChevronLeft className="size-5" />
+            </button>
+            <span className="font-mono text-xs text-fg-subtle px-2">
+              0{currentIndex + 1} / 0{DESKS.length}
+            </span>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-fg hover:border-white/20 transition-colors"
+              aria-label="Next specialist desk"
+            >
+              <IconChevronRight className="size-5" />
+            </button>
+          </div>
         </div>
 
         {/* 4 Desk Selector Tabs with Gliding Fluid Pill */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-          {DESKS.map((desk) => {
-            const isSelected = desk.id === selectedId;
+          {DESKS.map((desk, idx) => {
+            const isSelected = idx === currentIndex;
             return (
               <button
                 key={desk.id}
                 type="button"
-                onClick={() => setSelectedId(desk.id)}
+                onClick={() => {
+                  setDirection(idx > currentIndex ? 1 : -1);
+                  setCurrentIndex(idx);
+                }}
                 className={cn(
                   'group relative flex flex-col items-start gap-3 rounded-xl p-4 sm:p-5 text-left transition-all duration-200 border',
                   isSelected
@@ -254,10 +294,10 @@ export function LandingDesks() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeDesk.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
+            initial={{ opacity: 0, x: direction * 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: direction * -24 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             className="surface-panel relative overflow-hidden rounded-2xl border border-white/10 bg-[#141516]/95 backdrop-blur-md p-6 sm:p-8 shadow-2xl"
           >
             <div className="grid gap-8 lg:grid-cols-12 lg:items-center">

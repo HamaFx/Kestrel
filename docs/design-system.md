@@ -102,7 +102,7 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 │                     LANDING DESKS (#desks)                  │
 │  • Cybernetic Hoplite Spartan Bust Masterwork Backdrop      │
 │  • 4 Autonomous Specialist Desks (Tech, Macro, Risk, COT)   │
-│  • Gliding Active Indicator (`layoutId`) & AnimatePresence  │
+│  • Horizontal Phalanx Carousel with Next/Prev Chevrons      │
 ├─────────────────────────────────────────────────────────────┤
 │                  LANDING SIMULATOR (#simulator)             │
 │  • Interactive Syndicate Transaction Simulator              │
@@ -110,9 +110,15 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 │  • Interactive Risk Ceiling Slider & Live Veto Enforcement  │
 │  • Certified Cryptographic Order Ticket & FIX Bridge Test   │
 ├─────────────────────────────────────────────────────────────┤
+│                 LANDING CASE STUDIES (#cases)               │
+│  • Horizontal Audited Trade Execution Slideshow             │
+│  • 4 Real Syndicate Trades (XAU, EUR, GBP, BTC)             │
+│  • Step-by-Step Transaction Lifecycle & Autoplay Progress   │
+├─────────────────────────────────────────────────────────────┤
 │                    LANDING STEPPER (#stepper)               │
+│  • Vertical Illuminated Fiber-Optic Circuit Timeline        │
 │  • 4-Stage Pipeline: Ingestion → Deliberate → Veto → Cones  │
-│  • Dark-Chrome IDE Window with Syntax Highlighting          │
+│  • Dark-Chrome IDE Window with Vertical Code Transitions    │
 ├─────────────────────────────────────────────────────────────┤
 │                 LANDING ARCHITECTURE (#architecture)        │
 │  • 4-Pillar Infrastructure Grid with Tactile Micro-Visuals  │
@@ -127,18 +133,19 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 ```
 
 ### Component Breakdown
-1. **`LandingNav` (`landing-nav.tsx`):** Sticky frosted header (`backdrop-blur-2xl bg-[#101112]/90 border-b border-white/10`) with live XAU/USD status pill, `Live Simulator` anchor, and responsive mobile navigation drawer.
+1. **`LandingNav` (`landing-nav.tsx`):** Sticky frosted header (`backdrop-blur-2xl bg-[#101112]/90 border-b border-white/10`) with live XAU/USD status pill, `Live Simulator` and `Case Studies` anchors, and responsive mobile navigation drawer.
 2. **`LandingHero` (`landing-hero.tsx`):**
    - **Horus Falcon Masterpiece:** Neoclassical predatory raptor on temple pediment blended into the obsidian canvas with radial vignette masking.
    - **Market Ticker Ribbon:** Continuous interbank feed metrics (`XAU/USD $2,864.20 ▲ +1.42%`, `DXY 104.12 ▼ -0.34%`).
    - **Deliberation Rig:** Interactive hardware console with `layoutId` gliding symbol selector and `AnimatePresence` data transitions.
    - **Tactical Button (`variant="tactical"`):** Glowing ember pill button with active press translation.
-3. **`LandingDesks` (`landing-desks.tsx`):** Interactive deep-dive into the 4 specialist desks with the Cybernetic Hoplite Spartan bust backdrop, `layoutId="active-desk-tab-indicator"`, and smooth `AnimatePresence` transitions.
+3. **`LandingDesks` (`landing-desks.tsx`):** Interactive deep-dive into the 4 specialist desks with the Cybernetic Hoplite Spartan bust backdrop, tactical carousel chevron controls (`<IconChevronLeft />`, `<IconChevronRight />`), and directional spring slide transitions.
 4. **`LandingSimulator` (`landing-simulator.tsx`):** Hands-on interactive transaction simulator featuring scenario injection, live 4-desk radial voting progress, interactive draggable risk governor slider (with live red veto triggers when $>1.0\%$), and mock FIX bridge dispatching.
-5. **`LandingStepper` (`landing-stepper.tsx`):** IDE-styled code window with macOS hardware dots, tabbed files, colored syntax blocks, and latency benchmarks (14ms, 82ms, 44ms, 18ms).
-6. **`LandingArchitecture` (`landing-architecture.tsx`):** 4 infrastructure pillars with embedded micro-diagrams (Consensus node network, Risk formula boundary, Multi-venue latency matrix, AES-256 vault).
-7. **`LandingFAQ` (`landing-faq.tsx`):** Monospace-numbered accordion with smooth spring-based auto-height expanding and closing via `motion/react` and `AnimatePresence`.
-8. **`LandingFooter` (`landing-footer.tsx`):** Operational uptime pill, terminal navigation links, and colossal Bebas Neue watermark.
+5. **`LandingCaseStudies` (`landing-cases.tsx`):** Horizontal trade replay carousel demonstrating 4 audited institutional setups (XAU/USD +184 pips, EUR/USD +114 pips, GBP/USD +142 pips, BTC/USD +3,400 pts) with step-by-step transaction logs and autoplay progress scrubbers.
+6. **`LandingStepper` (`landing-stepper.tsx`):** Vertical glowing fiber-optic circuit timeline with an animated laser tracer line, IDE-styled code window with macOS hardware dots, and vertical directional slide transitions.
+7. **`LandingArchitecture` (`landing-architecture.tsx`):** 4 infrastructure pillars with embedded micro-diagrams (Consensus node network, Risk formula boundary, Multi-venue latency matrix, AES-256 vault).
+8. **`LandingFAQ` (`landing-faq.tsx`):** Monospace-numbered accordion with smooth spring-based auto-height expanding and closing via `motion/react` and `AnimatePresence`.
+9. **`LandingFooter` (`landing-footer.tsx`):** Operational uptime pill, terminal navigation links, and colossal Bebas Neue watermark.
 
 ---
 

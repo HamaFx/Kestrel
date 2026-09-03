@@ -155,10 +155,22 @@ export function LandingStepper() {
           </p>
         </div>
 
-        {/* Stepper Interactive Layout */}
+        {/* Stepper Interactive Layout with Vertical Circuit Spine */}
         <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
-          {/* Left: 4 Step Selector Buttons */}
-          <div className="flex flex-col gap-3 lg:col-span-5">
+          {/* Left: 4 Step Selector Buttons along Vertical Circuit */}
+          <div className="relative flex flex-col gap-3.5 lg:col-span-5 pl-2 sm:pl-4">
+            {/* Vertical Circuit Background Line */}
+            <div className="absolute left-[30px] sm:left-[38px] top-7 bottom-7 w-[2px] bg-white/10 z-0" />
+
+            {/* Vertical Glowing Active Laser Tracer */}
+            <motion.div
+              className="absolute left-[30px] sm:left-[38px] top-7 w-[2px] bg-brand shadow-[0_0_10px_#ff3616] z-0"
+              animate={{
+                height: `${((activeStep - 1) / (STEPS.length - 1)) * 82}%`,
+              }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            />
+
             {STEPS.map((step) => {
               const active = step.id === activeStep;
               return (
@@ -167,10 +179,10 @@ export function LandingStepper() {
                   type="button"
                   onClick={() => setActiveStep(step.id)}
                   className={cn(
-                    'group relative flex text-left items-start gap-4 rounded-xl p-4 sm:p-5 transition-all duration-200 border',
+                    'group relative z-10 flex text-left items-start gap-4 rounded-xl p-4 sm:p-5 transition-all duration-200 border',
                     active
                       ? 'surface-chip bg-[#171819] border-white/20 shadow-[var(--shadow-chip)]'
-                      : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10',
+                      : 'border-white/5 bg-[#101112]/90 hover:bg-white/[0.04] hover:border-white/10 backdrop-blur-sm',
                   )}
                 >
                   {/* Fluid Gliding Border Highlight */}
@@ -182,13 +194,13 @@ export function LandingStepper() {
                     />
                   )}
 
-                  {/* Step Number Badge */}
+                  {/* Step Number Badge positioned on Circuit Node */}
                   <div
                     className={cn(
-                      'flex size-10 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-bold transition-colors',
+                      'relative z-10 flex size-10 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-bold transition-all',
                       active
-                        ? 'bg-brand text-white shadow-[0_0_12px_rgba(255,54,22,0.4)]'
-                        : 'bg-white/5 text-fg-subtle group-hover:text-fg',
+                        ? 'bg-brand text-white shadow-[0_0_16px_rgba(255,54,22,0.6)] border border-brand'
+                        : 'bg-[#0d0e0f] border border-white/10 text-fg-subtle group-hover:text-fg group-hover:border-white/20',
                     )}
                   >
                     {step.label}
@@ -213,7 +225,7 @@ export function LandingStepper() {
             })}
           </div>
 
-          {/* Right: Live Interactive Circuit & Code Display with AnimatePresence */}
+          {/* Right: Live Interactive Circuit & Code Display with Vertical AnimatePresence */}
           <div className="lg:col-span-7">
             <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl">
               {/* Circuit Header Bar with IDE Dots */}
@@ -232,14 +244,14 @@ export function LandingStepper() {
                 </div>
               </div>
 
-              {/* Code Surface with Smooth Slide */}
+              {/* Code Surface with Smooth Vertical Slide */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={current.id}
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                   className="mt-4 overflow-x-auto rounded-xl surface-well p-5 border border-white/5 bg-[#08090a]"
                 >
                   <pre className="font-mono text-xs sm:text-[13px] leading-relaxed whitespace-pre font-medium text-fg">
