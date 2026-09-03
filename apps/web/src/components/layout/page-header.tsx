@@ -33,19 +33,19 @@ export function PageHeader({ title, description, icon, children }: PageHeaderPro
           {icon ? (
             <span
               aria-hidden="true"
-              className="text-fg bg-bg-elev-2 inline-flex size-12 items-center justify-center rounded-sm"
+              className="text-brand surface-chip bg-bg-elev-2 inline-flex size-11 items-center justify-center rounded-xl border border-edge/60 shadow-xs"
             >
               {icon}
             </span>
           ) : null}
-          <h1 className="text-fg text-display-lg sm:text-display-xl font-bold tracking-tight">
+          <h1 className="text-fg font-display text-2xl sm:text-3xl font-normal tracking-[-0.02em]">
             {title}
           </h1>
         </div>
         {children ? <div className="flex items-center gap-2">{children}</div> : null}
       </div>
       {description ? (
-        <p className="text-fg-muted text-sm leading-normal sm:text-base">{description}</p>
+        <p className="text-fg-muted font-sans text-sm leading-normal">{description}</p>
       ) : null}
     </header>
   );

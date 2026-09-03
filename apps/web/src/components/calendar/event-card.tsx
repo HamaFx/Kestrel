@@ -87,10 +87,10 @@ export function EventCard({ event }: EventCardProps) {
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-sm',
-        'border-border bg-bg-elev-1 border',
-        'md:hover:bg-bg-elev-2 transition-colors duration-200',
-        isImminent && 'border-warn/40',
+        'group relative overflow-hidden rounded-xl',
+        'border-border/80 bg-bg-elev-1 surface-chip border shadow-[var(--shadow-chip)]',
+        'md:hover:bg-bg-elev-2/80 transition-all duration-200',
+        isImminent && 'border-warn/50 shadow-[0_0_16px_rgba(217,143,0,0.15)]',
       )}
     >
       {/* Importance ribbon — suppressed for low-importance events; the
@@ -99,13 +99,13 @@ export function EventCard({ event }: EventCardProps) {
         <span
           aria-hidden="true"
           className="absolute inset-y-0 left-0 w-1"
-          style={{ background: importance.ribbon }}
+          style={{ backgroundColor: importance.ribbon }}
         />
       ) : null}
 
-      <div className="flex flex-col gap-2.5 px-4 py-3.5 pb-5 pl-5">
-        {/* Meta strip — currency glyph + country + time + countdown */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums">
+      <div className={cn('flex flex-col gap-2 p-3.5 sm:p-4', hasRibbon && 'pl-4 sm:pl-5')}>
+        {/* Meta strip */}
+        <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
           <span
             className="text-fg font-bold uppercase tabular-nums"
             title={importance.label}
@@ -120,7 +120,7 @@ export function EventCard({ event }: EventCardProps) {
             ·
           </span>
           <span className="text-fg-muted">{event.country}</span>
-          <span aria-hidden="true" className="text-fg-subtle opacity-50">
+          <span aria-hidden className="text-fg-subtle opacity-50">
             ·
           </span>
           <time dateTime={date.toISOString()} className="text-fg-muted">
@@ -144,7 +144,7 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-fg line-clamp-2 text-sm leading-snug font-semibold sm:text-base">
+        <h3 className="text-fg line-clamp-2 text-sm leading-snug font-semibold sm:text-base font-sans">
           {event.title}
         </h3>
 
@@ -159,14 +159,14 @@ export function EventCard({ event }: EventCardProps) {
       {isFuture ? (
         <div
           className={cn(
-            'border-border/70 flex items-center justify-between gap-2 border-t px-3 py-2',
-            'bg-bg-elev-1 transition-colors duration-150',
-            'hover:bg-bg-elev-2',
+            'border-border/70 flex items-center justify-between gap-2 border-t px-3.5 py-2',
+            'bg-bg-elev-1/60 transition-colors duration-150',
+            'hover:bg-bg-elev-2/60',
           )}
         >
           <Link
             href={`/chat?prompt=${askPrompt}`}
-            className="bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-[32px] items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium transition-colors"
+            className="surface-chip bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-[32px] items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all active:translate-y-[0.5px] border border-edge/60 shadow-xs"
           >
             <IconBolt className="size-3.5" />
             Ask AI
@@ -183,7 +183,7 @@ export function EventCard({ event }: EventCardProps) {
 function DataRow({ event }: { event: EconomicEvent }) {
   const beat = beatMiss(event);
   return (
-    <dl className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs tabular-nums sm:text-sm">
+    <dl className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs tabular-nums sm:text-sm font-mono surface-well rounded-md p-2 bg-bg/60 border border-edge/40">
       {event.actual !== null && (
         <Stat label="actual" value={event.actual} unit={event.unit} emphasis />
       )}

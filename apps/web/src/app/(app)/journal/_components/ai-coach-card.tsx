@@ -78,23 +78,23 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
   };
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-5 rounded-sm border p-5 shadow-sm">
+    <div className="border-border/80 bg-bg-elev-1 surface-chip flex flex-col gap-5 rounded-xl border border-edge/80 p-5 shadow-[var(--shadow-chip)]">
       {/* Card Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="bg-brand/10 text-brand rounded-sm p-2.5">
+          <div className="bg-brand/10 text-brand surface-chip rounded-xl p-2.5 border border-brand/20 shadow-xs">
             <IconBrain className="size-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-fg text-sm font-bold tracking-tight">
+              <h3 className="text-fg font-display text-base font-normal tracking-tight">
                 Trading Performance & Habit Review
               </h3>
-              <span className="bg-brand/10 text-brand text-caption rounded-xs px-1.5 py-0.5 font-bold uppercase">
+              <span className="bg-brand/10 text-brand border border-brand/30 text-caption rounded-md px-1.5 py-0.5 font-bold uppercase font-mono">
                 Coach v2
               </span>
             </div>
-            <p className="text-fg-subtle text-xs">
+            <p className="text-fg-subtle font-sans text-xs">
               Behavioral insights, risk review & execution audit
             </p>
           </div>
@@ -104,7 +104,8 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           onClick={generateCoachReport}
           disabled={loading || stats.count === 0}
           size="sm"
-          className="bg-fg cursor-pointer font-bold text-black hover:opacity-90"
+          variant="tactical"
+          className="cursor-pointer font-medium"
         >
           <IconSparkles className={cn('mr-1.5 size-3.5', loading && 'animate-spin')} />
           <span>
@@ -115,12 +116,12 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
 
       {/* Empty / Initial State */}
       {!insights && !loading && !error && (
-        <div className="border-border/60 bg-bg-elev-2 flex flex-col items-center justify-center gap-2 rounded-sm border border-dashed p-6 text-center">
+        <div className="border-border/60 surface-well bg-[#121212] flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 text-center">
           <IconBrain className="text-fg-subtle size-8 opacity-60" />
-          <p className="text-fg text-xs font-semibold">
+          <p className="text-fg text-xs font-semibold font-sans">
             Ready to analyze your trading psychology and edge
           </p>
-          <p className="text-fg-subtle text-caption max-w-md">
+          <p className="text-fg-subtle text-caption max-w-md font-sans">
             The AI coach cross-analyzes win rate across sessions (London/NY/Asian), hold times, risk
             multiples, and trade notes to detect recurring mistakes.
           </p>
