@@ -510,6 +510,12 @@ export function parseServerEnv(input: NodeJS.ProcessEnv = process.env): ServerEn
   if (normalized.KESTREL_ENABLE_RLS === undefined && normalized.HAMAFX_ENABLE_RLS !== undefined) {
     normalized.KESTREL_ENABLE_RLS = normalized.HAMAFX_ENABLE_RLS;
   }
+  if (!normalized.AUTH_SECRET && normalized.NEXTAUTH_SECRET) {
+    normalized.AUTH_SECRET = normalized.NEXTAUTH_SECRET;
+  }
+  if (!normalized.ENCRYPTION_SECRET && (normalized.VERCEL_ENV === 'preview' || normalized.NODE_ENV !== 'production')) {
+    normalized.ENCRYPTION_SECRET = normalized.AUTH_SECRET || normalized.NEXTAUTH_SECRET || normalized.AUTH_COOKIE_SECRET;
+  }
   const result = ServerEnvSchema.safeParse(normalized);
   if (!result.success) {
     const issues = result.error.issues
