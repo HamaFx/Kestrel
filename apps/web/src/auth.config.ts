@@ -64,11 +64,12 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn = !!auth?.user;
       const isPublicPage =
         nextUrl.pathname === '/' ||
-        nextUrl.pathname === '/login' ||
-        nextUrl.pathname === '/register' ||
-        nextUrl.pathname === '/forgot-password' ||
-        nextUrl.pathname === '/reset-password' ||
-        nextUrl.pathname === '/offline';
+        nextUrl.pathname === '' ||
+        nextUrl.pathname.startsWith('/login') ||
+        nextUrl.pathname.startsWith('/register') ||
+        nextUrl.pathname.startsWith('/forgot-password') ||
+        nextUrl.pathname.startsWith('/reset-password') ||
+        nextUrl.pathname.startsWith('/offline');
 
       // Public surface (showcase landing + auth + offline) is always reachable.
       if (isPublicPage) return true;

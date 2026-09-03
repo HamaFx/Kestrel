@@ -16,32 +16,156 @@
  * limitations under the License.
  */
 
+import { useState } from 'react';
 import { Link } from 'next-view-transitions';
-import Image from 'next/image';
-import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
-import { ChartWizardSprite, MacroMageSprite, RiskKnightSprite, KestrelFalconSprite } from '@/components/chat/parts/pixel-desk/pixel-sprites';
+import { cn } from '@/lib/cn';
+import {
+  ChartWizardSprite,
+  MacroMageSprite,
+  RiskKnightSprite,
+  KestrelFalconSprite,
+} from '@/components/chat/parts/pixel-desk/pixel-sprites';
+
+interface SymbolTelemetry {
+  symbol: string;
+  name: string;
+  price: string;
+  change: string;
+  isPositive: boolean;
+  spread: string;
+  direction: 'BUY / LONG' | 'SELL / SHORT';
+  entry: string;
+  invalidation: string;
+  target1: string;
+  target2: string;
+  rr: string;
+  conviction: number;
+  techSignal: string;
+  macroSignal: string;
+  riskSignal: string;
+  sentimentSignal: string;
+}
+
+const SYMBOLS: SymbolTelemetry[] = [
+  {
+    symbol: 'XAU/USD',
+    name: 'Spot Gold / US Dollar',
+    price: '2,864.20',
+    change: '+1.42% (+9.80)',
+    isPositive: true,
+    spread: '0.12 pts',
+    direction: 'BUY / LONG',
+    entry: '2,864.00',
+    invalidation: '2,846.50',
+    target1: '2,884.00',
+    target2: '2,916.50',
+    rr: '1:3.2',
+    conviction: 91,
+    techSignal: 'FVG +94%',
+    macroSignal: 'Yields -4bp',
+    riskSignal: '1% @ 2,846',
+    sentimentSignal: 'Whales Long',
+  },
+  {
+    symbol: 'EUR/USD',
+    name: 'Euro / US Dollar',
+    price: '1.0845',
+    change: '+0.28% (+0.0030)',
+    isPositive: true,
+    spread: '0.4 pips',
+    direction: 'BUY / LONG',
+    entry: '1.0840',
+    invalidation: '1.0812',
+    target1: '1.0895',
+    target2: '1.0930',
+    rr: '1:3.1',
+    conviction: 87,
+    techSignal: 'Sweep +88%',
+    macroSignal: 'ECB Hold',
+    riskSignal: '0.8% SL',
+    sentimentSignal: 'COT Bullish',
+  },
+  {
+    symbol: 'GBP/USD',
+    name: 'British Pound / US Dollar',
+    price: '1.2912',
+    change: '-0.15% (-0.0019)',
+    isPositive: false,
+    spread: '0.6 pips',
+    direction: 'SELL / SHORT',
+    entry: '1.2915',
+    invalidation: '1.2950',
+    target1: '1.2850',
+    target2: '1.2805',
+    rr: '1:3.0',
+    conviction: 85,
+    techSignal: 'Supply +85%',
+    macroSignal: 'BoE Doves',
+    riskSignal: '1% @ 1.295',
+    sentimentSignal: 'Funds Short',
+  },
+];
+
+const TICKER_ITEMS = [
+  { symbol: 'XAU/USD', price: '$2,864.20', change: '+1.42%', up: true },
+  { symbol: 'EUR/USD', price: '1.0845', change: '+0.28%', up: true },
+  { symbol: 'GBP/USD', price: '1.2912', change: '-0.15%', up: false },
+  { symbol: 'USD/JPY', price: '153.80', change: '-0.45%', up: false },
+  { symbol: 'DXY', price: '104.12', change: '-0.34%', up: false },
+  { symbol: 'US10Y', price: '4.28%', change: '-4.2bp', up: false },
+];
 
 export function LandingHero() {
+  const [activeSymbolIndex, setActiveSymbolIndex] = useState(0);
+  const active = SYMBOLS[activeSymbolIndex] ?? SYMBOLS[0]!;
+
   return (
-    <section className="relative min-h-[90vh] overflow-hidden pt-12 pb-24 lg:pt-20 lg:pb-32">
+    <section className="relative min-h-[90vh] overflow-hidden pt-8 pb-20 lg:pt-16 lg:pb-28">
       {/* ── Hoplite Bottom-Up Ember Heat Gradient ── */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 select-none opacity-90"
+        className="pointer-events-none absolute inset-0 z-0 select-none opacity-80"
         style={{
           background:
-            'radial-gradient(ellipse 70% 190% at 85% 100%, #ff3616 0%, rgba(255, 54, 22, 0.22) 35%, rgba(255, 54, 22, 0.05) 60%, transparent 75%)',
+            'radial-gradient(ellipse 65% 160% at 85% 100%, rgba(255, 54, 22, 0.28) 0%, rgba(255, 54, 22, 0.12) 30%, rgba(255, 54, 22, 0.03) 55%, transparent 75%)',
         }}
       />
 
       {/* Halftone Texture Overlay */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] opacity-40"
+        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] opacity-40"
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Top Market Ticker Strip */}
+        <div className="mb-10 flex items-center justify-between overflow-x-auto rounded-full border border-white/10 bg-[#141516]/80 px-4 py-2 backdrop-blur-md shadow-sm">
+          <div className="flex items-center gap-2 pr-4 border-r border-white/10 shrink-0">
+            <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_6px_#3f9e3d]" />
+            <span className="font-mono text-[11px] font-bold tracking-wider text-fg uppercase">
+              INTERBANK L2
+            </span>
+          </div>
+
+          <div className="flex items-center gap-6 overflow-x-auto px-4 text-xs font-mono">
+            {TICKER_ITEMS.map((item) => (
+              <div key={item.symbol} className="flex items-center gap-2 shrink-0">
+                <span className="text-fg-subtle">{item.symbol}</span>
+                <span className="text-fg font-semibold tabular-nums">{item.price}</span>
+                <span className={cn('text-[11px] font-medium tabular-nums', item.up ? 'text-bull' : 'text-bear')}>
+                  {item.change}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden lg:flex items-center gap-2 pl-4 border-l border-white/10 text-[11px] font-mono text-fg-subtle shrink-0">
+            <span>FEED LATENCY:</span>
+            <span className="text-bull font-bold tabular-nums">18ms</span>
+          </div>
+        </div>
+
         <div className="grid gap-12 lg:grid-cols-12 lg:items-center lg:gap-8">
           {/* Left Column: Monumental Headline & Value Prop */}
           <div className="flex flex-col items-start gap-6 lg:col-span-7">
@@ -106,88 +230,130 @@ export function LandingHero() {
 
           {/* Right Column: Interactive Hardware Telemetry Rig */}
           <div className="lg:col-span-5">
-            <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#141414]/90 p-5 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.15)]">
-              {/* Header Status */}
+            <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#141516]/95 p-5 sm:p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)]">
+              {/* Header Status & Symbol Switcher */}
               <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
                 <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full bg-bull animate-pulse shadow-[0_0_8px_#3f9e3d]" />
+                  <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_8px_#3f9e3d]" />
                   <span className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
-                    XAU/USD · DELIBERATION RIG
+                    DELIBERATION RIG
                   </span>
                 </div>
-                <span className="font-mono text-xs text-brand font-semibold bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-md">
-                  SYNCHRONIZED
-                </span>
+
+                {/* Symbol Pills */}
+                <div className="flex items-center gap-1 rounded-lg bg-black/40 p-1 border border-white/5">
+                  {SYMBOLS.map((s, idx) => (
+                    <button
+                      key={s.symbol}
+                      type="button"
+                      onClick={() => setActiveSymbolIndex(idx)}
+                      className={cn(
+                        'px-2 py-0.5 rounded font-mono text-[10px] font-semibold transition-colors',
+                        idx === activeSymbolIndex
+                          ? 'bg-brand text-white shadow-sm'
+                          : 'text-fg-subtle hover:text-fg hover:bg-white/5',
+                      )}
+                    >
+                      {s.symbol.split('/')[0]}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Price Display */}
-              <div className="my-4 rounded-xl surface-well p-4 border border-white/5 bg-[#0e0e0e]">
+              <div className="my-4 rounded-xl surface-well p-4 border border-white/5 bg-[#0b0c0d]">
                 <div className="flex items-baseline justify-between">
                   <span className="font-sans text-xs text-fg-subtle uppercase tracking-wider">
-                    Spot Gold / U.S. Dollar
+                    {active.name}
                   </span>
-                  <span className="font-mono text-xs text-bull font-semibold">
-                    ▲ +1.42% (+9.80)
+                  <span className={cn('font-mono text-xs font-semibold', active.isPositive ? 'text-bull' : 'text-bear')}>
+                    {active.isPositive ? '▲' : '▼'} {active.change}
                   </span>
                 </div>
-                <div className="mt-1 font-mono text-3xl font-bold tracking-tight text-fg tabular-nums">
-                  2,864.20
+                <div className="mt-1 flex items-baseline justify-between">
+                  <div className="font-mono text-3xl sm:text-4xl font-bold tracking-tight text-fg tabular-nums">
+                    {active.price}
+                  </div>
+                  <span className="font-mono text-[11px] text-fg-subtle">
+                    Spread: {active.spread}
+                  </span>
                 </div>
               </div>
 
               {/* 4 Hardware Specialist Desks Row */}
               <div className="grid grid-cols-4 gap-2 py-2">
                 {/* Tech */}
-                <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
                   <ChartWizardSprite isThinking bias="bullish" />
                   <span className="font-mono text-[10px] font-bold text-bull uppercase">Tech</span>
-                  <span className="font-mono text-[9px] text-fg-subtle">FVG +92%</span>
+                  <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
+                    {active.techSignal}
+                  </span>
                 </div>
 
                 {/* Macro */}
-                <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
                   <MacroMageSprite isDone bias="bullish" />
                   <span className="font-mono text-[10px] font-bold text-info uppercase">Macro</span>
-                  <span className="font-mono text-[9px] text-fg-subtle">Yields -4bp</span>
+                  <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
+                    {active.macroSignal}
+                  </span>
                 </div>
 
                 {/* Risk */}
-                <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
                   <RiskKnightSprite isDone bias="bullish" />
                   <span className="font-mono text-[10px] font-bold text-warn uppercase">Risk</span>
-                  <span className="font-mono text-[9px] text-fg-subtle">1% @ 2,846</span>
+                  <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
+                    {active.riskSignal}
+                  </span>
                 </div>
 
                 {/* Sentinel */}
-                <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
                   <KestrelFalconSprite isDone bias="bullish" />
-                  <span className="font-mono text-[10px] font-bold text-brand uppercase">Syndicate</span>
-                  <span className="font-mono text-[9px] text-fg-subtle">LONG 88%</span>
+                  <span className="font-mono text-[10px] font-bold text-brand uppercase">Whales</span>
+                  <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
+                    {active.sentimentSignal}
+                  </span>
                 </div>
               </div>
 
               {/* Consensus Trade Card */}
-              <div className="mt-3 rounded-lg border border-brand/30 bg-brand/[0.08] p-3">
+              <div className="mt-3 rounded-xl border border-brand/30 bg-brand/[0.06] p-4 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-xs font-bold text-fg uppercase">Committee Order Plan</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-fg uppercase">
+                      Committee Order Plan
+                    </span>
+                    <span className="font-mono text-[10px] text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.5 rounded">
+                      {active.conviction}% Conviction
+                    </span>
                   </div>
-                  <span className="font-mono text-xs font-bold text-bull bg-bull/20 border border-bull/40 px-2 py-0.5 rounded-sm uppercase">
-                    BUY / LONG
+                  <span
+                    className={cn(
+                      'font-mono text-xs font-bold px-2 py-0.5 rounded uppercase border',
+                      active.direction.startsWith('BUY')
+                        ? 'text-bull bg-bull/10 border-bull/30'
+                        : 'text-bear bg-bear/10 border-bear/30',
+                    )}
+                  >
+                    {active.direction}
                   </span>
                 </div>
-                <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-xs tabular-nums text-center">
-                  <div className="rounded surface-well p-1.5 bg-[#0a0a0a]">
+
+                <div className="mt-3 grid grid-cols-3 gap-2 font-mono text-xs tabular-nums text-center">
+                  <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
                     <span className="text-[10px] text-fg-subtle block">ENTRY</span>
-                    <span className="font-bold text-fg">2,864.00</span>
+                    <span className="font-bold text-fg">{active.entry}</span>
                   </div>
-                  <div className="rounded surface-well p-1.5 bg-[#0a0a0a]">
+                  <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
                     <span className="text-[10px] text-bear block">INVALIDATION</span>
-                    <span className="font-bold text-bear">2,846.50</span>
+                    <span className="font-bold text-bear">{active.invalidation}</span>
                   </div>
-                  <div className="rounded surface-well p-1.5 bg-[#0a0a0a]">
-                    <span className="text-[10px] text-bull block">TARGET (1:3)</span>
-                    <span className="font-bold text-bull">2,916.50</span>
+                  <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
+                    <span className="text-[10px] text-bull block">TARGET ({active.rr})</span>
+                    <span className="font-bold text-bull">{active.target2}</span>
                   </div>
                 </div>
               </div>
