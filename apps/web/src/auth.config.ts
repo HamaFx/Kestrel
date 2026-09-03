@@ -65,6 +65,10 @@ export const authConfig: NextAuthConfig = {
       const isPublicPage =
         nextUrl.pathname === '/' ||
         nextUrl.pathname === '' ||
+        nextUrl.pathname.startsWith('/landing') ||
+        nextUrl.pathname.startsWith('/fonts') ||
+        nextUrl.pathname.startsWith('/brand') ||
+        nextUrl.pathname.startsWith('/icons') ||
         nextUrl.pathname.startsWith('/login') ||
         nextUrl.pathname.startsWith('/register') ||
         nextUrl.pathname.startsWith('/forgot-password') ||

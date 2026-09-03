@@ -138,6 +138,7 @@ export function LandingHero() {
           alt="Sovereign Horus Falcon Neoclassical Sculpture"
           fill
           priority
+          unoptimized
           sizes="(max-width: 1024px) 100vw, 65vw"
           className="object-cover object-center"
         />

@@ -165,6 +165,7 @@ export function LandingDesks() {
           src="/landing/hoplite-spartan-bust.webp"
           alt="Cybernetic Spartan Hoplite Sculpture"
           fill
+          unoptimized
           sizes="(max-width: 1024px) 100vw, 50vw"
           className="object-cover object-center"
         />
