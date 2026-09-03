@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'next-view-transitions';
 import { IconMenu2, IconX } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,17 @@ import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
 export function LandingNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#101112]/90 backdrop-blur-2xl transition-all">
@@ -87,6 +98,8 @@ export function LandingNav() {
           {/* Mobile Hamburger Toggle */}
           <button
             type="button"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="flex size-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-fg md:hidden"
             aria-label="Toggle navigation menu"
@@ -98,7 +111,7 @@ export function LandingNav() {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="border-b border-white/10 bg-[#121314] px-4 py-6 md:hidden">
+        <div id="mobile-nav" className="border-b border-white/10 bg-[#121314] px-4 py-6 md:hidden">
           <div className="flex flex-col gap-4 font-sans text-base">
             <a
               href="#desks"

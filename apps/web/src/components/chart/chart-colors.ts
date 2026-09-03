@@ -21,5 +21,5 @@
 // Hex literals because canvas-based rendering can be flaky with oklch
 // literals on older iOS Safari.
 
-export const SERIES_BULL_HEX = '#22C55E'; // mirrors --color-bull
-export const SERIES_BEAR_HEX = '#EF4444'; // mirrors --color-bear
+export const SERIES_BULL_HEX = '#3f9e3d'; // mirrors --color-bull
+export const SERIES_BEAR_HEX = '#e02c10'; // mirrors --color-bear

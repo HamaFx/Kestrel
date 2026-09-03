@@ -15,7 +15,6 @@
  */
 
 import { Link } from 'next-view-transitions';
-import Image from 'next/image';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
 export function LandingFooter() {

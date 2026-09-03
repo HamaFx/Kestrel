@@ -17,7 +17,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { Link } from 'next-view-transitions';
-import Image from 'next/image';
 
 import { cn } from '@/lib/cn';
 
@@ -53,7 +52,7 @@ export function KestrelBrand({
   showName = false,
   markSize = 'sm',
   decorative = false,
-  priority = false,
+  priority: _priority = false,
   className,
 }: KestrelBrandProps) {
   const isDecorative = decorative && !href;

@@ -16,26 +16,10 @@
 
 import type { Metadata, Viewport } from 'next';
 import { ViewTransitions } from 'next-view-transitions';
-import { Inter, JetBrains_Mono } from 'next/font/google';
 
 import { Providers } from '@/components/providers';
-import { cn } from '@/lib/cn';
 
 import './globals.css';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  weight: ['400', '500', '600', '700', '800'],
-  display: 'swap',
-  adjustFontFallback: false,
-});
 
 function resolveMetadataBase(): URL | undefined {
   const raw = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL;
@@ -114,7 +98,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={cn(inter.variable, jetbrainsMono.variable)}
       data-brand="kestrel"
       suppressHydrationWarning
     >
@@ -124,6 +107,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/fonts/funnel-display-latin-wght-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/geist-mono-wght-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/redaction-35-italic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/bebas-neue-latin-400-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {/* iPhone 14 & 15 Pro */}
         <link
           rel="apple-touch-startup-image"

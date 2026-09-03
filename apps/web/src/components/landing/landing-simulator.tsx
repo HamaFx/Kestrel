@@ -21,7 +21,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   IconPlayerPlay,
   IconCheck,
-  IconShieldCheck,
   IconAlertTriangle,
   IconSend,
   IconRefresh,
@@ -160,13 +159,19 @@ export function LandingSimulator() {
         </div>
 
         {/* Scenario Pill Selector */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
+        <div
+          role="tablist"
+          aria-label="Market scenarios"
+          className="flex flex-wrap items-center justify-center gap-2 mb-10"
+        >
           {SCENARIOS.map((sc) => {
             const isSelected = sc.id === selectedScenarioId;
             return (
               <button
                 key={sc.id}
                 type="button"
+                role="tab"
+                aria-selected={isSelected}
                 onClick={() => {
                   setSelectedScenarioId(sc.id);
                   setSimulationStage('idle');
@@ -353,6 +358,10 @@ export function LandingSimulator() {
                 max="2.5"
                 step="0.1"
                 value={riskSlider}
+                aria-label="Max account risk percentage"
+                aria-valuemin={0.5}
+                aria-valuemax={2.5}
+                aria-valuenow={riskSlider}
                 onChange={(e) => setRiskSlider(parseFloat(e.target.value))}
                 className="w-full accent-brand cursor-pointer"
               />
@@ -375,6 +384,52 @@ export function LandingSimulator() {
 
           {/* Order Plan Ticket Result */}
           <AnimatePresence mode="wait">
+            {simulationStage === 'verdict' && isVetoed && (
+              <motion.div
+                key="verdict-vetoed-card"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.3 }}
+                className="rounded-xl border border-bear/40 bg-bear/[0.04] p-5 sm:p-6 shadow-xl"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-bear/20 pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="size-3 rounded-full bg-bear shadow-[0_0_8px_#e02c10]" />
+                    <div>
+                      <div className="font-mono text-sm font-bold text-bear uppercase">
+                        TRANSACTION VETOED BY QUANTITATIVE RISK DESK
+                      </div>
+                      <div className="font-mono text-[11px] text-fg-subtle">
+                        REASON: RISK CEILING {riskSlider.toFixed(1)}% EXCEEDS 1.0% MAXIMUM TOLERANCE
+                      </div>
+                    </div>
+                  </div>
+                  <span className="font-mono text-xs font-bold px-3 py-1 rounded-full uppercase border text-center text-bear bg-bear/10 border-bear/30">
+                    EXECUTION ABORTED
+                  </span>
+                </div>
+
+                <div className="mt-4 p-4 rounded-lg surface-well bg-black/60 border border-bear/20 font-sans text-xs text-fg-muted leading-relaxed">
+                  Kestrel&apos;s mathematical risk governor strictly forbids order ticket emission when account drawdown parameters exceed 1.0%. Lower the risk ceiling slider to ≤ 1.0% to permit algorithmically verified order execution.
+                </div>
+
+                <div className="mt-4 flex items-center justify-between pt-2">
+                  <span className="font-mono text-[11px] text-fg-subtle">
+                    CAPITAL PRESERVATION PROTOCOL ACTIVE
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setRiskSlider(1.0)}
+                    className="font-mono text-xs text-bull border-bull/30 hover:bg-bull/10"
+                  >
+                    Restore 1.0% Floor
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
             {simulationStage === 'verdict' && !isVetoed && (
               <motion.div
                 key="verdict-card"

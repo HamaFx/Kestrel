@@ -97,7 +97,10 @@ export function LandingFAQ() {
                 )}
               >
                 <button
+                  id={`faq-trigger-${faq.id}`}
                   type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-panel-${faq.id}`}
                   onClick={() => setOpenIndex(isOpen ? null : index)}
                   className="flex w-full items-center justify-between p-5 sm:p-6 text-left"
                 >
@@ -124,6 +127,9 @@ export function LandingFAQ() {
                 <AnimatePresence initial={false}>
                   {isOpen && (
                     <motion.div
+                      id={`faq-panel-${faq.id}`}
+                      role="region"
+                      aria-labelledby={`faq-trigger-${faq.id}`}
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
