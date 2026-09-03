@@ -86,11 +86,11 @@ export function TickerTape() {
     ]);
     return (
       <div
-        className="border-border/60 bg-bg relative h-6 overflow-hidden border-b"
+        className="border-border/80 bg-well/80 relative h-7 overflow-hidden border-b shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]"
         aria-label="Market ticker tape — awaiting data"
         role="marquee"
       >
-        <div className="ticker-track font-mono text-xs leading-6 whitespace-nowrap">
+        <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap">
           {fallback}
           {fallback}
         </div>
@@ -102,13 +102,13 @@ export function TickerTape() {
   const doubled = [...items, ...items];
 
   const content = doubled.map((item, i) => (
-    <span key={`${item.symbol}-${i}`} className="inline-flex shrink-0 items-center gap-1.5">
+    <span key={`${item.symbol}-${i}`} className="inline-flex shrink-0 items-center gap-2">
       <span className="text-fg font-semibold tracking-tight">{item.symbol}</span>
       <span className="text-fg-subtle tabular-nums">{item.mid}</span>
       <span
         className={cn(
-          'text-xs font-semibold tabular-nums',
-          item.isBull ? 'text-bull' : 'text-bear',
+          'text-xs font-semibold tabular-nums px-1 rounded-xs',
+          item.isBull ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10',
         )}
       >
         {item.isBull ? '▲' : '▼'} {item.changeStr}
@@ -119,11 +119,11 @@ export function TickerTape() {
 
   return (
     <div
-      className="border-border/60 bg-bg relative h-6 overflow-hidden border-b"
+      className="border-border/80 bg-well/80 relative h-7 overflow-hidden border-b shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]"
       aria-label="Market ticker tape"
       role="marquee"
     >
-      <div className="ticker-track font-mono text-xs leading-6 whitespace-nowrap">{content}</div>
+      <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap">{content}</div>
     </div>
   );
 }

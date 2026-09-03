@@ -65,12 +65,12 @@ export function StatCard({ icon, label, value, tone = 'fg', sparkline }: StatCar
       role="group"
       aria-label={`${label}: ${value}`}
       className={cn(
-        'relative flex flex-col gap-2 overflow-hidden rounded-sm',
-        'border-border bg-bg-elev-1 border border-l-2 p-3 sm:p-4',
+        'relative flex flex-col gap-2 overflow-hidden rounded-md surface-chip',
+        'border-border bg-bg-elev-1 border border-l-2 p-3 sm:p-4 shadow-[var(--shadow-chip)]',
         TONE_TINT[tone],
       )}
     >
-      <div className="text-fg-subtle relative flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
+      <div className="text-fg-subtle relative flex items-center gap-1.5 text-xs font-medium tracking-wider uppercase font-sans">
         {icon ? (
           <span className={cn('inline-flex h-4 w-4 items-center justify-center', TONE_CLASS[tone])}>
             {icon}

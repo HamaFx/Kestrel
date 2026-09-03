@@ -397,7 +397,7 @@ export function PixelDeskStandby({
       role="region"
       aria-label="Quantitative floor on standby"
       className={cn(
-        'border-border/80 bg-bg-elev-1 relative my-1 flex w-full max-w-xl flex-col gap-2.5 overflow-hidden rounded-sm border p-2.5 shadow-sm sm:my-2 sm:gap-3 sm:p-3.5',
+        'border-border/80 bg-bg-elev-1 surface-chip relative my-1 flex w-full max-w-xl flex-col gap-2.5 overflow-hidden rounded-xl border border-edge/80 p-3 shadow-[var(--shadow-chip)] sm:my-2 sm:gap-3 sm:p-4',
         className,
       )}
     >
@@ -414,12 +414,12 @@ export function PixelDeskStandby({
       {/* Header Bar with Live Session Sync */}
       <div className="border-border/60 flex items-center justify-between border-b pb-2">
         <div className="flex items-center gap-1.5">
-          <span className="bg-bull inline-block size-2 animate-pulse rounded-xs shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
+          <span className="bg-bull inline-block size-2 animate-pulse rounded-full shadow-[0_0_6px_rgba(63,158,61,0.5)]" />
           <span className="text-fg text-caption font-mono font-bold tracking-wider uppercase">
-            TRADING FLOOR SPECIALISTS
+            4-DESK QUANTITATIVE COMMITTEE
           </span>
         </div>
-        <span className="border-bull/40 bg-bull/10 text-bull text-caption rounded-xs border px-1.5 py-0.5 font-mono font-semibold tracking-wide uppercase">
+        <span className="border-bull/40 bg-bull/10 text-bull text-caption rounded-md border px-1.5 py-0.5 font-mono font-semibold tracking-wide uppercase">
           {sessionInfo.label.toUpperCase()} · READY
         </span>
       </div>

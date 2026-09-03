@@ -90,7 +90,7 @@ export function DesktopSidebar({
       aria-label="Desktop navigation sidebar"
       className={cn(
         'fixed top-0 bottom-0 left-0 z-40 hidden flex-col justify-between lg:flex',
-        'border-border bg-bg-elev-1 border-r transition-all duration-200 select-none',
+        'border-border/80 bg-bg-elev-1 surface-well-deep border-r transition-all duration-200 select-none shadow-[inset_-1px_0_0_rgba(255,255,255,0.05)]',
         collapsed ? 'w-16' : 'w-56',
       )}
       style={{
@@ -110,7 +110,7 @@ export function DesktopSidebar({
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 rounded-sm p-1 transition-colors"
+            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 rounded-md p-1 transition-colors active:translate-y-[0.5px]"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
@@ -135,21 +135,32 @@ export function DesktopSidebar({
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
+                  'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all active:translate-y-[0.5px]',
                   active
-                    ? 'bg-bg-elev-2 text-fg border-brand border-l-2'
-                    : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/60 border-l-2 border-transparent',
+                    ? 'bg-bg-elev-2 text-fg surface-chip border-brand/40 shadow-sm'
+                    : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/50 border border-transparent',
                 )}
                 title={collapsed ? item.label : undefined}
               >
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-1 h-3.5 w-1 rounded-full bg-brand shadow-[0_0_8px_rgba(255,54,22,0.6)]"
+                  />
+                )}
                 <Icon
                   className={cn(
-                    'size-5 shrink-0',
+                    'size-5 shrink-0 transition-colors',
                     active ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
+                    active && 'ml-1',
                   )}
                   aria-hidden="true"
                 />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && (
+                  <span className={cn('truncate font-sans', active && 'font-medium')}>
+                    {item.label}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -165,21 +176,28 @@ export function DesktopSidebar({
             aria-label="Admin"
             aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
             className={cn(
-              'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
+              'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all active:translate-y-[0.5px]',
               pathname.startsWith('/admin')
-                ? 'bg-bg-elev-2 text-fg border-brand border-l-2'
-                : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/60 border-l-2 border-transparent',
+                ? 'bg-bg-elev-2 text-fg surface-chip border-brand/40 shadow-sm'
+                : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/50 border border-transparent',
             )}
             title={collapsed ? 'Admin' : undefined}
           >
+            {pathname.startsWith('/admin') && (
+              <span
+                aria-hidden="true"
+                className="absolute left-1 h-3.5 w-1 rounded-full bg-brand shadow-[0_0_8px_rgba(255,54,22,0.6)]"
+              />
+            )}
             <IconShield
               className={cn(
                 'size-5 shrink-0',
                 pathname.startsWith('/admin') ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
+                pathname.startsWith('/admin') && 'ml-1',
               )}
               aria-hidden="true"
             />
-            {!collapsed && <span className="truncate">Admin</span>}
+            {!collapsed && <span className="truncate font-sans">Admin</span>}
           </Link>
         )}
 
@@ -189,37 +207,44 @@ export function DesktopSidebar({
           aria-label="Settings"
           aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
           className={cn(
-            'group relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors',
+            'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all active:translate-y-[0.5px]',
             pathname.startsWith('/settings')
-              ? 'bg-bg-elev-2 text-fg border-brand border-l-2'
-              : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/60 border-l-2 border-transparent',
+              ? 'bg-bg-elev-2 text-fg surface-chip border-brand/40 shadow-sm'
+              : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/50 border border-transparent',
           )}
           title={collapsed ? 'Settings' : undefined}
         >
+          {pathname.startsWith('/settings') && (
+            <span
+              aria-hidden="true"
+              className="absolute left-1 h-3.5 w-1 rounded-full bg-brand shadow-[0_0_8px_rgba(255,54,22,0.6)]"
+            />
+          )}
           <IconSettings
             className={cn(
               'size-5 shrink-0',
               pathname.startsWith('/settings')
                 ? 'text-brand'
                 : 'text-fg-subtle group-hover:text-fg',
+              pathname.startsWith('/settings') && 'ml-1',
             )}
             aria-hidden="true"
           />
-          {!collapsed && <span className="truncate">Settings</span>}
+          {!collapsed && <span className="truncate font-sans">Settings</span>}
         </Link>
 
         {/* User profile & Logout */}
         <div className="mt-1 flex items-center justify-between gap-2 px-2 py-2">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="bg-bg-elev-3 text-fg border-border flex size-7 shrink-0 items-center justify-center rounded-sm border font-mono text-xs font-bold">
+            <div className="surface-chip bg-bg-elev-2 text-fg border-border flex size-7 shrink-0 items-center justify-center rounded-md border font-mono text-xs font-bold shadow-sm">
               {initial}
             </div>
             {!collapsed && (
               <div className="flex min-w-0 flex-col">
-                <span className="text-fg truncate text-xs font-semibold">
+                <span className="text-fg truncate text-xs font-medium font-sans">
                   {userName || 'Trader'}
                 </span>
-                <span className="text-fg-subtle text-caption truncate">{userEmail || ''}</span>
+                <span className="text-fg-subtle text-caption truncate font-mono">{userEmail || ''}</span>
               </div>
             )}
           </div>
@@ -227,7 +252,7 @@ export function DesktopSidebar({
           <button
             type="button"
             onClick={handleLogout}
-            className="text-fg-subtle hover:text-danger rounded-sm p-1 transition-colors"
+            className="text-fg-subtle hover:text-danger rounded-md p-1 transition-colors active:translate-y-[0.5px]"
             title="Sign out"
             aria-label="Sign out"
           >
