@@ -49,6 +49,12 @@ export function LandingNav() {
             Specialist Desks
           </a>
           <a
+            href="#simulator"
+            className="font-sans text-sm font-medium text-brand transition-colors hover:text-brand"
+          >
+            Live Simulator
+          </a>
+          <a
             href="#stepper"
             className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
           >
@@ -103,6 +109,13 @@ export function LandingNav() {
               className="text-fg-muted hover:text-fg transition-colors"
             >
               Specialist Desks
+            </a>
+            <a
+              href="#simulator"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-brand font-medium transition-colors"
+            >
+              Live Simulator
             </a>
             <a
               href="#stepper"

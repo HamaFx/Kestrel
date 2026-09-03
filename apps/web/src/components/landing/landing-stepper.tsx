@@ -17,6 +17,7 @@
  */
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/cn';
 
 interface Step {
@@ -172,6 +173,15 @@ export function LandingStepper() {
                       : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10',
                   )}
                 >
+                  {/* Fluid Gliding Border Highlight */}
+                  {active && (
+                    <motion.div
+                      layoutId="stepper-tab-active-pill"
+                      className="absolute inset-0 rounded-xl border border-brand/40 bg-brand/[0.03] -z-10"
+                      transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                    />
+                  )}
+
                   {/* Step Number Badge */}
                   <div
                     className={cn(
@@ -203,15 +213,15 @@ export function LandingStepper() {
             })}
           </div>
 
-          {/* Right: Live Interactive Circuit & Code Display */}
+          {/* Right: Live Interactive Circuit & Code Display with AnimatePresence */}
           <div className="lg:col-span-7">
             <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl">
               {/* Circuit Header Bar with IDE Dots */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full bg-white/20" />
-                  <span className="size-2.5 rounded-full bg-white/20" />
-                  <span className="size-2.5 rounded-full bg-white/20" />
+                  <span className="size-2.5 rounded-full bg-red-500/80" />
+                  <span className="size-2.5 rounded-full bg-amber-500/80" />
+                  <span className="size-2.5 rounded-full bg-emerald-500/80" />
                   <span className="ml-2 font-mono text-xs text-fg-subtle">
                     pipeline / {current.fileName}
                   </span>
@@ -222,12 +232,21 @@ export function LandingStepper() {
                 </div>
               </div>
 
-              {/* Code Surface */}
-              <div className="mt-4 overflow-x-auto rounded-xl surface-well p-5 border border-white/5 bg-[#08090a]">
-                <pre className="font-mono text-xs sm:text-[13px] leading-relaxed whitespace-pre font-medium text-fg">
-                  <code>{current.codeHighlighted}</code>
-                </pre>
-              </div>
+              {/* Code Surface with Smooth Slide */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={current.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-4 overflow-x-auto rounded-xl surface-well p-5 border border-white/5 bg-[#08090a]"
+                >
+                  <pre className="font-mono text-xs sm:text-[13px] leading-relaxed whitespace-pre font-medium text-fg">
+                    <code>{current.codeHighlighted}</code>
+                  </pre>
+                </motion.div>
+              </AnimatePresence>
 
               {/* Dynamic Circuit Trace Footer */}
               <div className="mt-5 flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3.5 text-xs font-mono">

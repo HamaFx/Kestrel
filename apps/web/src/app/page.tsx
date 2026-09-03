@@ -22,6 +22,7 @@ import { auth } from '@/auth';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { LandingHero } from '@/components/landing/landing-hero';
 import { LandingDesks } from '@/components/landing/landing-desks';
+import { LandingSimulator } from '@/components/landing/landing-simulator';
 import { LandingStepper } from '@/components/landing/landing-stepper';
 import { LandingArchitecture } from '@/components/landing/landing-architecture';
 import { LandingFAQ } from '@/components/landing/landing-faq';
@@ -47,6 +48,7 @@ export default async function RootPage() {
       <main className="flex-1">
         <LandingHero />
         <LandingDesks />
+        <LandingSimulator />
         <LandingStepper />
         <LandingArchitecture />
         <LandingFAQ />

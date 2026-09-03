@@ -17,6 +17,8 @@
  */
 
 import { useState } from 'react';
+import Image from 'next/image';
+import { motion, AnimatePresence } from 'motion/react';
 import { IconCheck } from '@tabler/icons-react';
 import { cn } from '@/lib/cn';
 import {
@@ -150,6 +152,24 @@ export function LandingDesks() {
 
   return (
     <section id="desks" className="relative py-24 bg-[#101112] border-t border-white/5 overflow-hidden">
+      {/* ── Neoclassical Cybernetic Hoplite Bust Artwork ── */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 w-full lg:w-[50%] h-[85%] z-0 select-none opacity-20 lg:opacity-25 mix-blend-screen"
+        style={{
+          maskImage: 'radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%)',
+        }}
+      >
+        <Image
+          src="/landing/hoplite-spartan-bust.webp"
+          alt="Cybernetic Spartan Hoplite Sculpture"
+          fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          className="object-cover object-center"
+        />
+      </div>
+
       {/* Background Radial Glow */}
       <div
         aria-hidden="true"
@@ -175,7 +195,7 @@ export function LandingDesks() {
           </p>
         </div>
 
-        {/* 4 Desk Selector Tabs */}
+        {/* 4 Desk Selector Tabs with Gliding Fluid Pill */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
           {DESKS.map((desk) => {
             const isSelected = desk.id === selectedId;
@@ -191,11 +211,12 @@ export function LandingDesks() {
                     : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10',
                 )}
               >
-                {/* Active Indicator Top Line */}
+                {/* Active Indicator Top Line with Spring Gliding */}
                 {isSelected && (
-                  <span
-                    aria-hidden="true"
+                  <motion.div
+                    layoutId="active-desk-tab-indicator"
                     className="absolute inset-x-4 top-0 h-[2px] bg-brand rounded-full shadow-[0_0_8px_#ff3616]"
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}
 
@@ -228,94 +249,105 @@ export function LandingDesks() {
           })}
         </div>
 
-        {/* Desk Deep Dive Detail Card */}
-        <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/10 bg-[#141516] p-6 sm:p-8 shadow-2xl">
-          <div className="grid gap-8 lg:grid-cols-12 lg:items-center">
-            {/* Left Col: Spec & Methodology */}
-            <div className="lg:col-span-7 flex flex-col gap-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-fg-subtle uppercase tracking-wider">
-                  {activeDesk.badge}
-                </span>
-                <span className="font-mono text-xs font-medium text-fg-muted">
-                  Methodology: <strong className="text-fg">{activeDesk.methodology}</strong>
-                </span>
-              </div>
+        {/* Desk Deep Dive Detail Card with AnimatePresence */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeDesk.id}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="surface-panel relative overflow-hidden rounded-2xl border border-white/10 bg-[#141516]/95 backdrop-blur-md p-6 sm:p-8 shadow-2xl"
+          >
+            <div className="grid gap-8 lg:grid-cols-12 lg:items-center">
+              {/* Left Col: Spec & Methodology */}
+              <div className="lg:col-span-7 flex flex-col gap-6">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-fg-subtle uppercase tracking-wider">
+                    {activeDesk.badge}
+                  </span>
+                  <span className="font-mono text-xs font-medium text-fg-muted">
+                    Methodology: <strong className="text-fg">{activeDesk.methodology}</strong>
+                  </span>
+                </div>
 
-              <div>
-                <h3 className="font-display text-2xl sm:text-3xl font-normal tracking-tight text-fg">
-                  {activeDesk.name} · {activeDesk.role}
-                </h3>
-              </div>
+                <div>
+                  <h3 className="font-display text-2xl sm:text-3xl font-normal tracking-tight text-fg">
+                    {activeDesk.name} · {activeDesk.role}
+                  </h3>
+                </div>
 
-              {/* Core Features list */}
-              <div className="flex flex-col gap-3">
-                {activeDesk.features.map((feat, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/10 border border-brand/20 text-brand mt-0.5">
-                      <IconCheck className="size-3" />
+                {/* Core Features list */}
+                <div className="flex flex-col gap-3">
+                  {activeDesk.features.map((feat, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/10 border border-brand/20 text-brand mt-0.5">
+                        <IconCheck className="size-3" />
+                      </div>
+                      <span className="font-sans text-sm text-fg-muted leading-relaxed">
+                        {feat}
+                      </span>
                     </div>
-                    <span className="font-sans text-sm text-fg-muted leading-relaxed">
-                      {feat}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right Col: Live Desk Verdict Rig */}
-            <div className="lg:col-span-5">
-              <div className="rounded-xl border border-white/10 bg-[#0d0e0f] p-5 sm:p-6 shadow-inner">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="size-2 rounded-full bg-bull animate-pulse" />
-                    <span className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
-                      ACTIVE HYPOTHESIS
-                    </span>
-                  </div>
-                  <span className={cn('font-mono text-xs font-bold px-2 py-0.5 rounded border', activeDesk.borderColor, activeDesk.color)}>
-                    {activeDesk.verdict.bias} · {activeDesk.verdict.conviction}%
-                  </span>
-                </div>
-
-                {/* Key Metric Gauge */}
-                <div className="my-4 rounded-lg surface-well p-3.5 bg-black/50 border border-white/5">
-                  <div className="font-mono text-[10px] uppercase text-fg-subtle">
-                    PRIMARY DECISION METRIC
-                  </div>
-                  <div className="mt-1 font-mono text-base sm:text-lg font-bold text-fg">
-                    {activeDesk.verdict.keyMetric}
-                  </div>
-                </div>
-
-                {/* Committee Rationale */}
-                <div className="rounded-lg surface-well p-3.5 bg-black/50 border border-white/5 font-sans text-xs leading-relaxed text-fg-muted">
-                  <span className="font-mono text-[10px] uppercase text-fg-subtle block mb-1">
-                    DELIBERATION RATIONALE
-                  </span>
-                  &ldquo;{activeDesk.verdict.rationale}&rdquo;
-                </div>
-
-                {/* Confidence Bar */}
-                <div className="mt-4 pt-3 border-t border-white/10">
-                  <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
-                    <span className="text-fg-subtle">COMMITTEE CONVICTION</span>
-                    <span className="font-bold text-fg tabular-nums">
-                      {activeDesk.verdict.conviction} / 100
-                    </span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-brand to-bull transition-all duration-500 rounded-full"
-                      style={{ width: `${activeDesk.verdict.conviction}%` }}
-                    />
-                  </div>
+                  ))}
                 </div>
               </div>
+
+              {/* Right Col: Live Desk Verdict Rig */}
+              <div className="lg:col-span-5">
+                <div className="rounded-xl border border-white/10 bg-[#0d0e0f] p-5 sm:p-6 shadow-inner">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="size-2 rounded-full bg-bull animate-pulse" />
+                      <span className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
+                        ACTIVE HYPOTHESIS
+                      </span>
+                    </div>
+                    <span className={cn('font-mono text-xs font-bold px-2 py-0.5 rounded border', activeDesk.borderColor, activeDesk.color)}>
+                      {activeDesk.verdict.bias} · {activeDesk.verdict.conviction}%
+                    </span>
+                  </div>
+
+                  {/* Key Metric Gauge */}
+                  <div className="my-4 rounded-lg surface-well p-3.5 bg-black/50 border border-white/5">
+                    <div className="font-mono text-[10px] uppercase text-fg-subtle">
+                      PRIMARY DECISION METRIC
+                    </div>
+                    <div className="mt-1 font-mono text-base sm:text-lg font-bold text-fg">
+                      {activeDesk.verdict.keyMetric}
+                    </div>
+                  </div>
+
+                  {/* Committee Rationale */}
+                  <div className="rounded-lg surface-well p-3.5 bg-black/50 border border-white/5 font-sans text-xs leading-relaxed text-fg-muted">
+                    <span className="font-mono text-[10px] uppercase text-fg-subtle block mb-1">
+                      DELIBERATION RATIONALE
+                    </span>
+                    &ldquo;{activeDesk.verdict.rationale}&rdquo;
+                  </div>
+
+                  {/* Confidence Bar */}
+                  <div className="mt-4 pt-3 border-t border-white/10">
+                    <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
+                      <span className="text-fg-subtle">COMMITTEE CONVICTION</span>
+                      <span className="font-bold text-fg tabular-nums">
+                        {activeDesk.verdict.conviction} / 100
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-brand to-bull rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${activeDesk.verdict.conviction}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );
