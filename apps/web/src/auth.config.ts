@@ -63,13 +63,14 @@ export const authConfig: NextAuthConfig = {
 
       const isLoggedIn = !!auth?.user;
       const isPublicPage =
+        nextUrl.pathname === '/' ||
         nextUrl.pathname === '/login' ||
         nextUrl.pathname === '/register' ||
         nextUrl.pathname === '/forgot-password' ||
         nextUrl.pathname === '/reset-password' ||
         nextUrl.pathname === '/offline';
 
-      // Public surface (auth + offline) is always reachable.
+      // Public surface (showcase landing + auth + offline) is always reachable.
       if (isPublicPage) return true;
 
       // Logged-in user is allowed through; the `authorized` callback is
