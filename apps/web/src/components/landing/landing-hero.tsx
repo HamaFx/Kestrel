@@ -22,6 +22,7 @@ import { Link } from 'next-view-transitions';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { TacticalFlameButton } from '@/components/landing/landing-button';
+import { Landing3DHologram } from '@/components/landing/landing-3d-hologram';
 import { cn } from '@/lib/cn';
 import {
   ChartWizardSprite,
@@ -162,13 +163,8 @@ export function LandingHero() {
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Top Market Ticker Strip with Smooth Slide Down */}
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-10 flex items-center justify-between overflow-x-auto rounded-full border border-white/10 bg-[#141516]/80 px-4 py-2 backdrop-blur-md shadow-sm"
-        >
+        {/* Top Market Ticker Strip */}
+        <div className="mb-10 flex items-center justify-between overflow-x-auto rounded-full border border-white/10 bg-[#141516]/80 px-4 py-2 backdrop-blur-md shadow-sm">
           <div className="flex items-center gap-2 pr-4 border-r border-white/10 shrink-0">
             <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_6px_#3f9e3d]" />
             <span className="font-mono text-[11px] font-bold tracking-wider text-fg uppercase">
@@ -192,16 +188,11 @@ export function LandingHero() {
             <span>FEED LATENCY:</span>
             <span className="text-bull font-bold tabular-nums">18ms</span>
           </div>
-        </motion.div>
+        </div>
 
         <div className="grid gap-12 lg:grid-cols-12 lg:items-center lg:gap-8">
           {/* Left Column: Monumental Headline & Value Prop */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-            className="flex flex-col items-start gap-6 lg:col-span-7"
-          >
+          <div className="flex flex-col items-start gap-6 lg:col-span-7">
             {/* Predator Badge */}
             <div className="inline-flex items-center gap-2.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 shadow-[0_0_16px_rgba(255,54,22,0.15)]">
               <img src="/brand/kestrel-falcon.svg" alt="" className="size-4 text-brand" aria-hidden="true" />
@@ -261,15 +252,10 @@ export function LandingHero() {
                 <div className="font-sans text-xs text-fg-subtle">Custodial Exposure</div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Right Column: Interactive Hardware Telemetry Rig with Spring Fluidity */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 24 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-            className="lg:col-span-5"
-          >
+          {/* Right Column: Interactive Hardware Telemetry Rig with 3D Hologram */}
+          <div className="lg:col-span-5">
             <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#141516]/95 p-5 sm:p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)]">
               {/* Header Status & Symbol Switcher */}
               <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
@@ -310,16 +296,9 @@ export function LandingHero() {
                 </div>
               </div>
 
-              {/* AnimatePresence for Smooth Symbol Switching */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={active.symbol}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {/* Price Display */}
+              {/* Symbol Data Container */}
+              <div key={active.symbol}>
+                {/* Price Display */}
                   <div className="my-4 rounded-xl surface-well p-4 border border-white/5 bg-[#0b0c0d]">
                     <div className="flex items-baseline justify-between">
                       <span className="font-sans text-xs text-fg-subtle uppercase tracking-wider">
@@ -337,6 +316,18 @@ export function LandingHero() {
                         Spread: {active.spread}
                       </span>
                     </div>
+                  </div>
+
+                  {/* ── Real-Time Interactive 3D WebGL Hologram ── */}
+                  <div className="relative w-full h-[190px] sm:h-[220px] rounded-xl overflow-hidden bg-black/60 border border-white/10 my-3 flex items-center justify-center shadow-inner">
+                    <div className="absolute top-2.5 left-3 flex items-center gap-2 z-10 font-mono text-[9px] text-fg-subtle select-none">
+                      <span className="size-1.5 rounded-full bg-brand animate-ping" />
+                      <span>3D LIQUIDITY GYRO // INTERACTIVE WEBGL</span>
+                    </div>
+                    <div className="absolute bottom-2 right-3 font-mono text-[9px] text-brand/80 z-10 select-none pointer-events-none">
+                      ROTATE · TILT WITH MOUSE
+                    </div>
+                    <Landing3DHologram className="w-full h-full" />
                   </div>
 
                   {/* 4 Hardware Specialist Desks Row */}
@@ -416,10 +407,9 @@ export function LandingHero() {
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </motion.div>
+                </div>
+              </div>
+          </div>
         </div>
       </div>
     </section>
