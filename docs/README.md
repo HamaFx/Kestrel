@@ -7,6 +7,8 @@ These are the current public OSS documents. They describe the supported single-u
 | [Configuration](configuration.md)     | Environment variables, defaults, secrets, and feature flags                 |
 | [Troubleshooting](troubleshooting.md) | Setup, runtime, provider, worker, migration, and recovery problems          |
 | [Architecture](architecture.md)       | Web, worker, package, data, AI, database, and security boundaries           |
+| [Design System](design-system.md)     | Hoplite design system, typography, tactile tokens, and showcase components  |
+| [Migration Plan](HOPLITE_DESIGN_MIGRATION_PLAN.md) | Hoplite standard migration phases and completion audit           |
 | [Release process](release.md)         | Public validation, artifacts, Docker publication, and rollback requirements |
 
 Repository-level policy and status documents:

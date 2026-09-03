@@ -110,6 +110,26 @@
 
 ## 4. Verification Checkpoints & Rollback Plan
 
-- **Branch Isolation:** Work will be performed on a dedicated branch (`feature/hoplite-design-overhaul`).
-- **Atomic Commits:** Each phase (Tokens, Shell, Chat, Landing) is committed independently and verified via Vitest and Playwright.
-- **Rollback Safety:** Old token names will be aliased in `globals.css` during Phases 1–3 to prevent broken styles in unmigrated views.
+- **Branch Isolation:** Work is isolated on dedicated branch `feature/hoplite-design-overhaul`. (DO NOT MERGE TO MAIN until final user signoff).
+- **Atomic Commits:** Each phase (Tokens, Shell, Chat, Landing, Polish) committed independently and verified via Vitest and Playwright.
+- **Rollback Safety:** Old token names aliased in `globals.css` to prevent broken styles in secondary views.
+
+---
+
+## 5. Implementation Status & Deployment Verification
+
+| Phase | Description | Status | Verification Notes |
+| :--- | :--- | :--- | :--- |
+| **Phase 1** | Font Asset Pipeline & Self-Hosted WOFF2 Fonts | **COMPLETED** | Funnel Display, Funnel Sans, Redaction (35/50/70), Geist Mono, Bebas Neue loaded and preloaded. |
+| **Phase 2** | Tokens & Surface Utilities in `globals.css` | **COMPLETED** | `.surface-chip`, `.surface-well`, `.surface-panel`, `--shadow-chip`, `--shadow-panel`, `--shadow-tactile-pop`. |
+| **Phase 3** | Primitives & Tactical Button | **COMPLETED** | Added `variant="tactical"` button with glowing ember border and tactile click state. |
+| **Phase 4** | App Shell & Navigation Chrome | **COMPLETED** | Milled chassis borders on `desktop-sidebar.tsx`, `top-bar.tsx`, and `app-shell-container.tsx`. |
+| **Phase 5** | Secondary App Views (Calendar, Journal, Auth) | **COMPLETED** | High-impact catalyst badges, Spartan journal cards, and recessed auth inputs. |
+| **Phase 6** | Public Marketing Showcase (`page.tsx`) | **COMPLETED** | Built `LandingNav`, `LandingHero`, `LandingDesks`, `LandingStepper`, `LandingArchitecture`, `LandingFAQ`, `LandingFooter`. |
+| **Phase 7** | Hoplite Polish & Interactivity Overhaul | **COMPLETED** | Added live interbank ticker ribbon, 3-symbol interactive deliberation rig, dedicated 4 specialist desks showcase (`#desks`), and IDE code tabs. |
+| **Phase 8** | Vercel Preview Deployment & Auth Resilience | **COMPLETED** | Defensive fallback for preview secrets, `try/catch` around `auth()`, 100% clean deployment build. |
+
+### Live Preview URLs
+- **Latest Deployment:** `https://hamafx-c0t6li6c6-mahamad-ahmads-projects.vercel.app`
+- **Branch Alias:** `https://hamafx-ai-git-feature-hoplite-de-0a238d-mahamad-ahmads-projects.vercel.app`
+

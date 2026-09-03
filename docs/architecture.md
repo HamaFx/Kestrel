@@ -42,6 +42,8 @@ The web app provides:
 - Market, journal, alert, portfolio, settings, admin, and health routes
 - CSRF, CSP, request IDs, rate limits, and standardized API envelopes
 - User-owned persistence and BYOK settings
+- Hoplite Design System: Classical Antiquity meets Cyber-Industrial Hardware (Funnel Display, Redaction Italic, Geist Mono, Bebas Neue, tactile surface chips, and recessed data wells)
+- Public Marketing Showcase: Unauthenticated visitors landing on `/` view the institutional committee showcase (`LandingNav`, `LandingHero`, `LandingDesks`, `LandingStepper`, `LandingArchitecture`, `LandingFAQ`, `LandingFooter`), while authenticated operators redirect directly to `/chat`.
 
 The request proxy is a security boundary. It handles route access classification, authentication integration, CSRF, CSP nonce propagation, cookies, and request IDs. Keep direct database work out of it.
 
