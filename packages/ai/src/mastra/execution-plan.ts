@@ -4,21 +4,16 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
-import type { UIMessage } from 'ai';
 import { z } from 'zod';
 
-import {
-  type MastraExecutionDecisionInput,
-  decideMastraExecution,
-} from './execution-decision';
-import { classifyMutationRequest } from './mutation-detect';
+import type { MastraResolvedModel } from '../model';
 import {
   getMastraCapability,
   type MastraCapability,
   type MastraCapabilityMode,
-  type MastraEvidencePolicy,
 } from './capabilities';
-import type { MastraResolvedModel } from '../model';
+import { decideMastraExecution, type MastraExecutionDecisionInput } from './execution-decision';
+import { classifyMutationRequest } from './mutation-detect';
 
 export const ExecutionRouteSchema = z.enum([
   'canonical-chat',
@@ -60,6 +55,7 @@ export const ExecutionPlanSchema = z
       mode: z.enum(['native', 'disabled']),
       required: z.boolean(),
       scope: z.enum(['user-thread', 'none']),
+      semanticRecall: z.boolean().default(true),
     }),
     maxSteps: z.number().int().positive(),
     maxDurationMs: z.number().int().positive(),
@@ -75,13 +71,18 @@ export const ExecutionPlanSchema = z
 
 export type ExecutionPlan = z.infer<typeof ExecutionPlanSchema>;
 
-export interface CreateExecutionPlanInput extends Omit<MastraExecutionDecisionInput, 'mutationRequested'> {
+export interface CreateExecutionPlanInput extends Omit<
+  MastraExecutionDecisionInput,
+  'mutationRequested'
+> {
   priorReportAvailable?: boolean;
   tenantId?: string | null;
   mutationRequested?: boolean;
 }
 
-function routeForDecision(route: Awaited<ReturnType<typeof decideMastraExecution>>['route']): ExecutionPlan['route'] {
+function routeForDecision(
+  route: Awaited<ReturnType<typeof decideMastraExecution>>['route'],
+): ExecutionPlan['route'] {
   switch (route) {
     case 'mutation':
       return 'mutation-draft';
@@ -92,15 +93,21 @@ function routeForDecision(route: Awaited<ReturnType<typeof decideMastraExecution
   }
 }
 
-function fallbackPolicy(route: ExecutionPlan['route'], mode: MastraCapabilityMode): MastraCapability {
+function fallbackPolicy(
+  route: ExecutionPlan['route'],
+  mode: MastraCapabilityMode,
+): MastraCapability {
   return {
     id: `${route}-implicit`,
     version: '1',
+    route,
+    component: `mastra-${route}`,
     allowedSymbols: [],
     allowedModes: [mode],
     scope: route === 'canonical-chat' ? 'read-only' : 'read-only',
     readOnly: true,
     tools: [],
+    toolMetadata: [],
     requiresConfirmation: false,
     supportsStreaming: route !== 'full-analysis' && route !== 'mutation-draft',
     supportsAbort: true,
@@ -118,12 +125,15 @@ export async function createExecutionPlan(input: CreateExecutionPlanInput): Prom
     input.mutationRequested ??
     classifyMutationRequest(
       input.userMessage.parts
-        .map((part) => (part && typeof part === 'object' && 'text' in part ? String(part.text ?? '') : ''))
+        .map((part) =>
+          part && typeof part === 'object' && 'text' in part ? String(part.text ?? '') : '',
+        )
         .join(' '),
     ) !== null;
   const decision = await decideMastraExecution({ ...input, mutationRequested });
   const route = routeForDecision(decision.route);
-  const capability = decision.capability?.capability ??
+  const capability =
+    decision.capability?.capability ??
     (decision.route === 'canonical-chat'
       ? null
       : decision.route === 'full-analysis-queue'
@@ -142,7 +152,11 @@ export async function createExecutionPlan(input: CreateExecutionPlanInput): Prom
   ) {
     throw new Error(`Execution plan capability rejected: ${decision.capability.reason}.`);
   }
-  if (capability && capability.id !== decision.capability?.capability?.id && decision.route !== 'canonical-chat') {
+  if (
+    capability &&
+    capability.id !== decision.capability?.capability?.id &&
+    decision.route !== 'canonical-chat'
+  ) {
     throw new Error('Execution plan capability does not match the selected route.');
   }
 
@@ -169,6 +183,7 @@ export async function createExecutionPlan(input: CreateExecutionPlanInput): Prom
       mode: route === 'mutation-draft' ? 'disabled' : 'native',
       required: route !== 'mutation-draft',
       scope: route === 'mutation-draft' ? 'none' : 'user-thread',
+      semanticRecall: policy.semanticRecall ?? true,
     },
     maxSteps: policy.maxSteps,
     maxDurationMs: policy.maxDurationMs,
@@ -196,8 +211,18 @@ export function resolvedModelSnapshotForPlan(
 ): boolean {
   return (
     plan.model?.providerId === resolved.providerId &&
-    plan.model.bareModelId === resolved.bareModelId
+    plan.model?.bareModelId === resolved.bareModelId
   );
+}
+
+/** Return the plan snapshot or fail closed before any provider is selected. */
+export function requireExecutionPlanModel(
+  plan: ExecutionPlan,
+): NonNullable<ExecutionPlan['model']> {
+  if (!plan.model) {
+    throw new Error('Execution plan is missing its immutable model snapshot.');
+  }
+  return plan.model;
 }
 
 /** Validate that a runner is executing the route selected by the planner. */

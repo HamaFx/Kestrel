@@ -31,20 +31,33 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { reserveTurnBudget } from '../../budget-reservation';
-import type { GenerationLedgerSnapshot } from '../../generation-ledger';
 import { getDb } from '../../db';
+import type { GenerationLedgerSnapshot } from '../../generation-ledger';
+import { ExecutionPlanSchema, type ExecutionPlan } from '../../mastra/execution-plan';
 import {
   normalizeWorkflowStatus,
   toMastraWorkflowStatus,
   type WorkflowStatus,
 } from '../../workflow-status';
 import { getKestrelMastra } from '../instance';
-import { ExecutionPlanSchema, type ExecutionPlan } from '../../mastra/execution-plan';
+import { observationalMemoryAllowanceUsd } from '../memory';
 
 const flog = createCategorizedLogger('ai', { component: 'mastra-full-analysis' });
 
 export const FULL_ANALYSIS_WORKFLOW_ID = 'full-analysis';
 export const FULL_ANALYSIS_LEASE_MS = 90_000;
+
+/** Expected visible-turn cost for a Full-mode run (specialists + fusion + synthesis). */
+export const FULL_ANALYSIS_TURN_ESTIMATE_USD = 0.05;
+
+/**
+ * Enqueue/resume reservation for a Full-mode run. Includes the independent
+ * observational-memory allowance (Phase 9): the durable path enables
+ * observational memory, whose background refinement spend is bounded on top
+ * of the visible turn.
+ */
+export const FULL_ANALYSIS_ESTIMATE_USD =
+  FULL_ANALYSIS_TURN_ESTIMATE_USD + observationalMemoryAllowanceUsd(1);
 
 export const FullAnalysisPayloadSchema = z
   .object({
@@ -62,14 +75,25 @@ export const FullAnalysisPayloadSchema = z
     startedAt: z.string().datetime().optional(),
     budgetReservationId: z.string().uuid().optional(),
     executionPlan: ExecutionPlanSchema.optional(),
-    ledgerSnapshot: z.object({
-      entries: z.array(z.object({
-        id: z.string().min(1),
-        kind: z.enum(['primary', 'auxiliary', 'specialist', 'fusion', 'title', 'semantic-routing']),
-        costUsd: z.number().nonnegative(),
-      })),
-      totalCostUsd: z.number().nonnegative(),
-    }).optional(),
+    ledgerSnapshot: z
+      .object({
+        entries: z.array(
+          z.object({
+            id: z.string().min(1),
+            kind: z.enum([
+              'primary',
+              'auxiliary',
+              'specialist',
+              'fusion',
+              'title',
+              'semantic-routing',
+            ]),
+            costUsd: z.number().nonnegative(),
+          }),
+        ),
+        totalCostUsd: z.number().nonnegative(),
+      })
+      .optional(),
     modelSnapshot: z
       .object({
         modelId: z.string().min(1),
@@ -126,7 +150,10 @@ export interface FullAnalysisQueueHealth {
 
 export class FullAnalysisHeartbeatError extends Error {
   readonly code = 'FULL_ANALYSIS_HEARTBEAT_FAILED';
-  constructor(message = 'The Full-analysis lease heartbeat failed temporarily.', options?: { cause?: unknown }) {
+  constructor(
+    message = 'The Full-analysis lease heartbeat failed temporarily.',
+    options?: { cause?: unknown },
+  ) {
     super(message, options);
     this.name = 'FullAnalysisHeartbeatError';
   }
@@ -142,6 +169,46 @@ export class FullAnalysisLeaseLostError extends Error {
 
 export function fullAnalysisRunId(userId: string, idempotencyKey: string): string {
   return createHash('sha256').update(`${userId}:${idempotencyKey}`).digest('hex');
+}
+
+/**
+ * Phase 8 — validate that a serialized execution plan belongs to the claimed
+ * run before executing it. Plan identity violations are permanent failures:
+ * retrying cannot repair a corrupt or stale plan.
+ */
+export function validateFullAnalysisPlanIdentity(
+  plan: ExecutionPlan,
+  claimed: { tenantId: string; payload: FullAnalysisPayload },
+  extractedSymbol: string | null,
+): void {
+  if (plan.route !== 'full-analysis') {
+    throw new Error(`Execution plan route ${plan.route} is not the full-analysis route.`);
+  }
+  // The web boundary carries the user id as the tenant context while the
+  // queue row resolves the persisted tenant; accept either match.
+  if (
+    plan.tenantId &&
+    plan.tenantId !== claimed.payload.userId &&
+    plan.tenantId !== claimed.tenantId
+  ) {
+    throw new Error(`Execution plan tenant ${plan.tenantId} does not match the claimed run.`);
+  }
+  if (plan.symbol && extractedSymbol && plan.symbol !== extractedSymbol) {
+    throw new Error(
+      `Execution plan symbol ${plan.symbol} does not match the extracted symbol ${extractedSymbol}.`,
+    );
+  }
+  const snapshot = claimed.payload.modelSnapshot;
+  if (
+    plan.model &&
+    snapshot &&
+    (plan.model.providerId !== snapshot.providerId ||
+      plan.model.bareModelId !== snapshot.bareModelId)
+  ) {
+    throw new Error(
+      `Execution plan model ${plan.model.providerId}/${plan.model.bareModelId} does not match the enqueue-time model snapshot ${snapshot.providerId}/${snapshot.bareModelId}.`,
+    );
+  }
 }
 
 function parsePayload(value: unknown): FullAnalysisPayload {
@@ -295,9 +362,13 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
       idempotencyKey: input.idempotencyKey,
       ...(input.traceId ? { traceId: input.traceId } : {}),
       modelSnapshot: input.modelSnapshot,
-      ...(input.executionPlan ? { executionPlan: ExecutionPlanSchema.parse(input.executionPlan) } : {}),
+      ...(input.executionPlan
+        ? { executionPlan: ExecutionPlanSchema.parse(input.executionPlan) }
+        : {}),
       ...(input.ledgerSnapshot
-        ? { ledgerSnapshot: { ...input.ledgerSnapshot, entries: [...input.ledgerSnapshot.entries] } }
+        ? {
+            ledgerSnapshot: { ...input.ledgerSnapshot, entries: [...input.ledgerSnapshot.entries] },
+          }
         : {}),
       attemptCount: 0,
       createdAt: new Date().toISOString(),
@@ -340,7 +411,7 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
 
       const reservation = await reserveTurnBudget({
         userId: input.userId,
-        estimateUsd: 0.05,
+        estimateUsd: FULL_ANALYSIS_ESTIMATE_USD,
         maxDailyUsd: input.maxDailyUsd,
         correlation: { threadId: input.threadId, runId },
         db: tx,
@@ -506,10 +577,24 @@ export async function requeueFullAnalysisRun(
   runId: string,
   workerRunId: string,
   message: string,
+  ledgerSnapshot?: GenerationLedgerSnapshot,
 ): Promise<void> {
   try {
     await projectQueueRow(
-      await requeueFullAnalysisQueue({ runId, workerRunId, error: message, db: getDb() }),
+      await requeueFullAnalysisQueue({
+        runId,
+        workerRunId,
+        error: message,
+        ...(ledgerSnapshot
+          ? {
+              ledgerSnapshot: {
+                entries: [...ledgerSnapshot.entries],
+                totalCostUsd: ledgerSnapshot.totalCostUsd,
+              },
+            }
+          : {}),
+        db: getDb(),
+      }),
     );
     flog.warn('Requeued full-analysis run', { runId, message });
   } catch (error) {

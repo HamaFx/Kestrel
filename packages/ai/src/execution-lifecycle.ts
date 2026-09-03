@@ -24,7 +24,10 @@ export function createExecutionLifecycle(budget: BudgetHandle) {
   let state: ExecutionTerminalState | null = null;
   let terminalPromise: Promise<void> | null = null;
 
-  function settle(nextState: ExecutionTerminalState, operation: () => Promise<void>): Promise<void> {
+  function settle(
+    nextState: ExecutionTerminalState,
+    operation: () => Promise<void>,
+  ): Promise<void> {
     if (state !== null || terminalPromise !== null) return terminalPromise ?? Promise.resolve();
     state = nextState;
     terminalPromise = Promise.resolve().then(operation);

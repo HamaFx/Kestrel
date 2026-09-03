@@ -109,6 +109,28 @@ export interface XauusdReportWorkflowDeps {
   signal?: AbortSignal;
   /** Shared Mastra instance for run-snapshot persistence (optional; in-memory when absent). */
   mastra?: Mastra;
+  /**
+   * Output verification policy (Phase 7). `verified` (default) runs the
+   * deterministic grounding/safety/temporal checks and the bounded repair
+   * loop before a report is emitted. `schema` accepts any schema-valid
+   * structured output without the deterministic checks — intended for
+   * generic research composition where the stronger report verifier is not
+   * required. The output contract (status/report/packet/stats) is identical.
+   */
+  outputPolicy?: XauusdReportOutputPolicy;
+}
+
+export type XauusdReportOutputPolicy = 'verified' | 'schema';
+
+export const XAUUSD_REPORT_OUTPUT_POLICIES: readonly XauusdReportOutputPolicy[] = [
+  'verified',
+  'schema',
+];
+
+export function resolveXauusdReportOutputPolicy(
+  policy: XauusdReportOutputPolicy | undefined,
+): XauusdReportOutputPolicy {
+  return policy === 'schema' ? 'schema' : 'verified';
 }
 
 const MAX_REPAIR_ATTEMPTS = 2; // additional generations beyond the initial attempt
@@ -171,6 +193,20 @@ async function generateAndVerify(
       deps.callOptions,
     );
     const stats = getMastraGenerationStats(result as MastraGenerationResultLike);
+    // Phase 7: the output policy decides whether deterministic verification
+    // (grounding/safety/temporal) gates the report. `schema` accepts the
+    // schema-valid structured output directly; `verified` keeps the strong
+    // report verifier and its bounded repair loop.
+    if (resolveXauusdReportOutputPolicy(deps.outputPolicy) === 'schema') {
+      const parsed = XauusdResearchReportSchema.safeParse((result as { object?: unknown }).object);
+      if (!parsed.success) {
+        const findings = parsed.error.issues.map(
+          (issue) => `${issue.path.join('.') || 'report'}: ${issue.message}`,
+        );
+        return { verified: false, report: null, result, findings, stats };
+      }
+      return { verified: true, report: parsed.data, result, findings: [], stats };
+    }
     try {
       const report = requireVerifiedXauusdReport((result as { object?: unknown }).object, packet);
       return { verified: true, report, result, findings: [], stats };

@@ -27,7 +27,7 @@ import { runDatasetExport } from './dataset-export.js';
 import { runEmbeddingBackfill } from './embedding-backfill.js';
 import { runFredActuals } from './fred-actuals.js';
 import { runMetricsFlush } from './metrics-flush.js';
-import { runMultiAgentAnalysis } from './multi-agent-analysis.js';
+import { runDurableResearchJob } from './multi-agent-analysis.js';
 import { runPersistenceRecovery } from './persistence-recovery.js';
 import { runResonanceSync } from './resonance-sync.js';
 import { runRetention } from './retention.js';
@@ -112,7 +112,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
   },
   'multi-agent-analysis': {
     name: 'multi-agent-analysis',
-    run: runMultiAgentAnalysis,
+    run: runDurableResearchJob,
     description:
       'U2 — Claims Mastra durable full-analysis workflow runs (replacing analysis_jobs), executes the Full committee, writes terminal results back into the run records.',
     // Uses setTimeout-based scheduling, not cron.

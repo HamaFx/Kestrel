@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   capabilityDefinitionForRoute,
   decideMastraExecution,
-  readOnlyToolsForRoutingDomain,
+  manifestToolsForDomain,
 } from '../src/mastra';
 
 const env = {} as never;
@@ -33,6 +33,27 @@ describe('Mastra execution decision facade', () => {
     expect(decision.route).toBe('canonical-chat');
     expect(decision.modelPurpose).toBe('canonical-chat');
     expect(decision.capability).toBeNull();
+  });
+
+  it('selects the verified XAUUSD research route for an analysis turn', async () => {
+    const decision = await decideMastraExecution({
+      userMessage: message('Analyze XAUUSD'),
+      mode: 'single',
+      settings: {
+        aiApiKeys: null,
+        chatModel: 'google:gemini-2.5-flash',
+      } as never,
+      env: {
+        GOOGLE_GENERATIVE_AI_API_KEY: 'test-key',
+      } as never,
+    });
+
+    expect(decision.route).toBe('xauusd-research');
+    expect(decision.capability).toMatchObject({
+      allowed: true,
+      capability: { id: 'xauusd-research' },
+    });
+    expect(decision.xauusdChatKind).toBe('research');
   });
 
   it('selects the durable route for Full mode', async () => {
@@ -65,8 +86,8 @@ describe('Mastra execution decision facade', () => {
   });
 
   it('keeps domain tool lists read-only', () => {
-    expect(readOnlyToolsForRoutingDomain('technical')).not.toContain('set_alert');
-    expect(readOnlyToolsForRoutingDomain('fundamental')).not.toContain('log_journal');
+    expect(manifestToolsForDomain('technical')).not.toContain('set_alert');
+    expect(manifestToolsForDomain('fundamental')).not.toContain('log_journal');
   });
 
   it('maps route capabilities through one registry', () => {

@@ -26,10 +26,13 @@ import { getToolStats } from '@kestrel/db';
 import { TOOL_NAMES, type ToolName } from '@kestrel/shared';
 import { cache } from 'react';
 
+import { capabilityUiMetadata, type MastraCapabilityId } from './mastra/capabilities';
 import { toolRegistry } from './tools';
 
 export interface CatalogueEntry {
   name: ToolName;
+  /** Capability metadata is derived from the same manifest as runtime exposure. */
+  capabilities: readonly MastraCapabilityId[];
   description: string;
   invocations24h: number;
   failures24h: number;
@@ -69,8 +72,21 @@ export const buildToolCatalogue = cache(
         const failures = agg?.failures ?? 0;
         const median = Math.round(agg?.median ?? 0);
         const p95 = Math.round(agg?.p95 ?? 0);
+        const capabilities = (
+          Object.keys({
+            'canonical-chat': true,
+            'xauusd-conversation': true,
+            'symbol-research': true,
+            'sensitive-user-read': true,
+            'mutation-workflows': true,
+            'xauusd-research': true,
+          }) as MastraCapabilityId[]
+        ).filter((capabilityId) =>
+          capabilityUiMetadata(capabilityId).tools.some((tool) => tool.name === name),
+        );
         return {
           name: name as ToolName,
+          capabilities,
           description: desc,
           invocations24h: invocations,
           failures24h: failures,

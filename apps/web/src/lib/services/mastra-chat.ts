@@ -19,23 +19,25 @@
 import 'server-only';
 
 import {
-  appendAssistantMessage,
-  appendUserMessage,
+  createGenerationLedger,
   DEFAULT_MAX_DAILY_USD,
   estimateCostUsd,
   reserveTurnBudget,
-  createGenerationLedger,
 } from '@kestrel/ai';
-import type { XauusdMastraRunResult, XauusdResearchReport } from '@kestrel/ai/mastra';
+import type {
+  ExecutionPlan,
+  XauusdMastraRunResult,
+  XauusdResearchReport,
+  XauusdTurnMode,
+} from '@kestrel/ai/mastra';
 import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
-import type { ExecutionPlan } from '@kestrel/ai/mastra';
 
 import { getServerEnv } from '@/lib/env';
 import { createMastraChatMeta } from '@/lib/mastra-chat-meta';
 
-import { maybeGenerateThreadTitle } from './mastra-thread-title';
 import { runBufferedExecution } from './mastra-chat-service-lifecycle';
+import { maybeGenerateThreadTitle } from './mastra-thread-title';
 import { runMastraXauusdConversation, runMastraXauusdResearch } from './mastra-xauusd';
 
 export interface RunMastraXauusdChatInput {
@@ -48,7 +50,8 @@ export interface RunMastraXauusdChatInput {
   signal?: AbortSignal;
   /** Prevent native memory backfill from duplicating this persisted request. */
   backfillExcludeMessageIdempotencyKey?: string;
-  followup?: boolean;
+  /** Explicit turn mode (Phase 7): `followup` answers from the saved report. */
+  turnMode?: XauusdTurnMode;
   priorReport?: XauusdResearchReport | null;
   executionPlan?: ExecutionPlan;
 }
@@ -74,14 +77,19 @@ export async function runMastraXauusdChat(
   });
   const runResearch = input.kind !== 'conversation';
   const ledger = createGenerationLedger();
-  const execution = await runBufferedExecution<{ run: XauusdMastraRunResult; assistantMessage: UIMessage }>({
+  const execution = await runBufferedExecution<{
+    run: XauusdMastraRunResult;
+    assistantMessage: UIMessage;
+  }>({
     budget,
     userId: input.userId,
     threadId: input.threadId,
     userMessage: input.userMessage,
     assistantMessageIdempotencyKey: `mastra:${input.threadId}:${input.userMessage.id}:assistant`,
     execute: async () => {
-      const completedRun = await (runResearch ? runMastraXauusdResearch : runMastraXauusdConversation)({
+      const completedRun = await (
+        runResearch ? runMastraXauusdResearch : runMastraXauusdConversation
+      )({
         userId: input.userId,
         threadId: input.threadId,
         runId,
@@ -91,7 +99,7 @@ export async function runMastraXauusdChat(
         ...(input.backfillExcludeMessageIdempotencyKey
           ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
           : {}),
-        ...(input.followup ? { followup: true } : {}),
+        ...(input.turnMode ? { turnMode: input.turnMode } : {}),
         ...(input.priorReport ? { priorReport: input.priorReport } : {}),
         ...(input.executionPlan ? { executionPlan: input.executionPlan } : {}),
         ledger,
@@ -105,28 +113,29 @@ export async function runMastraXauusdChat(
         );
 
       const meta = createMastraChatMeta({
-      agent: 'mastra-xauusd',
-      runId,
-      modelId: completedRun.modelId,
-      providerId: completedRun.providerId,
-      researchStatus: completedRun.packet.status,
-      dataQuality: completedRun.packet.dataQuality,
-      packetId: completedRun.packet.packetId,
-      observedCost,
-      report: completedRun.report,
-      executionOutcome: 'completed',
-      answerOutcome: completedRun.report ? 'ready' : 'blocked',
-      terminalReason: 'buffered-completed',
-      memoryMode: 'native',
-      modelSnapshot: { providerId: completedRun.providerId, bareModelId: completedRun.modelId },
+        agent: 'mastra-xauusd',
+        runId,
+        modelId: completedRun.modelId,
+        providerId: completedRun.providerId,
+        researchStatus: completedRun.packet.status,
+        dataQuality: completedRun.packet.dataQuality,
+        packetId: completedRun.packet.packetId,
+        observedCost,
+        report: completedRun.report,
+        executionOutcome: 'completed',
+        answerOutcome: completedRun.report ? 'ready' : 'blocked',
+        terminalReason: 'buffered-completed',
+        memoryMode: completedRun.memoryMode,
+        memoryBackfill: completedRun.memoryBackfill,
+        modelSnapshot: { providerId: completedRun.providerId, bareModelId: completedRun.modelId },
       });
       const assistantMessage: UIMessage = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      parts: [
-        { type: 'text', text: completedRun.result.text },
-        { type: 'data-multi-agent-meta', data: meta } as UIMessage['parts'][number],
-      ],
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        parts: [
+          { type: 'text', text: completedRun.result.text },
+          { type: 'data-multi-agent-meta', data: meta } as UIMessage['parts'][number],
+        ],
       };
       return { result: { run: completedRun, assistantMessage }, observedCost };
     },

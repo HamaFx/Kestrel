@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { autoDetectMode, resolveMode, selectAgents } from '../src/multi-agent/modes';
+import { autoDetectMode, resolveMode } from '../src/mastra/routing-policy';
 
 describe('autoDetectMode', () => {
   it('returns single for greetings and thanks', () => {
@@ -82,23 +82,5 @@ describe('resolveMode', () => {
   it('auto-detects for auto mode', () => {
     expect(resolveMode('auto', 'should i buy gold')).toBe('full');
     expect(resolveMode('auto', 'hi')).toBe('single');
-  });
-});
-
-describe('selectAgents', () => {
-  it('returns empty for single mode', () => {
-    expect(selectAgents('single')).toEqual([]);
-  });
-
-  it('returns technical only for quick', () => {
-    expect(selectAgents('quick')).toEqual(['technical']);
-  });
-
-  it('returns technical + fundamental for standard', () => {
-    expect(selectAgents('standard')).toEqual(['technical', 'fundamental']);
-  });
-
-  it('returns all four for full', () => {
-    expect(selectAgents('full')).toEqual(['technical', 'fundamental', 'risk', 'sentiment']);
   });
 });

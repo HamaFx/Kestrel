@@ -21,18 +21,18 @@ import 'server-only';
 import {
   appendAssistantMessage,
   appendUserMessage,
+  createGenerationLedger,
   DEFAULT_MAX_DAILY_USD,
   estimateCostUsd,
   extractUserMessageText,
   reserveTurnBudget,
-  createGenerationLedger,
 } from '@kestrel/ai';
 import {
   runMastraCanonicalChatStream,
+  type ExecutionPlan,
   type MastraCanonicalChatStream,
   type RunMastraCanonicalChatArgs,
   type SemanticRoutingAccounting,
-  type ExecutionPlan,
 } from '@kestrel/ai/mastra';
 import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
@@ -64,7 +64,6 @@ export async function runMastraCanonicalChatStreamService(
   const env = getServerEnv();
   const runId = crypto.randomUUID();
   const ledger = createGenerationLedger();
-  let auxiliaryCostUsd = 0;
   const budget = await reserveTurnBudget({
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
@@ -133,7 +132,6 @@ export async function runMastraCanonicalChatStreamService(
             Math.ceil(outputChars / 4),
           );
           ledger.recordCost(`semantic-routing:${runId}`, 'semantic-routing', auxiliaryCost);
-          auxiliaryCostUsd = ledger.total();
         },
       },
     };
@@ -169,6 +167,7 @@ export async function runMastraCanonicalChatStreamService(
                 executionOutcome: 'completed',
                 answerOutcome: completed.answerOutcome,
                 memoryMode: completed.memoryMode,
+                memoryBackfill: completed.memoryBackfill,
                 modelSnapshot: completed.modelSnapshot,
                 terminalReason: 'stream-completed',
               },
@@ -207,7 +206,7 @@ export async function runMastraCanonicalChatStreamService(
         terminalStatus = 'interrupted';
         await finalizer.abort();
       },
-      onComplete: () => terminalStatus === 'persisted' ? 'persisted' : terminalStatus,
+      onComplete: () => (terminalStatus === 'persisted' ? 'persisted' : terminalStatus),
     });
   } catch (error) {
     if (input.signal?.aborted) await finalizer.abort();

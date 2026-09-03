@@ -18,16 +18,11 @@
 // multi-agent orchestration, and all Mastra composition edges.
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
+import type { ProviderId } from '@kestrel/shared/encryption';
 import { z } from 'zod';
 
-import { BYOK_PROVIDERS, type ModelDomain } from './byok-providers';
+import { type ModelDomain } from './byok-providers';
 import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
-// ---------------------------------------------------------------------------
-// Legacy fallback helpers retained for non-Mastra callers.
-// ---------------------------------------------------------------------------
-
-import type { RoutingDomain } from './routing';
 import type { ResolveModelEnv } from './vertex-factory';
 
 export type { ChatModelResolution } from './model-chat';
@@ -92,6 +87,17 @@ function pinnedModelFor(purpose: MastraModelPurpose): string | null {
  */
 export function resolveMastraModel(args: ResolveMastraModelInput): ChatModelResolution {
   if (args.snapshot) {
+    const selectedOverride = configuredOverride(args.modelOverride);
+    if (selectedOverride) {
+      const separator = selectedOverride.indexOf(':');
+      const providerId = selectedOverride.slice(0, separator);
+      const bareModelId = selectedOverride.slice(separator + 1);
+      if (providerId !== args.snapshot.providerId || bareModelId !== args.snapshot.bareModelId) {
+        throw new Error(
+          `Model override ${selectedOverride} does not match the execution-plan snapshot ${args.snapshot.providerId}:${args.snapshot.bareModelId}.`,
+        );
+      }
+    }
     const providerId = args.snapshot.providerId as ProviderId;
     return resolveModelForProvider(
       providerId,
@@ -129,33 +135,4 @@ export function resolveMastraExecutionModel(args: ResolveMastraModelInput): Mast
     domain: args.domain,
     snapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
   };
-}
-
-export function toModelDomain(domain: RoutingDomain): ModelDomain {
-  return domain === 'generic' ? 'technical' : domain;
-}
-
-export function pickNextFallbackProvider(
-  chain: string[],
-  currentProviderId: ProviderId | string | undefined,
-  decryptedByokKeys: ByokPayload | null,
-  envGoogleKey: string | undefined,
-  routingDomain: RoutingDomain,
-): { providerId: ProviderId; modelId: string | null } | null {
-  const currentProvider: ProviderId | string = currentProviderId || 'google';
-  const idx = chain.indexOf(currentProvider);
-  const startIdx = idx === -1 ? -1 : idx;
-
-  for (let i = startIdx + 1; i < chain.length; i++) {
-    const pid = chain[i] as ProviderId;
-    const key = decryptedByokKeys?.[pid] || (pid === 'google' ? envGoogleKey : undefined);
-
-    if (typeof key === 'string' && key.trim().length > 0) {
-      const spec = BYOK_PROVIDERS[pid];
-      const tier = toModelDomain(routingDomain);
-      const modelId = spec?.defaultModels[tier] ?? spec?.defaultModels.technical ?? null;
-      return { providerId: pid, modelId };
-    }
-  }
-  return null;
 }

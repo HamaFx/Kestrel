@@ -170,19 +170,7 @@ export function isInjectionAttempt(prompt: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Concern 4 — Read-Only Safety Gate (backward-compatible)
-// ---------------------------------------------------------------------------
-
-/**
- * @deprecated Use `isInjectionAttempt` + `isMutationIntent` separately.
- * Kept for backward compatibility with existing callers.
- */
-export function isMastraPromptUnsafe(prompt: string): boolean {
-  return isInjectionAttempt(prompt) || isMutationIntent(prompt);
-}
-
-// ---------------------------------------------------------------------------
-// Common research terms (unchanged)
+// Common research terms
 // ---------------------------------------------------------------------------
 
 const DEEP_RESEARCH_TERMS =

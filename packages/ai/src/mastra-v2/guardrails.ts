@@ -28,9 +28,9 @@
  *   answer), `rewrite` on conversation paths (neutralize while preserving
  *   intent).
  *
- * The deterministic regex-based `isMastraPromptUnsafe` in the route remains
- * the zero-cost first line of defense; the LLM detector catches variants the
- * regex missed.
+ * The deterministic `isInjectionAttempt` and `isMutationIntent` gates in the
+ * route remain the zero-cost first line of defense; the LLM detector catches
+ * variants the lexical checks miss.
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
@@ -39,6 +39,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { PromptInjectionDetector, UnicodeNormalizer } from '@mastra/core/processors';
 import type { LanguageModel } from 'ai';
 
+import { hashLogValue } from '../diagnostics/redact';
 import { resolveChatModel } from '../model';
 import type { ResolveModelEnv } from '../vertex-factory';
 
@@ -140,8 +141,9 @@ export function buildGuardrailInputProcessors(options: GuardrailOptions): {
     includeScores: true,
     onDetection: (event) => {
       if (event.flagged) {
+        // Phase 5 — never persist the raw payload; correlate by stable hash.
         glog.warn('Prompt injection detected by LLM guardrail', {
-          input: event.input.slice(0, 200),
+          inputHash: hashLogValue(event.input),
           strategyApplied: event.strategyApplied,
           reason: event.detectionResult.reason,
           scores: event.detectionResult.categories,

@@ -23,7 +23,10 @@ export interface StreamLifecycleCoordinator {
 }
 
 /** Shared terminal coordinator used by buffered and streaming adapters. */
-export function createStreamLifecycleCoordinator(budget: BudgetHandle, onInterrupted: () => void | Promise<void>): StreamLifecycleCoordinator {
+export function createStreamLifecycleCoordinator(
+  budget: BudgetHandle,
+  onInterrupted: () => void | Promise<void>,
+): StreamLifecycleCoordinator {
   const lifecycle = createExecutionLifecycle(budget);
   return {
     complete: (cost) => lifecycle.complete(cost),
@@ -32,8 +35,12 @@ export function createStreamLifecycleCoordinator(budget: BudgetHandle, onInterru
       await lifecycle.cancel();
       if (lifecycle.state === 'cancelled') await onInterrupted();
     },
-    get settled() { return lifecycle.settled; },
-    get state() { return lifecycle.state; },
+    get settled() {
+      return lifecycle.settled;
+    },
+    get state() {
+      return lifecycle.state;
+    },
   };
 }
 
@@ -46,7 +53,11 @@ export async function runBufferedExecution<T>(options: {
   userMessageIdempotencyKey?: string;
   assistantMessageIdempotencyKey: string;
   execute: () => Promise<{ result: T; observedCost: number; assistantMessage?: UIMessage }>;
-  buildAssistantMessage: (execution: { result: T; observedCost: number; assistantMessage?: UIMessage }) => UIMessage;
+  buildAssistantMessage: (execution: {
+    result: T;
+    observedCost: number;
+    assistantMessage?: UIMessage;
+  }) => UIMessage;
   isCancelled?: () => boolean;
 }): Promise<BufferedExecutionResult<T>> {
   const lifecycle = createExecutionLifecycle(options.budget);

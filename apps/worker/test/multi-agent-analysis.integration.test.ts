@@ -27,6 +27,10 @@ const {
   mockRequeueFullAnalysisRun,
   mockTouchFullAnalysisRun,
   MockFullAnalysisLeaseLostError,
+  MockFullAnalysisQuotaExceededError,
+  MockFullAnalysisBudgetAdmissionError,
+  mockFullAnalysisRetryAction,
+  mockValidateFullAnalysisPlanIdentity,
   mockRecoverStaleRuns,
   mockPurgeOldRuns,
   mockRunMastraMode,
@@ -45,6 +49,26 @@ const {
   MockFullAnalysisLeaseLostError: class MockFullAnalysisLeaseLostError extends Error {
     code = 'FULL_ANALYSIS_LEASE_LOST';
   },
+  MockFullAnalysisQuotaExceededError: class MockFullAnalysisQuotaExceededError extends Error {
+    code = 'FULL_ANALYSIS_BUDGET_EXCEEDED';
+    spent: number;
+    max: number;
+    constructor(spent: number, max: number) {
+      super(`Daily AI budget exceeded ($${spent.toFixed(2)} / $${max.toFixed(2)}).`);
+      this.name = 'FullAnalysisQuotaExceededError';
+      this.spent = spent;
+      this.max = max;
+    }
+  },
+  MockFullAnalysisBudgetAdmissionError: class MockFullAnalysisBudgetAdmissionError extends Error {
+    code = 'FULL_ANALYSIS_BUDGET_ADMISSION_FAILED';
+    constructor(cause: unknown) {
+      super('Full-analysis budget admission failed.', { cause });
+      this.name = 'FullAnalysisBudgetAdmissionError';
+    }
+  },
+  mockFullAnalysisRetryAction: vi.fn(),
+  mockValidateFullAnalysisPlanIdentity: vi.fn(),
   mockRecoverStaleRuns: vi.fn(),
   mockPurgeOldRuns: vi.fn(),
   mockRunMastraMode: vi.fn(),
@@ -59,27 +83,29 @@ const {
     snapshot: () => ({ entries: [], totalCostUsd: 0 }),
     total: () => 0.04,
   })),
-  mockCreateExecutionLifecycle: vi.fn((budget: { reconcile: (costUsd: number) => Promise<void>; release: () => Promise<void> }) => {
-    let settled = false;
-    let terminal: Promise<void> | null = null;
-    const once = (operation: () => Promise<void>) => {
-      if (terminal) return terminal;
-      settled = true;
-      terminal = operation();
-      return terminal;
-    };
-    return {
-      complete: (costUsd: number) => once(() => budget.reconcile(costUsd)),
-      fail: () => once(() => budget.release()),
-      cancel: () => once(() => budget.release()),
-      get settled() {
-        return settled;
-      },
-      get state() {
-        return settled ? 'completed' : null;
-      },
-    };
-  }),
+  mockCreateExecutionLifecycle: vi.fn(
+    (budget: { reconcile: (costUsd: number) => Promise<void>; release: () => Promise<void> }) => {
+      let settled = false;
+      let terminal: Promise<void> | null = null;
+      const once = (operation: () => Promise<void>) => {
+        if (terminal) return terminal;
+        settled = true;
+        terminal = operation();
+        return terminal;
+      };
+      return {
+        complete: (costUsd: number) => once(() => budget.reconcile(costUsd)),
+        fail: () => once(() => budget.release()),
+        cancel: () => once(() => budget.release()),
+        get settled() {
+          return settled;
+        },
+        get state() {
+          return settled ? 'completed' : null;
+        },
+      };
+    },
+  ),
 }));
 
 const settingsRow = {
@@ -132,9 +158,14 @@ vi.mock('@kestrel/ai/mastra', () => ({
   requeueFullAnalysisRun: mockRequeueFullAnalysisRun,
   touchFullAnalysisRun: mockTouchFullAnalysisRun,
   FullAnalysisLeaseLostError: MockFullAnalysisLeaseLostError,
+  FullAnalysisQuotaExceededError: MockFullAnalysisQuotaExceededError,
+  FullAnalysisBudgetAdmissionError: MockFullAnalysisBudgetAdmissionError,
+  fullAnalysisRetryAction: mockFullAnalysisRetryAction,
+  validateFullAnalysisPlanIdentity: mockValidateFullAnalysisPlanIdentity,
   recoverStaleFullAnalysisRuns: mockRecoverStaleRuns,
   purgeOldFullAnalysisRuns: mockPurgeOldRuns,
   FULL_ANALYSIS_WORKFLOW_ID: 'full-analysis',
+  FULL_ANALYSIS_ESTIMATE_USD: 0.058,
   extractSymbolFromPrompt: vi.fn(() => 'XAUUSD'),
   isSafeSymbolResearchPrompt: vi.fn(() => true),
   runMastraMode: mockRunMastraMode,
@@ -197,7 +228,35 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
       packet: { packetId: 'packet-1', dataQuality: 'complete' },
       totalCostUsd: 0.04,
       totalLatencyMs: 321,
+      answerOutcome: 'degraded',
+      memoryMode: 'degraded',
+      memoryBackfill: true,
+      modelSnapshot: { providerId: 'google', bareModelId: 'gemini-2.5-flash' },
     });
+    mockFullAnalysisRetryAction.mockImplementation(
+      (error: unknown, opts: { attemptCount: number; maxAttempts: number }) => {
+        if (error instanceof MockFullAnalysisLeaseLostError) {
+          return { action: 'discard', category: 'lease' };
+        }
+        if (error instanceof MockFullAnalysisQuotaExceededError) {
+          return { action: 'fail', category: 'quota' };
+        }
+        if (error instanceof MockFullAnalysisBudgetAdmissionError) {
+          return opts.attemptCount < opts.maxAttempts
+            ? { action: 'requeue', category: 'transient' }
+            : { action: 'fail', category: 'transient' };
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        const retryable =
+          /(?:timeout|timed?\s*out|aborted|network|fetch\s*failed|rate\s*limit|too\s*many\s*requests|temporar(?:y|ily)|connection|ECONNRESET|5\d\d)/i.test(
+            message,
+          );
+        return opts.attemptCount < opts.maxAttempts && retryable
+          ? { action: 'requeue', category: 'transient' }
+          : { action: 'fail', category: 'permanent' };
+      },
+    );
+    mockValidateFullAnalysisPlanIdentity.mockReturnValue(undefined);
   });
 
   function context() {
@@ -240,6 +299,13 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
       expect.objectContaining({ role: 'user' }),
       { idempotencyKey: 'analysis-job:run-1:user' },
     );
+    const assistant = mockAppendAssistantMessage.mock.calls[0]?.[2] as {
+      parts?: Array<{ type: string; data?: Record<string, unknown> }>;
+    };
+    expect(assistant.parts?.[1]).toMatchObject({
+      type: 'data-multi-agent-meta',
+      data: { memoryMode: 'degraded', memoryBackfill: true },
+    });
     expect(mockCompleteFullAnalysisRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(String),
@@ -296,6 +362,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
       'run-1',
       expect.any(String),
       expect.stringContaining('retrying automatically'),
+      expect.objectContaining({ entries: [], totalCostUsd: 0 }),
     );
     expect(mockFailFullAnalysisRun).not.toHaveBeenCalled();
     expect(mockRunMastraMode).not.toHaveBeenCalled();
@@ -312,6 +379,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
       'run-1',
       expect.any(String),
       expect.stringContaining('retrying automatically'),
+      expect.objectContaining({ entries: [], totalCostUsd: 0 }),
     );
     expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
     expect(mockFailFullAnalysisRun).not.toHaveBeenCalled();
@@ -324,7 +392,9 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
       release: vi.fn().mockResolvedValue(undefined),
     };
     mockReserveTurnBudget.mockResolvedValueOnce(budget);
-    mockAppendAssistantMessage.mockRejectedValueOnce(new Error('assistant persistence unavailable'));
+    mockAppendAssistantMessage.mockRejectedValueOnce(
+      new Error('assistant persistence unavailable'),
+    );
 
     const result = await runMultiAgentAnalysis(ctx);
 

@@ -19,15 +19,12 @@ import { Agent } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 
 import { reserveTurnBudget } from '../budget-reservation';
-import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
 import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } from '../cost';
-import {
-  resolveMastraExecutionModel,
-  resolveMastraModel,
-  type ChatModelResolution,
-} from '../model';
+import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '../model';
 import { telemetryConfig } from '../telemetry';
 import type { ResolveModelEnv } from '../vertex-factory';
+import { manifestForCapability } from './capabilities';
 import {
   beginMastraRun,
   finishMastraRun,
@@ -65,8 +62,7 @@ function resolveBackgroundModel(
   settings: RunMastraBackgroundTextArgs['settings'],
   env: ResolveModelEnv,
 ): ChatModelResolution {
-  const resolver = resolveMastraExecutionModel as typeof resolveMastraExecutionModel | undefined;
-  return (resolver ?? resolveMastraModel)({
+  return resolveMastraExecutionModel({
     purpose: 'worker',
     settings,
     env,
@@ -118,7 +114,7 @@ export async function runMastraBackgroundText(
     const result = await agent.generate(args.prompt, {
       requestContext,
       toolChoice: 'none',
-      maxSteps: 1,
+      maxSteps: manifestForCapability('canonical-chat').maxSteps > 0 ? 1 : 0,
       ...(args.task === 'title' ? { maxOutputTokens: 80 } : { maxOutputTokens: 2_000 }),
       ...telemetryConfig({
         functionId: `mastra.worker.${args.task}`,

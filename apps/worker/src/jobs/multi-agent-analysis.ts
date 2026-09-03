@@ -22,35 +22,41 @@
 import {
   appendAssistantMessage,
   appendUserMessage,
+  createExecutionLifecycle,
+  createGenerationLedger,
   DEFAULT_MAX_DAILY_USD,
   getDb,
   reserveTurnBudget,
   resolveMastraModel,
+  restoreGenerationLedger,
   resumeTurnBudget,
   withDiagnostics,
-  createExecutionLifecycle,
-  createGenerationLedger,
-  restoreGenerationLedger,
   type BudgetHandle,
+  type GenerationLedgerSnapshot,
 } from '@kestrel/ai';
 import {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
   extractSymbolFromPrompt,
   failFullAnalysisRun,
+  FULL_ANALYSIS_ESTIMATE_USD,
   FULL_ANALYSIS_WORKFLOW_ID,
-  FullAnalysisLeaseLostError,
+  FullAnalysisBudgetAdmissionError,
   FullAnalysisHeartbeatError,
+  FullAnalysisLeaseLostError,
+  FullAnalysisQuotaExceededError,
+  fullAnalysisRetryAction,
   isSafeSymbolResearchPrompt,
   maybeGenerateThreadTitle,
+  parseExecutionPlan,
   purgeOldFullAnalysisRuns,
   recoverStaleFullAnalysisRuns,
   requeueFullAnalysisRun,
   runMastraMode,
   touchFullAnalysisRun,
   updateFullAnalysisProgress,
+  validateFullAnalysisPlanIdentity,
   type FullAnalysisPayload,
-  parseExecutionPlan,
 } from '@kestrel/ai/mastra';
 import { schema } from '@kestrel/db';
 import { pickAiEnv } from '@kestrel/shared';
@@ -58,8 +64,8 @@ import { traceIdStorage } from '@kestrel/shared/logger';
 import type { UIMessage } from 'ai';
 import { and, eq } from 'drizzle-orm';
 
-import type { JobContext, JobResult } from './types.js';
 import { createFullAnalysisCoordinator } from './full-analysis-coordinator.js';
+import type { JobContext, JobResult } from './types.js';
 
 const MAX_JOBS_PER_RUN = 3;
 const STALE_JOB_TIMEOUT_MS = 5 * 60 * 1000;
@@ -67,50 +73,12 @@ const MAX_ANALYSIS_ATTEMPTS = 3;
 const HEARTBEAT_MS = 30_000;
 const RETENTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** A quota decision is permanent for this queued run and must not be retried. */
-export class FullAnalysisQuotaExceededError extends Error {
-  readonly code = 'FULL_ANALYSIS_BUDGET_EXCEEDED';
-  readonly spent: number;
-  readonly max: number;
-
-  constructor(spent: number, max: number) {
-    super(`Daily AI budget exceeded ($${spent.toFixed(2)} / $${max.toFixed(2)}).`);
-    this.name = 'FullAnalysisQuotaExceededError';
-    this.spent = spent;
-    this.max = max;
-  }
-}
-
-/** Reservation infrastructure failures are retryable admission errors. */
-export class FullAnalysisBudgetAdmissionError extends Error {
-  readonly code = 'FULL_ANALYSIS_BUDGET_ADMISSION_FAILED';
-
-  constructor(cause: unknown) {
-    super('Full-analysis budget admission failed.', { cause });
-    this.name = 'FullAnalysisBudgetAdmissionError';
-  }
-}
-
 function isBudgetExceededError(error: unknown): error is { spent: number; max: number } {
   return (
     error instanceof Error &&
     (error as { code?: unknown }).code === 'BUDGET_EXCEEDED' &&
     Number.isFinite((error as { spent?: unknown }).spent) &&
     Number.isFinite((error as { max?: unknown }).max)
-  );
-}
-
-export function isRetryableAnalysisError(error: unknown): boolean {
-  const messages: string[] = [];
-  let current: unknown = error;
-  const seen = new Set<unknown>();
-  while (current && !seen.has(current)) {
-    seen.add(current);
-    messages.push(current instanceof Error ? current.message : String(current));
-    current = current instanceof Error ? current.cause : undefined;
-  }
-  return /(?:timeout|timed?\s*out|aborted|network|fetch\s*failed|rate\s*limit|too\s*many\s*requests|temporar(?:y|ily)|connection|ECONNRESET|5\d\d)/i.test(
-    messages.join(' '),
   );
 }
 
@@ -144,6 +112,14 @@ function userMessageFromPayload(payload: FullAnalysisPayload): UIMessage {
   } as UIMessage;
 }
 
+/**
+ * Application-level durable research boundary (Phase 2 target naming):
+ * claim, execute, and settle one queued Full-mode workflow job.
+ */
+export function runDurableResearchJob(ctx: JobContext): Promise<JobResult> {
+  return runMultiAgentAnalysis(ctx);
+}
+
 export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult> {
   const db = getDb();
   const workerRunId = `${process.env.HOSTNAME ?? 'worker'}-${crypto.randomUUID()}`;
@@ -167,6 +143,9 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
     });
 
     let leaseLost = false;
+    // Captured by the inner catch so a retryable failure can persist the exact
+    // child generations already completed into the queue payload (Phase 8).
+    let retryLedgerSnapshot: GenerationLedgerSnapshot | null = null;
     const leaseAbort = new AbortController();
     const leaseHeartbeat = setInterval(() => {
       void touchFullAnalysisRun(runId, workerRunId).catch((error) => {
@@ -222,6 +201,12 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
             'Full analysis requires one supported symbol and a read-only research request.',
           );
         }
+        if (executionPlan) {
+          // The claim already validated route/snapshot/row identity; here the
+          // plan must also match the run's tenant, symbol, and model snapshot
+          // (Phase 8). Identity violations are permanent — never retried.
+          validateFullAnalysisPlanIdentity(executionPlan, { tenantId, payload }, symbol);
+        }
 
         const env = pickAiEnv(process.env as unknown as Parameters<typeof pickAiEnv>[0]);
         const expectedModel = `${payload.modelSnapshot.providerId}/${payload.modelSnapshot.bareModelId}`;
@@ -235,14 +220,14 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           budget = resumeTurnBudget({
             userId: payload.userId,
             reservationId: payload.budgetReservationId,
-            estimateUsd: 0.05,
+            estimateUsd: FULL_ANALYSIS_ESTIMATE_USD,
             maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
           });
         } else {
           try {
             budget = await reserveTurnBudget({
               userId: payload.userId,
-              estimateUsd: 0.05,
+              estimateUsd: FULL_ANALYSIS_ESTIMATE_USD,
               maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
               correlation: { threadId: payload.threadId, runId },
               tenantId,
@@ -322,6 +307,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
                 executionOutcome: 'completed',
                 answerOutcome: modeResult.answerOutcome,
                 memoryMode: modeResult.memoryMode,
+                memoryBackfill: modeResult.memoryBackfill,
                 modelSnapshot: modeResult.modelSnapshot,
                 terminalReason: 'worker-completed',
                 mode: modeResult.mode,
@@ -370,10 +356,19 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           latencyMs: modeResult.totalLatencyMs,
         });
       } catch (error) {
+        retryLedgerSnapshot = ledger.snapshot();
         if (budget && lifecycle) {
-          if (coordinator) await coordinator.settleOnError(error);
-          // Lease loss is deliberately not settled here. The reservation and
-          // queue ownership belong to the surviving/requeued attempt.
+          const decision = fullAnalysisRetryAction(error, {
+            attemptCount: payload.attemptCount,
+            maxAttempts: MAX_ANALYSIS_ATTEMPTS,
+          });
+          // A retryable outcome leaves the durable enqueue-time reservation
+          // 'reserved' so the next attempt reconciles actual cost exactly once
+          // (Phase 8). Lease loss is never settled here either; the reservation
+          // and queue ownership belong to the surviving/requeued attempt.
+          if (decision.action !== 'requeue' && !leaseLost) {
+            if (coordinator) await coordinator.settleOnError(error);
+          }
           budget = null;
         }
         throw error;
@@ -385,35 +380,35 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         if (payload.traceId) await traceIdStorage.run(payload.traceId, processRun);
         else await processRun();
       } catch (error) {
-        if (leaseLost || error instanceof FullAnalysisLeaseLostError) {
+        const decision = fullAnalysisRetryAction(error, {
+          attemptCount: payload.attemptCount,
+          maxAttempts: MAX_ANALYSIS_ATTEMPTS,
+        });
+        if (decision.action === 'discard') {
           ctx.log.warn('Full-analysis result discarded after lease loss', { runId });
           continue;
         }
-        if (error instanceof FullAnalysisQuotaExceededError) {
-          ctx.log.warn('Full-analysis run rejected by daily budget', {
-            runId,
-            spent: error.spent,
-            max: error.max,
-          });
-          await failFullAnalysisRun(runId, workerRunId, error);
-          processed++;
-          continue;
-        }
         const message = error instanceof Error ? error.message : String(error);
-        const retryable =
-          (error instanceof FullAnalysisBudgetAdmissionError || isRetryableAnalysisError(error)) &&
-          payload.attemptCount < MAX_ANALYSIS_ATTEMPTS;
         ctx.log.error('Full analysis job failed', {
           runId,
           err: message,
-          retryable,
+          category: decision.category,
+          retryable: decision.action === 'requeue',
           attempt: payload.attemptCount,
         });
-        if (retryable) {
+        if (decision.category === 'quota') {
+          ctx.log.warn('Full-analysis run rejected by daily budget', {
+            runId,
+            spent: (error as { spent?: unknown }).spent,
+            max: (error as { max?: unknown }).max,
+          });
+        }
+        if (decision.action === 'requeue') {
           await requeueFullAnalysisRun(
             runId,
             workerRunId,
             `Attempt ${payload.attemptCount}/${MAX_ANALYSIS_ATTEMPTS} failed; retrying automatically.`,
+            retryLedgerSnapshot ?? undefined,
           );
         } else {
           await failFullAnalysisRun(runId, workerRunId, error);

@@ -7,22 +7,12 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { UIMessage } from 'ai';
 
-import { classifyMutationRequest } from './mutation-detect';
-
 import {
   resolveMastraExecutionModel,
   type MastraModelPurpose,
   type MastraResolvedModel,
 } from '../model';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../routing';
-import {
-  isMastraXauusdFollowupCandidate,
-  isMastraXauusdCandidate,
-  isMastraSymbolCandidate,
-  extractMastraSymbol,
-  mastraXauusdChatKind,
-  messageText,
-} from './routing-policy';
 import type { ResolveModelEnv } from '../vertex-factory';
 import {
   evaluateMastraCapability,
@@ -30,6 +20,15 @@ import {
   type MastraCapabilityDecision,
   type MastraCapabilityId,
 } from './capabilities';
+import { classifyMutationRequest } from './mutation-detect';
+import {
+  extractMastraSymbol,
+  isMastraSymbolCandidate,
+  isMastraXauusdCandidate,
+  isMastraXauusdFollowupCandidate,
+  mastraXauusdChatKind,
+  messageText,
+} from './routing-policy';
 
 export type MastraExecutionRoute =
   | 'mutation'
@@ -81,17 +80,31 @@ export async function decideMastraExecution(
     ...(semanticRouting ? { semanticRouting } : {}),
   });
   const promptText = messageText(input.userMessage);
-  const symbol = input.symbol ?? extractMastraSymbol(promptText);
   const priorReportAvailable = input.priorReportAvailable === true;
   const reportFollowup = priorReportAvailable && isMastraXauusdFollowupCandidate(promptText);
+  const symbol =
+    input.symbol ?? extractMastraSymbol(promptText) ?? (reportFollowup ? 'XAUUSD' : null);
   const xauusdCandidate = isMastraXauusdCandidate(promptText);
   const symbolCandidate = isMastraSymbolCandidate(promptText);
+  const detectedXauusdChatKind =
+    symbol === 'XAUUSD' && (xauusdCandidate || reportFollowup)
+      ? mastraXauusdChatKind(promptText, priorReportAvailable)
+      : null;
   // Mutation classification belongs to the planner boundary. Callers may
   // provide an explicit server-side decision, but never rely on route code to
   // classify it after planning.
-  const mutationRequested =
-    input.mutationRequested ?? classifyMutationRequest(promptText) !== null;
-  const capabilityId = input.capabilityId ?? capabilityFor(input.mode, symbol, mutationRequested);
+  const mutationRequested = input.mutationRequested ?? classifyMutationRequest(promptText) !== null;
+  const capabilityId =
+    input.capabilityId ??
+    capabilityFor(input.mode, symbol, mutationRequested, reportFollowup, detectedXauusdChatKind);
+  const plannedXauusdChatKind =
+    capabilityId === 'xauusd-research'
+      ? reportFollowup
+        ? 'conversation'
+        : 'research'
+      : capabilityId === 'xauusd-conversation'
+        ? 'conversation'
+        : detectedXauusdChatKind;
   const capability = capabilityId
     ? evaluateMastraCapability({
         capabilityId,
@@ -109,8 +122,14 @@ export async function decideMastraExecution(
     reportFollowup,
     xauusdCandidate,
     symbolCandidate,
+    plannedXauusdChatKind,
   );
-  if (capability && !capability.allowed && capability.reason !== 'model-override' && route !== 'mutation') {
+  if (
+    capability &&
+    !capability.allowed &&
+    capability.reason !== 'model-override' &&
+    route !== 'mutation'
+  ) {
     throw new Error(`Mastra capability rejected: ${capability.reason}.`);
   }
   const purpose = purposeFor(route);
@@ -138,10 +157,7 @@ export async function decideMastraExecution(
     model,
     modelPurpose: purpose,
     symbol,
-    xauusdChatKind:
-      symbol === 'XAUUSD' && xauusdCandidate
-        ? mastraXauusdChatKind(promptText, priorReportAvailable)
-        : null,
+    xauusdChatKind: plannedXauusdChatKind,
     reportFollowup,
     symbolCandidate,
     xauusdCandidate,
@@ -152,9 +168,14 @@ function capabilityFor(
   mode: MastraExecutionDecisionInput['mode'],
   symbol: string | null,
   mutationRequested = false,
+  reportFollowup = false,
+  xauusdChatKind: 'research' | 'conversation' | null = null,
 ): MastraCapabilityId | null {
   if (mutationRequested) return 'mutation-workflows';
-  if (symbol === 'XAUUSD' && (mode === 'single' || mode === 'auto')) return 'xauusd-conversation';
+  if (symbol === 'XAUUSD' && (mode === 'single' || mode === 'auto')) {
+    if (reportFollowup || xauusdChatKind === 'research') return 'xauusd-research';
+    if (xauusdChatKind === 'conversation') return 'xauusd-conversation';
+  }
   if (mode !== 'single' && mode !== 'auto' && symbol) return 'symbol-research';
   return null;
 }
@@ -167,14 +188,24 @@ function routeFor(
   reportFollowup: boolean,
   xauusdCandidate: boolean,
   symbolCandidate: boolean,
+  xauusdChatKind: 'research' | 'conversation' | null,
 ): MastraExecutionRoute {
   if (mutationRequested || capabilityId === 'mutation-workflows') return 'mutation';
   if (mode === 'full') return 'full-analysis-queue';
-  if (symbol === 'XAUUSD' && capabilityId === 'xauusd-conversation' && xauusdCandidate) {
-    return 'xauusd-conversation';
-  }
-  if (symbol === 'XAUUSD' && capabilityId === 'xauusd-research' && (xauusdCandidate || reportFollowup)) {
+  if (
+    symbol === 'XAUUSD' &&
+    capabilityId === 'xauusd-research' &&
+    (xauusdCandidate || reportFollowup)
+  ) {
     return 'xauusd-research';
+  }
+  if (
+    symbol === 'XAUUSD' &&
+    capabilityId === 'xauusd-conversation' &&
+    (xauusdCandidate || reportFollowup) &&
+    xauusdChatKind === 'conversation'
+  ) {
+    return 'xauusd-conversation';
   }
   if ((mode === 'quick' || mode === 'standard') && symbolCandidate) return 'symbol-research';
   return 'canonical-chat';

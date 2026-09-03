@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from 'vitest';
-
 import {
   FullAnalysisBudgetAdmissionError,
   FullAnalysisQuotaExceededError,
   isRetryableAnalysisError,
-} from '../src/jobs/multi-agent-analysis';
+} from '@kestrel/ai/mastra';
+import { describe, expect, it } from 'vitest';
 
 describe('isRetryableAnalysisError', () => {
   it.each([

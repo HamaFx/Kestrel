@@ -18,11 +18,7 @@
 
 import 'server-only';
 
-import {
-  DEFAULT_MAX_DAILY_USD,
-  reserveTurnBudget,
-  createGenerationLedger,
-} from '@kestrel/ai';
+import { createGenerationLedger, DEFAULT_MAX_DAILY_USD, reserveTurnBudget } from '@kestrel/ai';
 import {
   runMastraMode,
   type ExecutionPlan,
@@ -34,6 +30,7 @@ import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra-thread-title';
+
 import { runBufferedExecution } from './mastra-chat-service-lifecycle';
 
 export interface RunMastraModeChatInput {
@@ -73,45 +70,46 @@ export async function runMastraModeChat(
     assistantMessageIdempotencyKey: `mastra-mode:${input.threadId}:${input.userMessage.id}:assistant`,
     execute: async () => {
       const result = await runMastraMode({
-      prompt: input.prompt,
-      symbol: input.symbol,
-      userId: input.userId,
-      threadId: input.threadId,
-      runId,
-      mode: input.mode,
-      ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-      settings,
-      env,
-      ...(input.signal ? { signal: input.signal } : {}),
-      backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey,
-      telemetryKind: 'mastra_mode',
-      executionPlan: input.executionPlan,
-      ledger,
+        prompt: input.prompt,
+        symbol: input.symbol,
+        userId: input.userId,
+        threadId: input.threadId,
+        runId,
+        mode: input.mode,
+        ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
+        settings,
+        env,
+        ...(input.signal ? { signal: input.signal } : {}),
+        backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey,
+        telemetryKind: 'mastra_mode',
+        executionPlan: input.executionPlan,
+        ledger,
       });
 
       const assistantMessage: UIMessage = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      parts: [
-        { type: 'text', text: result.finalText },
-        {
-          type: 'data-multi-agent-meta',
-          data: {
-            engine: 'mastra',
-            runId,
-            mode: result.mode,
-            symbol: result.symbol,
-            packetId: result.packet.packetId,
-            dataQuality: result.packet.dataQuality,
-            totalCostUsd: result.totalCostUsd,
-            totalLatencyMs: result.totalLatencyMs,
-            answerOutcome: result.answerOutcome,
-            memoryMode: result.memoryMode,
-            modelSnapshot: result.modelSnapshot,
-            agentOpinions: result.agentOpinions,
-          },
-        } as UIMessage['parts'][number],
-      ],
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        parts: [
+          { type: 'text', text: result.finalText },
+          {
+            type: 'data-multi-agent-meta',
+            data: {
+              engine: 'mastra',
+              runId,
+              mode: result.mode,
+              symbol: result.symbol,
+              packetId: result.packet.packetId,
+              dataQuality: result.packet.dataQuality,
+              totalCostUsd: result.totalCostUsd,
+              totalLatencyMs: result.totalLatencyMs,
+              answerOutcome: result.answerOutcome,
+              memoryMode: result.memoryMode,
+              memoryBackfill: result.memoryBackfill,
+              modelSnapshot: result.modelSnapshot,
+              agentOpinions: result.agentOpinions,
+            },
+          } as UIMessage['parts'][number],
+        ],
       };
       return { result, observedCost: result.totalCostUsd, assistantMessage };
     },
@@ -120,14 +118,14 @@ export async function runMastraModeChat(
   });
   const result = execution.result;
   const persisted = { messageId: execution.messageId };
-    void maybeGenerateThreadTitle({
-      userId: input.userId,
-      threadId: input.threadId,
-      firstUser: input.prompt,
-      firstAssistant: result.finalText,
-      ledger,
-      ledgerId: `title:${runId}`,
-    });
+  void maybeGenerateThreadTitle({
+    userId: input.userId,
+    threadId: input.threadId,
+    firstUser: input.prompt,
+    firstAssistant: result.finalText,
+    ledger,
+    ledgerId: `title:${runId}`,
+  });
   // `runMastraMode` aggregates specialist and fusion generations into
   // `totalCostUsd`; the shared coordinator settles that aggregate once.
   const observedCost = execution.observedCost;

@@ -17,6 +17,7 @@
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as ReportGenerationModule from '../src/mastra/report-generation';
 import {
   resolveXauusdMastraModel,
   runXauusdMastra,
@@ -43,6 +44,7 @@ const mocks = vi.hoisted(() => {
       steps: 2,
     })),
     mastraOutcomeForError: vi.fn(() => 'failed'),
+    generateXauusdFollowup: vi.fn(),
     getDiagnosticContext: vi.fn(() => ({ traceId: 'trace-1' })),
     withDiagnostics: vi.fn(async (_userId: string, _threadId: string, fn: () => Promise<unknown>) =>
       fn(),
@@ -78,6 +80,11 @@ vi.mock('../src/diagnostics', () => ({
   getDiagnosticContext: mocks.getDiagnosticContext,
   withDiagnostics: mocks.withDiagnostics,
 }));
+
+vi.mock('../src/mastra/report-generation', async (importOriginal) => {
+  const actual = await importOriginal<typeof ReportGenerationModule>();
+  return { ...actual, generateXauusdFollowup: mocks.generateXauusdFollowup };
+});
 
 const model = {} as LanguageModel;
 const settings = { aiApiKeys: null, chatModel: null };
@@ -247,8 +254,10 @@ describe('Mastra BYOK runner', () => {
       modelId: 'google/gemini-2.5-flash',
       providerId: 'google',
       stats: { inputTokens: 4, outputTokens: 6, toolCalls: 1, steps: 2 },
+      memoryMode: 'degraded',
+      memoryBackfill: true,
     });
-    // The agent now also receives the per-request native Memory instance.
+    // The agent now also receives the per-request memory instance.
     expect(mocks.createXauusdMastraAgent).toHaveBeenCalledWith(expect.objectContaining({ model }));
     expect(generate).toHaveBeenCalledWith(
       'Analyse gold',
@@ -273,6 +282,8 @@ describe('Mastra BYOK runner', () => {
         runId: 'run-1',
         model: 'google/gemini-2.5-flash',
         outcome: 'success',
+        memoryMode: 'degraded',
+        memoryBackfill: true,
       }),
     );
   });
@@ -334,6 +345,57 @@ describe('Mastra BYOK runner', () => {
     expect(options.structuredOutput).toBeUndefined();
     expect(options.abortSignal).toBe(signal);
     expect(options.requestContext.get('priorReport')).toBe(priorReport);
+  });
+
+  it('fails closed when follow-up mode is requested without a prior report', async () => {
+    mocks.createXauusdMastraAgent.mockReturnValue({ generate: vi.fn() });
+
+    await expect(
+      runXauusdMastra({
+        prompt: 'What does your report say about invalidation?',
+        userId: 'user-1',
+        threadId: 'thread-1',
+        runId: 'followup-missing',
+        settings,
+        env,
+        turnMode: 'followup',
+      }),
+    ).rejects.toThrow('XAUUSD follow-up mode requires a prior verified report');
+    expect(mocks.generateXauusdFollowup).not.toHaveBeenCalled();
+  });
+
+  it('answers follow-ups from the saved report instead of a fresh verified report', async () => {
+    const generate = vi.fn().mockResolvedValue({ text: 'followup answer' });
+    mocks.createXauusdMastraAgent.mockReturnValue({ generate });
+    const followupResult = { text: 'from the saved report' };
+    mocks.generateXauusdFollowup.mockResolvedValue(followupResult);
+    const priorReport = {
+      symbol: 'XAUUSD',
+      asOf: '2026-07-01T00:00:00.000Z',
+      dataQuality: 'complete',
+    } as never;
+
+    const result = await runXauusdMastra({
+      prompt: 'What does your report say about invalidation?',
+      userId: 'user-1',
+      threadId: 'thread-1',
+      runId: 'followup-1',
+      settings,
+      env,
+      turnMode: 'followup',
+      priorReport,
+    });
+
+    // Follow-up mode returns the conversational answer, never a new report.
+    expect(result.result).toBe(followupResult);
+    expect(result.report).toBeNull();
+    // No fresh report workflow run: the followup generator was used directly.
+    expect(mocks.generateXauusdFollowup).toHaveBeenCalledTimes(1);
+    expect(generate).not.toHaveBeenCalled();
+    const followupArgs = mocks.generateXauusdFollowup.mock.calls[0]!;
+    // The followup agent carries the conversation policy (no structured output).
+    expect(mocks.createXauusdMastraAgent).toHaveBeenCalledWith(expect.objectContaining({ model }));
+    expect(followupArgs[3]).toBe('google');
   });
 
   it('preserves generation failures and records a failed terminal outcome', async () => {

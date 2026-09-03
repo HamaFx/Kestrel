@@ -50,6 +50,7 @@ export function buildPriceEvidence(result: PriceResult): XauusdPriceEvidence {
     freshness: result.stale ? 'stale' : freshnessFromAge(ageMs, 10_000),
     quality: qualityFromWarnings(warnings),
     warnings,
+    trust: 'trusted-deterministic',
     data: { tick, stale: result.stale, ageMs },
   });
 }
@@ -82,6 +83,7 @@ export function buildCandlesEvidence(
     freshness: result.stale ? 'stale' : 'fresh',
     quality: qualityFromWarnings(warnings),
     warnings,
+    trust: 'trusted-deterministic',
     data: { candles, stale: result.stale, count: candles.length },
   });
 }
@@ -126,6 +128,7 @@ export function buildIndicatorsEvidence(
     freshness: result.stale ? 'stale' : 'fresh',
     quality: qualityFromWarnings(warnings),
     warnings,
+    trust: 'trusted-deterministic',
     data: {
       results,
       candleCount: candles.length,

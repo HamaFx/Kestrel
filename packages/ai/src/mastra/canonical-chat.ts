@@ -23,11 +23,15 @@ import { RequestContext } from '@mastra/core/request-context';
 import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
 import { estimateCostUsd } from '../cost';
-import { createGenerationLedger } from '../generation-ledger';
+import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
 import { prepareKestrelMemory } from '../mastra-v2/context';
 import { buildConversationScorers, type BuiltScorers } from '../mastra-v2/evals/scorers';
 import { buildGuardrailInputProcessors } from '../mastra-v2/guardrails';
-import { createKestrelMemory, type CreateKestrelMemoryArgs } from '../mastra-v2/memory';
+import {
+  createKestrelMemory,
+  kestrelMemoryOptions,
+  type CreateKestrelMemoryArgs,
+} from '../mastra-v2/memory';
 import { runTracingOptions } from '../mastra-v2/telemetry';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../model';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../routing';
@@ -36,8 +40,12 @@ import { DB } from '../tokens';
 import { withToolContext, type ToolContext } from '../tool-context';
 import { domainToolFilter } from '../tools/by-domain';
 import { checkCanonicalEvidence } from './canonical-evidence';
-import { assertExecutionPlanRoute, type ExecutionPlan } from './execution-plan';
-import { canonicalReadOnlyToolNames } from './capability-registry';
+import { manifestForCapability, manifestToolNames } from './capabilities';
+import {
+  assertExecutionPlanRoute,
+  requireExecutionPlanModel,
+  type ExecutionPlan,
+} from './execution-plan';
 import { adaptLegacyReadOnlyTool } from './legacy-tool-adapter';
 import {
   beginMastraRun,
@@ -56,7 +64,7 @@ const mlog = createCategorizedLogger('ai', { component: 'mastra-canonical-chat' 
  * as new tools are added: a new tool cannot become reachable from Mastra until
  * it is reviewed and classified here.
  */
-const READ_ONLY_TOOL_NAMES = new Set<string>(canonicalReadOnlyToolNames());
+const READ_ONLY_TOOL_NAMES = new Set<string>(manifestToolNames('canonical-chat'));
 
 export interface RunMastraCanonicalChatArgs {
   userId: string;
@@ -79,7 +87,7 @@ export interface RunMastraCanonicalChatArgs {
   auxiliaryAccounting?: SemanticRoutingAccounting;
   /** Phase 2 planner contract. */
   executionPlan?: ExecutionPlan;
-  ledger?: import('../generation-ledger').GenerationLedger;
+  ledger?: GenerationLedger;
 }
 
 export interface MastraCanonicalChatResult {
@@ -93,7 +101,10 @@ export interface MastraCanonicalChatResult {
   toolNames: string[];
   evidence: ReturnType<typeof checkCanonicalEvidence>;
   answerOutcome: 'ready' | 'blocked' | 'degraded';
-  memoryMode: 'native';
+  /** 'degraded' when native-memory preparation partially failed (Phase 9). */
+  memoryMode: 'native' | 'degraded';
+  /** Whether native memory preparation attempted legacy history backfill. */
+  memoryBackfill: boolean;
   modelSnapshot: { providerId: string; bareModelId: string };
 }
 
@@ -102,13 +113,16 @@ function resolveCanonicalModel(
   env: RunMastraCanonicalChatArgs['env'],
   routing: RoutingDecision,
   modelOverride?: string | null,
+  executionPlan?: ExecutionPlan,
 ): ChatModelResolution {
+  const snapshot = executionPlan ? requireExecutionPlanModel(executionPlan) : undefined;
   return resolveMastraExecutionModel({
     purpose: 'canonical-chat',
     settings,
     env,
     domain: routing.domain === 'generic' ? 'summary' : routing.domain,
     ...(modelOverride !== undefined ? { modelOverride } : {}),
+    ...(snapshot ? { snapshot } : {}),
   });
 }
 
@@ -176,6 +190,10 @@ interface CanonicalChatSetup {
   context: ToolContext;
   messages: ModelMessage[];
   scorers: BuiltScorers;
+  /** Native-memory preparation partially failed; surface as degraded. */
+  memoryDegraded: boolean;
+  /** Whether native memory preparation attempted legacy history backfill. */
+  memoryBackfill: boolean;
 }
 
 async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<CanonicalChatSetup> {
@@ -217,7 +235,13 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
         }
       : {}),
   });
-  const resolution = resolveCanonicalModel(args.settings, args.env, routing, args.modelOverride);
+  const resolution = resolveCanonicalModel(
+    args.settings,
+    args.env,
+    routing,
+    args.modelOverride,
+    args.executionPlan,
+  );
   const legacyTools = domainToolFilter(routing.domain, args.plan ?? undefined);
   const registeredTools = Object.fromEntries(
     Object.entries(legacyTools)
@@ -227,6 +251,8 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
 
   let memory: MastraMemory | null = null;
   let callMemory: AgentMemoryOption | null = null;
+  let memoryDegraded = false;
+  let memoryBackfill = false;
   try {
     const memoryInstance = createKestrelMemory({
       settings: {
@@ -234,6 +260,14 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
         embeddingModel: args.settings.embeddingModel ?? null,
       },
       env: args.env,
+      options: kestrelMemoryOptions({
+        env: args.env,
+        // Capability-specific semantic recall from the execution plan
+        // (Phase 9): the manifest default wins over the global gate.
+        ...(args.executionPlan
+          ? { semanticRecall: args.executionPlan.memoryPolicy.semanticRecall }
+          : {}),
+      }),
     } satisfies CreateKestrelMemoryArgs);
     const prepared = await prepareKestrelMemory({
       memory: memoryInstance,
@@ -247,6 +281,8 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     });
     memory = memoryInstance;
     callMemory = prepared.callOptions;
+    memoryDegraded = prepared.memoryDegraded;
+    memoryBackfill = prepared.backfillAttempted;
   } catch (error) {
     // Canonical chat uses native memory as part of its approved execution
     // contract. Do not silently change semantics to explicit-history mode.
@@ -315,6 +351,8 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
       ? latestUserModelMessages(args.userMessage)
       : messageHistory(args.history, args.userMessage),
     scorers: builtScorers,
+    memoryDegraded,
+    memoryBackfill,
   };
 }
 
@@ -348,7 +386,10 @@ export async function runMastraCanonicalChat(
         requestContext,
         ...(callMemory ? { memory: callMemory } : {}),
         toolChoice: 'auto',
-        maxSteps: args.env.MAX_TOOL_ITERATIONS ?? 6,
+        maxSteps: Math.min(
+          args.env.MAX_TOOL_ITERATIONS ?? manifestForCapability('canonical-chat').maxSteps,
+          manifestForCapability('canonical-chat').maxSteps,
+        ),
         ...(Object.keys(scorers.entries).length > 0 ? { scorers: scorers.entries } : {}),
         ...(args.signal ? { abortSignal: args.signal } : {}),
         tracingOptions: runTracingOptions({
@@ -356,14 +397,21 @@ export async function runMastraCanonicalChat(
           userId: args.userId,
           threadId: args.threadId,
           kind: 'mastra_canonical_chat',
+          capabilityId: 'canonical-chat',
           tags: ['chat'],
+          memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+          memoryBackfill: setup.memoryBackfill,
         }),
       }),
     );
     const stats = getMastraGenerationStats(result);
     const toolNames = extractToolNames(result.response?.messages);
     const evidence = checkCanonicalEvidence(result.text, toolNames);
-    const primaryCostUsd = estimateCostUsd(resolution.modelId, stats.inputTokens, stats.outputTokens);
+    const primaryCostUsd = estimateCostUsd(
+      resolution.modelId,
+      stats.inputTokens,
+      stats.outputTokens,
+    );
     generationLedger.recordCost(`primary:${runId}`, 'primary', primaryCostUsd);
     const totalCostUsd = generationLedger.total();
     const totalLatencyMs = Date.now() - startedAt;
@@ -377,7 +425,8 @@ export async function runMastraCanonicalChat(
       ...stats,
       outcome: 'success',
       answerOutcome: result.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
-      memoryMode: 'native',
+      memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: setup.memoryBackfill,
       modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
       telemetryKind: 'mastra_canonical_chat',
     });
@@ -392,7 +441,8 @@ export async function runMastraCanonicalChat(
       toolNames,
       evidence,
       answerOutcome: result.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
-      memoryMode: 'native',
+      memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: setup.memoryBackfill,
       modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
     };
   } catch (error) {
@@ -409,6 +459,8 @@ export async function runMastraCanonicalChat(
       toolCalls: 0,
       steps: 0,
       outcome: mastraOutcomeForError(error, args.signal),
+      memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: setup.memoryBackfill,
       telemetryKind: 'mastra_canonical_chat',
       error,
     });
@@ -429,7 +481,8 @@ export interface MastraCanonicalChatStream {
     totalLatencyMs: number;
     evidence: ReturnType<typeof checkCanonicalEvidence>;
     answerOutcome: 'ready' | 'blocked' | 'degraded';
-    memoryMode: 'native';
+    memoryMode: 'native' | 'degraded';
+    memoryBackfill: boolean;
     modelSnapshot: { providerId: string; bareModelId: string };
   }>;
 }
@@ -468,7 +521,10 @@ export async function runMastraCanonicalChatStream(
       requestContext,
       ...(callMemory ? { memory: callMemory } : {}),
       toolChoice: 'auto',
-      maxSteps: args.env.MAX_TOOL_ITERATIONS ?? 6,
+      maxSteps: Math.min(
+        args.env.MAX_TOOL_ITERATIONS ?? manifestForCapability('canonical-chat').maxSteps,
+        manifestForCapability('canonical-chat').maxSteps,
+      ),
       ...(Object.keys(scorers.entries).length > 0 ? { scorers: scorers.entries } : {}),
       ...(args.signal ? { abortSignal: args.signal } : {}),
       tracingOptions: runTracingOptions({
@@ -476,7 +532,10 @@ export async function runMastraCanonicalChatStream(
         userId: args.userId,
         threadId: args.threadId,
         kind: 'mastra_canonical_chat',
+        capabilityId: 'canonical-chat',
         tags: ['chat'],
+        memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: setup.memoryBackfill,
       }),
     }),
   );
@@ -504,6 +563,8 @@ export async function runMastraCanonicalChatStream(
         toolCalls: 0,
         steps: 0,
         outcome: mastraOutcomeForError(error, args.signal),
+        memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: setup.memoryBackfill,
         telemetryKind: 'mastra_canonical_chat',
         error,
       });
@@ -537,7 +598,8 @@ export async function runMastraCanonicalChatStream(
           ? mastraOutcomeForError(args.signal.reason, args.signal)
           : 'success',
         answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
-        memoryMode: 'native',
+        memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: setup.memoryBackfill,
         modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
         telemetryKind: 'mastra_canonical_chat',
       });
@@ -552,7 +614,8 @@ export async function runMastraCanonicalChatStream(
         modelId: resolution.modelId,
         providerId: resolution.providerId,
         answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
-        memoryMode: 'native' as const,
+        memoryMode: setup.memoryDegraded ? ('degraded' as const) : ('native' as const),
+        memoryBackfill: setup.memoryBackfill,
         modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
       };
     } catch (error) {
@@ -568,6 +631,8 @@ export async function runMastraCanonicalChatStream(
         toolCalls: 0,
         steps: 0,
         outcome: mastraOutcomeForError(error, args.signal),
+        memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: setup.memoryBackfill,
         telemetryKind: 'mastra_canonical_chat',
         error,
       });

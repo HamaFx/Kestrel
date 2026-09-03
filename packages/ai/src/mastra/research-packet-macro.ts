@@ -152,6 +152,7 @@ export function assembleXauusdMacroEvidence(
     freshness: 'fresh',
     quality: qualityFromWarnings(warnings),
     warnings,
+    trust: 'mixed',
     data: {
       news: parsedNews,
       events: parsedEvents,

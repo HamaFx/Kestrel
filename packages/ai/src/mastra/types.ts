@@ -25,6 +25,8 @@ import {
 } from '@kestrel/shared';
 import { z } from 'zod';
 
+import { EvidenceProvenanceSchema, EvidenceTrustSchema } from './evidence-types';
+
 export const XAUUSD = 'XAUUSD' as const;
 
 export const XauusdRequestContextSchema = z.object({
@@ -42,20 +44,36 @@ export const XauusdRequestContextSchema = z.object({
 
 export type XauusdRequestContext = z.infer<typeof XauusdRequestContextSchema>;
 
-export const EvidenceFreshnessSchema = z.enum(['fresh', 'stale', 'unknown']);
-export const EvidenceQualitySchema = z.enum(['complete', 'partial', 'degraded']);
+export { EvidenceFreshnessSchema, EvidenceQualitySchema } from './evidence-types';
+export type {
+  EvidenceFreshness,
+  EvidenceProvenance,
+  EvidenceQuality,
+  EvidenceTrust,
+  ModelGeneratedEvidence,
+  SynthesisEvidence,
+  TrustedDeterministicEvidence,
+  UntrustedExternalEvidence,
+  UserMemoryEvidence,
+} from './evidence-types';
+export {
+  EvidenceProvenanceSchema,
+  EvidenceTrustSchema,
+  ModelGeneratedEvidenceSchema,
+  SynthesisEvidenceSchema,
+  TrustedDeterministicEvidenceSchema,
+  UntrustedExternalEvidenceSchema,
+  UserMemoryEvidenceSchema,
+} from './evidence-types';
 
-export const EvidenceMetadataSchema = z.object({
+export const EvidenceMetadataSchema = EvidenceProvenanceSchema.extend({
   evidenceId: z.string().min(1),
   symbol: SymbolSchema,
   timeframe: TimeframeSchema.optional(),
-  source: z.string().min(1),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
-  freshness: EvidenceFreshnessSchema,
-  quality: EvidenceQualitySchema,
-  warnings: z.array(z.string()),
+  trust: EvidenceTrustSchema.optional(),
 });
+
+export type EvidenceMetadata = z.infer<typeof EvidenceMetadataSchema>;
 
 export const XauusdPriceEvidenceSchema = EvidenceMetadataSchema.extend({
   kind: z.literal('price'),

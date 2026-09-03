@@ -48,6 +48,10 @@ import {
   type ObservabilityRegistryConfig,
 } from '@mastra/observability';
 
+import { capabilityTelemetryLabels } from '../mastra/capabilities';
+
+export { capabilityTelemetryLabels } from '../mastra/capabilities';
+
 const tlog = createCategorizedLogger('ai', { component: 'mastra-telemetry' });
 
 /** Env keys that gate Langfuse export (same set as `instrumentation.ts`). */
@@ -127,6 +131,8 @@ export interface MastraRunTraceIdentity {
   threadId: string;
   /** Agent/workflow kind label (e.g. 'mastra_canonical_chat', 'symbol-research'). */
   kind: string;
+  /** Optional manifest capability identity for policy-aware telemetry. */
+  capabilityId?: Parameters<typeof capabilityTelemetryLabels>[0];
   /** Extra non-sensitive tags (e.g. ['full'], ['experiment-v2']). */
   tags?: string[];
   /** Memory configuration: 'working' | 'last_turns' | 'disabled'. */
@@ -154,6 +160,7 @@ export function runTracingOptions(identity: MastraRunTraceIdentity): TracingOpti
       threadId: identity.threadId,
       kind: identity.kind,
       service: 'kestrel-ai',
+      ...(identity.capabilityId ? capabilityTelemetryLabels(identity.capabilityId) : {}),
       ...(identity.memoryMode ? { memoryMode: identity.memoryMode } : {}),
       ...(identity.memoryBackfill !== undefined ? { memoryBackfill: identity.memoryBackfill } : {}),
     },

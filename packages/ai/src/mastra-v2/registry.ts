@@ -61,6 +61,7 @@ export interface MastraComponentRegistration {
  * registry integrity test.
  */
 export const MASTRA_COMPONENT_REGISTRY: Record<MastraCapabilityId, MastraComponentRegistration> = {
+  'canonical-chat': { kind: 'agent', key: 'canonicalChat', phase: 4 },
   'xauusd-research': { kind: 'workflow', key: 'xauusdResearch', phase: 2 },
   'xauusd-conversation': { kind: 'agent', key: 'xauusdConversation', phase: 4 },
   'symbol-research': { kind: 'workflow', key: 'symbolResearch', phase: 2 },
@@ -96,13 +97,20 @@ export class MastraComponentKindMismatchError extends Error {
 
 /** Every registered capability id must have a component mapping. */
 export function assertMastraRegistryComplete(): void {
-  const missing = Object.keys(MASTRA_CAPABILITIES).filter(
-    (id) => !(id in MASTRA_COMPONENT_REGISTRY),
-  );
-  if (missing.length > 0) {
+  const capabilityIds = Object.keys(MASTRA_CAPABILITIES);
+  const missing = capabilityIds.filter((id) => !(id in MASTRA_COMPONENT_REGISTRY));
+  const extra = Object.keys(MASTRA_COMPONENT_REGISTRY).filter((id) => !capabilityIds.includes(id));
+  if (missing.length > 0 || extra.length > 0) {
     throw new Error(
-      `Mastra capability ids without a component registration: ${missing.join(', ')}`,
+      `Mastra component registry mismatch: missing=${missing.join(',') || 'none'} extra=${extra.join(',') || 'none'}`,
     );
+  }
+  for (const id of capabilityIds as MastraCapabilityId[]) {
+    const capability = MASTRA_CAPABILITIES[id];
+    const registration = MASTRA_COMPONENT_REGISTRY[id];
+    if (!capability.component.trim() || !registration.key.trim()) {
+      throw new Error(`Capability ${id} has an empty component identity.`);
+    }
   }
 }
 

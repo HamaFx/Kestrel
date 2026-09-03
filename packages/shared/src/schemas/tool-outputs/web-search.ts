@@ -35,6 +35,7 @@ export type WebSearchSource = z.infer<typeof WebSearchSourceSchema>;
 
 export const WebSearchOutputSchema = z.object({
   status: WebSearchStatusSchema,
+  contentTrust: z.literal('untrusted'),
   provider: WebSearchProviderSchema.nullable(),
   query: z.string(),
   sources: z.array(WebSearchSourceSchema).max(10),

@@ -43,4 +43,23 @@ describe('createFullAnalysisCoordinator', () => {
     expect(complete).not.toHaveBeenCalled();
     expect(handle.reconcile).not.toHaveBeenCalled();
   });
+
+  it('requeues without settling so the next attempt books the reservation once (Phase 8)', async () => {
+    const handle = budget();
+    const requeue = vi.fn(async () => undefined);
+    const coordinator = createFullAnalysisCoordinator({
+      budget: handle,
+      transitions: { complete: vi.fn(), fail: vi.fn(), requeue },
+      isLeaseLost: () => false,
+      isCancelled: () => false,
+    });
+
+    await coordinator.requeue('attempt failed; retrying');
+    await coordinator.requeue('attempt failed; retrying');
+
+    expect(requeue).toHaveBeenCalledTimes(1);
+    expect(handle.release).not.toHaveBeenCalled();
+    expect(handle.reconcile).not.toHaveBeenCalled();
+    expect(coordinator.settled).toBe(false);
+  });
 });

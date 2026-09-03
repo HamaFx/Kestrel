@@ -25,6 +25,11 @@ import {
 const mocks = vi.hoisted(() => ({
   getCandlesWithMeta: vi.fn(),
   computeMarketStructureOutput: vi.fn(),
+  getMarketStructureTool: {
+    description: 'mock market structure tool',
+    inputSchema: {},
+    execute: vi.fn(),
+  },
   computeSessionLevels: vi.fn(),
   computeTechnicalReading: vi.fn(),
   deterministicSummary: vi.fn(),
@@ -35,6 +40,7 @@ vi.mock('@kestrel/data', () => ({
 }));
 vi.mock('../src/tools/get-market-structure', () => ({
   computeMarketStructureOutput: mocks.computeMarketStructureOutput,
+  getMarketStructureTool: mocks.getMarketStructureTool,
 }));
 vi.mock('../src/tools/get-session-levels', () => ({
   computeSessionLevels: mocks.computeSessionLevels,

@@ -366,6 +366,7 @@ export {
   parseExecutionPlan,
   serializeExecutionPlan,
   resolvedModelSnapshotForPlan,
+  requireExecutionPlanModel,
   assertExecutionPlanRoute,
   ExecutionPlanSchema,
   type ExecutionPlan,
@@ -382,20 +383,19 @@ export {
   type MastraExecutionRoute,
 } from './mastra/execution-decision';
 
-// Mastra-owned mode selection and historical opinion persistence.
+// Canonical Mastra routing and historical opinion persistence.
 export {
-  selectAgents,
   autoDetectMode,
   resolveMode,
-  MODE_OPTIONS,
-  type ModeMeta,
   type AnalysisMode,
   type ResolvedMode,
+} from './mastra/routing-policy';
+export {
   saveAgentOpinions,
   listAgentOpinions,
   listMessageOpinions,
   type SaveOpinionsArgs,
-} from './multi-agent';
+} from './multi-agent/persistence';
 export { extractUserMessageText } from './message-text';
 
 // F5 — Run Diagnostics with Secret Redaction

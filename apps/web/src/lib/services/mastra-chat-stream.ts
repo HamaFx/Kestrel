@@ -21,20 +21,20 @@ import 'server-only';
 import {
   appendAssistantMessage,
   appendUserMessage,
-  DEFAULT_MAX_DAILY_USD,
-  estimateCostUsd,
-  reserveTurnBudget,
   createGenerationLedger,
+  DEFAULT_MAX_DAILY_USD,
+  reserveTurnBudget,
 } from '@kestrel/ai';
 import {
   runXauusdMastraConversationStream,
+  type ExecutionPlan,
   type XauusdMastraConversationStream,
   type XauusdResearchReport,
+  type XauusdTurnMode,
 } from '@kestrel/ai/mastra';
 import { getThread, getUserWithSettings } from '@kestrel/db';
 import { notFound } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
-import type { ExecutionPlan } from '@kestrel/ai/mastra';
 
 import { getServerEnv } from '@/lib/env';
 import { createMastraChatMeta } from '@/lib/mastra-chat-meta';
@@ -51,6 +51,8 @@ export interface RunMastraXauusdConversationStreamInput {
   signal?: AbortSignal;
   /** Prevent native memory backfill from duplicating this persisted request. */
   backfillExcludeMessageIdempotencyKey?: string;
+  /** Explicit turn mode (Phase 7): `followup` answers from the saved report. */
+  turnMode?: XauusdTurnMode;
   priorReport?: XauusdResearchReport | null;
   executionPlan?: ExecutionPlan;
 }
@@ -105,7 +107,8 @@ export async function runMastraXauusdConversationStreamChat(
       ...(input.backfillExcludeMessageIdempotencyKey
         ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
         : {}),
-      ...(input.priorReport ? { followup: true, priorReport: input.priorReport } : {}),
+      ...(input.turnMode ? { turnMode: input.turnMode } : {}),
+      ...(input.priorReport ? { priorReport: input.priorReport } : {}),
       ...(input.executionPlan ? { executionPlan: input.executionPlan } : {}),
       ledger,
     });
@@ -130,7 +133,8 @@ export async function runMastraXauusdConversationStreamChat(
           report: null,
           executionOutcome: 'completed',
           answerOutcome: 'ready',
-          memoryMode: 'native',
+          memoryMode: completed.memoryMode,
+          memoryBackfill: completed.memoryBackfill,
           modelSnapshot: undefined,
           terminalReason: 'stream-completed',
         });

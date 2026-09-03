@@ -22,6 +22,8 @@ import type {
   XauusdPriceEvidence,
 } from './types';
 
+type LegacyModelEvidence = XauusdPriceEvidence;
+
 /** Keep the synthesis prompt bounded while retaining the latest market context. */
 export const MODEL_CONTEXT_CANDLE_LIMIT = 12;
 export const MODEL_CONTEXT_INDICATOR_LIMIT = 3;
@@ -45,7 +47,7 @@ export interface XauusdModelEvidenceContext {
   generatedAt: string;
   status: XauusdResearchPacket['status'];
   dataQuality: XauusdResearchPacket['dataQuality'];
-  price: XauusdPriceEvidence | null;
+  price: LegacyModelEvidence | null;
   candles: CompactCandlesEvidence[];
   indicators: CompactIndicatorsEvidence[];
   macro: XauusdMacroEvidence | null;
