@@ -254,7 +254,7 @@ export function KestrelFalconSprite({
   className,
   isThinking,
   isDone,
-  bias,
+  bias: _bias,
   hasWingsSpread: _hasWingsSpread,
 }: SpriteProps) {
   return (

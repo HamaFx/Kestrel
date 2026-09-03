@@ -18,18 +18,17 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Link } from 'next-view-transitions';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
+import {
+  IconChartCandle,
+  IconBuildingBank,
+  IconScale,
+  IconRadar,
+} from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { TacticalFlameButton } from '@/components/landing/landing-button';
 import { Landing3DHologram } from '@/components/landing/landing-3d-hologram';
 import { cn } from '@/lib/cn';
-import {
-  ChartWizardSprite,
-  MacroMageSprite,
-  RiskKnightSprite,
-  KestrelFalconSprite,
-} from '@/components/chat/parts/pixel-desk/pixel-sprites';
 
 interface SymbolTelemetry {
   symbol: string;
@@ -195,7 +194,7 @@ export function LandingHero() {
           <div className="flex flex-col items-start gap-6 lg:col-span-7">
             {/* Predator Badge */}
             <div className="inline-flex items-center gap-2.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 shadow-[0_0_16px_rgba(255,54,22,0.15)]">
-              <img src="/brand/kestrel-falcon.svg" alt="" className="size-4 text-brand" aria-hidden="true" />
+              <Image src="/brand/kestrel-falcon.svg" alt="" width={16} height={16} className="size-4" aria-hidden="true" priority />
               <span className="font-mono text-xs font-semibold tracking-wider text-brand uppercase">
                 Sovereign Intelligence Engine
               </span>
@@ -333,8 +332,10 @@ export function LandingHero() {
                   {/* 4 Hardware Specialist Desks Row */}
                   <div className="grid grid-cols-4 gap-2 py-2">
                     {/* Tech */}
-                    <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
-                      <ChartWizardSprite isThinking bias="bullish" />
+                    <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-bull/40 transition-colors shadow-xs">
+                      <div className="flex size-7 items-center justify-center rounded bg-bull/10 border border-bull/20 text-bull">
+                        <IconChartCandle className="size-4" />
+                      </div>
                       <span className="font-mono text-[10px] font-bold text-bull uppercase">Tech</span>
                       <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
                         {active.techSignal}
@@ -342,8 +343,10 @@ export function LandingHero() {
                     </div>
 
                     {/* Macro */}
-                    <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
-                      <MacroMageSprite isDone bias="bullish" />
+                    <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-info/40 transition-colors shadow-xs">
+                      <div className="flex size-7 items-center justify-center rounded bg-info/10 border border-info/20 text-info">
+                        <IconBuildingBank className="size-4" />
+                      </div>
                       <span className="font-mono text-[10px] font-bold text-info uppercase">Macro</span>
                       <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
                         {active.macroSignal}
@@ -351,8 +354,10 @@ export function LandingHero() {
                     </div>
 
                     {/* Risk */}
-                    <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
-                      <RiskKnightSprite isDone bias="bullish" />
+                    <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-warn/40 transition-colors shadow-xs">
+                      <div className="flex size-7 items-center justify-center rounded bg-warn/10 border border-warn/20 text-warn">
+                        <IconScale className="size-4" />
+                      </div>
                       <span className="font-mono text-[10px] font-bold text-warn uppercase">Risk</span>
                       <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
                         {active.riskSignal}
@@ -360,8 +365,10 @@ export function LandingHero() {
                     </div>
 
                     {/* Sentinel */}
-                    <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
-                      <KestrelFalconSprite isDone bias="bullish" />
+                    <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-brand/40 transition-colors shadow-xs">
+                      <div className="flex size-7 items-center justify-center rounded bg-brand/10 border border-brand/20 text-brand">
+                        <IconRadar className="size-4" />
+                      </div>
                       <span className="font-mono text-[10px] font-bold text-brand uppercase">Whales</span>
                       <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
                         {active.sentimentSignal}

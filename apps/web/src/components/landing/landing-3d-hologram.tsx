@@ -142,40 +142,69 @@ export function Landing3DHologram({ className }: Props) {
     const particles = new THREE.Points(particleGeo, particleMat);
     masterGroup.add(particles);
 
-    // Mouse Interaction
+    // Mouse & Touch Interaction with Cached Rect to prevent reflow thrashing
     let mouseX = 0;
     let mouseY = 0;
     let targetRotationX = 0;
     let targetRotationY = 0;
+    let cachedRect = container.getBoundingClientRect();
 
-    const onMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      mouseX = x * 2;
-      mouseY = y * 2;
+    const updateRect = () => {
+      if (container) {
+        cachedRect = container.getBoundingClientRect();
+      }
     };
 
-    window.addEventListener('mousemove', onMouseMove);
+    const updateCoordinates = (clientX: number, clientY: number) => {
+      if (!cachedRect.width || !cachedRect.height) return;
+      const x = (clientX - cachedRect.left) / cachedRect.width - 0.5;
+      const y = (clientY - cachedRect.top) / cachedRect.height - 0.5;
+      mouseX = Math.max(-1, Math.min(1, x * 2));
+      mouseY = Math.max(-1, Math.min(1, y * 2));
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      updateCoordinates(e.clientX, e.clientY);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        if (touch) {
+          updateCoordinates(touch.clientX, touch.clientY);
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('scroll', updateRect, { passive: true });
 
     // Resize Handler
     const onResize = () => {
       if (!container) return;
-      const newW = container.clientWidth;
-      const newH = container.clientHeight;
+      updateRect();
+      const newW = container.clientWidth || 380;
+      const newH = container.clientHeight || 380;
       camera.aspect = newW / newH;
       camera.updateProjectionMatrix();
       renderer.setSize(newW, newH);
     };
     window.addEventListener('resize', onResize);
 
-    // 5. Animation Loop
-    let animationId: number;
-    let clock = new THREE.Clock();
+    // 5. Animation Loop with IntersectionObserver & Reduced Motion Support
+    let animationId: number | null = null;
+    const clock = new THREE.Clock();
+    let isVisible = true;
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const speedMultiplier = prefersReducedMotion ? 0.05 : 1;
 
     const animate = () => {
+      if (!isVisible) return;
       animationId = requestAnimationFrame(animate);
-      const elapsed = clock.getElapsedTime();
+      const elapsed = clock.getElapsedTime() * speedMultiplier;
 
       // Continuous Rotations
       coreMesh.rotation.y = elapsed * 0.35;
@@ -198,15 +227,57 @@ export function Landing3DHologram({ className }: Props) {
       renderer.render(scene, camera);
     };
 
+    // Pause rendering when scrolled out of view to preserve battery and GPU
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) return;
+        isVisible = entry.isIntersecting;
+        if (isVisible) {
+          if (!animationId) {
+            clock.start();
+            animate();
+          }
+        } else if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+      },
+      { threshold: 0.05 },
+    );
+    observer.observe(container);
+
     animate();
 
     return () => {
-      cancelAnimationFrame(animationId);
+      observer.disconnect();
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
       window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('scroll', updateRect);
       window.removeEventListener('resize', onResize);
+
+      // Clean up DOM
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+
+      // Explicitly dispose all WebGL Geometries & Materials to eliminate GPU leaks
+      coreGeo.dispose();
+      wireGeo.dispose();
+      ring1Geo.dispose();
+      ring2Geo.dispose();
+      ring3Geo.dispose();
+      particleGeo.dispose();
+
+      coreMat.dispose();
+      wireMat.dispose();
+      ring1Mat.dispose();
+      ring2Mat.dispose();
+      ring3Mat.dispose();
+      particleMat.dispose();
+
       renderer.dispose();
     };
   }, []);

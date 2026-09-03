@@ -17,13 +17,11 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   IconCpu,
-  IconShieldLock,
   IconBolt,
   IconScale,
-  IconCheck,
   IconArrowsSplit,
   IconLock,
 } from '@tabler/icons-react';
@@ -142,7 +140,7 @@ export function LandingArchitecture() {
           <div className="relative size-32 sm:size-40 flex items-center justify-center mb-2 select-none">
             <svg
               viewBox="0 0 400 400"
-              className="absolute inset-0 size-full animate-[spin_32s_linear_infinite] text-fg-subtle text-[11px] font-mono tracking-[0.22em] uppercase opacity-70"
+              className="absolute inset-0 size-full animate-[spin_32s_linear_infinite] motion-reduce:animate-none text-fg-subtle text-[11px] font-mono tracking-[0.22em] uppercase opacity-70"
             >
               <defs>
                 <path
@@ -159,7 +157,7 @@ export function LandingArchitecture() {
 
             <svg
               viewBox="0 0 400 400"
-              className="absolute inset-0 size-full animate-[spin_24s_linear_infinite_reverse] text-brand text-[10px] font-mono tracking-[0.18em] uppercase opacity-85"
+              className="absolute inset-0 size-full animate-[spin_24s_linear_infinite_reverse] motion-reduce:animate-none text-brand text-[10px] font-mono tracking-[0.18em] uppercase opacity-85"
             >
               <defs>
                 <path
@@ -259,10 +257,10 @@ export function LandingArchitecture() {
               className="relative w-[320px] sm:w-[380px] h-[460px] select-none"
               style={{ perspective: '1200px' }}
             >
-              {/* 4 Floating 3D Isometric Plates */}
-              {LAYERS.slice().reverse().map((layer, index) => {
+              {/* 4 Floating 3D Isometric Plates — Apex Layer 04 at Top, Foundation Layer 01 at Base */}
+              {LAYERS.map((layer, index) => {
                 const isActive = layer.id === activeLayerId;
-                // Layer vertical distribution
+                // Layer vertical distribution: Layer 04 (Execution) at top: 6%, Layer 01 (Foundation) at base
                 const baseTopPercent = index * 26 + 6;
                 const LayerIcon = layer.icon;
 
@@ -278,7 +276,7 @@ export function LandingArchitecture() {
                     className="absolute inset-x-0 cursor-pointer group"
                     style={{
                       top: `${baseTopPercent}%`,
-                      zIndex: isActive ? 40 : 10 + index,
+                      zIndex: isActive ? 50 : 20 + index,
                     }}
                   >
                     {/* The Isometric Silicon/Glass Plate with Mathematical Angles */}

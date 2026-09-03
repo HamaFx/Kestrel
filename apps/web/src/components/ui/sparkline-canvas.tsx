@@ -41,9 +41,9 @@ const PAD = 2; // pixel padding so the line never clips the canvas edge
 const STROKE = 1;
 
 const TONE_HEX: Record<SparklineCanvasProps['tone'], string> = {
-  bull: '#22C55E',
-  bear: '#EF4444',
-  neutral: '#71717A',
+  bull: '#3f9e3d',
+  bear: '#e02c10',
+  neutral: '#8a8a8a',
 };
 
 export function SparklineCanvas({ values, tone, label }: SparklineCanvasProps) {

@@ -19,14 +19,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
-import { IconCheck } from '@tabler/icons-react';
-import { cn } from '@/lib/cn';
 import {
-  ChartWizardSprite,
-  MacroMageSprite,
-  RiskKnightSprite,
-  KestrelFalconSprite,
-} from '@/components/chat/parts/pixel-desk/pixel-sprites';
+  IconCheck,
+  IconChartCandle,
+  IconBuildingBank,
+  IconScale,
+  IconRadar,
+} from '@tabler/icons-react';
+import { cn } from '@/lib/cn';
 
 interface DeskSpec {
   id: string;
@@ -56,7 +56,7 @@ const DESKS: DeskSpec[] = [
     color: 'text-bull',
     borderColor: 'border-bull/30',
     bgGlow: 'from-bull/10 to-transparent',
-    sprite: <ChartWizardSprite isThinking bias="bullish" />,
+    sprite: <IconChartCandle className="size-5 text-bull" />,
     methodology: 'Multi-Timeframe Smart Money Concepts (SMC)',
     verdict: {
       bias: 'BULLISH',
@@ -80,7 +80,7 @@ const DESKS: DeskSpec[] = [
     color: 'text-info',
     borderColor: 'border-info/30',
     bgGlow: 'from-info/10 to-transparent',
-    sprite: <MacroMageSprite isDone bias="bullish" />,
+    sprite: <IconBuildingBank className="size-5 text-info" />,
     methodology: 'Central Bank Reaction Functions & Yield Dynamics',
     verdict: {
       bias: 'BULLISH',
@@ -104,7 +104,7 @@ const DESKS: DeskSpec[] = [
     color: 'text-warn',
     borderColor: 'border-warn/30',
     bgGlow: 'from-warn/10 to-transparent',
-    sprite: <RiskKnightSprite isDone bias="bullish" />,
+    sprite: <IconScale className="size-5 text-warn" />,
     methodology: 'Kelly-Adjusted Volatility Invalidation Protocol',
     verdict: {
       bias: 'BULLISH',
@@ -128,7 +128,7 @@ const DESKS: DeskSpec[] = [
     color: 'text-brand',
     borderColor: 'border-brand/30',
     bgGlow: 'from-brand/10 to-transparent',
-    sprite: <KestrelFalconSprite isDone bias="bullish" />,
+    sprite: <IconRadar className="size-5 text-brand" />,
     methodology: 'CFTC Commitments of Traders & Interbank Flow',
     verdict: {
       bias: 'BULLISH',
@@ -197,13 +197,21 @@ export function LandingDesks() {
         </div>
 
         {/* 4 Desk Selector Tabs with Gliding Fluid Pill */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+        <div
+          role="tablist"
+          aria-label="Specialist Desks"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8"
+        >
           {DESKS.map((desk) => {
             const isSelected = desk.id === selectedId;
             return (
               <button
                 key={desk.id}
+                id={`desk-tab-${desk.id}`}
                 type="button"
+                role="tab"
+                aria-selected={isSelected}
+                aria-controls={`desk-panel-${desk.id}`}
                 onClick={() => setSelectedId(desk.id)}
                 className={cn(
                   'group relative flex flex-col items-start gap-3 rounded-xl p-4 sm:p-5 text-left transition-all duration-200 border',
@@ -254,6 +262,9 @@ export function LandingDesks() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeDesk.id}
+            id={`desk-panel-${activeDesk.id}`}
+            role="tabpanel"
+            aria-labelledby={`desk-tab-${activeDesk.id}`}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}

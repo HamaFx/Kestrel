@@ -158,7 +158,11 @@ export function LandingStepper() {
         {/* Stepper Interactive Layout with Vertical Circuit Spine */}
         <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
           {/* Left: 4 Step Selector Buttons along Vertical Circuit */}
-          <div className="relative flex flex-col gap-3.5 lg:col-span-5 pl-2 sm:pl-4">
+          <div
+            role="tablist"
+            aria-label="Pipeline stages"
+            className="relative flex flex-col gap-3.5 lg:col-span-5 pl-2 sm:pl-4"
+          >
             {/* Vertical Circuit Background Line */}
             <div className="absolute left-[30px] sm:left-[38px] top-7 bottom-7 w-[2px] bg-white/10 z-0" />
 
@@ -177,6 +181,9 @@ export function LandingStepper() {
                 <button
                   key={step.id}
                   type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls="pipeline-detail-panel"
                   onClick={() => setActiveStep(step.id)}
                   className={cn(
                     'group relative z-10 flex text-left items-start gap-4 rounded-xl p-4 sm:p-5 transition-all duration-200 border',
@@ -226,7 +233,7 @@ export function LandingStepper() {
           </div>
 
           {/* Right: Live Interactive Circuit & Code Display with Vertical AnimatePresence */}
-          <div className="lg:col-span-7">
+          <div id="pipeline-detail-panel" role="tabpanel" className="lg:col-span-7">
             <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl">
               {/* Circuit Header Bar with IDE Dots */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4">

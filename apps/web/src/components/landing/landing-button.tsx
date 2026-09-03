@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Link from 'next/link';
+import { Link } from 'next-view-transitions';
 import { cn } from '@/lib/cn';
 
 interface TacticalFlameButtonProps {
@@ -32,14 +32,8 @@ export function TacticalFlameButton({
   className,
   onClick,
 }: TacticalFlameButtonProps) {
-  const content = (
-    <span
-      className={cn(
-        'group relative inline-flex items-center overflow-hidden rounded-l-[6px] rounded-r-full bg-[#202224] py-[0.72em] pr-[3.4em] pl-[1.25em] text-[14px] font-sans font-medium leading-none tracking-[-0.02em] text-white border border-white/10 transition-transform duration-300 active:scale-[0.98] shadow-lg cursor-pointer hover:border-brand/40',
-        className,
-      )}
-      onClick={onClick}
-    >
+  const innerElements = (
+    <>
       {/* Triple-Layer Expanding Orange Flame Glow (Hoplite Signature) */}
       <span
         aria-hidden="true"
@@ -86,12 +80,25 @@ export function TacticalFlameButton({
         <rect x="5" y="10" width="2" height="2" rx="0.5" fill="currentColor" />
         <rect x="10" y="5" width="2" height="2" rx="0.5" fill="currentColor" />
       </svg>
-    </span>
+    </>
+  );
+
+  const sharedClasses = cn(
+    'group relative inline-flex items-center overflow-hidden rounded-l-[6px] rounded-r-full bg-[#202224] py-[0.72em] pr-[3.4em] pl-[1.25em] text-[14px] font-sans font-medium leading-none tracking-[-0.02em] text-white border border-white/10 transition-transform duration-300 active:scale-[0.98] shadow-lg hover:border-brand/40',
+    className,
   );
 
   if (href) {
-    return <Link href={href}>{content}</Link>;
+    return (
+      <Link href={href} className={sharedClasses} onClick={onClick}>
+        {innerElements}
+      </Link>
+    );
   }
 
-  return content;
+  return (
+    <button type="button" onClick={onClick} className={sharedClasses}>
+      {innerElements}
+    </button>
+  );
 }
