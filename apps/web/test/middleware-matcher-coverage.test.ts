@@ -32,7 +32,7 @@ const WEB_DIR = join(import.meta.dirname, '..', 'src');
  * Keep in sync with proxy.ts `config.matcher`.
  */
 const MATCHER_REGEX =
-  /^((?!auth|share|api\/auth|api\/dev\/login|api\/cron|api\/telegram|api\/billing\/webhook|api\/health\/public|debug|sw\.js|sw-precache\.json|_next\/static|_next\/image|favicon\.ico|manifest\.webmanifest|icons|brand|robots\.txt|sitemap\.xml).)*$/;
+  /^((?!auth|share|api\/auth|api\/dev\/login|api\/cron|api\/telegram|api\/billing\/webhook|api\/health\/public|debug|sw\.js|sw-precache\.json|_next\/static|_next\/image|favicon\.ico|manifest\.webmanifest|icons|brand|landing|fonts|robots\.txt|sitemap\.xml).)*$/;
 
 /** Exclusion prefixes — routes intentionally NOT covered by middleware. */
 const EXCLUDED_PREFIXES = [
@@ -53,6 +53,8 @@ const EXCLUDED_PREFIXES = [
   'manifest.webmanifest',
   'icons',
   'brand',
+  'landing',
+  'fonts',
   'robots.txt',
   'sitemap.xml',
 ];
