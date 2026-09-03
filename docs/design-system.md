@@ -90,17 +90,25 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        LANDING NAV                          │
-│  [Logo: KESTREL]  [XAU/USD Live Pulse]  [Desks] [Pipeline]   │
+│  [Logo: KESTREL]  [XAU/USD Live Pulse]  [Desks] [Simulator] │
 ├─────────────────────────────────────────────────────────────┤
 │                        LANDING HERO                         │
+│  • Sovereign Falcon of Horus Classical Pediment Masterwork  │
 │  • Live Multi-Asset Ticker Ribbon (XAU, EUR, GBP, DXY, 10Y) │
 │  • Monumental Headline (Funnel Display + Redaction Italic)  │
 │  • Interactive 3-Symbol Deliberation Rig (XAU, EUR, GBP)    │
-│  • Compound Tactical Order Card (Entry, Stop, R:R Cones)    │
+│  • Gliding Spring Pills (`layoutId`) & Smooth Transitions   │
 ├─────────────────────────────────────────────────────────────┤
 │                     LANDING DESKS (#desks)                  │
+│  • Cybernetic Hoplite Spartan Bust Masterwork Backdrop      │
 │  • 4 Autonomous Specialist Desks (Tech, Macro, Risk, COT)   │
-│  • Live hypothesis badges, key metrics, and rationales      │
+│  • Gliding Active Indicator (`layoutId`) & AnimatePresence  │
+├─────────────────────────────────────────────────────────────┤
+│                  LANDING SIMULATOR (#simulator)             │
+│  • Interactive Syndicate Transaction Simulator              │
+│  • Market Event Injector & Live 4-Desk Voting Animation     │
+│  • Interactive Risk Ceiling Slider & Live Veto Enforcement  │
+│  • Certified Cryptographic Order Ticket & FIX Bridge Test   │
 ├─────────────────────────────────────────────────────────────┤
 │                    LANDING STEPPER (#stepper)               │
 │  • 4-Stage Pipeline: Ingestion → Deliberate → Veto → Cones  │
@@ -111,6 +119,7 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 ├─────────────────────────────────────────────────────────────┤
 │                      LANDING FAQ (#faq)                     │
 │  • Monospace-Numbered Accordion (01 - 05)                   │
+│  • Smooth Auto-Height Spring Animation (`AnimatePresence`)  │
 ├─────────────────────────────────────────────────────────────┤
 │                       LANDING FOOTER                        │
 │  • System status pill + Colossal Bebas Neue Watermark       │
@@ -118,22 +127,34 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 ```
 
 ### Component Breakdown
-1. **`LandingNav` (`landing-nav.tsx`):** Sticky frosted header (`backdrop-blur-2xl bg-[#101112]/90 border-b border-white/10`) with live XAU/USD status pill and responsive mobile navigation drawer.
+1. **`LandingNav` (`landing-nav.tsx`):** Sticky frosted header (`backdrop-blur-2xl bg-[#101112]/90 border-b border-white/10`) with live XAU/USD status pill, `Live Simulator` anchor, and responsive mobile navigation drawer.
 2. **`LandingHero` (`landing-hero.tsx`):**
+   - **Horus Falcon Masterpiece:** Neoclassical predatory raptor on temple pediment blended into the obsidian canvas with radial vignette masking.
    - **Market Ticker Ribbon:** Continuous interbank feed metrics (`XAU/USD $2,864.20 ▲ +1.42%`, `DXY 104.12 ▼ -0.34%`).
-   - **Deliberation Rig:** Interactive hardware console allowing symbol switching between Spot Gold, Euro, and British Pound, dynamically updating desk signals and order cards.
+   - **Deliberation Rig:** Interactive hardware console with `layoutId` gliding symbol selector and `AnimatePresence` data transitions.
    - **Tactical Button (`variant="tactical"`):** Glowing ember pill button with active press translation.
-3. **`LandingDesks` (`landing-desks.tsx`):** Interactive deep-dive into the 4 specialist desks (SMC Technical, Central Bank Macro, 1% Quantitative Risk, and CFTC Institutional Flow).
-4. **`LandingStepper` (`landing-stepper.tsx`):** IDE-styled code window with macOS hardware dots, tabbed files, colored syntax blocks, and latency benchmarks (14ms, 82ms, 44ms, 18ms).
-5. **`LandingArchitecture` (`landing-architecture.tsx`):** 4 infrastructure pillars with embedded micro-diagrams (Consensus node network, Risk formula boundary, Multi-venue latency matrix, AES-256 vault).
-6. **`LandingFAQ` (`landing-faq.tsx`):** Monospace-numbered accordion explaining arbitration, non-custodial security, and models.
-7. **`LandingFooter` (`landing-footer.tsx`):** Operational uptime pill, terminal navigation links, and colossal Bebas Neue watermark.
+3. **`LandingDesks` (`landing-desks.tsx`):** Interactive deep-dive into the 4 specialist desks with the Cybernetic Hoplite Spartan bust backdrop, `layoutId="active-desk-tab-indicator"`, and smooth `AnimatePresence` transitions.
+4. **`LandingSimulator` (`landing-simulator.tsx`):** Hands-on interactive transaction simulator featuring scenario injection, live 4-desk radial voting progress, interactive draggable risk governor slider (with live red veto triggers when $>1.0\%$), and mock FIX bridge dispatching.
+5. **`LandingStepper` (`landing-stepper.tsx`):** IDE-styled code window with macOS hardware dots, tabbed files, colored syntax blocks, and latency benchmarks (14ms, 82ms, 44ms, 18ms).
+6. **`LandingArchitecture` (`landing-architecture.tsx`):** 4 infrastructure pillars with embedded micro-diagrams (Consensus node network, Risk formula boundary, Multi-venue latency matrix, AES-256 vault).
+7. **`LandingFAQ` (`landing-faq.tsx`):** Monospace-numbered accordion with smooth spring-based auto-height expanding and closing via `motion/react` and `AnimatePresence`.
+8. **`LandingFooter` (`landing-footer.tsx`):** Operational uptime pill, terminal navigation links, and colossal Bebas Neue watermark.
 
 ---
 
-## 5. In-App Experience & Component Alignment
+## 5. Neoclassical Cyber-Art Masterworks & Visual Identity
 
-The Hoplite design language extends across internal trading surfaces:
-- **`top-bar.tsx` & `desktop-sidebar.tsx`:** Milled borders, active `.surface-chip` tabs with glowing amber indicators, and recessed avatar wells.
-- **`calendar-hero.tsx` & `event-card.tsx`:** High-impact economic catalysts categorized with monospace impact badges and countdown timers.
-- **`(auth)/layout.tsx`:** Bottom-up ember glow on login/registration forms with recessed inputs.
+| Masterpiece | Asset Location | Aesthetic Rationale |
+| :--- | :--- | :--- |
+| **Sovereign Falcon of Horus** | `/landing/kestrel-horus-statue.webp` | Forged in titanium, bronze, and obsidian with glowing circuit wings perched atop a classical Greek temple pediment with holographic financial telemetry. Represents Kestrel's apex surveillance over currency and bullion flows. |
+| **Cybernetic Hoplite Spartan Bust** | `/landing/hoplite-spartan-bust.webp` | Classical Greek bronze sculpture fused with glowing molten ember-orange optical circuits and Greek key armor engravings. Symbolizes the unbreakable algorithmic phalanx of the 4 specialist desks. |
+
+---
+
+## 6. Motion & Spring Physics Architecture (`motion/react`)
+
+Kestrel utilizes Framer Motion / Motion One (`motion/react`) for institutional-grade micro-interactions:
+- **Gliding Indicator Tabs (`layoutId`):** Active states seamlessly glide between buttons without layout jumps using spring physics (`stiffness: 450, damping: 32`).
+- **Directional State Transitions (`AnimatePresence mode="wait"`):** Seamless fading and vertical translation when switching active symbols, desks, or stepper tabs.
+- **Auto-Height Accordion:** FAQs dynamically compute content height with spring easing (`[0.16, 1, 0.3, 1]`) preventing abrupt content pop-in.
+- **Staggered Orchestrated Entrances:** Critical hero typography and telemetry consoles cascade in with controlled delays.
