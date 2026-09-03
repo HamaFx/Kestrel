@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { Link } from 'next-view-transitions';
 import { IconMenu2, IconX } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
+import { TacticalFlameButton } from '@/components/landing/landing-button';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
 export function LandingNav() {
@@ -87,11 +88,7 @@ export function LandingNav() {
               Sign In
             </Button>
           </Link>
-          <Link href="/login">
-            <Button variant="tactical" size="sm" className="font-semibold shadow-sm">
-              Launch Terminal
-            </Button>
-          </Link>
+          <TacticalFlameButton href="/login" label="Launch Terminal" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
 
           {/* Mobile Hamburger Toggle */}
           <button

@@ -21,6 +21,7 @@ import Image from 'next/image';
 import { Link } from 'next-view-transitions';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
+import { TacticalFlameButton } from '@/components/landing/landing-button';
 import { cn } from '@/lib/cn';
 import {
   ChartWizardSprite,
@@ -225,11 +226,7 @@ export function LandingHero() {
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <Link href="/login">
-                <Button variant="tactical" size="lg" className="px-6 text-base font-semibold">
-                  Launch Terminal
-                </Button>
-              </Link>
+              <TacticalFlameButton href="/login" label="Launch Terminal" />
               <a href="#simulator">
                 <Button variant="secondary" size="lg" className="px-5 text-sm font-medium gap-2">
                   <span className="size-2 rounded-full bg-brand animate-pulse" />
