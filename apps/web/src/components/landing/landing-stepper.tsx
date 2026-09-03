@@ -25,7 +25,9 @@ interface Step {
   tag: string;
   title: string;
   description: string;
-  codeSnippet: string;
+  fileName: string;
+  codeHighlighted: React.ReactNode;
+  latency: string;
 }
 
 const STEPS: Step[] = [
@@ -34,32 +36,96 @@ const STEPS: Step[] = [
     label: '01',
     tag: 'TICK INGESTION',
     title: 'Multi-Venue Liquidity Sweep',
-    description: 'Sub-second tick ingestion aggregating interbank FX pairs, Spot Gold (XAU), US Treasury yields, and Dollar Index (DXY) into an indexed memory stream.',
-    codeSnippet: '// 1. Venue Ingestion Pipeline\nawait kestrel.ingest({\n  symbol: "XAUUSD",\n  depth: "interbank-l2",\n  feeds: ["NY_OPEN", "LONDON_FIX"],\n  macroYields: ["US10Y", "US02Y", "DXY"]\n});',
+    description:
+      'Sub-second tick ingestion aggregating interbank FX pairs, Spot Gold (XAU), US Treasury yields, and Dollar Index (DXY) into an indexed memory stream.',
+    fileName: 'venue_ingestion.ts',
+    latency: '14ms',
+    codeHighlighted: (
+      <>
+        <span className="text-[#6c7086]">// 1. Interbank Tick Ingestion Pipeline</span>
+        {'\n'}
+        <span className="text-[#cba6f7]">await</span> <span className="text-[#89b4fa]">kestrel</span>.
+        <span className="text-[#a6e3a1]">ingestVenueFeeds</span>({'{'}
+        {'\n'}  <span className="text-[#94e2d5]">symbol</span>: <span className="text-[#a6e3a1]">"XAUUSD"</span>,
+        {'\n'}  <span className="text-[#94e2d5]">orderBookDepth</span>: <span className="text-[#a6e3a1]">"interbank-l2"</span>,
+        {'\n'}  <span className="text-[#94e2d5]">primaryFeeds</span>: [<span className="text-[#a6e3a1]">"LONDON_FIX"</span>, <span className="text-[#a6e3a1]">"NY_AM_KILLZONE"</span>],
+        {'\n'}  <span className="text-[#94e2d5]">macroCorrelations</span>: [<span className="text-[#a6e3a1]">"US10Y"</span>, <span className="text-[#a6e3a1]">"US02Y"</span>, <span className="text-[#a6e3a1]">"DXY"</span>]
+        {'\n'}{'}'});
+      </>
+    ),
   },
   {
     id: 2,
     label: '02',
     tag: 'PARALLEL ENGINES',
     title: '4-Desk Concurrent Deliberation',
-    description: 'Four specialized algorithmic agents spin up in parallel: Technicals scans Fair Value Gaps, Macro reviews central bank catalysts, Risk computes ATR stop-losses, and Sentiment tracks CFTC COT positioning.',
-    codeSnippet: '// 2. Parallel 4-Desk Synthesis\nconst deliberation = await committee.deliberate({\n  technical:   scanOrderBlocks(["15m", "1h", "4h"]),\n  fundamental: parseCatalysts(["FOMC", "CPI", "NFP"]),\n  risk:        calculateMaxDrawdown("1%_AUM"),\n  sentiment:   queryCOTInstitutionalWhales()\n});',
+    description:
+      'Four specialized algorithmic agents spin up in parallel: Technicals scans Fair Value Gaps, Macro reviews central bank catalysts, Risk computes ATR stop-losses, and Sentiment tracks CFTC COT positioning.',
+    fileName: 'committee_deliberation.ts',
+    latency: '82ms',
+    codeHighlighted: (
+      <>
+        <span className="text-[#6c7086]">// 2. Concurrent 4-Desk Sandbox Execution</span>
+        {'\n'}
+        <span className="text-[#cba6f7]">const</span> <span className="text-[#f9e2af]">hypotheses</span> = <span className="text-[#cba6f7]">await</span> <span className="text-[#89b4fa]">committee</span>.
+        <span className="text-[#a6e3a1]">deliberate</span>({'{'}
+        {'\n'}  <span className="text-[#94e2d5]">technical</span>:   <span className="text-[#89b4fa]">scanSMCStructure</span>({'{'} timeframes: [<span className="text-[#a6e3a1]">"15m"</span>, <span className="text-[#a6e3a1]">"1h"</span>, <span className="text-[#a6e3a1]">"4h"</span>] {'}'}),
+        {'\n'}  <span className="text-[#94e2d5]">macro</span>:       <span className="text-[#89b4fa]">parseRateCatalysts</span>({'{'} wires: [<span className="text-[#a6e3a1]">"FED"</span>, <span className="text-[#a6e3a1]">"PCE"</span>, <span className="text-[#a6e3a1]">"NFP"</span>] {'}'}),
+        {'\n'}  <span className="text-[#94e2d5]">risk</span>:        <span className="text-[#89b4fa]">computeCeiling</span>({'{'} maxDrawdown: <span className="text-[#fab387]">0.01</span> {'}'}),
+        {'\n'}  <span className="text-[#94e2d5]">sentiment</span>:   <span className="text-[#89b4fa]">queryWhaleCOT</span>({'{'} symbol: <span className="text-[#a6e3a1]">"GOLD"</span> {'}'})
+        {'\n'}{'}'});
+      </>
+    ),
   },
   {
     id: 3,
     label: '03',
-    tag: 'MASTRA ARBITRATION',
-    title: 'Syndicate Consensus & Invalidation',
-    description: 'The Lead Arbiter scores weighted desk confidence, tests for contradictory signals (e.g. bullish price action into hawkish Fed print), and enforces mathematical vetoes.',
-    codeSnippet: '// 3. Arbitration & Veto Evaluation\nif (risk.vetoFlagged || technical.contradicts(macro)) {\n  return committee.reject({\n    status: "DISPUTED_SIGNAL",\n    reason: "Conflicting Fed rate regime at resistance"\n  });\n}\nconst score = committee.weighConfidence(deliberation);',
+    tag: 'SYNDICATE ARBITRATION',
+    title: 'Consensus Scoring & Invalidation Veto',
+    description:
+      'The Lead Arbiter scores weighted desk confidence, tests for contradictory signals (e.g. bullish price action into hawkish Fed print), and enforces mathematical vetoes.',
+    fileName: 'arbitration_veto.ts',
+    latency: '44ms',
+    codeHighlighted: (
+      <>
+        <span className="text-[#6c7086]">// 3. Syndicate Consensus & Mathematical Veto</span>
+        {'\n'}
+        <span className="text-[#cba6f7]">if</span> (<span className="text-[#f38ba8]">risk.vetoEnforced</span> || <span className="text-[#f38ba8]">technical.contradicts(macro)</span>) {'{'}
+        {'\n'}  <span className="text-[#cba6f7]">return</span> <span className="text-[#89b4fa]">committee</span>.<span className="text-[#f38ba8]">veto</span>({'{'}
+        {'\n'}    <span className="text-[#94e2d5]">status</span>: <span className="text-[#f38ba8]">"DISPUTED_SIGNAL"</span>,
+        {'\n'}    <span className="text-[#94e2d5]">reason</span>: <span className="text-[#a6e3a1]">"Conflicting Fed rate cut probability at resistance"</span>
+        {'\n'}  {'}'});
+        {'\n'}{'}'}
+        {'\n'}
+        <span className="text-[#cba6f7]">const</span> <span className="text-[#f9e2af]">consensus</span> = <span className="text-[#cba6f7]">await</span> <span className="text-[#89b4fa]">arbiter</span>.<span className="text-[#a6e3a1]">synthesize</span>(hypotheses);
+      </>
+    ),
   },
   {
     id: 4,
     label: '04',
     tag: 'EXECUTION PLAN',
     title: 'Institutional Grade Trade Orders',
-    description: 'Generates structured institutional trade cards with explicit Entry zones, hard Invalidation levels, and multi-tier Take Profit cones (1:1.5, 1:2.5, 1:4 R:R).',
-    codeSnippet: '// 4. Execution Cones Generated\nreturn {\n  direction: "BUY_STOP_LIMIT",\n  entry: 2864.20,\n  invalidation: 2846.50,\n  takeProfitCones: [\n    { target: 2884.00, rr: "1:1.1", scaleOut: "40%" },\n    { target: 2916.50, rr: "1:3.0", scaleOut: "40%" },\n    { target: 2940.00, rr: "1:4.3", scaleOut: "20%" }\n  ]\n};',
+    description:
+      'Generates structured institutional trade cards with explicit Entry zones, hard Invalidation levels, and multi-tier Take Profit cones (1:1.5, 1:2.5, 1:4 R:R).',
+    fileName: 'execution_cones.ts',
+    latency: '18ms',
+    codeHighlighted: (
+      <>
+        <span className="text-[#6c7086]">// 4. Final Asymmetric Execution Card</span>
+        {'\n'}
+        <span className="text-[#cba6f7]">return</span> <span className="text-[#89b4fa]">createTradeCard</span>({'{'}
+        {'\n'}  <span className="text-[#94e2d5]">action</span>: <span className="text-[#a6e3a1]">"BUY_LIMIT"</span>,
+        {'\n'}  <span className="text-[#94e2d5]">entryZone</span>: <span className="text-[#fab387]">2864.20</span>,
+        {'\n'}  <span className="text-[#94e2d5]">invalidationFloor</span>: <span className="text-[#fab387]">2846.50</span>, <span className="text-[#6c7086]">// Hard stop (1.0% max loss)</span>
+        {'\n'}  <span className="text-[#94e2d5]">takeProfitCones</span>: [
+        {'\n'}    {'{'} <span className="text-[#94e2d5]">tp1</span>: <span className="text-[#fab387]">2884.00</span>, <span className="text-[#94e2d5]">rr</span>: <span className="text-[#a6e3a1]">"1:1.1"</span>, <span className="text-[#94e2d5]">scaleOut</span>: <span className="text-[#a6e3a1]">"40%"</span> {'}'},
+        {'\n'}    {'{'} <span className="text-[#94e2d5]">tp2</span>: <span className="text-[#fab387]">2916.50</span>, <span className="text-[#94e2d5]">rr</span>: <span className="text-[#a6e3a1]">"1:3.0"</span>, <span className="text-[#94e2d5]">scaleOut</span>: <span className="text-[#a6e3a1]">"40%"</span> {'}'},
+        {'\n'}    {'{'} <span className="text-[#94e2d5]">tp3</span>: <span className="text-[#fab387]">2940.00</span>, <span className="text-[#94e2d5]">rr</span>: <span className="text-[#a6e3a1]">"1:4.3"</span>, <span className="text-[#94e2d5]">scaleOut</span>: <span className="text-[#a6e3a1]">"20%"</span> {'}'}
+        {'\n'}  ]
+        {'\n'}{'}'});
+      </>
+    ),
   },
 ];
 
@@ -68,13 +134,17 @@ export function LandingStepper() {
   const current: Step = STEPS.find((s) => s.id === activeStep) ?? STEPS[0]!;
 
   return (
-    <section id="stepper" className="relative py-24 bg-[#0d0d0d] border-t border-b border-white/5">
+    <section id="stepper" className="relative py-24 bg-[#0c0d0e] border-t border-b border-white/5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="flex flex-col items-start gap-4 mb-16 max-w-3xl">
-          <span className="font-mono text-xs font-semibold tracking-wider text-brand uppercase">
-            Algorithmic Pipeline
-          </span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono">
+            <span className="size-2 rounded-full bg-brand" />
+            <span className="text-brand font-semibold uppercase tracking-wider">
+              Algorithmic Pipeline
+            </span>
+          </div>
+
           <h2 className="font-display text-3xl font-normal tracking-[-0.03em] text-fg sm:text-5xl">
             HOW KESTREL EXECUTES{' '}
             <span className="font-redaction-35 italic text-brand">With Precision</span>
@@ -98,7 +168,7 @@ export function LandingStepper() {
                   className={cn(
                     'group relative flex text-left items-start gap-4 rounded-xl p-4 sm:p-5 transition-all duration-200 border',
                     active
-                      ? 'surface-chip bg-[#181818] border-brand/50 shadow-[var(--shadow-chip)]'
+                      ? 'surface-chip bg-[#171819] border-white/20 shadow-[var(--shadow-chip)]'
                       : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10',
                   )}
                 >
@@ -119,8 +189,9 @@ export function LandingStepper() {
                       <span className="font-mono text-[11px] font-semibold tracking-wider text-brand uppercase">
                         {step.tag}
                       </span>
+                      <span className="font-mono text-[10px] text-fg-subtle">· {step.latency}</span>
                     </div>
-                    <h3 className="font-display text-lg font-normal tracking-tight text-fg">
+                    <h3 className="font-display text-lg font-normal tracking-tight text-fg group-hover:text-white">
                       {step.title}
                     </h3>
                     <p className="font-sans text-xs leading-relaxed text-fg-muted">
@@ -134,39 +205,37 @@ export function LandingStepper() {
 
           {/* Right: Live Interactive Circuit & Code Display */}
           <div className="lg:col-span-7">
-            <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#121212] p-6 shadow-2xl">
-              {/* Circuit Header Bar */}
+            <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl">
+              {/* Circuit Header Bar with IDE Dots */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <svg className="size-4" viewBox="0 0 16 16">
-                    <circle cx="8" cy="8" r="7" fill="none" stroke="#ff3616" strokeWidth="1.5" />
-                    <circle cx="8" cy="8" r="3" fill="#ff3616" className="animate-pulse" />
-                  </svg>
-                  <span className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
-                    STAGE {current.label} · {current.tag}
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-full bg-white/20" />
+                  <span className="size-2.5 rounded-full bg-white/20" />
+                  <span className="size-2.5 rounded-full bg-white/20" />
+                  <span className="ml-2 font-mono text-xs text-fg-subtle">
+                    pipeline / {current.fileName}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 font-mono text-xs text-fg-subtle">
-                  <span className="size-2 rounded-full bg-bull" />
-                  <span>SYNTHESIS_ACTIVE</span>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  <span className="size-2 rounded-full bg-bull animate-pulse" />
+                  <span className="text-bull font-semibold">STAGE {current.label} COMPLETE</span>
                 </div>
               </div>
 
               {/* Code Surface */}
-              <div className="mt-4 overflow-x-auto rounded-xl surface-well p-4 border border-white/5 bg-[#080808]">
-                <div className="mb-3 flex items-center justify-between text-[11px] font-mono text-fg-subtle border-b border-white/5 pb-2">
-                  <span>committee_pipeline.ts</span>
-                  <span>TypeScript 5.7</span>
-                </div>
-                <pre className="font-mono text-xs leading-relaxed text-fg-muted">
-                  <code>{current.codeSnippet}</code>
+              <div className="mt-4 overflow-x-auto rounded-xl surface-well p-5 border border-white/5 bg-[#08090a]">
+                <pre className="font-mono text-xs sm:text-[13px] leading-relaxed whitespace-pre font-medium text-fg">
+                  <code>{current.codeHighlighted}</code>
                 </pre>
               </div>
 
               {/* Dynamic Circuit Trace Footer */}
-              <div className="mt-5 flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3 text-xs font-mono">
-                <span className="text-fg-subtle">LATENCY BENCHMARK:</span>
-                <span className="text-bull font-semibold tabular-nums">184ms end-to-end</span>
+              <div className="mt-5 flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3.5 text-xs font-mono">
+                <div className="flex items-center gap-2">
+                  <span className="text-fg-subtle">PIPELINE LATENCY:</span>
+                  <span className="text-bull font-semibold tabular-nums">{current.latency} (158ms total)</span>
+                </div>
+                <span className="text-fg-subtle">TypeScript 5.7 · Node 22 Strict</span>
               </div>
             </div>
           </div>

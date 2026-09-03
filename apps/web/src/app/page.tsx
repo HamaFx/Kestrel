@@ -21,6 +21,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { LandingHero } from '@/components/landing/landing-hero';
+import { LandingDesks } from '@/components/landing/landing-desks';
 import { LandingStepper } from '@/components/landing/landing-stepper';
 import { LandingArchitecture } from '@/components/landing/landing-architecture';
 import { LandingFAQ } from '@/components/landing/landing-faq';
@@ -41,10 +42,11 @@ export default async function RootPage() {
 
   // Public visitors see the full Hoplite-grade showcase
   return (
-    <div className="flex min-h-screen flex-col bg-[#121212] text-fg selection:bg-brand selection:text-white">
+    <div className="flex min-h-screen flex-col bg-[#101112] text-fg selection:bg-brand selection:text-white">
       <LandingNav />
       <main className="flex-1">
         <LandingHero />
+        <LandingDesks />
         <LandingStepper />
         <LandingArchitecture />
         <LandingFAQ />
