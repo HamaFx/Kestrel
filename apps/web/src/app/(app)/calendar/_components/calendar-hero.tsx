@@ -61,23 +61,23 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
   return (
     <section
       aria-label="Calendar overview"
-      className="border-border bg-bg-elev-1 relative flex flex-col gap-4 overflow-hidden rounded-sm border p-4"
+      className="border-border/80 bg-bg-elev-1 surface-chip relative flex flex-col gap-4 overflow-hidden rounded-xl border border-edge/80 p-4 sm:p-5 shadow-[var(--shadow-chip)]"
     >
       {/* Countdown row */}
       {nextHigh ? (
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3.5">
           <span
             aria-hidden="true"
-            className="text-danger bg-danger/10 inline-flex size-12 shrink-0 items-center justify-center rounded-sm"
+            className="text-danger bg-danger/10 surface-chip inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-danger/30 shadow-xs"
           >
             <IconBolt className="size-5" strokeWidth={2} />
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <p className="text-fg-subtle text-caption font-semibold tracking-wider uppercase">
+            <p className="text-fg-subtle text-caption font-semibold tracking-wider uppercase font-mono">
               Next high-impact
             </p>
-            <p className="text-fg truncate text-base font-bold">{nextHigh.title}</p>
-            <p className="text-fg-muted flex items-center gap-1.5 text-xs tabular-nums">
+            <p className="text-fg truncate text-base font-bold font-sans">{nextHigh.title}</p>
+            <p className="text-fg-muted flex items-center gap-1.5 text-xs tabular-nums font-mono">
               <IconClock className="size-3" />
               <Countdown ms={nextHigh.date - now} />
               <span aria-hidden className="opacity-50">
@@ -90,7 +90,7 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
             href={`/chat?prompt=${encodeURIComponent(
               `What does ${nextHigh.title} mean for ${nextHigh.currency ?? 'the dollar'} and gold?`,
             )}`}
-            className="text-fg-muted hover:text-fg active:bg-bg-elev-3 inline-flex size-9 shrink-0 items-center justify-center rounded-sm transition-colors"
+            className="text-fg-muted hover:text-fg surface-chip bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-edge/60 transition-all active:translate-y-[0.5px] shadow-xs"
             aria-label="Ask AI about this event"
           >
             <IconBolt className="size-4" />
