@@ -19,6 +19,7 @@ export {
   parseExecutionPlan,
   serializeExecutionPlan,
   resolvedModelSnapshotForPlan,
+  requireExecutionPlanModel,
   assertExecutionPlanRoute,
   ExecutionPlanSchema,
   type ExecutionPlan,
@@ -26,6 +27,8 @@ export {
 } from './execution-plan';
 export {
   extractMastraSymbol,
+  autoDetectMode,
+  resolveMode,
   isInjectionAttempt,
   isMastraSymbolCandidate,
   isMastraXauusdCandidate,
@@ -46,10 +49,13 @@ export { PERSISTENCE_OWNERSHIP, persistenceOwnerFor } from './persistence-bounda
 export type { DrizzlePersistenceOwner, MastraPersistenceOwner } from './persistence-boundary';
 export {
   MASTRA_CAPABILITIES,
-  CANONICAL_READ_ONLY_TOOL_NAMES,
-  CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+  manifestForCapability,
+  manifestToolNames,
+  manifestToolsForDomain,
+  capabilityUiMetadata,
+  capabilityTelemetryLabels,
+  assertCapabilityManifestIntegrity,
   SENSITIVE_USER_READ_TOOL_NAMES,
-  LEGACY_DOMAIN_TOOL_NAMES,
   evaluateMastraCapability,
   getMastraCapability,
   type MastraCapability,
@@ -59,19 +65,14 @@ export {
   type MastraCapabilityRequest,
   type MastraCapabilityRejectionReason,
   type MastraCapabilityScope,
+  type MastraRoutingDomain,
   type MastraCapabilityToolName,
   type MastraContentTrust,
+  type MastraManifestTool,
+  type MastraToolCategory,
+  type MastraToolAccess,
   type MastraEvidencePolicy,
 } from './capabilities';
-export {
-  CAPABILITY_REGISTRY,
-  CANONICAL_TOOL_REGISTRY,
-  canonicalReadOnlyToolNames,
-  isReadOnlyCapability,
-  toolsForCapability,
-  toolsForRoutingDomain,
-  readOnlyToolsForRoutingDomain,
-} from './capability-registry';
 export {
   collectSymbolResearchPacket,
   serializeSymbolResearchPacket,
@@ -82,10 +83,7 @@ export {
   type SymbolResearchPacket,
   type SymbolResearchEvidence,
 } from './symbol-research';
-export {
-  verifyMastraOpinion,
-  type OpinionVerification,
-} from '../mastra-v2/workflows/opinion-verifier';
+export { verifyMastraOpinion, type OpinionVerification } from '../committee/verifier';
 export { checkCanonicalEvidence, type CanonicalEvidenceCheck } from './canonical-evidence';
 export {
   summarizeConfidenceCalibration,
@@ -114,10 +112,13 @@ export {
   purgeOldFullAnalysisRuns,
   recoverStaleFullAnalysisRuns,
   FullAnalysisPayloadSchema,
+  FULL_ANALYSIS_ESTIMATE_USD,
   FULL_ANALYSIS_LEASE_MS,
+  FULL_ANALYSIS_TURN_ESTIMATE_USD,
   requeueFullAnalysisRun,
   touchFullAnalysisRun,
   updateFullAnalysisProgress,
+  validateFullAnalysisPlanIdentity,
   FULL_ANALYSIS_WORKFLOW_ID,
   type FullAnalysisClaim,
   type FullAnalysisEnqueueInput,
@@ -125,11 +126,37 @@ export {
   type FullAnalysisRunView,
 } from '../mastra-v2/workflows/full-analysis';
 export {
-  createXauusdMastraAgent,
-  runXauusdMastraProof,
-  type RunXauusdMastraProofArgs,
-  type XauusdMastraAgentOptions,
-} from './agent';
+  classifyFullAnalysisFailure,
+  fullAnalysisRetryAction,
+  FullAnalysisBudgetAdmissionError,
+  FullAnalysisQuotaExceededError,
+  isRetryableAnalysisError,
+  type FullAnalysisFailureCategory,
+  type FullAnalysisRetryAction,
+  type FullAnalysisRetryDecision,
+} from '../mastra-v2/workflows/full-analysis-retry';
+export {
+  createCommitteeWorkflow,
+  CommitteeWorkflowInputSchema,
+  CommitteeWorkflowOutputSchema,
+  type CommitteeWorkflowDeps,
+} from '../committee/workflow';
+export {
+  MastraAnalysisModeSchema,
+  MastraModeOpinionSchema,
+  MastraSpecialistNameSchema,
+  REQUEST_CONTEXT_SCHEMA,
+  SPECIALISTS_BY_MODE,
+  MODE_POLICY,
+  committeeModePolicy,
+  committeeProgressStages,
+  type CommitteeStepId,
+  type CommitteeModePolicy,
+  type CommitteeModelMetadata,
+  type CollectPacketFn,
+  type ModeRequestContext,
+} from '../committee/types';
+export { createXauusdMastraAgent, type XauusdMastraAgentOptions } from './agent';
 export {
   resolveXauusdMastraModel,
   runXauusdMastra,
@@ -140,6 +167,7 @@ export {
   type XauusdMastraModel,
   type XauusdMastraSettings,
   type XauusdMastraRunResult,
+  type XauusdTurnMode,
 } from './run';
 export {
   xauusdCalendarTool,
@@ -282,7 +310,12 @@ export {
 export { maybeGenerateThreadTitle, type MaybeGenerateThreadTitleArgs } from './title-service';
 export { classifyMutationRequest, isMastraMutationEnabled } from './mutation-detect';
 export type { SemanticRoutingAccounting } from '../semantic-routing';
-export { resolveModel, MastraModelSnapshotSchema, type ResolveModelEnv, type MastraModelSnapshot } from '../model';
+export {
+  resolveModel,
+  MastraModelSnapshotSchema,
+  type ResolveModelEnv,
+  type MastraModelSnapshot,
+} from '../model';
 export {
   buildMutationInput,
   extractMutationInput,
@@ -305,12 +338,33 @@ export {
   type XauusdReportEvaluationCase,
   type XauusdReportEvaluationSummary,
 } from './report-evaluation';
+export { toUntrustedExternalEvidence } from './external-content';
 export {
   createEvidenceId,
   freshnessFromAge,
   qualityFromWarnings,
   requireXauusdUserContext,
 } from './evidence';
+export {
+  EvidenceFreshnessSchema,
+  EvidenceProvenanceSchema,
+  EvidenceQualitySchema,
+  EvidenceTrustSchema,
+  ModelGeneratedEvidenceSchema,
+  SynthesisEvidenceSchema,
+  TrustedDeterministicEvidenceSchema,
+  UntrustedExternalEvidenceSchema,
+  UserMemoryEvidenceSchema,
+  type EvidenceFreshness,
+  type EvidenceProvenance,
+  type EvidenceQuality,
+  type EvidenceTrust,
+  type ModelGeneratedEvidence,
+  type SynthesisEvidence,
+  type TrustedDeterministicEvidence,
+  type UntrustedExternalEvidence,
+  type UserMemoryEvidence,
+} from './evidence-types';
 export {
   buildConversationGuardrails,
   buildGuardrailInputProcessors,
@@ -334,6 +388,7 @@ export {
   MASTRA_XAUUSD_AGENT_ID,
   MASTRA_XAUUSD_AGENT_VERSION,
   type MastraGenerationStats,
+  type MastraMemoryMode,
   type MastraRunObservation,
   type MastraRunOutcome,
   type MastraAnswerOutcome,
@@ -348,9 +403,7 @@ export {
 } from './model-context';
 export {
   XAUUSD,
-  EvidenceFreshnessSchema,
   EvidenceMetadataSchema,
-  EvidenceQualitySchema,
   XauusdCandlesEvidenceSchema,
   XauusdIndicatorsEvidenceSchema,
   XauusdPriceEvidenceSchema,

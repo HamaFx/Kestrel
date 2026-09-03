@@ -16,9 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { terminalMetadata } from '@kestrel/ai';
 import type { MastraCanonicalChatResult } from '@kestrel/ai/mastra';
 import { ChatStreamEventSchema } from '@kestrel/shared';
-import { terminalMetadata } from '@kestrel/ai';
 
 export function mastraCanonicalResponse(
   input: MastraCanonicalChatResult & {
@@ -48,6 +48,7 @@ export function mastraCanonicalResponse(
         toolNames: input.toolNames,
         answerOutcome: input.answerOutcome,
         memoryMode: input.memoryMode,
+        memoryBackfill: input.memoryBackfill,
         modelSnapshot: input.modelSnapshot,
       },
     },

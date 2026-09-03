@@ -1,12 +1,7 @@
 /** Run-scoped generation cost aggregation. */
 
 export type GenerationKind =
-  | 'primary'
-  | 'auxiliary'
-  | 'specialist'
-  | 'fusion'
-  | 'title'
-  | 'semantic-routing';
+  'primary' | 'auxiliary' | 'specialist' | 'fusion' | 'title' | 'semantic-routing';
 
 export interface GenerationLedgerEntry {
   id: string;

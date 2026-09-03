@@ -18,8 +18,8 @@
 
 /**
  * Mode runner (Phase 2) — delegates Quick/Standard/Full committee analysis
- * to the `symbol-research` Mastra workflow (see
- * `../mastra-v2/workflows/symbol-research.ts`). This module owns the pieces
+ * to the shared committee workflow (see `../committee/workflow.ts`). This
+ * module owns the pieces
  * Kestrel must keep: BYOK model resolution, telemetry, per-call memory, the
  * result contract (opinions + packet + stats), and the strict Full-mode
  * failure mapping. The committee itself (specialist steps, per-step retries,
@@ -28,39 +28,30 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import type { AgentMemoryOption } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 
-import { estimateCostUsd } from '../cost';
-import { createGenerationLedger } from '../generation-ledger';
-import { assertExecutionPlanRoute, type ExecutionPlan } from './execution-plan';
-import { prepareKestrelMemory } from '../mastra-v2/context';
-import { buildResearchScorers } from '../mastra-v2/evals/scorers';
-import { buildResearchGuardrails } from '../mastra-v2/guardrails';
-import { getKestrelMastra } from '../mastra-v2/instance';
-import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../mastra-v2/logger';
 import {
-  createKestrelMemory,
-  kestrelMemoryOptions,
-  type CreateKestrelMemoryArgs,
-} from '../mastra-v2/memory';
-import { runTracingOptions } from '../mastra-v2/telemetry';
-import {
-  createSymbolResearchWorkflow,
   MastraModeStrictFailureError,
   REQUEST_CONTEXT_SCHEMA,
   SPECIALISTS_BY_MODE,
-  SymbolResearchWorkflowInputSchema,
   type MastraAnalysisMode,
   type MastraModeOpinion,
   type MastraSpecialistName,
-} from '../mastra-v2/workflows/symbol-research';
-import {
-  resolveMastraExecutionModel,
-  resolveMastraModel,
-  type ChatModelResolution,
-} from '../model';
+} from '../committee/types';
+import { CommitteeWorkflowInputSchema, createCommitteeWorkflow } from '../committee/workflow';
+import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
+import { getKestrelMastra } from '../mastra-v2/instance';
+import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../mastra-v2/logger';
+import { kestrelMemoryOptions } from '../mastra-v2/memory';
+import { prepareResearchRunContext } from '../mastra-v2/research-context';
+import { runTracingOptions } from '../mastra-v2/telemetry';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '../model';
 import type { ResolveModelEnv } from '../vertex-factory';
+import {
+  assertExecutionPlanRoute,
+  requireExecutionPlanModel,
+  type ExecutionPlan,
+} from './execution-plan';
 import type { SymbolResearchPacket } from './symbol-research';
 import {
   beginMastraRun,
@@ -73,15 +64,18 @@ export type {
   MastraAnalysisMode,
   MastraModeOpinion,
   MastraSpecialistName,
-} from '../mastra-v2/workflows/symbol-research';
+} from '../committee/types';
 export {
   MastraModeStrictFailureError,
   SPECIALISTS_BY_MODE,
   REQUEST_CONTEXT_SCHEMA,
-} from '../mastra-v2/workflows/symbol-research';
+} from '../committee/types';
 
 export interface MastraModeSettings extends Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> {
   embeddingModel?: UserSettingsRow['embeddingModel'];
+  defaultSymbol?: UserSettingsRow['defaultSymbol'] | null;
+  language?: UserSettingsRow['language'] | null;
+  timezone?: UserSettingsRow['timezone'] | null;
 }
 
 export interface RunMastraModeArgs {
@@ -106,12 +100,10 @@ export interface RunMastraModeArgs {
   workflowId?: string;
   /** Restart an existing persisted workflow run instead of duplicating its steps. */
   resumeExisting?: boolean;
-  /** Aggregate cost of specialist/fusion child model calls. */
-  onChildCost?: (costUsd: number) => void | Promise<void>;
   /** Progress sink for durable workflow status projection. */
   onProgress?: (step: string) => void | Promise<void>;
   executionPlan?: ExecutionPlan | undefined;
-  ledger?: import('../generation-ledger').GenerationLedger;
+  ledger?: GenerationLedger;
 }
 
 export interface MastraModeResult {
@@ -126,7 +118,10 @@ export interface MastraModeResult {
   totalCostUsd: number;
   totalLatencyMs: number;
   answerOutcome: 'ready' | 'blocked' | 'degraded';
-  memoryMode: 'native';
+  /** 'degraded' when native-memory preparation partially failed (Phase 9). */
+  memoryMode: 'native' | 'degraded';
+  /** Whether native memory preparation attempted legacy history backfill. */
+  memoryBackfill: boolean;
   modelSnapshot: {
     providerId: string;
     bareModelId: string;
@@ -138,22 +133,17 @@ export function resolveMastraModeModel(
   settings: MastraModeSettings,
   env: ResolveModelEnv,
   modelOverride?: string | null,
+  executionPlan?: ExecutionPlan,
 ): ChatModelResolution {
-  return resolveMastraExecutionModelIfAvailable({
+  const snapshot = executionPlan ? requireExecutionPlanModel(executionPlan) : undefined;
+  return resolveMastraExecutionModel({
     purpose: 'mode',
     settings,
     env,
     domain: 'technical',
     ...(modelOverride !== undefined ? { modelOverride } : {}),
+    ...(snapshot ? { snapshot } : {}),
   });
-}
-
-function resolveMastraExecutionModelIfAvailable(
-  args: Parameters<typeof resolveMastraExecutionModel>[0],
-): ChatModelResolution {
-  const resolver = resolveMastraExecutionModel as typeof resolveMastraExecutionModel | undefined;
-  if (resolver) return resolver(args);
-  return resolveMastraModel(args);
 }
 
 /** Base run context (no packet — the workflow collects it inside its first step). */
@@ -188,7 +178,16 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
   if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'symbol-research');
   const startedAt = Date.now();
   const generationLedger = args.ledger ?? createGenerationLedger();
-  const resolution = resolveMastraModeModel(args.settings, args.env, args.modelOverride);
+  const resolution = resolveMastraModeModel(
+    args.settings,
+    args.env,
+    args.modelOverride,
+    args.executionPlan,
+  );
+  // Until preparation succeeds, a memory-dependent run is degraded. This
+  // prevents setup failures from being reported as healthy native memory.
+  let memoryMode: 'native' | 'degraded' = 'degraded';
+  let memoryBackfill = false;
   beginMastraRun({
     runId: args.runId,
     threadId: args.threadId,
@@ -200,55 +199,58 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
     // The worker's durable Full-mode path is long-lived, so observational
     // memory (background observation agents) is safe to enable there.
     // Vercel paths keep it off (short-lived functions).
+    // Shared research-run context (Phase 7): native memory preparation plus
+    // research guardrails/scorers, identical to the XAUUSD research paths.
     const memoryOptions =
       args.telemetryKind === 'mastra_full_job'
-        ? kestrelMemoryOptions({ env: args.env, forceObservationalMemory: true })
+        ? kestrelMemoryOptions({
+            env: args.env,
+            forceObservationalMemory: true,
+            // Capability-specific semantic recall from the execution plan
+            // (Phase 9): the manifest default wins over the global gate.
+            ...(args.executionPlan
+              ? { semanticRecall: args.executionPlan.memoryPolicy.semanticRecall }
+              : {}),
+          })
         : undefined;
-    const memory = createKestrelMemory({
-      settings: {
-        aiApiKeys: args.settings.aiApiKeys,
-        embeddingModel: args.settings.embeddingModel ?? null,
-      },
-      env: args.env,
-      ...(memoryOptions ? { options: memoryOptions } : {}),
-    } satisfies CreateKestrelMemoryArgs);
-    const prepared = await prepareKestrelMemory({
-      memory,
+    const runContext = await prepareResearchRunContext({
       userId: args.userId,
       threadId: args.threadId,
       settings: {
+        aiApiKeys: args.settings.aiApiKeys,
         chatModel: args.settings.chatModel ?? null,
-        embeddingModel: args.settings.embeddingModel ?? null,
+        ...(args.settings.embeddingModel !== undefined
+          ? { embeddingModel: args.settings.embeddingModel }
+          : {}),
+        defaultSymbol: args.settings.defaultSymbol ?? null,
+        language: args.settings.language ?? null,
+        timezone: args.settings.timezone ?? null,
       },
-      backfill: true,
+      env: args.env,
+      includeResearchPolicies: true,
+      ...(memoryOptions ? { memoryOptions } : {}),
       ...(args.backfillExcludeMessageIdempotencyKey
-        ? { excludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
+        ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
         : {}),
     });
+    const memory = runContext.memory;
+    const prepared = runContext.prepared;
+    memoryMode = prepared.memoryDegraded ? 'degraded' : 'native';
+    memoryBackfill = prepared.backfillAttempted;
+    const guardrails = runContext.research!.guardrails.processors;
+    const researchScorers = runContext.research!.scorers.entries;
     const requestContext = contextForRun(args);
-    // Specialists read thread context but must not write their internal
-    // opinions into the conversation thread. readOnly keeps the memory view
-    // without persisting specialist messages; the fusion agent owns writes.
-    const readOnlyCallOptions: AgentMemoryOption = {
-      ...prepared.callOptions,
-      options: { readOnly: true },
-    };
-
-    const { processors: guardrails } = buildResearchGuardrails(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
-    const { entries: researchScorers } = buildResearchScorers(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
-    const workflow = createSymbolResearchWorkflow(
+    // The committee specialist runner enforces read-only thread memory by
+    // default (Phase 6): specialists read context but never persist their
+    // internal opinions. Only the fusion/output layer writes user-visible
+    // assistant messages, using the caller's writable call options below.
+    const workflow = createCommitteeWorkflow(
       {
         model: resolution.model,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
         memory,
-        specialistCallOptions: readOnlyCallOptions,
+        specialistCallOptions: prepared.callOptions,
         fusionCallOptions: prepared.callOptions,
         inputProcessors: guardrails as never,
         scorers: researchScorers as never,
@@ -267,6 +269,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       threadId: args.threadId,
       kind: args.telemetryKind ?? 'mastra_mode',
       tags: ['research', args.mode],
+      memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: prepared.backfillAttempted,
     });
     const inputData = { prompt: args.prompt, symbol: args.symbol, mode: args.mode };
     const persisted = args.resumeExisting
@@ -287,7 +291,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
     const persistedStatus = persisted?.status;
     const persistedInput = (persisted as { payload?: unknown } | null)?.payload;
     const hasDurableWorkflowState =
-      SymbolResearchWorkflowInputSchema.safeParse(persistedInput).success ||
+      CommitteeWorkflowInputSchema.safeParse(persistedInput).success ||
       Object.keys(persisted?.steps ?? {}).length > 0;
     if (persistedStatus === 'canceled') {
       throw new DOMException('The persisted workflow run was canceled.', 'AbortError');
@@ -387,6 +391,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         startedAt,
         ...stats,
         outcome: 'success',
+        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: prepared.backfillAttempted,
         ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       });
       return {
@@ -401,7 +407,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         totalCostUsd: 0,
         totalLatencyMs: Date.now() - startedAt,
         answerOutcome: 'blocked',
-        memoryMode: 'native',
+        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: prepared.backfillAttempted,
         modelSnapshot: {
           providerId: resolution.providerId,
           bareModelId: resolution.bareModelId,
@@ -423,6 +430,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       startedAt,
       ...output.stats,
       outcome: 'success',
+      memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: prepared.backfillAttempted,
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
     });
 
@@ -438,7 +447,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       totalCostUsd,
       totalLatencyMs: Date.now() - startedAt,
       answerOutcome: output.packet.dataQuality === 'complete' ? 'ready' : 'degraded',
-      memoryMode: 'native',
+      memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: prepared.backfillAttempted,
       modelSnapshot: {
         providerId: resolution.providerId,
         bareModelId: resolution.bareModelId,
@@ -467,7 +477,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       toolCalls: 0,
       steps: 0,
       outcome: mastraOutcomeForError(error, args.signal),
-
+      memoryMode,
+      memoryBackfill,
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       error,
     });

@@ -65,14 +65,46 @@ const mlog = createCategorizedLogger('ai', { component: 'mastra-memory' });
 export const KESTREL_MEMORY_LAST_MESSAGES = 20;
 export const KESTREL_MEMORY_SEMANTIC_TOP_K = 4;
 
-/** Default working-memory template; seeded from Drizzle by `./context.ts`. */
+// ---------------------------------------------------------------------------
+// Observational-memory budget (Phase 9)
+// ---------------------------------------------------------------------------
+
+/**
+ * Conservative USD estimate for ONE model refinement that Mastra's
+ * observational memory performs per observed thread message (the background
+ * memory-refinement agents run inside the Memory and never flow through
+ * Kestrel's generation ledger). Kept separate from the visible-turn estimate
+ * so durable paths that enable observational memory are independently
+ * budgeted up front.
+ */
+export const OBSERVATIONAL_MEMORY_REFINING_STEP_USD = 0.004;
+
+/** Number of refinements (embed + generate) per observed message. */
+export const OBSERVATIONAL_MEMORY_REFINEMENTS_PER_MESSAGE = 2;
+
+/**
+ * Budget allowance, in USD, for the observational-memory background work of
+ * one observed turn (defaults to a single message). Durable jobs that enable
+ * observational memory add this to their enqueue/resume reservation so the
+ * background spend is bounded and never silently unbilled.
+ */
+export function observationalMemoryAllowanceUsd(messageCount = 1): number {
+  return (
+    messageCount *
+    OBSERVATIONAL_MEMORY_REFINEMENTS_PER_MESSAGE *
+    OBSERVATIONAL_MEMORY_REFINING_STEP_USD
+  );
+}
+
+/**
+ * Default working-memory template; seeded from Drizzle by `./context.ts`.
+ * Model-visible user preferences only — runtime configuration (model picks,
+ * provider, budget, limits) is deliberately absent (Phase 9).
+ */
 export const KESTREL_WORKING_MEMORY_TEMPLATE = `# User Preferences
 - **Default symbol**:
 - **Language**:
 - **Timezone**:
-- **Preferred chat model**:
-- **Preferred analysis models**:
-- **Embedding model**:
 `;
 
 // ---------------------------------------------------------------------------
@@ -186,6 +218,13 @@ export interface KestrelMemoryOptionsArgs {
    * background observation agents are appropriate.
    */
   forceObservationalMemory?: boolean;
+  /**
+   * Capability-specific semantic recall override (Phase 9). When provided it
+   * wins over the global `ENABLE_MASTRA_SEMANTIC_RECALL` gate; the execution
+   * plan's memoryPolicy carries the value resolved from the capability
+   * manifest.
+   */
+  semanticRecall?: boolean;
 }
 
 /**
@@ -195,20 +234,22 @@ export interface KestrelMemoryOptionsArgs {
  * - workingMemory: resource-scoped markdown preferences (seeded once from
  *   Drizzle; agent-maintained afterwards).
  * - semanticRecall: on by default; scope 'resource' so recall spans the
- *   user's threads without crossing users. Disable with
- *   `ENABLE_MASTRA_SEMANTIC_RECALL=false`.
+ *   user's threads without crossing users. Per-capability overrides come
+ *   through `semanticRecall`; otherwise the global gate
+ *   `ENABLE_MASTRA_SEMANTIC_RECALL` applies (default on).
  * - observationalMemory: off by default; enable with
  *   `ENABLE_MASTRA_OBSERVATIONAL_MEMORY=true` on long-lived paths.
  */
 export function kestrelMemoryOptions(args: KestrelMemoryOptionsArgs): MemoryConfigInternal {
-  const semanticRecall =
-    (process.env.ENABLE_MASTRA_SEMANTIC_RECALL ?? 'true') !== 'false'
-      ? {
-          topK: KESTREL_MEMORY_SEMANTIC_TOP_K,
-          messageRange: { before: 1, after: 1 } as const,
-          scope: 'resource' as const,
-        }
-      : false;
+  const recallEnabled =
+    args.semanticRecall ?? (process.env.ENABLE_MASTRA_SEMANTIC_RECALL ?? 'true') !== 'false';
+  const semanticRecall = recallEnabled
+    ? {
+        topK: KESTREL_MEMORY_SEMANTIC_TOP_K,
+        messageRange: { before: 1, after: 1 } as const,
+        scope: 'resource' as const,
+      }
+    : false;
   const observationalMemory =
     args.forceObservationalMemory === true ||
     process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY === 'true'

@@ -126,7 +126,7 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
   try {
     const { resolveChatModel } = await import('../model');
     const { createXauusdMastraAgent } = await import('../mastra/agent');
-    const { createSymbolResearchWorkflow } = await import('./workflows/symbol-research');
+    const { createCommitteeWorkflow } = await import('../committee/workflow');
     const { createXauusdReportWorkflow } = await import('./workflows/xauusd-report');
     const { createMutationWorkflow } = await import('./workflows/mutation');
 
@@ -145,7 +145,7 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
 
     // Canonical workflows (non-BYOK, for Studio visibility only).
     const mastra = instance;
-    const symbolResearch = createSymbolResearchWorkflow(
+    const symbolResearch = createCommitteeWorkflow(
       {
         model: resolution.model,
         modelId: resolution.modelId,

@@ -87,7 +87,7 @@ describe('mastra-v2 memory call options', () => {
 });
 
 describe('mastra-v2 working memory seed', () => {
-  it('seeds working memory from Drizzle settings once, then no-ops', async () => {
+  it('seeds working memory from Drizzle preferences once, then is idempotent', async () => {
     const memory = await buildMemory();
     await memory.createThread({ threadId: 't1', resourceId: 'u1' });
     const settings = {
@@ -104,11 +104,13 @@ describe('mastra-v2 working memory seed', () => {
       threadId: 't1',
       settings,
     });
-    expect(first).toBe(true);
+    expect(first).toEqual({ seeded: true, healthy: true });
     const stored = await memory.getWorkingMemory({ threadId: 't1', resourceId: 'u1' });
     expect(stored).toContain('XAUUSD');
     expect(stored).toContain('Asia/Riyadh');
-    expect(stored).toContain('openai/gpt-4.1-mini');
+    // Phase 9: runtime configuration is deliberately NOT model-visible.
+    expect(stored).not.toContain('openai/gpt-4.1-mini');
+    expect(stored).not.toMatch(/chatModel|defaultModels|embeddingModel/i);
 
     const second = await seedWorkingMemoryFromSettings({
       memory,
@@ -116,7 +118,30 @@ describe('mastra-v2 working memory seed', () => {
       threadId: 't1',
       settings,
     });
-    expect(second).toBe(false);
+    // Content-addressed no-op: same seed already stored → successful, no write.
+    expect(second).toEqual({ seeded: true, healthy: true });
+    const after = await memory.getWorkingMemory({ threadId: 't1', resourceId: 'u1' });
+    expect(after).toBe(stored);
+  });
+
+  it('never overwrites agent-maintained working memory', async () => {
+    const memory = await buildMemory();
+    await memory.createThread({ threadId: 't1', resourceId: 'u1' });
+    await memory.updateWorkingMemory({
+      threadId: 't1',
+      resourceId: 'u1',
+      workingMemory:
+        '# User Preferences\n- **Default symbol**: EURUSD\n(this block was evolved by the agent)',
+    });
+    const result = await seedWorkingMemoryFromSettings({
+      memory,
+      userId: 'u1',
+      threadId: 't1',
+      settings: { defaultSymbol: 'XAUUSD', language: 'en', timezone: 'UTC' },
+    });
+    expect(result).toEqual({ seeded: false, healthy: true });
+    const stored = await memory.getWorkingMemory({ threadId: 't1', resourceId: 'u1' });
+    expect(stored).toContain('EURUSD');
   });
 
   it('never seeds another user working memory', async () => {
@@ -133,7 +158,7 @@ describe('mastra-v2 working memory seed', () => {
     expect(other).toBeNull();
   });
 
-  it('degrades gracefully when the memory write fails', async () => {
+  it('degrades gracefully and loudly when the memory write fails', async () => {
     const memory = await buildMemory();
     await memory.createThread({ threadId: 't1', resourceId: 'u1' });
     vi.spyOn(memory, 'getWorkingMemory').mockRejectedValueOnce(new Error('storage down'));
@@ -143,7 +168,7 @@ describe('mastra-v2 working memory seed', () => {
       threadId: 't1',
       settings: { defaultSymbol: 'XAUUSD' },
     });
-    expect(result).toBe(false);
+    expect(result).toEqual({ seeded: false, healthy: false });
   });
 });
 
@@ -235,5 +260,23 @@ describe('mastra-v2 prepareKestrelMemory', () => {
     expect(prepared.callOptions).toEqual({ thread: { id: 't1' }, resource: 'u1' });
     expect(prepared.seededWorkingMemory).toBe(true);
     expect(prepared.backfilledMessages).toBe(0);
+    expect(prepared.backfillAttempted).toBe(true);
+    expect(prepared.memoryDegraded).toBe(false);
+  });
+
+  it('reports memoryDegraded when the seed or backfill fails', async () => {
+    const memory = await buildMemory();
+    vi.spyOn(memory, 'getWorkingMemory').mockRejectedValue(new Error('storage down'));
+    const prepared = await prepareKestrelMemory({
+      memory,
+      userId: 'u1',
+      threadId: 't1',
+      settings: { defaultSymbol: 'XAUUSD' },
+      backfill: true,
+    });
+    expect(prepared.backfillAttempted).toBe(true);
+    expect(prepared.memoryDegraded).toBe(true);
+    // Answer semantics hold: call options are still produced and scoped.
+    expect(prepared.callOptions).toEqual({ thread: { id: 't1' }, resource: 'u1' });
   });
 });

@@ -188,6 +188,7 @@ export const webSearchTool = tool({
       completeStep('web_search', 'completed', Date.now() - startedAt, { status: 'unavailable' });
       return {
         ...baseOutput,
+        contentTrust: 'untrusted',
         status: 'unavailable',
         provider: null,
         sources: [],
@@ -205,6 +206,7 @@ export const webSearchTool = tool({
         });
         return {
           ...baseOutput,
+          contentTrust: 'untrusted',
           status: 'unavailable',
           provider: null,
           sources: [],
@@ -225,6 +227,7 @@ export const webSearchTool = tool({
       });
       return {
         ...baseOutput,
+        contentTrust: 'untrusted',
         status: 'unavailable',
         provider: null,
         sources: [],
@@ -283,6 +286,7 @@ export const webSearchTool = tool({
         };
         providerAttempts.push(attempt);
         const result: WebSearchOutput = {
+          contentTrust: 'untrusted',
           status: sources.length > 0 ? 'success' : 'empty',
           provider,
           query,
@@ -360,6 +364,7 @@ export const webSearchTool = tool({
     });
     return {
       ...baseOutput,
+      contentTrust: 'untrusted',
       status: 'error',
       provider: null,
       sources: [],

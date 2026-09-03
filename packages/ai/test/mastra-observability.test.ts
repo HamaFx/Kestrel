@@ -83,12 +83,16 @@ describe('mastra observability — telemetry helpers', () => {
       threadId: 'thread-9',
       kind: 'mastra_mode',
       tags: ['full'],
+      memoryMode: 'degraded',
+      memoryBackfill: true,
     });
     expect(options.metadata).toMatchObject({
       runId: 'run-9',
       userId: 'user-9',
       threadId: 'thread-9',
       kind: 'mastra_mode',
+      memoryMode: 'degraded',
+      memoryBackfill: true,
     });
     expect(options.tags).toContain('kestrel');
     expect(options.tags).toContain('mastra_mode');

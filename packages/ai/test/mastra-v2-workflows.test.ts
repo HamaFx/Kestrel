@@ -25,15 +25,19 @@ import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+import { createCommitteeWorkflow } from '../src/committee/workflow';
 import { createKestrelMastra, initializeKestrelMastra } from '../src/mastra-v2';
-import { createSymbolResearchWorkflow } from '../src/mastra-v2/workflows/symbol-research';
 
 const mocks = vi.hoisted(() => ({
   collectSymbolResearchPacket: vi.fn(),
   /** Hard 4xx error thrown for the risk specialist (permanent → marker). */
   failRisk: false,
+  /** Hard 4xx error thrown for the fundamental specialist (permanent → marker). */
+  failFundamental: false,
   /** Number of transient 429s before succeeding. */
   rateLimitFailures: 0,
+  /** Captured agent.generate() calls: { id, options } for memory assertions. */
+  generateCalls: [] as Array<{ id: string; options?: Record<string, unknown> }>,
 }));
 
 vi.mock('../src/mastra/symbol-research', async () => {
@@ -48,11 +52,16 @@ vi.mock('@mastra/core/agent', () => ({
       this.id = options.id;
     }
 
-    async generate(): Promise<unknown> {
+    async generate(_prompt?: unknown, options?: Record<string, unknown>): Promise<unknown> {
+      mocks.generateCalls.push({ id: this.id, ...(options ? { options } : {}) });
       if (mocks.failRisk && this.id.includes('risk')) {
         // A hard 4xx is permanent: the step returns an error marker (no retry),
         // and Full-mode verify turns it into a terminal strict failure.
         throw Object.assign(new Error('bad request shape'), { statusCode: 400 });
+      }
+      if (mocks.failFundamental && this.id.includes('fundamental')) {
+        // Also permanent: Standard continues without this specialist.
+        throw Object.assign(new Error('fundamental data unavailable'), { statusCode: 400 });
       }
       if (mocks.rateLimitFailures > 0 && !this.id.includes('decision')) {
         mocks.rateLimitFailures -= 1;
@@ -123,7 +132,7 @@ function contextFor(runId: string) {
 type RunResult = { status: string; result?: unknown; error?: { message?: string } };
 
 async function startWorkflow(
-  workflow: ReturnType<typeof createSymbolResearchWorkflow>,
+  workflow: ReturnType<typeof createCommitteeWorkflow>,
   runId: string,
   inputData: { prompt: string; symbol: string; mode: string },
 ): Promise<RunResult> {
@@ -137,15 +146,17 @@ async function startWorkflow(
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.failRisk = false;
+  mocks.failFundamental = false;
   mocks.rateLimitFailures = 0;
+  mocks.generateCalls.length = 0;
   mocks.collectSymbolResearchPacket.mockReset().mockResolvedValue(readyPacket);
 });
 
-describe('symbol-research workflow', () => {
+describe('committee workflow', () => {
   it('fails closed with a graceful blocked output when the packet is blocked', async () => {
     mocks.collectSymbolResearchPacket.mockResolvedValue(blockedPacket);
 
-    const workflow = createSymbolResearchWorkflow(deps, 'standard');
+    const workflow = createCommitteeWorkflow(deps, 'standard');
     const result = await startWorkflow(workflow, 'wf-blocked', {
       prompt: 'Analyse EURUSD',
       symbol: 'EURUSD',
@@ -165,7 +176,7 @@ describe('symbol-research workflow', () => {
   });
 
   it('runs Quick with a single specialist and formats directly (no fusion LLM call)', async () => {
-    const workflow = createSymbolResearchWorkflow(deps, 'quick');
+    const workflow = createCommitteeWorkflow(deps, 'quick');
     const result = await startWorkflow(workflow, 'wf-quick', {
       prompt: 'Give me a quick technical read',
       symbol: 'EURUSD',
@@ -186,7 +197,7 @@ describe('symbol-research workflow', () => {
   it('fails Full mode terminally when a specialist returns a permanent error marker', async () => {
     mocks.failRisk = true;
 
-    const workflow = createSymbolResearchWorkflow(deps, 'full');
+    const workflow = createCommitteeWorkflow(deps, 'full');
     const result = await startWorkflow(workflow, 'wf-strict', {
       prompt: 'Full committee analysis',
       symbol: 'EURUSD',
@@ -200,7 +211,7 @@ describe('symbol-research workflow', () => {
   it('retries a transient specialist rate-limit and completes Full with all opinions', async () => {
     mocks.rateLimitFailures = 1;
 
-    const workflow = createSymbolResearchWorkflow(deps, 'full');
+    const workflow = createCommitteeWorkflow(deps, 'full');
     const result = await startWorkflow(workflow, 'wf-retry', {
       prompt: 'Full committee analysis',
       symbol: 'EURUSD',
@@ -356,10 +367,7 @@ describe('symbol-research workflow', () => {
       const mastra = createKestrelMastra({ storage: store, storageKind: 'libsql', env: {} });
       await initializeKestrelMastra(mastra);
 
-      const workflow = createSymbolResearchWorkflow(
-        { ...deps, mastra: mastra.instance },
-        'standard',
-      );
+      const workflow = createCommitteeWorkflow({ ...deps, mastra: mastra.instance }, 'standard');
       const result = await startWorkflow(workflow, 'wf-snap', {
         prompt: 'Analyse EURUSD',
         symbol: 'EURUSD',
@@ -377,5 +385,76 @@ describe('symbol-research workflow', () => {
     } finally {
       rmSync(file, { force: true });
     }
+  });
+
+  it('continues Standard on fundamental specialist failure and lists the failed agent (partial mode)', async () => {
+    mocks.failFundamental = true;
+
+    const workflow = createCommitteeWorkflow(deps, 'standard');
+    const result = await startWorkflow(workflow, 'wf-standard-partial', {
+      prompt: 'Standard committee analysis',
+      symbol: 'EURUSD',
+      mode: 'standard',
+    });
+
+    expect(result.status).toBe('success');
+    const output = result.result as {
+      status: string;
+      opinions: { agentName: string }[];
+      failedAgents: string[];
+    };
+    expect(output.status).toBe('ready');
+    expect(output.opinions.map((opinion) => opinion.agentName)).toEqual(['technical']);
+    expect(output.failedAgents).toEqual(['fundamental']);
+  });
+
+  it('forces specialist memory read-only and lets only the synthesizer write', async () => {
+    const workflow = createCommitteeWorkflow(deps, 'full');
+    const result = await startWorkflow(workflow, 'wf-readonly-memory', {
+      prompt: 'Full committee analysis',
+      symbol: 'EURUSD',
+      mode: 'full',
+    });
+
+    expect(result.status).toBe('success');
+    const specialistCalls = mocks.generateCalls.filter((call) => !call.id.includes('decision'));
+    const fusionCall = mocks.generateCalls.find((call) => call.id.includes('decision'));
+    expect(specialistCalls).toHaveLength(4);
+    for (const call of specialistCalls) {
+      const memory = call.options?.memory as { options?: { readOnly?: boolean } } | undefined;
+      expect(memory?.options?.readOnly).toBe(true);
+    }
+    const fusionMemory = fusionCall?.options?.memory as
+      { options?: { readOnly?: boolean } } | undefined;
+    expect(fusionMemory?.options?.readOnly).not.toBe(true);
+  });
+
+  it('emits workflow progress exactly once per stage for Full', async () => {
+    const stages: string[] = [];
+    const workflow = createCommitteeWorkflow(
+      {
+        ...deps,
+        onProgress: (step) => {
+          stages.push(step);
+        },
+      },
+      'full',
+    );
+    const result = await startWorkflow(workflow, 'wf-progress-once', {
+      prompt: 'Full committee analysis',
+      symbol: 'EURUSD',
+      mode: 'full',
+    });
+
+    expect(result.status).toBe('success');
+    expect(stages).toEqual([
+      'collect-packet',
+      'technical',
+      'fundamental',
+      'risk',
+      'sentiment',
+      'verify',
+      'fusion',
+    ]);
   });
 });

@@ -26,8 +26,8 @@
 import { getUserWithSettings } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
-import { deriveTitleModel, type ResolveModelEnv } from '../model';
 import type { GenerationLedger } from '../generation-ledger';
+import { deriveTitleModel, type ResolveModelEnv } from '../model';
 import { getThread, updateThreadTitle } from '../persistence';
 import { generateThreadTitle } from './title';
 

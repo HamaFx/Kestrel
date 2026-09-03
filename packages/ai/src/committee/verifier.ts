@@ -1,11 +1,28 @@
-/*
+/**
  * Copyright 2026 Kestrel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-import type { SymbolResearchPacket } from '../../mastra/symbol-research';
-import type { MastraModeOpinion } from './symbol-research';
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Committee opinion verifier (Phase 6). Moved out of the workflow file so
+ * verification is a reusable, testable committee stage shared by every mode.
+ */
+
+import type { SymbolResearchPacket } from '../mastra/symbol-research';
+import type { MastraModeOpinion } from './types';
 
 export interface OpinionVerification {
   ok: boolean;

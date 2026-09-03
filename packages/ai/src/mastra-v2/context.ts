@@ -85,59 +85,70 @@ export interface WorkingMemorySeedArgs {
   memory: Memory;
   userId: string;
   threadId: string;
-  settings: Partial<
-    Pick<
-      UserSettingsRow,
-      'defaultSymbol' | 'language' | 'timezone' | 'chatModel' | 'defaultModels' | 'embeddingModel'
-    >
-  >;
+  /**
+   * Model-visible user preferences only. Runtime configuration (model pick,
+   * provider, budget, limits) is never seeded into model-visible memory.
+   * Nullable: research-context callers pass row fields that Postgres may
+   * surface as null (Phase 9); null falls back to the template default.
+   */
+  settings: Partial<{
+    defaultSymbol: UserSettingsRow['defaultSymbol'] | null;
+    language: UserSettingsRow['language'] | null;
+    timezone: UserSettingsRow['timezone'] | null;
+  }>;
+}
+
+export interface WorkingMemorySeedResult {
+  /** Working memory now reflects the Drizzle user preferences. */
+  seeded: boolean;
+  /** False when the seed could not be read or written (memory degraded). */
+  healthy: boolean;
 }
 
 function workingMemoryMarkdown(settings: WorkingMemorySeedArgs['settings']): string {
-  const chatModel = settings.chatModel ?? 'default';
-  const domainModels = settings.defaultModels
-    ? Object.entries(settings.defaultModels)
-        .filter(([, value]) => Boolean(value))
-        .map(([domain, value]) => `- ${domain}: ${value}`)
-        .join('\n')
-    : '';
   return `# User Preferences
 - **Default symbol**: ${settings.defaultSymbol ?? 'XAUUSD'}
 - **Language**: ${settings.language ?? 'en'}
 - **Timezone**: ${settings.timezone ?? 'UTC'}
-- **Preferred chat model**: ${chatModel}
-${domainModels ? `- **Preferred analysis models**:\n${domainModels}` : ''}
-- **Embedding model**: ${settings.embeddingModel ?? 'default'}
 `;
 }
 
 /**
- * One-time working-memory seed from Drizzle userSettings. Resource-scoped, so
- * it is written once per user and preserved across threads; the agent then
- * owns updates. No-op when working memory already exists.
+ * One-time working-memory seed from Drizzle user preferences. Resource-scoped,
+ * so it is written once per user and preserved across threads; the agent then
+ * owns updates.
+ *
+ * Idempotency is content-addressed (Phase 9): if the stored working memory
+ * already equals this seed exactly, it is a successful no-op; an existing
+ * agent-maintained memory block is never clobbered. Two processes racing on an
+ * empty store both write identical deterministic content, so the final state
+ * is the same regardless of who wins.
  */
-export async function seedWorkingMemoryFromSettings(args: WorkingMemorySeedArgs): Promise<boolean> {
+export async function seedWorkingMemoryFromSettings(
+  args: WorkingMemorySeedArgs,
+): Promise<WorkingMemorySeedResult> {
   const { memory, userId, threadId, settings } = args;
+  const seed = workingMemoryMarkdown(settings);
   try {
     const existing = await memory.getWorkingMemory({ threadId, resourceId: userId });
-    if (existing) return false;
-    // Re-check immediately before writing so a concurrent first request
-    // cannot overwrite memory that was initialized after the initial read.
-    const current = await memory.getWorkingMemory({ threadId, resourceId: userId });
-    if (current) return false;
+    if (existing === seed) return { seeded: true, healthy: true };
+    // A non-null, different block is agent-maintained memory — never
+    // overwrite runtime configuration that the agent has evolved.
+    if (existing !== null) return { seeded: false, healthy: true };
     await memory.updateWorkingMemory({
       threadId,
       resourceId: userId,
-      workingMemory: workingMemoryMarkdown(settings),
+      workingMemory: seed,
     });
-    mlog.info('Seeded working memory from Drizzle settings', { userId });
-    return true;
+    mlog.info('Seeded working memory from Drizzle preferences', { userId });
+    return { seeded: true, healthy: true };
   } catch (error) {
-    // Memory is a context aid, never a hard dependency: degrade gracefully.
+    // Memory is a context aid, never a hard dependency: degrade gracefully
+    // and signal the degradation to telemetry/metadata callers.
     mlog.warn('Working-memory seed skipped (non-fatal)', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return false;
+    return { seeded: false, healthy: false };
   }
 }
 
@@ -326,7 +337,9 @@ async function performThreadHistoryBackfill(args: {
  * Race-safe wrapper around the one-time backfill. Native Mastra storage
  * upserts message IDs, but the read-then-write check can still duplicate
  * work when two requests initialize the same legacy thread concurrently.
- * Serialize that check/write pair per user/thread within this process.
+ * Serialize that check/write pair per user/thread within this process; the
+ * durable claim in `performThreadHistoryBackfill` remains the cross-process
+ * authority (Phase 9).
  */
 export async function backfillThreadHistoryIfNeeded(args: {
   memory: Memory;
@@ -334,6 +347,8 @@ export async function backfillThreadHistoryIfNeeded(args: {
   threadId: string;
   /** Do not copy the current request, already persisted in Drizzle. */
   excludeMessageIdempotencyKey?: string;
+  /** Observability hook: backfill failed (degradation indicator). */
+  onError?: (error: unknown) => void;
 }): Promise<number> {
   const key = `${args.userId}:${args.threadId}`;
   const existing = backfillInFlight.get(key);
@@ -342,8 +357,9 @@ export async function backfillThreadHistoryIfNeeded(args: {
   backfillInFlight.set(key, operation);
   try {
     return await operation;
-  } catch {
+  } catch (error) {
     // Best effort: callers continue with native memory or explicit history.
+    args.onError?.(error);
     return 0;
   } finally {
     // No second operation can be admitted while this lock is present, so an
@@ -371,24 +387,34 @@ export interface PrepareKestrelMemoryArgs {
 export interface PreparedKestrelMemory {
   callOptions: AgentMemoryOption;
   seededWorkingMemory: boolean;
+  /** Whether this preparation attempted the legacy Drizzle-to-Mastra backfill. */
+  backfillAttempted: boolean;
   backfilledMessages: number;
+  /**
+   * Memory preparation partially failed (seed or requested backfill errored).
+   * Answer semantics are unchanged, but callers must surface this in run
+   * metadata/telemetry so degraded memory is never invisible (Phase 9).
+   */
+  memoryDegraded: boolean;
 }
 
 /**
  * Prepare everything a request needs for native Mastra memory in one call:
  * per-call options + one-time working-memory seed + optional thread backfill.
- * All steps are idempotent and degrade gracefully.
+ * All steps are idempotent and degrade gracefully; degradation is reported
+ * through `memoryDegraded` so it is never silent.
  */
 export async function prepareKestrelMemory(
   args: PrepareKestrelMemoryArgs,
 ): Promise<PreparedKestrelMemory> {
   const callOptions = memoryCallOptions({ userId: args.userId, threadId: args.threadId });
-  const seededWorkingMemory = await seedWorkingMemoryFromSettings({
+  const seed = await seedWorkingMemoryFromSettings({
     memory: args.memory,
     userId: args.userId,
     threadId: args.threadId,
     settings: args.settings,
   });
+  let backfillFailed = false;
   const backfilledMessages =
     args.backfill === true
       ? await backfillThreadHistoryIfNeeded({
@@ -398,7 +424,16 @@ export async function prepareKestrelMemory(
           ...(args.excludeMessageIdempotencyKey
             ? { excludeMessageIdempotencyKey: args.excludeMessageIdempotencyKey }
             : {}),
+          onError: () => {
+            backfillFailed = true;
+          },
         })
       : 0;
-  return { callOptions, seededWorkingMemory, backfilledMessages };
+  return {
+    callOptions,
+    seededWorkingMemory: seed.seeded,
+    backfillAttempted: args.backfill === true,
+    backfilledMessages,
+    memoryDegraded: !seed.healthy || backfillFailed,
+  };
 }

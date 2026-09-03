@@ -31,7 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Completed Phase 9 of the AI/agentic-system cleanup: shared native-memory preparation, model-visible preference isolation, strict user/thread scope, capability-specific semantic recall, durable/idempotent thread backfill, opt-in independently budgeted observational memory, explicit degraded-memory metadata across traces/UI/worker paths, and Mastra runtime retention pruning.
+- Completed Phase 8 of the AI/agentic-system cleanup: typed Full-mode retry semantics (lease/quota/transient/permanent), worker-side execution-plan identity validation, and a budget fix so retryable Full-mode failures keep the enqueue-time reservation until the run reaches a terminal outcome — successful retries now book their actual cost exactly once. Queue-to-Mastra dispatch, FSM transition, and budget exactly-once property tests added.
+- Completed Phase 0 of the AI/agentic-system cleanup: baseline invariants (terminal-state matrix, storage authority matrix, route decision matrix), deterministic cost fixtures for every billed generation kind, no-mutation-tool exposure assertions across all read-only capabilities and committee specialists, and chat-route user/thread mismatch + exact idempotency-key coverage.
 - Completed Phase 1 of the AI/agentic-system cleanup: Mastra model snapshots, explicit answer/memory metadata, mutation-before-routing classification, bounded background generation, heartbeat/lease error separation, duplicate progress removal, and single-counted committee cost aggregation.
+- Completed Phase 10 of the AI/agentic-system cleanup: removed unused Mastra workflow, capability-registry, mode-barrel, and proof-runner compatibility surfaces; committee execution, capability policy, and mode routing now use their canonical modules directly. The removed internal exports were never used by the web or worker release paths.
 - Historical documentation indexes and audit/plan artifacts were consolidated into the current architecture, validation, and operational guides.
 - Old numbered and review/audit docs were replaced by the current procedural documentation set.
 - Community security and contribution guides were refreshed for the OSS release.

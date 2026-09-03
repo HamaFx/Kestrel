@@ -16,6 +16,7 @@
 
 import { xauusdCalendarTool } from './calendar-tool';
 import { xauusdCandlesTool } from './candles-tool';
+import { manifestToolNames } from './capabilities';
 import { xauusdCorrelationTool } from './correlation-tool';
 import { xauusdFundamentalContextTool } from './fundamental-context-tool';
 import { xauusdIndicatorsTool } from './indicators-tool';
@@ -80,20 +81,24 @@ export const xauusdMastraTools = {
   searchUntrustedKnowledge: mastraKnowledgeTool,
 };
 
-export const xauusdMastraConversationToolNames = [
-  'getXauusdMarketStructure',
-  'getXauusdSessionLevels',
-  'analyzeXauusdTechnical',
-  'getXauusdCorrelation',
-  'getXauusdIntermarket',
-  'forecastXauusdVolatility',
-  'getXauusdNews',
-  'getXauusdCalendar',
-  'getXauusdSocialSentiment',
-  'getXauusdFundamentalContext',
-  'getXauusdSeasonality',
-  'getXauusdCot',
-  'getXauusdIntermarketResonance',
-  'searchUntrustedWeb',
-  'searchUntrustedKnowledge',
-] as const;
+const XAUUSD_CONVERSATION_TOOL_IDS = {
+  'get-xauusd-market-structure': 'getXauusdMarketStructure',
+  'get-xauusd-session-levels': 'getXauusdSessionLevels',
+  'analyze-xauusd-technical': 'analyzeXauusdTechnical',
+  'get-xauusd-correlation': 'getXauusdCorrelation',
+  'get-xauusd-intermarket': 'getXauusdIntermarket',
+  'forecast-xauusd-volatility': 'forecastXauusdVolatility',
+  'get-xauusd-news': 'getXauusdNews',
+  'get-xauusd-calendar': 'getXauusdCalendar',
+  'get-xauusd-social-sentiment': 'getXauusdSocialSentiment',
+  'get-xauusd-fundamental-context': 'getXauusdFundamentalContext',
+  'get-xauusd-seasonality': 'getXauusdSeasonality',
+  'get-xauusd-cot': 'getXauusdCot',
+  'get-xauusd-intermarket-resonance': 'getXauusdIntermarketResonance',
+  'search-untrusted-web': 'searchUntrustedWeb',
+  'search-untrusted-knowledge': 'searchUntrustedKnowledge',
+} as const;
+
+export const xauusdMastraConversationToolNames = manifestToolNames('xauusd-conversation').map(
+  (toolName) => XAUUSD_CONVERSATION_TOOL_IDS[toolName as keyof typeof XAUUSD_CONVERSATION_TOOL_IDS],
+);

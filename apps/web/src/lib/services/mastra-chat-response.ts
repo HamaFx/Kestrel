@@ -32,6 +32,10 @@ interface MastraChatResponseInput {
   dataQuality: MastraChatMeta['dataQuality'];
   packetId: string;
   observedCost: number;
+  answerOutcome?: MastraChatMeta['answerOutcome'];
+  modelSnapshot?: MastraChatMeta['modelSnapshot'];
+  memoryMode: 'native' | 'degraded';
+  memoryBackfill: boolean;
 }
 
 function encodeEvent(event: unknown): string {
@@ -55,10 +59,14 @@ export function mastraChatResponse(input: MastraChatResponseInput): Response {
     observedCost: input.observedCost,
     report: input.report,
     executionOutcome: 'completed',
-    answerOutcome: input.report ? 'ready' : 'blocked',
+    answerOutcome: input.answerOutcome ?? (input.report ? 'ready' : 'blocked'),
     terminalReason: 'buffered-completed',
-    memoryMode: 'native',
-    modelSnapshot: { providerId: input.providerId, bareModelId: input.modelId },
+    memoryMode: input.memoryMode,
+    memoryBackfill: input.memoryBackfill,
+    modelSnapshot: input.modelSnapshot ?? {
+      providerId: input.providerId,
+      bareModelId: input.modelId.split('/').at(-1) ?? input.modelId,
+    },
   });
   const events = [
     { type: 'text-start', id: input.messageId },

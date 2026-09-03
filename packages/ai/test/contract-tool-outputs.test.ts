@@ -802,6 +802,7 @@ describe('remaining output schemas', () => {
       schema: WebSearchOutputSchema,
       sample: {
         status: 'success',
+        contentTrust: 'untrusted',
         provider: 'exa',
         query: 'latest Federal Reserve gold policy',
         cacheHit: false,

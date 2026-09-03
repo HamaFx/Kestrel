@@ -21,6 +21,36 @@ const FOLLOWUP_TERMS =
 const MUTATION_TERMS =
   /\b(?:set|create|add|make|schedule|send)\b[\s\S]{0,60}?\balert\b|\balert\s+me\b|\bnotify\s+me\b|\bremind\s+me\b|\b(?:log|record|write|journal|note)\b[\s\S]{0,60}?\b(?:trade|journal|entry|position|transaction)\b|\b(?:share|send|export|publish)\b[\s\S]{0,40}?\b(?:snapshot|summary|analysis|report|link)\b|\b(?:run|execute|trigger|perform)\b[\s\S]{0,40}?\b(?:system\s+action|maintenance|cleanup|diagnostic|backup)\b/i;
 
+export type AnalysisMode = 'single' | 'quick' | 'standard' | 'full' | 'auto';
+export type ResolvedMode = Exclude<AnalysisMode, 'auto'>;
+
+/** Resolve the explicit or automatic mode at the canonical routing boundary. */
+export function autoDetectMode(message: string): ResolvedMode {
+  const lower = message.toLowerCase().trim();
+  if (/^(hi|hello|hey|thanks|thank you|ok|okay|yes|no|bye|good morning|good night)\b/.test(lower))
+    return 'single';
+  if (/(what'?s the price|current price|quote|how much is)/.test(lower)) return 'single';
+  if (/^(price|quote|rate)\s+(for|of)?\s*\w{3,6}\??$/i.test(lower)) return 'single';
+  if (/should i (buy|sell|enter|go long|go short|trade)/.test(lower)) return 'full';
+  if (/(is it (a )?good time (to|for)|is now (a )?good time)/.test(lower)) return 'full';
+  if (/(buy or sell|long or short|bullish or bearish)/.test(lower)) return 'full';
+  if (
+    /(full|complete|comprehensive|deep dive|all four|committee)/.test(lower) &&
+    /(analysis|analy[sz]e|review|read|outlook|assessment|committee)/.test(lower)
+  )
+    return 'full';
+  if (/(deep dive|full analysis|comprehensive analysis)/.test(lower)) return 'full';
+  if (/(analyze|analysis|outlook|view on|what do you think|forecast|predict)/.test(lower))
+    return 'standard';
+  if (/(technical (and|&) fundamental)/.test(lower)) return 'standard';
+  if (lower.length < 10) return 'single';
+  return 'standard';
+}
+
+export function resolveMode(mode: AnalysisMode, userMessage: string): ResolvedMode {
+  return mode === 'auto' ? autoDetectMode(userMessage) : mode;
+}
+
 export function messageText(message: UIMessage): string {
   return (message.parts ?? [])
     .map((part) =>
@@ -51,15 +81,28 @@ export function isMutationIntent(prompt: string): boolean {
 }
 
 export function isMastraXauusdCandidate(prompt: string): boolean {
-  return XAUUSD_TERMS.test(prompt) && !OTHER_SYMBOL_TERMS.test(prompt) && !isInjectionAttempt(prompt) && !isMutationIntent(prompt);
+  return (
+    XAUUSD_TERMS.test(prompt) &&
+    !OTHER_SYMBOL_TERMS.test(prompt) &&
+    !isInjectionAttempt(prompt) &&
+    !isMutationIntent(prompt)
+  );
 }
 
 export function isMastraSymbolCandidate(prompt: string): boolean {
-  return extractMastraSymbol(prompt) !== null && !isInjectionAttempt(prompt) && !isMutationIntent(prompt);
+  return (
+    extractMastraSymbol(prompt) !== null && !isInjectionAttempt(prompt) && !isMutationIntent(prompt)
+  );
 }
 
 export function isMastraXauusdFollowupCandidate(prompt: string): boolean {
-  return FOLLOWUP_TERMS.test(prompt) && !OTHER_SYMBOL_TERMS.test(prompt) && !isInjectionAttempt(prompt) && !isMutationIntent(prompt);
+  return (
+    FOLLOWUP_TERMS.test(prompt) &&
+    !FORBIDDEN_FOLLOWUP_TERMS.test(prompt) &&
+    !OTHER_SYMBOL_TERMS.test(prompt) &&
+    !isInjectionAttempt(prompt) &&
+    !isMutationIntent(prompt)
+  );
 }
 
 export function mastraXauusdChatKind(

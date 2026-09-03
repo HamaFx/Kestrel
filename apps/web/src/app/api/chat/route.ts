@@ -46,13 +46,8 @@ import {
   withDiagnostics,
   withRateLimit,
 } from '@/lib/services/api-boundary';
-import { runMastraCanonicalChatStreamService } from '@/lib/services/mastra-canonical-chat-stream';
-import { runMastraXauusdChat } from '@/lib/services/mastra-chat';
-import { mastraChatResponse } from '@/lib/services/mastra-chat-response';
 import { isInjectionAttempt, isMutationIntent } from '@/lib/services/mastra-chat-routing';
-import { runMastraXauusdConversationStreamChat } from '@/lib/services/mastra-chat-stream';
-import { runMastraModeChat } from '@/lib/services/mastra-mode';
-import { mastraModeResponse } from '@/lib/services/mastra-mode-response';
+import { runConversationalTurn, runResearchWorkflow } from '@/lib/services/mastra-execution';
 import { startMutationDraft } from '@/lib/services/mastra-mutation-draft';
 import { extractLatestMastraReport } from '@/lib/services/mastra-report-context';
 
@@ -188,8 +183,12 @@ export const POST = withAuth<void>(async (req, { user }) => {
   // this decision is used for parity validation and future migration.
   const { settings: userSettings } = await getUserWithSettings(user.userId);
   const provisionalReport =
-    /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(userText) &&
-    !/\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i.test(userText)
+    /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(
+      userText,
+    ) &&
+    !/\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i.test(
+      userText,
+    )
       ? await listMessages(user.userId, body.threadId, 100)
       : [];
   const priorReportAvailable = extractLatestMastraReport(provisionalReport) !== null;
@@ -282,7 +281,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
           400,
         );
       }
-      const resolvedModel = resolveMastraModeModel(settings, serverEnv, null);
+      const resolvedModel = resolveMastraModeModel(settings, serverEnv, null, executionPlan);
       const requestId = req.headers.get('x-request-id') ?? undefined;
       return withDiagnostics(
         user.userId,
@@ -345,72 +344,49 @@ export const POST = withAuth<void>(async (req, { user }) => {
       executionPlan?.route === 'xauusd-conversation' ||
       executionPlan?.route === 'xauusd-research'
     ) {
-      const kind = executionPlan.xauusdChatKind ?? 'research';
-      if (kind === 'conversation') {
-        return runMastraXauusdConversationStreamChat({
-          executionPlan: executionPlan ?? undefined,
-          userId: user.userId,
-          threadId: body.threadId,
-          userMessage,
-          prompt: userText,
-          modelOverride: body.modelOverride ?? null,
-          signal,
-          backfillExcludeMessageIdempotencyKey: `ui:${userMessage.id}`,
-          ...(priorReport ? { priorReport } : {}),
-        });
-      }
-      const run = await runMastraXauusdChat({
-        executionPlan: executionPlan ?? undefined,
+      const sharedInput = {
+        plan: executionPlan,
         userId: user.userId,
         threadId: body.threadId,
         userMessage,
         prompt: userText,
-        kind,
         modelOverride: body.modelOverride ?? null,
         signal,
         backfillExcludeMessageIdempotencyKey: `ui:${userMessage.id}`,
-        ...(priorReport ? { followup: true, priorReport } : {}),
-      });
-      return mastraChatResponse({
-        messageId: crypto.randomUUID(),
-        text: run.result.text,
-        runId: run.runId,
-        modelId: run.modelId,
-        providerId: run.providerId,
-        report: run.report,
-        researchStatus: run.packet.status,
-        dataQuality: run.packet.dataQuality,
-        packetId: run.packet.packetId,
-        observedCost: run.observedCost,
-      });
+        ...(priorReport ? { priorReport } : {}),
+      };
+      // Awaited so provider/runner failures are caught by the Mastra failure
+      // boundary below rather than escaping the request as unhandled.
+      return executionPlan.route === 'xauusd-conversation'
+        ? await runConversationalTurn(sharedInput)
+        : await runResearchWorkflow({ ...sharedInput, symbol: symbol ?? 'XAUUSD' });
     }
 
     // Quick and Standard modes use the bounded shared-packet Mastra mode
     // workflow when the user has explicitly named a supported symbol.
     // Symbol-free prompts in these modes fall through to canonical chat.
     if (executionPlan?.route === 'symbol-research' && symbol !== null) {
-      const run = await runMastraModeChat({
-        executionPlan: executionPlan ?? undefined,
+      return await runResearchWorkflow({
+        plan: executionPlan,
         userId: user.userId,
         threadId: body.threadId,
         userMessage,
         prompt: userText,
         symbol,
-        mode: executionPlan.mode === 'quick' || executionPlan.mode === 'standard' ? executionPlan.mode : 'single',
         modelOverride: body.modelOverride ?? null,
         signal,
         backfillExcludeMessageIdempotencyKey: `mastra-mode:${body.threadId}:${userMessage.id}:user`,
       });
-      return mastraModeResponse(run);
     }
 
     // Ordinary symbol-free conversation is handled by the streaming canonical
     // Mastra agent, which owns the reviewed read-only Kestrel tool allowlist.
-    return runMastraCanonicalChatStreamService({
-      executionPlan: executionPlan ?? undefined,
+    return await runConversationalTurn({
+      plan: executionPlan!,
       userId: user.userId,
       threadId: body.threadId,
       userMessage,
+      prompt: userText,
       modelOverride: body.modelOverride ?? null,
       ...(customInstructions ? { customInstructions } : {}),
       responseStyle,

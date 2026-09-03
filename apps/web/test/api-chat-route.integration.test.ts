@@ -89,7 +89,6 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 vi.mock('@/lib/services/mastra-chat-routing', () => ({
-  isMastraPromptUnsafe: (prompt: string) => /buy|sell|system:\s*ignore/i.test(prompt),
   isInjectionAttempt: (prompt: string) => /system:\s*ignore/i.test(prompt),
   isMutationIntent: (prompt: string) => /buy|sell/i.test(prompt),
   extractMastraSymbol: (prompt: string) => {
@@ -170,17 +169,32 @@ vi.mock('@/lib/services/api-boundary', () => ({
       .filter((part: { type?: string; text?: string }) => part.type === 'text')
       .map((part: { text?: string }) => part.text ?? '')
       .join(' ');
-    const plannedSymbol = symbol ?? (/xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : null);
+    const plannedSymbol =
+      symbol ?? (/xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : null);
     return {
       version: 1,
-      route: mode === 'full' ? 'full-analysis' : plannedSymbol === 'XAUUSD' ? 'xauusd-conversation' : plannedSymbol ? 'symbol-research' : 'canonical-chat',
-      capabilityId: plannedSymbol === 'XAUUSD' ? 'xauusd-conversation' : plannedSymbol ? 'symbol-research' : null,
+      route:
+        mode === 'full'
+          ? 'full-analysis'
+          : plannedSymbol === 'XAUUSD'
+            ? 'xauusd-research'
+            : plannedSymbol
+              ? 'symbol-research'
+              : 'canonical-chat',
+      capabilityId:
+        plannedSymbol === 'XAUUSD' ? 'xauusd-research' : plannedSymbol ? 'symbol-research' : null,
       capabilityVersion: 'test',
       symbol: plannedSymbol,
       mode,
-      model: modelOverride ? { providerId: 'google', bareModelId: modelOverride.split(':')[1] ?? modelOverride } : null,
+      model: modelOverride
+        ? { providerId: 'google', bareModelId: modelOverride.split(':')[1] ?? modelOverride }
+        : null,
       toolPolicy: { capabilityId: null, tools: [], readOnly: true, requiresConfirmation: false },
-      evidencePolicy: { required: Boolean(plannedSymbol), externalData: Boolean(plannedSymbol), contentTrust: plannedSymbol ? 'untrusted' : null },
+      evidencePolicy: {
+        required: Boolean(plannedSymbol),
+        externalData: Boolean(plannedSymbol),
+        contentTrust: plannedSymbol ? 'untrusted' : null,
+      },
       memoryPolicy: { mode: 'native', required: true, scope: 'user-thread' },
       maxSteps: 6,
       maxDurationMs: 55_000,
@@ -241,7 +255,7 @@ describe('POST /api/chat Mastra boundary', () => {
           mode === 'full'
             ? 'full-analysis'
             : symbol === 'XAUUSD'
-              ? 'xauusd-conversation'
+              ? 'xauusd-research'
               : mode === 'quick' || mode === 'standard'
                 ? 'symbol-research'
                 : 'canonical-chat',
@@ -433,5 +447,77 @@ describe('POST /api/chat Mastra boundary', () => {
 
     expect(response.status).toBe(400);
     expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("rejects a turn addressed to another user's thread before any model work", async () => {
+    // A thread lookup scoped to the authenticated user returns nothing for a
+    // mismatched owner — the route must fail closed with 404 and never touch
+    // a provider or queue.
+    mockGetThread.mockResolvedValue(null);
+
+    const response = await POST(request(body()), { params: Promise.resolve(undefined) });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { code: 'NOT_FOUND' } });
+    expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
+    expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
+    expect(mockRunMastraCanonicalChatService).not.toHaveBeenCalled();
+    expect(mockRunMastraXauusdConversationStreamChat).not.toHaveBeenCalled();
+    expect(mockRunMastraModeChat).not.toHaveBeenCalled();
+    expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
+  });
+
+  it('reuses a stable idempotency key for duplicate Full-mode requests', async () => {
+    const first = await POST(request(body({ analysisMode: 'full' })), {
+      params: Promise.resolve(undefined),
+    });
+    const second = await POST(request(body({ analysisMode: 'full' })), {
+      params: Promise.resolve(undefined),
+    });
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(mockEnqueueFullAnalysis).toHaveBeenCalledTimes(2);
+    expect(mockEnqueueFullAnalysis).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        idempotencyKey: 'full:11111111-1111-4111-8111-111111111111:user-message-1',
+      }),
+    );
+    expect(mockEnqueueFullAnalysis).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        idempotencyKey: 'full:11111111-1111-4111-8111-111111111111:user-message-1',
+      }),
+    );
+  });
+
+  it('derives the idempotency key from the user message id (retry-safe scope)', async () => {
+    const withDifferentMessage = body({
+      analysisMode: 'full',
+      messages: [
+        {
+          id: 'user-message-2',
+          role: 'user',
+          content: 'Analyze gold again',
+          parts: [{ type: 'text', text: 'Analyze gold again' }],
+        },
+      ],
+    });
+    const first = await POST(request(withDifferentMessage), {
+      params: Promise.resolve(undefined),
+    });
+    const second = await POST(request(withDifferentMessage), {
+      params: Promise.resolve(undefined),
+    });
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(mockEnqueueFullAnalysis).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        idempotencyKey: 'full:11111111-1111-4111-8111-111111111111:user-message-2',
+      }),
+    );
   });
 });

@@ -16,10 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { terminalMetadata } from '@kestrel/ai';
 import type { MastraModeResult } from '@kestrel/ai/mastra';
 import { ChatStreamEventSchema } from '@kestrel/shared';
-
-import { terminalMetadata } from '@kestrel/ai';
 
 function encode(event: unknown): string {
   return `data: ${JSON.stringify(ChatStreamEventSchema.parse(event))}\n\n`;
@@ -48,6 +47,7 @@ export function mastraModeResponse(
         agentOpinions: input.agentOpinions,
         modelSnapshot: input.modelSnapshot,
         memoryMode: input.memoryMode,
+        memoryBackfill: input.memoryBackfill,
       },
     },
     { type: 'text-end', id: messageId },

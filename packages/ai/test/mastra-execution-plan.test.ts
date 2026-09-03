@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  createExecutionPlan,
-  parseExecutionPlan,
-  serializeExecutionPlan,
-} from '../src/mastra';
+import { createExecutionPlan, parseExecutionPlan, serializeExecutionPlan } from '../src/mastra';
 
 const settings = { aiApiKeys: null, chatModel: null } as never;
 const env = {} as never;

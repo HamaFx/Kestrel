@@ -15,6 +15,7 @@
  */
 
 export { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';
+export { capabilityTelemetryLabels, type MastraCapabilityUiMetadata } from './capabilities';
 export {
   errorCodeForMastra,
   getMastraGenerationStats,
@@ -31,6 +32,7 @@ export {
   finishMastraRun,
   isMastraTelemetryDegraded,
   resetMastraTelemetryHealth,
+  type MastraMemoryMode,
   type MastraRunObservation,
 } from './run-telemetry';
 export { executeMastraTool } from './tool-telemetry';

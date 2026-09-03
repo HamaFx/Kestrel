@@ -17,12 +17,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Public barrel for the Kestrel Mastra v2 foundation (Phases 0–2).
+ * Public barrel for the Kestrel Mastra foundation and shared workflows.
  *
- * Later phases add: durable execution (Phase 3), streaming agents (Phase 4),
- * guardrails (Phase 5), evals (Phase 6), mutation approvals (Phase 7), and
- * observability unification (Phase 8) — all registered through
- * `./registry.ts` so the capability policy stays the single fail-closed gate.
+ * Durable execution, streaming agents, guardrails, evals, mutation approvals,
+ * and observability are registered through `./registry.ts` so the capability
+ * policy stays the single fail-closed gate.
  */
 
 export {
@@ -83,12 +82,16 @@ export {
   createKestrelVectorStore,
   getKestrelVectorStore,
   kestrelMemoryOptions,
+  observationalMemoryAllowanceUsd,
   _resetKestrelVectorStore,
   KESTREL_MEMORY_LAST_MESSAGES,
   KESTREL_MEMORY_SEMANTIC_TOP_K,
   KESTREL_WORKING_MEMORY_TEMPLATE,
+  OBSERVATIONAL_MEMORY_REFINEMENTS_PER_MESSAGE,
+  OBSERVATIONAL_MEMORY_REFINING_STEP_USD,
   type CreateKestrelMemoryArgs,
   type KestrelEmbedderArgs,
+  type KestrelMemoryOptionsArgs,
 } from './memory';
 export {
   backfillThreadHistoryIfNeeded,
@@ -166,20 +169,30 @@ export {
   type RunDatasetExperimentOptions,
 } from './evals/datasets';
 export {
-  createSymbolResearchWorkflow,
+  createCommitteeWorkflow,
+  CommitteeWorkflowInputSchema,
+  CommitteeWorkflowOutputSchema,
+  type CommitteeWorkflowDeps,
+} from '../committee/workflow';
+export {
   MastraModeStrictFailureError,
   MastraAnalysisModeSchema,
   MastraModeOpinionSchema,
   MastraSpecialistNameSchema,
   REQUEST_CONTEXT_SCHEMA,
   SPECIALISTS_BY_MODE,
-  SymbolResearchWorkflowInputSchema,
-  SymbolResearchWorkflowOutputSchema,
+  MODE_POLICY,
+  committeeModePolicy,
+  committeeProgressStages,
+  type CommitteeStepId,
+  type CommitteeModePolicy,
+  type CommitteeModelMetadata,
+  type CollectPacketFn,
   type MastraAnalysisMode,
   type MastraModeOpinion,
   type MastraSpecialistName,
-  type SymbolResearchWorkflowDeps,
-} from './workflows/symbol-research';
+  type ModeRequestContext,
+} from '../committee/types';
 export {
   createXauusdReportWorkflow,
   XauusdReportWorkflowInputSchema,

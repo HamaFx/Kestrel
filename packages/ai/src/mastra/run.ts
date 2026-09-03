@@ -15,29 +15,28 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { estimateCostUsd } from '../cost';
-import { createGenerationLedger } from '../generation-ledger';
 import { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
+import { estimateCostUsd } from '../cost';
 import { getDiagnosticContext, withDiagnostics } from '../diagnostics';
-import { assertExecutionPlanRoute, type ExecutionPlan } from './execution-plan';
-import { prepareKestrelMemory } from '../mastra-v2/context';
-import { buildConversationScorers, buildResearchScorers } from '../mastra-v2/evals/scorers';
-import { buildConversationGuardrails, buildResearchGuardrails } from '../mastra-v2/guardrails';
+import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
 import { getKestrelMastra } from '../mastra-v2/instance';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../mastra-v2/logger';
-import { createKestrelMemory, type CreateKestrelMemoryArgs } from '../mastra-v2/memory';
+import { kestrelMemoryOptions } from '../mastra-v2/memory';
+import { prepareResearchRunContext } from '../mastra-v2/research-context';
 import { runTracingOptions } from '../mastra-v2/telemetry';
 import { createXauusdReportWorkflow } from '../mastra-v2/workflows/xauusd-report';
-import {
-  resolveMastraExecutionModel,
-  resolveMastraModel,
-  type ChatModelResolution,
-} from '../model';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '../model';
 import { telemetryConfig } from '../telemetry';
 import type { ResolveModelEnv } from '../vertex-factory';
 import { createXauusdMastraAgent } from './agent';
+import { manifestForCapability } from './capabilities';
+import {
+  assertExecutionPlanRoute,
+  requireExecutionPlanModel,
+  type ExecutionPlan,
+} from './execution-plan';
 import { generateXauusdFollowup } from './report-generation';
 import { blockedXauusdResearchText } from './report-text';
 import type { XauusdResearchReport } from './report-types';
@@ -56,6 +55,9 @@ import { XauusdRequestContextSchema, type XauusdRequestContext } from './types';
 
 export interface XauusdMastraSettings extends Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> {
   embeddingModel?: UserSettingsRow['embeddingModel'];
+  defaultSymbol?: UserSettingsRow['defaultSymbol'] | null;
+  language?: UserSettingsRow['language'] | null;
+  timezone?: UserSettingsRow['timezone'] | null;
 }
 
 export interface RunXauusdMastraArgs {
@@ -72,17 +74,21 @@ export interface RunXauusdMastraArgs {
   backfillExcludeMessageIdempotencyKey?: string;
   /** Telemetry kind for the run. */
   telemetryKind?: 'mastra_xauusd_poc';
-  /** When set, answer using the latest verified report instead of creating a new report. */
-  followup?: boolean;
+  /**
+   * Explicit turn mode (Phase 7). `followup` answers from the saved verified
+   * report instead of creating a new report and requires `priorReport`.
+   */
+  turnMode?: XauusdTurnMode;
   priorReport?: XauusdResearchReport | null;
   executionPlan?: ExecutionPlan;
-  ledger?: import('../generation-ledger').GenerationLedger;
+  ledger?: GenerationLedger;
 }
 
 export function resolveXauusdMastraModel(
   settings: XauusdMastraSettings,
   env: ResolveModelEnv,
   modelOverride?: string | null,
+  executionPlan?: ExecutionPlan,
 ): ChatModelResolution {
   // The same resolver used by production chat provides the user's encrypted
   // BYOK key, provider choice, circuit-breaker behavior, and model catalog
@@ -101,13 +107,14 @@ export function resolveXauusdMastraModel(
     aiApiKeys: settings.aiApiKeys,
     chatModel: selectedModel,
   };
-  const resolver = resolveMastraExecutionModel as typeof resolveMastraExecutionModel | undefined;
-  return (resolver ?? resolveMastraModel)({
+  const snapshot = executionPlan ? requireExecutionPlanModel(executionPlan) : undefined;
+  return resolveMastraExecutionModel({
     purpose: 'xauusd',
     settings: mastraSettings,
     env,
     domain: 'technical',
     ...(modelOverride !== undefined ? { modelOverride } : {}),
+    ...(snapshot ? { snapshot } : {}),
   });
 }
 
@@ -154,6 +161,13 @@ function blockedStats(): MastraGenerationStats {
 }
 
 /**
+ * Explicit XAUUSD turn mode (Phase 7). `followup` answers from the saved
+ * verified report's own data, NOT from fresh market data — this prevents
+ * stale-report answers from mixing in today's prices.
+ */
+export type XauusdTurnMode = 'research' | 'conversation' | 'followup';
+
+/**
  * Build a minimal research packet from a saved report for follow-up questions.
  * Follow-ups answer from the report's own data, NOT from fresh market data —
  * this prevents stale-report answers from mixing in today's prices.
@@ -184,8 +198,15 @@ export interface XauusdMastraRunResult {
   packet: XauusdResearchPacket;
   modelId: string;
   providerId: string;
+  bareModelId: string;
   stats: MastraGenerationStats;
   totalCostUsd: number;
+  answerOutcome: 'ready' | 'blocked' | 'degraded';
+  modelSnapshot: { providerId: string; bareModelId: string };
+  /** 'degraded' when native-memory preparation partially failed (Phase 9). */
+  memoryMode: 'native' | 'degraded';
+  /** Whether native memory preparation attempted legacy history backfill. */
+  memoryBackfill: boolean;
 }
 
 async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<XauusdMastraRunResult> {
@@ -193,9 +214,17 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
   const startedAt = Date.now();
   const generationLedger = args.ledger ?? createGenerationLedger();
   let resolution: ChatModelResolution | null = null;
+  // Until native memory preparation succeeds, report the run as degraded.
+  let memoryMode: 'native' | 'degraded' = 'degraded';
+  let memoryBackfill = false;
 
   try {
-    resolution = resolveXauusdMastraModel(args.settings, args.env, args.modelOverride);
+    resolution = resolveXauusdMastraModel(
+      args.settings,
+      args.env,
+      args.modelOverride,
+      args.executionPlan,
+    );
     beginMastraRun({
       runId: args.runId,
       threadId: args.threadId,
@@ -203,38 +232,44 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       providerId: resolution.providerId,
     });
 
-    const memory = createKestrelMemory({
-      settings: {
-        aiApiKeys: args.settings.aiApiKeys,
-        embeddingModel: args.settings.embeddingModel ?? null,
-      },
-      env: args.env,
-    } satisfies CreateKestrelMemoryArgs);
-    const prepared = await prepareKestrelMemory({
-      memory,
+    // Shared research-run context (Phase 7): native memory + conversation and
+    // research guardrail/scorer policies, identical to the committee mode path.
+    const runContext = await prepareResearchRunContext({
       userId: args.userId,
       threadId: args.threadId,
       settings: {
+        aiApiKeys: args.settings.aiApiKeys,
         chatModel: args.settings.chatModel ?? null,
-        embeddingModel: args.settings.embeddingModel ?? null,
+        ...(args.settings.embeddingModel !== undefined
+          ? { embeddingModel: args.settings.embeddingModel }
+          : {}),
+        defaultSymbol: args.settings.defaultSymbol ?? null,
+        language: args.settings.language ?? null,
+        timezone: args.settings.timezone ?? null,
       },
-      backfill: true,
+      env: args.env,
+      includeConversationPolicies: true,
+      includeResearchPolicies: true,
+      // Capability-specific semantic recall from the execution plan (Phase 9).
+      ...(args.executionPlan
+        ? {
+            memoryOptions: kestrelMemoryOptions({
+              env: args.env,
+              semanticRecall: args.executionPlan.memoryPolicy.semanticRecall,
+            }),
+          }
+        : {}),
       ...(args.backfillExcludeMessageIdempotencyKey
-        ? { excludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
+        ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
         : {}),
     });
-    const { processors: conversationGuardrails } = buildConversationGuardrails(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
-    const { entries: conversationScorers } = buildConversationScorers(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
-    const { entries: researchScorers } = buildResearchScorers(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
+    const memory = runContext.memory;
+    const prepared = runContext.prepared;
+    memoryMode = prepared.memoryDegraded ? 'degraded' : 'native';
+    memoryBackfill = prepared.backfillAttempted;
+    const conversationGuardrails = runContext.conversation!.guardrails.processors;
+    const conversationScorers = runContext.conversation!.scorers.entries;
+    const researchScorers = runContext.research!.scorers.entries;
 
     const followupAgent = createXauusdMastraAgent({
       model: resolution.model,
@@ -242,15 +277,21 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       inputProcessors: conversationGuardrails,
       scorers: conversationScorers,
     });
-    if (args.followup && args.priorReport) {
-      const followupPacket = followupPacketFromReport(args.priorReport);
+    const priorReport = args.priorReport;
+    if (args.turnMode === 'followup') {
+      // Explicit follow-up mode: answer from the saved report. Missing prior
+      // report fails closed instead of silently falling back to a fresh report.
+      if (!priorReport) {
+        throw new Error('XAUUSD follow-up mode requires a prior verified report.');
+      }
+      const followupPacket = followupPacketFromReport(priorReport);
       const requestContext = contextForRun(args, followupPacket);
       const result = await generateXauusdFollowup(
         followupAgent,
         args.prompt,
         requestContext,
         resolution.providerId,
-        args.priorReport,
+        priorReport,
         followupPacket,
         args.signal,
         prepared.callOptions,
@@ -273,6 +314,8 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         startedAt,
         ...stats,
         outcome: 'success',
+        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: prepared.backfillAttempted,
         ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       });
       return {
@@ -281,17 +324,19 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         packet: followupPacket,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
+        bareModelId: resolution.bareModelId,
         stats,
         totalCostUsd: generationLedger.total(),
+        answerOutcome: 'ready',
+        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: prepared.backfillAttempted,
       };
     }
 
     // Verified-report generation uses research guardrails and scorers;
     // follow-up answers above use the lighter conversation policy.
-    const { processors: researchGuardrails } = buildResearchGuardrails(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
+    const researchGuardrails = runContext.research!.guardrails.processors;
     const reportAgent = createXauusdMastraAgent({
       model: resolution.model,
       memory,
@@ -321,7 +366,10 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         userId: args.userId,
         threadId: args.threadId,
         kind: args.telemetryKind ?? 'mastra_xauusd_poc',
+        capabilityId: 'xauusd-research',
         tags: ['xauusd-report'],
+        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: prepared.backfillAttempted,
       }),
     });
     if (runResult.status !== 'success') {
@@ -371,6 +419,8 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         startedAt,
         ...stats,
         outcome: 'success',
+        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: prepared.backfillAttempted,
         ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       });
       return {
@@ -379,8 +429,13 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         packet: output.packet,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
+        bareModelId: resolution.bareModelId,
         stats,
         totalCostUsd: generationLedger.total(),
+        answerOutcome: 'ready',
+        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: prepared.backfillAttempted,
       };
     }
     const { report, packet } = output;
@@ -403,6 +458,8 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       startedAt,
       ...stats,
       outcome: 'success',
+      memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: prepared.backfillAttempted,
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
     });
     return {
@@ -411,11 +468,15 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       packet,
       modelId: resolution.modelId,
       providerId: resolution.providerId,
+      bareModelId: resolution.bareModelId,
       stats,
       totalCostUsd: generationLedger.total(),
+      answerOutcome: 'ready',
+      modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+      memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: prepared.backfillAttempted,
     };
   } catch (error) {
-
     const outcome = mastraOutcomeForError(error, args.signal);
     await finishMastraRun({
       userId: args.userId,
@@ -429,6 +490,8 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       toolCalls: 0,
       steps: 0,
       outcome,
+      memoryMode,
+      memoryBackfill,
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       error,
     });
@@ -444,13 +507,22 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
  */
 async function executeXauusdMastraConversationRun(
   args: RunXauusdMastraArgs,
-): Promise<XauusdMastraRunResult> {  if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'xauusd-conversation');
+): Promise<XauusdMastraRunResult> {
+  if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'xauusd-conversation');
   const startedAt = Date.now();
   const generationLedger = args.ledger ?? createGenerationLedger();
   let resolution: ChatModelResolution | null = null;
+  // Until native memory preparation succeeds, report the run as degraded.
+  let memoryMode: 'native' | 'degraded' = 'degraded';
+  let memoryBackfill = false;
 
   try {
-    resolution = resolveXauusdMastraModel(args.settings, args.env, args.modelOverride);
+    resolution = resolveXauusdMastraModel(
+      args.settings,
+      args.env,
+      args.modelOverride,
+      args.executionPlan,
+    );
     beginMastraRun({
       runId: args.runId,
       threadId: args.threadId,
@@ -470,6 +542,8 @@ async function executeXauusdMastraConversationRun(
         startedAt,
         ...stats,
         outcome: 'success',
+        memoryMode: 'native',
+        memoryBackfill: false,
         ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       });
       return {
@@ -478,35 +552,51 @@ async function executeXauusdMastraConversationRun(
         packet,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
+        bareModelId: resolution.bareModelId,
         stats,
         totalCostUsd: 0,
+        answerOutcome: 'blocked',
+        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+        memoryMode: 'native',
+        memoryBackfill: false,
       };
     }
-    const memory = createKestrelMemory({
-      settings: {
-        aiApiKeys: args.settings.aiApiKeys,
-        embeddingModel: args.settings.embeddingModel ?? null,
-      },
-      env: args.env,
-    } satisfies CreateKestrelMemoryArgs);
-    const prepared = await prepareKestrelMemory({
-      memory,
+    // Shared research-run context (Phase 7): native memory + conversation
+    // guardrail/scorer policy, identical to the buffered XAUUSD paths.
+    const runContext = await prepareResearchRunContext({
       userId: args.userId,
       threadId: args.threadId,
       settings: {
+        aiApiKeys: args.settings.aiApiKeys,
         chatModel: args.settings.chatModel ?? null,
-        embeddingModel: args.settings.embeddingModel ?? null,
+        ...(args.settings.embeddingModel !== undefined
+          ? { embeddingModel: args.settings.embeddingModel }
+          : {}),
+        defaultSymbol: args.settings.defaultSymbol ?? null,
+        language: args.settings.language ?? null,
+        timezone: args.settings.timezone ?? null,
       },
-      backfill: true,
+      env: args.env,
+      includeConversationPolicies: true,
+      // Capability-specific semantic recall from the execution plan (Phase 9).
+      ...(args.executionPlan
+        ? {
+            memoryOptions: kestrelMemoryOptions({
+              env: args.env,
+              semanticRecall: args.executionPlan.memoryPolicy.semanticRecall,
+            }),
+          }
+        : {}),
+      ...(args.backfillExcludeMessageIdempotencyKey
+        ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
+        : {}),
     });
-    const { processors: guardrails } = buildConversationGuardrails(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
-    const { entries: conversationScorers } = buildConversationScorers(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
+    const memory = runContext.memory;
+    const prepared = runContext.prepared;
+    memoryMode = prepared.memoryDegraded ? 'degraded' : 'native';
+    memoryBackfill = prepared.backfillAttempted;
+    const guardrails = runContext.conversation!.guardrails.processors;
+    const conversationScorers = runContext.conversation!.scorers.entries;
     const agent = createXauusdMastraAgent({
       model: resolution.model,
       memory,
@@ -519,7 +609,7 @@ async function executeXauusdMastraConversationRun(
       memory: prepared.callOptions,
       toolChoice: 'auto',
       activeTools: [...xauusdMastraConversationToolNames],
-      maxSteps: 3,
+      maxSteps: manifestForCapability('xauusd-conversation').maxSteps,
       ...telemetryConfig({
         functionId: 'mastra.xauusd.conversation',
         metadata: { provider: resolution.providerId },
@@ -530,7 +620,10 @@ async function executeXauusdMastraConversationRun(
         userId: args.userId,
         threadId: args.threadId,
         kind: args.telemetryKind ?? 'mastra_xauusd_poc',
+        capabilityId: 'xauusd-conversation',
         tags: ['xauusd-conversation'],
+        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: prepared.backfillAttempted,
       }),
     });
     const stats = getMastraGenerationStats(result);
@@ -551,6 +644,8 @@ async function executeXauusdMastraConversationRun(
       startedAt,
       ...stats,
       outcome: 'success',
+      memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+      memoryBackfill: prepared.backfillAttempted,
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
     });
     return {
@@ -559,11 +654,16 @@ async function executeXauusdMastraConversationRun(
       packet,
       modelId: resolution.modelId,
       providerId: resolution.providerId,
+      bareModelId: resolution.bareModelId,
       stats,
       totalCostUsd: generationLedger.total(),
+      answerOutcome: 'ready',
+      modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+      memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+
+      memoryBackfill: prepared.backfillAttempted,
     };
   } catch (error) {
-
     const outcome = mastraOutcomeForError(error, args.signal);
     await finishMastraRun({
       userId: args.userId,
@@ -577,6 +677,8 @@ async function executeXauusdMastraConversationRun(
       toolCalls: 0,
       steps: 0,
       outcome,
+      memoryMode,
+      memoryBackfill,
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       error,
     });
@@ -603,145 +705,44 @@ export interface XauusdMastraConversationStream {
     packet: XauusdResearchPacket;
     modelId: string;
     providerId: string;
+    bareModelId: string;
     stats: MastraGenerationStats;
+    answerOutcome: 'ready' | 'blocked' | 'degraded';
+    modelSnapshot: { providerId: string; bareModelId: string };
+    memoryMode: 'native' | 'degraded';
+    memoryBackfill: boolean;
   }>;
 }
 
 export async function runXauusdMastraConversationStream(
   args: RunXauusdMastraArgs,
 ): Promise<XauusdMastraConversationStream> {
+  if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'xauusd-conversation');
   const startedAt = Date.now();
   let resolution: ChatModelResolution | null = null;
+  let memoryMode: 'native' | 'degraded' = 'degraded';
+  let memoryBackfill = false;
   const generationLedger = args.ledger ?? createGenerationLedger();
+  const finishRun = createMastraRunFinalizer();
   const runner = async () => {
-    resolution = resolveXauusdMastraModel(args.settings, args.env, args.modelOverride);
-    beginMastraRun({
-      runId: args.runId,
-      threadId: args.threadId,
-      model: resolution.modelId,
-      providerId: resolution.providerId,
-    });
-    const packet = await collectXauusdResearchPacket(args.signal);
-    if (packet.status === 'blocked') {
-      const stats = blockedStats();
-      const result: MastraGenerationResultLike = { text: blockedXauusdResearchText(packet) };
-      await finishMastraRun({
-        userId: args.userId,
-        threadId: args.threadId,
+    try {
+      resolution = resolveXauusdMastraModel(
+        args.settings,
+        args.env,
+        args.modelOverride,
+        args.executionPlan,
+      );
+      beginMastraRun({
         runId: args.runId,
+        threadId: args.threadId,
         model: resolution.modelId,
         providerId: resolution.providerId,
-        startedAt,
-        ...stats,
-        outcome: 'success',
-        ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       });
-      return {
-        text: (async function* () {
-          yield result.text;
-        })(),
-        completion: Promise.resolve({
-          result,
-          packet,
-          modelId: resolution.modelId,
-          providerId: resolution.providerId,
-          stats,
-          totalCostUsd: 0,
-        }),
-      };
-    }
-    const memory = createKestrelMemory({
-      settings: {
-        aiApiKeys: args.settings.aiApiKeys,
-        embeddingModel: args.settings.embeddingModel ?? null,
-      },
-      env: args.env,
-    } satisfies CreateKestrelMemoryArgs);
-    const prepared = await prepareKestrelMemory({
-      memory,
-      userId: args.userId,
-      threadId: args.threadId,
-      settings: {
-        chatModel: args.settings.chatModel ?? null,
-        embeddingModel: args.settings.embeddingModel ?? null,
-      },
-      backfill: true,
-    });
-    const { processors: guardrails } = buildConversationGuardrails(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
-    const { entries: conversationScorers } = buildConversationScorers(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-      args.env,
-    );
-    const agent = createXauusdMastraAgent({
-      model: resolution.model,
-      memory,
-      inputProcessors: guardrails,
-      scorers: conversationScorers,
-    });
-    const requestContext = contextForRun(args, packet);
-    const output = await agent.stream(args.prompt, {
-      requestContext,
-      memory: prepared.callOptions,
-      toolChoice: 'auto',
-      activeTools: [...xauusdMastraConversationToolNames],
-      maxSteps: 3,
-      ...telemetryConfig({
-        functionId: 'mastra.xauusd.conversation',
-        metadata: { provider: resolution.providerId },
-      }),
-      ...(args.signal ? { abortSignal: args.signal } : {}),
-      tracingOptions: runTracingOptions({
-        runId: args.runId,
-        userId: args.userId,
-        threadId: args.threadId,
-        kind: args.telemetryKind ?? 'mastra_xauusd_poc',
-        tags: ['xauusd-conversation'],
-      }),
-    });
-    const finishRun = createMastraRunFinalizer();
-    async function* textIter(): AsyncIterable<string> {
-      try {
-        for await (const chunk of output.textStream) {
-          if (args.signal?.aborted)
-            throw args.signal.reason ?? new DOMException('Aborted', 'AbortError');
-          yield chunk;
-        }
-      } catch (error) {
-        await finishRun({
-          userId: args.userId,
-          threadId: args.threadId,
-          runId: args.runId,
-          model: resolution?.modelId ?? 'unresolved',
-          providerId: resolution?.providerId ?? 'unresolved',
-          startedAt,
-          inputTokens: 0,
-          outputTokens: 0,
-          toolCalls: 0,
-          steps: 0,
-          outcome: mastraOutcomeForError(error, args.signal),
-          ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
-          error,
-        });
-        throw error;
-      }
-    }
-    const completion = (async () => {
-      try {
-        const full = await output.getFullOutput();
-        const stats = getMastraGenerationStats(full);
-        generationLedger.recordUsage(
-          `primary:${args.runId}`,
-          'primary',
-          resolution.modelId,
-          stats.inputTokens,
-          stats.outputTokens,
-          estimateCostUsd,
-        );
-        const result: MastraGenerationResultLike = { text: full.text, totalUsage: full.totalUsage };
-        await finishRun({
+      const packet = await collectXauusdResearchPacket(args.signal);
+      if (packet.status === 'blocked') {
+        const stats = blockedStats();
+        const result: MastraGenerationResultLike = { text: blockedXauusdResearchText(packet) };
+        await finishMastraRun({
           userId: args.userId,
           threadId: args.threadId,
           runId: args.runId,
@@ -749,40 +750,215 @@ export async function runXauusdMastraConversationStream(
           providerId: resolution.providerId,
           startedAt,
           ...stats,
-          outcome: args.signal?.aborted
-            ? mastraOutcomeForError(args.signal.reason, args.signal)
-            : 'success',
+          outcome: 'success',
+          memoryMode: 'native',
+          memoryBackfill: false,
           ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
         });
         return {
-          result,
-          packet,
-          modelId: resolution.modelId,
-          providerId: resolution.providerId,
-          stats,
-          totalCostUsd: generationLedger.total(),
+          text: (async function* () {
+            yield result.text;
+          })(),
+          completion: Promise.resolve({
+            result,
+            packet,
+            modelId: resolution.modelId,
+            providerId: resolution.providerId,
+            bareModelId: resolution.bareModelId,
+            stats,
+            totalCostUsd: 0,
+            answerOutcome: 'blocked' as const,
+            modelSnapshot: {
+              providerId: resolution.providerId,
+              bareModelId: resolution.bareModelId,
+            },
+            memoryMode: 'native' as const,
+            memoryBackfill: false,
+          }),
         };
-      } catch (error) {
-
-        await finishRun({
+      }
+      // Shared research-run context (Phase 7): native memory + conversation
+      // guardrail/scorer policy, identical to the buffered XAUUSD paths.
+      const runContext = await prepareResearchRunContext({
+        userId: args.userId,
+        threadId: args.threadId,
+        settings: {
+          aiApiKeys: args.settings.aiApiKeys,
+          chatModel: args.settings.chatModel ?? null,
+          ...(args.settings.embeddingModel !== undefined
+            ? { embeddingModel: args.settings.embeddingModel }
+            : {}),
+          defaultSymbol: args.settings.defaultSymbol ?? null,
+          language: args.settings.language ?? null,
+          timezone: args.settings.timezone ?? null,
+        },
+        env: args.env,
+        includeConversationPolicies: true,
+        // Capability-specific semantic recall from the execution plan (Phase 9).
+        ...(args.executionPlan
+          ? {
+              memoryOptions: kestrelMemoryOptions({
+                env: args.env,
+                semanticRecall: args.executionPlan.memoryPolicy.semanticRecall,
+              }),
+            }
+          : {}),
+        ...(args.backfillExcludeMessageIdempotencyKey
+          ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
+          : {}),
+      });
+      const memory = runContext.memory;
+      const prepared = runContext.prepared;
+      memoryMode = prepared.memoryDegraded ? 'degraded' : 'native';
+      memoryBackfill = prepared.backfillAttempted;
+      const guardrails = runContext.conversation!.guardrails.processors;
+      const conversationScorers = runContext.conversation!.scorers.entries;
+      const agent = createXauusdMastraAgent({
+        model: resolution.model,
+        memory,
+        inputProcessors: guardrails,
+        scorers: conversationScorers,
+      });
+      const requestContext = contextForRun(args, packet);
+      const output = await agent.stream(args.prompt, {
+        requestContext,
+        memory: prepared.callOptions,
+        toolChoice: 'auto',
+        activeTools: [...xauusdMastraConversationToolNames],
+        maxSteps: manifestForCapability('xauusd-conversation').maxSteps,
+        ...telemetryConfig({
+          functionId: 'mastra.xauusd.conversation',
+          metadata: { provider: resolution.providerId },
+        }),
+        ...(args.signal ? { abortSignal: args.signal } : {}),
+        tracingOptions: runTracingOptions({
+          runId: args.runId,
           userId: args.userId,
           threadId: args.threadId,
-          runId: args.runId,
-          model: resolution?.modelId ?? 'unresolved',
-          providerId: resolution?.providerId ?? 'unresolved',
-          startedAt,
-          inputTokens: 0,
-          outputTokens: 0,
-          toolCalls: 0,
-          steps: 0,
-          outcome: mastraOutcomeForError(error, args.signal),
-          ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
-          error,
-        });
-        throw error;
+          kind: args.telemetryKind ?? 'mastra_xauusd_poc',
+          capabilityId: 'xauusd-conversation',
+          tags: ['xauusd-conversation'],
+          memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+          memoryBackfill: prepared.backfillAttempted,
+        }),
+      });
+      async function* textIter(): AsyncIterable<string> {
+        try {
+          for await (const chunk of output.textStream) {
+            if (args.signal?.aborted)
+              throw args.signal.reason ?? new DOMException('Aborted', 'AbortError');
+            yield chunk;
+          }
+        } catch (error) {
+          await finishRun({
+            userId: args.userId,
+            threadId: args.threadId,
+            runId: args.runId,
+            model: resolution?.modelId ?? 'unresolved',
+            providerId: resolution?.providerId ?? 'unresolved',
+            startedAt,
+            inputTokens: 0,
+            outputTokens: 0,
+            toolCalls: 0,
+            steps: 0,
+            outcome: mastraOutcomeForError(error, args.signal),
+            memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+            memoryBackfill: prepared.backfillAttempted,
+            ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
+            error,
+          });
+          throw error;
+        }
       }
-    })();
-    return { text: textIter(), completion };
+      const completion = (async () => {
+        try {
+          const full = await output.getFullOutput();
+          const stats = getMastraGenerationStats(full);
+          generationLedger.recordUsage(
+            `primary:${args.runId}`,
+            'primary',
+            resolution.modelId,
+            stats.inputTokens,
+            stats.outputTokens,
+            estimateCostUsd,
+          );
+          const result: MastraGenerationResultLike = {
+            text: full.text,
+            totalUsage: full.totalUsage,
+          };
+          await finishRun({
+            userId: args.userId,
+            threadId: args.threadId,
+            runId: args.runId,
+            model: resolution.modelId,
+            providerId: resolution.providerId,
+            startedAt,
+            ...stats,
+            outcome: args.signal?.aborted
+              ? mastraOutcomeForError(args.signal.reason, args.signal)
+              : 'success',
+            memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+            memoryBackfill: prepared.backfillAttempted,
+            ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
+          });
+          return {
+            result,
+            packet,
+            modelId: resolution.modelId,
+            providerId: resolution.providerId,
+            bareModelId: resolution.bareModelId,
+            stats,
+            totalCostUsd: generationLedger.total(),
+            answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+            modelSnapshot: {
+              providerId: resolution.providerId,
+              bareModelId: resolution.bareModelId,
+            },
+            memoryMode: prepared.memoryDegraded ? ('degraded' as const) : ('native' as const),
+            memoryBackfill: prepared.backfillAttempted,
+          };
+        } catch (error) {
+          await finishRun({
+            userId: args.userId,
+            threadId: args.threadId,
+            runId: args.runId,
+            model: resolution?.modelId ?? 'unresolved',
+            providerId: resolution?.providerId ?? 'unresolved',
+            startedAt,
+            inputTokens: 0,
+            outputTokens: 0,
+            toolCalls: 0,
+            steps: 0,
+            outcome: mastraOutcomeForError(error, args.signal),
+            memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+            memoryBackfill: prepared.backfillAttempted,
+            ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
+            error,
+          });
+          throw error;
+        }
+      })();
+      return { text: textIter(), completion };
+    } catch (error) {
+      await finishRun({
+        userId: args.userId,
+        threadId: args.threadId,
+        runId: args.runId,
+        model: resolution?.modelId ?? 'unresolved',
+        providerId: resolution?.providerId ?? 'unresolved',
+        startedAt,
+        inputTokens: 0,
+        outputTokens: 0,
+        toolCalls: 0,
+        steps: 0,
+        outcome: mastraOutcomeForError(error, args.signal),
+        memoryMode,
+        memoryBackfill,
+        ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
+        error,
+      });
+      throw error;
+    }
   };
   if (getDiagnosticContext()) return runner();
   return withDiagnostics(args.userId, args.threadId, runner, {

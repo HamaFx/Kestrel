@@ -14,19 +14,30 @@
  * limitations under the License.
  */
 
-import { ALL_SYMBOLS, type ToolName } from '@kestrel/shared';
+import { ALL_SYMBOLS, TOOL_NAMES, type ToolName } from '@kestrel/shared';
 
 export type MastraCapabilityMode = 'single' | 'quick' | 'standard' | 'full' | 'auto';
 export type MastraEvidencePolicy = 'required' | 'optional' | 'none';
 export type MastraCapabilityScope = 'read-only' | 'sensitive-read' | 'user-scoped' | 'admin';
 export type MastraContentTrust = 'trusted' | 'untrusted';
+export type MastraToolCategory =
+  | 'public-market-data'
+  | 'user-scoped-data'
+  | 'untrusted-external-data'
+  | 'internal-verification'
+  | 'mutation';
+export type MastraToolAccess = 'read-only' | 'sensitive-read' | 'write';
 
-/**
- * Reviewed read-only legacy-tool exposure by routing domain. Mutations are
- * intentionally defined only by the mutation capability below; a tool is not
- * exposed merely because it exists in the broad legacy registry.
- */
-export const LEGACY_DOMAIN_TOOL_NAMES = {
+export interface MastraManifestTool {
+  readonly name: string;
+  readonly category: MastraToolCategory;
+  readonly access: MastraToolAccess;
+  readonly sensitivity: 'public' | 'user-scoped' | 'internal';
+  readonly trust: MastraContentTrust;
+}
+
+/** Reviewed read-only legacy-tool exposure by routing domain. */
+const LEGACY_DOMAIN_TOOL_NAMES = {
   summary: [
     'get_price',
     'search_knowledge',
@@ -86,12 +97,8 @@ export const LEGACY_DOMAIN_TOOL_NAMES = {
   readonly string[]
 >;
 
-/**
- * Explicit read-only legacy-tool boundary for the canonical conversational
- * agent. Keep this list here rather than deriving it from the full registry:
- * adding a new tool requires an intentional policy review.
- */
-export const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
+/** Explicit public read-only boundary for canonical chat. */
+const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
   'get_price',
   'get_candles',
   'get_indicators',
@@ -122,17 +129,19 @@ export const SENSITIVE_USER_READ_TOOL_NAMES = [
   'replay_setup',
 ] as const;
 
-/** Backwards-compatible alias for reviewed public canonical tools. */
-export const CANONICAL_READ_ONLY_TOOL_NAMES = CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES;
+export type MastraRoutingDomain = keyof typeof LEGACY_DOMAIN_TOOL_NAMES;
 
 export interface MastraCapability {
   readonly id: string;
   readonly version: string;
+  readonly route: string;
+  readonly component: string;
   readonly allowedSymbols: readonly string[];
   readonly allowedModes: readonly MastraCapabilityMode[];
   readonly scope: MastraCapabilityScope;
   readonly readOnly: boolean;
   readonly tools: readonly string[];
+  readonly toolMetadata: readonly MastraManifestTool[];
   readonly requiresConfirmation: boolean;
   readonly supportsStreaming: boolean;
   readonly supportsAbort: boolean;
@@ -141,6 +150,12 @@ export interface MastraCapability {
   readonly evidencePolicy: MastraEvidencePolicy;
   readonly externalData: boolean;
   readonly contentTrust: MastraContentTrust;
+  /**
+   * Capability-specific semantic recall policy (Phase 9). Defaults to true;
+   * the execution plan's memoryPolicy carries the resolved value to runners.
+   */
+  readonly semanticRecall?: boolean;
+  readonly domainTools?: Readonly<Partial<Record<MastraRoutingDomain, readonly string[]>>>;
 }
 
 /**
@@ -151,9 +166,41 @@ export interface MastraCapability {
  * Mastra agent.
  */
 export const MASTRA_CAPABILITIES = {
+  'canonical-chat': {
+    id: 'canonical-chat',
+    version: 'p4-1',
+    route: 'canonical-chat',
+    component: 'mastra-canonical-chat',
+    allowedSymbols: ALL_SYMBOLS,
+    allowedModes: ['single', 'quick', 'standard', 'full', 'auto'],
+    scope: 'read-only',
+    readOnly: true,
+    tools: CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+    toolMetadata: CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES.map((name) => ({
+      name,
+      category: 'public-market-data' as const,
+      access: 'read-only' as const,
+      sensitivity: 'public' as const,
+      trust:
+        name === 'web_search' || name === 'search_knowledge'
+          ? ('untrusted' as const)
+          : ('trusted' as const),
+    })),
+    requiresConfirmation: false,
+    supportsStreaming: true,
+    supportsAbort: true,
+    maxSteps: 6,
+    maxDurationMs: 55_000,
+    evidencePolicy: 'optional',
+    externalData: true,
+    contentTrust: 'untrusted',
+    domainTools: LEGACY_DOMAIN_TOOL_NAMES,
+  },
   'xauusd-conversation': {
     id: 'xauusd-conversation',
     version: 'poc-5',
+    route: 'xauusd-conversation',
+    component: 'mastra-xauusd-conversation',
     allowedSymbols: ['XAUUSD'],
     allowedModes: ['single', 'auto'],
     scope: 'read-only',
@@ -175,6 +222,43 @@ export const MASTRA_CAPABILITIES = {
       'search-untrusted-web',
       'search-untrusted-knowledge',
     ],
+    toolMetadata: [
+      ...[
+        'get-xauusd-market-structure',
+        'get-xauusd-session-levels',
+        'analyze-xauusd-technical',
+        'get-xauusd-correlation',
+        'get-xauusd-intermarket',
+        'forecast-xauusd-volatility',
+        'get-xauusd-news',
+        'get-xauusd-calendar',
+        'get-xauusd-social-sentiment',
+        'get-xauusd-fundamental-context',
+        'get-xauusd-seasonality',
+        'get-xauusd-cot',
+        'get-xauusd-intermarket-resonance',
+      ].map((name) => ({
+        name,
+        category: 'public-market-data' as const,
+        access: 'read-only' as const,
+        sensitivity: 'public' as const,
+        trust: 'trusted' as const,
+      })),
+      {
+        name: 'search-untrusted-web',
+        category: 'untrusted-external-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'untrusted',
+      },
+      {
+        name: 'search-untrusted-knowledge',
+        category: 'untrusted-external-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'untrusted',
+      },
+    ],
     requiresConfirmation: false,
     supportsStreaming: true,
     supportsAbort: true,
@@ -187,6 +271,8 @@ export const MASTRA_CAPABILITIES = {
   'symbol-research': {
     id: 'symbol-research',
     version: 'mode-2',
+    route: 'symbol-research',
+    component: 'mastra-symbol-research',
     allowedSymbols: ALL_SYMBOLS,
     allowedModes: ['single', 'quick', 'standard', 'full'],
     scope: 'read-only',
@@ -198,6 +284,50 @@ export const MASTRA_CAPABILITIES = {
       'get-symbol-intermarket-resonance',
       'search-untrusted-web',
       'search-untrusted-knowledge',
+    ],
+    toolMetadata: [
+      {
+        name: 'collect-symbol-research-packet',
+        category: 'public-market-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'trusted',
+      },
+      {
+        name: 'get-symbol-seasonality',
+        category: 'public-market-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'trusted',
+      },
+      {
+        name: 'get-symbol-cot',
+        category: 'public-market-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'trusted',
+      },
+      {
+        name: 'get-symbol-intermarket-resonance',
+        category: 'public-market-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'trusted',
+      },
+      {
+        name: 'search-untrusted-web',
+        category: 'untrusted-external-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'untrusted',
+      },
+      {
+        name: 'search-untrusted-knowledge',
+        category: 'untrusted-external-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'untrusted',
+      },
     ],
     requiresConfirmation: false,
     supportsStreaming: true,
@@ -211,11 +341,20 @@ export const MASTRA_CAPABILITIES = {
   'sensitive-user-read': {
     id: 'sensitive-user-read',
     version: '1',
+    route: 'sensitive-user-read',
+    component: 'mastra-sensitive-user-read',
     allowedSymbols: ALL_SYMBOLS,
     allowedModes: ['single', 'quick', 'standard', 'full', 'auto'],
     scope: 'sensitive-read',
     readOnly: true,
     tools: SENSITIVE_USER_READ_TOOL_NAMES,
+    toolMetadata: SENSITIVE_USER_READ_TOOL_NAMES.map((name) => ({
+      name,
+      category: 'user-scoped-data' as const,
+      access: 'sensitive-read' as const,
+      sensitivity: 'user-scoped' as const,
+      trust: 'trusted' as const,
+    })),
     requiresConfirmation: false,
     supportsStreaming: true,
     supportsAbort: true,
@@ -224,15 +363,29 @@ export const MASTRA_CAPABILITIES = {
     evidencePolicy: 'optional',
     externalData: false,
     contentTrust: 'trusted',
+    // Sensitive user-scoped reads answer from the user's own data only;
+    // semantic recall across unrelated threads is not part of this policy.
+    semanticRecall: false,
   },
   'mutation-workflows': {
     id: 'mutation-workflows',
     version: 'approval-1',
+    route: 'mutation-draft',
+    component: 'mastra-mutation-workflows',
     allowedSymbols: ALL_SYMBOLS,
     allowedModes: ['single', 'quick', 'standard', 'full', 'auto'],
     scope: 'user-scoped',
     readOnly: false,
     tools: ['set_alert', 'log_journal', 'share_snapshot', 'run_system_action'],
+    toolMetadata: ['set_alert', 'log_journal', 'share_snapshot', 'run_system_action'].map(
+      (name) => ({
+        name,
+        category: 'mutation' as const,
+        access: 'write' as const,
+        sensitivity: 'user-scoped' as const,
+        trust: 'trusted' as const,
+      }),
+    ),
     requiresConfirmation: true,
     supportsStreaming: false,
     supportsAbort: true,
@@ -245,6 +398,8 @@ export const MASTRA_CAPABILITIES = {
   'xauusd-research': {
     id: 'xauusd-research',
     version: 'poc-5',
+    route: 'xauusd-research',
+    component: 'mastra-xauusd-research',
     allowedSymbols: ['XAUUSD'],
     allowedModes: ['single', 'auto'],
     scope: 'read-only',
@@ -254,6 +409,36 @@ export const MASTRA_CAPABILITIES = {
       'get_xauusd_price',
       'get_xauusd_candles',
       'get_xauusd_indicators',
+    ],
+    toolMetadata: [
+      {
+        name: 'get_xauusd_research_packet',
+        category: 'public-market-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'trusted',
+      },
+      {
+        name: 'get_xauusd_price',
+        category: 'public-market-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'trusted',
+      },
+      {
+        name: 'get_xauusd_candles',
+        category: 'public-market-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'trusted',
+      },
+      {
+        name: 'get_xauusd_indicators',
+        category: 'public-market-data',
+        access: 'read-only',
+        sensitivity: 'public',
+        trust: 'trusted',
+      },
     ],
     requiresConfirmation: false,
     // Conversational XAUUSD turns use Mastra's token stream; verified reports
@@ -269,6 +454,122 @@ export const MASTRA_CAPABILITIES = {
 } as const satisfies Record<string, MastraCapability>;
 
 export type MastraCapabilityId = keyof typeof MASTRA_CAPABILITIES;
+
+/** Read-only manifest metadata used by route, tool, and telemetry consumers. */
+export function manifestForCapability(capabilityId: MastraCapabilityId): MastraCapability {
+  return MASTRA_CAPABILITIES[capabilityId];
+}
+
+export function manifestToolNames(capabilityId: MastraCapabilityId): readonly string[] {
+  return manifestForCapability(capabilityId).toolMetadata.map((tool) => tool.name);
+}
+
+export function manifestToolsForDomain(domain: MastraRoutingDomain): readonly string[] {
+  return MASTRA_CAPABILITIES['canonical-chat'].domainTools?.[domain] ?? [];
+}
+
+export interface MastraCapabilityUiMetadata {
+  readonly id: MastraCapabilityId;
+  readonly version: string;
+  readonly route: string;
+  readonly component: string;
+  readonly scope: MastraCapabilityScope;
+  readonly readOnly: boolean;
+  readonly supportsStreaming: boolean;
+  readonly maxSteps: number;
+  readonly maxDurationMs: number;
+  readonly tools: readonly MastraManifestTool[];
+}
+
+export function capabilityUiMetadata(capabilityId: MastraCapabilityId): MastraCapabilityUiMetadata {
+  const capability = manifestForCapability(capabilityId);
+  return {
+    id: capability.id as MastraCapabilityId,
+    version: capability.version,
+    route: capability.route,
+    component: capability.component,
+    scope: capability.scope,
+    readOnly: capability.readOnly,
+    supportsStreaming: capability.supportsStreaming,
+    maxSteps: capability.maxSteps,
+    maxDurationMs: capability.maxDurationMs,
+    tools: capability.toolMetadata,
+  };
+}
+
+export function capabilityTelemetryLabels(
+  capabilityId: MastraCapabilityId,
+): Record<string, string> {
+  const capability = manifestForCapability(capabilityId);
+  return {
+    capabilityId: capability.id,
+    capabilityVersion: capability.version,
+    capabilityRoute: capability.route,
+    capabilityScope: capability.scope,
+  };
+}
+
+export function assertCapabilityManifestIntegrity(): void {
+  const knownLegacyTools = new Set<string>(TOOL_NAMES);
+  const knownMastraTools = new Set<string>([
+    'get_xauusd_research_packet',
+    'get_xauusd_price',
+    'get_xauusd_candles',
+    'get_xauusd_indicators',
+    'get-xauusd-market-structure',
+    'get-xauusd-session-levels',
+    'analyze-xauusd-technical',
+    'get-xauusd-correlation',
+    'get-xauusd-intermarket',
+    'forecast-xauusd-volatility',
+    'get-xauusd-news',
+    'get-xauusd-calendar',
+    'get-xauusd-social-sentiment',
+    'get-xauusd-fundamental-context',
+    'get-xauusd-seasonality',
+    'get-xauusd-cot',
+    'get-xauusd-intermarket-resonance',
+    'search-untrusted-web',
+    'search-untrusted-knowledge',
+    'collect-symbol-research-packet',
+    'get-symbol-seasonality',
+    'get-symbol-cot',
+    'get-symbol-intermarket-resonance',
+  ]);
+  for (const [id, capability] of Object.entries(MASTRA_CAPABILITIES)) {
+    if (id !== capability.id) throw new Error(`Capability manifest ID mismatch: ${id}.`);
+    if (
+      capability.tools.some((tool) => !knownLegacyTools.has(tool) && !knownMastraTools.has(tool))
+    ) {
+      throw new Error(`Capability ${id} declares an unregistered tool.`);
+    }
+    if (new Set(capability.tools).size !== capability.tools.length) {
+      throw new Error(`Capability ${id} declares duplicate tools.`);
+    }
+    const metadataNames = capability.toolMetadata.map((tool) => tool.name);
+    if (
+      metadataNames.length !== capability.tools.length ||
+      metadataNames.some((name, index) => name !== capability.tools[index])
+    ) {
+      throw new Error(`Capability ${id} tool metadata is out of sync.`);
+    }
+    if (
+      capability.readOnly &&
+      capability.toolMetadata.some(
+        (tool) =>
+          (tool as MastraManifestTool).access === 'write' ||
+          (tool as MastraManifestTool).category === 'mutation',
+      )
+    ) {
+      throw new Error(`Read-only capability ${id} declares a mutation tool.`);
+    }
+    if (capability.requiresConfirmation && capability.readOnly) {
+      throw new Error(`Read-only capability ${id} cannot require mutation confirmation.`);
+    }
+  }
+}
+
+assertCapabilityManifestIntegrity();
 
 export type MastraCapabilityRejectionReason =
   | 'unknown-capability'

@@ -17,13 +17,58 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CANONICAL_READ_ONLY_TOOL_NAMES,
+  assertCapabilityManifestIntegrity,
+  capabilityTelemetryLabels,
+  capabilityUiMetadata,
   evaluateMastraCapability,
   getMastraCapability,
+  manifestToolsForDomain,
   MASTRA_CAPABILITIES,
 } from '../src/mastra';
 
 describe('Mastra capability policy', () => {
+  it('keeps the manifest internally consistent and mutation-safe', () => {
+    expect(() => assertCapabilityManifestIntegrity()).not.toThrow();
+    for (const capability of Object.values(MASTRA_CAPABILITIES)) {
+      expect(capability.toolMetadata.map((tool) => tool.name)).toEqual([...capability.tools]);
+      if (capability.readOnly) {
+        expect(
+          capability.toolMetadata.every((tool) => (tool as { access: string }).access !== 'write'),
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('projects UI and telemetry metadata from the manifest', () => {
+    expect(capabilityUiMetadata('canonical-chat')).toMatchObject({
+      id: 'canonical-chat',
+      route: 'canonical-chat',
+      component: 'mastra-canonical-chat',
+    });
+    expect(capabilityTelemetryLabels('xauusd-conversation')).toEqual({
+      capabilityId: 'xauusd-conversation',
+      capabilityVersion: 'poc-5',
+      capabilityRoute: 'xauusd-conversation',
+      capabilityScope: 'read-only',
+    });
+  });
+
+  it('derives legacy routing tools from the canonical manifest', () => {
+    expect(manifestToolsForDomain('technical')).toContain('get_price');
+    expect(manifestToolsForDomain('technical')).toContain('get_portfolio_snapshot');
+  });
+
+  it('declares the canonical capability as public read-only only', () => {
+    expect(MASTRA_CAPABILITIES['canonical-chat']).toMatchObject({
+      route: 'canonical-chat',
+      component: 'mastra-canonical-chat',
+      readOnly: true,
+      maxSteps: 6,
+    });
+    expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain('get_portfolio_snapshot');
+    expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain('log_journal');
+  });
+
   it('declares the current XAUUSD research capability explicitly', () => {
     expect(MASTRA_CAPABILITIES['xauusd-research']).toMatchObject({
       id: 'xauusd-research',
@@ -39,7 +84,7 @@ describe('Mastra capability policy', () => {
     const mutationTools = ['set_alert', 'log_journal', 'share_snapshot', 'run_system_action'];
 
     for (const mutationTool of mutationTools) {
-      expect(CANONICAL_READ_ONLY_TOOL_NAMES).not.toContain(mutationTool);
+      expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain(mutationTool);
     }
   });
 

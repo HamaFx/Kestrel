@@ -33,6 +33,8 @@ describe('mastraChatResponse', () => {
       packetId: 'packet-1',
       observedCost: 0.001,
       report: null,
+      memoryMode: 'degraded',
+      memoryBackfill: true,
     });
 
     const body = await response.text();
@@ -48,6 +50,8 @@ describe('mastraChatResponse', () => {
       data: {
         agent: 'mastra-xauusd',
         runId: 'run-1',
+        memoryMode: 'degraded',
+        memoryBackfill: true,
       },
     });
     expect(metadata).not.toHaveProperty('transient', true);

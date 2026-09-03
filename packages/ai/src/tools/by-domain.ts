@@ -35,7 +35,7 @@
 
 import type { Tool } from 'ai';
 
-import { toolsForRoutingDomain } from '../mastra/capability-registry';
+import { manifestToolsForDomain } from '../mastra/capabilities';
 import { toolRegistry } from './index';
 
 export type RoutingDomain = 'fundamental' | 'technical' | 'summary' | 'vision' | 'generic';
@@ -55,7 +55,7 @@ export function domainToolFilter(domain: RoutingDomain, plan?: string): Record<s
 
   if (domain === 'generic') return allTools;
 
-  const allowed = toolsForRoutingDomain(domain);
+  const allowed = manifestToolsForDomain(domain);
   const filtered: Record<string, Tool> = {};
   for (const name of allowed) {
     const tool = allTools[name];

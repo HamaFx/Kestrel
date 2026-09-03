@@ -18,6 +18,7 @@ import type { Agent, AgentMemoryOption } from '@mastra/core/agent';
 import type { RequestContext } from '@mastra/core/request-context';
 
 import { telemetryConfig } from '../telemetry';
+import { manifestForCapability } from './capabilities';
 import { guardXauusdFollowupText } from './followup-safety';
 import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
 import { XauusdReportVerificationError } from './report-verifier';
@@ -42,7 +43,7 @@ export async function generateXauusdFollowup(
   const result = await agent.generate(prompt, {
     requestContext,
     toolChoice: 'none',
-    maxSteps: 1,
+    maxSteps: manifestForCapability('xauusd-research').maxSteps > 0 ? 1 : 0,
     ...(memory ? { memory } : {}),
     ...telemetryConfig({
       functionId: 'mastra.xauusd.followup',
@@ -72,7 +73,7 @@ export async function generateXauusdReport(
     // The packet has already been collected deterministically. Prevent the
     // synthesis step from fetching a different snapshot or inventing a path.
     toolChoice: 'none',
-    maxSteps: 1,
+    maxSteps: manifestForCapability('xauusd-research').maxSteps > 0 ? 1 : 0,
     ...(memory ? { memory } : {}),
     structuredOutput: {
       schema: XauusdResearchReportSchema,

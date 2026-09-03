@@ -97,6 +97,8 @@ describe('Mastra chat service', () => {
       result: { text: 'Conversational gold explanation' },
       report: null,
       packet: { packetId: 'packet-conversation', status: 'ready', dataQuality: 'partial' },
+      memoryMode: 'native',
+      memoryBackfill: true,
     });
     mocks.runMastraXauusdResearch.mockResolvedValue({
       modelId: 'mistral-small-latest',
@@ -106,6 +108,8 @@ describe('Mastra chat service', () => {
       report: null,
       packet: { packetId: 'packet-1', status: 'ready', dataQuality: 'partial' },
       totalCostUsd: 0.002,
+      memoryMode: 'degraded',
+      memoryBackfill: true,
     });
     mocks.appendUserMessage.mockResolvedValue(undefined);
     mocks.appendAssistantMessage.mockResolvedValue({ messageId: 'assistant-1' });
@@ -148,7 +152,7 @@ describe('Mastra chat service', () => {
     expect(assistant.parts[0]).toEqual({ type: 'text', text: 'grounded result' });
     expect(assistant.parts[1]).toMatchObject({
       type: 'data-multi-agent-meta',
-      data: { agent: 'mastra-xauusd' },
+      data: { agent: 'mastra-xauusd', memoryMode: 'degraded', memoryBackfill: true },
     });
     expect(budget.reconcile).toHaveBeenCalledWith(0.002);
     expect(budget.release).not.toHaveBeenCalled();

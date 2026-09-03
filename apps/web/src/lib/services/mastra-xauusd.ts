@@ -18,16 +18,18 @@
 
 import 'server-only';
 
+import type { GenerationLedger } from '@kestrel/ai';
 import {
   runXauusdMastra,
   runXauusdMastraConversation,
+  type ExecutionPlan,
   type RunXauusdMastraArgs,
   type XauusdMastraRunResult,
   type XauusdResearchReport,
+  type XauusdTurnMode,
 } from '@kestrel/ai/mastra';
 import { getThread, getUserWithSettings } from '@kestrel/db';
 import { notFound } from '@kestrel/shared';
-import type { ExecutionPlan } from '@kestrel/ai/mastra';
 
 import { getServerEnv } from '@/lib/env';
 
@@ -38,11 +40,14 @@ export interface RunMastraXauusdResearchInput {
   prompt: string;
   modelOverride?: string | null;
   signal?: AbortSignal;
+  /** Prevent native memory backfill from duplicating this persisted request. */
+  backfillExcludeMessageIdempotencyKey?: string;
   telemetryKind?: 'mastra_xauusd_poc';
-  followup?: boolean;
+  /** Explicit turn mode (Phase 7): `followup` answers from the saved report. */
+  turnMode?: XauusdTurnMode;
   priorReport?: XauusdResearchReport | null;
   executionPlan?: ExecutionPlan;
-  ledger?: import('@kestrel/ai').GenerationLedger;
+  ledger?: GenerationLedger;
 }
 
 type MastraXauusdRunner = (args: RunXauusdMastraArgs) => Promise<XauusdMastraRunResult>;
@@ -68,8 +73,11 @@ async function executeMastraXauusdTurn(
     env: getServerEnv(),
     ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
     ...(input.signal ? { signal: input.signal } : {}),
+    ...(input.backfillExcludeMessageIdempotencyKey
+      ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
+      : {}),
     ...(input.telemetryKind ? { telemetryKind: input.telemetryKind } : {}),
-    ...(input.followup ? { followup: true } : {}),
+    ...(input.turnMode ? { turnMode: input.turnMode } : {}),
     ...(input.priorReport ? { priorReport: input.priorReport } : {}),
     ...(input.executionPlan ? { executionPlan: input.executionPlan } : {}),
     ...(input.ledger ? { ledger: input.ledger } : {}),

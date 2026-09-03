@@ -1,8 +1,9 @@
 import 'server-only';
 
 import { type BudgetHandle } from '@kestrel/ai';
-import { createStreamLifecycleCoordinator } from './mastra-chat-service-lifecycle';
 import { metrics } from '@kestrel/shared';
+
+import { createStreamLifecycleCoordinator } from './mastra-chat-service-lifecycle';
 
 /**
  * Stream adapter for the shared lifecycle. Completion, abort, and failure

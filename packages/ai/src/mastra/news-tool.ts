@@ -20,7 +20,11 @@ import { z } from 'zod';
 
 import { getNewsTool } from '../tools/get-news';
 import { createEvidenceId } from './evidence';
-import { EXTERNAL_CONTENT_TRUST_WARNING, quarantineExternalText } from './external-content';
+import {
+  EXTERNAL_CONTENT_TRUST_WARNING,
+  quarantineExternalText,
+  toUntrustedExternalEvidence,
+} from './external-content';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
 import { executeMastraTool } from './telemetry';
 import { XauusdSymbolSchema } from './tool-schemas';
@@ -102,15 +106,27 @@ export const xauusdNewsTool = createTool({
         items: sanitizedItems.map(({ quarantined: _quarantined, ...item }) => item),
       };
 
-      return OutputSchema.parse({
+      const externalEvidence = toUntrustedExternalEvidence({
         evidenceId: createEvidenceId('news', XAUUSD),
+        source: 'kestrel-news-cache',
+        provider: 'kestrel-news-cache',
+        fetchedAt,
+        dataAsOf: new Date(latestPublication ?? Date.parse(fetchedAt)).toISOString(),
+        freshness: 'unknown',
+        quality: 'degraded',
+        warnings,
+        content: sanitizedItems.map((item) => `${item.title}\n${item.summary ?? ''}`).join('\n'),
+      });
+
+      return OutputSchema.parse({
+        evidenceId: externalEvidence.evidenceId,
         symbol: XAUUSD,
         source: 'kestrel-news-cache',
         fetchedAt,
         dataAsOf: new Date(latestPublication ?? Date.parse(fetchedAt)).toISOString(),
         freshness: 'unknown',
         quality: 'degraded',
-        warnings,
+        warnings: externalEvidence.warnings,
         contentTrust: 'untrusted',
         data: sanitizedData,
       });

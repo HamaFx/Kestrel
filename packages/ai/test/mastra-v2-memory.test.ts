@@ -28,7 +28,11 @@ import {
   createKestrelMemory,
   createKestrelVectorStore,
   getKestrelVectorStore,
+  KESTREL_WORKING_MEMORY_TEMPLATE,
   kestrelMemoryOptions,
+  OBSERVATIONAL_MEMORY_REFINEMENTS_PER_MESSAGE,
+  OBSERVATIONAL_MEMORY_REFINING_STEP_USD,
+  observationalMemoryAllowanceUsd,
 } from '../src/mastra-v2';
 
 const cleanups: Array<() => void> = [];
@@ -135,6 +139,57 @@ describe('mastra-v2 memory options', () => {
       if (previous === undefined) delete process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY;
       else process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY = previous;
     }
+  });
+
+  it('honors the capability semanticRecall override over the global gate', () => {
+    const previous = process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
+    process.env.ENABLE_MASTRA_SEMANTIC_RECALL = 'false';
+    try {
+      const on = kestrelMemoryOptions({ env: NO_KEYS_ENV, semanticRecall: true });
+      expect(on.semanticRecall).toMatchObject({ topK: 4, scope: 'resource' });
+      const off = kestrelMemoryOptions({ env: NO_KEYS_ENV, semanticRecall: false });
+      expect(off.semanticRecall).toBe(false);
+    } finally {
+      if (previous === undefined) delete process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
+      else process.env.ENABLE_MASTRA_SEMANTIC_RECALL = previous;
+    }
+  });
+
+  it('keeps the env gate when no capability override is provided', () => {
+    const previous = process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
+    process.env.ENABLE_MASTRA_SEMANTIC_RECALL = 'false';
+    try {
+      expect(kestrelMemoryOptions({ env: NO_KEYS_ENV }).semanticRecall).toBe(false);
+    } finally {
+      if (previous === undefined) delete process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
+      else process.env.ENABLE_MASTRA_SEMANTIC_RECALL = previous;
+    }
+  });
+});
+
+describe('mastra-v2 observational memory budget (Phase 9)', () => {
+  it('models the allowance as refinements per message times step cost', () => {
+    expect(OBSERVATIONAL_MEMORY_REFINEMENTS_PER_MESSAGE).toBe(2);
+    expect(OBSERVATIONAL_MEMORY_REFINING_STEP_USD).toBe(0.004);
+    expect(observationalMemoryAllowanceUsd(1)).toBeCloseTo(0.008, 6);
+    expect(observationalMemoryAllowanceUsd(0)).toBe(0);
+    expect(observationalMemoryAllowanceUsd(2)).toBeCloseTo(0.016, 6);
+  });
+
+  it('is bounded and conservative (one order of magnitude under the turn estimate)', () => {
+    expect(observationalMemoryAllowanceUsd(1)).toBeLessThan(0.05);
+    expect(observationalMemoryAllowanceUsd(4)).toBeLessThan(0.05);
+  });
+});
+
+describe('mastra-v2 working memory template', () => {
+  it('exposes model-visible user preferences only, never runtime configuration', () => {
+    expect(KESTREL_WORKING_MEMORY_TEMPLATE).toContain('Default symbol');
+    expect(KESTREL_WORKING_MEMORY_TEMPLATE).toContain('Language');
+    expect(KESTREL_WORKING_MEMORY_TEMPLATE).toContain('Timezone');
+    expect(KESTREL_WORKING_MEMORY_TEMPLATE).not.toMatch(
+      /chatModel|embeddingModel|model|provider|budget|limit|apiKey|AiApiKey/i,
+    );
   });
 });
 

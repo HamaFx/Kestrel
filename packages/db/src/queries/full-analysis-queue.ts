@@ -238,13 +238,32 @@ export async function failFullAnalysisQueue(
   });
 }
 
+export interface FullAnalysisLedgerSnapshotPayload {
+  entries: Array<{ id: string; kind: string; costUsd: number }>;
+  totalCostUsd: number;
+}
+
+/**
+ * Requeue a claimed run for another attempt, atomically merging the
+ * in-memory generation ledger into the row payload. The next attempt
+ * restores exactly the child generations already completed, so cost
+ * reconciliation never double-counts billed work (Phase 8).
+ */
 export async function requeueFullAnalysisQueue(
-  input: FullAnalysisLeaseInput & { error: string },
+  input: FullAnalysisLeaseInput & {
+    error: string;
+    ledgerSnapshot?: FullAnalysisLedgerSnapshotPayload | null;
+  },
 ): Promise<FullAnalysisQueueRow> {
   return updateOwnedQueueRow(input, 'pending', {
     error: input.error,
     workerRunId: null,
     leaseExpiresAt: null,
+    ...(input.ledgerSnapshot
+      ? {
+          payload: sql`jsonb_set(${schema.fullAnalysisQueue.payload}, '{ledgerSnapshot}', ${JSON.stringify(input.ledgerSnapshot)}::jsonb)`,
+        }
+      : {}),
   });
 }
 

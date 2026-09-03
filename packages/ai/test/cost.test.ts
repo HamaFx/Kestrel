@@ -24,9 +24,9 @@ import {
   estimateCostUsd,
   getMonthlySpend,
   getProviderMonthlySpend,
+  reconcileBudgetReservation,
   recoverStaleBudgetReservations,
   releaseBudgetReservation,
-  reconcileBudgetReservation,
   reservedSpendUsd,
   tryReserveBudget,
 } from '../src/cost';
@@ -115,7 +115,8 @@ describe('Phase 1 cost aggregation invariants', () => {
     ];
     const childTotal = generations.reduce(
       (sum, generation) =>
-        sum + estimateCostUsd('openai/gpt-4.1-mini', generation.inputTokens, generation.outputTokens),
+        sum +
+        estimateCostUsd('openai/gpt-4.1-mini', generation.inputTokens, generation.outputTokens),
       0,
     );
     const parentTotal = estimateCostUsd(
@@ -130,7 +131,9 @@ describe('Phase 1 cost aggregation invariants', () => {
 
   it('uses a stable run idempotency key for terminal reconciliation', async () => {
     mockTransactionResults = [
-      { rows: [{ user_id: 'user-1', day: '2026-08-14', reserved_usd_cents: 5, status: 'reserved' }] },
+      {
+        rows: [{ user_id: 'user-1', day: '2026-08-14', reserved_usd_cents: 5, status: 'reserved' }],
+      },
       { rows: [{ user_id: 'user-1' }] },
       { rows: [] },
     ];

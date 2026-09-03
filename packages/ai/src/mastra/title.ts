@@ -134,11 +134,7 @@ export async function generateThreadTitle(
       maxOutputTokens: 80,
     });
     const costUsd = estimateCostUsd(args.titleModelId, result.inputTokens, result.outputTokens);
-    args.ledger?.recordCost(
-      args.ledgerId ?? `title:${args.threadId}`,
-      'title',
-      costUsd,
-    );
+    args.ledger?.recordCost(args.ledgerId ?? `title:${args.threadId}`, 'title', costUsd);
     await args.accounting?.onComplete?.(
       // Title output is bounded; use the runner's actual token counts for
       // conservative parent-turn reconciliation.

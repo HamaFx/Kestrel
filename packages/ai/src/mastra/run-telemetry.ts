@@ -43,6 +43,14 @@ export function resetMastraTelemetryHealth(): void {
   telemetryDegraded = false;
 }
 
+/**
+ * Memory execution mode for a run. `degraded` (Phase 9) means the request
+ * completed with native memory but preparation partially failed (seed or
+ * backfill) — answer semantics are unchanged, but the degradation is
+ * surfaced in telemetry and UI metadata so it is never silent.
+ */
+export type MastraMemoryMode = 'native' | 'explicit-history' | 'degraded' | 'disabled';
+
 export interface MastraRunObservation {
   userId: string;
   threadId: string;
@@ -60,7 +68,9 @@ export interface MastraRunObservation {
   /** Whether an answer was ready, blocked by evidence, or degraded. */
   answerOutcome?: MastraAnswerOutcome;
   /** Memory execution mode used by this run. */
-  memoryMode?: 'native' | 'explicit-history' | 'disabled';
+  memoryMode?: MastraMemoryMode;
+  /** Whether native memory preparation attempted legacy history backfill. */
+  memoryBackfill?: boolean;
   /** Immutable resolved model identity used for this run. */
   modelSnapshot?: { providerId: string; bareModelId: string };
   /** Identifies the run type for telemetry breakdown. */
@@ -111,6 +121,7 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
     outcome: args.outcome,
     answerOutcome: args.answerOutcome,
     memoryMode: args.memoryMode,
+    memoryBackfill: args.memoryBackfill,
     modelSnapshot: args.modelSnapshot,
     model: args.model,
     providerId: args.providerId,

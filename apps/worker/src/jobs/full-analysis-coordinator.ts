@@ -55,7 +55,9 @@ export function createFullAnalysisCoordinator(input: FullAnalysisCoordinatorInpu
       if (requeuePromise) return requeuePromise;
       if (input.isLeaseLost()) return;
       requeuePromise = (async () => {
-        await lifecycle.fail();
+        // Retry is not a terminal run outcome: the enqueue-time reservation
+        // stays 'reserved' so the next attempt reconciles the actual cost
+        // exactly once (Phase 8). Only fail/cancel/complete settle budget.
         await input.transitions.requeue(message);
       })();
       return requeuePromise;

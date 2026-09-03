@@ -172,6 +172,10 @@ describe('Mastra mode runner', () => {
       mode: 'quick',
       symbol: 'EURUSD',
       finalText: expect.stringContaining('EURUSD'),
+      // The hermetic test environment has no durable database, so memory
+      // preparation correctly reports the degraded fallback state.
+      memoryMode: 'degraded',
+      memoryBackfill: true,
     });
     expect(result.agentOpinions).toHaveLength(1);
     expect(result.agentOpinions[0]?.agentName).toBe('technical');

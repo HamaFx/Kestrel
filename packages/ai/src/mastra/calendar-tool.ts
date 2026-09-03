@@ -20,7 +20,11 @@ import { z } from 'zod';
 
 import { getCalendarTool } from '../tools/get-calendar';
 import { createEvidenceId } from './evidence';
-import { EXTERNAL_CONTENT_TRUST_WARNING, quarantineExternalText } from './external-content';
+import {
+  EXTERNAL_CONTENT_TRUST_WARNING,
+  quarantineExternalText,
+  toUntrustedExternalEvidence,
+} from './external-content';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
 import { executeMastraTool } from './telemetry';
 import { XAUUSD } from './types';
@@ -96,15 +100,27 @@ export const xauusdCalendarTool = createTool({
         items: sanitizedItems.map(({ quarantined: _quarantined, ...item }) => item),
       };
 
-      return OutputSchema.parse({
+      const externalEvidence = toUntrustedExternalEvidence({
         evidenceId: createEvidenceId('calendar', XAUUSD),
+        source: 'kestrel-economic-calendar-cache',
+        provider: 'kestrel-economic-calendar-cache',
+        fetchedAt,
+        dataAsOf: fetchedAt,
+        freshness: 'unknown',
+        quality: 'degraded',
+        warnings,
+        content: sanitizedItems.map((item) => item.title).join('\n'),
+      });
+
+      return OutputSchema.parse({
+        evidenceId: externalEvidence.evidenceId,
         symbol: XAUUSD,
         source: 'kestrel-economic-calendar-cache',
         fetchedAt,
         dataAsOf: fetchedAt,
         freshness: 'unknown',
         quality: 'degraded',
-        warnings,
+        warnings: externalEvidence.warnings,
         contentTrust: 'untrusted',
         data: sanitizedData,
       });

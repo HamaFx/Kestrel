@@ -4,21 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
-import { applyMigrations, closePGliteDb, getPGliteDb } from '@kestrel/db/pglite';
-import { container } from '@kestrel/shared';
-import { LibSQLStore } from '@mastra/libsql';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  _resetKestrelMastra,
-  _setKestrelMastraForTest,
-  createKestrelMastra,
-  initializeKestrelMastra,
-} from '../src/mastra-v2';
+import { _resetKestrelMastra } from '../src/mastra-v2';
 import {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
@@ -33,7 +21,7 @@ import {
   touchFullAnalysisRun,
   updateFullAnalysisProgress,
 } from '../src/mastra-v2/workflows/full-analysis';
-import { DB } from '../src/tokens';
+import { withQueueStorage } from './helpers/full-analysis-queue-db';
 
 const INPUT = {
   userId: 'user-1',
@@ -48,40 +36,6 @@ const INPUT = {
     bareModelId: 'gemini-2.5-flash',
   },
 };
-
-async function withQueueStorage<T>(
-  fn: (db: Awaited<ReturnType<typeof getPGliteDb>>) => Promise<T>,
-): Promise<T> {
-  const dir = mkdtempSync(join(tmpdir(), 'kestrel-full-analysis-'));
-  await applyMigrations(dir);
-  const db = await getPGliteDb(dir);
-  await db.execute(
-    `INSERT INTO "user" ("id", "email") VALUES ('user-1', 'full-analysis@example.com')`,
-  );
-  await db.execute(
-    `INSERT INTO "organization" ("id", "name") VALUES ('user-1', 'Full analysis workspace') ON CONFLICT ("id") DO NOTHING`,
-  );
-  await db.execute(
-    `INSERT INTO "organization_member" ("org_id", "user_id", "role") VALUES ('user-1', 'user-1', 'owner') ON CONFLICT ("org_id", "user_id") DO NOTHING`,
-  );
-  container.register(DB, () => db as never);
-
-  const file = join(dir, 'mastra.db');
-  const store = new LibSQLStore({ id: 'test-durable', url: `file:${file}` });
-  const mastra = createKestrelMastra({ storage: store, storageKind: 'libsql', env: {} });
-  await initializeKestrelMastra(mastra);
-  _setKestrelMastraForTest(mastra);
-  try {
-    return await fn(db);
-  } finally {
-    _resetKestrelMastra();
-    container.register(DB, () => {
-      throw new Error('Full-analysis test DB was not initialized');
-    });
-    await closePGliteDb();
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
 
 describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
   beforeEach(() => {

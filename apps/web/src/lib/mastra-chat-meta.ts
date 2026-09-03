@@ -30,7 +30,8 @@ export interface MastraChatMeta {
   report: XauusdResearchReport | null;
   executionOutcome: 'completed' | 'failed' | 'cancelled';
   answerOutcome: 'ready' | 'blocked' | 'degraded' | 'partial';
-  memoryMode: string;
+  memoryMode: 'native' | 'degraded';
+  memoryBackfill: boolean;
   modelSnapshot: unknown;
   terminalReason: string;
 }

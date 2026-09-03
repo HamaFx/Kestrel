@@ -24,6 +24,21 @@
 // objects/arrays (key-based). Together these two layers ensure that
 // secrets never leak into structured diagnostic traces.
 
+import { createHash } from 'node:crypto';
+
+/**
+ * Hash a string for audit logs that must not retain raw content (prompt
+ * payloads, retrieved snippets, injection attempts). The hash is a stable
+ * short hex prefix so the same payload can be correlated across events
+ * without being reconstructed from the log.
+ */
+export function hashLogValue(value: string, bytes = 16): string {
+  return createHash('sha256')
+    .update(value)
+    .digest('hex')
+    .slice(0, bytes * 2);
+}
+
 /**
  * Regex patterns for redacting secrets in string values.
  * Each entry is [pattern, replacement] where replacement is either a

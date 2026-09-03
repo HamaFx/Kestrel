@@ -23,7 +23,11 @@ import { LibSQLStore } from '@mastra/libsql';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createKestrelMastra, initializeKestrelMastra } from '../src/mastra-v2';
-import { createXauusdReportWorkflow } from '../src/mastra-v2/workflows/xauusd-report';
+import {
+  createXauusdReportWorkflow,
+  resolveXauusdReportOutputPolicy,
+} from '../src/mastra-v2/workflows/xauusd-report';
+import { XauusdResearchReportSchema } from '../src/mastra/report-types';
 import { XauusdResearchPacketSchema } from '../src/mastra/research-types';
 
 const mocks = vi.hoisted(() => ({
@@ -166,6 +170,66 @@ describe('xauusd-report workflow', () => {
     expect(output.blockedText).toContain('XAUUSD');
     expect(generate).not.toHaveBeenCalled();
     expect(output.stats.inputTokens).toBe(0);
+  });
+
+  it('defaults the output policy to verified (strong verifier + repair loop)', () => {
+    expect(resolveXauusdReportOutputPolicy(undefined)).toBe('verified');
+    expect(resolveXauusdReportOutputPolicy('verified')).toBe('verified');
+    expect(resolveXauusdReportOutputPolicy('schema')).toBe('schema');
+  });
+
+  it('accepts schema-valid structured output without the deterministic verifier under the schema policy', async () => {
+    // Under the `schema` output policy the deterministic report verifier is
+    // never consulted: any schema-valid structured output is accepted
+    // directly (used by generic research composition, Phase 7).
+    const generate = vi.fn().mockResolvedValue({
+      object: XauusdResearchReportSchema.parse(report),
+      text: 'schema-mode report',
+      usage: { inputTokens: 6, outputTokens: 4 },
+    });
+
+    const workflow = createXauusdReportWorkflow({
+      agent: { generate } as never,
+      callOptions: {} as never,
+      providerId: 'mistral',
+      outputPolicy: 'schema',
+    });
+    const result = await startWorkflow(workflow, 'xau-schema', 'Analyse gold');
+
+    expect(result.status).toBe('success');
+    const output = result.result as { status: string; attempts: number };
+    expect(output.status).toBe('ready');
+    expect(output.attempts).toBe(1);
+    expect(mocks.requireVerifiedXauusdReport).not.toHaveBeenCalled();
+  });
+
+  it('routes malformed structured output into the repair loop under the schema policy', async () => {
+    const generate = vi
+      .fn()
+      .mockResolvedValueOnce({
+        object: { bottomLine: 'missing every other field' },
+        text: 'bad',
+        usage: { inputTokens: 1, outputTokens: 1 },
+      })
+      .mockResolvedValueOnce({
+        object: XauusdResearchReportSchema.parse(report),
+        text: 'repaired',
+        usage: { inputTokens: 1, outputTokens: 1 },
+      });
+
+    const workflow = createXauusdReportWorkflow({
+      agent: { generate } as never,
+      callOptions: {} as never,
+      providerId: 'mistral',
+      outputPolicy: 'schema',
+    });
+    const result = await startWorkflow(workflow, 'xau-schema-repair', 'Analyse gold');
+
+    expect(result.status).toBe('success');
+    const output = result.result as { status: string; attempts: number };
+    expect(output.status).toBe('ready');
+    expect(output.attempts).toBe(2);
+    expect(mocks.requireVerifiedXauusdReport).not.toHaveBeenCalled();
   });
 
   it('persists run snapshots including the repair attempt when an instance is provided', async () => {
