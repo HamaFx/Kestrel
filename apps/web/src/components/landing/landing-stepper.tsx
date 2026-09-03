@@ -135,7 +135,7 @@ export function LandingStepper() {
   const current: Step = STEPS.find((s) => s.id === activeStep) ?? STEPS[0]!;
 
   return (
-    <section id="stepper" className="relative py-24 bg-[#0c0d0e] border-t border-b border-white/5">
+    <section id="stepper" className="relative py-28 lg:py-36 bg-[#0c0d0e] border-t border-b border-white/5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="flex flex-col items-start gap-4 mb-16 max-w-3xl">

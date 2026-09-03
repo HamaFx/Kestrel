@@ -23,7 +23,6 @@ import { LandingNav } from '@/components/landing/landing-nav';
 import { LandingHero } from '@/components/landing/landing-hero';
 import { LandingDesks } from '@/components/landing/landing-desks';
 import { LandingSimulator } from '@/components/landing/landing-simulator';
-import { LandingCaseStudies } from '@/components/landing/landing-cases';
 import { LandingStepper } from '@/components/landing/landing-stepper';
 import { LandingArchitecture } from '@/components/landing/landing-architecture';
 import { LandingFAQ } from '@/components/landing/landing-faq';
@@ -50,7 +49,6 @@ export default async function RootPage() {
         <LandingHero />
         <LandingDesks />
         <LandingSimulator />
-        <LandingCaseStudies />
         <LandingStepper />
         <LandingArchitecture />
         <LandingFAQ />
