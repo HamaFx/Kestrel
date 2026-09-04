@@ -129,7 +129,7 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                 <div className="flex shrink-0 items-center gap-1.5">
                   <span
                     className={cn(
-                      'rounded-sm px-1.5 py-0.5 font-mono text-xs font-bold uppercase',
+                      'rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider',
                       importanceTone,
                     )}
                   >
@@ -139,7 +139,7 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                   {/* 1-Click Ask AI Copilot */}
                   <Link
                     href={`/chat?prompt=${aiPrompt}`}
-                    className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm p-1.5 transition-colors"
+                    className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg p-1.5 transition-colors active:translate-y-[0.5px]"
                     title={`Get AI event gameplan for ${e.title}`}
                     aria-label={`Get AI event gameplan for ${e.title}`}
                   >

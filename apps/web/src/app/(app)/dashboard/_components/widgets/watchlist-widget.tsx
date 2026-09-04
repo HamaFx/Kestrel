@@ -136,22 +136,22 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
             <button
               type="button"
               onClick={() => setShowAddMenu((v) => !v)}
-              className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[30px] items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors"
+              className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[30px] items-center gap-1 rounded-md px-2.5 py-1 text-xs font-mono font-medium transition-colors active:translate-y-[0.5px]"
               title="Add symbol to watchlist"
             >
-              <IconPlus className="size-3.5" />
+              <IconPlus className="size-3.5 text-brand" />
               <span>Add</span>
             </button>
           )}
 
           {showAddMenu && (
-            <div className="border-border bg-bg-elev-2 absolute top-full right-0 z-30 mt-1 flex max-h-48 min-w-[140px] flex-col gap-0.5 overflow-y-auto rounded-sm border p-1 shadow-lg">
+            <div className="surface-panel border border-white/15 bg-[#141516]/98 absolute top-full right-0 z-30 mt-1.5 flex max-h-48 min-w-[150px] flex-col gap-0.5 overflow-y-auto rounded-xl p-1.5 shadow-2xl backdrop-blur-xl">
               {availableToAdd.map((sym) => (
                 <button
                   key={sym}
                   type="button"
                   onClick={() => addSymbol(sym)}
-                  className="text-fg hover:bg-bg-elev-3 w-full rounded-xs px-2.5 py-1.5 text-left font-mono text-xs font-medium transition-colors"
+                  className="text-fg-muted hover:text-fg hover:bg-white/5 w-full rounded-lg px-2.5 py-1.5 text-left font-mono text-xs font-medium transition-colors active:translate-y-[0.5px]"
                 >
                   {sym}
                 </button>
@@ -270,7 +270,7 @@ function WatchRow({
           </Link>
           <span
             className={cn(
-              '-mx-1 inline-flex w-fit items-center rounded-sm px-1 font-mono text-xs font-medium tabular-nums transition-colors duration-500',
+              '-mx-1 inline-flex w-fit items-center rounded-md px-1.5 py-0.5 font-mono text-xs font-medium tabular-nums transition-colors duration-500',
               flash === 'bull' && 'bg-bull/15 text-bull',
               flash === 'bear' && 'bg-bear/15 text-bear',
               flash === null && 'text-fg-subtle',
@@ -305,7 +305,7 @@ function WatchRow({
         {/* 1-Click Ask AI Copilot */}
         <Link
           href={`/chat?prompt=${aiPrompt}`}
-          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm p-1.5 transition-colors"
+          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg p-1.5 transition-colors active:translate-y-[0.5px]"
           title={`Ask AI Copilot to analyze ${tick.symbol}`}
           aria-label={`Ask AI Copilot to analyze ${tick.symbol}`}
         >
@@ -317,7 +317,7 @@ function WatchRow({
           <button
             type="button"
             onClick={onRemove}
-            className="text-fg-subtle hover:text-danger inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
+            className="text-fg-subtle hover:text-danger inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg p-1.5 opacity-0 transition-all group-hover:opacity-100 active:translate-y-[0.5px]"
             title={`Remove ${tick.symbol} from watchlist`}
             aria-label={`Remove ${tick.symbol}`}
           >

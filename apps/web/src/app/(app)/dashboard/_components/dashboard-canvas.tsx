@@ -221,7 +221,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-fg text-display-lg sm:text-display-xl font-bold tracking-tight">
+            <h1 className="text-fg font-display text-2xl sm:text-3xl font-normal tracking-[-0.03em]">
               Dashboard
             </h1>
             <PreSessionChecklistDrawer />
@@ -245,17 +245,17 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
               />
             ) : null}
             {editMode ? (
-              <Button variant="ghost" size="sm" onClick={handleReset}>
+              <Button variant="ghost" size="sm" onClick={handleReset} className="font-mono text-xs active:translate-y-[0.5px]">
                 <IconRotate className="size-4" />
                 Reset
               </Button>
             ) : null}
             <Button
-              variant={editMode ? 'primary' : 'ghost'}
+              variant={editMode ? 'primary' : 'secondary'}
               size="sm"
               onClick={() => setEditMode((v) => !v)}
               aria-pressed={editMode}
-              className="gap-1.5 font-semibold"
+              className="gap-1.5 font-mono text-xs font-semibold active:translate-y-[0.5px]"
             >
               <IconAdjustmentsHorizontal className="size-4" />
               {editMode ? 'Done Editing' : 'Customize Layout'}
@@ -265,16 +265,16 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
 
         {/* Role Presets Bar when in Edit Mode */}
         {editMode && (
-          <div className="border-brand/40 bg-bg-elev-1 animate-in fade-in flex flex-col gap-2 rounded-sm border p-3 shadow-sm duration-200">
+          <div className="surface-panel border border-brand/30 bg-[#141516]/95 backdrop-blur-md flex flex-col gap-2 rounded-xl p-3.5 shadow-md duration-200">
             <div className="flex items-center justify-between">
               <span className="text-brand font-mono text-xs font-bold tracking-wider uppercase">
                 Role Layout Presets
               </span>
-              <span className="text-fg-subtle text-xs">
+              <span className="text-fg-subtle text-xs font-sans">
                 Click a preset to instantly restructure your workspace
               </span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {(Object.keys(PRESET_LAYOUTS) as LayoutPresetName[]).map((key) => {
                 const preset = PRESET_LAYOUTS[key];
                 return (
@@ -284,7 +284,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
                     onClick={() => {
                       persistLayout(preset.layout);
                     }}
-                    className="border-border bg-bg-elev-2 text-fg hover:border-brand hover:text-brand inline-flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold transition-colors"
+                    className="surface-chip border border-white/10 hover:border-brand/40 text-fg hover:text-white inline-flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono font-medium transition-all active:translate-y-[0.5px]"
                     title={preset.description}
                   >
                     <span>{preset.name}</span>
@@ -299,7 +299,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
       {/* Phase 5.6 — Error banner for failed data fetches */}
       {props.hasAnyError ? (
         <div
-          className="border-warn/30 bg-warn/5 flex items-center gap-3 rounded-sm border px-4 py-2.5 text-sm"
+          className="border border-warn/30 bg-warn/5 flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm"
           role="alert"
         >
           <IconAlertTriangle className="text-warn size-4 shrink-0" />
@@ -386,11 +386,11 @@ function SortableWidget({
         widget.span === 3 && 'col-span-1 md:col-span-2 lg:col-span-3',
         widget.span === 2 && 'col-span-1 md:col-span-2 lg:col-span-2',
         widget.span === 1 && 'col-span-1',
-        editMode && 'ring-border rounded-sm ring-1',
+        editMode && 'ring-brand/40 rounded-2xl ring-1',
       )}
     >
       {editMode ? (
-        <div className="border-border bg-bg-elev-1 mb-1 flex items-center justify-between gap-2 rounded-sm border px-3 py-1.5">
+        <div className="surface-chip border border-white/10 mb-1.5 flex items-center justify-between gap-2 rounded-xl px-3 py-2 shadow-sm">
           <button
             type="button"
             aria-label={`Drag ${WIDGET_LABELS[widget.type]} widget`}
@@ -400,7 +400,7 @@ function SortableWidget({
           >
             <IconGripVertical className="size-4" />
           </button>
-          <span className="text-fg-subtle text-caption tracking-wider uppercase">
+          <span className="text-fg-subtle font-mono text-[11px] tracking-wider uppercase">
             {WIDGET_LABELS[widget.type]}
           </span>
           <div className="flex items-center gap-1.5">
@@ -408,7 +408,7 @@ function SortableWidget({
               type="button"
               aria-label={`Toggle span for ${WIDGET_LABELS[widget.type]}`}
               onClick={onToggleSpan}
-              className="text-fg-subtle hover:text-fg bg-bg-elev-2 border-border/80 rounded-xs border px-2 py-0.5 font-mono text-xs"
+              className="text-fg-subtle hover:text-fg bg-black/40 border border-white/10 rounded-md px-2 py-0.5 font-mono text-xs active:translate-y-[0.5px]"
               title={`Current span: ${widget.span}/3 columns (click to cycle)`}
             >
               {widget.span}/3 col
@@ -417,7 +417,7 @@ function SortableWidget({
               type="button"
               aria-label={`Remove ${WIDGET_LABELS[widget.type]}`}
               onClick={onRemove}
-              className="text-fg-subtle hover:text-danger p-1"
+              className="text-fg-subtle hover:text-bear hover:bg-bear/10 p-1 rounded-md transition-colors active:translate-y-[0.5px]"
             >
               <IconX className="size-4" />
             </button>
@@ -504,19 +504,19 @@ function AddWidgetMenu({
   return (
     <details ref={ref} className="relative">
       <summary
-        className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 text-fg inline-flex min-h-[32px] cursor-pointer list-none items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs font-medium"
+        className="surface-chip border border-white/10 hover:border-white/20 text-fg inline-flex min-h-[34px] cursor-pointer list-none items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-mono font-medium active:translate-y-[0.5px] transition-all"
         aria-label="Add widget"
       >
-        <IconPlus className="size-4" />
+        <IconPlus className="size-4 text-brand" />
         Add widget
       </summary>
-      <div className="border-border bg-bg-elev-1 absolute right-0 z-10 mt-1 flex min-w-[180px] flex-col rounded-sm border p-1 shadow-lg">
+      <div className="surface-panel border border-white/15 bg-[#141516]/98 absolute right-0 z-20 mt-1.5 flex min-w-[200px] flex-col rounded-xl p-1.5 shadow-2xl backdrop-blur-xl">
         {hidden.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => onAdd(t)}
-            className="text-fg hover:bg-bg-elev-2 rounded-sm px-2.5 py-1.5 text-left text-xs font-medium"
+            className="text-fg-muted hover:text-fg hover:bg-white/5 rounded-lg px-3 py-2 text-left text-xs font-sans transition-colors active:translate-y-[0.5px]"
           >
             {WIDGET_LABELS[t]}
           </button>

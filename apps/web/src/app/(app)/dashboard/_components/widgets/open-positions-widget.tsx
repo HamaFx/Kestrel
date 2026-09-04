@@ -134,8 +134,8 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
       <div className="flex min-w-0 items-center gap-2.5">
         <span
           className={cn(
-            'inline-flex size-6 shrink-0 items-center justify-center rounded-sm',
-            entry.side === 'long' ? 'bg-bull/15 text-bull' : 'bg-bear/15 text-bear',
+            'inline-flex size-6 shrink-0 items-center justify-center rounded-md',
+            entry.side === 'long' ? 'bg-bull/15 text-bull shadow-[0_0_8px_rgba(63,158,61,0.2)]' : 'bg-bear/15 text-bear shadow-[0_0_8px_rgba(224,44,16,0.2)]',
           )}
         >
           {entry.side === 'long' ? (
@@ -150,7 +150,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
             {curPrice && (
               <span
                 className={cn(
-                  'rounded-sm px-1 font-mono text-xs font-medium tabular-nums transition-colors duration-500',
+                  'rounded-md px-1 font-mono text-xs font-medium tabular-nums transition-colors duration-500',
                   flash === 'bull' && 'bg-bull/20 text-bull',
                   flash === 'bear' && 'bg-bear/20 text-bear',
                   flash === null && 'text-fg-subtle',
@@ -198,7 +198,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
         {/* 1-Click Ask AI Copilot */}
         <Link
           href={`/chat?prompt=${aiPrompt}`}
-          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm p-1.5 transition-colors"
+          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg p-1.5 transition-colors active:translate-y-[0.5px]"
           title={`Ask AI Copilot to review ${entry.symbol} position`}
           aria-label={`Ask AI Copilot to review ${entry.symbol} position`}
         >

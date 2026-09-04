@@ -94,7 +94,7 @@ export function BriefingWidget({ briefing }: BriefingWidgetProps) {
           <span className="text-fg text-sm font-semibold">AI Briefing</span>
           <span
             className={cn(
-              'rounded-sm px-2 py-0.5 text-xs font-semibold uppercase',
+              'rounded-md px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wider uppercase',
               briefing.kind === 'pre'
                 ? 'bg-warn/10 text-warn border-warn/30 border'
                 : briefing.kind === 'post'

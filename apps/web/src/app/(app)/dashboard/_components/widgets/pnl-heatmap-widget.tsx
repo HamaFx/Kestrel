@@ -249,13 +249,13 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
                   title={`${cell.key}: ${sign}${cell.totalR.toFixed(1)}R (${cell.count} trades)${isToday ? ' · today' : ''}`}
                   aria-label={`${cell.key}: ${sign}${cell.totalR.toFixed(1)}R, ${cell.count} trades${isToday ? ', today' : ''}`}
                   className={cn(
-                    'flex aspect-square min-h-[28px] w-full touch-manipulation items-center justify-center rounded-sm tabular-nums sm:min-h-[34px] md:min-h-[38px]',
+                    'flex aspect-square min-h-[28px] w-full touch-manipulation items-center justify-center rounded-md tabular-nums sm:min-h-[34px] md:min-h-[38px]',
                     'font-mono text-xs font-medium',
                     cell.totalR > 0 && 'text-bull font-bold',
                     cell.totalR < 0 && 'text-bear font-bold',
                     cell.totalR === 0 && 'text-fg-muted',
                     'transition-transform active:scale-95',
-                    isToday && 'ring-fg ring-offset-bg-elev-1 ring-2 ring-offset-1',
+                    isToday && 'ring-brand ring-offset-bg-elev-1 ring-2 ring-offset-1',
                   )}
                   style={heatCellStyle(cell.totalR)}
                 >
@@ -325,7 +325,7 @@ function Legend() {
         {[0.2, 0.4, 0.6, 0.85].map((a) => (
           <span
             key={a}
-            className="size-3 rounded-sm"
+            className="size-3 rounded-[3px]"
             style={{
               backgroundColor: 'var(--color-bull)',
               opacity: a,
@@ -336,7 +336,7 @@ function Legend() {
         {[0.85, 0.6, 0.4, 0.2].map((a) => (
           <span
             key={a}
-            className="size-3 rounded-sm"
+            className="size-3 rounded-[3px]"
             style={{
               backgroundColor: 'var(--color-bear)',
               opacity: a,

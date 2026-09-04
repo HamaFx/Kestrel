@@ -152,9 +152,9 @@ export function PreSessionChecklistDrawer() {
         <button
           type="button"
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs font-semibold transition-all',
+            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-mono font-semibold transition-all active:translate-y-[0.5px]',
             isCompleted
-              ? 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/20'
+              ? 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/20 shadow-[0_0_8px_rgba(255,54,22,0.15)]'
               : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg hover:border-border-hover',
           )}
           title={isCompleted ? 'Session Gameplan is Active' : 'Start Pre-Session Checklist'}
@@ -175,7 +175,7 @@ export function PreSessionChecklistDrawer() {
       <DrawerContent className="max-h-[92vh] overflow-y-auto">
         <DrawerHeader>
           <div className="flex items-center gap-2">
-            <div className="bg-brand/10 border-brand/30 text-brand flex size-8 items-center justify-center rounded-sm border">
+            <div className="bg-brand/10 border-brand/30 text-brand flex size-8 items-center justify-center rounded-lg border">
               <IconListCheck className="size-5" />
             </div>
             <div>
@@ -205,9 +205,9 @@ export function PreSessionChecklistDrawer() {
                     type="button"
                     onClick={() => setMindset(opt.id)}
                     className={cn(
-                      'flex flex-col items-start gap-1 rounded-sm border p-2.5 text-left transition-all',
+                      'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all active:translate-y-[0.5px]',
                       active
-                        ? 'border-brand bg-brand/10 text-fg ring-brand ring-1'
+                        ? 'border-brand bg-brand/10 text-fg ring-brand ring-1 shadow-[0_0_12px_rgba(255,54,22,0.15)]'
                         : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg hover:border-border-hover',
                     )}
                   >
@@ -243,7 +243,7 @@ export function PreSessionChecklistDrawer() {
                     type="button"
                     onClick={() => setMaxDailyR(r)}
                     className={cn(
-                      'rounded-sm border px-3 py-1.5 font-mono text-xs font-semibold tabular-nums transition-all',
+                      'rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold tabular-nums transition-all active:translate-y-[0.5px]',
                       active
                         ? 'border-danger bg-danger/15 text-danger ring-danger font-bold ring-1'
                         : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg',
@@ -274,7 +274,7 @@ export function PreSessionChecklistDrawer() {
                       setCustomRule('');
                     }}
                     className={cn(
-                      'flex items-center gap-2 rounded-sm border p-2 text-left text-xs transition-all',
+                      'flex items-center gap-2 rounded-lg border p-2.5 text-left text-xs transition-all active:translate-y-[0.5px]',
                       active
                         ? 'border-brand bg-brand/10 text-fg ring-brand font-medium ring-1'
                         : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg',
@@ -296,7 +296,7 @@ export function PreSessionChecklistDrawer() {
           </div>
 
           {/* Step 4: Mandatory Acknowledgements */}
-          <div className="border-border/80 bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-3">
+          <div className="surface-chip border border-white/10 flex flex-col gap-2.5 rounded-xl p-3.5 shadow-sm">
             <span className="text-caption text-fg-subtle font-semibold tracking-wider uppercase">
               4. Session Protocol Verification
             </span>

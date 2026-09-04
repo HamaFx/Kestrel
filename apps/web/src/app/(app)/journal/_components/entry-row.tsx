@@ -172,27 +172,32 @@ export function EntryRow({
   const outcomeColor = isWin ? 'text-bull' : isLoss ? 'text-bear' : 'text-fg-muted';
 
   return (
-    <li className="border-border bg-bg-elev-1 hover:border-fg-muted/30 flex flex-col gap-3.5 rounded-sm border p-4 transition-all duration-200 hover:shadow-sm">
+    <li
+      className={cn(
+        'surface-panel flex flex-col gap-3.5 rounded-xl border border-white/10 p-4 transition-all duration-200 hover:border-white/20 shadow-[var(--shadow-chip)] backdrop-blur-md',
+        isWin ? 'border-l-2 border-l-bull/80' : isLoss ? 'border-l-2 border-l-bear/80' : 'border-l-2 border-l-white/20',
+      )}
+    >
       <div className="flex items-start gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           {/* Header Row */}
           <div className="flex flex-wrap items-center gap-2 text-sm font-bold tabular-nums">
             <span
               className={cn(
-                'text-caption rounded-sm border px-2 py-0.5 font-black tracking-wider uppercase',
+                'text-caption rounded-md border px-2 py-0.5 font-black tracking-wider uppercase',
                 sideBg,
                 sideColor,
               )}
             >
               {entry.side}
             </span>
-            <span className="text-fg text-base tracking-tight">{entry.symbol}</span>
+            <span className="text-fg text-base tracking-tight font-display">{entry.symbol}</span>
             <span className="text-fg-muted text-xs font-medium">at</span>
             <span className="text-fg font-extrabold">{entry.entry}</span>
 
             {/* Sizing lot indicator */}
             {entry.size !== null && (
-              <span className="text-caption text-fg-subtle bg-bg-elev-3 border-border/40 rounded-sm border px-1.5 py-0.5 font-medium">
+              <span className="text-caption text-fg-subtle bg-bg-elev-3 border-border/40 rounded-md border px-1.5 py-0.5 font-medium">
                 {entry.size} Lots
               </span>
             )}
@@ -226,7 +231,7 @@ export function EntryRow({
                   <span
                     key={t}
                     className={cn(
-                      'rounded-sm border px-2 py-0.5 text-xs select-none',
+                      'rounded-md border px-2 py-0.5 text-xs select-none',
                       psychStyle ?? 'bg-bg-elev-1 border-border/40 text-fg-subtle font-mono',
                     )}
                   >
@@ -251,7 +256,7 @@ export function EntryRow({
                 alt="Trade chart screenshot"
                 width={48}
                 height={48}
-                className="border-border size-12 rounded-sm border object-cover transition-opacity hover:opacity-80"
+                className="border-white/10 size-12 rounded-lg border object-cover transition-opacity hover:opacity-80"
                 unoptimized
               />
             </button>
@@ -259,7 +264,7 @@ export function EntryRow({
 
           {/* Notes display */}
           {entry.notes && (
-            <p className="text-fg-muted border-border/70 mt-1.5 border-l-2 py-0.5 pl-2.5 text-xs leading-[1.4]">
+            <p className="text-fg-muted border-white/15 mt-1.5 border-l-2 py-0.5 pl-2.5 text-xs leading-[1.4]">
               {entry.notes}
             </p>
           )}
@@ -305,7 +310,7 @@ export function EntryRow({
             <div className="flex flex-col items-end">
               <span
                 className={cn(
-                  'bg-bg-elev-3 border-border/40 rounded-sm border px-2 py-0.5 text-xs font-black tracking-wider uppercase',
+                  'bg-bg-elev-3 border-border/40 rounded-md border px-2 py-0.5 text-xs font-black tracking-wider uppercase',
                   outcomeColor,
                 )}
               >
@@ -328,7 +333,7 @@ export function EntryRow({
                 size="sm"
                 variant="secondary"
                 onClick={() => setClosing(true)}
-                className="cursor-pointer"
+                className="cursor-pointer rounded-lg active:translate-y-[0.5px]"
               >
                 Close...
               </Button>
@@ -340,7 +345,7 @@ export function EntryRow({
                 type="button"
                 aria-label="Replay setup"
                 onClick={() => setReplayOpen(true)}
-                className="inline-flex size-9 cursor-pointer items-center justify-center rounded-sm text-sky-400/80 transition-colors hover:bg-sky-500/10 hover:text-sky-400"
+                className="surface-chip border-white/10 hover:border-white/20 inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border text-sky-400/80 transition-all hover:bg-sky-500/10 hover:text-sky-400 active:translate-y-[0.5px]"
               >
                 <IconHistory className="size-4" />
               </button>
@@ -352,7 +357,7 @@ export function EntryRow({
                 aria-label="Delete entry"
                 onClick={() => void remove()}
                 disabled={busy}
-                className="text-bear/75 hover:text-bear hover:bg-bear/10 inline-flex size-9 cursor-pointer items-center justify-center rounded-sm transition-colors disabled:opacity-50"
+                className="surface-chip border-white/10 hover:border-bear/30 text-bear/75 hover:text-bear hover:bg-bear/10 inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border transition-all active:translate-y-[0.5px] disabled:opacity-50"
               >
                 <IconTrash className="size-4" />
               </button>
@@ -367,14 +372,14 @@ export function EntryRow({
         entry.target !== null &&
         livePrice &&
         sliderPosition !== null && (
-          <div className="border-border/30 animate-in fade-in flex flex-col gap-1.5 border-t pt-3 duration-200">
+          <div className="border-white/10 animate-in fade-in flex flex-col gap-1.5 border-t pt-3 duration-200">
             <div className="text-fg-subtle flex items-center justify-between text-xs font-bold tracking-wider uppercase">
               <span className="text-bear">SL: {entry.stop}</span>
               <span className="text-fg-muted">Entry: {entry.entry}</span>
               <span className="text-bull">Target: {entry.target}</span>
             </div>
 
-            <div className="bg-bg-elev-3 border-border/20 relative mt-1 flex h-2 w-full items-center overflow-visible rounded-sm border">
+            <div className="surface-well border-white/10 relative mt-1 flex h-2 w-full items-center overflow-visible rounded-full border">
               {/* Entry Line Indicator */}
               <div
                 style={{
@@ -391,7 +396,7 @@ export function EntryRow({
               <div
                 style={{ left: `${sliderPosition}%` }}
                 className={cn(
-                  'border-fg absolute z-20 size-3 -translate-x-1/2 rounded-sm border shadow-md transition-all duration-300',
+                  'border-fg absolute z-20 size-3 -translate-x-1/2 rounded-full border shadow-md transition-all duration-300',
                   isWin
                     ? 'bg-bull animate-pulse shadow-md'
                     : isLoss
@@ -416,7 +421,7 @@ export function EntryRow({
                       left: `${Math.max(shadeLeft, 0)}%`,
                       width: `${Math.abs(Math.max(width, 0))}%`,
                     }}
-                    className="bg-bull/10 absolute h-full rounded-r-full"
+                    className="bg-bull/10 absolute h-full rounded-full"
                   />
                 );
               })()}
@@ -435,7 +440,7 @@ export function EntryRow({
 
       {/* Manual close input stack */}
       {closing && (
-        <div className="border-border flex flex-col gap-3 border-t pt-3">
+        <div className="border-white/10 flex flex-col gap-3 border-t pt-3">
           <div>
             <label
               className="text-fg-subtle text-caption font-bold tracking-wider uppercase"
@@ -449,7 +454,7 @@ export function EntryRow({
               onChange={(ev) => setExit(ev.target.value)}
               inputMode="decimal"
               autoFocus
-              className="focus:border-border/70 mt-1.5"
+              className="surface-well border-white/10 focus:border-white/20 mt-1.5 rounded-lg"
             />
             {error ? <p className="text-danger mt-2 text-xs font-semibold">{error}</p> : null}
           </div>
@@ -459,7 +464,7 @@ export function EntryRow({
               size="md"
               onClick={close}
               disabled={busy || !exit}
-              className="flex-1"
+              className="flex-1 rounded-lg active:translate-y-[0.5px]"
             >
               Save
             </Button>
@@ -473,7 +478,7 @@ export function EntryRow({
                 setError(null);
               }}
               disabled={busy}
-              className="flex-1"
+              className="flex-1 rounded-lg active:translate-y-[0.5px]"
             >
               Cancel
             </Button>
