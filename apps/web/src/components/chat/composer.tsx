@@ -32,6 +32,7 @@ import {
   IconChartBar,
   IconMicrophone,
   IconNotebook,
+  IconPaperclip,
   IconPhotoPlus,
   IconSettings,
   IconSquare,
@@ -47,6 +48,7 @@ import { useVoiceInput } from '@/hooks/use-voice-input';
 import { cn } from '@/lib/cn';
 import { fetchCsrf } from '@/lib/csrf';
 
+import type { AnalysisMode } from './chat-top-bar';
 import { formatCharCount, getCharCountTone, MAX_TEXT_CHARS } from './composer-helpers';
 import { ComposerSlashMenu, type SlashMenuCommand } from './composer-slash-menu';
 
@@ -68,6 +70,11 @@ interface ComposerProps {
   isStreaming?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  analysisMode?: AnalysisMode;
+  onAnalysisModeChange?: (mode: AnalysisMode) => void;
+  chatModel?: string | null;
+  onChatModelChange?: (modelId: string) => void;
+  contextUsagePercent?: number;
 }
 
 const DEFAULT_LANG = 'en-US';
@@ -118,12 +125,25 @@ const SLASH_COMMANDS: SlashCommand[] = [
 // so the thresholds can be unit-tested and shared with the route layer if
 // the cap ever needs server-side enforcement.
 
+const SEND_PIXEL_COORDINATES: readonly [number, number][] = [
+  [7, 4],
+  [12.5, 10],
+  [1.19, 10],
+  [4, 7],
+  [10, 7],
+];
+
 export function Composer({
   onSubmit,
   onStop,
   isStreaming,
   disabled,
   placeholder = 'Ask about price action, key levels, or market news…',
+  analysisMode,
+  onAnalysisModeChange,
+  chatModel,
+  onChatModelChange,
+  contextUsagePercent = 6,
 }: ComposerProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<ComposerImage[]>([]);
@@ -131,6 +151,7 @@ export function Composer({
   const [focused, setFocused] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
+  const [pulsing, setPulsing] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -207,6 +228,8 @@ export function Composer({
         return;
       }
     }
+    setPulsing(true);
+    setTimeout(() => setPulsing(false), 1400);
     onSubmit(trimmed, images);
     setValue('');
     setImages([]);
@@ -362,12 +385,12 @@ export function Composer({
         : 'text-fg-subtle';
 
   return (
-    <div className="sticky bottom-0 z-20 mx-auto w-full max-w-4xl px-3 pb-[max(env(safe-area-inset-bottom),12px)] transition-all duration-300">
+    <div className="message-composer-safe-bottom sticky bottom-0 z-20 mx-auto w-full max-w-4xl xl:max-w-5xl px-3 pb-[max(env(safe-area-inset-bottom),12px)] transition-all duration-300">
       <form
         className={cn(
-          'bg-bg-elev-1 border-border relative flex w-full flex-col overflow-hidden rounded-sm border shadow-md transition-all duration-150 ease-in-out',
-          focused && 'border-brand-border',
-          dragOver && 'ring-brand/25 ring-2 ring-inset',
+          'border-chip-edge bg-bg-elev-1 surface-chip-dark relative z-10 flex w-full flex-col gap-1.5 rounded-[16px] border-[0.5px] p-2 shadow-(--shadow-chat-bar) transition-all duration-150',
+          focused && 'border-brand/50 ring-1 ring-brand/30',
+          dragOver && 'border-brand ring-2 ring-brand/40',
         )}
         onSubmit={(e) => {
           e.preventDefault();
@@ -380,21 +403,28 @@ export function Composer({
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
+        {pulsing && (
+          <span
+            aria-hidden="true"
+            className="prompt-pulse pointer-events-none absolute inset-0 rounded-[16px]"
+          />
+        )}
+
         {/* Voice listening pill */}
         {voice.active ? (
           <div
             role="status"
             aria-live="polite"
-            className="text-danger border-danger/30 bg-danger/10 text-body-sm mx-auto mt-3 inline-flex items-center gap-2 self-center rounded-sm border px-3 py-1 font-medium"
+            className="text-danger border-danger/30 bg-danger/10 text-body-sm mx-auto mt-1 inline-flex items-center gap-2 self-center rounded-full border px-3 py-0.5 font-medium"
           >
-            <span className="bg-danger size-1.5 rounded-sm motion-safe:animate-pulse" />
+            <span className="bg-danger size-1.5 rounded-full motion-safe:animate-pulse" />
             Listening…
           </div>
         ) : null}
 
         {/* Attached Images */}
         {images.length > 0 ? (
-          <ul className="flex flex-wrap gap-2 px-5 pt-4 pb-1" aria-label="Attached images">
+          <ul className="flex flex-wrap gap-2 px-3 pt-2 pb-1" aria-label="Attached images">
             {images.map((img, idx) => (
               <li key={img.id} className="relative">
                 <Image
@@ -403,13 +433,13 @@ export function Composer({
                   width={56}
                   height={56}
                   unoptimized
-                  className="border-border size-14 rounded-sm border object-cover"
+                  className="border-border size-14 rounded-lg border object-cover shadow-sm"
                 />
                 <button
                   type="button"
                   aria-label={`Remove ${img.name}`}
                   onClick={() => removeImage(img.id)}
-                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg absolute -top-2 -right-2 inline-flex size-7 items-center justify-center rounded-sm border text-xs leading-none focus:outline-none focus-visible:ring-2"
+                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg absolute -top-1.5 -right-1.5 inline-flex size-5 items-center justify-center rounded-full border text-xs leading-none focus:outline-none focus-visible:ring-2 shadow"
                 >
                   ×
                 </button>
@@ -419,7 +449,7 @@ export function Composer({
         ) : null}
 
         {error ? (
-          <p id="composer-error" role="alert" className="text-danger px-5 pt-2 text-xs">
+          <p id="composer-error" role="alert" className="text-danger px-3 pt-1 text-xs">
             {error}
           </p>
         ) : null}
@@ -433,24 +463,59 @@ export function Composer({
           onHover={setSlashIndex}
         />
 
-        {/* Textarea & Actions Row */}
-        <div className="flex min-w-0 items-end gap-2 px-2 pt-2 pb-2">
-          {/* Left Actions (Attach, Voice) */}
-          <div className="flex shrink-0 items-center gap-1 pb-0.5">
+        {/* Main Textarea Container */}
+        <div className="flex min-h-0 flex-1 flex-col px-3 pt-1">
+          <textarea
+            ref={ref}
+            aria-label="Chat message input"
+            aria-describedby={error ? 'composer-error' : undefined}
+            aria-expanded={slashActive && filteredCommands.length > 0}
+            aria-controls="slash-command-listbox"
+            aria-activedescendant={activeCommandId}
+            value={value}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onPaste={handlePaste}
+            rows={1}
+            placeholder={placeholder}
+            disabled={disabled}
+            maxLength={MAX_TEXT_CHARS}
+            className={cn(
+              'text-fg placeholder:text-fg-subtle w-full resize-none border-0 bg-transparent p-0 text-body leading-[1.45] shadow-none focus:outline-none focus-visible:ring-0',
+              'max-h-[4lh] min-h-[38px] sm:max-h-[10lh] [field-sizing:content]',
+            )}
+            onKeyDown={(e) => {
+              if (handleSlashKeyDown(e)) return;
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            onChange={(e) => {
+              handleSlashChange(e.target.value);
+            }}
+          />
+        </div>
+
+        {/* Bottom Instrument Tool Bar */}
+        <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
+          {/* Left tool chips */}
+          <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none]">
+            {/* Attach File/Image button */}
             <button
               type="button"
               aria-label="Attach image"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || images.length >= MAX_IMAGES}
               className={cn(
-                'inline-flex size-[44px] shrink-0 items-center justify-center rounded-sm transition-colors',
-                'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2',
+                'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors',
+                'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2 active:translate-y-[0.5px]',
                 disabled || images.length >= MAX_IMAGES
-                  ? 'text-fg-subtle cursor-not-allowed opacity-60'
-                  : 'text-fg-muted hover:bg-bg-elev-2/50 hover:text-fg',
+                  ? 'cursor-not-allowed opacity-50'
+                  : '',
               )}
             >
-              <IconPhotoPlus className="size-[20px]" strokeWidth={1.5} />
+              <IconPaperclip className="size-4" strokeWidth={1.75} />
             </button>
 
             <input
@@ -473,79 +538,70 @@ export function Composer({
                 onClick={() => (voice.active ? voice.stop() : voice.start())}
                 disabled={disabled}
                 className={cn(
-                  'inline-flex size-[44px] shrink-0 items-center justify-center rounded-sm transition-colors',
-                  'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2',
+                  'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors',
+                  'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2 active:translate-y-[0.5px]',
                   voice.active
                     ? 'text-danger mic-pulse bg-danger/10'
-                    : 'text-fg-muted hover:bg-bg-elev-2/50 hover:text-fg',
-                  disabled ? 'cursor-not-allowed opacity-60' : '',
+                    : '',
+                  disabled ? 'cursor-not-allowed opacity-50' : '',
                 )}
               >
-                <IconMicrophone className="size-[20px]" strokeWidth={1.5} />
+                <IconMicrophone className="size-4" strokeWidth={1.75} />
               </button>
             ) : null}
+
+            {/* Mode / Analysis Chip */}
+            {analysisMode && onAnalysisModeChange ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const modes: AnalysisMode[] = ['auto', 'single', 'quick', 'standard', 'full'];
+                  const idx = modes.indexOf(analysisMode);
+                  const next = modes[(idx + 1) % modes.length];
+                  if (next) onAnalysisModeChange(next);
+                }}
+                aria-label={`Analysis mode: ${analysisMode}`}
+                className="border-chip-edge bg-background/50 hover:bg-bg-elev-2 active:bg-bg-elev-3 font-mono text-caption text-fg-muted hover:text-fg flex h-7 items-center gap-1.5 rounded-md border px-2 font-normal transition-colors active:translate-y-[0.5px]"
+              >
+                <span className="size-1.5 rounded-full bg-brand" />
+                <span className="capitalize">{analysisMode}</span>
+                <span className="text-[10px] text-fg-subtle">▾</span>
+              </button>
+            ) : null}
+
+            {/* Model Chip (if provided) */}
+            {chatModel && (
+              <span className="border-chip-edge bg-background/50 font-mono text-caption text-fg-subtle hidden sm:inline-flex h-7 items-center gap-1 rounded-md border px-2">
+                <span className="truncate max-w-[120px]">{chatModel.split(':').pop()}</span>
+              </span>
+            )}
           </div>
 
-          {/* Textarea */}
-          <div className="relative flex-1">
-            <textarea
-              ref={ref}
-              aria-label="Chat message input"
-              aria-describedby={error ? 'composer-error' : undefined}
-              aria-expanded={slashActive && filteredCommands.length > 0}
-              aria-controls="slash-command-listbox"
-              aria-activedescendant={activeCommandId}
-              value={value}
+          {/* Right actions: Context usage meter + Char Count + Send/Stop Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Context usage meter */}
+            <div
+              title="Context Window Usage"
+              className="flex items-center gap-1 font-mono text-[11px] text-fg-subtle tabular-nums select-none"
+            >
+              <span className="size-3 rounded-full border border-fg-subtle/40 border-t-brand" />
+              <span>{contextUsagePercent}%</span>
+            </div>
 
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              onPaste={handlePaste}
-              rows={1}
-              placeholder={placeholder}
-              disabled={disabled}
-              maxLength={MAX_TEXT_CHARS}
-              className={cn(
-                'text-fg placeholder:text-fg-subtle w-full resize-none bg-transparent px-2 py-2.5 text-[16px] leading-[1.4] focus:outline-none sm:text-sm',
-                'max-h-[40dvh] min-h-[44px] transition-colors duration-150',
-                '[field-sizing:content]',
-              )}
-              onKeyDown={(e) => {
-                // M3: Slash command keyboard nav via hook.
-                if (handleSlashKeyDown(e)) return;
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              onChange={(e) => {
-                handleSlashChange(e.target.value);
-              }}
-            />
-          </div>
-
-          {/* Right Actions (Submit, Stop, Char Count) */}
-          <div className="flex shrink-0 items-center gap-2 pr-1 pb-0.5 sm:gap-3">
-            {/*
-              Char count — visible always per UX_UPGRADE_PLAN.md item 2.
-              Tone shifts at the SOFT_LIMIT_CHARS threshold so the
-              user gets advance notice before hitting MAX_TEXT_CHARS.
-              `aria-live="polite"` so screen readers announce the
-              threshold cross without spamming every keystroke.
-            */}
+            {/* Char count */}
             <span
               aria-live="polite"
               aria-label={`${charCount} of ${MAX_TEXT_CHARS} characters used`}
-              className={cn('text-body-sm tabular-nums', charCountClass)}
+              className={cn('text-[11px] font-mono tabular-nums', charCountClass)}
             >
               {formatCharCount(charCount)}
             </span>
 
             {focused && !isTouch && !isStreaming ? (
-              <p className="text-fg-subtle text-caption hidden pr-1 tabular-nums sm:block">
-                <kbd className="bg-bg-elev-2 border-border rounded-sm border px-1.5 font-mono">
-                  Enter
-                </kbd>{' '}
-                to send
+              <p className="text-fg-subtle text-[11px] font-mono hidden pr-1 tabular-nums lg:block">
+                <kbd className="bg-bg-elev-2 border-border/80 rounded border px-1 text-[10px]">
+                  ↵
+                </kbd>
               </p>
             ) : null}
 
@@ -560,9 +616,9 @@ export function Composer({
                   type="button"
                   onClick={onStop}
                   aria-label="Stop generating"
-                  className="text-danger border-danger/40 bg-danger/15 inline-flex size-[44px] shrink-0 items-center justify-center rounded-sm border focus:outline-none focus-visible:ring-2"
+                  className="chip-press text-danger border-danger/40 bg-danger/15 inline-flex size-8 shrink-0 items-center justify-center rounded-lg border active:translate-y-[0.5px]"
                 >
-                  <IconSquare className="size-[14px] fill-current" strokeWidth={0} />
+                  <IconSquare className="size-3.5 fill-current" strokeWidth={0} />
                 </m.button>
               ) : (
                 <m.button
@@ -570,18 +626,24 @@ export function Composer({
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                   type="submit"
                   disabled={!canSend}
                   aria-label="Send message"
                   className={cn(
-                    'bg-fg hover:bg-fg-muted inline-flex size-[44px] shrink-0 items-center justify-center rounded-sm font-semibold text-black',
-                    'disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale',
-                    'focus-visible:ring-fg focus-visible:ring-offset-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                    'chip-press group bg-fg hover:bg-white text-black inline-flex size-8 shrink-0 items-center justify-center rounded-lg font-medium transition-colors',
+                    'disabled:cursor-not-allowed disabled:opacity-35 disabled:grayscale active:translate-y-[0.5px]',
                   )}
                 >
-                  <IconArrowUp className="size-[18px]" strokeWidth={2.5} />
+                  <span className="relative block size-[16px]">
+                    {SEND_PIXEL_COORDINATES.map(([left, top], idx) => (
+                      <span
+                        key={idx}
+                        style={{ left: `${left}px`, top: `${top}px` }}
+                        className="bg-black absolute size-[2.5px] rounded-[0.6px]"
+                      />
+                    ))}
+                  </span>
                 </m.button>
               )}
             </AnimatePresence>

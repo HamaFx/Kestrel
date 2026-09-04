@@ -93,6 +93,8 @@ interface ChatTopBarProps {
   modelSelectionPending?: boolean;
   splitMode?: boolean;
   onToggleSplitMode?: () => void;
+  viewsOpen?: boolean;
+  onToggleViews?: () => void;
 }
 
 export function ChatTopBar({
@@ -108,6 +110,8 @@ export function ChatTopBar({
   modelSelectionPending = false,
   splitMode = false,
   onToggleSplitMode,
+  viewsOpen = false,
+  onToggleViews,
 }: ChatTopBarProps) {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -292,22 +296,31 @@ export function ChatTopBar({
         </div>
       )}
 
-      {/* Desktop Split Terminal Toggle */}
-      {onToggleSplitMode && (
-        <Tooltip label={splitMode ? 'Single View' : 'Split Terminal (Chart + AI)'} side="bottom">
+      {/* Hoplite-style Views Sidecar Trigger */}
+      {(onToggleViews || onToggleSplitMode) && (
+        <Tooltip
+          label={
+            viewsOpen || splitMode
+              ? 'Close Views sidecar'
+              : 'Open Views sidecar (Chart, Opinions, Plan, Terminal)'
+          }
+          side="bottom"
+        >
           <button
             type="button"
-            onClick={onToggleSplitMode}
-            aria-label="Toggle split chart"
+            onClick={onToggleViews ?? onToggleSplitMode}
+            aria-label="Toggle views"
             className={cn(
-              'text-caption hidden shrink-0 items-center gap-1.5 rounded-sm px-2.5 py-1.5 font-medium transition-colors xl:inline-flex',
-              splitMode
-                ? 'bg-brand/15 text-brand border-brand/40 border'
-                : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2 border border-transparent',
+              'border-chip-edge text-caption relative hidden shrink-0 items-center gap-1.5 rounded-[10px] border px-2.5 py-1.5 font-mono font-medium transition-all active:translate-y-[0.5px] lg:inline-flex',
+              viewsOpen || splitMode
+                ? 'border-brand/40 bg-brand/10 text-brand shadow-(--shadow-chip)'
+                : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]',
             )}
           >
-            <IconLayoutColumns className="size-3.5" aria-hidden="true" />
-            <span>{splitMode ? 'Split: ON' : 'Split'}</span>
+            <span className="text-fg-subtle text-[11px] font-mono">
+              [{viewsOpen || splitMode ? '•' : ' '}]
+            </span>
+            <span>Views</span>
           </button>
         </Tooltip>
       )}

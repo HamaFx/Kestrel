@@ -64,6 +64,7 @@ import { MessageFeedback } from './_components/message-feedback';
 import { MessageFooter } from './_components/message-footer';
 import { RegenModelPicker } from './_components/regen-model-picker';
 import { MAX_TEXT_CHARS } from './composer-helpers';
+import { ActivityRollup } from './parts/activity-rollup';
 import { CitationWarningPartView } from './parts/citation-warning';
 import { FallbackPartView } from './parts/fallback';
 import { MastraReportPart } from './parts/mastra-report';
@@ -116,6 +117,10 @@ function MessageImpl({
   const prefersReducedMotion = useReducedMotion();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const plainText = useMemo(() => extractText(message), [message.parts]);
+  const rawTime = (message as { createdAt?: Date | string | number }).createdAt;
+  const formattedTime = rawTime
+    ? new Date(rawTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    : null;
   const [copied, triggerCopy] = useCopied(1200);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(plainText);
@@ -264,49 +269,21 @@ function MessageImpl({
             className={cn(
               'relative flex flex-col gap-2',
               isUser
-                ? 'bg-bg-elev-2 text-fg ml-auto max-w-[85%] rounded-sm px-4 py-2 font-medium'
+                ? 'group/bubble border-border/40 text-fg ml-auto max-w-[82%] rounded-xl border bg-white/[0.04] px-3.5 py-2 font-medium shadow-xs backdrop-blur-[2px]'
                 : 'w-full',
               !isUser && !isSystem ? 'py-1' : 'py-3',
             )}
           >
+            {isUser && formattedTime ? (
+              <span className="text-fg-subtle pointer-events-none absolute -left-14 bottom-2 text-[10px] font-mono opacity-0 transition-opacity duration-150 group-hover/bubble:opacity-100 select-none">
+                {formattedTime}
+              </span>
+            ) : null}
             {/* Phase 1.3 — streamed assistant text is announced by the
                 debounced sr-only <StreamingLiveRegion> in message-list.tsx;
                 a live region here would re-announce the entire history. */}
             <div>
-              {message.parts.map((part, idx) => {
-                if (part.type === 'text') {
-                  return (
-                    <MemoizedTextPart
-                      key={idx}
-                      text={part.text}
-                      role={message.role === 'user' ? 'user' : 'assistant'}
-                      isStreaming={!!isStreaming}
-                    />
-                  );
-                }
-                if (part.type.startsWith('tool-')) {
-                  const toolParse = StreamToolPartSchema.safeParse(part);
-                  if (!toolParse.success) {
-                    // Defensive: malformed tool parts are dropped rather than
-                    // crashing the chat surface.
-                    return null;
-                  }
-                  const p = toolParse.data;
-                  const name = part.type.slice('tool-'.length);
-                  const streamState = p.state ?? 'output-available';
-                  const errorMessage = p.errorText;
-                  return (
-                    <MemoizedToolPart
-                      key={idx}
-                      name={name}
-                      output={p.output ?? null}
-                      state={toPartState(streamState)}
-                      errorMessage={errorMessage}
-                    />
-                  );
-                }
-                return renderPart(part, idx, message.role);
-              })}
+              {renderMessageParts(message.parts, isStreaming, message.role)}
             </div>
           </div>
 
@@ -469,6 +446,84 @@ function toPartState(state: StreamToolState): ToolPartState {
   if (state === 'output-available') return 'done';
   if (state === 'output-error') return 'error';
   return 'loading';
+}
+
+function renderMessageParts(
+  parts: UIMessage['parts'],
+  isStreaming: boolean | undefined,
+  role: UIMessage['role'],
+): ReactNode[] {
+  const elements: ReactNode[] = [];
+  let currentToolGroup: Array<{
+    key: number;
+    name: string;
+    output: unknown;
+    state: ToolPartState;
+    errorMessage?: string;
+  }> = [];
+
+  function flushToolGroup() {
+    if (currentToolGroup.length === 0) return;
+    const tools = [...currentToolGroup];
+    const first = tools[0];
+    if (!first) return;
+    const isAnyLoading = tools.some((t) => t.state === 'loading');
+    elements.push(
+      <ActivityRollup
+        key={`tools-group-${first.key}`}
+        toolCount={tools.length}
+        isRunning={isAnyLoading}
+        defaultOpen={isAnyLoading}
+      >
+        {tools.map((t) => (
+          <MemoizedToolPart
+            key={t.key}
+            name={t.name}
+            output={t.output}
+            state={t.state}
+            errorMessage={t.errorMessage}
+          />
+        ))}
+      </ActivityRollup>,
+    );
+    currentToolGroup = [];
+  }
+
+  for (let idx = 0; idx < parts.length; idx++) {
+    const part = parts[idx];
+    if (!part) continue;
+    if (part.type === 'text') {
+      flushToolGroup();
+      elements.push(
+        <MemoizedTextPart
+          key={idx}
+          text={part.text}
+          role={role === 'user' ? 'user' : 'assistant'}
+          isStreaming={!!isStreaming}
+        />,
+      );
+    } else if (part.type.startsWith('tool-')) {
+      const toolParse = StreamToolPartSchema.safeParse(part);
+      if (toolParse.success) {
+        const p = toolParse.data;
+        const name = part.type.slice('tool-'.length);
+        const streamState = p.state ?? 'output-available';
+        const errorMessage = p.errorText;
+        currentToolGroup.push({
+          key: idx,
+          name,
+          output: p.output ?? null,
+          state: toPartState(streamState),
+          errorMessage,
+        });
+      }
+    } else {
+      flushToolGroup();
+      elements.push(renderPart(part, idx, role));
+    }
+  }
+  flushToolGroup();
+  return elements;
 }
 
 function renderPart(

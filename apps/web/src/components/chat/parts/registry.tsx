@@ -92,6 +92,7 @@ import { SearchKnowledgePart } from './search-knowledge';
 import { SetAlertPart } from './set-alert';
 import { ShareSnapshotPart } from './share-snapshot';
 import { SummarizeThreadPart } from './summarize-thread';
+import { CompactTelemetryRow } from './compact-telemetry-row';
 import { ToolCard } from './tool-card';
 import { VerifyCallPart } from './verify-call';
 
@@ -384,7 +385,7 @@ function renderBespoke<K extends ToolName>(
   );
 }
 
-/** Render the generic `ToolCard`, translating prop names to its contract. */
+/** Render the sleek Hoplite-style compact telemetry row for tool execution. */
 function renderFallback(
   name: string,
   output: unknown,
@@ -392,12 +393,11 @@ function renderFallback(
   errorMessage: string | undefined,
 ): ReactElement {
   return (
-    <ToolCard
-      name={name}
+    <CompactTelemetryRow
+      name={`tool-${name}`}
       state={toCardState(state)}
-      input={undefined}
       output={output}
-      {...(errorMessage !== undefined ? { errorText: errorMessage } : {})}
+      errorMessage={errorMessage}
     />
   );
 }
