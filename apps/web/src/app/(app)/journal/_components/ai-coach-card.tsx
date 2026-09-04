@@ -130,7 +130,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
 
       {/* Error state */}
       {error && (
-        <div className="border-danger/20 bg-danger/5 text-danger flex items-center gap-2 rounded-sm border p-3 text-xs">
+        <div className="border border-danger/30 bg-danger/5 text-danger flex items-center gap-2 rounded-xl p-3 text-xs font-mono">
           <IconAlertTriangle className="size-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -140,23 +140,23 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
       {insights && (
         <div className="animate-in fade-in flex flex-col gap-4 duration-300">
           {/* Executive Row */}
-          <div className="bg-bg-elev-2 border-border flex flex-col items-start justify-between gap-4 rounded-sm border p-4 sm:flex-row sm:items-center">
+          <div className="surface-panel border border-white/10 bg-[#161718] flex flex-col items-start justify-between gap-4 rounded-xl p-5 shadow-sm sm:flex-row sm:items-center">
             <div className="flex flex-col gap-1">
-              <span className="text-fg-subtle text-caption font-bold tracking-wider uppercase">
+              <span className="text-brand text-caption font-mono font-bold tracking-wider uppercase">
                 Coach Assessment & Edge
               </span>
-              <p className="text-fg text-xs leading-relaxed">{insights.summary}</p>
+              <p className="text-fg text-xs font-sans leading-relaxed">{insights.summary}</p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <div className="flex flex-col items-end">
-                <span className="text-fg-subtle text-caption font-semibold uppercase">
+                <span className="text-fg-subtle text-caption font-mono font-semibold uppercase">
                   Discipline Score
                 </span>
                 <span className="text-fg-subtle text-caption font-mono">{insights.modelId}</span>
               </div>
               <div
                 className={cn(
-                  'flex size-11 items-center justify-center rounded-sm border text-lg font-black',
+                  'flex size-12 items-center justify-center rounded-xl border text-xl font-black shadow-lg',
                   gradeColors[insights.disciplineGrade] ?? gradeColors.B,
                 )}
               >
@@ -168,12 +168,12 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           {/* Strengths & Leaks 2-Column Grid */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Strengths */}
-            <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
-              <div className="text-bull flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+            <div className="surface-chip border border-bull/20 bg-bull/[0.03] flex flex-col gap-2.5 rounded-xl p-4 shadow-sm">
+              <div className="text-bull flex items-center gap-1.5 text-xs font-mono font-bold tracking-wider uppercase">
                 <IconShieldCheck className="size-4" />
                 <span>Identified Edges & Strengths</span>
               </div>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2 font-sans">
                 {insights.strengths.map((str, i) => (
                   <li key={i} className="text-fg-muted flex items-start gap-2 text-xs">
                     <IconCircleCheck className="text-bull mt-0.5 size-3.5 shrink-0" />
@@ -184,12 +184,12 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
             </div>
 
             {/* Leaks */}
-            <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
-              <div className="text-bear flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
+            <div className="surface-chip border border-bear/20 bg-bear/[0.03] flex flex-col gap-2.5 rounded-xl p-4 shadow-sm">
+              <div className="text-bear flex items-center gap-1.5 text-xs font-mono font-bold tracking-wider uppercase">
                 <IconAlertTriangle className="size-4" />
                 <span>Psychological & Execution Leaks</span>
               </div>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2 font-sans">
                 {insights.leaks.map((leak, i) => (
                   <li key={i} className="text-fg-muted flex items-start gap-2 text-xs">
                     <IconFlame className="text-bear mt-0.5 size-3.5 shrink-0" />
@@ -201,17 +201,17 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           </div>
 
           {/* Action Rules */}
-          <div className="border-border bg-bg-elev-2 flex flex-col gap-2.5 rounded-sm border p-4">
-            <h4 className="text-fg text-caption font-bold tracking-wider uppercase sm:text-xs">
+          <div className="surface-panel border border-white/10 bg-[#141516] flex flex-col gap-3 rounded-xl p-4.5 shadow-sm">
+            <h4 className="text-fg text-caption font-mono font-bold tracking-wider uppercase sm:text-xs">
               Action Plan: 3 Key Rules For Your Next Trading Session
             </h4>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               {insights.actionRules.map((rule, idx) => (
                 <div
                   key={idx}
-                  className="border-border/80 bg-bg-elev-1 flex items-start gap-2.5 rounded-sm border p-3"
+                  className="surface-well bg-black/50 border border-white/10 flex items-start gap-2.5 rounded-lg p-3"
                 >
-                  <span className="bg-brand/10 text-brand text-caption flex size-5 shrink-0 items-center justify-center rounded-full font-bold">
+                  <span className="bg-brand/10 text-brand text-caption flex size-5 shrink-0 items-center justify-center rounded-full font-mono font-bold">
                     {idx + 1}
                   </span>
                   <span className="text-fg text-xs leading-relaxed font-medium">{rule}</span>

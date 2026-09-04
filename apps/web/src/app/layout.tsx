@@ -21,25 +21,25 @@ import { Providers } from '@/components/providers';
 
 import './globals.css';
 
-function resolveMetadataBase(): URL | undefined {
-  const raw = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL;
-  if (!raw) return undefined;
+function resolveMetadataBase(): URL {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.APP_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+  if (!raw) return new URL('http://localhost:3000');
 
   try {
-    return new URL(raw);
+    return new URL(raw.startsWith('http') ? raw : `https://${raw}`);
   } catch {
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('[metadata] ignoring invalid NEXT_PUBLIC_APP_URL/APP_URL');
-    }
-    return undefined;
+    return new URL('http://localhost:3000');
   }
 }
 
 const metadataBase = resolveMetadataBase();
-const socialImage = metadataBase ? '/brand/kestrel-social.png' : undefined;
+const socialImage = '/brand/kestrel-social.png';
 
 export const metadata: Metadata = {
-  ...(metadataBase ? { metadataBase } : {}),
+  metadataBase,
   title: {
     default: 'Kestrel',
     template: '%s · Kestrel',

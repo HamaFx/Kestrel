@@ -71,7 +71,7 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
   const upcoming = events.filter((e) => e.date > now).sort((a, b) => a.date - b.date)[0];
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
+    <div className="surface-chip border border-white/10 flex flex-col justify-between gap-2.5 rounded-xl p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
       <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
           <IconClock className="text-warn size-4" />
@@ -109,7 +109,7 @@ function CellSession() {
   const active = sessionInfo.session !== 'closed' && sessionInfo.session !== 'weekend';
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
+    <div className="surface-chip border border-white/10 flex flex-col justify-between gap-2.5 rounded-xl p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
       <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
           <IconCompass className="text-fg size-4" />
@@ -143,7 +143,7 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
   const totalRRounded = Math.round(open.length * 10) / 10;
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
+    <div className="surface-chip border border-white/10 flex flex-col justify-between gap-2.5 rounded-xl p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
       <div className="text-fg-subtle flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
         <IconAlertTriangle className="text-danger size-4" />
         <span>Open risk</span>
@@ -177,7 +177,7 @@ function CellAiNudge({
 }) {
   const nudge = briefingNudge ?? `Ask AI about today's bias for ${defaultSymbol}`;
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col justify-between gap-2 rounded-sm border p-3.5 shadow-xs">
+    <div className="surface-chip border border-white/10 flex flex-col justify-between gap-2.5 rounded-xl p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
       <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
         <div className="flex items-center gap-1.5">
           <IconBolt className="text-brand size-4" />

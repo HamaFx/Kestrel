@@ -24,13 +24,13 @@
 // touching the message-list code.
 
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useId, useState } from 'react';
 
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 
-const MotionCard = motion.create(Card);
+const MotionCard = m.create(Card);
 
 interface ToolCardProps {
   name: string;
@@ -97,7 +97,7 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
       </button>
 
       {expanded ? (
-        <motion.div
+        <m.div
           key="tool-card-content"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
@@ -111,7 +111,7 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
           ) : output !== undefined ? (
             <Section label="output" data={output} />
           ) : null}
-        </motion.div>
+        </m.div>
       ) : null}
     </MotionCard>
   );
@@ -121,7 +121,7 @@ function Section({ label, data }: { label: string; data: unknown }) {
   return (
     <div>
       <div className="text-fg-subtle mb-0.5 text-xs tracking-wide uppercase">{label}</div>
-      <pre className="bg-bg-elev-2 max-h-40 overflow-auto rounded-sm p-2.5 font-mono text-xs leading-tight">
+      <pre className="bg-bg-elev-2 max-h-40 overflow-auto rounded-md p-2.5 font-mono text-xs leading-tight">
         {safeStringify(data)}
       </pre>
     </div>

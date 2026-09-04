@@ -76,7 +76,7 @@ export function NewsPulseWidget({ articles }: NewsPulseWidgetProps) {
       <div
         role="img"
         aria-label={`${total} articles: ${counts.positive} positive, ${counts.negative} negative, ${counts.neutral} neutral`}
-        className="bg-bg-elev-2 flex h-2 w-full overflow-hidden rounded-sm"
+        className="bg-bg-elev-2 flex h-2 w-full overflow-hidden rounded-full"
       >
         <div className="bg-bull h-full" style={{ width: `${pct(counts.positive)}%` }} />
         <div className="bg-fg-muted h-full" style={{ width: `${pct(counts.neutral)}%` }} />
