@@ -18,7 +18,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import {
   IconChartCandle,
   IconBuildingBank,
@@ -284,14 +284,14 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
                         type="button"
                         onClick={() => setActiveSymbolIndex(idx)}
                         className={cn(
-                          'relative px-2.5 py-1 rounded font-mono text-[10px] font-semibold transition-colors duration-200',
+                          'relative px-2.5 py-1 rounded font-mono text-[10px] font-semibold transition-colors duration-200 active:translate-y-[0.5px]',
                           isSelected
                             ? 'text-white'
                             : 'text-fg-subtle hover:text-fg hover:bg-white/5',
                         )}
                       >
                         {isSelected && (
-                          <motion.div
+                          <m.div
                             layoutId="hero-symbol-gliding-pill"
                             className="absolute inset-0 rounded bg-brand shadow-sm -z-10"
                             transition={{ type: 'spring', stiffness: 450, damping: 32 }}
