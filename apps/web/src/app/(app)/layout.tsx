@@ -55,6 +55,8 @@ const getOnboardingStatus = cache(async (userId: string) => {
  *   8. <OfflineBanner/>       sticky network-state pill
  *   9. <Toaster/>             bottom-center sonner
  */
+export const dynamic = 'force-dynamic';
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let userName: string | undefined;
   let userEmail: string | undefined;
@@ -62,19 +64,34 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let isAdmin = false;
 
   if (process.env.AUTH_MODE !== 'legacy') {
-    const session = await auth();
+    let session = null;
+    try {
+      session = await auth();
+    } catch (err: unknown) {
+      if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
+        throw err;
+      }
+      console.error('[AppLayout] auth() session lookup failed:', err);
+    }
+
     if (session?.user?.id) {
       userId = session.user.id;
       userName = session.user.name ?? undefined;
       userEmail = session.user.email ?? undefined;
-      const [onboardingCompleted, admin] = await Promise.all([
-        getOnboardingStatus(session.user.id),
-        checkIsAdmin(),
-      ]);
+      let onboardingCompleted = true;
+      try {
+        const [onboarding, admin] = await Promise.all([
+          getOnboardingStatus(session.user.id),
+          checkIsAdmin(),
+        ]);
+        onboardingCompleted = onboarding;
+        isAdmin = admin;
+      } catch (err) {
+        console.error('[AppLayout] Failed to load onboarding status or admin status:', err);
+      }
       if (!onboardingCompleted) {
         redirect('/onboarding');
       }
-      isAdmin = admin;
     }
   }
 

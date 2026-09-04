@@ -19,7 +19,7 @@
  */
 
 import type { UIMessage } from 'ai';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/cn';

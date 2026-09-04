@@ -93,7 +93,6 @@ import { SetAlertPart } from './set-alert';
 import { ShareSnapshotPart } from './share-snapshot';
 import { SummarizeThreadPart } from './summarize-thread';
 import { CompactTelemetryRow } from './compact-telemetry-row';
-import { ToolCard } from './tool-card';
 import { VerifyCallPart } from './verify-call';
 
 function PartSkeletonFallback() {

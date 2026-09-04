@@ -401,9 +401,6 @@ html {
 
 @utility chip-press {
   transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
-  &:active {
-    transform: translateY(0.5px);
-  }
 }
 
 @utility prompt-pulse {

@@ -17,7 +17,7 @@
  */
 
 // SPDX-License-Identifier: Apache-2.0
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { cn } from '@/lib/cn';
@@ -158,7 +158,7 @@ function UnifiedDeskBubble({
             : 'border-border text-fg-muted';
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: side === 'top' ? 3 : -3, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: side === 'top' ? 2 : -2, scale: 0.92 }}
@@ -191,7 +191,7 @@ function UnifiedDeskBubble({
             : 'border-b-border order-first -mb-[1px] border-b-[2.5px]',
         )}
       />
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -207,7 +207,7 @@ function CharacterProfileCard({
   onClose: () => void;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 4, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 3, scale: 0.96 }}
@@ -260,7 +260,7 @@ function CharacterProfileCard({
       <div className="border-border/40 bg-bg-elev-2 rounded-xs border px-2.5 py-1.5 text-center">
         <p className="text-brand font-mono text-xs leading-snug italic">{profile.motto}</p>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -428,7 +428,7 @@ export function PixelDeskStandby({
       <div className="flex flex-col gap-0 pt-5 sm:pt-6">
         <div className="flex items-end justify-around gap-1 px-0.5 pb-1 sm:gap-2 sm:px-1">
           {/* Desk 1: Chart Wizard */}
-          <motion.button
+          <m.button
             type="button"
             disabled={disabled}
             whileHover={{ y: -2 }}
@@ -456,10 +456,10 @@ export function PixelDeskStandby({
             >
               Technical
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Desk 2: Macro Mage */}
-          <motion.button
+          <m.button
             type="button"
             disabled={disabled}
             whileHover={{ y: -2 }}
@@ -487,10 +487,10 @@ export function PixelDeskStandby({
             >
               Macro
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Desk 3: Risk Knight */}
-          <motion.button
+          <m.button
             type="button"
             disabled={disabled}
             whileHover={{ y: -2 }}
@@ -518,10 +518,10 @@ export function PixelDeskStandby({
             >
               Risk
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Desk 4: Sentinel Falcon */}
-          <motion.button
+          <m.button
             type="button"
             disabled={disabled}
             whileHover={{ y: -2 }}
@@ -549,7 +549,7 @@ export function PixelDeskStandby({
             >
               Sentiment
             </span>
-          </motion.button>
+          </m.button>
         </div>
 
         {/* Continuous Trading Desk Counter with Ambient Props */}
@@ -907,7 +907,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
       <div className="flex flex-col gap-0 pt-4 sm:pt-6">
         <div className="flex items-end justify-around gap-1 px-0.5 pb-1 sm:gap-2 sm:px-1">
           {/* Desk 1: Chart Wizard */}
-          <motion.button
+          <m.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -932,10 +932,10 @@ export function PixelDeskThinking({ className }: { className?: string }) {
             <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
               Technical
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Desk 2: Macro Mage */}
-          <motion.button
+          <m.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -962,10 +962,10 @@ export function PixelDeskThinking({ className }: { className?: string }) {
             <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
               Macro
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Desk 3: Risk Knight */}
-          <motion.button
+          <m.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -986,10 +986,10 @@ export function PixelDeskThinking({ className }: { className?: string }) {
             <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
               Risk
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Desk 4: Sentinel Falcon */}
-          <motion.button
+          <m.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -1014,7 +1014,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
             <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
               Sentiment
             </span>
-          </motion.button>
+          </m.button>
         </div>
 
         {/* Continuous Trading Desk Counter with Ambient Props & Active Glow */}
@@ -1045,7 +1045,7 @@ export function PixelDeskThinking({ className }: { className?: string }) {
 
         {/* Stepped 8-Bit Progress Bar */}
         <div className="bg-bg-elev-3 border-border/40 h-1.5 w-full overflow-hidden rounded-xs border p-[1px] sm:h-2">
-          <motion.div
+          <m.div
             className="from-brand to-bull h-full rounded-xs bg-gradient-to-r via-amber-500"
             initial={{ width: '15%' }}
             animate={{ width: `${progressPercent}%` }}
@@ -1130,7 +1130,7 @@ export function PixelDeskDeliberation({
         </div>
 
         {/* Animated Rubber Stamp */}
-        <motion.div
+        <m.div
           initial={{ scale: 2.2, opacity: 0, rotate: -14 }}
           animate={{ scale: 1, opacity: 1, rotate: isDisputed ? -5 : 0 }}
           transition={{ type: 'spring', damping: 13, stiffness: 240, delay: 0.12 }}
@@ -1152,14 +1152,14 @@ export function PixelDeskDeliberation({
               : majorityBias === 'bearish'
                 ? 'SELL CONSENSUS'
                 : 'NEUTRAL CONSENSUS'}
-        </motion.div>
+        </m.div>
       </div>
 
       {/* The 4 Pixel Agents in Settled Poses with Custom Workstations & Unified Call Badges */}
       <div className="flex flex-col gap-0 pt-4 sm:pt-6">
         <div className="flex items-end justify-around gap-1 px-0.5 pb-1 sm:gap-2 sm:px-1">
           {/* Technical */}
-          <motion.button
+          <m.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -1194,10 +1194,10 @@ export function PixelDeskDeliberation({
             <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
               Technical
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Macro */}
-          <motion.button
+          <m.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -1234,10 +1234,10 @@ export function PixelDeskDeliberation({
             <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
               Macro
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Risk */}
-          <motion.button
+          <m.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -1270,10 +1270,10 @@ export function PixelDeskDeliberation({
             <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
               Risk
             </span>
-          </motion.button>
+          </m.button>
 
           {/* Sentinel */}
-          <motion.button
+          <m.button
             type="button"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -1306,7 +1306,7 @@ export function PixelDeskDeliberation({
             <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
               Sentiment
             </span>
-          </motion.button>
+          </m.button>
         </div>
 
         {/* Continuous Trading Desk Counter with Ambient Props & Consensus Underglow */}
@@ -1345,7 +1345,7 @@ export function PixelDeskDeliberation({
           <div className="bg-border/80 absolute inset-y-0 left-1/2 z-10 w-0.5 -translate-x-1/2" />
 
           {/* Green Bull Fill (Left) */}
-          <motion.div
+          <m.div
             initial={{ width: '50%' }}
             animate={{ width: `${tugPercent}%` }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -1353,7 +1353,7 @@ export function PixelDeskDeliberation({
           />
 
           {/* Red Bear Fill (Right) */}
-          <motion.div
+          <m.div
             initial={{ width: '50%' }}
             animate={{ width: `${100 - tugPercent}%` }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -1361,14 +1361,14 @@ export function PixelDeskDeliberation({
           />
 
           {/* Glowing Tug Indicator Flag */}
-          <motion.div
+          <m.div
             className="absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
             initial={{ left: '50%' }}
             animate={{ left: `${tugPercent}%` }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
             <div className="rounded-2xs h-3 w-1 bg-white shadow-[0_0_8px_rgba(255,255,255,1)]" />
-          </motion.div>
+          </m.div>
         </div>
       </div>
 
@@ -1386,7 +1386,7 @@ export function PixelDeskDeliberation({
 
           <AnimatePresence>
             {expanded && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
@@ -1420,7 +1420,7 @@ export function PixelDeskDeliberation({
                     </p>
                   </div>
                 ))}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>

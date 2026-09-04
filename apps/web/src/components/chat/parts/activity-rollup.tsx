@@ -19,7 +19,7 @@
  */
 
 import { IconChevronDown, IconClock } from '@tabler/icons-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
@@ -84,17 +84,17 @@ export function ActivityRollup({
 
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-1 flex flex-col gap-0.5 pl-2 border-l border-border/40">
+            <div className="border-border/40 mt-1 flex flex-col gap-0.5 border-l pl-2">
               {children}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
