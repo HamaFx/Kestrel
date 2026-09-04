@@ -50,17 +50,17 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { TradingViewWidget } from '@/app/(app)/chart/[symbol]/_components/tradingview-widget';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { useSidebarState } from '@/components/layout/sidebar-state-context';
 import { useConfirm } from '@/components/ui/confirm-drawer';
-import { Segmented } from '@/components/ui/segmented';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useThreadTitle } from '@/hooks/use-thread-title';
 import { apiFetch, apiMutate } from '@/lib/api-client';
 import { createKestrelChatTransport, type AgentProgress } from '@/lib/chat-transport';
 import { cn } from '@/lib/cn';
 import { getCsrfToken } from '@/lib/csrf';
+
+import { useWebappShortcuts } from '@/hooks/use-webapp-shortcuts';
 
 import { ThreadSummaryHeader } from './_components/thread-summary-header';
 import { ChatTopBar, type AnalysisMode, type ThreadSummary } from './chat-top-bar';
@@ -69,6 +69,8 @@ import { ComposerActionChips } from './composer-action-chips';
 import { MessageList } from './message-list';
 import { AgentDeliberation } from './parts/agent-deliberation';
 import { PixelDeskStandby } from './parts/pixel-desk/pixel-desk';
+import { ThreadTocRail } from './thread-toc-rail';
+import { ThreadViewsDock, type DockTab } from './thread-views-dock';
 
 interface ChatScreenProps {
   threadId: string;
@@ -142,7 +144,20 @@ export function ChatScreen({
 
   const [splitMode, setSplitMode] = useState(false);
   const [splitTf, setSplitTf] = useState<Timeframe>('15m');
+  const [dockTab, setDockTab] = useState<DockTab>('chart');
   const activeChartSymbol = pinnedSymbol ?? 'XAUUSD';
+
+  useWebappShortcuts({
+    onFocusComposer: () => {
+      const textarea = document.querySelector<HTMLTextAreaElement>(
+        'textarea[aria-label="Chat prompt"]',
+      );
+      textarea?.focus();
+    },
+    onToggleViews: () => {
+      setSplitMode((v) => !v);
+    },
+  });
 
   const onAgentProgressRef = useRef<(progress: AgentProgress | null) => void>(() => {});
   const singleTurnOverrideRef = useRef<'single' | null>(null);
@@ -431,41 +446,14 @@ export function ChatScreen({
         chatModel={chatModel}
         onChatModelChange={handleChatModelChange}
         modelSelectionPending={modelSelectionPending}
+        viewsOpen={splitMode}
+        onToggleViews={() => setSplitMode((v) => !v)}
         splitMode={splitMode}
         onToggleSplitMode={() => setSplitMode((v) => !v)}
       />
 
       <div className="flex min-h-0 w-full flex-1 overflow-hidden">
-        {/* Left Split Pane: Live TradingView Pro Chart */}
-        {splitMode && (
-          <div className="border-border bg-bg hidden h-full shrink-0 flex-col overflow-hidden border-r xl:flex xl:w-1/2 2xl:w-[54%]">
-            <div className="border-border/60 bg-bg-elev-1 flex items-center justify-between border-b px-3 py-1.5 text-xs">
-              <div className="flex items-center gap-2 font-mono">
-                <span className="text-fg font-bold tracking-tight">{activeChartSymbol}</span>
-                <span className="text-fg-subtle text-caption">TradingView</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Segmented
-                  size="sm"
-                  value={splitTf}
-                  options={[
-                    { value: '5m', label: '5M' },
-                    { value: '15m', label: '15M' },
-                    { value: '1h', label: '1H' },
-                    { value: '4h', label: '4H' },
-                    { value: '1d', label: '1D' },
-                  ]}
-                  onChange={(tf) => setSplitTf(tf as Timeframe)}
-                />
-              </div>
-            </div>
-            <div className="relative min-h-0 w-full flex-1">
-              <TradingViewWidget symbol={activeChartSymbol} tf={splitTf} theme="dark" />
-            </div>
-          </div>
-        )}
-
-        {/* Right Pane / Full Chat View */}
+        {/* Main Chat View */}
         <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
           <div
             ref={setScrollContainer}
@@ -474,7 +462,7 @@ export function ChatScreen({
             <div
               className={cn(
                 'mx-auto px-4 py-4',
-                splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-2xl',
+                splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-4xl xl:max-w-5xl',
               )}
             >
               {summary ? (
@@ -582,12 +570,22 @@ export function ChatScreen({
                 </m.button>
               )}
             </AnimatePresence>
+
+            <ThreadTocRail
+              messages={messages}
+              onScrollToTurn={(idx) => {
+                const target = scrollElement?.querySelector(`[data-index="${idx}"]`);
+                if (target) {
+                  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+            />
           </div>
 
           <div
             className={cn(
               'mx-auto flex w-full flex-col px-4',
-              splitMode ? 'max-w-2xl xl:max-w-3xl' : 'max-w-2xl',
+              splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-4xl xl:max-w-5xl',
             )}
           >
             {!isEmpty && (
@@ -601,6 +599,10 @@ export function ChatScreen({
               />
             )}
             <Composer
+              analysisMode={analysisMode}
+              onAnalysisModeChange={handleAnalysisModeChange}
+              chatModel={chatModel}
+              onChatModelChange={handleChatModelChange}
               onSubmit={(text, images) => {
                 lastUserTextRef.current = text;
                 if (analysisMode !== 'single' && images.length > 0) {
@@ -632,6 +634,23 @@ export function ChatScreen({
             />
           </div>
         </div>
+
+        {/* Docked Elastic Sidecar */}
+        <AnimatePresence>
+          {splitMode && (
+            <ThreadViewsDock
+              isOpen={splitMode}
+              onClose={() => setSplitMode(false)}
+              activeTab={dockTab}
+              onTabChange={setDockTab}
+              symbol={activeChartSymbol}
+              timeframe={splitTf}
+              onTimeframeChange={setSplitTf}
+              agentProgress={agentProgress}
+              messages={messages}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       {confirmEl}

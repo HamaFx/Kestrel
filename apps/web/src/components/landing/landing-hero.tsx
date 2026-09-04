@@ -202,13 +202,17 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
               </span>
             </div>
 
-            {/* Monumental Headline */}
-            <h1 className="font-display text-4xl leading-[1.06] font-normal tracking-[-0.03em] text-fg sm:text-6xl lg:text-[70px]">
-              THE APEX AI COMMITTEE FOR{' '}
+            {/* Monumental Headline with Hoplite Dual Radial/Linear Ink Text Clip */}
+            <h1 className="font-display text-4xl leading-[1.06] font-normal tracking-[-0.03em] sm:text-6xl lg:text-[70px]">
+              <span className="bg-gradient-to-b from-white via-white/95 to-white/60 bg-clip-text text-transparent">
+                THE APEX AI COMMITTEE FOR{' '}
+              </span>
               <span className="font-redaction-35 italic text-brand tracking-normal">
                 Institutional
               </span>{' '}
-              GOLD & FOREX
+              <span className="bg-gradient-to-b from-white via-white/95 to-white/60 bg-clip-text text-transparent">
+                GOLD & FOREX
+              </span>
             </h1>
 
             {/* Subtitle */}
@@ -423,6 +427,14 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
               </div>
           </div>
         </div>
+      </div>
+
+      {/* Background watermark in Bebas Neue */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-10 left-6 z-0 font-bebas text-[110px] font-normal tracking-widest text-white/[0.02] select-none uppercase lg:text-[180px]"
+      >
+        KESTREL // BUILD 2026.09.4
       </div>
     </section>
   );

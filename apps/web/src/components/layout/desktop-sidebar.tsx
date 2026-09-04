@@ -28,6 +28,7 @@ import {
   IconLogout,
   IconMessageCircle,
   IconNews,
+  IconPlus,
   IconSettings,
   IconShield,
   IconWorld,
@@ -40,6 +41,7 @@ import { toast } from 'sonner';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { cn } from '@/lib/cn';
 
+import { HangingPendant } from './hanging-pendant';
 import { useSidebarState } from './sidebar-state-context';
 
 interface NavItem {
@@ -123,6 +125,22 @@ export function DesktopSidebar({
           </button>
         </div>
 
+        {/* New Thread CTA Button */}
+        <Link
+          href="/chat"
+          prefetch={true}
+          aria-label="New thread"
+          className={cn(
+            'border-chip-edge group relative flex items-center justify-center gap-2 rounded-[10px] border px-3 py-2 text-xs font-mono font-medium text-fg shadow-(--shadow-chip) transition-all',
+            'bg-gradient-to-r from-brand/20 via-brand/10 to-transparent hover:border-brand/50 active:translate-y-[0.5px]',
+            collapsed ? 'mx-auto size-10 p-0' : 'w-full',
+          )}
+          title={collapsed ? 'New thread' : undefined}
+        >
+          <IconPlus className="text-brand size-4" />
+          {!collapsed && <span>New thread</span>}
+        </Link>
+
         {/* Primary Nav List */}
         <nav className="flex flex-col gap-1" aria-label="Main Navigation">
           {PRIMARY_ITEMS.map((item) => {
@@ -166,6 +184,13 @@ export function DesktopSidebar({
             );
           })}
         </nav>
+
+        {/* Interactive Verlet Physics Pendant */}
+        {!collapsed && (
+          <div className="flex justify-center py-1 opacity-75 transition-opacity hover:opacity-100">
+            <HangingPendant />
+          </div>
+        )}
       </div>
 
       {/* Bottom Footer Items */}
