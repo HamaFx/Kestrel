@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'motion/react';
+import { m, AnimatePresence } from 'motion/react';
 import {
   IconCheck,
   IconChartCandle,
@@ -146,12 +146,38 @@ const DESKS: DeskSpec[] = [
   },
 ];
 
+const CYCLE_DURATION_MS = 6000;
+
 export function LandingDesks() {
   const [selectedId, setSelectedId] = useState<string>('technical');
+  const [isPaused, setIsPaused] = useState(false);
   const activeDesk = DESKS.find((d) => d.id === selectedId) ?? DESKS[0]!;
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-cycling tabs with pause on hover
+  useEffect(() => {
+    if (isPaused) return;
+
+    timerRef.current = setTimeout(() => {
+      setSelectedId((current) => {
+        const idx = DESKS.findIndex((d) => d.id === current);
+        const nextIdx = (idx + 1) % DESKS.length;
+        return DESKS[nextIdx]!.id;
+      });
+    }, CYCLE_DURATION_MS);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [selectedId, isPaused]);
 
   return (
-    <section id="desks" className="relative py-28 lg:py-36 bg-[#101112] border-t border-white/5 overflow-hidden">
+    <section
+      id="desks"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      className="relative py-28 lg:py-36 bg-[#101112] border-t border-white/5 overflow-hidden"
+    >
       {/* ── Neoclassical Cybernetic Hoplite Bust Artwork ── */}
       <div
         aria-hidden="true"
@@ -196,7 +222,7 @@ export function LandingDesks() {
           </p>
         </div>
 
-        {/* 4 Desk Selector Tabs with Gliding Fluid Pill */}
+        {/* 4 Desk Selector Tabs with Auto-Cycle Progress Indicator */}
         <div
           role="tablist"
           aria-label="Specialist Desks"
@@ -212,9 +238,12 @@ export function LandingDesks() {
                 role="tab"
                 aria-selected={isSelected}
                 aria-controls={`desk-panel-${desk.id}`}
-                onClick={() => setSelectedId(desk.id)}
+                onClick={() => {
+                  setSelectedId(desk.id);
+                  setIsPaused(true);
+                }}
                 className={cn(
-                  'group relative flex flex-col items-start gap-3 rounded-xl p-4 sm:p-5 text-left transition-all duration-200 border',
+                  'group relative flex flex-col items-start gap-3 rounded-xl p-4 sm:p-5 text-left transition-all duration-200 border overflow-hidden active:translate-y-[0.5px]',
                   isSelected
                     ? 'surface-chip bg-[#18191a] border-white/20 shadow-[var(--shadow-chip)]'
                     : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10',
@@ -222,11 +251,22 @@ export function LandingDesks() {
               >
                 {/* Active Indicator Top Line with Spring Gliding */}
                 {isSelected && (
-                  <motion.div
+                  <m.div
                     layoutId="active-desk-tab-indicator"
                     className="absolute inset-x-4 top-0 h-[2px] bg-brand rounded-full shadow-[0_0_8px_#ff3616]"
                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
+                )}
+
+                {/* Tab Countdown Progress Strip */}
+                {isSelected && !isPaused && (
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] bg-white/5">
+                    <div
+                      key={desk.id}
+                      className="h-full bg-brand/80 transition-all origin-left landing-cycle-progress"
+                      style={{ animationDuration: `${CYCLE_DURATION_MS}ms` }}
+                    />
+                  </div>
                 )}
 
                 <div className="flex items-center justify-between w-full">
@@ -260,7 +300,7 @@ export function LandingDesks() {
 
         {/* Desk Deep Dive Detail Card with AnimatePresence */}
         <AnimatePresence mode="wait">
-          <motion.div
+          <m.div
             key={activeDesk.id}
             id={`desk-panel-${activeDesk.id}`}
             role="tabpanel"
@@ -347,7 +387,7 @@ export function LandingDesks() {
                       </span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
-                      <motion.div
+                      <m.div
                         className="h-full bg-gradient-to-r from-brand to-bull rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${activeDesk.verdict.conviction}%` }}
@@ -358,7 +398,7 @@ export function LandingDesks() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       </div>
     </section>

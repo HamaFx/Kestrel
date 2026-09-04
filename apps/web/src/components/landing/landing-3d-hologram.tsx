@@ -18,6 +18,7 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { cn } from '@/lib/cn';
 
 interface Props {
   className?: string;
@@ -126,42 +127,59 @@ export function Landing3DHologram({ className }: Props) {
     ring3.rotation.y = Math.PI / 3;
     masterGroup.add(ring3);
 
-    // Floating Quantum Particle Swarm
-    const particleCount = 180;
-    const particlePositions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      const r = 2.2 + Math.random() * 1.2;
+    // Floating Quantum Particle Swarm with Gravitational Coordinates
+    const particleCount = 200;
+    const basePositions = new Float32Array(particleCount * 3);
+    const currentPositions = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount; i++) {
+      const idx = i * 3;
+      const r = 2.2 + Math.random() * 1.3;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      particlePositions[i] = r * Math.sin(phi) * Math.cos(theta);
-      particlePositions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
-      particlePositions[i + 2] = r * Math.cos(phi);
+      const x = r * Math.sin(phi) * Math.cos(theta);
+      const y = r * Math.sin(phi) * Math.sin(theta);
+      const z = r * Math.cos(phi);
+
+      basePositions[idx] = x;
+      basePositions[idx + 1] = y;
+      basePositions[idx + 2] = z;
+
+      currentPositions[idx] = x;
+      currentPositions[idx + 1] = y;
+      currentPositions[idx + 2] = z;
     }
+
     const particleGeo = new THREE.BufferGeometry();
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    const positionAttribute = new THREE.BufferAttribute(currentPositions, 3);
+    particleGeo.setAttribute('position', positionAttribute);
+
     const particleMat = new THREE.PointsMaterial({
       color: 0xff5533,
-      size: 0.04,
+      size: 0.045,
       transparent: true,
       opacity: 0.75,
     });
     const particles = new THREE.Points(particleGeo, particleMat);
     masterGroup.add(particles);
 
-    // Mouse & Touch Interaction with Cached Rect to prevent reflow thrashing
+    // Physics Engine: Drag Velocity, Momentum & Damping
+    let isDragging = false;
+    let prevPointerX = 0;
+    let prevPointerY = 0;
+    let velocityX = 0;
+    let velocityY = 0;
     let mouseX = 0;
     let mouseY = 0;
-    let targetRotationX = 0;
-    let targetRotationY = 0;
-    let cachedRect = container.getBoundingClientRect();
 
+    let cachedRect = container.getBoundingClientRect();
     const updateRect = () => {
       if (container) {
         cachedRect = container.getBoundingClientRect();
       }
     };
 
-    const updateCoordinates = (clientX: number, clientY: number) => {
+    const updateMouseHover = (clientX: number, clientY: number) => {
       if (!cachedRect.width || !cachedRect.height) return;
       const x = (clientX - cachedRect.left) / cachedRect.width - 0.5;
       const y = (clientY - cachedRect.top) / cachedRect.height - 0.5;
@@ -169,21 +187,49 @@ export function Landing3DHologram({ className }: Props) {
       mouseY = Math.max(-1, Math.min(1, y * 2));
     };
 
-    const onMouseMove = (e: MouseEvent) => {
-      updateCoordinates(e.clientX, e.clientY);
+    const onPointerDown = (e: PointerEvent) => {
+      isDragging = true;
+      prevPointerX = e.clientX;
+      prevPointerY = e.clientY;
+      velocityX = 0;
+      velocityY = 0;
+      container.setPointerCapture?.(e.pointerId);
     };
 
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        const touch = e.touches[0];
-        if (touch) {
-          updateCoordinates(touch.clientX, touch.clientY);
+    const onPointerMove = (e: PointerEvent) => {
+      updateMouseHover(e.clientX, e.clientY);
+
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - prevPointerX;
+      const deltaY = e.clientY - prevPointerY;
+      prevPointerX = e.clientX;
+      prevPointerY = e.clientY;
+
+      // Inject direct rotation and accumulate velocity
+      const sensitivity = 0.007;
+      velocityY = deltaX * sensitivity;
+      velocityX = deltaY * sensitivity;
+
+      masterGroup.rotation.y += velocityY;
+      masterGroup.rotation.x += velocityX;
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (isDragging) {
+        isDragging = false;
+        try {
+          container.releasePointerCapture?.(e.pointerId);
+        } catch {
+          // ignore
         }
       }
     };
 
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerup', onPointerUp, { passive: true });
+    window.addEventListener('pointercancel', onPointerUp, { passive: true });
     window.addEventListener('scroll', updateRect, { passive: true });
 
     // Resize Handler
@@ -198,7 +244,7 @@ export function Landing3DHologram({ className }: Props) {
     };
     window.addEventListener('resize', onResize);
 
-    // 5. Animation Loop with IntersectionObserver & Reduced Motion Support
+    // 5. Animation Loop with IntersectionObserver & Inertia Decay
     let animationId: number | null = null;
     const clock = new THREE.Clock();
     let isVisible = true;
@@ -212,28 +258,49 @@ export function Landing3DHologram({ className }: Props) {
       animationId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime() * speedMultiplier;
 
-      // Continuous Rotations
-      coreMesh.rotation.y = elapsed * 0.35;
-      coreMesh.rotation.x = elapsed * 0.2;
-      wireMesh.rotation.y = elapsed * 0.35;
-      wireMesh.rotation.x = elapsed * 0.2;
+      // Inner Gimbal & Core Multi-Speed Rotations
+      coreMesh.rotation.y += 0.006 * speedMultiplier;
+      coreMesh.rotation.x += 0.004 * speedMultiplier;
+      wireMesh.rotation.y += 0.006 * speedMultiplier;
+      wireMesh.rotation.x += 0.004 * speedMultiplier;
 
-      ring1.rotation.z = elapsed * 0.5;
-      ring2.rotation.y = elapsed * 0.4;
-      ring3.rotation.x = elapsed * 0.3;
+      ring1.rotation.z += 0.008 * speedMultiplier;
+      ring2.rotation.y += 0.007 * speedMultiplier;
+      ring3.rotation.x += 0.005 * speedMultiplier;
 
-      particles.rotation.y = elapsed * 0.15;
+      // Gravitational Particle Swarm Breathing
+      const posArr = positionAttribute.array as Float32Array;
+      for (let i = 0; i < particleCount; i++) {
+        const idx = i * 3;
+        const breath = 1 + 0.06 * Math.sin(elapsed * 2.2 + i * 0.15);
+        posArr[idx] = basePositions[idx]! * breath;
+        posArr[idx + 1] = basePositions[idx + 1]! * breath;
+        posArr[idx + 2] = basePositions[idx + 2]! * breath;
+      }
+      positionAttribute.needsUpdate = true;
+      particles.rotation.y += 0.002 * speedMultiplier;
 
-      // Smooth Mouse Tracking Tilt
-      targetRotationY = mouseX * 0.8;
-      targetRotationX = -mouseY * 0.8;
-      masterGroup.rotation.y += (targetRotationY - masterGroup.rotation.y) * 0.06;
-      masterGroup.rotation.x += (targetRotationX - masterGroup.rotation.x) * 0.06;
+      // Momentum Physics & Inertia Damping
+      if (!isDragging) {
+        // Friction decay
+        velocityX *= 0.94;
+        velocityY *= 0.94;
+
+        // Apply remaining velocity + base idle spin
+        masterGroup.rotation.y += velocityY + 0.003 * speedMultiplier;
+        masterGroup.rotation.x += velocityX;
+
+        // Gentle spring pull toward hover parallax rest point
+        const targetRotX = -mouseY * 0.35;
+        const targetRotY = mouseX * 0.35;
+        masterGroup.rotation.x += (targetRotX - masterGroup.rotation.x) * 0.02;
+        masterGroup.rotation.y += (targetRotY - (masterGroup.rotation.y % (Math.PI * 2))) * 0.001;
+      }
 
       renderer.render(scene, camera);
     };
 
-    // Pause rendering when scrolled out of view to preserve battery and GPU
+    // Pause rendering when scrolled out of view
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry) return;
@@ -259,8 +326,10 @@ export function Landing3DHologram({ className }: Props) {
       if (animationId) {
         cancelAnimationFrame(animationId);
       }
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
       window.removeEventListener('scroll', updateRect);
       window.removeEventListener('resize', onResize);
 
@@ -269,7 +338,7 @@ export function Landing3DHologram({ className }: Props) {
         container.removeChild(renderer.domElement);
       }
 
-      // Explicitly dispose all WebGL Geometries & Materials to eliminate GPU leaks
+      // Dispose all geometries and materials
       coreGeo.dispose();
       wireGeo.dispose();
       ring1Geo.dispose();
@@ -291,7 +360,10 @@ export function Landing3DHologram({ className }: Props) {
   return (
     <div
       ref={containerRef}
-      className={className ?? 'relative w-full aspect-square max-w-[420px] mx-auto select-none pointer-events-auto cursor-grab active:cursor-grabbing'}
+      className={cn(
+        'relative w-full aspect-square max-w-[420px] mx-auto select-none touch-none cursor-grab active:cursor-grabbing',
+        className,
+      )}
     />
   );
 }

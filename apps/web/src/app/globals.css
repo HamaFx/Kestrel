@@ -923,3 +923,19 @@ html[data-reduce-motion='force'] *::after {
 .animate-pixel-scanner {
   animation: pixel-scanner-sweep 1.2s steps(4) infinite;
 }
+
+@keyframes landing-cycle-progress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.landing-cycle-progress {
+  animation-name: landing-cycle-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+

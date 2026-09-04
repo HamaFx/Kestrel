@@ -17,7 +17,6 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { IconChevronDown } from '@tabler/icons-react';
 import { cn } from '@/lib/cn';
 
@@ -78,19 +77,19 @@ export function LandingFAQ() {
             <span className="font-redaction-35 italic text-brand">Clarified</span>
           </h2>
           <p className="font-sans text-base text-fg-muted max-w-xl">
-            Transparent explanations of Kestrel's algorithmic arbitration, non-custodial security, and data architecture.
+            Transparent explanations of Kestrel&apos;s algorithmic arbitration, non-custodial security, and data architecture.
           </p>
         </div>
 
-        {/* Accordion List with Smooth Auto-Height Spring */}
+        {/* Accordion List with Zero-Jitter CSS Grid Row Transitions */}
         <div className="flex flex-col gap-4">
           {FAQS.map((faq, index) => {
             const isOpen = openIndex === index;
             return (
               <div
-                key={faq.question}
+                key={faq.id}
                 className={cn(
-                  'surface-chip rounded-xl border transition-colors duration-200 overflow-hidden',
+                  'surface-chip rounded-xl border transition-all duration-200 overflow-hidden',
                   isOpen
                     ? 'bg-[#161616] border-brand/40 shadow-[var(--shadow-chip)]'
                     : 'bg-white/[0.02] border-white/5 hover:border-white/10',
@@ -102,7 +101,7 @@ export function LandingFAQ() {
                   aria-expanded={isOpen}
                   aria-controls={`faq-panel-${faq.id}`}
                   onClick={() => setOpenIndex(isOpen ? null : index)}
-                  className="flex w-full items-center justify-between p-5 sm:p-6 text-left"
+                  className="flex w-full items-center justify-between p-5 sm:p-6 text-left active:translate-y-[0.5px] transition-transform"
                 >
                   <div className="flex items-center gap-3 pr-4">
                     <span className="font-mono text-xs text-brand font-bold">
@@ -116,7 +115,7 @@ export function LandingFAQ() {
                     className={cn(
                       'flex size-8 shrink-0 items-center justify-center rounded-lg border transition-transform duration-200',
                       isOpen
-                        ? 'bg-brand text-white border-brand rotate-180'
+                        ? 'bg-brand text-white border-brand rotate-180 shadow-[0_0_8px_rgba(255,54,22,0.3)]'
                         : 'bg-white/5 text-fg-subtle border-white/10',
                     )}
                   >
@@ -124,24 +123,22 @@ export function LandingFAQ() {
                   </div>
                 </button>
 
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      id={`faq-panel-${faq.id}`}
-                      role="region"
-                      aria-labelledby={`faq-trigger-${faq.id}`}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-5 pb-5 sm:px-6 sm:pb-6 font-sans text-sm leading-relaxed text-fg-muted border-t border-white/5 pt-4">
-                        {faq.answer}
-                      </div>
-                    </motion.div>
+                {/* Zero-Jitter CSS Grid Row Accordion Body */}
+                <div
+                  id={`faq-panel-${faq.id}`}
+                  role="region"
+                  aria-labelledby={`faq-trigger-${faq.id}`}
+                  className={cn(
+                    'grid transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                    isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none',
                   )}
-                </AnimatePresence>
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-5 pb-5 sm:px-6 sm:pb-6 font-sans text-sm leading-relaxed text-fg-muted border-t border-white/5 pt-4">
+                      {faq.answer}
+                    </div>
+                  </div>
+                </div>
               </div>
             );
           })}
