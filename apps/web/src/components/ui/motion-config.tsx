@@ -32,7 +32,7 @@ interface MotionRootProps {
 
 export function MotionRoot({ children }: MotionRootProps) {
   return (
-    <LazyMotion features={domAnimation} strict>
+    <LazyMotion features={domAnimation}>
       <MotionConfig
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         reducedMotion="user"

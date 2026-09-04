@@ -28,12 +28,10 @@
 //     on focus (desktop only — hidden on touch).
 //   - Image thumbnail rail is keyboard-focusable for delete.
 import {
-  IconArrowUp,
   IconChartBar,
   IconMicrophone,
   IconNotebook,
   IconPaperclip,
-  IconPhotoPlus,
   IconSettings,
   IconSquare,
   IconTerminal2,
@@ -142,7 +140,7 @@ export function Composer({
   analysisMode,
   onAnalysisModeChange,
   chatModel,
-  onChatModelChange,
+  onChatModelChange: _onChatModelChange,
   contextUsagePercent = 6,
 }: ComposerProps) {
   const [value, setValue] = useState('');

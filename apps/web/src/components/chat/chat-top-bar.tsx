@@ -33,7 +33,6 @@ import {
   IconChevronDown,
   IconDotsCircleHorizontal,
   IconFileDownload,
-  IconLayoutColumns,
   IconLoader2,
   IconMessages,
   IconPlus,

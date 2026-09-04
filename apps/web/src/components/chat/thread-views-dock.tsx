@@ -21,15 +21,14 @@
 import { UserPlanPartSchema, type Symbol, type Timeframe } from '@kestrel/shared';
 import {
   IconChartCandle,
-  IconCheck,
   IconListCheck,
   IconTerminal2,
   IconUsers,
   IconX,
 } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
-import { AnimatePresence, motion } from 'motion/react';
-import { useMemo, useState } from 'react';
+import { m } from 'motion/react';
+import { useMemo } from 'react';
 
 import { TradingViewWidget } from '@/app/(app)/chart/[symbol]/_components/tradingview-widget';
 import { Segmented } from '@/components/ui/segmented';
@@ -96,7 +95,7 @@ export function ThreadViewsDock({
   if (!isOpen) return null;
 
   return (
-    <motion.aside
+    <m.aside
       key="thread-views-dock"
       initial={{ width: 0, opacity: 0 }}
       animate={{ width: '100%', opacity: 1 }}
@@ -254,6 +253,6 @@ export function ThreadViewsDock({
           </div>
         )}
       </div>
-    </motion.aside>
+    </m.aside>
   );
 }

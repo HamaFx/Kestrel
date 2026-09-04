@@ -38,13 +38,19 @@ export function Landing3DHologram({ className }: Props) {
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.z = 5.5;
 
-    // 2. WebGL Renderer with Alpha transparency
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
-    container.appendChild(renderer.domElement);
+    // 2. WebGL Renderer with Alpha transparency (guarded against WebGL context failures)
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      container.appendChild(renderer.domElement);
+    } catch (e) {
+      console.warn('[Landing3DHologram] WebGL initialization failed or unsupported:', e);
+      return;
+    }
 
     // 3. Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);

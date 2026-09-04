@@ -29,7 +29,7 @@ import {
   IconScale,
   IconSearch,
 } from '@tabler/icons-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
@@ -212,7 +212,7 @@ export function CompactTelemetryRow({
       {/* Recessed Drawer Content */}
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -232,7 +232,7 @@ export function CompactTelemetryRow({
                 </pre>
               )}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

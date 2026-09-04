@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
@@ -68,7 +68,7 @@ export function ChartWizardSprite({
   const strokeColor = bias === 'bearish' ? '#e02c10' : '#3f9e3d';
 
   return (
-    <motion.div
+    <m.div
       className={cn(
         'relative inline-flex items-center justify-center surface-chip rounded-md p-1 bg-[#161616] border border-white/10 shadow-[var(--shadow-chip)]',
         className,
@@ -116,7 +116,7 @@ export function ChartWizardSprite({
         <rect x="17" y="9" width="2" height="6" fill="#22c55e" rx="0.5" />
 
         {/* Dynamic Sweep / Focal Crosshair */}
-        <motion.g
+        <m.g
           animate={isThinking ? { x: [-4, 6, -4] } : { x: 0 }}
           transition={{ duration: 2.0, repeat: Infinity, ease: 'easeInOut' }}
         >
@@ -124,9 +124,9 @@ export function ChartWizardSprite({
           <rect x="22" y="7" width="2" height="7" fill={strokeColor} rx="0.5" />
           <circle cx="23" cy="7" r="1.5" fill="#fff" />
           <circle cx="23" cy="7" r="3.5" stroke={strokeColor} strokeWidth="0.5" opacity="0.6" />
-        </motion.g>
+        </m.g>
       </HardwareSvg>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -139,7 +139,7 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
   const accentColor = bias === 'bearish' ? '#e02c10' : '#4fa3b5';
 
   return (
-    <motion.div
+    <m.div
       className={cn(
         'relative inline-flex items-center justify-center surface-chip rounded-md p-1 bg-[#161616] border border-white/10 shadow-[var(--shadow-chip)]',
         className,
@@ -174,7 +174,7 @@ export function MacroMageSprite({ className, isThinking, isDone, bias }: SpriteP
         {/* In-flight Wire LED */}
         <circle cx="24" cy="8" r="1.5" fill={isThinking ? '#ff3616' : '#38bdf8'} className={isThinking ? 'animate-ping' : undefined} />
       </HardwareSvg>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -187,7 +187,7 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
   const alert = hasAlarm || (isDone && bias === 'bearish');
 
   return (
-    <motion.div
+    <m.div
       className={cn(
         'relative inline-flex items-center justify-center surface-chip rounded-md p-1 bg-[#161616] border border-white/10 shadow-[var(--shadow-chip)]',
         className,
@@ -228,7 +228,7 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
         <line x1="8" y1="16" x2="10" y2="16" stroke="#fff" strokeWidth="1" opacity="0.5" />
 
         {/* Calibrated Needle / Center Pin */}
-        <motion.line
+        <m.line
           x1="16"
           y1="16"
           x2="21"
@@ -242,7 +242,7 @@ export function RiskKnightSprite({ className, isThinking, isDone, bias, hasAlarm
         />
         <circle cx="16" cy="16" r="2.5" fill="#222" stroke="#fff" strokeWidth="1" />
       </HardwareSvg>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -258,7 +258,7 @@ export function KestrelFalconSprite({
   hasWingsSpread: _hasWingsSpread,
 }: SpriteProps) {
   return (
-    <motion.div
+    <m.div
       className={cn(
         'relative inline-flex items-center justify-center surface-chip rounded-md p-1 bg-[#161616] border border-white/10 shadow-[var(--shadow-chip)]',
         className,
@@ -290,7 +290,7 @@ export function KestrelFalconSprite({
         <circle cx="18" cy="12" r="1.5" fill="#ffffff" />
         <circle cx="18" cy="12" r="3" stroke="#ff632a" strokeWidth="0.5" opacity="0.7" />
       </HardwareSvg>
-    </motion.div>
+    </m.div>
   );
 }
 
