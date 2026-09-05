@@ -38,7 +38,6 @@
 // The card is memoized to avoid re-rendering untouched cards when bookmark updates.
 import type { NewsArticle } from '@kestrel/shared';
 import { IconBolt, IconBookmark, IconExternalLink } from '@tabler/icons-react';
-import { m } from 'motion/react';
 import { memo } from 'react';
 
 import { cleanNewsText } from '@/lib/clean-news-text';
@@ -156,15 +155,14 @@ const ArticleCardInner = memo(
           <a
             href={`/chat?prompt=${askPrompt}`}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-[32px] items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium transition-colors"
+            className="bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 text-xs font-medium transition-colors tactile-press active:translate-y-[0.5px]"
           >
             <IconBolt className="size-3.5" />
             Ask AI
           </a>
-          <div className="flex items-center gap-0.5">
-            <m.button
+          <div className="flex items-center gap-1">
+            <button
               type="button"
-              whileTap={{ scale: 0.97 }}
               onClick={(e) => {
                 e.preventDefault();
                 if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
@@ -173,19 +171,19 @@ const ArticleCardInner = memo(
               aria-label={saved ? 'Remove bookmark' : 'Bookmark article'}
               aria-pressed={saved}
               className={cn(
-                'inline-flex size-8 items-center justify-center rounded-sm transition-colors',
+                'inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]',
                 saved ? 'text-fg bg-bg-elev-2' : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2',
               )}
             >
               <IconBookmark className={cn('size-4', saved && 'fill-current')} />
-            </m.button>
+            </button>
             <a
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Open article in new tab"
               onClick={(e) => e.stopPropagation()}
-              className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex size-8 items-center justify-center rounded-sm transition-colors"
+              className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]"
             >
               <IconExternalLink className="size-4" />
             </a>

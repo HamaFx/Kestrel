@@ -241,11 +241,13 @@ export function ChatTopBar({
       {/* Chat model selector. The picker uses the authenticated catalog and
             saves the selected model for future turns. */}
       {onChatModelChange && (
-        <ChatModelSelector
-          activeModelId={chatModel}
-          disabled={isStreaming || modelSelectionPending}
-          onPick={onChatModelChange}
-        />
+        <div className="flex items-center [&_button]:min-h-10 [&_button]:tactile-press">
+          <ChatModelSelector
+            activeModelId={chatModel}
+            disabled={isStreaming || modelSelectionPending}
+            onPick={onChatModelChange}
+          />
+        </div>
       )}
 
       {/* Analysis Mode Selector */}
@@ -256,7 +258,7 @@ export function ChatTopBar({
             onClick={() => modeMenu.setOpen((v) => !v)}
             aria-label="Analysis mode"
             {...modeMenu.triggerProps}
-            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 text-caption inline-flex shrink-0 items-center gap-1 rounded-sm px-2.5 py-1.5 font-medium transition-colors"
+            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 text-caption inline-flex shrink-0 min-h-10 items-center gap-1 rounded-md px-2.5 py-1.5 font-medium transition-colors tactile-press"
           >
             <IconAdjustmentsHorizontal className="size-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">{MODE_LABELS[analysisMode]}</span>

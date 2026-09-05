@@ -20,6 +20,7 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { LandingPageView } from '@/components/landing/landing-page-view';
+import { MotionRoot } from '@/components/ui/motion-config';
 
 export default async function RootPage({
   searchParams,
@@ -40,6 +41,10 @@ export default async function RootPage({
   }
 
   // Public visitors (or authenticated visitors requesting the showcase) see the full Hoplite showcase
-  return <LandingPageView isAuthenticated={!!session?.user} />;
+  return (
+    <MotionRoot>
+      <LandingPageView isAuthenticated={!!session?.user} />
+    </MotionRoot>
+  );
 }
 

@@ -145,7 +145,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
     <div
       role="status"
       aria-live="polite"
-      className="border-border/80 bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4 shadow-sm"
+      className="surface-panel border-border/80 bg-bg-elev-1 flex flex-col gap-4 rounded-xl border p-4 shadow-sm"
     >
       {/* Header & Step Progress */}
       <div className="border-border/60 flex items-center justify-between gap-2 border-b pb-3">
@@ -223,7 +223,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 320, damping: 26 }}
             aria-label={`Desk verdict: ${dissent ? 'mixed' : (opinions[0]?.opinion?.bias ?? 'neutral')}, ${avgConfidence}% confidence`}
-            className="border-border bg-bg-elev-2 flex flex-col gap-3 rounded-sm border p-3.5 shadow-xs"
+            className="surface-well border-border bg-bg-elev-2 flex flex-col gap-3 rounded-xl border p-3.5 shadow-xs"
           >
             {/* Confidence meter */}
             <div className="flex flex-col gap-1.5">
@@ -487,7 +487,7 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
   }, [agents]);
 
   return (
-    <div className="bg-bg-elev-1 border-border overflow-hidden rounded-sm border">
+    <div className="surface-panel bg-bg-elev-1 border-border overflow-hidden rounded-xl border">
       <div className="border-border flex items-center gap-2 border-b px-3 py-2">
         <IconTerminal2 className="text-fg-subtle size-3" />
         <span className="text-caption text-fg-subtle font-mono tracking-wider uppercase">

@@ -96,7 +96,7 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
 
   return (
     <div
-      className="border-border bg-bg-elev-1 overflow-hidden rounded-sm border"
+      className="overflow-x-auto rounded-xl border border-border bg-bg-elev-1"
       role="table"
       aria-label={title}
     >

@@ -166,7 +166,7 @@ export function EventCard({ event }: EventCardProps) {
         >
           <Link
             href={`/chat?prompt=${askPrompt}`}
-            className="surface-chip bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-[32px] items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all active:translate-y-[0.5px] border border-edge/60 shadow-xs"
+            className="surface-chip bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 text-xs font-medium transition-all tactile-press active:translate-y-[0.5px] border border-edge/60 shadow-xs"
           >
             <IconBolt className="size-3.5" />
             Ask AI
@@ -314,7 +314,7 @@ function RemindButton({ event }: { event: EconomicEvent }) {
       disabled={armed}
       aria-pressed={armed}
       className={cn(
-        'text-body-sm pointer-events-auto inline-flex items-center gap-1 rounded-sm px-3 py-1.5 font-medium transition-colors',
+        'text-body-sm pointer-events-auto inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 font-medium transition-colors tactile-press active:translate-y-[0.5px]',
         armed ? 'text-fg bg-bg-elev-2' : 'text-fg-muted hover:text-fg bg-bg-elev-2',
       )}
     >

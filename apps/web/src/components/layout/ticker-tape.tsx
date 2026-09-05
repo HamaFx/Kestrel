@@ -90,7 +90,7 @@ export function TickerTape() {
         aria-label="Market ticker tape — awaiting data"
         role="marquee"
       >
-        <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap">
+        <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap" aria-hidden="true">
           {fallback}
           {fallback}
         </div>
@@ -123,7 +123,7 @@ export function TickerTape() {
       aria-label="Market ticker tape"
       role="marquee"
     >
-      <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap">{content}</div>
+      <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap" aria-hidden="true">{content}</div>
     </div>
   );
 }

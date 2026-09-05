@@ -101,7 +101,7 @@ export function SettingsNav() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex snap-start items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                  'flex snap-start min-h-10 items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors tactile-press active:translate-y-[0.5px]',
                   active
                     ? 'bg-brand/8 ring-brand/22 text-brand ring-1'
                     : 'text-fg-subtle hover:bg-bg-elev-2 hover:text-fg',

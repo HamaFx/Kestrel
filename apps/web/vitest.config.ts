@@ -30,7 +30,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['test/**/*.test.{ts,tsx}'],
+    include: ['test/**/*.test.{ts,tsx}', 'src/**/__tests__/**/*.test.{ts,tsx}'],
     setupFiles: ['./test/vitest.setup.ts'],
     coverage: {
       provider: 'v8',

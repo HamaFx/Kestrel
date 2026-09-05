@@ -270,10 +270,10 @@ export default function AdminPage() {
     <div className="flex flex-col gap-6">
       <div
         aria-label="Admin sections"
-        className="border-border flex items-center justify-between border-b"
+        className="w-full"
         role="tablist"
       >
-        <div className="flex flex-wrap gap-1">
+        <div className="flex gap-1 overflow-x-auto no-scrollbar border-b border-border pb-3">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -292,7 +292,7 @@ export default function AdminPage() {
                 onClick={() => activateTab(tab.id)}
                 onKeyDown={handleKeyDown}
                 className={cn(
-                  'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors',
+                  'inline-flex min-h-10 items-center gap-2 py-2.5 px-3 whitespace-nowrap text-sm font-medium transition-colors',
                   'border-b-2',
                   active
                     ? 'border-brand text-brand'

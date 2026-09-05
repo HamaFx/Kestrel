@@ -78,13 +78,13 @@ export function ConfirmDrawer({
 }: ConfirmDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
+      <DrawerContent className="surface-panel rounded-t-xl border-t border-border">
         <DrawerHeader>
           <div className="flex items-center gap-3">
             {tone === 'danger' ? (
               <span
                 aria-hidden
-                className="text-danger bg-danger/10 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm"
+                className="text-danger bg-danger/10 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
               >
                 <IconAlertTriangle className="size-5" strokeWidth={2} />
               </span>

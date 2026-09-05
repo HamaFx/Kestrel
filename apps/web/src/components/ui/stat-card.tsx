@@ -65,7 +65,7 @@ export function StatCard({ icon, label, value, tone = 'fg', sparkline }: StatCar
       role="group"
       aria-label={`${label}: ${value}`}
       className={cn(
-        'relative flex flex-col gap-2 overflow-hidden rounded-md surface-chip',
+        'relative flex flex-col gap-2 overflow-hidden rounded-xl surface-chip',
         'border-border bg-bg-elev-1 border border-l-2 p-3 sm:p-4 shadow-[var(--shadow-chip)]',
         TONE_TINT[tone],
       )}

@@ -65,7 +65,7 @@ export function Toaster() {
         toastOptions={{
           classNames: {
             toast:
-              'group !rounded-sm !border !border-border !text-fg !shadow-2xl ' +
+              'group !rounded-xl !border !border-border !text-fg !shadow-2xl ' +
               '![background:rgba(24,24,27,0.9)] ' +
               '![box-shadow:0_4px_16px_-4px_rgba(0,0,0,0.8)]',
             title: '!text-sm !font-semibold',

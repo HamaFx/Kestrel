@@ -84,7 +84,7 @@ function SortableItem({
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
-          className="text-fg-muted hover:text-fg flex size-6 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+          className="text-fg-muted hover:text-fg flex size-10 min-h-10 min-w-10 shrink-0 cursor-grab touch-none items-center justify-center rounded-md active:cursor-grabbing tactile-press transition-colors"
           aria-label={`Drag to reorder ${displayName}`}
           {...attributes}
           {...listeners}
@@ -102,7 +102,7 @@ function SortableItem({
         size="sm"
         onClick={onRemove}
         disabled={disabled}
-        className="text-danger hover:bg-danger/10 hover:text-danger flex size-7 shrink-0 items-center justify-center p-0"
+        className="text-danger hover:bg-danger/10 hover:text-danger flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-md p-0 tactile-press"
         aria-label={`Remove ${displayName} from chain`}
       >
         <IconTrash className="size-3.5" />

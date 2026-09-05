@@ -47,7 +47,7 @@ export async function AboutCard() {
   return (
     <section
       aria-labelledby="about-heading"
-      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
+      className="surface-panel border-border bg-surface-panel flex flex-col gap-1 rounded-xl border p-4 shadow-sm"
     >
       <header className="flex items-center gap-3 pb-2">
         <h2 id="about-heading" className="text-fg text-base font-semibold tracking-tight">
