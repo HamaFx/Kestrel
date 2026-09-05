@@ -32,6 +32,7 @@
 // keeps URL state). Pass `as="link"` + `hrefFor` to opt into Link mode.
 import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
+import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { cn } from '@/lib/cn';
@@ -82,7 +83,7 @@ export type SegmentedProps<T extends string> = ButtonModeProps<T> | LinkModeProp
 
 const SIZE: Record<NonNullable<SegmentedBaseProps<string>['size']>, string> = {
   xs: 'h-8 text-xs',
-  sm: 'h-9 sm:h-10 text-xs sm:text-sm',
+  sm: 'h-10 sm:h-9 text-xs sm:text-sm',
   md: 'h-11 sm:h-12 text-sm',
 };
 
@@ -196,10 +197,10 @@ export function Segmented<T extends string>(props: SegmentedProps<T>) {
             size === 'xs'
               ? 'min-w-[32px]'
               : size === 'sm'
-                ? 'min-w-[36px] sm:min-w-[44px]'
+                ? 'min-w-[44px] sm:min-w-[36px]'
                 : 'min-w-[44px]';
           const baseItem = cn(
-            'relative inline-flex items-center justify-center rounded-sm font-semibold tabular-nums transition-colors',
+            'relative inline-flex items-center justify-center rounded-sm font-semibold tabular-nums transition-colors tactile-press active:translate-y-[0.5px]',
             'focus-visible:ring-fg focus:outline-none focus-visible:ring-2',
             minWClass,
             ITEM_PAD[size],
@@ -229,7 +230,6 @@ export function Segmented<T extends string>(props: SegmentedProps<T>) {
                 role={role === 'tablist' ? 'tab' : undefined}
                 aria-label={opt.ariaLabel}
                 aria-selected={role === 'tablist' ? active : undefined}
-                aria-checked={role === 'radiogroup' ? active : undefined}
                 tabIndex={optIndex === focusedIndex ? 0 : -1}
                 className={baseItem}
               >
@@ -265,4 +265,14 @@ function toneClass(tone: SegmentedTone | undefined): string {
   if (tone === 'bull') return 'bg-bull text-black';
   if (tone === 'bear') return 'bg-bear text-black';
   return 'bg-brand text-brand-fg';
+}
+
+/**
+ * Route-aware container that suppresses ambient telemetry (TickerTape, MarketSessionBar)
+ * on /chat routes to eliminate invisible phantom polling and timer overhead underneath ChatScreen.
+ */
+export function AmbientTelemetry({ children }: { children?: React.ReactNode }) {
+  const pathname = usePathname() ?? '';
+  if (pathname === '/chat' || pathname.startsWith('/chat/')) return null;
+  return children ? <>{children}</> : null;
 }

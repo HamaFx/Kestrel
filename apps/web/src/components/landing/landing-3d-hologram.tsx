@@ -248,10 +248,18 @@ export function Landing3DHologram({ className }: Props) {
     let animationId: number | null = null;
     const clock = new THREE.Clock();
     let isVisible = true;
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const speedMultiplier = prefersReducedMotion ? 0.05 : 1;
+    const motionMediaQuery =
+      typeof window !== 'undefined'
+        ? window.matchMedia('(prefers-reduced-motion: reduce)')
+        : null;
+    let prefersReducedMotion = motionMediaQuery?.matches ?? false;
+    let speedMultiplier = prefersReducedMotion ? 0.05 : 1;
+
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      prefersReducedMotion = e.matches;
+      speedMultiplier = prefersReducedMotion ? 0.05 : 1;
+    };
+    motionMediaQuery?.addEventListener('change', handleMotionChange);
 
     const animate = () => {
       if (!isVisible) return;
@@ -332,6 +340,7 @@ export function Landing3DHologram({ className }: Props) {
       window.removeEventListener('pointercancel', onPointerUp);
       window.removeEventListener('scroll', updateRect);
       window.removeEventListener('resize', onResize);
+      motionMediaQuery?.removeEventListener('change', handleMotionChange);
 
       // Clean up DOM
       if (container.contains(renderer.domElement)) {

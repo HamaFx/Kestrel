@@ -25,7 +25,7 @@
 
 export const colors = {
   // surfaces (dark theme baseline)
-  bg: '#0A0A0A',
+  bg: '#121212',
   bgElev1: '#141414',
   bgElev2: '#1E1E1E',
   bgElev3: '#2A2A2A',
@@ -39,7 +39,7 @@ export const colors = {
   fgSubtle: '#737373',
 
   // brand
-  brand: '#F56E0F',
+  brand: '#ff3616',
   brandFg: '#FFFFFF',
   brandSoft: '#FF9A4D',
   brandBorder: '#402A18',
@@ -59,10 +59,10 @@ export const colors = {
 export type ColorToken = keyof typeof colors;
 
 export const radii = {
-  sm: '2px',
-  md: '2px',
-  lg: '2px',
-  xl: '2px',
+  sm: '4px',
+  md: '6px',
+  lg: '8px',
+  xl: '12px',
 } as const;
 
 export const motion = {

@@ -43,22 +43,22 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-brand text-white font-medium hover:brightness-110 active:translate-y-[0.5px] border border-brand/40 shadow-[0_4px_14px_rgba(255,54,22,0.3),inset_0_1.4px_0_rgba(255,255,255,0.25)]',
+    'bg-brand text-white font-medium hover:brightness-110 border border-brand/40 shadow-[0_4px_14px_rgba(255,54,22,0.3),inset_0_1.4px_0_rgba(255,255,255,0.25)]',
   secondary:
-    'surface-chip text-fg hover:bg-bg-elev-3 active:translate-y-[0.5px] border border-edge/60',
+    'surface-chip text-fg hover:bg-bg-elev-3 border border-edge/60',
   surface:
-    'surface-chip-dark text-white hover:brightness-125 active:translate-y-[0.5px]',
-  ghost: 'text-fg-muted hover:text-fg hover:bg-bg-elev-1 active:translate-y-[0.5px]',
+    'surface-chip-dark text-white hover:brightness-125',
+  ghost: 'text-fg-muted hover:text-fg hover:bg-bg-elev-1',
   danger:
-    'bg-danger text-white font-medium hover:bg-danger/90 active:translate-y-[0.5px] shadow-[0_4px_12px_rgba(224,44,16,0.25)]',
-  success: 'bg-success text-black font-medium hover:bg-success/90 active:translate-y-[0.5px]',
+    'bg-danger text-white font-medium hover:bg-danger/90 shadow-[0_4px_12px_rgba(224,44,16,0.25)]',
+  success: 'bg-success text-black font-medium hover:bg-success/90',
   tactical:
-    'group relative overflow-hidden rounded-l-md rounded-r-full bg-[#252525] text-white border border-white/10 active:scale-[0.98] transition-transform duration-200',
+    'group relative overflow-hidden rounded-l-md rounded-r-full bg-[#252525] text-white border border-white/10 tactile-press',
 };
 
 const sizes: Record<Size, string> = {
   xs: 'h-8 px-2.5 text-xs rounded-md',
-  sm: 'h-9 px-3 text-xs sm:text-sm rounded-md',
+  sm: 'h-10 px-3 text-xs sm:text-sm rounded-md',
   md: 'h-10 px-4 text-sm font-medium rounded-md',
   lg: 'h-12 sm:h-14 px-5 text-base font-medium rounded-md',
 };
@@ -89,7 +89,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         aria-busy={loading || false}
         style={inlineStyle}
         className={cn(
-          'group relative inline-flex items-center justify-between overflow-hidden rounded-l-[6px] rounded-r-full bg-[#252525] py-2 pr-10 pl-4 text-[14px] leading-none tracking-[-0.02em] text-white transition-transform duration-200 active:scale-[0.98] border border-white/10',
+          'group relative inline-flex items-center justify-between overflow-hidden rounded-l-[6px] rounded-r-full bg-[#252525] pr-10 pl-4 leading-none tracking-[-0.02em] text-white tactile-press active:translate-y-[0.5px] border border-white/10',
+          sizes[size],
           'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-60',
           className,
@@ -122,7 +123,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={loading || false}
       style={inlineStyle}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-md font-medium',
+        'inline-flex items-center justify-center gap-2 rounded-md font-medium tactile-press active:translate-y-[0.5px]',
         'transition-all duration-150',
         'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none',

@@ -103,8 +103,8 @@ export function ComposerActionChips({
             disabled={disabled}
             onClick={() => onSelect(chip.prompt)}
             className={cn(
-              'inline-flex min-h-[36px] shrink-0 touch-manipulation items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-all',
-              'border-border/70 bg-bg-elev-1/80 text-fg-subtle hover:text-fg hover:border-brand/50 hover:bg-bg-elev-2 active:scale-95',
+              'inline-flex min-h-10 shrink-0 touch-manipulation items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition-all tactile-press active:translate-y-[0.5px]',
+              'border-border/70 bg-bg-elev-1/80 text-fg-subtle hover:text-fg hover:border-brand/50 hover:bg-bg-elev-2',
               'focus-visible:ring-brand focus:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50',
             )}
             title={chip.prompt}

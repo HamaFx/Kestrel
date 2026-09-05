@@ -256,6 +256,9 @@ html {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    overflow-x: clip;
+    max-width: 100vw;
   }
 
   .tabular-nums {
@@ -360,19 +363,19 @@ html {
 }
 
 @utility surface-well {
-  border: 0.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
   background: var(--color-bg);
   box-shadow: var(--shadow-well);
 }
 
 @utility surface-well-deep {
-  border: 0.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
   background: var(--color-well);
   box-shadow: var(--shadow-well);
 }
 
 @utility surface-chip {
-  border: 0.714px solid var(--color-edge);
+  border: 1px solid var(--color-edge);
   background: var(--color-bg-elev-2);
   box-shadow: var(--shadow-chip);
 }
@@ -380,19 +383,37 @@ html {
 @utility surface-chip-dark {
   color: #fff;
   background: #181818;
-  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 13px 5px rgba(0, 0, 0, 0.05), 0 7px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1.429px 0 rgba(255, 255, 255, 0.3);
 }
 
 @utility surface-chip-destructive {
   color: #fff;
   background: var(--color-brand);
-  border: 0.5px solid #d92c10;
+  border: 1px solid #d92c10;
   box-shadow: 0 4px 14px rgba(255, 54, 22, 0.35), inset 0 1.429px 0 rgba(255, 255, 255, 0.3);
 }
 
 @utility tactile-press {
   transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+
+  &:active {
+    transform: translateY(0.5px);
+  }
+}
+
+/* Neutralize compound translate when active:translate-y-[0.5px] is paired with tactile-press */
+.tactile-press.active\:translate-y-\[0\.5px\]:active,
+[class*="active:translate-y-"].tactile-press:active {
+  --tw-translate-y: 0px !important;
+  translate: 0 0 !important;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @utility border-chip-edge {
@@ -401,6 +422,10 @@ html {
 
 @utility chip-press {
   transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+
+  &:active {
+    transform: translateY(0.5px);
+  }
 }
 
 @utility prompt-pulse {

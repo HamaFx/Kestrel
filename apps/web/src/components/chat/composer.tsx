@@ -386,7 +386,7 @@ export function Composer({
     <div className="message-composer-safe-bottom sticky bottom-0 z-20 mx-auto w-full max-w-4xl xl:max-w-5xl px-3 pb-[max(env(safe-area-inset-bottom),12px)] transition-all duration-300">
       <form
         className={cn(
-          'border-chip-edge bg-bg-elev-1 surface-chip-dark relative z-10 flex w-full flex-col gap-1.5 rounded-[16px] border-[0.5px] p-2 shadow-(--shadow-chat-bar) transition-all duration-150',
+          'border-chip-edge bg-surface-panel bg-bg-elev-1 surface-chip-dark relative z-10 flex w-full flex-col gap-1.5 rounded-[16px] border-[0.5px] p-2 shadow-(--shadow-chat-bar) transition-all duration-150',
           focused && 'border-brand/50 ring-1 ring-brand/30',
           dragOver && 'border-brand ring-2 ring-brand/40',
         )}
@@ -506,7 +506,7 @@ export function Composer({
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || images.length >= MAX_IMAGES}
               className={cn(
-                'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors',
+                'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg transition-colors tactile-press',
                 'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2 active:translate-y-[0.5px]',
                 disabled || images.length >= MAX_IMAGES
                   ? 'cursor-not-allowed opacity-50'
@@ -536,7 +536,7 @@ export function Composer({
                 onClick={() => (voice.active ? voice.stop() : voice.start())}
                 disabled={disabled}
                 className={cn(
-                  'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors',
+                  'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg transition-colors tactile-press',
                   'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2 active:translate-y-[0.5px]',
                   voice.active
                     ? 'text-danger mic-pulse bg-danger/10'
@@ -559,7 +559,7 @@ export function Composer({
                   if (next) onAnalysisModeChange(next);
                 }}
                 aria-label={`Analysis mode: ${analysisMode}`}
-                className="border-chip-edge bg-background/50 hover:bg-bg-elev-2 active:bg-bg-elev-3 font-mono text-caption text-fg-muted hover:text-fg flex h-7 items-center gap-1.5 rounded-md border px-2 font-normal transition-colors active:translate-y-[0.5px]"
+                className="border-chip-edge bg-background/50 hover:bg-bg-elev-2 active:bg-bg-elev-3 font-mono text-caption text-fg-muted hover:text-fg flex h-10 sm:h-9 min-h-10 items-center gap-1.5 rounded-md border px-2.5 font-normal transition-colors tactile-press active:translate-y-[0.5px]"
               >
                 <span className="size-1.5 rounded-full bg-brand" />
                 <span className="capitalize">{analysisMode}</span>
@@ -569,7 +569,7 @@ export function Composer({
 
             {/* Model Chip (if provided) */}
             {chatModel && (
-              <span className="border-chip-edge bg-background/50 font-mono text-caption text-fg-subtle hidden sm:inline-flex h-7 items-center gap-1 rounded-md border px-2">
+              <span className="border-chip-edge bg-background/50 font-mono text-caption text-fg-subtle hidden sm:inline-flex h-10 sm:h-9 items-center gap-1 rounded-md border px-2">
                 <span className="truncate max-w-[120px]">{chatModel.split(':').pop()}</span>
               </span>
             )}
@@ -614,7 +614,7 @@ export function Composer({
                   type="button"
                   onClick={onStop}
                   aria-label="Stop generating"
-                  className="chip-press text-danger border-danger/40 bg-danger/15 inline-flex size-8 shrink-0 items-center justify-center rounded-lg border active:translate-y-[0.5px]"
+                  className="chip-press text-danger border-danger/40 bg-danger/15 inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg border tactile-press active:translate-y-[0.5px]"
                 >
                   <IconSquare className="size-3.5 fill-current" strokeWidth={0} />
                 </m.button>
@@ -629,7 +629,7 @@ export function Composer({
                   disabled={!canSend}
                   aria-label="Send message"
                   className={cn(
-                    'chip-press group bg-fg hover:bg-white text-black inline-flex size-8 shrink-0 items-center justify-center rounded-lg font-medium transition-colors',
+                    'chip-press group bg-fg hover:bg-white text-black inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg font-medium transition-colors tactile-press',
                     'disabled:cursor-not-allowed disabled:opacity-35 disabled:grayscale active:translate-y-[0.5px]',
                   )}
                 >

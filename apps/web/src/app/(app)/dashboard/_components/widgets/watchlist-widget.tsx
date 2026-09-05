@@ -168,7 +168,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
         </div>
       </header>
 
-      <ul className="flex flex-col">
+      <ul className="flex flex-col overflow-x-auto scrollbar-hide">
         {(() => {
           if (isError) {
             return (
@@ -305,7 +305,7 @@ function WatchRow({
         {/* 1-Click Ask AI Copilot */}
         <Link
           href={`/chat?prompt=${aiPrompt}`}
-          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg p-1.5 transition-colors active:translate-y-[0.5px]"
+          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg p-2 transition-colors tactile-press active:translate-y-[0.5px]"
           title={`Ask AI Copilot to analyze ${tick.symbol}`}
           aria-label={`Ask AI Copilot to analyze ${tick.symbol}`}
         >
@@ -317,7 +317,7 @@ function WatchRow({
           <button
             type="button"
             onClick={onRemove}
-            className="text-fg-subtle hover:text-danger inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg p-1.5 opacity-0 transition-all group-hover:opacity-100 active:translate-y-[0.5px]"
+            className="text-fg-subtle hover:text-danger inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg p-2 opacity-0 transition-all group-hover:opacity-100 tactile-press active:translate-y-[0.5px]"
             title={`Remove ${tick.symbol} from watchlist`}
             aria-label={`Remove ${tick.symbol}`}
           >

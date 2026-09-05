@@ -81,7 +81,7 @@ export function NewsToolbar({
             type="button"
             aria-label="Clear search"
             onClick={() => onQuery('')}
-            className="text-fg-subtle hover:text-fg focus-visible:ring-fg absolute top-1/2 right-2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg transition-all focus-visible:ring-2 focus-visible:outline-none"
+            className="text-fg-subtle hover:text-fg focus-visible:ring-fg absolute top-1/2 right-1.5 inline-flex size-10 min-h-10 min-w-10 -translate-y-1/2 items-center justify-center rounded-lg transition-all focus-visible:ring-2 focus-visible:outline-none tactile-press"
           >
             <IconX className="size-4" />
           </button>

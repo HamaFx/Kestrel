@@ -202,7 +202,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
             type="button"
             onClick={() => shiftMonth(-1)}
             aria-label="Previous month"
-            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm transition-colors sm:size-8"
+            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press"
           >
             <IconChevronLeft className="size-4" />
           </button>
@@ -210,7 +210,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
             type="button"
             onClick={() => shiftMonth(1)}
             aria-label="Next month"
-            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-sm transition-colors sm:size-8"
+            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press"
           >
             <IconChevronRight className="size-4" />
           </button>
@@ -218,7 +218,7 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
       </header>
 
       {months.map((m, mi) => (
-        <div key={mi} className="flex flex-col gap-1.5 sm:gap-2">
+        <div key={mi} className="flex flex-col gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide">
           <span className="text-fg text-sm font-semibold">{m.label}</span>
 
           {/* Day-of-week header */}

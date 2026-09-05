@@ -69,14 +69,14 @@ export function PlanPart({ plan, streaming = false }: PlanPartProps) {
 
   return (
     <div
-      className={cn('border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border px-3 py-2')}
+      className={cn('surface-panel border-border bg-bg-elev-1 flex flex-col gap-1 rounded-xl border p-3 shadow-xs')}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={contentId}
-        className="text-fg-muted hover:text-fg focus-visible:ring-fg text-body-sm flex items-center gap-2 rounded-sm text-left font-medium tabular-nums focus:outline-none focus-visible:ring-2"
+        className="text-fg-muted hover:text-fg focus-visible:ring-fg text-body-sm flex min-h-10 items-center gap-2 rounded-md text-left font-medium tabular-nums focus:outline-none focus-visible:ring-2 tactile-press"
       >
         {open ? (
           <IconChevronDown className="size-3.5" />
@@ -133,7 +133,7 @@ export function PlanPart({ plan, streaming = false }: PlanPartProps) {
                   {plan.expectedTools.map((t, i) => (
                     <span
                       key={`${t}-${i}`}
-                      className="bg-bg-elev-2 text-fg-muted text-caption ml-1 rounded-sm px-1.5 py-0.5 font-mono"
+                      className="bg-bg-elev-2 text-fg-muted text-caption ml-1 rounded-md px-1.5 py-0.5 font-mono"
                     >
                       {t}
                     </span>

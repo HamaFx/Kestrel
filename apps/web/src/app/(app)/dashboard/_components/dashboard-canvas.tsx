@@ -394,7 +394,7 @@ function SortableWidget({
           <button
             type="button"
             aria-label={`Drag ${WIDGET_LABELS[widget.type]} widget`}
-            className="text-fg-subtle hover:text-fg cursor-grab touch-none active:cursor-grabbing"
+            className="text-fg-subtle hover:text-fg cursor-grab touch-none active:cursor-grabbing inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press"
             {...attributes}
             {...listeners}
           >
@@ -408,7 +408,7 @@ function SortableWidget({
               type="button"
               aria-label={`Toggle span for ${WIDGET_LABELS[widget.type]}`}
               onClick={onToggleSpan}
-              className="text-fg-subtle hover:text-fg bg-black/40 border border-white/10 rounded-md px-2 py-0.5 font-mono text-xs active:translate-y-[0.5px]"
+              className="text-fg-subtle hover:text-fg bg-black/40 border border-white/10 rounded-md min-h-10 px-3 py-2 font-mono text-xs inline-flex items-center justify-center transition-colors tactile-press active:translate-y-[0.5px]"
               title={`Current span: ${widget.span}/3 columns (click to cycle)`}
             >
               {widget.span}/3 col
@@ -417,7 +417,7 @@ function SortableWidget({
               type="button"
               aria-label={`Remove ${WIDGET_LABELS[widget.type]}`}
               onClick={onRemove}
-              className="text-fg-subtle hover:text-bear hover:bg-bear/10 p-1 rounded-md transition-colors active:translate-y-[0.5px]"
+              className="text-fg-subtle hover:text-bear hover:bg-bear/10 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]"
             >
               <IconX className="size-4" />
             </button>
