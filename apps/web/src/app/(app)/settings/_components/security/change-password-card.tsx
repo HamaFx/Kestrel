@@ -63,10 +63,10 @@ export function ChangePasswordCard() {
   }, [state.ok, state.error]);
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4">
-      <div className="flex items-center gap-2">
-        <IconLock className="text-fg-muted size-4" />
-        <h2 className="text-fg text-base font-semibold tracking-tight">Change Password</h2>
+    <div className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
+      <div className="flex items-center gap-2 pb-1 border-b border-white/5">
+        <IconLock className="text-brand size-4.5" />
+        <h3 className="text-fg text-base font-semibold tracking-tight">Change Password</h3>
       </div>
 
       {state.ok ? (

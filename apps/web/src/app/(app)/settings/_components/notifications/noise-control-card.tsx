@@ -147,14 +147,14 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
 
   return (
     <section
-      className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
       aria-labelledby="noise-control-heading"
     >
       <div className="flex items-center gap-3 pb-2">
         <h2 id="noise-control-heading" className="text-fg text-base font-semibold tracking-tight">
           Notification noise control
         </h2>
-        {saving && <span className="text-fg-muted text-xs">Saving…</span>}
+        {saving && <span className="text-fg-muted font-mono text-xs">Saving…</span>}
       </div>
 
       <p className="text-fg-subtle text-sm">
@@ -163,16 +163,16 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
 
       {/* Alert Preview */}
       {preview && (
-        <div className="border-border bg-bg-elev-2 flex flex-col gap-3 rounded-sm border p-4">
+        <div className="surface-well flex flex-col gap-3 rounded-xl border border-white/5 p-4 shadow-inner">
           <div className="flex items-center gap-2">
             <IconChartBar className="text-fg size-4" />
             <span className="text-fg text-sm font-semibold">Alert preview</span>
             <span className="text-fg-subtle text-xs">(based on saved settings)</span>
-            {previewLoading && <span className="text-fg-muted text-xs">Refreshing…</span>}
+            {previewLoading && <span className="text-fg-muted font-mono text-xs">Refreshing…</span>}
           </div>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-fg text-2xl font-bold tabular-nums">{preview.breakdown.total}</p>
+              <p className="text-fg text-2xl font-bold font-mono tabular-nums">{preview.breakdown.total}</p>
               <p className="text-fg-subtle text-xs">Total</p>
             </div>
             <div>
@@ -218,9 +218,9 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
       )}
 
       {/* Smart Alert Digest */}
-      <div className="border-border/20 bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3">
+      <div className="surface-well flex flex-col gap-3 rounded-xl border border-white/5 p-4 shadow-inner">
         <div className="flex items-start gap-3">
-          <div className="bg-bg-elev-2 text-fg rounded-sm p-2">
+          <div className="surface-chip text-fg rounded-lg border border-white/5 p-2 shadow-xs">
             <IconMail className="size-4" />
           </div>
           <div className="flex-1">

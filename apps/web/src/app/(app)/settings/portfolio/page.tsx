@@ -79,8 +79,8 @@ function PortfolioContent({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Portfolio</h2>
-        <p className="text-fg-subtle text-sm">Open positions, live P&amp;L, and risk analysis.</p>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Portfolio & Risk Engine</h2>
+        <p className="text-fg-subtle text-sm">Open positions, live mark-to-market P&amp;L, and account exposure controls.</p>
       </div>
 
       {/* Risk Summary Cards */}
@@ -94,17 +94,17 @@ function PortfolioContent({
           icon={IconTrendingUp}
           label="Total Exposure"
           value={`$${riskReport.totalExposureUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-          subValue={`${riskReport.totalExposurePct.toFixed(1)}% of account`}
+          subValue={`${riskReport.totalExposurePct.toFixed(1)}% of balance`}
         />
         <StatCard
           icon={IconShield}
           label="Total Risk"
           value={`$${riskReport.totalRiskUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-          subValue={`${riskReport.totalRiskPct.toFixed(1)}% of account`}
+          subValue={`${riskReport.totalRiskPct.toFixed(1)}% max loss`}
         />
         <StatCard
           icon={IconAlertTriangle}
-          label="Alerts"
+          label="Risk Alerts"
           value={String(riskReport.alerts.length)}
           valueClass={riskReport.alerts.length > 0 ? 'text-warn' : ''}
         />
@@ -112,16 +112,16 @@ function PortfolioContent({
 
       {/* Alerts */}
       {riskReport.alerts.length > 0 && (
-        <div className="border-warn/30 bg-warn/10 rounded-sm border p-4">
+        <div className="surface-well rounded-xl border border-warn/30 bg-warn/5 p-4 shadow-inner">
           <div className="mb-2 flex items-center gap-2">
             <IconAlertTriangle className="text-warn size-4" />
-            <h3 className="text-warn text-sm font-semibold">Risk Alerts</h3>
+            <h3 className="text-warn text-sm font-semibold tracking-tight">Risk & Drawdown Alerts</h3>
           </div>
           <ul className="space-y-1">
             {riskReport.alerts.map((alert, i) => (
               <li
                 key={i}
-                className={cn('text-sm', alert.level === 'danger' ? 'text-bear' : 'text-warn')}
+                className={cn('text-xs font-mono', alert.level === 'danger' ? 'text-bear' : 'text-warn')}
               >
                 • {alert.message}
               </li>
@@ -132,41 +132,46 @@ function PortfolioContent({
 
       {/* Positions Table */}
       {positions.length > 0 && (
-        <div className="border-border bg-bg-elev-1 overflow-hidden rounded-sm border">
-          <div className="border-border border-b px-4 py-3">
-            <h3 className="text-fg text-sm font-semibold">Open Positions</h3>
+        <div className="surface-panel overflow-hidden rounded-xl border border-white/10 shadow-[var(--shadow-chip)]">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-3.5">
+            <h3 className="text-fg text-sm font-semibold tracking-tight">Open Book Positions</h3>
+            <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase">
+              Live MTM
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-border bg-bg-elev-1 border-b">
-                  <th className="text-fg-muted px-4 py-2 text-left font-medium">Symbol</th>
-                  <th className="text-fg-muted px-4 py-2 text-left font-medium">Direction</th>
-                  <th className="text-fg-muted px-4 py-2 text-right font-medium">Lots</th>
-                  <th className="text-fg-muted px-4 py-2 text-right font-medium">Entry</th>
-                  <th className="text-fg-muted px-4 py-2 text-right font-medium">Current</th>
-                  <th className="text-fg-muted px-4 py-2 text-right font-medium">P&amp;L ($)</th>
-                  <th className="text-fg-muted px-4 py-2 text-right font-medium">P&amp;L (%)</th>
-                  <th className="text-fg-muted px-4 py-2 text-right font-medium">R:R</th>
+                <tr className="surface-well border-b border-white/5 font-mono text-[11px] uppercase tracking-wider text-fg-muted">
+                  <th className="px-4 py-2.5 text-left font-medium">Symbol</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Side</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Lots</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Entry</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Current</th>
+                  <th className="px-4 py-2.5 text-right font-medium">P&amp;L ($)</th>
+                  <th className="px-4 py-2.5 text-right font-medium">P&amp;L (%)</th>
+                  <th className="px-4 py-2.5 text-right font-medium">R:R</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/5">
                 {positions.map((p) => (
-                  <tr key={p.id} className="border-border/50 border-b last:border-0">
-                    <td className="text-fg px-4 py-3 font-medium">{p.symbol}</td>
+                  <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="text-fg px-4 py-3 font-mono text-xs font-semibold">{p.symbol}</td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
-                          'rounded-sm px-2 py-0.5 text-xs font-medium',
-                          p.direction === 'long' ? 'bg-bull/10 text-bull' : 'bg-bear/10 text-bear',
+                          'rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase',
+                          p.direction === 'long'
+                            ? 'border border-bull/30 bg-bull/10 text-bull'
+                            : 'border border-bear/30 bg-bear/10 text-bear',
                         )}
                       >
                         {p.direction.toUpperCase()}
                       </span>
                     </td>
-                    <td className="text-fg px-4 py-3 text-right">{p.lotSize.toFixed(2)}</td>
-                    <td className="text-fg px-4 py-3 text-right">{p.entryPrice.toFixed(2)}</td>
-                    <td className="text-fg px-4 py-3 text-right">
+                    <td className="text-fg px-4 py-3 text-right font-mono text-xs">{p.lotSize.toFixed(2)}</td>
+                    <td className="text-fg px-4 py-3 text-right font-mono text-xs">{p.entryPrice.toFixed(2)}</td>
+                    <td className="text-fg px-4 py-3 text-right font-mono text-xs">
                       {p.stale ? (
                         <span className="text-fg-muted italic">stale</span>
                       ) : (
@@ -175,7 +180,7 @@ function PortfolioContent({
                     </td>
                     <td
                       className={cn(
-                        'px-4 py-3 text-right font-medium',
+                        'px-4 py-3 text-right font-mono text-xs font-medium',
                         p.unrealizedPnlUsd === null
                           ? 'text-fg-muted'
                           : p.unrealizedPnlUsd >= 0
@@ -189,7 +194,7 @@ function PortfolioContent({
                     </td>
                     <td
                       className={cn(
-                        'px-4 py-3 text-right',
+                        'px-4 py-3 text-right font-mono text-xs',
                         p.unrealizedPnlPct === null
                           ? 'text-fg-muted'
                           : p.unrealizedPnlPct >= 0
@@ -201,7 +206,7 @@ function PortfolioContent({
                         ? '—'
                         : `${p.unrealizedPnlPct >= 0 ? '+' : ''}${p.unrealizedPnlPct.toFixed(2)}%`}
                     </td>
-                    <td className="text-fg px-4 py-3 text-right">
+                    <td className="text-fg px-4 py-3 text-right font-mono text-xs">
                       {p.riskRewardRatio?.toFixed(2) ?? '—'}
                     </td>
                   </tr>
@@ -214,22 +219,27 @@ function PortfolioContent({
 
       {/* Concentration */}
       {riskReport.concentration.length > 0 && (
-        <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
-          <h3 className="text-fg mb-3 text-sm font-semibold">Concentration</h3>
-          <div className="space-y-2">
+        <div className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <h3 className="text-fg text-sm font-semibold tracking-tight">Asset Concentration</h3>
+            <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase">
+              Cap Limits
+            </span>
+          </div>
+          <div className="space-y-3 pt-1">
             {riskReport.concentration.map((c) => (
               <div key={c.symbol} className="flex items-center gap-3">
-                <span className="text-fg w-20 text-sm">{c.symbol}</span>
-                <div className="bg-bg-elev-1 h-2 flex-1 overflow-hidden rounded-sm">
+                <span className="text-fg font-mono text-xs font-semibold w-20">{c.symbol}</span>
+                <div className="surface-well h-2.5 flex-1 overflow-hidden rounded-full border border-white/5">
                   <div
-                    className={cn('h-full rounded-sm', c.alert ? 'bg-warn' : 'bg-fg')}
+                    className={cn('h-full rounded-full transition-all', c.alert ? 'bg-warn' : 'bg-cyan-500')}
                     style={{ width: `${Math.min(c.pct, 100)}%` }}
                   />
                 </div>
                 <span
                   className={cn(
-                    'w-16 text-right text-sm',
-                    c.alert ? 'text-warn font-medium' : 'text-fg-muted',
+                    'w-16 text-right font-mono text-xs',
+                    c.alert ? 'text-warn font-semibold' : 'text-fg-muted',
                   )}
                 >
                   {c.pct.toFixed(1)}%
@@ -241,29 +251,36 @@ function PortfolioContent({
       )}
 
       {/* Account Settings */}
-      <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
-        <h3 className="text-fg mb-3 text-sm font-semibold">Account Settings</h3>
-        <p className="text-fg-subtle mb-3 text-xs">
-          Set your account balance and risk preferences below.
-        </p>
-        <dl className="grid grid-cols-2 gap-4 text-sm">
+      <div className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
+        <div className="flex items-center justify-between border-b border-white/5 pb-3">
           <div>
-            <dt className="text-fg-muted">Account Balance</dt>
-            <dd className="text-fg font-medium">
+            <h3 className="text-fg text-sm font-semibold tracking-tight">Account Limits & Equity</h3>
+            <p className="text-fg-subtle text-xs">
+              Baseline equity, margin currency, and drawdown thresholds
+            </p>
+          </div>
+          <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase">
+            Risk Bounds
+          </span>
+        </div>
+        <dl className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2">
+          <div className="surface-well flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 shadow-inner">
+            <dt className="text-fg-muted font-mono text-[11px] uppercase">Account Balance</dt>
+            <dd className="text-fg font-mono text-base font-bold">
               {settings.accountBalance ? `$${settings.accountBalance.toLocaleString()}` : 'Not set'}
             </dd>
           </div>
-          <div>
-            <dt className="text-fg-muted">Base Currency</dt>
-            <dd className="text-fg font-medium">{settings.baseCurrency}</dd>
+          <div className="surface-well flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 shadow-inner">
+            <dt className="text-fg-muted font-mono text-[11px] uppercase">Base Currency</dt>
+            <dd className="text-fg font-mono text-base font-bold">{settings.baseCurrency}</dd>
           </div>
-          <div>
-            <dt className="text-fg-muted">Max Risk / Trade</dt>
-            <dd className="text-fg font-medium">{settings.maxRiskPerTradePct}%</dd>
+          <div className="surface-well flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 shadow-inner">
+            <dt className="text-fg-muted font-mono text-[11px] uppercase">Max Risk / Trade</dt>
+            <dd className="text-fg font-mono text-base font-bold">{settings.maxRiskPerTradePct}%</dd>
           </div>
-          <div>
-            <dt className="text-fg-muted">Max Total Exposure</dt>
-            <dd className="text-fg font-medium">{settings.maxTotalExposurePct}%</dd>
+          <div className="surface-well flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 shadow-inner">
+            <dt className="text-fg-muted font-mono text-[11px] uppercase">Max Total Exposure</dt>
+            <dd className="text-fg font-mono text-base font-bold">{settings.maxTotalExposurePct}%</dd>
           </div>
         </dl>
       </div>
@@ -285,13 +302,18 @@ function StatCard({
   valueClass?: string;
 }) {
   return (
-    <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
-      <div className="text-fg-subtle flex items-center gap-2">
-        <Icon className="size-4" />
-        <span className="text-xs font-medium">{label}</span>
+    <div className="surface-panel flex flex-col justify-between rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]">
+      <div className="flex items-center justify-between">
+        <span className="text-fg-muted text-xs font-medium">{label}</span>
+        <div className="flex size-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-cyan-400">
+          <Icon className="size-3.5" />
+        </div>
       </div>
-      <p className={cn('text-fg mt-2 text-2xl font-bold', valueClass)}>{value}</p>
-      {subValue && <p className="text-fg-muted mt-0.5 text-xs">{subValue}</p>}
+      <div className="mt-3">
+        <p className={cn('text-fg font-mono text-2xl font-bold tracking-tight', valueClass)}>{value}</p>
+        {subValue && <p className="text-fg-subtle mt-0.5 font-mono text-[11px]">{subValue}</p>}
+      </div>
     </div>
   );
 }
+

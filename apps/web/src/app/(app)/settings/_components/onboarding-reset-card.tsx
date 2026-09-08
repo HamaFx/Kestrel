@@ -57,21 +57,30 @@ export function OnboardingResetCard() {
   }
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-fg text-sm font-semibold">Onboarding</h3>
-        <p className="text-fg-subtle text-sm">Reset and replay the onboarding wizard.</p>
+    <div className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div>
+          <h3 className="text-fg text-sm font-semibold tracking-tight">Onboarding Setup Wizard</h3>
+          <p className="text-fg-subtle text-xs">Reset and replay the initial workspace setup walkthrough.</p>
+        </div>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase">
+          Setup
+        </span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="surface-well flex items-center justify-between rounded-xl border border-white/5 p-3.5 shadow-inner">
+        <div className="flex flex-col">
+          <span className="text-fg text-sm font-medium">Full Factory Reset</span>
+          <span className="text-fg-subtle text-xs">Also purges saved BYOK provider keys and custom watchlist</span>
+        </div>
         <Switch checked={fullReset} onCheckedChange={setFullReset} srLabel="Full reset mode" />
-        <span className="text-fg text-sm">Full reset (clears API keys and watchlist)</span>
       </div>
 
-      <Button variant="danger" loading={resetting} onClick={handleReset}>
+      <Button variant="danger" loading={resetting} onClick={handleReset} className="tactile-press rounded-lg">
         Reset Onboarding
       </Button>
       {confirmEl}
     </div>
   );
 }
+

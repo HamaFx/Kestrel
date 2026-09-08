@@ -40,29 +40,29 @@ export default async function TelegramSettingsPage() {
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Telegram Bot</h2>
         <p className="text-fg-subtle text-sm">
-          Link your Telegram to control Kestrel with bot commands.
+          Link your Telegram to control Kestrel with bot commands and receive alerts.
         </p>
       </div>
 
-      <section className="border-border bg-bg-elev-1 space-y-4 rounded-sm border p-6">
+      <section className="surface-panel space-y-4 rounded-xl border border-white/10 p-6 shadow-[var(--shadow-chip)]">
         <div className="flex items-center gap-2">
-          <IconMessageCircle className="text-fg size-5" />
+          <IconMessageCircle className="text-brand size-5" />
           <h3 className="text-base font-semibold">Bot Linking</h3>
         </div>
 
         <TelegramLinkCard />
       </section>
 
-      <section className="border-border bg-bg-elev-1 space-y-4 rounded-sm border p-6">
-        <h3 className="text-fg-subtle text-sm font-semibold">Test Notification</h3>
-        <p className="text-fg-subtle text-sm">
+      <section className="surface-panel space-y-4 rounded-xl border border-white/10 p-6 shadow-[var(--shadow-chip)]">
+        <h3 className="text-fg text-sm font-semibold">Test Notification</h3>
+        <p className="text-fg-subtle text-xs">
           Send a test message to verify your Telegram bot is configured correctly.
         </p>
         <TestTelegramButton />
       </section>
 
-      <section className="border-border bg-bg-elev-1 space-y-3 rounded-sm border p-6">
-        <h3 className="text-fg-subtle text-sm font-semibold">Available Commands</h3>
+      <section className="surface-panel space-y-3 rounded-xl border border-white/10 p-6 shadow-[var(--shadow-chip)]">
+        <h3 className="text-fg text-sm font-semibold">Available Commands</h3>
         <div className="grid gap-2 text-sm">
           {[
             { cmd: '/price <symbol>', desc: 'Get current price (e.g. /price XAUUSD)' },
@@ -81,10 +81,10 @@ export default async function TelegramSettingsPage() {
               key={item.cmd}
               className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
             >
-              <code className="bg-bg-elev-2 rounded-sm px-2 py-0.5 font-mono text-xs whitespace-nowrap sm:w-64">
+              <code className="surface-well rounded-md border border-white/5 px-2 py-1 font-mono text-xs whitespace-nowrap sm:w-64">
                 {item.cmd}
               </code>
-              <span className="text-fg-subtle">{item.desc}</span>
+              <span className="text-fg-subtle text-xs">{item.desc}</span>
             </div>
           ))}
         </div>

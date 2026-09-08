@@ -64,23 +64,30 @@ export function UsageLimitsForm({
   return (
     <form
       action={action}
-      className="border-border bg-bg-elev-1 flex flex-col gap-6 rounded-sm border p-5"
+      className="surface-panel flex flex-col gap-6 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <header className="border-border flex items-center gap-3 border-b pb-3">
-        <IconAlertTriangle className="text-fg size-5 shrink-0" />
-        <div>
-          <h2 className="text-fg text-sm font-semibold">Limits & Alerts</h2>
-          <p className="text-caption text-fg-subtle mt-0.5">
-            Configure monthly spend caps, set thresholds per provider, and select alert channels.
-          </p>
+      <header className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-amber-400">
+            <IconAlertTriangle className="size-4" />
+          </div>
+          <div>
+            <h2 className="text-fg text-sm font-semibold tracking-tight">Budget Controls & Threshold Alerts</h2>
+            <p className="text-caption text-fg-subtle mt-0.5 text-xs">
+              Configure monthly spend caps, set thresholds per provider, and select alert channels.
+            </p>
+          </div>
         </div>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium tracking-wider uppercase">
+          Guardrails
+        </span>
       </header>
 
       {/* Monthly Budget Limit */}
       <div className="flex flex-col gap-2">
         <label
           htmlFor="monthlyBudgetLimit"
-          className="text-fg-muted text-xs font-semibold tracking-wider uppercase"
+          className="text-fg-muted font-mono text-[11px] font-semibold tracking-wider uppercase"
         >
           Monthly Budget Limit (USD)
         </label>
@@ -91,47 +98,47 @@ export function UsageLimitsForm({
           min="0"
           placeholder="No monthly limit"
           defaultValue={initialMonthlyLimit ?? ''}
-          className="max-w-[200px]"
+          className="surface-well border-white/10 h-10 max-w-[220px] rounded-lg font-mono text-sm"
         />
-        <p className="text-caption text-fg-subtle">
-          Total AI spent cap for the current calendar month. Chat will be blocked once reached.
+        <p className="text-caption text-fg-subtle text-xs">
+          Hard circuit-breaker spend cap for the active calendar month. LLM inferences will halt when triggered.
         </p>
       </div>
 
       {/* Alert Channels */}
       <div className="flex flex-col gap-3">
-        <span className="text-fg-muted text-xs font-semibold tracking-wider uppercase">
+        <span className="text-fg-muted font-mono text-[11px] font-semibold tracking-wider uppercase">
           Alert Channels (50%, 80%, 100% thresholds)
         </span>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="border-border bg-bg-elev-2/40 hover:bg-bg-elev-2 flex cursor-pointer items-center gap-3 rounded-sm border p-3 transition-colors select-none">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="surface-well hover:border-white/20 flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 p-3.5 transition-all select-none">
             <input
               type="checkbox"
               name="emailAlert"
               defaultChecked={!!initialAlertConfig.email}
-              className="accent-brand border-border size-4 cursor-pointer rounded-sm"
+              className="border-white/15 bg-bg-elev-2 text-cyan-400 focus:ring-cyan-500/20 size-4 cursor-pointer rounded-md"
             />
-            <div className="flex items-center gap-2">
-              <IconMail className="text-fg-subtle size-4" />
+            <div className="flex items-center gap-2.5">
+              <IconMail className="text-cyan-400 size-4" />
               <div className="flex flex-col">
                 <span className="text-fg text-xs font-semibold">Email Alerts</span>
-                <span className="text-fg-subtle mt-0.5 text-xs">Alerts via Resend</span>
+                <span className="text-fg-subtle text-[11px]">System notifications via configured SMTP / Resend</span>
               </div>
             </div>
           </label>
 
-          <label className="border-border bg-bg-elev-2/40 hover:bg-bg-elev-2 flex cursor-pointer items-center gap-3 rounded-sm border p-3 transition-colors select-none">
+          <label className="surface-well hover:border-white/20 flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 p-3.5 transition-all select-none">
             <input
               type="checkbox"
               name="telegramAlert"
               defaultChecked={!!initialAlertConfig.telegram}
-              className="accent-brand border-border size-4 cursor-pointer rounded-sm"
+              className="border-white/15 bg-bg-elev-2 text-cyan-400 focus:ring-cyan-500/20 size-4 cursor-pointer rounded-md"
             />
-            <div className="flex items-center gap-2">
-              <IconBrandTelegram className="text-fg-subtle size-4" />
+            <div className="flex items-center gap-2.5">
+              <IconBrandTelegram className="text-cyan-400 size-4" />
               <div className="flex flex-col">
                 <span className="text-fg text-xs font-semibold">Telegram Alerts</span>
-                <span className="text-fg-subtle mt-0.5 text-xs">Alerts via Telegram bot</span>
+                <span className="text-fg-subtle text-[11px]">Instant dispatch via Kestrel Telegram bot</span>
               </div>
             </div>
           </label>
@@ -140,11 +147,11 @@ export function UsageLimitsForm({
 
       {/* Per-Provider Spending Thresholds */}
       <div className="flex flex-col gap-3">
-        <span className="text-fg-muted text-xs font-semibold tracking-wider uppercase">
+        <span className="text-fg-muted font-mono text-[11px] font-semibold tracking-wider uppercase">
           Per-Provider Monthly Spending Thresholds
         </span>
-        <div className="border-border divide-border/60 flex flex-col divide-y overflow-hidden rounded-sm border">
-          <div className="bg-bg-elev-2 text-fg-muted grid grid-cols-[1.5fr_1fr_1.2fr] items-center gap-2 px-3 py-2 text-xs font-bold tracking-wider uppercase">
+        <div className="surface-well divide-y divide-white/5 overflow-hidden rounded-xl border border-white/10 shadow-inner">
+          <div className="border-b border-white/10 bg-white/[0.03] text-fg-muted grid grid-cols-[1.5fr_1fr_1.2fr] items-center gap-2 px-4 py-2.5 font-mono text-[11px] font-bold tracking-wider uppercase">
             <span>Provider</span>
             <span className="text-right">Spend (MTD)</span>
             <span className="text-right">Threshold (USD)</span>
@@ -156,20 +163,20 @@ export function UsageLimitsForm({
             return (
               <div
                 key={p.id}
-                className="hover:bg-bg-elev-2/20 grid grid-cols-[1.5fr_1fr_1.2fr] items-center gap-2 px-3 py-2.5 text-xs transition-colors"
+                className="hover:bg-white/[0.02] grid grid-cols-[1.5fr_1fr_1.2fr] items-center gap-2 px-4 py-3 text-xs transition-colors"
               >
                 <div className="flex flex-col">
-                  <span className="text-fg font-semibold">{p.displayName}</span>
-                  <span className="text-fg-subtle mt-0.5 font-mono text-xs">{p.id}</span>
+                  <span className="text-fg font-medium">{p.displayName}</span>
+                  <span className="text-fg-subtle mt-0.5 font-mono text-[11px]">{p.id}</span>
                 </div>
                 <div className="text-fg-subtle text-right font-mono tabular-nums">
-                  <span className={hasExceeded ? 'text-danger font-semibold' : ''}>
+                  <span className={hasExceeded ? 'text-danger font-bold' : 'font-medium'}>
                     ${p.currentSpend.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center justify-end">
-                  <div className="relative w-full max-w-[100px]">
-                    <span className="text-fg-subtle absolute top-1/2 left-2.5 -translate-y-1/2">
+                  <div className="relative w-full max-w-[110px]">
+                    <span className="text-fg-subtle absolute top-1/2 left-2.5 -translate-y-1/2 font-mono text-xs">
                       $
                     </span>
                     <Input
@@ -180,7 +187,7 @@ export function UsageLimitsForm({
                       placeholder="None"
                       defaultValue={p.threshold ?? ''}
                       aria-label={`Spending threshold for ${p.displayName}`}
-                      className="h-8 pr-2 pl-6 text-right font-mono text-xs"
+                      className="surface-well border-white/10 h-8 pr-2 pl-6 text-right font-mono text-xs rounded-lg"
                     />
                   </div>
                 </div>
@@ -190,11 +197,12 @@ export function UsageLimitsForm({
         </div>
       </div>
 
-      <div className="border-border flex justify-end border-t pt-4">
-        <Button type="submit" loading={pending} className="min-w-[120px]">
+      <div className="border-t border-white/5 flex justify-end pt-4">
+        <Button type="submit" loading={pending} className="min-w-[130px] rounded-lg tactile-press">
           Save Changes
         </Button>
       </div>
     </form>
   );
 }
+

@@ -121,18 +121,18 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
   return (
     <section
       aria-labelledby="system-status-heading"
-      className="border-border bg-bg-elev-1 relative flex flex-col gap-4 overflow-hidden rounded-sm border p-4"
+      className="surface-panel relative flex flex-col gap-4 overflow-hidden rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
       <header className="flex items-center justify-between gap-3">
         <h2
           id="system-status-heading"
-          className="text-fg-subtle text-caption font-semibold tracking-wider uppercase"
+          className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase"
         >
           System status
         </h2>
         <span
           className={cn(
-            'text-caption inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 font-bold tracking-wide uppercase ring-1',
+            'text-[11px] inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono font-bold tracking-wide uppercase ring-1',
             allReady
               ? 'bg-success/10 text-success ring-success/30'
               : 'bg-warn/10 text-warn ring-warn/30',
@@ -140,7 +140,7 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
         >
           {allReady ? (
             <>
-              <span aria-hidden className="bg-success size-1.5 rounded-sm" />
+              <span aria-hidden className="bg-success size-1.5 rounded-full" />
               All systems
             </>
           ) : (
@@ -154,11 +154,11 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
 
       <ul className="flex flex-col gap-2.5">
         {channels.map((c) => (
-          <li key={c.label} className="flex items-center gap-3">
+          <li key={c.label} className="surface-well flex items-center gap-3 rounded-xl border border-white/5 p-2.5">
             <span
               aria-hidden="true"
               className={cn(
-                'inline-flex size-7 shrink-0 items-center justify-center rounded-sm',
+                'inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
                 c.ready ? 'bg-success/15 text-success' : 'bg-bg-elev-2 text-fg-subtle',
               )}
             >
@@ -170,11 +170,11 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
             </span>
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="text-fg text-sm font-semibold">{c.label}</span>
-              <span className="text-fg-subtle text-body-sm truncate tabular-nums">{c.detail}</span>
+              <span className="text-fg-subtle text-xs truncate tabular-nums">{c.detail}</span>
             </div>
             <span
               className={cn(
-                'text-caption rounded-sm px-2 py-0.5 font-bold uppercase tabular-nums ring-1',
+                'text-[11px] rounded-md px-2 py-0.5 font-mono font-bold uppercase tabular-nums ring-1',
                 c.ready
                   ? 'bg-success/10 text-success ring-success/30'
                   : 'bg-bg-elev-2 text-fg-muted ring-divider',
@@ -187,12 +187,12 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
       </ul>
 
       {/* Cron job health — OBS-04 */}
-      <div className="border-border -mx-4 border-t px-4 pt-3">
+      <div className="border-border/60 -mx-5 border-t px-5 pt-3.5">
         <div className="flex items-center gap-3">
           <span
             aria-hidden="true"
             className={cn(
-              'inline-flex size-7 shrink-0 items-center justify-center rounded-sm',
+              'inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
               cronHealthy ? 'bg-success/15 text-success' : 'bg-warn/15 text-warn',
             )}
           >
@@ -204,7 +204,7 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
           </span>
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="text-fg text-sm font-semibold">Background jobs</span>
-            <span className="text-fg-subtle text-body-sm">
+            <span className="text-fg-subtle text-xs">
               {cronHealthy
                 ? 'All jobs healthy (last 24h)'
                 : `${stuckJobs} stuck · ${recentErrors} error${recentErrors === 1 ? '' : 's'} (last 24h)`}
@@ -214,12 +214,12 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
       </div>
 
       {/* F6 — Market phase detection */}
-      <div className="border-border -mx-4 border-t px-4 pt-3">
+      <div className="border-border/60 -mx-5 border-t px-5 pt-3.5">
         <div className="flex items-center gap-3">
           <span
             aria-hidden="true"
             className={cn(
-              'inline-flex size-7 shrink-0 items-center justify-center rounded-sm',
+              'inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
               marketPhase.isOpen
                 ? marketPhase.liquidity === 'high'
                   ? 'bg-success/15 text-success'
@@ -237,11 +237,11 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
           </span>
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="text-fg text-sm font-semibold">Market phase</span>
-            <span className="text-fg-subtle text-body-sm">{marketPhaseDescription}</span>
+            <span className="text-fg-subtle text-xs">{marketPhaseDescription}</span>
           </div>
           <span
             className={cn(
-              'text-caption rounded-sm px-2 py-0.5 font-bold uppercase tabular-nums ring-1',
+              'text-[11px] rounded-md px-2 py-0.5 font-mono font-bold uppercase tabular-nums ring-1',
               marketPhase.isOpen
                 ? marketPhase.liquidity === 'high'
                   ? 'bg-success/10 text-success ring-success/30'

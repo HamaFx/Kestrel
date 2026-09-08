@@ -22,6 +22,7 @@
 import {
   IconArrowBackUp,
   IconBookmark,
+  IconDatabase,
   IconDownload,
   IconEye,
   IconEyeOff,
@@ -180,12 +181,25 @@ export function DataCard() {
   return (
     <section
       aria-labelledby="data-heading"
-      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <header className="flex items-center gap-3 pb-2">
-        <h2 id="data-heading" className="text-fg text-base font-semibold tracking-tight">
-          Data & cache
-        </h2>
+      <header className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-cyan-400">
+            <IconDatabase className="size-4" />
+          </div>
+          <div>
+            <h2 id="data-heading" className="text-fg text-sm font-semibold tracking-tight">
+              Storage & Cache Management
+            </h2>
+            <p className="text-fg-subtle text-xs">
+              Local data retention, thread history, and privacy exports
+            </p>
+          </div>
+        </div>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium tracking-wider uppercase">
+          Client & Server
+        </span>
       </header>
 
       <SettingsRow
@@ -199,6 +213,7 @@ export function DataCard() {
             variant="danger"
             onClick={() => void clearChatHistory()}
             disabled={isPending}
+            className="tactile-press"
           >
             <IconTrash className="size-3.5" />
             Delete all
@@ -219,6 +234,7 @@ export function DataCard() {
             variant="secondary"
             onClick={() => void clearBookmarks()}
             disabled={counts.bookmarks === 0}
+            className="tactile-press"
           >
             <IconTrash className="size-3.5" />
             Clear
@@ -233,7 +249,13 @@ export function DataCard() {
         label="Reset preferences"
         description="Clear local theme + default symbol overrides"
         action={
-          <Button type="button" size="sm" variant="secondary" onClick={() => void resetPrefs()}>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => void resetPrefs()}
+            className="tactile-press"
+          >
             Reset
           </Button>
         }
@@ -252,6 +274,7 @@ export function DataCard() {
             variant="danger"
             onClick={() => void clearAll()}
             disabled={counts.storage === 0}
+            className="tactile-press"
           >
             <IconTrash className="size-3.5" />
             Clear all
@@ -270,6 +293,7 @@ export function DataCard() {
             type="button"
             size="sm"
             variant="secondary"
+            className="tactile-press"
             onClick={async () => {
               const pwd = window.prompt('Enter your account password to export data:');
               if (!pwd) {
@@ -299,29 +323,27 @@ export function DataCard() {
         }
       />
 
-      <RowDivider />
-
-      {/* Delete account */}
-      <div className="flex flex-col gap-3">
+      {/* Delete account Danger Zone */}
+      <div className="surface-well mt-2 flex flex-col gap-3 rounded-xl border border-danger/25 p-4 shadow-inner">
         <div className="flex items-center gap-2">
           <IconUserX className="text-danger size-4" />
-          <h3 className="text-fg-muted text-xs font-bold tracking-wider uppercase">
-            Delete account
+          <h3 className="text-danger font-mono text-xs font-bold tracking-wider uppercase">
+            Danger Zone · Delete account
           </h3>
         </div>
         <p className="text-fg-subtle text-xs">
-          Permanently delete your account and all associated data. This action cannot be undone.
+          Permanently purge your account, journal entries, conversations, alerts, and settings. This action is immediate and non-reversible.
         </p>
-        <div className="flex flex-wrap items-end gap-2">
+        <div className="flex flex-wrap items-end gap-2 pt-1">
           <div className="flex max-w-64 flex-1 flex-col gap-1">
-            <label htmlFor="delete-pwd" className="text-caption text-fg-muted">
-              Confirm your password
+            <label htmlFor="delete-pwd" className="text-caption text-fg-muted font-mono text-[11px]">
+              Account password
             </label>
             <div className="relative">
               <Input
                 id="delete-pwd"
                 type={showDeletePassword ? 'text' : 'password'}
-                placeholder="Account password"
+                placeholder="Enter account password"
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
                 className="text-xs"
@@ -341,9 +363,9 @@ export function DataCard() {
               </button>
             </div>
           </div>
-          <div className="flex w-28 flex-col gap-1">
-            <label htmlFor="delete-totp" className="text-caption text-fg-muted">
-              2FA code (if enabled)
+          <div className="flex w-32 flex-col gap-1">
+            <label htmlFor="delete-totp" className="text-caption text-fg-muted font-mono text-[11px]">
+              2FA code (if active)
             </label>
             <Input
               id="delete-totp"
@@ -352,7 +374,7 @@ export function DataCard() {
               maxLength={6}
               value={deleteTotpCode}
               onChange={(e) => setDeleteTotpCode(e.target.value.replace(/\D/g, ''))}
-              className="text-xs"
+              className="text-xs font-mono"
             />
           </div>
           <Button
@@ -362,6 +384,7 @@ export function DataCard() {
             disabled={!deletePassword || isDeletePending}
             loading={isDeletePending}
             onClick={() => void handleDeleteAccount()}
+            className="tactile-press"
           >
             Delete account
           </Button>
@@ -370,5 +393,6 @@ export function DataCard() {
 
       {confirmEl}
     </section>
+
   );
 }

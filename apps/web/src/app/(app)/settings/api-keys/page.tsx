@@ -28,6 +28,7 @@ import { buildCatalogForUser } from '@/lib/catalog-server';
 import { formatRelative } from '@/lib/format';
 
 import { updateApiKeysAction } from '../actions';
+import { AISubNav } from '../_components/ai-subnav';
 import { ApiKeyCard } from './_components/api-key-card';
 import { ApiKeysLandingBanner } from './_components/api-keys-landing-banner';
 import { BulkTestButton } from './_components/bulk-test-button';
@@ -141,24 +142,26 @@ export default async function ApiKeysSettingsPage({
       ) : null}
 
       {/* Header */}
-      <div>
-        <h2 className="text-fg text-lg font-semibold">API Keys</h2>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-fg text-lg font-semibold tracking-tight">AI & Intelligence</h2>
         <p className="text-fg-subtle text-sm">
           Kestrel is BYOK. Provide your own keys for the AI models you want to use. Keys are
           encrypted at rest with AES-256-GCM.
         </p>
       </div>
 
+      <AISubNav />
+
       {/* Premium Provider Health Dashboard */}
-      <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-5 shadow-sm">
+      <div className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {totalConfigured === 0 ? (
-              <span className="bg-fg-muted/40 size-3 animate-pulse rounded-sm" />
+              <span className="bg-fg-muted/40 size-3 animate-pulse rounded-full" />
             ) : totalFailed > 0 ? (
-              <span className="bg-danger size-3 animate-pulse rounded-sm" />
+              <span className="bg-danger size-3 animate-pulse rounded-full" />
             ) : (
-              <span className="bg-success size-3 rounded-sm" />
+              <span className="bg-success size-3 rounded-full" />
             )}
             <div>
               <h3 className="text-fg text-sm font-semibold">
@@ -226,8 +229,8 @@ export default async function ApiKeysSettingsPage({
 
       {/* Empty state when no providers are configured. */}
       {totalConfigured === 0 ? (
-        <div className="border-border bg-bg-elev-1 flex flex-col items-center gap-3 rounded-sm border p-6 text-center">
-          <div className="bg-bg-elev-2 text-fg-subtle flex size-10 items-center justify-center rounded-sm">
+        <div className="surface-panel flex flex-col items-center gap-3 rounded-xl border border-white/10 p-6 text-center shadow-[var(--shadow-chip)]">
+          <div className="surface-well text-fg-subtle flex size-12 items-center justify-center rounded-xl border border-white/5 shadow-inner">
             <IconKey className="text-brand size-6" />
           </div>
           <div>
@@ -238,13 +241,13 @@ export default async function ApiKeysSettingsPage({
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
-            <span className="bg-success/15 text-caption text-success rounded-sm px-2.5 py-1 font-medium">
+            <span className="surface-chip bg-success/15 text-caption text-success rounded-md px-2.5 py-1 font-mono font-medium">
               Google Gemini · free
             </span>
-            <span className="bg-success/15 text-caption text-success rounded-sm px-2.5 py-1 font-medium">
+            <span className="surface-chip bg-success/15 text-caption text-success rounded-md px-2.5 py-1 font-mono font-medium">
               Groq · free
             </span>
-            <span className="bg-bg-elev-2 text-caption text-fg-subtle rounded-sm px-2.5 py-1 font-medium">
+            <span className="surface-chip bg-bg-elev-2 text-caption text-fg-subtle rounded-md px-2.5 py-1 font-mono font-medium">
               + 7 paid options
             </span>
           </div>
@@ -318,10 +321,10 @@ export default async function ApiKeysSettingsPage({
       <ExportImportKeys />
 
       {/* Collapsible Capability Matrix */}
-      <details className="border-border bg-bg-elev-1 mt-2 overflow-hidden rounded-sm border">
+      <details className="surface-panel mt-2 overflow-hidden rounded-xl border border-white/10 shadow-[var(--shadow-chip)]">
         <summary
           aria-label="Toggle provider capability matrix"
-          className="hover:bg-bg-elev-2 flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors select-none"
+          className="hover:bg-bg-elev-2/60 flex cursor-pointer items-center justify-between gap-3 px-5 py-3.5 transition-colors select-none"
         >
           <div className="flex flex-col">
             <span className="text-fg text-sm font-medium">Provider Capability Matrix</span>
@@ -329,12 +332,12 @@ export default async function ApiKeysSettingsPage({
               Compare capabilities (Vision, Embedding, Free tier) across all supported AI providers.
             </span>
           </div>
-          <span className="text-caption text-fg-subtle">▾</span>
+          <span className="text-caption text-fg-subtle font-mono">▾</span>
         </summary>
-        <div className="border-border max-w-full min-w-0 overflow-x-auto border-t p-0">
+        <div className="border-border/50 max-w-full min-w-0 overflow-x-auto border-t p-0">
           <table className="w-full min-w-[500px] border-collapse text-left">
             <thead>
-              <tr className="border-border text-caption text-fg-muted bg-bg-elev-2/50 border-b font-semibold">
+              <tr className="border-border/50 text-caption text-fg-muted bg-bg-elev-2/50 border-b font-semibold">
                 <th className="p-3">Provider</th>
                 <th className="p-3 text-center">Chat</th>
                 <th className="p-3 text-center">Vision</th>
@@ -344,7 +347,7 @@ export default async function ApiKeysSettingsPage({
                 <th className="p-3 text-center">Free Tier</th>
               </tr>
             </thead>
-            <tbody className="divide-border/50 text-caption divide-y">
+            <tbody className="divide-border/40 text-caption divide-y">
               {BYOK_PROVIDERS_LIST.map((p) => (
                 <tr key={p.id} className="hover:bg-bg-elev-2/20">
                   <td className="text-fg p-3 font-medium">{p.displayName}</td>
@@ -367,7 +370,7 @@ export default async function ApiKeysSettingsPage({
                   <td className="text-success p-3 text-center">✓</td>
                   <td className="p-3 text-center">
                     {p.pricingTier === 'free' ? (
-                      <span className="bg-success/15 text-success rounded-sm px-2 py-0.5 text-xs font-medium font-semibold">
+                      <span className="surface-chip bg-success/15 text-success rounded-md px-2 py-0.5 font-mono text-xs font-semibold">
                         Free
                       </span>
                     ) : (

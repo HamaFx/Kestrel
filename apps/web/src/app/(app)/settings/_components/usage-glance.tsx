@@ -52,13 +52,13 @@ export async function UsageGlance({ userId }: { userId?: string }) {
     <Link
       href="/settings/usage"
       aria-label="Open detailed usage"
-      className="border-border bg-bg-elev-1 group md:hover:bg-bg-elev-2/40 flex flex-col gap-3 rounded-sm border p-4 transition-colors"
+      className="surface-panel group flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)] transition-all hover:border-brand/30 hover:bg-bg-elev-2/60 tactile-press active:translate-y-[0.5px]"
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-fg-subtle text-caption font-semibold tracking-wider uppercase">
+        <h2 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
           Today (UTC)
         </h2>
-        <span className="text-fg-subtle text-xs tabular-nums">
+        <span className="text-fg-subtle font-mono text-xs tabular-nums">
           ${stats.todayUsd.toFixed(4)} / ${maxDailyUsd.toFixed(2)}
         </span>
       </header>
@@ -69,9 +69,9 @@ export async function UsageGlance({ userId }: { userId?: string }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label="Daily budget consumed"
-        className="bg-bg-elev-2 h-2 w-full overflow-hidden rounded-sm"
+        className="surface-well h-2 w-full overflow-hidden rounded-full border border-white/5"
       >
-        <div className={cn('h-full transition-all', toneClass)} style={{ width: `${pct}%` }} />
+        <div className={cn('h-full transition-all rounded-full', toneClass)} style={{ width: `${pct}%` }} />
       </div>
 
       <dl className="grid grid-cols-3 gap-3 text-xs tabular-nums">
@@ -80,7 +80,7 @@ export async function UsageGlance({ userId }: { userId?: string }) {
         <Stat label="Turns 30d" value={String(stats.thirtyDayTurns)} />
       </dl>
 
-      <div className="text-fg-muted flex items-center justify-between gap-2 text-xs font-medium">
+      <div className="text-fg-muted flex items-center justify-between gap-2 text-xs font-medium pt-1 border-t border-white/5">
         <span>View detailed breakdown</span>
         <IconChevronRight className="text-fg-subtle size-4 transition-transform group-hover:translate-x-0.5" />
       </div>

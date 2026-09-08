@@ -47,27 +47,30 @@ export async function AboutCard() {
   return (
     <section
       aria-labelledby="about-heading"
-      className="surface-panel border-border bg-surface-panel flex flex-col gap-1 rounded-xl border p-4 shadow-sm"
+      className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <header className="flex items-center gap-3 pb-2">
-        <h2 id="about-heading" className="text-fg text-base font-semibold tracking-tight">
-          About
+      <header className="flex items-center justify-between border-b border-white/5 pb-3">
+        <h2 id="about-heading" className="text-fg text-sm font-semibold tracking-tight">
+          Session & Runtime
         </h2>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium">
+          Build {buildId ?? '2026.4'}
+        </span>
       </header>
 
       <SettingsRow
-        icon={<IconLogout className="size-4" />}
+        icon={<IconLogout className="size-4 text-danger" />}
         label="Sign out"
-        description="Clears the password cookie on this device"
+        description="Terminates authenticated session cookie on this client device"
         action={<LogoutButton />}
       />
 
-      {/* Footer — build id + a tiny credit line. Helps debug bug reports
-          when the user can name the exact build they're on. */}
-      <div className="border-border text-caption -mx-4 mt-2 flex flex-col gap-1 border-t px-4 pt-3">
-        <p className="text-fg-subtle tabular-nums">Build {buildId ?? 'unknown'}</p>
-        <p className="text-fg-subtle/70">Gold · forex · crypto — personal copilot</p>
+      {/* Footer — build id + platform info */}
+      <div className="surface-well mt-2 flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 font-mono text-[11px] shadow-inner text-fg-subtle">
+        <p className="font-semibold text-fg">Kestrel AI Market Intelligence</p>
+        <p className="text-fg-subtle/80">Autonomous multi-agent research workspace for precious metals, forex, and digital assets.</p>
       </div>
     </section>
+
   );
 }

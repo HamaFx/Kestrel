@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import { DEFAULT_WATCHLIST_SYMBOLS, isKnownSymbol, type Symbol } from '@kestrel/shared';
-import { IconBolt, IconClock, IconTrendingUp } from '@tabler/icons-react';
+import { IconAdjustmentsHorizontal, IconBolt, IconClock, IconTrendingUp } from '@tabler/icons-react';
 import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -116,15 +116,23 @@ export function PreferencesCard({
   return (
     <section
       aria-labelledby="prefs-heading"
-      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <header className="flex items-center gap-3 pb-2">
-        <h2 id="prefs-heading" className="text-fg text-base font-semibold tracking-tight">
-          Preferences
-        </h2>
-        <p className="text-fg-subtle text-caption ml-auto tracking-wider uppercase">
-          Saved to account
-        </p>
+      <header className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-amber-400">
+            <IconAdjustmentsHorizontal className="size-4" />
+          </div>
+          <div>
+            <h2 id="prefs-heading" className="text-fg text-sm font-semibold tracking-tight">
+              Interface & Behavior
+            </h2>
+            <p className="text-fg-subtle text-xs">Default instrument, timestamps, and motion controls</p>
+          </div>
+        </div>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium tracking-wider uppercase">
+          Cloud Synced
+        </span>
       </header>
 
       <SettingsRow

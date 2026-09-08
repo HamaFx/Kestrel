@@ -56,15 +56,16 @@ export default async function SymbolsSettingsPage() {
   }));
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
-      <div>
-        <h2 className="text-fg text-lg font-semibold">Symbols Watchlist</h2>
+    <div className="flex max-w-3xl flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Symbols & Watchlist</h2>
         <p className="text-fg-subtle text-sm">
-          Manage and reorder the instruments you want to track across the app.
+          Customize active instruments, live ticker order, and market catalog subscriptions.
         </p>
       </div>
 
       <SymbolsForm initialSymbols={symbols} catalog={catalog} />
     </div>
+
   );
 }
