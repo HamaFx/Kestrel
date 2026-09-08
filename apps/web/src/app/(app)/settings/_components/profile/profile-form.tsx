@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { IconUser } from '@tabler/icons-react';
 import { useActionState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -51,14 +52,19 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
   return (
     <form
       action={action}
-      className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
+      <div className="flex items-center gap-2 pb-1 border-b border-white/5">
+        <IconUser className="text-brand size-4.5" />
+        <h3 className="text-fg text-base font-semibold tracking-tight">Personal Identity</h3>
+      </div>
+
       <div className="flex flex-col gap-2">
         <label htmlFor="settings-email" className="text-fg text-sm font-medium">
           Email
         </label>
         <Input id="settings-email" value={email} readOnly disabled className="opacity-50" />
-        <p className="text-body-sm text-fg-subtle">
+        <p className="text-xs text-fg-subtle">
           Your email address cannot be changed right now.
         </p>
       </div>
@@ -77,7 +83,7 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
       </div>
 
       <div className="flex justify-end pt-2">
-        <Button type="submit" loading={pending}>
+        <Button type="submit" loading={pending} className="tactile-press active:translate-y-[0.5px]">
           Save Profile
         </Button>
       </div>

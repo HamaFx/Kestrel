@@ -65,18 +65,18 @@ export function SortableSymbolRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex items-center justify-between rounded-sm border p-3 transition-all',
+        'flex items-center justify-between rounded-xl border p-3 transition-all',
         isDragging
-          ? 'border-border bg-bg-elev-2 z-10 opacity-90 shadow-lg'
+          ? 'surface-panel border-cyan-500/50 z-20 opacity-95 shadow-xl scale-[1.01]'
           : isSelected
-            ? 'bg-bg-elev-1 border-border shadow-sm'
-            : 'bg-bg-elev-1 border-border hover:border-fg-subtle/30',
+            ? 'surface-panel border-cyan-500/30 bg-cyan-500/5 shadow-sm'
+            : 'surface-well border-white/5 hover:border-white/15',
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
-          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 -ml-1 flex size-[44px] shrink-0 cursor-grab touch-none items-center justify-center rounded-sm active:cursor-grabbing"
+          className="text-fg-muted hover:text-fg hover:bg-white/5 -ml-1 flex size-[44px] shrink-0 cursor-grab touch-none items-center justify-center rounded-lg active:cursor-grabbing"
           aria-label={`Drag to reorder ${item.symbol}`}
           {...attributes}
           {...listeners}
@@ -93,13 +93,13 @@ export function SortableSymbolRow({
             checked={isSelected}
             onChange={() => onToggleSelect(item.symbol)}
             aria-label={`Select ${item.symbol}`}
-            className="border-border bg-bg-elev-1 text-fg focus:ring-fg size-4 cursor-pointer rounded-sm"
+            className="border-white/15 bg-bg-elev-2 text-cyan-400 focus:ring-cyan-500/20 size-4 cursor-pointer rounded-md"
           />
         </label>
         <div className="flex min-w-0 flex-col">
           <div className="flex items-baseline gap-2">
             <span className="text-fg font-mono text-sm font-semibold">{item.symbol}</span>
-            <span className="bg-bg-elev-2 text-fg-subtle border-border shrink-0 rounded-sm border px-1 font-mono text-xs uppercase">
+            <span className="surface-chip text-fg-subtle shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase">
               {item.category}
             </span>
           </div>
@@ -113,28 +113,28 @@ export function SortableSymbolRow({
             {price !== undefined ? price.toFixed(decimals) : '\u2014'}
           </span>
           {price !== undefined && (
-            <span className="text-fg-muted text-xs tracking-wider uppercase">Live</span>
+            <span className="text-cyan-400 text-[10px] font-mono tracking-wider uppercase">Live</span>
           )}
         </div>
 
         {/* Arrow buttons — keyboard-only fallback, visually hidden on small screens */}
-        <div className="border-border bg-bg-elev-1 hidden h-11 items-center rounded-sm border sm:flex">
+        <div className="surface-chip hidden h-10 items-center rounded-lg border border-white/10 sm:flex">
           <button
             type="button"
             onClick={() => onMove(index, 'up')}
             disabled={index === 0}
             aria-label="Move symbol up"
-            className="text-fg-subtle hover:text-fg disabled:hover:text-fg-subtle flex h-full w-11 items-center justify-center disabled:opacity-30"
+            className="text-fg-subtle hover:text-fg disabled:hover:text-fg-subtle flex h-full w-10 items-center justify-center disabled:opacity-30"
           >
             <IconArrowUp className="size-3.5" />
           </button>
-          <div className="bg-divider/60 h-5 w-px" />
+          <div className="bg-white/10 h-5 w-px" />
           <button
             type="button"
             onClick={() => onMove(index, 'down')}
             disabled={index === totalItems - 1}
             aria-label="Move symbol down"
-            className="text-fg-subtle hover:text-fg disabled:hover:text-fg-subtle flex h-full w-11 items-center justify-center disabled:opacity-30"
+            className="text-fg-subtle hover:text-fg disabled:hover:text-fg-subtle flex h-full w-10 items-center justify-center disabled:opacity-30"
           >
             <IconArrowDown className="size-3.5" />
           </button>
@@ -144,11 +144,12 @@ export function SortableSymbolRow({
           type="button"
           onClick={() => onRemove(item.symbol)}
           aria-label={`Remove ${item.symbol} from watchlist`}
-          className="text-fg-subtle hover:text-danger hover:bg-danger/10 flex size-[44px] items-center justify-center rounded-sm transition-colors"
+          className="text-fg-subtle hover:text-danger hover:bg-danger/10 flex size-[44px] items-center justify-center rounded-lg transition-colors tactile-press"
         >
           <IconTrash className="size-4" />
         </button>
       </div>
     </div>
+
   );
 }

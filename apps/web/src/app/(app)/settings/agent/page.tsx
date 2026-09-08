@@ -31,6 +31,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 
 import { AIPrefsCard } from '../_components/agent/ai-prefs-card';
+import { AISubNav } from '../_components/ai-subnav';
 import { AgentModelOverrideForm } from './_components/agent-model-override-form';
 import { AnalysisModeForm } from './_components/analysis-mode-form';
 import { DisabledToolsForm } from './_components/disabled-tools-form';
@@ -80,28 +81,30 @@ export default async function AgentCataloguePage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Agent</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">AI & Intelligence</h2>
         <p className="text-fg-subtle text-sm">
           Every tool the agent can call. Counts and latencies come from{' '}
-          <code className="bg-bg-elev-2 text-fg rounded-sm px-1.5 py-0.5 font-mono text-xs">
+          <code className="surface-well text-fg rounded-md px-1.5 py-0.5 font-mono text-xs border border-white/5">
             chat_tool_telemetry
           </code>{' '}
           over the last 24 hours.
         </p>
       </div>
 
+      <AISubNav />
+
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-fg-subtle text-body-sm tabular-nums">
+        <span className="text-fg-subtle text-xs tabular-nums">
           last 24h · {totalInvocations} invocation{totalInvocations === 1 ? '' : 's'} ·{' '}
           {totalFailures} failure{totalFailures === 1 ? '' : 's'}
         </span>
       </div>
 
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2.5">
         {entries.map((e) => (
           <li
             key={e.name}
-            className="border-border bg-bg-elev-1 flex flex-col gap-1.5 rounded-sm border p-3"
+            className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <code className="text-fg font-mono text-sm font-semibold">{e.name}</code>
@@ -152,8 +155,8 @@ function Pill({ label, tone }: { label: string; tone: 'muted' | 'danger' | 'succ
       ? 'bg-danger/15 text-danger'
       : tone === 'success'
         ? 'bg-success/15 text-success'
-        : 'bg-bg-elev-2 text-fg-muted';
+        : 'surface-chip bg-bg-elev-2 text-fg-muted border border-white/5';
   return (
-    <span className={`text-caption rounded-sm px-1.5 py-0.5 font-medium ${cls}`}>{label}</span>
+    <span className={`text-[11px] rounded-md px-2 py-0.5 font-mono font-medium ${cls}`}>{label}</span>
   );
 }

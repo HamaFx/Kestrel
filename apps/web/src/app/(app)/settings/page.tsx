@@ -21,10 +21,10 @@ import {
   IconChevronRight,
   IconDatabase,
   IconInfoCircle,
-  IconKey,
   IconPalette,
   IconRobot,
   IconShield,
+  IconTrendingUp,
 } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -55,48 +55,53 @@ export default async function SettingsPage() {
   const isAdmin = await checkIsAdmin();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <SystemStatusCard userId={userId} />
       <UsageGlance userId={userId} />
 
-      {/* Quick-link cards to the new subpages */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <QuickLink
-          href="/settings/security"
-          icon={<IconShield className="size-4" />}
-          title="Security"
-          description="Password, 2FA, linked accounts, sessions"
-        />
-        <QuickLink
-          href="/settings/notifications"
-          icon={<IconBell className="size-4" />}
-          title="Notifications"
-          description="Test channels, noise control, preferences"
-        />
-        <QuickLink
-          href="/settings/appearance"
-          icon={<IconPalette className="size-4" />}
-          title="Appearance"
-          description="Theme, locale, display settings"
-        />
-        <QuickLink
-          href="/settings/data"
-          icon={<IconDatabase className="size-4" />}
-          title="Data & Preferences"
-          description="Cache, exports, watchlist defaults"
-        />
-        <QuickLink
-          href="/settings/agent"
-          icon={<IconRobot className="size-4" />}
-          title="AI & Agent"
-          description="Tools catalogue, analysis mode, model overrides"
-        />
-        <QuickLink
-          href="/settings/api-keys"
-          icon={<IconKey className="size-4" />}
-          title="API Keys"
-          description="BYOK provider keys, market data config"
-        />
+      {/* Grouped Quick Links */}
+      <div className="flex flex-col gap-2">
+        <h2 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase px-0.5">
+          Settings Categories
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <QuickLink
+            href="/settings/api-keys"
+            icon={<IconRobot className="size-4.5" />}
+            title="AI & Intelligence"
+            description="BYOK provider keys, model routing, and agent tool execution"
+          />
+          <QuickLink
+            href="/settings/security"
+            icon={<IconShield className="size-4.5" />}
+            title="Account & Security"
+            description="Profile identity, password, two-factor auth, and active sessions"
+          />
+          <QuickLink
+            href="/settings/symbols"
+            icon={<IconTrendingUp className="size-4.5" />}
+            title="Trading & Market"
+            description="Watchlist instruments, symbol catalog, and portfolio risk limits"
+          />
+          <QuickLink
+            href="/settings/notifications"
+            icon={<IconBell className="size-4.5" />}
+            title="Notifications & Channels"
+            description="Email, browser push, Telegram bot integration, and noise control"
+          />
+          <QuickLink
+            href="/settings/appearance"
+            icon={<IconPalette className="size-4.5" />}
+            title="Display & Preferences"
+            description="Theme styling, language locale, and UI motion preferences"
+          />
+          <QuickLink
+            href="/settings/data"
+            icon={<IconDatabase className="size-4.5" />}
+            title="Data & Storage"
+            description="Local cache controls, trade history exports, and account reset"
+          />
+        </div>
       </div>
 
       <SettingsSection
@@ -134,16 +139,16 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="border-border bg-bg-elev-1 group md:hover:bg-bg-elev-2/40 flex items-center gap-3 rounded-sm border p-4 transition-colors"
+      className="surface-panel group flex items-center gap-3.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all hover:border-brand/30 hover:bg-bg-elev-2/60 tactile-press active:translate-y-[0.5px]"
     >
-      <span className="text-fg-muted bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-sm">
+      <span className="surface-well text-fg-muted inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/5 shadow-xs transition-colors group-hover:text-brand">
         {icon}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-fg text-sm leading-tight font-semibold">{title}</span>
+        <span className="text-fg text-sm font-semibold leading-tight">{title}</span>
         <span className="text-fg-subtle text-xs leading-snug">{description}</span>
       </div>
-      <IconChevronRight className="text-fg-subtle size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+      <IconChevronRight className="text-fg-subtle/70 size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-fg" />
     </Link>
   );
 }

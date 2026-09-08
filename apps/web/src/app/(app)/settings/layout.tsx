@@ -19,16 +19,24 @@
 import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/layout/page-header';
+import { getServerEnv } from '@/lib/env';
 
 import { SettingsNav } from './_components/settings-nav';
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
+  let billingEnabled = false;
+  try {
+    billingEnabled = Boolean(getServerEnv().BILLING_ENABLED);
+  } catch {
+    billingEnabled = false;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Settings" description="Manage your account, preferences, and workspace." />
 
-      <div className="flex flex-col gap-8 md:flex-row">
-        <SettingsNav />
+      <div className="flex flex-col items-start gap-8 md:flex-row">
+        <SettingsNav billingEnabled={billingEnabled} />
 
         <div className="min-w-0 flex-1">{children}</div>
       </div>

@@ -32,21 +32,17 @@ export async function AgentCard() {
   return (
     <Link
       href="/settings/agent"
-      className="border-border bg-bg-elev-1 hover:bg-bg-elev-2 focus-visible:ring-fg flex items-center gap-3 rounded-sm border p-3 transition-colors focus:outline-none focus-visible:ring-2"
+      className="surface-panel hover:border-cyan-500/40 focus-visible:ring-cyan-500/30 flex items-center gap-3.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all tactile-press focus:outline-none focus-visible:ring-2"
     >
       <span
         aria-hidden="true"
-        className="text-fg-muted inline-flex size-9 shrink-0 items-center justify-center rounded-sm"
-        style={{
-          background: 'var(--color-bg-elev-3)',
-          boxShadow: 'none',
-        }}
+        className="text-cyan-400 flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5"
       >
         <IconRobot className="size-4" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-fg text-sm leading-tight font-semibold">Agent</span>
-        <span className="text-fg-subtle text-xs leading-snug">
+        <span className="text-fg text-sm leading-tight font-semibold">Agent Capabilities</span>
+        <span className="text-fg-subtle text-xs leading-snug font-mono text-[11px]">
           {entries.length} tool{entries.length === 1 ? '' : 's'} · {totalInvocations} invocation
           {totalInvocations === 1 ? '' : 's'} (24h)
           {totalFailures > 0 ? (
@@ -63,4 +59,5 @@ export async function AgentCard() {
       <IconChevronRight className="text-fg-subtle size-4" />
     </Link>
   );
+
 }

@@ -195,13 +195,16 @@ function BudgetCard({
   return (
     <section
       aria-labelledby="usage-budget-heading"
-      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <header className="flex items-baseline justify-between gap-3">
-        <h2 id="usage-budget-heading" className="text-fg-muted text-sm font-medium">
-          Today (UTC)
-        </h2>
-        <span className="text-fg-subtle text-xs tabular-nums">
+      <header className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div>
+          <h2 id="usage-budget-heading" className="text-fg text-sm font-semibold tracking-tight">
+            Today's Consumption (UTC)
+          </h2>
+          <p className="text-fg-subtle text-xs">Real-time daily quota burn rate</p>
+        </div>
+        <span className="surface-chip text-fg font-mono text-xs font-semibold tabular-nums">
           ${stats.todayUsd.toFixed(4)} / ${maxDailyUsd.toFixed(2)}
         </span>
       </header>
@@ -211,17 +214,17 @@ function BudgetCard({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label="Daily budget consumed"
-        className="bg-bg-elev-2 h-2 w-full overflow-hidden rounded-sm"
+        className="surface-well h-2.5 w-full overflow-hidden rounded-full border border-white/5"
       >
-        <div className={cn('h-full transition-all', toneClass)} style={{ width: `${pct}%` }} />
+        <div className={cn('h-full rounded-full transition-all', toneClass)} style={{ width: `${pct}%` }} />
       </div>
-      <dl className="border-divider grid grid-cols-3 gap-3 border-b pt-1 pb-3 text-xs tabular-nums">
+      <dl className="surface-well grid grid-cols-3 gap-3 rounded-xl border border-white/5 p-3.5 shadow-inner text-xs tabular-nums">
         <Stat label="last 7d" value={`$${stats.sevenDayUsd.toFixed(4)}`} />
         <Stat label="last 30d" value={`$${stats.thirtyDayUsd.toFixed(4)}`} />
         <Stat label="turns" value={stats.thirtyDayTurns} />
       </dl>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2.5 pt-1">
         <div className="flex items-baseline justify-between text-xs">
           <span className="text-fg-muted">Current Month Spend (MTD)</span>
           <span className="text-fg font-mono font-semibold tabular-nums">
@@ -240,7 +243,7 @@ function BudgetCard({
           </span>
         </div>
         {isProjectedExceeded && (
-          <div className="bg-warn/5 border-warn/25 text-caption text-warn mt-1 flex items-start gap-1.5 rounded-sm border p-2.5">
+          <div className="surface-well border-warn/30 bg-warn/5 text-warn mt-1 flex items-start gap-2 rounded-xl border p-3 text-xs shadow-inner">
             <IconAlertTriangle className="mt-0.5 size-4 shrink-0" />
             <span>
               Based on the last 7 days of usage, you are projected to exceed your monthly budget
@@ -257,8 +260,8 @@ function BudgetCard({
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex flex-col">
-      <dt className="text-fg-subtle text-caption tracking-wide uppercase">{label}</dt>
-      <dd className="text-fg font-semibold">{value}</dd>
+      <dt className="text-fg-subtle font-mono text-[11px] tracking-wider uppercase">{label}</dt>
+      <dd className="text-fg font-mono text-sm font-bold">{value}</dd>
     </div>
   );
 }
@@ -278,30 +281,39 @@ function DailyChart({ daily7 }: { daily7: DayBucket[] }) {
   return (
     <section
       aria-labelledby="usage-daily-heading"
-      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <h2 id="usage-daily-heading" className="text-fg-muted text-sm font-medium">
-        Last 7 days
-      </h2>
-      <ul className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <h2 id="usage-daily-heading" className="text-fg text-sm font-semibold tracking-tight">
+          Daily Spend (Last 7 Days)
+        </h2>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase">
+          Telemetry
+        </span>
+      </div>
+      <ul className="flex flex-col gap-2.5">
         {activeDays.map((d) => {
           const pct = Math.max(1, (d.costUsd / max) * 100);
           return (
             <li
               key={d.date}
-              className="text-body-sm grid grid-cols-[auto_1fr_auto] items-center gap-2"
+              className="text-body-sm grid grid-cols-[auto_1fr_auto] items-center gap-3 text-xs"
             >
-              <span className="text-fg-subtle w-12 tabular-nums">{shortDate(d.date)}</span>
-              <span
+              <span className="text-fg-subtle w-14 font-mono text-xs tabular-nums">{shortDate(d.date)}</span>
+              <div
                 role="progressbar"
                 aria-valuenow={Math.round(pct)}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-label={`${d.turns} turns, $${d.costUsd.toFixed(4)} spent`}
-                className="bg-fg block h-1.5 rounded-sm"
-                style={{ width: `${pct}%` }}
-              />
-              <span className="text-fg-muted w-20 text-right tabular-nums">
+                className="surface-well h-2 rounded-full border border-white/5 overflow-hidden"
+              >
+                <div
+                  className="bg-cyan-500 h-full rounded-full transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="text-fg-muted w-20 text-right font-mono text-xs tabular-nums font-medium">
                 ${d.costUsd.toFixed(4)}
               </span>
             </li>
@@ -326,10 +338,10 @@ function ModelBreakdownCard({ stats }: { stats: UsageStats }) {
     return (
       <section
         aria-labelledby="usage-models-heading"
-        className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-4"
+        className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
       >
-        <h2 id="usage-models-heading" className="text-fg-muted text-sm font-medium">
-          By model (30d)
+        <h2 id="usage-models-heading" className="text-fg text-sm font-semibold tracking-tight">
+          By Model (30d)
         </h2>
         <p className="text-fg-subtle text-xs">No turns recorded yet.</p>
       </section>
@@ -338,23 +350,29 @@ function ModelBreakdownCard({ stats }: { stats: UsageStats }) {
   return (
     <section
       aria-labelledby="usage-models-heading"
-      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <h2 id="usage-models-heading" className="text-fg-muted text-sm font-medium">
-        By model (30d)
-      </h2>
-      <ul className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <h2 id="usage-models-heading" className="text-fg text-sm font-semibold tracking-tight">
+          Model Consumption Breakdown (30d)
+        </h2>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase">
+          Token Spend
+        </span>
+      </div>
+      <ul className="flex flex-col gap-2">
         {stats.byModel.map((m) => (
           <li
             key={m.model}
-            className="grid grid-cols-[1fr_auto_auto_auto] items-baseline gap-3 text-xs tabular-nums"
+            className="surface-well flex items-center justify-between rounded-xl border border-white/5 p-3 text-xs tabular-nums"
           >
-            <span className="text-fg text-body-sm truncate font-mono">{m.model}</span>
-            <span className="text-fg-subtle">{m.turns} turns</span>
-            <span className="text-fg-subtle">
-              {(m.inputTokens + m.outputTokens).toLocaleString()} tok
-            </span>
-            <span className="text-fg w-16 text-right">${m.costUsd.toFixed(4)}</span>
+            <div className="flex min-w-0 flex-col">
+              <span className="text-fg truncate font-mono text-xs font-semibold">{m.model}</span>
+              <span className="text-fg-subtle text-caption font-mono text-[11px]">
+                {m.turns} turns · {(m.inputTokens + m.outputTokens).toLocaleString()} tokens
+              </span>
+            </div>
+            <span className="text-fg font-mono text-sm font-bold text-right">${m.costUsd.toFixed(4)}</span>
           </li>
         ))}
       </ul>
@@ -371,10 +389,10 @@ function RecentTurnsCard({ rows }: { rows: Awaited<ReturnType<typeof listTelemet
     return (
       <section
         aria-labelledby="usage-recent-heading"
-        className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-4"
+        className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
       >
-        <h2 id="usage-recent-heading" className="text-fg-muted text-sm font-medium">
-          Recent turns
+        <h2 id="usage-recent-heading" className="text-fg text-sm font-semibold tracking-tight">
+          Recent Inferences
         </h2>
         <p className="text-fg-subtle text-xs">
           Nothing yet — start a conversation in <code>/chat</code>.
@@ -386,25 +404,30 @@ function RecentTurnsCard({ rows }: { rows: Awaited<ReturnType<typeof listTelemet
   return (
     <section
       aria-labelledby="usage-recent-heading"
-      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <h2 id="usage-recent-heading" className="text-fg-muted text-sm font-medium">
-        Recent turns
-      </h2>
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <h2 id="usage-recent-heading" className="text-fg text-sm font-semibold tracking-tight">
+          Recent Inferences & Turns
+        </h2>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase">
+          Live Log
+        </span>
+      </div>
       <ul className="flex flex-col gap-2">
         {rows.map((r) => (
           <li
             key={r.id}
-            className="grid grid-cols-[1fr_auto] items-baseline gap-3 text-xs tabular-nums"
+            className="surface-well flex items-center justify-between rounded-xl border border-white/5 p-3 text-xs tabular-nums hover:border-white/15 transition-all"
           >
             <div className="flex min-w-0 flex-col">
-              <span className="text-fg text-body-sm truncate font-mono">{r.model}</span>
-              <span className="text-fg-subtle text-caption">
+              <span className="text-fg truncate font-mono text-xs font-semibold">{r.model}</span>
+              <span className="text-fg-subtle text-caption font-mono text-[11px]">
                 {formatRelative(r.createdAt)} · {r.inputTokens}/{r.outputTokens} tok · {r.toolCalls}{' '}
                 tools · {Math.round(r.ms / 100) / 10}s
               </span>
             </div>
-            <span className="text-fg w-16 text-right">${r.estCostUsd.toFixed(4)}</span>
+            <span className="text-fg font-mono text-xs font-bold text-right">${r.estCostUsd.toFixed(4)}</span>
           </li>
         ))}
       </ul>
@@ -468,56 +491,66 @@ function AgentUsageCard({
   return (
     <section
       aria-labelledby="agent-usage-heading"
-      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <h2 id="agent-usage-heading" className="text-fg-muted text-sm font-medium">
-        Multi-Agent Breakdown (MTD)
-      </h2>
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <h2 id="agent-usage-heading" className="text-fg text-sm font-semibold tracking-tight">
+          Specialist Multi-Agent Breakdown (MTD)
+        </h2>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase">
+          Agent Routing
+        </span>
+      </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-fg-subtle text-caption font-semibold tracking-wider uppercase">
-          By Agent
+        <h3 className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
+          By Specialist Agent
         </h3>
         <ul className="flex flex-col gap-1.5">
           {agentRows.map((r) => (
             <li
               key={r.name}
-              className="grid grid-cols-[1fr_auto_auto] items-baseline gap-3 text-xs tabular-nums"
+              className="surface-well flex items-center justify-between rounded-xl border border-white/5 p-2.5 text-xs tabular-nums"
             >
-              <span className="text-fg font-medium">{AGENT_LABELS[r.name] ?? r.name}</span>
-              <span className="text-fg-subtle text-caption">
-                {r.turns} turns · {Math.round(r.avgMs / 100) / 10}s avg
-              </span>
-              <span className="text-fg w-16 text-right">${r.cost.toFixed(4)}</span>
+              <div className="flex flex-col">
+                <span className="text-fg font-medium">{AGENT_LABELS[r.name] ?? r.name}</span>
+                <span className="text-fg-subtle text-caption font-mono text-[11px]">
+                  {r.turns} turns · {Math.round(r.avgMs / 100) / 10}s avg
+                </span>
+              </div>
+              <span className="text-fg font-mono font-bold">${r.cost.toFixed(4)}</span>
             </li>
           ))}
         </ul>
       </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-fg-subtle text-caption font-semibold tracking-wider uppercase">
-          By Mode
+        <h3 className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
+          By Analysis Mode
         </h3>
         <ul className="flex flex-col gap-1.5">
           {modeRows.map((r) => (
             <li
               key={r.mode}
-              className="grid grid-cols-[1fr_auto_auto] items-baseline gap-3 text-xs tabular-nums"
+              className="surface-well flex items-center justify-between rounded-xl border border-white/5 p-2.5 text-xs tabular-nums"
             >
               <span className="text-fg font-medium capitalize">{r.mode}</span>
-              <span className="text-fg-subtle text-caption">{r.turns} turns</span>
-              <span className="text-fg w-16 text-right">${r.cost.toFixed(4)}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-fg-subtle text-caption font-mono text-[11px]">{r.turns} turns</span>
+                <span className="text-fg font-mono font-bold">${r.cost.toFixed(4)}</span>
+              </div>
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="border-border border-t pt-2">
+      <div className="border-t border-white/5 pt-3">
         <div className="flex items-baseline justify-between text-xs tabular-nums">
           <span className="text-fg-muted font-medium">Total Specialist Cost</span>
-          <span className="text-fg">${totalCost.toFixed(4)}</span>
+          <span className="text-fg font-mono text-sm font-bold">${totalCost.toFixed(4)}</span>
         </div>
       </div>
     </section>
   );
 }
+

@@ -23,14 +23,15 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 
+import { ProfileForm } from '../_components/profile/profile-form';
 import { ChangePasswordCard } from '../_components/security/change-password-card';
 import { LinkedAccountsCard } from '../_components/security/linked-accounts-card';
 import { SessionsCard } from '../_components/security/sessions-card';
 import { TwoFactorSetup } from '../_components/security/two-factor-setup';
 
 export const metadata: Metadata = {
-  title: 'Security · Settings',
-  description: 'Two-factor authentication, active sessions, and password management.',
+  title: 'Account & Security · Settings',
+  description: 'Profile identity, two-factor authentication, active sessions, and password management.',
 };
 export const revalidate = 60;
 
@@ -57,13 +58,14 @@ export default async function SecurityPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Security</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Account & Security</h2>
         <p className="text-fg-subtle text-sm">
-          Password, two-factor authentication, connected accounts, and active sessions.
+          Profile identity, password, two-factor authentication, connected accounts, and active sessions.
         </p>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
+        <ProfileForm initialName={session?.user?.name || ''} email={session?.user?.email || ''} />
         <ChangePasswordCard />
         <TwoFactorSetup enabled={twoFactorEnabled} />
         <LinkedAccountsCard googleLinked={googleLinked} />

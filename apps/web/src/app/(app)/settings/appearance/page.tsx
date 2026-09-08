@@ -16,13 +16,15 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getUserWithSettings } from '@kestrel/db';
+import { getUserWithSettings, listUserSymbols } from '@kestrel/db';
+import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 
 import { AppearanceCard } from '../_components/appearance/appearance-card';
+import { PreferencesCard } from '../_components/data/preferences-card';
 
 export const metadata: Metadata = {
   title: 'Appearance · Settings',
@@ -36,16 +38,30 @@ export default async function AppearancePage() {
 
   const userId = session.user.id;
 
-  const { settings } = await getUserWithSettings(userId);
+  const [{ settings }, symbolRows] = await Promise.all([
+    getUserWithSettings(userId),
+    listUserSymbols(userId),
+  ]);
+
+  const watchlist: string[] =
+    symbolRows.length > 0 ? symbolRows.map((item) => item.symbol) : [...DEFAULT_WATCHLIST_SYMBOLS];
+
+  const uiPrefs = {
+    defaultSymbol: settings?.defaultSymbol ?? null,
+    timeFormat: settings?.timeFormat ?? null,
+    reduceMotion: settings?.reduceMotion ?? null,
+  };
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Appearance</h2>
-        <p className="text-fg-subtle text-sm">Theme, locale, and display preferences.</p>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Display & Preferences</h2>
+        <p className="text-fg-subtle text-sm">Theme, locale, time formatting, motion, and chart defaults.</p>
       </div>
 
       <AppearanceCard initialLocale={settings?.language ?? 'en'} />
+      <PreferencesCard watchlist={watchlist} initialPrefs={uiPrefs} />
     </div>
   );
 }
+

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { IconMoon, IconPalette } from '@tabler/icons-react';
 import { useCallback, useState } from 'react';
 
 import { updateLocaleAction } from '../../actions';
@@ -41,14 +42,24 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
 
   return (
     <section
-      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
       aria-labelledby="appearance-heading"
     >
-      <div className="flex items-center justify-between">
-        <h2 id="appearance-heading" className="text-fg text-base font-semibold tracking-tight">
-          Appearance
-        </h2>
-        <p className="text-fg-subtle text-caption tracking-wider uppercase">Locale</p>
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-cyan-400">
+            <IconPalette className="size-4" />
+          </div>
+          <div>
+            <h2 id="appearance-heading" className="text-fg text-sm font-semibold tracking-tight">
+              Theme & Regional
+            </h2>
+            <p className="text-fg-subtle text-xs">Visual skin, language, and formatting conventions</p>
+          </div>
+        </div>
+        <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium tracking-wider uppercase">
+          Client UI
+        </span>
       </div>
       <SettingsRow
         label="Locale"
@@ -58,7 +69,7 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
             value={locale}
             onChange={handleLocaleChange}
             aria-label="Locale"
-            className="border-border bg-bg-elev-2 text-fg focus:ring-fg rounded-sm border px-3 py-1.5 text-sm focus:ring-2 focus:outline-none"
+            className="border-white/10 bg-bg-elev-2 text-fg focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none transition-colors"
           >
             {LOCALES.map((l) => (
               <option key={l.value} value={l.value}>
@@ -68,13 +79,14 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
           </select>
         }
       />
-      <div className="mt-2">
+      <div className="mt-1">
         <SettingsRow
-          label="Theme"
-          description="Kestrel is currently dark-only. A light theme may be offered in the future."
+          label="Color Scheme"
+          description="Kestrel is tuned for dark cyber-industrial trading desks. Light mode is coming in a future update."
           action={
-            <span className="border-border bg-bg-elev-2 text-fg-subtle inline-flex items-center rounded-sm border px-3 py-1.5 text-sm">
-              Dark
+            <span className="surface-chip text-fg-subtle inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 text-xs font-mono font-medium">
+              <IconMoon className="size-3.5 text-cyan-400" />
+              Dark (Standard)
             </span>
           }
         />
@@ -82,3 +94,4 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
     </section>
   );
 }
+

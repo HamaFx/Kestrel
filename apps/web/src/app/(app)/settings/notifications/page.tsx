@@ -19,7 +19,7 @@
 import { listPushSubscriptions } from '@kestrel/ai';
 import { getUserWithSettings } from '@kestrel/db';
 import type { NoiseConfig } from '@kestrel/shared';
-import { IconBell, IconMail } from '@tabler/icons-react';
+import { IconBell, IconMail, IconMessageCircle } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
@@ -33,6 +33,8 @@ import { NotificationPrefsCard } from '../_components/notifications/notification
 import { TestEmailButton } from '../_components/notifications/test-email-button';
 import { RowDivider } from '../_components/row-divider';
 import { SettingsRow } from '../_components/settings-row';
+import { TelegramLinkCard } from '../_components/telegram/telegram-link-card';
+import { TestTelegramButton } from '../_components/telegram/test-telegram-button';
 
 export const metadata: Metadata = {
   title: 'Notifications · Settings',
@@ -60,6 +62,7 @@ export default async function NotificationsPage() {
   const env = getServerEnv();
   const emailReady = Boolean(env.RESEND_API_KEY) && Boolean(env.ALERT_FROM_EMAIL);
   const pushReady = Boolean(env.VAPID_PUBLIC_KEY) && Boolean(env.VAPID_PRIVATE_KEY);
+  const telegramReady = Boolean(env.TELEGRAM_BOT_TOKEN) && Boolean(env.TELEGRAM_CHAT_ID);
 
   let pushDevices = 0;
   try {
@@ -72,16 +75,16 @@ export default async function NotificationsPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Notifications</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Notifications & Channels</h2>
         <p className="text-fg-subtle text-sm">
-          Alert channels, test buttons, noise control, and notification preferences.
+          Alert channels, test triggers, noise control, and delivery preferences.
         </p>
       </div>
 
       {/* Channel Test Buttons */}
-      <section className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4">
+      <section className="surface-panel flex flex-col gap-1 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
         <header className="flex items-center gap-3 pb-2">
-          <h3 className="text-fg text-base font-semibold tracking-tight">Test Channels</h3>
+          <h3 className="text-fg text-base font-semibold tracking-tight">Alert Channels & Testing</h3>
         </header>
 
         <SettingsRow
@@ -115,6 +118,37 @@ export default async function NotificationsPage() {
           stack
           action={<EnableWebPushButton />}
         />
+
+        <RowDivider />
+
+        <SettingsRow
+          icon={<IconMessageCircle className="text-brand size-4" />}
+          label="Telegram Bot"
+          description={
+            <span className="flex items-center gap-2">
+              <StatusPill ready={telegramReady} />
+              <span>
+                {telegramReady
+                  ? 'Telegram bot configured'
+                  : 'Configure Telegram bot token to receive push messages'}
+              </span>
+            </span>
+          }
+          stack
+          action={<TestTelegramButton />}
+        />
+      </section>
+
+      {/* Telegram Bot Linking Card */}
+      <section className="surface-panel space-y-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
+        <div className="flex items-center gap-2">
+          <IconMessageCircle className="text-brand size-5" />
+          <h3 className="text-base font-semibold">Telegram Bot Linking</h3>
+        </div>
+        <p className="text-fg-subtle text-xs">
+          Link your Telegram chat to receive instant trade alerts and query market stats directly.
+        </p>
+        <TelegramLinkCard />
       </section>
 
       <NoiseControlCard initialConfig={noiseConfig ?? null} />
@@ -127,7 +161,7 @@ function StatusPill({ ready }: { ready: boolean }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-bold uppercase tabular-nums ring-1',
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tabular-nums ring-1',
         ready
           ? 'bg-success/10 text-success ring-success/30'
           : 'bg-bg-elev-2 text-fg-subtle ring-divider',
@@ -135,7 +169,7 @@ function StatusPill({ ready }: { ready: boolean }) {
     >
       <span
         aria-hidden
-        className={ready ? 'bg-success size-1 rounded-sm' : 'bg-fg-subtle size-1 rounded-sm'}
+        className={ready ? 'bg-success size-1 rounded-full' : 'bg-fg-subtle size-1 rounded-full'}
       />
       {ready ? 'Ready' : 'Off'}
     </span>

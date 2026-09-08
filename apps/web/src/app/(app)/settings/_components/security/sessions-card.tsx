@@ -117,14 +117,14 @@ export function SessionsCard() {
 
   return (
     <section
-      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
       aria-labelledby="active-sessions-heading"
     >
-      <div className="flex items-center gap-3 pb-2">
-        <h2 id="active-sessions-heading" className="text-fg text-base font-semibold tracking-tight">
+      <div className="flex items-center gap-3 pb-1 border-b border-white/5">
+        <h3 id="active-sessions-heading" className="text-fg text-base font-semibold tracking-tight">
           Active sessions
-        </h2>
-        <span className="text-fg-subtle text-caption ml-auto tracking-wider uppercase">
+        </h3>
+        <span className="text-fg-subtle font-mono text-[11px] ml-auto tracking-wider uppercase">
           {sessions.length} session{sessions.length !== 1 ? 's' : ''}
         </span>
       </div>

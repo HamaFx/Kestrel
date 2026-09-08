@@ -88,10 +88,10 @@ export function NotificationPrefsCard({
 
   return (
     <section
-      className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-4"
+      className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
       aria-labelledby="notification-prefs-heading"
     >
-      <div className="flex items-center gap-3 pb-2">
+      <div className="flex items-center gap-3 pb-1">
         <h2
           id="notification-prefs-heading"
           className="text-fg text-base font-semibold tracking-tight"

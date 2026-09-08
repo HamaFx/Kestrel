@@ -17,7 +17,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { getUserWithSettings } from '@kestrel/db';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
@@ -29,6 +28,7 @@ import {
   EmbeddingModelPicker,
   VisionModelPicker,
 } from './_components/model-picker';
+import { AISubNav } from '../_components/ai-subnav';
 
 export const revalidate = 60;
 
@@ -82,30 +82,24 @@ export default async function ModelsSettingsPage() {
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
-      <div className="flex items-baseline justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-fg text-lg font-semibold">Models</h2>
-          <p className="text-fg-subtle max-w-2xl text-sm">
-            Pick the model that handles every chat turn. Per-turn overrides via the chat toolbar
-            still work.
-          </p>
-        </div>
-        <Link
-          href="/settings/api-keys"
-          className="text-fg shrink-0 text-sm font-medium hover:underline"
-        >
-          Manage API keys →
-        </Link>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-fg text-lg font-semibold tracking-tight">AI & Intelligence</h2>
+        <p className="text-fg-subtle text-sm">
+          Pick the model that handles every chat turn. Per-turn overrides via the chat toolbar
+          still work.
+        </p>
       </div>
+
+      <AISubNav />
 
       <ChatModelPicker initialValue={initialChatModel} providers={configured} />
 
       <FallbackChainPicker initialChain={initialChain} configuredProviders={configured} />
 
-      <details className="border-border bg-bg-elev-1 overflow-hidden rounded-sm border">
+      <details className="surface-panel overflow-hidden rounded-xl border border-white/10 shadow-[var(--shadow-chip)]">
         <summary
           aria-label="Toggle advanced model settings"
-          className="hover:bg-bg-elev-2 flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors select-none"
+          className="hover:bg-bg-elev-2/60 flex cursor-pointer items-center justify-between gap-3 px-5 py-3.5 transition-colors select-none"
         >
           <div className="flex flex-col">
             <span className="text-fg text-sm font-medium">Advanced</span>
@@ -113,18 +107,18 @@ export default async function ModelsSettingsPage() {
               Pick vision + embedding models independently of chat.
             </span>
           </div>
-          <span className="text-caption text-fg-subtle">▾</span>
+          <span className="text-caption text-fg-subtle font-mono">▾</span>
         </summary>
-        <div className="border-border flex flex-col gap-4 border-t p-4">
+        <div className="border-border/50 flex flex-col gap-4 border-t p-5">
           <VisionModelPicker initialValue={initialVisionModel} providers={configured} />
           <EmbeddingModelPicker initialValue={initialEmbeddingModel} providers={configured} />
         </div>
       </details>
 
-      <details className="border-border bg-bg-elev-1 overflow-hidden rounded-sm border">
+      <details className="surface-panel overflow-hidden rounded-xl border border-white/10 shadow-[var(--shadow-chip)]">
         <summary
           aria-label="Toggle model comparison table"
-          className="hover:bg-bg-elev-2 flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors select-none"
+          className="hover:bg-bg-elev-2/60 flex cursor-pointer items-center justify-between gap-3 px-5 py-3.5 transition-colors select-none"
         >
           <div className="flex flex-col">
             <span className="text-fg text-sm font-medium">Model Comparison</span>
@@ -132,7 +126,7 @@ export default async function ModelsSettingsPage() {
               Compare prices, capabilities, and tiers across all configured providers.
             </span>
           </div>
-          <span className="text-caption text-fg-subtle">▾</span>
+          <span className="text-caption text-fg-subtle font-mono">▾</span>
         </summary>
         <div className="border-border overflow-x-auto border-t">
           <table className="w-full text-sm">
@@ -157,25 +151,25 @@ export default async function ModelsSettingsPage() {
                   <td className="text-fg px-4 py-2.5 font-medium">{m.providerName}</td>
                   <td className="text-fg px-4 py-2.5 font-mono text-xs">{m.label ?? m.modelId}</td>
                   <td className="px-4 py-2.5">
-                    <span className="bg-bg-elev-2 text-caption text-fg-subtle border-border inline-flex items-center rounded-sm border px-2 py-0.5 font-medium">
+                    <span className="surface-chip bg-bg-elev-2 text-[11px] text-fg-subtle border border-white/5 inline-flex items-center rounded-md px-2 py-0.5 font-mono font-medium">
                       {m.tier ?? 'flagship'}
                     </span>
                   </td>
-                  <td className="text-fg px-4 py-2.5 text-right tabular-nums">
+                  <td className="text-fg px-4 py-2.5 text-right font-mono tabular-nums">
                     {m.inputPerMTokUsd != null ? `$${m.inputPerMTokUsd.toFixed(2)}` : '—'}
                   </td>
-                  <td className="text-fg px-4 py-2.5 text-right tabular-nums">
+                  <td className="text-fg px-4 py-2.5 text-right font-mono tabular-nums">
                     {m.outputPerMTokUsd != null ? `$${m.outputPerMTokUsd.toFixed(2)}` : '—'}
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       {m.tier !== 'embedding' ? (
-                        <span className="bg-success/10 text-success text-caption inline-flex items-center rounded-sm px-1.5 py-0.5 font-medium">
+                        <span className="surface-chip bg-success/15 text-success text-[11px] inline-flex items-center rounded-md px-2 py-0.5 font-mono font-medium">
                           Chat
                         </span>
                       ) : null}
                       {m.tier === 'embedding' ? (
-                        <span className="bg-bg-elev-3 text-fg-muted text-caption inline-flex items-center rounded-sm px-1.5 py-0.5 font-medium">
+                        <span className="surface-chip bg-bg-elev-3 text-fg-muted text-[11px] inline-flex items-center rounded-md px-2 py-0.5 font-mono font-medium">
                           Embed
                         </span>
                       ) : null}
