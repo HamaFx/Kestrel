@@ -43,7 +43,9 @@ The web app provides:
 - CSRF, CSP, request IDs, rate limits, and standardized API envelopes
 - User-owned persistence and BYOK settings
 - Hoplite Design System: Classical Antiquity meets Cyber-Industrial Hardware (Funnel Display, Redaction Italic, Geist Mono, Bebas Neue, tactile surface chips, and recessed data wells)
-- Public Marketing Showcase: Unauthenticated visitors landing on `/` view the institutional committee showcase (`LandingNav`, `LandingHero`, `LandingDesks`, `LandingStepper`, `LandingArchitecture`, `LandingFAQ`, `LandingFooter`), while authenticated operators redirect directly to `/chat`.
+- Dual surfaces:
+  - **Authenticated Trading Cockpit**: Authenticated operators accessing `/` redirect to `/chat` and use the full trading terminal (AI committee deliberation, live market data, economic calendar, macroeconomic news, trade journal, portfolio tracking, and system settings).
+  - **Portfolio Showcase**: Unauthenticated visitors landing on `/` (and direct visits to `/landing`) view the institutional committee showcase (`LandingNav`, `LandingHero`, `LandingDesks`, `LandingStepper`, `LandingArchitecture`, `LandingFAQ`, `LandingFooter`) illustrating the platform's multi-agent deliberative architecture and capabilities.
 
 The request proxy is a security boundary. It handles route access classification, authentication integration, CSRF, CSP nonce propagation, cookies, and request IDs. Keep direct database work out of it.
 

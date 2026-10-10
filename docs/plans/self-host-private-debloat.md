@@ -228,7 +228,7 @@ Each slice is **one commit directly on `main`**. If a post-merge Postgres boot f
 | 4 | Billing polish (keep) | ✅ done | Q1=B — defaults/docs tightened; billing code preserved |
 | 5 | AI providers — Vertex delete + registry improve | ✅ done | Q7 — delete Vertex, keep 9 others, polish registry |
 | 6 | CI + scripts declutter | ✅ done | Q8=A + Q10=A + Q12=A — retained ci-fast + codeql, deleted 6 obsolete workflows, cleaned scripts and loadtest |
-| 7 | Frontend (keep landing) | ☐ | Q9=A — no-op + arch note |
+| 7 | Frontend (keep landing) | ✅ done | Q9=A — documented dual surfaces (trading cockpit + portfolio showcase) in architecture.md, verified build & bundle-size guard |
 | 8 | Docs & repo hygiene | ☐ | Q5=A private |
 | 9 | Final polish & safety rails | ☐ | D5 + compat removal + `hamafx` comment |
 
