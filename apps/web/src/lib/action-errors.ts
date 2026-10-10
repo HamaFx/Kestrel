@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-import * as Sentry from '@sentry/nextjs';
+import { createScopedLoggerWithContext } from '@/lib/logger';
 
-// OBS-07 (Phase 5.1): Add `service:web` tag so edge events are
-// distinguishable from worker events in a shared-DSN Sentry project.
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-  environment: process.env.NODE_ENV ?? 'development',
-  enabled: !!process.env.SENTRY_DSN,
-  initialScope: {
-    tags: {
-      service: 'web',
-      ...(process.env.DEPLOYED_SHA ? { release: process.env.DEPLOYED_SHA } : {}),
-    },
-  },
-});
+export function logActionError(err: unknown, action: string): void {
+  createScopedLoggerWithContext({ component: 'server-action', action }).errorContext(
+    err,
+    `${action} failed`,
+  );
+}
+
+export async function withServerActionLogging<T>(
+  action: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    logActionError(err, action);
+    throw err;
+  }
+}

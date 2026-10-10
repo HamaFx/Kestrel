@@ -43,6 +43,16 @@ export function loadSecretTemplate() {
   return defaults;
 }
 
+/** Load only the secrets needed by the optional observability overlay. */
+export function loadObservabilitySecretTemplate() {
+  const raw = JSON.parse(readFileSync(TEMPLATE_PATH, 'utf8'));
+  const observability = raw?.observability;
+  if (!observability || typeof observability !== 'object') {
+    throw new Error('secret-template.json is missing an "observability" object');
+  }
+  return observability;
+}
+
 /** Resolve a template entry to a concrete string value. */
 export function resolveTemplateValue(entry) {
   if (typeof entry === 'string') return entry;
@@ -57,8 +67,7 @@ export function resolveTemplateValue(entry) {
  * Build the map of missing secret values for an env file, and the full
  * canonical set of template keys. Existing values are never overwritten.
  */
-export function missingSecrets(envFilePath) {
-  const template = loadSecretTemplate();
+export function missingSecrets(envFilePath, template = loadSecretTemplate()) {
   const { entries } = readEnvFile(envFilePath);
   const missing = {};
   for (const [key, entry] of Object.entries(template)) {
@@ -67,9 +76,13 @@ export function missingSecrets(envFilePath) {
   return { template, missing };
 }
 
-/** True when an env file already contains every template key. */
-export function hasAllSecrets(envFilePath) {
-  const template = loadSecretTemplate();
+/** Values for overlay keys that are absent from an existing env file. */
+export function missingObservabilitySecrets(envFilePath) {
+  return missingSecrets(envFilePath, loadObservabilitySecretTemplate()).missing;
+}
+
+/** True when an env file already contains every key in the template. */
+export function hasAllSecrets(envFilePath, template = loadSecretTemplate()) {
   const { entries } = readEnvFile(envFilePath);
   return Object.keys(template).every((key) => entries.has(key));
 }

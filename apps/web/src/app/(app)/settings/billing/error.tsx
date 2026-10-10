@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as Sentry from '@sentry/nextjs';
 import { IconAlertTriangle, IconRefresh } from '@tabler/icons-react';
 import { useEffect } from 'react';
 
@@ -27,7 +26,7 @@ export default function BillingError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    console.error(error);
   }, [error]);
 
   return (

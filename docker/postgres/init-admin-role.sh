@@ -1,12 +1,7 @@
 #!/bin/bash
-# Auto-create the langfuse database if it doesn't exist.
+# Provision the dedicated application-maintenance role on a fresh volume.
 # Called by the postgres container's /docker-entrypoint-initdb.d/
 set -e
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-  SELECT 'CREATE DATABASE langfuse'
-  WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'langfuse')\gexec
-EOSQL
-
 # Provision the dedicated BYPASSRLS application-maintenance role. Runtime
 # migrations grant it table privileges; this script sets the operator-owned
 # password on a fresh volume. Tenant data never uses this role.

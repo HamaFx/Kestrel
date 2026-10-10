@@ -87,12 +87,6 @@ const WorkerEnvSchema = z.object({
   HC_TENANT_EXPORT_UUID: optionalNonEmpty,
   HC_CLEANUP_UPLOADS_UUID: optionalNonEmpty,
   HC_DOCKER_PRUNE_UUID: optionalNonEmpty,
-
-  /**
-   * Optional Sentry DSN — server-only. When unset, the worker logs to
-   * stderr but does not phone home. Wired in PR-18.
-   */
-  SENTRY_DSN: optionalUrl,
   LANGFUSE_PUBLIC_KEY: optionalNonEmpty,
   LANGFUSE_SECRET_KEY: optionalNonEmpty,
   LANGFUSE_BASE_URL: optionalUrl,

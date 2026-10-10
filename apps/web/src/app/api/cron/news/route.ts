@@ -33,7 +33,6 @@
 //   - Hobby: external scheduler (Fly.io worker, GitHub Actions, etc.) hits
 //     this URL with `Authorization: Bearer ${CRON_SECRET}`.
 
-import * as Sentry from '@sentry/nextjs';
 
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext, type CategorizedLogger } from '@/lib/logger';
@@ -99,9 +98,7 @@ export async function GET(req: Request): Promise<Response> {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      // STAB-04 / OBS-01: capture to Sentry.
-      Sentry.captureException(err, { tags: { job: 'cron/news' } });
-      log.errorContext(err, 'fetchNews', { message });
+            log.errorContext(err, 'fetchNews', { message });
       throw new Error(`news fetch failed: ${message}`);
     }
   });

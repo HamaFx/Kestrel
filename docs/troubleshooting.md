@@ -285,29 +285,30 @@ Local Docker backup volumes do not protect against host loss. Copy archives off-
 
 ## Observability
 
-Sentry and Langfuse are optional. If enabled, inspect provider configuration, network access, and retention settings. Keep `LANGFUSE_RECORD_IO=0` unless prompt/output capture has been deliberately approved.
+Langfuse is optional. If enabled, inspect its configuration, network access, and retention settings. Keep `LANGFUSE_RECORD_IO=0` unless prompt/output capture has been deliberately approved.
 
 ### Langfuse does not start or stays unhealthy
 
 The bundled stack only runs Langfuse when the observability profile is enabled. Langfuse v3 needs ClickHouse, Redis, MinIO (S3), and its worker container, so a plain `docker compose up` will never start it:
 
 ```bash
-./docker/init-secrets.sh   # generates the LANGFUSE_* keys in .env
-# Use --profile to bring up the full observability stack:
-docker compose --profile observability up -d --build
+./docker/init-secrets.sh --with-observability
+# Combine both files to bring up the full observability stack:
+docker compose -f docker-compose.yml \
+  -f docker-compose.observability.yml --profile observability up -d --build
 ```
 
 Check each service:
 
 ```bash
-docker compose --profile observability ps
-docker compose --profile observability logs --tail=100 langfuse
-docker compose --profile observability logs --tail=100 langfuse-worker
+docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability ps
+docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability logs --tail=100 langfuse
+docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability logs --tail=100 langfuse-worker
 ```
 
 Common causes:
 
-- `.env` was generated before the `LANGFUSE_*` keys existed — re-run `./docker/init-secrets.sh` (it only adds what is missing) and `docker compose --profile observability up -d` again.
+- `.env` was generated before the overlay secrets existed — re-run `./docker/init-secrets.sh --with-observability` (it only adds what is missing), then start the overlay again.
 - Host port `3001` (Langfuse) or `9090` (MinIO S3) is already in use — stop the other process or set `APP_PUBLISHED_PORT` so the app does not collide with Langfuse on `3001`.
 - The Langfuse UI loads but traces never appear — the `langfuse-worker` container must be running (it drains the queue into ClickHouse), and the app needs valid project keys:
   1. Open `http://localhost:3001`, create your account, then create a project.

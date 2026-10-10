@@ -20,13 +20,15 @@ import { GET } from '@/app/api/cron/billing-dlq/route';
 
 const mockWithCronAuth = vi.hoisted(() => vi.fn());
 const mockCountStaleBillingWebhookFailures = vi.hoisted(() => vi.fn());
-const mockCaptureMessage = vi.hoisted(() => vi.fn());
+const mockError = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/cron', () => ({ withCronAuth: mockWithCronAuth }));
 vi.mock('@/lib/services/api-boundary', () => ({
   countStaleBillingWebhookFailures: mockCountStaleBillingWebhookFailures,
 }));
-vi.mock('@sentry/nextjs', () => ({ captureMessage: mockCaptureMessage }));
+vi.mock('@/lib/logger', () => ({
+  createScopedLoggerWithContext: () => ({ error: mockError }),
+}));
 
 describe('GET /api/cron/billing-dlq', () => {
   beforeEach(() => {
@@ -51,13 +53,9 @@ describe('GET /api/cron/billing-dlq', () => {
       note: '2 pending or replaying billing webhook failure(s) older than one hour',
     });
     expect(mockCountStaleBillingWebhookFailures).toHaveBeenCalledWith(expect.any(Date));
-    expect(mockCaptureMessage).toHaveBeenCalledWith(
-      'Billing webhook DLQ has stale entries',
-      expect.objectContaining({
-        level: 'error',
-        tags: { component: 'billing-webhook', kind: 'dlq-stale' },
-        extra: expect.objectContaining({ pendingOlderThanHour: 2 }),
-      }),
+    expect(mockError).toHaveBeenCalledWith(
+      { pendingOlderThanHour: 2, cutoff: expect.any(String) },
+      'billing webhook DLQ contains stale pending or replaying entries',
     );
   });
 
@@ -67,6 +65,6 @@ describe('GET /api/cron/billing-dlq', () => {
 
     expect(response.status).toBe(200);
     expect(body).toEqual({ ok: true, processed: 0, note: 'No stale billing webhook failures' });
-    expect(mockCaptureMessage).not.toHaveBeenCalled();
+    expect(mockError).not.toHaveBeenCalled();
   });
 });

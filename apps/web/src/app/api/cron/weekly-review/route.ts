@@ -25,7 +25,6 @@
 // Calls `emitWeeklyReview` exactly once. Idempotent within an ISO week
 // via `briefings_emitted` PK on (`weekly_review:<isoWeek>`, 'weekly_review').
 
-import * as Sentry from '@sentry/nextjs';
 
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
@@ -49,9 +48,7 @@ export async function GET(req: Request): Promise<Response> {
         if (r.emitted) emittedCount++;
         if (r.reason) reasons.push(`[${userId}]: ${r.reason}`);
       } catch (err) {
-        // STAB-04 / OBS-01: capture to Sentry.
-        Sentry.captureException(err, { tags: { job: 'cron/weekly-review', userId } });
-        log.errorContext(err, 'emitWeeklyReview', { userId });
+                log.errorContext(err, 'emitWeeklyReview', { userId });
         reasons.push(`[${userId}]: error`);
       }
     }

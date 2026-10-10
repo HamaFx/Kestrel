@@ -19,7 +19,6 @@
 // Root error boundary. Next.js renders this when any non-recoverable error
 // surfaces during rendering. We log + show a recover button so the user
 // isn't stuck on a blank screen.
-import * as Sentry from '@sentry/nextjs';
 import { Link } from 'next-view-transitions';
 import { useEffect } from 'react';
 
@@ -34,7 +33,7 @@ interface ErrorPageProps {
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
     console.error('[RootErrorPage] Captured uncaught exception:', error);
-    Sentry.captureException(error);
+    console.error(error);
   }, [error]);
 
   const errorMessage =

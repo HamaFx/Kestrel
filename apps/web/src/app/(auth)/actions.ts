@@ -26,7 +26,7 @@ import {
   userExistsByEmail,
   withRateLimit,
 } from '@kestrel/db';
-import * as Sentry from '@sentry/nextjs';
+import { logActionError, withServerActionLogging } from '@/lib/action-errors';
 import bcrypt from 'bcryptjs';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { AuthError } from 'next-auth';
@@ -94,7 +94,7 @@ export async function loginAction(
   prevState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
-  return Sentry.withServerActionInstrumentation('loginAction', { formData }, async () => {
+  return withServerActionLogging('loginAction', async () => {
     const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
     const parsed = loginSchema.safeParse(raw);
     if (!parsed.success) {
@@ -188,14 +188,12 @@ export async function loginAction(
           return { error: 'Unable to verify 2FA right now. Please try again.', requires2FA: true };
         }
         if (message === 'AUTH_SYSTEM_ERROR' || message === 'SESSION_SYSTEM_ERROR') {
-          return { error: 'Unable to sign in right now. Please try again.' };
+          logActionError(error, 'loginAction');
+      return { error: 'Unable to sign in right now. Please try again.' };
         }
         return invalidCredentialsState();
       }
-      Sentry.captureException(error, {
-        tags: { component: 'auth-actions', action: 'login' },
-        extra: { email: normalizedEmail },
-      });
+      logActionError(error, 'loginAction');
       return { error: 'Unable to sign in right now. Please try again.' };
     }
 
@@ -217,7 +215,7 @@ export async function registerAction(
   prevState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
-  return Sentry.withServerActionInstrumentation('registerAction', { formData }, async () => {
+  return withServerActionLogging('registerAction', async () => {
     const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
     const parsed = registerSchema.safeParse(raw);
     if (!parsed.success) {
@@ -276,10 +274,6 @@ export async function registerAction(
       // P0-5: Actually send the verification email
       await sendVerificationEmail(normalizedEmail, verifyUrl);
     } catch (err) {
-      Sentry.captureException(err, {
-        tags: { component: 'auth-actions', action: 'register-verification-token' },
-        extra: { email: normalizedEmail },
-      });
       createScopedLoggerWithContext({
         component: 'auth-actions',
         action: 'register-verification-token',
@@ -303,10 +297,7 @@ export async function registerAction(
       if (error instanceof AuthError) {
         return registrationSignInFailureState();
       }
-      Sentry.captureException(error, {
-        tags: { component: 'auth-actions', action: 'register' },
-        extra: { email: normalizedEmail },
-      });
+      logActionError(error, 'registerAction');
       return { error: 'Unable to finish registration right now. Please try again.' };
     }
 
@@ -366,9 +357,6 @@ async function sendPasswordResetEmail(to: string, resetUrl: string) {
         error,
         'Password reset email is not configured; refusing to log the reset token.',
       );
-      Sentry.captureException(error, {
-        tags: { component: 'auth-actions', action: 'send-reset-email' },
-      });
     }
     return;
   }
@@ -416,9 +404,6 @@ async function sendVerificationEmail(to: string, verifyUrl: string) {
         error,
         'Verification email is not configured; refusing to log the verification token.',
       );
-      Sentry.captureException(error, {
-        tags: { component: 'auth-actions', action: 'send-verify-email' },
-      });
     }
     return;
   }
@@ -451,7 +436,7 @@ async function sendVerificationEmail(to: string, verifyUrl: string) {
 }
 
 export async function forgotPasswordAction(prevState: unknown, formData: FormData) {
-  return Sentry.withServerActionInstrumentation('forgotPasswordAction', { formData }, async () => {
+  return withServerActionLogging('forgotPasswordAction', async () => {
     const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
     const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : '';
     if (!email) return { error: 'Email is required' };
@@ -497,7 +482,7 @@ export async function forgotPasswordAction(prevState: unknown, formData: FormDat
 }
 
 export async function resetPasswordAction(prevState: unknown, formData: FormData) {
-  return Sentry.withServerActionInstrumentation('resetPasswordAction', { formData }, async () => {
+  return withServerActionLogging('resetPasswordAction', async () => {
     const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
     const token = typeof raw.token === 'string' ? raw.token : '';
     const password = typeof raw.password === 'string' ? raw.password : '';

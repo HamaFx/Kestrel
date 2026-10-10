@@ -25,7 +25,6 @@
 // Idempotent: each `(symbol, report_date)` row is keyed by a deterministic
 // `cftc:<symbol>:<YYYY-MM-DD>` PK and upserted with ON CONFLICT DO UPDATE.
 
-import * as Sentry from '@sentry/nextjs';
 
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
@@ -79,9 +78,7 @@ export async function GET(req: Request): Promise<Response> {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         errors.push({ symbol, message });
-        // STAB-04 / OBS-01: capture to Sentry.
-        Sentry.captureException(err, { tags: { job: 'cron/cot', symbol } });
-        log.errorContext(err, 'fetchCot', { symbol, message });
+                log.errorContext(err, 'fetchCot', { symbol, message });
       }
     }
 

@@ -31,7 +31,6 @@
 // Each emit is idempotent at the (eventId, kind) primary key on
 // `briefings_emitted`.
 
-import * as Sentry from '@sentry/nextjs';
 
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
@@ -81,9 +80,6 @@ export async function GET(req: Request): Promise<Response> {
           const r = await emitPreEvent(userId, c.id);
           if (r.emitted) preEmitted += 1;
         } catch (err) {
-          Sentry.captureException(err, {
-            tags: { job: 'cron/briefings', phase: 'pre', eventId: c.id, userId },
-          });
           log.errorContext(err, 'emitPreEvent', { eventId: c.id, userId });
         }
       }
@@ -93,9 +89,6 @@ export async function GET(req: Request): Promise<Response> {
           const r = await emitPostEvent(userId, c.id);
           if (r.emitted) postEmitted += 1;
         } catch (err) {
-          Sentry.captureException(err, {
-            tags: { job: 'cron/briefings', phase: 'post', eventId: c.id, userId },
-          });
           log.errorContext(err, 'emitPostEvent', { eventId: c.id, userId });
         }
       }

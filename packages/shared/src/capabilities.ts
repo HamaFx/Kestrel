@@ -86,11 +86,6 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
       ...(configured(env.RESEND_API_KEY) ? {} : { reason: 'RESEND_API_KEY is not configured' }),
     },
     {
-      name: 'sentry',
-      status: configured(env.SENTRY_DSN) ? 'enabled' : 'disabled',
-      ...(configured(env.SENTRY_DSN) ? {} : { reason: 'SENTRY_DSN is not configured' }),
-    },
-    {
       name: 'langfuse',
       status:
         configured(env.LANGFUSE_PUBLIC_KEY) &&

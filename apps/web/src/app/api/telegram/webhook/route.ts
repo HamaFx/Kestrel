@@ -21,7 +21,6 @@
 
 import { timingSafeEqual } from 'node:crypto';
 
-import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
 import { getServerEnv } from '@/lib/env';
@@ -152,10 +151,6 @@ export async function POST(req: Request): Promise<Response> {
     await handleTelegramWebhook(update as TelegramUpdate, env);
     return new Response('OK', { status: 200 });
   } catch (err) {
-    Sentry.captureException(err, {
-      tags: { component: 'telegram-webhook' },
-      extra: { updateId: update.update_id },
-    });
     log.errorContext(err, 'handleTelegramWebhook', { updateId: update.update_id });
     return new Response('Internal Server Error', { status: 500, headers: responseHeaders });
   }

@@ -29,7 +29,7 @@
 // this is a best-effort early-warning system, not a precise aggregate.
 // The thresholds are conservative to avoid alert fatigue.
 
-import * as Sentry from '@sentry/nextjs';
+import { createScopedLoggerWithContext } from '@/lib/logger';
 
 type AuthEventType =
   'login_success' | 'login_failure' | 'account_locked' | '2fa_failure' | 'unauthorized_401';
@@ -72,11 +72,10 @@ function maybeAlert(type: AuthEventType, message: string, extra?: Record<string,
   const lastAt = lastAlertAt[type] ?? 0;
   if (now - lastAt < ALERT_COOLDOWN_MS) return;
   lastAlertAt[type] = now;
-  Sentry.captureMessage(message, {
-    level: 'warning',
-    tags: { component: 'auth-anomaly', anomaly: type },
-    ...(extra ? { extra } : {}),
-  });
+  createScopedLoggerWithContext({ component: 'auth-anomaly', anomaly: type }).warn(
+    extra ?? {},
+    message,
+  );
 }
 
 /**

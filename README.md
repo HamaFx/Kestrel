@@ -103,15 +103,16 @@ pnpm dev
 
 #### Optional: Langfuse AI trace viewer
 
-Observability is opt-in and off by default. To also run the bundled Langfuse v3 trace viewer (ClickHouse, Redis, MinIO, and the Langfuse worker are started automatically) at `http://localhost:3001`:
+Observability is opt-in and off by default. The optional overlay runs the bundled Langfuse v3 trace viewer at `http://localhost:3001`, together with ClickHouse, Redis, MinIO (S3), and the Langfuse worker:
 
 ```bash
-./docker/init-secrets.sh   # generates the LANGFUSE_* keys in .env
+./docker/init-secrets.sh --with-observability
 
-docker compose --profile observability up -d --build
+docker compose -f docker-compose.yml \
+  -f docker-compose.observability.yml --profile observability up -d --build
 ```
 
-The setup wizard (`pnpm setup`) can enable the profile for you and walks you through connecting your Langfuse project keys. Traces from the app appear after the first chat once `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` are set in `.env`.
+The setup wizard can do this with `pnpm setup --with-observability` and then walks you through connecting your Langfuse project keys. Traces appear after the first chat once `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` are set in `.env`.
 
 ---
 
@@ -362,7 +363,7 @@ Kestrel is designed with strict privacy and security defaults:
 - 🛡️ **Multi-User Tenant Isolation**: Tenant isolation is enforced via Postgres RLS on every user-data table. Operators choose `REGISTRATION_MODE=open` (default) or `disabled` (invite-only) and require explicit `role='admin'` for administration.
 - 🔐 **AES-256 BYOK Encryption**: Stored provider keys are encrypted with `ENCRYPTION_SECRET`. Decrypted keys exist only in memory during the duration of an active tool call.
 - 🚫 **Strict Prompt Injection Defenses**: Input sanitization, Unicode normalization, and strict tool-loop iteration caps prevent prompt manipulation.
-- 🛑 **No Leaked Telemetry**: Observability (Sentry / Langfuse) is strictly opt-in and disabled by default.
+- 🛑 **No Leaked Telemetry**: Langfuse tracing is strictly opt-in and disabled by default; Kestrel does not include Sentry reporting.
 
 > [!WARNING]
 > Always retain a secure backup of your `ENCRYPTION_SECRET`. If you lose this key, stored BYOK credentials in the database cannot be decrypted.

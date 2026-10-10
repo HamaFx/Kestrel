@@ -39,7 +39,6 @@ All external integrations are optional unless the selected feature requires them
 
 - AI providers: configured through BYOK in the application.
 - Market data: provider availability, rate limits, and redistribution terms vary.
-- Sentry: disabled unless `SENTRY_DSN` is configured.
 - Langfuse: disabled unless all Langfuse variables are configured; prompt/output capture is opt-in.
 - Telegram: disabled unless bot credentials are configured.
 - Email: disabled unless Resend credentials are configured.

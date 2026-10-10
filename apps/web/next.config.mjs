@@ -2,7 +2,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import bundleAnalyzer from '@next/bundle-analyzer';
-import { withSentryConfig } from '@sentry/nextjs';
 
 const workspaceRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 
@@ -131,17 +130,4 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
-// Avoid failing builds when Sentry auth tokens are invalid/expired.
-// Runtime Sentry monitoring remains active via sentry.server.config.ts / sentry.edge.config.ts.
-const enableSentryReleaseUpload = process.env.ENABLE_SENTRY_RELEASE_UPLOAD === 'true';
-
-export default enableSentryReleaseUpload
-  ? withSentryConfig(withBundleAnalyzer(nextConfig), {
-      silent: true,
-      telemetry: false,
-      widenClientFileUpload: true,
-      hideSourceMaps: true,
-      disableLogger: true,
-      automaticVercelMonitors: false,
-    })
-  : withBundleAnalyzer(nextConfig);
+export default withBundleAnalyzer(nextConfig);

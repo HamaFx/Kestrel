@@ -42,10 +42,6 @@ const external = deps.filter(
 // Plus Node built-ins that shouldn't be inlined.
 external.push(
   'node:*',
-  // @sentry/node lazily imports OpenTelemetry transports + agents that
-  // dynamic-resolve based on the environment; let Node load them as
-  // installed packages rather than bundling them.
-  '@sentry/node',
 );
 
 // Stub out `server-only` — it's a build-time guard that throws at module
