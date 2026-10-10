@@ -69,11 +69,10 @@ describe('loadEnv', () => {
     ).toBe('proxy-token');
   });
 
-  it('allows missing DATABASE_URL in development (PGlite mode)', () => {
-    const env = loadEnv({ NODE_ENV: 'development' } as unknown as NodeJS.ProcessEnv);
-    expect(env.DATABASE_URL).toBeUndefined();
-    expect(env.POSTGRES_URL).toBeUndefined();
-    expect(env.NODE_ENV).toBe('development');
+  it('requires DATABASE_URL or POSTGRES_URL even in development', () => {
+    expect(() => loadEnv({ NODE_ENV: 'development' } as unknown as NodeJS.ProcessEnv)).toThrow(
+      /Either DATABASE_URL or POSTGRES_URL must be set/,
+    );
   });
 
   it('validates the worker HTTP port', () => {

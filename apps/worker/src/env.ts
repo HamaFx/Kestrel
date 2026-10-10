@@ -179,13 +179,7 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
     throw new Error('BIQUOTE_PROXY_TOKEN must be set in production');
   }
   if (!result.data.DATABASE_URL && !result.data.POSTGRES_URL) {
-    // PGlite mode: embedded Postgres, no remote DB URL needed.
-    // The app uses getLocalDb() from @kestrel/db which falls back to PGlite.
-    // We allow this in development; production always has a URL.
-    if (result.data.NODE_ENV === 'production') {
-      throw new Error('Either DATABASE_URL or POSTGRES_URL must be set in production');
-    }
-    console.warn('[worker] No DATABASE_URL set — using embedded PGlite for local development');
+    throw new Error('Either DATABASE_URL or POSTGRES_URL must be set');
   }
   return result.data;
 }

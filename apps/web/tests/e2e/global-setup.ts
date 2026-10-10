@@ -45,8 +45,7 @@ export default function globalSetup() {
   loadE2eEnv(__dirname);
 
   // Mirror drizzle.config.ts URL precedence: prefer a direct connection
-  // (DDL-safe), fall back to the pooler, then skip entirely for PGlite runs
-  // (the embedded database bootstraps its own schema).
+  // (DDL-safe), fall back to the pooler.
   const dbUrl =
     process.env.DIRECT_URL ||
     process.env.POSTGRES_URL_NON_POOLING ||
@@ -54,10 +53,9 @@ export default function globalSetup() {
     process.env.POSTGRES_URL;
 
   if (!dbUrl) {
-    // PGlite local run — no external DB to migrate.
-    // eslint-disable-next-line no-console
-    console.log('[global-setup] no external database URL — skipping drizzle migrations (PGlite)');
-    return;
+    throw new Error(
+      'DATABASE_URL is required for e2e tests — start Postgres with docker compose up -d db',
+    );
   }
 
   try {

@@ -18,8 +18,7 @@
 
 // Tests for the register flow's input validation + password hashing.
 // We don't import the full `registerAction` here because that pulls in
-// `@/auth` which instantiates `DrizzleAdapter(getDb())` at module load —
-// `getDb()` is the sync postgres-js client, which has no PGlite path.
+// which requires a live database connection.
 // End-to-end coverage lives in the manual smoke test (Task A.2) where
 // `docker compose up` provides a real Postgres.
 

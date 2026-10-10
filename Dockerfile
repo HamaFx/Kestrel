@@ -50,8 +50,8 @@ COPY --link --from=deps /runtime/db ./runtime/db
 COPY --link . .
 
 # Build only the web app (Turborepo handles transitive deps).
-# Explicitly neutralize local legacy-auth settings during image creation;
-# runtime authentication is still enforced by auth.config.ts/middleware.
+# Legacy AUTH_MODE is dev/loadtest-only; production is multi-user.
+# Runtime authentication is enforced by auth.config.ts/middleware.
 # OPT-4: Cache turbo's .next and .turbo output across rebuilds so source-only
 # changes skip recompiling unchanged packages.
 RUN --mount=type=cache,id=turbo-web,target=/app/.turbo \

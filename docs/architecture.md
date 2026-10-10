@@ -1,6 +1,6 @@
 # Architecture
 
-Kestrel is a pnpm/Turborepo monorepo containing a Next.js web application, a persistent Node.js worker, and shared domain packages. The public release is a single-user self-hosted beta.
+Kestrel is a pnpm/Turborepo monorepo containing a Next.js web application, a persistent Node.js worker, and shared domain packages. Kestrel is a private self-hosted multi-user platform with Row Level Security (RLS).
 
 ## System overview
 
@@ -89,11 +89,10 @@ The database package contains:
 - Drizzle PostgreSQL schema
 - Migration files and migration tooling
 - PostgreSQL client and pooling behavior
-- PGlite local fallback
 - User ownership and tenant-aware query helpers
 - Retention, budget, queue, telemetry, billing, and persistence queries
 
-PostgreSQL 16 with pgvector is used for full Docker functionality. PGlite is intended for Simple mode and cannot prove PostgreSQL RLS, roles, grants, BYPASSRLS, or pgvector behavior.
+PostgreSQL 16 with pgvector is required across all deployments to support vector embeddings and enforce PostgreSQL Row Level Security (RLS).
 
 ### `packages/data`
 
@@ -187,28 +186,19 @@ Scheduler ownership must be explicit per deployment profile. Avoid running equiv
 
 ## Data and ownership boundary
 
-The public OSS release requires:
+All deployments enforce:
 
 ```text
-OSS_SINGLE_USER_MODE=1
-MULTI_USER_ENABLED=0
-KESTREL_ENABLE_RLS=0
-REGISTRATION_MODE=owner-first
+MULTI_USER_ENABLED=1
+KESTREL_ENABLE_RLS=1
+REGISTRATION_MODE=open
 ```
 
-The code contains experimental multi-tenant/RLS infrastructure, but shared mode is unsupported until tenant context is established and proven across all user-data queries and worker/cache/memory/export/share/upload/notification/billing/telemetry paths. User ID filters alone are not proof of database isolation.
+Tenant isolation is enforced via Postgres Row Level Security (RLS) on all user-data tables. Multi-user and RLS are mandatory. Tenant context is established via authenticated user sessions and scoped database helpers (`withTenantDb`). Administrative access requires an explicit `role='admin'` on the user record; background workers use `ADMIN_DATABASE_URL` with BYPASSRLS.
 
 ## Deployment profiles
 
-### Simple
-
-- Web development process
-- Embedded PGlite
-- No persistent worker
-- No pgvector
-- Best for local development, evaluation, and contribution
-
-### Docker single-user
+### Docker Compose (Standard)
 
 - PostgreSQL 16 + pgvector
 - Web container
@@ -223,9 +213,9 @@ The code contains experimental multi-tenant/RLS infrastructure, but shared mode 
 - Operator provides database URL, TLS, credentials, backups, and upgrades
 - Direct connection required for migrations
 
-### Maintainer topology
+### Operator-managed cloud topology
 
-The maintainer’s Vercel/GCE/managed-database deployment is separate from the public OSS contract. Its private provider proxies, monitoring, cron, staging, and secret-management details must not be copied into public documentation.
+The operator-managed Vercel/GCE/managed-database deployment is an infrastructure choice, not a separate product mode. Its private provider proxies, monitoring, cron, staging, and secret-management details must not be copied into public documentation.
 
 ## Security boundaries
 
@@ -249,7 +239,7 @@ See `SECURITY.md` for the policy and operator responsibilities.
 
 ## Persistence and recovery
 
-Kestrel persists application state in PostgreSQL or PGlite depending on the profile. Docker backups are compressed logical dumps stored in a named volume. A named volume is not off-host disaster recovery. Operators must copy backups elsewhere and retain the matching `ENCRYPTION_SECRET`; without it, stored BYOK credentials cannot be decrypted.
+Kestrel persists application state in PostgreSQL. Docker backups are compressed logical dumps stored in a named volume. A named volume is not off-host disaster recovery. Operators must copy backups elsewhere and retain the matching `ENCRYPTION_SECRET`; without it, stored BYOK credentials cannot be decrypted.
 
 ## Observability
 
@@ -264,4 +254,4 @@ When changing architecture:
 3. Add regression tests for security, ownership, failure, and recovery behavior.
 4. Update public documentation if supported behavior changes.
 5. Keep static architecture snapshots informational; runtime code must not depend on them.
-6. State clearly whether the change affects public OSS, experimental shared mode, or private maintainer infrastructure.
+6. State clearly whether the change affects self-hosted or maintainer infrastructure.

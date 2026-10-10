@@ -67,8 +67,7 @@ function resolvePoolMax(): number {
   // Workers set `KESTREL_RUNTIME=worker` in the systemd unit's
   // environment file so we can pick the right default without
   // pulling Vercel-specific env vars into @kestrel/db.
-  const isWorker =
-    process.env.KESTREL_RUNTIME === 'worker' || process.env.HAMAFX_RUNTIME === 'worker';
+  const isWorker = process.env.KESTREL_RUNTIME === 'worker';
   const envOverride = isWorker ? process.env.WORKER_DB_POOL_MAX : process.env.DB_POOL_MAX;
   if (envOverride) {
     const n = Number(envOverride);
@@ -96,8 +95,7 @@ export type DbClient = ReturnType<typeof drizzle>;
 
 function resolveStatementTimeout(): number {
   if (process.env.NODE_ENV === 'test') return 30000;
-  const isWorker =
-    process.env.KESTREL_RUNTIME === 'worker' || process.env.HAMAFX_RUNTIME === 'worker';
+  const isWorker = process.env.KESTREL_RUNTIME === 'worker';
   return isWorker ? DEFAULT_WORKER_STATEMENT_TIMEOUT : DEFAULT_WEB_STATEMENT_TIMEOUT;
 }
 
@@ -152,10 +150,7 @@ function resolveSslOptions(): false | { rejectUnauthorized: boolean; ca?: string
   // that explicit local boundary must fail closed rather than silently
   // disabling database TLS.
   if (process.env.DB_DISABLE_SSL === 'true') {
-    if (
-      process.env.NODE_ENV !== 'production' ||
-      (process.env.KESTREL_LOCAL_DOCKER ?? process.env.HAMAFX_LOCAL_DOCKER) === 'true'
-    ) {
+    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
       return false;
     }
     throw new Error(
@@ -276,10 +271,7 @@ export function getDb(): DbClient {
   if (adminScope) return adminScope;
   // Worker jobs are cross-tenant by design. They must never inherit the
   // web application's non-privileged connection when shared mode is active.
-  if (
-    (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker' &&
-    process.env.ADMIN_DATABASE_URL
-  ) {
+  if (process.env.KESTREL_RUNTIME === 'worker' && process.env.ADMIN_DATABASE_URL) {
     return getAdminDb();
   }
   return getPrimaryDb();
@@ -321,29 +313,20 @@ export async function closeDb(): Promise<void> {
 }
 
 /**
- * Run work inside a transaction that sets the current tenant GUC for future
- * RLS-aware query paths.
- */
-/**
- * Whether RLS is enabled for this deployment. When true, `withTenantDb`
- * sets the `app.current_tenant` GUC so RLS policies enforce isolation.
- * When false (self-host / legacy mode), the GUC is not set and policies
- * (if they exist) are bypassed by the connection role.
+ * Whether RLS is enabled. RLS is required in every supported deployment —
+ * `withTenantDb*` sets the `app.current_tenant` GUC so RLS policies enforce
+ * isolation. The check is kept (rather than hardcoded true) so tests can
+ * stub it and a misconfigured instance fails closed at the call sites.
  *
- * Gated behind KESTREL_ENABLE_RLS. The old HAMAFX_ENABLE_RLS name remains
- * a read-only compatibility fallback for existing installations.
+ * `KESTREL_ENABLE_RLS` is the only accepted name; the pre-rebrand
+ * `HAMAFX_ENABLE_RLS` alias was removed in 0.2.0.
  */
 export function isRlsEnabled(): boolean {
-  const value = process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS;
+  const value = process.env.KESTREL_ENABLE_RLS;
   return value === 'true' || value === '1';
 }
 
 function assertTenantIsolationConfig(): void {
-  const ossSingleUserMode =
-    process.env.OSS_SINGLE_USER_MODE === 'true' || process.env.OSS_SINGLE_USER_MODE === '1';
-  if (ossSingleUserMode && isRlsEnabled()) {
-    throw new Error('[db] RLS/multi-user mode is disabled in OSS single-user mode.');
-  }
   const multiUserEnabled =
     process.env.MULTI_USER_ENABLED === 'true' || process.env.MULTI_USER_ENABLED === '1';
   if (multiUserEnabled && !isRlsEnabled()) {
@@ -359,11 +342,11 @@ function assertTenantIsolationConfig(): void {
  *
  * Always wraps work in a transaction — callers depend on this for
  * atomic multi-statement writes (e.g., inserting chat messages +
- * telemetry in one unit). When RLS is disabled (self-host / legacy
- * mode), the GUC is not set but the transaction wrapper is preserved.
+ * telemetry in one unit). RLS is always enabled in a supported
+ * deployment; if it is somehow off, `assertTenantIsolationConfig` and
+ * the schema-level checks fail closed rather than running unscoped.
  *
- * For read-only operations, prefer `withTenantDbRO` which skips the
- * transaction when RLS is disabled.
+ * For read-only operations, prefer `withTenantDbRO`.
  */
 export async function withTenantDbFresh<T>(
   tenantId: string,
@@ -400,13 +383,10 @@ export async function withTenantDb<T>(
 /**
  * Read-only variant of withTenantDb.
  *
- * When RLS is enabled: runs in a READ ONLY transaction with the tenant
- * GUC set. Postgres can optimise read-only transactions (no lock
- * contention, no WAL writes).
- *
- * When RLS is disabled (self-host / legacy mode): skips the transaction
- * entirely and runs directly against the pool — no GUC needed and no
- * atomicity requirement for reads.
+ * Runs in a READ ONLY transaction with the tenant GUC set. Postgres can
+ * optimise read-only transactions (no lock contention, no WAL writes).
+ * RLS is always enabled in a supported deployment — there is no unscoped
+ * read path.
  */
 export async function withTenantDbRO<T>(
   tenantId: string,
@@ -545,11 +525,11 @@ let _adminSql: ReturnType<typeof postgres> | null = null;
 /**
  * Admin DB client that connects as the `kestrel_admin` role (BYPASSRLS).
  *
- * Used by the worker, cron jobs, and migrations for cross-tenant operations
- * that must bypass Row-Level Security. Falls back to the regular `getDb()`
- * when `ADMIN_DATABASE_URL` is not set (self-host / legacy mode).
+ * Used by the worker, cron jobs, and membership lookup before entering a
+ * tenant transaction. Requires `ADMIN_DATABASE_URL`; there
+ * is no fallback to the tenant-scoped connection.
  *
- * @throws if neither ADMIN_DATABASE_URL nor DATABASE_URL/POSTGRES_URL is set.
+ * @throws if ADMIN_DATABASE_URL is not set while RLS is enabled.
  */
 export function getAdminDb(): DbClient {
   assertTenantIsolationConfig();
@@ -557,13 +537,9 @@ export function getAdminDb(): DbClient {
 
   const adminUrl = process.env.ADMIN_DATABASE_URL;
   if (!adminUrl) {
-    if (isRlsEnabled()) {
-      throw new Error(
-        '[db] ADMIN_DATABASE_URL is required for worker/admin operations when RLS is enabled; refusing to fall back to a tenant-scoped connection.',
-      );
-    }
-    // Fallback is safe only in self-host / legacy mode where RLS is disabled.
-    return getDb();
+    throw new Error(
+      '[db] ADMIN_DATABASE_URL is required for worker/admin operations; refusing to fall back to a tenant-scoped connection.',
+    );
   }
 
   _adminSql = postgres(adminUrl, {

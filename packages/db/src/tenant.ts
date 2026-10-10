@@ -12,10 +12,9 @@ import { getDb, schema, type DbClient } from './client';
 /**
  * Resolve the active organization for a user.
  *
- * The current supported OSS deployment provisions one personal organization
- * whose ID equals the user ID. The membership lookup remains authoritative so
- * this helper is ready for shared organizations without making that identity
- * assumption at every caller.
+ * The supported deployment provisions one organization per tenant. The
+ * membership lookup is authoritative — callers must not assume the
+ * organization ID equals the user ID.
  */
 export async function getTenantIdForUser(
   userId: string,

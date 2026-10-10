@@ -87,6 +87,8 @@ const proxy: any = auth(async (req) => {
   // C-2: Legacy mode is ONLY allowed when NODE_ENV !== 'production'.
   // The ALLOW_LEGACY_AUTH escape hatch has been removed — legacy auth
   // in production is now a hard error in auth.config.ts at boot time.
+  // AUTH_MODE=legacy exists for local dev and the loadtest/k6 harness; it is
+  // not a deployment profile.
   if (process.env.AUTH_MODE === 'legacy' && process.env.NODE_ENV !== 'production') {
     const headers = new Headers(req.headers);
     headers.set(REQUEST_ID_HEADER, requestId);

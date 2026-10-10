@@ -69,9 +69,8 @@ export async function withRateLimit(
   `);
 
   // Driver-shape normalization: postgres-js (prod) returns a Result that
-  // *extends Array* (no `.rows`); PGlite (dev/tests) returns `{ rows }`.
-  // Read both shapes or the counter silently reads 0 in production and the
-  // limit never fires. See cost.ts for the same pattern.
+  // *extends Array* (no `.rows`). Read the shape correctly or the
+  // counter silently reads 0 in production and the limit never fires.
   const rawRows = (
     Array.isArray(rows) ? rows : ((rows as { rows?: Array<{ request_count: number }> }).rows ?? [])
   ) as Array<{ request_count: number }>;

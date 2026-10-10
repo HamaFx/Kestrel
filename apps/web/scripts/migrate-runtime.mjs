@@ -6,7 +6,6 @@
 // drizzle-kit: standalone Next.js output does not guarantee that the CLI is
 // present. The process exits non-zero on any failure so the application never
 // starts against a stale or partial schema.
-
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
@@ -15,7 +14,7 @@ const databaseUrl =
   process.env.MIGRATION_DATABASE_URL ||
   process.env.DIRECT_URL ||
   process.env.POSTGRES_URL_NON_POOLING ||
-  ((process.env.KESTREL_LOCAL_DOCKER ?? process.env.HAMAFX_LOCAL_DOCKER) === 'true'
+  (process.env.KESTREL_LOCAL_DOCKER === 'true'
     ? process.env.DATABASE_URL || process.env.POSTGRES_URL
     : undefined);
 
@@ -26,17 +25,17 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-// The OSS release is single-user only. Do this preflight before opening a
-// connection or applying migrations so an unsupported deployment cannot
-// mutate its database and fail only after the migration chain completes.
-const multiUserEnabled = ['1', 'true'].includes((process.env.MULTI_USER_ENABLED ?? '').toLowerCase());
-const rlsEnabled = ['1', 'true'].includes(
-  (process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS ?? '').toLowerCase(),
+// Private deployment: multi-user + RLS required; fail closed otherwise.
+// Run this preflight before opening a connection or applying migrations so an
+// unsupported configuration cannot mutate its database.
+const multiUserEnabled = ['1', 'true'].includes(
+  (process.env.MULTI_USER_ENABLED ?? '').toLowerCase(),
 );
-const registrationMode = (process.env.REGISTRATION_MODE ?? 'owner-first').toLowerCase();
+const rlsEnabled = ['1', 'true'].includes((process.env.KESTREL_ENABLE_RLS ?? '').toLowerCase());
+const registrationMode = (process.env.REGISTRATION_MODE ?? 'open').toLowerCase();
 if (registrationMode === 'open' && !multiUserEnabled) {
   console.error(
-    '[runtime-migrate] registrationMode === \'open\' requires MULTI_USER_ENABLED=true; refusing an unsafe single-user configuration.',
+    '[runtime-migrate] REGISTRATION_MODE=open requires MULTI_USER_ENABLED=true; refusing an unsafe configuration.',
   );
   process.exit(1);
 }
@@ -46,13 +45,16 @@ if (multiUserEnabled !== rlsEnabled) {
   );
   process.exit(1);
 }
+if (!multiUserEnabled || !rlsEnabled) {
+  console.error(
+    '[runtime-migrate] MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1 are required; refusing an unsafe configuration.',
+  );
+  process.exit(1);
+}
 
 function resolveSslOptions() {
   if (process.env.DB_DISABLE_SSL === 'true') {
-    if (
-      process.env.NODE_ENV !== 'production' ||
-      (process.env.KESTREL_LOCAL_DOCKER ?? process.env.HAMAFX_LOCAL_DOCKER) === 'true'
-    ) {
+    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
       return false;
     }
     throw new Error(
@@ -70,10 +72,9 @@ const redactUrl = (url) => url.replace(/:[^/@]+@/, ':***@');
 console.log(`[runtime-migrate] Applying migrations using ${redactUrl(databaseUrl)}`);
 
 const sql = postgres(databaseUrl, {
-  // Prevent concurrent app replicas/processes from applying migrations or
-  // changing the single-user RLS state at the same time. PostgreSQL advisory
-  // locks are connection-scoped and released automatically if this process
-  // exits unexpectedly.
+  // Prevent concurrent app replicas/processes from applying migrations at the
+  // same time. PostgreSQL advisory locks are connection-scoped and released
+  // automatically if this process exits unexpectedly.
   onnotice: () => {},
 
   prepare: false,
@@ -145,38 +146,12 @@ try {
     migrationsTable: '__drizzle_migrations',
   });
 
-  // Migration 0038 creates RLS policies unconditionally because Drizzle
-  // migrations are deployment-wide. Only legacy single-user deployments
-  // disable them. Shared mode must leave RLS enabled and forced.
+  // RLS is required in all deployments. Refuse to start if disabled.
   if (!rlsEnabled) {
-    const tenantTables = [
-    'agent_opinions', 'alerts', 'audit_logs', 'bot_links', 'briefings_emitted',
-    'chat_telemetry', 'chat_threads', 'chat_tool_telemetry', 'daily_ai_spend',
-    'decision_signal_feedback', 'decision_signal_outcomes', 'decision_signals',
-    'journal_entries', 'memory_embeddings', 'notification_noise_state',
-    'portfolio_positions', 'portfolio_settings', 'provider_tests',
-    'push_subscriptions', 'rate_limits', 'shared_snapshots', 'user_sessions',
-    'user_settings', 'user_symbols', 'chat_messages',
-  ];
-    for (const table of tenantTables) {
-      // The list mirrors migration 0038's RLS cutover, but later migrations
-      // may drop tables (0052 removed the decision_signals feature set, and
-      // 0084 removed analysis_jobs is not listed; future drops are possible).
-      // Skip tables that no longer exist so a stale list entry cannot block
-      // the app from starting.
-      const [exists] = await sql`
-        SELECT 1 FROM pg_class c
-        JOIN pg_namespace n ON n.oid = c.relnamespace
-        WHERE c.relname = ${table} AND n.nspname = 'public' AND c.relkind = 'r'
-      `;
-      if (!exists) continue;
-      await sql.unsafe(`ALTER TABLE "${table}" NO FORCE ROW LEVEL SECURITY`);
-      await sql.unsafe(`ALTER TABLE "${table}" DISABLE ROW LEVEL SECURITY`);
-    }
-    console.log('[runtime-migrate] Single-user mode: tenant RLS disabled.');
-  } else {
-    console.log('[runtime-migrate] Shared mode: tenant RLS remains enabled and forced.');
+    console.error('[runtime-migrate] KESTREL_ENABLE_RLS must be 1; refusing to start.');
+    process.exit(1);
   }
+  console.log('[runtime-migrate] Multi-user mode: tenant RLS remains enabled and forced.');
 
   console.log('[runtime-migrate] Migrations completed successfully.');
 } catch (error) {

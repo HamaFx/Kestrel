@@ -55,7 +55,7 @@ export function getDb(): DbClient {
   // Worker/cron AI code performs cross-tenant work and must use the explicit
   // BYPASSRLS admin connection when shared mode is enabled.
   if (
-    (process.env.KESTREL_RUNTIME ?? process.env.HAMAFX_RUNTIME) === 'worker' &&
+    process.env.KESTREL_RUNTIME === 'worker' &&
     process.env.ADMIN_DATABASE_URL
   ) {
     return getRawAdminDb();

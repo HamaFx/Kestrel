@@ -1,10 +1,10 @@
-# Public release process
+# Private release process
 
-This document describes the public Kestrel release process. It is intentionally separate from private production deployment instructions. Maintainer-only Vercel, GCE, managed-database, monitoring, and incident details belong in the local ignored `AGENTS.private.md`.
+This document describes the Kestrel private self-hosted release process. There is no separate public/private deployment contract.
 
 ## Release classification
 
-The current public release is a **single-user self-hosted beta**. Do not release or advertise shared multi-user/RLS hosting, open registration, hosted SaaS operation, or independent security-audit completion without completing the documented future gates.
+The current release is a private self-hosted multi-user platform with Row Level Security (RLS). Every deployment enforces multi-user tenant isolation via Postgres RLS policies.
 
 ## Application version contract
 
@@ -18,7 +18,7 @@ tag:            v0.1.0
 GitHub Release: Kestrel v0.1.0
 ```
 
-The `main` branch is the development channel and is not the stable update channel for ordinary self-hosted users. The `pnpm update` command uses the newest published stable GitHub Release, not `main`. It preserves `.env`, `.env.local`, `.kestrel/`, and Docker volumes; users should create and verify a backup before migration releases.
+The `main` branch is the development channel and is not the stable update channel for ordinary self-hosted users. The `pnpm update` command uses the newest published stable GitHub Release, not `main`. It preserves `.env` and Docker volumes; users should create and verify a backup before migration releases.
 
 Every stable release should include release notes, migration notes, known limitations, source revision, Docker image tags/digests, SBOM/provenance metadata, and rollback guidance where applicable.
 
@@ -35,7 +35,7 @@ A release should identify:
 - Release notes and known limitations
 - Rollback source revision/image
 
-Changesets remain available for package publishing, but publishing workspace packages alone is not a complete application release. The application version and matching GitHub Release/tag are the public release identity.
+Changesets remain available for package publishing, but publishing workspace packages alone is not a complete application release. The application version and matching GitHub Release/tag are the release identity.
 
 ## Local pre-release checks
 
@@ -49,7 +49,7 @@ pnpm turbo run test -- --run
 pnpm build
 ```
 
-Run the OSS/security/release contract checks:
+Run the security/release contract checks:
 
 ```bash
 pnpm check:oss-release
@@ -59,7 +59,6 @@ pnpm check:route-security
 pnpm check:env-contract
 pnpm check:release-archive
 pnpm check:dependency-report
-pnpm check:single-user-release
 ```
 
 For database and deployment validation, also run the appropriate disposable tests:
@@ -69,7 +68,7 @@ pnpm test:postgres-rls
 ./docker/backup-restore-smoke.sh
 ```
 
-The PostgreSQL RLS test requires real disposable PostgreSQL and is not replaced by PGlite tests. Do not run validation against production unless the command explicitly requires it and an operator has approved it.
+The PostgreSQL RLS test requires real disposable PostgreSQL. Do not run validation against production unless the command explicitly requires it and an operator has approved it.
 
 ## Documentation gate
 
@@ -169,7 +168,7 @@ Verify using non-secret information:
 - Backup service health
 - Logs for startup errors, secret leakage, and repeated restarts
 
-For a public OSS release, validate from a clean checkout and fresh volumes. Do not rely solely on a maintainer’s existing `.env`, Docker volumes, or cached build.
+For a private release, validate from a clean checkout and fresh volumes. Do not rely solely on a maintainer’s existing `.env`, Docker volumes, or cached build.
 
 ## Rollback
 

@@ -33,21 +33,11 @@ function extractEnabledTables(sql: string): string[] {
   );
 }
 
-describe('runtime migration single-user policy', () => {
-  it('disables every table that the RLS cutover migration enables', () => {
-    const rlsMigration = readFileSync(migrationPath, 'utf8');
+describe('runtime migration multi-user policy', () => {
+  it('enforces RLS and refuses to start if RLS is disabled', () => {
     const runtimeMigrator = readFileSync(runtimeMigratorPath, 'utf8');
-    const enabledTables = extractEnabledTables(rlsMigration);
-
-    for (const table of enabledTables) {
-      expect(runtimeMigrator).toContain(`'${table}'`);
-    }
-  });
-
-  it('requires privileged table ownership for post-migration RLS cleanup', () => {
-    const runtimeMigrator = readFileSync(runtimeMigratorPath, 'utf8');
-    expect(runtimeMigrator).toContain('ALTER TABLE');
-    expect(runtimeMigrator).toContain('DISABLE ROW LEVEL SECURITY');
+    expect(runtimeMigrator).toContain('KESTREL_ENABLE_RLS must be 1; refusing to start.');
+    expect(runtimeMigrator).not.toContain('DISABLE ROW LEVEL SECURITY');
   });
 
   it('preflights unsupported flags before opening the database client', () => {
@@ -56,6 +46,10 @@ describe('runtime migration single-user policy', () => {
     expect(runtimeMigrator).toContain("registrationMode === 'open'");
     const clientIndex = runtimeMigrator.indexOf('const sql = postgres(');
 
+    expect(runtimeMigrator).toContain('!multiUserEnabled || !rlsEnabled');
+    expect(runtimeMigrator).toContain(
+      'MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1 are required',
+    );
     expect(preflightIndex).toBeGreaterThan(-1);
     expect(clientIndex).toBeGreaterThan(-1);
     expect(preflightIndex).toBeLessThan(clientIndex);

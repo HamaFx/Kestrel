@@ -19,11 +19,7 @@ import { resolve } from 'node:path';
 import { readEnvFile, upsertEnvFile } from '../lib/env.mjs';
 import { confirm } from '../lib/prompts.mjs';
 import { checkComposeConfig } from '../lib/run.mjs';
-import {
-  loadSecretTemplate,
-  missingSecrets,
-  resolveTemplateValue,
-} from '../lib/secrets.mjs';
+import { loadSecretTemplate, missingSecrets, resolveTemplateValue } from '../lib/secrets.mjs';
 import { info, ok, paint, warn } from '../lib/ui.mjs';
 
 export const title = 'Generating secrets & writing config';
@@ -62,7 +58,7 @@ function redactSecrets(envPath, marketKeys, text) {
 }
 
 /**
- * Writes .env (Docker mode) or .env.local (Simple mode), always backing
+ * Writes .env with deployment secrets.
  * up first and printing a masked diff. In Dry mode nothing is written.
  * Docker mode is validated with `docker compose config` before success.
  */
@@ -128,7 +124,7 @@ export async function run(ctx) {
   if (isDocker) {
     ok(io, `Saved full-mode settings to ${paint('.env', 'dim')}`);
   } else {
-    ok(io, `Saved simple-mode settings to ${paint('.env.local', 'dim')}`);
+    ok(io, `Saved external-mode settings to ${paint('.env', 'dim')}`);
     ok(io, 'Auth & encryption secrets auto-generate on first boot.');
   }
 

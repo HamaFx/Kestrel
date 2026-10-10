@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-// Settings island that lets the single user enable/disable web push from
+// Settings island that lets the user enable/disable web push from
 // the current device. Mirrors the TestTelegramButton/TestEmailButton
 // patterns: three-state result, ≥44×44 tap target, focus ring.
 //

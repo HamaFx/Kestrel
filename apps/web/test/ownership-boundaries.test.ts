@@ -30,6 +30,20 @@ vi.mock('@/lib/services/alerts', () => ({
   AlertPatchSchema: { parse: vi.fn() },
 }));
 
+// withAuth tenant-scopes every authenticated request; stub the tenant helpers
+// so these tests assert ownership scoping without a real database.
+vi.mock('@kestrel/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  return {
+    ...actual,
+    getAdminDb: vi.fn(() => ({})),
+    requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+    withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+      work({}),
+    ),
+  };
+});
+
 const USER_ID = 'owner-user';
 const OTHER_ID = 'different-user';
 const params = (id: string) => ({ params: Promise.resolve({ id }) });

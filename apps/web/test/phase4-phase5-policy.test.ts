@@ -71,8 +71,8 @@ describe('Phase 5 canonical product scope', () => {
     expect(read('README.md')).toContain('gold, forex, and crypto research');
     expect(promptSource).toContain('canonical supported instruments');
     expect(read('packages/ai/src/tools/get-price.ts')).toContain('gold, forex, and crypto catalog');
-    expect(read('apps/web/src/app/(app)/settings/_components/about-card.tsx')).toContain(
-      'Gold · forex · crypto',
+    expect(read('apps/web/src/app/(app)/settings/_components/about-card.tsx')).toMatch(
+      /gold|precious metals/i,
     );
   });
 

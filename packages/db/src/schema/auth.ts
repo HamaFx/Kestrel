@@ -39,7 +39,7 @@ export const users = pgTable('user', {
   image: text('image'),
   /** bcrypt hash. Only set for Credentials provider users. */
   hashedPassword: text('hashedPassword'),
-  /** Flat hierarchy: all users are 'user'. No admin/user distinction. */
+  /** 'user' | 'admin'. Administration requires an explicit role='admin'. */
   role: text('role').notNull().default('user'),
   /** Soft-delete support — Phase 9 cleanup plan. Null = active. */
   deletedAt: timestamp('deletedAt', { withTimezone: true }),

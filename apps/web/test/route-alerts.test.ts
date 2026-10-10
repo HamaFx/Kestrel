@@ -41,6 +41,11 @@ const mockWithRateLimit = vi.hoisted(() => vi.fn());
 vi.mock('@kestrel/db', () => ({
   withRateLimit: mockWithRateLimit,
   schema: {},
+  getAdminDb: vi.fn(() => ({})),
+  requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+  withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+    work({}),
+  ),
 }));
 
 const USER_ID = 'test-user-001';

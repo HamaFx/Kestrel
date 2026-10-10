@@ -40,7 +40,6 @@ jobs:
           pnpm check:route-security
           pnpm check:release-archive
           pnpm check:dependency-report
-          pnpm check:single-user-release
 
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@e11e3a6c4d7f2bfa4e0fb8f7d35a4f1c7d37e1b1 # v0.20.0

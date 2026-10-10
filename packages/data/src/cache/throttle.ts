@@ -68,7 +68,7 @@ export function resolveThrottleBackend(): 'postgres' | 'memory' {
   if (process.env.THROTTLE_BACKEND === 'postgres') return 'postgres';
   if (process.env.THROTTLE_BACKEND === 'memory') return 'memory';
   // Default: postgres on Vercel or worker; memory for local self-host
-  if (process.env.VERCEL || process.env.HAMAFX_RUNTIME === 'worker') {
+  if (process.env.VERCEL || process.env.KESTREL_RUNTIME === 'worker') {
     return 'postgres';
   }
   return 'memory';

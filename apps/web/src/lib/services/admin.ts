@@ -112,9 +112,7 @@ export class SelfDemoteError extends Error {
 
 /**
  * Promote or demote a user. Refuses to demote the last remaining admin
- * or the current admin themself. In single-user mode (no explicit admin
- * rows), the earliest user is treated as the implicit admin and cannot
- * be demoted.
+ * or the current admin themself.
  *
  * Records an admin audit log entry on success.
  */
@@ -151,19 +149,6 @@ export async function updateUserRoleService({
   // Refuse to demote the last explicit admin.
   if (role === 'user' && previousRole === 'admin' && adminCount <= 1) {
     throw new LastAdminError();
-  }
-
-  // Single-user safety net: if no explicit admin rows exist, the earliest
-  // user is the implicit admin and cannot be demoted.
-  if (role === 'user' && adminCount === 0) {
-    const [firstUser] = await db
-      .select({ id: schema.users.id })
-      .from(schema.users)
-      .orderBy(schema.users.createdAt)
-      .limit(1);
-    if (firstUser?.id === targetUserId) {
-      throw new LastAdminError();
-    }
   }
 
   // No-op when the role is unchanged.

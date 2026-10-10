@@ -17,12 +17,10 @@
 // Auth query helpers — login, registration, password reset, verification tokens.
 
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
-import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
-
-const SYSTEM_USER_ID = '__system__';
 
 export interface AuthUserRow {
   id: string;
@@ -96,8 +94,6 @@ export interface CreateUserInput {
   email: string;
   name: string;
   hashedPassword: string;
-  /** Serialize owner-first registration and reject a second initial account. */
-  initialUserOnly?: boolean;
 }
 
 /**
@@ -107,22 +103,6 @@ export interface CreateUserInput {
 export async function createUserWithSettings(input: CreateUserInput): Promise<void> {
   const db = getDb();
   await db.transaction(async (tx) => {
-    if (input.initialUserOnly) {
-      // Serialize the check and insert so two concurrent first-run requests
-      // cannot both become the owner of a fresh deployment.
-      await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(hashtext('kestrel:first-user-registration'))`,
-      );
-      const [existingUser] = await tx
-        .select({ id: schema.users.id })
-        .from(schema.users)
-        .where(and(isNull(schema.users.deletedAt), ne(schema.users.id, SYSTEM_USER_ID)))
-        .limit(1);
-      if (existingUser && existingUser.id !== SYSTEM_USER_ID) {
-        throw new Error('INITIAL_USER_ALREADY_EXISTS');
-      }
-    }
-
     await tx.insert(schema.users).values({
       id: input.id,
       email: input.email,

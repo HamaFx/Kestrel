@@ -38,6 +38,20 @@ vi.mock('@kestrel/ai', () => ({
   deleteEntry: mockDeleteEntry,
 }));
 
+// withAuth tenant-scopes every authenticated request; stub the tenant helpers
+// so the route tests exercise handler logic without a real database.
+vi.mock('@kestrel/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  return {
+    ...actual,
+    getAdminDb: vi.fn(() => ({})),
+    requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+    withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+      work({}),
+    ),
+  };
+});
+
 const USER_ID = 'test-user-001';
 
 const now = Date.now();

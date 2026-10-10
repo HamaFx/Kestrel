@@ -20,14 +20,6 @@
     "./client": {
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js"
-    },
-    "./pglite": {
-      "types": "./dist/pglite-client.d.ts",
-      "import": "./dist/pglite-client.js"
-    },
-    "./local-db": {
-      "types": "./dist/local-db.d.ts",
-      "import": "./dist/local-db.js"
     }
   },
   "scripts": {
@@ -49,7 +41,6 @@
     "studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.4",
     "@kestrel/shared": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.5"

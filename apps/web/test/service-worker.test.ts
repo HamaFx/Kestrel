@@ -17,20 +17,34 @@
 // @vitest-environment node
 // SPDX-License-Identifier: Apache-2.0
 
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-describe('service worker', () => {
+describe('service worker generator', () => {
+
   it('precaches the expected shell URLs', () => {
-    const precache = JSON.parse(readFileSync('public/sw-precache.json', 'utf8')) as unknown[];
+    execFileSync(
+      'node',
+      [join(process.cwd(), 'scripts/generate-sw.mjs')],
+      {
+        env: { ...process.env, NEXT_PUBLIC_BUILD_ID: 'test-build-id' },
+        stdio: 'ignore',
+      },
+    );
+
+    const precache = JSON.parse(
+      readFileSync(join(process.cwd(), 'public/sw-precache.json'), 'utf8'),
+    ) as unknown[];
     expect(precache).toContain('/chat');
     expect(precache).toContain('/offline');
     expect(precache).toContain('/manifest.webmanifest');
   });
 
   it('declares bypass prefixes and cache-first strategies', () => {
-    const sw = readFileSync('public/sw.js', 'utf8');
+    const sw = readFileSync(join(process.cwd(), 'scripts/sw.template.js'), 'utf8');
     expect(sw).toContain('BYPASS_PREFIXES');
     expect(sw).toContain("'/api/chat'");
     expect(sw).toContain('function cacheFirst');

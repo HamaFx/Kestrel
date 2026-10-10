@@ -1,6 +1,6 @@
 # Configuration reference
 
-This document describes the public configuration contract for Kestrel. The canonical validation sources are:
+This document describes the supported private self-hosting configuration contract for Kestrel. The canonical validation sources are:
 
 - `packages/shared/src/env.ts` — web/server environment
 - `apps/worker/src/env.ts` — worker environment
@@ -11,26 +11,23 @@ Use `pnpm setup` for normal installations. Do not copy production secrets into t
 
 ## Deployment profiles
 
-| Profile             | Configuration source                      | Database                 | Worker   |
-| ------------------- | ----------------------------------------- | ------------------------ | -------- |
-| Simple              | `.env.local` plus generated local secrets | Embedded PGlite          | No       |
-| Docker              | `.env` plus Compose defaults              | PostgreSQL 16 + pgvector | Yes      |
-| External PostgreSQL | Operator-managed environment              | External PostgreSQL      | Optional |
-| Maintainer          | Private deployment configuration          | Managed PostgreSQL       | Yes      |
+| Profile             | Configuration source             | Database                 | Worker   |
+| ------------------- | -------------------------------- | ------------------------ | -------- |
+| Docker              | `.env` plus Compose defaults     | PostgreSQL 16 + pgvector | Yes      |
+| External PostgreSQL | Operator-managed environment     | External PostgreSQL      | Optional |
 
-The public release is single-user only. Shared multi-user/RLS mode is unsupported.
+Kestrel is a private self-hosted multi-user platform: every deployment uses PostgreSQL with row-level security (RLS) and requires an explicit `role='admin'` for administration.
 
-## Required OSS boundary
+## Required deployment environment
 
 ```dotenv
-OSS_SINGLE_USER_MODE=1
-MULTI_USER_ENABLED=0
-KESTREL_ENABLE_RLS=0
-REGISTRATION_MODE=owner-first
+MULTI_USER_ENABLED=1
+KESTREL_ENABLE_RLS=1
+REGISTRATION_MODE=open        # or 'disabled' for invite-only
 BYOK_ENABLED=1
 ```
 
-Do not change these values for a shared public instance. Enabling flags does not complete tenant isolation.
+Tenant isolation is enforced via Postgres RLS on every user-data table with explicit admin roles.
 
 ## Secrets and database
 
@@ -44,9 +41,9 @@ Do not change these values for a shared public instance. Enabling flags does not
 | `DIRECT_URL` or `POSTGRES_URL_NON_POOLING` | Migrations      | Migration tooling       | Direct/session database connection; do not use a transaction pooler   |
 | `DATABASE_URL_REPLICA`                     | Optional        | Web                     | Read-only replica for read-heavy queries                              |
 | `SUPABASE_CA_CERT`                         | Optional        | Web/worker/migrations   | CA certificate for managed PostgreSQL TLS                             |
-| `ADMIN_DATABASE_URL`                       | Experimental    | Worker/admin paths      | Separate privileged database connection; not part of normal OSS setup |
+| `ADMIN_DATABASE_URL`                       | Required        | Web/worker             | Dedicated `BYPASSRLS` connection for tenant lookup, worker, and cron operations |
 
-Simple development can omit database URLs and use PGlite. Production Docker and external PostgreSQL deployments require a database URL.
+PostgreSQL is required in every environment; provide `DATABASE_URL` or `POSTGRES_URL`.
 
 ## Application and runtime
 
@@ -64,7 +61,7 @@ Simple development can omit database URLs and use PGlite. Production Docker and 
 
 ## AI configuration
 
-Kestrel supports per-user BYOK through the application. Server-level AI credentials are optional in the OSS path.
+Kestrel supports per-user BYOK through the application. Server-level AI credentials are optional in the self-hosting path.
 
 | Variable                              | Description                                     |
 | ------------------------------------- | ----------------------------------------------- |
@@ -143,7 +140,7 @@ Review privacy, retention, and provider terms before enabling telemetry or promp
 
 ## Billing
 
-Billing is disabled by default and is not part of the normal public OSS path.
+Billing is disabled by default and is not part of the normal self-hosting path.
 
 | Variable                 | Default     | Description                   |
 | ------------------------ | ----------- | ----------------------------- |
@@ -193,14 +190,13 @@ Run `./docker/init-secrets.sh` instead of manually inventing secret values. Exis
 
 ## Deprecated and compatibility variables
 
-Use the canonical `KESTREL_*` and `AUTH_SECRET` names for all new deployments. Existing installations may still provide these read-only upgrade aliases:
+Use the canonical `KESTREL_*` and `AUTH_SECRET` names for all deployments. One read-only upgrade alias remains, accepted for exactly one release:
 
-| Legacy name           | Canonical name         | Removal policy                              |
-| --------------------- | ---------------------- | ------------------------------------------- |
-| `NEXTAUTH_SECRET`     | `AUTH_SECRET`          | Migrate before the next major release       |
-| `HAMAFX_ENABLE_RLS`   | `KESTREL_ENABLE_RLS`   | Migrate before shared/RLS mode is supported |
-| `HAMAFX_RUNTIME`      | `KESTREL_RUNTIME`      | Migrate before the next major release       |
-| `HAMAFX_LOCAL_DOCKER` | `KESTREL_LOCAL_DOCKER` | Migrate before the next major release       |
+| Legacy name       | Canonical name | Removal policy                      |
+| ----------------- | -------------- | ----------------------------------- |
+| `NEXTAUTH_SECRET` | `AUTH_SECRET`  | Accepted in 0.2.0; removed in 0.3.0 |
+
+The `HAMAFX_*` aliases (`HAMAFX_ENABLE_RLS`, `HAMAFX_RUNTIME`, `HAMAFX_LOCAL_DOCKER`) were removed in 0.2.0.
 
 Canonical values always take precedence. The application warns when a legacy alias is used without its canonical replacement; aliases are not copied back into configuration files. State-changing JSON API routes use the bounded `parseJsonBody` helper, which enforces a size limit and body-read timeout; new routes must use it instead of calling `req.json()` directly.
 

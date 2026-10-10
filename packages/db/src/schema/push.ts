@@ -20,7 +20,7 @@ import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { organization, users } from './auth';
 
 /**
- * Browser-issued web-push subscription. Single user, but the user can
+ * Browser-issued web-push subscription. Each user can
  * subscribe from multiple devices, so this is keyed by `endpoint` (which
  * is unique per browser/device + service worker scope).
  *

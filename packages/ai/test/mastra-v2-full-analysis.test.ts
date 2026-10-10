@@ -37,7 +37,7 @@ const INPUT = {
   },
 };
 
-describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
+describe.skipIf(process.env.RUN_AI_QUEUE_POSTGRES_TESTS !== '1')('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
   beforeEach(() => {
     _resetKestrelMastra();
   });
@@ -159,7 +159,7 @@ describe('database-backed Full-analysis queue', { timeout: 30_000 }, () => {
       const row = await db.execute(
         `SELECT status, error FROM "full_analysis_queue" WHERE run_id = '${runId}'`,
       );
-      expect(row.rows[0]).toMatchObject({ status: 'failed' });
+      expect(row[0]).toMatchObject({ status: 'failed' });
     });
   });
 

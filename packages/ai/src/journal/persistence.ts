@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Journal CRUD + stats. Single user, no per-user filter.
+// Journal CRUD + stats, scoped to the authenticated user and tenant.
 //
 // Stats math: realized R-multiple is computed at close time via
 // `computeRMultiple(entry, stop, exit, side)` so the column is reliable.

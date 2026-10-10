@@ -42,13 +42,24 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../../..');
 const LEGACY_ENV_ALIASES = {
-  HAMAFX_ENABLE_RLS: 'KESTREL_ENABLE_RLS',
+  // Kept for one release: the alias migrates to the canonical key.
+  NEXTAUTH_SECRET: 'AUTH_SECRET',
 };
+
+// Removed in 0.2.0. These keys do not migrate; always delete them from
+// operator-owned .env files so the canonical environment is unambiguous.
+const REMOVED_ENV_KEYS = [
+  'HAMAFX_ENABLE_RLS',
+  'HAMAFX_RUNTIME',
+  'HAMAFX_LOCAL_DOCKER',
+  'HAMAFX_RESTORE_CONFIRM',
+  'OSS_SINGLE_USER_MODE',
+];
 
 // Cosmetic section grouping for freshly generated files. Every key listed
 // here MUST exist in secret-template.json (enforced by tests).
 const SECTIONS = [
-  ['Postgres', ['POSTGRES_PASSWORD', 'POSTGRES_VOLUME_NAME']],
+  ['Postgres', ['POSTGRES_PASSWORD', 'POSTGRES_ADMIN_PASSWORD', 'POSTGRES_VOLUME_NAME']],
   [
     'Local Docker backups',
     [
@@ -75,14 +86,8 @@ const SECTIONS = [
   ['Worker health/proxy authentication', ['WORKER_HEALTH_TOKEN', 'BIQUOTE_PROXY_TOKEN']],
   ['Encryption (BYOK key encryption at rest)', ['ENCRYPTION_SECRET']],
   [
-    'Safe self-hosted defaults',
-    [
-      'BYOK_ENABLED',
-      'MULTI_USER_ENABLED',
-      'REGISTRATION_MODE',
-      'KESTREL_ENABLE_RLS',
-      'OSS_SINGLE_USER_MODE',
-    ],
+    'Deployment defaults',
+    ['BYOK_ENABLED', 'MULTI_USER_ENABLED', 'REGISTRATION_MODE', 'KESTREL_ENABLE_RLS'],
   ],
 ];
 
@@ -130,10 +135,10 @@ async function main() {
       return 0;
     }
     const existing = readEnvFile(target).entries;
-    const legacyAliasesPresent = Object.entries(LEGACY_ENV_ALIASES).some(([legacyKey]) =>
-      existing.has(legacyKey),
+    const staleKeysPresent = [...Object.keys(LEGACY_ENV_ALIASES), ...REMOVED_ENV_KEYS].some(
+      (legacyKey) => existing.has(legacyKey),
     );
-    if (hasAllSecrets(target) && !legacyAliasesPresent) {
+    if (hasAllSecrets(target) && !staleKeysPresent) {
       console.log('✓ .env already exists and is complete — leaving it untouched.');
       return 0;
     }
@@ -152,7 +157,7 @@ async function main() {
     }
     const result = upsertEnvFile(target, missing, {
       backup: false,
-      removeKeys: migratedLegacyKeys,
+      removeKeys: [...migratedLegacyKeys, ...REMOVED_ENV_KEYS],
     });
     console.log(
       `✓ Completed missing secrets in .env (${result.diff.length} key${result.diff.length === 1 ? '' : 's'} added).`,

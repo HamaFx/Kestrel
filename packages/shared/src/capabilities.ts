@@ -42,7 +42,7 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
       status: configured(env.DATABASE_URL) || configured(env.POSTGRES_URL) ? 'enabled' : 'disabled',
       ...(configured(env.DATABASE_URL) || configured(env.POSTGRES_URL)
         ? {}
-        : { reason: 'DATABASE_URL or POSTGRES_URL is not configured; local PGlite may be used' }),
+        : { reason: 'DATABASE_URL or POSTGRES_URL is not configured' }),
     },
     {
       name: 'ai-server-fallback',

@@ -33,9 +33,6 @@
 
 </div>
 
-> [!IMPORTANT]
-> **Open-Source Single-User Boundary:** The public release is currently a **single-user, self-hosted preview**. BYOK (Bring Your Own Key) is enabled by default with AES-256 encryption at rest. Multi-user shared public SaaS mode, open registration, and runtime RLS mode are intentionally disabled until tenant isolation proofs are complete. See [Security Boundary](#-security--privacy-boundary).
-
 > [!NOTE]
 > **Trading Disclaimer:** Kestrel is an advanced research and quantitative decision-support copilot, **not financial advice, a licensed broker, or an automated execution system**. Market data can experience latency or inaccuracies. Always verify market information independently and manage risk responsibly.
 
@@ -51,75 +48,58 @@ Trading gold (`XAUUSD`), forex, and crypto requires analyzing price action, inst
 - 📐 **Institutional Smart Money Concepts (SMC)**: Native detection of Order Blocks, Fair Value Gaps (FVG), Liquidity Sweeps, Asian Session Killzones, and Market Structure Shifts (BOS/CHoCH).
 - 🏛️ **Hoplite Design Standard**: Institutional dark-chrome terminal blending Classical Antiquity with cyber-industrial hardware — Funnel Display typography, Redaction Italic emphasis, Geist Mono tabular figures, recessed instrument wells, and bottom-up ember illumination. See [Design System](docs/design-system.md).
 - ⚡ **Dual Real-Time Feeds**: SignalR sub-second streaming for Gold & Forex, plus Binance WebSockets for 24/7 crypto candles.
-- 🔒 **100% Privacy & Data Sovereignty (BYOK)**: Use your own API keys (OpenAI, Gemini, Anthropic, DeepSeek, Groq, Ollama). Your keys are encrypted at rest on your hardware with `ENCRYPTION_SECRET`. Zero telemetry leaks.
-- 🛠️ **Zero-Friction Self-Hosting**: Run locally in 60 seconds with embedded PGlite (no database installation needed) or launch the full stack with 1-click Docker Compose.
+- 🛠️ **Zero-Friction Self-Hosting**: Launch the full private multi-user stack with 1-click Docker Compose or connect to your own PostgreSQL.
 
 ---
 
-## ⚡ Quickstart for Vibe Coders & Beginners (60 Seconds)
+## ⚡ Quickstart
 
-No complex database setup or cloud infrastructure required! Get running on your laptop in 3 simple steps:
+Get running on your machine with 1-click Docker or local development:
 
 ### Prerequisites
 
-- **Node.js 22.13+** (or newer)
-- **pnpm 9+** (`npm install -g pnpm`)
-- _(Optional)_ **Docker Desktop** (only if running the full Docker PostgreSQL stack)
+- **Docker Desktop** (or Docker Engine)
+- **Node.js 22.13+** and **pnpm 9+** (for local development)
 
 ---
 
-### Option 1: Interactive Wizard (Recommended)
+### Option 1: 1-Click Docker Stack (Recommended)
+
+For a complete self-hosted setup with persistent PostgreSQL 16 + pgvector and the background worker:
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/HamaFx/Kestrel.git
 cd Kestrel
 
-# 2. Run the zero-dependency interactive setup wizard
-pnpm setup
-```
+# 2. Generate secure secrets into .env
+./docker/init-secrets.sh
 
-The wizard will:
-
-1. Validate your environment and Node.js version (`>=22.13.0`).
-2. Help you choose between **Simple (PGlite - zero config)** or **Docker (PostgreSQL + Worker)**.
-3. Automatically generate cryptographically secure secrets (`AUTH_SECRET`, `ENCRYPTION_SECRET`, `CRON_SECRET`).
-4. Install dependencies and start the app at `http://localhost:3000`.
-
----
-
-### Option 2: 1-Line Zero-Config Simple Mode (PGlite)
-
-If you want to run Kestrel immediately without Docker or PostgreSQL, Kestrel includes an **in-memory embedded PGlite database**:
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start local dev server (PGlite boots automatically!)
-pnpm dev:local
+# 3. Spin up all containers (PostgreSQL + Web App + Background Worker + Auto-Backup)
+docker compose up -d
 ```
 
 1. Open **[http://localhost:3000](http://localhost:3000)** in your browser.
-2. Register your master account on the first screen (Owner-first registration).
+2. Register your admin account (`REGISTRATION_MODE=open` by default).
 3. Navigate to **Settings → API Keys** and paste your AI provider key (OpenAI, Gemini, Anthropic, DeepSeek, Groq, or Ollama).
 4. Start chatting with live market data! 🚀
 
 ---
 
-### Option 3: 1-Click Production Docker Stack
-
-For a complete self-hosted production setup with persistent PostgreSQL 16, pgvector, and the background tick worker:
+### Option 2: Local Development
 
 ```bash
-# Generate secure secrets into .env
-./docker/init-secrets.sh
+# 1. Start PostgreSQL with pgvector
+docker compose up -d db
 
-# Spin up all containers (PostgreSQL + Web App + Background Worker + Auto-Backup)
-docker compose up -d --build
+# 2. Install workspace dependencies
+pnpm install
+
+# 3. Run the setup wizard or start dev
+pnpm dev
 ```
 
-Open **[http://localhost:3000](http://localhost:3000)** to access your instance.
+---
 
 #### Optional: Langfuse AI trace viewer
 
@@ -137,7 +117,7 @@ The setup wizard (`pnpm setup`) can enable the profile for you and walks you thr
 
 ## 🚀 Self-Hosted Deployment Profiles
 
-Kestrel offers three self-hosted deployment profiles designed for complete data sovereignty:
+Kestrel offers two self-hosted deployment profiles designed for complete data sovereignty:
 
 <p align="center">
   <img src="docs/assets/deployment-profiles.svg" alt="Kestrel Self-Hosted Deployment Profiles" width="100%" style="max-width: 900px; border-radius: 10px;">
@@ -148,22 +128,17 @@ Kestrel offers three self-hosted deployment profiles designed for complete data 
 
 ```mermaid
 graph TD
-    subgraph Profile 1: Simple Local / Vibe Coder
-        A1[Developer / Trader Laptop] -->|pnpm dev:local| B1[Next.js 16 Web App]
-        B1 -->|Embedded| C1[(PGlite DB - Zero Config)]
+    subgraph Profile 1: Docker Compose Stack
+        A1[Home Server / VPS / NAS] -->|docker compose up| B1[Docker Container Stack]
+        B1 --> C1[(PostgreSQL 16 + pgvector)]
+        B1 --> D1[Persistent Worker Daemon]
+        B1 --> E1[Automated Backup Daemon]
     end
 
-    subgraph Profile 2: Docker Compose Production
-        A2[Home Server / VPS / NAS] -->|docker compose up| B2[Docker Container Stack]
-        B2 --> C2[(PostgreSQL 16 + pgvector)]
-        B2 --> D2[Persistent Worker Daemon]
-        B2 --> E2[Automated Backup Daemon]
-    end
-
-    subgraph Profile 3: Operator-Managed PostgreSQL
-        A3[Cloud VPS / Dedicated Server] --> B3[Web Container / Node Service]
-        B3 --> C3[(External Managed PostgreSQL)]
-        B3 --> D3[Worker Container]
+    subgraph Profile 2: Operator-Managed PostgreSQL
+        A2[Cloud VPS / Dedicated Server] --> B2[Web Container / Node Service]
+        B2 --> C2[(External Managed PostgreSQL)]
+        B2 --> D2[Worker Container]
     end
 ```
 
@@ -173,7 +148,6 @@ graph TD
 
 | Profile                    | Database                 |       Worker Daemon        | Use Case                              | Setup Effort                        |
 | :------------------------- | :----------------------- | :------------------------: | :------------------------------------ | :---------------------------------- |
-| 🟢 **Simple**              | Embedded PGlite          |         In-Process         | Local testing, evaluation, vibecoding | **60 Seconds** (Zero config)        |
 | 🐳 **Docker Stack**        | PostgreSQL 16 + pgvector |    Dedicated Container     | Complete self-hosted production stack | **1 Command** (`docker compose up`) |
 | ⚙️ **External PostgreSQL** | Operator PostgreSQL      | Dedicated Container / Host | Advanced self-hosting on VPS / Cloud  | Operator-managed                    |
 
@@ -302,15 +276,14 @@ AUTH_SECRET=your_32_character_random_hex_string
 ENCRYPTION_SECRET=your_32_character_encryption_secret
 CRON_SECRET=your_16_character_cron_bearer_token
 
-# Database (Bundled Docker default)
+# Database (Bundled Docker default; PostgreSQL is required)
 DATABASE_URL=postgres://hamafx:your_postgres_password@db:5432/hamafx
 POSTGRES_PASSWORD=your_postgres_password
 
-# Open Source Security Boundary (Keep single-user mode enabled)
-OSS_SINGLE_USER_MODE=1
-MULTI_USER_ENABLED=0
-KESTREL_ENABLE_RLS=0
-REGISTRATION_MODE=owner-first
+# Deployment environment (multi-user + RLS required)
+MULTI_USER_ENABLED=1
+KESTREL_ENABLE_RLS=1
+REGISTRATION_MODE=open
 BYOK_ENABLED=1
 ```
 
@@ -350,7 +323,7 @@ kestrel/
 ├── packages/
 │   ├── ai/                # Mastra agents, workflows, tools, memory, routing
 │   ├── data/              # Market data adapters, failover manager, caching
-│   ├── db/                # Drizzle ORM schema, migrations, PGlite & Postgres clients
+│   ├── db/                # Drizzle ORM schema, migrations, Postgres client & RLS
 │   ├── indicators/        # Pure TypeScript SMC & Technical Indicators math
 │   ├── shared/            # Zod validation schemas, encryption, logging, types
 │   ├── config/            # Shared TypeScript & ESLint configs
@@ -375,12 +348,11 @@ pnpm test
 # Run End-to-End browser tests (Playwright)
 pnpm test:e2e
 
-# Run Open Source release and security verification checks
+# Run release and security verification checks
 pnpm check:oss-release
 pnpm check:route-security
 pnpm check:env-contract
 pnpm check:p0-release
-pnpm check:single-user-release
 ```
 
 ---
@@ -389,7 +361,7 @@ pnpm check:single-user-release
 
 Kestrel is designed with strict privacy and security defaults:
 
-- 🛡️ **Owner-First Registration**: The first user to access the fresh instance creates the owner account. Subsequent open registrations are blocked in single-user mode.
+- 🛡️ **Multi-User Tenant Isolation**: Tenant isolation is enforced via Postgres RLS on every user-data table. Operators choose `REGISTRATION_MODE=open` (default) or `disabled` (invite-only) and require explicit `role='admin'` for administration.
 - 🔐 **AES-256 BYOK Encryption**: Stored provider keys are encrypted with `ENCRYPTION_SECRET`. Decrypted keys exist only in memory during the duration of an active tool call.
 - 🚫 **Strict Prompt Injection Defenses**: Input sanitization, Unicode normalization, and strict tool-loop iteration caps prevent prompt manipulation.
 - 🛑 **No Leaked Telemetry**: Observability (Sentry / Langfuse) is strictly opt-in and disabled by default.
@@ -416,15 +388,15 @@ For contributors working from a development checkout, `main` is not the stable u
 ## 🛠️ Troubleshooting & FAQ
 
 <details>
-<summary><strong>Q: How do I run Kestrel without Docker or installing PostgreSQL?</strong></summary>
+<summary><strong>Q: How do I run PostgreSQL for local development?</strong></summary>
 
-Simply run `pnpm dev:local`! Kestrel embeds **PGlite**, a lightweight WebAssembly/Node PostgreSQL engine that creates a zero-config local database inside the `.kestrel/` folder.
+Start the bundled database container with `docker compose up -d db`, then run `pnpm dev`. You can also point `DATABASE_URL` at any PostgreSQL 16+ instance with the `vector` extension.
 </details>
 
 <details>
 <summary><strong>Q: Port 3000 or Port 5432 is already in use on my machine. What should I do?</strong></summary>
 
-- For web port 3000: Set `PORT=3005` in your `.env.local` or run `PORT=3005 pnpm dev:local`.
+- For web port 3000: Set `PORT=3005` in your `.env` or run `PORT=3005 pnpm dev`.
 - For Docker Postgres port 5432: Set `POSTGRES_PUBLISHED_PORT=127.0.0.1:5433` in your `.env` before running `docker compose up -d`.
 - For Docker web port 3000: Set `APP_PUBLISHED_PORT=127.0.0.1:3001` in your `.env` before running `docker compose up -d`.
 
@@ -435,8 +407,7 @@ The setup wizard detects busy ports and offers to remap them automatically.
 <details>
 <summary><strong>Q: How do I backup my trades, journals, and settings?</strong></summary>
 
-- **In Simple Mode**: Your database lives in `.kestrel/data`. Copy this folder to a secure location.
-- **In Docker Mode**: The backup service automatically creates daily compressed SQL dumps in the `backup-data` volume. Run `./docker/backup-db.sh` anytime for an instant manual snapshot.
+The backup service automatically creates daily compressed SQL dumps in the `backup-data` volume. Run `./docker/backup-db.sh` anytime for an instant manual snapshot. If using external PostgreSQL, manage backups using `pg_dump` on your host.
 
 </details>
 
@@ -464,7 +435,7 @@ For detailed guides, explore the `docs/` directory:
 
 ## 📜 License
 
-Kestrel is open-source software released under the **[Apache License 2.0](LICENSE)**.
+Kestrel is source-available software licensed under the **[Apache License 2.0](LICENSE)**.
 
 <div align="center">
 

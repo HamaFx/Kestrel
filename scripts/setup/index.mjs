@@ -146,7 +146,7 @@ export function printHelp(io) {
   io.line('          node scripts/setup.mjs [options]');
   io.line();
   io.line('  Options:');
-  io.line('    --mode=simple|docker   Skip the mode question');
+  io.line('    --mode=docker|external Skip the mode question');
   io.line('    --market=ID,ID         Market providers to configure (e.g. finnhub,fred)');
   io.line('    --api-key=ID:VALUE     Provide a market API key non-interactively');
   io.line('                            (repeatable, e.g. --api-key=finnhub:KEY)');
@@ -162,7 +162,7 @@ export function printHelp(io) {
   io.line();
   io.line('  Examples:');
   io.line('    pnpm setup                     # interactive (recommended)');
-  io.line('    pnpm setup --mode=simple --yes # quiet, non-interactive');
+  io.line('    pnpm setup --mode=docker --yes # quiet, non-interactive');
   io.line('    pnpm setup --dry-run           # preview before changing anything');
 }
 
@@ -221,7 +221,7 @@ export async function main(argv = process.argv.slice(2), { io: customIo, jsonStr
     return 0;
   }
   if (flags.modeMissing) {
-    const errMsg = '--mode requires a value (use --mode=simple or --mode=docker)';
+    const errMsg = '--mode requires a value (use --mode=docker or --mode=external)';
     if (jsonMode) writeJson({ ok: false, error: errMsg });
     else {
       io.line();
@@ -247,15 +247,15 @@ export async function main(argv = process.argv.slice(2), { io: customIo, jsonStr
     }
     return 1;
   }
-  if (flags.mode && !['simple', 'docker'].includes(flags.mode)) {
+  if (flags.mode && !['docker', 'external'].includes(flags.mode)) {
     if (jsonMode) {
       writeJson({
         ok: false,
-        error: `Unknown mode: ${flags.mode} (use --mode=simple or --mode=docker)`,
+        error: `Unknown mode: ${flags.mode} (use --mode=docker or --mode=external)`,
       });
     } else {
       io.line();
-      fail(io, `Unknown mode: ${flags.mode} (use --mode=simple or --mode=docker)`);
+      fail(io, `Unknown mode: ${flags.mode} (use --mode=docker or --mode=external)`);
     }
     return 1;
   }

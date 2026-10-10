@@ -142,15 +142,12 @@ export function withAuth<T>(
       );
     }
     try {
-      // Shared mode requires every authenticated request to run on a
-      // non-bypass connection with a transaction-local tenant GUC. Resolve
-      // membership through the explicit admin identity path, then keep all
-      // downstream repository and AI calls inside the tenant transaction.
-      if (process.env.MULTI_USER_ENABLED === 'true' || process.env.MULTI_USER_ENABLED === '1') {
-        const tenantId = await requireTenantIdForUser(user.userId, getAdminDb());
-        return await withTenantDbFresh(tenantId, () => handler(req, { params: ctx.params, user }));
-      }
-      return await handler(req, { params: ctx.params, user });
+      // Every authenticated request runs on a non-bypass connection with a
+      // transaction-local tenant GUC. Resolve membership through the explicit
+      // admin identity path, then keep all downstream repository and AI calls
+      // inside the tenant transaction. There is no unscoped path.
+      const tenantId = await requireTenantIdForUser(user.userId, getAdminDb());
+      return await withTenantDbFresh(tenantId, () => handler(req, { params: ctx.params, user }));
     } catch (err) {
       return errorResponse(err, req);
     }

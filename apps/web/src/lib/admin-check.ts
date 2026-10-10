@@ -22,7 +22,8 @@ import { getAdminUser } from './admin-auth';
 
 /**
  * Lightweight admin check for server components.
- * Delegates to the canonical `getAdminUser` in admin-auth.ts.
+ * Delegates to the canonical `getAdminUser` in admin-auth.ts, which requires
+ * an explicit role='admin'.
  */
 export const checkIsAdmin = cache(async (): Promise<boolean> => {
   const { admin } = await getAdminUser();

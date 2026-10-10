@@ -67,9 +67,9 @@ User-provided AI provider keys (BYOK) are encrypted at rest using AES-256-GCM wi
 
 ### Row-Level Security (RLS)
 
-Fresh self-hosted installs are single-user only (`MULTI_USER_ENABLED=0`, `KESTREL_ENABLE_RLS=0`, `REGISTRATION_MODE=owner-first`). Multi-user/RLS mode is disabled in this OSS release. The environment parser, database client, and runtime migration entrypoint reject either flag before the application starts or mutates the database. This boundary remains in place until every user-data query establishes tenant context and the PostgreSQL isolation suite passes.
+Kestrel is a private self-hosted multi-user platform. Multi-user and Row-Level Security (RLS) are mandatory and enabled across all deployments (`MULTI_USER_ENABLED=1`, `KESTREL_ENABLE_RLS=1`, `REGISTRATION_MODE=open|disabled`). Postgres RLS policies enforce tenant isolation on every user-data table at the database engine level.
 
-Because the current query paths do not consistently establish tenant context, the single-user runtime migrator removes the unconditional RLS policies after applying the schema. Do not treat `userId` predicates alone as a substitute for database tenant isolation. When shared mode is eventually enabled, it must use PostgreSQL, a dedicated `ADMIN_DATABASE_URL` BYPASSRLS role for worker/cron operations, and the complete migration chain.
+Tenant context is established through authenticated sessions using `withTenantDb` or `withTenantDbTx`. Worker and cron background operations use dedicated admin access via `ADMIN_DATABASE_URL` (with `BYPASSRLS` privileges). Any attempt to run with RLS disabled in production is rejected at startup.
 
 ### Billing Webhook
 

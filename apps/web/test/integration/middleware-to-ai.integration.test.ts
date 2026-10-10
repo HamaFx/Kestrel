@@ -51,6 +51,20 @@ vi.mock('@/auth', () => ({
   auth: mockAuthFn,
 }));
 
+// withAuth tenant-scopes every authenticated request; stub the tenant helpers
+// so this integration test exercises the route → @kestrel/ai boundary.
+vi.mock('@kestrel/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  return {
+    ...actual,
+    getAdminDb: vi.fn(() => ({})),
+    requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+    withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+      work({}),
+    ),
+  };
+});
+
 const USER_ID = 'test-user-001';
 
 const now = new Date();

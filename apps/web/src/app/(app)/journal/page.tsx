@@ -35,6 +35,8 @@ export const dynamic = 'force-dynamic';
 export default async function JournalPage() {
   let initialData: { entries: JournalEntry[]; stats: JournalStats } | undefined;
 
+  // AUTH_MODE=legacy is a loadtest/dev-only bypass (see security-invariants);
+  // it is never enabled in production.
   if (process.env.AUTH_MODE !== 'legacy') {
     const session = await auth();
     if (session?.user?.id) {

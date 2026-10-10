@@ -133,20 +133,20 @@ describe('renderComparison', () => {
 
   it('keeps every mode-page row inside its column', () => {
     const lines = renderComparison({
-      leftTitle: 'Simple — lightweight',
+      leftTitle: 'Docker — bundled Postgres',
       left: [
-        ['✓', 'PGlite embedded · no Docker'],
-        ['✓', 'Fast startup · hot reload'],
-        ['✓', 'Full web app + AI chat'],
-        ['✗', 'No vector search (RAG)'],
-        ['✗', 'No live market data'],
-      ],
-      rightTitle: 'Full — Docker stack',
-      right: [
         ['✓', 'Postgres 16 + pgvector'],
         ['✓', 'Worker · live market data'],
-        ['✓', 'Langfuse observability'],
+        ['✓', 'Full web app + AI chat'],
+        ['✓', 'All features enabled'],
         ['!', 'First build ~3–5 min'],
+      ],
+      rightTitle: 'External — your own Postgres',
+      right: [
+        ['✓', 'Use existing database'],
+        ['✓', 'Self-managed infrastructure'],
+        ['✓', 'Custom configuration'],
+        ['!', 'Requires manual pgvector'],
       ],
       width: 60,
     });

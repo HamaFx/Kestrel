@@ -47,9 +47,9 @@ If you are self-hosting Kestrel:
 2. Read [docs/deployment-matrix.md](docs/deployment-matrix.md) for deployment, health, and backup requirements.
 3. Read [docs/configuration.md](docs/configuration.md) and [docs/troubleshooting.md](docs/troubleshooting.md) for configuration and recovery guidance.
 4. Read [SECURITY.md](SECURITY.md) before exposing an instance beyond localhost.
-5. State clearly whether you are using Simple/PGlite, Docker Compose, external PostgreSQL, or the maintainer-specific Vercel/GCE topology.
+5. State clearly whether you are using Docker Compose, external PostgreSQL, or the operator-managed cloud topology.
 
-Self-hosters are responsible for their infrastructure security, TLS, firewall, backups, provider terms, and secret management. Shared multi-user/RLS hosting is not supported by the current OSS release.
+Self-hosters are responsible for their infrastructure security, TLS, firewall, backups, provider terms, and secret management. Multi-user isolation is enforced via Postgres Row Level Security (RLS).
 
 ## Contributing
 

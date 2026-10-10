@@ -25,6 +25,9 @@
 // Auth.js uses AUTH_SECRET as the canonical JWT signing secret. Legacy
 // aliases remain readable only for upgrade compatibility.
 //
+// REGISTRATION_MODE accepts only 'open' | 'disabled'. The removed
+// 'owner-first' mode is rejected by the shared schema at boot.
+//
 // Development secrets are optional. The first call
 // to either getter triggers `loadOrGenerateDevSecrets()` which:
 //   - reads `.kestrel/dev-secrets.json` if present (falling back to the
@@ -49,8 +52,7 @@ import {
 } from '@kestrel/shared/env-secrets';
 import { z } from 'zod';
 
-const emptyToUndefined = (v: unknown) =>
-  typeof v === 'string' && v.trim() === '' ? undefined : v;
+const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
 
 const AuthEnvSchema = z.object({
   // MED-04: Standardize on AUTH_SECRET (NextAuth v5 convention).
@@ -168,19 +170,17 @@ export function loadOrGenerateDevSecrets(): {
   return { generated, store };
 }
 
-const FALLBACK_PREVIEW_SECRET =
-  'a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9';
+const FALLBACK_PREVIEW_SECRET = 'a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9';
 
 function normalizeRawSecrets(raw: Record<string, string | undefined>) {
   if (process.env.VERCEL_ENV === 'preview') {
     const isInvalid = (v?: string) => !v || v.trim().length < 32;
     if (isInvalid(raw.AUTH_SECRET)) {
-      raw.AUTH_SECRET =
-        !isInvalid(raw.NEXTAUTH_SECRET)
-          ? raw.NEXTAUTH_SECRET
-          : !isInvalid(raw.AUTH_COOKIE_SECRET)
-            ? raw.AUTH_COOKIE_SECRET
-            : FALLBACK_PREVIEW_SECRET;
+      raw.AUTH_SECRET = !isInvalid(raw.NEXTAUTH_SECRET)
+        ? raw.NEXTAUTH_SECRET
+        : !isInvalid(raw.AUTH_COOKIE_SECRET)
+          ? raw.AUTH_COOKIE_SECRET
+          : FALLBACK_PREVIEW_SECRET;
     }
     if (isInvalid(raw.NEXTAUTH_SECRET)) {
       raw.NEXTAUTH_SECRET = raw.AUTH_SECRET;
@@ -217,22 +217,9 @@ export function getAuthEnv(): AuthEnv {
 export function getServerEnv(): ServerEnv {
   if (_serverEnv) return _serverEnv;
   loadOrGenerateDevSecrets();
-  if (process.env.HAMAFX_ENABLE_RLS !== undefined && process.env.KESTREL_ENABLE_RLS === undefined) {
-    console.warn('[env] HAMAFX_ENABLE_RLS is deprecated; use KESTREL_ENABLE_RLS instead.');
-  }
-  if (process.env.HAMAFX_RUNTIME !== undefined && process.env.KESTREL_RUNTIME === undefined) {
-    process.env.KESTREL_RUNTIME = process.env.HAMAFX_RUNTIME;
-    console.warn('[env] HAMAFX_RUNTIME is deprecated; use KESTREL_RUNTIME instead.');
-  }
+  // `HAMAFX_*` env aliases were removed in 0.2.0; only KESTREL_* names are read.
   const raw = { ...process.env };
   normalizeRawSecrets(raw);
-  if (
-    process.env.HAMAFX_LOCAL_DOCKER !== undefined &&
-    process.env.KESTREL_LOCAL_DOCKER === undefined
-  ) {
-    process.env.KESTREL_LOCAL_DOCKER = process.env.HAMAFX_LOCAL_DOCKER;
-    console.warn('[env] HAMAFX_LOCAL_DOCKER is deprecated; use KESTREL_LOCAL_DOCKER instead.');
-  }
   _serverEnv = parseServerEnv(raw);
   return _serverEnv;
 }

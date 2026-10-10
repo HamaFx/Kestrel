@@ -74,13 +74,19 @@ describe('AUTO_GENERATED_SECRETS', () => {
 });
 
 describe('deprecated environment aliases', () => {
-  it('reports legacy aliases only when the canonical name is absent', () => {
-    expect(getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0' })).toEqual([
-      { oldName: 'HAMAFX_ENABLE_RLS', newName: 'KESTREL_ENABLE_RLS' },
+  it('reports the one-release NEXTAUTH_SECRET alias only when AUTH_SECRET is absent', () => {
+    expect(getDeprecatedEnvAliases({ NEXTAUTH_SECRET: 'a'.repeat(32) })).toEqual([
+      { oldName: 'NEXTAUTH_SECRET', newName: 'AUTH_SECRET' },
     ]);
-    expect(getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0', KESTREL_ENABLE_RLS: '0' })).toEqual(
-      [],
-    );
+    expect(
+      getDeprecatedEnvAliases({ NEXTAUTH_SECRET: 'a'.repeat(32), AUTH_SECRET: 'b'.repeat(32) }),
+    ).toEqual([]);
+  });
+
+  it('no longer reports the removed HAMAFX_* aliases', () => {
+    expect(getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0' })).toEqual([]);
+    expect(getDeprecatedEnvAliases({ HAMAFX_RUNTIME: 'worker' })).toEqual([]);
+    expect(getDeprecatedEnvAliases({ HAMAFX_LOCAL_DOCKER: 'true' })).toEqual([]);
   });
 });
 
@@ -296,64 +302,60 @@ describe('parseServerEnv — defaults and transforms', () => {
     expect(env.BYOK_ENABLED).toBe(true);
   });
 
-  it('rejects MULTI_USER_ENABLED="1" in the OSS release', () => {
-    expect(() =>
-      parseServerEnv({
-        ...MINIMAL_ENV,
-        NODE_ENV: 'test',
-        MULTI_USER_ENABLED: '1',
-        KESTREL_ENABLE_RLS: '1',
-      }),
-    ).toThrow(/Multi-user\/RLS mode is disabled/i);
-  });
-
-  it('defaults registration to owner-first', () => {
+  it('defaults to multi-user + RLS with open registration', () => {
     const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test' });
-    expect(env.REGISTRATION_MODE).toBe('owner-first');
+    expect(env.MULTI_USER_ENABLED).toBe(true);
+    expect(env.KESTREL_ENABLE_RLS).toBe(true);
+    expect(env.REGISTRATION_MODE).toBe('open');
   });
 
-  it('accepts the legacy RLS variable as an upgrade fallback', () => {
-    const env = parseServerEnv({
-      ...MINIMAL_ENV,
-      NODE_ENV: 'test',
-      HAMAFX_ENABLE_RLS: '0',
-    });
-    expect(env.KESTREL_ENABLE_RLS).toBe(false);
+  it('rejects RLS disabled while multi-user mode is on', () => {
+    expect(() =>
+      parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', KESTREL_ENABLE_RLS: '0' }),
+    ).toThrow(/MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS/i);
   });
 
   it('rejects multi-user mode without RLS', () => {
     expect(() =>
-      parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', MULTI_USER_ENABLED: '1' }),
-    ).toThrow(/MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS/i);
-  });
-
-  it('rejects multi-user mode even when RLS is enabled in the OSS release', () => {
-    expect(() =>
       parseServerEnv({
         ...MINIMAL_ENV,
         NODE_ENV: 'test',
         MULTI_USER_ENABLED: '1',
-        KESTREL_ENABLE_RLS: '1',
+        KESTREL_ENABLE_RLS: '0',
       }),
-    ).toThrow(/Multi-user\/RLS mode is disabled/i);
+    ).toThrow(/MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS/i);
+  });
+
+  it('accepts disabled registration in multi-user mode', () => {
+    const env = parseServerEnv({
+      ...MINIMAL_ENV,
+      NODE_ENV: 'test',
+      REGISTRATION_MODE: 'disabled',
+    });
+    expect(env.REGISTRATION_MODE).toBe('disabled');
+  });
+
+  it('rejects the removed owner-first registration mode', () => {
+    expect(() =>
+      parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', REGISTRATION_MODE: 'owner-first' }),
+    ).toThrow(/REGISTRATION_MODE/);
   });
 
   it('rejects open registration without multi-user RLS', () => {
-    expect(() =>
-      parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', REGISTRATION_MODE: 'open' }),
-    ).toThrow(/REGISTRATION_MODE=open requires/i);
-  });
-
-  it('rejects open registration in the OSS release', () => {
     expect(() =>
       parseServerEnv({
         ...MINIMAL_ENV,
         NODE_ENV: 'test',
         REGISTRATION_MODE: 'open',
-        MULTI_USER_ENABLED: '1',
-        KESTREL_ENABLE_RLS: '1',
+        KESTREL_ENABLE_RLS: '0',
       }),
-    ).toThrow(/Multi-user\/RLS mode is disabled|REGISTRATION_MODE=open requires/i);
+    ).toThrow(/MULTI_USER_ENABLED requires|REGISTRATION_MODE=open requires/i);
+  });
+
+  it('ignores a stale OSS_SINGLE_USER_MODE pin (removed in 0.2.0)', () => {
+    const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', OSS_SINGLE_USER_MODE: '1' });
+    expect('OSS_SINGLE_USER_MODE' in env).toBe(false);
+    expect(env.MULTI_USER_ENABLED).toBe(true);
   });
 
   it('keeps deprecated UNLIMITED_SYMBOLS disabled regardless of input', () => {

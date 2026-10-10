@@ -17,15 +17,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Wrapper that checks the authenticated user has admin privileges.
-// In single-user deployments (no admin role set), the sole authenticated
-// user is treated as admin. In multi-user deployments, requires role='admin'.
+// Requires an explicit role='admin' — there is no implicit admin fallback;
+// all deployments are multi-user.
 
 import { getDb } from '@kestrel/ai';
 import { schema } from '@kestrel/db';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { auth } from '@/auth';
-import { getServerEnv } from '@/lib/env';
 
 import { createRequestLogger } from './logger';
 import { getRequestId } from './request-id';
@@ -63,37 +62,9 @@ export async function getAdminUser(): Promise<AdminAuthResult> {
     return { admin: null, reason: 'forbidden' };
   }
 
-  // Explicit admin roles are always accepted. Implicit admin access is only
-  // available under the OSS single-user invariant; shared deployments must
-  // provision an explicit admin role instead.
+  // Administration requires an explicit role='admin'. Promote an operator
+  // with: psql "$DATABASE_URL" -c "UPDATE \"user\" SET role='admin' WHERE email='you@example.com'"
   if (user.role === 'admin') {
-    return {
-      admin: { userId: user.id, email: user.email, name: user.name },
-      reason: 'authenticated',
-    };
-  }
-
-  if (!getServerEnv().OSS_SINGLE_USER_MODE) {
-    return { admin: null, reason: 'forbidden' };
-  }
-
-  // In the OSS single-user deployment, the sole account is the operator.
-  // Single-user deployment check: only the sole account may be treated as
-  // the implicit admin. Keep the count and role checks in one statement so a
-  // second regular account cannot leave the earliest account privileged.
-  // The database snapshot makes this decision atomic for each authorization
-  // check; explicit admin roles remain the preferred production path.
-  const [firstUserSingleQuery] = await db
-    .select({ id: schema.users.id })
-    .from(schema.users)
-    .where(
-      sql`NOT EXISTS (SELECT 1 FROM ${schema.users} WHERE ${schema.users.role} = 'admin')
-        AND (SELECT count(*) FROM ${schema.users}) = 1`,
-    )
-    .orderBy(schema.users.createdAt)
-    .limit(1);
-
-  if (firstUserSingleQuery && firstUserSingleQuery.id === user.id) {
     return {
       admin: { userId: user.id, email: user.email, name: user.name },
       reason: 'authenticated',

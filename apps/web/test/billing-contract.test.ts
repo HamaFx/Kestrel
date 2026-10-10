@@ -89,6 +89,11 @@ vi.mock('@kestrel/db', () => ({
   markBillingWebhookReplayed: mockMarkBillingWebhookReplayed,
   releaseBillingWebhookReplay: mockReleaseBillingWebhookReplay,
   countStaleBillingWebhookFailures: mockCountStaleBillingWebhookFailures,
+  getAdminDb: vi.fn(() => ({})),
+  requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+  withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+    work({}),
+  ),
 }));
 
 const PLAN = {

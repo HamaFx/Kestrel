@@ -16,7 +16,7 @@
 
 // Web-push subscription persistence.
 //
-// Single-user app, but the user can subscribe from multiple devices. We
+// Multi-user app; each user can subscribe from multiple devices. We
 // key by `endpoint` (unique per browser/device + service worker scope) so
 // re-subscribing from the same device is an upsert, not a duplicate row.
 //

@@ -21,46 +21,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAdminUser, withAdminAuth } from '@/lib/admin-auth';
 
 // ── Mock db ────────────────────────────────────────────────────────
-// drizzle query builder pattern: select → from → where → orderBy → limit
-// Each step returns a thenable (Promise-like) that also exposes chain
-// methods so the caller can either `await` the result immediately or
-// continue building the query.
-//
-// admin-auth.ts uses three query patterns:
-//   1. select → from → where                        (user lookup)
-//   2. select → from → where                        (admin count) — PRE-S-3
-//   3. select → from → where → orderBy → limit      (atomic single-user + NOT EXISTS) — POST-S-3
+// admin-auth.ts uses one query pattern: select → from → where (user lookup).
+// `.where()` returns a thenable so the caller can await it directly.
 
 const whereResults: unknown[] = [];
 let whereCallIndex = 0;
-let orderByLimitResult: unknown = [];
 
-/**
- * Build a chainable drizzle mock — returned by from().
- * Has `.where()`, `.orderBy()`, `.limit()`, and `.then()` for await.
- */
 function makeFromResult(): Record<string, unknown> {
   return {
     then: (resolve: (v: unknown) => void) => resolve([]),
-
     where: vi.fn((_cond: unknown) => {
       const idx = whereCallIndex++;
-      const value = whereResults[idx];
-      // After where(), caller may chain .orderBy().limit() or .limit() directly.
-      // We need to return an object that supports both chains.
-      const chain = makeThenable(value ?? []);
-      chain.orderBy = vi.fn(() => ({
-        limit: vi.fn(() => makeThenable(orderByLimitResult)),
-      }));
-      chain.limit = vi.fn(() => makeFromResult());
-      return chain;
+      return makeThenable(whereResults[idx] ?? []);
     }),
-
-    orderBy: vi.fn(() => ({
-      limit: vi.fn(() => makeThenable(orderByLimitResult)),
-    })),
-
-    limit: vi.fn(() => makeFromResult()),
   };
 }
 
@@ -92,14 +65,9 @@ function pushWhereResult(value: unknown) {
   whereResults.push(value);
 }
 
-function pushOrderByLimitResult(value: unknown) {
-  orderByLimitResult = value;
-}
-
 function resetMockState() {
   whereResults.length = 0;
   whereCallIndex = 0;
-  orderByLimitResult = [];
 }
 
 describe('getAdminUser', () => {
@@ -127,39 +95,9 @@ describe('getAdminUser', () => {
     expect(result.reason).toBe('authenticated');
   });
 
-  it('returns forbidden when user is not admin and other admins exist', async () => {
+  it('returns forbidden when user is not admin', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'u-456' } });
     pushWhereResult([{ id: 'u-456', email: 'user@example.com', name: 'User', role: 'user' }]);
-    // The NOT EXISTS query returns no rows when admins exist (the condition is false).
-    pushWhereResult([]);
-    pushOrderByLimitResult([]);
-
-    const result = await getAdminUser();
-
-    expect(result.admin).toBeNull();
-    expect(result.reason).toBe('forbidden');
-  });
-
-  it('treats single user as admin in single-user deployment', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'u-789' } });
-    // Call 1: select → from → where (user lookup)
-    pushWhereResult([{ id: 'u-789', email: 'solo@example.com', name: 'Solo', role: 'user' }]);
-    // Call 2: select → from → where(sql) → orderBy → limit (atomic single-user check)
-    pushWhereResult([]);
-    pushOrderByLimitResult([{ id: 'u-789' }]);
-
-    const result = await getAdminUser();
-
-    expect(result.admin).toEqual({ userId: 'u-789', email: 'solo@example.com', name: 'Solo' });
-    expect(result.reason).toBe('authenticated');
-  });
-
-  it('returns forbidden when a second regular account exists without an explicit admin', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'u-789' } });
-    pushWhereResult([{ id: 'u-789', email: 'first@example.com', name: 'First', role: 'user' }]);
-    // The exact-one-user predicate returns no rows once another regular user exists.
-    pushWhereResult([]);
-    pushOrderByLimitResult([]);
 
     const result = await getAdminUser();
 
@@ -203,8 +141,6 @@ describe('withAdminAuth', () => {
   it('returns 403 when forbidden', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'u-456' } });
     pushWhereResult([{ id: 'u-456', email: 'user@example.com', name: 'User', role: 'user' }]);
-    pushWhereResult([]);
-    pushOrderByLimitResult([]);
 
     const handler = withAdminAuth(async () => Response.json({ ok: true }));
     const res = await handler(new Request('http://localhost/api/admin/test'));

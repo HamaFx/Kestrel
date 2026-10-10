@@ -33,6 +33,11 @@ vi.mock('@kestrel/db', () => ({
   updateSubscriptionFromPayment: vi.fn(),
   schema: {},
   hasTenantDbScope: vi.fn(() => true),
+  getAdminDb: vi.fn(() => ({ execute: mockDbExecute })),
+  requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+  withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+    work({ execute: mockDbExecute }),
+  ),
 }));
 
 // Mock @/auth so the SEC-1 slow path (auth() fallback) returns a session.
