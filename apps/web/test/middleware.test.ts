@@ -192,36 +192,6 @@ describe('middleware — Phase 0.9', () => {
     expect(res.headers.get('x-user-id')).toBeNull();
   });
 
-  it('allows legacy bypass in non-production', async () => {
-    process.env.AUTH_MODE = 'legacy';
-    (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
-    mockAuth.mockImplementation(
-      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
-    );
-
-    const req = makeRequest('/api/chat', { method: 'GET' });
-    const middleware = await loadMiddleware();
-    const res = await middleware(req, ctx);
-
-    expect(res.status).toBe(200);
-    expect(res.headers.get('x-user-id')).toBe('__system__');
-  });
-
-  it('blocks legacy bypass when NODE_ENV is production', async () => {
-    process.env.AUTH_MODE = 'legacy';
-    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
-    mockAuth.mockImplementation(
-      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
-    );
-
-    const req = makeRequest('/api/chat', { method: 'GET' });
-    const middleware = await loadMiddleware();
-    const res = await middleware(req, ctx);
-
-    expect(res.status).toBe(200);
-    expect(res.headers.get('x-user-id')).toBeNull();
-  });
-
   it('stamps every response with x-request-id', async () => {
     mockAuth.mockImplementation(
       (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),

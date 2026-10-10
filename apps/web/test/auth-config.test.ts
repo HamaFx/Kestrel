@@ -57,19 +57,6 @@ describe('assertProductionSecurity', () => {
     expect(() => assertProductionSecurity()).not.toThrow();
   });
 
-  it('rejects legacy authentication in production', () => {
-    process.env.AUTH_MODE = 'legacy';
-
-    expect(() => assertProductionSecurity()).toThrow(/AUTH_MODE=legacy is forbidden in production/);
-  });
-
-  it('allows legacy authentication outside production', () => {
-    process.env.NODE_ENV = 'development';
-    process.env.AUTH_MODE = 'legacy';
-
-    expect(() => assertProductionSecurity()).not.toThrow();
-  });
-
   it('rejects production authentication without a signing secret', () => {
     delete process.env.AUTH_SECRET;
 

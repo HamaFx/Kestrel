@@ -40,9 +40,7 @@ const env = {
 const failures = [];
 const warnings = [];
 
-if (env.AUTH_MODE === 'legacy' && env.ALLOW_LEGACY_LOCAL !== '1') {
-  failures.push('AUTH_MODE=legacy (use AUTH_MODE=normal for local production-like verification)');
-}
+
 if (
   (env.NODE_TLS_REJECT_UNAUTHORIZED === '0' || env.DB_DISABLE_SSL === 'true') &&
   env.ALLOW_INSECURE_LOCAL_TLS !== '1'

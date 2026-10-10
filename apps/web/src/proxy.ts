@@ -83,35 +83,6 @@ const proxy: any = auth(async (req) => {
   // ── C-3: Generate nonce early (used by both legacy and normal paths) ─
   const cspNonce = crypto.randomUUID().replace(/-/g, '');
 
-  // ── Legacy Mode Fallback ──────────────────────────────────────────────
-  // C-2: Legacy mode is ONLY allowed when NODE_ENV !== 'production'.
-  // The ALLOW_LEGACY_AUTH escape hatch has been removed — legacy auth
-  // in production is now a hard error in auth.config.ts at boot time.
-  // AUTH_MODE=legacy exists for local dev and the loadtest/k6 harness; it is
-  // not a deployment profile.
-  if (process.env.AUTH_MODE === 'legacy' && process.env.NODE_ENV !== 'production') {
-    const headers = new Headers(req.headers);
-    headers.set(REQUEST_ID_HEADER, requestId);
-    headers.set('x-user-id', '__system__');
-    headers.set('x-csp-nonce', cspNonce);
-    const next = NextResponse.next({ request: { headers } });
-    next.headers.set(REQUEST_ID_HEADER, requestId);
-    next.headers.set('x-user-id', '__system__');
-    next.headers.set('x-csp-nonce', cspNonce);
-    // Sign the x-user-id header so route handlers can verify the
-    // HMAC fast-path (lib/api.ts::getUserIdFromRequest). Without
-    // the signature, the fast path fails and the auth() slow path
-    // returns null, causing 401 on all wrapped endpoints.
-    const secret = getSigningSecret();
-    if (secret) {
-      const sig = await signUserId('__system__', requestId, secret);
-      next.headers.set(USER_ID_SIG_HEADER, sig);
-    }
-    // Set CSP with nonce for legacy mode too
-    setCspHeader(next, cspNonce);
-    return next;
-  }
-
   // ── CSRF double-submit cookie ───────────────────────────────────────
   // P1-3: Always set the cookie on every request (including GET) so the
   // client always has a token before its first state-changing POST.

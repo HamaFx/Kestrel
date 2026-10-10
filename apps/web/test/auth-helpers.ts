@@ -36,16 +36,4 @@ export function mockNextAuthSession(userId: string) {
   return authMock;
 }
 
-/**
- * Mocks legacy authentication mode bypass for tests.
- */
-export function mockLegacyMode() {
-  process.env.AUTH_MODE = 'legacy';
-  return async () => ({
-    user: {
-      id: '__system__',
-      email: 'system@kestrel.local',
-    },
-    expires: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-  });
-}
+

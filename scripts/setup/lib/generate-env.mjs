@@ -87,7 +87,7 @@ const SECTIONS = [
   ['Encryption (BYOK key encryption at rest)', ['ENCRYPTION_SECRET']],
   [
     'Deployment defaults',
-    ['BYOK_ENABLED', 'MULTI_USER_ENABLED', 'REGISTRATION_MODE', 'KESTREL_ENABLE_RLS'],
+    ['MULTI_USER_ENABLED', 'REGISTRATION_MODE', 'KESTREL_ENABLE_RLS'],
   ],
 ];
 

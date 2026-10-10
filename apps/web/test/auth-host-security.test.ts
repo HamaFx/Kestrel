@@ -31,16 +31,6 @@ describe('auth host and production security contract', () => {
     expect(() => assertProductionSecurity()).toThrow(/AUTH_SECRET/);
   });
 
-  it('rejects legacy auth in production', async () => {
-    process.env.NODE_ENV = 'production';
-    process.env.AUTH_SECRET = 'test-secret-that-is-long-enough';
-    delete process.env.NEXTAUTH_SECRET;
-    process.env.AUTH_MODE = 'legacy';
-
-    const { assertProductionSecurity } = await import('../src/lib/security-invariants');
-    expect(() => assertProductionSecurity()).toThrow(/AUTH_MODE=legacy/);
-  });
-
   it('documents that trusted proxy host handling requires an explicit app URL', async () => {
     const source = readFileSync(resolve(process.cwd(), 'src/auth.config.ts'), 'utf8');
     expect(source).toContain('trustHost: true');

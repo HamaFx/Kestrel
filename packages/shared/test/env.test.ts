@@ -297,11 +297,6 @@ describe('parseServerEnv — defaults and transforms', () => {
     expect(env.LOG_PROMPTS).toBe(false);
   });
 
-  it('transforms BYOK_ENABLED="true" to boolean true', () => {
-    const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', BYOK_ENABLED: 'true' });
-    expect(env.BYOK_ENABLED).toBe(true);
-  });
-
   it('defaults to multi-user + RLS with open registration', () => {
     const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test' });
     expect(env.MULTI_USER_ENABLED).toBe(true);
@@ -356,17 +351,6 @@ describe('parseServerEnv — defaults and transforms', () => {
     const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', OSS_SINGLE_USER_MODE: '1' });
     expect('OSS_SINGLE_USER_MODE' in env).toBe(false);
     expect(env.MULTI_USER_ENABLED).toBe(true);
-  });
-
-  it('keeps deprecated UNLIMITED_SYMBOLS disabled regardless of input', () => {
-    const falseEnv = parseServerEnv({
-      ...MINIMAL_ENV,
-      NODE_ENV: 'test',
-      UNLIMITED_SYMBOLS: 'false',
-    });
-    const trueEnv = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test', UNLIMITED_SYMBOLS: 'true' });
-    expect(falseEnv.UNLIMITED_SYMBOLS).toBe(false);
-    expect(trueEnv.UNLIMITED_SYMBOLS).toBe(false);
   });
 
   it('defaults AI_DEFAULT_MODEL', () => {
