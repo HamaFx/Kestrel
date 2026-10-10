@@ -29,13 +29,6 @@ export const SETUP_INSTRUCTIONS: Record<
     rateLimits: '15 RPM / 1.5M TPM (Flash), 2 RPM / 32k TPM (Pro) under free tier.',
     howToGet: 'Go to Google AI Studio, sign in with your Google account, and click "Get API key".',
   },
-  vertex: {
-    dashboardUrl: 'https://console.cloud.google.com/vertex-ai',
-    freeTier: 'No free tier. Billed directly to your Google Cloud Project Project.',
-    rateLimits: 'Determined by your GCP project quota limits.',
-    howToGet:
-      'Create a Service Account in your GCP console, grant it the "Vertex AI User" role, create a JSON private key, and paste the entire JSON file content here.',
-  },
   anthropic: {
     dashboardUrl: 'https://console.anthropic.com/',
     freeTier: 'No free tier, but new accounts sometimes receive $5 of trial credit.',

@@ -45,7 +45,7 @@ import {
 import type { LanguageModel } from 'ai';
 
 import { resolveChatModel } from '../../model';
-import type { ResolveModelEnv } from '../../vertex-factory';
+import type { ResolveModelEnv } from '../../env-model-factory';
 import { createCitationScorer, createGroundingScorer } from './custom';
 
 const slog = createCategorizedLogger('ai', { component: 'mastra-evals-scorers' });

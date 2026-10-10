@@ -21,7 +21,6 @@ let byokPayload: Record<string, string> = {};
 vi.mock('@kestrel/shared/encryption', () => ({
   PROVIDER_IDS: [
     'google',
-    'vertex',
     'anthropic',
     'openai',
     'groq',
@@ -42,10 +41,6 @@ vi.mock('@kestrel/shared/encryption', () => ({
 const ENV = {
   AI_GATEWAY_API_KEY: '',
   GOOGLE_GENERATIVE_AI_API_KEY: '',
-  GOOGLE_VERTEX_PROJECT: '',
-  GOOGLE_VERTEX_LOCATION: '',
-  GOOGLE_APPLICATION_CREDENTIALS_JSON: '',
-  GOOGLE_APPLICATION_CREDENTIALS: '',
   AI_EMBEDDING_MODEL: '',
 } as const;
 

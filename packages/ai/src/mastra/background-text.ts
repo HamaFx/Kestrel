@@ -23,7 +23,7 @@ import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } fro
 import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../model';
 import { telemetryConfig } from '../telemetry';
-import type { ResolveModelEnv } from '../vertex-factory';
+import type { ResolveModelEnv } from '../env-model-factory';
 import { manifestForCapability } from './capabilities';
 import {
   beginMastraRun,

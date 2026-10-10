@@ -80,7 +80,6 @@ export function ApiKeyCard({
   const [, startTransition] = useTransition();
   const [confirmNode, confirm] = useConfirm();
 
-  const isVertex = provider.id === 'vertex';
   const dirty = value.trim() !== currentValue;
   const isSet = value.trim().length > 0;
 
@@ -140,8 +139,6 @@ export function ApiKeyCard({
     }
   }
 
-  // Vertex key preview
-  const vertexPreview = isVertex && isSet ? previewVertexJson(value.trim()) : null;
   const instructions = SETUP_INSTRUCTIONS[provider.id];
 
   return (
@@ -248,93 +245,43 @@ export function ApiKeyCard({
         </div>
       )}
 
-      {/* Vertex-specific JSON preview (when a value is entered). */}
-      {isVertex && vertexPreview ? (
-        <div className="text-caption text-fg-subtle border-border bg-bg-elev-2 flex flex-col gap-1 rounded-sm border px-3 py-2">
-          {vertexPreview.clientEmail ? (
-            <span>
-              <span className="text-fg-muted">client_email:</span>{' '}
-              <span className="font-mono">{vertexPreview.clientEmail}</span>
-            </span>
-          ) : null}
-          {vertexPreview.projectId ? (
-            <span>
-              <span className="text-fg-muted">project_id:</span>{' '}
-              <span className="font-mono">{vertexPreview.projectId}</span>
-            </span>
-          ) : null}
-          {vertexPreview.error ? <span className="text-danger">{vertexPreview.error}</span> : null}
-        </div>
-      ) : null}
-
-      {/* Input area — textarea for vertex, input for everyone else. */}
-      {isVertex ? (
-        <div className="relative">
-          <textarea
-            id={`key-${provider.id}`}
-            name={provider.id}
-            value={value}
-            onChange={(e) => {
-              setValue(e.target.value);
-              if (test.kind !== 'idle') setTest({ kind: 'idle' });
-            }}
-            placeholder={
-              '{\n  "type": "service_account",\n  "project_id": "your-project-id",\n  "client_email": "service-account@your-project.iam.gserviceaccount.com",\n  "private_key": "paste-your-private-key-here"\n}'
-            }
-            spellCheck={false}
-            autoComplete="off"
-            rows={6}
-            className="border-border bg-bg-elev-2 placeholder:text-fg-muted text-fg text-caption focus:border-border focus:ring-border w-full resize-y rounded-sm border px-3 py-2 font-mono focus:ring-1 focus:outline-none"
-          />
+      {/* Input area */}
+      <div className="relative">
+        <Input
+          id={`key-${provider.id}`}
+          name={provider.id}
+          type={revealed ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (test.kind !== 'idle') setTest({ kind: 'idle' });
+          }}
+          placeholder={provider.keyHint}
+          autoComplete="off"
+          spellCheck={false}
+          className="pr-24 font-mono"
+        />
+        <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-0.5">
           {isSet && (
             <button
               type="button"
               onClick={handleCopy}
-              className="text-fg-muted hover:text-fg hover:bg-bg-elev-3 border-border absolute right-3 bottom-3 inline-flex h-7 w-7 items-center justify-center rounded-sm border transition-colors"
+              className="text-fg-muted hover:text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
               aria-label="Copy key to clipboard"
             >
               <IconCopy className="size-3.5" />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setRevealed((r) => !r)}
+            className="text-fg-muted hover:text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
+            aria-label={revealed ? 'Hide key' : 'Show key'}
+          >
+            {revealed ? <IconEyeOff className="size-3.5" /> : <IconEye className="size-3.5" />}
+          </button>
         </div>
-      ) : (
-        <div className="relative">
-          <Input
-            id={`key-${provider.id}`}
-            name={provider.id}
-            type={revealed ? 'text' : 'password'}
-            value={value}
-            onChange={(e) => {
-              setValue(e.target.value);
-              if (test.kind !== 'idle') setTest({ kind: 'idle' });
-            }}
-            placeholder={provider.keyHint}
-            autoComplete="off"
-            spellCheck={false}
-            className="pr-24 font-mono"
-          />
-          <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-0.5">
-            {isSet && (
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="text-fg-muted hover:text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
-                aria-label="Copy key to clipboard"
-              >
-                <IconCopy className="size-3.5" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setRevealed((r) => !r)}
-              className="text-fg-muted hover:text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
-              aria-label={revealed ? 'Hide key' : 'Show key'}
-            >
-              {revealed ? <IconEyeOff className="size-3.5" /> : <IconEye className="size-3.5" />}
-            </button>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Validation / test feedback. */}
       {test.kind === 'err' ? (
@@ -392,17 +339,11 @@ export function ApiKeyCard({
       {/* Action row: test button. */}
       <div className="flex items-center justify-between gap-2">
         <span className="text-caption text-fg-subtle">
-          {isVertex ? (
-            <>Paste the service-account JSON from the GCP IAM console.</>
-          ) : (
-            <>
-              Key is encrypted at rest with AES-256-GCM. Press{' '}
-              <kbd className="bg-bg-elev-2 border-border rounded-sm border px-1.5 py-0.5 text-xs">
-                T
-              </kbd>{' '}
-              to test.
-            </>
-          )}
+          Key is encrypted at rest with AES-256-GCM. Press{' '}
+          <kbd className="bg-bg-elev-2 border-border rounded-sm border px-1.5 py-0.5 text-xs">
+            T
+          </kbd>{' '}
+          to test.
         </span>
         <Button
           type="button"
@@ -498,27 +439,3 @@ function UsageBadge({ usage }: { usage?: { turns: number; costUsd: number } | un
   );
 }
 
-/**
- * Parse a (possibly-invalid) Vertex service-account JSON and surface
- * the two most useful fields — project_id and client_email — for the
- * user to sanity-check before saving. Returns null on parse error.
- */
-function previewVertexJson(raw: string): {
-  clientEmail?: string | undefined;
-  projectId?: string | undefined;
-  error?: string;
-} {
-  try {
-    const obj = JSON.parse(raw) as Record<string, unknown>;
-    const clientEmail = typeof obj.client_email === 'string' ? obj.client_email : undefined;
-    const projectId = typeof obj.project_id === 'string' ? obj.project_id : undefined;
-    if (!clientEmail && !projectId) {
-      return {
-        error: 'JSON parsed but missing client_email and project_id',
-      };
-    }
-    return { clientEmail, projectId };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Invalid JSON' };
-  }
-}

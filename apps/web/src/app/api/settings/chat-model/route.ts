@@ -98,9 +98,7 @@ export const PUT = withAuth<void>(async (req, { user }) => {
   // "anthropic/claude-sonnet".
   const bareModelId = body.modelId.startsWith(`${body.providerId}/`)
     ? body.modelId.slice(body.providerId.length + 1)
-    : body.providerId === 'vertex' && body.modelId.startsWith('google-vertex/')
-      ? body.modelId.slice('google-vertex/'.length)
-      : body.modelId;
+    : body.modelId;
   // Phase D2 — defense in depth. The picker UI filters out tier:
   // 'embedding' models, but a direct API call could still store one.
   // Chat turns can't consume an embedding model (different capability,

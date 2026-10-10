@@ -26,15 +26,14 @@ import {
   requireTenantIdForUser,
   schema,
   testProviderKey,
+  validateProviderConfig,
   type ProviderId,
 } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Vertex service-account JSON files are typically 1.5-2.5 KB; the
-// `private_key` field alone is ~1.6 KB after newline escapes. 8 KB
-// covers every realistic key size.
+// Max 8 KB covers every realistic API key size.
 const BodySchema = z.object({
   provider: z.enum(PROVIDER_IDS as readonly [ProviderId, ...ProviderId[]]),
   apiKey: z.string().min(8).max(8192),
@@ -46,6 +45,11 @@ export const POST = withAuth<void>(async (req, { user }) => {
     body = await parseJsonBody(req, BodySchema);
   } catch (err) {
     return errorResponse(err);
+  }
+
+  const validation = validateProviderConfig(body.provider, body.apiKey);
+  if (!validation.ok) {
+    return Response.json({ ok: false, error: validation.reason }, { status: 400 });
   }
 
   const result = await testProviderKey(body.provider, body.apiKey);

@@ -226,7 +226,7 @@ Each slice is **one commit directly on `main`**. If a post-merge Postgres boot f
 | 2 | Env contract SSoT | ✅ done | Commit `d1856f97` — `turbo.json` + `env.ts` + `.env.example` SSoT; deleted BYOK flag, legacy auth & `__system__` bypasses across app/proxy/tests |
 | 3 | Docker Compose minimal + overlay | ✅ done | Q2=B overlay + Q3=A Sentry removal |
 | 4 | Billing polish (keep) | ✅ done | Q1=B — defaults/docs tightened; billing code preserved |
-| 5 | AI providers — Vertex delete + registry improve | ☐ | Q7 — delete Vertex, keep 9 others, polish registry |
+| 5 | AI providers — Vertex delete + registry improve | ✅ done | Q7 — delete Vertex, keep 9 others, polish registry |
 | 6 | CI + scripts declutter | ☐ | Q8=A + Q10=A + Q12=A |
 | 7 | Frontend (keep landing) | ☐ | Q9=A — no-op + arch note |
 | 8 | Docs & repo hygiene | ☐ | Q5=A private |

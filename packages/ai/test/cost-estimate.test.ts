@@ -43,12 +43,6 @@ describe('estimateCostUsd', () => {
     expect(cost).toBe(0);
   });
 
-  it('handles google-vertex prefixed model IDs', () => {
-    // Should map to google/ prefix
-    const vertexCost = estimateCostUsd('google-vertex/gemini-2.5-flash', 1_000, 100);
-    const googleCost = estimateCostUsd('google/gemini-2.5-flash', 1_000, 100);
-    expect(vertexCost).toBe(googleCost);
-  });
 
   it('handles bare gemini model ID (BYOK path)', () => {
     const bareCost = estimateCostUsd('gemini-2.5-flash', 1_000, 100);

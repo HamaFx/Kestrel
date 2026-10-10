@@ -159,7 +159,6 @@ export function estimateTokens(text: string): number {
 /**
  * Extract the bare model name from a qualified model id.
  * "google/gemini-2.5-flash" → "gemini-2.5-flash"
- * "google-vertex/gemini-2.5-flash" → "gemini-2.5-flash"
  * "anthropic/claude-sonnet-4" → "claude-sonnet-4"
  */
 function extractBareModel(modelId: string): string | null {

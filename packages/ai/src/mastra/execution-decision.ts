@@ -13,7 +13,7 @@ import {
   type MastraResolvedModel,
 } from '../model';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../routing';
-import type { ResolveModelEnv } from '../vertex-factory';
+import type { ResolveModelEnv } from '../env-model-factory';
 import {
   evaluateMastraCapability,
   getMastraCapability,

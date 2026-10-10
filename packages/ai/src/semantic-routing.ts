@@ -54,7 +54,7 @@ export interface SemanticClassification {
   rationale: string;
 }
 
-/** A model id string resolvable by the AI SDK (e.g. "google-vertex/gemini-2.5-flash-lite"). */
+/** A model id string resolvable by the AI SDK (e.g. "google/gemini-2.5-flash-lite"). */
 type ModelIdString = string;
 
 /** Classification cache entry — purged after TTL. */

@@ -35,7 +35,6 @@
  */
 export const PROVIDER_IDS = [
   'google',
-  'vertex',
   'anthropic',
   'openai',
   'groq',
@@ -57,16 +56,7 @@ export const KNOWN_BYOK_PROVIDERS: ReadonlySet<string> = new Set(PROVIDER_IDS);
 
 export interface ByokPayload {
   google?: string;
-  /**
-   * Vertex AI service-account JSON, raw (the whole service-account
-   * key file). Required fields: `client_email`, `private_key`. We
-   * validate the shape at write time in `testProviderKey` and again
-   * at every read in `getVertex`.
-   *
-   * Distinct from `google` (the public Gemini API) because Vertex uses
-   * GCP service-account auth rather than an API key, and the model
-   * factory is different (`@ai-sdk/google-vertex` vs `@ai-sdk/google`).
-   */
+  /** @deprecated Vertex AI has been removed. Retained only for legacy deserialization safety. */
   vertex?: string;
   anthropic?: string;
   openai?: string;

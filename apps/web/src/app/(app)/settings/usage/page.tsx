@@ -94,7 +94,6 @@ export default async function UsagePage() {
 
   const canonicalizeProviderId = (prefix: string) => {
     if (prefix === '') return 'google';
-    if (prefix === 'google-vertex') return 'vertex';
     if (KNOWN_BYOK_PROVIDERS.has(prefix)) return prefix;
     return null;
   };

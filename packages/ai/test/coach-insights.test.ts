@@ -23,7 +23,7 @@ vi.mock('@kestrel/shared/encryption', () => ({
   decryptByok: () => null,
   encryptByok: () => '',
   configuredProviders: () => [],
-  PROVIDER_IDS: ['google', 'vertex', 'anthropic'],
+  PROVIDER_IDS: ['google', 'anthropic'],
 }));
 
 vi.mock('../src/cost', () => ({
@@ -113,10 +113,6 @@ describe('getCoachInsights', () => {
   const env = {
     AI_GATEWAY_API_KEY: 'test',
     GOOGLE_GENERATIVE_AI_API_KEY: 'test',
-    GOOGLE_VERTEX_PROJECT: 'test',
-    GOOGLE_VERTEX_LOCATION: 'us-central1',
-    GOOGLE_APPLICATION_CREDENTIALS_JSON: undefined,
-    GOOGLE_APPLICATION_CREDENTIALS: undefined,
     AI_DEFAULT_MODEL: 'google:gemini-2.5-flash',
     MAX_DAILY_USD: 10,
     LOG_PROMPTS: false,

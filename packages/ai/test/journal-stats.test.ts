@@ -31,7 +31,6 @@ vi.mock('@kestrel/shared/encryption', () => ({
   configuredProviders: () => [],
   PROVIDER_IDS: [
     'google',
-    'vertex',
     'anthropic',
     'openai',
     'groq',
@@ -39,6 +38,7 @@ vi.mock('@kestrel/shared/encryption', () => ({
     'openrouter',
     'xai',
     'deepseek',
+    'iamhc',
     'hcnsec',
   ],
 }));

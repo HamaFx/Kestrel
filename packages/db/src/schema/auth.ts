@@ -224,7 +224,7 @@ export const userSettings = pgTable('user_settings', {
   }>(),
   /**
    * Phase F — the single "default chat model" picker.
-   * Shape: "<providerId>:<bareModelId>" (e.g. "google-vertex:gemini-2.5-pro").
+   * Shape: "<providerId>:<bareModelId>" (e.g. "google:gemini-2.5-pro").
    */
   chatModel: text('chat_model'),
   /** Phase D2 — user-pickable vision model. */

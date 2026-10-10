@@ -69,57 +69,37 @@ const DbEnv = z
     path: ['DATABASE_URL'],
   });
 
-// AI provider env. We support three transports:
+// AI provider env. We support two transports:
 //
-//   1. Google Vertex AI (direct): set `GOOGLE_VERTEX_PROJECT`,
-//                                 `GOOGLE_VERTEX_LOCATION`, and either
-//                                 `GOOGLE_APPLICATION_CREDENTIALS_JSON`
-//                                 (full SA key JSON, single-line) or
-//                                 `GOOGLE_APPLICATION_CREDENTIALS` (path).
-//                                 Model ids must be prefixed `google-vertex/`.
-//                                 Billed against your GCP project.
+//   1. Direct Google Gemini API:  set `GOOGLE_GENERATIVE_AI_API_KEY`. Pair
+//                                 with a `google/...` model id. Free tier.
 //   2. Vercel AI Gateway:         set `AI_GATEWAY_API_KEY`. Models routed by
 //                                 prefixed id (e.g. `openai/gpt-4.1`).
-//                                 Billed by Vercel.
-//   3. Direct Google Gemini API:  set `GOOGLE_GENERATIVE_AI_API_KEY`. Pair
-//                                 with a `google/...` model id. Free tier.
 //
-// At least one transport must be configured. The resolver in
-// packages/ai/src/model.ts picks per-call based on the model id prefix.
-//
-// Domain-based model routing classifies each user turn
-// into one of {fundamental, technical, summary, vision, generic} and picks
-// the model from the matching env var below. All defaults stay safe — if
-// you don't set the new vars, behaviour falls back to AI_DEFAULT_MODEL.
+// Model routing classifies user turns and picks the model from the matching
+// env var below. All defaults stay safe — if you don't set the new vars,
+// behaviour falls back to AI_DEFAULT_MODEL.
 const AiEnv = z.object({
   AI_GATEWAY_API_KEY: z.string().min(1).optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
-  GOOGLE_VERTEX_PROJECT: z.string().min(1).optional(),
-  GOOGLE_VERTEX_LOCATION: z.string().min(1).optional(),
-  GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(1).optional(),
-  GOOGLE_APPLICATION_CREDENTIALS: z.string().min(1).optional(),
-  AI_DEFAULT_MODEL: z.string().default('google-vertex/gemini-2.5-flash'),
+  AI_DEFAULT_MODEL: z.string().default('google/gemini-2.5-flash'),
   /**
    * Auto-title generator (first-turn thread title) and operator-set
    * fallback for the planner-style cheap model. Per-user picks come
    * from `user_settings.chat_model` + `derivePlannerModel` / `deriveTitleModel`.
    */
-  AI_TITLE_MODEL: z.string().default('google-vertex/gemini-2.5-flash-lite'),
+  AI_TITLE_MODEL: z.string().default('google/gemini-2.5-flash-lite'),
   AI_EMBEDDING_MODEL: z.string().default('openai/text-embedding-3-small'),
 });
 
-// NOTE: The AI transport refinement (requiring at least one of
-// AI_GATEWAY_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY / Vertex) was removed.
-// Open-source self-hosters use BYOK (Bring Your Own Key) — users add their
+// NOTE: Self-hosters use BYOK (Bring Your Own Key) — users add their
 // own AI provider keys via the in-app Settings → API Keys page after
 // registration. The app boots without any server-level AI keys. When a user
 // tries to chat without any keys configured, resolveChatModel() throws a
 // clear error pointing them to Settings → API Keys.
 //
-// Server operators who want to provide a server-wide AI fallback (e.g. for
-// a hosted SaaS) can still set AI_GATEWAY_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY
-// / GOOGLE_VERTEX_* — envFallbackKeys() in model.ts will surface them as
-// BYOK fallbacks.
+// Server operators who want to provide a server-wide AI fallback can still set
+// AI_GATEWAY_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY.
 
 // Upstash Redis is intentionally OPTIONAL. Personal-mode caching uses Next.js's
 // built-in Data Cache (`fetch`-cache + `unstable_cache`) which is free, persists
@@ -409,10 +389,6 @@ export function resolveMigrationDatabaseUrl(
 export type AiEnvKeys =
   | 'AI_GATEWAY_API_KEY'
   | 'GOOGLE_GENERATIVE_AI_API_KEY'
-  | 'GOOGLE_VERTEX_PROJECT'
-  | 'GOOGLE_VERTEX_LOCATION'
-  | 'GOOGLE_APPLICATION_CREDENTIALS_JSON'
-  | 'GOOGLE_APPLICATION_CREDENTIALS'
   | 'AI_DEFAULT_MODEL'
   | 'AI_TITLE_MODEL'
   | 'AI_EMBEDDING_MODEL'
@@ -435,10 +411,6 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
   return {
     AI_GATEWAY_API_KEY: env.AI_GATEWAY_API_KEY,
     GOOGLE_GENERATIVE_AI_API_KEY: env.GOOGLE_GENERATIVE_AI_API_KEY,
-    GOOGLE_VERTEX_PROJECT: env.GOOGLE_VERTEX_PROJECT,
-    GOOGLE_VERTEX_LOCATION: env.GOOGLE_VERTEX_LOCATION,
-    GOOGLE_APPLICATION_CREDENTIALS_JSON: env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
-    GOOGLE_APPLICATION_CREDENTIALS: env.GOOGLE_APPLICATION_CREDENTIALS,
     AI_DEFAULT_MODEL: env.AI_DEFAULT_MODEL,
     AI_TITLE_MODEL: env.AI_TITLE_MODEL,
     AI_EMBEDDING_MODEL: env.AI_EMBEDDING_MODEL,

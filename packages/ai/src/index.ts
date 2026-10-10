@@ -71,6 +71,7 @@ export {
   derivePlannerModel,
   deriveTitleModel,
   testProviderKey,
+  validateProviderConfig,
   routeModelByDomain,
   MODEL_ROUTER,
   TIER_TO_DOMAIN,

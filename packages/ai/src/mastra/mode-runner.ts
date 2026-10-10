@@ -46,7 +46,7 @@ import { kestrelMemoryOptions } from '../mastra-v2/memory';
 import { prepareResearchRunContext } from '../mastra-v2/research-context';
 import { runTracingOptions } from '../mastra-v2/telemetry';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../model';
-import type { ResolveModelEnv } from '../vertex-factory';
+import type { ResolveModelEnv } from '../env-model-factory';
 import {
   assertExecutionPlanRoute,
   requireExecutionPlanModel,

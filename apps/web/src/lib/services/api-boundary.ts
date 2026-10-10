@@ -76,6 +76,7 @@ export {
   assembleTrainingDataset,
   resolveEvaluationAnnotations,
   testProviderKey,
+  validateProviderConfig,
   extractUserMessageText,
   computeUsage,
   getDb,

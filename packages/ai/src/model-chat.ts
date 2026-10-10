@@ -20,9 +20,7 @@
 // Dependency: model-helpers.ts (PROVIDER_PRIORITY, envFallbackKeys).
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { PROVIDER_IDS } from '@kestrel/shared/byok';
 import {
-  configuredProviders,
   decryptByok,
   type ByokPayload,
   type ProviderId,
@@ -31,9 +29,10 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { LanguageModel } from 'ai';
 
 import { BYOK_PROVIDERS, type ModelDomain } from './byok-providers';
+import type { ResolveModelEnv } from './env-model-factory';
 import { isCircuitOpen } from './model-circuit-breaker';
-import { envFallbackKeys, PROVIDER_PRIORITY } from './model-helpers';
-import type { ResolveModelEnv } from './vertex-factory';
+import { envFallbackKeys } from './model-helpers';
+import { resolveModelForRole } from './model-role';
 
 const modelChatLog = createCategorizedLogger('ai', { component: 'model-chat' });
 
@@ -54,7 +53,7 @@ const modelChatLog = createCategorizedLogger('ai', { component: 'model-chat' });
  */
 export interface ChatModelResolution {
   model: LanguageModel;
-  /** Qualified id "google-vertex/gemini-2.5-pro". */
+  /** Qualified id "google/gemini-2.5-pro". */
   modelId: string;
   providerId: ProviderId;
   bareModelId: string;
@@ -89,93 +88,17 @@ export function resolveChatModel(
 ): ChatModelResolution {
   const stored = decryptByok(userSettings.aiApiKeys);
   const hasStoredKeys = stored && Object.keys(stored).length > 0;
-  // When a user has explicitly stored API keys in their settings, use ONLY
-  // those keys — don't include system-level env fallback keys. The env
-  // fallback (e.g. Google Vertex from server env vars) is a safety net for
-  // users who haven't configured their own key yet. Once a user has chosen
-  // a provider, that choice should be respected.
-  const keys: ByokPayload = hasStoredKeys ? stored : { ...envFallbackKeys(env), ...(stored ?? {}) };
-  const configured = configuredProviders(keys);
-  if (configured.length === 0) {
-    throw new Error(
-      'No AI API keys configured. Add a provider key in Settings → API Keys, ' +
-        'or visit /onboarding to walk through the setup wizard.',
-    );
-  }
+  const byok = hasStoredKeys ? stored : (stored ?? {});
+  const res = resolveModelForRole('chat', byok, env, {
+    userSettings: { chatModel: userSettings.chatModel },
+    domain,
+  });
 
-  // Honor the user's explicit pick if present and valid.
-  if (typeof userSettings.chatModel === 'string' && userSettings.chatModel.length > 0) {
-    const value = userSettings.chatModel;
-    const sep = value.indexOf(':');
-    if (sep >= 0) {
-      const providerIdRaw = value.slice(0, sep);
-      const bareModelId = value.slice(sep + 1);
-      if (PROVIDER_IDS.includes(providerIdRaw as ProviderId)) {
-        const providerId = providerIdRaw as ProviderId;
-        const apiKey = keys[providerId];
-        if (typeof apiKey === 'string' && apiKey.length > 0) {
-          const spec = BYOK_PROVIDERS[providerId];
-          if (spec) {
-            // The bare model id is checked against the spec's full
-            // catalog so a typo in the stored value fails loud instead
-            // of silently picking the provider's technical default.
-            const known = (spec.models ?? []).some(
-              (m: { modelId: string }) => m.modelId === bareModelId,
-            );
-            if (known) {
-              // M4 fix — check circuit breaker even for explicit picks.
-              if (isCircuitOpen(providerId)) {
-                // Fall through to priority-loop fallback rather than
-                // using a degraded provider.
-              } else {
-                return {
-                  model: spec.factory(apiKey)(bareModelId),
-                  modelId: `${spec.id}/${bareModelId}`,
-                  providerId,
-                  bareModelId,
-                };
-              }
-            }
-          }
-        }
-      }
-    }
-    // Invalid stored value — fall through to spec defaults below
-    // rather than throwing. Logging would be useful here in future.
-  }
-
-  // No explicit pick: use the priority-ordered first configured
-  // provider's model for the requested domain. Defaults to 'technical'
-  // when no domain is specified (backward-compatible).
-  const tier: ModelDomain = domain ?? 'technical';
-  const priority = configured
-    .slice()
-    .sort((a, b) => PROVIDER_PRIORITY.indexOf(a) - PROVIDER_PRIORITY.indexOf(b));
-
-  // M4 (RELIABILITY_AUDIT_REPORT.md) — skip providers whose circuit is
-  // open (3+ consecutive failures within 60s window). Falls through to
-  // the next-priority provider.
-  let providerId: ProviderId | undefined;
-  for (const p of priority) {
-    if (!isCircuitOpen(p)) {
-      providerId = p;
-      break;
-    }
-  }
-  if (!providerId) {
-    throw new Error('No configured provider available (all circuits are open).');
-  }
-  const spec = BYOK_PROVIDERS[providerId];
-  const apiKey = keys[providerId]!;
-  const bareModelId = spec.defaultModels[tier];
-  if (!bareModelId) {
-    throw new Error(`Provider ${providerId} has no default ${tier} model configured.`);
-  }
   return {
-    model: spec.factory(apiKey)(bareModelId),
-    modelId: `${spec.id}/${bareModelId}`,
-    providerId,
-    bareModelId,
+    model: res.model!,
+    modelId: res.modelId,
+    providerId: res.providerId,
+    bareModelId: res.bareModelId,
   };
 }
 
@@ -249,13 +172,13 @@ export function derivePlannerModel(
   env: ResolveModelEnv,
 ): string | null {
   try {
-    const chat = resolveChatModel(userSettings, env);
-    const spec = BYOK_PROVIDERS[chat.providerId];
-    const summary = spec?.defaultModels.summary;
-    if (summary) {
-      return `${chat.providerId}/${summary}`;
-    }
-    return chat.modelId;
+    const stored = decryptByok(userSettings.aiApiKeys);
+    const hasStoredKeys = stored && Object.keys(stored).length > 0;
+    const byok = hasStoredKeys ? stored : (stored ?? {});
+    const res = resolveModelForRole('planner', byok, env, {
+      userSettings: { chatModel: userSettings.chatModel },
+    });
+    return res.modelId;
   } catch (err) {
     modelChatLog.warn('planner model derivation fell back to default model', {
       err: err instanceof Error ? err.message : String(err),

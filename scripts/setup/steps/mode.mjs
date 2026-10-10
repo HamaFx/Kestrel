@@ -69,7 +69,7 @@ function printByokNote(io, compact) {
       'After registering, add your AI provider key via the',
       'onboarding wizard or Settings → API Keys.',
       'Your key is encrypted at rest (AES-256-GCM).',
-      'Supported: Gemini · Vertex · Anthropic · OpenAI · Groq ·',
+      'Supported: Gemini · Anthropic · OpenAI · Groq ·',
       'Mistral · OpenRouter · xAI · DeepSeek · IAMHC API',
     ],
     'info',

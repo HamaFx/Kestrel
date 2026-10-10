@@ -72,7 +72,7 @@ export function workflowIdForKind(kind: string | null): string | null {
   return null;
 }
 
-/** Derive the provider from a model id (`google/…`, `google-vertex/…`, …). */
+/** Derive the provider from a model id (`google/…`, `openai/…`, …). */
 export function providerFromModel(model: string): string {
   const slash = model.indexOf('/');
   if (slash > 0) return model.slice(0, slash);

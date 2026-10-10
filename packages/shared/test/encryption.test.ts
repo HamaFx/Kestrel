@@ -230,6 +230,7 @@ describe('configuredProviders', () => {
       vertex: 'sa-key',
       finnhub: 'fh-key',
     });
+    expect(result).toEqual(['openai']);
     for (const id of result) {
       expect(PROVIDER_IDS.includes(id)).toBe(true);
     }

@@ -161,12 +161,6 @@ describe('estimateCostUsd', () => {
     expect(mini).toBeLessThan(main / 5);
   });
 
-  it('prices Vertex-prefixed Gemini at the same rate as the gateway id', () => {
-    const vertex = estimateCostUsd('google-vertex/gemini-2.5-flash', 1_000_000, 1_000_000);
-    const gateway = estimateCostUsd('google/gemini-2.5-flash', 1_000_000, 1_000_000);
-    expect(vertex).toBeCloseTo(gateway, 6);
-    expect(vertex).toBeLessThan(5);
-  });
 
   it('prices bare BYOK Gemini id like the gateway id', () => {
     const bare = estimateCostUsd('gemini-2.5-pro', 1_000_000, 0);

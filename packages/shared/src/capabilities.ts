@@ -48,13 +48,11 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
       name: 'ai-server-fallback',
       status:
         configured(env.AI_GATEWAY_API_KEY) ||
-        configured(env.GOOGLE_GENERATIVE_AI_API_KEY) ||
-        configured(env.GOOGLE_VERTEX_PROJECT)
+        configured(env.GOOGLE_GENERATIVE_AI_API_KEY)
           ? 'enabled'
           : 'disabled',
       ...(configured(env.AI_GATEWAY_API_KEY) ||
-      configured(env.GOOGLE_GENERATIVE_AI_API_KEY) ||
-      configured(env.GOOGLE_VERTEX_PROJECT)
+      configured(env.GOOGLE_GENERATIVE_AI_API_KEY)
         ? {}
         : { reason: 'no server-level AI fallback; configure BYOK in the application' }),
     },

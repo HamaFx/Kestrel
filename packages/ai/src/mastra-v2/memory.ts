@@ -50,7 +50,7 @@ import { PgVector } from '@mastra/pg';
 
 import { embedTexts } from '../embeddings';
 import { resolveEmbeddingModel } from '../model';
-import type { ResolveModelEnv } from '../vertex-factory';
+import type { ResolveModelEnv } from '../env-model-factory';
 import { getKestrelMastra } from './instance';
 import {
   ensureLibsqlParent,

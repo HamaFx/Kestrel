@@ -63,17 +63,13 @@ PostgreSQL is required in every environment; provide `DATABASE_URL` or `POSTGRES
 
 Kestrel supports per-user BYOK through the application. Server-level AI credentials are optional in the self-hosting path.
 
-| Variable                              | Description                                     |
-| ------------------------------------- | ----------------------------------------------- |
-| `AI_GATEWAY_API_KEY`                  | Optional Vercel AI Gateway credential           |
-| `GOOGLE_GENERATIVE_AI_API_KEY`        | Optional direct Gemini API credential           |
-| `GOOGLE_VERTEX_PROJECT`               | Google Cloud project for Vertex AI              |
-| `GOOGLE_VERTEX_LOCATION`              | Vertex AI region                                |
-| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | Service-account JSON supplied as a value        |
-| `GOOGLE_APPLICATION_CREDENTIALS`      | Path to service-account credentials             |
-| `AI_DEFAULT_MODEL`                    | Default model, `google-vertex/gemini-2.5-flash` |
-| `AI_TITLE_MODEL`                      | Title/planner fallback model                    |
-| `AI_EMBEDDING_MODEL`                  | Embedding model                                 |
+| Variable                       | Description                               |
+| ------------------------------ | ----------------------------------------- |
+| `AI_GATEWAY_API_KEY`           | Optional AI Gateway credential            |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Optional direct Gemini API credential     |
+| `AI_DEFAULT_MODEL`             | Default model, `google/gemini-2.5-flash`  |
+| `AI_TITLE_MODEL`               | Title/planner fallback model              |
+| `AI_EMBEDDING_MODEL`           | Embedding model                           |
 
 Users configure provider keys under **Settings → API Keys**. Never log or commit credentials.
 

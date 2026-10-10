@@ -44,10 +44,6 @@ const execute = webSearchTool.execute as unknown as (
 const baseEnv = {
   AI_GATEWAY_API_KEY: undefined,
   GOOGLE_GENERATIVE_AI_API_KEY: undefined,
-  GOOGLE_VERTEX_PROJECT: undefined,
-  GOOGLE_VERTEX_LOCATION: undefined,
-  GOOGLE_APPLICATION_CREDENTIALS_JSON: undefined,
-  GOOGLE_APPLICATION_CREDENTIALS: undefined,
   AI_DEFAULT_MODEL: 'test-model',
   AI_EMBEDDING_MODEL: 'test-embedding',
   MAX_DAILY_USD: 5,

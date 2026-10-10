@@ -19,16 +19,12 @@ import type { UIMessage } from 'ai';
 
 import { runMastraBackgroundText } from '../mastra';
 import { appendAssistantMessage, appendUserMessage } from '../persistence';
-import type { ResolveModelEnv } from '../vertex-factory';
+import type { ResolveModelEnv } from '../env-model-factory';
 
 function botEnv(): ResolveModelEnv {
   return {
     AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
     GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    GOOGLE_VERTEX_PROJECT: process.env.GOOGLE_VERTEX_PROJECT,
-    GOOGLE_VERTEX_LOCATION: process.env.GOOGLE_VERTEX_LOCATION,
-    GOOGLE_APPLICATION_CREDENTIALS_JSON: process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
-    GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS,
     AI_EMBEDDING_MODEL: process.env.AI_EMBEDDING_MODEL,
   };
 }

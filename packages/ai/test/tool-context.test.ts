@@ -36,10 +36,6 @@ function makeContext(threadId: string, spent = 0): ToolContext {
     env: {
       AI_GATEWAY_API_KEY: 'test',
       GOOGLE_GENERATIVE_AI_API_KEY: 'test',
-      GOOGLE_VERTEX_PROJECT: undefined,
-      GOOGLE_VERTEX_LOCATION: undefined,
-      GOOGLE_APPLICATION_CREDENTIALS_JSON: undefined,
-      GOOGLE_APPLICATION_CREDENTIALS: undefined,
       AI_DEFAULT_MODEL: 'google/gemini-2.5-flash',
       AI_EMBEDDING_MODEL: 'openai/text-embedding-3-small',
       MAX_DAILY_USD: 5,

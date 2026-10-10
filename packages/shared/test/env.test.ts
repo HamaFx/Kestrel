@@ -215,16 +215,6 @@ describe('parseServerEnv — database URL variants', () => {
 });
 
 describe('parseServerEnv — AI transport variants', () => {
-  it('accepts Google Vertex AI transport', () => {
-    const env = parseServerEnv({
-      DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
-      GOOGLE_VERTEX_PROJECT: 'my-project',
-      GOOGLE_VERTEX_LOCATION: 'us-central1',
-      NODE_ENV: 'test',
-    });
-    expect(env.GOOGLE_VERTEX_PROJECT).toBe('my-project');
-  });
-
   it('accepts Google Generative AI transport', () => {
     const env = parseServerEnv({
       DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
@@ -241,17 +231,6 @@ describe('parseServerEnv — AI transport variants', () => {
     });
     expect(env.AI_GATEWAY_API_KEY).toBeUndefined();
     expect(env.GOOGLE_GENERATIVE_AI_API_KEY).toBeUndefined();
-    expect(env.GOOGLE_VERTEX_PROJECT).toBeUndefined();
-  });
-
-  it('accepts Vertex AI when location is missing', () => {
-    const env = parseServerEnv({
-      DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
-      GOOGLE_VERTEX_PROJECT: 'my-project',
-      NODE_ENV: 'test',
-    });
-    expect(env.GOOGLE_VERTEX_PROJECT).toBe('my-project');
-    expect(env.GOOGLE_VERTEX_LOCATION).toBeUndefined();
   });
 });
 
@@ -355,12 +334,12 @@ describe('parseServerEnv — defaults and transforms', () => {
 
   it('defaults AI_DEFAULT_MODEL', () => {
     const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test' });
-    expect(env.AI_DEFAULT_MODEL).toBe('google-vertex/gemini-2.5-flash');
+    expect(env.AI_DEFAULT_MODEL).toBe('google/gemini-2.5-flash');
   });
 
   it('defaults AI_TITLE_MODEL', () => {
     const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test' });
-    expect(env.AI_TITLE_MODEL).toBe('google-vertex/gemini-2.5-flash-lite');
+    expect(env.AI_TITLE_MODEL).toBe('google/gemini-2.5-flash-lite');
   });
 
   it('defaults NEXT_PUBLIC_APP_URL', () => {
