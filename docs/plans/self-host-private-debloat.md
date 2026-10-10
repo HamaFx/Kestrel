@@ -222,7 +222,7 @@ Each slice is **one commit directly on `main`**. If a post-merge Postgres boot f
 | # | Slice | Status | Notes |
 |---|-------|--------|-------|
 | 0 | Lock decisions & baseline | ✅ done | §0 answered 2026-10-10, preflight committed, tag `pre-debloat-20261010` |
-| 1 | OSS/public machinery | ☐ | Q5=A + Q10=A — delete public supply-chain + release workflows, update README |
+| 1 | OSS/public machinery | ✅ done | Q5=A + Q10=A — deleted public supply-chain + release workflows, updated README |
 | 2 | Env contract SSoT | ☐ | `turbo.json` + `env.ts` + `.env.example` + delete BYOK flag / legacy shim |
 | 3 | Docker Compose minimal + overlay | ☐ | Q2=B overlay + Q3=A Sentry removal |
 | 4 | Billing polish (keep) | ☐ | Q1=B — tighten, don't delete |
