@@ -184,15 +184,9 @@ The optional observability overlay uses `LANGFUSE_NEXTAUTH_SECRET`, `LANGFUSE_SA
 
 ## Deprecated and compatibility variables
 
-Use the canonical `KESTREL_*` and `AUTH_SECRET` names for all deployments. One read-only upgrade alias remains, accepted for exactly one release:
+Use the canonical `KESTREL_*` and `AUTH_SECRET` names for all deployments. All legacy aliases (`NEXTAUTH_SECRET`, `HAMAFX_*`) have been removed as of 0.3.0. Canonical environment variables are enforced strictly.
 
-| Legacy name       | Canonical name | Removal policy                      |
-| ----------------- | -------------- | ----------------------------------- |
-| `NEXTAUTH_SECRET` | `AUTH_SECRET`  | Accepted in 0.2.0; removed in 0.3.0 |
-
-The `HAMAFX_*` aliases (`HAMAFX_ENABLE_RLS`, `HAMAFX_RUNTIME`, `HAMAFX_LOCAL_DOCKER`) were removed in 0.2.0.
-
-Canonical values always take precedence. The application warns when a legacy alias is used without its canonical replacement; aliases are not copied back into configuration files. State-changing JSON API routes use the bounded `parseJsonBody` helper, which enforces a size limit and body-read timeout; new routes must use it instead of calling `req.json()` directly.
+State-changing JSON API routes use the bounded `parseJsonBody` helper, which enforces a size limit and body-read timeout; new routes must use it instead of calling `req.json()` directly.
 
 ## Configuration changes
 

@@ -48,8 +48,7 @@ const SYSTEM_USER_ID = '__system__';
 /** Keep unauthenticated rate-limit subjects out of the user_id FK and avoid
  * storing raw IP addresses or email addresses in the rate_limits table. */
 function unauthenticatedRateLimitKey(kind: string, value: string): string {
-  const secret =
-    process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? 'dev-only-rate-limit-key';
+  const secret = process.env.AUTH_SECRET ?? 'dev-only-rate-limit-key';
   const digest = createHmac('sha256', secret).update(value).digest('hex');
   return `${kind}:${digest}`;
 }

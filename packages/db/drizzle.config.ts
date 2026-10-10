@@ -78,8 +78,7 @@ o/bKiIz+Fq8=
     );
   }
 
-  const productionTls =
-    process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  const productionTls = process.env.NODE_ENV === 'production';
   return productionTls ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
 }
 

@@ -24,7 +24,6 @@ describe('impersonation challenges', () => {
 
   it('fails closed without a secret', () => {
     vi.stubEnv('AUTH_SECRET', '');
-    vi.stubEnv('NEXTAUTH_SECRET', '');
     expect(() => generateImpersonationChallenge()).toThrow(/AUTH_SECRET/);
     expect(verifyImpersonationChallenge('1.invalid')).toBe(false);
   });

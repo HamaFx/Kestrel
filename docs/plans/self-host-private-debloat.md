@@ -230,7 +230,7 @@ Each slice is **one commit directly on `main`**. If a post-merge Postgres boot f
 | 6 | CI + scripts declutter | ✅ done | Q8=A + Q10=A + Q12=A — retained ci-fast + codeql, deleted 6 obsolete workflows, cleaned scripts and loadtest |
 | 7 | Frontend (keep landing) | ✅ done | Q9=A — documented dual surfaces (trading cockpit + portfolio showcase) in architecture.md, verified build & bundle-size guard |
 | 8 | Docs & repo hygiene | ✅ done | Q5=A private — slimmed docs to private self-host, incorporated deployment-matrix into README, archived audit, removed obsolete checks |
-| 9 | Final polish & safety rails | ☐ | D5 + compat removal + `hamafx` comment |
+| 9 | Final polish & safety rails | ✅ done | D5 + compat removal + hamafx comment — NEXTAUTH_SECRET dropped, dev-secrets exclusively in .kestrel, Q11=A comment explicit |
 
 ---
 

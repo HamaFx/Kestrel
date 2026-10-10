@@ -63,7 +63,7 @@ describe('generateSecret', () => {
 
 describe('AUTO_GENERATED_SECRETS', () => {
   it('contains the three auto-generatable secrets', () => {
-    expect(AUTO_GENERATED_SECRETS).toEqual(['NEXTAUTH_SECRET', 'ENCRYPTION_SECRET', 'CRON_SECRET']);
+    expect(AUTO_GENERATED_SECRETS).toEqual(['AUTH_SECRET', 'ENCRYPTION_SECRET', 'CRON_SECRET']);
   });
 
   it('SECRET_MIN_BYTES covers each secret with sufficient length', () => {
@@ -74,13 +74,8 @@ describe('AUTO_GENERATED_SECRETS', () => {
 });
 
 describe('deprecated environment aliases', () => {
-  it('reports the one-release NEXTAUTH_SECRET alias only when AUTH_SECRET is absent', () => {
-    expect(getDeprecatedEnvAliases({ NEXTAUTH_SECRET: 'a'.repeat(32) })).toEqual([
-      { oldName: 'NEXTAUTH_SECRET', newName: 'AUTH_SECRET' },
-    ]);
-    expect(
-      getDeprecatedEnvAliases({ NEXTAUTH_SECRET: 'a'.repeat(32), AUTH_SECRET: 'b'.repeat(32) }),
-    ).toEqual([]);
+  it('no longer reports NEXTAUTH_SECRET as active alias (dropped in 0.3.0)', () => {
+    expect(getDeprecatedEnvAliases({ NEXTAUTH_SECRET: 'a'.repeat(32) })).toEqual([]);
   });
 
   it('no longer reports the removed HAMAFX_* aliases', () => {
@@ -98,7 +93,7 @@ describe('parseServerEnv — dev mode secret ergonomics', () => {
     // parseServerEnv itself does not autofill (that's a web-app concern
     // so it can persist to disk).
     expect(env.NODE_ENV).toBe('development');
-    expect(env.NEXTAUTH_SECRET).toBeUndefined();
+    expect(env.AUTH_SECRET).toBeUndefined();
     expect(env.ENCRYPTION_SECRET).toBeUndefined();
     expect(env.CRON_SECRET).toBeUndefined();
   });
@@ -112,11 +107,11 @@ describe('parseServerEnv — dev mode secret ergonomics', () => {
     const env = parseServerEnv({
       ...MINIMAL_ENV,
       NODE_ENV: 'development',
-      NEXTAUTH_SECRET: 'a'.repeat(32),
+      AUTH_SECRET: 'a'.repeat(32),
       ENCRYPTION_SECRET: 'b'.repeat(32),
       CRON_SECRET: 'c'.repeat(20),
     });
-    expect(env.NEXTAUTH_SECRET).toBe('a'.repeat(32));
+    expect(env.AUTH_SECRET).toBe('a'.repeat(32));
     expect(env.ENCRYPTION_SECRET).toBe('b'.repeat(32));
     expect(env.CRON_SECRET).toBe('c'.repeat(20));
   });
@@ -125,16 +120,16 @@ describe('parseServerEnv — dev mode secret ergonomics', () => {
 describe('parseServerEnv — production requires secrets', () => {
   it('throws when NODE_ENV=production and secrets missing', () => {
     expect(() => parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'production' })).toThrow(
-      /NEXTAUTH_SECRET|ENCRYPTION_SECRET|CRON_SECRET/,
+      /AUTH_SECRET|ENCRYPTION_SECRET|CRON_SECRET/,
     );
   });
 
-  it('throws when only NEXTAUTH_SECRET is present in production', () => {
+  it('throws when only AUTH_SECRET is present in production', () => {
     expect(() =>
       parseServerEnv({
         ...MINIMAL_ENV,
         NODE_ENV: 'production',
-        NEXTAUTH_SECRET: 'a'.repeat(32),
+        AUTH_SECRET: 'a'.repeat(32),
       }),
     ).toThrow(/ENCRYPTION_SECRET|CRON_SECRET/);
   });
@@ -143,24 +138,24 @@ describe('parseServerEnv — production requires secrets', () => {
     const env = parseServerEnv({
       ...MINIMAL_ENV,
       NODE_ENV: 'production',
-      NEXTAUTH_SECRET: 'a'.repeat(32),
+      AUTH_SECRET: 'a'.repeat(32),
       ENCRYPTION_SECRET: 'b'.repeat(32),
       CRON_SECRET: 'c'.repeat(20),
     });
     expect(env.NODE_ENV).toBe('production');
-    expect(env.NEXTAUTH_SECRET).toBe('a'.repeat(32));
+    expect(env.AUTH_SECRET).toBe('a'.repeat(32));
   });
 });
 
 describe('parseServerEnv — secret length validation', () => {
-  it('rejects short NEXTAUTH_SECRET when provided', () => {
+  it('rejects short AUTH_SECRET when provided', () => {
     expect(() =>
       parseServerEnv({
         ...MINIMAL_ENV,
         NODE_ENV: 'development',
-        NEXTAUTH_SECRET: 'too-short',
+        AUTH_SECRET: 'too-short',
       }),
-    ).toThrow(/NEXTAUTH_SECRET/);
+    ).toThrow(/AUTH_SECRET/);
   });
 
   it('rejects short ENCRYPTION_SECRET when provided', () => {

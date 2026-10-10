@@ -139,9 +139,7 @@ function checkEnv(): CheckResult {
   const missing = required.filter((key) => {
     if (key === 'DATABASE_URL') return !process.env.DATABASE_URL && !process.env.POSTGRES_URL;
     if (key === 'AUTH_COOKIE_SECRET') {
-      return (
-        !process.env.AUTH_COOKIE_SECRET && !process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET
-      );
+      return !process.env.AUTH_COOKIE_SECRET && !process.env.AUTH_SECRET;
     }
     return !process.env[key];
   });

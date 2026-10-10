@@ -521,7 +521,7 @@ function mutationDraftToStreamResponse(draft: MutationDraftEvent): Response {
 }
 
 /** fetch wrapper that bridges queued jobs and legacy SSE into the AI SDK data stream. */
-async function hamaFxFetch(
+async function kestrelChatFetch(
   onProgress: (p: AgentProgress | null) => void,
   input: RequestInfo | URL,
   init?: RequestInit,
@@ -572,7 +572,7 @@ export function createKestrelChatTransport(
     ...(options.prepareSendMessagesRequest !== undefined && {
       prepareSendMessagesRequest: options.prepareSendMessagesRequest,
     }),
-    fetch: (input, init) => hamaFxFetch(onProgress, input, init),
+    fetch: (input, init) => kestrelChatFetch(onProgress, input, init),
   };
   return new DefaultChatTransport<UIMessage>(transportOptions);
 }

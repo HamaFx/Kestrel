@@ -22,7 +22,7 @@
 // getUserFromRequest() (Node.js route handler) verifies the signature
 // before trusting the header.
 //
-// The secret is NEXTAUTH_SECRET / AUTH_SECRET — the same key used by
+// The secret is AUTH_SECRET — the same key used by
 // NextAuth.js for JWT signing. No new secret required.
 //
 // NOTE: This file is imported by BOTH proxy and route handlers. Only
@@ -36,7 +36,7 @@ export const USER_ID_SIG_HEADER = 'x-user-id-sig';
  * Sign a userId + requestId pair using HMAC-SHA256.
  *
  * Uses the Web Crypto API so the proxy can use it in any supported runtime.
- * Uses NEXTAUTH_SECRET (or AUTH_SECRET) as the signing key.
+ * Uses AUTH_SECRET as the signing key.
  */
 export async function signUserId(
   userId: string,
@@ -61,10 +61,10 @@ export async function signUserId(
 
 /**
  * Read the signing secret from process.env.
- * Returns undefined when neither AUTH_SECRET nor NEXTAUTH_SECRET is set.
+ * Returns undefined when AUTH_SECRET is not set.
  */
 export function getSigningSecret(): string | undefined {
-  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  const secret = process.env.AUTH_SECRET;
   if (!secret || secret.length < 32) return undefined;
   return secret;
 }
