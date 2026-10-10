@@ -81,6 +81,10 @@ Before publishing:
 - Remove private URLs, project identifiers, credentials, cookies, and customer data from tracked files and release artifacts.
 - Update `CHANGELOG.md` with user-visible changes, limitations, and security notes.
 
+## Optional billing gate
+
+Billing is optional. Skip the billing checklist when `BILLING_ENABLED=0`. When enabling it, verify the NOWPayments API credentials, IPN secret, webhook signature handling, idempotency, DLQ retention, and operator responsibilities before release.
+
 ## Security and licensing gate
 
 Run current-tree and Git-history secret scans. Review:
@@ -91,7 +95,7 @@ Run current-tree and Git-history secret scans. Review:
 - Provider trademarks and terms
 - Dependency license report
 - `NOTICE` and Apache-2.0 obligations
-- Sentry/Langfuse default and prompt/output capture behavior
+- Langfuse default and prompt/output capture behavior
 
 Do not publish a release if secrets or private operational data are detected. Provider and market-data redistribution rights remain the operator’s responsibility.
 
