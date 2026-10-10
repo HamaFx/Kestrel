@@ -73,7 +73,7 @@ jobs:
 
       - name: Create Release Pull Request or Publish
         id: changesets
-        uses: changesets/action@e87c8ed249971350e47fab7515075f44eb134e5b # v1.7.0
+        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
         with:
           publish: pnpm run publish-packages
           commit: 'chore(release): version packages'
