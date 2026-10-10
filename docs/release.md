@@ -18,9 +18,9 @@ tag:            v0.1.0
 GitHub Release: Kestrel v0.1.0
 ```
 
-The `main` branch is the development channel and is not the stable update channel for ordinary self-hosted users. The `pnpm update` command uses the newest published stable GitHub Release, not `main`. It preserves `.env` and Docker volumes; users should create and verify a backup before migration releases.
+The `main` branch is the development channel. Updates on private deployments are applied via `git pull && docker compose up -d --build`. It preserves `.env` and Docker volumes; operators should create and verify a backup before migration releases.
 
-Every stable release should include release notes, migration notes, known limitations, source revision, Docker image tags/digests, SBOM/provenance metadata, and rollback guidance where applicable.
+Every stable release should include release notes, migration notes, known limitations, source revision, Docker image tags/digests, and rollback guidance where applicable.
 
 ## Release inputs
 
@@ -31,7 +31,6 @@ A release should identify:
 - Workspace package versions, where published
 - Web and worker container tags/digests
 - Database migration state
-- SBOM and dependency-license inventory
 - Release notes and known limitations
 - Rollback source revision/image
 
@@ -43,22 +42,17 @@ From a clean checkout:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm typecheck
-pnpm lint
+pnpm turbo run typecheck
+pnpm turbo run lint
 pnpm turbo run test -- --run
-pnpm build
+pnpm turbo run build
 ```
 
-Run the security/release contract checks:
+Run the security and environment contract checks:
 
 ```bash
-pnpm check:oss-release
-pnpm check:p0-release
-pnpm check:p3-release
-pnpm check:route-security
 pnpm check:env-contract
-pnpm check:release-archive
-pnpm check:dependency-report
+pnpm check:route-security
 ```
 
 For database and deployment validation, also run the appropriate disposable tests:
@@ -74,8 +68,8 @@ The PostgreSQL RLS test requires real disposable PostgreSQL. Do not run validati
 
 Before publishing:
 
-- Confirm `README.md` describes only verified public behavior.
-- Confirm `docs/deployment-matrix.md` matches Compose and setup behavior.
+- Confirm `README.md` describes only verified behavior.
+- Confirm `README.md` Profile Matrix matches Compose and setup behavior.
 - Confirm `docs/configuration.md`, `docs/troubleshooting.md`, and `docs/architecture.md` match source.
 - Confirm `SUPPORT.md`, `SECURITY.md`, and `CONTRIBUTING.md` contain working links and current boundaries.
 - Remove private URLs, project identifiers, credentials, cookies, and customer data from tracked files and release artifacts.
@@ -113,28 +107,29 @@ Review the generated version changes and changelog before merging. Application a
 
 ## Docker release
 
-The public source-based update path is:
+The standard source-based deployment and update path is:
 
 ```bash
-pnpm update
+git pull
+docker compose up -d --build
 ```
 
-The updater downloads the stable source archive, validates that it is a Kestrel release, preserves operator configuration and data, creates a backup through the existing backup service, rebuilds the local Docker stack, and checks `/api/health/public`. If health fails, it stops and prints log and backup instructions rather than silently rolling back.
+If using the observability overlay:
 
-Docker image publication is tied to a manually published GitHub Release. The release tag is the human-readable version; the commit SHA and image digest provide immutable provenance.
+```bash
+git pull
+docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability up -d --build
+```
 
-The Docker publication workflow runs when a GitHub release is published. It:
+The update preserves `.env`, `.env.local`, `.kestrel/`, and Docker volumes. If health checks fail after an update, inspect logs:
 
-1. Builds web and worker images.
-2. Runs Trivy scans for high/critical vulnerabilities.
-3. Publishes images to GHCR.
-4. Adds source revision metadata.
-5. Requests build provenance and SBOM metadata.
-6. Applies release and commit tags.
+```bash
+docker compose logs --tail=200 app
+docker compose logs --tail=200 worker
+docker compose ps
+```
 
-After publication, record the immutable image digests. Consumers should deploy a reviewed digest or release tag, not an unverified mutable tag.
-
-The public Compose deployment still requires an operator-generated `.env`:
+The Compose deployment requires an operator-generated `.env`:
 
 ```bash
 ./docker/init-secrets.sh
@@ -189,12 +184,10 @@ Do not roll back application images across incompatible database migrations with
 
 ## Release artifacts
 
-Recommended public artifacts include:
+Recommended release artifacts include:
 
 - Source tag/release notes
 - Web/worker image references and digests
-- SBOM
-- Dependency-license report
 - Validation summary
 - Known limitations and unsupported modes
 - Security contact/reporting instructions

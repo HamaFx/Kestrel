@@ -217,7 +217,7 @@ Tenant isolation is enforced via Postgres Row Level Security (RLS) on all user-d
 
 ### Operator-managed cloud topology
 
-The operator-managed Vercel/GCE/managed-database deployment is an infrastructure choice, not a separate product mode. Its private provider proxies, monitoring, cron, staging, and secret-management details must not be copied into public documentation.
+The operator-managed cloud deployment is an infrastructure choice, not a separate product mode. Its private provider proxies, monitoring, cron, staging, and secret-management details are maintained by the operator.
 
 ## Security boundaries
 
@@ -245,7 +245,7 @@ Kestrel persists application state in PostgreSQL. Docker backups are compressed 
 
 ## Observability
 
-Logging uses the shared structured logger with categories, trace correlation, redaction, and diagnostic context. Sentry and Langfuse are optional. Prompt/output capture is explicitly opt-in and should remain disabled unless privacy, retention, and provider terms have been reviewed.
+Logging uses the shared structured logger with categories, trace correlation, redaction, and diagnostic context. Langfuse tracing is an optional overlay. Prompt/output capture is explicitly opt-in and should remain disabled unless privacy, retention, and provider terms have been reviewed.
 
 ## Change guidance
 
