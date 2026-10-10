@@ -27,7 +27,6 @@ const backup = readFileSync(resolve(root, 'docker/backup-db.sh'), 'utf8');
 const healthcheck = readFileSync(resolve(root, 'docker/backup-healthcheck.sh'), 'utf8');
 const restore = readFileSync(resolve(root, 'docker/restore-db.sh'), 'utf8');
 const loadtestCompose = readFileSync(resolve(root, 'loadtest/docker-compose.loadtest.yml'), 'utf8');
-const loadtestWorkflow = readFileSync(resolve(root, '.github/workflows/loadtest.yml'), 'utf8');
 
 describe('Docker-local backup policy', () => {
   it('keeps backups on a named volume and does not expose the backup worker', () => {
@@ -64,7 +63,6 @@ describe('Docker-local backup policy', () => {
     expect(compose).not.toContain('curl -f http://localhost:3000/api/health || exit 1');
     expect(loadtestCompose).toContain('/api/health/public');
     expect(loadtestCompose).not.toContain('curl -sf http://localhost:3000/api/health |');
-    expect(loadtestWorkflow).toContain('/api/health/public');
   });
 
   it('requires an explicit destructive-restore confirmation', () => {

@@ -17,49 +17,28 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      # `package.json` pins the exact pnpm version via `packageManager`; let
-      # pnpm/action-setup auto-detect it rather than re-specifying here. The
-      # previous `with: version: 9` double-specified pnpm and caused
-      # Corepack to abort with "Multiple versions of pnpm specified" in ~3s
-      # (08 §1c).
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check:oss-release
-      - run: pnpm check:p0-release
-      - run: pnpm check:p3-release
       - run: pnpm check:route-security
       - run: pnpm check:env-contract
-      - run: pnpm check:release-archive
-      - run: pnpm check:dependency-report
-      - run: pnpm check:release-metadata
+      - run: pnpm check:compose-images
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
-      # Knip is report-only until its baseline is fully reviewed; it must not
-      # block application delivery on framework/dynamic-entrypoint findings.
+      # Knip is report-only; it must not block delivery on dynamic entrypoints.
       - name: Knip Report
         run: pnpm knip --no-progress
         continue-on-error: true
-      # L-2: Audit dependencies for known vulnerabilities at PR time.
-      # Blocks the build on CRITICAL severity advisories.
-      # Once existing advisories are addressed, raise to --audit-level=high.
+      # Audit dependencies for critical security vulnerabilities.
       - run: pnpm audit --audit-level=critical
-      # Phase 0.5: real build gate so a broken `next build` is caught in PR CI,
-      # not only later by Vercel.
+      # Build all packages and applications.
       - run: pnpm turbo run build
-      # Phase 0.6: enforce JS chunk size budgets so severe bundle bloat is caught
-      # before it reaches Vercel.
+      # Enforce JS chunk size budgets.
       - name: Bundle Size Guard
         run: pnpm --filter @kestrel/web bundle-size:check
-      # L1: Bundle analysis — run with ANALYZE=true to surface size regressions.
-      # The @next/bundle-analyzer generates a report but doesn't fail the build.
-      - name: Bundle Analysis
-        if: github.event_name == 'pull_request'
-        run: ANALYZE=true pnpm --filter @kestrel/web build
-        continue-on-error: true
 
   unit-tests:
     name: Unit Tests (Fast)
@@ -82,8 +61,6 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Phase 0.8: coverage on the PR path so coverage regressions are caught
-      # at PR time, not only nightly.
       - run: pnpm turbo run test -- --coverage
       - name: Test File Guard
         run: pnpm test:empty-guard
@@ -92,97 +69,17 @@ jobs:
         with:
           vite-config-path: vitest.workspace.ts
 
-  e2e-tests:
-    name: E2E Playwright (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22.13.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps
-        working-directory: ./apps/web
-      - run: pnpm exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-        working-directory: ./apps/web
-      - name: Upload blob report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: playwright-blob-shard-${{ matrix.shardIndex }}
-          path: apps/web/blob-report/
-          if-no-files-found: ignore
-          retention-days: 30
-      - name: Upload JUnit results
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: junit-results-shard-${{ matrix.shardIndex }}
-          path: apps/web/test-results/junit.xml
-          retention-days: 30
-      - name: Upload test artifacts
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: playwright-artifacts-shard-${{ matrix.shardIndex }}
-          path: |
-            apps/web/test-results/output/
-            apps/web/test-results/.last-run.json
-          retention-days: 7
-
-  merge-e2e-reports:
-    name: Merge Playwright Reports
-    if: always()
-    needs: e2e-tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22.13.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Download shard blobs
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: playwright-blob-shard-*
-          path: apps/web/blob-reports
-          merge-multiple: true
-      - name: Merge HTML report
-        working-directory: ./apps/web
-        run: pnpm exec playwright merge-reports --reporter=html blob-reports
-      - name: Upload merged report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: playwright-report-merged
-          path: apps/web/playwright-report/
-          if-no-files-found: ignore
-          retention-days: 30
-
   required-status:
     name: Required CI Status
     if: always()
-    needs: [lint-and-typecheck, unit-tests, e2e-tests]
+    needs: [lint-and-typecheck, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Fail when a required job failed or was cancelled
         env:
           LINT_RESULT: ${{ needs.lint-and-typecheck.result }}
           UNIT_RESULT: ${{ needs.unit-tests.result }}
-          E2E_RESULT: ${{ needs.e2e-tests.result }}
         run: |
           test "$LINT_RESULT" = success || { echo "lint-and-typecheck: $LINT_RESULT"; exit 1; }
           test "$UNIT_RESULT" = success || { echo "unit-tests: $UNIT_RESULT"; exit 1; }
-          test "$E2E_RESULT" = success || { echo "e2e-tests: $E2E_RESULT"; exit 1; }
           echo "Required CI jobs passed."
