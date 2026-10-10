@@ -11,7 +11,6 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "tsx scripts/dev.ts && turbo run dev",
-    "dev:local": "tsx scripts/dev.ts",
     "setup": "node scripts/setup.mjs",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -27,7 +26,6 @@
     "test:shared": "pnpm --filter @kestrel/shared test",
     "clean": "turbo run clean && rm -rf node_modules",
     "test:empty-guard": "node scripts/check-test-files.mjs",
-    "check-console-errors": "node scripts/check-console-errors.mjs",
     "verify:production": "node scripts/verify-production.mjs",
     "verify:local": "node scripts/verify-local-env.mjs",
     "check:compose-reproducibility": "node scripts/check-compose-reproducibility.mjs",
