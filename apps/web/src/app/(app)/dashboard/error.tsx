@@ -18,7 +18,6 @@
 
 // Scoped error boundary for the dashboard view.
 // Keeps the app chrome intact while showing an inline failure card.
-import * as Sentry from '@sentry/nextjs';
 import { IconAlertTriangle, IconRefresh } from '@tabler/icons-react';
 import { useEffect } from 'react';
 
@@ -31,7 +30,7 @@ interface DashboardErrorProps {
 
 export default function DashboardError({ error, reset }: DashboardErrorProps) {
   useEffect(() => {
-    Sentry.captureException(error);
+    console.error(error);
   }, [error]);
 
   return (

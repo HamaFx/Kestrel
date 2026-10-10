@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as Sentry from '@sentry/nextjs';
 
 export async function register() {
   // Phase 3 §3.9 — load secrets from vault (GCP Secret Manager) before
@@ -40,11 +39,5 @@ export async function register() {
         err,
       );
     });
-    await import('./sentry.server.config');
-  }
-  if (process.env.NEXT_RUNTIME === 'edge') {
-    await import('./sentry.edge.config');
   }
 }
-
-export const onRequestError = Sentry.captureRequestError;

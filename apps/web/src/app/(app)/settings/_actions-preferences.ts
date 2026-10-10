@@ -21,7 +21,7 @@ import { getDb } from '@kestrel/ai';
 import { requireTenantIdForUser, schema, updateUserDisplayName, withRateLimit } from '@kestrel/db';
 import { PresentationPreferencesSchema } from '@kestrel/shared';
 import { PROVIDER_IDS } from '@kestrel/shared/encryption';
-import * as Sentry from '@sentry/nextjs';
+import { logActionError } from '@/lib/action-errors';
 import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -63,7 +63,7 @@ export async function updateProfileAction(formData: FormData): Promise<ActionRes
     revalidatePath('/settings/profile');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -106,7 +106,7 @@ export async function updateUIPrefsAction(prefs: {
     revalidatePath('/settings');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -149,7 +149,7 @@ export async function updateAiPrefsAction(customInstructions: string): Promise<A
     revalidatePath('/settings');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -187,7 +187,7 @@ export async function updateDisabledToolsAction(disabledTools: string[]): Promis
     revalidatePath('/settings/agent');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -242,7 +242,7 @@ export async function updateNotificationPrefsAction(
     revalidatePath('/settings');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -305,7 +305,7 @@ export async function updateUsageSettingsAction(formData: FormData): Promise<Act
     revalidatePath('/settings/usage');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -386,7 +386,7 @@ export async function addSymbolAction(formData: FormData): Promise<ActionResult>
     revalidatePath('/settings/symbols');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -429,7 +429,7 @@ export async function removeSymbolAction(formData: FormData): Promise<ActionResu
     revalidatePath('/settings/symbols');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -471,7 +471,7 @@ export async function updateLocaleAction(locale: string): Promise<ActionResult> 
     revalidatePath('/settings');
     return { ok: true };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return { ok: false, error: 'Failed to update locale' };
   }
 }

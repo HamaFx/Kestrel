@@ -19,7 +19,6 @@
 // Per-segment error boundary for the (app) group. Keeps the chrome (top bar
 // + bottom nav) intact while showing an inline failure card — better than
 // the root error.tsx which hides everything.
-import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,7 @@ interface AppErrorProps {
 
 export default function AppError({ error, reset }: AppErrorProps) {
   useEffect(() => {
-    Sentry.captureException(error);
+    console.error(error);
   }, [error]);
 
   return (

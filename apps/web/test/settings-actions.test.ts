@@ -29,7 +29,7 @@ import {
   encryptWithPassword,
   PROVIDER_IDS,
 } from '@kestrel/shared/encryption';
-import * as Sentry from '@sentry/nextjs';
+import { logActionError } from '@/lib/action-errors';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
@@ -106,7 +106,7 @@ vi.mock('@kestrel/db', () => ({
   schema: schemaProxy,
 }));
 
-vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
+vi.mock('@/lib/action-errors', () => ({ logActionError: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 vi.mock('@kestrel/ai', async (importOriginal) => {
@@ -239,12 +239,12 @@ describe('updateProfileAction', () => {
     expect(updateUserDisplayName).toHaveBeenCalledWith(USER_ID, 'Updated Name');
   });
 
-  it('captures Sentry exception on DB error', async () => {
+  it('logs server-action errors', async () => {
     (updateUserDisplayName as Mock).mockRejectedValueOnce(new Error('connection lost'));
 
     const result = await updateProfileAction(formData({ name: 'Updated Name' }));
     expect(result).toEqual({ ok: false, error: 'connection lost' });
-    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(logActionError).toHaveBeenCalled();
   });
 });
 
@@ -312,7 +312,7 @@ describe('addSymbolAction', () => {
     expect(result).toEqual({ ok: true });
   });
 
-  it('captures Sentry exception on DB error', async () => {
+  it('logs server-action errors', async () => {
     const db = mockQueryChain([]);
     mockGetDb.mockReturnValue(db);
     db.select = vi.fn(() => {
@@ -321,7 +321,7 @@ describe('addSymbolAction', () => {
 
     const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
     expect(result).toEqual({ ok: false, error: 'db timeout' });
-    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(logActionError).toHaveBeenCalled();
   });
 });
 
@@ -348,7 +348,7 @@ describe('removeSymbolAction', () => {
     expect(revalidatePath).toHaveBeenCalledWith('/settings/symbols');
   });
 
-  it('captures Sentry exception on DB error', async () => {
+  it('logs server-action errors', async () => {
     const db = mockQueryChain([]);
     mockGetDb.mockReturnValue(db);
     db.delete = vi.fn(() => {
@@ -357,7 +357,7 @@ describe('removeSymbolAction', () => {
 
     const result = await removeSymbolAction(formData({ symbol: 'XAUUSD' }));
     expect(result).toEqual({ ok: false, error: 'permission denied' });
-    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(logActionError).toHaveBeenCalled();
   });
 });
 
@@ -426,7 +426,7 @@ describe('exportKeysAction', () => {
     }
   });
 
-  it('captures Sentry exception on DB error', async () => {
+  it('logs server-action errors', async () => {
     // First getDb call: returns twoFactorEnabled fine.
     // Second getDb call: throws on select.
     const okDb = mockQueryChain([[{ twoFactorEnabled: false }]]);
@@ -439,7 +439,7 @@ describe('exportKeysAction', () => {
 
     const result = await exportKeysAction(TEST_PASSWORD);
     expect(result).toEqual({ ok: false, error: 'read failure' });
-    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(logActionError).toHaveBeenCalled();
   });
 });
 
@@ -583,7 +583,7 @@ describe('importKeysAction', () => {
     expect(result).toEqual({ ok: false, error: 'Invalid backup payload or incorrect password' });
   });
 
-  it('captures Sentry exception on DB error', async () => {
+  it('logs server-action errors', async () => {
     const backup = encryptWithPassword({ openai: 'sk-abc' }, TEST_PASSWORD);
 
     // importKeysAction calls getDb() once for the update
@@ -595,7 +595,7 @@ describe('importKeysAction', () => {
 
     const result = await importKeysAction(backup, TEST_PASSWORD);
     expect(result).toEqual({ ok: false, error: 'update failed' });
-    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(logActionError).toHaveBeenCalled();
   });
 });
 
@@ -627,7 +627,7 @@ describe('updateUsageSettingsAction', () => {
     expect(revalidatePath).toHaveBeenCalledWith('/settings/usage');
   });
 
-  it('captures Sentry exception on DB error', async () => {
+  it('logs server-action errors', async () => {
     const db = mockQueryChain([]);
     mockGetDb.mockReturnValue(db);
     db.update = vi.fn(() => {
@@ -641,6 +641,6 @@ describe('updateUsageSettingsAction', () => {
       }),
     );
     expect(result).toEqual({ ok: false, error: 'write conflict' });
-    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(logActionError).toHaveBeenCalled();
   });
 });

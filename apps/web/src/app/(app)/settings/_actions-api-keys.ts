@@ -28,7 +28,7 @@ import {
   PROVIDER_IDS,
   type ByokPayload,
 } from '@kestrel/shared/encryption';
-import * as Sentry from '@sentry/nextjs';
+import { logActionError } from '@/lib/action-errors';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { verifySync } from 'otplib';
@@ -250,7 +250,7 @@ export async function exportKeysAction(
 
     return { ok: true as const, data: { payload: backupPayload } };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -329,7 +329,7 @@ export async function importKeysAction(
     revalidatePath('/settings/api-keys');
     return { ok: true as const, data: { importedCount: Object.keys(validKeys).length } };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -375,7 +375,7 @@ export async function updateMarketDataProviderAction(formData: FormData): Promis
     revalidatePath('/settings');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',

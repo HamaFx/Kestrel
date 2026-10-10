@@ -120,11 +120,18 @@ Keep service-role credentials server-only. The VAPID public keys must match exac
 
 ## Observability and retention
 
-Sentry and Langfuse are optional and should remain disabled unless deliberately configured. Langfuse stays **off by default**: the bundled Docker stack only starts it with `docker compose --profile observability up -d`, which also brings up the ClickHouse, Redis, MinIO (S3), and Langfuse worker containers Langfuse v3 requires. The trace viewer is then at `http://localhost:3001`. The setup wizard (`pnpm setup`) can enable the profile and records `LANGFUSE_BASE_URL=http://langfuse:3000` in `.env` (the internal Compose service URL the app exports to — the host-facing viewer stays at `http://localhost:3001`); the project keys still have to be created in the Langfuse UI (Project Settings → API Keys) and added as `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY`.
+Langfuse is optional and should remain disabled unless deliberately configured. The bundled observability overlay is **not loaded by default**. To run it, generate the overlay secrets and combine both Compose files:
+
+```bash
+./docker/init-secrets.sh --with-observability
+docker compose -f docker-compose.yml \
+  -f docker-compose.observability.yml --profile observability up -d
+```
+
+The overlay starts ClickHouse, Redis, MinIO (S3), Langfuse, and its worker. The trace viewer is at `http://localhost:3001`. The setup wizard (`pnpm setup --with-observability`) records `LANGFUSE_BASE_URL=http://langfuse:3000` in `.env` (the internal Compose service URL; the host-facing viewer stays at port 3001). The project keys still have to be created in the Langfuse UI and added as `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY`. Kestrel does not use Sentry.
 
 | Variable                       | Default | Description                           |
 | ------------------------------ | ------- | ------------------------------------- |
-| `SENTRY_DSN`                   | unset   | Optional server-side Sentry reporting |
 | `LANGFUSE_PUBLIC_KEY`          | unset   | Optional Langfuse key                 |
 | `LANGFUSE_SECRET_KEY`          | unset   | Optional Langfuse secret              |
 | `LANGFUSE_BASE_URL`            | unset   | Langfuse endpoint                     |
@@ -140,7 +147,7 @@ Review privacy, retention, and provider terms before enabling telemetry or promp
 
 ## Billing
 
-Billing is disabled by default and is not part of the normal self-hosting path.
+Billing is disabled unless `BILLING_ENABLED=1` — it is a self-host opt-in and is not part of the normal path.
 
 | Variable                 | Default     | Description                   |
 | ------------------------ | ----------- | ----------------------------- |
@@ -178,15 +185,7 @@ The setup wizard generates these values in `.env`:
 - `BACKUP_INTERVAL_SECONDS`
 - `BACKUP_RETENTION_DAYS`
 - `BACKUP_MAX_AGE_SECONDS`
-- `LANGFUSE_NEXTAUTH_SECRET`
-- `LANGFUSE_SALT`
-- `LANGFUSE_ENCRYPTION_KEY`
-- `LANGFUSE_CLICKHOUSE_PASSWORD`
-- `LANGFUSE_REDIS_PASSWORD`
-- `LANGFUSE_S3_ACCESS_KEY_ID`
-- `LANGFUSE_S3_SECRET_ACCESS_KEY`
-
-Run `./docker/init-secrets.sh` instead of manually inventing secret values. Existing `.env` files are preserved.
+The optional observability overlay uses `LANGFUSE_NEXTAUTH_SECRET`, `LANGFUSE_SALT`, `LANGFUSE_ENCRYPTION_KEY`, `LANGFUSE_CLICKHOUSE_PASSWORD`, `LANGFUSE_REDIS_PASSWORD`, `LANGFUSE_S3_ACCESS_KEY_ID`, and `LANGFUSE_S3_SECRET_ACCESS_KEY`. Run `./docker/init-secrets.sh --with-observability` to add only those values when enabling the overlay. The default generator leaves them out. Existing `.env` files are preserved.
 
 ## Deprecated and compatibility variables
 

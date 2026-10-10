@@ -43,9 +43,10 @@ const mockClaimBillingWebhookReplay = vi.hoisted(() => vi.fn());
 const mockMarkBillingWebhookReplayed = vi.hoisted(() => vi.fn());
 const mockReleaseBillingWebhookReplay = vi.hoisted(() => vi.fn());
 const mockCountStaleBillingWebhookFailures = vi.hoisted(() => vi.fn());
-const mockCaptureException = vi.hoisted(() => vi.fn());
-const mockCaptureMessage = vi.hoisted(() => vi.fn());
-const mockMetricsCount = vi.hoisted(() => vi.fn());
+const mockLoggerError = vi.hoisted(() => vi.fn());
+const mockLoggerWarn = vi.hoisted(() => vi.fn());
+const mockLoggerInfo = vi.hoisted(() => vi.fn());
+const mockLogger = vi.hoisted(() => ({ error: mockLoggerError, warn: mockLoggerWarn, info: mockLoggerInfo }));
 
 vi.mock('@/auth', () => ({ auth: mockAuth }));
 vi.mock('@/lib/admin-auth', () => ({
@@ -60,14 +61,12 @@ vi.mock('@/lib/admin-auth', () => ({
       handler(req, { user: { userId: 'admin-1' }, params: ctx?.params ?? Promise.resolve({}) }),
 }));
 vi.mock('@/lib/env', () => ({ getServerEnv: mockGetServerEnv }));
+vi.mock('@/lib/logger', () => ({
+  createScopedLoggerWithContext: () => mockLogger,
+}));
 vi.mock('@/lib/nowpayments', () => ({
   createInvoice: mockCreateInvoice,
   verifyIpnSignature: mockVerifyIpnSignature,
-}));
-vi.mock('@sentry/nextjs', () => ({
-  captureException: mockCaptureException,
-  captureMessage: mockCaptureMessage,
-  metrics: { count: mockMetricsCount },
 }));
 vi.mock('@kestrel/db', () => ({
   schema: {},
@@ -316,7 +315,7 @@ describe('billing P1 safety gate', () => {
       }),
     );
     expect(mockMarkIpnFailed).toHaveBeenCalledWith('payment-1', 'finished', 'database unavailable');
-    expect(mockCaptureException).toHaveBeenCalled();
+    expect(mockLoggerError).toHaveBeenCalled();
   });
 
   it('replays an authenticated DLQ entry through the canonical processor', async () => {
@@ -342,19 +341,9 @@ describe('billing P1 safety gate', () => {
     );
 
     expect(response.status).toBe(401);
-    expect(mockMetricsCount).toHaveBeenCalledWith(
-      'billing_webhook_signature_failure',
-      1,
-      expect.objectContaining({
-        attributes: expect.objectContaining({
-          component: 'billing-webhook',
-          provider: 'nowpayments',
-        }),
-      }),
-    );
-    expect(mockCaptureMessage).toHaveBeenCalledWith(
-      'Invalid NOWPayments IPN signature',
-      expect.objectContaining({ tags: expect.objectContaining({ kind: 'signature-failure' }) }),
+    expect(mockLoggerWarn).toHaveBeenCalledWith(
+      { signaturePresent: true },
+      'Invalid IPN signature',
     );
     expect(mockClaimIpnEvent).not.toHaveBeenCalled();
   });

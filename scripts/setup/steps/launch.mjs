@@ -30,6 +30,7 @@ import {
   openBrowser,
   waitForApp,
 } from '../lib/run.mjs';
+import { missingObservabilitySecrets } from '../lib/secrets.mjs';
 import { box, fail, info, note, ok, paint, startSpinner, warn } from '../lib/ui.mjs';
 
 export const title = 'Ready to launch';
@@ -115,8 +116,8 @@ export async function run(ctx) {
   // Langfuse observability is opt-in (compose profile `observability`).
   // Offer it here so the launch command, port pre-flight, and the final
   // interfaces list can all reflect the choice.
-  let langfuseEnabled = false;
-  if (isDocker) {
+  let langfuseEnabled = flags.withObservability;
+  if (isDocker && !langfuseEnabled) {
     const enableLangfuse = await confirm(io, {
       message: 'Enable Langfuse observability at http://localhost:3001? (AI trace viewer)',
       initial: false,
@@ -134,19 +135,30 @@ export async function run(ctx) {
       // internal service URL (langfuse:3000), not the host-facing 3001.
       if (!flags.dryRun) {
         const envPath = resolve(repoRoot, '.env');
+        const overlaySecrets = missingObservabilitySecrets(envPath);
         const { changed } = upsertEnvFile(
           envPath,
-          { LANGFUSE_BASE_URL: 'http://langfuse:3000' },
+          { ...overlaySecrets, LANGFUSE_BASE_URL: 'http://langfuse:3000' },
           { backup: false },
         );
+        if (Object.keys(overlaySecrets).length > 0)
+          info(io, 'Generated missing Langfuse overlay secrets.');
         if (changed) info(io, 'Saved LANGFUSE_BASE_URL=http://langfuse:3000 to .env');
       }
     }
   }
 
-  const profileArgs = langfuseEnabled ? ['--profile', 'observability'] : [];
+  const overlayArgs = [
+    '-f',
+    'docker-compose.yml',
+    '-f',
+    'docker-compose.observability.yml',
+    '--profile',
+    'observability',
+  ];
+  const profileArgs = langfuseEnabled ? overlayArgs : [];
   const startCommand = isDocker
-    ? `docker compose${langfuseEnabled ? ' --profile observability' : ''} up -d --build`
+    ? `docker compose${langfuseEnabled ? ` ${overlayArgs.join(' ')}` : ''} up -d --build`
     : `${packageManagerLabel(getPackageManager())} dev:local`;
 
   io.line();
@@ -331,7 +343,7 @@ function printDockerHints(io, { appPort = 3000, dbPort = 5432, langfuseEnabled =
       `${paint('Register:', 'bold')}   http://localhost:${appPort}/register`,
       langfuseEnabled
         ? `${paint('Langfuse:', 'bold')}    http://localhost:3001  ${paint('(AI trace viewer)', 'dim')}`
-        : `${paint('Langfuse:', 'bold')}    ${paint('not enabled', 'dim')}  → docker compose --profile observability up -d`,
+        : `${paint('Langfuse:', 'bold')}    ${paint('not enabled', 'dim')}  → docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability up -d`,
       `${paint('Database:', 'bold')}   127.0.0.1:${dbPort}  ${paint('(Postgres)', 'dim')}`,
       '',
       `${paint('Logs:', 'bold')}       docker compose logs -f app`,
@@ -358,7 +370,7 @@ function printLangfuseConnectGuide(io) {
       `4. Add them to ${paint('.env', 'brand')} (LANGFUSE_BASE_URL is already set):`,
       `   ${paint('LANGFUSE_PUBLIC_KEY=pk-…', 'brand')}`,
       `   ${paint('LANGFUSE_SECRET_KEY=sk-…', 'brand')}`,
-      `5. Restart the app: ${paint('docker compose restart app', 'brand')}`,
+      `5. Restart the app: ${paint('docker compose -f docker-compose.yml -f docker-compose.observability.yml restart app', 'brand')}`,
       'Traces from your next chat will appear in Langfuse.',
     ],
     { color: 'info', minWidth: 48 },

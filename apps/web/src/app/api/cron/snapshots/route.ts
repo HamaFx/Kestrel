@@ -32,7 +32,6 @@
 // (so the OHLC math has real bars) but coarse enough that 240 bars fit
 // comfortably in the data layer's free-tier quotas.
 
-import * as Sentry from '@sentry/nextjs';
 
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
@@ -67,9 +66,6 @@ export async function GET(req: Request): Promise<Response> {
         const message = err instanceof Error ? err.message : String(err);
         errors.push({ symbol, message });
         // STAB-04 / OBS-01: capture to Sentry, not just stdout.
-        Sentry.captureException(err, {
-          tags: { job: 'cron/snapshots', symbol },
-        });
         log.errorContext(err, 'computeDailySnapshot', { symbol, message });
       }
     }

@@ -26,7 +26,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parseFlags } from '../../../scripts/setup/index.mjs';
 import { upsertEnvFile } from '../../../scripts/setup/lib/env.mjs';
 import { MARKET_DATA_PROVIDERS, parseMarketFlag } from '../../../scripts/setup/lib/market-data.mjs';
-import { loadSecretTemplate, resolveTemplateValue } from '../../../scripts/setup/lib/secrets.mjs';
+import {
+  loadObservabilitySecretTemplate,
+  loadSecretTemplate,
+  resolveTemplateValue,
+} from '../../../scripts/setup/lib/secrets.mjs';
 import * as configStep from '../../../scripts/setup/steps/config.mjs';
 import * as detectStep from '../../../scripts/setup/steps/detect-existing.mjs';
 import * as installStep from '../../../scripts/setup/steps/install.mjs';
@@ -38,12 +42,7 @@ import * as prereqsStep from '../../../scripts/setup/steps/prereqs.mjs';
 
 const root = resolve(process.cwd(), '../..');
 
-const REQUIRED_SECRETS = [
-  'POSTGRES_PASSWORD',
-  'POSTGRES_ADMIN_PASSWORD',
-  'BACKUP_INTERVAL_SECONDS',
-  'BACKUP_RETENTION_DAYS',
-  'BACKUP_MAX_AGE_SECONDS',
+const OBSERVABILITY_SECRETS = [
   'LANGFUSE_NEXTAUTH_SECRET',
   'LANGFUSE_SALT',
   'LANGFUSE_ENCRYPTION_KEY',
@@ -51,6 +50,14 @@ const REQUIRED_SECRETS = [
   'LANGFUSE_REDIS_PASSWORD',
   'LANGFUSE_S3_ACCESS_KEY_ID',
   'LANGFUSE_S3_SECRET_ACCESS_KEY',
+];
+
+const REQUIRED_SECRETS = [
+  'POSTGRES_PASSWORD',
+  'POSTGRES_ADMIN_PASSWORD',
+  'BACKUP_INTERVAL_SECONDS',
+  'BACKUP_RETENTION_DAYS',
+  'BACKUP_MAX_AGE_SECONDS',
   'AUTH_SECRET',
   'NEXTAUTH_URL',
   'CRON_SECRET',
@@ -126,12 +133,16 @@ describe('setup wizard structure', () => {
     expect(wrapper).toContain('process.exitCode = code');
   });
 
-  it('gates the Langfuse stack behind the opt-in observability profile', () => {
-    const compose = readFileSync(resolve(root, 'docker-compose.yml'), 'utf8');
-    // Split top-level `  name:` blocks so each service is checked in isolation.
+  it('keeps the Langfuse stack out of the default compose file', () => {
+    const base = readFileSync(resolve(root, 'docker-compose.yml'), 'utf8');
+    const overlay = readFileSync(resolve(root, 'docker-compose.observability.yml'), 'utf8');
+    expect(base).not.toMatch(/^\s{2}(langfuse|langfuse-worker|clickhouse|redis|minio):/m);
+    expect(base).toContain('docker-compose.observability.yml');
+    expect(overlay).toMatch(/profiles: \[?"?observability/);
+
     const blocks = new Map();
     let current = null;
-    for (const line of compose.split('\n')) {
+    for (const line of overlay.split('\n')) {
       const match = line.match(/^  ([a-z0-9-]+):/);
       if (match) current = match[1];
       if (current) blocks.set(current, [...(blocks.get(current) ?? []), line]);
@@ -139,17 +150,9 @@ describe('setup wizard structure', () => {
     for (const service of ['langfuse', 'langfuse-worker', 'clickhouse', 'redis', 'minio']) {
       expect(
         blocks.get(service)?.join('\n'),
-        `${service} must be defined in docker-compose.yml`,
+        `${service} must be defined in the observability overlay`,
       ).toBeDefined();
-      expect(
-        blocks.get(service)?.join('\n'),
-        `${service} must live behind the observability profile`,
-      ).toMatch(/profiles:.*observability/);
     }
-    // The default `docker compose up` (no profile) must not publish Langfuse.
-    expect(compose).toContain(
-      '# Langfuse is opt-in: use `docker compose --profile observability up -d`.',
-    );
   });
 
   it('guides the user through connecting the Langfuse project keys (the non-automatable step)', () => {
@@ -157,7 +160,9 @@ describe('setup wizard structure', () => {
     expect(launch).toContain('Connect your app to Langfuse');
     expect(launch).toContain('LANGFUSE_PUBLIC_KEY=pk-');
     expect(launch).toContain('LANGFUSE_SECRET_KEY=sk-');
-    expect(launch).toContain('docker compose restart app');
+    expect(launch).toContain(
+      'docker compose -f docker-compose.yml -f docker-compose.observability.yml restart app',
+    );
     // The endpoint is deterministic, so the wizard records it automatically
     // (the internal Compose URL the app exports to, not the host-facing port).
     expect(launch).toContain("LANGFUSE_BASE_URL: 'http://langfuse:3000'");
@@ -281,9 +286,17 @@ describe('secret template — single source of truth', () => {
     }
   });
 
+  it('includes every overlay secret only in the overlay template', () => {
+    const overlayTemplate = loadObservabilitySecretTemplate();
+    for (const key of OBSERVABILITY_SECRETS) {
+      expect(overlayTemplate, `overlay template must define ${key}`).toHaveProperty(key);
+      expect(template, `default template must omit ${key}`).not.toHaveProperty(key);
+    }
+  });
+
   it('lists every template key in the generate-env.mjs section layout', () => {
     const source = readFileSync(resolve(root, 'scripts/setup/lib/generate-env.mjs'), 'utf8');
-    for (const key of Object.keys(template)) {
+    for (const key of [...Object.keys(template), ...Object.keys(loadObservabilitySecretTemplate())]) {
       expect(source, `generate-env.mjs must render ${key}`).toContain(`'${key}'`);
     }
   });
@@ -310,6 +323,29 @@ describe('generate-env.mjs CLI', () => {
     }
     expect(content).toContain('DO NOT commit this file');
     expect(statSync(target).mode & 0o777).toBe(0o600);
+  });
+
+  it('generates default secrets without overlay secrets', () => {
+    const target = resolve(dir, '.env');
+    execFileSync('node', [resolve(root, 'scripts/setup/lib/generate-env.mjs'), '--file', target]);
+    const content = readFileSync(target, 'utf8');
+    for (const key of OBSERVABILITY_SECRETS) {
+      expect(content, `${key} must not be generated by default`).not.toContain(`${key}=`);
+    }
+  });
+
+  it('generates overlay secrets only when requested', () => {
+    const target = resolve(dir, '.env');
+    execFileSync('node', [
+      resolve(root, 'scripts/setup/lib/generate-env.mjs'),
+      '--file',
+      target,
+      '--with-observability',
+    ]);
+    const content = readFileSync(target, 'utf8');
+    for (const key of OBSERVABILITY_SECRETS) {
+      expect(content, `fresh overlay .env contains ${key}`).toContain(`${key}=`);
+    }
   });
 
   it('never overwrites an existing file with --if-missing', () => {

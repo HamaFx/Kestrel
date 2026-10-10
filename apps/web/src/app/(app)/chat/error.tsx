@@ -18,7 +18,6 @@
 
 // Phase 7 task 7.8 — scoped error boundary for the chat view.
 // Keeps the app chrome intact while showing an inline failure card.
-import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,7 @@ interface ChatErrorProps {
 
 export default function ChatError({ error, reset }: ChatErrorProps) {
   useEffect(() => {
-    Sentry.captureException(error);
+    console.error(error);
   }, [error]);
 
   return (

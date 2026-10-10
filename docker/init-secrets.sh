@@ -9,11 +9,13 @@
 # Node.js (>= 20.11), which is already a project prerequisite.
 #
 # Usage:
-#   ./docker/init-secrets.sh
+#   ./docker/init-secrets.sh [--with-observability]
 #   docker compose up -d
+#
+# --with-observability adds the optional docker-compose.observability.yml secrets.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-exec node "$ROOT/scripts/setup/lib/generate-env.mjs" --if-missing
+exec node "$ROOT/scripts/setup/lib/generate-env.mjs" --if-missing "$@"

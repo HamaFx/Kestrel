@@ -34,7 +34,7 @@ import {
   withRateLimit,
 } from '@kestrel/db';
 import { decryptSecret, encryptSecret } from '@kestrel/shared/encryption';
-import * as Sentry from '@sentry/nextjs';
+import { logActionError } from '@/lib/action-errors';
 import bcrypt from 'bcryptjs';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -108,7 +108,7 @@ export async function setupTwoFactorAction(): Promise<
 
     return { ok: true, data: { secret, qrDataUrl, backupCodes: codes.map((c) => c.raw) } };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return { ok: false, error: 'Failed to generate 2FA setup' };
   }
 }
@@ -143,7 +143,7 @@ export async function regenerateBackupCodesAction(): Promise<
 
     return { ok: true, data: { backupCodes: codes.map((c) => c.raw) } };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return { ok: false, error: 'Failed to regenerate backup codes' };
   }
 }
@@ -184,7 +184,7 @@ export async function verifyTwoFactorAction(token: string): Promise<ActionResult
     revalidatePath('/settings');
     return { ok: true };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return { ok: false, error: 'Failed to verify 2FA code' };
   }
 }
@@ -237,7 +237,7 @@ export async function disableTwoFactorAction(token: string): Promise<ActionResul
     revalidatePath('/settings');
     return { ok: true };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return { ok: false, error: 'Failed to disable 2FA' };
   }
 }
@@ -265,7 +265,7 @@ export async function listSessionsAction(): Promise<
 
     return { ok: true as const, data: { sessions: rows, currentSessionId } };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return { ok: false as const, error: 'Failed to load sessions' };
   }
 }
@@ -287,7 +287,7 @@ export async function revokeSessionAction(sessionId: string): Promise<ActionResu
     revalidatePath('/settings');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return { ok: false as const, error: 'Failed to revoke session' };
   }
 }
@@ -310,7 +310,7 @@ export async function signOutEverywhereAction(): Promise<ActionResult> {
     revalidatePath('/settings');
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return { ok: false as const, error: 'Failed to sign out everywhere' };
   }
 }
@@ -422,7 +422,7 @@ export async function deleteAccountAction(
     await signOut({ redirectTo: '/' });
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',

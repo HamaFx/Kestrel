@@ -20,7 +20,7 @@
 import { deleteAllThreads, getDb } from '@kestrel/ai';
 import { requireTenantIdForUser, schema, withRateLimit } from '@kestrel/db';
 import { decryptSecret } from '@kestrel/shared/encryption';
-import * as Sentry from '@sentry/nextjs';
+import { logActionError } from '@/lib/action-errors';
 import { and, eq, inArray } from 'drizzle-orm';
 import { verifySync } from 'otplib';
 
@@ -49,7 +49,7 @@ export async function clearChatHistoryAction(): Promise<ActionResult> {
     await deleteAllThreads(session.user.id);
     return { ok: true as const };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -441,7 +441,7 @@ export async function exportDataAction(
       data: JSON.stringify(data, null, 2),
     };
   } catch (err) {
-    Sentry.captureException(err);
+    logActionError(err, 'settings-action');
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : 'Unknown error',

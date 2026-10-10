@@ -8,7 +8,10 @@ import { resolve } from 'node:path';
 // with custom tags). The CI workflow no longer needs to set a flag.
 const enforce = process.env.ALLOW_UNPINNED_COMPOSE_IMAGES !== 'true';
 
-const compose = readFileSync(resolve(process.cwd(), 'docker-compose.yml'), 'utf8');
+const composeFiles = ['docker-compose.yml', 'docker-compose.observability.yml'];
+const compose = composeFiles
+  .map((file) => readFileSync(resolve(process.cwd(), file), 'utf8'))
+  .join('\n');
 const images = [...compose.matchAll(/^\s*image:\s*(\S+)/gm)].map((match) => match[1]);
 const failures = images.flatMap((image) => {
   if (!image.includes('@sha256:')) {

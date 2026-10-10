@@ -8,7 +8,6 @@ describe('capability report', () => {
       DATABASE_URL: 'postgres://secret-user:secret-password@localhost/db',
       AI_GATEWAY_API_KEY: 'secret-api-key',
       FINNHUB_API_KEY: 'finnhub-secret',
-      SENTRY_DSN: 'https://secret@sentry.example/1',
       LANGFUSE_PUBLIC_KEY: 'public',
       LANGFUSE_SECRET_KEY: 'secret',
       LANGFUSE_BASE_URL: 'https://langfuse.example',
@@ -16,7 +15,7 @@ describe('capability report', () => {
     });
 
     expect(report.enabled).toEqual(
-      expect.arrayContaining(['database', 'ai-server-fallback', 'finnhub', 'sentry', 'langfuse']),
+      expect.arrayContaining(['database', 'ai-server-fallback', 'finnhub', 'langfuse']),
     );
     expect(report.disabled).toEqual(expect.arrayContaining(['telegram', 'email', 'billing']));
     expect(JSON.stringify(report)).not.toContain('secret-password');

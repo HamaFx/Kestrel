@@ -28,7 +28,6 @@
     "@kestrel/db": "workspace:*",
     "@kestrel/indicators": "workspace:*",
     "@kestrel/shared": "workspace:*",
-    "@sentry/nextjs": "^10.69.0",
     "@tabler/icons-react": "^3.44.0",
     "@tanstack/react-query": "^5.62.7",
     "@tanstack/react-virtual": "^3.14.3",

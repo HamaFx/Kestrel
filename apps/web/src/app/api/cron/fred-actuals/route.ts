@@ -28,7 +28,6 @@
 //
 // Idempotent: only patches rows where `actuals_filled_at IS NULL`.
 
-import * as Sentry from '@sentry/nextjs';
 
 import { withCronAuth } from '@/lib/cron';
 import { getServerEnv } from '@/lib/env';
@@ -98,9 +97,7 @@ export async function GET(req: Request): Promise<Response> {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         errors.push({ id: ev.id, message });
-        // STAB-04 / OBS-01: capture to Sentry.
-        Sentry.captureException(err, { tags: { job: 'cron/fred-actuals', eventId: ev.id } });
-        log.errorContext(err, 'patchEventActual', { eventId: ev.id, message });
+                log.errorContext(err, 'patchEventActual', { eventId: ev.id, message });
       }
     }
 

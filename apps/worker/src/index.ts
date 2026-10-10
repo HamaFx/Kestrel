@@ -42,7 +42,6 @@ import { flushClosedCandle } from './persistence/candles-1m.js';
 import { flushLiveTicks } from './persistence/live-ticks.js';
 import { startScheduler } from './scheduler.js';
 import { notifyReady, notifyStatus, notifyStopping, notifyWatchdog } from './sd-notify.js';
-import { captureException, flushSentry, initSentry } from './sentry.js';
 import {
   createDefaultBuildConnection,
   SignalRConsumer,
@@ -64,8 +63,7 @@ function installSignalHandlers(log: Logger): void {
   const handle = (signal: NodeJS.Signals): void => {
     if (state.shuttingDown) {
       log.warn('second signal received — exiting immediately', { signal });
-      // M-1: Flush Sentry before hard-exiting so the crash report isn't lost.
-      flushSentry(2_000).finally(() => process.exit(1));
+      process.exit(1);
       return;
     }
     state.shuttingDown = true;
@@ -173,12 +171,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   // logged but do NOT throw, because a single failed insert shouldn't
   // take down the consumer.
   //
-  // OBS-08 (Phase 5.2): A *sustained* write failure should still page
-  // someone. We rate-limit Sentry capture to at most 1 event per 5
-  // minutes per failure source so a transient blip doesn't cause alert
-  // fatigue.
-  let lastCandleCaptureAt = 0;
-  const CANDLE_CAPTURE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+  // A sustained write failure remains visible in logs through the counter below.
   let candleFailureCount = 0;
 
   const aggregator = new Candle1mAggregator((bar: ClosedCandle) => {
@@ -210,16 +203,6 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
           consecutiveFailures: candleFailureCount,
         });
 
-        // Rate-limited Sentry capture: only page after sustained failures
-        const now = Date.now();
-        if (candleFailureCount >= 3 && now - lastCandleCaptureAt > CANDLE_CAPTURE_COOLDOWN_MS) {
-          lastCandleCaptureAt = now;
-          captureException(err, {
-            kind: 'flushClosedCandle-sustained',
-            symbol: bar.symbol,
-            consecutiveFailures: String(candleFailureCount),
-          });
-        }
       }
     })();
 
@@ -287,12 +270,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   notifyReady();
   notifyStatus('signalr + binance ws connected; tick stream active');
 
-  // OBS-08 (Phase 5.2): Rate-limited Sentry capture for sustained
-  // flushLiveTicks failures. Same cooldown pattern as candle flush:
-  // at most 1 Sentry event per 5 minutes after 3 consecutive failures.
-  let lastTickFlushCaptureAt = 0;
-  let tickFlushFailureCount = 0;
-  const TICK_FLUSH_CAPTURE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+  let tickFlushFailureCount = 0; // 5 minutes
 
   // C1/C2 fix (RELIABILITY_AUDIT_REPORT.md): self-rescheduling setTimeout
   // with in-flight guard so flushes never overlap, and peek-before-drain
@@ -345,17 +323,6 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
         consecutiveFailures: tickFlushFailureCount,
       });
 
-      const now = Date.now();
-      if (
-        tickFlushFailureCount >= 3 &&
-        now - lastTickFlushCaptureAt > TICK_FLUSH_CAPTURE_COOLDOWN_MS
-      ) {
-        lastTickFlushCaptureAt = now;
-        captureException(err, {
-          kind: 'flushLiveTicks-sustained',
-          consecutiveFailures: String(tickFlushFailureCount),
-        });
-      }
     } finally {
       flushInFlight = false;
       scheduleFlush();
@@ -429,8 +396,6 @@ export async function main(): Promise<void> {
   const env = loadEnv();
   const log = createLogger({ service: 'worker', commit: env.DEPLOYED_SHA });
 
-  await initSentry(env, 'worker');
-
   // ── Langfuse LLM Observability ──────────────────────────────────────
   // Silently skipped when LANGFUSE_* env vars are not set.
   initLangfuse({ service: 'worker' });
@@ -463,7 +428,6 @@ export async function main(): Promise<void> {
     nodeVersion: process.version,
     biquoteHubUrl: env.BIQUOTE_HUB_URL,
     healthchecksConfigured: Boolean(env.HC_SIGNALR_UUID),
-    sentryConfigured: Boolean(env.SENTRY_DSN),
     workerMode: env.WORKER_MODE,
   });
 
@@ -474,19 +438,14 @@ export async function main(): Promise<void> {
     onShutdown(stopScheduler);
   }
 
-  // Send unhandled rejections / uncaught exceptions to Sentry before the
-  // process dies. Node's default is to crash; we want the report first.
   process.on('unhandledRejection', (reason) => {
     log.error('unhandledRejection', { reason: String(reason) });
-    captureException(reason, { kind: 'unhandledRejection' });
   });
-  // Node.js documentation warns: attempting to resume after an uncaught
-  // exception can lead to undefined behavior. We flush Sentry then exit —
-  // systemd will restart the worker automatically.
+  // Node.js documentation warns that resuming after an uncaught exception can
+  // lead to undefined behavior; exit and let the supervisor restart the worker.
   process.on('uncaughtException', (err) => {
     log.error('uncaughtException', { err: String(err) });
-    captureException(err, { kind: 'uncaughtException' });
-    flushSentry(2_000).finally(() => process.exit(1));
+    process.exit(1);
   });
 
   installSignalHandlers(log);
@@ -562,7 +521,6 @@ export async function main(): Promise<void> {
       proxyServer?.close();
       return worker.stop();
     });
-    onShutdown(() => flushSentry(2_000));
     onShutdown(() => shutdownLangfuse());
     // Flush Mastra observability exporters (Langfuse traces) before exit
     // so in-flight spans are not lost on process termination.

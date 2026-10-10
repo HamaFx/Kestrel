@@ -10,7 +10,6 @@ vi.mock('@/lib/api', () => ({ getUserFromRequest: mockGetUserFromRequest }));
 vi.mock('@/lib/logger', () => ({
   createScopedLoggerWithContext: () => ({ error: vi.fn() }),
 }));
-vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -19,7 +19,12 @@ import { resolve } from 'node:path';
 import { readEnvFile, upsertEnvFile } from '../lib/env.mjs';
 import { confirm } from '../lib/prompts.mjs';
 import { checkComposeConfig } from '../lib/run.mjs';
-import { loadSecretTemplate, missingSecrets, resolveTemplateValue } from '../lib/secrets.mjs';
+import {
+  loadObservabilitySecretTemplate,
+  loadSecretTemplate,
+  missingSecrets,
+  resolveTemplateValue,
+} from '../lib/secrets.mjs';
 import { info, ok, paint, warn } from '../lib/ui.mjs';
 
 export const title = 'Generating secrets & writing config';
@@ -92,10 +97,18 @@ export async function run(ctx) {
       for (const [key, entry] of Object.entries(template)) {
         all[key] = resolveTemplateValue(entry);
       }
+      if (flags.withObservability) {
+        for (const [key, entry] of Object.entries(loadObservabilitySecretTemplate())) {
+          all[key] = resolveTemplateValue(entry);
+        }
+      }
       values = { ...all, ...marketKeys };
     } else {
       const { missing } = missingSecrets(envPath);
-      values = { ...missing, ...marketKeys };
+      const observabilityMissing = flags.withObservability
+        ? missingSecrets(envPath, loadObservabilitySecretTemplate()).missing
+        : {};
+      values = { ...missing, ...observabilityMissing, ...marketKeys };
     }
   } else {
     values = { ...marketKeys };
@@ -122,7 +135,12 @@ export async function run(ctx) {
   }
 
   if (isDocker) {
-    ok(io, `Saved full-mode settings to ${paint('.env', 'dim')}`);
+    ok(
+      io,
+      `Saved full-mode settings to ${paint('.env', 'dim')}${
+        flags.withObservability ? ' (including observability overlay secrets)' : ''
+      }`,
+    );
   } else {
     ok(io, `Saved external-mode settings to ${paint('.env', 'dim')}`);
     ok(io, 'Auth & encryption secrets auto-generate on first boot.');

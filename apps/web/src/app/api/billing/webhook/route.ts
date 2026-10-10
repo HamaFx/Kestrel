@@ -21,7 +21,6 @@
 
 import { createHash } from 'node:crypto';
 
-import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
 import { getServerEnv } from '@/lib/env';
@@ -152,17 +151,6 @@ export async function POST(req: Request): Promise<Response> {
 
   const isValid = await verifyIpnSignature(rawBody, signature, ipnSecret);
   if (!isValid) {
-    // Sentry Metrics aggregates this across serverless instances. Configure a
-    // metric alert for >= 3 events in 5 minutes to page the operator; do not
-    // use a process-local counter for this distributed security signal.
-    Sentry.metrics.count('billing_webhook_signature_failure', 1, {
-      attributes: { component: 'billing-webhook', provider: 'nowpayments' },
-    });
-    Sentry.captureMessage('Invalid NOWPayments IPN signature', {
-      level: 'warning',
-      tags: { component: 'billing-webhook', kind: 'signature-failure' },
-      extra: { signaturePresent: Boolean(signature) },
-    });
     logger.warn({ signaturePresent: !!signature }, 'Invalid IPN signature');
     return new Response('Unauthorized', { status: 401, headers: responseHeaders });
   }
@@ -207,10 +195,6 @@ export async function POST(req: Request): Promise<Response> {
     return new Response('OK', { status: 200 });
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
-    Sentry.captureException(err, {
-      tags: { component: 'billing-webhook', payment_id, payment_status },
-      extra: { eventId: payment_id, eventType: payment_status },
-    });
     logger.error({ err: error, payment_id, payment_status }, 'IPN processing failed');
     try {
       await recordBillingWebhookFailure({
@@ -221,10 +205,6 @@ export async function POST(req: Request): Promise<Response> {
       });
       await markIpnFailed(payment_id, payment_status, error);
     } catch (dlqError) {
-      Sentry.captureException(dlqError, {
-        tags: { component: 'billing-webhook', kind: 'dlq-failure' },
-        extra: { eventId: payment_id, eventType: payment_status },
-      });
       logger.error(
         { err: String(dlqError), payment_id },
         'Failed to persist billing webhook DLQ entry',

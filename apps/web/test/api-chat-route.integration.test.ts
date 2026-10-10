@@ -57,7 +57,6 @@ const {
   })),
 }));
 
-vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 vi.mock('@kestrel/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@kestrel/db')>();
   return { ...actual, getUserWithSettings: mockGetUserWithSettings };

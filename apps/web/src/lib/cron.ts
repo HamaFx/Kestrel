@@ -22,7 +22,6 @@
 
 import { timingSafeEqual } from 'node:crypto';
 
-import * as Sentry from '@sentry/nextjs';
 
 import { getUserFromRequest } from './api';
 import { getAuthEnv } from './env';
@@ -90,9 +89,6 @@ export async function withCronAuth(
     const result = await fn();
     return Response.json({ ok: true, ...result });
   } catch (err) {
-    Sentry.captureException(err, {
-      tags: { component: 'cron', route: routeTag(req), kind: 'handler-error' },
-    });
     createScopedLoggerWithContext({ component: 'cron', route: routeTag(req) }).error(
       { err: String(err) },
       'cron handler error',
@@ -128,9 +124,6 @@ export async function runCronJob(
     ]);
     return Response.json({ ok: true, duration: Date.now() - startTime });
   } catch (error) {
-    Sentry.captureException(error, {
-      tags: { component: 'cron', job: name, kind: 'job-error' },
-    });
     createScopedLoggerWithContext({ component: 'cron', job: name }).error(
       { err: String(error) },
       `cron job ${name} failed`,

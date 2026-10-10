@@ -75,6 +75,7 @@ export function parseFlags(argv) {
     market: null,
     skipInstall: false,
     noLaunch: false,
+    withObservability: false,
     yes: false,
     dryRun: false,
     fresh: false,
@@ -92,6 +93,7 @@ export function parseFlags(argv) {
     else if (arg === '--dry-run') flags.dryRun = true;
     else if (arg === '--skip-install') flags.skipInstall = true;
     else if (arg === '--no-launch') flags.noLaunch = true;
+    else if (arg === '--with-observability') flags.withObservability = true;
     else if (arg === '--fresh') flags.fresh = true;
     else if (arg === '--json') flags.json = true;
     else if (arg === '--no-color') flags.noColor = true;

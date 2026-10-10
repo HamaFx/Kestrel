@@ -30,7 +30,6 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ProviderError, toAppError } from '@kestrel/data';
 import { getAdminDb, requireTenantIdForUser, withTenantDbFresh } from '@kestrel/db';
 import { AppError, formatErrorResponse, validationError, type ErrorCode } from '@kestrel/shared';
-import * as Sentry from '@sentry/nextjs';
 import { ZodError, type z } from 'zod';
 
 import { auth } from '@/auth';
@@ -190,18 +189,20 @@ export function errorResponse(err: unknown, req?: Request): Response {
 
   if (err instanceof AppError) {
     if (err.status >= 500) {
-      Sentry.captureException(err, {
-        tags: { component: 'api', route, kind: 'app-error' },
-        extra: { requestId, code: err.code },
-      });
+      createScopedLoggerWithContext({ component: 'api', route, requestId }).errorContext(
+        err,
+        'app error',
+        { code: err.code },
+      );
     }
     return formatErrorResponse(err, options);
   }
   if (err instanceof ProviderError) {
-    Sentry.captureException(err, {
-      tags: { component: 'api', route, kind: 'provider-error' },
-      extra: { requestId, provider: err.provider },
-    });
+    createScopedLoggerWithContext({ component: 'api', route, requestId }).errorContext(
+      err,
+      'provider error',
+      { provider: err.provider },
+    );
     return formatErrorResponse(toAppError(err), options);
   }
   if (err instanceof ZodError) {
@@ -228,11 +229,6 @@ export function errorResponse(err: unknown, req?: Request): Response {
       { status: statusCode, headers: { ...headers, ...extraHeaders } },
     );
   }
-
-  Sentry.captureException(err, {
-    tags: { component: 'api', route, kind: 'unhandled-error' },
-    extra: { requestId },
-  });
   createScopedLoggerWithContext({ component: 'api', route, requestId }).error(
     { err: String(err) },
     'unhandled error',
