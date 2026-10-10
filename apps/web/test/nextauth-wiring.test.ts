@@ -38,7 +38,7 @@ vi.hoisted(() => {
   // `getDb()` reads DATABASE_URL — a placeholder is fine; the test never
   // opens a real connection.
   process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test';
-  process.env.NEXTAUTH_SECRET ??= 'test-secret-must-be-at-least-32-chars-long';
+  process.env.AUTH_SECRET ??= 'test-secret-must-be-at-least-32-chars-long';
   process.env.CRON_SECRET ??= 'test-cron-secret-16-chars-min';
 });
 

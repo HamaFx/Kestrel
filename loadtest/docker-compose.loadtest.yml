@@ -63,7 +63,6 @@ services:
       # Must be >= 32 chars per auth env validation.
       AUTH_COOKIE_SECRET: abcdef0123456789abcdef0123456789
       CRON_SECRET: abcdef0123456789abcdef0123456789
-      NEXTAUTH_SECRET: abcdef0123456789abcdef0123456789
       AUTH_SECRET: abcdef0123456789abcdef0123456789
       ENCRYPTION_SECRET: abcdef0123456789abcdef0123456789
       NEXTAUTH_URL: http://localhost:3000

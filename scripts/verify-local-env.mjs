@@ -50,7 +50,7 @@ if (
   );
 }
 if (env.NODE_ENV === 'production') {
-  for (const key of ['AUTH_SECRET', 'NEXTAUTH_SECRET', 'ENCRYPTION_SECRET', 'CRON_SECRET']) {
+  for (const key of ['AUTH_SECRET', 'ENCRYPTION_SECRET', 'CRON_SECRET']) {
     if (!env[key]) warnings.push(`${key} is not present in the local production environment`);
   }
 }

@@ -44,19 +44,17 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../../..');
-const LEGACY_ENV_ALIASES = {
-  // Kept for one release: the alias migrates to the canonical key.
-  NEXTAUTH_SECRET: 'AUTH_SECRET',
-};
+const LEGACY_ENV_ALIASES = {};
 
-// Removed in 0.2.0. These keys do not migrate; always delete them from
-// operator-owned .env files so the canonical environment is unambiguous.
+// Removed legacy keys. Always delete them from operator-owned .env files so the
+// canonical environment is unambiguous.
 const REMOVED_ENV_KEYS = [
   'HAMAFX_ENABLE_RLS',
   'HAMAFX_RUNTIME',
   'HAMAFX_LOCAL_DOCKER',
   'HAMAFX_RESTORE_CONFIRM',
   'OSS_SINGLE_USER_MODE',
+  'NEXTAUTH_SECRET',
 ];
 
 // Cosmetic section grouping for freshly generated files. Every key listed

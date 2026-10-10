@@ -16,10 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > The release is a private self-hosted multi-user BYOK platform with Postgres Row Level Security.
 
-### Added
+### Changed
 
-- **Beginner-friendly updates:** `pnpm update` checks the newest stable GitHub Release, asks before backups and migrations, preserves local configuration/data, rebuilds Docker installations, and reports health failures.
-- **Update documentation:** Added the complete update plan plus user-facing update and recovery instructions.
+- **Private self-host debloat:**
+  - Removed deprecated `NEXTAUTH_SECRET` grace alias in favor of canonical `AUTH_SECRET`.
+  - Development secrets are now stored exclusively in `.kestrel/dev-secrets.json` (migrated from legacy dev paths).
+  - Dropped all historical `HAMAFX_*` aliases; canonical `KESTREL_*` environment variables are enforced strictly.
+  - Sentry and Google Vertex AI transports removed; AI provider registry streamlined with direct Gemini and BYOK providers.
+  - Docker Compose defaults minimal footprint (`db`, `app`, `worker`, `backup`); full Langfuse observability stack moved to `docker-compose.observability.yml` overlay.
+  - CI workflows and scripts decluttered for private repository development directly on `main`.
 - **Documentation overhaul:** current procedural docs for the multi-user release, replacing the old 15-doc set:
   - `README.md` — public product scope and quick start
   - `docs/deployment-matrix.md` — supported deployment profiles

@@ -24,7 +24,6 @@ const originalEnv = {
   NODE_ENV: process.env.NODE_ENV,
   AUTH_MODE: process.env.AUTH_MODE,
   AUTH_SECRET: process.env.AUTH_SECRET,
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   ENABLE_IMPERSONATION: process.env.ENABLE_IMPERSONATION,
   ALLOW_INSECURE_DEV_AUTH: process.env.ALLOW_INSECURE_DEV_AUTH,
 };
@@ -34,7 +33,6 @@ describe('assertProductionSecurity', () => {
     process.env.NODE_ENV = 'production';
     process.env.AUTH_MODE = 'normal';
     process.env.AUTH_SECRET = 'a'.repeat(32);
-    delete process.env.NEXTAUTH_SECRET;
   });
 
   afterEach(() => {
@@ -44,8 +42,6 @@ describe('assertProductionSecurity', () => {
     else process.env.AUTH_MODE = originalEnv.AUTH_MODE;
     if (originalEnv.AUTH_SECRET === undefined) delete process.env.AUTH_SECRET;
     else process.env.AUTH_SECRET = originalEnv.AUTH_SECRET;
-    if (originalEnv.NEXTAUTH_SECRET === undefined) delete process.env.NEXTAUTH_SECRET;
-    else process.env.NEXTAUTH_SECRET = originalEnv.NEXTAUTH_SECRET;
     if (originalEnv.ENABLE_IMPERSONATION === undefined) delete process.env.ENABLE_IMPERSONATION;
     else process.env.ENABLE_IMPERSONATION = originalEnv.ENABLE_IMPERSONATION;
     if (originalEnv.ALLOW_INSECURE_DEV_AUTH === undefined)
@@ -61,7 +57,7 @@ describe('assertProductionSecurity', () => {
     delete process.env.AUTH_SECRET;
 
     expect(() => assertProductionSecurity()).toThrow(
-      /AUTH_SECRET \(or NEXTAUTH_SECRET\) must be set in production/,
+      /AUTH_SECRET must be set in production/,
     );
   });
 });

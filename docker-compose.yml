@@ -215,11 +215,12 @@ services:
         max-size: '10m'
         max-file: '3'
 
-# Keep the historical volume names by default so moving an existing VM from
-# /opt/hamafx to /opt/kestrel cannot silently create empty replacement volumes.
-# These are compatibility identifiers, not user-facing branding. Existing
-# local installs with a different Compose project name can set these overrides
-# in .env before the first Kestrel start (for example, hamafx-ai_pgdata).
+# Historical volume and database identifiers are preserved per decision Q11=A.
+# Keeping hamafx_pgdata and hamafx_backup-data prevents catastrophic data churn
+# and ensures moving an existing deployment from /opt/hamafx to /opt/kestrel cannot
+# silently create empty replacement volumes. These are compatibility identifiers.
+# Existing installs with custom volume names can override POSTGRES_VOLUME_NAME
+# or BACKUP_VOLUME_NAME in .env before starting Kestrel.
 volumes:
   pgdata:
     name: ${POSTGRES_VOLUME_NAME:-hamafx_pgdata}

@@ -39,7 +39,6 @@ import { z } from 'zod';
  */
 const AuthEnv = z.object({
   AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 chars').optional(),
-  NEXTAUTH_SECRET: z.string().min(32, 'NEXTAUTH_SECRET must be at least 32 chars').optional(),
   AUTH_COOKIE_SECRET: z.string().min(32).optional(),
   CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 chars').optional(),
   ENCRYPTION_SECRET: z.string().min(32, 'ENCRYPTION_SECRET must be at least 32 chars').optional(),
@@ -290,12 +289,11 @@ export const ServerEnvSchema = z
   .refine(
     (env) =>
       env.NODE_ENV !== 'production' ||
-      Boolean((env.AUTH_SECRET || env.NEXTAUTH_SECRET) && env.CRON_SECRET && env.ENCRYPTION_SECRET),
+      Boolean(env.AUTH_SECRET && env.CRON_SECRET && env.ENCRYPTION_SECRET),
     {
       message:
-        'In production, AUTH_SECRET (or NEXTAUTH_SECRET), CRON_SECRET, and ENCRYPTION_SECRET are all required. ' +
-        'Set them in your Vercel project (Settings → Environment Variables) for Production ' +
-        '+ Preview scopes, or in your local .env.local for `pnpm dev:local`.',
+        'In production, AUTH_SECRET, CRON_SECRET, and ENCRYPTION_SECRET are all required. ' +
+        'Generate them with ./docker/init-secrets.sh or pnpm setup.',
       path: ['AUTH_SECRET'],
     },
   )
@@ -432,13 +430,10 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
 }
 
 /**
- * Read-only upgrade aliases accepted for exactly one release. The `HAMAFX_*`
- * names were removed in 0.2.0; only the Auth.js rename survives here, and it
- * is dropped in 0.3.0.
+ * Read-only upgrade aliases map.
+ * Deprecated aliases dropped in 0.3.0.
  */
-export const DEPRECATED_ENV_ALIASES = {
-  NEXTAUTH_SECRET: 'AUTH_SECRET',
-} as const;
+export const DEPRECATED_ENV_ALIASES: Record<string, string> = {};
 
 export function getDeprecatedEnvAliases(
   input: NodeJS.ProcessEnv = process.env,
@@ -453,34 +448,7 @@ export function getDeprecatedEnvAliases(
  * every missing/invalid variable. Cache the result at module-scope in callers.
  */
 export function parseServerEnv(input: NodeJS.ProcessEnv = process.env): ServerEnv {
-  // `HAMAFX_*` aliases are no longer accepted (0.2.0). `NEXTAUTH_SECRET` is
-  // still normalized to AUTH_SECRET for one release (see the else branch).
   const normalized = { ...input };
-  if (normalized.VERCEL_ENV === 'preview') {
-    const isInvalid = (v?: string) => !v || v.trim().length < 32;
-    const FALLBACK_PREVIEW_SECRET =
-      'a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9';
-    if (isInvalid(normalized.AUTH_SECRET)) {
-      normalized.AUTH_SECRET = !isInvalid(normalized.NEXTAUTH_SECRET)
-        ? normalized.NEXTAUTH_SECRET
-        : !isInvalid(normalized.AUTH_COOKIE_SECRET)
-          ? normalized.AUTH_COOKIE_SECRET
-          : FALLBACK_PREVIEW_SECRET;
-    }
-    if (isInvalid(normalized.NEXTAUTH_SECRET)) {
-      normalized.NEXTAUTH_SECRET = normalized.AUTH_SECRET;
-    }
-    if (isInvalid(normalized.ENCRYPTION_SECRET)) {
-      normalized.ENCRYPTION_SECRET = normalized.AUTH_SECRET;
-    }
-    if (!normalized.CRON_SECRET || normalized.CRON_SECRET.trim().length < 16) {
-      normalized.CRON_SECRET = 'preview-cron-secret-16-bytes';
-    }
-  } else {
-    if (!normalized.AUTH_SECRET && normalized.NEXTAUTH_SECRET) {
-      normalized.AUTH_SECRET = normalized.NEXTAUTH_SECRET;
-    }
-  }
   const result = ServerEnvSchema.safeParse(normalized);
   if (!result.success) {
     const issues = result.error.issues

@@ -33,7 +33,6 @@ import { assertProductionSecurity } from '@/lib/security-invariants';
 // the auth gate). In production AUTH_SECRET must be set explicitly.
 const nextAuthSecret =
   process.env.AUTH_SECRET ??
-  process.env.NEXTAUTH_SECRET ??
   (process.env.NODE_ENV !== 'production'
     ? 'dev-fallback-secret-must-be-at-least-32-chars-long!!'
     : undefined);

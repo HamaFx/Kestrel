@@ -101,7 +101,7 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     code: 'UNAUTHORIZED',
     description: 'Authentication required or session expired',
     suggestedFix:
-      'Check the auth session cookie / JWT. If expired, redirect to /login. Verify NEXTAUTH_SECRET and tokenVersion.',
+      'Check the auth session cookie / JWT. If expired, redirect to /login. Verify AUTH_SECRET and tokenVersion.',
     relatedFiles: ['apps/web/src/auth.ts', 'apps/web/src/proxy.ts'],
     retryable: false,
   },

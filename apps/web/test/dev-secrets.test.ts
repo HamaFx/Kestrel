@@ -34,7 +34,7 @@ beforeEach(() => {
 
 afterEach(() => {
   rmSync(workdir, { recursive: true, force: true });
-  for (const k of ['NEXTAUTH_SECRET', 'ENCRYPTION_SECRET', 'CRON_SECRET', 'NODE_ENV'])
+  for (const k of ['AUTH_SECRET', 'ENCRYPTION_SECRET', 'CRON_SECRET', 'NODE_ENV'])
     delete process.env[k];
   vi.restoreAllMocks();
 });
@@ -52,7 +52,7 @@ describe('loadOrGenerateDevSecrets', () => {
     const result = loadOrGenerateDevSecrets();
     expect(result.generated).toBe(false);
     expect(result.store).toEqual({});
-    expect(process.env.NEXTAUTH_SECRET).toBeUndefined();
+    expect(process.env.AUTH_SECRET).toBeUndefined();
   });
 
   it('generates fresh secrets on first call in dev', async () => {
@@ -60,14 +60,14 @@ describe('loadOrGenerateDevSecrets', () => {
     const { loadOrGenerateDevSecrets } = await freshImport();
     const result = loadOrGenerateDevSecrets();
     expect(result.generated).toBe(true);
-    expect(process.env.NEXTAUTH_SECRET).toMatch(/^[0-9a-f]{64}$/);
+    expect(process.env.AUTH_SECRET).toMatch(/^[0-9a-f]{64}$/);
     expect(process.env.ENCRYPTION_SECRET).toMatch(/^[0-9a-f]{64}$/);
     expect(process.env.CRON_SECRET).toMatch(/^[0-9a-f]{32}$/);
     // Persisted to disk.
     const path = join(workdir, '.kestrel/dev-secrets.json');
     expect(existsSync(path)).toBe(true);
     const stored = JSON.parse(readFileSync(path, 'utf8'));
-    expect(stored.NEXTAUTH_SECRET).toBe(process.env.NEXTAUTH_SECRET);
+    expect(stored.AUTH_SECRET).toBe(process.env.AUTH_SECRET);
   });
 
   it('reuses persisted secrets on subsequent calls', async () => {
@@ -75,33 +75,33 @@ describe('loadOrGenerateDevSecrets', () => {
     const mod1 = await freshImport();
     mod1.loadOrGenerateDevSecrets();
     const first = {
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
+      AUTH_SECRET: process.env.AUTH_SECRET!,
       ENCRYPTION_SECRET: process.env.ENCRYPTION_SECRET!,
       CRON_SECRET: process.env.CRON_SECRET!,
     };
     // Drop the in-memory values, force the next import to reload from disk.
-    delete process.env.NEXTAUTH_SECRET;
+    delete process.env.AUTH_SECRET;
     delete process.env.ENCRYPTION_SECRET;
     delete process.env.CRON_SECRET;
 
     const mod2 = await freshImport();
     const result = mod2.loadOrGenerateDevSecrets();
     expect(result.generated).toBe(false);
-    expect(process.env.NEXTAUTH_SECRET).toBe(first.NEXTAUTH_SECRET);
+    expect(process.env.AUTH_SECRET).toBe(first.AUTH_SECRET);
     expect(process.env.ENCRYPTION_SECRET).toBe(first.ENCRYPTION_SECRET);
     expect(process.env.CRON_SECRET).toBe(first.CRON_SECRET);
   });
 
   it('does not overwrite values already on process.env', async () => {
     process.env.NODE_ENV = 'development';
-    process.env.NEXTAUTH_SECRET = 'a'.repeat(64);
+    process.env.AUTH_SECRET = 'a'.repeat(64);
     process.env.ENCRYPTION_SECRET = 'b'.repeat(64);
     process.env.CRON_SECRET = 'c'.repeat(32);
 
     const { loadOrGenerateDevSecrets } = await freshImport();
     const result = loadOrGenerateDevSecrets();
     expect(result.generated).toBe(false);
-    expect(process.env.NEXTAUTH_SECRET).toBe('a'.repeat(64));
+    expect(process.env.AUTH_SECRET).toBe('a'.repeat(64));
     expect(process.env.ENCRYPTION_SECRET).toBe('b'.repeat(64));
     expect(process.env.CRON_SECRET).toBe('c'.repeat(32));
   });
@@ -117,7 +117,7 @@ describe('loadOrGenerateDevSecrets', () => {
     const { loadOrGenerateDevSecrets } = await freshImport();
     const result = loadOrGenerateDevSecrets();
     expect(result.generated).toBe(true);
-    expect(process.env.NEXTAUTH_SECRET).toMatch(/^[0-9a-f]{64}$/);
+    expect(process.env.AUTH_SECRET).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 
@@ -130,7 +130,7 @@ describe('getServerEnv — uses generated secrets', () => {
     const env = getServerEnv();
     expect(env.NODE_ENV).toBe('development');
     // Generated on first call.
-    expect(env.NEXTAUTH_SECRET).toMatch(/^[0-9a-f]{64}$/);
+    expect(env.AUTH_SECRET).toMatch(/^[0-9a-f]{64}$/);
     expect(env.ENCRYPTION_SECRET).toMatch(/^[0-9a-f]{64}$/);
     expect(env.CRON_SECRET).toMatch(/^[0-9a-f]{32}$/);
   });

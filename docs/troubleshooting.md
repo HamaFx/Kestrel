@@ -199,7 +199,7 @@ If registration fails, check `REGISTRATION_MODE`. When set to `disabled`, open r
 
 ### Login or session problems
 
-Confirm production has `AUTH_SECRET` or `NEXTAUTH_SECRET`, `CRON_SECRET`, and `ENCRYPTION_SECRET`. Check that the configured public URL and reverse proxy scheme/host are correct. Clear only the browser’s Kestrel cookies if the deployment was intentionally re-keyed; changing auth secrets invalidates sessions.
+Confirm production has `AUTH_SECRET`, `CRON_SECRET`, and `ENCRYPTION_SECRET`. Check that the configured public URL and reverse proxy scheme/host are correct. Clear only the browser’s Kestrel cookies if the deployment was intentionally re-keyed; changing auth secrets invalidates sessions.
 
 ### CSRF errors
 
