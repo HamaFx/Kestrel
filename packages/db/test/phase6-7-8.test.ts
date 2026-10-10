@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Phase 6 + 7 + 8 tests — file-based verification (no PGlite needed)
+// Phase 6 + 7 + 8 tests — file-based verification (no database instance needed)
 
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -39,12 +39,9 @@ describe('Phase 6 — Testing', () => {
     expect(config).toContain('lines: 43');
   });
 
-  it('full-migration-chain.test.ts exists', () => {
-    expect(existsSync(join(HERE, 'full-migration-chain.test.ts'))).toBe(true);
-  });
-
-  it('schema-drift.test.ts exists', () => {
-    expect(existsSync(join(HERE, 'schema-drift.test.ts'))).toBe(true);
+  it('PGlite migration harnesses are deleted', () => {
+    expect(existsSync(join(HERE, 'full-migration-chain.test.ts'))).toBe(false);
+    expect(existsSync(join(HERE, 'schema-drift.test.ts'))).toBe(false);
   });
 
   it('isolated-db.test.ts exists', () => {

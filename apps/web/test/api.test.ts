@@ -30,6 +30,21 @@ import {
 
 vi.mock('@/auth', () => ({ auth: vi.fn() }));
 
+// Every authenticated request is tenant-scoped: withAuth resolves the user's
+// org and runs the handler inside withTenantDbFresh. Stub the tenant helpers
+// so these tests exercise the auth gate, not a real database.
+vi.mock('@kestrel/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  return {
+    ...actual,
+    getAdminDb: vi.fn(() => ({})),
+    requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+    withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+      work({}),
+    ),
+  };
+});
+
 const { auth: mockAuth } = await import('@/auth');
 
 function mockRequest(url: string, init?: RequestInit): Request {

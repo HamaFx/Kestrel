@@ -82,10 +82,9 @@ self.addEventListener('install', (event) => {
         // Phase 3 hardening §23 — `skipWaiting` is intentional for
         // personal-mode. The trade-off: instant updates on the next
         // navigation vs. a small risk of a tab keeping the old chunks
-        // until reload. Since this is a single-user PWA where the user
+        // until reload. Since this is a self-hosted PWA where the user
         // expects "deploy → I see it", the immediate-activation path
-        // wins. If we ever ship multi-page sessions or shared caches
-        // we'd flip this to a postMessage handshake (`SKIP_WAITING`).
+        // wins.
         await self.skipWaiting();
       }
     })(),

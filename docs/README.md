@@ -1,6 +1,6 @@
 # Kestrel documentation
 
-These are the current public OSS documents. They describe the supported single-user self-hosted release and are maintained against the implementation.
+These are the current public documents. They describe the private self-hosted multi-user release and are maintained against the implementation.
 
 | Document                              | Purpose                                                                     |
 | ------------------------------------- | --------------------------------------------------------------------------- |

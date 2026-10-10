@@ -69,7 +69,7 @@ interface DbHealthResult {
   migrations: { ok: boolean; expected: number; actual?: number; message?: string };
 }
 
-/** Production drizzle-kit uses the `drizzle` schema; PGlite uses public. */
+/** Drizzle migrations tracking table count. */
 async function countAppliedMigrations(db: ReturnType<typeof getDb>): Promise<number> {
   try {
     const rows = await db.execute<{ count: string }>(sql`

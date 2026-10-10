@@ -23,7 +23,7 @@
 //
 // Run with:
 //   pnpm --filter @kestrel/db tsx scripts/seed-plans.ts
-// or against a local PGlite / Postgres via:
+// or against a local/external PostgreSQL instance via:
 //   npx tsx packages/db/scripts/seed-plans.ts
 
 import { eq } from 'drizzle-orm';

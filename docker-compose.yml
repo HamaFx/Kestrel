@@ -33,23 +33,24 @@ services:
       POSTGRES_DB: hamafx
       POSTGRES_USER: hamafx
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run docker/init-secrets.sh to generate .env}
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Run docker/init-secrets.sh to generate .env}
     ports:
-      - "${POSTGRES_PUBLISHED_PORT:-127.0.0.1:5432}:5432"
+      - '${POSTGRES_PUBLISHED_PORT:-127.0.0.1:5432}:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init-langfuse-db.sh:/docker-entrypoint-initdb.d/init-langfuse-db.sh
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hamafx -d hamafx"]
+      test: ['CMD-SHELL', 'pg_isready -U hamafx -d hamafx']
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
     # Docker's default json-file logger is bounded to prevent disk exhaustion.
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   clickhouse:
     # Langfuse v3 stores traces/observations/scores in ClickHouse (>= 24.3).
@@ -57,9 +58,9 @@ services:
     image: clickhouse/clickhouse-server:25.8.33.6@sha256:0152dd511befe6a2c2ef53e930726179669b08116da78500b37c51c96ff5ee77
     container_name: kestrel-clickhouse
     restart: unless-stopped
-    profiles: ["observability"]
+    profiles: ['observability']
     # Run as the image's clickhouse user (101:101), like the official compose.
-    user: "101:101"
+    user: '101:101'
     environment:
       CLICKHOUSE_DB: default
       CLICKHOUSE_USER: clickhouse
@@ -68,7 +69,8 @@ services:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-logs:/var/log/clickhouse-server
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      test:
+        ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -77,29 +79,38 @@ services:
       resources:
         limits:
           memory: 1g
-          cpus: "1.0"
+          cpus: '1.0'
         reservations:
           memory: 256m
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   redis:
     # Redis backs Langfuse's ingestion queue and cache (v3 requirement).
     image: redis:7.4.2@sha256:fbdbaea47b9ae4ecc2082ecdb4e1cea81e32176ffb1dcf643d422ad07427e5d9
     container_name: kestrel-redis
     restart: unless-stopped
-    profiles: ["observability"]
+    profiles: ['observability']
     environment:
       # Exposed to the container so `$${...}` below expands at runtime.
       LANGFUSE_REDIS_PASSWORD: ${LANGFUSE_REDIS_PASSWORD:-}
-    command: ["sh", "-c", "exec redis-server --requirepass \"$${LANGFUSE_REDIS_PASSWORD}\" --maxmemory-policy noeviction"]
+    command:
+      [
+        'sh',
+        '-c',
+        'exec redis-server --requirepass "$${LANGFUSE_REDIS_PASSWORD}" --maxmemory-policy noeviction',
+      ]
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$${LANGFUSE_REDIS_PASSWORD}\" --no-auth-warning ping | grep -q PONG || exit 1"]
+      test:
+        [
+          'CMD-SHELL',
+          'redis-cli -a "$${LANGFUSE_REDIS_PASSWORD}" --no-auth-warning ping | grep -q PONG || exit 1',
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -107,14 +118,14 @@ services:
       resources:
         limits:
           memory: 256m
-          cpus: "0.5"
+          cpus: '0.5'
         reservations:
           memory: 32m
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   minio:
     # S3-compatible object storage for Langfuse v3 event/media blobs.
@@ -123,19 +134,20 @@ services:
     image: cgr.dev/chainguard/minio@sha256:f70acff86192ea5d692a00157918c01874c074a0c6a4fd27826b122fb6e5689c
     container_name: kestrel-minio
     restart: unless-stopped
-    profiles: ["observability"]
-    entrypoint: ["sh", "-c"]
+    profiles: ['observability']
+    entrypoint: ['sh', '-c']
     # Create the `langfuse` bucket before starting the server.
-    command: ['mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data']
+    command:
+      ['mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data']
     environment:
       MINIO_ROOT_USER: ${LANGFUSE_S3_ACCESS_KEY_ID:-}
       MINIO_ROOT_PASSWORD: ${LANGFUSE_S3_SECRET_ACCESS_KEY:-}
     ports:
-      - "127.0.0.1:9090:9000"
+      - '127.0.0.1:9090:9000'
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ['CMD', 'mc', 'ready', 'local']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -144,22 +156,22 @@ services:
       resources:
         limits:
           memory: 512m
-          cpus: "0.5"
+          cpus: '0.5'
         reservations:
           memory: 64m
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   langfuse:
     image: langfuse/langfuse:3@sha256:a921990b3cf6f62e9452eaf8ab9bea045852375a6883abd1fdbe63afa08defa0
     container_name: kestrel-langfuse
     restart: unless-stopped
-    profiles: ["observability"]
+    profiles: ['observability']
     ports:
-      - "127.0.0.1:3001:3000"
+      - '127.0.0.1:3001:3000'
     environment:
       # Docker injects HOSTNAME=<container-id>, which Next.js binds instead
       # of all interfaces — pin it so the healthcheck and port publishing work.
@@ -176,18 +188,18 @@ services:
       SALT: ${LANGFUSE_SALT:-}
       ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-}
       # Telemetry (opt-out of Langfuse's own anonymous usage stats)
-      TELEMETRY_ENABLED: "false"
+      TELEMETRY_ENABLED: 'false'
       # Enable experimental features: LLM-as-Judge evals, datasets
-      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "true"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: 'true'
       # ClickHouse — v3 requirement
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
       CLICKHOUSE_USER: clickhouse
       CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-}
-      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      CLICKHOUSE_CLUSTER_ENABLED: 'false'
       # Redis — v3 requirement (ingestion queue + cache)
       REDIS_HOST: redis
-      REDIS_PORT: "6379"
+      REDIS_PORT: '6379'
       REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:-}
       # S3 object storage — v3 requirement (event/media blobs)
       LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
@@ -195,7 +207,7 @@ services:
       LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_S3_ACCESS_KEY_ID:-}
       LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_S3_SECRET_ACCESS_KEY:-}
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
-      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: 'true'
       LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
       LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
@@ -203,7 +215,7 @@ services:
       LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_S3_SECRET_ACCESS_KEY:-}
       # Browser-visible media URLs go through the loopback-published S3 API.
       LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://localhost:9090
-      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: 'true'
       LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
     depends_on:
       db:
@@ -217,7 +229,7 @@ services:
     healthcheck:
       # The image ships wget but not curl. Use 127.0.0.1: wget resolves
       # `localhost` to IPv6 ::1, which the Node server does not bind.
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/public/health || exit 1"]
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:3000/api/public/health || exit 1']
       interval: 15s
       timeout: 5s
       retries: 5
@@ -229,14 +241,14 @@ services:
       resources:
         limits:
           memory: 2g
-          cpus: "1.0"
+          cpus: '1.0'
         reservations:
           memory: 512m
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   langfuse-worker:
     # Drains the Redis ingestion queue and writes events into ClickHouse/S3.
@@ -244,7 +256,7 @@ services:
     image: langfuse/langfuse-worker:3@sha256:7d0f28214bd2d1bb03056439f810442b147f0143c7ebf9bdf0f39dc4e47df6cd
     container_name: kestrel-langfuse-worker
     restart: unless-stopped
-    profiles: ["observability"]
+    profiles: ['observability']
     environment:
       # Docker injects HOSTNAME=<container-id>, which the worker would bind
       # to instead of all interfaces — pin it so the healthcheck (and any
@@ -254,29 +266,29 @@ services:
       NEXTAUTH_URL: http://localhost:3001
       SALT: ${LANGFUSE_SALT:-}
       ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-}
-      TELEMETRY_ENABLED: "false"
-      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "true"
+      TELEMETRY_ENABLED: 'false'
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: 'true'
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
       CLICKHOUSE_USER: clickhouse
       CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-}
-      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      CLICKHOUSE_CLUSTER_ENABLED: 'false'
       REDIS_HOST: redis
-      REDIS_PORT: "6379"
+      REDIS_PORT: '6379'
       REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:-}
       LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
       LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_S3_ACCESS_KEY_ID:-}
       LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_S3_SECRET_ACCESS_KEY:-}
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
-      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: 'true'
       LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
       LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
       LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_S3_ACCESS_KEY_ID:-}
       LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_S3_SECRET_ACCESS_KEY:-}
       LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
-      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: 'true'
       LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
     depends_on:
       db:
@@ -290,7 +302,7 @@ services:
     healthcheck:
       # The worker serves a lightweight HTTP liveness server on port 3030.
       # Use 127.0.0.1 (not localhost): wget would resolve to IPv6 ::1.
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3030/ || exit 1"]
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:3030/ || exit 1']
       interval: 15s
       timeout: 5s
       retries: 5
@@ -299,14 +311,14 @@ services:
       resources:
         limits:
           memory: 512m
-          cpus: "0.5"
+          cpus: '0.5'
         reservations:
           memory: 128m
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   backup:
     image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
@@ -317,7 +329,7 @@ services:
       # Keep the backup worker on the internal Compose network; it has no
       # published port and cannot be reached from the host network.
       PGHOST: db
-      PGPORT: "5432"
+      PGPORT: '5432'
       PGUSER: hamafx
       PGDATABASE: hamafx
       POSTGRES_USER: hamafx
@@ -329,18 +341,18 @@ services:
       BACKUP_MAX_AGE_SECONDS: ${BACKUP_MAX_AGE_SECONDS:-172800}
     # Remove the Postgres image entrypoint: this service is a pg_dump worker,
     # and `docker compose run` must not execute database initialization logic.
-    entrypoint: ["/usr/local/bin/backup-entrypoint.sh"]
+    entrypoint: ['/usr/local/bin/backup-entrypoint.sh']
     volumes:
       - backup-data:/var/lib/postgresql/backups
       - ./docker/backup-entrypoint.sh:/usr/local/bin/backup-entrypoint.sh:ro
       - ./docker/backup-db.sh:/usr/local/bin/backup-db.sh:ro
       - ./docker/backup-healthcheck.sh:/usr/local/bin/backup-healthcheck.sh:ro
-    command: ["/bin/sh", "/usr/local/bin/backup-db.sh"]
+    command: ['/bin/sh', '/usr/local/bin/backup-db.sh']
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "/bin/sh /usr/local/bin/backup-healthcheck.sh"]
+      test: ['CMD-SHELL', '/bin/sh /usr/local/bin/backup-healthcheck.sh']
       interval: 60s
       timeout: 10s
       retries: 3
@@ -349,15 +361,15 @@ services:
       resources:
         limits:
           memory: 256m
-          cpus: "0.25"
+          cpus: '0.25'
         reservations:
           memory: 32m
     restart: unless-stopped
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "20m"
-        max-file: "3"
+        max-size: '20m'
+        max-file: '3'
 
   app:
     build:
@@ -366,23 +378,23 @@ services:
     ports:
       # APP_PUBLISHED_PORT lets operators (or the setup wizard) remap the
       # host port when 3000 is already taken. Binds localhost only.
-      - "127.0.0.1:${APP_PUBLISHED_PORT:-3000}:3000"
+      - '127.0.0.1:${APP_PUBLISHED_PORT:-3000}:3000'
     environment:
       DATABASE_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
-      KESTREL_LOCAL_DOCKER: "true"
+      ADMIN_DATABASE_URL: postgres://hamafx_admin:${POSTGRES_ADMIN_PASSWORD}@db:5432/hamafx
+      KESTREL_LOCAL_DOCKER: 'true'
       # The bundled Postgres service is plain TCP. This explicit local-only
       # flag prevents the production DB client from attempting TLS against it.
-      DB_DISABLE_SSL: "true"
+      DB_DISABLE_SSL: 'true'
       NODE_ENV: production
-      # OSS release boundary: shared multi-user/RLS mode is intentionally disabled.
-      MULTI_USER_ENABLED: "0"
-      REGISTRATION_MODE: owner-first
-      KESTREL_ENABLE_RLS: "0"
-      OSS_SINGLE_USER_MODE: "1"
+      # Deployment environment: multi-user + RLS required
+      MULTI_USER_ENABLED: '1'
+      REGISTRATION_MODE: open
+      KESTREL_ENABLE_RLS: '1'
       # PERF-06: Tune the postgres-js connection pool. 5 connections per web
       # instance covers concurrent tool calls + budget + telemetry without
       # exhausting Supabase's transaction pooler ceiling.
-      DB_POOL_MAX: "5"
+      DB_POOL_MAX: '5'
     env_file:
       - .env
     depends_on:
@@ -393,7 +405,7 @@ services:
     # requires a session and is intentionally not suitable for Docker.
     # 3 retries × 10s = 30s grace period for Next.js cold start.
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health/public || exit 1"]
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health/public || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -403,16 +415,16 @@ services:
       resources:
         limits:
           memory: 1g
-          cpus: "1.0"
+          cpus: '1.0'
         reservations:
           memory: 256m
     restart: unless-stopped
     # Docker's default json-file logger is bounded to prevent disk exhaustion.
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   worker:
     build:
@@ -420,20 +432,20 @@ services:
       dockerfile: Dockerfile.worker
     environment:
       DATABASE_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
+      ADMIN_DATABASE_URL: postgres://hamafx_admin:${POSTGRES_ADMIN_PASSWORD}@db:5432/hamafx
       NODE_ENV: production
-      # OSS release boundary: shared multi-user/RLS mode is intentionally disabled.
-      MULTI_USER_ENABLED: "0"
-      REGISTRATION_MODE: owner-first
-      KESTREL_ENABLE_RLS: "0"
-      OSS_SINGLE_USER_MODE: "1"
+      # Deployment environment: multi-user + RLS required
+      MULTI_USER_ENABLED: '1'
+      REGISTRATION_MODE: open
+      KESTREL_ENABLE_RLS: '1'
       WORKER_MODE: docker
-      KESTREL_LOCAL_DOCKER: "true"
+      KESTREL_LOCAL_DOCKER: 'true'
       # The bundled Postgres service is plain TCP; production deployments
       # outside this Compose profile must not set this flag.
-      DB_DISABLE_SSL: "true"
+      DB_DISABLE_SSL: 'true'
       # PERF-06: Worker pool — 3 is sufficient for tick-flush + cron inserts.
       KESTREL_RUNTIME: worker
-      WORKER_DB_POOL_MAX: "3"
+      WORKER_DB_POOL_MAX: '3'
     env_file:
       - .env
     depends_on:
@@ -446,7 +458,11 @@ services:
     healthcheck:
       # Production health endpoints require the token; keep the token out of
       # the command line and let Compose expand it inside the container.
-      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $${WORKER_HEALTH_TOKEN}\" http://localhost:8081/health/live || exit 1"]
+      test:
+        [
+          'CMD-SHELL',
+          'curl -fsS -H "Authorization: Bearer $${WORKER_HEALTH_TOKEN}" http://localhost:8081/health/live || exit 1',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -456,16 +472,16 @@ services:
       resources:
         limits:
           memory: 512m
-          cpus: "0.5"
+          cpus: '0.5'
         reservations:
           memory: 128m
     restart: unless-stopped
     # Docker's default json-file logger is bounded to prevent disk exhaustion.
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
 # Keep the historical volume names by default so moving an existing VM from
 # /opt/hamafx to /opt/kestrel cannot silently create empty replacement volumes.

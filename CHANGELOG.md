@@ -14,13 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> The upcoming public OSS release is a single-user, self-hosted BYOK preview. Shared multi-user/RLS mode and hosted billing are not part of this release.
+> The release is a private self-hosted multi-user BYOK platform with Postgres Row Level Security.
 
 ### Added
 
 - **Beginner-friendly updates:** `pnpm update` checks the newest stable GitHub Release, asks before backups and migrations, preserves local configuration/data, rebuilds Docker installations, and reports health failures.
 - **Update documentation:** Added the complete update plan plus user-facing update and recovery instructions.
-- **Documentation overhaul:** current procedural docs for the single-user OSS release, replacing the old 15-doc set:
+- **Documentation overhaul:** current procedural docs for the multi-user release, replacing the old 15-doc set:
   - `README.md` — public product scope and quick start
   - `docs/deployment-matrix.md` — supported deployment profiles
   - `docs/audit/` — readiness status, findings, history, and validation records
@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] — First public beta
 
-The first planned stable application release for the single-user, self-hosted OSS beta. The application release version is independent from workspace package versions.
+The first planned stable application release for the self-hosted beta. The application release version is independent from workspace package versions.
 
 ## [0.0.0] — Historical pre-release
 
@@ -60,7 +60,7 @@ The historical development series shipped through Phases 0–9 plus UX upgrade P
 
 ### Shipped Features (cumulative)
 
-**Phase 0–1:** Project scaffolding, Turborepo monorepo, Next.js 16 PWA, PGlite local dev, Drizzle ORM schema, BiQuote REST provider, Finnhub fallback, basic chat with AI SDK.
+**Phase 0–1:** Project scaffolding, Turborepo monorepo, Next.js 16 PWA, local dev, Drizzle ORM schema, BiQuote REST provider, Finnhub fallback, basic chat with AI SDK.
 
 **Phase 2:** Alert system, trading journal, economic calendar (FRED), news feed (Marketaux), dashboard with widgets, chart engine (TradingView + lightweight-charts).
 

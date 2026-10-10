@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Start by identifying the deployment profile: Simple/PGlite, Docker Compose, or external PostgreSQL. Do not paste secrets, API keys, cookies, database URLs, or unredacted logs into issues.
+Start by identifying the deployment profile: Docker Compose or external PostgreSQL. Do not paste secrets, API keys, cookies, database URLs, or unredacted logs into issues.
 
 ## First diagnostics
 
@@ -79,17 +79,14 @@ Avoid `3001`: that is Langfuse's published port when the observability profile i
 
 The setup wizard detects busy host ports before building and offers to remap them automatically.
 
-## Simple/PGlite issues
+## Database issues
 
-### PGlite fails to initialize
+### Cannot connect to PostgreSQL
 
-- Confirm the process can write to `.kestrel/`.
-- Stop duplicate development processes.
-- Check filesystem permissions and available disk space.
-- Do not delete `.kestrel/data` unless you accept losing the local database.
-- Existing legacy `.hamafx/` data may be migrated/selected by compatibility code; back it up before cleanup.
-
-Simple mode does not provide pgvector or PostgreSQL RLS. Vector features use the supported fallback and PostgreSQL-only isolation tests cannot run against PGlite.
+- For Docker: confirm the database container is healthy with `docker compose ps` and `docker compose logs db`.
+- For external PostgreSQL: verify `DATABASE_URL` is reachable and credentials are valid.
+- Ensure the database has the pgvector extension enabled (`CREATE EXTENSION IF NOT EXISTS vector;`).
+- Verify migrations ran successfully (`pnpm --filter @kestrel/db db:migrate`).
 
 ## Updating Kestrel
 
@@ -152,7 +149,7 @@ docker compose logs --tail=200 worker
 docker compose ps
 ```
 
-Common causes include missing production secrets, invalid database URLs, unsupported OSS flags, failed migrations, and missing provider configuration. Fix the underlying configuration; do not disable authentication, TLS, or migration checks.
+Common causes include missing production secrets, invalid database URLs, unsupported deployment flags, failed migrations, and missing provider configuration. Fix the underlying configuration; do not disable authentication, TLS, or migration checks.
 
 ### Docker build fails
 
@@ -196,9 +193,7 @@ Do not manually delete migration records or edit migration files. Inspect `drizz
 
 ### Cannot register
 
-The public default is `REGISTRATION_MODE=owner-first`: the first account becomes the owner and later open registration is disabled. Confirm the instance has not already been initialized.
-
-Do not set `REGISTRATION_MODE=open` unless complete multi-user/RLS isolation is approved and enabled; that mode is unsupported by the public OSS release.
+If registration fails, check `REGISTRATION_MODE`. When set to `disabled`, open registration is closed and new accounts must be invited or created by an administrator. Set `REGISTRATION_MODE=open` to allow new user registration.
 
 ### Login or session problems
 
@@ -210,13 +205,17 @@ State-changing browser requests require the CSRF cookie/header pair. Use the app
 
 ### Admin access is missing
 
-In a single-user deployment, the sole authenticated user may be treated as admin when there are no explicitly assigned admin users. Otherwise verify the user role through the application’s supported admin flow.
+Administration requires an explicit `role='admin'` on the user record in the `"user"` table. There is no implicit admin fallback. If your user needs admin privileges, an existing administrator can grant it via the Admin UI, or an operator can update the database directly:
+
+```sql
+UPDATE "user" SET role = 'admin' WHERE email = 'user@example.com';
+```
 
 ## AI and provider issues
 
 ### Chat says no AI key is configured
 
-Add a provider key under **Settings → API Keys**. Server-level provider keys are optional in the OSS BYOK path. Confirm the selected model/provider combination is supported and that the provider account has quota.
+Add a provider key under **Settings → API Keys**. Server-level provider keys are optional in the self-hosted BYOK path. Confirm the selected model/provider combination is supported and that the provider account has quota.
 
 ### AI request fails or times out
 

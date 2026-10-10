@@ -36,7 +36,6 @@ jobs:
       - run: pnpm check:release-archive
       - run: pnpm check:dependency-report
       - run: pnpm check:release-metadata
-      - run: pnpm check:single-user-release
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
       # Knip is report-only until its baseline is fully reviewed; it must not
@@ -66,6 +65,15 @@ jobs:
     name: Unit Tests (Fast)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: hamafx
+          POSTGRES_USER: hamafx
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U hamafx -d hamafx" --health-interval 5s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4

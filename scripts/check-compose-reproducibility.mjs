@@ -57,16 +57,16 @@ requireText(
   /registrationMode === 'open'/,
   'Runtime migrations must guard unsafe open registration.',
 );
-requireText(compose, /MULTI_USER_ENABLED:\s*["']?0/, 'Compose must default to single-user mode.');
+requireText(compose, /MULTI_USER_ENABLED:\s*["']?1/, 'Compose must default to multi-user mode.');
 requireText(
   compose,
-  /REGISTRATION_MODE:\s*["']?owner-first/,
-  'Compose must default to owner-first registration.',
+  /REGISTRATION_MODE:\s*["']?open/,
+  'Compose must default to open registration.',
 );
 requireText(
   compose,
-  /KESTREL_ENABLE_RLS:\s*["']?0/,
-  'Compose must disable unsupported OSS RLS mode.',
+  /KESTREL_ENABLE_RLS:\s*["']?1/,
+  'Compose must enable RLS mode.',
 );
 requireText(
   `${compose}\n${appEntrypoint}\n${migrator}`,
@@ -89,11 +89,9 @@ requireText(
   /127\.0\.0\.1:8082:8082/,
   'Worker proxy listener must bind privately in the VM deployment.',
 );
-requireText(
-  compose,
-  /MULTI_USER_ENABLED:\s*["']?0/,
-  'Compose must keep shared mode disabled until P2 isolation is proven.',
-);
+if (/OSS_SINGLE_USER_MODE/.test(compose)) {
+  failures.push('Compose must not contain removed OSS_SINGLE_USER_MODE.');
+}
 
 if (failures.length) {
   console.error('Compose reproducibility check failed:');

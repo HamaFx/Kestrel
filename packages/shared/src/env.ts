@@ -191,7 +191,7 @@ const BillingEnv = z.object({
   NOWPAYMENTS_API_KEY: z.string().min(1).optional(),
   NOWPAYMENTS_IPN_SECRET: z.string().min(1).optional(),
   NOWPAYMENTS_API_BASE: z.string().url().default('https://api-sandbox.nowpayments.io'),
-  /** Hosted OSS deployments keep billing disabled unless explicitly opted in. */
+  /** Billing stays disabled unless explicitly opted in. */
   BILLING_ENABLED: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
     .default('0')
@@ -273,16 +273,26 @@ const RuntimeEnv = z.object({
   BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
 
   // Feature Flags
-  /** Public account creation policy. owner-first allows only the initial owner. */
-  REGISTRATION_MODE: z.enum(['owner-first', 'open', 'disabled']).default('owner-first'),
-  /** RLS is required whenever multi-user mode is enabled. */
+  /**
+   * Public account creation policy: `open` = anyone who can reach the instance
+   * can register; `disabled` = admin-invite only. `owner-first` was removed —
+   * a stale `.env` pin fails validation with a Zod enum error naming this
+   * variable (see the `REGISTRATION_MODE` refusals below).
+   */
+  REGISTRATION_MODE: z.enum(['open', 'disabled']).default('open'),
+  /**
+   * Row-level security is required for every deployment. Multi-user is the only
+   * supported mode, so this defaults to on; the flag is retained so tests can
+   * stub it and so a misconfigured instance fails closed at boot.
+   */
   KESTREL_ENABLE_RLS: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
+    .default('1')
     .transform((v) => v === '1' || v === 'true'),
+  /** Multi-user is the only supported deployment mode; defaults on. */
   MULTI_USER_ENABLED: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
+    .default('1')
     .transform((v) => v === '1' || v === 'true'),
   BYOK_ENABLED: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
@@ -296,14 +306,6 @@ const RuntimeEnv = z.object({
   PER_USER_BRIEFINGS: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
     .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * OSS runtime boundary. The public self-hosted release is single-user
-   * until every tenant-aware query and worker path is covered by RLS tests.
-   */
-  OSS_SINGLE_USER_MODE: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
     .transform((v) => v === '1' || v === 'true'),
 });
 
@@ -348,19 +350,11 @@ export const ServerEnvSchema = z
         'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
       path: ['REGISTRATION_MODE'],
     },
-  )
-  .refine(
-    (env) =>
-      !env.OSS_SINGLE_USER_MODE ||
-      (!env.MULTI_USER_ENABLED &&
-        !env.KESTREL_ENABLE_RLS &&
-        env.REGISTRATION_MODE === 'owner-first'),
-    {
-      message:
-        'Multi-user/RLS mode is disabled in OSS_SINGLE_USER_MODE. Keep MULTI_USER_ENABLED=0, KESTREL_ENABLE_RLS=0, and REGISTRATION_MODE=owner-first.',
-      path: ['OSS_SINGLE_USER_MODE'],
-    },
   );
+// NOTE: `REGISTRATION_MODE=owner-first` is rejected by the enum in RuntimeEnv
+// above. A separate `.refine()` would be unreachable — Zod skips outer
+// refinements once the inner parse fails — so the removed mode is surfaced as
+// the standard `invalid_enum_value` error on the REGISTRATION_MODE path.
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
 /**
@@ -485,13 +479,11 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
 }
 
 /**
- * Parse process.env into a typed env object. Throws a readable error listing
- * every missing/invalid variable. Cache the result at module-scope in callers.
+ * Read-only upgrade aliases accepted for exactly one release. The `HAMAFX_*`
+ * names were removed in 0.2.0; only the Auth.js rename survives here, and it
+ * is dropped in 0.3.0.
  */
 export const DEPRECATED_ENV_ALIASES = {
-  HAMAFX_ENABLE_RLS: 'KESTREL_ENABLE_RLS',
-  HAMAFX_RUNTIME: 'KESTREL_RUNTIME',
-  HAMAFX_LOCAL_DOCKER: 'KESTREL_LOCAL_DOCKER',
   NEXTAUTH_SECRET: 'AUTH_SECRET',
 } as const;
 
@@ -503,24 +495,24 @@ export function getDeprecatedEnvAliases(
     .map(([oldName, newName]) => ({ oldName, newName }));
 }
 
+/**
+ * Parse process.env into a typed env object. Throws a readable error listing
+ * every missing/invalid variable. Cache the result at module-scope in callers.
+ */
 export function parseServerEnv(input: NodeJS.ProcessEnv = process.env): ServerEnv {
-  // Accept the pre-rebrand variable during upgrades, but normalize all
-  // application behavior to the Kestrel name before validation.
+  // `HAMAFX_*` aliases are no longer accepted (0.2.0). `NEXTAUTH_SECRET` is
+  // still normalized to AUTH_SECRET for one release (see the else branch).
   const normalized = { ...input };
-  if (normalized.KESTREL_ENABLE_RLS === undefined && normalized.HAMAFX_ENABLE_RLS !== undefined) {
-    normalized.KESTREL_ENABLE_RLS = normalized.HAMAFX_ENABLE_RLS;
-  }
   if (normalized.VERCEL_ENV === 'preview') {
     const isInvalid = (v?: string) => !v || v.trim().length < 32;
     const FALLBACK_PREVIEW_SECRET =
       'a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9a5b3c4d5e6f7g8h9';
     if (isInvalid(normalized.AUTH_SECRET)) {
-      normalized.AUTH_SECRET =
-        !isInvalid(normalized.NEXTAUTH_SECRET)
-          ? normalized.NEXTAUTH_SECRET
-          : !isInvalid(normalized.AUTH_COOKIE_SECRET)
-            ? normalized.AUTH_COOKIE_SECRET
-            : FALLBACK_PREVIEW_SECRET;
+      normalized.AUTH_SECRET = !isInvalid(normalized.NEXTAUTH_SECRET)
+        ? normalized.NEXTAUTH_SECRET
+        : !isInvalid(normalized.AUTH_COOKIE_SECRET)
+          ? normalized.AUTH_COOKIE_SECRET
+          : FALLBACK_PREVIEW_SECRET;
     }
     if (isInvalid(normalized.NEXTAUTH_SECRET)) {
       normalized.NEXTAUTH_SECRET = normalized.AUTH_SECRET;

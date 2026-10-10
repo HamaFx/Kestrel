@@ -24,7 +24,7 @@ import { organization, users } from './auth';
  * where `token` is an HMAC of `{id, expiresAt}` signed with `AUTH_COOKIE_SECRET`.
  *
  * The route is bypassed by the password gate but verified by token, so the
- * single user can paste a link into Telegram without giving away the password.
+ * user can paste a link into Telegram without giving away the password.
  */
 export const sharedSnapshots = pgTable(
   'shared_snapshots',

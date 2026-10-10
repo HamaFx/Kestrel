@@ -86,9 +86,10 @@ export interface TelemetryInput {
 }
 
 export async function recordTelemetry(t: TelemetryInput): Promise<void> {
-  const userId = t.userId ?? '__system__';
+  if (!t.userId) return;
+  const userId = t.userId;
   const db = getDb();
-  const tenantId = userId === '__system__' ? undefined : await requireTenantIdForUser(userId, db);
+  const tenantId = await requireTenantIdForUser(userId, db);
   const context = getDiagnosticContext();
   const idempotencyKey = t.idempotencyKey ?? `telemetry.turn:${randomUUID()}`;
   try {
@@ -151,9 +152,10 @@ export interface ToolTelemetryInput {
 }
 
 export async function recordToolTelemetry(t: ToolTelemetryInput): Promise<boolean> {
-  const userId = t.userId ?? '__system__';
+  if (!t.userId) return false;
+  const userId = t.userId;
   const db = getDb();
-  const tenantId = userId === '__system__' ? undefined : await requireTenantIdForUser(userId, db);
+  const tenantId = await requireTenantIdForUser(userId, db);
   const context = getDiagnosticContext();
   const idempotencyKey = t.idempotencyKey ?? `telemetry.tool:${randomUUID()}`;
   try {

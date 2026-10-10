@@ -110,7 +110,7 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     code: 'FORBIDDEN',
     description: 'User lacks permission for the requested resource',
     suggestedFix:
-      'Verify the user role in the users table. Admin routes require role=admin or single-user mode fallback.',
+      'Verify the user role in the users table. Admin routes require role=admin.',
     relatedFiles: ['apps/web/src/lib/admin-auth.ts', 'packages/db/src/schema/auth.ts'],
     retryable: false,
   },

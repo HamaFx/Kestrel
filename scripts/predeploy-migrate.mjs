@@ -84,12 +84,16 @@ if (vercelEnv && vercelEnv !== 'production') {
 const multiUserEnabled = ['1', 'true'].includes(
   (process.env.MULTI_USER_ENABLED ?? '').toLowerCase(),
 );
-const rlsEnabled = ['1', 'true'].includes(
-  (process.env.KESTREL_ENABLE_RLS ?? process.env.HAMAFX_ENABLE_RLS ?? '').toLowerCase(),
-);
+const rlsEnabled = ['1', 'true'].includes((process.env.KESTREL_ENABLE_RLS ?? '').toLowerCase());
 if (multiUserEnabled !== rlsEnabled) {
   console.error(
     '[predeploy-migrate] MULTI_USER_ENABLED and KESTREL_ENABLE_RLS must be enabled together; refusing an unsafe partial configuration.',
+  );
+  process.exit(1);
+}
+if (!multiUserEnabled || !rlsEnabled) {
+  console.error(
+    '[predeploy-migrate] MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1 are required; refusing an unsafe configuration.',
   );
   process.exit(1);
 }

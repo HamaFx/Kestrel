@@ -2,7 +2,7 @@
  * Real PostgreSQL RLS verification.
  *
  * Opt in with RUN_POSTGRES_RLS_TESTS=1 and TEST_POSTGRES_ADMIN_URL. The test
- * never falls back to PGlite because PGlite cannot prove role/RLS semantics.
+ * never uses an in-process substitute because only real PostgreSQL proves role/RLS semantics.
  */
 import { randomUUID } from 'node:crypto';
 

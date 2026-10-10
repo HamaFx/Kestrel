@@ -1,7 +1,7 @@
 {
   "name": "kestrel",
   "version": "0.1.0",
-  "description": "The Open-Source, Single-User BYOK AI Trading Platform",
+  "description": "The Self-Hosted Multi-User BYOK AI Trading Platform",
   "license": "Apache-2.0",
   "packageManager": "pnpm@9.15.4",
   "engines": {
@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "tsx scripts/dev.ts && turbo run dev",
     "dev:local": "tsx scripts/dev.ts",
     "setup": "node scripts/setup.mjs",
     "update": "node scripts/update.mjs",
@@ -41,8 +41,8 @@
     "check:env-contract": "node scripts/check-env-contract.mjs",
     "check:release-archive": "node scripts/check-release-archive.mjs",
     "check:release-metadata": "node scripts/check-release-metadata.mjs",
-    "check:single-user-release": "node scripts/check-single-user-release.mjs",
     "test:postgres-rls": "node scripts/run-postgres-rls-test.mjs",
+    "test:ai-postgres-queue": "node scripts/run-ai-postgres-queue-test.mjs",
     "generate:sbom": "node scripts/generate-sbom.mjs",
     "check:dependency-report": "node scripts/check-dependency-report.mjs",
     "licenses:generate": "node scripts/generate-license-report.mjs",

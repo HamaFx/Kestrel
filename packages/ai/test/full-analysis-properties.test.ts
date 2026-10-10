@@ -19,7 +19,7 @@
 // failure category, plan identity, and exactly-once budget accounting
 // across enqueue and worker execution.
 
-import type { getPGliteDb } from '@kestrel/db/pglite';
+import type { QueueTestDb } from './helpers/full-analysis-queue-db';
 import { describe, expect, it } from 'vitest';
 
 import { resumeTurnBudget } from '../src/budget-reservation';
@@ -47,7 +47,7 @@ import {
 import type { ExecutionPlan } from '../src/mastra/execution-plan';
 import { withQueueStorage } from './helpers/full-analysis-queue-db';
 
-type QueueDb = Awaited<ReturnType<typeof getPGliteDb>>;
+type QueueDb = QueueTestDb;
 
 const SNAPSHOT = {
   modelId: 'google/gemini-2.5-flash',
@@ -96,16 +96,33 @@ function fullPlan(overrides: Partial<ExecutionPlan> = {}): ExecutionPlan {
 }
 
 async function reservationRows(db: QueueDb) {
-  return db.execute(
+  const rows = await db.execute(
     `SELECT id, status, reserved_usd_cents, actual_usd_cents FROM ai_budget_reservations`,
   );
+  return (
+    rows as unknown as Array<{
+      id: string;
+      status: string;
+      reserved_usd_cents: number | string;
+      actual_usd_cents: number | string;
+    }>
+  ).map((row) => ({
+    ...row,
+    reserved_usd_cents: Number(row.reserved_usd_cents),
+    actual_usd_cents: Number(row.actual_usd_cents),
+  }));
 }
 
 async function dailySpendRow(db: QueueDb) {
-  return db.execute(`SELECT total_usd_cents FROM daily_ai_spend WHERE user_id = 'user-1'`);
+  const rows = await db.execute(
+    `SELECT total_usd_cents FROM daily_ai_spend WHERE user_id = 'user-1'`,
+  );
+  return (rows as unknown as Array<{ total_usd_cents: number | string }>).map((row) => ({
+    total_usd_cents: Number(row.total_usd_cents),
+  }));
 }
 
-describe('Phase 8 queue-to-Mastra dispatch properties', { timeout: 30_000 }, () => {
+describe.skipIf(process.env.RUN_AI_QUEUE_POSTGRES_TESTS !== '1')('Phase 8 queue-to-Mastra dispatch properties', { timeout: 30_000 }, () => {
   it('claims only plan-consistent runs and rejects incompatible payloads terminally', async () => {
     await withQueueStorage(async (db) => {
       // 1. plan route mismatch → rejected at claim, terminal failure.
@@ -140,7 +157,7 @@ describe('Phase 8 queue-to-Mastra dispatch properties', { timeout: 30_000 }, () 
         `SELECT run_id, status, error FROM full_analysis_queue ORDER BY created_at`,
       );
       const byRun = Object.fromEntries(
-        (rows.rows as Array<{ run_id: string; status: string; error: string | null }>).map(
+        (rows as unknown as Array<{ run_id: string; status: string; error: string | null }>).map(
           (row) => [row.run_id, row],
         ),
       );
@@ -190,7 +207,7 @@ describe('Phase 8 queue-to-Mastra dispatch properties', { timeout: 30_000 }, () 
   });
 });
 
-describe('Phase 8 queue FSM transition invariants', { timeout: 30_000 }, () => {
+describe.skipIf(process.env.RUN_AI_QUEUE_POSTGRES_TESTS !== '1')('Phase 8 queue FSM transition invariants', { timeout: 30_000 }, () => {
   it('advances pending → running → succeeded with attempts+1 per claim and no re-claim', async () => {
     await withQueueStorage(async () => {
       const runId = await enqueueFullAnalysis({
@@ -229,7 +246,7 @@ describe('Phase 8 queue FSM transition invariants', { timeout: 30_000 }, () => {
       const rows = await db.execute(
         `SELECT status FROM full_analysis_queue WHERE run_id = '${runId}'`,
       );
-      expect(rows.rows[0]).toMatchObject({ status: 'failed' });
+      expect(rows[0]).toMatchObject({ status: 'failed' });
     });
   });
 
@@ -345,7 +362,7 @@ describe('Phase 8 plan identity validation', () => {
   });
 });
 
-describe('Phase 8 budget exactly-once properties', { timeout: 30_000 }, () => {
+describe.skipIf(process.env.RUN_AI_QUEUE_POSTGRES_TESTS !== '1')('Phase 8 budget exactly-once properties', { timeout: 30_000 }, () => {
   it('creates exactly one reservation per run, also under duplicate enqueue', async () => {
     await withQueueStorage(async (db) => {
       await enqueueFullAnalysis({ ...BASE_INPUT, idempotencyKey: 'full:budget:1' });
@@ -356,12 +373,12 @@ describe('Phase 8 budget exactly-once properties', { timeout: 30_000 }, () => {
       });
 
       const rows = await reservationRows(db);
-      expect((rows.rows as unknown[]).length).toBe(1);
+      expect(rows.length).toBe(1);
       // Phase 9: reservation includes the observational-memory allowance
       // (5.0c visible turn + 0.8c observational) → 6 cents reserved.
-      expect(rows.rows[0]).toMatchObject({ status: 'reserved', reserved_usd_cents: 6 });
+      expect(rows[0]).toMatchObject({ status: 'reserved', reserved_usd_cents: 6 });
       const spend = await dailySpendRow(db);
-      expect(spend.rows[0]).toMatchObject({ total_usd_cents: 6 });
+      expect(spend[0]).toMatchObject({ total_usd_cents: 6 });
     });
   });
 
@@ -384,18 +401,18 @@ describe('Phase 8 budget exactly-once properties', { timeout: 30_000 }, () => {
       await budget.reconcile(0.04);
 
       const rows = await reservationRows(db);
-      expect(rows.rows[0]).toMatchObject({
+      expect(rows[0]).toMatchObject({
         status: 'reconciled',
         reserved_usd_cents: 6,
         actual_usd_cents: 4,
       });
       const spend = await dailySpendRow(db);
-      expect(spend.rows[0]).toMatchObject({ total_usd_cents: 4 });
+      expect(spend[0]).toMatchObject({ total_usd_cents: 4 });
 
       // Terminal settlement is idempotent: a second reconcile is a no-op.
       await budget.reconcile(0.04);
-      expect((await reservationRows(db)).rows[0]).toMatchObject({ status: 'reconciled' });
-      expect((await dailySpendRow(db)).rows[0]).toMatchObject({ total_usd_cents: 4 });
+      expect((await reservationRows(db))[0]).toMatchObject({ status: 'reconciled' });
+      expect((await dailySpendRow(db))[0]).toMatchObject({ total_usd_cents: 4 });
     });
   });
 
@@ -418,7 +435,7 @@ describe('Phase 8 budget exactly-once properties', { timeout: 30_000 }, () => {
       await requeueFullAnalysisRun(runId!, 'worker-1', 'attempt failed; retrying');
 
       const afterRequeue = await reservationRows(db);
-      expect(afterRequeue.rows[0]).toMatchObject({ status: 'reserved' });
+      expect(afterRequeue[0]).toMatchObject({ status: 'reserved' });
       expect(firstBudget.released).toBe(false);
 
       // Attempt 2 reuses the same reservation and books the actual exactly once.
@@ -434,13 +451,13 @@ describe('Phase 8 budget exactly-once properties', { timeout: 30_000 }, () => {
       await completeFullAnalysisRun(runId!, 'worker-2', { finalText: 'retried ok' });
 
       const rows = await reservationRows(db);
-      expect(rows.rows[0]).toMatchObject({
+      expect(rows[0]).toMatchObject({
         status: 'reconciled',
         reserved_usd_cents: 6,
         actual_usd_cents: 6,
       });
       const spend = await dailySpendRow(db);
-      expect(spend.rows[0]).toMatchObject({ total_usd_cents: 6 });
+      expect(spend[0]).toMatchObject({ total_usd_cents: 6 });
     });
   });
 
@@ -463,9 +480,9 @@ describe('Phase 8 budget exactly-once properties', { timeout: 30_000 }, () => {
       await lifecycle.fail();
 
       const rows = await reservationRows(db);
-      expect(rows.rows[0]).toMatchObject({ status: 'released', actual_usd_cents: 0 });
+      expect(rows[0]).toMatchObject({ status: 'released', actual_usd_cents: 0 });
       const spend = await dailySpendRow(db);
-      expect(spend.rows[0]).toMatchObject({ total_usd_cents: 0 });
+      expect(spend[0]).toMatchObject({ total_usd_cents: 0 });
     });
   });
 

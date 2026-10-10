@@ -59,6 +59,8 @@ export const authConfig: NextAuthConfig = {
       // C-2: Legacy mode is ONLY allowed when NODE_ENV !== 'production'.
       // The ALLOW_LEGACY_AUTH escape hatch has been removed — legacy auth
       // in production is now a hard error when the proxy handles a request.
+      // AUTH_MODE=legacy exists for local dev and the loadtest/k6 harness;
+      // it is not a deployment profile.
       if (process.env.AUTH_MODE === 'legacy' && process.env.NODE_ENV !== 'production') return true;
 
       const isLoggedIn = !!auth?.user;

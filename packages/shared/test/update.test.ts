@@ -39,8 +39,8 @@ describe('Kestrel updater', () => {
     expect(isStableRelease({ tag_name: 'v1.0.0', draft: true, prerelease: false })).toBe(false);
   });
 
-  it('detects Simple and Docker installations', () => {
-    expect(detectMode(process.cwd())).toBe('simple');
+  it('detects External and Docker installations', () => {
+    expect(detectMode(process.cwd())).toBe('external');
   });
 
   it('rejects a non-Kestrel release root', () => {

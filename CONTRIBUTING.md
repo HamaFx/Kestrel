@@ -1,19 +1,19 @@
 # Contributing to Kestrel
 
-Thank you for contributing to Kestrel. This guide covers the supported development workflow for the open-source repository.
+Thank you for contributing to Kestrel. This guide covers the supported development workflow for the private self-hosted repository.
 
-> **Public release boundary:** Kestrel is currently a single-user, self-hosted beta. Shared multi-user/RLS hosting is intentionally unsupported. Read [docs/deployment-matrix.md](docs/deployment-matrix.md) and [docs/audit/current-status.md](docs/audit/current-status.md) before changing deployment, auth, database, or tenant code.
+> **Deployment model:** Kestrel is a private self-hosted multi-user platform. Tenant isolation is enforced via Postgres Row Level Security (RLS) on all user-data tables. Read [docs/deployment-matrix.md](docs/deployment-matrix.md) and [docs/architecture.md](docs/architecture.md) before changing deployment, auth, database, or tenant code.
 
 ## 1. Prerequisites
 
-| Requirement | Version                                       | Verify             |
-| ----------- | --------------------------------------------- | ------------------ |
-| Node.js     | `>=22.13.0`                                   | `node --version`   |
-| pnpm        | `9.15.4`                                      | `pnpm --version`   |
-| Git         | Any current version                           | `git --version`    |
-| Docker      | Optional; required for Docker/PostgreSQL mode | `docker --version` |
+| Requirement | Version                               | Verify             |
+| ----------- | ------------------------------------- | ------------------ |
+| Node.js     | `>=22.13.0`                           | `node --version`   |
+| pnpm        | `9.15.4`                              | `pnpm --version`   |
+| Git         | Any current version                   | `git --version`    |
+| Docker      | Required for local PostgreSQL service | `docker --version` |
 
-PGlite boots automatically for local development, so a database installation is not required for Simple mode.
+PostgreSQL is required for local development and testing. Start the bundled database service with `docker compose up -d db` or set `DATABASE_URL`.
 
 ## 2. Quick start
 
@@ -23,23 +23,24 @@ cd Kestrel
 pnpm setup
 ```
 
-The setup wizard supports Simple/PGlite and Docker modes, generated local secrets, dry-run output, JSON output, and optional launch. Configure an AI provider key after registering through **Settings → API Keys**.
+The setup wizard configures Docker and external Postgres modes, generates secrets, and produces `.env`. Configure an AI provider key after registering through **Settings → API Keys**.
 
-Manual Simple-mode setup:
+Local development setup:
 
 ```bash
+docker compose up -d db
 pnpm install --frozen-lockfile
-pnpm dev:local
+pnpm dev
 ```
 
-Manual Docker setup:
+Full Docker stack setup:
 
 ```bash
 ./docker/init-secrets.sh
 docker compose up -d --build
 ```
 
-Do not set `MULTI_USER_ENABLED=1`, `KESTREL_ENABLE_RLS=1`, or `REGISTRATION_MODE=open` for the public single-user release.
+Every deployment requires `MULTI_USER_ENABLED=1`, `KESTREL_ENABLE_RLS=1`, and `REGISTRATION_MODE=open` (or `disabled` for invite-only).
 
 ## 3. Repository structure
 
@@ -51,7 +52,7 @@ config → shared → db + indicators → data → ai → web + worker
 | --------------------- | ---------------------- | ---------------------------------------------------------------------- |
 | `@kestrel/config`     | `packages/config/`     | Shared TypeScript, ESLint, and formatting configuration                |
 | `@kestrel/shared`     | `packages/shared/`     | Zod schemas, environment validation, encryption, logging, shared types |
-| `@kestrel/db`         | `packages/db/`         | Drizzle schema, migrations, PostgreSQL/PGlite clients                  |
+| `@kestrel/db`         | `packages/db/`         | Drizzle schema, migrations, PostgreSQL client                          |
 | `@kestrel/indicators` | `packages/indicators/` | Technical indicators and market-structure calculations                 |
 | `@kestrel/data`       | `packages/data/`       | Market-data providers, adapters, failover, and caching                 |
 | `@kestrel/ai`         | `packages/ai/`         | Mastra agents/workflows, typed tools, routing, memory, persistence     |
@@ -74,7 +75,7 @@ config → shared → db + indicators → data → ai → web + worker
 
 - Define tables in `packages/db/src/schema/` and export them from the schema index.
 - User-owned data must preserve the project’s ownership and tenant columns/constraints.
-- New migrations must be idempotent and compatible with PGlite where applicable.
+- New migrations must be idempotent and compatible with PostgreSQL.
 - Generate migrations with `pnpm --filter @kestrel/db migrate:gen`.
 - Never edit an applied migration.
 - Never run `drizzle-kit push` against production.
@@ -110,13 +111,12 @@ pnpm check:route-security
 pnpm check:env-contract
 pnpm check:release-archive
 pnpm check:dependency-report
-pnpm check:single-user-release
 ```
 
 E2E tests require a running app:
 
 ```bash
-pnpm dev:local
+pnpm dev
 pnpm test:e2e
 ```
 
@@ -126,7 +126,7 @@ pnpm test:e2e
 - Add tests for every new AI tool, API route, provider, indicator, migration, and security-sensitive behavior.
 - Use shared fixtures and mocks from `@kestrel/test-utils`.
 - Always pass `--run` to Vitest in CI/non-interactive commands.
-- PostgreSQL-only RLS tests must use disposable PostgreSQL and must not claim PGlite proves RLS.
+- PostgreSQL RLS tests run against disposable PostgreSQL (`docker compose up -d db`).
 - E2E tests should cover auth, ownership, CSRF, responsive behavior, accessibility, health, and critical user journeys.
 
 ## 7. Pull requests
@@ -141,10 +141,10 @@ pnpm test:e2e
 
 - **Auth and ownership:** never regress to a single-password gate or remove user scoping.
 - **BYOK encryption:** never log or expose decrypted credentials; protect `ENCRYPTION_SECRET`.
-- **RLS/shared mode:** remains unsupported until complete tenant isolation is proven across web, worker, cache, memory, exports, shares, notifications, billing, and telemetry.
+- **RLS and tenant isolation:** tenant isolation must remain strictly enforced across web, worker, cache, memory, exports, shares, notifications, and telemetry.
 - **Risk calculations:** preserve precision and test edge cases.
 - **Request proxy:** keep it lightweight and security-focused; do not add database work there.
-- **Billing/webhooks:** preserve signature verification, idempotency, and failure handling; hosted billing is not part of the default OSS path.
+- **Billing/webhooks:** preserve signature verification, idempotency, and failure handling; hosted billing is not part of the default self-hosting path.
 
 ## 9. Releases and CI
 

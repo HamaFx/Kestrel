@@ -82,7 +82,7 @@ async function checkDatabase() {
       if (process.env.DB_DISABLE_SSL === 'true') {
         if (
           process.env.NODE_ENV !== 'production' ||
-          (process.env.KESTREL_LOCAL_DOCKER ?? process.env.HAMAFX_LOCAL_DOCKER) === 'true'
+          process.env.KESTREL_LOCAL_DOCKER === 'true'
         ) {
           return false;
         }

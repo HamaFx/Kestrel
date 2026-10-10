@@ -73,7 +73,7 @@ describe('withRateLimit with mocked client', () => {
     expect(result.count).toBe(15);
   });
 
-  it('handles PGlite row shape ({ rows })', async () => {
+  it('handles legacy result row shape ({ rows })', async () => {
     mockExecute.mockResolvedValue({ rows: [{ request_count: 7 }] });
     const { withRateLimit } = await import('../src/rate-limit');
     const result = await withRateLimit('user-3', 'ai_chat', 10);
@@ -115,7 +115,7 @@ describe('extractCount regression guard', () => {
     expect(extractCount(r)).toBe(31);
   });
 
-  it('reads PGlite shape ({ rows })', () => {
+  it('reads legacy result shape ({ rows })', () => {
     expect(extractCount({ rows: [{ request_count: 5 }] })).toBe(5);
   });
 

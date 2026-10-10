@@ -14,33 +14,12 @@
  * limitations under the License.
  */
 
-// scripts/dev.ts — Unified local development entrypoint.
+// scripts/dev.ts — local development environment guard.
 //
-// Starts Next.js dev server + optional worker with embedded scheduler.
-// Uses PGlite (embedded Postgres) if no DATABASE_URL is set.
+// The root `pnpm dev` command runs this first so an absent Postgres URL fails
+// immediately. The original Turbo task then starts the workspace dev servers.
 //
-// Usage: pnpm dev:local
-
-import { spawn, type ChildProcess } from 'node:child_process';
-
-const processes: ChildProcess[] = [];
-
-function cleanup() {
-  console.log('\nShutting down...');
-  for (const p of processes) {
-    p.kill('SIGTERM');
-  }
-  // Force kill after 5 seconds
-  setTimeout(() => {
-    for (const p of processes) {
-      if (!p.killed) p.kill('SIGKILL');
-    }
-    process.exit(0);
-  }, 5000);
-}
-
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+// Usage: pnpm dev
 
 const KESTREL_BANNER = [
   '██╗  ██╗███████╗███████╗████████╗██████╗ ███████╗██╗',
@@ -54,38 +33,19 @@ const KESTREL_BANNER = [
 async function main() {
   console.log(`\n${KESTREL_BANNER}\n\n🚀 Kestrel local development mode\n`);
 
-  // Check if we're using PGlite or remote Postgres
+  // Check if we have a Postgres URL
   const hasDbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-  if (hasDbUrl) {
-    console.log(`📦 Database: remote Postgres`);
-  } else {
-    console.log('📦 Database: embedded PGlite (.kestrel/data/)');
-    console.log('   (Run with docker compose up for full pgvector support)\n');
+  if (!hasDbUrl) {
+    console.error(
+      '[dev] DATABASE_URL is required — start Postgres (docker compose up -d db) or set DATABASE_URL',
+    );
+    process.exit(1);
   }
-
-  // Start Next.js dev server
-  console.log('▶  Starting Next.js on http://localhost:3000');
-  const nextDev = spawn('pnpm', ['--filter', '@kestrel/web', 'dev'], {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      // Tell the app to use local DB mode (PGlite fallback)
-      KESTREL_LOCAL_DEV: '1',
-    },
-  });
-  processes.push(nextDev);
-
-  // Wait for child processes
-  await new Promise<void>((resolve) => {
-    nextDev.on('exit', (code) => {
-      console.log(`\nNext.js exited with code ${code}`);
-      cleanup();
-      resolve();
-    });
-  });
+  console.log('📦 Database: Postgres');
+  console.log('▶  Starting workspace development tasks...');
 }
 
 main().catch((err) => {
-  console.error('Dev server failed:', err);
+  console.error('Development guard failed:', err);
   process.exit(1);
 });

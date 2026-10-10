@@ -1,38 +1,35 @@
-# Kestrel open-source deployment matrix
+# Kestrel deployment matrix
 
-Kestrel's public release is a **single-user self-hosted beta**. Shared multi-user/RLS hosting is not supported by the public release.
+Kestrel is a private self-hosted multi-user platform. Multi-user isolation is enforced using Postgres Row Level Security (RLS) across all deployments.
 
 ## Supported profiles
 
-| Profile                         | Database                       |   Worker | Intended use                      | Status                                 |
-| ------------------------------- | ------------------------------ | -------: | --------------------------------- | -------------------------------------- |
-| Simple                          | Embedded PGlite                |       No | Local development and evaluation  | Supported                              |
-| Docker single-user              | PostgreSQL + pgvector          |      Yes | Complete local/self-hosted stack  | Supported                              |
-| External PostgreSQL single-user | Operator-managed PostgreSQL    | Optional | Advanced self-hosting             | Supported with operator responsibility |
-| Maintainer Vercel/VM            | Supabase + Vercel + GCE worker |      Yes | Kestrel's own deployment topology | Maintainer-specific                    |
-| Shared multi-user/RLS           | PostgreSQL + RLS               | Required | Future hosted/shared deployments  | Not supported                          |
+| Profile                   | Database                    |   Worker | Intended use                     | Status                                 |
+| ------------------------- | --------------------------- | -------: | -------------------------------- | -------------------------------------- |
+| Docker Compose (Standard) | PostgreSQL + pgvector       |      Yes | Complete local/self-hosted stack | Supported                              |
+| External PostgreSQL       | Operator-managed PostgreSQL | Optional | Advanced self-hosting            | Supported with operator responsibility |
 
 ## Security boundary
 
-The public OSS profile must use:
+All deployments enforce:
 
 ```text
-OSS_SINGLE_USER_MODE=1
-MULTI_USER_ENABLED=0
-KESTREL_ENABLE_RLS=0
-REGISTRATION_MODE=owner-first
+MULTI_USER_ENABLED=1
+KESTREL_ENABLE_RLS=1
+REGISTRATION_MODE=open
 ```
 
-Do not expose a shared instance to unrelated users. Enabling multi-user or RLS flags does not make the deployment supported; the complete tenant-isolation proof is still a future milestone.
+Tenant isolation is enforced via Postgres RLS on every user-data table. Each user's queries are scoped to their tenant ID via `withTenantDb`. Admin access requires an explicit `role='admin'` on the user record.
 
 ## Profile validation
 
 Each supported profile should be selected explicitly. The runtime rejects unsafe combinations rather than silently choosing a fallback:
 
-- Public OSS deployments must remain single-user with `OSS_SINGLE_USER_MODE=1`, `MULTI_USER_ENABLED=0`, `KESTREL_ENABLE_RLS=0`, and `REGISTRATION_MODE=owner-first`.
-- `MULTI_USER_ENABLED=1` requires `KESTREL_ENABLE_RLS=1`, but the combination remains unsupported by the public release.
+- All deployments require `MULTI_USER_ENABLED=1` and `KESTREL_ENABLE_RLS=1`. Disabling RLS while multi-user is active is rejected at startup.
+- `REGISTRATION_MODE` must be `open` or `disabled` (invite-only).
 - Production worker deployments require both `WORKER_HEALTH_TOKEN` and `BIQUOTE_PROXY_TOKEN`.
-- Production database connections require a configured database URL and verified TLS, except for the explicit local Docker profile.
+- All deployments require a configured database URL and verified TLS, except for the explicit local Docker profile.
+- Web requests, worker jobs, and tenant lookup require `ADMIN_DATABASE_URL`, backed by a dedicated `BYPASSRLS` database role. Docker Compose provisions it automatically; external PostgreSQL operators must provision the role and URL themselves.
 
 Use `pnpm verify:local` and `pnpm check:env-contract` before starting a deployment.
 
@@ -90,7 +87,6 @@ pnpm check:dependency-report
 
 Then separately validate:
 
-- Simple/PGlite startup with no remote database.
 - Docker startup with fresh volumes.
 - PostgreSQL migration and restart behavior.
 - Backup and restore.

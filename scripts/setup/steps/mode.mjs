@@ -20,17 +20,7 @@ import { box, info, note, paint, renderComparison, startSpinner, warn } from '..
 
 export const title = 'Choose your setup mode';
 
-export const hint = 'Simple = zero-Docker dev box · Full = complete self-hosted stack';
-
-const LOCAL_FEATURES = [
-  ['✓', 'Embedded Postgres (PGlite)', 'No Docker needed'],
-  ['✓', 'Fast startup & hot reload', 'Best for development'],
-  ['✓', 'Full web app + AI chat', '78 API routes'],
-  ['✓', 'Auth, journal, alerts', 'Settings, onboarding'],
-  ['✗', 'Vector search (RAG)', 'pgvector not in PGlite'],
-  ['✗', 'Live market data', 'No worker process'],
-  ['✗', 'Langfuse observability', 'Needs Docker'],
-];
+export const hint = 'Docker with bundled Postgres or external Postgres';
 
 const DOCKER_FEATURES = [
   ['✓', 'Postgres 16 + pgvector', 'Full RAG & memory'],
@@ -48,19 +38,6 @@ function featureRow([icon, feat, desc]) {
 }
 
 function printModeBoxes(io) {
-  box(
-    io,
-    'Simple mode (lightweight)',
-    [
-      `${paint('Recommended for:', 'bold')} trying the app quickly`,
-      '',
-      ...LOCAL_FEATURES.map(featureRow),
-      '',
-      `${paint('What it does:', 'bold')} runs the app on this computer`,
-    ],
-    { color: 'muted', minWidth: 54 },
-  );
-  io.line();
   box(
     io,
     'Full mode (Docker)',
@@ -102,13 +79,12 @@ function printByokNote(io, compact) {
 /** Compact two-column comparison used on the full-screen mode page. */
 function printCompactComparison(io) {
   const lines = renderComparison({
-    leftTitle: 'Simple — lightweight',
+    leftTitle: 'External Postgres',
     left: [
-      ['✓', 'PGlite embedded · no Docker'],
-      ['✓', 'Fast startup · hot reload'],
+      ['✓', 'Bring your own database'],
+      ['✓', 'Dockerized app & worker'],
       ['✓', 'Full web app + AI chat'],
-      ['✗', 'No vector search (RAG)'],
-      ['✗', 'No live market data'],
+      ['!', 'Must configure DB manually'],
     ],
     rightTitle: 'Full — Docker stack',
     right: [
@@ -141,18 +117,14 @@ export async function run(ctx) {
         spinner.stop(ready ? 'Docker Desktop is ready' : null);
       }
       if (!ready) {
-        warn(io, 'Docker Desktop is not running — Full mode is unavailable.');
-        warn(io, 'Falling back to Simple mode.');
-        // C3: Record so the --json summary exposes the fallback to scripts.
-        ctx.answers.dockerUnavailable = true;
-        mode = 'simple';
+        throw new Error('Docker Desktop is not running.');
       }
     }
     ctx.answers.mode = mode;
     io.line();
     io.line(
       `  ${paint('→', 'success')} Selected: ${paint(
-        mode === 'docker' ? 'Full mode (Docker)' : 'Simple mode',
+        mode === 'docker' ? 'Full mode (Docker)' : 'External Postgres',
         'bold',
         mode === 'docker' ? 'brand' : 'muted',
       )} ${paint('(from --mode)', 'dim')}`,
@@ -162,7 +134,29 @@ export async function run(ctx) {
   }
 
   let mode;
-  if (!docker.ready && docker.installed) {
+  const choice = await select(io, {
+    message: 'Choose your setup mode',
+    options: [
+      {
+        value: 'docker',
+        label: 'Full mode (Docker)',
+        description: docker.ready
+          ? 'Docker with bundled Postgres'
+          : 'Requires Docker Desktop to be running',
+      },
+      {
+        value: 'external',
+        label: 'External Postgres',
+        description: 'Bring your own Postgres database (Docker not required)',
+      },
+    ],
+    initialValue: 'docker',
+    auto,
+  });
+  if (choice === 'cancel') return 'abort';
+  mode = choice;
+
+  if (mode === 'docker' && !docker.ready) {
     const retry = await confirm(io, {
       message: 'Docker Desktop is not ready. Wait up to 60 seconds for it?',
       initial: true,
@@ -174,39 +168,13 @@ export async function run(ctx) {
       docker.ready = await waitForDocker();
       spinner.stop(docker.ready ? 'Docker Desktop is ready' : null);
     }
-  }
-
-  if (!docker.ready) {
-    info(io, 'Full mode is unavailable because Docker Desktop is not running.');
-    // C3: Record so the --json summary exposes the fallback to scripts.
-    ctx.answers.dockerUnavailable = true;
-    mode = 'simple';
-  } else {
-    const choice = await select(io, {
-      message: 'Choose your setup mode',
-      options: [
-        {
-          value: 'simple',
-          label: 'Simple mode (lightweight)',
-          description: 'Embedded PGlite · no Docker · fast startup',
-        },
-        {
-          value: 'docker',
-          label: 'Full mode (Docker)',
-          description: 'Postgres + pgvector · worker · all features',
-        },
-      ],
-      initialValue: 'docker',
-      auto,
-    });
-    if (choice === 'cancel') return 'abort';
-    mode = choice;
+    if (!docker.ready) throw new Error('Docker Desktop is not running.');
   }
 
   ctx.answers.mode = mode;
   io.line();
   io.line(
-    `  ${paint('→', 'success')} Selected: ${paint(mode === 'docker' ? 'Full mode (Docker)' : 'Simple mode', 'bold', mode === 'docker' ? 'brand' : 'muted')}`,
+    `  ${paint('→', 'success')} Selected: ${paint(mode === 'docker' ? 'Full mode (Docker)' : 'External Postgres', 'bold', mode === 'docker' ? 'brand' : 'muted')}`,
   );
   printByokNote(io, ctx.pageMode);
   return 'ok';

@@ -52,6 +52,8 @@ interface PageProps {
 
 export default async function ChatLanding({ searchParams }: PageProps) {
   const session = await auth();
+  // legacy mode is a loadtest/dev-only bypass; production always uses the
+  // authenticated session id.
   const userId =
     process.env.AUTH_MODE === 'legacy' && process.env.NODE_ENV !== 'production'
       ? '__system__'

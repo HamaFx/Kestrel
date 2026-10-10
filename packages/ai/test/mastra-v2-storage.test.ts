@@ -131,7 +131,7 @@ describe('mastra-v2 storage connection helpers', () => {
       mastraSslOptions({
         NODE_ENV: 'production',
         DB_DISABLE_SSL: 'true',
-        HAMAFX_LOCAL_DOCKER: 'true',
+        KESTREL_LOCAL_DOCKER: 'true',
       }),
     ).not.toThrow();
   });

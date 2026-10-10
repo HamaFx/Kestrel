@@ -103,7 +103,7 @@ describe('resolveThrottleBackend', () => {
     vi.stubEnv('NODE_ENV', 'test');
     vi.stubEnv('THROTTLE_BACKEND', '');
     vi.stubEnv('VERCEL', '');
-    vi.stubEnv('HAMAFX_RUNTIME', '');
+    vi.stubEnv('KESTREL_RUNTIME', '');
     expect(resolveThrottleBackend()).toBe('memory');
   });
 
@@ -111,7 +111,7 @@ describe('resolveThrottleBackend', () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('THROTTLE_BACKEND', 'postgres');
     vi.stubEnv('VERCEL', '');
-    vi.stubEnv('HAMAFX_RUNTIME', '');
+    vi.stubEnv('KESTREL_RUNTIME', '');
     expect(resolveThrottleBackend()).toBe('postgres');
   });
 
@@ -119,7 +119,7 @@ describe('resolveThrottleBackend', () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('THROTTLE_BACKEND', 'memory');
     vi.stubEnv('VERCEL', '1');
-    vi.stubEnv('HAMAFX_RUNTIME', '');
+    vi.stubEnv('KESTREL_RUNTIME', '');
     expect(resolveThrottleBackend()).toBe('memory');
   });
 
@@ -127,15 +127,15 @@ describe('resolveThrottleBackend', () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('THROTTLE_BACKEND', '');
     vi.stubEnv('VERCEL', '1');
-    vi.stubEnv('HAMAFX_RUNTIME', '');
+    vi.stubEnv('KESTREL_RUNTIME', '');
     expect(resolveThrottleBackend()).toBe('postgres');
   });
 
-  it('returns postgres when HAMAFX_RUNTIME=worker and THROTTLE_BACKEND is unset', () => {
+  it('returns postgres when KESTREL_RUNTIME=worker and THROTTLE_BACKEND is unset', () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('THROTTLE_BACKEND', '');
     vi.stubEnv('VERCEL', '');
-    vi.stubEnv('HAMAFX_RUNTIME', 'worker');
+    vi.stubEnv('KESTREL_RUNTIME', 'worker');
     expect(resolveThrottleBackend()).toBe('postgres');
   });
 
@@ -143,7 +143,7 @@ describe('resolveThrottleBackend', () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('THROTTLE_BACKEND', '');
     vi.stubEnv('VERCEL', '');
-    vi.stubEnv('HAMAFX_RUNTIME', '');
+    vi.stubEnv('KESTREL_RUNTIME', '');
     expect(resolveThrottleBackend()).toBe('memory');
   });
 
@@ -151,7 +151,7 @@ describe('resolveThrottleBackend', () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('THROTTLE_BACKEND', '');
     vi.stubEnv('VERCEL', '');
-    vi.stubEnv('HAMAFX_RUNTIME', '');
+    vi.stubEnv('KESTREL_RUNTIME', '');
     expect(resolveThrottleBackend()).toBe('memory');
   });
 });

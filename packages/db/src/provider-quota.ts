@@ -22,9 +22,9 @@
 // increment are a single serialized operation. This is correct across
 // all Vercel function instances, the worker, and any horizontal scale.
 //
-// Falls back gracefully when the DB is unavailable (PGlite dev mode
-// or connection errors) — the caller receives `{ allowed: true }` so
-// the feature degrades rather than crashing.
+// Falls back gracefully when the DB is unavailable (connection errors)
+// — the caller receives `{ allowed: true }` so the feature degrades
+// rather than crashing.
 
 import { sql } from 'drizzle-orm';
 
@@ -69,7 +69,7 @@ export async function checkAndIncrementDailyQuota(
 
     return { allowed: count <= maxPerDay, count };
   } catch (err) {
-    // DB unavailable (PGlite dev mode, connection error, etc.).
+    // DB unavailable (connection error, etc.).
     // Fail-open: let the request through; the provider's own 429
     // response is the backstop.
     console.warn('[provider-quota] DB unavailable — daily quota bypassed', {

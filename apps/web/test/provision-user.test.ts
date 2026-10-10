@@ -27,7 +27,6 @@ vi.mock('server-only', () => ({}));
 // ── Mock DB state ──────────────────────────────────────────────────────
 
 let mockSelectResult: unknown[] = [];
-let mockSelectResults: unknown[][] = [];
 let insertedUsers: unknown[] = [];
 let insertedSettings: unknown[] = [];
 let insertedAccounts: unknown[] = [];
@@ -39,7 +38,7 @@ function mockDb() {
     select: () => ({
       from: () => ({
         where: () => ({
-          limit: () => Promise.resolve(mockSelectResults.shift() ?? mockSelectResult),
+          limit: () => Promise.resolve(mockSelectResult),
         }),
       }),
     }),
@@ -82,7 +81,7 @@ vi.mock('@kestrel/ai', () => ({
 }));
 
 vi.mock('@/lib/env', () => ({
-  getServerEnv: () => ({ REGISTRATION_MODE: process.env.REGISTRATION_MODE ?? 'owner-first' }),
+  getServerEnv: () => ({ REGISTRATION_MODE: process.env.REGISTRATION_MODE ?? 'open' }),
 }));
 
 vi.mock('@kestrel/db', () => ({
@@ -128,7 +127,6 @@ function googleAccount(overrides?: Record<string, unknown>) {
 beforeEach(() => {
   delete process.env.REGISTRATION_MODE;
   mockSelectResult = [];
-  mockSelectResults = [];
   insertedUsers = [];
   insertedSettings = [];
   insertedAccounts = [];
@@ -212,20 +210,6 @@ describe('provisionUserOnSignIn', () => {
   });
 
   // ── New user creation ──
-
-  it('ignores the internal system user when creating the first real account', async () => {
-    mockSelectResults = [[], [{ id: '__system__', tokenVersion: 0 }]];
-
-    const result = await provisionUserOnSignIn({
-      user: {},
-      account: googleAccount(),
-      profile: googleProfile(),
-    });
-
-    expect(result.allow).toBe(true);
-    expect(insertedUsers).toHaveLength(1);
-    expect(insertedSettings).toHaveLength(1);
-  });
 
   it('creates a new user + settings when no existing user found', async () => {
     mockSelectResult = []; // no existing user

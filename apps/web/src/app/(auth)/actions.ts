@@ -257,20 +257,14 @@ export async function registerAction(
 
     // STAB-10: Wrap the users + userSettings insert in a single transaction
     // so a partial failure (e.g. userSettings FK violation) rolls back the user row.
-    try {
-      await createUserWithSettings({
-        id: newUserId,
-        email: normalizedEmail,
-        name,
-        hashedPassword,
-        initialUserOnly: registrationMode === 'owner-first',
-      });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'INITIAL_USER_ALREADY_EXISTS') {
-        return { error: 'Registration is closed. Ask the instance owner to invite you.' };
-      }
-      throw error;
-    }
+    // Open registration means every account is created the same way —
+    // standard user creation with tenant settings.
+    await createUserWithSettings({
+      id: newUserId,
+      email: normalizedEmail,
+      name,
+      hashedPassword,
+    });
 
     // HIGH-04: Generate email verification token
     try {

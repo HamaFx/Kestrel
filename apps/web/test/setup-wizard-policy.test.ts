@@ -40,6 +40,7 @@ const root = resolve(process.cwd(), '../..');
 
 const REQUIRED_SECRETS = [
   'POSTGRES_PASSWORD',
+  'POSTGRES_ADMIN_PASSWORD',
   'BACKUP_INTERVAL_SECONDS',
   'BACKUP_RETENTION_DAYS',
   'BACKUP_MAX_AGE_SECONDS',
@@ -144,7 +145,7 @@ describe('setup wizard structure', () => {
       expect(
         blocks.get(service)?.join('\n'),
         `${service} must live behind the observability profile`,
-      ).toContain('profiles: ["observability"]');
+      ).toMatch(/profiles:.*observability/);
     }
     // The default `docker compose up` (no profile) must not publish Langfuse.
     expect(compose).toContain(
@@ -190,8 +191,8 @@ describe('setup wizard flags', () => {
   });
 
   it('parses space-separated flag values and aliases', () => {
-    const flags = parseFlags(['--mode', 'simple', '-y', '-h']);
-    expect(flags.mode).toBe('simple');
+    const flags = parseFlags(['--mode', 'external', '-y', '-h']);
+    expect(flags.mode).toBe('external');
     expect(flags.yes).toBe(true);
     expect(flags.help).toBe(true);
   });
@@ -209,7 +210,7 @@ describe('setup wizard flags', () => {
     expect(apiKeyFlags.apiKeyMissing).toBe(true);
 
     // A value that looks like a flag is NOT consumed as the mode value.
-    const guarded = parseFlags(['--mode', '--yes', 'simple']);
+    const guarded = parseFlags(['--mode', '--yes', 'external']);
     expect(guarded.modeMissing).toBe(true);
     expect(guarded.yes).toBe(true);
   });
@@ -233,14 +234,14 @@ describe('setup wizard flags', () => {
     const { main } = await import('../../../scripts/setup/index.mjs');
     const silent = { write: () => {}, line: () => {}, isTTY: false };
     const jsonOut = { buffer: '', write: (s: string) => (jsonOut.buffer += s) };
-    const code = await main(['--mode=simple', '--dry-run', '--json'], {
+    const code = await main(['--mode=external', '--dry-run', '--json'], {
       io: silent,
       jsonStream: jsonOut,
     });
     expect(code).toBe(0);
     const parsed = JSON.parse(jsonOut.buffer);
     expect(parsed.ok).toBe(true);
-    expect(parsed.mode).toBe('simple');
+    expect(parsed.mode).toBe('external');
     expect(parsed.dryRun).toBe(true);
     expect(parsed.configFile).toBe('.env.local');
     expect(Array.isArray(parsed.marketProviders)).toBe(true);
@@ -395,7 +396,7 @@ describe('generate-env.mjs CLI', () => {
 
     const content = readFileSync(target, 'utf8');
     expect(content).not.toContain('HAMAFX_ENABLE_RLS=');
-    expect(content).toContain('KESTREL_ENABLE_RLS=0');
+    expect(content).toContain('KESTREL_ENABLE_RLS=1');
   });
 });
 

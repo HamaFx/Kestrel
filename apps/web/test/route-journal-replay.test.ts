@@ -48,6 +48,11 @@ vi.mock('@kestrel/db', async (importOriginal) => {
   return {
     ...actual,
     getUserWithSettings: mocks.getUserWithSettings,
+    getAdminDb: vi.fn(() => ({})),
+    requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+    withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+      work({}),
+    ),
   };
 });
 

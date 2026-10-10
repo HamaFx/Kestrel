@@ -94,10 +94,7 @@ export function mastraSslOptions(
   const dbDisableSsl = e.DB_DISABLE_SSL ?? process.env.DB_DISABLE_SSL;
   if (dbDisableSsl === 'true') {
     const localDocker =
-      (e.KESTREL_LOCAL_DOCKER ??
-        e.HAMAFX_LOCAL_DOCKER ??
-        process.env.KESTREL_LOCAL_DOCKER ??
-        process.env.HAMAFX_LOCAL_DOCKER) === 'true';
+      (e.KESTREL_LOCAL_DOCKER ?? process.env.KESTREL_LOCAL_DOCKER) === 'true';
     const nodeEnv = e.NODE_ENV ?? process.env.NODE_ENV;
     if (nodeEnv !== 'production' || localDocker) return false;
     throw new Error(

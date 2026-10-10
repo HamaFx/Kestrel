@@ -21,20 +21,5 @@ export interface TestDbHandle {
 }
 
 export async function createTestDb(): Promise<TestDbHandle> {
-  // @electric-sql/pglite is installed at the consumer level (not direct dep)
-  const { PGlite } = await import('@electric-sql/pglite');
-  const pg = new PGlite();
-
-  return {
-    async query(sql: string, params?: unknown[]) {
-      const result = await pg.query(sql, params);
-      return { rows: (result as unknown as { rows: Record<string, unknown>[] }).rows ?? [] };
-    },
-    async exec(sql: string) {
-      await pg.exec(sql);
-    },
-    async close() {
-      await pg.close();
-    },
-  };
+  throw new Error('TODO: Migrate to Postgres test database');
 }

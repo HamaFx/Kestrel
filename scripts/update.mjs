@@ -192,7 +192,7 @@ export async function getTrackedChanges(root = ROOT, runner = runCommandResult) 
 export function detectMode(root = ROOT) {
   const docker =
     existsSync(resolve(root, 'docker-compose.yml')) && existsSync(resolve(root, '.env'));
-  return docker ? 'docker' : 'simple';
+  return docker ? 'docker' : 'external';
 }
 
 function isSafeRelativePath(path) {
@@ -281,13 +281,10 @@ async function makeBackup(root, mode, output) {
   const stamp = new Date().toISOString().replaceAll(/[:.]/g, '-');
   const destination = resolve(backupBase, stamp);
   mkdirSync(destination, { recursive: true, mode: 0o700 });
-  if (mode === 'simple') {
-    const data = resolve(root, '.kestrel', 'data');
-    if (existsSync(data))
-      cpSync(data, resolve(destination, 'data'), { recursive: true, preserveTimestamps: true });
+  if (mode !== 'docker') {
     writeFileSync(
       resolve(destination, 'README.txt'),
-      'Simple-mode PGlite data backup. Keep the matching .env.local and ENCRYPTION_SECRET safe.\n',
+      'Standalone/External configuration backup. Keep the matching .env and ENCRYPTION_SECRET safe.\n',
       { mode: 0o600 },
     );
   } else {
@@ -450,7 +447,7 @@ export async function main(argv = process.argv.slice(2), dependencies = {}) {
   }
 
   const mode = detectMode(root);
-  write(output, `Installation mode: ${mode === 'docker' ? 'Docker' : 'Simple/PGlite'}`);
+  write(output, `Installation mode: ${mode === 'docker' ? 'Docker' : 'External Postgres'}`);
   const backupApproved = await ask('Create a backup before updating?', {
     yes: flags.yes,
     initial: true,

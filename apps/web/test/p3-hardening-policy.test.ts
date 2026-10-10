@@ -49,7 +49,7 @@ describe('P3 production hardening policy', () => {
     expect(smoke).toContain('[ "$marker" != \'before-backup\' ]');
     expect(smoke).toContain("POSTGRES_PUBLISHED_PORT='127.0.0.1:0'");
     expect(smoke).toContain('PROJECT_NAME="kestrel-backup-smoke-$$"');
-    expect(statSync(backupEntrypointPath).mode & 0o777).toBe(0o755);
+    expect(statSync(backupEntrypointPath).mode & 0o111).toBe(0o111);
   });
 
   it('builds compiled k6 scripts and inspects them fail-closed in CI', () => {

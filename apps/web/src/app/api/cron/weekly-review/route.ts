@@ -37,9 +37,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'weekly-review' });
   return withCronAuth(req, async () => {
-    // Phase 3 §3.11 — iterate over real active users instead of the
-    // hardcoded '__system__' fallback. In self-host / legacy mode this
-    // returns ['__system__'] (the only user).
+    // Phase 3 §3.11 — iterate over real active users. An empty result is
+    // valid on a fresh installation; there is no synthetic fallback.
     const activeUsers = await getActiveUserIds();
     let emittedCount = 0;
     const reasons: string[] = [];

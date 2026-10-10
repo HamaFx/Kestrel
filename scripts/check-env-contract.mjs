@@ -31,10 +31,9 @@ for (const key of [
   'MULTI_USER_ENABLED',
   'REGISTRATION_MODE',
   'KESTREL_ENABLE_RLS',
-  'OSS_SINGLE_USER_MODE',
 ]) {
   if (!exampleKeys.has(key) && !templateKeys.has(key))
-    failures.push(`OSS environment contract is missing ${key}`);
+    failures.push(`Environment contract is missing ${key}`);
 }
 
 for (const key of [
@@ -46,7 +45,6 @@ for (const key of [
   'MULTI_USER_ENABLED',
   'REGISTRATION_MODE',
   'KESTREL_ENABLE_RLS',
-  'OSS_SINGLE_USER_MODE',
   'WORKER_HEALTH_TOKEN',
   'BIQUOTE_PROXY_TOKEN',
 ]) {
@@ -61,14 +59,16 @@ for (const key of composeKeys) {
   }
 }
 
-if (!/MULTI_USER_ENABLED\s*:\s*["']?0/.test(compose))
-  failures.push('Compose must force MULTI_USER_ENABLED=0');
-if (!/KESTREL_ENABLE_RLS\s*:\s*["']?0/.test(compose))
-  failures.push('Compose must force KESTREL_ENABLE_RLS=0');
-if (!/REGISTRATION_MODE\s*:\s*owner-first/.test(compose))
-  failures.push('Compose must force REGISTRATION_MODE=owner-first');
-if (!/OSS_SINGLE_USER_MODE\s*:\s*["']?1/.test(compose))
-  failures.push('Compose must force OSS_SINGLE_USER_MODE=1');
+if (!/MULTI_USER_ENABLED\s*:\s*["']?1/.test(compose))
+  failures.push('Compose must force MULTI_USER_ENABLED=1');
+if (!/KESTREL_ENABLE_RLS\s*:\s*["']?1/.test(compose))
+  failures.push('Compose must force KESTREL_ENABLE_RLS=1');
+if (!/REGISTRATION_MODE\s*:\s*open/.test(compose))
+  failures.push('Compose must force REGISTRATION_MODE=open');
+if (compose.includes('OSS_SINGLE_USER_MODE'))
+  failures.push('Compose contains stale single-user flag OSS_SINGLE_USER_MODE');
+if (example.includes('OSS_SINGLE_USER_MODE'))
+  failures.push('.env.example contains stale single-user flag OSS_SINGLE_USER_MODE');
 if (!/DIRECT_URL.*POSTGRES_URL_NON_POOLING/.test(shared))
   failures.push('Shared env must define direct migration URL variables');
 // The worker consumes the application connection; migration URL selection is

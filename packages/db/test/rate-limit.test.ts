@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 // Regression guard for the production bug where withRateLimit() read `.rows`
 // unconditionally. postgres-js (prod) returns a Result that *extends Array*
-// (no `.rows`); PGlite (dev/tests) returns `{ rows }`. The limiter must read
+// (no `.rows`); some legacy adapters return `{ rows }`. The limiter must read
 // both shapes or the counter silently reads 0 in production and the limit
 // never fires.
 //
@@ -34,7 +34,7 @@ describe('rate-limit row-shape normalization', () => {
     expect(extractCount(r)).toBe(31);
   });
 
-  it('reads PGlite shape ({ rows })', () => {
+  it('reads legacy result shape ({ rows })', () => {
     expect(extractCount({ rows: [{ request_count: 5 }] })).toBe(5);
   });
 

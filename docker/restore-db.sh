@@ -49,7 +49,7 @@ case "$backup_path" in
   *) echo 'resolved backup path is outside the backup volume' >&2; exit 2 ;;
 esac
 
-restore_confirm=${KESTREL_RESTORE_CONFIRM:-${HAMAFX_RESTORE_CONFIRM:-}}
+restore_confirm=${KESTREL_RESTORE_CONFIRM:-}
 if [ "$restore_confirm" != "YES" ]; then
   echo 'Restore replaces the current database. Re-run with KESTREL_RESTORE_CONFIRM=YES.' >&2
   echo "Selected archive: $(basename "$backup_path")" >&2

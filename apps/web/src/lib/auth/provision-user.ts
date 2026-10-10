@@ -26,11 +26,9 @@
 import { getDb } from '@kestrel/ai';
 import { schema } from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
-import { and, eq, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 import { getServerEnv } from '@/lib/env';
-
-const SYSTEM_USER_ID = '__system__';
 
 // ── Typed inputs ──────────────────────────────────────────────────────
 
@@ -116,47 +114,24 @@ export async function provisionUserOnSignIn(input: SignInInput): Promise<SignInD
     // Create new OAuth user
     userId = crypto.randomUUID();
     const newUserId = userId; // narrow to string for the transaction closure
-    try {
-      await db.transaction(async (tx) => {
-        const t = tx as unknown as typeof db;
-        if (registrationMode === 'owner-first') {
-          await t.execute(
-            sql`SELECT pg_advisory_xact_lock(hashtext('kestrel:first-user-registration'))`,
-          );
-          const [existingUser] = await t
-            .select({ id: schema.users.id })
-            .from(schema.users)
-            .where(and(isNull(schema.users.deletedAt), ne(schema.users.id, SYSTEM_USER_ID)))
-            .limit(1);
-          if (existingUser && existingUser.id !== SYSTEM_USER_ID) {
-            throw new Error('INITIAL_USER_ALREADY_EXISTS');
-          }
-        }
-        await t.insert(schema.users).values({
-          id: newUserId,
-          email,
-          name: (profile.name ?? email) as string,
-          image:
-            (profile.picture as string) ??
-            `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(String(profile.name ?? email))}`,
-          emailVerified: new Date(),
-          hashedPassword: null,
-        });
-        await t.insert(schema.userSettings).values({
-          userId: newUserId,
-          onboardingCompleted: false,
-          defaultSymbol: DEFAULT_WATCHLIST_SYMBOLS[0],
-        });
+    await db.transaction(async (tx) => {
+      const t = tx as unknown as typeof db;
+      await t.insert(schema.users).values({
+        id: newUserId,
+        email,
+        name: (profile.name ?? email) as string,
+        image:
+          (profile.picture as string) ??
+          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(String(profile.name ?? email))}`,
+        emailVerified: new Date(),
+        hashedPassword: null,
       });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'INITIAL_USER_ALREADY_EXISTS') {
-        return {
-          allow: false,
-          reason: 'Registration is closed. Ask the instance owner to invite you.',
-        };
-      }
-      throw error;
-    }
+      await t.insert(schema.userSettings).values({
+        userId: newUserId,
+        onboardingCompleted: false,
+        defaultSymbol: DEFAULT_WATCHLIST_SYMBOLS[0],
+      });
+    });
   } else {
     // Ensure emailVerified is set for linked accounts
     await db
