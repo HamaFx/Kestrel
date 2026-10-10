@@ -221,11 +221,11 @@ Each slice is **one commit directly on `main`**. If a post-merge Postgres boot f
 
 | # | Slice | Status | Notes |
 |---|-------|--------|-------|
-| 0 | Lock decisions & baseline | ✅ done | §0 answered 2026-10-10, preflight committed, tag `pre-debloat-20261010` |
-| 1 | OSS/public machinery | ✅ done | Q5=A + Q10=A — deleted public supply-chain + release workflows, updated README |
-| 2 | Env contract SSoT | ✅ done | `turbo.json` + `env.ts` + `.env.example` + deleted BYOK flag / legacy auth shims |
-| 3 | Docker Compose minimal + overlay | ☐ | Q2=B overlay + Q3=A Sentry removal |
-| 4 | Billing polish (keep) | ☐ | Q1=B — tighten, don't delete |
+| 0 | Lock decisions & baseline | ✅ done | Commit `5f12fc11` — §0 answered 2026-10-10, preflight committed, tag `pre-debloat-20261010` |
+| 1 | OSS/public machinery | ✅ done | Commit `5445d1c1` — Q5=A + Q10=A — deleted 18 public supply-chain/release scripts & workflows, updated README & contributor docs |
+| 2 | Env contract SSoT | ✅ done | Commit `d1856f97` — `turbo.json` + `env.ts` + `.env.example` SSoT; deleted BYOK flag, legacy auth & `__system__` bypasses across app/proxy/tests |
+| 3 | Docker Compose minimal + overlay | ⏳ queued | Q2=B overlay + Q3=A Sentry removal (next) |
+| 4 | Billing polish (keep) | ⏳ queued | Q1=B — tighten, don't delete (next) |
 | 5 | AI providers — Vertex delete + registry improve | ☐ | Q7 — delete Vertex, keep 9 others, polish registry |
 | 6 | CI + scripts declutter | ☐ | Q8=A + Q10=A + Q12=A |
 | 7 | Frontend (keep landing) | ☐ | Q9=A — no-op + arch note |
