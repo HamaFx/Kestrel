@@ -152,6 +152,14 @@ graph TD
 | 🐳 **Docker Stack**        | PostgreSQL 16 + pgvector |    Dedicated Container     | Complete self-hosted production stack | **1 Command** (`docker compose up`) |
 | ⚙️ **External PostgreSQL** | Operator PostgreSQL      | Dedicated Container / Host | Advanced self-hosting on VPS / Cloud  | Operator-managed                    |
 
+#### Security Boundary & Multi-User Isolation
+
+All deployments enforce Postgres Row Level Security (RLS) across all user tables:
+- `MULTI_USER_ENABLED=1` and `KESTREL_ENABLE_RLS=1` are enforced at startup.
+- Tenant queries are scoped to the user ID via `withTenantDb`. Admin access requires `role='admin'`.
+- Dedicated `ADMIN_DATABASE_URL` with `BYPASSRLS` privileges is used for system migrations and worker jobs.
+- Automated database backups require both the database dump and a secure off-host copy of `ENCRYPTION_SECRET` to decrypt stored BYOK keys.
+
 ---
 
 ## ✨ Key Features
@@ -422,7 +430,6 @@ Yes! Install [Ollama](https://ollama.ai), run your model (e.g. `ollama run llama
 For detailed guides, explore the `docs/` directory:
 
 - 📖 **[Configuration Reference](docs/configuration.md)**: Exhaustive list of all environment variables and secrets.
-- 🚀 **[Deployment Matrix](docs/deployment-matrix.md)**: Detailed matrix of supported self-hosted deployment profiles.
 - 🏛️ **[Architecture Deep-Dive](docs/architecture.md)**: Full breakdown of layered packages, data flow, and worker lifecycle.
 - 🔧 **[Troubleshooting Guide](docs/troubleshooting.md)**: Solutions for common database, network, provider, and build issues.
 - 📦 **[Release Guide](docs/release.md)**: Validation checklist, Docker image publication, and versioning.

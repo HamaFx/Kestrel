@@ -90,19 +90,21 @@ The setup wizard detects busy host ports before building and offers to remap the
 
 ## Updating Kestrel
 
-From the Kestrel project folder, run:
+For standard Docker deployments:
 
 ```bash
-pnpm update
+git pull
+docker compose up -d --build
 ```
 
-The command checks the newest stable GitHub Release. Use this preview command to inspect the update without changing anything:
+If you are running the observability overlay:
 
 ```bash
-pnpm update --dry-run
+git pull
+docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability up -d --build
 ```
 
-The updater stops if it finds local project-file changes. It preserves `.env`, `.env.local`, `.kestrel/`, and Docker volumes. Do not delete those paths while troubleshooting an update.
+The update preserves `.env`, `.env.local`, `.kestrel/`, and Docker volumes. Do not delete those paths while troubleshooting an update.
 
 If a Docker update finishes but the health check fails, inspect:
 
@@ -112,7 +114,7 @@ docker compose logs --tail=200 worker
 docker compose ps
 ```
 
-Keep the backup location printed by the updater and preserve the matching `ENCRYPTION_SECRET`.
+Always preserve your `ENCRYPTION_SECRET`; without it, stored BYOK credentials cannot be decrypted.
 
 ## Docker issues
 

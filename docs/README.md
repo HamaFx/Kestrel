@@ -1,6 +1,6 @@
 # Kestrel documentation
 
-These are the current public documents. They describe the private self-hosted multi-user release and are maintained against the implementation.
+These are the active documentation files for the private self-hosted multi-user platform.
 
 | Document                              | Purpose                                                                     |
 | ------------------------------------- | --------------------------------------------------------------------------- |
@@ -8,17 +8,11 @@ These are the current public documents. They describe the private self-hosted mu
 | [Troubleshooting](troubleshooting.md) | Setup, runtime, provider, worker, migration, and recovery problems          |
 | [Architecture](architecture.md)       | Web, worker, package, data, AI, database, and security boundaries           |
 | [Design System](design-system.md)     | Hoplite design system, typography, tactile tokens, and showcase components  |
-| [Release process](release.md)         | Public validation, artifacts, Docker publication, and rollback requirements |
+| [Release process](release.md)         | Release validation, Docker images, and rollback requirements                |
 
 Repository-level policy and status documents:
 
-- [README](../README.md) — product overview and quick start
-- [Deployment matrix](deployment-matrix.md) — supported profiles and operator requirements
-- [Current readiness audit](audit/current-status.md) — current release classification and remaining work
-- [Audit findings](audit/findings.md) — detailed audit findings and action record
-- [Audit history](audit/audit-history.md) — comprehensive historical audit report
-- [Validation report](audit/validation-report.md) — local RLS, backup, and Docker smoke test results
-- [Dependency licenses](DEPENDENCY_LICENSES.md) — inventory of third-party package licenses
+- [README](../README.md) — product overview, profile matrix, and quick start
 - [Security policy](../SECURITY.md) — vulnerability reporting and security responsibilities
 - [Contributing](../CONTRIBUTING.md) — contributor workflow and coding rules
 - [Support](../SUPPORT.md) — support channels and diagnostic information

@@ -24,7 +24,6 @@ Kestrel is a private self-hosted multi-user platform: every deployment uses Post
 MULTI_USER_ENABLED=1
 KESTREL_ENABLE_RLS=1
 REGISTRATION_MODE=open        # or 'disabled' for invite-only
-BYOK_ENABLED=1
 ```
 
 Tenant isolation is enforced via Postgres RLS on every user-data table with explicit admin roles.
