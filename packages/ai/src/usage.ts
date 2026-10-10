@@ -69,7 +69,7 @@ export interface ProviderBreakdown {
   /**
    * Provider id derived from the model id prefix (everything before
    * the first `/`). Examples:
-   *   'google-vertex/gemini-2.5-flash' -> 'google-vertex'
+   *   'google/gemini-2.5-flash' -> 'google'
    *   'anthropic/claude-sonnet-4-...' -> 'anthropic'
    *   'openai/gpt-4o' -> 'openai'
    *   'gemini-2.5-flash' -> '' (no prefix, BYOK google)
@@ -123,7 +123,6 @@ export function providerIdFromModel(modelId: string): string {
 /** Map a model prefix to a canonical BYOK provider id. */
 function canonicalizeProviderId(prefix: string): string | null {
   if (prefix === '') return 'google';
-  if (prefix === 'google-vertex') return 'vertex';
   if (KNOWN_BYOK_PROVIDERS.has(prefix)) return prefix;
   return null;
 }

@@ -29,7 +29,7 @@ import { runTracingOptions } from '../mastra-v2/telemetry';
 import { createXauusdReportWorkflow } from '../mastra-v2/workflows/xauusd-report';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../model';
 import { telemetryConfig } from '../telemetry';
-import type { ResolveModelEnv } from '../vertex-factory';
+import type { ResolveModelEnv } from '../env-model-factory';
 import { createXauusdMastraAgent } from './agent';
 import { manifestForCapability } from './capabilities';
 import {

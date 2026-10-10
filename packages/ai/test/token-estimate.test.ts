@@ -76,7 +76,7 @@ describe('estimateContextUsage', () => {
     const r1 = estimateContextUsage('google/gemini-2.5-flash', 100, 5, 500);
     expect(r1.contextLimit).toBe(1_000_000);
 
-    const r2 = estimateContextUsage('google-vertex/gemini-2.5-pro', 100, 5, 500);
+    const r2 = estimateContextUsage('google/gemini-2.5-pro', 100, 5, 500);
     expect(r2.contextLimit).toBe(2_000_000);
 
     const r3 = estimateContextUsage('anthropic/claude-sonnet-4', 100, 5, 500);

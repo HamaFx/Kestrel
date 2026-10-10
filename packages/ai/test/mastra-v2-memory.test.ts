@@ -98,7 +98,7 @@ describe('mastra-v2 embedder', () => {
         // Stored picks use the canonical "<providerId>:<bareModelId>" format;
         // the operator's env default must lose to a valid user pick.
         settings: { aiApiKeys: null, embeddingModel: 'openai:text-embedding-3-small' },
-        env: { AI_EMBEDDING_MODEL: 'google-vertex/text-embedding-004' },
+        env: { AI_EMBEDDING_MODEL: 'google/text-embedding-004' },
       });
       expect(embedder.modelId).toBe('openai/text-embedding-3-small');
     } finally {

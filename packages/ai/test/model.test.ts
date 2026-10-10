@@ -33,7 +33,6 @@ let byokPayload: Record<string, string> = {};
 vi.mock('@kestrel/shared/encryption', () => ({
   PROVIDER_IDS: [
     'google',
-    'vertex',
     'anthropic',
     'openai',
     'groq',
@@ -66,10 +65,6 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
   createOpenAICompatible: vi.fn(() => (modelId: string) => ({ modelId })),
 }));
 
-vi.mock('@ai-sdk/google-vertex', () => ({
-  createVertex: vi.fn(() => vi.fn(() => ({ modelId: 'vertex-mock' }))),
-}));
-
 const generateTextMock = vi.fn();
 vi.mock('ai', () => ({
   generateText: (...args: unknown[]) => generateTextMock(...args),
@@ -95,10 +90,6 @@ vi.mock('@kestrel/db', () => ({
 const ENV = {
   AI_GATEWAY_API_KEY: '',
   GOOGLE_GENERATIVE_AI_API_KEY: '',
-  GOOGLE_VERTEX_PROJECT: '',
-  GOOGLE_VERTEX_LOCATION: '',
-  GOOGLE_APPLICATION_CREDENTIALS_JSON: '',
-  GOOGLE_APPLICATION_CREDENTIALS: '',
   AI_EMBEDDING_MODEL: '',
 } as const;
 
@@ -111,17 +102,6 @@ beforeEach(() => {
 });
 
 describe('resolveModel — low-level model resolver', () => {
-  it('returns LanguageModel for google-vertex/ prefix', () => {
-    const env = {
-      ...ENV,
-      GOOGLE_VERTEX_PROJECT: 'my-project',
-      GOOGLE_VERTEX_LOCATION: 'us-central1',
-    };
-    const result = resolveModel('google-vertex/gemini-2.5-flash', env);
-    expect(result).not.toBeInstanceOf(String);
-    expect(typeof result).toBe('object');
-  });
-
   it('returns string model id when AI_GATEWAY_API_KEY is set', () => {
     const env = { ...ENV, AI_GATEWAY_API_KEY: 'gw-key' };
     const result = resolveModel('openai/gpt-4o', env);
@@ -143,12 +123,6 @@ describe('resolveModel — low-level model resolver', () => {
 
   it('throws when no transport is configured for the prefix', () => {
     expect(() => resolveModel('unknown/model', ENV)).toThrow(/Cannot resolve model/);
-  });
-
-  it('throws when google-vertex/ is used without project + location', () => {
-    expect(() => resolveModel('google-vertex/gemini-2.5-flash', ENV)).toThrow(
-      /GOOGLE_VERTEX_PROJECT/,
-    );
   });
 
   it('gateway takes priority over google/ prefix', () => {
@@ -353,7 +327,7 @@ describe('testProviderKey — key validation', () => {
     }
   });
 
-  it('rejects too-short key for non-vertex provider', async () => {
+  it('rejects too-short key', async () => {
     const result = await testProviderKey('openai', 'ab');
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -361,65 +335,11 @@ describe('testProviderKey — key validation', () => {
     }
   });
 
-  it('rejects too-short vertex key', async () => {
-    const result = await testProviderKey('vertex', 'short');
+  it('rejects removed vertex provider id', async () => {
+    const result = await testProviderKey('vertex' as never, 'some-key');
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toContain('too short');
-    }
-  });
-
-  function padVertexJson(obj: Record<string, unknown>): string {
-    let raw = JSON.stringify(obj);
-    while (raw.length < 260) {
-      raw = raw.slice(0, -1) + ',"padding":"' + 'x'.repeat(50) + '"}';
-    }
-    return raw;
-  }
-
-  it('rejects vertex JSON without client_email', async () => {
-    const payload = padVertexJson({
-      private_key: '-----BEGIN PRIVATE KEY-----\nMII\n-----END PRIVATE KEY-----\n',
-    });
-    const result = await testProviderKey('vertex', payload);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toContain('client_email');
-    }
-  });
-
-  it('rejects vertex JSON without private_key', async () => {
-    const payload = padVertexJson({
-      client_email: 'test@test.iam.gserviceaccount.com',
-    });
-    const result = await testProviderKey('vertex', payload);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toContain('private_key');
-    }
-  });
-
-  it('rejects vertex JSON with invalid client_email', async () => {
-    const payload = padVertexJson({
-      client_email: 'not-an-email',
-      private_key: '-----BEGIN PRIVATE KEY-----\nMII\n-----END PRIVATE KEY-----\n',
-    });
-    const result = await testProviderKey('vertex', payload);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toContain('email');
-    }
-  });
-
-  it('rejects vertex JSON with non-PEM private_key', async () => {
-    const payload = padVertexJson({
-      client_email: 'test@test.iam.gserviceaccount.com',
-      private_key: 'not-a-pem-key',
-    });
-    const result = await testProviderKey('vertex', payload);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toContain('PEM');
+      expect(result.error).toContain('removed');
     }
   });
 

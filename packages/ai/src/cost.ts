@@ -126,17 +126,10 @@ export const DEFAULT_TURN_ESTIMATE_USD = 0.01;
 export const DEFAULT_MAX_DAILY_USD = 5;
 
 /**
- * Normalize a streamed model id to a `RATES` key. The agent persists the
- * literal id it streamed with — which is Vertex-prefixed by default
- * (`google-vertex/gemini-2.5-flash`) — but the RATES table is keyed by the
- * gateway form (`google/gemini-2.5-flash`). Vertex and the AI Gateway bill
- * the same Google list price, so we collapse the prefix. Bare ids (no slash,
+ * Normalize a streamed model id to a `RATES` key. Bare ids (no slash,
  * BYOK Google) get the `google/` prefix added.
  */
 function rateKeyForModel(model: string): string {
-  if (model.startsWith('google-vertex/')) {
-    return `google/${model.slice('google-vertex/'.length)}`;
-  }
   // Bare Gemini id from BYOK google (e.g. 'gemini-2.5-flash').
   if (!model.includes('/') && model.startsWith('gemini-')) {
     return `google/${model}`;
@@ -575,7 +568,6 @@ export async function getProviderMonthlySpend(
   };
   const canonicalizeProviderId = (prefix: string) => {
     if (prefix === '') return 'google';
-    if (prefix === 'google-vertex') return 'vertex';
     if (KNOWN_BYOK_PROVIDERS.has(prefix)) return prefix;
     return null;
   };

@@ -50,3 +50,79 @@ export {
   lookupModelRate,
   buildCatalogRateTable,
 } from './_providers/registry';
+
+import type { ProviderId } from '@kestrel/shared/byok';
+
+export interface ProviderCapability {
+  supportsVision: boolean;
+  supportsEmbedding: boolean;
+  supportsToolCalling: boolean;
+  modelPrefix: string;
+}
+
+/**
+ * Static map of provider capabilities. Prevents re-deriving capabilities
+ * on every routing turn.
+ */
+export const providerCapabilities: Record<ProviderId, ProviderCapability> = {
+  google: {
+    supportsVision: true,
+    supportsEmbedding: true,
+    supportsToolCalling: true,
+    modelPrefix: 'google/',
+  },
+  anthropic: {
+    supportsVision: true,
+    supportsEmbedding: false,
+    supportsToolCalling: true,
+    modelPrefix: 'anthropic/',
+  },
+  openai: {
+    supportsVision: true,
+    supportsEmbedding: true,
+    supportsToolCalling: true,
+    modelPrefix: 'openai/',
+  },
+  groq: {
+    supportsVision: true,
+    supportsEmbedding: false,
+    supportsToolCalling: true,
+    modelPrefix: 'groq/',
+  },
+  mistral: {
+    supportsVision: true,
+    supportsEmbedding: true,
+    supportsToolCalling: true,
+    modelPrefix: 'mistral/',
+  },
+  openrouter: {
+    supportsVision: true,
+    supportsEmbedding: false,
+    supportsToolCalling: true,
+    modelPrefix: 'openrouter/',
+  },
+  xai: {
+    supportsVision: true,
+    supportsEmbedding: false,
+    supportsToolCalling: true,
+    modelPrefix: 'xai/',
+  },
+  deepseek: {
+    supportsVision: false,
+    supportsEmbedding: false,
+    supportsToolCalling: true,
+    modelPrefix: 'deepseek/',
+  },
+  iamhc: {
+    supportsVision: true,
+    supportsEmbedding: true,
+    supportsToolCalling: true,
+    modelPrefix: 'iamhc/',
+  },
+  hcnsec: {
+    supportsVision: false,
+    supportsEmbedding: false,
+    supportsToolCalling: true,
+    modelPrefix: 'hcnsec/',
+  },
+};

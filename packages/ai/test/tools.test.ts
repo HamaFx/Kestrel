@@ -52,7 +52,6 @@ vi.mock('@kestrel/db', () => ({
 vi.mock('@kestrel/shared/encryption', () => ({
   PROVIDER_IDS: [
     'google',
-    'vertex',
     'anthropic',
     'openai',
     'groq',

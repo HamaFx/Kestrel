@@ -53,7 +53,7 @@ function parseMeta(message: UIMessage) {
 
 /**
  * Parse a model id into a short, human-friendly label.
- *   `google-vertex/gemini-2.5-flash` → "Gemini 2.5 Flash"
+ *   `google/gemini-2.5-flash`          → "Gemini 2.5 Flash"
  *   `anthropic/claude-sonnet-4`       → "Claude Sonnet 4"
  *   `openai/gpt-4o`                   → "Gpt 4o"
  */

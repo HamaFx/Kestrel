@@ -24,12 +24,10 @@ import { GOOGLE } from './google';
 import { GROQ, MISTRAL, OPENROUTER } from './groq-mistral-openrouter';
 import { OPENAI } from './openai';
 import type { ByokProviderSpec, ModelDomain } from './types';
-import { VERTEX } from './vertex';
 import { DEEPSEEK, HCNSEC, IAMHC, XAI } from './xai-deepseek-iamhc';
 
 export const BYOK_PROVIDERS: Record<ProviderId, ByokProviderSpec> = {
   google: GOOGLE,
-  vertex: VERTEX,
   anthropic: ANTHROPIC,
   openai: OPENAI,
   groq: GROQ,
@@ -73,10 +71,7 @@ export function lookupModelRate(modelId: string): { inputPerM: number; outputPer
   let providerId: string | null = null;
   let bare = modelId;
 
-  if (modelId.startsWith('google-vertex/')) {
-    providerId = 'vertex';
-    bare = modelId.slice('google-vertex/'.length);
-  } else if (modelId.includes('/')) {
+  if (modelId.includes('/')) {
     const slash = modelId.indexOf('/');
     providerId = modelId.slice(0, slash);
     bare = modelId.slice(slash + 1);

@@ -295,7 +295,7 @@ describe('GetSystemDiagnosticsOutputSchema', () => {
           activeAlertsCount: 3,
         },
         budget: { spentUsd: 0.45, limitUsd: 10.0, remainingUsd: 9.55 },
-        envCheck: { FRED_API_KEY: true, GOOGLE_VERTEX_PROJECT: true },
+        envCheck: { FRED_API_KEY: true, GOOGLE_GENERATIVE_AI_API_KEY: true },
         narrative: 'System status is HEALTHY.',
       }).success,
     ).toBe(true);

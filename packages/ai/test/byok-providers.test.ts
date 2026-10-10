@@ -28,6 +28,7 @@ import {
   BYOK_PROVIDERS_LIST,
   defaultModelFor,
   getProvider,
+  providerCapabilities,
 } from '../src/byok-providers';
 
 describe('BYOK_PROVIDERS', () => {
@@ -75,23 +76,10 @@ describe('BYOK_PROVIDERS', () => {
 
   it('factory returns a function that builds a language model', () => {
     for (const spec of BYOK_PROVIDERS_LIST) {
-      // Vertex is special-cased: the factory returns a closure
-      // that parses the JSON key INSIDE the inner call. Other
-      // providers defer auth errors to the actual API call.
-      // We can't easily generate a valid service-account JSON
-      // in this test, so we only verify the smoke-test path
-      // for non-vertex providers.
-      if (spec.id === 'vertex') continue;
       const builder = spec.factory('test-key-that-is-long-enough');
       expect(typeof builder).toBe('function');
       expect(() => builder('test-model')).not.toThrow();
     }
-  });
-
-  it('vertex factory parses the JSON key lazily (inside the closure)', () => {
-    const builder = BYOK_PROVIDERS.vertex.factory('not-valid-json');
-    expect(typeof builder).toBe('function');
-    expect(() => builder('gemini-2.5-flash')).toThrow(/JSON/);
   });
 });
 
@@ -253,5 +241,27 @@ describe('BYOK_PROVIDERS_LIST', () => {
       seen.add(spec.id);
     }
     expect(seen.size).toBe(PROVIDER_IDS.length);
+  });
+});
+
+describe('providerCapabilities', () => {
+  it('covers all canonical PROVIDER_IDS', () => {
+    for (const id of PROVIDER_IDS) {
+      const caps = providerCapabilities[id];
+      expect(caps).toBeDefined();
+      expect(typeof caps.supportsVision).toBe('boolean');
+      expect(typeof caps.supportsEmbedding).toBe('boolean');
+      expect(typeof caps.supportsToolCalling).toBe('boolean');
+      expect(caps.modelPrefix).toBe(`${id}/`);
+    }
+  });
+
+  it('correctly maps specific capability expectations', () => {
+    expect(providerCapabilities.google.supportsVision).toBe(true);
+    expect(providerCapabilities.google.supportsEmbedding).toBe(true);
+    expect(providerCapabilities.anthropic.supportsVision).toBe(true);
+    expect(providerCapabilities.anthropic.supportsEmbedding).toBe(false);
+    expect(providerCapabilities.deepseek.supportsVision).toBe(false);
+    expect(providerCapabilities.deepseek.supportsEmbedding).toBe(false);
   });
 });

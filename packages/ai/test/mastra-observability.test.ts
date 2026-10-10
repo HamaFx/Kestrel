@@ -165,7 +165,7 @@ describe('mastra observability — telemetry helpers', () => {
 
   it('provider is derived from the model id prefix', () => {
     expect(providerFromModel('google/gemini-2.5-pro')).toBe('google');
-    expect(providerFromModel('google-vertex/gemini-2.5-flash')).toBe('google-vertex');
+    expect(providerFromModel('anthropic/claude-sonnet-4')).toBe('anthropic');
     expect(providerFromModel('openai:gpt-4o')).toBe('openai');
     expect(providerFromModel('nonsense')).toBe('unknown');
   });

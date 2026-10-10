@@ -31,14 +31,20 @@
 // Pattern: Factory + Strategy. MODEL_ROUTER implements the Strategy
 // pattern; resolveChatModel/resolveVisionModel are Factory methods.
 
-// ── Vertex AI factory (separate module since Phase F) ────────────────
-export { resolveModel, getVertexGoogleSearchTool, type ResolveModelEnv } from './vertex-factory';
+// ── Low-level environment model factory ──────────────────────────────
+export { resolveModel, type ResolveModelEnv } from './env-model-factory';
 
-// ── Provider key tester ──────────────────────────────────────────────
-export { testProviderKey } from './provider-tester';
+// ── Provider key tester & validator ──────────────────────────────────
+export { testProviderKey, validateProviderConfig, type ProviderValidationResult } from './provider-tester';
 
 // ── BYOK registry re-exports ─────────────────────────────────────────
-export { BYOK_PROVIDERS, BYOK_PROVIDERS_LIST, defaultModelFor } from './byok-providers';
+export {
+  BYOK_PROVIDERS,
+  BYOK_PROVIDERS_LIST,
+  defaultModelFor,
+  providerCapabilities,
+  type ProviderCapability,
+} from './byok-providers';
 export type { ModelDomain, ByokProviderSpec } from './byok-providers';
 
 // ── Helpers (pure utilities) ─────────────────────────────────────────
@@ -46,6 +52,14 @@ export { PROVIDER_PRIORITY, supportsPromptCaching } from './model-helpers';
 // Note: envFallbackKeys and parsePickedModelId are internal —
 // imported directly by sibling resolver modules (model-chat.ts,
 // model-vision.ts, etc.) but NOT re-exported from the public barrel.
+
+// ── Role-based model resolution ──────────────────────────────────────
+export {
+  resolveModelForRole,
+  type ModelRole,
+  type ModelRoleResolution,
+  type ResolveRoleOptions,
+} from './model-role';
 
 // ── Chat model resolution ────────────────────────────────────────────
 export {

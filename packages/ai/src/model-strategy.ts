@@ -24,7 +24,7 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 
 import type { ModelDomain } from './byok-providers';
 import { resolveChatModel, type ChatModelResolution } from './model-chat';
-import type { ResolveModelEnv } from './vertex-factory';
+import type { ResolveModelEnv } from './env-model-factory';
 
 /**
  * Context passed to each domain routing strategy. */

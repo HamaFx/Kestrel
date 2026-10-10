@@ -27,8 +27,7 @@
  *   - Second test: mock resolves → expect `ok: true`
  *
  * The mocking strategy uses the package's `vi.mock` for ESM
- * compatibility; the `vertex` provider is excluded since it has its
- * own dedicated test file (vertex-byok.test.ts).
+ * compatibility.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,7 +41,6 @@ import { testProviderKey } from '../src/model';
 vi.mock('@kestrel/shared/encryption', () => ({
   PROVIDER_IDS: [
     'google',
-    'vertex',
     'anthropic',
     'openai',
     'groq',
@@ -50,6 +48,7 @@ vi.mock('@kestrel/shared/encryption', () => ({
     'openrouter',
     'xai',
     'deepseek',
+    'iamhc',
     'hcnsec',
   ],
   decryptByok: () => null,

@@ -25,7 +25,6 @@ let byokPayload: Record<string, string> = {};
 vi.mock('@kestrel/shared/encryption', () => ({
   PROVIDER_IDS: [
     'google',
-    'vertex',
     'anthropic',
     'openai',
     'groq',
@@ -33,6 +32,7 @@ vi.mock('@kestrel/shared/encryption', () => ({
     'openrouter',
     'xai',
     'deepseek',
+    'iamhc',
     'hcnsec',
   ],
   decryptByok: () => byokPayload,
@@ -46,11 +46,7 @@ vi.mock('@kestrel/shared/encryption', () => ({
 const ENV = {
   AI_GATEWAY_API_KEY: '',
   GOOGLE_GENERATIVE_AI_API_KEY: '',
-  GOOGLE_VERTEX_PROJECT: '',
-  GOOGLE_VERTEX_LOCATION: '',
-  GOOGLE_APPLICATION_CREDENTIALS_JSON: '',
-  GOOGLE_APPLICATION_CREDENTIALS: '',
-  AI_DEFAULT_MODEL: 'google-vertex/gemini-2.5-flash',
+  AI_DEFAULT_MODEL: 'google/gemini-2.5-flash',
 } as const;
 
 // Reach into the mock to set the BYOK payload for each test.

@@ -26,7 +26,7 @@ import type { LanguageModel } from 'ai';
 
 import { BYOK_PROVIDERS } from './byok-providers';
 import { envFallbackKeys } from './model-helpers';
-import type { ResolveModelEnv } from './vertex-factory';
+import type { ResolveModelEnv } from './env-model-factory';
 
 // -----------------------------------------------------------------------
 // Phase B — UX_UPGRADE_PLAN.md item 8.

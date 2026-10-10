@@ -128,7 +128,6 @@ export const getSystemDiagnosticsTool = tool({
     const envCheck: Record<string, boolean> = {
       FRED_API_KEY: !!process.env['FRED_API_KEY'],
       GOOGLE_GENERATIVE_AI_API_KEY: !!process.env['GOOGLE_GENERATIVE_AI_API_KEY'],
-      GOOGLE_VERTEX_PROJECT: !!process.env['GOOGLE_VERTEX_PROJECT'],
       DATABASE_URL: !!process.env['DATABASE_URL'],
     };
 

@@ -45,64 +45,45 @@ function withoutProcessKeys(): () => void {
   };
 }
 
-const validVertexJson = JSON.stringify({
-  client_email: 'kestrel@test.iam.gserviceaccount.com',
-  private_key: '-----BEGIN PRIVATE KEY-----\nMII\n-----END PRIVATE KEY-----\n',
-  project_id: 'test-project',
-});
-
-const malformedVertexJson = '{not-valid-json';
-
 describe('envFallbackKeys', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('includes a structurally valid Vertex service-account value', () => {
+  it('surfaces GOOGLE_GENERATIVE_AI_API_KEY as google key', () => {
     const restore = withoutProcessKeys();
     try {
       const keys = envFallbackKeys({
-        GOOGLE_APPLICATION_CREDENTIALS_JSON: validVertexJson,
+        GOOGLE_GENERATIVE_AI_API_KEY: 'test-google-key',
       });
-      expect(keys.vertex).toBe(validVertexJson);
+      expect(keys.google).toBe('test-google-key');
     } finally {
       restore();
     }
   });
 
-  it('skips malformed Vertex service-account JSON so it cannot poison resolution', () => {
+  it('surfaces process.env operator keys', () => {
     const restore = withoutProcessKeys();
     try {
-      const keys = envFallbackKeys({
-        GOOGLE_APPLICATION_CREDENTIALS_JSON: malformedVertexJson,
-      });
-      expect(keys.vertex).toBeUndefined();
+      process.env.OPENAI_API_KEY = 'openai-key';
+      process.env.ANTHROPIC_API_KEY = 'anthropic-key';
+      process.env.MISTRAL_API_KEY = 'mistral-key';
+      const keys = envFallbackKeys({});
+      expect(keys.openai).toBe('openai-key');
+      expect(keys.anthropic).toBe('anthropic-key');
+      expect(keys.mistral).toBe('mistral-key');
+      expect(keys.google).toBeUndefined();
     } finally {
       restore();
     }
   });
 
-  it('skips Vertex JSON that parses but lacks the required credential fields', () => {
+  it('does not surface empty or undefined keys', () => {
     const restore = withoutProcessKeys();
     try {
-      const keys = envFallbackKeys({
-        GOOGLE_APPLICATION_CREDENTIALS_JSON: JSON.stringify({ project_id: 'test' }),
-      });
-      expect(keys.vertex).toBeUndefined();
-    } finally {
-      restore();
-    }
-  });
-
-  it('still surfaces other operator keys when Vertex is skipped', () => {
-    const restore = withoutProcessKeys();
-    try {
-      process.env.MISTRAL_API_KEY = 'mistral-test-key';
-      const keys = envFallbackKeys({
-        GOOGLE_APPLICATION_CREDENTIALS_JSON: malformedVertexJson,
-      });
-      expect(keys.vertex).toBeUndefined();
-      expect(keys.mistral).toBe('mistral-test-key');
+      process.env.OPENAI_API_KEY = '';
+      const keys = envFallbackKeys({});
+      expect(keys.openai).toBeUndefined();
     } finally {
       restore();
     }

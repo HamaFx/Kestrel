@@ -23,7 +23,7 @@ import { z } from 'zod';
 
 import { type ModelDomain } from './byok-providers';
 import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
-import type { ResolveModelEnv } from './vertex-factory';
+import type { ResolveModelEnv } from './env-model-factory';
 
 export type { ChatModelResolution } from './model-chat';
 

@@ -21,16 +21,13 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import {
-  configuredProviders,
   decryptByok,
-  type ByokPayload,
   type ProviderId,
 } from '@kestrel/shared/encryption';
 import type { LanguageModel } from 'ai';
 
-import { BYOK_PROVIDERS } from './byok-providers';
-import { envFallbackKeys, parsePickedModelId, PROVIDER_PRIORITY } from './model-helpers';
-import type { ResolveModelEnv } from './vertex-factory';
+import type { ResolveModelEnv } from './env-model-factory';
+import { resolveModelForRole } from './model-role';
 
 /**
  * Phase D2 — result of resolving the user's "default vision model".
@@ -40,7 +37,7 @@ import type { ResolveModelEnv } from './vertex-factory';
  */
 export interface VisionModelResolution {
   model: LanguageModel;
-  /** Qualified id "google-vertex/gemini-2.5-pro". */
+  /** Qualified id "google/gemini-2.5-pro". */
   modelId: string;
   providerId: ProviderId;
   bareModelId: string;
@@ -58,8 +55,8 @@ export interface VisionModelResolution {
  *      model, the resolver falls back to the next configured provider.)
  *   3. Else throw.
  *
- * Note: a user with Google + Anthropic keys (no Vertex) can still
- * pick `google-vertex:gemini-2.5-pro` for vision even though their
+ * Note: a user with Google + Anthropic keys can still
+ * pick `google:gemini-2.5-pro` for vision even though their
  * chat model is Anthropic. The pick is independent.
  *
  * Phase D2 — AI_VISION_MODEL env var was removed. Operators no
@@ -72,47 +69,13 @@ export function resolveVisionModel(
   env: ResolveModelEnv,
 ): VisionModelResolution {
   const stored = decryptByok(userSettings.aiApiKeys);
-  const keys: ByokPayload = {
-    ...envFallbackKeys(env),
-    ...(stored ?? {}),
+  const res = resolveModelForRole('vision', stored ?? {}, env, {
+    userSettings: { visionModel: userSettings.visionModel },
+  });
+  return {
+    model: res.model!,
+    modelId: res.modelId,
+    providerId: res.providerId,
+    bareModelId: res.bareModelId,
   };
-
-  // 1. User's explicit pick.
-  if (typeof userSettings.visionModel === 'string' && userSettings.visionModel.length > 0) {
-    const parsed = parsePickedModelId(userSettings.visionModel, keys);
-    if (parsed && parsed.spec.supports.vision) {
-      return {
-        model: parsed.spec.factory(parsed.apiKey)(parsed.bareModelId),
-        modelId: `${parsed.spec.id}/${parsed.bareModelId}`,
-        providerId: parsed.providerId,
-        bareModelId: parsed.bareModelId,
-      };
-    }
-    // Fall through silently on invalid pick — same UX as chat.
-  }
-
-  // 2. Highest-priority configured provider that declares a vision model.
-  const priority = configuredProviders(keys)
-    .slice()
-    .sort((a, b) => PROVIDER_PRIORITY.indexOf(a) - PROVIDER_PRIORITY.indexOf(b));
-  for (const providerId of priority) {
-    const spec = BYOK_PROVIDERS[providerId];
-    if (!spec?.supports.vision) continue;
-    const vision = spec.defaultModels.vision;
-    if (!vision) continue;
-    const apiKey = keys[providerId];
-    if (typeof apiKey !== 'string' || apiKey.length === 0) continue;
-    return {
-      model: spec.factory(apiKey)(vision),
-      modelId: `${spec.id}/${vision}`,
-      providerId,
-      bareModelId: vision,
-    };
-  }
-
-  throw new Error(
-    'No vision-capable model available. Add a key for a provider that supports vision ' +
-      '(e.g. Google, Vertex, Anthropic, OpenAI, Mistral) in Settings → API Keys, ' +
-      'or pick one in Settings → Models → Advanced.',
-  );
 }

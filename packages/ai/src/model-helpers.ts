@@ -23,14 +23,13 @@ import { PROVIDER_IDS } from '@kestrel/shared/byok';
 import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
 
 import { BYOK_PROVIDERS } from './byok-providers';
-import type { ResolveModelEnv } from './vertex-factory';
+import type { ResolveModelEnv } from './env-model-factory';
 
 /**
  * Provider priority when multiple keys are configured — higher index wins for default. */
 export const PROVIDER_PRIORITY: ProviderId[] = [
   // Premium: prefer the strongest reasoning model when configured.
   'google',
-  'vertex',
   'anthropic',
   'openai',
   // Aggregators / alt providers.
@@ -51,7 +50,7 @@ export const PROVIDER_PRIORITY: ProviderId[] = [
  * user hasn't gone through onboarding yet, this gives single-tenant
  * deployments a working chat out of the box.
  *
- * Currently surfaces Google (direct Gemini API). Vertex + AI Gateway
+ * Currently surfaces Google (direct Gemini API). AI Gateway
  * paths are handled by `resolveModel()` (the env-only resolver) — that
  * is a different code path and doesn't use BYOK.
  */
@@ -59,20 +58,6 @@ export function envFallbackKeys(env: ResolveModelEnv): ByokPayload {
   const out: ByokPayload = {};
   if (env.GOOGLE_GENERATIVE_AI_API_KEY) {
     out.google = env.GOOGLE_GENERATIVE_AI_API_KEY;
-  }
-  // Prefer explicit GOOGLE_APPLICATION_CREDENTIALS_JSON for Vertex BYOK.
-  // Path-based GOOGLE_APPLICATION_CREDENTIALS is handled by the Vertex
-  // SDK via process.env for `google-vertex/...` gateway-style ids, but
-  // BYOK factories need the JSON body itself.
-  if (env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-    // Skip a malformed service-account value instead of letting it poison the
-    // fallback chain. A broken GOOGLE_APPLICATION_CREDENTIALS_JSON previously
-    // made every env-only resolution pick Vertex and then throw at factory
-    // time (or hang on auth), which silently broke chat for users without
-    // their own BYOK keys. Skipping it lets the next configured provider win.
-    if (isUsableVertexCredentials(env.GOOGLE_APPLICATION_CREDENTIALS_JSON)) {
-      out.vertex = env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-    }
   }
   // Optional operator env keys (common self-host names). Only populate
   // when present so we never invent empty credentials.
@@ -105,7 +90,6 @@ export function envFallbackKeys(env: ResolveModelEnv): ByokPayload {
 // Anthropic supports explicit cache_control markers on the system prefix
 // via providerOptions, giving ~90% cost reduction on repeated prompts.
 // OpenAI-compatible providers do automatic prefix caching without markers.
-// Google/Vertex use a different context-caching API (not used here).
 // ───────────────────────────────────────────────────────────────────────
 
 /** Returns true when the resolved model supports explicit cache markers. */
@@ -116,24 +100,6 @@ export function supportsPromptCaching(modelId: string): boolean {
 // ───────────────────────────────────────────────────────────────────────
 // Internal helpers (exported for sibling resolver modules only).
 // ───────────────────────────────────────────────────────────────────────
-
-/**
- * Cheap structural check for a Vertex service-account JSON value. Kept local
- * to the env-fallback path so broken operator config degrades to the next
- * provider instead of hanging every env-only model resolution on Vertex.
- */
-function isUsableVertexCredentials(json: string): boolean {
-  try {
-    const parsed = JSON.parse(json) as Record<string, unknown>;
-    return (
-      typeof parsed.client_email === 'string' &&
-      typeof parsed.private_key === 'string' &&
-      parsed.private_key.length > 0
-    );
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Internal helper — parse a stored "<providerId>:<bareModelId>" string

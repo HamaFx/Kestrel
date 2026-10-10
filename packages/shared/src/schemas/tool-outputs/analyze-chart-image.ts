@@ -16,8 +16,8 @@
 
 // Output envelope returned by the `analyze_chart_image` AI tool.
 //
-// The tool runs a vision-capable model (defaulting to gemini-2.5-pro on
-// Vertex) against an image part attached to the user's chat turn, then
+// The tool runs a vision-capable model (such as gemini-2.5-pro via Google
+// or gpt-4o via OpenAI) against an image part attached to the user's chat turn, then
 // returns a structured technical readout: identified symbol/timeframe,
 // trend, bias, labelled price levels, an English observation paragraph,
 // and (when confident) a typed `OverlaySet` matching the existing

@@ -48,11 +48,6 @@ export function modelSelectionMatches(
     toQualifiedModelId(providerId, modelId),
   ]);
 
-  // Vertex telemetry uses google-vertex while its persisted provider id is
-  // vertex. Older UI paths also used this prefix for display.
-  if (providerId === 'vertex') {
-    candidates.add(`google-vertex/${modelId}`);
-  }
 
   // Before slash-containing model ids were preserved, the settings endpoint
   // stripped the first segment. Recognize that old value only as a UI alias;

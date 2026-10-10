@@ -50,10 +50,6 @@ describe('chat model picker identifiers', () => {
         'anthropic/claude-sonnet-5',
       ),
     ).toBe(true);
-    expect(modelSelectionMatches('vertex:gemini-2.5-pro', 'vertex', 'gemini-2.5-pro')).toBe(true);
-    expect(modelSelectionMatches('google-vertex/gemini-2.5-pro', 'vertex', 'gemini-2.5-pro')).toBe(
-      true,
-    );
     expect(
       modelSelectionMatches(
         'openrouter:claude-sonnet-5',

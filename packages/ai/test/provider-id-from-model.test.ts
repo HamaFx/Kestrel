@@ -30,7 +30,6 @@ import { providerIdFromModel } from '../src/usage';
  * fail loud.
  *
  * Mapping table (must match usage.ts):
- *   'google-vertex'    -> 'vertex'
  *   '' (no prefix)     -> 'google'    (BYOK google uses bare ids)
  *   'google'           -> 'google'
  *   'anthropic'        -> 'anthropic'
@@ -44,10 +43,8 @@ import { providerIdFromModel } from '../src/usage';
  */
 function canonicalize(prefix: string): string | null {
   if (prefix === '') return 'google';
-  if (prefix === 'google-vertex') return 'vertex';
   const KNOWN = new Set([
     'google',
-    'vertex',
     'anthropic',
     'openai',
     'groq',
@@ -61,7 +58,7 @@ function canonicalize(prefix: string): string | null {
 
 describe('Phase D — providerIdFromModel', () => {
   it('returns the segment before the first slash for prefixed ids', () => {
-    expect(providerIdFromModel('google-vertex/gemini-2.5-flash')).toBe('google-vertex');
+    expect(providerIdFromModel('google/gemini-2.5-flash')).toBe('google');
     expect(providerIdFromModel('anthropic/claude-sonnet-4-20250514')).toBe('anthropic');
     expect(providerIdFromModel('openai/gpt-4o')).toBe('openai');
   });
@@ -84,17 +81,12 @@ describe('Phase D — providerIdFromModel', () => {
 });
 
 describe('Phase D — canonical BYOK id mapping', () => {
-  it('maps google-vertex to vertex', () => {
-    expect(canonicalize('google-vertex')).toBe('vertex');
-  });
-
   it('maps empty prefix to google (BYOK google uses bare ids)', () => {
     expect(canonicalize('')).toBe('google');
   });
 
-  it('passes through the 9 known BYOK providers', () => {
+  it('passes through the known BYOK providers', () => {
     expect(canonicalize('google')).toBe('google');
-    expect(canonicalize('vertex')).toBe('vertex');
     expect(canonicalize('anthropic')).toBe('anthropic');
     expect(canonicalize('openai')).toBe('openai');
     expect(canonicalize('groq')).toBe('groq');
@@ -105,6 +97,8 @@ describe('Phase D — canonical BYOK id mapping', () => {
   });
 
   it('returns null for unknown prefixes', () => {
+    expect(canonicalize('vertex')).toBe(null);
+    expect(canonicalize('google-vertex')).toBe(null);
     expect(canonicalize('cohere')).toBe(null);
     expect(canonicalize('azure')).toBe(null);
     expect(canonicalize('random-model-prefix')).toBe(null);

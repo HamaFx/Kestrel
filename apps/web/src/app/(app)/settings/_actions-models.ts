@@ -37,9 +37,7 @@ export async function updateChatModelAction(
 
   const bareModelId = modelId.startsWith(`${providerId}/`)
     ? modelId.slice(providerId.length + 1)
-    : providerId === 'vertex' && modelId.startsWith('google-vertex/')
-      ? modelId.slice('google-vertex/'.length)
-      : modelId;
+    : modelId;
 
   const value = `${providerId}:${bareModelId}`;
 

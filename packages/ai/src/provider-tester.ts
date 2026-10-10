@@ -20,7 +20,7 @@
 // Separated from model resolution so it can be unit-tested and imported
 // without pulling in all of model.ts.
 
-import type { ProviderId } from '@kestrel/shared/encryption';
+import { PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
 import { generateText } from 'ai';
 
 import { BYOK_PROVIDERS } from './byok-providers';
@@ -31,6 +31,73 @@ import { BYOK_PROVIDERS } from './byok-providers';
 function extractErrorMessage(raw: string): string {
   const firstLine = raw.split('\n')[0]?.trim() ?? raw;
   return firstLine.replace(/\.+$/, '').slice(0, 160);
+}
+
+export interface ProviderValidationResult {
+  ok: boolean;
+  reason?: string;
+}
+
+/**
+ * Validate provider key configuration before making network calls or saving keys.
+ * Detects missing keys, length issues, invalid prefixes, or legacy Vertex service account JSON.
+ */
+export function validateProviderConfig(
+  providerId: string,
+  apiKey: string,
+): ProviderValidationResult {
+  if (providerId === 'vertex' || providerId === 'google-vertex') {
+    return {
+      ok: false,
+      reason: 'Google Vertex AI has been removed. Use direct Google Gemini (google) with an API key instead.',
+    };
+  }
+
+  if (typeof apiKey !== 'string' || apiKey.trim().length === 0) {
+    return { ok: false, reason: 'API key is required' };
+  }
+
+  const trimmed = apiKey.trim();
+
+  // Detect leftover Vertex or GCP service account JSON pasted by mistake
+  if (
+    trimmed.startsWith('{') &&
+    (trimmed.includes('"type": "service_account"') ||
+      trimmed.includes('client_email') ||
+      trimmed.includes('"project_id"'))
+  ) {
+    return {
+      ok: false,
+      reason: 'GCP service account JSON is not supported. Please use a provider API key.',
+    };
+  }
+
+  if (trimmed.length < 8) {
+    return { ok: false, reason: 'API key is too short' };
+  }
+
+  if (!PROVIDER_IDS.includes(providerId as ProviderId)) {
+    return { ok: false, reason: `Unknown provider: ${providerId}` };
+  }
+
+  // Common copy-paste errors across providers
+  if (providerId === 'anthropic' && trimmed.startsWith('sk-proj-')) {
+    return { ok: false, reason: 'Invalid key format: OpenAI project key provided for Anthropic' };
+  }
+  if (providerId === 'anthropic' && trimmed.startsWith('gsk_')) {
+    return { ok: false, reason: 'Invalid key format: Groq key provided for Anthropic' };
+  }
+  if (providerId === 'openai' && trimmed.startsWith('sk-ant-')) {
+    return { ok: false, reason: 'Invalid key format: Anthropic key provided for OpenAI' };
+  }
+  if (providerId === 'openai' && trimmed.startsWith('gsk_')) {
+    return { ok: false, reason: 'Invalid key format: Groq key provided for OpenAI' };
+  }
+  if (providerId === 'groq' && !trimmed.startsWith('gsk_') && trimmed.startsWith('sk-ant-')) {
+    return { ok: false, reason: 'Invalid key format for Groq (Anthropic key provided)' };
+  }
+
+  return { ok: true };
 }
 
 /**
@@ -44,50 +111,13 @@ export async function testProviderKey(
   providerId: ProviderId,
   apiKey: string,
 ): Promise<{ ok: true; rateLimit?: unknown } | { ok: false; error: string }> {
+  const validation = validateProviderConfig(providerId, apiKey);
+  if (!validation.ok) {
+    return { ok: false, error: validation.reason ?? 'Invalid provider configuration' };
+  }
+
   const spec = BYOK_PROVIDERS[providerId];
   if (!spec) return { ok: false, error: `Unknown provider: ${providerId}` };
-
-  // Length floor depends on the key shape.
-  const minLen = providerId === 'vertex' ? 256 : 8;
-  if (!apiKey || apiKey.length < minLen) {
-    if (providerId === 'vertex') {
-      return {
-        ok: false,
-        error: 'Vertex service-account JSON looks too short. Did you paste the whole file?',
-      };
-    }
-    return { ok: false, error: 'API key is too short' };
-  }
-
-  // Provider-specific shape validation BEFORE we call factory().
-  if (providerId === 'vertex') {
-    try {
-      const obj = JSON.parse(apiKey) as Record<string, unknown>;
-      if (typeof obj.client_email !== 'string') {
-        return { ok: false, error: 'Service account JSON is missing client_email' };
-      }
-      if (typeof obj.private_key !== 'string') {
-        return { ok: false, error: 'Service account JSON is missing private_key' };
-      }
-      if (!obj.client_email.includes('@')) {
-        return { ok: false, error: 'Service account JSON client_email is not an email' };
-      }
-      if (!obj.private_key.includes('BEGIN PRIVATE KEY')) {
-        return { ok: false, error: 'Service account private_key is not a PEM key' };
-      }
-      if (!process.env.GOOGLE_VERTEX_PROJECT && typeof obj.project_id !== 'string') {
-        return {
-          ok: false,
-          error: 'Set GOOGLE_VERTEX_PROJECT env or include project_id in the service-account JSON',
-        };
-      }
-    } catch (err) {
-      return {
-        ok: false,
-        error: `Service account JSON could not be parsed: ${err instanceof Error ? err.message : 'unknown error'}`,
-      };
-    }
-  }
 
   try {
     const builder = spec.factory(apiKey);
