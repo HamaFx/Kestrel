@@ -348,11 +348,9 @@ pnpm test
 # Run End-to-End browser tests (Playwright)
 pnpm test:e2e
 
-# Run release and security verification checks
-pnpm check:oss-release
+# Run verification checks
 pnpm check:route-security
 pnpm check:env-contract
-pnpm check:p0-release
 ```
 
 ---
@@ -373,17 +371,16 @@ Kestrel is designed with strict privacy and security defaults:
 
 ## 🔄 Updating Kestrel
 
-After installing Kestrel, update to the newest stable release with:
+To update your private self-hosted Kestrel instance:
 
 ```bash
-pnpm update
+git pull origin main
+docker compose up -d --build
 ```
 
-The updater checks for a newer release, asks before creating a backup, preserves your settings and data, updates the Docker installation when applicable, and checks that the app is healthy afterward. Use `pnpm update --dry-run` to check without changing anything. If the updater reports a health failure, inspect the displayed logs and keep the backup; do not delete `.kestrel/` or Docker volumes.
+This pulls the latest commits, rebuilds the containers, runs database migrations automatically, and preserves your `.env` configuration and Docker volumes.
 
 Do not delete `.kestrel/`, `.env`, or Docker volumes during an update. Keep a safe copy of `ENCRYPTION_SECRET`; it is required to use encrypted BYOK credentials after restoring data.
-
-For contributors working from a development checkout, `main` is not the stable update channel. The updater uses published GitHub Releases only.
 
 ## 🛠️ Troubleshooting & FAQ
 

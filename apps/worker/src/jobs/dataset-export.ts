@@ -48,7 +48,7 @@ const MAX_REPORTS = 7;
 
 /** Where nightly exports land. Overridable for tests / local dev. */
 const DEFAULT_DATASETS_DIR = '/opt/kestrel/datasets';
-/** Where the nightly eval wrapper (scripts/run-eval-nightly.mjs) writes reports. */
+/** Where eval reports are read from. */
 const DEFAULT_EVAL_REPORTS_DIR = '/opt/kestrel/datasets/eval-reports';
 
 function utcStamp(d: Date): string {
