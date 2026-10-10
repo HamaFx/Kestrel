@@ -64,37 +64,33 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let userId: string | undefined;
   let isAdmin = false;
 
-  // AUTH_MODE=legacy is a loadtest/dev-only bypass (see security-invariants);
-  // it is never enabled in production.
-  if (process.env.AUTH_MODE !== 'legacy') {
-    let session = null;
-    try {
-      session = await auth();
-    } catch (err: unknown) {
-      if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
-        throw err;
-      }
-      console.error('[AppLayout] auth() session lookup failed:', err);
+  let session = null;
+  try {
+    session = await auth();
+  } catch (err: unknown) {
+    if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw err;
     }
+    console.error('[AppLayout] auth() session lookup failed:', err);
+  }
 
-    if (session?.user?.id) {
-      userId = session.user.id;
-      userName = session.user.name ?? undefined;
-      userEmail = session.user.email ?? undefined;
-      let onboardingCompleted = true;
-      try {
-        const [onboarding, admin] = await Promise.all([
-          getOnboardingStatus(session.user.id),
-          checkIsAdmin(),
-        ]);
-        onboardingCompleted = onboarding;
-        isAdmin = admin;
-      } catch (err) {
-        console.error('[AppLayout] Failed to load onboarding status or admin status:', err);
-      }
-      if (!onboardingCompleted) {
-        redirect('/onboarding');
-      }
+  if (session?.user?.id) {
+    userId = session.user.id;
+    userName = session.user.name ?? undefined;
+    userEmail = session.user.email ?? undefined;
+    let onboardingCompleted = true;
+    try {
+      const [onboarding, admin] = await Promise.all([
+        getOnboardingStatus(session.user.id),
+        checkIsAdmin(),
+      ]);
+      onboardingCompleted = onboarding;
+      isAdmin = admin;
+    } catch (err) {
+      console.error('[AppLayout] Failed to load onboarding status or admin status:', err);
+    }
+    if (!onboardingCompleted) {
+      redirect('/onboarding');
     }
   }
 

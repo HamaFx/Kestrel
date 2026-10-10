@@ -73,7 +73,6 @@ const VAULT_SECRET_NAMES = [
   'TELEGRAM_BOT_TOKEN',
   'TELEGRAM_SECRET_TOKEN',
   'APP_PASSWORD',
-  'AUTH_MODE',
 ] as const;
 
 /** Whether vault loading has already run (idempotency guard). */

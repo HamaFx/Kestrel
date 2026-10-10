@@ -76,11 +76,11 @@ describe('diffEnv', () => {
     const existing = new Map();
     const diff = diffEnv(existing, {
       API_KEY: 'abcdefgh',
-      BYOK_ENABLED: '1',
+      MULTI_USER_ENABLED: '1',
       NEXTAUTH_URL: 'http://x',
     });
     const apiKey = diff.find((d) => d.key === 'API_KEY');
-    const enabled = diff.find((d) => d.key === 'BYOK_ENABLED');
+    const enabled = diff.find((d) => d.key === 'MULTI_USER_ENABLED');
     const url = diff.find((d) => d.key === 'NEXTAUTH_URL');
     expect(apiKey?.new).toMatch(/^•+$/);
     expect(enabled?.new).toBe('1');

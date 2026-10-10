@@ -27,7 +27,7 @@ const authEnv = (() => {
 
 export const { handlers, auth, signIn, signOut } = _nextAuth({
   ...authConfig,
-  providers: createAuthProviders(authEnv),
+  providers: createAuthProviders(authEnv as Record<string, string | undefined>),
   callbacks: {
     ...authConfig.callbacks,
     async signIn({

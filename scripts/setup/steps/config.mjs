@@ -98,7 +98,7 @@ export async function run(ctx) {
       values = { ...missing, ...marketKeys };
     }
   } else {
-    values = { BYOK_ENABLED: '1', ...marketKeys };
+    values = { ...marketKeys };
   }
 
   io.line();
