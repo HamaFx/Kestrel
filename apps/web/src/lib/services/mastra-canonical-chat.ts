@@ -26,6 +26,7 @@ import {
 } from '@kestrel/ai/mastra';
 import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
+import { MemoryDegradedPartSchema } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
@@ -102,6 +103,16 @@ export async function runMastraCanonicalChatService(
         role: 'assistant',
         parts: [
           { type: 'text', text: result.text },
+          // Audit plan §1.5: surface degraded memory on the persisted message.
+          ...(result.memoryMode === 'degraded'
+            ? [
+                MemoryDegradedPartSchema.parse({
+                  type: 'data-memory-degraded',
+                  reason: 'Thread memory was unavailable; answered without semantic recall.',
+                  createdAt: Date.now(),
+                }) as unknown as UIMessage['parts'][number],
+              ]
+            : []),
           {
             type: 'data-multi-agent-meta',
             data: {

@@ -77,17 +77,38 @@ describe('reserveBudget', () => {
     await expect(reserveBudget('user-1', 5)).rejects.toThrow(BudgetExceededError);
   });
 
-  it('falls back to DEFAULT_MAX_DAILY_USD when maxDailyUsd is null/undefined', async () => {
+  it('falls back to DEFAULT_MAX_DAILY_USD when maxDailyUsd is null/undefined (enforced)', async () => {
     mockTryReserve.mockResolvedValueOnce({
       ok: true,
       spent: 0,
       max: 5,
     });
 
-    // Pass undefined — should fall back to DEFAULT_MAX_DAILY_USD (5)
-    await reserveBudget('user-1', undefined as unknown as number);
+    process.env.ENFORCE_BUDGET = 'true';
+    const { _resetBudgetEnforcementCache } = await import('../src/budget');
+    _resetBudgetEnforcementCache();
+    try {
+      // Pass undefined — should fall back to DEFAULT_MAX_DAILY_USD (5)
+      await reserveBudget('user-1', undefined as unknown as number);
 
-    expect(mockTryReserve).toHaveBeenCalledWith('user-1', 0.05, 5);
+      expect(mockTryReserve).toHaveBeenCalledWith('user-1', 0.05, 5);
+    } finally {
+      delete process.env.ENFORCE_BUDGET;
+      _resetBudgetEnforcementCache();
+    }
+  });
+
+  it('ledgers against the uncapped ceiling while enforcement is off (Q4)', async () => {
+    mockTryReserve.mockResolvedValueOnce({
+      ok: true,
+      spent: 0,
+      max: 5,
+    });
+
+    const { UNCAPPED_DAILY_USD } = await import('../src/budget');
+    await reserveBudget('user-1', 5);
+
+    expect(mockTryReserve).toHaveBeenCalledWith('user-1', 0.05, UNCAPPED_DAILY_USD);
   });
 });
 

@@ -184,27 +184,29 @@ export function buildConversationGuardrails(
 }
 
 /**
- * Convenience — build research-path guardrails (block strategy,
- * strict mode — rejects the turn when the detector cannot load).
+ * Convenience — build research-path guardrails (block strategy).
+ *
+ * Audit plan §1.2: the mode now comes from the capability manifest, not from
+ * `NODE_ENV`. Every research capability carries `contentTrust: 'untrusted'`
+ * (news/calendar/social packets include untrusted external content), so
+ * research guardrails default to `strict` in every environment. Callers that
+ * must degrade (hermetic tests, explicit availability policy) pass
+ * `mode: 'availability'` or use `buildResearchGuardrailsAvailability`.
  */
 export function buildResearchGuardrails(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
+  mode: GuardrailMode = 'strict',
 ): {
   processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
   warnings: string[];
   mode: GuardrailMode;
 } {
-  // Production research is fail-closed as agreed. Local development and
-  // hermetic tests may still run without a judge key; they keep the
-  // deterministic Unicode normalizer and expose the degradation warning.
-  const strict =
-    process.env.NODE_ENV === 'production' || process.env.MASTRA_STRICT_GUARDRAILS === 'true';
   return buildGuardrailInputProcessors({
     settings,
     env,
     strategy: 'block',
-    mode: strict ? 'strict' : 'availability',
+    mode,
   });
 }
 

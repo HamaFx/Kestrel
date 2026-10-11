@@ -16,7 +16,12 @@
 import { toolRegistry } from './registry';
 import { webSearchTool } from './web-search';
 
-toolRegistry.register('web_search', webSearchTool);
+/**
+ * Audit plan §4.3 — explicit registration instead of import side effects.
+ */
+export function registerWebTools(registry: typeof toolRegistry = toolRegistry): void {
+  registry.register('web_search', webSearchTool);
+}
 
 export { toolRegistry };
 export type { ToolRegistry } from './registry';

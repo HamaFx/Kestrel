@@ -1,64 +1,22 @@
 /**
  * Copyright 2026 Kestrel
- * Licensed under the Apache License, Version 2.0.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-import { metrics } from '@kestrel/shared';
+// SPDX-License-Identifier: Apache-2.0
 
-import { isMastraTelemetryDegraded } from './run-telemetry';
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-export type TelemetryStartupStatus = 'healthy' | 'degraded';
-
-export interface TelemetryStartupCheck {
-  status: TelemetryStartupStatus;
-  checkedAt: string;
-  exporters: {
-    database: 'configured' | 'unknown';
-    metrics: 'configured' | 'unknown';
-    langfuse: 'configured' | 'disabled';
-    mastra: 'configured' | 'unknown';
-  };
-  failures: string[];
-}
-
-let lastCheck: TelemetryStartupCheck | null = null;
-let previousStatus: TelemetryStartupStatus | null = null;
-
-export function validateTelemetryStartup(
-  env: NodeJS.ProcessEnv = process.env,
-): TelemetryStartupCheck {
-  const failures: string[] = [];
-  const langfuseConfigured = Boolean(
-    env.LANGFUSE_PUBLIC_KEY && env.LANGFUSE_SECRET_KEY && env.LANGFUSE_BASE_URL,
-  );
-  const degraded = isMastraTelemetryDegraded();
-  if (degraded) failures.push('one or more telemetry exporters reported a runtime failure');
-
-  const check: TelemetryStartupCheck = {
-    status: failures.length === 0 ? 'healthy' : 'degraded',
-    checkedAt: new Date().toISOString(),
-    exporters: {
-      database: 'unknown',
-      metrics: 'unknown',
-      langfuse: langfuseConfigured ? 'configured' : 'disabled',
-      mastra: 'unknown',
-    },
-    failures,
-  };
-
-  if (previousStatus === 'healthy' && check.status === 'degraded') {
-    metrics.increment('mastra_telemetry_degraded_total');
-  }
-  previousStatus = check.status;
-  lastCheck = check;
-  return check;
-}
-
-export function getTelemetryStartupCheck(): TelemetryStartupCheck | null {
-  return lastCheck;
-}
-
-export function resetTelemetryStartupCheck(): void {
-  lastCheck = null;
-  previousStatus = null;
-}
+export * from '../mastra-v2/shared/telemetry-startup';

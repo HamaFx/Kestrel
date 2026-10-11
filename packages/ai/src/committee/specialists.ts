@@ -27,9 +27,10 @@ import { Agent } from '@mastra/core/agent';
 import type { MastraScorers } from '@mastra/core/evals';
 import type { MastraMemory } from '@mastra/core/memory';
 import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
+import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
-import { REQUEST_CONTEXT_SCHEMA, type MastraSpecialistName } from './types';
+import { REQUEST_CONTEXT_SCHEMA, type MastraSpecialistName, type ModeRequestContext } from './types';
 
 export interface SpecialistDefinition {
   readonly name: MastraSpecialistName;
@@ -49,10 +50,19 @@ export const SPECIALIST_DEFINITIONS: Record<MastraSpecialistName, SpecialistDefi
 /** Sole write-capable committee layer: the decision synthesizer. */
 export const FUSION_AGENT_ID = 'kestrel-mastra-decision';
 
+/**
+ * Committee agent instructions. §2.2: a function form reads the packet (and
+ * opinions) from the request context so prompts are built per call from the
+ * single injected context instead of pre-serialized strings.
+ */
+export type CommitteeInstructions =
+  | string
+  | ((args: { requestContext: RequestContext<ModeRequestContext> }) => string);
+
 export function createCommitteeAgent(
   model: LanguageModel,
   id: string,
-  instructions: string,
+  instructions: CommitteeInstructions,
   memory?: MastraMemory,
   inputProcessors?: Array<InputProcessorOrWorkflow>,
   scorers?: MastraScorers,

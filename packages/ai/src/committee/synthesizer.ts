@@ -31,24 +31,89 @@ import type { MastraMemory } from '@mastra/core/memory';
 import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
+import { readFeatureFlag } from '@kestrel/shared';
+import { z } from 'zod';
 
 import { estimateCostUsd } from '../cost';
 import type { GenerationLedger } from '../generation-ledger';
 import type { SymbolResearchPacket } from '../mastra/symbol-research';
 import { getMastraGenerationStats, type MastraGenerationStats } from '../mastra/telemetry';
-import { fusionInstructions } from './prompts';
+import { fusionRepairPrompt, verifyFusionAnswer } from './fusion-verifier';
+import { fusionInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, FUSION_AGENT_ID } from './specialists';
 import {
   contextWithPacket,
+  MastraModeStrictFailureError,
+  type CommitteeCritique,
   type MastraAnalysisMode,
   type MastraModeOpinion,
   type ModeRequestContext,
 } from './types';
 
+/**
+ * Audit plan §3.3 — structured fusion answer (opt-in via
+ * `PHASE3_STRUCTURED_FUSION=true`, full mode only). Deterministic fields let
+ * the UI render scenario tables via the report parts instead of parsing
+ * free-form markdown.
+ */
+export const FusionAnswerSchema = z.object({
+  bottomLine: z.string().min(1),
+  reasoning: z.string().min(1),
+  risks: z.array(z.string().min(1)).min(1),
+  invalidation: z.string().min(1),
+  scenarioTable: z
+    .array(
+      z.object({
+        scenario: z.string().min(1),
+        bias: z.enum(['bullish', 'bearish', 'neutral']),
+        trigger: z.string().min(1),
+      }),
+    )
+    .min(1),
+});
+export type FusionAnswer = z.infer<typeof FusionAnswerSchema>;
+
+/** Deterministic markdown rendering for the structured fusion answer. */
+export function renderFusionAnswer(answer: FusionAnswer): string {
+  const scenarioRows = answer.scenarioTable
+    .map((row) => `| ${row.scenario} | ${row.bias} | ${row.trigger} |`)
+    .join('\n');
+  return [
+    `**Bottom line:** ${answer.bottomLine}`,
+    '',
+    answer.reasoning,
+    '',
+    '**Scenarios**',
+    '',
+    '| Scenario | Bias | Trigger |',
+    '| --- | --- | --- |',
+    scenarioRows,
+    '',
+    `**Invalidation:** ${answer.invalidation}`,
+    '',
+    `**Risks:** ${answer.risks.map((risk) => `- ${risk}`).join('\n')}`,
+  ].join('\n');
+}
+
+/** §3.3: structured fusion is opt-in (default remains free-form markdown). */
+function structuredFusionEnabled(): boolean {
+  return readFeatureFlag('PHASE3_STRUCTURED_FUSION');
+}
+
 export interface CommitteeSynthesisDeps {
   model: LanguageModel;
   modelId: string;
   providerId: string;
+  /**
+   * Audit plan §3.1 — optional per-agent model resolution; the fusion agent
+   * requests itself by the `fusion` id. Returns null to fall back to the
+   * primary run model. Never a cheaper tier (Q1).
+   */
+  resolveModelForAgent?: (agent: 'fusion') => {
+    model: LanguageModel;
+    modelId: string;
+    providerId: string;
+  } | null;
   memory: MastraMemory;
   /** The fusion agent owns writes to the conversation thread. */
   fusionCallOptions: AgentMemoryOption;
@@ -64,6 +129,8 @@ export interface CommitteeSynthesisArgs {
   prompt: string;
   packet: SymbolResearchPacket;
   opinions: MastraModeOpinion[];
+  /** §3.2: peer reviews from the cross-critique round, when it ran. */
+  critiques?: CommitteeCritique[];
   executionStats: MastraGenerationStats[];
   requestContext: RequestContext<ModeRequestContext>;
   signal?: AbortSignal;
@@ -78,41 +145,102 @@ export interface CommitteeSynthesisResult {
 export async function synthesizeCommitteeAnswer(
   args: CommitteeSynthesisArgs,
 ): Promise<CommitteeSynthesisResult> {
-  const { mode, prompt, packet, opinions, executionStats, requestContext, signal, deps } = args;
+  const { mode, prompt, packet, opinions, critiques, executionStats, requestContext, signal, deps } = args;
 
-  if (mode === 'single' || mode === 'quick') {
-    const label = mode === 'single' ? 'read' : 'quick technical read';
+  if (mode === 'single') {
     const finalText = opinions[0]
-      ? `**${packet.symbol} ${label}**\n\n${opinions[0].reasoning}\n\nData quality: **${packet.dataQuality}**.`
+      ? `**${packet.symbol} read**\n\n${opinions[0].reasoning}\n\nData quality: **${packet.dataQuality}**.`
       : `No specialist opinion was available for ${packet.symbol}.`;
     return { finalText, stats: aggregateStats(executionStats) };
   }
 
+  // §3.1: the fusion agent may use its own user-picked top-tier model.
+  const fusionModel =
+    deps.resolveModelForAgent?.('fusion') ?? {
+      model: deps.model,
+      modelId: deps.modelId,
+      providerId: deps.providerId,
+    };
+  // §2.2: the fusion agent reads the packet and the typed opinions from the
+  // request context (injected on every generate call below) instead of
+  // JSON-joining them into the prompt at build time.
   const fusionAgent = createCommitteeAgent(
-    deps.model,
+    fusionModel.model,
     FUSION_AGENT_ID,
-    fusionInstructions(packet, opinions),
+    (ctx: { requestContext: Parameters<typeof fusionInstructionsForRequest>[0]['requestContext'] }) =>
+      fusionInstructionsForRequest({ requestContext: ctx.requestContext }),
     deps.memory,
     deps.inputProcessors,
     deps.scorers,
   );
-  const fusionResult = await fusionAgent.generate(prompt, {
-    requestContext: contextWithPacket(requestContext, packet),
+
+  // §3.3: full mode can opt into a structured fusion answer
+  // (PHASE3_STRUCTURED_FUSION) whose markdown is rendered deterministically.
+  const useStructuredFusion = mode === 'full' && structuredFusionEnabled();
+
+  const runFusion = async (fusionPrompt: string) => {
     // The synthesizer owns the user-visible assistant message; it writes to
     // the thread with the caller's fusion call options.
-    memory: deps.fusionCallOptions,
-    toolChoice: 'none',
-    maxSteps: deps.maxSteps,
-    ...(signal ? { abortSignal: signal } : {}),
-  });
-  const fusionStats = getMastraGenerationStats(fusionResult);
-  const fusionCostUsd = estimateCostUsd(
-    deps.modelId,
-    fusionStats.inputTokens,
-    fusionStats.outputTokens,
+    const baseOptions = {
+      requestContext: contextWithPacket(requestContext, packet, opinions, critiques),
+      memory: deps.fusionCallOptions,
+      toolChoice: 'none' as const,
+      maxSteps: deps.maxSteps,
+      ...(signal ? { abortSignal: signal } : {}),
+    };
+    // §3.3: two explicit call shapes keep each generate() on its overload.
+    return useStructuredFusion
+      ? fusionAgent.generate(fusionPrompt, {
+          ...baseOptions,
+          structuredOutput: {
+            schema: FusionAnswerSchema,
+            jsonPromptInjection: 'auto' as const,
+            instructions:
+              'Return the complete structured answer: bottom line, evidence-aware reasoning, at least one risk, invalidation conditions, and a scenario table.',
+          },
+        })
+      : fusionAgent.generate(fusionPrompt, baseOptions);
+  };
+
+  const fusionResult = await runFusion(prompt);
+
+  // §3.3: structured output is rendered deterministically; the grounding
+  // verifier below still runs on the rendered markdown.
+  const fusionText = useStructuredFusion
+    ? renderFusionAnswer(FusionAnswerSchema.parse(fusionResult.object))
+    : fusionResult.text;
+
+  // Audit plan §1.4 (Q3 strict): verify the free-form fusion answer against
+  // the packet and opinions. One bounded repair; a second failure is terminal
+  // — no degraded partial answer is returned.
+  let finalText = fusionText;
+  let generationStats: MastraGenerationStats[] = [getMastraGenerationStats(fusionResult)];
+  let fusionCostUsd = estimateCostUsd(
+    fusionModel.modelId,
+    generationStats[0]!.inputTokens,
+    generationStats[0]!.outputTokens,
   );
+
+  const firstVerification = verifyFusionAnswer(finalText, packet, opinions);
+  if (!firstVerification.ok) {
+    const repairResult = await runFusion(fusionRepairPrompt(prompt, firstVerification.findings));
+    const repairStats = getMastraGenerationStats(repairResult);
+    generationStats = [...generationStats, repairStats];
+    fusionCostUsd += estimateCostUsd(fusionModel.modelId, repairStats.inputTokens, repairStats.outputTokens);
+    finalText = repairResult.text;
+    const repairVerification = verifyFusionAnswer(finalText, packet, opinions);
+    if (!repairVerification.ok) {
+      throw new MastraModeStrictFailureError(
+        ['fusion'],
+        new Error(
+          `Fusion verification failed after repair: ${[...firstVerification.findings, ...repairVerification.findings].join('; ')}`,
+        ),
+      );
+    }
+  }
+
   deps.ledger.recordCost('fusion', 'fusion', fusionCostUsd);
-  return { finalText: fusionResult.text, stats: aggregateStats([...executionStats, fusionStats]) };
+  return { finalText, stats: aggregateStats([...executionStats, ...generationStats]) };
 }
 
 function aggregateStats(stats: MastraGenerationStats[]): MastraGenerationStats {

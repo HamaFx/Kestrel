@@ -14,25 +14,9 @@
  * limitations under the License.
  */
 
-import { getCandlesWithMeta } from '@kestrel/data';
-import { createTool } from '@mastra/core/tools';
+// SPDX-License-Identifier: Apache-2.0
 
-import { buildCandlesEvidence } from './evidence-builders';
-import { executeMastraTool } from './telemetry';
-import { XauusdCandlesInputSchema } from './tool-schemas';
-import { XauusdCandlesEvidenceSchema } from './types';
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-export const xauusdCandlesTool = createTool({
-  id: 'get-xauusd-candles',
-  description: 'Fetch XAUUSD OHLC candles for one timeframe with source and freshness metadata.',
-  inputSchema: XauusdCandlesInputSchema,
-  outputSchema: XauusdCandlesEvidenceSchema,
-  execute: async ({ symbol, timeframe, count }, context) =>
-    executeMastraTool('get-xauusd-candles', context, async () => {
-      const result = await getCandlesWithMeta(symbol, timeframe, {
-        count,
-        ...(context.abortSignal ? { signal: context.abortSignal } : {}),
-      });
-      return buildCandlesEvidence(timeframe, count, result);
-    }),
-});
+export * from '../mastra-v2/agents/xauusd/tools/candles-tool';

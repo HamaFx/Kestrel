@@ -553,7 +553,7 @@ export function Composer({
               <button
                 type="button"
                 onClick={() => {
-                  const modes: AnalysisMode[] = ['auto', 'single', 'quick', 'standard', 'full'];
+                  const modes: AnalysisMode[] = ['single', 'full'];
                   const idx = modes.indexOf(analysisMode);
                   const next = modes[(idx + 1) % modes.length];
                   if (next) onAnalysisModeChange(next);

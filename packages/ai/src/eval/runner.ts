@@ -89,8 +89,8 @@ export interface PromptDef {
   expectedTools?: string[];
   forbiddenTools?: string[];
   mustContainSubstrings?: string[];
-  /** Optional mode sent with this case, e.g. quick, standard, or full. */
-  analysisMode?: 'single' | 'quick' | 'standard' | 'full' | 'auto';
+  /** Optional mode sent with this case (Q2: normalized to single|full). */
+  analysisMode?: 'single' | 'full';
   /** Every listed specialist must appear in an observed progress snapshot. */
   expectedAgents?: string[];
   /** Final observed status required for each specialist. */
@@ -502,12 +502,14 @@ async function loadPrompts(path: string): Promise<PromptDef[]> {
       }
       if (
         obj.analysisMode === 'single' ||
+        obj.analysisMode === 'full' ||
+        // Q2 compat shim: legacy case files map onto the two-mode schema.
         obj.analysisMode === 'quick' ||
         obj.analysisMode === 'standard' ||
-        obj.analysisMode === 'full' ||
         obj.analysisMode === 'auto'
       ) {
-        def.analysisMode = obj.analysisMode;
+        def.analysisMode =
+          obj.analysisMode === 'full' || obj.analysisMode === 'standard' ? 'full' : 'single';
       }
       if (Array.isArray(obj.expectedAgents)) {
         def.expectedAgents = obj.expectedAgents.filter((s): s is string => typeof s === 'string');
@@ -548,7 +550,7 @@ async function loadPrompts(path: string): Promise<PromptDef[]> {
 function evaluateAssertions(prompt: PromptDef, result: PromptResult): AssertionFailure[] {
   const failures: AssertionFailure[] = [];
   const calledTools = new Set(result.toolCalls.map((t) => t.name));
-  if (prompt.analysisMode && prompt.analysisMode !== 'auto') {
+  if (prompt.analysisMode) {
     const observedModes = new Set(
       result.agentProgress
         .map((snapshot) => snapshot.mode)

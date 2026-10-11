@@ -36,6 +36,7 @@ import {
 } from '@kestrel/ai/mastra';
 import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
+import { MemoryDegradedPartSchema } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
@@ -151,6 +152,17 @@ export async function runMastraCanonicalChatStreamService(
           role: 'assistant',
           parts: [
             { type: 'text', text: completed.text },
+            // Audit plan §1.5: when native memory prep failed and the turn
+            // fell back to explicit history, tell the user recall is off.
+            ...(completed.memoryMode === 'degraded'
+              ? [
+                  MemoryDegradedPartSchema.parse({
+                    type: 'data-memory-degraded',
+                    reason: 'Thread memory was unavailable; answered without semantic recall.',
+                    createdAt: Date.now(),
+                  }) as unknown as UIMessage['parts'][number],
+                ]
+              : []),
             {
               type: 'data-multi-agent-meta',
               data: {

@@ -17,8 +17,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { domainToolFilter } from '../src/tools/by-domain';
-// Import tool registry to populate it
-import '../src/tools/index';
+import { registerAllTools } from '../src/tools/index';
+
+// §4.3: tools register explicitly now — no import side effects.
+registerAllTools();
 
 describe('domainToolFilter', () => {
   it('returns all tools for generic domain', () => {

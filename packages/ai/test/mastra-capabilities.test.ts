@@ -73,7 +73,8 @@ describe('Mastra capability policy', () => {
     expect(MASTRA_CAPABILITIES['xauusd-research']).toMatchObject({
       id: 'xauusd-research',
       allowedSymbols: ['XAUUSD'],
-      allowedModes: ['single', 'auto'],
+      // Q2: `auto` no longer reaches capability evaluation (resolved upstream).
+      allowedModes: ['single'],
       readOnly: true,
       evidencePolicy: 'required',
       supportsAbort: true,
@@ -146,7 +147,7 @@ describe('Mastra capability policy', () => {
 
   it.each([
     ['unsupported symbol', { symbol: 'EURUSD', mode: 'single' as const }, 'unsupported-symbol'],
-    ['unsupported mode', { symbol: 'XAUUSD', mode: 'standard' as const }, 'unsupported-mode'],
+    ['unsupported mode', { symbol: 'XAUUSD', mode: 'full' as const }, 'unsupported-mode'],
     [
       'explicit model override',
       { symbol: 'XAUUSD', mode: 'single' as const, hasModelOverride: true },

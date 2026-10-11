@@ -1,46 +1,22 @@
-/*
+/**
  * Copyright 2026 Kestrel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
- */
-
-/**
- * Persistence ownership contract for the staged Mastra migration.
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Drizzle is authoritative for user-visible application data. Mastra is
- * authoritative for runtime-only execution state. Projection is explicit and
- * one-way at the boundary; callers must not treat a Mastra snapshot as a
- * replacement for a persisted chat message.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-export const PERSISTENCE_OWNERSHIP = {
-  drizzle: [
-    'chat threads and messages',
-    'user settings and tenant ownership',
-    'budgets, telemetry, audit records, and mutation ledgers',
-    'durable Full-analysis queue rows',
-  ],
-  mastra: [
-    'agent memory and semantic recall',
-    'workflow snapshots and suspended runs',
-    'runtime execution context',
-  ],
-  projection: [
-    'queue status/progress/result to Mastra workflow snapshots',
-    'legacy Drizzle chat history into Mastra memory during migration',
-  ],
-} as const;
 
-export type DrizzlePersistenceOwner = (typeof PERSISTENCE_OWNERSHIP.drizzle)[number];
-export type MastraPersistenceOwner = (typeof PERSISTENCE_OWNERSHIP.mastra)[number];
+// SPDX-License-Identifier: Apache-2.0
 
-export function persistenceOwnerFor(
-  area: 'chat' | 'workflow' | 'memory' | 'queue' | 'audit' | 'settings',
-): 'drizzle' | 'mastra' {
-  switch (area) {
-    case 'workflow':
-    case 'memory':
-      return 'mastra';
-    default:
-      return 'drizzle';
-  }
-}
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
+
+export * from '../mastra-v2/shared/persistence-boundary';

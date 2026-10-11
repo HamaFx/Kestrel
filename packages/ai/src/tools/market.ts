@@ -43,8 +43,15 @@ const marketTools = [
   ['get_seasonality', getSeasonalityTool],
 ] as const;
 
-for (const [name, tool] of marketTools) {
-  toolRegistry.register(name, tool);
+/**
+ * Audit plan §4.3 — explicit registration instead of import side effects.
+ * `registerAllTools` calls this exactly once at boot; importing the module
+ * no longer mutates the singleton registry.
+ */
+export function registerMarketTools(registry: typeof toolRegistry = toolRegistry): void {
+  for (const [name, tool] of marketTools) {
+    registry.register(name, tool);
+  }
 }
 
 export { toolRegistry };

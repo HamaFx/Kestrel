@@ -159,6 +159,20 @@ export const FallbackPartSchema = z.object({
 export type FallbackPart = z.infer<typeof FallbackPartSchema>;
 
 // ---------------------------------------------------------------------------
+// data-memory-degraded — emitted when native memory prep fails and the turn
+// falls back to explicit history (audit plan §1.5). Semantic recall is off
+// for this turn; the user should know why context looks thinner.
+// ---------------------------------------------------------------------------
+
+export const MemoryDegradedPartSchema = z.object({
+  type: z.literal('data-memory-degraded'),
+  /** Short operator-facing reason (already redacted; no raw errors). */
+  reason: z.string().max(200),
+  createdAt: z.number().int(),
+});
+export type MemoryDegradedPart = z.infer<typeof MemoryDegradedPartSchema>;
+
+// ---------------------------------------------------------------------------
 // Union for the chat-surface dispatcher
 // ---------------------------------------------------------------------------
 

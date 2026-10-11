@@ -29,6 +29,7 @@ const {
   mockRunMastraCanonicalChatService,
   mockRunMastraXauusdConversationStreamChat,
   mockRunMastraModeChat,
+  mockRunMastraModeChatStream,
   mockMastraCanonicalResponse,
   mockMastraChatResponse,
   mockMastraModeResponse,
@@ -46,6 +47,7 @@ const {
     () => new Response('xauusd-stream', { status: 200 }),
   ),
   mockRunMastraModeChat: vi.fn(),
+  mockRunMastraModeChatStream: vi.fn(() => new Response('mode', { status: 200 })),
   mockMastraCanonicalResponse: vi.fn(() => new Response('canonical', { status: 200 })),
   mockMastraChatResponse: vi.fn(() => new Response('xauusd', { status: 200 })),
   mockMastraModeResponse: vi.fn(() => new Response('mode', { status: 200 })),
@@ -115,6 +117,7 @@ vi.mock('@/lib/services/mastra-chat-stream', () => ({
 }));
 vi.mock('@/lib/services/mastra-mode', () => ({
   runMastraModeChat: mockRunMastraModeChat,
+  runMastraModeChatStream: mockRunMastraModeChatStream,
 }));
 vi.mock('@/lib/services/mastra-canonical-response', () => ({
   mastraCanonicalResponse: mockMastraCanonicalResponse,
@@ -153,6 +156,35 @@ vi.mock('@/lib/services/api-boundary', () => ({
   listMessages: vi.fn().mockResolvedValue([]),
   resolveMode: (mode: string) => (mode === 'auto' ? 'single' : mode),
   getUserWithSettings: mockGetUserWithSettings,
+  // §1.1: the unified router classifies in one pass; mirror the plan the
+  // createExecutionPlan mock below already builds.
+  routeUnified: vi.fn(async (input: {
+    userMessage: { parts: Array<{ type?: string; text?: string }> };
+    mode: string;
+  }) => {
+    const text = input.userMessage.parts
+      .map((part) => part.text ?? '')
+      .join(' ');
+    const symbol = /xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : null;
+    return {
+      domain: 'technical',
+      planRequired: false,
+      symbol,
+      xauusdChatKind: symbol === 'XAUUSD' ? 'research' : null,
+      injection: { blocked: /ignore previous instructions|system:|developer:/i.test(text) },
+      mutationKind: null,
+      highConfidenceMutationIntent: /\bbuy\b|\bsell\b/i.test(text),
+      capabilityId: symbol ? (symbol === 'XAUUSD' ? 'xauusd-research' : 'symbol-research') : null,
+      route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat',
+      modelPurpose: 'canonical-chat',
+      rationale: 'test',
+      decision: { route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat' },
+      routing: { domain: 'technical', planRequired: false, rationale: 'test' },
+    };
+  }),
+  isBudgetEnforced: () => false,
+  isInjectionAttempt: (prompt: string) => /ignore previous instructions|system:|developer:/i.test(prompt),
+  isHighConfidenceMutationIntent: (prompt: string) => /\bbuy\b|\bsell\b/i.test(prompt),
   enqueueFullAnalysis: mockEnqueueFullAnalysis,
   traceIdStorage: { getStore: () => 'trace-route-1' },
   isMastraMutationEnabled: () => false,
@@ -195,6 +227,7 @@ vi.mock('@/lib/services/api-boundary', () => ({
         contentTrust: plannedSymbol ? 'untrusted' : null,
       },
       memoryPolicy: { mode: 'native', required: true, scope: 'user-thread' },
+      guardrail: { mode: 'strict', strategy: 'block' },
       maxSteps: 6,
       maxDurationMs: 55_000,
       streaming: !plannedSymbol && mode !== 'full',
@@ -338,11 +371,11 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(mockRunMastraCanonicalChatService).not.toHaveBeenCalled();
   });
 
-  it('routes Quick and Standard symbol analysis to the shared Mastra mode workflow', async () => {
+  it('routes single-mode symbol analysis to the shared committee workflow (Q2/§2.3)', async () => {
     const response = await POST(
       request(
         body({
-          analysisMode: 'standard',
+          analysisMode: 'single',
           messages: [
             {
               id: 'user-message-3',
@@ -357,8 +390,8 @@ describe('POST /api/chat Mastra boundary', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(mockRunMastraModeChat).toHaveBeenCalledWith(
-      expect.objectContaining({ symbol: 'EURUSD', mode: 'standard' }),
+    expect(mockRunMastraModeChatStream).toHaveBeenCalledWith(
+      expect.objectContaining({ symbol: 'EURUSD', mode: 'single' }),
     );
   });
 
@@ -438,14 +471,22 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(await response.json()).toMatchObject({ error: { code: 'MASTRA_FAILED' } });
   });
 
-  it('rejects Full mode model overrides until the durable job schema carries them', async () => {
+  it('serializes Full mode model overrides onto the durable queue (Q7)', async () => {
     const response = await POST(
       request(body({ analysisMode: 'full', modelOverride: 'mistral:mistral-small-latest' })),
       { params: Promise.resolve(undefined) },
     );
 
-    expect(response.status).toBe(400);
-    expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(mockEnqueueFullAnalysis).toHaveBeenCalledTimes(1);
+    expect(mockEnqueueFullAnalysis).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelSnapshot: expect.objectContaining({
+          modelId: 'google/gemini-3.6-flash',
+          providerId: 'google',
+        }),
+      }),
+    );
   });
 
   it("rejects a turn addressed to another user's thread before any model work", async () => {

@@ -29,24 +29,27 @@ import { createRequestLogger } from '@/lib/logger';
 import {
   AnalysisQueuedEventSchema,
   BudgetExceededError,
-  classifyMutationRequest,
   createExecutionPlan,
   enqueueFullAnalysis,
   extractUserMessageText,
   getThread,
   getUserWithSettings,
+  isBudgetEnforced,
+  isHighConfidenceMutationIntent,
+  isInjectionAttempt,
   isMastraMutationEnabled,
   listMessages,
   MutationExtractionError,
   PresentationPreferencesSchema,
   resolveMastraModeModel,
   resolveMode,
+  routeUnified,
   traceIdStorage,
   UserMessagePartsSchema,
   withDiagnostics,
   withRateLimit,
+  type UnifiedRoutingDecision,
 } from '@/lib/services/api-boundary';
-import { isInjectionAttempt, isMutationIntent } from '@/lib/services/mastra-chat-routing';
 import { runConversationalTurn, runResearchWorkflow } from '@/lib/services/mastra-execution';
 import { startMutationDraft } from '@/lib/services/mastra-mutation-draft';
 import { extractLatestMastraReport } from '@/lib/services/mastra-report-context';
@@ -61,7 +64,8 @@ const CHAT_RATE_LIMIT = Number(process.env.AI_CHAT_RATE_LIMIT ?? '30');
 const BodySchema = z.object({
   threadId: z.string().uuid(),
   modelOverride: z.string().min(1).max(120).nullable().optional(),
-  analysisMode: z.enum(['single', 'quick', 'standard', 'full', 'auto']).optional(),
+  // Q2 decision: exactly two analysis modes; anything else fails validation.
+  analysisMode: z.enum(['single', 'full']).optional(),
   messages: z
     .array(
       z.object({
@@ -192,6 +196,24 @@ export const POST = withAuth<void>(async (req, { user }) => {
       ? await listMessages(user.userId, body.threadId, 100)
       : [];
   const priorReportAvailable = extractLatestMastraReport(provisionalReport) !== null;
+  // Unified router (audit plan §1.1): domain, symbol, injection, mutation,
+  // capability, and model resolution all classify in one pass. The lexical
+  // fallbacks only run when user settings are absent (onboarding edge).
+  const unified = userSettings
+    ? await routeUnified({
+        userMessage,
+        mode: resolvedMode,
+        modelOverride: body.modelOverride ?? null,
+        settings: userSettings,
+        env: serverEnv,
+        priorReportAvailable,
+      })
+    : null;
+  const injectionBlocked = unified ? unified.injection.blocked : isInjectionAttempt(userText);
+  const highConfidenceMutationIntent = unified
+    ? unified.highConfidenceMutationIntent
+    : isHighConfidenceMutationIntent(userText);
+  const mutationKind = unified?.mutationKind ?? null;
   const executionPlan = userSettings
     ? await createExecutionPlan({
         userMessage,
@@ -201,12 +223,14 @@ export const POST = withAuth<void>(async (req, { user }) => {
         env: serverEnv,
         tenantId: user.userId,
         priorReportAvailable,
+        mutationRequested: mutationKind !== null,
+        routingDecision: unified?.decision,
       })
     : null;
 
   // Injection/jailbreak attempts are always blocked — no model should
   // process them regardless of mutation capability.
-  if (isInjectionAttempt(userText)) {
+  if (injectionBlocked) {
     return errorJson(
       'READ_ONLY_REQUEST_REQUIRED',
       'I can help with read-only research, but I cannot process instruction-overriding requests. Please ask for a market explanation, analysis, or scenario review.',
@@ -222,7 +246,6 @@ export const POST = withAuth<void>(async (req, { user }) => {
   // "sell at market").  Analysis-oriented phrasing ("best trade setup",
   // "portfolio review") passes through to the read-only agents.
   if (isMastraMutationEnabled()) {
-    const mutationKind = classifyMutationRequest(userText);
     if (mutationKind !== null) {
       try {
         const draft = await startMutationDraft({
@@ -256,7 +279,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
 
   // Lexical high-confidence mutation gate — only blocks unambiguous trade
   // commands that the model classifier may have missed.
-  if (isMutationIntent(userText)) {
+  if (highConfidenceMutationIntent) {
     return errorJson(
       'READ_ONLY_REQUEST_REQUIRED',
       'I can analyze a trade idea, but I cannot execute trades from chat. Please rephrase this as a read-only analysis request, or use the confirmation workflow for an explicitly supported action.',
@@ -266,22 +289,26 @@ export const POST = withAuth<void>(async (req, { user }) => {
 
   try {
     // Full mode remains durable: the web request enqueues a Mastra workflow
-    // run (pending snapshot) and the worker claims it. Explicit model
-    // overrides are not yet serializable on the run payload, so reject them
-    // clearly instead of silently selecting another model.
+    // run (pending snapshot) and the worker claims it. Q7 decision: the
+    // user's model override is serialized onto the queue payload through
+    // the execution plan's immutable model snapshot, and the worker resolves
+    // exactly that model from the row (no failover). If the override cannot
+    // be resolved at enqueue time, fail closed with a clear message.
     if (executionPlan?.route === 'full-analysis') {
       const settings = userSettings;
       if (!settings) {
         return errorJson('ONBOARDING_REQUIRED', 'User settings not found.', 409);
       }
-      if (body.modelOverride) {
+      let resolvedModel: ReturnType<typeof resolveMastraModeModel>;
+      try {
+        resolvedModel = resolveMastraModeModel(settings, serverEnv, body.modelOverride ?? null, executionPlan);
+      } catch {
         return errorJson(
-          'INVALID_MODEL_OVERRIDE',
-          'Full-mode model overrides are not supported by the durable queue yet.',
-          400,
+          'MODEL_OVERRIDE_UNAVAILABLE',
+          'The selected model is unavailable for durable Full analysis. Pick another model or run the request as Single instead.',
+          422,
         );
       }
-      const resolvedModel = resolveMastraModeModel(settings, serverEnv, null, executionPlan);
       const requestId = req.headers.get('x-request-id') ?? undefined;
       return withDiagnostics(
         user.userId,
@@ -394,7 +421,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
       signal,
     });
   } catch (error) {
-    if (error instanceof BudgetExceededError) {
+    // Q4 decision: spend is ledger-only — a 429 is possible only when the
+    // operator explicitly set ENFORCE_BUDGET=true.
+    if (error instanceof BudgetExceededError && isBudgetEnforced()) {
       return errorJson(
         'BUDGET_EXCEEDED',
         `Daily AI budget exceeded ($${error.spent.toFixed(2)} / $${error.max.toFixed(2)}). Resets at UTC midnight.`,

@@ -24,7 +24,8 @@ import { toast } from 'sonner';
 import { apiMutate } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
 
-type AnalysisMode = 'single' | 'quick' | 'standard' | 'full' | 'auto';
+/** Q2 decision: exactly two analysis modes — `single` and `full`. */
+type AnalysisMode = 'single' | 'full';
 
 const MODE_OPTIONS: Array<{
   value: AnalysisMode;
@@ -34,44 +35,29 @@ const MODE_OPTIONS: Array<{
   costMultiplier: number;
 }> = [
   {
-    value: 'auto',
-    label: 'Auto',
-    description: 'AI picks the best mode based on your question',
-    latencyS: 0,
-    costMultiplier: 0,
-  },
-  {
     value: 'single',
     label: 'Single',
-    description: 'Fast, one agent (current behavior)',
+    description: 'Fast one-desk technical read',
     latencyS: 2,
     costMultiplier: 1,
   },
   {
-    value: 'quick',
-    label: 'Quick',
-    description: 'Technical only',
-    latencyS: 3,
-    costMultiplier: 1.5,
-  },
-  {
-    value: 'standard',
-    label: 'Standard',
-    description: 'Technical + Fundamental',
-    latencyS: 5,
-    costMultiplier: 2.5,
-  },
-  {
     value: 'full',
     label: 'Full',
-    description: 'All 4 agents + fusion',
+    description: '4-desk committee deliberation, verified',
     latencyS: 8,
     costMultiplier: 4,
   },
 ];
 
+/** Map a legacy persisted default onto the two-mode schema (Q2 compat shim). */
+function normalizeInitialMode(value: string): AnalysisMode {
+  return value === 'full' || value === 'standard' ? 'full' : 'single';
+}
+
 interface AnalysisModeFormProps {
-  initialMode: AnalysisMode;
+  /** Persisted default; legacy values normalize onto the two-mode schema (Q2). */
+  initialMode: string;
   showOpinions: boolean;
 }
 
@@ -79,7 +65,7 @@ export function AnalysisModeForm({
   initialMode,
   showOpinions: initialShowOpinions,
 }: AnalysisModeFormProps) {
-  const [mode, setMode] = useState<AnalysisMode>(initialMode);
+  const [mode, setMode] = useState<AnalysisMode>(normalizeInitialMode(initialMode));
   const [showOpinions, setShowOpinions] = useState(initialShowOpinions);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();

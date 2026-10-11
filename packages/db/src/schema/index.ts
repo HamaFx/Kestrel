@@ -82,6 +82,8 @@ export * from './eval-datasets';
 export * from './telegram-updates';
 // H1 — Shared provider health store for cross-instance failover scoring
 export * from './provider-health';
+// Audit plan §1.6 — shared LLM provider circuit state (cross-isolate breaker)
+export * from './provider-circuit-state';
 // Privacy-safe paired comparison data for AI rollout
 export * from './ai-shadow-comparisons';
 export * from './ai-quality-results';

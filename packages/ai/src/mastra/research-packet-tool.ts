@@ -14,21 +14,9 @@
  * limitations under the License.
  */
 
-import { createTool } from '@mastra/core/tools';
+// SPDX-License-Identifier: Apache-2.0
 
-import { collectXauusdResearchPacket } from './research-packet';
-import { XauusdResearchPacketSchema } from './research-types';
-import { executeMastraTool } from './telemetry';
-import { XauusdResearchPacketInputSchema } from './tool-schemas';
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-export const xauusdResearchPacketTool = createTool({
-  id: 'get-xauusd-research-packet',
-  description:
-    'Collect the bounded deep-research evidence packet for XAUUSD: current price, daily/4h/1h/15m candles, and deterministic indicators. Use this first for broad gold analysis.',
-  inputSchema: XauusdResearchPacketInputSchema,
-  outputSchema: XauusdResearchPacketSchema,
-  execute: async (_input, context) =>
-    executeMastraTool('get-xauusd-research-packet', context, () =>
-      collectXauusdResearchPacket(context.abortSignal),
-    ),
-});
+export * from '../mastra-v2/packets/research-packet-tool';

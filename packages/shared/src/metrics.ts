@@ -40,8 +40,21 @@ export const METRIC_NAMES = [
   'budget_reserved_total',
   'budget_release_failed_total',
   'agent_failed_total',
+  // Audit plan §1.4/§1.6 — fusion verifier and shared circuit breaker.
+  'committee_fusion_verification_total',
+  'committee_fusion_verification_failed_total',
+  'circuit_open_total',
+  'circuit_breaker_db_unavailable_total',
+  // Audit plan §2.1 — packet cache SLIs.
+  'packet_cache_hit_total',
+  'packet_cache_miss_total',
+  // Audit plan §5.4 — per-committee-step observability.
+  'committee_step_latency_ms',
+  'committee_step_cost_usd',
   'run_failed_total',
   'ttft_ms',
+  // Audit plan §2.4 — canonical-chat setup phase latency (per phase tag).
+  'mastra_setup_latency_ms',
   'total_latency_ms',
   'turn_cost_usd',
   // Exporter + worker health signals.

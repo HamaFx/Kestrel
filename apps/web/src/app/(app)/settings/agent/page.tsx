@@ -50,8 +50,8 @@ export default async function AgentCataloguePage() {
   const { settings } = await getUserWithSettings(session.user.id);
 
   const disabledTools = settings?.disabledTools ?? [];
-  const analysisMode = (settings?.defaultAnalysisMode ?? 'auto') as
-    'single' | 'quick' | 'standard' | 'full' | 'auto';
+  // The form normalizes legacy persisted values onto the two-mode schema (Q2).
+  const analysisMode = settings?.defaultAnalysisMode ?? 'single';
   const showOpinions = settings?.showAgentOpinions ?? true;
   const agentModelOverrides =
     (settings?.agentModelOverrides as {

@@ -73,7 +73,7 @@ describe('Mastra execution decision facade', () => {
     const decision = await decideMastraExecution({
       userMessage: message('Please place a trade and set an alert'),
       symbol: 'XAUUSD',
-      mode: 'standard',
+      mode: 'full',
       settings,
       env,
     });

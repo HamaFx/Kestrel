@@ -23,6 +23,7 @@ import { z } from 'zod';
 
 import { auth } from '@/auth';
 import { ChatScreen } from '@/components/chat/chat-screen';
+import { normalizeAnalysisMode } from '@/components/chat/chat-top-bar';
 // /chat/[threadId] — full-screen chat surface for a specific thread.
 //
 // Server component: validates the thread, hydrates the message history from
@@ -76,11 +77,11 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
   const customInstructions = settings?.customInstructions;
   if (!thread) notFound();
 
-  const savedModes = ['single', 'quick', 'standard', 'full', 'auto'] as const;
-  const threadMode = savedModes.includes(thread.analysisMode as (typeof savedModes)[number])
-    ? (thread.analysisMode as (typeof savedModes)[number])
-    : null;
-  const initialAnalysisMode = threadMode ?? settings?.defaultAnalysisMode ?? 'auto';
+  // Q2 compat shim: legacy persisted modes (quick/standard/auto) map onto
+  // the two-mode schema before reaching the client.
+  const initialAnalysisMode = normalizeAnalysisMode(
+    thread.analysisMode ?? settings?.defaultAnalysisMode ?? 'single',
+  );
 
   const initialMessages = dbMessages
     .map((m) => {
@@ -110,7 +111,7 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
         updatedAt: t.updatedAt,
       }))}
       pinnedSymbol={thread.pinnedSymbol}
-      initialAnalysisMode={initialAnalysisMode as 'single' | 'quick' | 'standard' | 'full' | 'auto'}
+      initialAnalysisMode={initialAnalysisMode}
       initialChatModel={settings?.chatModel ?? null}
       initialShowAgentOpinions={settings?.showAgentOpinions ?? true}
       initialCustomInstructions={customInstructions ?? null}

@@ -39,8 +39,24 @@ import { z } from 'zod';
 
 // ── Schemas ─────────────────────────────────────────────────────────────────
 
+/**
+ * Q2 decision: exactly two analysis modes. The patch schema still accepts
+ * legacy values (`quick`/`standard`/`auto`) for one release and normalizes
+ * them before persisting.
+ */
 export const AnalysisModePatchSchema = z.object({
-  defaultAnalysisMode: z.enum(['single', 'quick', 'standard', 'full', 'auto']).optional(),
+  defaultAnalysisMode: z
+    .enum(['single', 'quick', 'standard', 'full', 'auto'])
+    .transform((mode): 'single' | 'full' => {
+      switch (mode) {
+        case 'full':
+        case 'standard':
+          return 'full';
+        default:
+          return 'single';
+      }
+    })
+    .optional(),
   showAgentOpinions: z.boolean().optional(),
   agentModelOverrides: z
     .object({
@@ -102,8 +118,11 @@ export type BulkTestEvent = BulkTestProgressEvent | BulkTestResultEvent | BulkTe
 
 export async function getAnalysisModeService(userId: string): Promise<AnalysisModeDTO> {
   const { settings } = await getUserWithSettings(userId);
+  // Q2 compat shim: legacy persisted values read back as their mapped mode.
+  const stored = settings?.defaultAnalysisMode ?? 'single';
+  const defaultAnalysisMode = stored === 'full' || stored === 'standard' ? 'full' : 'single';
   return {
-    defaultAnalysisMode: settings?.defaultAnalysisMode ?? 'auto',
+    defaultAnalysisMode,
     showAgentOpinions: settings?.showAgentOpinions ?? true,
     agentModelOverrides: settings?.agentModelOverrides ?? {},
   };

@@ -39,6 +39,7 @@ import {
   StreamToolPartSchema,
   UserPlanPartSchema,
   VerifyWarningPartSchema,
+  MemoryDegradedPartSchema,
   type CitationWarningPart,
   type FallbackPart,
   type StreamToolState,
@@ -71,6 +72,7 @@ import { MastraReportPart } from './parts/mastra-report';
 import { MutationConfirmationCard } from './parts/mutation-confirmation';
 import { PlanPart } from './parts/plan';
 import { ChatToolPart, type ToolPartState } from './parts/registry';
+import { MemoryDegradedPartView } from './parts/memory-degraded';
 import { TextPart } from './parts/text';
 
 interface MessageProps {
@@ -585,6 +587,16 @@ function renderPart(
       return null;
     }
     return <FallbackPartView key={idx} part={parsed.data} />;
+  }
+
+  // Audit plan §1.5 — native memory prep failed and the turn fell back to
+  // explicit history; the user should know semantic recall was off.
+  if (part.type === 'data-memory-degraded') {
+    const parsed = MemoryDegradedPartSchema.safeParse(part);
+    if (!parsed.success) {
+      return null;
+    }
+    return <MemoryDegradedPartView key={idx} part={parsed.data} />;
   }
 
   return null;

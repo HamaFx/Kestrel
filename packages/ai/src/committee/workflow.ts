@@ -17,19 +17,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee workflow (Phase 6) — one Mastra workflow shared by the
- * single / Quick / Standard / Full committee analysis modes.
+ * Committee workflow — one Mastra workflow shared by the two analysis modes
+ * (single: one technical desk; full: four desks).
  *
  * Graph:
  *
  *   collect-packet (deterministic, fail closed on blocked)
- *     → parallel(technical[, fundamental[, risk[, sentiment]]])
- *     → verify (Full strict: any required specialist failure is terminal)
- *     → fusion (LLM synthesis for standard/full, direct formatting for
- *               single/quick; same per-step retry policy as specialists)
+ *     → parallel(technical[, fundamental, risk, sentiment])
+ *     → critique (full only; cross-critique round, see ENABLE_COMMITTEE_CRITIQUE)
+ *     → verify (both modes strict: any required specialist failure is terminal)
+ *     → fusion (LLM synthesis, grounded by the fusion verifier)
  *
- * The only differences between modes are the specialist set, limits, and
- * strictness (see `committeeModePolicy`). Progress is emitted once per
+ * The only differences between modes are the specialist set and the
+ * critique round (see `MODE_POLICY`). Progress is emitted once per
  * logical stage (`committeeProgressStages`) so durable queue projections
  * never see duplicate step events.
  *
@@ -40,6 +40,7 @@
  * visibility); without one the run stays in-memory (tests, hermetic runs).
  */
 
+import { readFeatureFlag } from '@kestrel/shared';
 import type { Mastra } from '@mastra/core';
 import type { AgentMemoryOption } from '@mastra/core/agent';
 import type { MastraScorers } from '@mastra/core/evals';
@@ -52,19 +53,33 @@ import { z } from 'zod';
 
 import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
 import type { MastraGenerationStats } from '../mastra/stats';
-import { collectSymbolResearchPacket, SymbolResearchPacketSchema } from '../mastra/symbol-research';
+import { collectSymbolResearchPacketCached, SymbolResearchPacketSchema } from '../mastra/packet-cache';
+import {
+  readCritiqueStepResult,
+  runCritiqueGeneration,
+  CritiqueStepOutputSchema,
+  type CritiqueStepResult,
+} from './critique';
+import {
+  combineRunSignal,
+  deadlineSignalFor,
+  isDeadlineAbort,
+  type DeadlineSignals,
+} from '../utils/timeout';
 import {
   readCollectPacketResult,
   readSpecialistStepResult,
   runSpecialistGeneration,
   SpecialistStepResultSchema,
 } from './specialist-runner';
+import { recordCommitteeStepSpan } from './step-spans';
 import { synthesizeCommitteeAnswer } from './synthesizer';
 import {
   CollectPacketOutputSchema,
   committeeModelMetadata,
   committeeModePolicy,
   committeeProgressStages,
+  CommitteeCritiqueSchema,
   MastraAnalysisModeSchema,
   MastraModeOpinionSchema,
   MastraModeStrictFailureError,
@@ -72,6 +87,8 @@ import {
   REQUEST_CONTEXT_SCHEMA,
   zeroStats,
   type CollectPacketFn,
+  type CommitteeAgentId,
+  type CommitteeCritique,
   type CommitteeStepId,
   type MastraAnalysisMode,
   type MastraModeOpinion,
@@ -90,6 +107,8 @@ export const CommitteeWorkflowOutputSchema = z.object({
   blockedText: z.string().optional(),
   finalText: z.string().optional(),
   opinions: z.array(MastraModeOpinionSchema),
+  /** §3.2 cross-critique records (Q6: ON by default for full). */
+  critiques: z.array(CommitteeCritiqueSchema),
   packet: SymbolResearchPacketSchema,
   stats: z.object({
     inputTokens: z.number(),
@@ -120,6 +139,16 @@ export interface CommitteeWorkflowDeps {
   /** The fusion/output layer owns writes to the conversation thread. */
   fusionCallOptions: AgentMemoryOption;
   signal?: AbortSignal;
+  /**
+   * Audit plan §3.1 (Q1: quality always) — optional per-agent top-tier model
+   * resolution. Returns null to fall back to the run's primary model. The
+   * resolver must never downgrade to a cheaper tier for cost.
+   */
+  resolveModelForAgent?: (agent: CommitteeAgentId) => {
+    model: LanguageModel;
+    modelId: string;
+    providerId: string;
+  } | null;
   /** Shared Mastra instance for run-snapshot persistence (optional; in-memory when absent). */
   mastra?: Mastra;
   /** Input processors (Unicode normalizer + prompt-injection detector). */
@@ -135,6 +164,12 @@ export interface CommitteeWorkflowDeps {
   maxSteps?: number;
   /** Deterministic evidence packet collector; defaults to symbol-research. */
   collectPacket?: CollectPacketFn;
+  /**
+   * Committee deadline (audit plan §1.7, Q3). When set, a deadline abort is
+   * converted into an explicit failure marker / strict error instead of an
+   * opaque route abort. Sync web runs pass 45s; durable worker runs omit it.
+   */
+  deadlineMs?: number;
 }
 
 /**
@@ -159,23 +194,41 @@ export function createCommitteeWorkflow(
   const progressStages = committeeProgressStages(mode);
   const generationLedger = deps.ledger ?? createGenerationLedger();
   const maxSteps = deps.maxSteps ?? 1;
-  const collectPacket = deps.collectPacket ?? collectSymbolResearchPacket;
+  // Audit plan §2.1: the default collector is the 30s fresh-only packet cache;
+  // tests and callers can still inject a bare collector via `collectPacket`.
+  const collectPacket = deps.collectPacket ?? collectSymbolResearchPacketCached;
+  // Audit plan §1.7: one deadline signal shared by every step in this run.
+  const deadlineSignal = deadlineSignalFor(deps.deadlineMs);
+  const runSignals: DeadlineSignals = {
+    ...(deps.signal ? { userSignal: deps.signal } : {}),
+    ...(deadlineSignal ? { deadlineSignal } : {}),
+  };
+  const runSignal = combineRunSignal(runSignals);
 
   const collectPacketStep = createStep({
     id: 'collect-packet',
     inputSchema: CommitteeWorkflowInputSchema,
     outputSchema: CollectPacketOutputSchema,
-    execute: async ({ inputData, abortSignal, bail }) => {
-      const signal = deps.signal ?? abortSignal;
+    execute: async ({ inputData, requestContext, abortSignal, bail }) => {
+      const signal = runSignal ?? abortSignal;
       // First stage is always collect-packet (see committeeProgressStages).
       await deps.onProgress?.(progressStages[0]!);
       const packet = await collectPacket(inputData.symbol, signal);
+      recordCommitteeStepSpan({
+        step: 'collect-packet',
+        runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+        symbol: packet.symbol,
+        mode: inputData.mode,
+        packetId: packet.packetId,
+        ok: packet.status === 'ready',
+      });
       if (packet.status === 'blocked') {
         const text = `I could not complete ${packet.symbol} ${inputData.mode} analysis because required market data is unavailable.\n\n${packet.missingData.join('\n')}`;
         return bail({
           status: 'blocked' as const,
           blockedText: text,
           opinions: [],
+          critiques: [],
           packet,
           stats: zeroStats(),
           failedAgents: [],
@@ -193,37 +246,191 @@ export function createCommitteeWorkflow(
       outputSchema: SpecialistStepResultSchema,
       // Per-step retry with backoff (workflow retryConfig supplies the delay):
       // transient provider errors throw so Mastra retries; permanent errors
-      // return an explicit failure marker so non-strict modes can continue.
+      // return an explicit failure marker so strict modes can fail closed.
       retries: 1,
       execute: async ({ inputData, requestContext, abortSignal }) => {
         await deps.onProgress?.(name);
         const startedAt = Date.now();
-        const signal = deps.signal ?? abortSignal;
-        return runSpecialistGeneration({
-          name,
-          prompt: inputData.prompt,
-          packet: inputData.packet,
-          requestContext: requestContext as RequestContext<ModeRequestContext>,
-          signal,
-          startedAt,
-          deps: {
-            model: deps.model,
-            modelId: deps.modelId,
-            providerId: deps.providerId,
-            memory: deps.memory,
-            specialistCallOptions: deps.specialistCallOptions,
-            ...(deps.researchInputProcessors
-              ? { researchInputProcessors: deps.researchInputProcessors }
-              : {}),
-            ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors } : {}),
-            ...(deps.scorers ? { scorers: deps.scorers } : {}),
-            ledger: generationLedger,
-            maxSteps,
-          },
+        const signal = runSignal ?? abortSignal;
+        let result: Awaited<ReturnType<typeof runSpecialistGeneration>>;
+        try {
+          result = await runSpecialistGeneration({
+            name,
+            prompt: inputData.prompt,
+            packet: inputData.packet,
+            requestContext: requestContext as RequestContext<ModeRequestContext>,
+            signal,
+            startedAt,
+            deps: {
+              model: deps.model,
+              modelId: deps.modelId,
+              providerId: deps.providerId,
+              // §3.1: per-specialist top-tier model when the caller provides one.
+              ...(deps.resolveModelForAgent
+                ? { resolveModelForAgent: deps.resolveModelForAgent }
+                : {}),
+              memory: deps.memory,
+              specialistCallOptions: deps.specialistCallOptions,
+              ...(deps.researchInputProcessors
+                ? { researchInputProcessors: deps.researchInputProcessors }
+                : {}),
+              ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors } : {}),
+              ...(deps.scorers ? { scorers: deps.scorers } : {}),
+              ledger: generationLedger,
+              maxSteps,
+            },
+          });
+        } catch (error) {
+          // Audit plan §1.7 (Q3): a deadline is a specialist failure, not a
+          // retryable provider error — return the marker so verify fails the
+          // whole committee instead of burning the route's retry budget.
+          if (isDeadlineAbort(runSignals)) {
+            recordCommitteeStepSpan({
+              step: name,
+              runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+              symbol: inputData.packet.symbol,
+              mode,
+              packetId: inputData.packet.packetId,
+              latencyMs: Date.now() - startedAt,
+              ok: false,
+              error: 'deadline',
+            });
+            return {
+              ok: false,
+              agentName: name,
+              error: 'deadline',
+              latencyMs: Date.now() - startedAt,
+            };
+          }
+          throw error;
+        }
+        // §5.4: one span per specialist completion.
+        recordCommitteeStepSpan({
+          step: name,
+          runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+          symbol: inputData.packet.symbol,
+          mode,
+          packetId: inputData.packet.packetId,
+          ...(result.model ? { modelId: result.model } : {}),
+          ...(result.latencyMs !== undefined ? { latencyMs: result.latencyMs } : {}),
+          ...(result.costUsd !== undefined ? { tokenCostUsd: result.costUsd } : {}),
+          ...(result.stats
+            ? { inputTokens: result.stats.inputTokens, outputTokens: result.stats.outputTokens }
+            : {}),
+          ok: result.ok,
+          ...(result.error ? { error: result.error } : {}),
         });
+        return result;
       },
     }),
   );
+
+  // §3.2 (Q6: ON by default for full) — one cross-critique round. Each desk
+  // reads the other desks' verified opinions and returns a structured peer
+  // review. Disabled with ENABLE_COMMITTEE_CRITIQUE=0; single mode never runs
+  // it (one desk, nothing to critique).
+  const critiqueEnabled = mode === 'full' && readFeatureFlag('ENABLE_COMMITTEE_CRITIQUE');
+
+  const critiqueStep = createStep({
+    id: 'critique',
+    inputSchema: z.unknown(),
+    outputSchema: CritiqueStepOutputSchema,
+    retries: 1,
+    execute: async ({ requestContext, getStepResult, abortSignal }) => {
+      // Rollback flag / single mode: the step is a no-op passthrough.
+      if (!critiqueEnabled) return { critiques: [], failedAgents: [] };
+      await deps.onProgress?.('critique' as const);
+      const collect = readCollectPacketResult(getStepResult);
+      if (!collect) return { critiques: [], failedAgents: [] };
+      const signal = runSignal ?? abortSignal;
+      const startedAt = Date.now();
+      const peers: MastraModeOpinion[] = [];
+      for (const name of specialists) {
+        const marker = readSpecialistStepResult(getStepResult, name);
+        if (marker?.ok && marker.opinion) {
+          peers.push({
+            agentName: name,
+            bias: marker.opinion.bias,
+            confidence: marker.opinion.confidence,
+            reasoning: marker.opinion.reasoning,
+            rawData: marker.opinion.details,
+            ...committeeModelMetadata(
+              marker.model ?? deps.modelId,
+              marker.providerId ?? deps.providerId,
+              marker.stats!,
+              marker.costUsd ?? 0,
+              marker.latencyMs ?? 0,
+            ),
+          });
+        }
+      }
+      if (peers.length < 2) return { critiques: [], failedAgents: [] };
+
+      const results = await Promise.all(
+        peers.map((peer) =>
+          runCritiqueGeneration({
+            name: peer.agentName,
+            prompt: collect.prompt,
+            packet: collect.packet,
+            peerOpinions: peers.filter((other) => other.agentName !== peer.agentName),
+            requestContext: requestContext as RequestContext<ModeRequestContext>,
+            signal,
+            startedAt,
+            deps: {
+              model: deps.model,
+              modelId: deps.modelId,
+              providerId: deps.providerId,
+              ...(deps.resolveModelForAgent
+                ? { resolveModelForAgent: deps.resolveModelForAgent }
+                : {}),
+              memory: deps.memory,
+              specialistCallOptions: deps.specialistCallOptions,
+              ...(deps.researchInputProcessors
+                ? { inputProcessors: deps.researchInputProcessors as never }
+                : {}),
+              ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors as never } : {}),
+              ...(deps.scorers ? { scorers: deps.scorers } : {}),
+              ledger: generationLedger,
+              maxSteps,
+            },
+          }).catch((error: unknown): CritiqueStepResult => {
+            // §1.7 (Q3): a critique deadline is a failed desk, not a retryable
+            // error — surface it as a marker for the strict verify step.
+            if (isDeadlineAbort(runSignals)) {
+              return {
+                ok: false,
+                agentName: peer.agentName,
+                error: 'deadline',
+                latencyMs: Date.now() - startedAt,
+              };
+            }
+            throw error;
+          }),
+        ),
+      );
+
+      const critiques: CommitteeCritique[] = [];
+      const failedAgents: string[] = [];
+      for (const result of results) {
+        // §5.4: one span per critique desk.
+        recordCommitteeStepSpan({
+          step: 'critique',
+          runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+          symbol: collect.packet.symbol,
+          mode,
+          packetId: collect.packet.packetId,
+          ...(result.critique ? { modelId: result.critique.model } : {}),
+          ...(result.latencyMs !== undefined ? { latencyMs: result.latencyMs } : {}),
+          ...(result.critique ? { tokenCostUsd: result.critique.costUsd } : {}),
+          ok: result.ok,
+          ...(result.error ? { error: result.error } : {}),
+        });
+        if (result.ok && result.critique) critiques.push(result.critique);
+        else failedAgents.push(result.agentName ?? 'unknown');
+      }
+      return { critiques, failedAgents };
+    },
+  });
 
   const verifyStep = createStep({
     id: 'verify',
@@ -232,14 +439,43 @@ export function createCommitteeWorkflow(
     execute: async ({ getStepResult }) => {
       await deps.onProgress?.('verify' as const);
       const failedAgents: MastraSpecialistName[] = [];
+      const deadlineAgents: string[] = [];
       // Inside a step, getStepResult returns the raw step output (not the
       // { status, output } wrapper that appears on the run result's steps).
       for (const name of specialists) {
         const marker = readSpecialistStepResult(getStepResult, name);
-        if (marker?.ok === false) failedAgents.push(name);
+        if (marker?.ok === false) {
+          failedAgents.push(name);
+          if (marker.error === 'deadline') deadlineAgents.push(name);
+        }
       }
+      // §3.2 (Q3): a failed cross-critique desk fails the whole committee.
+      if (critiqueEnabled) {
+        const critiqueOutput = readCritiqueStepResult(getStepResult);
+        for (const failed of critiqueOutput?.failedAgents ?? []) {
+          const name = failed as MastraSpecialistName;
+          if (!failedAgents.includes(name)) failedAgents.push(name);
+        }
+      }
+      // §5.4: the deterministic gate gets a span too.
+      const collectForSpan = readCollectPacketResult(getStepResult);
+      recordCommitteeStepSpan({
+        step: 'verify',
+        runId: 'unknown',
+        symbol: collectForSpan?.packet.symbol ?? 'unknown',
+        mode,
+        ...(collectForSpan?.packet.packetId ? { packetId: collectForSpan.packet.packetId } : {}),
+        ok: failedAgents.length === 0,
+        ...(failedAgents.length > 0 ? { error: failedAgents.join(',') } : {}),
+      });
       if (strict && failedAgents.length > 0) {
-        throw new MastraModeStrictFailureError(failedAgents);
+        throw new MastraModeStrictFailureError(
+          failedAgents,
+          undefined,
+          deadlineAgents.length > 0
+            ? `Committee analysis timed out (${deadlineAgents.join(', ')} did not complete) — please retry. No partial answer was returned.`
+            : undefined,
+        );
       }
       return { failedAgents };
     },
@@ -252,7 +488,8 @@ export function createCommitteeWorkflow(
     // Same retry policy as the specialists — no retry regression on fusion.
     retries: 1,
     execute: async ({ requestContext, getStepResult, abortSignal }) => {
-      const signal = deps.signal ?? abortSignal;
+      const fusionStartedAt = Date.now();
+      const signal = runSignal ?? abortSignal;
       await deps.onProgress?.('fusion' as const);
       const collect = readCollectPacketResult(getStepResult);
       if (!collect) throw new Error('Committee workflow is missing collect-packet output.');
@@ -260,6 +497,9 @@ export function createCommitteeWorkflow(
       const failedAgents: MastraSpecialistName[] = [];
       const opinions: MastraModeOpinion[] = [];
       const executionStats: MastraGenerationStats[] = [];
+      // §3.2: peer reviews from the cross-critique round, when it ran.
+      const critiqueOutput = critiqueEnabled ? readCritiqueStepResult(getStepResult) : undefined;
+      const critiques: CommitteeCritique[] = critiqueOutput?.critiques ?? [];
 
       for (const name of specialists) {
         // Raw step output (getStepResult inside a step returns the output),
@@ -287,33 +527,66 @@ export function createCommitteeWorkflow(
         executionStats.push(marker.stats);
       }
 
-      const { finalText, stats } = await synthesizeCommitteeAnswer({
-        mode: runMode,
-        prompt,
-        packet,
-        opinions,
-        executionStats,
-        requestContext: requestContext as RequestContext<ModeRequestContext>,
-        signal,
-        deps: {
-          model: deps.model,
-          modelId: deps.modelId,
-          providerId: deps.providerId,
-          memory: deps.memory,
-          fusionCallOptions: deps.fusionCallOptions,
-          ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors } : {}),
-          ...(deps.scorers ? { scorers: deps.scorers } : {}),
-          ledger: generationLedger,
-          maxSteps,
-        },
-      });
+      let synthesis: Awaited<ReturnType<typeof synthesizeCommitteeAnswer>>;
+      try {
+        synthesis = await synthesizeCommitteeAnswer({
+          mode: runMode,
+          prompt,
+          packet,
+          opinions,
+          ...(critiques.length > 0 ? { critiques } : {}),
+          executionStats,
+          requestContext: requestContext as RequestContext<ModeRequestContext>,
+          signal,
+          deps: {
+            model: deps.model,
+            modelId: deps.modelId,
+            providerId: deps.providerId,
+            // §3.1: the fusion agent can use its own top-tier model too.
+            ...(deps.resolveModelForAgent
+              ? { resolveModelForAgent: deps.resolveModelForAgent }
+              : {}),
+            memory: deps.memory,
+            fusionCallOptions: deps.fusionCallOptions,
+            ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors } : {}),
+            ...(deps.scorers ? { scorers: deps.scorers } : {}),
+            ledger: generationLedger,
+            maxSteps,
+          },
+        });
+      } catch (error) {
+        // Audit plan §1.7 (Q3): a fusion deadline is a terminal committee
+        // failure — never a partial or degraded answer.
+        if (isDeadlineAbort(runSignals)) {
+          throw new MastraModeStrictFailureError(
+            ['fusion'],
+            new Error('Committee analysis timed out during fusion — please retry.'),
+          );
+        }
+        throw error;
+      }
 
+      // §5.4: fusion span carries the full-run cost snapshot.
+      recordCommitteeStepSpan({
+        step: 'fusion',
+        runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+        symbol: packet.symbol,
+        mode: runMode,
+        packetId: packet.packetId,
+        modelId: deps.modelId,
+        latencyMs: Date.now() - fusionStartedAt,
+        tokenCostUsd: generationLedger.total(),
+        inputTokens: synthesis.stats.inputTokens,
+        outputTokens: synthesis.stats.outputTokens,
+        ok: true,
+      });
       return {
         status: 'ready' as const,
-        finalText,
+        finalText: synthesis.finalText,
         opinions,
+        critiques,
         packet,
-        stats,
+        stats: synthesis.stats,
         failedAgents,
         totalCostUsd: generationLedger.total(),
       };
@@ -330,6 +603,8 @@ export function createCommitteeWorkflow(
   })
     .then(collectPacketStep)
     .parallel(specialistSteps as never)
+    // §3.2 (Q6): one cross-critique round for full before verification.
+    .then(critiqueStep)
     .then(verifyStep)
     .then(fusionStep)
     .commit() as unknown as Workflow;

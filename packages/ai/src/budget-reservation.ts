@@ -8,13 +8,13 @@ import type { DbClient } from '@kestrel/db';
 import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
+import { acquireBudget } from './budget';
 import {
   applyBudgetDelta,
   BudgetExceededError,
   DEFAULT_TURN_ESTIMATE_USD,
   reconcileBudgetReservation,
   releaseBudgetReservation,
-  tryReserveBudget,
   type BudgetReservation,
 } from './cost';
 
@@ -46,25 +46,27 @@ export async function reserveTurnBudget(args: {
   };
   db?: BudgetDb;
 }): Promise<BudgetHandle> {
-  const estimateUsd = args.estimateUsd ?? DEFAULT_TURN_ESTIMATE_USD;
-  const reservation =
-    args.db || args.correlation
-      ? await tryReserveBudget(
-          args.userId,
-          estimateUsd,
-          args.maxDailyUsd,
-          new Date(),
-          args.correlation,
-          args.db,
-          args.tenantId,
-        )
-      : await tryReserveBudget(args.userId, estimateUsd, args.maxDailyUsd);
+  // Audit plan §1.3 (Q4): ledger-only by default. The reservation always
+  // records spend; a cap rejection is possible only under ENFORCE_BUDGET.
+  const { reservation } = await acquireBudget({
+    userId: args.userId,
+    ...(args.estimateUsd !== undefined ? { estimateUsd: args.estimateUsd } : {}),
+    maxDailyUsd: args.maxDailyUsd,
+    ...(args.correlation ? { correlation: args.correlation } : {}),
+    ...(args.tenantId ? { tenantId: args.tenantId } : {}),
+    ...(args.db ? { db: args.db } : {}),
+  });
   if (!reservation.ok) {
+    // Reachable only when ENFORCE_BUDGET=true (legacy hard cap).
     throw new BudgetExceededError(reservation.spent, reservation.max);
   }
 
   metrics.increment('budget_reserved_total');
-  return createBudgetHandle({ userId: args.userId, estimateUsd, reservation });
+  return createBudgetHandle({
+    userId: args.userId,
+    estimateUsd: args.estimateUsd ?? DEFAULT_TURN_ESTIMATE_USD,
+    reservation,
+  });
 }
 
 /** Adopt a reservation created by atomic durable queue admission. */

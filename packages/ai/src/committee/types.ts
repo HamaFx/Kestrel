@@ -22,8 +22,9 @@
  * The committee is a bounded multi-agent workflow: deterministic packet
  * collection, parallel read-only specialists, verification, then a single
  * synthesizer. Agents communicate only through these typed step outputs.
- * Quick/Standard/Full all use this one committee; the only differences are
- * the specialist set, limits, and strictness (see `MODE_POLICY`).
+ * Q2 decision (docs/plans/decisions.log.md): exactly two modes exist —
+ * `single` (one technical desk) and `full` (the 4-desk committee). Q3
+ * decision: both are strict all-or-nothing.
  */
 
 import type { Symbol } from '@kestrel/shared';
@@ -34,65 +35,64 @@ import { z } from 'zod';
 import type { MastraGenerationStats } from '../mastra/stats';
 import { SymbolResearchPacketSchema, type SymbolResearchPacket } from '../mastra/symbol-research';
 
-export type MastraAnalysisMode = 'single' | 'quick' | 'standard' | 'full';
+export type MastraAnalysisMode = 'single' | 'full';
 export type MastraSpecialistName = 'technical' | 'fundamental' | 'risk' | 'sentiment';
 
-export const MastraAnalysisModeSchema = z.enum(['single', 'quick', 'standard', 'full']);
+/** Committee step ids extend specialists with the orchestration stages. */
+export type CommitteeAgentId = MastraSpecialistName | 'fusion';
+
+export const MastraAnalysisModeSchema = z.enum(['single', 'full']);
 export const MastraSpecialistNameSchema = z.enum(['technical', 'fundamental', 'risk', 'sentiment']);
 
 /** Which specialists participate in each mode (single source of truth). */
 export const SPECIALISTS_BY_MODE: Record<MastraAnalysisMode, readonly MastraSpecialistName[]> = {
   single: ['technical'],
-  quick: ['technical'],
-  standard: ['technical', 'fundamental'],
   full: ['technical', 'fundamental', 'risk', 'sentiment'],
 };
 
+/**
+ * Committee deadline for synchronous runs (audit plan §1.7). Leaves ~10s of
+ * headroom under the chat route's 55s window so a deadline surfaces as an
+ * explicit strict failure instead of an opaque route abort.
+ */
+export const COMMITTEE_DEADLINE_MS = 45_000;
+
 /** One logical workflow stage, emitted as progress exactly once per run. */
-export type CommitteeStepId = MastraSpecialistName | 'collect-packet' | 'verify' | 'fusion';
+export type CommitteeStepId =
+  | MastraSpecialistName
+  | 'collect-packet'
+  | 'critique'
+  | 'verify'
+  | 'fusion';
 
 /** Ordered progress stages for a mode (stable across runs and snapshots). */
 export function committeeProgressStages(mode: MastraAnalysisMode): readonly CommitteeStepId[] {
-  return ['collect-packet', ...SPECIALISTS_BY_MODE[mode], 'verify', 'fusion'];
+  // Full mode runs one cross-critique round after the specialists (Q6 ON by
+  // default); single is a one-desk read with nothing to critique.
+  const critique: CommitteeStepId[] = mode === 'full' ? ['critique'] : [];
+  return ['collect-packet', ...SPECIALISTS_BY_MODE[mode], ...critique, 'verify', 'fusion'];
 }
 
 export interface CommitteeModePolicy {
   readonly mode: MastraAnalysisMode;
   /**
-   * Strict modes (Full) fail closed: any required specialist failure is
-   * terminal and no partial committee answer is returned to the user.
+   * Strict modes fail closed (Q3 decision): any specialist failure —
+   * including a fusion-verifier failure or a deadline — is terminal and no
+   * partial committee answer is returned to the user.
    */
   readonly strict: boolean;
   /** Participating specialists, in stable execution order. */
   readonly specialists: readonly MastraSpecialistName[];
-  /**
-   * Partial-mode continuation (approved product decision): non-strict modes
-   * (single, Quick, Standard) may continue when a participating specialist
-   * fails — e.g. Standard continues on fundamental failure — and the workflow
-   * returns the remaining opinions with the failed agents listed. Full mode
-   * is all-or-nothing and never continues.
-   */
+  /** Q3: strict all-or-nothing for every mode; never continue on partial. */
   readonly continueOnPartialFailure: boolean;
 }
 
 export const MODE_POLICY: Record<MastraAnalysisMode, CommitteeModePolicy> = {
   single: {
     mode: 'single',
-    strict: false,
+    strict: true,
     specialists: SPECIALISTS_BY_MODE.single,
-    continueOnPartialFailure: true,
-  },
-  quick: {
-    mode: 'quick',
-    strict: false,
-    specialists: SPECIALISTS_BY_MODE.quick,
-    continueOnPartialFailure: true,
-  },
-  standard: {
-    mode: 'standard',
-    strict: false,
-    specialists: SPECIALISTS_BY_MODE.standard,
-    continueOnPartialFailure: true,
+    continueOnPartialFailure: false,
   },
   full: {
     mode: 'full',
@@ -106,15 +106,20 @@ export function committeeModePolicy(mode: MastraAnalysisMode): CommitteeModePoli
   return MODE_POLICY[mode];
 }
 
-/** Full-mode committee failure: terminal, no partial result (strict contract). */
+/** Committee failure (specialist, fusion, or deadline): terminal, no partial result. */
 export class MastraModeStrictFailureError extends Error {
   readonly code = 'MASTRA_MODE_INCOMPLETE';
-  readonly failedAgents: MastraSpecialistName[];
+  readonly failedAgents: CommitteeAgentId[];
 
-  constructor(failedAgents: MastraSpecialistName[], cause?: unknown) {
-    super(`Mastra Full mode could not complete. Failed agents: ${failedAgents.join(', ')}.`, {
-      cause,
-    });
+  constructor(failedAgents: CommitteeAgentId[], cause?: unknown, detail?: string) {
+    super(
+      [
+        `Mastra analysis could not complete. Failed agents: ${failedAgents.join(', ')}.`,
+        // Q3/§1.7: surfaces the retry guidance the user should see.
+        detail ?? 'No partial answer was returned — please retry.',
+      ].join(' '),
+      { cause },
+    );
     this.name = 'MastraModeStrictFailureError';
     this.failedAgents = failedAgents;
   }
@@ -126,6 +131,10 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
   threadId: z.string().min(1),
   symbol: z.string().min(1),
   packet: z.unknown().optional(),
+  /** Typed committee opinions injected for the fusion call (§2.2). */
+  opinions: z.unknown().optional(),
+  /** Cross-critique records injected for the fusion call (§3.2). */
+  critiques: z.unknown().optional(),
 });
 
 export type ModeRequestContext = z.infer<typeof REQUEST_CONTEXT_SCHEMA>;
@@ -135,7 +144,66 @@ export const OpinionSchema = z.object({
   bias: z.enum(['bullish', 'bearish', 'neutral']),
   confidence: z.number().min(0).max(1),
   reasoning: z.string().min(1),
-  details: z.record(z.unknown()).default({}),
+  /**
+   * Audit plan §4.4 — typed detail envelope so fusion and verifiers can
+   * attribute claims (key levels, assumptions, evidence gaps). `catchall`
+   * keeps arbitrary legacy/provider-specific keys valid.
+   */
+  details: z
+    .object({
+      keyLevels: z
+        .array(
+          z.object({
+            price: z.number(),
+            kind: z.enum(['support', 'resistance', 'trigger', 'invalidation']),
+            evidenceId: z.string().optional(),
+          }),
+        )
+        .optional(),
+      assumptions: z.array(z.string()).optional(),
+      missingEvidence: z.array(z.string()).optional(),
+    })
+    .catchall(z.unknown())
+    .default({}),
+});
+
+/**
+ * Audit plan §3.2 (Q6: ON by default for full) — one cross-critique round.
+ * Each specialist reviews the other desks' {bias, confidence, reasoning} and
+ * returns whether it confirms its own view, a revised confidence, and a short
+ * critique capturing agreement/disagreement.
+ */
+export const CritiqueSchema = z.object({
+  confirms: z.boolean(),
+  revisedConfidence: z.number().min(0).max(1),
+  critique: z.string().min(1),
+});
+
+/** Full critique record the workflow emits so fusion and snapshots can use it. */
+export interface CommitteeCritique {
+  agentName: MastraSpecialistName;
+  confirms: boolean;
+  revisedConfidence: number;
+  critique: string;
+  model: string;
+  providerId: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  latencyMs: number;
+}
+
+export const CommitteeCritiqueSchema = z.object({
+  agentName: MastraSpecialistNameSchema,
+  confirms: z.boolean(),
+  revisedConfidence: z.number().min(0).max(1),
+  critique: z.string().min(1),
+  model: z.string(),
+  providerId: z.string(),
+  inputTokens: z.number(),
+  outputTokens: z.number(),
+  costUsd: z.number(),
+  latencyMs: z.number(),
 });
 
 /** Full opinion shape the workflow emits so callers can persist metadata. */
@@ -227,18 +295,23 @@ export const CollectPacketOutputSchema = z.object({
 });
 export type CollectPacketOutput = z.infer<typeof CollectPacketOutputSchema>;
 
-/** Rebuild the per-run request context with the packet present. */
+/** Rebuild the per-run request context with the packet (and opinions) present. */
 export function contextWithPacket(
   base: RequestContext<ModeRequestContext>,
   packet: SymbolResearchPacket,
+  opinions?: MastraModeOpinion[],
+  critiques?: CommitteeCritique[],
 ): RequestContext<ModeRequestContext> {
-  return new RequestContext<ModeRequestContext>([
+  const entries: [string, unknown][] = [
     ['userId', base.get('userId') as string],
     ['runId', base.get('runId') as string],
     ['threadId', base.get('threadId') as string],
     ['symbol', packet.symbol],
     ['packet', packet],
-  ]);
+  ];
+  if (opinions) entries.push(['opinions', opinions]);
+  if (critiques) entries.push(['critiques', critiques]);
+  return new RequestContext<ModeRequestContext>(entries as never);
 }
 
 /**

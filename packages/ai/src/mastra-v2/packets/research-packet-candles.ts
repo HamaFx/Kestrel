@@ -1,0 +1,87 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { buildCandlesEvidence } from '../../mastra/evidence-builders';
+import {
+  RESEARCH_CANDLE_OUTPUT,
+  XAUUSD_RESEARCH_WINDOWS,
+  type ResearchWindow,
+} from '../../mastra/research-config';
+import type { XauusdResearchFetchResult } from '../../mastra/research-packet-fetch';
+import {
+  completeResearchStage,
+  recordResearchStageFailure,
+  startResearchStage,
+  warningForResearchFailure,
+} from '../../mastra/research-packet-stages';
+import type { XauusdResearchPacket } from '../../mastra/research-types';
+import { XAUUSD } from '../../mastra/types';
+
+export interface CandleSuccess {
+  window: ResearchWindow;
+  result: XauusdResearchFetchResult['candles'][number] & { status: 'fulfilled' };
+}
+
+export function collectCandleEvidence(
+  packetId: string,
+  fetched: XauusdResearchFetchResult,
+  warnings: string[],
+  missingData: string[],
+): { candles: XauusdResearchPacket['candles']; successes: CandleSuccess[] } {
+  const candles: XauusdResearchPacket['candles'] = [];
+  const successes: CandleSuccess[] = [];
+
+  XAUUSD_RESEARCH_WINDOWS.forEach((window, index) => {
+    const settled = fetched.candles[index];
+    if (!settled) return;
+    const stage = `candles.${window.timeframe}`;
+    startResearchStage(stage, { packetId, symbol: XAUUSD, timeframe: window.timeframe });
+
+    if (settled.status === 'rejected') {
+      missingData.push(`${window.timeframe} candle data is unavailable.`);
+      warnings.push(warningForResearchFailure(`${window.timeframe} candles`));
+      recordResearchStageFailure(stage, settled.reason, { packetId, timeframe: window.timeframe });
+      return;
+    }
+
+    try {
+      const evidence = buildCandlesEvidence(
+        window.timeframe,
+        window.candleCount,
+        settled.value,
+        RESEARCH_CANDLE_OUTPUT,
+      );
+      candles.push(evidence);
+      successes.push({ window, result: settled });
+      warnings.push(...evidence.warnings);
+      if (evidence.data.count === 0) {
+        missingData.push(`${window.timeframe} candle data is empty.`);
+      }
+      completeResearchStage(stage, 'completed', {
+        packetId,
+        timeframe: window.timeframe,
+        count: evidence.data.count,
+        quality: evidence.quality,
+      });
+    } catch (error) {
+      missingData.push(`${window.timeframe} candle evidence was invalid.`);
+      warnings.push(warningForResearchFailure(`${window.timeframe} candles`));
+      recordResearchStageFailure(stage, error, { packetId, timeframe: window.timeframe });
+    }
+  });
+
+  return { candles, successes };
+}

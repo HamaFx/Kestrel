@@ -52,12 +52,12 @@ describe('autoDetectMode', () => {
     expect(autoDetectMode('buy or sell gold')).toBe('full');
   });
 
-  it('returns standard for analysis questions', () => {
-    expect(autoDetectMode('analyze XAUUSD 1h chart')).toBe('standard');
-    expect(autoDetectMode('analysis of EURUSD')).toBe('standard');
-    expect(autoDetectMode('what do you think about gold')).toBe('standard');
-    expect(autoDetectMode('forecast XAUUSD this week')).toBe('standard');
-    expect(autoDetectMode('outlook on GBPUSD')).toBe('standard');
+  it('returns single for analysis questions (Q2: two-mode collapse)', () => {
+    expect(autoDetectMode('analyze XAUUSD 1h chart')).toBe('single');
+    expect(autoDetectMode('analysis of EURUSD')).toBe('single');
+    expect(autoDetectMode('what do you think about gold')).toBe('single');
+    expect(autoDetectMode('forecast XAUUSD this week')).toBe('single');
+    expect(autoDetectMode('outlook on GBPUSD')).toBe('single');
   });
 
   it('returns single for short ambiguous prompts', () => {
@@ -66,17 +66,20 @@ describe('autoDetectMode', () => {
     expect(autoDetectMode('xau')).toBe('single');
   });
 
-  it('returns standard for longer ambiguous messages', () => {
-    expect(autoDetectMode('tell me something interesting about the gold market')).toBe('standard');
+  it('returns single for longer ambiguous messages (Q2: two-mode collapse)', () => {
+    expect(autoDetectMode('tell me something interesting about the gold market')).toBe('single');
   });
 });
 
 describe('resolveMode', () => {
   it('passes through explicit modes', () => {
     expect(resolveMode('single', 'should i buy gold')).toBe('single');
-    expect(resolveMode('quick', 'should i buy gold')).toBe('quick');
-    expect(resolveMode('standard', 'should i buy gold')).toBe('standard');
     expect(resolveMode('full', 'should i buy gold')).toBe('full');
+  });
+
+  it('maps legacy modes onto the two-mode schema (Q2 compat shim)', () => {
+    expect(resolveMode('quick', 'should i buy gold')).toBe('single');
+    expect(resolveMode('standard', 'should i buy gold')).toBe('full');
   });
 
   it('auto-detects for auto mode', () => {

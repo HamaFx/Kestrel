@@ -1,39 +1,22 @@
-/*
+/**
  * Copyright 2026 Kestrel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-export interface ConfidenceObservation {
-  confidence: number;
-  correct: boolean;
-}
+// SPDX-License-Identifier: Apache-2.0
 
-export interface ConfidenceCalibrationSummary {
-  count: number;
-  meanConfidence: number;
-  accuracy: number;
-  calibrationError: number;
-}
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-/** Summarize confidence against observed outcomes without making policy decisions. */
-export function summarizeConfidenceCalibration(
-  observations: readonly ConfidenceObservation[],
-): ConfidenceCalibrationSummary {
-  if (observations.length === 0) {
-    return { count: 0, meanConfidence: 0, accuracy: 0, calibrationError: 0 };
-  }
-  const meanConfidence =
-    observations.reduce(
-      (sum, observation) => sum + Math.min(1, Math.max(0, observation.confidence)),
-      0,
-    ) / observations.length;
-  const accuracy =
-    observations.filter((observation) => observation.correct).length / observations.length;
-  return {
-    count: observations.length,
-    meanConfidence,
-    accuracy,
-    calibrationError: Math.abs(meanConfidence - accuracy),
-  };
-}
+export * from '../mastra-v2/shared/confidence';

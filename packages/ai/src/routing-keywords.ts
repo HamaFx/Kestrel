@@ -96,3 +96,91 @@ export const SUMMARY_PATTERNS: RoutingKeywordPattern[] = [
   { re: /\b(journal|trade|trades|win rate|r-?multiple|stats)\b/, weight: 2 },
   { re: /\b(list|show me|what(?:'s| is) (?:on|happening))\b/, weight: 1 },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// P0-3 unified routing lexicon (audit plan §1.1).
+//
+// Every chat-boundary regex used for symbol detection, injection detection,
+// deep-research classification, and mutation intent lives here exactly once.
+// Both `packages/ai/src/mastra/routing-policy.ts` (the unified router) and
+// the web boundary (`apps/web/src/lib/services/mastra-chat-routing.ts`,
+// now a deprecated re-export) import from this file so the layers can never
+// drift apart again.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** XAUUSD-specific terms (gold). */
+export const XAUUSD_TERMS = /\b(?:xauusd|xau\/usd|gold)\b/i;
+
+/** Other canonical symbols that disambiguate away from a pure XAUUSD prompt. */
+export const OTHER_SYMBOL_TERMS =
+  /\b(?:btc|bitcoin|eth|ethereum|eurusd|eur\/usd|gbpusd|gbp\/usd|usdjpy|usd\/jpy|silver|oil|nasdaq|spx|s&p\s*500)\b/i;
+
+/** Deep-research phrasing that upgrades an XAUUSD chat to a verified report. */
+export const DEEP_RESEARCH_TERMS =
+  /\b(?:analy[sz]e|analysis|outlook|forecast|predict|technical|fundamental|macro|structure|indicator|level|setup|bullish|bearish|bias|scenario|support|resistance|volatility)\b/i;
+
+/** Lexical prompt-injection / jailbreak markers (always blocks, no exceptions). */
+export const INJECTION_TERMS =
+  /(?:ignore\s+(?:all\s+)?(?:previous|prior|above)?\s*instructions|system\s*:|developer\s*:|DAN\s+mode)\b/i;
+
+/** Report-followup phrasing (inherits scope from a saved verified report). */
+export const FOLLOWUP_TERMS =
+  /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i;
+
+/** Follow-up wording that is actually a trade command and must not inherit. */
+export const FORBIDDEN_FOLLOWUP_TERMS =
+  /\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i;
+
+/**
+ * Broad mutation-routing exclusion. Used by the unified router to route a
+ * prompt *away* from the research/symbol paths; it is intentionally wider
+ * than the high-confidence chat gate below.
+ */
+export const BROAD_MUTATION_TERMS =
+  /\b(?:set|create|add|make|schedule|send)\b[\s\S]{0,60}?\balert\b|\balert\s+me\b|\bnotify\s+me\b|\bremind\s+me\b|\b(?:log|record|write|journal|note)\b[\s\S]{0,60}?\b(?:trade|journal|entry|position|transaction)\b|\b(?:share|send|export|publish)\b[\s\S]{0,40}?\b(?:snapshot|summary|analysis|report|link)\b|\b(?:run|execute|trigger|perform)\b[\s\S]{0,40}?\b(?:system\s+action|maintenance|cleanup|diagnostic|backup)\b/i;
+
+// — High-confidence mutation gate (the chat-boundary 422 classifier) ————
+
+/** Core trade-execution verbs — short and imperative. */
+export const EXECUTION_VERBS = /\b(?:buy|sell|execute|place|order)\b/i;
+
+/** Phrases where an execution verb is clearly a trade command. */
+export const EXECUTION_PHRASES =
+  /\b(?:(?:buy|sell)\s+(?:\d+(?:\.\d+)?\s*(?:lot|unit|contract|oz|ounce)s?)|(?:(?:execute|place)\s+(?:the\s+)?(?:trade|order))|(?:(?:buy|sell)\s+(?:at|@)\s+(?:market|\d)))\b/i;
+
+/** Context-free dangerous terms that are almost never read-only. */
+export const ALWAYS_UNSAFE = /\b(?:automate|schedule)\b/i;
+
+/**
+ * High-confidence command phrases: alert/journal commands that the model
+ * classifier (`mutation-detect.ts`) also flags as mutations.
+ */
+export const MUTATION_COMMANDS =
+  /\b(?:set|create|add|make)\b[\s\S]{0,30}?\balert\b|\balert\s+me\b|\bnotify\s+me\b|\bremind\s+me\b|\blog\s+(?:a\s+)?(?:trade|journal|entry)\b|\bjournal\s+(?:this|my|a)\s+trade\b|\bshare\s+(?:this|snapshot|summary)\b/i;
+
+/** Terms that are often read-only analysis despite containing trade words. */
+export const NEGATIVE_READONLY_PATTERNS =
+  /\b(?:what\s+(?:is|are|would|should)|tell\s+me|explain|analy[sz]e|analysis|outlook|forecast|predict|setup|setup idea|trade\s+setup|trade\s+idea|best\s+(?:trade|entry|setup)|suggest(?:ion)?|recommend(?:ation)?|thoughts?\s+on|opinion|what\s+do\s+you\s+think|how\s+(?:do|would|should|to|is|about)|show\s+me|can\s+you|please\s+(?:analy|tell|show|explain)|close\s+price|today.?\s*(?:close|price)|position\s+siz(?:e|ing)|portfolio\s+(?:review|allocation|check|look|summary|overview)|journal\s+(?:entry|note|log|my|this)|alert\s+me\s+(?:when|if|at)|entry\s+(?:point|level|zone|area|price)|enter\s+(?:a\s+)?(?:trade|position|at))\b/i;
+
+/** Question-starter patterns: interrogative grammar is read-only context. */
+export const QUESTION_STARTERS =
+  /^(?:what|how|when|where|why|who|should|could|would|can|do|does|did|is|are|will|has|have)\b|\?/i;
+
+/** Returns true when a prompt's trade terms are clearly in a read-only context. */
+export function isReadOnlyContext(prompt: string): boolean {
+  if (QUESTION_STARTERS.test(prompt.trim())) return true;
+  return NEGATIVE_READONLY_PATTERNS.test(prompt);
+}
+
+/**
+ * High-confidence mutation request (chat-boundary 422 gate). Narrow by
+ * design: only unambiguous trade commands and always-unsafe verbs fire.
+ */
+export function isHighConfidenceMutationIntent(prompt: string): boolean {
+  if (!prompt || prompt.trim().length < 3) return false;
+  if (ALWAYS_UNSAFE.test(prompt)) return true;
+  if (MUTATION_COMMANDS.test(prompt)) return true;
+  if (EXECUTION_PHRASES.test(prompt)) return true;
+  if (EXECUTION_VERBS.test(prompt) && !isReadOnlyContext(prompt)) return true;
+  return false;
+}
