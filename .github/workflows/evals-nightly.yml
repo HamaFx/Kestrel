@@ -1,0 +1,59 @@
+name: evals-nightly
+
+permissions:
+  contents: read
+
+on:
+  # Audit plan §5.3 — the eval gate runs nightly, not per-PR: sampled live
+  # scoring needs a full day of real traffic to be meaningful.
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: evals-nightly
+  cancel-in-progress: false
+
+jobs:
+  eval-gate:
+    name: Eval Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kestrel_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/kestrel_test
+      DIRECT_URL: postgres://postgres:postgres@localhost:5432/kestrel_test
+      NODE_ENV: test
+      # The gate reads cross-tenant score rows for the quality roll-up; its
+      # connection bypasses row-level tenant scoping (read-only telemetry).
+      KESTREL_ENABLE_RLS: '0'
+      MULTI_USER_ENABLED: '0'
+      # The CI service postgres speaks plain TCP.
+      DB_DISABLE_SSL: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38885af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build packages
+        run: pnpm build:packages
+      - name: Unit regression net
+        run: pnpm --filter @kestrel/ai test
+      - name: Eval quality gate
+        run: pnpm eval:gate

@@ -14,51 +14,9 @@
  * limitations under the License.
  */
 
-import { randomUUID } from 'node:crypto';
+// SPDX-License-Identifier: Apache-2.0
 
-import { metrics } from '@kestrel/shared';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-import { assembleXauusdResearchPacket } from './research-packet-assemble';
-import { fetchXauusdResearchData } from './research-packet-fetch';
-import { startResearchStage } from './research-packet-stages';
-import type { XauusdResearchPacket } from './research-types';
-import { XAUUSD } from './types';
-
-const rlog = createCategorizedLogger('ai', {
-  component: 'mastra-xauusd-research-packet',
-});
-
-/**
- * Fetches the fixed technical scope used by the first deep-research milestone.
- * The model receives this packet before explaining the market; it does not
- * decide which required timeframes to omit.
- */
-export async function collectXauusdResearchPacket(
-  signal?: AbortSignal,
-): Promise<XauusdResearchPacket> {
-  const packetId = `kestrel-research-${randomUUID()}`;
-  const generatedAt = new Date().toISOString();
-  startResearchStage('packet', { packetId, symbol: XAUUSD });
-  const fetched = await fetchXauusdResearchData(signal);
-  const packet = assembleXauusdResearchPacket(packetId, generatedAt, fetched);
-
-  metrics.increment('mastra_research_packet_total', {
-    tags: { status: packet.status, symbol: XAUUSD },
-  });
-  if (packet.status === 'blocked') {
-    metrics.increment('mastra_research_packet_blocked_total', {
-      tags: { symbol: XAUUSD },
-    });
-  }
-
-  rlog.info('Mastra XAUUSD research packet collected', {
-    packetId,
-    status: packet.status,
-    dataQuality: packet.dataQuality,
-    candleTimeframes: packet.candles.map((evidence) => evidence.timeframe),
-    indicatorTimeframes: packet.indicators.map((evidence) => evidence.timeframe),
-    missingDataCount: packet.missingData.length,
-  });
-  return packet;
-}
+export * from '../mastra-v2/packets/research-packet';

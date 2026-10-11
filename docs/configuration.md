@@ -51,12 +51,20 @@ PostgreSQL is required in every environment; provide `DATABASE_URL` or `POSTGRES
 | `NODE_ENV`                    | `development`             | `development`, `test`, or `production`                       |
 | `NEXT_PUBLIC_APP_URL`         | `http://localhost:3000`   | Browser-visible application URL                              |
 | `NEXTAUTH_URL`                | Setup-generated/local URL | Auth callback and cookie URL                                 |
-| `MAX_DAILY_USD`               | `5`                       | Daily AI budget ceiling                                      |
+| `MAX_DAILY_USD`               | `5`                       | Admin reporting ceiling — spend is ledgered, never blocking   |
+| `ENFORCE_BUDGET`              | `0`                       | Q4: ledger-only budget by default; `1` restores the hard cap (429) |
 | `MAX_TOOL_ITERATIONS`         | `6`                       | Maximum tool-loop iterations per chat turn                   |
 | `AI_SEMANTIC_ROUTING_ENABLED` | `0`                       | Enables semantic routing before keyword fallback             |
 | `KESTREL_OFFLINE_MODE`        | `0`                       | Enables deterministic synthetic market-data mode             |
 | `LOG_PROMPTS`                 | `0`                       | Prompt logging; keep disabled unless intentionally debugging |
 | `ALERT_WINDOW_HOURS`          | `1`                       | Health-alert evaluation window                               |
+| `PHASE2_PACKET_CACHE`         | `1`                       | 30s fresh-only research packet cache (§2.1)                  |
+| `PHASE3_MODEL_DIVERSITY`      | `0`                       | Per-committee-agent models from user overrides (§3.1)        |
+| `ENABLE_COMMITTEE_CRITIQUE`   | `1`                       | Cross-critique round for Full mode (Q6; `0` disables)        |
+| `PHASE3_STRUCTURED_FUSION`    | `0`                       | Structured fusion output for Full mode (§3.3)                |
+| `REDIS_URL`                   | *(unset)*                 | Optional shared Redis for the packet cache (§2.1)            |
+| `MASTRA_COMMITTEE_MODELS`     | *(unset)*                 | Optional JSON of per-specialist model picks (§3.1, top-tier only) |
+| `MASTRA_XAUUSD_MODEL`         | *(unset)*                 | Pin the XAUUSD verified-report model (`provider:model`)      |
 
 ## AI configuration
 

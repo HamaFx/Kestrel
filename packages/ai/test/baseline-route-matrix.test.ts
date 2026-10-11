@@ -43,7 +43,8 @@ function message(text: string) {
 
 interface MatrixCell {
   name: string;
-  mode: 'single' | 'quick' | 'standard' | 'full' | 'auto';
+  /** Q2 decision: exactly two analysis modes. */
+  mode: 'single' | 'full';
   prompt: string;
   symbol?: string | null;
   capabilityId?: MastraCapabilityId;
@@ -79,13 +80,16 @@ const ROUTE_MATRIX: MatrixCell[] = [
     },
   },
   {
-    name: 'auto XAUUSD research',
-    mode: 'auto',
+    // Q2 two-mode collapse: `auto` used to route here before resolution; the
+    // planner boundary now resolves legacy values upstream (resolveMode).
+    name: 'single XAUUSD research (legacy auto shim target)',
+    mode: 'single',
     prompt: 'Analyze XAUUSD',
     credentials: true,
     expected: {
       route: 'xauusd-research',
       capabilityId: 'xauusd-research',
+      // Verified reports stay buffered until the report verifier completes.
       streaming: false,
       readOnly: true,
       memoryMode: 'native',
@@ -126,39 +130,10 @@ const ROUTE_MATRIX: MatrixCell[] = [
     },
   },
   {
-    name: 'auto non-XAUUSD canonical chat',
-    mode: 'auto',
-    prompt: 'Analyze EURUSD structure',
-    expected: {
-      route: 'canonical-chat',
-      capabilityId: null,
-      streaming: true,
-      readOnly: true,
-      memoryMode: 'native',
-      memoryRequired: true,
-      symbol: 'EURUSD',
-      bareModelId: null,
-    },
-  },
-  {
-    name: 'quick symbol research',
-    mode: 'quick',
-    prompt: 'Analyze XAUUSD',
-    credentials: true,
-    expected: {
-      route: 'symbol-research',
-      capabilityId: 'symbol-research',
-      streaming: false,
-      readOnly: true,
-      memoryMode: 'native',
-      memoryRequired: true,
-      symbol: 'XAUUSD',
-      bareModelId: 'gemini-2.5-flash',
-    },
-  },
-  {
-    name: 'standard symbol research',
-    mode: 'standard',
+    // Q2: any named symbol in single mode gets the one-desk committee read
+    // (packet-grounded) instead of falling through to canonical chat.
+    name: 'single non-XAUUSD symbol research (one desk)',
+    mode: 'single',
     prompt: 'Analyze EURUSD structure',
     credentials: true,
     expected: {

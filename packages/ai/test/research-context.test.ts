@@ -111,9 +111,11 @@ describe('prepareResearchRunContext', () => {
       scorers: { entries: ['research-scorer'] },
     });
     expect(ctx.conversation).toBeNull();
+    // §1.2: research guardrails default to strict (manifest-derived mode).
     expect(mocks.buildResearchGuardrails).toHaveBeenCalledWith(
       { aiApiKeys: null, chatModel: null },
       baseArgs.env,
+      'strict',
     );
     expect(mocks.buildConversationGuardrails).not.toHaveBeenCalled();
   });

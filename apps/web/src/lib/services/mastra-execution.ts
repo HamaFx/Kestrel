@@ -25,8 +25,7 @@ import { runMastraCanonicalChatStreamService } from './mastra-canonical-chat-str
 import { runMastraXauusdChat } from './mastra-chat';
 import { mastraChatResponse } from './mastra-chat-response';
 import { runMastraXauusdConversationStreamChat } from './mastra-chat-stream';
-import { runMastraModeChat } from './mastra-mode';
-import { mastraModeResponse } from './mastra-mode-response';
+import { runMastraModeChatStream } from './mastra-mode';
 
 export interface PlannedExecutionInput {
   plan: ExecutionPlan;
@@ -126,20 +125,22 @@ export async function runResearchWorkflow(input: ResearchWorkflowInput): Promise
   if (input.plan.route !== 'symbol-research') {
     throw new Error(`Research runner cannot execute ${input.plan.route}.`);
   }
-  const run = await runMastraModeChat({
+  // §2.3: synchronous committee runs stream live desk progress
+  // (data-agent-progress) to the browser while the workflow advances.
+  return runMastraModeChatStream({
     executionPlan: input.plan,
     userId: input.userId,
     threadId: input.threadId,
     userMessage: input.userMessage,
     prompt: input.prompt,
     symbol: input.symbol,
-    mode:
-      input.plan.mode === 'quick' || input.plan.mode === 'standard' ? input.plan.mode : 'single',
+    // Q2: plan.mode is already one of `single` | `full`; the symbol-research
+    // route only carries `single` (full goes through the durable queue).
+    mode: input.plan.mode === 'full' ? 'full' : 'single',
     ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
     ...(input.signal ? { signal: input.signal } : {}),
     ...(input.backfillExcludeMessageIdempotencyKey
       ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
       : {}),
   });
-  return mastraModeResponse(run);
 }

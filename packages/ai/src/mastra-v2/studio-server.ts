@@ -155,7 +155,7 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
         fusionCallOptions: {} as never,
         mastra,
       },
-      'standard',
+      'full',
     );
     const xauusdReport = createXauusdReportWorkflow({
       agent: agent as never,

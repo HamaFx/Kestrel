@@ -14,24 +14,9 @@
  * limitations under the License.
  */
 
-import { getPriceWithMeta } from '@kestrel/data';
-import { createTool } from '@mastra/core/tools';
+// SPDX-License-Identifier: Apache-2.0
 
-import { buildPriceEvidence } from './evidence-builders';
-import { executeMastraTool } from './telemetry';
-import { XauusdPriceInputSchema } from './tool-schemas';
-import { XauusdPriceEvidenceSchema } from './types';
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-export const xauusdPriceTool = createTool({
-  id: 'get-xauusd-price',
-  description: 'Fetch the latest XAUUSD mid price with source and freshness metadata.',
-  inputSchema: XauusdPriceInputSchema,
-  outputSchema: XauusdPriceEvidenceSchema,
-  execute: async ({ symbol }, context) =>
-    executeMastraTool('get-xauusd-price', context, async () => {
-      const result = await getPriceWithMeta(symbol, {
-        ...(context.abortSignal ? { signal: context.abortSignal } : {}),
-      });
-      return buildPriceEvidence(result);
-    }),
-});
+export * from '../mastra-v2/agents/xauusd/tools/price-tool';

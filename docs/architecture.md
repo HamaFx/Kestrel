@@ -126,11 +126,34 @@ The AI package contains:
 - Cost budgets and tool-loop limits
 - Memory, persistence, diagnostics, and evaluations
 
+All Mastra orchestration lives under `packages/ai/src/mastra-v2/` (the former
+`mastra/` generation was atomically migrated; `src/mastra/` holds one-release
+re-export shims plus the public barrel for the `@kestrel/ai/mastra` subpath):
+
+```text
+mastra-v2/
+  agents/canonical/     canonical conversational agent + evidence checks
+  agents/xauusd/        XAUUSD research/conversation agents, run + context,
+                        report verification, and read-only tool adapters
+  packets/              deterministic evidence packets (symbol research,
+                        XAUUSD macro, §2.1 30s fresh-only cache)
+  capabilities/         capability manifest + policy (guardrail derivation)
+  planning/             unified router, execution plan/decision, mode runner
+  committee/            (src/committee) specialists, cross-critique, fusion
+  workflows/            durable full-analysis, XAUUSD report, mutation
+  mutation/             mutation detection/extraction/policy
+  shared/               telemetry, titles, tool telemetry, foundation types
+  guardrails.ts, storage.ts, memory.ts, instance.ts, evals/
+```
+
 AI tool structure is:
 
 ```text
 input schema → module augmentation → execute → typed output → registry
 ```
+
+Tools register explicitly via `registerAllTools()` at instance build time —
+importing a tool module no longer mutates the singleton registry.
 
 Inside this package, database and model dependencies use typed DI tokens. Request-scoped context uses `AsyncLocalStorage`.
 
@@ -142,8 +165,7 @@ A typical chat request follows this path:
 2. Request security checks validate authentication, CSRF, body limits, and request metadata.
 3. The web service loads user/thread context.
 4. The AI runtime selects a mode and model.
-5. A planner may produce a structured plan for complex technical/fundamental turns.
-6. Mastra invokes typed tools through the AI package.
+5. Mastra invokes typed tools through the AI package.
 7. Tools call validated data/database services.
 8. Budget, loop, safety, and citation checks are applied.
 9. The response streams to the browser and persistence/telemetry paths record permitted metadata.

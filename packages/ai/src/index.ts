@@ -25,6 +25,14 @@ export { isMastraTelemetryDegraded, resetMastraTelemetryHealth } from './mastra/
 
 export { reserveTurnBudget, resumeTurnBudget, type BudgetHandle } from './budget-reservation';
 export {
+  acquireBudget,
+  effectiveDailyCap,
+  isBudgetEnforced,
+  UNCAPPED_DAILY_USD,
+  type AcquireBudgetArgs,
+  type AcquireBudgetResult,
+} from './budget';
+export {
   createExecutionLifecycle,
   terminalMetadata,
   type ExecutionTerminalState,
@@ -39,7 +47,7 @@ export {
   type GenerationLedgerEntry,
   type GenerationLedgerSnapshot,
 } from './generation-ledger';
-export { toolRegistry, type ToolRegistry } from './tools';
+export { registerAllTools, toolRegistry, type ToolRegistry } from './tools';
 export {
   getThreadStateHandler,
   canTransitionThread,

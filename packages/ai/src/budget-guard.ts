@@ -16,14 +16,16 @@
 
 // PF-05 — Budget guard extracted from agent.ts.
 //
-// Encapsulates the daily-budget reservation + release cycle that
-// every chat turn goes through. Previously inlined in agent.ts's
-// runChatInner(), this module makes the budget contract explicit
-// and independently testable.
+// @deprecated (audit plan §1.3): use `budget.ts` / `budget-reservation.ts`.
+// Q4 decision: spend is ledger-only — reservations record cost for admin
+// reporting but never block a turn unless ENFORCE_BUDGET=true. This module
+// is kept for one release for external importers; its behavior now matches
+// the facade.
 
 import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
+import { isBudgetEnforced, UNCAPPED_DAILY_USD } from './budget';
 import {
   applyBudgetDelta,
   BudgetExceededError,
@@ -54,18 +56,16 @@ export interface BudgetReservation {
 }
 
 /**
- * Reserve budget for a chat turn. Called at the start of every turn.
- * Throws BudgetExceededError if over cap.
+ * @deprecated Use `reserveTurnBudget` from `budget-reservation.ts`.
+ * Reserve budget for a chat turn. Q4: ledger-only unless ENFORCE_BUDGET=true;
+ * throws BudgetExceededError only under explicit enforcement.
  */
 export async function reserveBudget(
   userId: string,
   maxDailyUsd: number,
 ): Promise<BudgetReservation> {
-  const reservation = await tryReserveBudget(
-    userId,
-    DEFAULT_TURN_ESTIMATE_USD,
-    maxDailyUsd ?? DEFAULT_MAX_DAILY_USD,
-  );
+  const capUsd = isBudgetEnforced() ? (maxDailyUsd ?? DEFAULT_MAX_DAILY_USD) : UNCAPPED_DAILY_USD;
+  const reservation = await tryReserveBudget(userId, DEFAULT_TURN_ESTIMATE_USD, capUsd);
   if (!reservation.ok) {
     throw new BudgetExceededError(reservation.spent, reservation.max);
   }

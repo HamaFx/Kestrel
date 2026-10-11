@@ -14,25 +14,9 @@
  * limitations under the License.
  */
 
-export { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';
-export { capabilityTelemetryLabels, type MastraCapabilityUiMetadata } from './capabilities';
-export {
-  errorCodeForMastra,
-  getMastraGenerationStats,
-  mastraOutcomeForError,
-  outputLength,
-  type MastraGenerationStats,
-  type MastraRunOutcome,
-  type MastraAnswerOutcome,
-  type MastraUsageLike,
-} from './stats';
-export {
-  beginMastraRun,
-  createMastraRunFinalizer,
-  finishMastraRun,
-  isMastraTelemetryDegraded,
-  resetMastraTelemetryHealth,
-  type MastraMemoryMode,
-  type MastraRunObservation,
-} from './run-telemetry';
-export { executeMastraTool } from './tool-telemetry';
+// SPDX-License-Identifier: Apache-2.0
+
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
+
+export * from '../mastra-v2/shared/telemetry';

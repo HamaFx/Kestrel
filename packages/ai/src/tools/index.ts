@@ -30,18 +30,38 @@
 // exactly one `chat_tool_telemetry` row and the per-turn AbortSignal is
 // piped through to the tool's `execute`.
 
-// Category imports trigger self-registration via the singleton toolRegistry.
-// Import order doesn't matter — registration is order-independent.
-import './market';
-import './analysis';
-import './journal';
-import './system';
-import './web';
+// Audit plan §4.3 (P2-5) — no import side effects. Category modules export
+// explicit register functions; call `registerAllTools()` exactly once at
+// boot (mastra-v2 instance init) instead of relying on import order.
+import { toolRegistry, type ToolRegistry } from './registry';
+
+import { registerMarketTools } from './market';
+import { registerAnalysisTools } from './analysis';
+import { registerJournalTools } from './journal';
+import { registerSystemTools } from './system';
+import { registerWebTools } from './web';
+
+let registered = false;
+
+/**
+ * Register every tool category on the singleton registry exactly once.
+ * Safe to call repeatedly (idempotent) so multiple entrypoints (web
+ * instrumentation, worker boot, Mastra instance init) can all call it.
+ */
+export function registerAllTools(registry: typeof toolRegistry = toolRegistry): void {
+  if (registered && registry === toolRegistry) return;
+  registerMarketTools(registry);
+  registerAnalysisTools(registry);
+  registerJournalTools(registry);
+  registerSystemTools(registry);
+  registerWebTools(registry);
+  registered = registry === toolRegistry;
+}
 
 // Re-export the registry singleton so consumers (agent.ts, catalogue.ts)
 // can resolve tools by name without importing individual tool files.
-export { toolRegistry } from './registry';
+export { toolRegistry };
 
 // Re-export the ToolRegistry class type for consumers that need to
 // reference the type (e.g., by-domain.ts).
-export type { ToolRegistry } from './registry';
+export type { ToolRegistry };

@@ -39,6 +39,7 @@ import type { ObservabilityEntrypoint } from '@mastra/core/observability';
 import type { MastraCompositeStore } from '@mastra/core/storage';
 
 import { MastraPinoLogger } from './logger';
+import { registerAllTools } from '../tools';
 import { createMastraStorage, initializeMastraStorage, type MastraStorageKind } from './storage';
 import { createMastraObservability } from './telemetry';
 
@@ -90,6 +91,9 @@ function serverConfig(env: NodeJS.ProcessEnv): { port: number; host: string } {
  */
 export function createKestrelMastra(options: KestrelMastraOptions = {}): KestrelMastra {
   const env = options.env ?? process.env;
+  // Audit plan §4.3 — tools register explicitly at instance build time
+  // instead of via import side effects (idempotent; cheap after the first).
+  registerAllTools();
   const storageResult = options.storage
     ? { storage: options.storage, kind: (options.storageKind ?? 'libsql') as MastraStorageKind }
     : createMastraStorage(env);

@@ -217,7 +217,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
 
             {/* Subtitle */}
             <p className="max-w-2xl font-sans text-base leading-relaxed text-fg-muted sm:text-lg sm:leading-normal">
-              Four autonomous specialist desks synthesize price action structure, macro rate catalysts, 1% risk governance, and institutional COT positioning into a unified, high-conviction market verdict.
+              Choose a single technical desk for a fast read, or the Full committee: four autonomous specialist desks that synthesize price action structure, macro rate catalysts, 1% risk governance, and institutional COT positioning into a verified, high-conviction market verdict.
             </p>
 
             {/* CTAs */}
@@ -234,7 +234,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
               </a>
               <a href="#desks">
                 <Button variant="ghost" size="lg" className="px-4 text-sm font-medium text-fg-muted hover:text-fg">
-                  Explore 4 Desks
+                  Explore the Desks
                 </Button>
               </a>
             </div>
@@ -243,9 +243,9 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
             <div className="grid grid-cols-3 gap-6 pt-6 border-t border-white/10 w-full max-w-lg">
               <div>
                 <div className="font-mono text-2xl font-bold tracking-tight text-fg tabular-nums">
-                  4 Desks
+                  1 or 4 Desks
                 </div>
-                <div className="font-sans text-xs text-fg-subtle">Autonomous Syndicate</div>
+                <div className="font-sans text-xs text-fg-subtle">Single or Full committee</div>
               </div>
               <div>
                 <div className="font-mono text-2xl font-bold tracking-tight text-brand tabular-nums">

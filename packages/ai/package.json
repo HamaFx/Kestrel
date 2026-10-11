@@ -120,6 +120,10 @@
       "types": "./dist/eval/runner.d.ts",
       "import": "./dist/eval/runner.js"
     },
+    "./mastra-v2": {
+      "types": "./dist/mastra-v2/index.d.ts",
+      "import": "./dist/mastra-v2/index.js"
+    },
     "./mastra": {
       "types": "./dist/mastra/index.d.ts",
       "import": "./dist/mastra/index.js"
@@ -136,6 +140,7 @@
     "build": "tsc -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
     "prepublishOnly": "pnpm build",
     "eval": "tsx src/eval/runner.ts --cases",
+    "eval:gate": "tsx --conditions=react-server scripts/eval-gate.ts",
     "mastra:dev": "mastra dev",
     "mastra:studio": "node --conditions=react-server dist/mastra-v2/studio-server.js",
     "mastra:build": "mastra build",

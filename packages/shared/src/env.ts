@@ -267,6 +267,42 @@ const RuntimeEnv = z.object({
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
     .default('1')
     .transform((v) => v === '1' || v === 'true'),
+
+  // --- Audit upgrade-plan feature flags (docs/plans/kestrel-ai-agentic-audit-and-upgrade-plan.md).
+  // Parsed through `readFeatureFlag` in feature-flags.ts; these declarations
+  // validate and document the variables. Flags whose behavior is unconditional
+  // (router, streaming progress, mastra-v2 migration) have no toggle.
+  /** Phase 2.1 — 30s fresh-only symbol-research packet cache (LRU + optional Redis). */
+  PHASE2_PACKET_CACHE: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('1')
+    .transform((v) => v === '1' || v === 'true'),
+  /** Phase 3.1 — per-specialist top-tier model resolution for the committee. */
+  PHASE3_MODEL_DIVERSITY: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
+  /** Phase 3.2 — one round of cross-critique before fusion (Full mode). ON per Q6. */
+  ENABLE_COMMITTEE_CRITIQUE: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('1')
+    .transform((v) => v === '1' || v === 'true'),
+  /** Phase 3.3 — structured fusion output for Full mode. */
+  PHASE3_STRUCTURED_FUSION: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
+  /**
+   * Q4 decision — daily spend is ledger-only by default; the reservation is
+   * recorded for admin reporting but never blocks a turn with 429. Set true
+   * to restore the legacy hard daily cap.
+   */
+  ENFORCE_BUDGET: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
+  /** Optional Redis URL for the shared packet cache (Phase 2.1). */
+  REDIS_URL: z.string().url().optional(),
 });
 
 // `merge()` doesn't compose ZodEffects (refines). Both DbEnv and AiEnv are

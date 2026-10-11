@@ -14,35 +14,9 @@
  * limitations under the License.
  */
 
-import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
-import { verifyXauusdReport } from './report-verifier';
-import type { XauusdResearchPacket } from './research-types';
+// SPDX-License-Identifier: Apache-2.0
 
-const TIMEFRAME_CONFLICT_FINDING =
-  'The report did not disclose a conflict between timeframe trend signals.';
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-/**
- * Add only a deterministic disclosure when the verifier has already proved
- * that timeframe signals conflict. No prices, levels, or trading conclusions
- * are generated here.
- */
-export function patchTimeframeConflictDisclosure(
-  candidate: unknown,
-  packet: XauusdResearchPacket,
-  findings: readonly string[],
-): XauusdResearchReport | null {
-  if (findings.length !== 1 || findings[0] !== TIMEFRAME_CONFLICT_FINDING) return null;
-
-  const parsed = XauusdResearchReportSchema.safeParse(candidate);
-  if (!parsed.success) return null;
-
-  const patched = {
-    ...parsed.data,
-    contradictions: [
-      ...parsed.data.contradictions,
-      'Timeframe trend signals are mixed; higher and lower timeframes do not fully agree.',
-    ],
-  };
-  const verification = verifyXauusdReport(patched, packet);
-  return verification.ok ? verification.report : null;
-}
+export * from '../mastra-v2/agents/xauusd/report/report-repair';

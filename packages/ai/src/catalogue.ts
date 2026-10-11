@@ -27,7 +27,7 @@ import { TOOL_NAMES, type ToolName } from '@kestrel/shared';
 import { cache } from 'react';
 
 import { capabilityUiMetadata, type MastraCapabilityId } from './mastra/capabilities';
-import { toolRegistry } from './tools';
+import { registerAllTools, toolRegistry } from './tools';
 
 export interface CatalogueEntry {
   name: ToolName;
@@ -58,6 +58,9 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
  */
 export const buildToolCatalogue = cache(
   async (disabledTools?: string[]): Promise<CatalogueEntry[]> => {
+    // §4.3: the registry fills at boot; make the admin surface robust even
+    // when this is the first module to touch the tools barrel.
+    registerAllTools();
     const since = Date.now() - ONE_DAY_MS;
     const result = await getToolStats(since);
 

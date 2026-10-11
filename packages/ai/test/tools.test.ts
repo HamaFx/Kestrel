@@ -16,7 +16,10 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { toolRegistry } from '../src/tools/index';
+import { registerAllTools, toolRegistry } from '../src/tools/index';
+
+// §4.3: registration is explicit now — no import side effects.
+registerAllTools();
 
 vi.mock('server-only', () => ({}));
 

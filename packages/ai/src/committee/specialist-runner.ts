@@ -37,7 +37,7 @@ import { classifyStreamError } from '../fallback';
 import type { GenerationLedger } from '../generation-ledger';
 import type { SymbolResearchPacket } from '../mastra/symbol-research';
 import { getMastraGenerationStats } from '../mastra/telemetry';
-import { specialistInstructions } from './prompts';
+import { specialistInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, SPECIALIST_DEFINITIONS } from './specialists';
 import {
   CollectPacketOutputSchema,
@@ -72,6 +72,15 @@ export interface SpecialistRunnerDeps {
   model: LanguageModel;
   modelId: string;
   providerId: string;
+  /**
+   * Audit plan §3.1 (Q1: quality always) — optional per-specialist top-tier
+   * model. Returns null to fall back to the primary run model.
+   */
+  resolveModelForAgent?: (agent: MastraSpecialistName) => {
+    model: LanguageModel;
+    modelId: string;
+    providerId: string;
+  } | null;
   memory: MastraMemory;
   /** Read thread context; read-only is enforced by default inside the runner. */
   specialistCallOptions: AgentMemoryOption;
@@ -98,11 +107,22 @@ export async function runSpecialistGeneration(
   args: RunSpecialistGenerationArgs,
 ): Promise<SpecialistStepResult> {
   const { name, prompt, packet, requestContext, signal, startedAt, deps } = args;
+  // §3.1: resolve the specialist's own top-tier model when configured;
+  // otherwise the run's primary (always top-tier) model is used.
+  const agentModel =
+    deps.resolveModelForAgent?.(name) ?? {
+      model: deps.model,
+      modelId: deps.modelId,
+      providerId: deps.providerId,
+    };
   try {
+    // §2.2: the agent's instructions function reads the packet from the
+    // request context (injected below) instead of interpolating it eagerly.
     const agent = createCommitteeAgent(
-      deps.model,
+      agentModel.model,
       SPECIALIST_DEFINITIONS[name].agentId,
-      specialistInstructions(name, packet),
+      (ctx: { requestContext: Parameters<typeof specialistInstructionsForRequest>[0]['requestContext'] }) =>
+        specialistInstructionsForRequest({ name, requestContext: ctx.requestContext }),
       deps.memory,
       deps.researchInputProcessors ?? deps.inputProcessors,
       deps.scorers,
@@ -130,7 +150,7 @@ export async function runSpecialistGeneration(
       confidence: opinion.confidence,
       reasoning: opinion.reasoning,
       rawData: opinion.details,
-      ...committeeModelMetadata(deps.modelId, deps.providerId, stats, 0, Date.now() - startedAt),
+      ...committeeModelMetadata(agentModel.modelId, agentModel.providerId, stats, 0, Date.now() - startedAt),
     };
     const opinionVerification = verifyMastraOpinion(candidateOpinion, packet);
     if (!opinionVerification.ok) {
@@ -141,15 +161,15 @@ export async function runSpecialistGeneration(
         latencyMs: Date.now() - startedAt,
       };
     }
-    const costUsd = estimateCostUsd(deps.modelId, stats.inputTokens, stats.outputTokens);
+    const costUsd = estimateCostUsd(agentModel.modelId, stats.inputTokens, stats.outputTokens);
     deps.ledger.recordCost(`specialist:${name}`, 'specialist', costUsd);
     return {
       ok: true,
       agentName: name,
       opinion,
       stats,
-      model: deps.modelId,
-      providerId: deps.providerId,
+      model: agentModel.modelId,
+      providerId: agentModel.providerId,
       costUsd,
       latencyMs: Date.now() - startedAt,
     };

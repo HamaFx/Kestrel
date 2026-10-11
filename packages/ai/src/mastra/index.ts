@@ -24,7 +24,7 @@ export {
   ExecutionPlanSchema,
   type ExecutionPlan,
   type CreateExecutionPlanInput,
-} from './execution-plan';
+} from '../mastra-v2/planning/execution-plan';
 export {
   extractMastraSymbol,
   autoDetectMode,
@@ -36,7 +36,14 @@ export {
   isMutationIntent,
   mastraXauusdChatKind,
   messageText,
-} from './routing-policy';
+} from '../mastra-v2/planning/routing-policy';
+export {
+  routeUnified,
+  type UnifiedRoutingDecision,
+  type UnifiedRouterInput,
+  type UnifiedMutationKind,
+} from '../mastra-v2/planning/router';
+export { isHighConfidenceMutationIntent, isReadOnlyContext } from '../routing-keywords';
 export {
   decideMastraExecution,
   capabilityForRoute,
@@ -44,9 +51,9 @@ export {
   type MastraExecutionDecision,
   type MastraExecutionDecisionInput,
   type MastraExecutionRoute,
-} from './execution-decision';
-export { PERSISTENCE_OWNERSHIP, persistenceOwnerFor } from './persistence-boundary';
-export type { DrizzlePersistenceOwner, MastraPersistenceOwner } from './persistence-boundary';
+} from '../mastra-v2/planning/execution-decision';
+export { PERSISTENCE_OWNERSHIP, persistenceOwnerFor } from '../mastra-v2/shared/persistence-boundary';
+export type { DrizzlePersistenceOwner, MastraPersistenceOwner } from '../mastra-v2/shared/persistence-boundary';
 export {
   MASTRA_CAPABILITIES,
   manifestForCapability,
@@ -72,7 +79,7 @@ export {
   type MastraToolCategory,
   type MastraToolAccess,
   type MastraEvidencePolicy,
-} from './capabilities';
+} from '../mastra-v2/capabilities/index';
 export {
   collectSymbolResearchPacket,
   serializeSymbolResearchPacket,
@@ -82,14 +89,19 @@ export {
   isSafeSymbolResearchPrompt,
   type SymbolResearchPacket,
   type SymbolResearchEvidence,
-} from './symbol-research';
+} from '../mastra-v2/packets/symbol-research';
 export { verifyMastraOpinion, type OpinionVerification } from '../committee/verifier';
-export { checkCanonicalEvidence, type CanonicalEvidenceCheck } from './canonical-evidence';
+export {
+  FusionAnswerSchema,
+  renderFusionAnswer,
+  type FusionAnswer,
+} from '../committee/synthesizer';
+export { checkCanonicalEvidence, type CanonicalEvidenceCheck } from '../mastra-v2/agents/canonical/evidence';
 export {
   summarizeConfidenceCalibration,
   type ConfidenceObservation,
   type ConfidenceCalibrationSummary,
-} from './confidence';
+} from '../mastra-v2/shared/confidence';
 export {
   runMastraMode,
   MastraModeStrictFailureError,
@@ -98,7 +110,7 @@ export {
   type MastraModeResult,
   type MastraModeOpinion,
   type RunMastraModeArgs,
-} from './mode-runner';
+} from '../mastra-v2/planning/mode-runner';
 export {
   claimNextFullAnalysisRun,
   completeFullAnalysisRun,
@@ -150,13 +162,15 @@ export {
   MODE_POLICY,
   committeeModePolicy,
   committeeProgressStages,
+  COMMITTEE_DEADLINE_MS,
   type CommitteeStepId,
+  type MastraSpecialistName,
   type CommitteeModePolicy,
   type CommitteeModelMetadata,
   type CollectPacketFn,
   type ModeRequestContext,
 } from '../committee/types';
-export { createXauusdMastraAgent, type XauusdMastraAgentOptions } from './agent';
+export { createXauusdMastraAgent, type XauusdMastraAgentOptions } from '../mastra-v2/agents/xauusd/agent';
 export {
   resolveXauusdMastraModel,
   runXauusdMastra,
@@ -168,7 +182,7 @@ export {
   type XauusdMastraSettings,
   type XauusdMastraRunResult,
   type XauusdTurnMode,
-} from './run';
+} from '../mastra-v2/agents/xauusd/run';
 export {
   xauusdCalendarTool,
   xauusdCandlesTool,
@@ -186,13 +200,13 @@ export {
   xauusdVolatilityTool,
   xauusdNewsTool,
   xauusdSocialSentimentTool,
-} from './tools';
-export { collectXauusdResearchPacket } from './research-packet';
+} from '../mastra-v2/agents/xauusd/tools';
+export { collectXauusdResearchPacket } from '../mastra-v2/packets/research-packet';
 export {
   runMastraBackgroundText,
   type RunMastraBackgroundTextArgs,
   type MastraBackgroundTextResult,
-} from './background-text';
+} from '../mastra-v2/agents/xauusd/background-text';
 export {
   assertMastraMutationAllowed,
   assertMastraMutationDraftAllowed,
@@ -214,7 +228,7 @@ export {
   type MutationConfirmationToken,
   type StoredMutationConfirmation,
   type SystemActionId,
-} from './mutation-policy';
+} from '../mastra-v2/mutation/mutation-policy';
 export {
   createKestrelMastra,
   getKestrelMastra,
@@ -284,31 +298,31 @@ export {
   mastraResonanceTool,
   mastraSeasonalityTool,
   mastraWebSearchTool,
-} from './read-only-tools';
-export { XauusdResearchPacketSchema, type XauusdResearchPacket } from './research-types';
+} from '../mastra-v2/agents/xauusd/read-only-tools';
+export { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../mastra-v2/packets/research-types';
 export {
   runMastraCanonicalChat,
   runMastraCanonicalChatStream,
   type MastraCanonicalChatResult,
   type MastraCanonicalChatStream,
   type RunMastraCanonicalChatArgs,
-} from './canonical-chat';
+} from '../mastra-v2/agents/canonical/index';
 export {
   runMastraStructured,
   runMastraText,
   type MastraStructuredRunArgs,
   type MastraTextRunArgs,
   type MastraTextRunResult,
-} from './text-runner';
+} from '../mastra-v2/agents/xauusd/text-runner';
 export {
   generateThreadTitle,
   deterministicFallbackTitle,
   cleanTitleForPersistence,
   type GenerateThreadTitleArgs,
   type GenerateThreadTitleResult,
-} from './title';
-export { maybeGenerateThreadTitle, type MaybeGenerateThreadTitleArgs } from './title-service';
-export { classifyMutationRequest, isMastraMutationEnabled } from './mutation-detect';
+} from '../mastra-v2/shared/title';
+export { maybeGenerateThreadTitle, type MaybeGenerateThreadTitleArgs } from '../mastra-v2/shared/title-service';
+export { classifyMutationRequest, isMastraMutationEnabled } from '../mastra-v2/mutation/mutation-detect';
 export type { SemanticRoutingAccounting } from '../semantic-routing';
 export {
   resolveModel,
@@ -323,28 +337,28 @@ export {
   MutationExtractionError,
   MUTATION_EXTRACTION_SCHEMAS,
   type ExtractMutationInputArgs,
-} from './mutation-extract';
-export { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
+} from '../mastra-v2/mutation/mutation-extract';
+export { XauusdResearchReportSchema, type XauusdResearchReport } from '../mastra-v2/agents/xauusd/report/report-types';
 export {
   requireVerifiedXauusdReport,
   verifyXauusdReport,
   XauusdReportVerificationError,
   type XauusdReportVerification,
-} from './report-verifier';
+} from '../mastra-v2/agents/xauusd/report/report-verifier';
 export {
   evaluateXauusdReportCase,
   summarizeXauusdReportEvaluations,
   type XauusdReportEvaluation,
   type XauusdReportEvaluationCase,
   type XauusdReportEvaluationSummary,
-} from './report-evaluation';
-export { toUntrustedExternalEvidence } from './external-content';
+} from '../mastra-v2/agents/xauusd/report/report-evaluation';
+export { toUntrustedExternalEvidence } from '../mastra-v2/packets/external-content';
 export {
   createEvidenceId,
   freshnessFromAge,
   qualityFromWarnings,
   requireXauusdUserContext,
-} from './evidence';
+} from '../mastra-v2/packets/evidence';
 export {
   EvidenceFreshnessSchema,
   EvidenceProvenanceSchema,
@@ -364,7 +378,7 @@ export {
   type TrustedDeterministicEvidence,
   type UntrustedExternalEvidence,
   type UserMemoryEvidence,
-} from './evidence-types';
+} from '../mastra-v2/packets/evidence-types';
 export {
   buildConversationGuardrails,
   buildGuardrailInputProcessors,
@@ -393,14 +407,14 @@ export {
   type MastraRunOutcome,
   type MastraAnswerOutcome,
   type MastraUsageLike,
-} from './telemetry';
-export type { MastraGenerationResultLike } from './stats';
+} from '../mastra-v2/shared/telemetry';
+export type { MastraGenerationResultLike } from '../mastra-v2/shared/stats';
 export {
   buildXauusdModelEvidenceContext,
   serializeXauusdModelEvidenceContext,
   MODEL_CONTEXT_CANDLE_LIMIT,
   MODEL_CONTEXT_INDICATOR_LIMIT,
-} from './model-context';
+} from '../mastra-v2/agents/xauusd/model-context';
 export {
   XAUUSD,
   EvidenceMetadataSchema,
@@ -414,4 +428,12 @@ export {
   type XauusdPriceEvidence,
   type XauusdMacroEvidence,
   type XauusdRequestContext,
-} from './types';
+} from '../mastra-v2/shared/types';
+
+export {
+  plannerRequired,
+  runPlanner,
+  type PlannerOutput,
+  type PlannerResult,
+  type PlannerSubtask,
+} from '../mastra-v2/workflows/planner';

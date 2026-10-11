@@ -59,7 +59,7 @@ describe('Phase 2 execution plan', () => {
     const plan = await createExecutionPlan({
       userMessage: message('Please place a trade and set an alert'),
       symbol: 'XAUUSD',
-      mode: 'standard',
+      mode: 'full',
       settings,
       env,
     });
@@ -74,7 +74,7 @@ describe('Phase 2 execution plan', () => {
     const plan = await createExecutionPlan({
       userMessage: message('Analyze EURUSD'),
       symbol: 'EURUSD',
-      mode: 'standard',
+      mode: 'full',
       modelOverride: 'google:gemini-2.5-flash',
       // The planner contract test only exercises serialization; provide the
       // matching provider credential so model resolution can complete.

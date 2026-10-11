@@ -222,3 +222,12 @@ export {
   type MutationWorkflowDeps,
   type RunMutationResult,
 } from './workflows/mutation';
+export {
+  plannerRequired,
+  runPlanner,
+  PlannerOutputSchema,
+  PlannerSubtaskSchema,
+  type PlannerOutput,
+  type PlannerResult,
+  type PlannerSubtask,
+} from './workflows/planner';

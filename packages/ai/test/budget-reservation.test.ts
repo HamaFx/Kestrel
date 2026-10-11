@@ -21,6 +21,7 @@
 import { metrics } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { _resetBudgetEnforcementCache, UNCAPPED_DAILY_USD } from '../src/budget';
 import { reserveTurnBudget, type BudgetHandle } from '../src/budget-reservation';
 
 vi.mock('server-only', () => ({}));
@@ -58,6 +59,8 @@ const BudgetExceededErrorActual = (
 
 beforeEach(() => {
   metrics.reset();
+  delete process.env.ENFORCE_BUDGET;
+  _resetBudgetEnforcementCache();
 });
 
 describe('reserveTurnBudget', () => {
@@ -75,9 +78,18 @@ describe('reserveTurnBudget', () => {
 
     expect(handle.reservedUsd).toBe(0.01); // DEFAULT_TURN_ESTIMATE_USD
     expect(handle.spent).toBe(0.05);
-    expect(handle.max).toBe(5.0);
     expect(handle.released).toBe(false);
-    expect(mockTryReserveBudget).toHaveBeenCalledWith('u1', 0.01, 5.0);
+    // Q4: ledger-only — the reservation is recorded against the uncapped
+    // ceiling, never against the admin cap, while enforcement is off.
+    expect(mockTryReserveBudget).toHaveBeenCalledWith(
+      'u1',
+      0.01,
+      UNCAPPED_DAILY_USD,
+      expect.any(Date),
+      undefined,
+      undefined,
+      undefined,
+    );
     // Phase D SLI — a successful reservation increments the counter.
     expect(metrics.snapshot().counters['budget_reserved_total']).toBe(1);
   });
@@ -88,10 +100,36 @@ describe('reserveTurnBudget', () => {
     const handle = await reserveTurnBudget({ userId: 'u1', estimateUsd: 0.05, maxDailyUsd: 5.0 });
 
     expect(handle.reservedUsd).toBe(0.05);
-    expect(mockTryReserveBudget).toHaveBeenCalledWith('u1', 0.05, 5.0);
+    expect(mockTryReserveBudget).toHaveBeenCalledWith(
+      'u1',
+      0.05,
+      UNCAPPED_DAILY_USD,
+      expect.any(Date),
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 
-  it('throws BudgetExceededError when reservation fails', async () => {
+  it('enforces the admin cap only when ENFORCE_BUDGET=true (Q4)', async () => {
+    process.env.ENFORCE_BUDGET = 'true';
+    _resetBudgetEnforcementCache();
+    mockTryReserveBudget.mockResolvedValue({ ok: true, spent: 0.05, max: 5.0 });
+
+    await reserveTurnBudget({ userId: 'u1', maxDailyUsd: 5.0 });
+
+    expect(mockTryReserveBudget).toHaveBeenCalledWith(
+      'u1',
+      0.01,
+      5.0,
+      expect.any(Date),
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('throws BudgetExceededError when reservation fails under enforcement', async () => {
     mockTryReserveBudget.mockResolvedValue({ ok: false, spent: 4.99, max: 5.0 });
 
     await expect(reserveTurnBudget({ userId: 'u1', maxDailyUsd: 5.0 })).rejects.toThrow(

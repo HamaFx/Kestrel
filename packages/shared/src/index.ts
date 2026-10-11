@@ -134,6 +134,8 @@ export {
   pickAiEnv,
 } from './env';
 export type { ServerEnv, AiEnvKeys } from './env';
+// Audit upgrade-plan feature flags — single parsing point for runtime reads.
+export { readFeatureFlag, type FeatureFlagName } from './feature-flags';
 // BYOK type re-exports (intentionally NOT pulling node:crypto into
 // the client bundle).
 export {

@@ -34,8 +34,8 @@ const FAQS: FAQItem[] = [
   },
   {
     id: '02',
-    question: 'How does the 4-desk committee resolve conflicting signals?',
-    answer: 'When the Technical Desk identifies a bullish Fair Value Gap but the Macro Desk flags hawkish central bank speech or impending NFP volatility, the Syndicate Arbiter marks the setup as "Disputed Consensus" and invokes mathematical risk rules. Kestrel will never issue a trade card unless all four specialized criteria satisfy minimal conviction thresholds.',
+    question: 'How does the Full committee resolve conflicting signals?',
+    answer: 'Single mode runs one Technical Desk, so there is no cross-desk conflict to resolve. In Full mode, when the Technical Desk identifies a bullish Fair Value Gap but the Macroeconomic Desk flags hawkish central bank speech or impending NFP volatility, the desks cross-critique each other and the fusion synthesis reports the disagreement instead of hiding it. Every number in the verdict is checked against market data and desk opinions before it reaches you, and Kestrel will never issue a trade card unless the Full committee\'s conviction thresholds are met.',
   },
   {
     id: '03',

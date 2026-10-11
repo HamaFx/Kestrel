@@ -32,7 +32,14 @@ import {
 const PatchBodySchema = z
   .object({
     pinnedSymbol: z.string().nullable().optional(),
-    analysisMode: z.enum(['single', 'quick', 'standard', 'full', 'auto']).nullable().optional(),
+    // Q2 compat shim: legacy modes accepted for one release, normalized on write.
+    analysisMode: z
+      .enum(['single', 'quick', 'standard', 'full', 'auto'])
+      .transform((mode): 'single' | 'full' =>
+        mode === 'full' || mode === 'standard' ? 'full' : 'single',
+      )
+      .nullable()
+      .optional(),
   })
   .refine((body) => body.pinnedSymbol !== undefined || body.analysisMode !== undefined, {
     message: 'At least one thread setting is required',

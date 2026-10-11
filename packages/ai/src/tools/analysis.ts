@@ -37,8 +37,15 @@ const analysisTools = [
   ['compute_position_health', computePositionHealthTool],
 ] as const;
 
-for (const [name, tool] of analysisTools) {
-  toolRegistry.register(name, tool);
+/**
+ * Audit plan §4.3 — explicit registration instead of import side effects.
+ * `registerAllTools` calls this exactly once at boot; importing the module
+ * no longer mutates the singleton registry.
+ */
+export function registerAnalysisTools(registry: typeof toolRegistry = toolRegistry): void {
+  for (const [name, tool] of analysisTools) {
+    registry.register(name, tool);
+  }
 }
 
 export { toolRegistry };

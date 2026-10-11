@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   beginMastraRun: vi.fn(),
   finishMastraRun: vi.fn().mockResolvedValue(undefined),
   failRisk: false,
+  failTechnical: false,
   /** Number of times a named specialist should throw a rate-limit error before succeeding. */
   rateLimitFailures: 0,
 }));
@@ -71,6 +72,9 @@ vi.mock('@mastra/core/agent', () => ({
 
     async generate(): Promise<unknown> {
       if (mocks.failRisk && this.id.includes('risk')) throw new Error('risk unavailable');
+      if (mocks.failTechnical && this.id.includes('technical')) {
+        throw new Error('technical desk unavailable');
+      }
       if (mocks.rateLimitFailures > 0 && !this.id.includes('decision')) {
         mocks.rateLimitFailures -= 1;
         const rateLimited = Object.assign(new Error('You exceeded your current quota'), {
@@ -82,6 +86,13 @@ vi.mock('@mastra/core/agent', () => ({
         return {
           text: 'Synthesized read.',
           usage: { inputTokens: 20, outputTokens: 10 },
+          steps: [{}],
+        };
+      }
+      if (this.id.includes('-critique')) {
+        return {
+          object: { confirms: true, revisedConfidence: 0.6, critique: `${this.id} agrees` },
+          usage: { inputTokens: 8, outputTokens: 4 },
           steps: [{}],
         };
       }
@@ -119,6 +130,7 @@ const env = { AI_DEFAULT_MODEL: 'google/gemini-3.6-flash' } as never;
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.failRisk = false;
+  mocks.failTechnical = false;
   mocks.rateLimitFailures = 0;
   mocks.resolveMastraExecutionModel.mockImplementation(
     (args: {
@@ -156,20 +168,20 @@ describe('generalized Mastra symbol routing', () => {
 });
 
 describe('Mastra mode runner', () => {
-  it('runs Quick with one specialist over one shared packet', async () => {
+  it('runs single with one specialist over one shared packet', async () => {
     const result = await runMastraMode({
       prompt: 'Give me a quick technical read on EURUSD',
       symbol: 'EURUSD',
       userId: 'user-1',
       threadId: 'thread-1',
-      runId: 'run-quick',
-      mode: 'quick',
+      runId: 'run-single',
+      mode: 'single',
       settings,
       env,
     });
 
     expect(result).toMatchObject({
-      mode: 'quick',
+      mode: 'single',
       symbol: 'EURUSD',
       finalText: expect.stringContaining('EURUSD'),
       // The hermetic test environment has no durable database, so memory
@@ -180,32 +192,29 @@ describe('Mastra mode runner', () => {
     expect(result.agentOpinions).toHaveLength(1);
     expect(result.agentOpinions[0]?.agentName).toBe('technical');
     // Packet collection now happens inside the workflow's collect-packet step,
-    // wired to the run's abort signal so cancellation propagates.
+    // wired to the run's abort signal so cancellation propagates. §4.2: the
+    // cached collector passes options (macro only for XAUUSD).
     expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledWith(
       'EURUSD',
       expect.any(AbortSignal),
+      expect.objectContaining({}),
     );
   });
 
-  it('runs Standard with technical/fundamental specialists and fusion', async () => {
-    const result = await runMastraMode({
-      prompt: 'Analyze EURUSD structure and macro context',
-      symbol: 'EURUSD',
-      userId: 'user-1',
-      threadId: 'thread-1',
-      runId: 'run-standard',
-      mode: 'standard',
-      settings,
-      env,
-    });
-
-    expect(result.finalText).toBe('Synthesized read.');
-    expect(result.agentOpinions.map((opinion) => opinion.agentName).sort()).toEqual([
-      'fundamental',
-      'technical',
-    ]);
-    expect(result.stats.inputTokens).toBe(40);
-    expect(result.totalCostUsd).toBeGreaterThanOrEqual(0);
+  it('keeps single strict when the technical specialist fails (Q3)', async () => {
+    mocks.failTechnical = true;
+    await expect(
+      runMastraMode({
+        prompt: 'Give me a technical read on EURUSD',
+        symbol: 'EURUSD',
+        userId: 'user-1',
+        threadId: 'thread-1',
+        runId: 'run-single-fail',
+        mode: 'single',
+        settings,
+        env,
+      }),
+    ).rejects.toBeInstanceOf(MastraModeStrictFailureError);
   });
 
   it('keeps Full strict when a required specialist fails', async () => {

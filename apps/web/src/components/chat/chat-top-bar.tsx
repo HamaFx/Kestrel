@@ -54,23 +54,35 @@ import { cn } from '@/lib/cn';
 import { ChatModelSelector } from './_components/chat-model-selector';
 import { ThreadSwitcher } from './_components/thread-switcher';
 
-export type AnalysisMode = 'single' | 'quick' | 'standard' | 'full' | 'auto';
+/**
+ * Q2 decision (docs/plans/decisions.log.md): exactly two analysis modes —
+ * `single` (one technical desk, instant read) and `full` (4-desk committee).
+ */
+export type AnalysisMode = 'single' | 'full';
 
 const MODE_LABELS: Record<AnalysisMode, string> = {
-  auto: 'Auto',
   single: 'Single',
-  quick: 'Quick',
-  standard: 'Standard',
   full: 'Full',
 };
 
 const MODE_DESCRIPTIONS: Record<AnalysisMode, string> = {
-  auto: 'Adaptive desk routing',
-  single: 'Single desk quick answer',
-  quick: 'Technical Desk (~3s)',
-  standard: 'Technical + Macro Desks (~5s)',
-  full: 'Full Desk Analysis & Consensus (~8s)',
+  single: 'Fast one-desk technical read',
+  full: '4-desk committee deliberation, verified',
 };
+
+/** Map legacy persisted modes onto the two-mode schema (Q2 compat shim). */
+export function normalizeAnalysisMode(mode: string | null | undefined): AnalysisMode {
+  switch (mode) {
+    case 'full':
+    case 'standard':
+      return 'full';
+    case 'single':
+    case 'quick':
+    case 'auto':
+    default:
+      return 'single';
+  }
+}
 
 export interface ThreadSummary {
   id: string;
@@ -102,7 +114,7 @@ export function ChatTopBar({
   pinnedSymbol,
   threads,
   isStreaming,
-  analysisMode = 'auto',
+  analysisMode = 'single',
   onAnalysisModeChange,
   chatModel = null,
   onChatModelChange,

@@ -20,15 +20,22 @@ import {
   buildConversationGuardrails,
   buildGuardrailInputProcessors,
   buildResearchGuardrails,
+  GuardrailUnavailableError,
 } from '../src/mastra-v2/guardrails';
+import {
+  MASTRA_CAPABILITIES,
+  guardrailPolicyForCapability,
+} from '../src/mastra/capabilities';
+import { createExecutionPlan } from '../src/mastra/execution-plan';
 
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
 }));
 
-vi.mock('../src/model', () => ({
-  resolveChatModel: mocks.resolveChatModel,
-}));
+vi.mock('../src/model', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('../src/model');
+  return { ...actual, resolveChatModel: mocks.resolveChatModel };
+});
 
 const settings = { aiApiKeys: null, chatModel: null };
 const env = {};
@@ -104,5 +111,79 @@ describe('mastra guardrails', () => {
       threshold: 0.9,
     });
     expect(processors.length).toBe(2);
+  });
+});
+
+describe('guardrail policy from the manifest (§1.2)', () => {
+  it('derives strict+block for every capability with untrusted content', () => {
+    for (const id of [
+      'canonical-chat',
+      'xauusd-research',
+      'xauusd-conversation',
+      'symbol-research',
+    ] as const) {
+      const capability = MASTRA_CAPABILITIES[id];
+      expect(capability.contentTrust).toBe('untrusted');
+      expect(guardrailPolicyForCapability(capability)).toEqual({
+        mode: 'strict',
+        strategy: 'block',
+      });
+    }
+  });
+
+  it('derives availability+rewrite for trusted-only capabilities', () => {
+    const capability = MASTRA_CAPABILITIES['sensitive-user-read'];
+    expect(capability.contentTrust).toBe('trusted');
+    expect(guardrailPolicyForCapability(capability)).toEqual({
+      mode: 'availability',
+      strategy: 'rewrite',
+    });
+  });
+
+  it('builds research guardrails strict in every environment (no NODE_ENV branch)', () => {
+    mocks.resolveChatModel.mockReturnValue({
+      model: { id: 'fast-model' },
+      modelId: 'google/gemini-3.5-flash-lite',
+      providerId: 'google',
+      bareModelId: 'gemini-3.5-flash-lite',
+    });
+    const previousNodeEnv = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'development';
+      expect(buildResearchGuardrails(settings as never, env as never).mode).toBe('strict');
+
+      process.env.NODE_ENV = 'test';
+      expect(buildResearchGuardrails(settings as never, env as never).mode).toBe('strict');
+
+      process.env.NODE_ENV = 'production';
+      expect(buildResearchGuardrails(settings as never, env as never).mode).toBe('strict');
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
+  });
+
+  it('fails closed with GuardrailUnavailableError when strict cannot load the detector', () => {
+    mocks.resolveChatModel.mockImplementation(() => {
+      throw new Error('No AI API keys configured');
+    });
+    expect(() =>
+      buildResearchGuardrails(settings as never, env as never, 'strict'),
+    ).toThrow(GuardrailUnavailableError);
+  });
+
+  it('carries the manifest-derived guardrail policy on the execution plan', async () => {
+    const plan = await createExecutionPlan({
+      userMessage: {
+        id: 'message-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'analyze XAUUSD' }],
+      },
+      mode: 'single',
+      modelOverride: 'google:gemini-2.5-flash',
+      settings: { aiApiKeys: null, chatModel: 'google:gemini-2.5-flash' } as never,
+      env: { GOOGLE_GENERATIVE_AI_API_KEY: 'test-key' } as never,
+    });
+    expect(plan.route).toBe('xauusd-research');
+    expect(plan.guardrail).toEqual({ mode: 'strict', strategy: 'block' });
   });
 });

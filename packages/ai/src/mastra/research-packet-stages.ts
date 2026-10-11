@@ -14,35 +14,9 @@
  * limitations under the License.
  */
 
-import { logErrorContext } from '@kestrel/shared/logger';
+// SPDX-License-Identifier: Apache-2.0
 
-import { completeStep, recordStep } from '../diagnostics';
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-export function startResearchStage(name: string, metadata: Record<string, unknown>): void {
-  recordStep(`mastra_xauusd_research.${name}`, metadata);
-}
-
-export function completeResearchStage(
-  name: string,
-  status: 'completed' | 'failed',
-  metadata: Record<string, unknown>,
-): void {
-  completeStep(`mastra_xauusd_research.${name}`, status, undefined, metadata);
-}
-
-export function recordResearchStageFailure(
-  name: string,
-  error: unknown,
-  metadata: Record<string, unknown>,
-): void {
-  completeResearchStage(name, 'failed', metadata);
-  logErrorContext(error, `mastra_xauusd_research.${name}`, metadata, 'ai');
-}
-
-export function warningForResearchFailure(scope: string): string {
-  return `${scope} could not be collected; numeric claims for this scope are blocked.`;
-}
-
-export function uniqueResearchValues(values: readonly string[]): string[] {
-  return [...new Set(values)];
-}
+export * from '../mastra-v2/packets/research-packet-stages';

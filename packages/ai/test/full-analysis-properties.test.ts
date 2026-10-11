@@ -82,6 +82,7 @@ function fullPlan(overrides: Partial<ExecutionPlan> = {}): ExecutionPlan {
     },
     evidencePolicy: { required: true, externalData: true, contentTrust: 'untrusted' },
     memoryPolicy: { mode: 'native', required: true, scope: 'user-thread', semanticRecall: true },
+    guardrail: { mode: 'strict', strategy: 'block' },
     maxSteps: 5,
     maxDurationMs: 55_000,
     streaming: false,

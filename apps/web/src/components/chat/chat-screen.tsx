@@ -99,7 +99,7 @@ export function ChatScreen({
   initialMessages,
   initialThreads,
   pinnedSymbol,
-  initialAnalysisMode = 'auto',
+  initialAnalysisMode = 'single',
   initialChatModel = null,
   initialShowAgentOpinions = true,
   initialCustomInstructions,

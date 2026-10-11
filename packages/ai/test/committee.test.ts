@@ -27,7 +27,7 @@ import {
   SPECIALISTS_BY_MODE,
 } from '../src/committee/types';
 
-describe('committee mode policy (Phase 6)', () => {
+describe('committee mode policy (Q2: single + full, Q3: strict everywhere)', () => {
   it('keeps Full strict and fail-closed with no partial continuation', () => {
     const full = committeeModePolicy('full');
     expect(full.strict).toBe(true);
@@ -40,16 +40,14 @@ describe('committee mode policy (Phase 6)', () => {
     expect(error.message).toContain('Failed agents: risk, sentiment');
   });
 
-  it('allows Quick/Standard partial continuation (e.g. fundamental failure)', () => {
-    expect(committeeModePolicy('single').strict).toBe(false);
-    expect(committeeModePolicy('quick').strict).toBe(false);
-    expect(committeeModePolicy('quick').continueOnPartialFailure).toBe(true);
-    expect(committeeModePolicy('standard').strict).toBe(false);
-    expect(committeeModePolicy('standard').continueOnPartialFailure).toBe(true);
+  it('makes single strict too — Q3 all-or-nothing for every mode', () => {
+    expect(committeeModePolicy('single').strict).toBe(true);
+    expect(committeeModePolicy('single').continueOnPartialFailure).toBe(false);
+    expect(committeeModePolicy('single').specialists).toEqual(['technical']);
   });
 
   it('never drifts from SPECIALISTS_BY_MODE — mode differences are set, limits, strictness only', () => {
-    for (const mode of ['single', 'quick', 'standard', 'full'] as const) {
+    for (const mode of ['single', 'full'] as const) {
       expect(MODE_POLICY[mode].specialists).toEqual(SPECIALISTS_BY_MODE[mode]);
     }
   });
@@ -61,10 +59,12 @@ describe('committee mode policy (Phase 6)', () => {
       'fundamental',
       'risk',
       'sentiment',
+      // §3.2 (Q6): cross-critique is a first-class stage for full.
+      'critique',
       'verify',
       'fusion',
     ]);
-    expect(committeeProgressStages('quick')).toEqual([
+    expect(committeeProgressStages('single')).toEqual([
       'collect-packet',
       'technical',
       'verify',

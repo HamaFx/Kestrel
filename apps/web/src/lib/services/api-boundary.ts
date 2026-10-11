@@ -53,6 +53,10 @@ export {
   resolveMastraModeModel,
   resolveMode,
   decideMastraExecution,
+  routeUnified,
+  isInjectionAttempt,
+  isHighConfidenceMutationIntent,
+  type UnifiedRoutingDecision,
   createExecutionPlan,
   parseExecutionPlan,
   serializeExecutionPlan,
@@ -120,6 +124,7 @@ export {
   getTelemetryStartupCheck,
   isMastraTelemetryDegraded,
   validateTelemetryStartup,
+  isBudgetEnforced,
 } from '@kestrel/ai';
 
 // These persistence functions use the supported AI persistence subpath so the

@@ -14,55 +14,9 @@
  * limitations under the License.
  */
 
-import { buildIndicatorsEvidence } from './evidence-builders';
-import {
-  RESEARCH_CANDLE_OUTPUT,
-  RESEARCH_INDICATOR_OUTPUT,
-  XAUUSD_RESEARCH_INDICATORS,
-} from './research-config';
-import type { CandleSuccess } from './research-packet-candles';
-import {
-  completeResearchStage,
-  recordResearchStageFailure,
-  startResearchStage,
-  warningForResearchFailure,
-} from './research-packet-stages';
-import type { XauusdResearchPacket } from './research-types';
-import { XAUUSD } from './types';
+// SPDX-License-Identifier: Apache-2.0
 
-export function collectIndicatorEvidence(
-  packetId: string,
-  successes: readonly CandleSuccess[],
-  warnings: string[],
-  missingData: string[],
-): XauusdResearchPacket['indicators'] {
-  const indicators: XauusdResearchPacket['indicators'] = [];
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
 
-  for (const { window, result } of successes) {
-    const stage = `indicators.${window.timeframe}`;
-    startResearchStage(stage, { packetId, symbol: XAUUSD, timeframe: window.timeframe });
-    try {
-      const evidence = buildIndicatorsEvidence(
-        window.timeframe,
-        window.candleCount,
-        result.value,
-        XAUUSD_RESEARCH_INDICATORS,
-        RESEARCH_CANDLE_OUTPUT,
-        RESEARCH_INDICATOR_OUTPUT,
-      );
-      indicators.push(evidence);
-      warnings.push(...evidence.warnings);
-      completeResearchStage(stage, 'completed', {
-        packetId,
-        timeframe: window.timeframe,
-        indicatorCount: evidence.data.results.length,
-      });
-    } catch (error) {
-      missingData.push(`${window.timeframe} indicator calculations are unavailable.`);
-      warnings.push(warningForResearchFailure(`${window.timeframe} indicators`));
-      recordResearchStageFailure(stage, error, { packetId, timeframe: window.timeframe });
-    }
-  }
-
-  return indicators;
-}
+export * from '../mastra-v2/packets/research-packet-indicators';

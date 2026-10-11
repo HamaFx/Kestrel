@@ -38,6 +38,8 @@ const mocks = vi.hoisted(() => ({
   rateLimitFailures: 0,
   /** Captured agent.generate() calls: { id, options } for memory assertions. */
   generateCalls: [] as Array<{ id: string; options?: Record<string, unknown> }>,
+  /** When true, specialists hang until their abort signal fires (deadline test). */
+  hangSpecialists: false,
 }));
 
 vi.mock('../src/mastra/symbol-research', async () => {
@@ -54,6 +56,23 @@ vi.mock('@mastra/core/agent', () => ({
 
     async generate(_prompt?: unknown, options?: Record<string, unknown>): Promise<unknown> {
       mocks.generateCalls.push({ id: this.id, ...(options ? { options } : {}) });
+      if (this.id.includes('-critique')) {
+        return {
+          object: { confirms: true, revisedConfidence: 0.65, critique: `${this.id} agrees with peers` },
+          usage: { inputTokens: 8, outputTokens: 4 },
+          steps: [{}],
+        };
+      }
+      if (mocks.hangSpecialists && !this.id.includes('decision')) {
+        const abortSignal = (options as { abortSignal?: AbortSignal } | undefined)?.abortSignal;
+        if (abortSignal) {
+          await new Promise<never>((_, reject) => {
+            const abort = () => reject(new DOMException('Aborted', 'AbortError'));
+            if (abortSignal.aborted) abort();
+            else abortSignal.addEventListener('abort', abort, { once: true });
+          });
+        }
+      }
       if (mocks.failRisk && this.id.includes('risk')) {
         // A hard 4xx is permanent: the step returns an error marker (no retry),
         // and Full-mode verify turns it into a terminal strict failure.
@@ -147,6 +166,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.failRisk = false;
   mocks.failFundamental = false;
+  mocks.hangSpecialists = false;
   mocks.rateLimitFailures = 0;
   mocks.generateCalls.length = 0;
   mocks.collectSymbolResearchPacket.mockReset().mockResolvedValue(readyPacket);
@@ -156,11 +176,11 @@ describe('committee workflow', () => {
   it('fails closed with a graceful blocked output when the packet is blocked', async () => {
     mocks.collectSymbolResearchPacket.mockResolvedValue(blockedPacket);
 
-    const workflow = createCommitteeWorkflow(deps, 'standard');
+    const workflow = createCommitteeWorkflow(deps, 'full');
     const result = await startWorkflow(workflow, 'wf-blocked', {
       prompt: 'Analyse EURUSD',
       symbol: 'EURUSD',
-      mode: 'standard',
+      mode: 'full',
     });
 
     expect(result.status).toBe('success');
@@ -175,12 +195,12 @@ describe('committee workflow', () => {
     expect(output.stats.inputTokens).toBe(0);
   });
 
-  it('runs Quick with a single specialist and formats directly (no fusion LLM call)', async () => {
-    const workflow = createCommitteeWorkflow(deps, 'quick');
-    const result = await startWorkflow(workflow, 'wf-quick', {
+  it('runs single with a single specialist and formats directly (no fusion LLM call)', async () => {
+    const workflow = createCommitteeWorkflow(deps, 'single');
+    const result = await startWorkflow(workflow, 'wf-single', {
       prompt: 'Give me a quick technical read',
       symbol: 'EURUSD',
-      mode: 'quick',
+      mode: 'single',
     });
 
     expect(result.status).toBe('success');
@@ -190,7 +210,7 @@ describe('committee workflow', () => {
       opinions: unknown[];
     };
     expect(output.status).toBe('ready');
-    expect(output.finalText).toContain('EURUSD quick technical read');
+    expect(output.finalText).toContain('EURUSD read');
     expect(output.opinions).toHaveLength(1);
   });
 
@@ -367,11 +387,11 @@ describe('committee workflow', () => {
       const mastra = createKestrelMastra({ storage: store, storageKind: 'libsql', env: {} });
       await initializeKestrelMastra(mastra);
 
-      const workflow = createCommitteeWorkflow({ ...deps, mastra: mastra.instance }, 'standard');
+      const workflow = createCommitteeWorkflow({ ...deps, mastra: mastra.instance }, 'full');
       const result = await startWorkflow(workflow, 'wf-snap', {
         prompt: 'Analyse EURUSD',
         symbol: 'EURUSD',
-        mode: 'standard',
+        mode: 'full',
       });
 
       expect(result.status).toBe('success');
@@ -380,32 +400,33 @@ describe('committee workflow', () => {
       expect((state as { workflowName?: string } | null)?.workflowName).toBe('symbol-research');
       expect(state?.status).toBe('success');
       expect(Object.keys(state?.steps ?? {})).toEqual(
-        expect.arrayContaining(['collect-packet', 'technical', 'fundamental', 'verify', 'fusion']),
+        expect.arrayContaining([
+          'collect-packet',
+          'technical',
+          'fundamental',
+          'risk',
+          'sentiment',
+          'verify',
+          'fusion',
+        ]),
       );
     } finally {
       rmSync(file, { force: true });
     }
   });
 
-  it('continues Standard on fundamental specialist failure and lists the failed agent (partial mode)', async () => {
+  it('fails terminally on fundamental specialist failure in Full (Q3: no partial mode)', async () => {
     mocks.failFundamental = true;
 
-    const workflow = createCommitteeWorkflow(deps, 'standard');
-    const result = await startWorkflow(workflow, 'wf-standard-partial', {
-      prompt: 'Standard committee analysis',
+    const workflow = createCommitteeWorkflow(deps, 'full');
+    const result = await startWorkflow(workflow, 'wf-full-partial', {
+      prompt: 'Full committee analysis',
       symbol: 'EURUSD',
-      mode: 'standard',
+      mode: 'full',
     });
 
-    expect(result.status).toBe('success');
-    const output = result.result as {
-      status: string;
-      opinions: { agentName: string }[];
-      failedAgents: string[];
-    };
-    expect(output.status).toBe('ready');
-    expect(output.opinions.map((opinion) => opinion.agentName)).toEqual(['technical']);
-    expect(output.failedAgents).toEqual(['fundamental']);
+    expect(result.status).toBe('failed');
+    expect(result.error?.message ?? '').toContain('Failed agents: fundamental');
   });
 
   it('forces specialist memory read-only and lets only the synthesizer write', async () => {
@@ -417,7 +438,17 @@ describe('committee workflow', () => {
     });
 
     expect(result.status).toBe('success');
-    const specialistCalls = mocks.generateCalls.filter((call) => !call.id.includes('decision'));
+    // §3.2: critique agents are read-only desks too — exclude them from the
+    // specialist count but assert their memory is read-only as well.
+    const specialistCalls = mocks.generateCalls.filter(
+      (call) => !call.id.includes('decision') && !call.id.includes('-critique'),
+    );
+    const critiqueCalls = mocks.generateCalls.filter((call) => call.id.includes('-critique'));
+    expect(critiqueCalls).toHaveLength(4);
+    for (const call of critiqueCalls) {
+      const memory = call.options?.memory as { options?: { readOnly?: boolean } } | undefined;
+      expect(memory?.options?.readOnly).toBe(true);
+    }
     const fusionCall = mocks.generateCalls.find((call) => call.id.includes('decision'));
     expect(specialistCalls).toHaveLength(4);
     for (const call of specialistCalls) {
@@ -428,6 +459,27 @@ describe('committee workflow', () => {
       { options?: { readOnly?: boolean } } | undefined;
     expect(fusionMemory?.options?.readOnly).not.toBe(true);
   });
+
+  it('converts a committee deadline into a strict failure with the failed specialists (§1.7)', async () => {
+    mocks.hangSpecialists = true;
+    try {
+      const workflow = createCommitteeWorkflow({ ...deps, deadlineMs: 50 }, 'full');
+      const result = await startWorkflow(workflow, 'wf-deadline', {
+        prompt: 'Full committee analysis',
+        symbol: 'EURUSD',
+        mode: 'full',
+      });
+      expect(result.status).toBe('failed');
+      const message = result.error?.message ?? '';
+      expect(message).toContain('Failed agents:');
+      // Every specialist that hung past the deadline is listed, and the user
+      // is told to retry — no partial answer (Q3).
+      expect(message).toContain('timed out');
+      expect(message).toContain('please retry');
+    } finally {
+      mocks.hangSpecialists = false;
+    }
+  }, 15_000);
 
   it('emits workflow progress exactly once per stage for Full', async () => {
     const stages: string[] = [];
@@ -453,8 +505,49 @@ describe('committee workflow', () => {
       'fundamental',
       'risk',
       'sentiment',
+      // §3.2 (Q6): the cross-critique round is a first-class stage for Full.
+      'critique',
       'verify',
       'fusion',
     ]);
+  });
+
+  it('produces cross-critique records for Full and skips them for single (§3.2, Q6)', async () => {
+    const fullWorkflow = createCommitteeWorkflow(deps, 'full');
+    const fullResult = await startWorkflow(fullWorkflow, 'wf-critique-full', {
+      prompt: 'Full committee analysis',
+      symbol: 'EURUSD',
+      mode: 'full',
+    });
+    expect(fullResult.status).toBe('success');
+    const fullOutput = fullResult.result as { critiques: unknown[] };
+    expect(fullOutput.critiques).toHaveLength(4);
+
+    const singleWorkflow = createCommitteeWorkflow(deps, 'single');
+    const singleResult = await startWorkflow(singleWorkflow, 'wf-critique-single', {
+      prompt: 'Single technical read',
+      symbol: 'EURUSD',
+      mode: 'single',
+    });
+    expect(singleResult.status).toBe('success');
+    const singleOutput = singleResult.result as { critiques: unknown[] };
+    expect(singleOutput.critiques).toHaveLength(0);
+  });
+
+  it('skips the critique round when ENABLE_COMMITTEE_CRITIQUE=0 (rollback flag)', async () => {
+    process.env.ENABLE_COMMITTEE_CRITIQUE = '0';
+    try {
+      const workflow = createCommitteeWorkflow(deps, 'full');
+      const result = await startWorkflow(workflow, 'wf-critique-off', {
+        prompt: 'Full committee analysis',
+        symbol: 'EURUSD',
+        mode: 'full',
+      });
+      expect(result.status).toBe('success');
+      const output = result.result as { critiques: unknown[] };
+      expect(output.critiques).toHaveLength(0);
+    } finally {
+      delete process.env.ENABLE_COMMITTEE_CRITIQUE;
+    }
   });
 });

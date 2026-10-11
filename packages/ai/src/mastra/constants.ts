@@ -14,5 +14,9 @@
  * limitations under the License.
  */
 
-export const MASTRA_XAUUSD_AGENT_ID = 'kestrel-xauusd-research-poc';
-export const MASTRA_XAUUSD_AGENT_VERSION = 'poc-3';
+// SPDX-License-Identifier: Apache-2.0
+
+// Audit plan §4.1 (Q9: one atomic PR) — this module moved to `mastra-v2`.
+// The shim re-exports the new location for one release, then is deleted.
+
+export * from '../mastra-v2/shared/constants';

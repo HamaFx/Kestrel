@@ -61,6 +61,12 @@ export interface PrepareResearchRunContextArgs {
   includeConversationPolicies?: boolean;
   /** Build research guardrails + scorers (verified-report agent policy). */
   includeResearchPolicies?: boolean;
+  /**
+   * Audit plan §1.2 — guardrail availability mode from the execution plan
+   * (capability manifest trust level). Defaults to strict; research
+   * capabilities surface untrusted external content and fail closed.
+   */
+  guardrailMode?: 'strict' | 'availability';
 }
 
 export interface PreparedResearchRunContext {
@@ -122,7 +128,11 @@ export async function prepareResearchRunContext(
     research:
       args.includeResearchPolicies === true
         ? {
-            guardrails: buildResearchGuardrails(guardrailSettings, args.env),
+            guardrails: buildResearchGuardrails(
+              guardrailSettings,
+              args.env,
+              args.guardrailMode ?? 'strict',
+            ),
             scorers: buildResearchScorers(guardrailSettings, args.env),
           }
         : null,
