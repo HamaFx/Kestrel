@@ -38,8 +38,8 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { createScorer, type MastraScorer } from '@mastra/core/evals';
 
 import { computeCitationScore } from '../../eval/citation-oracle';
-import { verifyXauusdReport } from '../../mastra/report-verifier';
-import type { XauusdResearchPacket } from '../../mastra/research-types';
+import { verifyXauusdReport } from '../agents/xauusd/report/report-verifier';
+import type { XauusdResearchPacket } from '../packets/research-types';
 
 const clog = createCategorizedLogger('ai', { component: 'mastra-evals-custom' });
 

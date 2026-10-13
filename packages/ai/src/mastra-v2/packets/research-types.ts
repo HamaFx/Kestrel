@@ -24,7 +24,7 @@ import {
   XauusdIndicatorsEvidenceSchema,
   XauusdMacroEvidenceSchema,
   XauusdPriceEvidenceSchema,
-} from '../../mastra/types';
+} from '../shared/types';
 
 export const XauusdResearchPacketSchema = z.object({
   packetId: z.string().min(1),

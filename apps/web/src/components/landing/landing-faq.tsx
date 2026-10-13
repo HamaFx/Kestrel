@@ -35,7 +35,7 @@ const FAQS: FAQItem[] = [
   {
     id: '02',
     question: 'How does the Full committee resolve conflicting signals?',
-    answer: 'Single mode runs one Technical Desk, so there is no cross-desk conflict to resolve. In Full mode, when the Technical Desk identifies a bullish Fair Value Gap but the Macroeconomic Desk flags hawkish central bank speech or impending NFP volatility, the desks cross-critique each other and the fusion synthesis reports the disagreement instead of hiding it. Every number in the verdict is checked against market data and desk opinions before it reaches you, and Kestrel will never issue a trade card unless the Full committee\'s conviction thresholds are met.',
+    answer: 'Single mode runs one Technical Desk, so there is no cross-desk conflict to resolve. In Full mode, when the Technical Desk identifies a bullish Fair Value Gap but the Macroeconomic Desk flags hawkish central bank speech or impending NFP volatility, the desks cross-critique each other and the fusion synthesis reports the disagreement instead of hiding it. Every number in a verdict is deterministically checked against the research packet\'s market data and the desks\' verified opinions — an answer that cannot be grounded is withheld with a clear failure message rather than approximated. Kestrel will never issue a trade card unless the Full committee\'s conviction thresholds are met.',
   },
   {
     id: '03',
@@ -45,7 +45,7 @@ const FAQS: FAQItem[] = [
   {
     id: '04',
     question: 'What models and backends power Kestrel?',
-    answer: 'Kestrel employs an ensemble multi-agent architecture built on the Mastra engine. Specialist agents leverage fine-tuned frontier models routed by task: Claude 3.7 Sonnet for spatial candlestick and SMC order block analysis, Gemini 2.5 Flash for high-speed macroeconomic wire parsing, and DeepSeek-R1 for mathematical risk and position sizing calculations.',
+    answer: 'Kestrel runs an ensemble multi-agent committee built on the Mastra engine. By default, all four specialist desks share the frontier model you connect via your own API key (GPT, Claude, Gemini, Grok, DeepSeek and more are supported). You can assign a different top-tier model to each desk through model overrides — but no desk is ever silently downgraded to a cheaper model.',
   },
   {
     id: '05',

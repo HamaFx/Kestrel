@@ -34,7 +34,7 @@ import { createHash } from 'node:crypto';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { z } from 'zod';
 
-import { runMastraStructured } from './mastra/text-runner';
+import { runMastraStructured } from './mastra-v2/agents/xauusd/text-runner';
 import { resolveModel, type ResolveModelEnv } from './model';
 
 const semanticLog = createCategorizedLogger('ai', { component: 'semantic-routing' });

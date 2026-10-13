@@ -20,9 +20,9 @@
  * Committee synthesizer (Phase 6). The fusion/output layer is the only
  * committee component allowed to produce the final user-facing answer: it
  * owns writes to the conversation thread and is the only layer that may emit
- * a user-visible assistant message. Single/Quick modes format the single
- * technical opinion directly; Standard/Full run one bounded LLM synthesis
- * over the verified specialist opinions.
+ * a user-visible assistant message. Single mode formats the single technical
+ * opinion directly; Full runs one bounded LLM synthesis over the verified
+ * specialist opinions.
  */
 
 import type { AgentMemoryOption } from '@mastra/core/agent';
@@ -36,8 +36,8 @@ import { z } from 'zod';
 
 import { estimateCostUsd } from '../cost';
 import type { GenerationLedger } from '../generation-ledger';
-import type { SymbolResearchPacket } from '../mastra/symbol-research';
-import { getMastraGenerationStats, type MastraGenerationStats } from '../mastra/telemetry';
+import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
+import { getMastraGenerationStats, type MastraGenerationStats } from '../mastra-v2/shared/telemetry';
 import { fusionRepairPrompt, verifyFusionAnswer } from './fusion-verifier';
 import { fusionInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, FUSION_AGENT_ID } from './specialists';
@@ -140,6 +140,12 @@ export interface CommitteeSynthesisArgs {
 export interface CommitteeSynthesisResult {
   finalText: string;
   stats: MastraGenerationStats;
+  /**
+   * Audit plan §3.1 — the model the fusion pass actually used. With
+   * `PHASE3_MODEL_DIVERSITY` off this equals the run's primary model id.
+   */
+  fusionModelId?: string;
+  fusionProviderId?: string;
 }
 
 export async function synthesizeCommitteeAnswer(
@@ -151,6 +157,15 @@ export async function synthesizeCommitteeAnswer(
     const finalText = opinions[0]
       ? `**${packet.symbol} read**\n\n${opinions[0].reasoning}\n\nData quality: **${packet.dataQuality}**.`
       : `No specialist opinion was available for ${packet.symbol}.`;
+    // Single mode has no fusion LLM pass, but the verbatim desk read is still
+    // the user-facing answer, so it is grounded with the same strict check.
+    const verification = verifyFusionAnswer(finalText, packet);
+    if (!verification.ok) {
+      throw new MastraModeStrictFailureError(
+        ['fusion'],
+        new Error(`Single-desk answer failed verification: ${verification.findings.join('; ')}`),
+      );
+    }
     return { finalText, stats: aggregateStats(executionStats) };
   }
 
@@ -202,13 +217,20 @@ export async function synthesizeCommitteeAnswer(
       : fusionAgent.generate(fusionPrompt, baseOptions);
   };
 
+  // P1-3: the first attempt and the bounded repair funnel through one shared
+  // render path. A structured repair result is re-parsed and rendered to the
+  // same deterministic markdown (never returned as the raw generate text), so
+  // the two attempts can never produce different output forms.
+  const renderFusionResult = (result: Awaited<ReturnType<typeof runFusion>>): string =>
+    useStructuredFusion
+      ? renderFusionAnswer(FusionAnswerSchema.parse(result.object))
+      : result.text;
+
   const fusionResult = await runFusion(prompt);
 
   // §3.3: structured output is rendered deterministically; the grounding
   // verifier below still runs on the rendered markdown.
-  const fusionText = useStructuredFusion
-    ? renderFusionAnswer(FusionAnswerSchema.parse(fusionResult.object))
-    : fusionResult.text;
+  const fusionText = renderFusionResult(fusionResult);
 
   // Audit plan §1.4 (Q3 strict): verify the free-form fusion answer against
   // the packet and opinions. One bounded repair; a second failure is terminal
@@ -221,14 +243,16 @@ export async function synthesizeCommitteeAnswer(
     generationStats[0]!.outputTokens,
   );
 
-  const firstVerification = verifyFusionAnswer(finalText, packet, opinions);
+  const firstVerification = verifyFusionAnswer(finalText, packet);
   if (!firstVerification.ok) {
     const repairResult = await runFusion(fusionRepairPrompt(prompt, firstVerification.findings));
     const repairStats = getMastraGenerationStats(repairResult);
     generationStats = [...generationStats, repairStats];
     fusionCostUsd += estimateCostUsd(fusionModel.modelId, repairStats.inputTokens, repairStats.outputTokens);
-    finalText = repairResult.text;
-    const repairVerification = verifyFusionAnswer(finalText, packet, opinions);
+    // P1-3: the repair renders through the same helper as the first attempt,
+    // so the rendered markdown goes through the same strict verification.
+    finalText = renderFusionResult(repairResult);
+    const repairVerification = verifyFusionAnswer(finalText, packet);
     if (!repairVerification.ok) {
       throw new MastraModeStrictFailureError(
         ['fusion'],
@@ -240,7 +264,12 @@ export async function synthesizeCommitteeAnswer(
   }
 
   deps.ledger.recordCost('fusion', 'fusion', fusionCostUsd);
-  return { finalText, stats: aggregateStats([...executionStats, ...generationStats]) };
+  return {
+    finalText,
+    stats: aggregateStats([...executionStats, ...generationStats]),
+    fusionModelId: fusionModel.modelId,
+    fusionProviderId: fusionModel.providerId,
+  };
 }
 
 function aggregateStats(stats: MastraGenerationStats[]): MastraGenerationStats {

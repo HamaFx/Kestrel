@@ -21,8 +21,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { createExecutionPlan } from '../src/mastra';
-import type { MastraCapabilityId } from '../src/mastra/capabilities';
-import { ExecutionRouteSchema, type ExecutionPlan } from '../src/mastra/execution-plan';
+import type { MastraCapabilityId } from '../src/mastra-v2/capabilities';
+import { ExecutionRouteSchema, type ExecutionPlan } from '../src/mastra-v2/planning/execution-plan';
 
 const modelOverride = 'google:gemini-2.5-flash' as const;
 

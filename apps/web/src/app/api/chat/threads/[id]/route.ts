@@ -32,14 +32,9 @@ import {
 const PatchBodySchema = z
   .object({
     pinnedSymbol: z.string().nullable().optional(),
-    // Q2 compat shim: legacy modes accepted for one release, normalized on write.
-    analysisMode: z
-      .enum(['single', 'quick', 'standard', 'full', 'auto'])
-      .transform((mode): 'single' | 'full' =>
-        mode === 'full' || mode === 'standard' ? 'full' : 'single',
-      )
-      .nullable()
-      .optional(),
+    // Q2 two-mode contract (Q8 shim removal): only `single`/`full` are
+    // accepted; legacy `quick`/`standard`/`auto` values fail validation 400.
+    analysisMode: z.enum(['single', 'full']).nullable().optional(),
   })
   .refine((body) => body.pinnedSymbol !== undefined || body.analysisMode !== undefined, {
     message: 'At least one thread setting is required',

@@ -25,8 +25,8 @@ import {
 import {
   MASTRA_CAPABILITIES,
   guardrailPolicyForCapability,
-} from '../src/mastra/capabilities';
-import { createExecutionPlan } from '../src/mastra/execution-plan';
+} from '../src/mastra-v2/capabilities';
+import { createExecutionPlan } from '../src/mastra-v2/planning/execution-plan';
 
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),

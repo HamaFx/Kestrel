@@ -25,7 +25,7 @@ import type { LanguageModel } from 'ai';
 
 import { createCommitteeWorkflow } from '../src/committee/workflow';
 import { RequestContext } from '@mastra/core/request-context';
-import { committeeModelResolver } from '../src/mastra/mode-runner';
+import { committeeModelResolver } from '../src/mastra-v2/planning/mode-runner';
 
 const mocks = vi.hoisted(() => ({
   collectSymbolResearchPacket: vi.fn(),
@@ -33,7 +33,7 @@ const mocks = vi.hoisted(() => ({
   agentModels: new Map<string, string>(),
 }));
 
-vi.mock('../src/mastra/symbol-research', async () => {
+vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('../src/mastra/symbol-research');
   return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
 });

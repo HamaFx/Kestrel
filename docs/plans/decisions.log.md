@@ -124,8 +124,10 @@ A background system where the AI watches your past conversations and quietly rew
 
 ## 2026-10-11 — Audit upgrade plan implementation — Decider: Implementing agent — All phases landed
 
-Implementation status for `docs/plans/kestrel-ai-agentic-audit-and-upgrade-plan.md`
-(Phases 0–5), recorded here per §12 Rollout ("decisions.log updated per PR").
+Implementation status for the superseded audit plan (Phases 0–5), recorded
+here per §12 Rollout ("decisions.log updated per PR"). The plan file itself was
+removed on 2026-10-12 and superseded by `docs/plans/kestrel-ai-agentic-audit-v2.md`;
+this entry is retained because the v2 audit re-verifies these phases.
 
 ### Phase 0 — Decisions & Prep
 - Feature flags in `packages/shared/src/env.ts` + `.env.example`:
@@ -299,3 +301,253 @@ cost. Personalization must come from explicit user settings, not inferred notes.
 - To revisit later: set `ENABLE_MASTRA_OBSERVATIONAL_MEMORY=true` on the worker
   environment only (per the plan's original recommendation).
 - This closes the last open question (§13) — Q1–Q9 are now all decided.
+
+---
+
+## 2026-10-12 — Audit v2 — Decider: Owner — Q1–Q4 answered
+
+Issued alongside `docs/plans/kestrel-ai-agentic-audit-v2.md`. These answer the
+four P0/UX decisions for the v2 plan. Q5–Q9 remain open.
+
+### Q1 — Canonical evidence gating — Decision: BLOCK HARD (no answer)
+When the canonical-chat answer fails `checkCanonicalEvidence`, the turn fails
+with a clean user-facing refusal. No repaired or degraded answer is returned —
+mirrors the committee's strict Q3 semantics. Implication: the evidence check
+must be strengthened first (real numeric extraction + date/structural masking)
+so benign numbers never cause a false block. Plan: Phase 1 task 1.3.
+
+### Q2 — Model diversity default — Decision: KEEP OFF (opt-in only)
+The 4 committee desks keep sharing one model by default; users opt in via
+`PHASE3_MODEL_DIVERSITY` / `agentModelOverrides`. Do not change the default.
+The fusion span still gets fixed to report the real per-agent model id when a
+user has opted in. Plan: Phase 3 task 3.1 (now reduced to the span fix).
+
+### Q3 — BYOK operator env-key fallback — Decision: YES, shared pool by design
+Operator env API keys (OPENAI_API_KEY, …) continue to be merged into every
+user's BYOK payload, including multi-user. This is intended, not a bug — do not
+gate it. Only add advisory `operator_key_fallback_total{provider}` telemetry so
+operator-paid spend is attributable. Plan: Phase 1 task 1.11.
+
+### Q4 — Durable Full live progress — Decision: FIX PAYLOAD, stream per-desk
+Fix the wrong-shaped `data-agent-progress` payload (currently crashes the chat
+UI ~2s into every queued Full run) by moving `committeeProgressSnapshot` into
+`@kestrel/ai` and using it from both web and worker. Plan: Phase 1 task 1.1.
+
+### Still open (needs owner)
+- Q5 planner: wire or delete (recommended: delete).
+- Q6 XAUUSD convergence: keep verified-report pipeline, unify collection only
+  (recommended; do not merge schemas).
+- Q7 alert noise control: wire live now (recommended) or leave dormant.
+- Q8 4-mode compat shim removal timing (recommended: Phase 4).
+- Q9 stuck durable jobs: terminal error + Retry (recommended) vs longer polling.
+
+---
+
+## 2026-10-12 — Audit v2 implementation — Decider: Implementing agent (owner directive: complete all phases) — Phases 1–5 status + Q5–Q9 adopted recommendations
+
+Owner directed full implementation of `kestrel-ai-agentic-audit-v2.md`. The
+owner was not available mid-run for §13 Q5–Q9, so the plan's own recommended
+answers were adopted and are listed below for confirmation/rollback. Q1–Q4
+were answered directly by the owner (entry above).
+
+### Adopted recommendations (pending owner confirmation — all reversible)
+- **Q5 planner: DELETE.** `workflows/planner.ts` has no live caller (verified:
+  only barrel exports reference `runPlanner`/`plannerRequired`). Removed in the
+  Phase 4 cleanup batch. Rollback: `git revert` of the cleanup batch.
+- **Q6 XAUUSD convergence: unify collection only.** The verified XAUUSD
+  report pipeline and its richer evidence assembly are kept; the conversation
+  paths move onto the shared 30s fresh-only cached collector with
+  `includeMacro` so burst traffic shares one cache (Phase 2.1).
+- **Q7 alert noise: wired live now.** `evaluateNoise` is called from
+  `deliverAlert` with DB-persisted dedup/cooldown/quiet-hours state
+  (`notification_noise_state`); suppressed deliveries are skipped, not
+  fatal, and counted in `alert_noise_suppressed_total{reason}`.
+- **Q8 4-mode shim removal: NOW (Phase 4).** `quick|standard` no longer
+  normalize to `single|full`; routes reject them with clean 4xx. Consequence:
+  any pre-collapse durable queue rows still carrying legacy modes fail with a
+  clear parse error instead of silently re-mapping. No release shipped between
+  the shim's introduction and its removal in this working tree.
+- **Q9 stuck durable jobs: terminal error + client-side patience.** Client
+  poll window raised 5min → 30min and only errors on terminal states
+  (1.10); reservation recovery no longer steals reservations backed by a live
+  queue lease (`recoverStaleBudgetReservations` gated on
+  `full_analysis_queue` pending/running-with-lease, 1.11 heartbeat piece), so
+  reconcile always applies actual cost. Worker-side dead-letter/Retry UX
+  remains backlog (needs live queue observation).
+
+### Phase 1 (all landed; full ai suite 1493 pass / 22 skip, web 1208 pass, worker 145 pass)
+- **1.1 (Q4):** shared `committeeProgressSnapshot` in `@kestrel/ai`
+  (`mastra-v2/shared/progress.ts`); worker stores the full `{agents,mode,status}`
+  snapshot; UI + transport guard against a missing `agents` array. Crash test
+  added (agent-deliberation renders nothing instead of throwing).
+- **1.2 (P0-2):** one grounding helper (`committee/grounding.ts`); opinion
+  verifier grounds every narrative number against packet evidence when the
+  packet is ready; fusion verifier no longer launders specialist numbers
+  (`opinionGroundedValues` bypass removed); single mode runs the same strict
+  fusion verification. Scenario-projection wording stays exempt (window-based).
+- **1.3 (Q1, P0-3):** `checkCanonicalEvidence` strengthened — shared
+  narrative extractor with new date/slash-date/"in/since/by year" structural
+  masking, percent claims excluded, price-band filter (decimals or ≥1000);
+  "market tool used" separated from "value present in tool output"
+  (`extractToolEvidence`); both canonical paths record `answerOutcome:'blocked'`
+  then throw `CanonicalEvidenceBlockedError` (422 `EVIDENCE_UNVERIFIED` at the
+  route). **Stream-path caveat:** tokens stream live before the gate runs at
+  completion, so a blocked streamed turn shows the refusal as the final text
+  and persists ONLY the refusal (never the unverified answer) — the turn
+  reloads as a clean refusal. A fully-withheld stream would require buffering,
+  which the plan forbids (live token streaming is a preserved strength).
+- **1.4 (P0-4):** breaker wired into `finishMastraRun` terminal outcomes keyed
+  by resolved model id; `isCircuitOpen` call sites pass model ids; DB
+  `consecutive_failures` gains the L1 60s-window reset semantics; read/write
+  key identity asserted in tests; `circuit_open_total{model}` emitted.
+- **1.5 (P0-5):** rate table precedence inverted — catalog wins over
+  `STATIC_RATES` (3 real collisions fixed incl. `google/gemini-3.5-flash`
+  ~5× under-pricing); precedence tests added.
+- **1.6 (P0-6):** model-authored label exemptions deleted from XAUUSD
+  grounding; `NumericClaimSchema.role: 'observed' | 'projection'`; projections
+  exempt from exact match only inside ±25% of the claim's cited evidence;
+  scenario levels value-checked against their `evidenceIds` band;
+  "Target 9999" fails with or without a label.
+- **1.7 (P1-1):** each desk's critique prompt restates its own opinion as its
+  initial position (labeled, data-not-instructions) so "confirm your position"
+  is answerable.
+- **1.8 (P1-3):** both fusion attempts (first + bounded repair) render through
+  one helper; structured repair re-parses `repairResult.object` through
+  `FusionAnswerSchema` + `renderFusionAnswer`; repaired text re-verified
+  (second failure still terminal).
+- **1.9 (P1-4):** XAUUSD conversation/report guardrails derive from
+  `executionPlan.guardrail` (strict+block for untrusted capabilities) instead
+  of the legacy rewrite+availability builder; route maps
+  `GuardrailUnavailableError`→503 `GUARDRAIL_UNAVAILABLE` and Mastra
+  `TripWire`→422 `INJECTION_BLOCKED`. Known residual: tripwires serialized at
+  deep workflow step boundaries surface as 502 (noted by implementer).
+- **1.10 (P1-6/7/9/11/12/14/15):** outbox conflict SET guarded by
+  `WHERE status NOT IN ('processing','completed')`; thread delete cascades
+  chat rows + backfill/projection/synopsis/embeddings + Mastra
+  thread/messages/vectors in one transaction (resource rows deliberately
+  kept — user-scoped working memory); packet-cache rollback passes
+  `includeMacro`; follow-up safety uses parsed numeric sets + new order-intent
+  verbs; injection regex catches `system:`/`developer:`/`ignore the above
+  instructions`; poll cap 5min→30min with "still running" wording; transport
+  unwraps `{error:{code,message}}` envelopes and the UI renders
+  `error.error.message`.
+- **1.11 (P1-5/8/16/17/18/21 + Q3):** macro news titles/summaries/event titles
+  quarantined before parse (skipped + warning + degraded quality);
+  `evaluateNoise` wired into `deliverAlert` with persisted state (fail-open on
+  state read errors; keys recorded only after confirmed delivery); channel
+  loop only short-circuits on `ok`, unconfigured channels skip;
+  `xauusd-research` manifest fixed to the real hyphenated tool ids and the
+  integrity check now asserts resolvability against actual registered tool
+  ids; advisory `operator_key_fallback_total{provider}` + debug log on every
+  operator-key merge (no gating, Q3); `recoverStaleBudgetReservations` gated
+  on active-queue-lease absence.
+
+### Phase 2–5 (landed or in flight at time of this entry)
+- **2.3:** packet single-serialization verified across desks/retries by test
+  (WeakMap keyed on the packet object; `contextWithPacket` stores by
+  reference). **2.4:** XAUUSD setup emits `mastra_setup_latency_ms{phase}`
+  (memory/guardrail) and the two conversation paths overlap packet collection
+  with memory/guardrail prep via `Promise.all`; blocked-packet early-returns
+  now report the real memory mode. **2.1/2.2:** XAUUSD conversation
+  collection unified onto the cached collector (per Q6) and the Redis mirror
+  write made fire-and-forget (never awaited on the request path).
+- **3.1 (Q2):** fusion result exposes `fusionModelId/fusionProviderId`; the
+  fusion span reports the real per-agent model when diversity is opted in
+  (default stays OFF). **3.2:** typed `requestContext` handoff was already
+  satisfied by the v1 zero-copy work + 1.7 (fusion reads typed
+  packet/opinions/critiques; specialists read the typed packet) — recorded,
+  no re-implementation. **3.3:** optional bounded debate round added behind
+  `ENABLE_COMMITTEE_DEBATE` (default 0): after critique, each desk may revise
+  once; revisions pass the same deterministic verification and a failed
+  revision is a failed desk (Q3); fusion prefers revised opinions.
+- **4.6 (Q8):** legacy 4-mode shim removed (see Q8 above). **4.7:** Views
+  Terminal fake rows removed (WS:CONNECTED/~18ms/worker.state) — panel now
+  shows only real chart + run-progress data. **4.8:** landing FAQ updated —
+  "every number checked" sharpened to the true strict-failure behavior;
+  fabricated per-desk model families replaced with the real default (one
+  user-selected top-tier model shared by all desks, optional per-desk
+  overrides, never a cheaper tier).
+- **5.1:** eval gate gained a stored baseline artifact
+  (`docs/archive/audit-v2/eval-baseline.json`, regenerate with
+  `pnpm eval:gate -- --update-baseline`), fails on a >5% relative drop vs
+  baseline (absolute thresholds still apply), and zero-scores-for-a-day now
+  emits a loud CI `::warning::` (exits 1 with `--fail-on-empty`). Gate scripts
+  are now typechecked (`scripts/**` added to tsconfig include). Baseline doc:
+  `docs/archive/audit-v2/baseline.md`. **5.2:** metrics
+  `committee_grounding_rejected_total{reason}`,
+  `committee_opinion_verification_total`, `canonical_evidence_blocked_total`
+  added (naming note: plan said `canonical_evidence_degraded_total`; Q1 made
+  the outcome a block, so the metric is named `…blocked_total`); failure
+  detail surfaced through the admin mastra-runs view. **5.3 (Q4):**
+  non-blocking admin spend-threshold watch in System Health (never gates a
+  turn).
+- **4.1/4.2 (final batch):** the 71 `src/mastra/*` shims are deleted and
+  barrels repoint at `mastra-v2` in one atomic change (tracked separately at
+  the end of this session's log entries); `knip` findings reduced to zero
+  (`@changesets/cli` devDep removed, css project files added) and the CI Knip
+  step flips from report-only to blocking once the tree is green.
+
+### Explicitly deferred (P2s without a phase task — backlog, needs owner triage)
+- P2-7: fire-and-forget embed in `briefings/generate.ts` lacks `.catch`.
+- P2-8: semantic-routing cost dropped when callers pass no ledger.
+- P2-12: SignalR `subscribedSymbols` dedupe + worker health during rebuild.
+- P2-14 (unless fixed by the budget collapse): `isBudgetEnforced()` memoized
+  once per process.
+- Manual smoke of §3.1 routes and live p95/cost/cache-hit measurements
+  require a running deployment (no live DB in this environment); unit,
+  typecheck, lint, route-security (111 routes), and full workspace suites are
+  the verification basis here.
+
+---
+
+## 2026-10-12 — Audit v2 final gate — Decider: Implementing agent — Phases 4.1/4.2 atomic cleanup landed; full verification green
+
+Follow-up to the entry above: the final Phase 4 batch and the whole-plan
+verification gate are complete.
+
+### 4.1 Shim layer removed (atomic)
+- All 70 per-module re-export shims under `packages/ai/src/mastra/` deleted;
+  365 import specifiers across 121 files repointed at `mastra-v2` directly.
+  `src/mastra/index.ts` is now the only file there — the thin public barrel
+  for the `@kestrel/ai/mastra` subpath (kept so web/worker imports are
+  unchanged). `package.json` subpath `./mastra/routing-policy` repointed at
+  `dist/mastra-v2/planning/routing-policy`. `dist/` rebuilt clean (the
+  `dist/mastra/` dir now holds only the barrel). `docs/architecture.md`
+  updated to match.
+
+### 4.2 Dead modules deleted; knip blocking
+- Deleted (with tests): `workflows/planner.ts` (Q5: DELETE — no live caller
+  existed), `verification.ts` + `verification/regex.ts` (citation enforcer;
+  the `CitationWarningPartView` UI component is deliberately KEPT — the live
+  `data-verify-warning` part reuses it and historical messages still parse),
+  `prompt/system.ts` (`LiveSnapshot` type moved to `context.ts`, its only
+  live consumer), `token-estimate.ts`, `thread-state.ts`, `auxiliary-usage.ts`,
+  `model-strategy.ts` (MODEL_ROUTER/TIER_TO_DOMAIN/routeModelByDomain — zero
+  live callers), `util/concurrency.ts`, web dead services
+  `mastra-{canonical-chat,canonical-response,mode-response,chat-routing}.ts`,
+  and the buffered `runMastraModeChat`.
+- knip: `@changesets/cli` devDep removed, css project files added to knip
+  config, zero findings from the workspace root, and the CI Knip step flipped
+  from report-only (`continue-on-error`) to **blocking**.
+
+### Verification gate (all green)
+- `tsc --noEmit`: shared, data, db, indicators, ai, web, worker — 0 errors.
+- Full suites: ai 1381 passed / 22 skipped (Postgres-gated), web 1199 passed,
+  worker 145 passed.
+- `pnpm turbo run lint`: 14/14 packages, 0 errors (warnings pre-existing).
+- `pnpm check:route-security`: 111 routes pass.
+- `pnpm knip`: exit 0 from the repo root.
+- Eval gate smoke: skip path exits 0 without DATABASE_URL; baseline compare +
+  `--update-baseline` covered by unit tests (7/7).
+- NOT runnable here (no live deployment): manual §3.1 route smoke, p95
+  latency/cost/cache-hit measurements, and the eval baseline artifact itself
+  (generate on main with real telemetry via
+  `pnpm eval:gate -- --update-baseline`).
+
+### Subagent infra note
+Three long-running subagents died on API "Headers Timeout" errors mid-run
+(debate tests, 4-mode shim, and an earlier attempt); all of their on-disk
+edits were kept and their remaining tails were completed by the implementing
+agent (4.6 leftover tests/comments, the 3.3 test suite, 4.4 retention tail,
+lint fixes). Nothing was lost — edits land in the working tree as they are
+made; only unwritten work is lost, and it was redone.

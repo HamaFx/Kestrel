@@ -43,6 +43,12 @@ export interface EnqueuePersistenceFailureArgs {
  * Enqueue a failed write without allowing the recovery mechanism to become
  * another source of request failure. The unique dedupe key makes repeated
  * catches for the same logical write collapse into one replay item.
+ *
+ * Returns `true` when a replay item is queued (fresh insert or re-armed
+ * pending/failed row) and `false` when the conflict guard suppressed the
+ * update because the row is already `processing` (claimed by the recovery
+ * worker) or has reached a terminal `completed` state — a replay must never
+ * clobber either (P1-6).
  */
 export async function enqueuePersistenceFailure(
   args: EnqueuePersistenceFailureArgs,
@@ -50,7 +56,7 @@ export async function enqueuePersistenceFailure(
   const errorText =
     args.error instanceof Error ? args.error.message : args.error ? String(args.error) : null;
   try {
-    await getDb()
+    const queued = await getDb()
       .insert(schema.persistenceOutbox)
       .values({
         userId: args.userId,
@@ -68,13 +74,20 @@ export async function enqueuePersistenceFailure(
       .onConflictDoUpdate({
         target: [schema.persistenceOutbox.tenantId, schema.persistenceOutbox.dedupeKey],
         set: {
-          status: sql`CASE WHEN ${schema.persistenceOutbox.status} = 'completed' THEN 'completed' ELSE 'pending' END`,
+          status: 'pending',
           nextAttemptAt: new Date(),
           updatedAt: new Date(),
           lastError: errorText,
         },
-      });
-    return true;
+        // P1-6 — a replay cannot clobber a row the recovery worker has
+        // claimed ('processing') or already finished ('completed'). The
+        // previous CASE-based status dance let a late re-catch flip both
+        // back to 'pending', corrupting terminal/in-flight state. Rows in
+        // 'pending' | 'failed' | 'dead' re-arm to 'pending' as before.
+        where: sql`${schema.persistenceOutbox.status} NOT IN ('processing', 'completed')`,
+      })
+      .returning({ id: schema.persistenceOutbox.id });
+    return queued.length > 0;
   } catch (enqueueError) {
     // At this point the primary sink and the recovery sink are both down.
     // Keep the event visible in structured logs with its correlation IDs;

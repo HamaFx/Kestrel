@@ -26,15 +26,13 @@ const {
   mockWithRateLimit,
   mockRunMastraXauusdChat,
   mockRunMastraCanonicalChatStreamService,
-  mockRunMastraCanonicalChatService,
   mockRunMastraXauusdConversationStreamChat,
-  mockRunMastraModeChat,
   mockRunMastraModeChatStream,
-  mockMastraCanonicalResponse,
   mockMastraChatResponse,
-  mockMastraModeResponse,
   mockResolveMastraModeModel,
   mockDecideMastraExecution,
+  mockGuardrailUnavailableError,
+  mockTripWire,
 } = vi.hoisted(() => ({
   mockEnqueueFullAnalysis: vi.fn(),
   mockGetUserWithSettings: vi.fn(),
@@ -42,21 +40,24 @@ const {
   mockWithRateLimit: vi.fn(),
   mockRunMastraXauusdChat: vi.fn(),
   mockRunMastraCanonicalChatStreamService: vi.fn(() => new Response('canonical', { status: 200 })),
-  mockRunMastraCanonicalChatService: vi.fn(),
   mockRunMastraXauusdConversationStreamChat: vi.fn(
     () => new Response('xauusd-stream', { status: 200 }),
   ),
-  mockRunMastraModeChat: vi.fn(),
   mockRunMastraModeChatStream: vi.fn(() => new Response('mode', { status: 200 })),
-  mockMastraCanonicalResponse: vi.fn(() => new Response('canonical', { status: 200 })),
   mockMastraChatResponse: vi.fn(() => new Response('xauusd', { status: 200 })),
-  mockMastraModeResponse: vi.fn(() => new Response('mode', { status: 200 })),
   mockDecideMastraExecution: vi.fn(),
   mockResolveMastraModeModel: vi.fn(() => ({
     modelId: 'google/gemini-3.6-flash',
     providerId: 'google',
     bareModelId: 'gemini-3.6-flash',
   })),
+  // §1.9 route-boundary error classes: strict guardrail unavailability and
+  // Mastra's injection tripwire must map to clean 503/422 responses.
+  mockGuardrailUnavailableError: class GuardrailUnavailableError extends Error {},
+  mockTripWire: class TripWire extends Error {
+    options: Record<string, unknown> = {};
+    processorId = 'prompt-injection-detector';
+  },
 }));
 
 vi.mock('@kestrel/db', async (importOriginal) => {
@@ -89,25 +90,9 @@ vi.mock('@/lib/logger', () => ({
   createCategorizedLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-vi.mock('@/lib/services/mastra-chat-routing', () => ({
-  isInjectionAttempt: (prompt: string) => /system:\s*ignore/i.test(prompt),
-  isMutationIntent: (prompt: string) => /buy|sell/i.test(prompt),
-  extractMastraSymbol: (prompt: string) => {
-    if (/xauusd|gold/i.test(prompt)) return 'XAUUSD';
-    if (/eurusd/i.test(prompt)) return 'EURUSD';
-    return null;
-  },
-  isMastraSymbolCandidate: () => true,
-  isMastraXauusdCandidate: (prompt: string) => /xauusd|gold/i.test(prompt),
-  isMastraXauusdFollowupCandidate: () => false,
-  mastraXauusdChatKind: () => 'research',
-}));
 
 vi.mock('@/lib/services/mastra-chat', () => ({
   runMastraXauusdChat: mockRunMastraXauusdChat,
-}));
-vi.mock('@/lib/services/mastra-canonical-chat', () => ({
-  runMastraCanonicalChatService: mockRunMastraCanonicalChatService,
 }));
 vi.mock('@/lib/services/mastra-canonical-chat-stream', () => ({
   runMastraCanonicalChatStreamService: mockRunMastraCanonicalChatStreamService,
@@ -116,17 +101,10 @@ vi.mock('@/lib/services/mastra-chat-stream', () => ({
   runMastraXauusdConversationStreamChat: mockRunMastraXauusdConversationStreamChat,
 }));
 vi.mock('@/lib/services/mastra-mode', () => ({
-  runMastraModeChat: mockRunMastraModeChat,
   runMastraModeChatStream: mockRunMastraModeChatStream,
-}));
-vi.mock('@/lib/services/mastra-canonical-response', () => ({
-  mastraCanonicalResponse: mockMastraCanonicalResponse,
 }));
 vi.mock('@/lib/services/mastra-chat-response', () => ({
   mastraChatResponse: mockMastraChatResponse,
-}));
-vi.mock('@/lib/services/mastra-mode-response', () => ({
-  mastraModeResponse: mockMastraModeResponse,
 }));
 vi.mock('@/lib/services/mastra-report-context', () => ({
   extractLatestMastraReport: vi.fn(() => null),
@@ -147,6 +125,9 @@ vi.mock('@/lib/services/api-boundary', () => ({
     spent = 5;
     max = 5;
   },
+  CanonicalEvidenceBlockedError: class CanonicalEvidenceBlockedError extends Error {},
+  GuardrailUnavailableError: mockGuardrailUnavailableError,
+  TripWire: mockTripWire,
   extractUserMessageText: (message: { parts?: Array<{ type?: string; text?: string }> }) =>
     (message.parts ?? [])
       .filter((part) => part.type === 'text')
@@ -315,21 +296,6 @@ describe('POST /api/chat Mastra boundary', () => {
       packet: { status: 'ready', dataQuality: 'complete', packetId: 'packet-1' },
       observedCost: 0.001,
     });
-    mockRunMastraCanonicalChatService.mockResolvedValue({
-      text: 'canonical result',
-      runId: 'run-2',
-      messageId: 'message-2',
-    });
-    mockRunMastraModeChat.mockResolvedValue({
-      finalText: 'mode result',
-      mode: 'standard',
-      symbol: 'EURUSD',
-      runId: 'run-3',
-      packet: { packetId: 'packet-3', dataQuality: 'complete' },
-      totalCostUsd: 0.001,
-      totalLatencyMs: 10,
-      agentOpinions: [],
-    });
   });
 
   it('routes XAUUSD research directly to the specialized Mastra report path', async () => {
@@ -343,7 +309,6 @@ describe('POST /api/chat Mastra boundary', () => {
         modelOverride: null,
       }),
     );
-    expect(mockRunMastraCanonicalChatService).not.toHaveBeenCalled();
   });
 
   it('routes symbol-free read-only conversation to canonical Mastra', async () => {
@@ -368,7 +333,6 @@ describe('POST /api/chat Mastra boundary', () => {
       expect.objectContaining({ userId: 'user-1', threadId: expect.any(String) }),
     );
     expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
-    expect(mockRunMastraCanonicalChatService).not.toHaveBeenCalled();
   });
 
   it('routes single-mode symbol analysis to the shared committee workflow (Q2/§2.3)', async () => {
@@ -410,7 +374,6 @@ describe('POST /api/chat Mastra boundary', () => {
       }),
     );
     expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
-    expect(mockRunMastraModeChat).not.toHaveBeenCalled();
   });
 
   it('passes an explicit model override to the Mastra canonical agent', async () => {
@@ -459,7 +422,6 @@ describe('POST /api/chat Mastra boundary', () => {
     });
     expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
     expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
-    expect(mockRunMastraCanonicalChatService).not.toHaveBeenCalled();
   });
 
   it('returns an explicit Mastra failure rather than invoking a legacy fallback', async () => {
@@ -469,6 +431,30 @@ describe('POST /api/chat Mastra boundary', () => {
 
     expect(response.status).toBe(502);
     expect(await response.json()).toMatchObject({ error: { code: 'MASTRA_FAILED' } });
+  });
+
+  it('maps strict guardrail unavailability to a retryable 503 (§1.9)', async () => {
+    mockRunMastraXauusdChat.mockRejectedValue(
+      new mockGuardrailUnavailableError(
+        'Prompt-injection detector model is unavailable and guardrail mode is strict.',
+      ),
+    );
+
+    const response = await POST(request(body()), { params: Promise.resolve(undefined) });
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: { code: 'GUARDRAIL_UNAVAILABLE' } });
+  });
+
+  it('maps the Mastra injection tripwire to a clean 422 (§1.9)', async () => {
+    mockRunMastraXauusdChat.mockRejectedValue(
+      new mockTripWire('Tripwire triggered by prompt-injection-detector'),
+    );
+
+    const response = await POST(request(body()), { params: Promise.resolve(undefined) });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ error: { code: 'INJECTION_BLOCKED' } });
   });
 
   it('serializes Full mode model overrides onto the durable queue (Q7)', async () => {
@@ -501,9 +487,7 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(await response.json()).toMatchObject({ error: { code: 'NOT_FOUND' } });
     expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
     expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
-    expect(mockRunMastraCanonicalChatService).not.toHaveBeenCalled();
     expect(mockRunMastraXauusdConversationStreamChat).not.toHaveBeenCalled();
-    expect(mockRunMastraModeChat).not.toHaveBeenCalled();
     expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
   });
 

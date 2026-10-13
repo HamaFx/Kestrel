@@ -30,10 +30,11 @@ import type { WorkflowRunState } from '@mastra/core/workflows';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { reserveTurnBudget } from '../../budget-reservation';
+import { reserveTurnBudget } from '../../budget';
 import { getDb } from '../../db';
 import type { GenerationLedgerSnapshot } from '../../generation-ledger';
-import { ExecutionPlanSchema, type ExecutionPlan } from '../../mastra/execution-plan';
+import type { MastraAnalysisMode } from '../../committee/types';
+import { ExecutionPlanSchema, type ExecutionPlan } from '../planning/execution-plan';
 import {
   normalizeWorkflowStatus,
   toMastraWorkflowStatus,
@@ -41,6 +42,7 @@ import {
 } from '../../workflow-status';
 import { getKestrelMastra } from '../instance';
 import { observationalMemoryAllowanceUsd } from '../memory';
+import { committeeProgressSnapshot } from '../shared/progress';
 
 const flog = createCategorizedLogger('ai', { component: 'mastra-full-analysis' });
 
@@ -523,12 +525,13 @@ export async function updateFullAnalysisProgress(
   runId: string,
   workerRunId: string,
   step: string,
+  mode: MastraAnalysisMode = 'full',
 ): Promise<void> {
   try {
     const row = await getFullAnalysisQueueRow(runId, undefined, getDb());
     const progress = [
       ...(row?.progress ?? []),
-      { type: 'data-agent-progress', data: { step } },
+      { type: 'data-agent-progress', data: committeeProgressSnapshot(mode, step) },
     ].slice(-50);
     await projectQueueRow(
       await updateFullAnalysisQueueProgress({ runId, workerRunId, progress, db: getDb() }),

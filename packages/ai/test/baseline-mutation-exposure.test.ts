@@ -27,8 +27,8 @@ import {
   MASTRA_CAPABILITIES,
   SENSITIVE_USER_READ_TOOL_NAMES,
   type MastraCapabilityId,
-} from '../src/mastra/capabilities';
-import { adaptLegacyReadOnlyTools } from '../src/mastra/legacy-tool-adapter';
+} from '../src/mastra-v2/capabilities';
+import { adaptLegacyReadOnlyTools } from '../src/mastra-v2/agents/xauusd/legacy-tool-adapter';
 
 const MUTATION_CAPABILITY_ID = 'mutation-workflows' as const;
 const MUTATION_TOOL_NAMES: readonly string[] = MASTRA_CAPABILITIES[MUTATION_CAPABILITY_ID]!.tools;

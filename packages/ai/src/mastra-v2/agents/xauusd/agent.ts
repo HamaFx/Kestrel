@@ -26,10 +26,10 @@ import {
   MODEL_CONTEXT_CANDLE_LIMIT,
   MODEL_CONTEXT_INDICATOR_LIMIT,
   serializeXauusdModelEvidenceContext,
-} from '../../../mastra/model-context';
-import type { XauusdResearchPacket } from '../../../mastra/research-types';
-import { xauusdMastraTools } from '../../../mastra/tools';
-import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../../mastra/types';
+} from './model-context';
+import type { XauusdResearchPacket } from '../../packets/research-types';
+import { xauusdMastraTools } from './tools';
+import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../shared/types';
 
 const alog = createCategorizedLogger('ai', {
   component: 'mastra-xauusd-agent',

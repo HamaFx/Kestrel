@@ -44,6 +44,8 @@ interface MastraRunWorkflow {
   failedSteps: string[];
   completedSteps: number;
   totalSteps: number;
+  /** Phase 5.2 — failure detail recovered from the workflow snapshot. */
+  error?: string | null;
 }
 
 interface MastraRun {
@@ -62,6 +64,8 @@ interface MastraRun {
   workflow: MastraRunWorkflow;
   scores: MastraRunScore[];
   scoreMean: number | null;
+  /** Phase 5.2 — why the run failed (strict failure / verifier findings). */
+  error?: string | null;
 }
 
 interface MastraRunsResponse {
@@ -84,6 +88,14 @@ function runStatusLabel(run: MastraRun): string {
   if (run.workflow.status) return run.workflow.status;
   if (run.kind?.endsWith('_failed')) return 'failed';
   return 'completed';
+}
+
+/**
+ * Phase 5.2 — failure detail for failed runs (committee strict failure,
+ * verifier findings), recovered from the workflow snapshot server-side.
+ */
+function runFailureDetail(run: MastraRun): string | null {
+  return run.error ?? run.workflow.error ?? null;
 }
 
 export function AdminMastraRuns() {
@@ -201,6 +213,14 @@ export function AdminMastraRuns() {
                   </td>
                   <td className="px-4 py-2">
                     <Badge tone={runTone(run)}>{runStatusLabel(run)}</Badge>
+                    {runTone(run) === 'danger' && runFailureDetail(run) && (
+                      <div
+                        className="text-danger mt-0.5 max-w-72 truncate text-xs"
+                        title={runFailureDetail(run) ?? undefined}
+                      >
+                        {runFailureDetail(run)}
+                      </div>
+                    )}
                   </td>
                   <td className="text-fg-subtle px-4 py-2">
                     {run.workflow.workflowId

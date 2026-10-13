@@ -19,16 +19,16 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
 import { getNewsTool } from '../../../../tools/get-news';
-import { createEvidenceId } from '../../../../mastra/evidence';
+import { createEvidenceId } from '../../../packets/evidence';
 import {
   EXTERNAL_CONTENT_TRUST_WARNING,
   quarantineExternalText,
   toUntrustedExternalEvidence,
-} from '../../../../mastra/external-content';
-import { executeLegacyReadOnlyTool } from '../../../../mastra/legacy-tool-adapter';
-import { executeMastraTool } from '../../../../mastra/telemetry';
-import { XauusdSymbolSchema } from '../../../../mastra/tool-schemas';
-import { XAUUSD } from '../../../../mastra/types';
+} from '../../../packets/external-content';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
+import { executeMastraTool } from '../../../shared/telemetry';
+import { XauusdSymbolSchema } from '../tool-schemas';
+import { XAUUSD } from '../../../shared/types';
 
 const InputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),

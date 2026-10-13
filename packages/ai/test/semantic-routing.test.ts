@@ -16,12 +16,12 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runMastraStructured } from '../src/mastra/text-runner';
+import { runMastraStructured } from '../src/mastra-v2/agents/xauusd/text-runner';
 import { resolveModel } from '../src/model';
 import { classifyTurnLLM } from '../src/semantic-routing';
 
 // Mock dependencies
-vi.mock('../src/mastra/text-runner', () => ({
+vi.mock('../src/mastra-v2/agents/xauusd/text-runner', () => ({
   runMastraStructured: vi.fn(),
 }));
 

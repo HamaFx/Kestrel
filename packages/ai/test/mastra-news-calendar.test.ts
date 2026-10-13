@@ -16,9 +16,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { XauusdCalendarInputSchema } from '../src/mastra/calendar-tool';
-import { XauusdNewsInputSchema } from '../src/mastra/news-tool';
-import { xauusdCalendarTool, xauusdNewsTool } from '../src/mastra/tools';
+import { XauusdCalendarInputSchema } from '../src/mastra-v2/agents/xauusd/tools/calendar-tool';
+import { XauusdNewsInputSchema } from '../src/mastra-v2/agents/xauusd/tools/news-tool';
+import { xauusdCalendarTool, xauusdNewsTool } from '../src/mastra-v2/agents/xauusd/tools';
 
 const mocks = vi.hoisted(() => ({
   newsExecute: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock('../src/tools/get-news', () => ({
 vi.mock('../src/tools/get-calendar', () => ({
   getCalendarTool: { execute: mocks.calendarExecute },
 }));
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: vi.fn((_name: string, _context: unknown, fn: () => Promise<unknown>) => fn()),
 }));
 

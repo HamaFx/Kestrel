@@ -24,6 +24,11 @@ import {
   getMastraCapability,
   manifestToolsForDomain,
   MASTRA_CAPABILITIES,
+  xauusdCandlesTool,
+  xauusdIndicatorsTool,
+  xauusdPriceTool,
+  xauusdResearchPacketTool,
+  type MastraCapability,
 } from '../src/mastra';
 
 describe('Mastra capability policy', () => {
@@ -79,6 +84,37 @@ describe('Mastra capability policy', () => {
       evidencePolicy: 'required',
       supportsAbort: true,
     });
+  });
+
+  // Audit plan §1.11 / P1-21 — the manifest ids must be the real registered
+  // `createTool` ids, not phantom underscore names, so the manifest is
+  // enforceable against actual tool registrations.
+  it('lists the real registered tool ids for the XAUUSD research manifest', () => {
+    expect(MASTRA_CAPABILITIES['xauusd-research'].tools).toEqual([
+      xauusdResearchPacketTool.id,
+      xauusdPriceTool.id,
+      xauusdCandlesTool.id,
+      xauusdIndicatorsTool.id,
+    ]);
+  });
+
+  it('fails loudly when a manifest declares a phantom tool id', () => {
+    const doctored = {
+      ...MASTRA_CAPABILITIES,
+      'xauusd-research': {
+        ...MASTRA_CAPABILITIES['xauusd-research'],
+        // The pre-fix phantom id must no longer pass the integrity check.
+        tools: [
+          'get_xauusd_research_packet',
+          'get-xauusd-price',
+          'get-xauusd-candles',
+          'get-xauusd-indicators',
+        ],
+      },
+    } as unknown as Record<string, MastraCapability>;
+    expect(() => assertCapabilityManifestIntegrity(doctored)).toThrow(
+      /does not resolve to any registered tool/,
+    );
   });
 
   it('keeps every mutation tool out of the canonical read-only allowlist', () => {

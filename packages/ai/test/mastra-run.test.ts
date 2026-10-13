@@ -17,12 +17,13 @@
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type * as ReportGenerationModule from '../src/mastra/report-generation';
+import type * as ReportGenerationModule from '../src/mastra-v2/agents/xauusd/report/report-generation';
+import type { ExecutionPlan } from '../src/mastra-v2/planning/execution-plan';
 import {
   resolveXauusdMastraModel,
   runXauusdMastra,
   runXauusdMastraConversation,
-} from '../src/mastra/run';
+} from '../src/mastra-v2/agents/xauusd/run';
 
 const mocks = vi.hoisted(() => {
   class FakeVerificationError extends Error {}
@@ -49,6 +50,14 @@ const mocks = vi.hoisted(() => {
     withDiagnostics: vi.fn(async (_userId: string, _threadId: string, fn: () => Promise<unknown>) =>
       fn(),
     ),
+    buildGuardrailInputProcessors: vi.fn(
+      (_options: {
+        settings: { aiApiKeys: unknown; chatModel: unknown };
+        env: unknown;
+        strategy: 'block' | 'rewrite';
+        mode: 'strict' | 'availability';
+      }) => ({ processors: ['guardrail-processor'], warnings: [], mode: 'strict' }),
+    ),
   };
 });
 
@@ -58,17 +67,17 @@ vi.mock('../src/model', () => ({
   resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,
   resolveEmbeddingModel: mocks.resolveEmbeddingModel,
 }));
-vi.mock('../src/mastra/agent', () => ({
+vi.mock('../src/mastra-v2/agents/xauusd/agent', () => ({
   createXauusdMastraAgent: mocks.createXauusdMastraAgent,
 }));
-vi.mock('../src/mastra/research-packet', () => ({
+vi.mock('../src/mastra-v2/packets/research-packet', () => ({
   collectXauusdResearchPacket: mocks.collectXauusdResearchPacket,
 }));
-vi.mock('../src/mastra/report-verifier', () => ({
+vi.mock('../src/mastra-v2/agents/xauusd/report/report-verifier', () => ({
   requireVerifiedXauusdReport: mocks.requireVerifiedXauusdReport,
   XauusdReportVerificationError: mocks.XauusdReportVerificationError,
 }));
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   beginMastraRun: mocks.beginMastraRun,
   finishMastraRun: mocks.finishMastraRun,
   getMastraGenerationStats: mocks.getMastraGenerationStats,
@@ -80,8 +89,18 @@ vi.mock('../src/diagnostics', () => ({
   getDiagnosticContext: mocks.getDiagnosticContext,
   withDiagnostics: mocks.withDiagnostics,
 }));
+// Audit plan §1.9: the XAUUSD runners derive guardrails from the execution
+// plan through `buildGuardrailInputProcessors`; spy on it to assert the plan
+// policy instead of the legacy conversation/research convenience builders.
+vi.mock('../src/mastra-v2/guardrails', () => ({
+  buildGuardrailInputProcessors: mocks.buildGuardrailInputProcessors,
+  buildConversationGuardrails: vi.fn(),
+  buildResearchGuardrails: vi.fn(),
+  buildResearchGuardrailsAvailability: vi.fn(),
+  GuardrailUnavailableError: class GuardrailUnavailableError extends Error {},
+}));
 
-vi.mock('../src/mastra/report-generation', async (importOriginal) => {
+vi.mock('../src/mastra-v2/agents/xauusd/report/report-generation', async (importOriginal) => {
   const actual = await importOriginal<typeof ReportGenerationModule>();
   return { ...actual, generateXauusdFollowup: mocks.generateXauusdFollowup };
 });
@@ -89,6 +108,35 @@ vi.mock('../src/mastra/report-generation', async (importOriginal) => {
 const model = {} as LanguageModel;
 const settings = { aiApiKeys: null, chatModel: null };
 const env = {} as Parameters<typeof resolveXauusdMastraModel>[1];
+
+/**
+ * Minimal immutable plan for the untrusted XAUUSD capabilities: the manifest
+ * trust policy resolves to guardrail strict + block for both routes.
+ */
+function planFor(route: 'xauusd-conversation' | 'xauusd-research'): ExecutionPlan {
+  return {
+    version: 1,
+    route,
+    capabilityId: route,
+    capabilityVersion: 'poc-5',
+    symbol: 'XAUUSD',
+    mode: 'single',
+    model: { providerId: 'google', bareModelId: 'gemini-2.5-flash' },
+    toolPolicy: { capabilityId: route, tools: [], readOnly: true, requiresConfirmation: false },
+    evidencePolicy: { required: true, externalData: true, contentTrust: 'untrusted' },
+    memoryPolicy: { mode: 'native', required: true, scope: 'user-thread', semanticRecall: true },
+    guardrail: { mode: 'strict', strategy: 'block' },
+    maxSteps: 3,
+    maxDurationMs: 55_000,
+    streaming: route === 'xauusd-conversation',
+    mutationRequested: false,
+    tenantId: 'user-1',
+    xauusdChatKind: route === 'xauusd-conversation' ? 'conversation' : 'research',
+    reportFollowup: false,
+    symbolCandidate: true,
+    xauusdCandidate: true,
+  };
+}
 
 describe('Mastra BYOK runner', () => {
   beforeEach(() => {
@@ -170,6 +218,9 @@ describe('Mastra BYOK runner', () => {
       .mockReturnValue({ inputTokens: 4, outputTokens: 6, toolCalls: 1, steps: 2 });
     mocks.mastraOutcomeForError.mockReset().mockReturnValue('failed');
     mocks.getDiagnosticContext.mockReturnValue({ traceId: 'trace-1' });
+    mocks.buildGuardrailInputProcessors
+      .mockReset()
+      .mockReturnValue({ processors: ['guardrail-processor'], warnings: [], mode: 'strict' });
     mocks.resolveChatModel.mockReturnValue({
       model,
       modelId: 'google/gemini-2.5-flash',
@@ -345,6 +396,77 @@ describe('Mastra BYOK runner', () => {
     expect(options.structuredOutput).toBeUndefined();
     expect(options.abortSignal).toBe(signal);
     expect(options.requestContext.get('priorReport')).toBe(priorReport);
+  });
+
+  it('derives XAUUSD conversation guardrails from the execution plan policy (§1.9)', async () => {
+    const generate = vi.fn().mockResolvedValue({ text: 'guarded answer' });
+    mocks.createXauusdMastraAgent.mockReturnValue({ generate });
+
+    await runXauusdMastraConversation({
+      prompt: 'Explain the current gold context',
+      userId: 'user-1',
+      threadId: 'thread-1',
+      runId: 'conversation-plan-1',
+      settings,
+      env,
+      executionPlan: planFor('xauusd-conversation'),
+    });
+
+    // The untrusted xauusd-conversation capability runs the manifest policy
+    // carried by the plan (strict + block) — no longer the legacy
+    // rewrite + availability conversation builder.
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledTimes(1);
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledWith({
+      settings: { aiApiKeys: settings.aiApiKeys, chatModel: settings.chatModel },
+      env,
+      strategy: 'block',
+      mode: 'strict',
+    });
+    // The plan-built processors back the conversational agent.
+    expect(mocks.createXauusdMastraAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ inputProcessors: ['guardrail-processor'] }),
+    );
+  });
+
+  it('falls back to the canonical strict + block defaults without a plan', async () => {
+    const generate = vi.fn().mockResolvedValue({ text: 'guarded answer' });
+    mocks.createXauusdMastraAgent.mockReturnValue({ generate });
+
+    await runXauusdMastraConversation({
+      prompt: 'Explain the current gold context',
+      userId: 'user-1',
+      threadId: 'thread-1',
+      runId: 'conversation-default-1',
+      settings,
+      env,
+    });
+
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledWith(
+      expect.objectContaining({ strategy: 'block', mode: 'strict' }),
+    );
+  });
+
+  it('derives the XAUUSD report path guardrails from the execution plan policy (§1.9)', async () => {
+    const generate = vi.fn().mockResolvedValue({ text: 'grounded result', object: {} });
+    mocks.createXauusdMastraAgent.mockReturnValue({ generate });
+
+    const result = await runXauusdMastra({
+      prompt: 'Analyse gold',
+      userId: 'user-1',
+      threadId: 'thread-1',
+      runId: 'report-plan-1',
+      settings,
+      env,
+      executionPlan: planFor('xauusd-research'),
+    });
+
+    expect(result.answerOutcome).toBe('ready');
+    // Both the followup (conversation) and report (research) guardrail sets
+    // derive from the single plan-derived policy — the §1.9 consistency fix.
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledTimes(2);
+    for (const [options] of mocks.buildGuardrailInputProcessors.mock.calls) {
+      expect(options).toMatchObject({ strategy: 'block', mode: 'strict' });
+    }
   });
 
   it('fails closed when follow-up mode is requested without a prior report', async () => {

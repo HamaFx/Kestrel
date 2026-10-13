@@ -110,6 +110,11 @@ export {
   updateFullAnalysisProgress,
 } from './workflows/full-analysis';
 export {
+  committeeProgressSnapshot,
+  type CommitteeAgentProgress,
+  type CommitteeProgressSnapshot,
+} from './shared/progress';
+export {
   assertMastraRegistryComplete,
   mastraRegistrationFor,
   resolveMastraAgent,
@@ -130,6 +135,10 @@ export {
   type GuardrailOptions,
   type GuardrailStrategy,
 } from './guardrails';
+// Audit plan §1.9: re-export Mastra's tripwire error so route boundaries can
+// distinguish a blocked injection (detector strategy 'block') from a generic
+// failure without depending on @mastra/core directly.
+export { TripWire } from '@mastra/core/agent';
 export {
   buildConversationScorers,
   buildCustomScorers,
@@ -222,12 +231,3 @@ export {
   type MutationWorkflowDeps,
   type RunMutationResult,
 } from './workflows/mutation';
-export {
-  plannerRequired,
-  runPlanner,
-  PlannerOutputSchema,
-  PlannerSubtaskSchema,
-  type PlannerOutput,
-  type PlannerResult,
-  type PlannerSubtask,
-} from './workflows/planner';

@@ -29,7 +29,7 @@ import type { LanguageModel } from 'ai';
 import { estimateCostUsd } from '../../cost';
 import type { GenerationLedger } from '../../generation-ledger';
 import { resolveModel, type ResolveModelEnv } from '../../model';
-import { runMastraText } from '../../mastra/text-runner';
+import { runMastraText } from '../agents/xauusd/text-runner';
 
 export interface GenerateThreadTitleArgs {
   userId: string;

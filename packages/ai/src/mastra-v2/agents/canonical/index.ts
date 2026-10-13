@@ -39,14 +39,17 @@ import type { SemanticRoutingAccounting } from '../../../semantic-routing';
 import { DB } from '../../../tokens';
 import { withToolContext, type ToolContext } from '../../../tool-context';
 import { domainToolFilter } from '../../../tools/by-domain';
-import { checkCanonicalEvidence } from '../../../mastra/canonical-evidence';
-import { manifestForCapability, manifestToolNames } from '../../../mastra/capabilities';
+import {
+  assertCanonicalEvidence,
+  checkCanonicalEvidence,
+} from './evidence';
+import { manifestForCapability, manifestToolNames } from '../../capabilities';
 import {
   assertExecutionPlanRoute,
   requireExecutionPlanModel,
   type ExecutionPlan,
-} from '../../../mastra/execution-plan';
-import { adaptLegacyReadOnlyTool } from '../../../mastra/legacy-tool-adapter';
+} from '../../planning/execution-plan';
+import { adaptLegacyReadOnlyTool } from '../xauusd/legacy-tool-adapter';
 import {
   beginMastraRun,
   createMastraRunFinalizer,
@@ -54,7 +57,7 @@ import {
   getMastraGenerationStats,
   mastraOutcomeForError,
   type MastraGenerationStats,
-} from '../../../mastra/telemetry';
+} from '../../shared/telemetry';
 
 const mlog = createCategorizedLogger('ai', { component: 'mastra-canonical-chat' });
 
@@ -439,7 +442,7 @@ export async function runMastraCanonicalChat(
     );
     const stats = getMastraGenerationStats(result);
     const toolNames = extractToolNames(result.response?.messages);
-    const evidence = checkCanonicalEvidence(result.text, toolNames);
+    const evidence = checkCanonicalEvidence(result.text, extractToolEvidence(result.response?.messages));
     const primaryCostUsd = estimateCostUsd(
       resolution.modelId,
       stats.inputTokens,
@@ -448,6 +451,28 @@ export async function runMastraCanonicalChat(
     generationLedger.recordCost(`primary:${runId}`, 'primary', primaryCostUsd);
     const totalCostUsd = generationLedger.total();
     const totalLatencyMs = Date.now() - startedAt;
+    if (!evidence.ok) {
+      // §5.2: Q1 renamed the degraded-evidence outcome to a hard block.
+      metrics.increment('canonical_evidence_blocked_total', {
+        tags: { reason: evidence.findings.some((f) => /without a market-data tool/.test(f)) ? 'no_tool' : 'ungrounded' },
+      });
+      await finishMastraRun({
+        userId: args.userId,
+        threadId: args.threadId,
+        runId,
+        model: resolution.modelId,
+        providerId: resolution.providerId,
+        startedAt,
+        ...stats,
+        outcome: 'success',
+        answerOutcome: 'blocked',
+        memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: setup.memoryBackfill,
+        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+        telemetryKind: 'mastra_canonical_chat',
+      });
+      assertCanonicalEvidence(evidence);
+    }
     await finishMastraRun({
       userId: args.userId,
       threadId: args.threadId,
@@ -488,7 +513,6 @@ export async function runMastraCanonicalChat(
       startedAt,
       inputTokens: 0,
       outputTokens: 0,
-      usageKnown: false,
       toolCalls: 0,
       steps: 0,
       outcome: mastraOutcomeForError(error, args.signal),
@@ -610,7 +634,7 @@ export async function runMastraCanonicalChatStream(
       const full = await output.getFullOutput();
       const stats = getMastraGenerationStats(full);
       const toolNames = extractToolNames(full.response?.messages);
-      const evidence = checkCanonicalEvidence(full.text, toolNames);
+      const evidence = checkCanonicalEvidence(full.text, extractToolEvidence(full.response?.messages));
       const primaryCostUsd = estimateCostUsd(
         resolution.modelId,
         stats.inputTokens,
@@ -619,6 +643,28 @@ export async function runMastraCanonicalChatStream(
       generationLedger.recordCost(`primary:${runId}`, 'primary', primaryCostUsd);
       const totalCostUsd = generationLedger.total();
       const totalLatencyMs = Date.now() - startedAt;
+      if (!evidence.ok) {
+        // §5.2: Q1 renamed the degraded-evidence outcome to a hard block.
+        metrics.increment('canonical_evidence_blocked_total', {
+          tags: { reason: evidence.findings.some((f) => /without a market-data tool/.test(f)) ? 'no_tool' : 'ungrounded' },
+        });
+        await finishRun({
+          userId: args.userId,
+          threadId: args.threadId,
+          runId,
+          model: resolution.modelId,
+          providerId: resolution.providerId,
+          startedAt,
+          ...stats,
+          outcome: 'success',
+          answerOutcome: 'blocked',
+          memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+          memoryBackfill: setup.memoryBackfill,
+          modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+          telemetryKind: 'mastra_canonical_chat',
+        });
+        assertCanonicalEvidence(evidence);
+      }
       await finishRun({
         userId: args.userId,
         threadId: args.threadId,
@@ -692,4 +738,41 @@ function extractToolNames(messages: readonly unknown[] | undefined): string[] {
     }
   }
   return [...names];
+}
+
+/**
+ * Audit plan §1.3 — the evidence gate must check the values a market-data
+ * tool actually returned, not merely that a market-sounding tool was called.
+ */
+function extractToolEvidence(
+  messages: readonly unknown[] | undefined,
+): Array<{ name: string; resultText: string }> {
+  if (!messages) return [];
+  const evidence: Array<{ name: string; resultText: string }> = [];
+  for (const message of messages) {
+    if (!message || typeof message !== 'object') continue;
+    const content = (message as { content?: unknown }).content;
+    if (!Array.isArray(content)) continue;
+    for (const part of content) {
+      if (!part || typeof part !== 'object') continue;
+      const candidate = part as {
+        type?: unknown;
+        toolName?: unknown;
+        output?: unknown;
+        result?: unknown;
+      };
+      if (candidate.type !== 'tool-result' || typeof candidate.toolName !== 'string') continue;
+      const output = candidate.output ?? candidate.result ?? null;
+      evidence.push({
+        name: candidate.toolName,
+        resultText:
+          output === null || output === undefined
+            ? ''
+            : typeof output === 'string'
+              ? output
+              : JSON.stringify(output),
+      });
+    }
+  }
+  return evidence;
 }

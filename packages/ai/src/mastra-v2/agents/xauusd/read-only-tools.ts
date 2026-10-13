@@ -33,9 +33,9 @@ import { getIntermarketResonanceTool } from '../../../tools/get-intermarket-reso
 import { getSeasonalityTool } from '../../../tools/get-seasonality';
 import { searchKnowledgeTool } from '../../../tools/search-knowledge';
 import { webSearchTool } from '../../../tools/web-search';
-import { createEvidenceId } from '../../../mastra/evidence';
-import { executeLegacyReadOnlyTool } from '../../../mastra/legacy-tool-adapter';
-import { executeMastraTool } from '../../../mastra/telemetry';
+import { createEvidenceId } from '../../packets/evidence';
+import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
+import { executeMastraTool } from '../../shared/telemetry';
 
 const ResearchEnvelope = <TSchema extends z.ZodTypeAny>(schema: TSchema) =>
   z.object({

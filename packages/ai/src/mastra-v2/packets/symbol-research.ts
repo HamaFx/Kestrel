@@ -134,14 +134,18 @@ export const SYMBOL_RESEARCH_INDICATORS = RESEARCH_INDICATORS;
 // so results are reusable whenever the candle window is identical (same
 // symbol/timeframe/kind/params/length/last-candle). Bounded LRU; entries are
 // plain values and consumers slice copies into packets.
+// §2.1/P1-10: exported so the XAUUSD verified-packet collector shares the
+// same memo instead of recomputing per call. Kinds/params are widened to the
+// full `IndicatorRequest` vocabulary (the XAUUSD packet also carries
+// `bollinger`).
 const indicatorMemo = new Map<string, ReturnType<typeof computeIndicator>>();
 const INDICATOR_MEMO_MAX = 512;
 
-function computeIndicatorMemo(args: {
+export function computeIndicatorMemo(args: {
   symbol: Symbol;
   tf: Timeframe;
-  kind: (typeof RESEARCH_INDICATORS)[number]['kind'];
-  params: (typeof RESEARCH_INDICATORS)[number]['params'];
+  kind: IndicatorRequest['kind'];
+  params: IndicatorRequest['params'];
   candles: Candle[];
 }): ReturnType<typeof computeIndicator> {
   const lastT = args.candles.at(-1)?.t ?? 0;

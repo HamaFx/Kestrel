@@ -55,12 +55,15 @@ import { useSidebarState } from '@/components/layout/sidebar-state-context';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useThreadTitle } from '@/hooks/use-thread-title';
+import { useWebappShortcuts } from '@/hooks/use-webapp-shortcuts';
 import { apiFetch, apiMutate } from '@/lib/api-client';
-import { createKestrelChatTransport, type AgentProgress } from '@/lib/chat-transport';
+import {
+  chatErrorText,
+  createKestrelChatTransport,
+  type AgentProgress,
+} from '@/lib/chat-transport';
 import { cn } from '@/lib/cn';
 import { getCsrfToken } from '@/lib/csrf';
-
-import { useWebappShortcuts } from '@/hooks/use-webapp-shortcuts';
 
 import { ThreadSummaryHeader } from './_components/thread-summary-header';
 import { ChatTopBar, type AnalysisMode, type ThreadSummary } from './chat-top-bar';
@@ -474,7 +477,7 @@ export function ChatScreen({
                   />
                 </div>
               ) : null}
-              {showAgentOpinions && agentProgress && (
+              {showAgentOpinions && agentProgress && Array.isArray(agentProgress.agents) && (
                 <div className="px-3 py-2">
                   <AgentDeliberation
                     agents={agentProgress.agents}
@@ -523,7 +526,9 @@ export function ChatScreen({
                       'bg-danger/10 text-danger border-danger/30 mx-3 mb-2 flex items-center justify-between gap-2 rounded-sm border p-3 text-xs',
                     )}
                   >
-                    <span className="line-clamp-2 flex-1">{error.message}</span>
+                    {/* P1-15 — unwrap a raw `{error:{code,message}}` envelope
+                        so the server's message is shown, not the JSON. */}
+                    <span className="line-clamp-2 flex-1">{chatErrorText(error)}</span>
                     <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         type="button"

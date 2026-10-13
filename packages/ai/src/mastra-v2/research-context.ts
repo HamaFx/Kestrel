@@ -31,11 +31,16 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { MemoryConfigInternal } from '@mastra/core/memory';
 import type { Memory } from '@mastra/memory';
+import { metrics } from '@kestrel/shared';
 
 import type { ResolveModelEnv } from '../env-model-factory';
 import { prepareKestrelMemory, type PreparedKestrelMemory } from './context';
 import { buildConversationScorers, buildResearchScorers, type BuiltScorers } from './evals/scorers';
-import { buildConversationGuardrails, buildResearchGuardrails } from './guardrails';
+import {
+  buildGuardrailInputProcessors,
+  type GuardrailMode,
+  type GuardrailStrategy,
+} from './guardrails';
 import { createKestrelMemory } from './memory';
 
 export interface ResearchRunContextSettings {
@@ -65,8 +70,19 @@ export interface PrepareResearchRunContextArgs {
    * Audit plan §1.2 — guardrail availability mode from the execution plan
    * (capability manifest trust level). Defaults to strict; research
    * capabilities surface untrusted external content and fail closed.
+   * Superseded by `guardrailPolicy` when that is provided.
    */
   guardrailMode?: 'strict' | 'availability';
+  /**
+   * Audit plan §1.9 — the full guardrail policy (strategy + mode) from the
+   * execution plan, consumed exactly as the canonical path consumes
+   * `executionPlan.guardrail`. Both the conversation and the research
+   * guardrail sets derive from this single policy; callers no longer build
+   * them from the route-specific convenience builders. When absent, the
+   * manifest defaults for untrusted capabilities apply (`strict + block`),
+   * preserving `guardrailMode` for research-only callers.
+   */
+  guardrailPolicy?: { strategy: GuardrailStrategy; mode: GuardrailMode };
 }
 
 export interface PreparedResearchRunContext {
@@ -75,12 +91,12 @@ export interface PreparedResearchRunContext {
   prepared: PreparedKestrelMemory;
   /** Conversation guardrails + scorers, when requested. */
   conversation: {
-    guardrails: ReturnType<typeof buildConversationGuardrails>;
+    guardrails: ReturnType<typeof buildGuardrailInputProcessors>;
     scorers: BuiltScorers;
   } | null;
   /** Research guardrails + scorers, when requested. */
   research: {
-    guardrails: ReturnType<typeof buildResearchGuardrails>;
+    guardrails: ReturnType<typeof buildGuardrailInputProcessors>;
     scorers: BuiltScorers;
   } | null;
 }
@@ -88,6 +104,9 @@ export interface PreparedResearchRunContext {
 export async function prepareResearchRunContext(
   args: PrepareResearchRunContextArgs,
 ): Promise<PreparedResearchRunContext> {
+  // Audit plan §2.4: per-phase setup latency for the XAUUSD paths, matching
+  // the canonical chat instrumentation (memory + guardrail phases).
+  const memoryStartedAt = Date.now();
   const memory = createKestrelMemory({
     settings: {
       aiApiKeys: args.settings.aiApiKeys,
@@ -110,31 +129,62 @@ export async function prepareResearchRunContext(
       ? { excludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
       : {}),
   });
+  metrics.observe('mastra_setup_latency_ms', Date.now() - memoryStartedAt, {
+    tags: { phase: 'memory' },
+  });
 
   const guardrailSettings = {
     aiApiKeys: args.settings.aiApiKeys,
     chatModel: args.settings.chatModel,
   };
+  // Audit plan §1.9: guardrails derive from the execution plan's policy
+  // (strategy + mode), exactly as the canonical path does. Without a plan
+  // the untrusted-capability manifest defaults apply: `strict + block`
+  // (mode callers may still override through the legacy `guardrailMode`).
+  const guardrailPolicy = args.guardrailPolicy ?? {
+    strategy: 'block' as GuardrailStrategy,
+    mode: (args.guardrailMode ?? 'strict') as GuardrailMode,
+  };
+  const guardrailStartedAt = Date.now();
+  const conversation =
+    args.includeConversationPolicies === true
+      ? {
+          guardrails: buildGuardrailInputProcessors({
+            settings: guardrailSettings,
+            env: args.env,
+            strategy: guardrailPolicy.strategy,
+            mode: guardrailPolicy.mode,
+          }),
+          scorers: buildConversationScorers(guardrailSettings, args.env),
+        }
+      : null;
+  if (conversation) {
+    metrics.observe('mastra_setup_latency_ms', Date.now() - guardrailStartedAt, {
+      tags: { phase: 'guardrail' },
+    });
+  }
+  const researchStartedAt = Date.now();
+  const research =
+    args.includeResearchPolicies === true
+      ? {
+          guardrails: buildGuardrailInputProcessors({
+            settings: guardrailSettings,
+            env: args.env,
+            strategy: guardrailPolicy.strategy,
+            mode: guardrailPolicy.mode,
+          }),
+          scorers: buildResearchScorers(guardrailSettings, args.env),
+        }
+      : null;
+  if (research) {
+    metrics.observe('mastra_setup_latency_ms', Date.now() - researchStartedAt, {
+      tags: { phase: 'guardrail' },
+    });
+  }
   return {
     memory,
     prepared,
-    conversation:
-      args.includeConversationPolicies === true
-        ? {
-            guardrails: buildConversationGuardrails(guardrailSettings, args.env),
-            scorers: buildConversationScorers(guardrailSettings, args.env),
-          }
-        : null,
-    research:
-      args.includeResearchPolicies === true
-        ? {
-            guardrails: buildResearchGuardrails(
-              guardrailSettings,
-              args.env,
-              args.guardrailMode ?? 'strict',
-            ),
-            scorers: buildResearchScorers(guardrailSettings, args.env),
-          }
-        : null,
+    conversation,
+    research,
   };
 }

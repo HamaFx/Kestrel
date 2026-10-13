@@ -16,8 +16,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { requireVerifiedXauusdReport, verifyXauusdReport } from '../src/mastra/report-verifier';
-import { XauusdResearchPacketSchema } from '../src/mastra/research-types';
+import { requireVerifiedXauusdReport, verifyXauusdReport } from '../src/mastra-v2/agents/xauusd/report/report-verifier';
+import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
 
 const evidenceId = 'kestrel-price-xauusd-fixture';
 const asOf = '2026-08-18T12:00:00.000Z';
@@ -149,22 +149,26 @@ describe('XAUUSD report verifier', () => {
     );
   });
 
-  it('treats indicator configuration claims as structural, not market values', () => {
+  it('rejects indicator configuration claims that are not observed values', () => {
+    // Audit plan §1.6 (P0-6): the keyword-label exemption for parameter wording
+    // is gone. An indicator period is configuration, not an observed market
+    // value; the model is instructed to keep such numbers out of numericClaims,
+    // and a claim that contains one now fails closed instead of being skipped
+    // because its label mentions "EMA" or "RSI".
     const result = verifyXauusdReport(
       report({
         numericClaims: [
           { label: 'current mid price', value: 2_345.1, evidenceId },
           { label: 'EMA Period 20', value: 20, evidenceId },
-          { label: 'EMA Period 50', value: 50, evidenceId },
-          { label: 'RSI Threshold 70', value: 70, evidenceId },
-          { label: 'MACD 12/26/9', value: 12, evidenceId },
         ],
       }),
       packet(),
     );
 
-    expect(result.ok).toBe(true);
-    expect(result.findings).toEqual([]);
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContain(
+      'report.numericClaims[1] is not supported by evidence kestrel-price-xauusd-fixture: EMA Period 20',
+    );
   });
 
   it('still rejects a fabricated price even when its label mentions a parameter', () => {
@@ -288,14 +292,59 @@ describe('XAUUSD report verifier', () => {
     expect(result.findings).toEqual([]);
   });
 
-  it('skips scenario projection claims in numericClaims', () => {
+  it('rejects a fabricated target regardless of its label (audit plan 1.6, P0-6)', () => {
+    // The required regression test: "Target 9999" used to skip verification
+    // because the model-authored label matched the scenario-projection
+    // keywords. Labels no longer exempt anything — with the default
+    // 'observed' role the claim must match the cited evidence exactly.
     const result = verifyXauusdReport(
       report({
         numericClaims: [
           { label: 'current mid price', value: 2_345.1, evidenceId },
-          { label: 'Scenario 1 Target', value: 2_420, evidenceId },
-          { label: 'Scenario 1 Entry Zone Low', value: 2_398, evidenceId },
-          { label: 'Scenario 2 Invalidation', value: 2_390, evidenceId },
+          { label: 'Target 9999', value: 9_999, evidenceId },
+        ],
+      }),
+      packet(),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContain(
+      'report.numericClaims[1] is not supported by evidence kestrel-price-xauusd-fixture: Target 9999',
+    );
+  });
+
+  it('rejects a fabricated projection even when the model marks it as one', () => {
+    // The explicit role field replaces the label exemption: a projection is
+    // exempt from the exact match only while it stays inside the ±25%
+    // grounding band of the cited evidence values. 9,999 is over four times
+    // the cited 2,345 price, so it is not plausibly derived from it.
+    const result = verifyXauusdReport(
+      report({
+        numericClaims: [
+          { label: 'current mid price', value: 2_345.1, evidenceId },
+          { label: 'Target 9999', value: 9_999, evidenceId, role: 'projection' },
+        ],
+      }),
+      packet(),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContain(
+      'report.numericClaims[1] projection is not plausibly derived from evidence kestrel-price-xauusd-fixture: Target 9999',
+    );
+  });
+
+  it('accepts scenario projection claims anchored inside the evidence band', () => {
+    // Projections the model derives from real evidence still pass: targets,
+    // entry-zone edges, and invalidation levels within ±25% of the cited
+    // price evidence, marked with the explicit projection role.
+    const result = verifyXauusdReport(
+      report({
+        numericClaims: [
+          { label: 'current mid price', value: 2_345.1, evidenceId },
+          { label: 'Scenario 1 Target', value: 2_420, evidenceId, role: 'projection' },
+          { label: 'Scenario 1 Entry Zone Low', value: 2_398, evidenceId, role: 'projection' },
+          { label: 'Scenario 2 Invalidation', value: 2_390, evidenceId, role: 'projection' },
         ],
       }),
       packet(),
@@ -303,6 +352,21 @@ describe('XAUUSD report verifier', () => {
 
     expect(result.ok).toBe(true);
     expect(result.findings).toEqual([]);
+  });
+
+  it('rejects scenario projection levels outside the cited evidence band', () => {
+    // Scenario free-text numbers are no longer unchecked: a market-like
+    // projection in trigger/entryZone/targets/invalidation must stay inside
+    // the band of the scenario's own evidenceIds.
+    const scenarios = report().scenarios.map((scenario, index) =>
+      index === 0 ? { ...scenario, targets: ['9,999'] } : scenario,
+    );
+    const result = verifyXauusdReport(report({ scenarios }), packet());
+
+    expect(result.ok).toBe(false);
+    expect(result.findings).toContain(
+      'scenarios[0].targets[0] contains projection value 9999 outside the grounding band of the referenced evidence ID values',
+    );
   });
 
   it('accepts supported comma-formatted ranges and indicator notation', () => {

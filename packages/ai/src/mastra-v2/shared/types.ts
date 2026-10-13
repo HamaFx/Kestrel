@@ -25,7 +25,7 @@ import {
 } from '@kestrel/shared';
 import { z } from 'zod';
 
-import { EvidenceProvenanceSchema, EvidenceTrustSchema } from '../../mastra/evidence-types';
+import { EvidenceProvenanceSchema, EvidenceTrustSchema } from '../packets/evidence-types';
 
 export const XAUUSD = 'XAUUSD' as const;
 
@@ -44,7 +44,7 @@ export const XauusdRequestContextSchema = z.object({
 
 export type XauusdRequestContext = z.infer<typeof XauusdRequestContextSchema>;
 
-export { EvidenceFreshnessSchema, EvidenceQualitySchema } from '../../mastra/evidence-types';
+export { EvidenceFreshnessSchema, EvidenceQualitySchema } from '../packets/evidence-types';
 export type {
   EvidenceFreshness,
   EvidenceProvenance,
@@ -55,7 +55,7 @@ export type {
   TrustedDeterministicEvidence,
   UntrustedExternalEvidence,
   UserMemoryEvidence,
-} from '../../mastra/evidence-types';
+} from '../packets/evidence-types';
 export {
   EvidenceProvenanceSchema,
   EvidenceTrustSchema,
@@ -64,7 +64,7 @@ export {
   TrustedDeterministicEvidenceSchema,
   UntrustedExternalEvidenceSchema,
   UserMemoryEvidenceSchema,
-} from '../../mastra/evidence-types';
+} from '../packets/evidence-types';
 
 export const EvidenceMetadataSchema = EvidenceProvenanceSchema.extend({
   evidenceId: z.string().min(1),

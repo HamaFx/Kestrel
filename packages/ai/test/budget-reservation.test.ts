@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-// Plan 04 §5 — Characterization tests for budget-reservation.ts.
+// Plan 04 §5 / audit v2 §4.3 — Characterization tests for the budget facade.
+// (Folded in from budget-reservation.ts; the reservation handle now lives
+// in budget.ts alongside acquireBudget.)
 // Mock the cost module to control tryReserveBudget / applyBudgetDelta
 // without touching the database.
 
@@ -22,7 +24,7 @@ import { metrics } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { _resetBudgetEnforcementCache, UNCAPPED_DAILY_USD } from '../src/budget';
-import { reserveTurnBudget, type BudgetHandle } from '../src/budget-reservation';
+import { reserveTurnBudget, type BudgetHandle } from '../src/budget';
 
 vi.mock('server-only', () => ({}));
 

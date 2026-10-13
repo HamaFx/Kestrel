@@ -58,7 +58,7 @@ import {
   storedConfirmationForToken,
   verifyMutationConfirmationToken,
   type SystemActionId,
-} from '../../mastra/mutation-policy';
+} from '../mutation/mutation-policy';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../logger';
 import { runTracingOptions } from '../telemetry';
 

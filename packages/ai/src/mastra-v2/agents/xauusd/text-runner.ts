@@ -25,7 +25,7 @@ import type { LanguageModel, ModelMessage } from 'ai';
 import type { z } from 'zod';
 
 import { runTracingOptions } from '../../telemetry';
-import { getMastraGenerationStats } from '../../../mastra/telemetry';
+import { getMastraGenerationStats } from '../../shared/telemetry';
 
 /** Shared Unicode normalizer applied to every text-runner agent. */
 const NORMALIZER = new UnicodeNormalizer({

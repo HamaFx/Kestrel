@@ -5,7 +5,7 @@
 
 import { metrics } from '@kestrel/shared';
 
-import { isMastraTelemetryDegraded } from '../../mastra/run-telemetry';
+import { isMastraTelemetryDegraded } from './run-telemetry';
 
 export type TelemetryStartupStatus = 'healthy' | 'degraded';
 

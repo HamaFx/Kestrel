@@ -52,13 +52,17 @@ import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
 import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
-import type { MastraGenerationStats } from '../mastra/stats';
-import { collectSymbolResearchPacketCached, SymbolResearchPacketSchema } from '../mastra/packet-cache';
+import type { MastraGenerationStats } from '../mastra-v2/shared/stats';
+import { collectSymbolResearchPacketCached, SymbolResearchPacketSchema } from '../mastra-v2/packets/packet-cache';
 import {
   readCritiqueStepResult,
+  readDebateStepResult,
   runCritiqueGeneration,
+  runDebateRevision,
   CritiqueStepOutputSchema,
+  DebateStepOutputSchema,
   type CritiqueStepResult,
+  type DebateStepResult,
 } from './critique';
 import {
   combineRunSignal,
@@ -181,7 +185,7 @@ export interface CommitteeWorkflowDeps {
  * `workflowId` overrides the storage key for the run records. The default
  * `symbol-research` identity is the shared research workflow; the durable
  * Full-mode queue uses `full-analysis` so claimed runs never collide with
- * synchronous Quick/Standard/Single snapshots.
+ * synchronous Single-mode snapshots.
  */
 export function createCommitteeWorkflow(
   deps: CommitteeWorkflowDeps,
@@ -326,10 +330,14 @@ export function createCommitteeWorkflow(
   );
 
   // §3.2 (Q6: ON by default for full) — one cross-critique round. Each desk
-  // reads the other desks' verified opinions and returns a structured peer
-  // review. Disabled with ENABLE_COMMITTEE_CRITIQUE=0; single mode never runs
-  // it (one desk, nothing to critique).
+  // reads the other desks' verified opinions (its own opinion restated
+  // alongside, §1.7) and returns a structured peer review. Disabled with
+  // ENABLE_COMMITTEE_CRITIQUE=0; single mode never runs it (one desk,
+  // nothing to critique).
   const critiqueEnabled = mode === 'full' && readFeatureFlag('ENABLE_COMMITTEE_CRITIQUE');
+  // §3.3: the debate round additionally requires the critique round to have
+  // produced peer reviews to reason over.
+  const debateEnabled = critiqueEnabled && readFeatureFlag('ENABLE_COMMITTEE_DEBATE');
 
   const critiqueStep = createStep({
     id: 'critique',
@@ -372,6 +380,9 @@ export function createCommitteeWorkflow(
             name: peer.agentName,
             prompt: collect.prompt,
             packet: collect.packet,
+            // §1.7 (P1-1): the desk's own opinion is restated in the critique
+            // prompt so the "confirm your position" instruction is answerable.
+            ownOpinion: peer,
             peerOpinions: peers.filter((other) => other.agentName !== peer.agentName),
             requestContext: requestContext as RequestContext<ModeRequestContext>,
             signal,
@@ -432,6 +443,112 @@ export function createCommitteeWorkflow(
     },
   });
 
+  // Audit plan §3.3 — optional bounded debate round (flag-gated, Full only,
+  // requires a completed critique round). Each desk may revise its opinion
+  // once after reading the peer critiques; the revision passes the same
+  // deterministic verification and a failed revision is a failed desk (Q3).
+  const debateStep = createStep({
+    id: 'debate',
+    inputSchema: z.unknown(),
+    outputSchema: DebateStepOutputSchema,
+    retries: 1,
+    execute: async ({ requestContext, getStepResult, abortSignal }) => {
+      // Rollback flag / no critiques: the step is a no-op passthrough.
+      if (!debateEnabled) return { revisions: [], failedAgents: [] };
+      const collect = readCollectPacketResult(getStepResult);
+      const critiqueOutput = readCritiqueStepResult(getStepResult);
+      const critiques = critiqueOutput?.critiques ?? [];
+      if (!collect || critiques.length === 0) return { revisions: [], failedAgents: [] };
+      const signal = runSignal ?? abortSignal;
+      const startedAt = Date.now();
+      const revisable: MastraModeOpinion[] = [];
+      for (const name of specialists) {
+        const marker = readSpecialistStepResult(getStepResult, name);
+        if (marker?.ok && marker.opinion && critiques.some((c) => c.agentName === name)) {
+          revisable.push({
+            agentName: name,
+            bias: marker.opinion.bias,
+            confidence: marker.opinion.confidence,
+            reasoning: marker.opinion.reasoning,
+            rawData: marker.opinion.details,
+            ...committeeModelMetadata(
+              marker.model ?? deps.modelId,
+              marker.providerId ?? deps.providerId,
+              marker.stats!,
+              marker.costUsd ?? 0,
+              marker.latencyMs ?? 0,
+            ),
+          });
+        }
+      }
+
+      const results = await Promise.all(
+        revisable.map((opinion) =>
+          runDebateRevision({
+            name: opinion.agentName,
+            prompt: collect.prompt,
+            packet: collect.packet,
+            ownOpinion: opinion,
+            critiques,
+            requestContext: requestContext as RequestContext<ModeRequestContext>,
+            signal,
+            startedAt,
+            deps: {
+              model: deps.model,
+              modelId: deps.modelId,
+              providerId: deps.providerId,
+              ...(deps.resolveModelForAgent
+                ? { resolveModelForAgent: deps.resolveModelForAgent }
+                : {}),
+              memory: deps.memory,
+              specialistCallOptions: deps.specialistCallOptions,
+              ...(deps.researchInputProcessors
+                ? { inputProcessors: deps.researchInputProcessors as never }
+                : {}),
+              ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors as never } : {}),
+              ...(deps.scorers ? { scorers: deps.scorers } : {}),
+              ledger: generationLedger,
+              maxSteps,
+            },
+          }).catch((error: unknown): DebateStepResult => {
+            // §3.3 (Q3): a debate deadline is a failed desk, not a retryable
+            // error — surface it as a marker for the strict verify step.
+            if (isDeadlineAbort(runSignals)) {
+              return {
+                ok: false,
+                agentName: opinion.agentName,
+                error: 'deadline',
+                latencyMs: Date.now() - startedAt,
+              };
+            }
+            throw error;
+          }),
+        ),
+      );
+
+      const revisions: MastraModeOpinion[] = [];
+      const failedAgents: string[] = [];
+      for (const result of results) {
+        // §5.4: one span per debate desk.
+        recordCommitteeStepSpan({
+          step: 'debate',
+          runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+          symbol: collect.packet.symbol,
+          mode,
+          packetId: collect.packet.packetId,
+          ...(result.opinion ? { modelId: result.opinion.model } : {}),
+          ...(result.latencyMs !== undefined ? { latencyMs: result.latencyMs } : {}),
+          ...(result.opinion ? { tokenCostUsd: result.opinion.costUsd } : {}),
+          ok: result.ok,
+          ...(result.error ? { error: result.error } : {}),
+        });
+        if (result.ok && result.opinion) revisions.push(result.opinion);
+        else failedAgents.push(result.agentName ?? 'unknown');
+      }
+      return { revisions, failedAgents };
+    },
+  });
+
   const verifyStep = createStep({
     id: 'verify',
     inputSchema: z.unknown(),
@@ -453,6 +570,14 @@ export function createCommitteeWorkflow(
       if (critiqueEnabled) {
         const critiqueOutput = readCritiqueStepResult(getStepResult);
         for (const failed of critiqueOutput?.failedAgents ?? []) {
+          const name = failed as MastraSpecialistName;
+          if (!failedAgents.includes(name)) failedAgents.push(name);
+        }
+      }
+      // §3.3 (Q3): a failed debate revision is a failed desk too.
+      if (debateEnabled) {
+        const debateOutput = readDebateStepResult(getStepResult);
+        for (const failed of debateOutput?.failedAgents ?? []) {
           const name = failed as MastraSpecialistName;
           if (!failedAgents.includes(name)) failedAgents.push(name);
         }
@@ -500,6 +625,11 @@ export function createCommitteeWorkflow(
       // §3.2: peer reviews from the cross-critique round, when it ran.
       const critiqueOutput = critiqueEnabled ? readCritiqueStepResult(getStepResult) : undefined;
       const critiques: CommitteeCritique[] = critiqueOutput?.critiques ?? [];
+      // §3.3: revised opinions from the optional debate round, when it ran.
+      const debateOutput = debateEnabled ? readDebateStepResult(getStepResult) : undefined;
+      const revisions = new Map(
+        (debateOutput?.revisions ?? []).map((revision) => [revision.agentName, revision]),
+      );
 
       for (const name of specialists) {
         // Raw step output (getStepResult inside a step returns the output),
@@ -510,20 +640,33 @@ export function createCommitteeWorkflow(
           continue;
         }
         if (!marker?.ok || !marker.opinion || !marker.stats) continue;
-        opinions.push({
-          agentName: name,
-          bias: marker.opinion.bias,
-          confidence: marker.opinion.confidence,
-          reasoning: marker.opinion.reasoning,
-          rawData: marker.opinion.details,
-          ...committeeModelMetadata(
-            marker.model ?? deps.modelId,
-            marker.providerId ?? deps.providerId,
-            marker.stats,
-            marker.costUsd ?? 0,
-            marker.latencyMs ?? 0,
-          ),
-        });
+        const revised = revisions.get(name);
+        if (revised) {
+          // §3.3: the debate revision supersedes the first-round opinion and
+          // carries its own model/token metadata.
+          opinions.push(revised);
+          executionStats.push({
+            inputTokens: revised.inputTokens,
+            outputTokens: revised.outputTokens,
+            toolCalls: 0,
+            steps: 1,
+          });
+        } else {
+          opinions.push({
+            agentName: name,
+            bias: marker.opinion.bias,
+            confidence: marker.opinion.confidence,
+            reasoning: marker.opinion.reasoning,
+            rawData: marker.opinion.details,
+            ...committeeModelMetadata(
+              marker.model ?? deps.modelId,
+              marker.providerId ?? deps.providerId,
+              marker.stats,
+              marker.costUsd ?? 0,
+              marker.latencyMs ?? 0,
+            ),
+          });
+        }
         executionStats.push(marker.stats);
       }
 
@@ -566,14 +709,16 @@ export function createCommitteeWorkflow(
         throw error;
       }
 
-      // §5.4: fusion span carries the full-run cost snapshot.
+      // §5.4: fusion span carries the full-run cost snapshot. §3.1 (Q2): when
+      // model diversity is opted in, report the fusion pass's real model id
+      // instead of the run's primary model.
       recordCommitteeStepSpan({
         step: 'fusion',
         runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
         symbol: packet.symbol,
         mode: runMode,
         packetId: packet.packetId,
-        modelId: deps.modelId,
+        modelId: synthesis.fusionModelId ?? deps.modelId,
         latencyMs: Date.now() - fusionStartedAt,
         tokenCostUsd: generationLedger.total(),
         inputTokens: synthesis.stats.inputTokens,
@@ -605,6 +750,8 @@ export function createCommitteeWorkflow(
     .parallel(specialistSteps as never)
     // §3.2 (Q6): one cross-critique round for full before verification.
     .then(critiqueStep)
+    // §3.3: optional bounded debate round (flag-gated; no-op when disabled).
+    .then(debateStep)
     .then(verifyStep)
     .then(fusionStep)
     .commit() as unknown as Workflow;

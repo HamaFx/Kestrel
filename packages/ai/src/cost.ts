@@ -47,7 +47,9 @@ interface ModelRate {
 
 // Static fallbacks for historical telemetry ids + tests. Live catalog
 // rates are merged from BYOK_PROVIDERS via buildCatalogRateTable() so
-// new models do not need a second hand-maintained table.
+// new models do not need a second hand-maintained table. On a key
+// collision the CATALOG wins — it is the live source of truth; the
+// static table only fills gaps (historical ids, tests).
 const STATIC_RATES: Record<string, ModelRate> = {
   // Conservative upper bounds used by unit tests / historical telemetry.
   'openai/gpt-4.1': { inputPerM: 5, outputPerM: 15 },
@@ -74,8 +76,8 @@ const STATIC_RATES: Record<string, ModelRate> = {
 };
 
 const RATES: Record<string, ModelRate> = {
-  ...buildCatalogRateTable(),
   ...STATIC_RATES,
+  ...buildCatalogRateTable(),
 };
 
 const log = createCategorizedLogger('ai', { component: 'cost' });
@@ -460,6 +462,12 @@ export async function releaseBudgetReservation(
  * workers can safely run this job without double-decrementing the daily
  * counter. A reservation is considered recoverable only after the caller's
  * explicit cutoff; active turns are never inferred from age alone below it.
+ *
+ * Audit plan §1.11 — a reservation tied to a durable Full job is only
+ * recoverable when no live lease backs it: queued work (status `pending`)
+ * and in-flight work with an unexpired lease keep their reservation so the
+ * worker's reconcile can still apply actual cost. Reservations whose run
+ * has no queue row (web turns) age out exactly as before.
  */
 export async function recoverStaleBudgetReservations(
   cutoff: Date,
@@ -469,10 +477,19 @@ export async function recoverStaleBudgetReservations(
   const rows = resultRows<{ id: string }>(
     await getDb().execute(
       sql`
-      SELECT id
-      FROM ai_budget_reservations
-      WHERE status = 'reserved' AND created_at < ${cutoff.toISOString()}
-      ORDER BY created_at ASC
+      SELECT r.id
+      FROM ai_budget_reservations r
+      WHERE r.status = 'reserved' AND r.created_at < ${cutoff.toISOString()}
+        AND NOT EXISTS (
+          SELECT 1
+          FROM full_analysis_queue q
+          WHERE q.run_id = r.run_id
+            AND (
+              q.status = 'pending'
+              OR (q.status = 'running' AND q.lease_expires_at > now())
+            )
+        )
+      ORDER BY r.created_at ASC
       LIMIT ${boundedLimit}
     `,
     ),

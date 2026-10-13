@@ -21,11 +21,11 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
 import { getSentimentService } from '../../../../sentiment';
-import { createEvidenceId } from '../../../../mastra/evidence';
-import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from '../../../../mastra/research-packet-macro';
-import { executeMastraTool } from '../../../../mastra/telemetry';
-import { XauusdSymbolSchema } from '../../../../mastra/tool-schemas';
-import { XAUUSD, XauusdMacroEvidenceSchema } from '../../../../mastra/types';
+import { createEvidenceId } from '../../../packets/evidence';
+import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from '../../../packets/research-packet-macro';
+import { executeMastraTool } from '../../../shared/telemetry';
+import { XauusdSymbolSchema } from '../tool-schemas';
+import { XAUUSD, XauusdMacroEvidenceSchema } from '../../../shared/types';
 
 const InputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),

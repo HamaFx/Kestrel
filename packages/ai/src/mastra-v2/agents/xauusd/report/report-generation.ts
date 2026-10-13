@@ -18,14 +18,14 @@ import type { Agent, AgentMemoryOption } from '@mastra/core/agent';
 import type { RequestContext } from '@mastra/core/request-context';
 
 import { telemetryConfig } from '../../../../telemetry';
-import { manifestForCapability } from '../../../../mastra/capabilities';
-import { guardXauusdFollowupText } from '../../../../mastra/followup-safety';
-import { XauusdResearchReportSchema, type XauusdResearchReport } from '../../../../mastra/report-types';
-import { XauusdReportVerificationError } from '../../../../mastra/report-verifier';
-import type { XauusdResearchPacket } from '../../../../mastra/research-types';
-import type { MastraGenerationResultLike } from '../../../../mastra/stats';
-import type { xauusdMastraTools } from '../../../../mastra/tools';
-import type { XauusdRequestContext } from '../../../../mastra/types';
+import { manifestForCapability } from '../../../capabilities';
+import { guardXauusdFollowupText } from '../followup-safety';
+import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
+import { XauusdReportVerificationError } from './report-verifier';
+import type { XauusdResearchPacket } from '../../../packets/research-types';
+import type { MastraGenerationResultLike } from '../../../shared/stats';
+import type { xauusdMastraTools } from '../tools';
+import type { XauusdRequestContext } from '../../../shared/types';
 
 export type XauusdReportGenerationResult = Awaited<ReturnType<typeof generateXauusdReport>>;
 

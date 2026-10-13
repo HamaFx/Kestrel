@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import { buildIndicatorsEvidence } from '../../mastra/evidence-builders';
+import { buildIndicatorsEvidence } from './evidence-builders';
 import {
   RESEARCH_CANDLE_OUTPUT,
   RESEARCH_INDICATOR_OUTPUT,
   XAUUSD_RESEARCH_INDICATORS,
-} from '../../mastra/research-config';
-import type { CandleSuccess } from '../../mastra/research-packet-candles';
+} from './research-config';
+import type { CandleSuccess } from './research-packet-candles';
 import {
   completeResearchStage,
   recordResearchStageFailure,
   startResearchStage,
   warningForResearchFailure,
-} from '../../mastra/research-packet-stages';
-import type { XauusdResearchPacket } from '../../mastra/research-types';
-import { XAUUSD } from '../../mastra/types';
+} from './research-packet-stages';
+import type { XauusdResearchPacket } from './research-types';
+import { XAUUSD } from '../shared/types';
 
 export function collectIndicatorEvidence(
   packetId: string,

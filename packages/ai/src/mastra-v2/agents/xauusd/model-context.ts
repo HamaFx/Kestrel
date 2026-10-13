@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import type { XauusdResearchPacket } from '../../../mastra/research-types';
+import type { XauusdResearchPacket } from '../../packets/research-types';
 import type {
   XauusdCandlesEvidence,
   XauusdIndicatorsEvidence,
   XauusdMacroEvidence,
   XauusdPriceEvidence,
-} from '../../../mastra/types';
+} from '../../shared/types';
 
 type LegacyModelEvidence = XauusdPriceEvidence;
 

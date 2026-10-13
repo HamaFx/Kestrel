@@ -18,27 +18,63 @@
 // packets are served from the LRU and burst-deduplicated; stale, degraded,
 // and blocked packets are never cached.
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { metrics } from '@kestrel/shared';
-
-const mocks = vi.hoisted(() => ({
-  collectSymbolResearchPacket: vi.fn(),
-}));
-
-vi.mock('../src/mastra/symbol-research', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra/symbol-research');
-  return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
-});
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   _resetPacketCache,
   collectSymbolResearchPacketCached,
   isFreshCacheablePacket,
   PACKET_CACHE_TTL_MS,
-} from '../src/mastra/packet-cache';
-import { SymbolResearchPacketSchema, XauusdExtensionSchema } from '../src/mastra/symbol-research';
-import type { SymbolResearchPacket } from '../src/mastra/symbol-research';
+} from '../src/mastra-v2/packets/packet-cache';
+import {
+  SymbolResearchPacketSchema,
+  XauusdExtensionSchema,
+  type SymbolResearchPacket,
+} from '../src/mastra-v2/packets/symbol-research';
+
+const mocks = vi.hoisted(() => ({
+  collectSymbolResearchPacket: vi.fn(),
+}));
+
+const mirrorMocks = vi.hoisted(() => ({
+  get: vi.fn(),
+  set: vi.fn(),
+}));
+
+const loggerMocks = vi.hoisted(() => ({
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+}));
+
+vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra/symbol-research');
+  return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
+});
+
+// §2.2 — the Redis mirror is optional infrastructure instantiated via a
+// dynamic `import('ioredis')`; a fake client lets the tests observe mirror
+// interactions without a live Redis.
+vi.mock('ioredis', () => ({
+  default: class FakeRedisMirror {
+    get = mirrorMocks.get;
+    set = mirrorMocks.set;
+
+    constructor(
+      _url: string,
+      _opts: { lazyConnect: boolean; maxRetriesPerRequest: number },
+    ) {}
+  },
+}));
+
+vi.mock('@kestrel/shared/logger', () => ({
+  createCategorizedLogger: () => ({
+    info: loggerMocks.info,
+    warn: loggerMocks.warn,
+    error: loggerMocks.error,
+  }),
+}));
 
 const freshPacket = {
   packetId: 'packet-fresh',
@@ -84,7 +120,14 @@ const freshPacket = {
         },
       ],
       indicators: [
-        { symbol: 'XAUUSD', tf: '1h' as const, kind: 'rsi' as const, params: { period: 14 }, values: [61.4], fetchedAt: 1760000000000 },
+        {
+          symbol: 'XAUUSD',
+          tf: '1h' as const,
+          kind: 'rsi' as const,
+          params: { period: 14 },
+          values: [61.4],
+          fetchedAt: 1760000000000,
+        },
       ],
     },
   ],
@@ -114,6 +157,7 @@ beforeEach(() => {
   metrics.reset();
   _resetPacketCache();
   delete process.env.PHASE2_PACKET_CACHE;
+  delete process.env.REDIS_URL;
 });
 
 describe('packet cache (§2.1, Q5)', () => {
@@ -140,7 +184,9 @@ describe('packet cache (§2.1, Q5)', () => {
   });
 
   it('never caches stale or blocked packets', async () => {
-    mocks.collectSymbolResearchPacket.mockResolvedValueOnce(stalePacket).mockResolvedValueOnce(blockedPacket);
+    mocks.collectSymbolResearchPacket
+      .mockResolvedValueOnce(stalePacket)
+      .mockResolvedValueOnce(blockedPacket);
 
     await collectSymbolResearchPacketCached('XAUUSD');
     await collectSymbolResearchPacketCached('XAUUSD');
@@ -234,5 +280,83 @@ describe('packet cache (§2.1, Q5)', () => {
     await collectSymbolResearchPacketCached('XAUUSD');
 
     expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the §4.2 XAUUSD macro extension on the PHASE2_PACKET_CACHE=0 rollback path (P1-9)', async () => {
+    process.env.PHASE2_PACKET_CACHE = '0';
+    mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
+
+    await collectSymbolResearchPacketCached('XAUUSD');
+
+    expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledWith(
+      'XAUUSD',
+      undefined,
+      expect.objectContaining({ includeMacro: true }),
+    );
+
+    // Non-gold symbols still skip the macro fetch on the rollback path.
+    mocks.collectSymbolResearchPacket.mockClear();
+    await collectSymbolResearchPacketCached('EURUSD');
+    expect(mocks.collectSymbolResearchPacket).not.toHaveBeenCalledWith(
+      'EURUSD',
+      undefined,
+      expect.objectContaining({ includeMacro: true }),
+    );
+  });
+
+  it('never awaits the Redis mirror write on the cache-miss path (§2.2, fire-and-forget)', async () => {
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    mirrorMocks.get.mockResolvedValue(null);
+    // A mirror write that never settles must not stall the request path; the
+    // pre-§2.2 code awaited mirror.set and would hang forever on this mock.
+    mirrorMocks.set.mockReturnValue(new Promise<unknown>(() => {}));
+
+    mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
+    const collected = await collectSymbolResearchPacketCached('XAUUSD');
+
+    expect(collected.packetId).toBe('packet-fresh');
+    await vi.waitFor(() => expect(mirrorMocks.set).toHaveBeenCalled());
+    expect(mirrorMocks.set).toHaveBeenCalledWith(
+      expect.stringMatching(/^packet:XAUUSD:\d+$/),
+      expect.any(String),
+      'EX',
+      Math.ceil(PACKET_CACHE_TTL_MS / 1000),
+    );
+    // The mirror READ stays on the request path: the miss lookup queried it.
+    expect(mirrorMocks.get).toHaveBeenCalled();
+  });
+
+  it('a rejected mirror write never rejects the cache path and logs a warning (§2.2)', async () => {
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    mirrorMocks.get.mockResolvedValue(null);
+    mirrorMocks.set.mockRejectedValue(new Error('mirror is down'));
+
+    mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
+    const first = await collectSymbolResearchPacketCached('XAUUSD');
+    expect(first.packetId).toBe('packet-fresh');
+
+    await vi.waitFor(() => expect(mirrorMocks.set).toHaveBeenCalled());
+    // The detached rejection is caught and warn-logged, never surfaced as an
+    // unhandled rejection or a failed cache path.
+    await vi.waitFor(() => expect(loggerMocks.warn).toHaveBeenCalled());
+    expect(loggerMocks.warn).toHaveBeenCalledWith(
+      expect.stringContaining('mirror write failed'),
+      expect.objectContaining({ error: 'mirror is down' }),
+    );
+
+    // The in-process LRU still cached the packet; the mirror failure is inert.
+    const second = await collectSymbolResearchPacketCached('XAUUSD');
+    expect(second.packetId).toBe('packet-fresh');
+    expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the no-REDIS_URL behavior: no mirror interaction at all', async () => {
+    mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
+
+    const collected = await collectSymbolResearchPacketCached('XAUUSD');
+
+    expect(collected.packetId).toBe('packet-fresh');
+    expect(mirrorMocks.get).not.toHaveBeenCalled();
+    expect(mirrorMocks.set).not.toHaveBeenCalled();
   });
 });

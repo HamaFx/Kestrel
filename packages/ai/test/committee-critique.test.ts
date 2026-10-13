@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-// Audit plan §3.2 (Q6: ON by default for full) — cross-critique round. Each
-// specialist reads the other desks' verified opinions and critiques its own
-// position; fusion then sees both opinions and peer reviews.
+// Audit plan §3.2 (Q6) — cross-critique round. Each specialist reads the
+// other desks' verified opinions, with its own opinion restated alongside
+// (§1.7) so it can confirm or refine its position; fusion then sees both
+// opinions and peer reviews.
 
 import { describe, expect, it } from 'vitest';
 
@@ -75,9 +76,10 @@ const packet = {
 } as never;
 
 describe('cross-critique (§3.2, Q6)', () => {
-  it('builds peer-review instructions embedding the other desks, never the self', () => {
+  it('builds peer-review instructions embedding the other desks, never the self as a peer', () => {
     const instructions = critiqueInstructionsForRequest({
       name: 'technical',
+      ownOpinion: opinions[0]!,
       peerOpinions: opinions.filter((opinion) => opinion.agentName !== 'technical'),
       requestContext: contextWith([['packet', packet]]),
     });
@@ -87,8 +89,33 @@ describe('cross-critique (§3.2, Q6)', () => {
     expect(instructions).toContain('### risk');
     expect(instructions).toContain('bias: bearish');
     expect(instructions).toContain('Invalidation sits just below current price');
-    // The critiquing desk's own opinion is never included as a peer.
+    // The critiquing desk's own opinion is never listed as a peer desk.
     expect(instructions).not.toContain('### technical');
+  });
+
+  it('restates the desk\'s own opinion as its initial position alongside the peers (§1.7)', () => {
+    const instructions = critiqueInstructionsForRequest({
+      name: 'technical',
+      ownOpinion: opinions[0]!,
+      peerOpinions: opinions.filter((opinion) => opinion.agentName !== 'technical'),
+      requestContext: contextWith([['packet', packet]]),
+    });
+
+    // The desk's own opinion is included and labeled as its own position.
+    expect(instructions).toContain('Your own initial position');
+    expect(instructions).toContain('bias: bullish');
+    expect(instructions).toContain('confidence: 0.8');
+    expect(instructions).toContain('Bullish structure; holds above the rising 50 EMA.');
+    // The own position sits in its own section before the peer opinions.
+    expect(instructions.indexOf('Bullish structure; holds above the rising 50 EMA.')).toBeLessThan(
+      instructions.indexOf('Peer opinions'),
+    );
+    expect(instructions.indexOf('Invalidation sits just below current price')).toBeGreaterThan(
+      instructions.indexOf('Peer opinions'),
+    );
+    // The confirm instruction points at the restated own position, so it is
+    // answerable from the prompt alone.
+    expect(instructions).toContain('CONFIRM your own initial position');
   });
 
   it('requests a structured critique (confirms, revisedConfidence, critique)', () => {

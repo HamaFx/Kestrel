@@ -42,7 +42,7 @@ const mocks = vi.hoisted(() => ({
   hangSpecialists: false,
 }));
 
-vi.mock('../src/mastra/symbol-research', async () => {
+vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('../src/mastra/symbol-research');
   return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
 });

@@ -19,8 +19,8 @@ import {
   getMastraCapability,
   type MastraCapabilityDecision,
   type MastraCapabilityId,
-} from '../../mastra/capabilities';
-import { classifyMutationRequest } from '../../mastra/mutation-detect';
+} from '../capabilities';
+import { classifyMutationRequest } from '../mutation/mutation-detect';
 import {
   extractMastraSymbol,
   isMastraSymbolCandidate,
@@ -28,7 +28,7 @@ import {
   isMastraXauusdFollowupCandidate,
   mastraXauusdChatKind,
   messageText,
-} from '../../mastra/routing-policy';
+} from './routing-policy';
 
 export type MastraExecutionRoute =
   | 'mutation'

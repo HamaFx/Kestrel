@@ -125,6 +125,9 @@ function mastraRetention(): RetentionConfig {
     memory: {
       messages: { maxAge: '90d' },
       threads: { maxAge: '180d' },
+      // Audit v2 §4.4 (P2-4) — resources are user-scoped working memory, so
+      // they get the longest age window rather than thread-lifetime pruning.
+      resources: { maxAge: '365d' },
     },
     workflows: {
       workflowSnapshot: { maxAge: '30d' },

@@ -47,7 +47,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import { getDb } from '../db';
-import { runMastraText } from '../mastra/text-runner';
+import { runMastraText } from '../mastra-v2/agents/xauusd/text-runner';
 import { resolveModel, resolveVisionModel } from '../model';
 import { maybeGetToolContext, type ToolDb } from '../tool-context';
 

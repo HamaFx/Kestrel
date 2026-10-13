@@ -16,6 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as TelemetryPersistenceModule from '../src/persistence/telemetry-persistence';
+
 import { replayPersistenceFailures } from '../src/persistence-recovery';
 
 const {
@@ -45,10 +47,17 @@ const mockDb = {
 };
 
 vi.mock('../src/db', () => ({ getDb: () => mockDb }));
-vi.mock('../src/persistence/telemetry-persistence', () => ({
-  recordTelemetry: mockRecordTelemetry,
-  recordToolTelemetry: mockRecordToolTelemetry,
-}));
+vi.mock('../src/persistence/telemetry-persistence', async (importOriginal) => {
+  // Audit v2 §4.5 — persistence-recovery builds its replay kind enum from
+  // the real TELEMETRY_KINDS, so the mock must preserve the module's
+  // runtime constants and only stub the two DB writers.
+  const actual = await importOriginal<typeof TelemetryPersistenceModule>();
+  return {
+    ...actual,
+    recordTelemetry: mockRecordTelemetry,
+    recordToolTelemetry: mockRecordToolTelemetry,
+  };
+});
 vi.mock('../src/persistence/message-persistence', () => ({
   appendUserMessage: mockAppendUserMessage,
   appendAssistantMessage: mockAppendAssistantMessage,

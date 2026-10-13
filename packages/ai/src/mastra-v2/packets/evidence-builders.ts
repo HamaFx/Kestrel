@@ -15,10 +15,9 @@
  */
 
 import type { CandlesResult, PriceResult } from '@kestrel/data';
-import { computeIndicator } from '@kestrel/indicators';
 import type { IndicatorRequest, Timeframe } from '@kestrel/shared';
 
-import { createEvidenceId, freshnessFromAge, qualityFromWarnings } from '../../mastra/evidence';
+import { createEvidenceId, freshnessFromAge, qualityFromWarnings } from './evidence';
 import {
   XAUUSD,
   XauusdCandlesEvidenceSchema,
@@ -27,7 +26,8 @@ import {
   type XauusdCandlesEvidence,
   type XauusdIndicatorsEvidence,
   type XauusdPriceEvidence,
-} from '../../mastra/types';
+} from '../shared/types';
+import { computeIndicatorMemo } from './symbol-research';
 
 function iso(ms: number): string {
   return new Date(ms).toISOString();
@@ -65,8 +65,13 @@ export function buildCandlesEvidence(
   const latestCandle = candles.at(-1);
   const warnings = [
     ...(result.stale ? ['Candles were served from stale-while-error cache'] : []),
-    ...(candles.length < requestedCount
-      ? [`Only ${candles.length} candles were available; ${requestedCount} were requested`]
+    // §2.1/P1-10 — availability is measured on the FETCHED window, not the
+    // output-bounded slice: bounding the packet to the last N candles is a
+    // size limit, not a provider shortfall. Comparing the slice length
+    // against requestedCount warned on every fresh packet, which degraded
+    // every packet and defeated the fresh-only packet cache.
+    ...(result.candles.length < requestedCount
+      ? [`Only ${result.candles.length} candles were available; ${requestedCount} were requested`]
       : []),
     ...(!latestCandle ? ['No candles were returned'] : []),
   ];
@@ -98,7 +103,11 @@ export function buildIndicatorsEvidence(
 ): XauusdIndicatorsEvidence {
   const candles = result.candles.slice(-maxCandleOutput);
   const results = indicators.map(({ kind, params }) => {
-    const computed = computeIndicator({
+    // §2.1/P1-10 — memoized compute: the XAUUSD packet path shares the
+    // bounded indicator memo with the committee collector, so repeated
+    // collections over an identical candle window (bursts, report repair
+    // re-runs, tool calls) never recompute a pure indicator.
+    const computed = computeIndicatorMemo({
       symbol: XAUUSD,
       tf: timeframe,
       kind,
@@ -109,8 +118,10 @@ export function buildIndicatorsEvidence(
   });
   const warnings = [
     ...(result.stale ? ['Indicator candles were served from stale-while-error cache'] : []),
-    ...(candles.length < requestedCount
-      ? [`Only ${candles.length} candles were available; ${requestedCount} were requested`]
+    // §2.1/P1-10 — same as buildCandlesEvidence: compare the FETCHED window
+    // against the request, not the output-bounded slice used for compute.
+    ...(result.candles.length < requestedCount
+      ? [`Only ${result.candles.length} candles were available; ${requestedCount} were requested`]
       : []),
     ...(!candles.length ? ['No candles were returned; indicators may be empty'] : []),
   ];

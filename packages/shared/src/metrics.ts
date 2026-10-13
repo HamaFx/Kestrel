@@ -45,6 +45,10 @@ export const METRIC_NAMES = [
   'committee_fusion_verification_failed_total',
   'circuit_open_total',
   'circuit_breaker_db_unavailable_total',
+  // Audit plan v2 §5.2 — committee grounding + canonical evidence gates.
+  'committee_opinion_verification_total',
+  'committee_grounding_rejected_total',
+  'canonical_evidence_blocked_total',
   // Audit plan §2.1 — packet cache SLIs.
   'packet_cache_hit_total',
   'packet_cache_miss_total',
@@ -91,6 +95,13 @@ export const METRIC_NAMES = [
   'scorer_missing_input_total',
   'mastra_unpriced_model_total',
   'mastra_telemetry_degraded_total',
+  // Audit plan §1.11 (P1-16, P1-5/Q3) — alert noise-control suppression and
+  // operator env-key fallback attribution ({provider} tag).
+  'alert_noise_suppressed_total',
+  'operator_key_fallback_total',
+  // Audit plan v2 §5.3 (Q4) — non-blocking per-user daily spend-threshold
+  // crossings surfaced on the admin System Health dashboard.
+  'admin_spend_threshold_total',
 ] as const;
 
 export type MetricName = (typeof METRIC_NAMES)[number];

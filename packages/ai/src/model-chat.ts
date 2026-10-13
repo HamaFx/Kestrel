@@ -105,10 +105,12 @@ export function resolveChatModel(
 /**
  * Resolve a model specifically for a given provider ID.
  *
- * M4 fix — checks the circuit breaker before returning. If the
- * requested provider's circuit is open (3+ consecutive failures),
- * the caller gets a clear error rather than silently hitting a
- * degraded provider.
+ * M4 fix — checks the circuit breaker before returning. If the resolved
+ * model's circuit is open (3+ consecutive failures), the caller gets a
+ * clear error rather than silently hitting a degraded model. Audit plan
+ * §1.4 (P0-4): the breaker is keyed by the model id, so only the
+ * specific requested/default model is skipped, not every model the
+ * provider offers.
  */
 export function resolveModelForProvider(
   providerId: ProviderId,
@@ -117,9 +119,6 @@ export function resolveModelForProvider(
   requestedModelId?: string,
   domain: ModelDomain = 'technical',
 ): ChatModelResolution {
-  if (isCircuitOpen(providerId)) {
-    throw new Error(`Provider ${providerId} is temporarily unavailable (circuit open).`);
-  }
   const stored = decryptByok(userSettings.aiApiKeys);
   const keys: ByokPayload = {
     ...envFallbackKeys(env),
@@ -143,9 +142,13 @@ export function resolveModelForProvider(
   ) {
     throw new Error(`Unknown model for provider ${providerId}: ${requestedModelId}`);
   }
+  const modelId = `${providerId}/${bareModelId}`;
+  if (isCircuitOpen(modelId)) {
+    throw new Error(`Model ${modelId} is temporarily unavailable (circuit open).`);
+  }
   return {
     model: spec.factory(apiKey)(bareModelId),
-    modelId: `${spec.id}/${bareModelId}`,
+    modelId,
     providerId,
     bareModelId,
   };

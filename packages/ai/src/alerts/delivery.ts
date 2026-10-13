@@ -27,17 +27,31 @@
 //   3. On 2xx → call markFired, then return ok.
 //   4. On non-2xx (or fetch error) → log the Resend status + truncated body
 //      and return without calling markFired so the next cron tick retries.
+//
+// Audit plan §1.11 / P1-16 — before any provider is touched, the user's noise
+// control settings (dedup / cooldown / quiet hours) are consulted through
+// `evaluateNoise`. Suppressed alerts are never delivered but stay active, so
+// they fire normally once the suppression window lifts. The dedup/cooldown
+// state is persisted via `DbNoiseState` so every cron runner shares one view.
 
 import type { Alert } from '@kestrel/shared';
+import { metrics, type NoiseDecision } from '@kestrel/shared';
 import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
 
 import { deletePushSubscription, listPushSubscriptions } from '../push/persistence';
 import { sendWebPush } from '../push/send';
+import { evaluateNoise, hashContent } from '../notifications/noise-control';
+import { DbNoiseState, getNoiseConfig } from '../notifications/noise-state';
 import { describeRule, type EvaluatorEnv, type RuleReading } from './evaluator';
 import { markFiredForAlert } from './persistence';
 
 const alog = createCategorizedLogger('ai', { component: 'alerts-delivery' });
 const EXTERNAL_DELIVERY_TIMEOUT_MS = 30_000;
+/**
+ * Triggered price alerts rank as `warning`: above `info` chatter, below the
+ * `critical` tier that punches through quiet hours by default.
+ */
+const ALERT_NOISE_SEVERITY = 'warning' as const;
 
 export interface DeliveryResult {
   alertId: string;
@@ -54,29 +68,117 @@ interface DeliverArgs {
   claimAt?: Date | undefined;
 }
 
+/**
+ * Noise-control gate for one alert delivery (audit plan §1.11 / P1-16).
+ *
+ * Returns the `evaluateNoise` decision plus a deferred `record()` that
+ * persists the dedup/cooldown keys. Recording is deferred until a channel
+ * confirms delivery: a transient provider failure must keep retrying on the
+ * next cron tick, not be suppressed as its own "duplicate".
+ *
+ * Returns null (fail open) when noise state cannot be read — alert delivery
+ * must never depend on the noise subsystem being healthy.
+ */
+async function evaluateAlertNoise(
+  alert: Alert,
+  reading: RuleReading,
+): Promise<{ decision: NoiseDecision; record: () => Promise<void> } | null> {
+  const content = renderEmailBody(alert, reading);
+  try {
+    const config = await getNoiseConfig(alert.userId);
+    const state = new DbNoiseState(alert.userId);
+    const decision = await evaluateNoise(content, 'alert', ALERT_NOISE_SEVERITY, config, {
+      hasSeen: (dedupKey, ttlSeconds) => state.hasSeen(dedupKey, ttlSeconds),
+      inCooldown: (cooldownKey, cooldownSeconds) =>
+        state.inCooldown(cooldownKey, cooldownSeconds),
+      record: async () => {
+        /* deferred — see record() below */
+      },
+    });
+    const dedupKey = decision.dedupKey ?? hashContent(content, 'alert');
+    const cooldownKey = decision.cooldownKey ?? 'alert';
+    return {
+      decision,
+      record: () => state.record(dedupKey, cooldownKey),
+    };
+  } catch (err) {
+    alog.warn('noise-control unavailable; delivering without suppression', {
+      alertId: alert.id,
+      err: String(err),
+    });
+    return null;
+  }
+}
+
 export async function deliverAlert({
   alert,
   reading,
   env,
   claimAt,
 }: DeliverArgs): Promise<DeliveryResult> {
+  // Audit plan §1.11 / P1-16 — consult dedup/cooldown/quiet-hours state
+  // before any external call. A suppressed alert returns without calling
+  // markFired; the evaluator releases the claim and the alert stays active,
+  // so it fires once the suppression window lifts.
+  const noise = await evaluateAlertNoise(alert, reading);
+  if (noise && !noise.decision.shouldSend) {
+    metrics.increment('alert_noise_suppressed_total', {
+      tags: { reason: noise.decision.reasonCode },
+    });
+    alog.debug('alert suppressed by noise control', {
+      alertId: alert.id,
+      reason: noise.decision.reasonCode,
+    });
+    return {
+      alertId: alert.id,
+      channel: 'noise-control',
+      ok: false,
+      message: `noise: ${noise.decision.reasonCode} (${noise.decision.message})`,
+    };
+  }
+
   // Pick the first configured channel that can actually deliver. Iterating
   // over alert.channels means the user controls priority.
+  //
+  // Audit plan §1.11 / P1-17 — only a successful delivery (`ok`) short-circuits
+  // the loop. Unconfigured or failing channels are skipped so a later
+  // configured channel still gets its chance; the previous "not configured"
+  // short-circuit silently starved every channel after the first gap.
+  let lastAttempt: DeliveryResult | null = null;
   for (const ch of alert.channels) {
-    if (ch === 'email') {
-      const r = await deliverEmail({ alert, reading, env, claimAt });
-      if (r.ok || r.message?.startsWith('not configured')) return r;
+    const r = await deliverChannel(ch, { alert, reading, env, claimAt });
+    if (!r) continue; // Unknown channel id — skip, never fatal.
+    if (r.ok) {
+      // Delivery confirmed — persist dedup/cooldown state so subsequent
+      // noisy repeats of this content are suppressed.
+      await noise?.record().catch((err) => {
+        alog.warn('noise-control record failed', { alertId: alert.id, err: String(err) });
+      });
+      return r;
     }
-    if (ch === 'telegram') {
-      const r = await deliverTelegram({ alert, reading, env, claimAt });
-      if (r.ok || r.message?.startsWith('not configured')) return r;
-    }
-    if (ch === 'web-push') {
-      const r = await deliverWebPush({ alert, reading, env, claimAt });
-      if (r.ok || r.message?.startsWith('not configured')) return r;
-    }
+    lastAttempt = r;
   }
-  return { alertId: alert.id, channel: 'none', ok: false, message: 'no channels' };
+  // Preserve the most informative failure (e.g. "not configured") for callers
+  // that log the DeliveryResult; "no channels" stays for an empty list.
+  return (
+    lastAttempt ?? { alertId: alert.id, channel: 'none', ok: false, message: 'no channels' }
+  );
+}
+
+async function deliverChannel(
+  ch: string,
+  args: DeliverArgs,
+): Promise<DeliveryResult | null> {
+  switch (ch) {
+    case 'email':
+      return deliverEmail(args);
+    case 'telegram':
+      return deliverTelegram(args);
+    case 'web-push':
+      return deliverWebPush(args);
+    default:
+      return null;
+  }
 }
 
 async function deliverEmail({

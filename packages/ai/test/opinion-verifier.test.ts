@@ -47,3 +47,27 @@ describe('Mastra opinion verifier', () => {
     ).toMatchObject({ ok: false });
   });
 });
+
+describe('Mastra opinion verifier numeric grounding (P0-2)', () => {
+  const readyPacket = {
+    symbol: 'XAUUSD',
+    status: 'ready',
+    timeframes: [],
+    price: { tick: { bid: 2648.2, ask: 2648.4, mid: 2648.3 } },
+  } as never;
+
+  it('rejects a specialist reasoning that invents a price absent from packet evidence', () => {
+    const verification = verifyMastraOpinion(
+      { ...opinion, reasoning: 'Support sits at 9999 on the 1h.' } as never,
+      readyPacket,
+    );
+    expect(verification.ok).toBe(false);
+    expect(verification.findings.join(' ')).toContain('9999');
+  });
+
+  it('accepts a specialist reasoning whose price is grounded in packet evidence', () => {
+    expect(
+      verifyMastraOpinion({ ...opinion, reasoning: 'Holding above 2648.3.' } as never, readyPacket),
+    ).toEqual({ ok: true, findings: [] });
+  });
+});

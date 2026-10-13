@@ -184,6 +184,7 @@ describe('mastra observability — telemetry helpers', () => {
     const empty = summarizeWorkflowRunState(null, 'symbol-research');
     expect(empty.status).toBeNull();
     expect(empty.failedSteps).toEqual([]);
+    expect(empty.error).toBeNull();
 
     const snapshot = {
       status: 'failed',
@@ -199,6 +200,80 @@ describe('mastra observability — telemetry helpers', () => {
     expect(summary.failedSteps).toEqual(['technical']);
     expect(summary.completedSteps).toBe(1);
     expect(summary.totalSteps).toBe(3);
+    // No error persisted on the steps or the snapshot → no failure detail.
+    expect(summary.error).toBeNull();
+  });
+
+  it('recovers committee failure detail (strict failure + verifier findings) from the snapshot', () => {
+    const findings = 'Fusion verification failed after repair: number 2142.60 not grounded; date 2026-10-12 not grounded';
+    const snapshot = {
+      status: 'failed',
+      steps: {
+        'collect-packet': { status: 'succeeded' },
+        technical: {
+          status: 'succeeded',
+          output: { ok: false, error: 'deadline' },
+        },
+        fusion: {
+          status: 'failed',
+          error: {
+            name: 'MastraModeStrictFailureError',
+            message: 'Mastra analysis could not complete. Failed agents: fusion. No partial answer was returned — please retry.',
+            cause: { name: 'Error', message: findings },
+          },
+        },
+      },
+      error: {
+        name: 'MastraModeStrictFailureError',
+        message: 'Mastra analysis could not complete. Failed agents: fusion. No partial answer was returned — please retry.',
+        cause: { name: 'Error', message: findings },
+      },
+    } as never;
+    const summary = summarizeWorkflowRunState(snapshot, 'symbol-research');
+    expect(summary.failedSteps).toEqual(['technical', 'fusion']);
+    // The failed fusion step surfaces its message plus the verifier findings
+    // from the cause chain; the soft-failed specialist surfaces its marker.
+    expect(summary.error).toContain('technical: deadline');
+    expect(summary.error).toContain(
+      'fusion: Mastra analysis could not complete. Failed agents: fusion.',
+    );
+    expect(summary.error).toContain(`(cause: ${findings})`);
+    // The workflow-level error duplicates the step error → not repeated.
+    const occurrences =
+      (summary.error ?? '').split('Mastra analysis could not complete').length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it('falls back to the workflow-level error and context step results', () => {
+    const snapshot = {
+      status: 'failed',
+      context: {
+        input: { symbol: 'XAUUSD' },
+        fusion: {
+          status: 'failed',
+          error: { name: 'Error', message: 'Committee analysis timed out during fusion — please retry.' },
+        },
+      },
+      error: { name: 'Error', message: 'workflow crashed' },
+    } as never;
+    const summary = summarizeWorkflowRunState(snapshot, 'symbol-research');
+    expect(summary.error).toContain(
+      'fusion: Committee analysis timed out during fusion — please retry.',
+    );
+    expect(summary.error).toContain('workflow crashed');
+  });
+
+  it('caps the failure detail so one verbose error cannot bloat the view', () => {
+    const snapshot = {
+      status: 'failed',
+      steps: {
+        fusion: { status: 'failed', error: { name: 'Error', message: 'x'.repeat(600) } },
+      },
+    } as never;
+    const summary = summarizeWorkflowRunState(snapshot, 'symbol-research');
+    expect(summary.error).not.toBeNull();
+    expect((summary.error ?? '').length).toBe(500);
+    expect(summary.error?.endsWith('…')).toBe(true);
   });
 });
 
@@ -221,6 +296,8 @@ describe('mastra observability — unified run view', () => {
       expect(view.scores).toEqual([]);
       expect(view.scoreMean).toBeNull();
       expect(view.langfuseUrl).toBeNull();
+      expect(view.workflow.error).toBeNull();
+      expect(view.error).toBeNull();
     } finally {
       process.env.LANGFUSE_PUBLIC_KEY = prev.key;
       process.env.LANGFUSE_SECRET_KEY = prev.secret;
@@ -265,6 +342,66 @@ describe('mastra observability — unified run view', () => {
     expect(view.workflow.status).toBe('running');
     expect(view.scores).toEqual([]);
     expect(view.langfuseUrl).toBeNull();
+  });
+
+  it('carries the failure detail for a failed committee run (strict failure + verifier findings)', async () => {
+    const instance = await buildInstance();
+
+    // Seed the snapshot a failed committee run leaves behind: the fusion
+    // step threw MastraModeStrictFailureError whose cause carries the
+    // grounding-verifier findings.
+    const storage = instance.getStorage() as never as {
+      getStore(domain: string): Promise<{
+        persistWorkflowSnapshot(input: unknown): Promise<void>;
+      }>;
+    };
+    const workflowsDomain = await storage.getStore('workflows');
+    await workflowsDomain.persistWorkflowSnapshot({
+      workflowName: 'symbol-research',
+      runId: 'run-fail',
+      resourceId: 'user-1',
+      snapshot: {
+        runId: 'run-fail',
+        status: 'failed',
+        value: {},
+        context: {},
+        serializedStepGraph: [],
+        activePaths: [],
+        activeStepsPath: {},
+        suspendedPaths: {},
+        resumeLabels: {},
+        waitingPaths: {},
+        timestamp: Date.now(),
+        steps: {
+          'collect-packet': { status: 'succeeded' },
+          technical: { status: 'succeeded' },
+          fusion: {
+            status: 'failed',
+            error: {
+              name: 'MastraModeStrictFailureError',
+              message:
+                'Mastra analysis could not complete. Failed agents: fusion. No partial answer was returned — please retry.',
+              cause: {
+                name: 'Error',
+                message:
+                  'Fusion verification failed after repair: number 2142.60 not grounded; date 2026-10-12 not grounded',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const view = await toMastraRunView(
+      telemetryRow({ runId: 'run-fail', kind: 'mastra_mode_failed', traceId: null }),
+      instance,
+    );
+    expect(view.workflow.status).toBe('failed');
+    expect(view.workflow.failedSteps).toEqual(['fusion']);
+    expect(view.workflow.error).toContain('fusion: Mastra analysis could not complete.');
+    expect(view.workflow.error).toContain('(cause: Fusion verification failed after repair');
+    // Phase 5.2: the run-level field is what the admin table renders.
+    expect(view.error).toBe(view.workflow.error);
   });
 
   it('computes the mean score when score records exist', async () => {

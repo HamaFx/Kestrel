@@ -21,12 +21,31 @@
  * verification is a reusable, testable committee stage shared by every mode.
  */
 
-import type { SymbolResearchPacket } from '../mastra/symbol-research';
+import { metrics } from '@kestrel/shared';
+
+import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
+import { packetEvidenceValues, ungroundedNarrativeNumbers } from './grounding';
 import type { MastraModeOpinion } from './types';
 
 export interface OpinionVerification {
   ok: boolean;
   findings: string[];
+}
+
+/** Audit plan §5.2 — surface rejected opinions in the admin dashboards. */
+function emitVerificationMetrics(ok: boolean, findings: readonly string[]): void {
+  metrics.increment('committee_opinion_verification_total', {
+    tags: { result: ok ? 'ok' : 'fail' },
+  });
+  if (!ok) {
+    metrics.increment('committee_grounding_rejected_total', {
+      tags: {
+        reason: findings.some((f) => /unsupported numeric value|not allowed when packet/.test(f))
+          ? 'grounding'
+          : 'invalid',
+      },
+    });
+  }
 }
 
 /**
@@ -53,7 +72,14 @@ export function verifyMastraOpinion(
   if (/\d/.test(opinion.reasoning) && packet.status !== 'ready') {
     findings.push('numeric reasoning is not allowed when packet data is unavailable');
   }
+  if (packet.status === 'ready') {
+    const evidenceValues = packetEvidenceValues(packet);
+    for (const value of ungroundedNarrativeNumbers(opinion.reasoning, evidenceValues)) {
+      findings.push(`reasoning cites unsupported numeric value ${value} not found in packet evidence`);
+    }
+  }
   if (packet.symbol.length === 0) findings.push('packet symbol is missing');
 
+  emitVerificationMetrics(findings.length === 0, findings);
   return { ok: findings.length === 0, findings };
 }

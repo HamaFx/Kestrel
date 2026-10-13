@@ -48,9 +48,9 @@ import {
   type ObservabilityRegistryConfig,
 } from '@mastra/observability';
 
-import { capabilityTelemetryLabels } from '../mastra/capabilities';
+import { capabilityTelemetryLabels } from './capabilities';
 
-export { capabilityTelemetryLabels } from '../mastra/capabilities';
+export { capabilityTelemetryLabels } from './capabilities';
 
 const tlog = createCategorizedLogger('ai', { component: 'mastra-telemetry' });
 

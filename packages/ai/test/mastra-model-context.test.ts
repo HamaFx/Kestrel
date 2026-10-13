@@ -21,8 +21,8 @@ import {
   MODEL_CONTEXT_CANDLE_LIMIT,
   MODEL_CONTEXT_INDICATOR_LIMIT,
   serializeXauusdModelEvidenceContext,
-} from '../src/mastra/model-context';
-import type { XauusdResearchPacket } from '../src/mastra/research-types';
+} from '../src/mastra-v2/agents/xauusd/model-context';
+import type { XauusdResearchPacket } from '../src/mastra-v2/packets/research-types';
 
 function packetFixture(): XauusdResearchPacket {
   const timestamp = new Date('2026-08-18T12:00:00.000Z').toISOString();

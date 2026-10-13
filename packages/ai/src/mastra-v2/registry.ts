@@ -44,7 +44,7 @@ import type { Mastra } from '@mastra/core';
 import type { Agent } from '@mastra/core/agent';
 import type { AnyWorkflow } from '@mastra/core/workflows';
 
-import { MASTRA_CAPABILITIES, type MastraCapabilityId } from '../mastra/capabilities';
+import { MASTRA_CAPABILITIES, type MastraCapabilityId } from './capabilities';
 
 export interface MastraComponentRegistration {
   /** Which primitive implements this capability. */

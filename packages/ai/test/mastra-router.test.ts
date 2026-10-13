@@ -20,7 +20,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { routeUnified } from '../src/mastra/router';
+import { routeUnified } from '../src/mastra-v2/planning/router';
 
 const settings = {
   aiApiKeys: null,

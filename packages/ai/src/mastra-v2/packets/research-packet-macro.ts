@@ -16,13 +16,21 @@
 
 import { fetchNews, fetchUpcomingEvents } from '@kestrel/data';
 import { fetchObservations, fetchResonanceInputs } from '@kestrel/data/providers/fred';
-import { EconomicEventSchema, NewsArticleSchema } from '@kestrel/shared';
+import {
+  EconomicEventSchema,
+  NewsArticleSchema,
+  type EconomicEvent,
+  type NewsArticle,
+} from '@kestrel/shared';
 
-import { createEvidenceId, qualityFromWarnings } from '../../mastra/evidence';
-import { XAUUSD, XauusdMacroEvidenceSchema, type XauusdMacroEvidence } from '../../mastra/types';
+import { createEvidenceId, qualityFromWarnings } from './evidence';
+import { quarantineExternalText } from './external-content';
+import { XAUUSD, XauusdMacroEvidenceSchema, type XauusdMacroEvidence } from '../shared/types';
 
 const MACRO_WINDOW_DAYS = 30;
 const CALENDAR_WINDOW_DAYS = 7;
+const EXTERNAL_TITLE_MAX_LENGTH = 240;
+const EXTERNAL_SUMMARY_MAX_LENGTH = 1_800;
 
 export interface XauusdMacroFetchResult {
   news: PromiseSettledResult<Awaited<ReturnType<typeof fetchNews>>>;
@@ -118,8 +126,51 @@ export function assembleXauusdMacroEvidence(
   if (fetched.resonance.status === 'rejected')
     missingData.push('US real-yield and inflation-expectation data is unavailable.');
 
-  const parsedNews = news.map((item) => NewsArticleSchema.parse(item));
-  const parsedEvents = events.map((item) => EconomicEventSchema.parse(item));
+  // Audit plan §1.11 / P1-8 — external news and calendar text is untrusted
+  // data. Quarantine every title/summary BEFORE parsing so instruction-like
+  // payloads embedded in provider content can never reach the packet as
+  // evidence. A rejected item is skipped entirely and surfaces as a warning
+  // instead of being partially trusted.
+  const parsedNews: NewsArticle[] = [];
+  let quarantinedNewsCount = 0;
+  for (const item of news) {
+    const title = quarantineExternalText(item.title, EXTERNAL_TITLE_MAX_LENGTH);
+    const summary =
+      typeof item.summary === 'string'
+        ? quarantineExternalText(item.summary, EXTERNAL_SUMMARY_MAX_LENGTH)
+        : null;
+    if (title.quarantined || (summary?.quarantined ?? false)) {
+      quarantinedNewsCount += 1;
+      continue;
+    }
+    parsedNews.push(
+      NewsArticleSchema.parse({
+        ...item,
+        title: title.text,
+        ...(summary ? { summary: summary.text } : {}),
+      }),
+    );
+  }
+  const parsedEvents: EconomicEvent[] = [];
+  let quarantinedEventCount = 0;
+  for (const item of events) {
+    const title = quarantineExternalText(item.title, EXTERNAL_TITLE_MAX_LENGTH);
+    if (title.quarantined) {
+      quarantinedEventCount += 1;
+      continue;
+    }
+    parsedEvents.push(EconomicEventSchema.parse({ ...item, title: title.text }));
+  }
+  if (quarantinedNewsCount > 0) {
+    warnings.push(
+      `${quarantinedNewsCount} gold-relevant news item(s) were skipped because instruction-like text was quarantined from a title or summary.`,
+    );
+  }
+  if (quarantinedEventCount > 0) {
+    warnings.push(
+      `${quarantinedEventCount} economic calendar item(s) were skipped because instruction-like text was quarantined from the title.`,
+    );
+  }
   const allObservations = [
     ...dollarIndex,
     ...resonance.realYields,

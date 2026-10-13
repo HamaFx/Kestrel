@@ -16,8 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { XauusdFundamentalContextInputSchema } from '../src/mastra/fundamental-context-tool';
-import { xauusdFundamentalContextTool } from '../src/mastra/tools';
+import { XauusdFundamentalContextInputSchema } from '../src/mastra-v2/agents/xauusd/tools/fundamental-context-tool';
+import { xauusdFundamentalContextTool } from '../src/mastra-v2/agents/xauusd/tools';
 
 const mocks = vi.hoisted(() => ({
   fetchXauusdMacroData: vi.fn(),
@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
   getAggregatedSentiment: vi.fn(),
 }));
 
-vi.mock('../src/mastra/research-packet-macro', () => ({
+vi.mock('../src/mastra-v2/packets/research-packet-macro', () => ({
   fetchXauusdMacroData: mocks.fetchXauusdMacroData,
   assembleXauusdMacroEvidence: mocks.assembleXauusdMacroEvidence,
 }));
@@ -34,7 +34,7 @@ vi.mock('../src/sentiment', () => ({
     getAggregatedSentiment: mocks.getAggregatedSentiment,
   })),
 }));
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: vi.fn((_name: string, _context: unknown, fn: () => Promise<unknown>) => fn()),
 }));
 

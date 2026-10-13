@@ -19,11 +19,15 @@
 //
 // Dependency: none (leaf module — no imports from other model-* files).
 
+import { metrics } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { PROVIDER_IDS } from '@kestrel/shared/byok';
 import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
 
 import { BYOK_PROVIDERS } from './byok-providers';
 import type { ResolveModelEnv } from './env-model-factory';
+
+const mlog = createCategorizedLogger('ai', { component: 'model-helpers' });
 
 /**
  * Provider priority when multiple keys are configured — higher index wins for default. */
@@ -43,6 +47,19 @@ export const PROVIDER_PRIORITY: ProviderId[] = [
 ];
 
 /**
+ * Audit plan §1.11 / P1-5 (owner decision Q3) — operator env keys are an
+ * intentional shared pool and the merge stays ungated. This advisory counter
+ * plus debug log make operator-paid spend attributable per provider. The key
+ * itself is never logged or metricated, only the provider id.
+ */
+function recordOperatorKeyFallback(provider: ProviderId | keyof ByokPayload): void {
+  metrics.increment('operator_key_fallback_total', {
+    tags: { provider: String(provider) },
+  });
+  mlog.debug('operator env API key merged into the BYOK pool', { provider: String(provider) });
+}
+
+/**
  * Surface operator-provided AI keys (env vars) as a synthetic BYOK payload.
  *
  * @internal — exported for use by sibling resolver modules only.
@@ -58,6 +75,7 @@ export function envFallbackKeys(env: ResolveModelEnv): ByokPayload {
   const out: ByokPayload = {};
   if (env.GOOGLE_GENERATIVE_AI_API_KEY) {
     out.google = env.GOOGLE_GENERATIVE_AI_API_KEY;
+    recordOperatorKeyFallback('google');
   }
   // Optional operator env keys (common self-host names). Only populate
   // when present so we never invent empty credentials.
@@ -78,6 +96,7 @@ export function envFallbackKeys(env: ResolveModelEnv): ByokPayload {
       const val = processEnv[envName];
       if (typeof val === 'string' && val.length > 0) {
         out[field] = val;
+        recordOperatorKeyFallback(field);
       }
     }
   }

@@ -17,11 +17,17 @@
 // P1 — Thread persistence (SRP split from persistence.ts).
 // Thread CRUD + fork logic. Messages and telemetry live in their own modules.
 
-import { requireTenantIdForUser, schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema, type DbClient } from '@kestrel/db';
 import type { Symbol } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, asc, desc, eq, lt, or, sql } from 'drizzle-orm';
 
 import { getDb } from '../db';
+
+const tplog = createCategorizedLogger('ai', { component: 'thread-persistence' });
+
+/** Drizzle transaction client handed to `db.transaction` callbacks. */
+type ThreadTx = Parameters<Parameters<DbClient['transaction']>[0]>[0];
 
 // ---------------------------------------------------------------------------
 // Threads
@@ -229,26 +235,152 @@ export async function updateThreadAnalysisMode(
   return updated.length > 0;
 }
 
+/**
+ * P1-7 — thread-scoped memory rows that have no FK to `chat_threads`.
+ *
+ * `chat_messages` cascades via its FK, but the legacy→Mastra migration
+ * checkpoints (`memory_backfill_state`, `memory_projection_state`) and the
+ * `thread_synopsis` memory embeddings key on a plain-text thread id, so a
+ * thread delete used to leave them orphaned — "deleted" conversation content
+ * stayed queryable for the retention window. Deleting them in the same
+ * transaction keeps the business row and its derived state consistent.
+ */
+async function deleteThreadMemoryState(
+  tx: ThreadTx,
+  userId: string,
+  tenantId: string,
+  threadId: string,
+): Promise<void> {
+  await tx
+    .delete(schema.memoryBackfillState)
+    .where(
+      and(
+        eq(schema.memoryBackfillState.userId, userId),
+        eq(schema.memoryBackfillState.tenantId, tenantId),
+        eq(schema.memoryBackfillState.threadId, threadId),
+      ),
+    );
+  await tx
+    .delete(schema.memoryProjectionState)
+    .where(
+      and(
+        eq(schema.memoryProjectionState.userId, userId),
+        eq(schema.memoryProjectionState.tenantId, tenantId),
+        eq(schema.memoryProjectionState.threadId, threadId),
+      ),
+    );
+  // Thread synopses are embeddings derived from the thread's messages
+  // (kind='thread_synopsis', sourceId=threadId) — also conversation content.
+  await tx
+    .delete(schema.memoryEmbeddings)
+    .where(
+      and(
+        eq(schema.memoryEmbeddings.userId, userId),
+        eq(schema.memoryEmbeddings.tenantId, tenantId),
+        eq(schema.memoryEmbeddings.kind, 'thread_synopsis'),
+        eq(schema.memoryEmbeddings.sourceId, threadId),
+      ),
+    );
+}
+
+/**
+ * P1-7 — delete the Mastra runtime rows (thread, messages, per-thread
+ * vectors) through the storage API.
+ *
+ * Mastra owns its namespaced runtime schema (`mastra` by default) and it is
+ * deliberately outside the Drizzle migration chain, so these rows can neither
+ * carry a Drizzle FK nor share the Drizzle delete transaction. The storage
+ * adapter deletes thread + messages + thread vectors in its own transaction.
+ *
+ * Best-effort by design (mirrors `pruneMastraStorage`): a cleanup failure is
+ * logged but never fails or resurrects the already-deleted business thread,
+ * and the age-based retention prune still removes the rows later. Resource
+ * rows are deliberately kept — they are user-scoped working memory shared by
+ * every thread, not thread content, and the storage domain exposes no
+ * resource deletion API.
+ */
+async function deleteMastraThreadRows(threadIds: readonly string[]): Promise<void> {
+  if (threadIds.length === 0) return;
+  try {
+    // Dynamic import: the Mastra instance pulls in the full tool registry;
+    // keeping it off the static import graph avoids a persistence ↔
+    // instance cycle and keeps this module cheap to import.
+    const { getKestrelMastra } = await import('../mastra-v2/instance');
+    const storage = getKestrelMastra().instance.getStorage();
+    if (!storage) return;
+    const memory = await storage.getStore('memory');
+    if (!memory || typeof memory.deleteThread !== 'function') return;
+    for (const threadId of threadIds) {
+      await memory.deleteThread({ threadId });
+    }
+  } catch (error) {
+    tplog.warn('Mastra thread cleanup after delete failed (non-fatal)', {
+      threadCount: threadIds.length,
+      sampleThreadIds: threadIds.slice(0, 5).join(','),
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 export async function deleteThread(userId: string, id: string): Promise<void> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  await db
-    .delete(schema.chatThreads)
-    .where(
-      and(
-        eq(schema.chatThreads.id, id),
-        eq(schema.chatThreads.userId, userId),
-        eq(schema.chatThreads.tenantId, tenantId),
-      ),
-    );
+  const deletedIds = await db.transaction(async (tx) => {
+    // Ownership-scoped: an id the user does not own deletes zero rows and
+    // skips the Mastra cleanup below.
+    const deletedThreads = await tx
+      .delete(schema.chatThreads)
+      .where(
+        and(
+          eq(schema.chatThreads.id, id),
+          eq(schema.chatThreads.userId, userId),
+          eq(schema.chatThreads.tenantId, tenantId),
+        ),
+      )
+      .returning({ id: schema.chatThreads.id });
+    await deleteThreadMemoryState(tx, userId, tenantId, id);
+    return deletedThreads.map((row) => row.id);
+  });
+  await deleteMastraThreadRows(deletedIds);
 }
 
 export async function deleteAllThreads(userId: string): Promise<void> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  await db
-    .delete(schema.chatThreads)
-    .where(and(eq(schema.chatThreads.userId, userId), eq(schema.chatThreads.tenantId, tenantId)));
+  const deletedIds = await db.transaction(async (tx) => {
+    const deletedThreads = await tx
+      .delete(schema.chatThreads)
+      .where(and(eq(schema.chatThreads.userId, userId), eq(schema.chatThreads.tenantId, tenantId)))
+      .returning({ id: schema.chatThreads.id });
+    // Per-thread migration checkpoints and every thread synopsis for the user.
+    await tx
+      .delete(schema.memoryBackfillState)
+      .where(
+        and(
+          eq(schema.memoryBackfillState.userId, userId),
+          eq(schema.memoryBackfillState.tenantId, tenantId),
+        ),
+      );
+    await tx
+      .delete(schema.memoryProjectionState)
+      .where(
+        and(
+          eq(schema.memoryProjectionState.userId, userId),
+          eq(schema.memoryProjectionState.tenantId, tenantId),
+        ),
+      );
+    await tx
+      .delete(schema.memoryEmbeddings)
+      .where(
+        and(
+          eq(schema.memoryEmbeddings.userId, userId),
+          eq(schema.memoryEmbeddings.tenantId, tenantId),
+          eq(schema.memoryEmbeddings.kind, 'thread_synopsis'),
+        ),
+      );
+    return deletedThreads.map((row) => row.id);
+  });
+  await deleteMastraThreadRows(deletedIds);
 }
 
 function rowToThread(row: typeof schema.chatThreads.$inferSelect): DbThread {

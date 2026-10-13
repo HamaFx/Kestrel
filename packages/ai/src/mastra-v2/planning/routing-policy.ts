@@ -20,14 +20,19 @@ import {
 
 /**
  * Q2 decision (docs/plans/decisions.log.md): exactly two analysis modes exist
- * — `single` and `full`. The legacy `quick`/`standard`/`auto` values are
- * accepted for one release and mapped through the compat shim in
- * `resolveMode()` so old clients and old durable queue rows keep working.
+ * — `single` and `full`. The Q8 shim removal (audit plan §4.6) retired the
+ * one-release compat shim: legacy `quick`/`standard`/`auto` values are
+ * rejected at every boundary (HTTP schemas, durable plan parsing) instead of
+ * being mapped for old clients.
  */
-export type AnalysisMode = 'single' | 'quick' | 'standard' | 'full' | 'auto';
+export type AnalysisMode = 'single' | 'full';
 export type ResolvedMode = 'single' | 'full';
 
-/** Resolve the explicit or automatic mode at the canonical routing boundary. */
+/**
+ * Two-mode heuristic detector (`single` vs `full`). Exported utility only —
+ * no live input path feeds it since the Q8 shim removal removed the legacy
+ * `auto` value.
+ */
 export function autoDetectMode(message: string): ResolvedMode {
   const lower = message.toLowerCase().trim();
   if (/^(hi|hello|hey|thanks|thank you|ok|okay|yes|no|bye|good morning|good night)\b/.test(lower))
@@ -46,39 +51,25 @@ export function autoDetectMode(message: string): ResolvedMode {
   return 'single';
 }
 
-let warnedLegacyModes = false;
-function deprecatedModeWarn(mode: string, mapped: ResolvedMode): void {
-  if (warnedLegacyModes) return;
-  warnedLegacyModes = true;
-  try {
-    // Avoid importing the shared logger here (routing-policy is imported by
-    // isomorphic code); console keeps the signal visible in every runtime.
-    console.warn(
-      `[kestrel] analysis mode "${mode}" is deprecated; mapped to "${mapped}". Use "single" or "full" (Q2 decision, docs/plans/decisions.log.md).`,
-    );
-  } catch {
-    // Never fail routing because of a deprecation log.
-  }
-}
-
 /**
- * Q2 compat shim (one release): maps legacy `quick`→`single`, `standard`→
- * `full`; `auto` still resolves through the two-mode detector. New callers
- * must pass `single` or `full` directly.
+ * Q2 two-mode contract boundary. The Q8 shim removal (audit plan §4.6)
+ * retired the `quick`→`single` / `standard`→`full` / `auto`→detector maps:
+ * HTTP schemas reject legacy values upstream, and JS callers that bypass
+ * the schema fail closed here instead of being silently mapped.
  */
 export function resolveMode(mode: AnalysisMode, userMessage: string): ResolvedMode {
+  void userMessage; // kept for the call-boundary signature (no `auto` detection since Q8)
   switch (mode) {
     case 'single':
     case 'full':
       return mode;
-    case 'quick':
-      deprecatedModeWarn('quick', 'single');
-      return 'single';
-    case 'standard':
-      deprecatedModeWarn('standard', 'full');
-      return 'full';
-    case 'auto':
-      return autoDetectMode(userMessage);
+    default: {
+      // Runtime guard for schema-less callers: never guess a legacy value.
+      const legacy = String(mode);
+      throw new Error(
+        `Unknown analysis mode "${legacy}"; expected "single" or "full" (Q2 two-mode contract, docs/plans/decisions.log.md).`,
+      );
+    }
   }
 }
 

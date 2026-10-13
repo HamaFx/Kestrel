@@ -28,6 +28,8 @@ import {
   reserveTurnBudget,
 } from '@kestrel/ai';
 import {
+  CANONICAL_EVIDENCE_BLOCKED_MESSAGE,
+  CanonicalEvidenceBlockedError,
   runMastraCanonicalChatStream,
   type ExecutionPlan,
   type MastraCanonicalChatStream,
@@ -145,7 +147,47 @@ export async function runMastraCanonicalChatStreamService(
     async function* text(): AsyncIterable<string> {
       try {
         yield* stream.text;
-        const completed = await stream.completion;
+        let completed: Awaited<MastraCanonicalChatStream['completion']>;
+        try {
+          completed = await stream.completion;
+        } catch (error) {
+          if (!(error instanceof CanonicalEvidenceBlockedError)) throw error;
+          // Q1 strict block (audit plan §1.3): the answer's numeric claims
+          // failed the evidence gate after the tokens had already streamed.
+          // Close the turn with the standard refusal and persist only the
+          // refusal, so no unverified answer survives as a valid assistant
+          // message. Generation cost is real and still settles the budget.
+          yield CANONICAL_EVIDENCE_BLOCKED_MESSAGE;
+          const refusalMessage: UIMessage = {
+            id: messageId,
+            role: 'assistant',
+            parts: [
+              { type: 'text', text: CANONICAL_EVIDENCE_BLOCKED_MESSAGE },
+              {
+                type: 'data-multi-agent-meta',
+                data: {
+                  engine: 'mastra',
+                  canonical: true,
+                  runId,
+                  executionOutcome: 'completed',
+                  answerOutcome: 'blocked',
+                  evidence: { ok: false, findings: [...error.findings] },
+                  terminalReason: 'canonical-evidence-blocked',
+                },
+              } as UIMessage['parts'][number],
+            ],
+          };
+          try {
+            await appendAssistantMessage(input.userId, input.threadId, refusalMessage, {
+              idempotencyKey: `mastra-canonical:${input.threadId}:${input.userMessage.id}:assistant`,
+            });
+            terminalStatus = 'persisted';
+          } catch {
+            terminalStatus = 'persistence-failed';
+          }
+          await finalizer.complete(ledger.total());
+          return;
+        }
         const observedCost = ledger.total();
         const assistantMessage: UIMessage = {
           id: messageId,

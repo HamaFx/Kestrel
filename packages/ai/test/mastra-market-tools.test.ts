@@ -20,7 +20,7 @@ import {
   xauusdMarketStructureTool,
   xauusdSessionLevelsTool,
   xauusdTechnicalAnalysisTool,
-} from '../src/mastra/tools';
+} from '../src/mastra-v2/agents/xauusd/tools';
 
 const mocks = vi.hoisted(() => ({
   getCandlesWithMeta: vi.fn(),
@@ -49,7 +49,7 @@ vi.mock('../src/tools/analyze-technical', () => ({
   computeTechnicalReading: mocks.computeTechnicalReading,
   deterministicSummary: mocks.deterministicSummary,
 }));
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: vi.fn((_name: string, _context: unknown, fn: () => Promise<unknown>) => fn()),
 }));
 

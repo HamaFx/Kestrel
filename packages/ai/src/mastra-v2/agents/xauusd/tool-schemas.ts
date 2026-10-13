@@ -22,7 +22,7 @@ import {
 } from '@kestrel/shared';
 import { z } from 'zod';
 
-import { XAUUSD } from '../../../mastra/types';
+import { XAUUSD } from '../../shared/types';
 
 export const PRICE_MAX_AGE_MS = 10_000;
 export const MAX_CANDLE_OUTPUT = 200;

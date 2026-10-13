@@ -19,8 +19,8 @@ import { RequestContext } from '@mastra/core/request-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createXauusdReportWorkflow } from '../src/mastra-v2/workflows/xauusd-report';
-import { patchTimeframeConflictDisclosure } from '../src/mastra/report-repair';
-import { XauusdResearchPacketSchema } from '../src/mastra/research-types';
+import { patchTimeframeConflictDisclosure } from '../src/mastra-v2/agents/xauusd/report/report-repair';
+import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
 
 const mocks = vi.hoisted(() => {
   class FakeVerificationError extends Error {
@@ -45,12 +45,12 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('../src/mastra/report-verifier', () => ({
+vi.mock('../src/mastra-v2/agents/xauusd/report/report-verifier', () => ({
   requireVerifiedXauusdReport: mocks.requireVerifiedXauusdReport,
   verifyXauusdReport: mocks.verifyXauusdReport,
   XauusdReportVerificationError: mocks.FakeVerificationError,
 }));
-vi.mock('../src/mastra/research-packet', () => ({
+vi.mock('../src/mastra-v2/packets/research-packet', () => ({
   collectXauusdResearchPacket: mocks.collectXauusdResearchPacket,
 }));
 

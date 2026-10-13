@@ -25,8 +25,14 @@ const mocks = vi.hoisted(() => ({
     callOptions: { threadId: 'thread-1' },
     threadId: 'thread-1',
   })),
-  buildConversationGuardrails: vi.fn(() => ({ processors: ['conv-guardrail'] })),
-  buildResearchGuardrails: vi.fn(() => ({ processors: ['research-guardrail'] })),
+  buildGuardrailInputProcessors: vi.fn(
+    (_options: {
+      settings: { aiApiKeys: unknown; chatModel: unknown };
+      env: unknown;
+      strategy: 'block' | 'rewrite';
+      mode: 'strict' | 'availability';
+    }) => ({ processors: ['plan-guardrail'], warnings: [], mode: 'strict' }),
+  ),
   buildConversationScorers: vi.fn(() => ({ entries: ['conv-scorer'] })),
   buildResearchScorers: vi.fn(() => ({ entries: ['research-scorer'] })),
 }));
@@ -38,8 +44,15 @@ vi.mock('../src/mastra-v2/context', () => ({
   prepareKestrelMemory: mocks.prepareKestrelMemory,
 }));
 vi.mock('../src/mastra-v2/guardrails', () => ({
-  buildConversationGuardrails: mocks.buildConversationGuardrails,
-  buildResearchGuardrails: mocks.buildResearchGuardrails,
+  // Audit plan §1.9: the run context derives every guardrail set from
+  // `buildGuardrailInputProcessors` with the plan's strategy + mode.
+  buildGuardrailInputProcessors: mocks.buildGuardrailInputProcessors,
+  buildConversationGuardrails: vi.fn(() => ({
+    processors: ['legacy-conversation-guardrail'],
+  })),
+  buildResearchGuardrails: vi.fn(() => ({ processors: ['legacy-research-guardrail'] })),
+  buildResearchGuardrailsAvailability: vi.fn(),
+  GuardrailUnavailableError: class GuardrailUnavailableError extends Error {},
 }));
 vi.mock('../src/mastra-v2/evals/scorers', () => ({
   buildConversationScorers: mocks.buildConversationScorers,
@@ -52,6 +65,8 @@ const baseArgs = {
   settings: { aiApiKeys: null, chatModel: null },
   env: {},
 } as Parameters<typeof prepareResearchRunContext>[0];
+
+const guardrailSettings = { aiApiKeys: null, chatModel: null };
 
 describe('prepareResearchRunContext', () => {
   beforeEach(() => {
@@ -78,8 +93,7 @@ describe('prepareResearchRunContext', () => {
     // No policies requested => no guardrail/scorer builders run.
     expect(ctx.conversation).toBeNull();
     expect(ctx.research).toBeNull();
-    expect(mocks.buildConversationGuardrails).not.toHaveBeenCalled();
-    expect(mocks.buildResearchGuardrails).not.toHaveBeenCalled();
+    expect(mocks.buildGuardrailInputProcessors).not.toHaveBeenCalled();
   });
 
   it('builds only the conversation policy set when requested', async () => {
@@ -89,15 +103,19 @@ describe('prepareResearchRunContext', () => {
     });
 
     expect(ctx.conversation).toEqual({
-      guardrails: { processors: ['conv-guardrail'] },
+      guardrails: { processors: ['plan-guardrail'], warnings: [], mode: 'strict' },
       scorers: { entries: ['conv-scorer'] },
     });
     expect(ctx.research).toBeNull();
-    expect(mocks.buildConversationGuardrails).toHaveBeenCalledWith(
-      { aiApiKeys: null, chatModel: null },
-      baseArgs.env,
-    );
-    expect(mocks.buildResearchGuardrails).not.toHaveBeenCalled();
+    // §1.9: without a plan the untrusted-capability manifest defaults apply
+    // (block + strict), no longer the legacy rewrite+availability builder.
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledTimes(1);
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledWith({
+      settings: guardrailSettings,
+      env: baseArgs.env,
+      strategy: 'block',
+      mode: 'strict',
+    });
   });
 
   it('builds only the research policy set when requested', async () => {
@@ -107,28 +125,86 @@ describe('prepareResearchRunContext', () => {
     });
 
     expect(ctx.research).toEqual({
-      guardrails: { processors: ['research-guardrail'] },
+      guardrails: { processors: ['plan-guardrail'], warnings: [], mode: 'strict' },
       scorers: { entries: ['research-scorer'] },
     });
     expect(ctx.conversation).toBeNull();
     // §1.2: research guardrails default to strict (manifest-derived mode).
-    expect(mocks.buildResearchGuardrails).toHaveBeenCalledWith(
-      { aiApiKeys: null, chatModel: null },
-      baseArgs.env,
-      'strict',
-    );
-    expect(mocks.buildConversationGuardrails).not.toHaveBeenCalled();
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledWith({
+      settings: guardrailSettings,
+      env: baseArgs.env,
+      strategy: 'block',
+      mode: 'strict',
+    });
   });
 
-  it('builds both policy sets when both are requested (report + followup path)', async () => {
+  it('honors the legacy guardrailMode for research-only callers without a plan policy', async () => {
+    // mode-runner (committee path) passes only `guardrailMode` today; its
+    // behavior must be preserved when no full guardrailPolicy is provided.
+    await prepareResearchRunContext({
+      ...baseArgs,
+      includeResearchPolicies: true,
+      guardrailMode: 'availability',
+    });
+
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledWith(
+      expect.objectContaining({ strategy: 'block', mode: 'availability' }),
+    );
+  });
+
+  it('derives conversation guardrails from the execution-plan policy (§1.9)', async () => {
+    // xauusd-conversation: untrusted manifest → strict + block, exactly the
+    // policy the canonical path derives from executionPlan.guardrail.
+    const ctx = await prepareResearchRunContext({
+      ...baseArgs,
+      includeConversationPolicies: true,
+      guardrailPolicy: { strategy: 'block', mode: 'strict' },
+    });
+
+    expect(ctx.conversation?.guardrails).toEqual({
+      processors: ['plan-guardrail'],
+      warnings: [],
+      mode: 'strict',
+    });
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledTimes(1);
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledWith({
+      settings: guardrailSettings,
+      env: baseArgs.env,
+      strategy: 'block',
+      mode: 'strict',
+    });
+  });
+
+  it('derives both guardrail sets from one plan policy (report + followup path)', async () => {
+    // The XAUUSD report path builds both sets from the single plan-derived
+    // policy; the legacy conversation/research builders are no longer used.
     const ctx = await prepareResearchRunContext({
       ...baseArgs,
       includeConversationPolicies: true,
       includeResearchPolicies: true,
+      guardrailPolicy: { strategy: 'block', mode: 'strict' },
     });
 
-    expect(ctx.conversation?.guardrails).toEqual({ processors: ['conv-guardrail'] });
+    expect(ctx.conversation?.guardrails).toEqual({
+      processors: ['plan-guardrail'],
+      warnings: [],
+      mode: 'strict',
+    });
+    expect(ctx.research?.guardrails).toEqual({
+      processors: ['plan-guardrail'],
+      warnings: [],
+      mode: 'strict',
+    });
     expect(ctx.research?.scorers).toEqual({ entries: ['research-scorer'] });
+    expect(mocks.buildGuardrailInputProcessors).toHaveBeenCalledTimes(2);
+    for (const [options] of mocks.buildGuardrailInputProcessors.mock.calls) {
+      expect(options).toEqual({
+        settings: guardrailSettings,
+        env: baseArgs.env,
+        strategy: 'block',
+        mode: 'strict',
+      });
+    }
   });
 
   it('forwards the memory backfill idempotency exclusion key', async () => {

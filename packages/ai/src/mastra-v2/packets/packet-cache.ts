@@ -27,21 +27,33 @@
  * mirrored to Redis so burst traffic deduplicates across instances.
  *
  * The cache exists for one purpose: burst deduplication at market open —
- * N concurrent committee runs for the same symbol within 30s collect the
+ * N concurrent runs for the same symbol within 30s collect the
  * candles/price once instead of hammering the market-data providers.
+ *
+ * §2.1/P1-10 — the machinery is a reusable factory (`createPacketCache`): the
+ * committee's `SymbolResearchPacket` and the XAUUSD verified packet (Q6: its
+ * own schema, shared collection) each get an instance with a disjoint key
+ * namespace but the same TTL, LRU, in-flight dedup, Redis mirror, and
+ * `PHASE2_PACKET_CACHE` rollback semantics.
+ *
+ * P2 (Redis mirror off the request path) — mirror **writes** are
+ * fire-and-forget: they are kicked off inside a detached promise with their
+ * own error handling and are never awaited by a caller, so an unreachable or
+ * lazy-connected Redis can never stall or fail a request. Mirror **reads**
+ * stay on the request path; reads are the point of the mirror.
  */
 
-import { metrics, readFeatureFlag } from '@kestrel/shared';
+import { metrics, readFeatureFlag, type Symbol } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import {
   collectSymbolResearchPacket,
   SymbolResearchPacketSchema,
+  type CollectSymbolResearchPacketOptions,
   type SymbolResearchPacket,
-} from '../../mastra/symbol-research';
+} from './symbol-research';
 
-export { SymbolResearchPacketSchema } from '../../mastra/symbol-research';
-import type { Symbol } from '@kestrel/shared';
+export { SymbolResearchPacketSchema } from './symbol-research';
 
 const pclog = createCategorizedLogger('ai', { component: 'packet-cache' });
 
@@ -51,12 +63,13 @@ export const PACKET_CACHE_TTL_MS = 30_000;
 /** Entry-budget for the in-process LRU (symbols × recent windows). */
 const MAX_ENTRIES = 10_000;
 
-interface CacheEntry {
-  packet: SymbolResearchPacket;
+/** 15s bucket keys keep lookups stable within the 30s TTL window. */
+const CACHE_BUCKET_MS = 15_000;
+
+interface CacheEntry<T> {
+  packet: T;
   storedAt: number;
 }
-
-const store = new Map<string, CacheEntry>();
 
 /** Redis mirror handle — populated lazily when REDIS_URL is set. */
 type RedisLike = {
@@ -97,19 +110,14 @@ async function getRedisMirror(): Promise<RedisLike | null> {
   }
 }
 
-function cacheKey(symbol: string): string {
-  // 15s bucket keys keep lookups stable within the 30s TTL window: at most
-  // the current and previous bucket can hold a live entry.
-  const bucket = Math.floor(Date.now() / 15_000);
-  return `packet:${symbol}:${bucket}`;
+function currentBucket(): number {
+  return Math.floor(Date.now() / CACHE_BUCKET_MS);
 }
 
-function previousCacheKey(symbol: string): string {
-  const bucket = Math.floor(Date.now() / 15_000) - 1;
-  return `packet:${symbol}:${bucket}`;
-}
-
-/** A packet is cacheable only when every evidence piece was fresh (Q5). */
+/**
+ * Q5 (fresh-only) cacheability for the generalized packet. A packet is
+ * cacheable only when every evidence piece was fresh.
+ */
 export function isFreshCacheablePacket(packet: SymbolResearchPacket): boolean {
   if (packet.status !== 'ready') return false;
   if (packet.missingData.length > 0 || packet.warnings.length > 0) return false;
@@ -120,70 +128,172 @@ export function isFreshCacheablePacket(packet: SymbolResearchPacket): boolean {
   );
 }
 
-function lruSet(key: string, entry: CacheEntry): void {
-  // Map preserves insertion order: re-insert to mark as recently used.
-  store.delete(key);
-  store.set(key, entry);
-  if (store.size > MAX_ENTRIES) {
-    const oldest = store.keys().next().value;
-    if (oldest !== undefined) store.delete(oldest);
-  }
+export interface PacketCacheOptions<T> {
+  /**
+   * Mirror-key namespace (e.g. `packet`, `xauusd-packet`). Keeps stores for
+   * different packet shapes disjoint while sharing one TTL and one mirror.
+   */
+  namespace: string;
+  /** Q5 fresh-only predicate: stale, degraded, or blocked values are never cached. */
+  isCacheable: (packet: T) => boolean;
+  /** Validate a Redis-mirror payload before it is trusted as a cache hit. */
+  revive: (raw: string) => T | null;
 }
 
-function lruGet(key: string): CacheEntry | null {
-  const entry = store.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.storedAt > PACKET_CACHE_TTL_MS) {
+export interface PacketCache<T> {
+  /**
+   * Cache-wrapped collection: LRU → Redis mirror read → in-flight dedup →
+   * underlying collect. `PHASE2_PACKET_CACHE=0` rolls back to uncached
+   * collection (contents identical; only caching is bypassed).
+   */
+  collect(
+    id: string,
+    collect: (signal?: AbortSignal) => Promise<T>,
+    signal?: AbortSignal,
+  ): Promise<T>;
+  /** Test helper — clear this cache's in-process LRU and in-flight map. */
+  reset(): void;
+}
+
+/** Reset hooks for every cache created in this process (test support). */
+const cacheRegistry: Array<{ reset(): void }> = [];
+
+export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T> {
+  const store = new Map<string, CacheEntry<T>>();
+  const inflight = new Map<string, Promise<T>>();
+
+  function keyFor(id: string, bucket: number): string {
+    // 15s bucket keys keep lookups stable within the 30s TTL window: at most
+    // the current and previous bucket can hold a live entry.
+    return `${opts.namespace}:${id}:${bucket}`;
+  }
+
+  function lruSet(key: string, entry: CacheEntry<T>): void {
+    // Map preserves insertion order: re-insert to mark as recently used.
     store.delete(key);
+    store.set(key, entry);
+    if (store.size > MAX_ENTRIES) {
+      const oldest = store.keys().next().value;
+      if (oldest !== undefined) store.delete(oldest);
+    }
+  }
+
+  function lruGet(key: string): CacheEntry<T> | null {
+    const entry = store.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.storedAt > PACKET_CACHE_TTL_MS) {
+      store.delete(key);
+      return null;
+    }
+    return entry;
+  }
+
+  async function get(id: string): Promise<T | null> {
+    const bucket = currentBucket();
+    for (const key of [keyFor(id, bucket), keyFor(id, bucket - 1)]) {
+      const entry = lruGet(key);
+      if (entry) {
+        metrics.increment('packet_cache_hit_total');
+        return entry.packet;
+      }
+    }
+    const mirror = await getRedisMirror();
+    if (mirror) {
+      try {
+        for (const key of [keyFor(id, bucket), keyFor(id, bucket - 1)]) {
+          const raw = await mirror.get(key);
+          if (!raw) continue;
+          const revived = opts.revive(raw);
+          if (revived) {
+            metrics.increment('packet_cache_hit_total');
+            lruSet(key, { packet: revived, storedAt: Date.now() });
+            return revived;
+          }
+        }
+      } catch {
+        // Redis read failures fall through to a fresh collection.
+      }
+    }
+    metrics.increment('packet_cache_miss_total');
     return null;
   }
-  return entry;
+
+  function set(id: string, packet: T): void {
+    if (!opts.isCacheable(packet)) return;
+    const key = keyFor(id, currentBucket());
+    lruSet(key, { packet, storedAt: Date.now() });
+    // P2 (mirror off the request path): the write is fire-and-forget.
+    // Everything mirror-related — including handle acquisition — happens
+    // inside a detached promise with its own error handling, so a rejected
+    // or never-settling mirror write can never delay or fail the caller
+    // and can never surface as an unhandled rejection.
+    void getRedisMirror()
+      .then((mirror) =>
+        mirror
+          ? mirror.set(key, JSON.stringify(packet), 'EX', Math.ceil(PACKET_CACHE_TTL_MS / 1000))
+          : undefined,
+      )
+      .catch((error: unknown) => {
+        pclog.warn('Packet cache Redis mirror write failed; the in-process LRU still serves the packet', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+  }
+
+  async function collect(
+    id: string,
+    collect: (signal?: AbortSignal) => Promise<T>,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    if (!readFeatureFlag('PHASE2_PACKET_CACHE')) {
+      // Rollback path: same collection, no caching.
+      return collect(signal);
+    }
+    const cached = await get(id);
+    if (cached) return cached;
+
+    // In-flight dedup: the first caller collects; the rest await its result.
+    const existing = inflight.get(id);
+    if (existing) return existing;
+
+    const collection = collect(signal)
+      .then((packet) => {
+        set(id, packet);
+        return packet;
+      })
+      .finally(() => {
+        inflight.delete(id);
+      });
+    inflight.set(id, collection);
+    return collection;
+  }
+
+  function reset(): void {
+    store.clear();
+    inflight.clear();
+  }
+
+  cacheRegistry.push({ reset });
+  return { collect, reset };
 }
 
-async function get(symbol: Symbol): Promise<SymbolResearchPacket | null> {
-  const current = lruGet(cacheKey(symbol));
-  if (current) {
-    metrics.increment('packet_cache_hit_total');
-    return current.packet;
-  }
-  const previous = lruGet(previousCacheKey(symbol));
-  if (previous) {
-    metrics.increment('packet_cache_hit_total');
-    return previous.packet;
-  }
-  const mirror = await getRedisMirror();
-  if (mirror) {
-    try {
-      for (const key of [cacheKey(symbol), previousCacheKey(symbol)]) {
-        const raw = await mirror.get(key);
-        if (!raw) continue;
-        const parsed = SymbolResearchPacketSchema.safeParse(JSON.parse(raw));
-        if (parsed.success) {
-          metrics.increment('packet_cache_hit_total');
-          lruSet(key, { packet: parsed.data, storedAt: Date.now() });
-          return parsed.data;
-        }
-      }
-    } catch {
-      // Redis read failures fall through to a fresh collection.
-    }
-  }
-  metrics.increment('packet_cache_miss_total');
-  return null;
-}
+const symbolPacketCache = createPacketCache<SymbolResearchPacket>({
+  namespace: 'packet',
+  isCacheable: isFreshCacheablePacket,
+  revive: (raw) => {
+    const parsed = SymbolResearchPacketSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  },
+});
 
-async function set(packet: SymbolResearchPacket): Promise<void> {
-  if (!isFreshCacheablePacket(packet)) return;
-  const key = cacheKey(packet.symbol);
-  lruSet(key, { packet, storedAt: Date.now() });
-  const mirror = await getRedisMirror();
-  if (mirror) {
-    try {
-      await mirror.set(key, JSON.stringify(packet), 'EX', Math.ceil(PACKET_CACHE_TTL_MS / 1000));
-    } catch {
-      // Mirror write failures never affect the request path.
-    }
-  }
+/**
+ * §4.2: XAUUSD committee packets carry the macro extension (the bridge that
+ * used to require the XAUUSD-only packet). Other symbols skip it. Shared by
+ * the cached path and the `PHASE2_PACKET_CACHE=0` rollback path so the flag
+ * can never silently change what a packet contains (P1-9).
+ */
+function macroOptions(symbol: Symbol): CollectSymbolResearchPacketOptions {
+  return symbol === 'XAUUSD' ? { includeMacro: true } : {};
 }
 
 /**
@@ -196,36 +306,18 @@ export async function collectSymbolResearchPacketCached(
   symbol: Symbol,
   signal?: AbortSignal,
 ): Promise<SymbolResearchPacket> {
-  if (!readFeatureFlag('PHASE2_PACKET_CACHE')) {
-    return collectSymbolResearchPacket(symbol, signal);
-  }
-  const cached = await get(symbol);
-  if (cached) return cached;
-
-  // In-flight dedup: the first caller collects; the rest await its result.
-  const existing = inflight.get(symbol);
-  if (existing) return existing;
-
-  // §4.2: XAUUSD committee packets carry the macro extension (the bridge
-  // that used to require the XAUUSD-only packet). Other symbols skip it.
-  const collection = collectSymbolResearchPacket(symbol, signal, {
-    ...(symbol === 'XAUUSD' ? { includeMacro: true } : {}),
-  })
-    .then(async (packet) => {
-      await set(packet);
-      return packet;
-    })
-    .finally(() => {
-      inflight.delete(symbol);
-    });
-  inflight.set(symbol, collection);
-  return collection;
+  return symbolPacketCache.collect(
+    symbol,
+    (sig) => collectSymbolResearchPacket(symbol, sig, macroOptions(symbol)),
+    signal,
+  );
 }
-
-const inflight = new Map<string, Promise<SymbolResearchPacket>>();
 
 /** Test helper — clear the in-process LRU. */
 export function _resetPacketCache(): void {
-  store.clear();
-  inflight.clear();
+  for (const cache of cacheRegistry) cache.reset();
+  // Mirror state too, so each test case re-resolves its own REDIS_URL/mock.
+  redis = null;
+  redisAttempted = false;
+  redisBroken = false;
 }

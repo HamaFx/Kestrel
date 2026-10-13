@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-export { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from '../../mastra/constants';
-export { capabilityTelemetryLabels, type MastraCapabilityUiMetadata } from '../../mastra/capabilities';
+export { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';
+export { capabilityTelemetryLabels, type MastraCapabilityUiMetadata } from '../capabilities';
 export {
   errorCodeForMastra,
   getMastraGenerationStats,
@@ -25,7 +25,7 @@ export {
   type MastraRunOutcome,
   type MastraAnswerOutcome,
   type MastraUsageLike,
-} from '../../mastra/stats';
+} from './stats';
 export {
   beginMastraRun,
   createMastraRunFinalizer,
@@ -34,5 +34,5 @@ export {
   resetMastraTelemetryHealth,
   type MastraMemoryMode,
   type MastraRunObservation,
-} from '../../mastra/run-telemetry';
-export { executeMastraTool } from '../../mastra/tool-telemetry';
+} from './run-telemetry';
+export { executeMastraTool } from './tool-telemetry';

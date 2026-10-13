@@ -16,7 +16,7 @@
 
 import { z } from 'zod';
 
-import { EvidenceQualitySchema } from '../../../../mastra/types';
+import { EvidenceQualitySchema } from '../../../shared/types';
 
 const ScenarioSchema = z.object({
   name: z.string().min(1),
@@ -35,11 +35,31 @@ const SourceSchema = z.object({
   dataAsOf: z.string().datetime(),
 });
 
-/** A numeric fact the model is explicitly claiming from one evidence item. */
+/**
+ * A numeric fact the model is explicitly claiming from one evidence item.
+ *
+ * Audit plan §1.6 (P0-6): the grounding role is an explicit schema field, not
+ * a keyword the model writes into `label`. The old label exemptions let the
+ * model tag any fabricated number as a "target" or "EMA period" and skip
+ * verification entirely.
+ */
 const NumericClaimSchema = z.object({
   label: z.string().min(1),
   value: z.number().finite(),
   evidenceId: z.string().min(1),
+  /**
+   * `observed` values are read from the evidence and must match it within
+   * `tolerance`. `projection` values are forward-looking levels and are
+   * verified against the projection band of the cited evidence instead
+   * (see report-grounding.ts). Defaults to `observed` so an unmarked claim
+   * is always held to the strictest check.
+   */
+  role: z
+    .enum(['observed', 'projection'])
+    .describe(
+      "'observed' for values read from the evidence (verified exactly); 'projection' for forward-looking levels derived from that evidence (verified against a +/-25% band of its values).",
+    )
+    .default('observed'),
   /** Optional rounding tolerance, capped to prevent broad unsupported claims. */
   tolerance: z.number().min(0).max(1).default(0.01),
 });

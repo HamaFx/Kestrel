@@ -35,7 +35,7 @@ import {
   storedConfirmationForToken,
   verifyMutationConfirmationToken,
   type StoredMutationConfirmation,
-} from '../src/mastra/mutation-policy';
+} from '../src/mastra-v2/mutation/mutation-policy';
 
 const SECRET = 'x'.repeat(64);
 

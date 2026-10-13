@@ -33,6 +33,52 @@ const perlog = createCategorizedLogger('ai', { component: 'persistence' });
 // Turn telemetry
 // ---------------------------------------------------------------------------
 
+/**
+ * The telemetry `kind` vocabulary live writers actually emit (audit v2 §4.5).
+ *
+ * Historical values that are no longer produced (the pre-Mastra
+ * Title_Generator kinds `title_generated` / `title_failed` /
+ * `title_skipped_budget`) are intentionally absent: nothing emits them, and
+ * `title_skipped_budget` cannot exist at all while the budget is ledger-only
+ * (Q4 — a title is never budget-blocked). Legacy rows and queued outbox
+ * payloads may still carry those kinds; they remain valid *stored* values in
+ * `ChatTelemetryKind` (packages/db) and in the replay schema, they are just
+ * not part of the emitted vocabulary.
+ */
+export const TELEMETRY_KINDS = [
+  'routing_fundamental',
+  'routing_technical',
+  'routing_summary',
+  'routing_vision',
+  'routing_generic',
+  'plan_generated',
+  'plan_skipped_budget',
+  'plan_failed',
+  'multi_specialist_technical',
+  'multi_specialist_fundamental',
+  'multi_specialist_risk',
+  'multi_specialist_sentiment',
+  'multi_specialist_technical_failed',
+  'multi_specialist_fundamental_failed',
+  'multi_specialist_risk_failed',
+  'multi_specialist_sentiment_failed',
+  'multi_specialist_decision',
+  'multi_agent_turn',
+  'mastra_xauusd_poc',
+  'mastra_xauusd_poc_failed',
+  'mastra_mode',
+  'mastra_mode_failed',
+  'mastra_full_job',
+  'mastra_full_job_failed',
+  'mastra_worker_task',
+  'mastra_worker_task_failed',
+  'mastra_canonical_chat',
+  'mastra_canonical_chat_failed',
+  'turn_failed',
+] as const;
+
+export type TelemetryKind = (typeof TELEMETRY_KINDS)[number];
+
 export interface TelemetryInput {
   threadId: string;
   userId?: string | null;
@@ -48,41 +94,7 @@ export interface TelemetryInput {
   outputTokens: number;
   toolCalls: number;
   ms: number;
-  /** False when a provider failed before final usage was available. */
-  usageKnown?: boolean;
-  kind?:
-    | 'title_generated'
-    | 'title_failed'
-    | 'title_skipped_budget'
-    | 'routing_fundamental'
-    | 'routing_technical'
-    | 'routing_summary'
-    | 'routing_vision'
-    | 'routing_generic'
-    | 'plan_generated'
-    | 'plan_skipped_budget'
-    | 'plan_failed'
-    | 'multi_specialist_technical'
-    | 'multi_specialist_fundamental'
-    | 'multi_specialist_risk'
-    | 'multi_specialist_sentiment'
-    | 'multi_specialist_technical_failed'
-    | 'multi_specialist_fundamental_failed'
-    | 'multi_specialist_risk_failed'
-    | 'multi_specialist_sentiment_failed'
-    | 'multi_specialist_decision'
-    | 'multi_agent_turn'
-    | 'mastra_xauusd_poc'
-    | 'mastra_xauusd_poc_failed'
-    | 'mastra_mode'
-    | 'mastra_mode_failed'
-    | 'mastra_full_job'
-    | 'mastra_full_job_failed'
-    | 'mastra_worker_task'
-    | 'mastra_worker_task_failed'
-    | 'mastra_canonical_chat'
-    | 'mastra_canonical_chat_failed'
-    | 'turn_failed';
+  kind?: TelemetryKind;
 }
 
 export async function recordTelemetry(t: TelemetryInput): Promise<void> {
