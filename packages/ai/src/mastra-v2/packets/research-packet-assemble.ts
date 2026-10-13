@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import { buildPriceEvidence } from '../../mastra/evidence-builders';
-import { XAUUSD_RESEARCH_WINDOWS } from '../../mastra/research-config';
-import { collectCandleEvidence } from '../../mastra/research-packet-candles';
-import type { XauusdResearchFetchResult } from '../../mastra/research-packet-fetch';
-import { collectIndicatorEvidence } from '../../mastra/research-packet-indicators';
-import { assembleXauusdMacroEvidence } from '../../mastra/research-packet-macro';
+import { buildPriceEvidence } from './evidence-builders';
+import { XAUUSD_RESEARCH_WINDOWS } from './research-config';
+import { collectCandleEvidence } from './research-packet-candles';
+import type { XauusdResearchFetchResult } from './research-packet-fetch';
+import { collectIndicatorEvidence } from './research-packet-indicators';
+import { assembleXauusdMacroEvidence } from './research-packet-macro';
 import {
   completeResearchStage,
   recordResearchStageFailure,
   startResearchStage,
   uniqueResearchValues,
   warningForResearchFailure,
-} from '../../mastra/research-packet-stages';
-import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../../mastra/research-types';
-import { XAUUSD } from '../../mastra/types';
+} from './research-packet-stages';
+import { XauusdResearchPacketSchema, type XauusdResearchPacket } from './research-types';
+import { XAUUSD } from '../shared/types';
 
 export function assembleXauusdResearchPacket(
   packetId: string,

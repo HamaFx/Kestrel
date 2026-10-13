@@ -12,7 +12,7 @@
     },
     "apps/web": {
       "entry": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "test/vitest.setup.ts", "src/**/*.css"],
-      "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}"]
+      "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "src/**/*.css"]
     },
     "apps/worker": {
       "entry": ["src/**/*.ts", "test/**/*.ts"],

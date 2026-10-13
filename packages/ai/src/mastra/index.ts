@@ -96,7 +96,15 @@ export {
   renderFusionAnswer,
   type FusionAnswer,
 } from '../committee/synthesizer';
-export { checkCanonicalEvidence, type CanonicalEvidenceCheck } from '../mastra-v2/agents/canonical/evidence';
+export {
+  assertCanonicalEvidence,
+  CANONICAL_EVIDENCE_BLOCKED_MESSAGE,
+  CanonicalEvidenceBlockedError,
+  checkCanonicalEvidence,
+  type CanonicalEvidenceCheck,
+  type CanonicalToolEvidence,
+} from '../mastra-v2/agents/canonical/evidence';
+export { committeeProgressSnapshot } from '../mastra-v2/shared/progress';
 export {
   summarizeConfidenceCalibration,
   type ConfidenceObservation,
@@ -389,6 +397,10 @@ export {
   type GuardrailOptions,
   type GuardrailStrategy,
 } from '../mastra-v2/guardrails';
+// Audit plan §1.9: re-export Mastra's tripwire error so web route boundaries
+// can map a blocked injection (detector strategy 'block') to a clean 422
+// without depending on @mastra/core directly.
+export { TripWire } from '@mastra/core/agent';
 export {
   beginMastraRun,
   createMastraRunFinalizer,
@@ -429,11 +441,3 @@ export {
   type XauusdMacroEvidence,
   type XauusdRequestContext,
 } from '../mastra-v2/shared/types';
-
-export {
-  plannerRequired,
-  runPlanner,
-  type PlannerOutput,
-  type PlannerResult,
-  type PlannerSubtask,
-} from '../mastra-v2/workflows/planner';

@@ -127,8 +127,10 @@ The AI package contains:
 - Memory, persistence, diagnostics, and evaluations
 
 All Mastra orchestration lives under `packages/ai/src/mastra-v2/` (the former
-`mastra/` generation was atomically migrated; `src/mastra/` holds one-release
-re-export shims plus the public barrel for the `@kestrel/ai/mastra` subpath):
+`mastra/` generation was atomically migrated in 2026-10; the audit v2 cleanup
+deleted the 70 per-module re-export shims — `src/mastra/index.ts` is now the
+only file there, a thin public barrel that re-exports `mastra-v2` directly for
+the `@kestrel/ai/mastra` subpath):
 
 ```text
 mastra-v2/

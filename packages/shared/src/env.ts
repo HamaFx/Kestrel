@@ -268,7 +268,7 @@ const RuntimeEnv = z.object({
     .default('1')
     .transform((v) => v === '1' || v === 'true'),
 
-  // --- Audit upgrade-plan feature flags (docs/plans/kestrel-ai-agentic-audit-and-upgrade-plan.md).
+  // --- Audit upgrade-plan feature flags (docs/plans/kestrel-ai-agentic-audit-v2.md).
   // Parsed through `readFeatureFlag` in feature-flags.ts; these declarations
   // validate and document the variables. Flags whose behavior is unconditional
   // (router, streaming progress, mastra-v2 migration) have no toggle.
@@ -293,6 +293,15 @@ const RuntimeEnv = z.object({
     .default('0')
     .transform((v) => v === '1' || v === 'true'),
   /**
+   * Audit plan §3.3 — optional bounded debate round for Full: one revision
+   * pass where each desk may update its opinion after reading the critiques.
+   * OFF by default (adds one LLM call per desk per run).
+   */
+  ENABLE_COMMITTEE_DEBATE: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
+  /**
    * Q4 decision — daily spend is ledger-only by default; the reservation is
    * recorded for admin reporting but never blocks a turn with 429. Set true
    * to restore the legacy hard daily cap.
@@ -301,6 +310,13 @@ const RuntimeEnv = z.object({
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
     .default('0')
     .transform((v) => v === '1' || v === 'true'),
+  /**
+   * Audit plan v2 §5.3 (Q4) — non-blocking admin alert threshold: when a
+   * user's daily (UTC) reserved+reconciled ledger spend reaches this many
+   * dollars, the admin System Health dashboard surfaces an anomaly.
+   * Informational only — the daily ledger is never capped per Q4.
+   */
+  ADMIN_SPEND_ALERT_USD: z.coerce.number().positive().default(25),
   /** Optional Redis URL for the shared packet cache (Phase 2.1). */
   REDIS_URL: z.string().url().optional(),
 });

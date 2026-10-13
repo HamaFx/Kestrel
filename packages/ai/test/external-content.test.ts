@@ -10,14 +10,14 @@ import { describe, expect, it } from 'vitest';
 import {
   ModelGeneratedEvidenceSchema,
   SynthesisEvidenceSchema,
-} from '../src/mastra/evidence-types';
+} from '../src/mastra-v2/packets/evidence-types';
 import {
   containsExternalInstructions,
   quarantineExternalText,
   sanitizeExternalText,
   toUntrustedExternalEvidence,
   wrapExternalContent,
-} from '../src/mastra/external-content';
+} from '../src/mastra-v2/packets/external-content';
 
 describe('external content safety', () => {
   it('removes markup and control characters', () => {

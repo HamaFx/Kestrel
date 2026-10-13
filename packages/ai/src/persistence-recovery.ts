@@ -27,7 +27,12 @@ import { getDb } from './db';
 import { persistTraceStrict } from './diagnostics/trace-persistence';
 import { saveAgentOpinions } from './multi-agent/persistence';
 import { appendAssistantMessage, appendUserMessage } from './persistence/message-persistence';
-import { recordTelemetry, recordToolTelemetry } from './persistence/telemetry-persistence';
+import {
+  recordTelemetry,
+  recordToolTelemetry,
+  TELEMETRY_KINDS,
+  type TelemetryInput,
+} from './persistence/telemetry-persistence';
 
 const rlog = createCategorizedLogger('ai', { component: 'persistence-recovery' });
 const LOCK_TTL_MS = 5 * 60 * 1000;
@@ -93,39 +98,16 @@ const OpinionsReplaySchema = z
   })
   .strict();
 
+// Audit v2 §4.5 — the replay schema deliberately accepts a SUPERSET of the
+// emitted vocabulary (`TELEMETRY_KINDS`): it is `.strict()`, so kinds that
+// were removed from the live writers (the pre-Mastra `title_*` kinds) must
+// stay enumerable here or historical queued payloads would become
+// permanently unreplayable.
 const TelemetryKindSchema = z.enum([
   'title_generated',
   'title_failed',
   'title_skipped_budget',
-  'routing_fundamental',
-  'routing_technical',
-  'routing_summary',
-  'routing_vision',
-  'routing_generic',
-  'plan_generated',
-  'plan_skipped_budget',
-  'plan_failed',
-  'multi_specialist_technical',
-  'multi_specialist_fundamental',
-  'multi_specialist_risk',
-  'multi_specialist_sentiment',
-  'multi_specialist_technical_failed',
-  'multi_specialist_fundamental_failed',
-  'multi_specialist_risk_failed',
-  'multi_specialist_sentiment_failed',
-  'multi_specialist_decision',
-  'multi_agent_turn',
-  'mastra_xauusd_poc',
-  'mastra_xauusd_poc_failed',
-  'mastra_mode',
-  'mastra_mode_failed',
-  'mastra_full_job',
-  'mastra_full_job_failed',
-  'mastra_worker_task',
-  'mastra_worker_task_failed',
-  'mastra_canonical_chat',
-  'mastra_canonical_chat_failed',
-  'turn_failed',
+  ...TELEMETRY_KINDS,
 ]);
 
 const TelemetryReplaySchema = z
@@ -142,6 +124,9 @@ const TelemetryReplaySchema = z
     outputTokens: z.number().int().nonnegative(),
     toolCalls: z.number().int().nonnegative(),
     ms: z.number().int().nonnegative(),
+    // Audit v2 §4.5 — `usageKnown` has no `chat_telemetry` column and is no
+    // longer forwarded on replay. The field stays in this `.strict()` schema
+    // so historical queued payloads carrying it still parse.
     usageKnown: z.boolean().optional().default(true),
     kind: TelemetryKindSchema.nullable().default(null),
   })
@@ -315,8 +300,13 @@ async function replayOne(item: ClaimedFailure): Promise<void> {
         outputTokens: input.outputTokens,
         toolCalls: input.toolCalls,
         ms: input.ms,
-        ...(input.usageKnown === undefined ? {} : { usageKnown: input.usageKnown }),
-        ...(input.kind ? { kind: input.kind } : {}),
+        // Audit v2 §4.5 — `usageKnown` is not forwarded (no DB column). A
+        // legacy queued row may carry a historical kind the live writers no
+        // longer emit; replay restores it verbatim — the `chat_telemetry`
+        // column still accepts the stored vocabulary.
+        ...(input.kind
+          ? { kind: input.kind as NonNullable<TelemetryInput['kind']> }
+          : {}),
       });
       return;
     }

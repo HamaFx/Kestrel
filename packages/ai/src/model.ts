@@ -22,14 +22,13 @@
 //   model-chat.ts       — chat model resolution (resolveChatModel,
 //                          resolveModelForProvider, derivePlannerModel,
 //                          deriveTitleModel)
-//   model-strategy.ts   — domain routing strategy map (MODEL_ROUTER,
-//                          TIER_TO_DOMAIN, routeModelByDomain)
 //   model-vision.ts     — vision model resolution (resolveVisionModel)
 //   model-embedding.ts  — embedding model resolution (resolveEmbeddingModel)
 //   model-override.ts   — explicit override resolution (resolveOverrideModel)
 //
-// Pattern: Factory + Strategy. MODEL_ROUTER implements the Strategy
-// pattern; resolveChatModel/resolveVisionModel are Factory methods.
+// Pattern: Factory. resolveChatModel/resolveVisionModel are Factory methods.
+// Audit v2 §4.2 — the dead model-strategy.ts (MODEL_ROUTER /
+// TIER_TO_DOMAIN / routeModelByDomain, no live caller) was deleted.
 
 // ── Low-level environment model factory ──────────────────────────────
 export { resolveModel, type ResolveModelEnv } from './env-model-factory';
@@ -81,9 +80,6 @@ export type {
   MastraResolvedModel,
 } from './model-resolution';
 
-// ── Strategy map (domain routing) ────────────────────────────────────
-export { MODEL_ROUTER, TIER_TO_DOMAIN, routeModelByDomain } from './model-strategy';
-export type { DomainRoutingContext, DomainRoutingStrategy } from './model-strategy';
 
 // ── Vision model resolution ──────────────────────────────────────────
 export { resolveVisionModel } from './model-vision';

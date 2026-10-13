@@ -18,19 +18,19 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import { Agent } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 
-import { reserveTurnBudget } from '../../../budget-reservation';
+import { reserveTurnBudget } from '../../../budget';
 import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } from '../../../cost';
 import { createGenerationLedger, type GenerationLedger } from '../../../generation-ledger';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
 import { telemetryConfig } from '../../../telemetry';
 import type { ResolveModelEnv } from '../../../env-model-factory';
-import { manifestForCapability } from '../../../mastra/capabilities';
+import { manifestForCapability } from '../../capabilities';
 import {
   beginMastraRun,
   finishMastraRun,
   getMastraGenerationStats,
   mastraOutcomeForError,
-} from '../../../mastra/telemetry';
+} from '../../shared/telemetry';
 
 export interface RunMastraBackgroundTextArgs {
   userId: string;

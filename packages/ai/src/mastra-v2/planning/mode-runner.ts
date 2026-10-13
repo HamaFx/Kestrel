@@ -54,14 +54,14 @@ import {
   assertExecutionPlanRoute,
   requireExecutionPlanModel,
   type ExecutionPlan,
-} from '../../mastra/execution-plan';
-import type { SymbolResearchPacket } from '../../mastra/symbol-research';
+} from './execution-plan';
+import type { SymbolResearchPacket } from '../packets/symbol-research';
 import {
   beginMastraRun,
   finishMastraRun,
   mastraOutcomeForError,
   type MastraGenerationStats,
-} from '../../mastra/telemetry';
+} from '../shared/telemetry';
 
 export type {
   MastraAnalysisMode,
@@ -549,7 +549,6 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       startedAt,
       inputTokens: 0,
       outputTokens: 0,
-      usageKnown: false,
       toolCalls: 0,
       steps: 0,
       outcome: mastraOutcomeForError(error, args.signal),

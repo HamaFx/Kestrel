@@ -139,6 +139,10 @@ export {
 export type { FeedbackAnnotationInput, PromptResult } from '@kestrel/ai';
 export type { RunTelemetryRow } from '@kestrel/ai/mastra';
 export { BudgetExceededError } from '@kestrel/ai/cost';
+export { CanonicalEvidenceBlockedError } from '@kestrel/ai/mastra';
+// Audit plan §1.9: guardrail failure classes for clean route-boundary mapping.
+export { GuardrailUnavailableError } from '@kestrel/ai/mastra';
+export { TripWire } from '@kestrel/ai/mastra';
 
 // Database queries and infrastructure used by controllers that do not yet
 // have a dedicated domain service.

@@ -23,15 +23,26 @@
 // already populated: chat_telemetry, chat_tool_telemetry, cron_runs,
 // live_ticks, and the Mastra `full-analysis` workflow run records
 // (mastra_workflow_snapshot) that replaced analysis_jobs in Phase 3.
+//
+// Audit plan v2 §5.3 (Q4 decision): also surfaces a non-blocking spend
+// watch — per-user daily (UTC) ledger spend reaching ADMIN_SPEND_ALERT_USD
+// becomes an anomaly and a `spendWatch` aggregate. The daily ledger stays
+// uncapped; these alerts inform, they never block a turn.
 
+import { metrics } from '@kestrel/shared';
 import { sql, type SQLWrapper } from 'drizzle-orm';
 
 import { createScopedLoggerWithContext } from '@/lib/logger';
 
-import type { HealthSloResponse, SliSnapshot } from './admin-dtos';
+import type { HealthSloResponse, SliSnapshot, SpendWatchSummary } from './admin-dtos';
 
 export interface ComputeHealthSloOptions {
   hours: number;
+  /**
+   * §5.3 spend-watch override in USD (tests). Defaults to the
+   * ADMIN_SPEND_ALERT_USD env flag.
+   */
+  spendAlertThresholdUsd?: number;
 }
 
 /** Minimal DB surface needed by the health service. */
@@ -101,6 +112,84 @@ interface OperationalAggregate {
 const ONE_SECOND = 1000;
 const ONE_MINUTE = 60 * ONE_SECOND;
 
+// ── §5.3 spend watch (non-blocking, Q4) ────────────────────────────────────
+
+/** Default per-user daily spend alert threshold when the env flag is unset. */
+export const DEFAULT_ADMIN_SPEND_ALERT_USD = 25;
+
+/** Max per-user rows fetched from the daily ledger (one row per user/day). */
+const SPEND_WATCH_QUERY_LIMIT = 100;
+
+/** Max per-user anomalies pushed per snapshot (aggregate keeps the total). */
+const SPEND_WATCH_ANOMALY_LIMIT = 10;
+
+/** Raw ledger row: today's (UTC) reserved+reconciled counter for one user. */
+export interface DailySpendRow {
+  userId: string;
+  spendUsdCents: number;
+}
+
+/**
+ * Resolve the per-user daily spend alert threshold (USD).
+ *
+ * ADMIN_SPEND_ALERT_USD is declared with the same default in
+ * `packages/shared/src/env.ts` (validated at boot); this mirrors the
+ * ALERT_WINDOW_HOURS pattern of reading the raw value at the call site so a
+ * late/unparsed flag degrades to the default instead of throwing.
+ */
+export function resolveAdminSpendAlertThresholdUsd(): number {
+  const raw = process.env.ADMIN_SPEND_ALERT_USD;
+  if (raw === undefined || raw === '') return DEFAULT_ADMIN_SPEND_ALERT_USD;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_ADMIN_SPEND_ALERT_USD;
+}
+
+function formatUsd(value: number): string {
+  return `$${value.toFixed(2)}`;
+}
+
+/**
+ * Pure §5.3 threshold/aggregation helper: turns today's per-user ledger rows
+ * into the spend-watch summary. A user is over threshold when their spend
+ * *reached* the threshold (>=), matching the usage-alert convention.
+ */
+export function resolveSpendWatch(rows: DailySpendRow[], thresholdUsd: number): SpendWatchSummary {
+  const thresholdCents = Math.round(thresholdUsd * 100);
+  const overThreshold = rows
+    .filter((row) => row.userId !== '' && row.spendUsdCents >= thresholdCents)
+    .map((row) => ({ userId: row.userId, spendUsd: row.spendUsdCents / 100 }))
+    .sort((a, b) => b.spendUsd - a.spendUsd);
+
+  return {
+    thresholdUsd,
+    usersOverThreshold: overThreshold.length,
+    overThreshold,
+  };
+}
+
+/**
+ * Per-process dedup of threshold crossings for the metric below — the admin
+ * dashboard polls every 30s, so one counter tick per (user, UTC day) keeps
+ * `admin_spend_threshold_total` an event count rather than a poll count.
+ * Mirrors the `sentAlerts` set in usage-alerts.ts.
+ */
+const spendThresholdObserved = new Set<string>();
+
+/** Test hook — clears the per-process (user, day) dedup set. */
+export function resetAdminSpendAlertDedup(): void {
+  spendThresholdObserved.clear();
+}
+
+function recordSpendThresholdMetric(spendWatch: SpendWatchSummary): void {
+  const day = new Date().toISOString().slice(0, 10);
+  for (const entry of spendWatch.overThreshold) {
+    const key = `${day}:${entry.userId}`;
+    if (spendThresholdObserved.has(key)) continue;
+    spendThresholdObserved.add(key);
+    metrics.increment('admin_spend_threshold_total');
+  }
+}
+
 function pct(n: number): number {
   return Math.round(n * 10000) / 10000;
 }
@@ -127,7 +216,7 @@ function computeErrorBudget(current: number | null, sloTarget: number): number |
  */
 export async function computeHealthSloService(
   db: HealthSloDb,
-  { hours }: ComputeHealthSloOptions,
+  { hours, spendAlertThresholdUsd }: ComputeHealthSloOptions,
 ): Promise<HealthSloResponse> {
   // Drizzle's postgres-js execute path serializes raw SQL parameters more
   // reliably as ISO strings than as Date instances (especially through the
@@ -147,15 +236,23 @@ export async function computeHealthSloService(
   }
 
   // ── Independent telemetry queries (concurrent) ────────────────────────────
-  const [ticksResult, cronResult, toolResult, chatResult, analysisResult, operationalResult] =
-    await Promise.allSettled([
-      queryTickAggregate(db),
-      queryCronAggregate(db, since),
-      queryToolAggregate(db, since),
-      queryChatAggregate(db, since),
-      queryAnalysisAggregate(db, since),
-      queryOperationalAggregate(db, since),
-    ]);
+  const [
+    ticksResult,
+    cronResult,
+    toolResult,
+    chatResult,
+    analysisResult,
+    operationalResult,
+    dailySpendResult,
+  ] = await Promise.allSettled([
+    queryTickAggregate(db),
+    queryCronAggregate(db, since),
+    queryToolAggregate(db, since),
+    queryChatAggregate(db, since),
+    queryAnalysisAggregate(db, since),
+    queryOperationalAggregate(db, since),
+    queryDailySpendRows(db),
+  ]);
 
   const ticks = ticksResult.status === 'fulfilled' ? ticksResult.value : null;
   const cron = cronResult.status === 'fulfilled' ? cronResult.value : null;
@@ -163,6 +260,7 @@ export async function computeHealthSloService(
   const chat = chatResult.status === 'fulfilled' ? chatResult.value : null;
   const analysis = analysisResult.status === 'fulfilled' ? analysisResult.value : null;
   const operational = operationalResult.status === 'fulfilled' ? operationalResult.value : null;
+  const dailySpend = dailySpendResult.status === 'fulfilled' ? dailySpendResult.value : null;
 
   const anomalies: string[] = [];
 
@@ -279,6 +377,29 @@ export async function computeHealthSloService(
         `Provider fallback usage is above threshold: ${operational.providerFallbackTraces}/${operational.traceTotal} traces used fallback`,
       );
     }
+  }
+
+  // ── §5.3 (Q4) spend watch — non-blocking per-user daily alert ───────────
+  // The daily ledger stays uncapped per the owner's Q4 decision; reaching
+  // ADMIN_SPEND_ALERT_USD only surfaces anomalies for the admin dashboard
+  // (and, through them, the existing cron health-alert webhook).
+  const spendThresholdUsd = spendAlertThresholdUsd ?? resolveAdminSpendAlertThresholdUsd();
+  const spendWatch: SpendWatchSummary = resolveSpendWatch(dailySpend ?? [], spendThresholdUsd);
+
+  if (!dailySpend) {
+    anomalies.push('Daily spend ledger is unavailable — spend-watch alerts cannot be verified');
+  } else {
+    for (const entry of spendWatch.overThreshold.slice(0, SPEND_WATCH_ANOMALY_LIMIT)) {
+      anomalies.push(
+        `Daily spend alert: user ${entry.userId} has spent ${formatUsd(entry.spendUsd)} today (threshold ${formatUsd(spendWatch.thresholdUsd)})`,
+      );
+    }
+    if (spendWatch.usersOverThreshold > SPEND_WATCH_ANOMALY_LIMIT) {
+      anomalies.push(
+        `${spendWatch.usersOverThreshold - SPEND_WATCH_ANOMALY_LIMIT} more user(s) reached the ${formatUsd(spendWatch.thresholdUsd)} daily spend threshold`,
+      );
+    }
+    recordSpendThresholdMetric(spendWatch);
   }
 
   // ── Langfuse ────────────────────────────────────────────────────────────
@@ -485,6 +606,7 @@ export async function computeHealthSloService(
     langfuseBaseUrl,
     slis,
     anomalies,
+    spendWatch,
   };
 }
 
@@ -676,6 +798,35 @@ async function queryAnalysisAggregate(
       stale: Number(row?.stale ?? 0),
       stuck: Number(row?.stuck ?? 0),
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * §5.3 (Q4) — today's per-user daily ledger rows (bounded, spend desc).
+ *
+ * `daily_ai_spend.total_usd_cents` is the authoritative reserved+reconciled
+ * counter: tryReserveBudget adds the estimate atomically, reconciliation
+ * applies the (actual − reserved) delta, and release refunds. The UTC day
+ * filter matches the `utcDayKey()` used by the ledger writers.
+ */
+async function queryDailySpendRows(db: HealthSloDb): Promise<DailySpendRow[] | null> {
+  try {
+    const result = await db.execute(sql`
+      SELECT user_id, total_usd_cents::text AS total_usd_cents
+      FROM daily_ai_spend
+      WHERE day = (NOW() AT TIME ZONE 'utc')::date
+        AND total_usd_cents > 0
+      ORDER BY total_usd_cents DESC
+      LIMIT ${SPEND_WATCH_QUERY_LIMIT}::int
+    `);
+    const rows = extractRows(result);
+
+    return rows.map((row) => ({
+      userId: String(row.user_id ?? ''),
+      spendUsdCents: Number(row.total_usd_cents ?? 0),
+    }));
   } catch {
     return null;
   }

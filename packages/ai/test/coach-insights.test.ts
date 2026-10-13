@@ -75,7 +75,7 @@ vi.mock('../src/journal/persistence', () => ({
   ]),
 }));
 
-vi.mock('../src/mastra/text-runner', () => ({
+vi.mock('../src/mastra-v2/agents/xauusd/text-runner', () => ({
   runMastraText: vi.fn().mockResolvedValue({
     text: JSON.stringify({
       disciplineGrade: 'A',

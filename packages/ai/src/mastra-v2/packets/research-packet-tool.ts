@@ -16,10 +16,10 @@
 
 import { createTool } from '@mastra/core/tools';
 
-import { collectXauusdResearchPacket } from '../../mastra/research-packet';
-import { XauusdResearchPacketSchema } from '../../mastra/research-types';
-import { executeMastraTool } from '../../mastra/telemetry';
-import { XauusdResearchPacketInputSchema } from '../../mastra/tool-schemas';
+import { collectXauusdResearchPacket } from './research-packet';
+import { XauusdResearchPacketSchema } from './research-types';
+import { executeMastraTool } from '../shared/telemetry';
+import { XauusdResearchPacketInputSchema } from '../agents/xauusd/tool-schemas';
 
 export const xauusdResearchPacketTool = createTool({
   id: 'get-xauusd-research-packet',

@@ -307,7 +307,15 @@ function pollJobToStreamResponse(
   const id = jobId;
   const MIN_POLL_MS = 2_000;
   const MAX_POLL_MS = 10_000;
-  const MAX_POLL_TIME_MS = 5 * 60_000;
+  /**
+   * P1-14 — overall poll cap. The previous 5-minute window hard-failed even
+   * while the job was still `pending`/`running` (durable Full committee runs
+   * can legitimately outlast it), contradicting the job's own terminal state.
+   * Polling now continues while the status is non-terminal and only errors on
+   * terminal failure states; this cap is the last-resort bound (the user's
+   * stop/unmount abort cancels earlier).
+   */
+  const MAX_POLL_TIME_MS = 30 * 60_000;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -342,7 +350,7 @@ function pollJobToStreamResponse(
             pollRes = await fetch(`/api/chat/analysis-jobs/${jobId}`, requestInit);
           } catch {
             // Network error — backoff and retry, but do not hide a persistent
-            // transport failure behind the five-minute timeout.
+            // transport failure behind the overall poll cap.
             consecutivePollFailures += 1;
             if (consecutivePollFailures >= 3) {
               hasError = true;
@@ -412,11 +420,18 @@ function pollJobToStreamResponse(
           if (Array.isArray(pollJson.progress) && pollJson.progress.length > 0) {
             const last = pollJson.progress[pollJson.progress.length - 1];
             if (last && last.type === 'data-agent-progress') {
-              const progress = (last as unknown as { data: AgentProgress }).data;
-              onProgress(progress);
-              controller.enqueue(
-                encodeChunk({ type: 'data-agent-progress', id, data: progress, transient: true }),
-              );
+              const progress = (last as unknown as { data?: Partial<AgentProgress> }).data;
+              if (progress && Array.isArray(progress.agents)) {
+                onProgress(progress as AgentProgress);
+                controller.enqueue(
+                  encodeChunk({
+                    type: 'data-agent-progress',
+                    id,
+                    data: progress,
+                    transient: true,
+                  }),
+                );
+              }
             }
           }
 
@@ -477,11 +492,15 @@ function pollJobToStreamResponse(
           pollIntervalMs = MIN_POLL_MS;
         }
 
+        // P1-14 — reaching the cap with the job still `pending`/`running` is
+        // not a job failure: the worker may simply be busy. Say so instead
+        // of claiming a definitive timeout.
         if (!hasError) {
           controller.enqueue(
             encodeChunk({
               type: 'error',
-              errorText: 'Background analysis timed out after 5 minutes.',
+              errorText:
+                'Background analysis is still running after 30 minutes of waiting. Stop waiting and check back, or start a fresh analysis.',
             }),
           );
         }
@@ -520,6 +539,55 @@ function mutationDraftToStreamResponse(draft: MutationDraftEvent): Response {
   return new Response(stream, { headers: { 'content-type': 'text/event-stream; charset=utf-8' } });
 }
 
+/**
+ * P1-15 — the API boundary returns structured JSON error envelopes
+ * `{error:{code,message}}`, but the AI SDK's transport turns any non-OK
+ * response into `new Error(await response.text())`, so the raw JSON body was
+ * shown to the user. Rewrite a non-OK JSON envelope response so the error
+ * the SDK throws carries the server's `error.error.message` as its message.
+ * Non-JSON or non-envelope bodies pass through untouched.
+ */
+async function surfaceApiErrorEnvelope(res: Response): Promise<Response> {
+  if (getContentType(res).includes('application/json')) {
+    try {
+      const json = (await res.clone().json()) as { error?: { message?: unknown } } | null;
+      const message = json?.error?.message;
+      if (typeof message === 'string' && message.length > 0) {
+        return new Response(message, {
+          status: res.status,
+          statusText: res.statusText,
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+        });
+      }
+    } catch {
+      // Not a parseable JSON envelope — fall through to the raw response.
+    }
+  }
+  return res;
+}
+
+/**
+ * P1-15 fallback — decode a raw `{error:{code,message}}` envelope that
+ * survived into an error message (e.g. an error part emitted by a stream
+ * adapter that did not unwrap the envelope). Returns the display text for
+ * any chat error.
+ */
+export function chatErrorText(err: unknown): string {
+  const message =
+    err instanceof Error ? err.message : err === null || err === undefined ? '' : String(err);
+  const trimmed = message.trim();
+  if (trimmed.startsWith('{')) {
+    try {
+      const json = JSON.parse(trimmed) as { error?: { message?: unknown } } | null;
+      const inner = json?.error?.message;
+      if (typeof inner === 'string' && inner.length > 0) return inner;
+    } catch {
+      // Not a JSON envelope — show the message as-is.
+    }
+  }
+  return message || 'Something went wrong.';
+}
+
 /** fetch wrapper that bridges queued jobs and legacy SSE into the AI SDK data stream. */
 async function kestrelChatFetch(
   onProgress: (p: AgentProgress | null) => void,
@@ -528,7 +596,10 @@ async function kestrelChatFetch(
 ): Promise<Response> {
   const res = await globalThis.fetch(input, init);
 
-  if (!res.ok || !res.body) {
+  if (!res.ok) {
+    return surfaceApiErrorEnvelope(res);
+  }
+  if (!res.body) {
     return res;
   }
 

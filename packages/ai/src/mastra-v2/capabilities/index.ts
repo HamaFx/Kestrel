@@ -16,6 +16,32 @@
 
 import { ALL_SYMBOLS, TOOL_NAMES, type ToolName } from '@kestrel/shared';
 
+// Audit plan §1.11 / P1-21 — the integrity check below resolves every
+// declared Mastra tool id against the actual `createTool` registrations,
+// so a phantom (never-registered) id fails loudly instead of passing
+// against a parallel hand-maintained string list.
+import { xauusdCalendarTool } from '../agents/xauusd/tools/calendar-tool';
+import { xauusdCandlesTool } from '../agents/xauusd/tools/candles-tool';
+import { xauusdCorrelationTool } from '../agents/xauusd/tools/correlation-tool';
+import { xauusdFundamentalContextTool } from '../agents/xauusd/tools/fundamental-context-tool';
+import { xauusdIndicatorsTool } from '../agents/xauusd/tools/indicators-tool';
+import { xauusdIntermarketTool } from '../agents/xauusd/tools/intermarket-tool';
+import { xauusdMarketStructureTool } from '../agents/xauusd/tools/market-structure-tool';
+import { xauusdNewsTool } from '../agents/xauusd/tools/news-tool';
+import { xauusdPriceTool } from '../agents/xauusd/tools/price-tool';
+import { xauusdSessionLevelsTool } from '../agents/xauusd/tools/session-levels-tool';
+import { xauusdSocialSentimentTool } from '../agents/xauusd/tools/social-sentiment-tool';
+import { xauusdTechnicalAnalysisTool } from '../agents/xauusd/tools/technical-tool';
+import { xauusdVolatilityTool } from '../agents/xauusd/tools/volatility-tool';
+import {
+  mastraCotTool,
+  mastraKnowledgeTool,
+  mastraResonanceTool,
+  mastraSeasonalityTool,
+  mastraWebSearchTool,
+} from '../agents/xauusd/read-only-tools';
+import { xauusdResearchPacketTool } from '../packets/research-packet-tool';
+
 /** Q2 decision: exactly two analysis modes. */
 export type MastraCapabilityMode = 'single' | 'full';
 export type MastraEvidencePolicy = 'required' | 'optional' | 'none';
@@ -416,42 +442,45 @@ export const MASTRA_CAPABILITIES = {
   'xauusd-research': {
     id: 'xauusd-research',
     version: 'poc-5',
-    route: 'xauusd-research',
+    route: 'xauusd_research',
     component: 'mastra-xauusd-research',
     allowedSymbols: ['XAUUSD'],
     allowedModes: ['single'],
     scope: 'read-only',
     readOnly: true,
+    // Audit plan §1.11 / P1-21 — these are the real registered `createTool`
+    // ids (hyphenated), so the manifest is enforceable against the actual
+    // tool registrations instead of listing phantom underscore names.
     tools: [
-      'get_xauusd_research_packet',
-      'get_xauusd_price',
-      'get_xauusd_candles',
-      'get_xauusd_indicators',
+      'get-xauusd-research-packet',
+      'get-xauusd-price',
+      'get-xauusd-candles',
+      'get-xauusd-indicators',
     ],
     toolMetadata: [
       {
-        name: 'get_xauusd_research_packet',
+        name: 'get-xauusd-research-packet',
         category: 'public-market-data',
         access: 'read-only',
         sensitivity: 'public',
         trust: 'trusted',
       },
       {
-        name: 'get_xauusd_price',
+        name: 'get-xauusd-price',
         category: 'public-market-data',
         access: 'read-only',
         sensitivity: 'public',
         trust: 'trusted',
       },
       {
-        name: 'get_xauusd_candles',
+        name: 'get-xauusd-candles',
         category: 'public-market-data',
         access: 'read-only',
         sensitivity: 'public',
         trust: 'trusted',
       },
       {
-        name: 'get_xauusd_indicators',
+        name: 'get-xauusd-indicators',
         category: 'public-market-data',
         access: 'read-only',
         sensitivity: 'public',
@@ -527,39 +556,88 @@ export function capabilityTelemetryLabels(
   };
 }
 
-export function assertCapabilityManifestIntegrity(): void {
+/**
+ * Real `createTool` registrations a capability manifest may declare. Built
+ * from the imported tool objects (audit plan §1.11 / P1-21) so the integrity
+ * check can only pass when a declared id resolves to an actual registration —
+ * the previous hand-maintained string list let phantom ids through.
+ */
+const REGISTERED_MASTRA_TOOLS = [
+  xauusdResearchPacketTool,
+  xauusdPriceTool,
+  xauusdCandlesTool,
+  xauusdIndicatorsTool,
+  xauusdMarketStructureTool,
+  xauusdSessionLevelsTool,
+  xauusdTechnicalAnalysisTool,
+  xauusdCorrelationTool,
+  xauusdIntermarketTool,
+  xauusdVolatilityTool,
+  xauusdNewsTool,
+  xauusdCalendarTool,
+  xauusdSocialSentimentTool,
+  xauusdFundamentalContextTool,
+  mastraSeasonalityTool,
+  mastraCotTool,
+  mastraResonanceTool,
+  mastraWebSearchTool,
+  mastraKnowledgeTool,
+] as const;
+
+/**
+ * Capability "tools" that are deliberately not `createTool` registrations.
+ * The symbol-research path invokes the cached collector function directly
+ * (`collectSymbolResearchPacketCached` in `packets/packet-cache.ts`) instead
+ * of going through a Mastra tool, so its id is listed here explicitly. This
+ * is the only sanctioned escape hatch — every other declared id must
+ * resolve against `REGISTERED_MASTRA_TOOLS` or the legacy registry.
+ */
+const DIRECT_ADAPTER_TOOL_IDS = new Set<string>(['collect-symbol-research-packet']);
+
+/**
+ * The conversation manifest declares XAUUSD-prefixed ids for the three
+ * symbol-scoped read-only tools; `agents/xauusd/tools.ts` maps those ids onto
+ * the registrations via `XAUUSD_CONVERSATION_TOOL_IDS` (that module cannot be
+ * imported here — it reads this manifest at module top level). Mirror the
+ * resolution so a declared alias only passes while a real registration with
+ * the mapped id actually exists; renames fail loudly at load time.
+ */
+const ALIASED_MASTRA_TOOL_IDS = new Map<string, string>([
+  ['get-xauusd-seasonality', mastraSeasonalityTool.id],
+  ['get-xauusd-cot', mastraCotTool.id],
+  ['get-xauusd-intermarket-resonance', mastraResonanceTool.id],
+]);
+
+/**
+ * Assert the capability manifests stay internally consistent and enforceable.
+ * Declared tools must resolve to a real registration (legacy registry,
+ * `createTool` id, documented alias, or the direct-adapter list) — a phantom
+ * name fails loudly instead of silently passing (audit plan §1.11 / P1-21).
+ */
+export function assertCapabilityManifestIntegrity(
+  capabilities: Record<string, MastraCapability> = MASTRA_CAPABILITIES,
+): void {
   const knownLegacyTools = new Set<string>(TOOL_NAMES);
-  const knownMastraTools = new Set<string>([
-    'get_xauusd_research_packet',
-    'get_xauusd_price',
-    'get_xauusd_candles',
-    'get_xauusd_indicators',
-    'get-xauusd-market-structure',
-    'get-xauusd-session-levels',
-    'analyze-xauusd-technical',
-    'get-xauusd-correlation',
-    'get-xauusd-intermarket',
-    'forecast-xauusd-volatility',
-    'get-xauusd-news',
-    'get-xauusd-calendar',
-    'get-xauusd-social-sentiment',
-    'get-xauusd-fundamental-context',
-    'get-xauusd-seasonality',
-    'get-xauusd-cot',
-    'get-xauusd-intermarket-resonance',
-    'search-untrusted-web',
-    'search-untrusted-knowledge',
-    'collect-symbol-research-packet',
-    'get-symbol-seasonality',
-    'get-symbol-cot',
-    'get-symbol-intermarket-resonance',
-  ]);
-  for (const [id, capability] of Object.entries(MASTRA_CAPABILITIES)) {
+  const registeredMastraToolIds = new Set<string>(
+    REGISTERED_MASTRA_TOOLS.map((tool) => tool.id),
+  );
+  const resolvesToRegisteredTool = (tool: string): boolean => {
+    if (registeredMastraToolIds.has(tool)) return true;
+    const aliasedTarget = ALIASED_MASTRA_TOOL_IDS.get(tool);
+    return aliasedTarget !== undefined && registeredMastraToolIds.has(aliasedTarget);
+  };
+  for (const [id, capability] of Object.entries(capabilities)) {
     if (id !== capability.id) throw new Error(`Capability manifest ID mismatch: ${id}.`);
-    if (
-      capability.tools.some((tool) => !knownLegacyTools.has(tool) && !knownMastraTools.has(tool))
-    ) {
-      throw new Error(`Capability ${id} declares an unregistered tool.`);
+    for (const tool of capability.tools) {
+      if (
+        !knownLegacyTools.has(tool) &&
+        !resolvesToRegisteredTool(tool) &&
+        !DIRECT_ADAPTER_TOOL_IDS.has(tool)
+      ) {
+        throw new Error(
+          `Capability ${id} declares tool "${tool}", which does not resolve to any registered tool.`,
+        );
+      }
     }
     if (new Set(capability.tools).size !== capability.tools.length) {
       throw new Error(`Capability ${id} declares duplicate tools.`);

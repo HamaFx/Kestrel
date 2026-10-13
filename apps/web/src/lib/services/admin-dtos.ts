@@ -63,6 +63,31 @@ export interface HealthSloResponse {
   slis: SliSnapshot[];
   /** Anomalies: unavailable/stuck activity, stale analysis jobs, stale ticks */
   anomalies: string[];
+  /**
+   * §5.3 (Q4) per-user daily spend watch — informational only. Optional so
+   * older cached snapshots without the field still typecheck on the client.
+   */
+  spendWatch?: SpendWatchSummary;
+}
+
+/** One user whose daily (UTC) ledger spend reached the alert threshold. */
+export interface SpendWatchEntry {
+  userId: string;
+  /** Today's (UTC) reserved+reconciled ledger spend in USD. */
+  spendUsd: number;
+}
+
+/**
+ * §5.3 (Q4) spend-watch aggregate for the admin System Health surface.
+ * Alerts inform; they never block a turn — the daily ledger stays uncapped.
+ */
+export interface SpendWatchSummary {
+  /** Per-user daily spend alert threshold in USD (ADMIN_SPEND_ALERT_USD). */
+  thresholdUsd: number;
+  /** Users whose today (UTC) spend reached the threshold. */
+  usersOverThreshold: number;
+  /** Users over threshold, sorted by spend descending (query-bounded). */
+  overThreshold: SpendWatchEntry[];
 }
 
 // Alias used by the UI component for the response as a whole.

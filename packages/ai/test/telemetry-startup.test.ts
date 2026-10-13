@@ -4,7 +4,7 @@ import {
   getTelemetryStartupCheck,
   resetTelemetryStartupCheck,
   validateTelemetryStartup,
-} from '../src/mastra/telemetry-startup';
+} from '../src/mastra-v2/shared/telemetry-startup';
 
 describe('telemetry startup health', () => {
   beforeEach(() => resetTelemetryStartupCheck());

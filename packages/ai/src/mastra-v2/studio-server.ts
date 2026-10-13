@@ -125,7 +125,7 @@ main().catch((err: unknown) => {
 async function registerCanonicalComponents(instance: Mastra): Promise<void> {
   try {
     const { resolveChatModel } = await import('../model');
-    const { createXauusdMastraAgent } = await import('../mastra/agent');
+    const { createXauusdMastraAgent } = await import('./agents/xauusd/agent');
     const { createCommitteeWorkflow } = await import('../committee/workflow');
     const { createXauusdReportWorkflow } = await import('./workflows/xauusd-report');
     const { createMutationWorkflow } = await import('./workflows/mutation');

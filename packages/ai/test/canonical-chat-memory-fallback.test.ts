@@ -56,7 +56,7 @@ vi.mock('../src/mastra-v2/context', async () => {
   return { ...actual, prepareKestrelMemory: mocks.prepareKestrelMemory };
 });
 
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   beginMastraRun: mocks.beginMastraRun,
   finishMastraRun: mocks.finishMastraRun,
   getMastraGenerationStats: () => ({ inputTokens: 10, outputTokens: 5, toolCalls: 0, steps: 1 }),
@@ -78,7 +78,7 @@ vi.mock('@mastra/core/agent', () => ({
   },
 }));
 
-import { runMastraCanonicalChat } from '../src/mastra/canonical-chat';
+import { runMastraCanonicalChat } from '../src/mastra-v2/agents/canonical';
 
 const settings = {
   aiApiKeys: null,

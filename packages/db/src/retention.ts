@@ -20,6 +20,14 @@
 // per statement and only removes disposable/terminal records; pending work,
 // active leases, retryable outbox rows, unresolved budget reservations,
 // active Telegram deduplication rows, and unexpired share snapshots survive.
+//
+// Audit v2 §4.4 (P2-4): also covers the Mastra runtime observational-memory
+// table. Mastra's own `prune()` cannot touch it — the table is excluded from
+// the memory domain's retention tables — so the bounded delete lives here.
+// Observational memory is OFF everywhere (owner decision Q8), so this is
+// hygiene for rows left by earlier runs; the delete is guarded because the
+// table lives in Mastra's runtime schema and may not exist at all
+// (libsql dev setups, fresh installs).
 
 import { sql } from 'drizzle-orm';
 
@@ -42,6 +50,7 @@ const DEFAULT_RETENTION: Required<RetentionConfig> = {
   billingWebhookDlqRetentionDays: 90,
   aiEvaluationRetentionDays: 90,
   budgetReservationRetentionDays: 90,
+  observationalMemoryRetentionDays: 90,
 };
 
 export interface RetentionConfig {
@@ -65,6 +74,11 @@ export interface RetentionConfig {
   aiEvaluationRetentionDays?: number;
   /** Retention window in days for terminal budget reservation ledger rows. */
   budgetReservationRetentionDays?: number;
+  /**
+   * Retention window in days for dormant Mastra observational-memory rows
+   * (audit v2 §4.4). Rows whose last write predates the cutoff are deleted.
+   */
+  observationalMemoryRetentionDays?: number;
 }
 
 export interface RetentionResult {
@@ -83,6 +97,7 @@ export interface RetentionResult {
   telegramUpdatesDeleted: number;
   sharedSnapshotsDeleted: number;
   notificationNoiseStateDeleted: number;
+  mastraObservationalMemoryDeleted: number;
   note: string;
 }
 
@@ -143,6 +158,10 @@ export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
       'BUDGET_RESERVATION_RETENTION_DAYS',
       DEFAULT_RETENTION.budgetReservationRetentionDays,
     ),
+    observationalMemoryRetentionDays: envDays(
+      'OBSERVATIONAL_MEMORY_RETENTION_DAYS',
+      DEFAULT_RETENTION.observationalMemoryRetentionDays,
+    ),
   };
 }
 
@@ -153,6 +172,9 @@ function isoCutoff(now: Date, milliseconds: number): string {
 /**
  * Delete rows from a table in bounded batches. Table names and predicates are
  * internal constants only; callers must never pass user input here.
+ *
+ * `schema` addresses tables outside the default schema (e.g. Mastra's runtime
+ * `mastra` schema) without changing the bounded batching contract.
  */
 async function deleteBatchedWhere(
   db: ReturnType<typeof getDb>,
@@ -160,13 +182,15 @@ async function deleteBatchedWhere(
   predicate: string,
   batchSize = BATCH_SIZE,
   maxBatches = MAX_BATCHES_PER_TABLE,
+  schema?: string,
 ): Promise<number> {
+  const tableRef = schema ? `"${schema}"."${tableName}"` : `"${tableName}"`;
   let total = 0;
   let batches = 0;
   while (batches < maxBatches) {
     const result = await db.execute(
       sql.raw(
-        `DELETE FROM "${tableName}" WHERE ctid IN (SELECT ctid FROM "${tableName}" WHERE ${predicate} LIMIT ${batchSize})`,
+        `DELETE FROM ${tableRef} WHERE ctid IN (SELECT ctid FROM ${tableRef} WHERE ${predicate} LIMIT ${batchSize})`,
       ),
     );
     const count = Number((result as { count?: number | string }).count ?? 0);
@@ -175,6 +199,28 @@ async function deleteBatchedWhere(
     if (count < batchSize) return total;
   }
   return total;
+}
+
+/**
+ * Existence check for tables this job does not own (Mastra runtime tables),
+ * so a missing table never fails the whole retention run. Driver-shape
+ * normalized: postgres-js (prod) returns a Result that extends Array.
+ */
+async function pgTableExists(
+  db: ReturnType<typeof getDb>,
+  schema: string,
+  table: string,
+): Promise<boolean> {
+  const rows = await db.execute<{ exists: boolean }>(
+    sql`SELECT EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = ${schema} AND table_name = ${table}
+    ) AS exists`,
+  );
+  const list = (
+    Array.isArray(rows) ? rows : ((rows as { rows?: Array<{ exists: boolean }> }).rows ?? [])
+  ) as Array<{ exists: boolean }>;
+  return Boolean(list[0]?.exists);
 }
 
 async function deleteBatched(
@@ -205,6 +251,7 @@ async function deleteBatched(
  * - Telegram deduplication: processed rows older than one hour
  * - share snapshots: expired rows only
  * - notification noise state: expired rows only
+ * - Mastra observational memory: rows whose last write predates the cutoff
  */
 export async function runRetentionCleanup(
   config: RetentionConfig = getRetentionConfigFromEnv(),
@@ -252,6 +299,10 @@ export async function runRetentionCleanup(
       config.budgetReservationRetentionDays,
       DEFAULT_RETENTION.budgetReservationRetentionDays,
     ),
+    observationalMemoryRetentionDays: boundedDays(
+      config.observationalMemoryRetentionDays,
+      DEFAULT_RETENTION.observationalMemoryRetentionDays,
+    ),
   };
 
   const telemetryCutoff = isoCutoff(now, retention.telemetryRetentionDays * 24 * 60 * 60 * 1_000);
@@ -278,6 +329,10 @@ export async function runRetentionCleanup(
   const budgetCutoff = isoCutoff(
     now,
     retention.budgetReservationRetentionDays * 24 * 60 * 60 * 1_000,
+  );
+  const observationalMemoryCutoff = isoCutoff(
+    now,
+    retention.observationalMemoryRetentionDays * 24 * 60 * 60 * 1_000,
   );
 
   const telemetryDeleted = await deleteBatched(db, 'chat_telemetry', 'created_at', telemetryCutoff);
@@ -349,6 +404,25 @@ export async function runRetentionCleanup(
     'expires_at',
     now.toISOString(),
   );
+  // Audit v2 §4.4 (P2-4) — Mastra's observational-memory table is excluded
+  // from the storage domain's own retention tables, so prune() can never
+  // bound it. Rows whose last write predates the cutoff are dormant
+  // observation state; the feature is OFF everywhere (Q8), so this is
+  // hygiene for any rows left by earlier runs. The table lives in Mastra's
+  // runtime schema and may not exist at all, so the delete is guarded by an
+  // existence check rather than letting a missing relation fail the job.
+  let mastraObservationalMemoryDeleted = 0;
+  const mastraSchema = process.env.MASTRA_SCHEMA ?? 'mastra';
+  if (await pgTableExists(db, mastraSchema, 'mastra_observational_memory')) {
+    mastraObservationalMemoryDeleted = await deleteBatchedWhere(
+      db,
+      'mastra_observational_memory',
+      `"updatedAt" < '${observationalMemoryCutoff}'`,
+      BATCH_SIZE,
+      MAX_BATCHES_PER_TABLE,
+      mastraSchema,
+    );
+  }
 
   const counts = {
     telemetryDeleted,
@@ -366,6 +440,7 @@ export async function runRetentionCleanup(
     telegramUpdatesDeleted,
     sharedSnapshotsDeleted,
     notificationNoiseStateDeleted,
+    mastraObservationalMemoryDeleted,
   };
 
   return {

@@ -20,8 +20,8 @@ import {
   xauusdCorrelationTool,
   xauusdIntermarketTool,
   xauusdVolatilityTool,
-} from '../src/mastra/tools';
-import { XauusdVolatilityInputSchema } from '../src/mastra/volatility-tool';
+} from '../src/mastra-v2/agents/xauusd/tools';
+import { XauusdVolatilityInputSchema } from '../src/mastra-v2/agents/xauusd/tools/volatility-tool';
 
 const mocks = vi.hoisted(() => ({
   correlationExecute: vi.fn(),
@@ -38,7 +38,7 @@ vi.mock('../src/tools/get-intermarket', () => ({
 vi.mock('../src/tools/forecast-volatility', () => ({
   forecastVolatilityTool: { execute: mocks.volatilityExecute },
 }));
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: vi.fn((_name: string, _context: unknown, fn: () => Promise<unknown>) => fn()),
 }));
 

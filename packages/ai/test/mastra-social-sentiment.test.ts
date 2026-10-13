@@ -16,8 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { XauusdSocialSentimentInputSchema } from '../src/mastra/social-sentiment-tool';
-import { xauusdSocialSentimentTool } from '../src/mastra/tools';
+import { XauusdSocialSentimentInputSchema } from '../src/mastra-v2/agents/xauusd/tools/social-sentiment-tool';
+import { xauusdSocialSentimentTool } from '../src/mastra-v2/agents/xauusd/tools';
 
 const mocks = vi.hoisted(() => ({
   getAggregatedSentiment: vi.fn(),
@@ -28,7 +28,7 @@ vi.mock('../src/sentiment', () => ({
     getAggregatedSentiment: mocks.getAggregatedSentiment,
   })),
 }));
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: vi.fn((_name: string, _context: unknown, fn: () => Promise<unknown>) => fn()),
 }));
 

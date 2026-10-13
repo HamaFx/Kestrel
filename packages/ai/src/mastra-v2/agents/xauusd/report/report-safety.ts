@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import type { XauusdResearchReport } from '../../../../mastra/report-types';
-import type { XauusdResearchPacket } from '../../../../mastra/research-types';
+import type { XauusdResearchReport } from './report-types';
+import type { XauusdResearchPacket } from '../../../packets/research-types';
 
 function latestNumeric(
   values: readonly (number | Record<string, number | null> | null)[],

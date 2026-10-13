@@ -21,11 +21,12 @@ import {
   availableEvidenceIds,
   verifyNarrativeNumericClaims,
   verifyNumericClaims,
-} from '../../../../mastra/report-grounding';
-import { verifyReportSafety } from '../../../../mastra/report-safety';
-import { verifyTemporalDisclosure } from '../../../../mastra/report-temporal';
-import { XauusdResearchReportSchema, type XauusdResearchReport } from '../../../../mastra/report-types';
-import type { XauusdResearchPacket } from '../../../../mastra/research-types';
+  verifyScenarioProjectionClaims,
+} from './report-grounding';
+import { verifyReportSafety } from './report-safety';
+import { verifyTemporalDisclosure } from './report-temporal';
+import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
+import type { XauusdResearchPacket } from '../../../packets/research-types';
 
 export interface XauusdReportVerification {
   ok: boolean;
@@ -100,7 +101,11 @@ export function verifyXauusdReport(
   );
 
   verifyReportSafety(report, packet, findings);
+  // Audit plan §1.6 (P0-6): claims are grounded by the explicit schema `role`,
+  // never by model-authored label keywords; projections must stay inside the
+  // evidence-derived band, so fabricated values fail regardless of labels.
   verifyNumericClaims(report, packet, findings);
+  verifyScenarioProjectionClaims(report, packet, findings);
   verifyNarrativeNumericClaims(report, packet, findings);
   verifyTemporalDisclosure(report, packet, findings);
 

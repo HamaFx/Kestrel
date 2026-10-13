@@ -19,15 +19,15 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
 import { getCalendarTool } from '../../../../tools/get-calendar';
-import { createEvidenceId } from '../../../../mastra/evidence';
+import { createEvidenceId } from '../../../packets/evidence';
 import {
   EXTERNAL_CONTENT_TRUST_WARNING,
   quarantineExternalText,
   toUntrustedExternalEvidence,
-} from '../../../../mastra/external-content';
-import { executeLegacyReadOnlyTool } from '../../../../mastra/legacy-tool-adapter';
-import { executeMastraTool } from '../../../../mastra/telemetry';
-import { XAUUSD } from '../../../../mastra/types';
+} from '../../../packets/external-content';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
+import { executeMastraTool } from '../../../shared/telemetry';
+import { XAUUSD } from '../../../shared/types';
 
 const InputSchema = z.object({
   from: z.number().int().optional(),

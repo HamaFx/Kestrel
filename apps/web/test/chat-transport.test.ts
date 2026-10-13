@@ -17,7 +17,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createKestrelChatTransport } from '@/lib/chat-transport';
+import { chatErrorText, createKestrelChatTransport } from '@/lib/chat-transport';
 
 function sseResponse(events: unknown[]): Response {
   const body = events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('');
@@ -271,5 +271,107 @@ describe('createKestrelChatTransport', () => {
     expect(chunks.some((chunk) => chunk.type === 'text-delta')).toBe(false);
     expect(chunks.some((chunk) => chunk.type === 'error')).toBe(true);
     expect(progress).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'failed' }));
+  });
+
+  // — P1-14: the poll window must not hard-fail while the job is live ————
+
+  it('keeps polling past the old 5-minute window while the job is still pending', async () => {
+    vi.useFakeTimers();
+    const abort = new AbortController();
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ type: 'analysis-queued', jobId: 'job-slow', status: 'queued' }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )
+      // Every poll reports the job as still working. A fresh Response per
+      // call — a Response body can only be consumed once.
+      .mockImplementation(
+        async () =>
+          new Response(JSON.stringify({ status: 'running', progress: [] }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+      );
+
+    const transport = createKestrelChatTransport({ api: '/api/chat' });
+    const stream = await transport.sendMessages({
+      chatId: 'thread-1',
+      messages: [],
+      abortSignal: abort.signal,
+    });
+    const chunksPromise = readChunks(stream as ReadableStream<Record<string, unknown>>);
+
+    // Advance six minutes — one minute past the retired 5-minute window
+    // (~150 two-second polls). Polling must still be alive and error-free.
+    await vi.advanceTimersByTimeAsync(6 * 60_000);
+    const pollsAfterSixMinutes = fetchMock.mock.calls.length - 1;
+    expect(pollsAfterSixMinutes).toBeGreaterThan(150);
+
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(2_000);
+    const chunks = await chunksPromise;
+
+    expect(chunks.some((chunk) => chunk.type === 'error')).toBe(false);
+  });
+
+  // — P1-15: the server's error envelope message must reach the UI ———————
+
+  it('rewrites a non-OK JSON error envelope so the SDK surfaces error.error.message', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: { code: 'VALIDATION_ERROR', message: 'Please rephrase your request.' },
+        }),
+        { status: 422, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+
+    const transport = createKestrelChatTransport({ api: '/api/chat' });
+    // The AI SDK throws `new Error(await response.text())` for non-OK
+    // responses; the transport rewrites the envelope body to the server's
+    // message so that error is what useChat shows.
+    await expect(
+      transport.sendMessages({
+        chatId: 'thread-1',
+        messages: [],
+        abortSignal: new AbortController().signal,
+      }),
+    ).rejects.toThrow('Please rephrase your request.');
+  });
+
+  it('passes non-JSON error bodies through untouched', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('Internal Server Error', {
+        status: 500,
+        headers: { 'content-type': 'text/plain' },
+      }),
+    );
+
+    const transport = createKestrelChatTransport({ api: '/api/chat' });
+    await expect(
+      transport.sendMessages({
+        chatId: 'thread-1',
+        messages: [],
+        abortSignal: new AbortController().signal,
+      }),
+    ).rejects.toThrow('Internal Server Error');
+  });
+
+  it('decodes raw envelope text that leaked into an error message (chatErrorText)', () => {
+    expect(
+      chatErrorText(new Error('{"error":{"code":"NOT_FOUND","message":"thread not found"}}')),
+    ).toBe('thread not found');
+    expect(chatErrorText(new Error('Background analysis stopped.'))).toBe(
+      'Background analysis stopped.',
+    );
+    expect(chatErrorText('{"error":{"code":"X","message":"rate limited, slow down"}}')).toBe(
+      'rate limited, slow down',
+    );
+    expect(chatErrorText(null)).toBe('Something went wrong.');
+    // JSON that is not the error envelope is shown as-is.
+    expect(chatErrorText(new Error('{"stats":{"wins":12}}'))).toBe('{"stats":{"wins":12}}');
   });
 });

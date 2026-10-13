@@ -28,6 +28,7 @@ import {
   recoverStaleBudgetReservations,
   releaseBudgetReservation,
   reservedSpendUsd,
+  resolveModelRate,
   tryReserveBudget,
 } from '../src/cost';
 
@@ -148,7 +149,9 @@ describe('estimateCostUsd', () => {
   });
 
   it('uses the listed gpt-4.1 rates', () => {
-    expect(estimateCostUsd('openai/gpt-4.1', 1_000_000, 1_000_000)).toBeCloseTo(20, 6);
+    // gpt-4.1 is priced by the live catalog ($2/M in, $8/M out), which
+    // wins over the STATIC_RATES upper bound ($5/M in, $15/M out).
+    expect(estimateCostUsd('openai/gpt-4.1', 1_000_000, 1_000_000)).toBeCloseTo(2 + 8, 6);
   });
 
   it('falls back to the safety rate for unknown models', () => {
@@ -156,9 +159,12 @@ describe('estimateCostUsd', () => {
   });
 
   it('mini model is much cheaper', () => {
+    // gpt-4.1 resolves to the catalog rate ($2/M in, $8/M out); the mini
+    // stays on its static rate ($0.4/M in, $1.6/M out) — exactly 5x
+    // cheaper, so assert against main/4 to stay clear of the boundary.
     const main = estimateCostUsd('openai/gpt-4.1', 100_000, 50_000);
     const mini = estimateCostUsd('openai/gpt-4.1-mini', 100_000, 50_000);
-    expect(mini).toBeLessThan(main / 5);
+    expect(mini).toBeLessThan(main / 4);
   });
 
 
@@ -173,8 +179,9 @@ describe('estimateCostUsd', () => {
   });
 
   it('calculates fractional tokens correctly', () => {
+    // Catalog rates for gpt-4.1: $2/M input, $8/M output.
     const cost = estimateCostUsd('openai/gpt-4.1', 500_000, 250_000);
-    expect(cost).toBeCloseTo(5 * 0.5 + 15 * 0.25, 6);
+    expect(cost).toBeCloseTo(2 * 0.5 + 8 * 0.25, 6);
   });
 
   it('prices google/gemini-2.5-flash-lite at its listed rate', () => {
@@ -190,6 +197,28 @@ describe('estimateCostUsd', () => {
   it('prices anthropic/claude-sonnet-4 correctly', () => {
     const cost = estimateCostUsd('anthropic/claude-sonnet-4', 1_000_000, 1_000_000);
     expect(cost).toBeCloseTo(3 + 15, 6);
+  });
+});
+
+describe('catalog precedence over STATIC_RATES', () => {
+  it('prices google/gemini-3.5-flash at the catalog rate, not the stale static rate', () => {
+    // Catalog (BYOK_PROVIDERS): $1.50/M input, $9.00/M output. The stale
+    // STATIC_RATES entry ($0.30/M in, $2.50/M out) under-priced the default
+    // Google model ~5x, so the catalog entry must win the merge.
+    const cost = estimateCostUsd('google/gemini-3.5-flash', 1_000_000, 1_000_000);
+    expect(cost).toBeCloseTo(1.5 + 9.0, 6);
+  });
+
+  it('resolves the catalog rates for the colliding key', () => {
+    expect(resolveModelRate('google/gemini-3.5-flash')).toEqual({
+      inputPerM: 1.5,
+      outputPerM: 9.0,
+    });
+  });
+
+  it('prices the bare BYOK Gemini id at the catalog rate too', () => {
+    const bare = estimateCostUsd('gemini-3.5-flash', 1_000_000, 1_000_000);
+    expect(bare).toBeCloseTo(1.5 + 9.0, 6);
   });
 });
 

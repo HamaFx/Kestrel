@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runMastraBackgroundText } from '../src/mastra/background-text';
+import { runMastraBackgroundText } from '../src/mastra-v2/agents/xauusd/background-text';
 
 const mocks = vi.hoisted(() => ({
   reserveTurnBudget: vi.fn(),
@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => ({
   estimateCostUsd: vi.fn(),
 }));
 
-vi.mock('../src/budget-reservation', () => ({
+vi.mock('../src/budget', () => ({
   reserveTurnBudget: mocks.reserveTurnBudget,
 }));
 vi.mock('../src/model', () => ({
@@ -41,7 +41,7 @@ vi.mock('../src/cost', () => ({
   DEFAULT_TURN_ESTIMATE_USD: 0.01,
   estimateCostUsd: mocks.estimateCostUsd,
 }));
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   beginMastraRun: mocks.beginMastraRun,
   finishMastraRun: mocks.finishMastraRun,
   getMastraGenerationStats: mocks.getMastraGenerationStats,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Audit upgrade-plan feature flags (docs/plans/kestrel-ai-agentic-audit-and-upgrade-plan.md).
+ * Audit upgrade-plan feature flags (docs/plans/kestrel-ai-agentic-audit-v2.md).
  *
  * Single parsing point for every runtime flag read. The zod declarations in
  * `env.ts` document and validate the variables, but enforcement happens here
@@ -17,6 +17,7 @@ export type FeatureFlagName =
   | 'PHASE3_MODEL_DIVERSITY'
   | 'ENABLE_COMMITTEE_CRITIQUE'
   | 'PHASE3_STRUCTURED_FUSION'
+  | 'ENABLE_COMMITTEE_DEBATE'
   | 'ENFORCE_BUDGET';
 
 /** Documented defaults (must match the `.default(...)` values in env.ts). */
@@ -25,6 +26,7 @@ const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
   PHASE3_MODEL_DIVERSITY: false,
   ENABLE_COMMITTEE_CRITIQUE: true,
   PHASE3_STRUCTURED_FUSION: false,
+  ENABLE_COMMITTEE_DEBATE: false,
   ENFORCE_BUDGET: false,
 };
 

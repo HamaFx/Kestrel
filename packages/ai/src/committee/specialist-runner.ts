@@ -35,8 +35,8 @@ import { z } from 'zod';
 import { estimateCostUsd } from '../cost';
 import { classifyStreamError } from '../fallback';
 import type { GenerationLedger } from '../generation-ledger';
-import type { SymbolResearchPacket } from '../mastra/symbol-research';
-import { getMastraGenerationStats } from '../mastra/telemetry';
+import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
+import { getMastraGenerationStats } from '../mastra-v2/shared/telemetry';
 import { specialistInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, SPECIALIST_DEFINITIONS } from './specialists';
 import {

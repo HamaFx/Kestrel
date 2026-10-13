@@ -66,6 +66,38 @@ describe('pruneMastraStorage', () => {
     }
   });
 
+  it('configures bounded retention for every Mastra memory growth table (audit v2 §4.4)', async () => {
+    // P2-4: `memory.resources` was missing from the retention policies, so
+    // the table had no growth bound. The store must be constructed with a
+    // policy covering all three memory retention tables.
+    const original = process.env.MASTRA_STORAGE;
+    process.env.MASTRA_STORAGE = 'postgres';
+    process.env.DIRECT_URL = 'postgres://localhost/test';
+    try {
+      mockPostgresPrune.mockResolvedValue(undefined);
+      await pruneMastraStorage();
+
+      const config = MockPostgresStore.mock.calls[0]?.[0] as {
+        retention?: {
+          memory?: Record<string, { maxAge: string }>;
+          workflows?: Record<string, { maxAge: string }>;
+        };
+      };
+      expect(Object.keys(config.retention?.memory ?? {}).sort()).toEqual([
+        'messages',
+        'resources',
+        'threads',
+      ]);
+      // Resources are live working-memory state (re-seeded from Drizzle when
+      // absent), so they get the longest window of the memory tables.
+      expect(config.retention?.memory?.resources).toEqual({ maxAge: '365d' });
+      expect(config.retention?.workflows?.workflowSnapshot).toEqual({ maxAge: '30d' });
+    } finally {
+      process.env.MASTRA_STORAGE = original;
+      delete process.env.DIRECT_URL;
+    }
+  });
+
   it('returns pruned: false when prune() is not available (LibSQL)', async () => {
     // Force libsql storage (no prune in our mock).
     const original = process.env.MASTRA_STORAGE;

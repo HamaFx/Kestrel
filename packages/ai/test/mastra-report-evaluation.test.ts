@@ -20,8 +20,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   evaluateXauusdReportCase,
   summarizeXauusdReportEvaluations,
-} from '../src/mastra/report-evaluation';
-import { XauusdResearchPacketSchema } from '../src/mastra/research-types';
+} from '../src/mastra-v2/agents/xauusd/report/report-evaluation';
+import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
 
 const asOf = '2026-08-18T12:00:00.000Z';
 const evidenceId = 'price-fixture';

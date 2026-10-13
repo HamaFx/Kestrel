@@ -16,18 +16,30 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { metrics } from '@kestrel/shared';
 import { describe, expect, it, vi } from 'vitest';
 
-import { computeHealthSloService } from '@/lib/services/admin-health';
+import {
+  computeHealthSloService,
+  resetAdminSpendAlertDedup,
+  resolveSpendWatch,
+} from '@/lib/services/admin-health';
 
 function createMockDb(
-  scenario: 'healthy' | 'missing-live-ticks' | 'stale-tick' | 'silent' = 'healthy',
+  scenario:
+    | 'healthy'
+    | 'missing-live-ticks'
+    | 'stale-tick'
+    | 'silent'
+    | 'spend-over-threshold'
+    | 'missing-daily-spend' = 'healthy',
 ) {
   // The service always issues queries in the same order:
   // 1) DB probe, 2) live_ticks, 3) cron_runs, 4) chat_tool_telemetry,
   // 5) chat_telemetry, 6) full-analysis workflow runs (stale/stuck),
-  // 7) operational recovery signals. We use a counter because Drizzle `sql`
-  // objects do not stringify to their SQL text reliably.
+  // 7) operational recovery signals, 8) daily_ai_spend (§5.3 spend watch).
+  // We use a counter because Drizzle `sql` objects do not stringify to
+  // their SQL text reliably.
   let callIndex = 0;
 
   return {
@@ -87,6 +99,22 @@ function createMockDb(
             },
           ],
         };
+      }
+
+      if (callIndex === 8) {
+        if (scenario === 'missing-daily-spend') {
+          throw new Error('relation "daily_ai_spend" does not exist');
+        }
+        if (scenario === 'spend-over-threshold') {
+          return {
+            rows: [
+              { user_id: 'user-1', total_usd_cents: '4100' },
+              { user_id: 'user-2', total_usd_cents: '2500' },
+              { user_id: 'user-3', total_usd_cents: '900' },
+            ],
+          };
+        }
+        return { rows: [] };
       }
 
       return { rows: [] };
@@ -182,5 +210,103 @@ describe('computeHealthSloService', () => {
     expect(result.anomalies).toContain(
       'No cron runs in the selected window — cron health cannot be verified',
     );
+  });
+
+  // ── §5.3 (Q4) spend watch — non-blocking per-user daily alerts ────────────
+
+  it('flags users whose daily ledger spend reaches the threshold as anomalies', async () => {
+    resetAdminSpendAlertDedup();
+    const db = createMockDb('spend-over-threshold');
+    const result = await computeHealthSloService(db, { hours: 24, spendAlertThresholdUsd: 25 });
+
+    expect(result.spendWatch?.thresholdUsd).toBe(25);
+    // $41.00 and exactly $25.00 count (>=, matching usage-alert semantics);
+    // $9.00 does not.
+    expect(result.spendWatch?.usersOverThreshold).toBe(2);
+    expect(result.spendWatch?.overThreshold.map((e) => e.userId)).toEqual(['user-1', 'user-2']);
+    expect(result.anomalies).toContain(
+      'Daily spend alert: user user-1 has spent $41.00 today (threshold $25.00)',
+    );
+    expect(result.anomalies).toContain(
+      'Daily spend alert: user user-2 has spent $25.00 today (threshold $25.00)',
+    );
+    expect(result.anomalies.some((a) => a.includes('user-3'))).toBe(false);
+    expect(result.overall).toBe('degraded');
+  });
+
+  it('reads the spend-watch threshold from ADMIN_SPEND_ALERT_USD when no override is given', async () => {
+    vi.stubEnv('ADMIN_SPEND_ALERT_USD', '40');
+    try {
+      const db = createMockDb('spend-over-threshold');
+      const result = await computeHealthSloService(db, { hours: 24 });
+
+      expect(result.spendWatch?.thresholdUsd).toBe(40);
+      expect(result.spendWatch?.usersOverThreshold).toBe(1); // only user-1 at $41.00
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('falls back to the $25 default when ADMIN_SPEND_ALERT_USD is empty', async () => {
+    vi.stubEnv('ADMIN_SPEND_ALERT_USD', '');
+    try {
+      const db = createMockDb('spend-over-threshold');
+      const result = await computeHealthSloService(db, { hours: 24 });
+
+      expect(result.spendWatch?.thresholdUsd).toBe(25);
+      expect(result.spendWatch?.usersOverThreshold).toBe(2);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('keeps other SLIs working and reports zero users when the spend ledger is unavailable', async () => {
+    const db = createMockDb('missing-daily-spend');
+    const result = await computeHealthSloService(db, { hours: 24 });
+
+    expect(result.dbOk).toBe(true);
+    expect(result.spendWatch?.usersOverThreshold).toBe(0);
+    expect(result.spendWatch?.overThreshold).toEqual([]);
+    expect(result.anomalies).toContain(
+      'Daily spend ledger is unavailable — spend-watch alerts cannot be verified',
+    );
+    expect(result.slis.find((s) => s.key === 'cron_jobs')?.total).toBe(10);
+  });
+
+  it('does not block or inflate: no spend anomalies when everyone is under threshold', async () => {
+    const db = createMockDb('healthy');
+    const result = await computeHealthSloService(db, { hours: 24 });
+
+    expect(result.spendWatch?.usersOverThreshold).toBe(0);
+    expect(result.anomalies.some((a) => a.startsWith('Daily spend alert:'))).toBe(false);
+  });
+
+  it('increments the spend-threshold metric once per user per day, not per poll', async () => {
+    resetAdminSpendAlertDedup();
+    metrics.reset();
+    const db = createMockDb('spend-over-threshold');
+
+    await computeHealthSloService(db, { hours: 24, spendAlertThresholdUsd: 25 });
+    await computeHealthSloService(db, { hours: 24, spendAlertThresholdUsd: 25 });
+
+    expect(metrics.snapshot().counters['admin_spend_threshold_total']).toBe(2);
+    metrics.reset();
+  });
+
+  it('resolveSpendWatch sorts breaches by spend and skips empty user ids', () => {
+    const summary = resolveSpendWatch(
+      [
+        { userId: '', spendUsdCents: 5000 },
+        { userId: 'user-b', spendUsdCents: 2600 },
+        { userId: 'user-a', spendUsdCents: 9900 },
+      ],
+      25,
+    );
+
+    expect(summary.usersOverThreshold).toBe(2);
+    expect(summary.overThreshold).toEqual([
+      { userId: 'user-a', spendUsd: 99 },
+      { userId: 'user-b', spendUsd: 26 },
+    ]);
   });
 });

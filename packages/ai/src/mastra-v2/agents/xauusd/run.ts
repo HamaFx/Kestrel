@@ -37,26 +37,26 @@ import { createXauusdReportWorkflow } from '../../workflows/xauusd-report';
 import type { ChatModelResolution } from '../../../model';
 import { telemetryConfig } from '../../../telemetry';
 import type { ResolveModelEnv } from '../../../env-model-factory';
-import { createXauusdMastraAgent } from '../../../mastra/agent';
-import { manifestForCapability } from '../../../mastra/capabilities';
+import { createXauusdMastraAgent } from './agent';
+import { manifestForCapability } from '../../capabilities';
 import {
   assertExecutionPlanRoute,
   type ExecutionPlan,
-} from '../../../mastra/execution-plan';
-import { generateXauusdFollowup } from '../../../mastra/report-generation';
-import { blockedXauusdResearchText } from '../../../mastra/report-text';
-import type { XauusdResearchReport } from '../../../mastra/report-types';
-import { collectXauusdResearchPacket } from '../../../mastra/research-packet';
-import type { XauusdResearchPacket } from '../../../mastra/research-types';
-import type { MastraGenerationResultLike, MastraGenerationStats } from '../../../mastra/stats';
+} from '../../planning/execution-plan';
+import { generateXauusdFollowup } from './report/report-generation';
+import { blockedXauusdResearchText } from './report/report-text';
+import type { XauusdResearchReport } from './report/report-types';
+import { collectXauusdResearchPacket } from '../../packets/research-packet';
+import type { XauusdResearchPacket } from '../../packets/research-types';
+import type { MastraGenerationResultLike, MastraGenerationStats } from '../../shared/stats';
 import {
   beginMastraRun,
   createMastraRunFinalizer,
   finishMastraRun,
   getMastraGenerationStats,
   mastraOutcomeForError,
-} from '../../../mastra/telemetry';
-import { xauusdMastraConversationToolNames } from '../../../mastra/tools';
+} from '../../shared/telemetry';
+import { xauusdMastraConversationToolNames } from './tools';
 
 export interface XauusdMastraSettings extends Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> {
   embeddingModel?: UserSettingsRow['embeddingModel'];
@@ -154,8 +154,13 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
       env: args.env,
       includeConversationPolicies: true,
       includeResearchPolicies: true,
-      // Audit plan §1.2: guardrail mode from the capability manifest.
-      guardrailMode: args.executionPlan?.guardrail.mode ?? 'strict',
+      // Audit plan §1.9: guardrail strategy + mode derive from the execution
+      // plan, exactly as the canonical path consumes them (§1.2 manifest
+      // trust policy — both XAUUSD capabilities are untrusted → strict+block).
+      guardrailPolicy: {
+        strategy: args.executionPlan?.guardrail.strategy ?? 'block',
+        mode: args.executionPlan?.guardrail.mode ?? 'strict',
+      },
       // Capability-specific semantic recall from the execution plan (Phase 9).
       ...(args.executionPlan
         ? {
@@ -435,7 +440,46 @@ async function executeXauusdMastraConversationRun(
       model: resolution.modelId,
       providerId: resolution.providerId,
     });
-    const packet = await collectXauusdResearchPacket(args.signal);
+    // §2.4: packet collection and memory/guardrail prep are independent —
+    // overlap them so setup latency hides behind data collection.
+    const [packet, runContext] = await Promise.all([
+      collectXauusdResearchPacket(args.signal),
+      prepareResearchRunContext({
+        userId: args.userId,
+        threadId: args.threadId,
+        settings: {
+          aiApiKeys: args.settings.aiApiKeys,
+          chatModel: args.settings.chatModel ?? null,
+          ...(args.settings.embeddingModel !== undefined
+            ? { embeddingModel: args.settings.embeddingModel }
+            : {}),
+          defaultSymbol: args.settings.defaultSymbol ?? null,
+          language: args.settings.language ?? null,
+          timezone: args.settings.timezone ?? null,
+        },
+        env: args.env,
+        includeConversationPolicies: true,
+        // Audit plan §1.9: conversation guardrails derive from the execution
+        // plan's guardrail policy, exactly as the canonical path does, instead
+        // of the legacy rewrite+availability conversation builder.
+        guardrailPolicy: {
+          strategy: args.executionPlan?.guardrail.strategy ?? 'block',
+          mode: args.executionPlan?.guardrail.mode ?? 'strict',
+        },
+        // Capability-specific semantic recall from the execution plan (Phase 9).
+        ...(args.executionPlan
+          ? {
+              memoryOptions: kestrelMemoryOptions({
+                env: args.env,
+                semanticRecall: args.executionPlan.memoryPolicy.semanticRecall,
+              }),
+            }
+          : {}),
+        ...(args.backfillExcludeMessageIdempotencyKey
+          ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
+          : {}),
+      }),
+    ]);
     if (packet.status === 'blocked') {
       const stats = blockedStats();
       const text = blockedXauusdResearchText(packet);
@@ -448,8 +492,8 @@ async function executeXauusdMastraConversationRun(
         startedAt,
         ...stats,
         outcome: 'success',
-        memoryMode: 'native',
-        memoryBackfill: false,
+        memoryMode: runContext.prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: runContext.prepared.backfillAttempted,
         ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
       });
       return {
@@ -463,40 +507,10 @@ async function executeXauusdMastraConversationRun(
         totalCostUsd: 0,
         answerOutcome: 'blocked',
         modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
-        memoryMode: 'native',
-        memoryBackfill: false,
+        memoryMode: runContext.prepared.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: runContext.prepared.backfillAttempted,
       };
     }
-    // Shared research-run context (Phase 7): native memory + conversation
-    // guardrail/scorer policy, identical to the buffered XAUUSD paths.
-    const runContext = await prepareResearchRunContext({
-      userId: args.userId,
-      threadId: args.threadId,
-      settings: {
-        aiApiKeys: args.settings.aiApiKeys,
-        chatModel: args.settings.chatModel ?? null,
-        ...(args.settings.embeddingModel !== undefined
-          ? { embeddingModel: args.settings.embeddingModel }
-          : {}),
-        defaultSymbol: args.settings.defaultSymbol ?? null,
-        language: args.settings.language ?? null,
-        timezone: args.settings.timezone ?? null,
-      },
-      env: args.env,
-      includeConversationPolicies: true,
-      // Capability-specific semantic recall from the execution plan (Phase 9).
-      ...(args.executionPlan
-        ? {
-            memoryOptions: kestrelMemoryOptions({
-              env: args.env,
-              semanticRecall: args.executionPlan.memoryPolicy.semanticRecall,
-            }),
-          }
-        : {}),
-      ...(args.backfillExcludeMessageIdempotencyKey
-        ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
-        : {}),
-    });
     const memory = runContext.memory;
     const prepared = runContext.prepared;
     memoryMode = prepared.memoryDegraded ? 'degraded' : 'native';
@@ -644,7 +658,46 @@ export async function runXauusdMastraConversationStream(
         model: resolution.modelId,
         providerId: resolution.providerId,
       });
-      const packet = await collectXauusdResearchPacket(args.signal);
+      // §2.4: packet collection and memory/guardrail prep are independent —
+      // overlap them so setup latency hides behind data collection.
+      const [packet, runContext] = await Promise.all([
+        collectXauusdResearchPacket(args.signal),
+        prepareResearchRunContext({
+          userId: args.userId,
+          threadId: args.threadId,
+          settings: {
+            aiApiKeys: args.settings.aiApiKeys,
+            chatModel: args.settings.chatModel ?? null,
+            ...(args.settings.embeddingModel !== undefined
+              ? { embeddingModel: args.settings.embeddingModel }
+              : {}),
+            defaultSymbol: args.settings.defaultSymbol ?? null,
+            language: args.settings.language ?? null,
+            timezone: args.settings.timezone ?? null,
+          },
+          env: args.env,
+          includeConversationPolicies: true,
+          // Audit plan §1.9: conversation guardrails derive from the execution
+          // plan's guardrail policy, exactly as the canonical path does, instead
+          // of the legacy rewrite+availability conversation builder.
+          guardrailPolicy: {
+            strategy: args.executionPlan?.guardrail.strategy ?? 'block',
+            mode: args.executionPlan?.guardrail.mode ?? 'strict',
+          },
+          // Capability-specific semantic recall from the execution plan (Phase 9).
+          ...(args.executionPlan
+            ? {
+                memoryOptions: kestrelMemoryOptions({
+                  env: args.env,
+                  semanticRecall: args.executionPlan.memoryPolicy.semanticRecall,
+                }),
+              }
+            : {}),
+          ...(args.backfillExcludeMessageIdempotencyKey
+            ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
+            : {}),
+        }),
+      ]);
       if (packet.status === 'blocked') {
         const stats = blockedStats();
         const result: MastraGenerationResultLike = { text: blockedXauusdResearchText(packet) };
@@ -657,8 +710,8 @@ export async function runXauusdMastraConversationStream(
           startedAt,
           ...stats,
           outcome: 'success',
-          memoryMode: 'native',
-          memoryBackfill: false,
+          memoryMode: runContext.prepared.memoryDegraded ? 'degraded' : 'native',
+          memoryBackfill: runContext.prepared.backfillAttempted,
           ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
         });
         return {
@@ -678,41 +731,13 @@ export async function runXauusdMastraConversationStream(
               providerId: resolution.providerId,
               bareModelId: resolution.bareModelId,
             },
-            memoryMode: 'native' as const,
-            memoryBackfill: false,
+            memoryMode: (runContext.prepared.memoryDegraded
+              ? 'degraded'
+              : 'native') as 'native' | 'degraded',
+            memoryBackfill: runContext.prepared.backfillAttempted,
           }),
         };
       }
-      // Shared research-run context (Phase 7): native memory + conversation
-      // guardrail/scorer policy, identical to the buffered XAUUSD paths.
-      const runContext = await prepareResearchRunContext({
-        userId: args.userId,
-        threadId: args.threadId,
-        settings: {
-          aiApiKeys: args.settings.aiApiKeys,
-          chatModel: args.settings.chatModel ?? null,
-          ...(args.settings.embeddingModel !== undefined
-            ? { embeddingModel: args.settings.embeddingModel }
-            : {}),
-          defaultSymbol: args.settings.defaultSymbol ?? null,
-          language: args.settings.language ?? null,
-          timezone: args.settings.timezone ?? null,
-        },
-        env: args.env,
-        includeConversationPolicies: true,
-        // Capability-specific semantic recall from the execution plan (Phase 9).
-        ...(args.executionPlan
-          ? {
-              memoryOptions: kestrelMemoryOptions({
-                env: args.env,
-                semanticRecall: args.executionPlan.memoryPolicy.semanticRecall,
-              }),
-            }
-          : {}),
-        ...(args.backfillExcludeMessageIdempotencyKey
-          ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
-          : {}),
-      });
       const memory = runContext.memory;
       const prepared = runContext.prepared;
       memoryMode = prepared.memoryDegraded ? 'degraded' : 'native';

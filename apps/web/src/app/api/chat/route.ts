@@ -29,11 +29,13 @@ import { createRequestLogger } from '@/lib/logger';
 import {
   AnalysisQueuedEventSchema,
   BudgetExceededError,
+  CanonicalEvidenceBlockedError,
   createExecutionPlan,
   enqueueFullAnalysis,
   extractUserMessageText,
   getThread,
   getUserWithSettings,
+  GuardrailUnavailableError,
   isBudgetEnforced,
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
@@ -45,10 +47,10 @@ import {
   resolveMode,
   routeUnified,
   traceIdStorage,
+  TripWire,
   UserMessagePartsSchema,
   withDiagnostics,
   withRateLimit,
-  type UnifiedRoutingDecision,
 } from '@/lib/services/api-boundary';
 import { runConversationalTurn, runResearchWorkflow } from '@/lib/services/mastra-execution';
 import { startMutationDraft } from '@/lib/services/mastra-mutation-draft';
@@ -428,6 +430,28 @@ export const POST = withAuth<void>(async (req, { user }) => {
         'BUDGET_EXCEEDED',
         `Daily AI budget exceeded ($${error.spent.toFixed(2)} / $${error.max.toFixed(2)}). Resets at UTC midnight.`,
         429,
+      );
+    }
+    if (error instanceof CanonicalEvidenceBlockedError) {
+      return errorJson('EVIDENCE_UNVERIFIED', error.message, 422);
+    }
+    // Audit plan §1.9: strict-mode guardrails fail closed when the injection
+    // detector model cannot be loaded — surface that as a retryable 503
+    // instead of a generic 500/502.
+    if (error instanceof GuardrailUnavailableError) {
+      return errorJson(
+        'GUARDRAIL_UNAVAILABLE',
+        'The prompt-injection guardrail is unavailable right now, so this request was rejected. Please try again shortly.',
+        503,
+      );
+    }
+    // Audit plan §1.9: Mastra's LLM injection backstop tripped the tripwire
+    // (guardrail strategy 'block') — a clean 422, not a raw stream error.
+    if (error instanceof TripWire) {
+      return errorJson(
+        'INJECTION_BLOCKED',
+        'I can help with read-only research, but I cannot process instruction-overriding requests. Please ask for a market explanation, analysis, or scenario review.',
+        422,
       );
     }
     log.error({ err: String(error), threadId: body.threadId }, 'Mastra chat failed');

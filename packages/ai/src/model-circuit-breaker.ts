@@ -28,6 +28,15 @@
 //    model) so state recorded by other isolates converges into L1,
 //  - when the database is unavailable the breaker degrades to the previous
 //    per-instance behavior instead of failing the call.
+//
+// Audit plan §1.4 (P0-4): the breaker is keyed by the resolved MODEL id
+// (the qualified "<provider>/<model>" string) on every read and write —
+// run outcomes are recorded from `finishMastraRun` in
+// `mastra-v2/shared/run-telemetry.ts`, and the routing call sites check
+// `isCircuitOpen(modelId)` for the specific model they would use. The DB
+// row mirrors the L1 window semantics: failures inside the 60s window
+// increment `consecutive_failures`, a failure after the window expired
+// starts a fresh window at 1, and a success resets the row to 0.
 
 import { sql } from 'drizzle-orm';
 
@@ -76,12 +85,28 @@ async function writeThrough(operation: 'failure' | 'success', modelId: string): 
         });
     } else {
       const openedAt = new Date();
+      // Audit plan §1.4 (P0-4) — mirror the L1 window semantics in the
+      // shared row: failures inside the 60s window increment the counter
+      // while keeping the window start in `opened_at`; a failure after the
+      // window expired starts a fresh window at 1. A success write (above)
+      // resets the row to 0, exactly like the L1 Map.
+      const windowStart = new Date(openedAt.getTime() - WINDOW_MS);
       await db.execute(sql`
         INSERT INTO provider_circuit_state (model_id, consecutive_failures, opened_at, updated_at)
         VALUES (${modelId}, 1, ${openedAt}, ${openedAt})
         ON CONFLICT (model_id) DO UPDATE
-          SET consecutive_failures = provider_circuit_state.consecutive_failures + 1,
-              opened_at = ${openedAt},
+          SET consecutive_failures =
+                CASE
+                  WHEN provider_circuit_state.updated_at >= ${windowStart}
+                    THEN provider_circuit_state.consecutive_failures + 1
+                  ELSE 1
+                END,
+              opened_at =
+                CASE
+                  WHEN provider_circuit_state.updated_at >= ${windowStart}
+                    THEN provider_circuit_state.opened_at
+                  ELSE ${openedAt}
+                END,
               updated_at = ${openedAt}
       `);
     }

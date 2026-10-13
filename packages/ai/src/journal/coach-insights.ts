@@ -24,7 +24,7 @@ import {
   releaseBudgetReservation,
   tryReserveBudget,
 } from '../cost';
-import { runMastraText } from '../mastra/text-runner';
+import { runMastraText } from '../mastra-v2/agents/xauusd/text-runner';
 import { resolveChatModel } from '../model';
 import { computeStats, listEntries } from './persistence';
 

@@ -19,14 +19,53 @@ import { randomUUID } from 'node:crypto';
 import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
-import { assembleXauusdResearchPacket } from '../../mastra/research-packet-assemble';
-import { fetchXauusdResearchData } from '../../mastra/research-packet-fetch';
-import { startResearchStage } from '../../mastra/research-packet-stages';
-import type { XauusdResearchPacket } from '../../mastra/research-types';
-import { XAUUSD } from '../../mastra/types';
+import { assembleXauusdResearchPacket } from './research-packet-assemble';
+import { fetchXauusdResearchData } from './research-packet-fetch';
+import { startResearchStage } from './research-packet-stages';
+import {
+  XauusdResearchPacketSchema,
+  type XauusdResearchPacket,
+} from './research-types';
+import { XAUUSD } from '../shared/types';
+import { createPacketCache } from './packet-cache';
 
 const rlog = createCategorizedLogger('ai', {
   component: 'mastra-xauusd-research-packet',
+});
+
+/**
+ * Q5 (fresh-only) predicate for the XAUUSD verified packet — mirrors
+ * `isFreshCacheablePacket`: only `ready`, warning-free, fully fresh packets
+ * are cached, so packet quality can never regress through the cache.
+ */
+export function isFreshCacheableXauusdPacket(packet: XauusdResearchPacket): boolean {
+  if (packet.status !== 'ready') return false;
+  if (packet.missingData.length > 0 || packet.warnings.length > 0) return false;
+  if (packet.dataQuality !== 'complete') return false;
+  if (packet.price?.freshness !== 'fresh') return false;
+  return (
+    packet.candles.every((evidence) => evidence.freshness === 'fresh' && evidence.quality === 'complete') &&
+    packet.indicators.every(
+      (evidence) => evidence.freshness === 'fresh' && evidence.quality === 'complete',
+    )
+  );
+}
+
+/**
+ * §2.1/P1-10 — the XAUUSD packet rides the SAME 30s fresh-only cache
+ * machinery as the committee's `collectSymbolResearchPacketCached` (one
+ * factory, one TTL, one LRU discipline, one Redis mirror, one
+ * `PHASE2_PACKET_CACHE` rollback flag), namespaced apart because the
+ * verified XAUUSD packet keeps its own schema (Q6: do not merge schemas —
+ * only collection/caching is unified).
+ */
+const xauusdPacketCache = createPacketCache<XauusdResearchPacket>({
+  namespace: 'xauusd-packet',
+  isCacheable: isFreshCacheableXauusdPacket,
+  revive: (raw) => {
+    const parsed = XauusdResearchPacketSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  },
 });
 
 /**
@@ -34,7 +73,7 @@ const rlog = createCategorizedLogger('ai', {
  * The model receives this packet before explaining the market; it does not
  * decide which required timeframes to omit.
  */
-export async function collectXauusdResearchPacket(
+async function collectXauusdResearchPacketUncached(
   signal?: AbortSignal,
 ): Promise<XauusdResearchPacket> {
   const packetId = `kestrel-research-${randomUUID()}`;
@@ -61,4 +100,21 @@ export async function collectXauusdResearchPacket(
     missingDataCount: packet.missingData.length,
   });
   return packet;
+}
+
+/**
+ * §2.1/P1-10 — cache-wrapped XAUUSD packet collection. The conversation path
+ * (run.ts), the verified-report workflow, and the research-packet tool all
+ * collect through here, so market-open bursts deduplicate onto one
+ * collection and share the data-layer candle cache with the committee
+ * pipeline (windows aligned in research-config.ts). Fresh-only per Q5:
+ * blocked, degraded, or partial packets are never cached.
+ * `PHASE2_PACKET_CACHE=0` rolls back to uncached collection with identical
+ * packet contents. Q6: the richer VERIFIED packet schema and its evidence
+ * assembly are deliberately kept — only collection/caching is unified.
+ */
+export async function collectXauusdResearchPacket(
+  signal?: AbortSignal,
+): Promise<XauusdResearchPacket> {
+  return xauusdPacketCache.collect(XAUUSD, collectXauusdResearchPacketUncached, signal);
 }

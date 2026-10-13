@@ -49,7 +49,10 @@ export async function runRetention(ctx: JobContext): Promise<JobResult> {
   });
 
   // Mastra runtime storage retention (messages 90d, threads 180d,
-  // workflow snapshots 30d) — best-effort, never blocks the job.
+  // resources 365d, workflow snapshots 30d) — best-effort, never blocks the
+  // job. Dormant `mastra_observational_memory` rows are pruned by
+  // runRetentionCleanup above (Mastra's own prune() excludes that table);
+  // their count is included in `result.note`.
   const mastraRetention = await pruneMastraStorage();
   ctx.log.info('Mastra storage pruning', mastraRetention);
 

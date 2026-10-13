@@ -116,6 +116,7 @@ const BIAS_TOKEN: Record<AgentOpinion['bias'], string> = {
 };
 
 export function AgentDeliberation({ agents, mode, status, error }: AgentDeliberationProps) {
+  if (!Array.isArray(agents) || agents.length === 0) return null;
   const hasDone = agents.some((a) => a.status === 'done');
   const isFailed = status === 'failed';
   const isRetrying = status === 'retrying';

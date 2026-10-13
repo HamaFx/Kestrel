@@ -32,8 +32,8 @@ import type { AgentMemoryOption } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 import { z } from 'zod';
 
-import type { MastraGenerationStats } from '../mastra/stats';
-import { SymbolResearchPacketSchema, type SymbolResearchPacket } from '../mastra/symbol-research';
+import type { MastraGenerationStats } from '../mastra-v2/shared/stats';
+import { SymbolResearchPacketSchema, type SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 
 export type MastraAnalysisMode = 'single' | 'full';
 export type MastraSpecialistName = 'technical' | 'fundamental' | 'risk' | 'sentiment';
@@ -62,6 +62,7 @@ export type CommitteeStepId =
   | MastraSpecialistName
   | 'collect-packet'
   | 'critique'
+  | 'debate'
   | 'verify'
   | 'fusion';
 

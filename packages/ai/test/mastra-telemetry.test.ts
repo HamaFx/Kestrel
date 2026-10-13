@@ -24,7 +24,11 @@ import {
   isMastraTelemetryDegraded,
   mastraOutcomeForError,
   resetMastraTelemetryHealth,
-} from '../src/mastra/telemetry';
+} from '../src/mastra-v2/shared/telemetry';
+import {
+  TELEMETRY_KINDS,
+  type TelemetryInput,
+} from '../src/persistence/telemetry-persistence';
 
 const mocks = vi.hoisted(() => ({
   recordTelemetry: vi.fn().mockResolvedValue(undefined),
@@ -261,5 +265,85 @@ describe('Mastra telemetry boundaries', () => {
       'metrics_flush_failed_total{surface=metrics}',
       1,
     );
+  });
+});
+
+describe('telemetry vocabulary (audit v2 §4.5)', () => {
+  beforeEach(() => {
+    metrics.reset();
+    resetMastraTelemetryHealth();
+    mocks.recordTelemetry.mockClear();
+  });
+
+  it('documents only kinds live writers emit — the dead title_* vocabulary is gone', () => {
+    // P2-5: title_generated/title_failed/title_skipped_budget were declared
+    // but never emitted by the Mastra-native title path (title cost is
+    // reconciled through the parent turn's ledger). They remain readable as
+    // legacy DB values but are no longer part of the emitted vocabulary.
+    expect(TELEMETRY_KINDS.filter((kind) => kind.startsWith('title_'))).toEqual([]);
+    expect([...TELEMETRY_KINDS]).toContain('mastra_xauusd_poc');
+    expect([...TELEMETRY_KINDS]).toContain('mastra_canonical_chat_failed');
+    expect([...TELEMETRY_KINDS]).toContain('turn_failed');
+  });
+
+  it('finishMastraRun emits only documented kinds and never the dead usageKnown field', async () => {
+    const base = {
+      userId: 'user-1',
+      threadId: 'thread-1',
+      model: 'google/gemini-2.5-flash',
+      providerId: 'google',
+      startedAt: Date.now(),
+      inputTokens: 1,
+      outputTokens: 1,
+      toolCalls: 0,
+      steps: 1,
+    };
+    const telemetryKinds = [
+      undefined,
+      'mastra_xauusd_poc',
+      'mastra_mode',
+      'mastra_full_job',
+      'mastra_worker_task',
+      'mastra_canonical_chat',
+    ] as const;
+
+    for (const outcome of ['success', 'failed', 'cancelled'] as const) {
+      for (const telemetryKind of telemetryKinds) {
+        mocks.recordTelemetry.mockClear();
+        await finishMastraRun({
+          ...base,
+          runId: `run-vocab-${outcome}-${telemetryKind ?? 'default'}`,
+          outcome,
+          ...(telemetryKind ? { telemetryKind } : {}),
+          ...(outcome === 'success' ? {} : { error: new Error('boom') }),
+        });
+
+        expect(mocks.recordTelemetry).toHaveBeenCalledTimes(1);
+        const recorded = mocks.recordTelemetry.mock.calls[0]![0] as Record<string, unknown>;
+        // The dead usageKnown field (no chat_telemetry column) is not written.
+        expect(recorded).not.toHaveProperty('usageKnown');
+        // Every emitted kind is part of the documented set.
+        expect([...TELEMETRY_KINDS]).toContain(recorded.kind);
+        expect(String(recorded.kind).startsWith('title_')).toBe(false);
+      }
+    }
+  });
+
+  it('TelemetryInput rejects the dropped usageKnown field at compile time', () => {
+    // Static guard: chat_telemetry has no usage_known column (P2-5), so the
+    // writer input type must reject the field. If this file compiles, the
+    // vocabulary fix holds.
+    const rejected: TelemetryInput = {
+      threadId: 'thread-1',
+      messageId: null,
+      model: 'test/model',
+      inputTokens: 0,
+      outputTokens: 0,
+      toolCalls: 0,
+      ms: 0,
+      // @ts-expect-error audit v2 §4.5 — usageKnown dropped (no DB column)
+      usageKnown: false,
+    };
+    expect(rejected.threadId).toBe('thread-1');
   });
 });

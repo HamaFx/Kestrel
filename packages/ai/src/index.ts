@@ -20,17 +20,19 @@ import './services';
 
 // Public barrel for @kestrel/ai. The route handler imports from here.
 export * from './workflow-status';
-export * from './mastra/telemetry-startup';
-export { isMastraTelemetryDegraded, resetMastraTelemetryHealth } from './mastra/telemetry';
+export * from './mastra-v2/shared/telemetry-startup';
+export { isMastraTelemetryDegraded, resetMastraTelemetryHealth } from './mastra-v2/shared/telemetry';
 
-export { reserveTurnBudget, resumeTurnBudget, type BudgetHandle } from './budget-reservation';
 export {
   acquireBudget,
   effectiveDailyCap,
   isBudgetEnforced,
+  reserveTurnBudget,
+  resumeTurnBudget,
   UNCAPPED_DAILY_USD,
   type AcquireBudgetArgs,
   type AcquireBudgetResult,
+  type BudgetHandle,
 } from './budget';
 export {
   createExecutionLifecycle,
@@ -48,13 +50,6 @@ export {
   type GenerationLedgerSnapshot,
 } from './generation-ledger';
 export { registerAllTools, toolRegistry, type ToolRegistry } from './tools';
-export {
-  getThreadStateHandler,
-  canTransitionThread,
-  getInitialThreadState,
-  type ThreadState,
-  type ThreadStateHandler,
-} from './thread-state';
 export * from './wait-until';
 export * from './telegram/webhook';
 export {
@@ -80,9 +75,6 @@ export {
   deriveTitleModel,
   testProviderKey,
   validateProviderConfig,
-  routeModelByDomain,
-  MODEL_ROUTER,
-  TIER_TO_DOMAIN,
   type ChatModelResolution,
   type MastraModelPurpose,
   type MastraModelSnapshot,
@@ -90,8 +82,6 @@ export {
   type MastraResolvedModel,
   type VisionModelResolution,
   type EmbeddingModelResolution,
-  type DomainRoutingStrategy,
-  type DomainRoutingContext,
 } from './model';
 export {
   estimateCostUsd,
@@ -145,9 +135,11 @@ export {
   type ForkThreadResult,
   recordTelemetry,
   recordToolTelemetry,
+  TELEMETRY_KINDS,
   type DbThread,
   type DbMessage,
   type TelemetryInput,
+  type TelemetryKind,
   type ToolTelemetryInput,
 } from './persistence';
 
@@ -349,12 +341,6 @@ export {
   type AgentProgressSnapshot,
 } from './eval/parse-stream';
 
-export {
-  reserveBudget,
-  reconcileBudget,
-  releaseBudget,
-  type BudgetReservation,
-} from './budget-guard';
 export { extractRateLimits, type RateLimitData } from './rate-limits';
 export { noteLlmRateLimit, awaitLlmHeadroom } from './llm-throttle';
 
@@ -380,7 +366,7 @@ export {
   ExecutionPlanSchema,
   type ExecutionPlan,
   type CreateExecutionPlanInput,
-} from './mastra/execution-plan';
+} from './mastra-v2/planning/execution-plan';
 
 // Canonical Mastra execution decision facade.
 export {
@@ -390,7 +376,7 @@ export {
   type MastraExecutionDecision,
   type MastraExecutionDecisionInput,
   type MastraExecutionRoute,
-} from './mastra/execution-decision';
+} from './mastra-v2/planning/execution-decision';
 
 // Canonical Mastra routing and historical opinion persistence.
 export {
@@ -398,7 +384,7 @@ export {
   resolveMode,
   type AnalysisMode,
   type ResolvedMode,
-} from './mastra/routing-policy';
+} from './mastra-v2/planning/routing-policy';
 export {
   saveAgentOpinions,
   listAgentOpinions,

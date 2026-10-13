@@ -29,7 +29,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { GenerationLedger } from '../../generation-ledger';
 import { deriveTitleModel, type ResolveModelEnv } from '../../model';
 import { getThread, updateThreadTitle } from '../../persistence';
-import { generateThreadTitle } from '../../mastra/title';
+import { generateThreadTitle } from './title';
 
 const tilog = createCategorizedLogger('ai', { component: 'thread-title' });
 

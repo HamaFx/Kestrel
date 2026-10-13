@@ -28,10 +28,10 @@ jobs:
       - run: pnpm check:compose-images
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
-      # Knip is report-only; it must not block delivery on dynamic entrypoints.
-      - name: Knip Report
+      # Audit v2 §4.2 — knip is blocking: the workspace is at zero unused
+      # exports/deps; new dead code must fail CI instead of accumulating.
+      - name: Knip
         run: pnpm knip --no-progress
-        continue-on-error: true
       # Audit dependencies for critical security vulnerabilities.
       - run: pnpm audit --audit-level=critical
       # Build all packages and applications.

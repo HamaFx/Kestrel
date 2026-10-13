@@ -18,7 +18,7 @@ import { tool } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { adaptLegacyReadOnlyTools } from '../src/mastra/legacy-tool-adapter';
+import { adaptLegacyReadOnlyTools } from '../src/mastra-v2/agents/xauusd/legacy-tool-adapter';
 
 describe('Mastra specialist tool adaptation', () => {
   it('preserves specialist names while converting legacy tools to executable Mastra tools', () => {

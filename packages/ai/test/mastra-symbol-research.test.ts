@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { collectSymbolResearchPacket } from '../src/mastra/symbol-research';
+import { collectSymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
 
 const mocks = vi.hoisted(() => ({
   getPriceWithMeta: vi.fn(),

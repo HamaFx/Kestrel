@@ -16,7 +16,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import type { EvidenceFreshness, EvidenceQuality } from '../../mastra/evidence-types';
+import type { EvidenceFreshness, EvidenceQuality } from './evidence-types';
 
 export function createEvidenceId(kind: string, symbol: string, timeframe?: string): string {
   const scope = timeframe ? `${symbol.toLowerCase()}-${timeframe}` : symbol.toLowerCase();

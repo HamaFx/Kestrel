@@ -5,19 +5,19 @@ import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../
 import {
   requireExecutionPlanModel,
   type ExecutionPlan,
-} from '../../../mastra/execution-plan';
+} from '../../planning/execution-plan';
 
 import type { ResolveModelEnv } from '../../../env-model-factory';
 
 import { RequestContext } from '@mastra/core/request-context';
 
-import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../../mastra/types';
+import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../shared/types';
 
-import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../../../mastra/research-types';
+import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../../packets/research-types';
 
-import type { XauusdResearchReport } from '../../../mastra/report-types';
+import type { XauusdResearchReport } from './report/report-types';
 
-import type { MastraGenerationStats } from '../../../mastra/stats';
+import type { MastraGenerationStats } from '../../shared/stats';
 
 /**
  * Copyright 2026 Kestrel

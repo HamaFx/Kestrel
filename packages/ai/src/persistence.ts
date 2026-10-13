@@ -46,7 +46,9 @@ export {
 export {
   recordTelemetry,
   recordToolTelemetry,
+  TELEMETRY_KINDS,
   type TelemetryInput,
+  type TelemetryKind,
   type ToolTelemetryInput,
 } from './persistence/telemetry-persistence';
 

@@ -131,17 +131,19 @@ export function resolveModelForRole(
 
     // 2. Highest-priority configured provider supporting vision
     for (const providerId of configured) {
-      if (isCircuitOpen(providerId)) continue;
       const spec = BYOK_PROVIDERS[providerId];
-      if (spec?.supports.vision && spec.defaultModels.vision) {
-        const apiKey = keys[providerId]!;
-        return {
-          providerId,
-          bareModelId: spec.defaultModels.vision,
-          modelId: `${providerId}/${spec.defaultModels.vision}`,
-          model: spec.factory(apiKey)(spec.defaultModels.vision),
-        };
-      }
+      if (!spec?.supports.vision || !spec.defaultModels.vision) continue;
+      // Audit plan §1.4 (P0-4) — the breaker is keyed by model id: skip
+      // only when this provider's vision model specifically has an open
+      // circuit, not the whole provider.
+      if (isCircuitOpen(`${providerId}/${spec.defaultModels.vision}`)) continue;
+      const apiKey = keys[providerId]!;
+      return {
+        providerId,
+        bareModelId: spec.defaultModels.vision,
+        modelId: `${providerId}/${spec.defaultModels.vision}`,
+        model: spec.factory(apiKey)(spec.defaultModels.vision),
+      };
     }
 
     throw new Error('No vision-capable model available. Configure a provider supporting vision.');
@@ -166,7 +168,7 @@ export function resolveModelForRole(
             const known = (spec.models ?? []).some(
               (m: { modelId: string }) => m.modelId === bareModelId,
             );
-            if (known && !isCircuitOpen(providerId)) {
+            if (known && !isCircuitOpen(`${spec.id}/${bareModelId}`)) {
               chatResolution = {
                 providerId,
                 bareModelId,
@@ -182,12 +184,17 @@ export function resolveModelForRole(
 
   // 2. Fall back to priority loop if no explicit chat pick
   if (!chatResolution) {
+    const tier: ModelDomain = options?.domain ?? 'technical';
     let chosenProvider: ProviderId | undefined;
     for (const p of configured) {
-      if (!isCircuitOpen(p)) {
-        chosenProvider = p;
-        break;
-      }
+      const bareModelId = BYOK_PROVIDERS[p]?.defaultModels[tier];
+      if (!bareModelId) continue;
+      // Audit plan §1.4 (P0-4) — the breaker is keyed by model id: skip a
+      // provider only when the tier-default model this resolution would
+      // actually use has an open circuit, not the whole provider.
+      if (isCircuitOpen(`${p}/${bareModelId}`)) continue;
+      chosenProvider = p;
+      break;
     }
 
     if (!chosenProvider) {
@@ -202,7 +209,6 @@ export function resolveModelForRole(
 
     const spec = BYOK_PROVIDERS[chosenProvider];
     const apiKey = keys[chosenProvider]!;
-    const tier: ModelDomain = options?.domain ?? 'technical';
     const bareModelId = spec.defaultModels[tier];
     if (!bareModelId) {
       throw new Error(`Provider ${chosenProvider} has no default ${tier} model configured.`);

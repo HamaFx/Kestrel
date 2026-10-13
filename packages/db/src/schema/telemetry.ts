@@ -31,20 +31,22 @@ import { organization, users } from './auth';
 /**
  * Discriminator for non-assistant-turn telemetry rows.
  *
- * Legacy assistant turns leave `kind` null; auxiliary paths emit one of:
- * - Title_Generator outcomes:
- *   - `title_generated`       — Title_Generator produced an LLM title.
- *   - `title_failed`          — Title_Generator LLM call errored; fallback persisted.
- *   - `title_skipped_budget`  — Daily_Budget_Guardrail blocked the call; fallback persisted.
- * - Routing breadcrumbs (Phase 7a) — one row per chat turn that records
- *   which domain the router picked. Used by `/settings/usage` to break
- *   spend down by domain. The associated `model` column carries the
- *   resolved model id.
- *   - `routing_fundamental`
- *   - `routing_technical`
- *   - `routing_summary`
- *   - `routing_vision`
- *   - `routing_generic`
+ * Legacy assistant turns leave `kind` null. Live writers emit the kinds
+ * documented in `TELEMETRY_KINDS` (packages/ai persistence/telemetry).
+ * The values below additionally include HISTORICAL kinds that may exist in
+ * older rows or queued replay payloads but are no longer emitted
+ * (audit v2 §4.5):
+ * - `title_generated` / `title_failed` — pre-Mastra Title_Generator
+ *   outcomes; the Mastra-native title path records cost through the parent
+ *   turn's ledger instead and emits no rows.
+ * - `title_skipped_budget` — can no longer occur at all: the daily budget is
+ *   ledger-only (Q4), so a title is never budget-blocked.
+ * - `mastra_xauusd_shadow` / `legacy_shadow` — retired shadow-mode runs.
+ *
+ * Routing breadcrumbs (Phase 7a) record which domain the router picked, one
+ * row per chat turn; the `model` column carries the resolved model id:
+ * `routing_fundamental`, `routing_technical`, `routing_summary`,
+ * `routing_vision`, `routing_generic`.
  */
 export type ChatTelemetryKind =
   | 'title_generated'
@@ -120,11 +122,12 @@ export const chatTelemetry = pgTable(
     ms: integer('ms').notNull().default(0),
     /** Estimated cost in USD; computed from per-model rate at insert time. */
     estCostUsd: doublePrecision('est_cost_usd').notNull().default(0),
-    /** Whether provider token usage was available for this row. */
     /**
      * Row marker. `null` for legacy assistant turns; one of `ChatTelemetryKind`
-     * for Title_Generator events. Stored as plain text so we can extend the
-     * vocabulary later without a migration.
+     * for auxiliary events. Stored as plain text so we can extend the
+     * vocabulary later without a migration. (A `usage_known` column never
+     * existed — the `usageKnown` field was dropped from the writer in audit
+     * v2 §4.5.)
      */
     kind: text('kind').$type<ChatTelemetryKind | null>(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

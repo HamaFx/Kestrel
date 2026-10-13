@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { XauusdResearchPacket } from '../../../../mastra/research-types';
+import type { XauusdResearchPacket } from '../../../packets/research-types';
 
 export function blockedXauusdResearchText(packet: XauusdResearchPacket): string {
   const missing =

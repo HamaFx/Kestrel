@@ -22,7 +22,7 @@
 import type { QueueTestDb } from './helpers/full-analysis-queue-db';
 import { describe, expect, it } from 'vitest';
 
-import { resumeTurnBudget } from '../src/budget-reservation';
+import { resumeTurnBudget } from '../src/budget';
 import { createExecutionLifecycle } from '../src/execution-lifecycle';
 import { createGenerationLedger, restoreGenerationLedger } from '../src/generation-ledger';
 import {
@@ -44,7 +44,7 @@ import {
   FullAnalysisQuotaExceededError,
   fullAnalysisRetryAction,
 } from '../src/mastra-v2/workflows/full-analysis-retry';
-import type { ExecutionPlan } from '../src/mastra/execution-plan';
+import type { ExecutionPlan } from '../src/mastra-v2/planning/execution-plan';
 import { withQueueStorage } from './helpers/full-analysis-queue-db';
 
 type QueueDb = QueueTestDb;

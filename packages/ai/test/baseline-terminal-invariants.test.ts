@@ -20,7 +20,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BudgetHandle } from '../src/budget-reservation';
+import type { BudgetHandle } from '../src/budget';
 import {
   createExecutionLifecycle,
   terminalMetadata,

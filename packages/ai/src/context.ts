@@ -23,14 +23,40 @@
 
 import { getPrice } from '@kestrel/data';
 import { listUserSymbols, schema } from '@kestrel/db';
-import { getMarketPhase, SYMBOLS, type Symbol, type Tick } from '@kestrel/shared';
+import { getMarketPhase, type MarketPhaseContext, SYMBOLS, type Symbol, type Tick } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { desc } from 'drizzle-orm';
 
 import { getDb } from './db';
-import type { LiveSnapshot } from './prompt/system';
 
 const clog = createCategorizedLogger('ai', { component: 'context' });
+
+/**
+ * Per-turn ambient market context (moved here from the deleted
+ * `prompt/system.ts` when the audit v2 cleanup removed the unwired
+ * buildSystemPrompt; the live snapshot builder is its only live consumer).
+ */
+export interface LiveSnapshot {
+  /** ISO-8601 UTC timestamp the snapshot was generated at. */
+  asOf: string;
+  /** Current FX session inferred server-side. */
+  session: 'asia' | 'london' | 'ny' | 'off';
+  /** Latest mid price per canonical catalog symbol; missing means upstream failed. */
+  prices: Partial<Record<Symbol, Tick>>;
+  /**
+   * Optional context note about the next high-impact macro event. Phase 1c
+   * will plumb this from the calendar table; for now it stays undefined.
+   */
+  nextHighImpactEvent?: { title: string; whenIso: string; currency: string };
+  /** Dynamic copilot operational health indicators (DevOps ambient awareness). */
+  copilotHealth?: {
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    dbLatencyMs: number;
+    lastResonanceSync: string | null;
+  };
+  /** F6 — Detailed market phase context (forex session, liquidity, COMEX). */
+  marketPhase?: MarketPhaseContext;
+}
 
 /**
  * London + New York are the two sessions where XAU and FX really move.

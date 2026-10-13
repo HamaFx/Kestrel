@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import { buildCandlesEvidence } from '../../mastra/evidence-builders';
+import { buildCandlesEvidence } from './evidence-builders';
 import {
   RESEARCH_CANDLE_OUTPUT,
   XAUUSD_RESEARCH_WINDOWS,
   type ResearchWindow,
-} from '../../mastra/research-config';
-import type { XauusdResearchFetchResult } from '../../mastra/research-packet-fetch';
+} from './research-config';
+import type { XauusdResearchFetchResult } from './research-packet-fetch';
 import {
   completeResearchStage,
   recordResearchStageFailure,
   startResearchStage,
   warningForResearchFailure,
-} from '../../mastra/research-packet-stages';
-import type { XauusdResearchPacket } from '../../mastra/research-types';
-import { XAUUSD } from '../../mastra/types';
+} from './research-packet-stages';
+import type { XauusdResearchPacket } from './research-types';
+import { XAUUSD } from '../shared/types';
 
 export interface CandleSuccess {
   window: ResearchWindow;

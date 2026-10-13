@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { metrics } from '@kestrel/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { envFallbackKeys } from '../src/model-helpers';
@@ -86,6 +87,50 @@ describe('envFallbackKeys', () => {
       expect(keys.openai).toBeUndefined();
     } finally {
       restore();
+    }
+  });
+
+  // Audit plan §1.11 / P1-5 (owner decision Q3) — the merge itself stays
+  // ungated; this only verifies the advisory attribution signal fires.
+  it('increments operator_key_fallback_total per surfaced provider without gating the merge', () => {
+    metrics.reset();
+    const restore = withoutProcessKeys();
+    try {
+      process.env.OPENAI_API_KEY = 'openai-key';
+      process.env.ANTHROPIC_API_KEY = 'anthropic-key';
+      const keys = envFallbackKeys({ GOOGLE_GENERATIVE_AI_API_KEY: 'google-key' });
+
+      // Merge behavior is unchanged — every operator key is still surfaced.
+      expect(keys.google).toBe('google-key');
+      expect(keys.openai).toBe('openai-key');
+      expect(keys.anthropic).toBe('anthropic-key');
+
+      const counters = metrics.snapshot().counters;
+      expect(counters['operator_key_fallback_total{provider=google}']).toBe(1);
+      expect(counters['operator_key_fallback_total{provider=openai}']).toBe(1);
+      expect(counters['operator_key_fallback_total{provider=anthropic}']).toBe(1);
+      expect(counters['operator_key_fallback_total{provider=groq}']).toBeUndefined();
+    } finally {
+      restore();
+      metrics.reset();
+    }
+  });
+
+  it('does not count empty operator keys as fallbacks', () => {
+    metrics.reset();
+    const restore = withoutProcessKeys();
+    try {
+      process.env.OPENAI_API_KEY = '';
+      const keys = envFallbackKeys({});
+      expect(keys.openai).toBeUndefined();
+      expect(
+        Object.keys(metrics.snapshot().counters).some((key) =>
+          key.startsWith('operator_key_fallback_total'),
+        ),
+      ).toBe(false);
+    } finally {
+      restore();
+      metrics.reset();
     }
   });
 });

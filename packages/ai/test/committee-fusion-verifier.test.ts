@@ -18,16 +18,22 @@
 // grounded against the packet + verified opinions; a hallucinated number
 // triggers one bounded repair, and a second failure is terminal (Q3 strict).
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { fusionRepairPrompt, verifyFusionAnswer } from '../src/committee/fusion-verifier';
-import { synthesizeCommitteeAnswer } from '../src/committee/synthesizer';
+import {
+  FusionAnswerSchema,
+  renderFusionAnswer,
+  synthesizeCommitteeAnswer,
+} from '../src/committee/synthesizer';
 import { MastraModeStrictFailureError } from '../src/committee/types';
-import type { SymbolResearchPacket } from '../src/mastra/symbol-research';
+import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
 
 const mocks = vi.hoisted(() => ({
   /** Queued fusion generate() results; consumed in order, last one repeats. */
   fusionTexts: [] as string[],
+  /** Queued structured objects (§3.3); when set, results carry `.object`. */
+  fusionObjects: [] as unknown[],
   generate: vi.fn(),
 }));
 
@@ -45,9 +51,16 @@ vi.mock('@mastra/core/agent', () => ({
 
 beforeEach(() => {
   mocks.fusionTexts = [];
+  mocks.fusionObjects = [];
   mocks.generate.mockReset().mockImplementation(async () => {
     const text = mocks.fusionTexts.length > 1 ? mocks.fusionTexts.shift() : mocks.fusionTexts[0];
-    return { text, usage: { inputTokens: 10, outputTokens: 5 }, steps: [{}] };
+    const object = mocks.fusionObjects.length > 1 ? mocks.fusionObjects.shift() : mocks.fusionObjects[0];
+    return {
+      text,
+      ...(mocks.fusionObjects.length > 0 ? { object } : {}),
+      usage: { inputTokens: 10, outputTokens: 5 },
+      steps: [{}],
+    };
   });
 });
 
@@ -132,7 +145,6 @@ describe('verifyFusionAnswer (§1.4)', () => {
     const verification = verifyFusionAnswer(
       'Gold trades at 2648.3 with RSI 61; upside continuation is favored.',
       packet,
-      opinions,
     );
     expect(verification.ok).toBe(true);
   });
@@ -141,7 +153,6 @@ describe('verifyFusionAnswer (§1.4)', () => {
     const verification = verifyFusionAnswer(
       'The technical desk notes EMA alignment around 2648.',
       packet,
-      opinions,
     );
     expect(verification.ok).toBe(true);
   });
@@ -150,7 +161,6 @@ describe('verifyFusionAnswer (§1.4)', () => {
     const verification = verifyFusionAnswer(
       'Bullish continuation targets 2720 with invalidation below 2600.',
       packet,
-      opinions,
     );
     expect(verification.ok).toBe(true);
   });
@@ -159,14 +169,13 @@ describe('verifyFusionAnswer (§1.4)', () => {
     const verification = verifyFusionAnswer(
       'Gold support sits at 9999 with strong buying interest.',
       packet,
-      opinions,
     );
     expect(verification.ok).toBe(false);
     expect(verification.findings.join(' ')).toContain('9999');
   });
 
   it('rejects empty fusion answers', () => {
-    const verification = verifyFusionAnswer('   ', packet, opinions);
+    const verification = verifyFusionAnswer('   ', packet);
     expect(verification.ok).toBe(false);
     expect(verification.findings).toContain('fusion answer is empty');
   });
@@ -175,7 +184,6 @@ describe('verifyFusionAnswer (§1.4)', () => {
     const verification = verifyFusionAnswer(
       'Price is 2600 today.',
       { ...packet, status: 'blocked' },
-      opinions,
     );
     expect(verification.ok).toBe(false);
     expect(verification.findings[0]).toContain('packet data is unavailable');
@@ -252,5 +260,147 @@ describe('synthesizeCommitteeAnswer strict fusion repair (§1.4, Q3)', () => {
     });
     expect(result.finalText).toContain('2648.3');
     expect(mocks.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports the model the fusion pass actually used (§3.1, Q2)', async () => {
+    mocks.fusionTexts = ['Gold trades at 2648.3 with RSI at 61; the committee leans bullish.'];
+    const primary = await synthesizeCommitteeAnswer({
+      mode: 'full',
+      prompt: 'Full committee analysis',
+      packet,
+      opinions,
+      executionStats: [],
+      requestContext,
+      deps,
+    });
+    // Without diversity the fusion span model is the run's primary model.
+    expect(primary.fusionModelId).toBe('test/model');
+    expect(primary.fusionProviderId).toBe('test');
+
+    mocks.fusionTexts = ['Gold trades at 2648.3 with RSI at 61; the committee leans bullish.'];
+    const diverse = await synthesizeCommitteeAnswer({
+      mode: 'full',
+      prompt: 'Full committee analysis',
+      packet,
+      opinions,
+      executionStats: [],
+      requestContext,
+      deps: {
+        ...deps,
+        resolveModelForAgent: () => ({
+          model: {} as never,
+          modelId: 'other/fusion-model',
+          providerId: 'other',
+        }),
+      },
+    });
+    // With PHASE3_MODEL_DIVERSITY the real per-agent model id is reported.
+    expect(diverse.fusionModelId).toBe('other/fusion-model');
+    expect(diverse.fusionProviderId).toBe('other');
+  });
+});
+
+describe('synthesizeCommitteeAnswer structured fusion repair render (§3.3, P1-3)', () => {
+  const recordCost = vi.fn();
+  const deps = {
+    model: {} as never,
+    modelId: 'test/model',
+    providerId: 'test',
+    memory: {} as never,
+    fusionCallOptions: {} as never,
+    ledger: { recordCost, total: () => 0 } as never,
+    maxSteps: 1,
+  };
+  const requestContext = { get: () => 'x' } as never;
+
+  /** Valid FusionAnswer object; only the bottom line varies per scenario. */
+  const structuredAnswer = (bottomLine: string) => ({
+    bottomLine,
+    reasoning: 'The technical desk holds the level with EMA alignment.',
+    risks: ['A close below 2648 invalidates the tilt.'],
+    invalidation: 'Daily close below 2648.',
+    scenarioTable: [
+      { scenario: 'Continuation', bias: 'bullish' as const, trigger: 'Hold above 2648' },
+      { scenario: 'Reversal', bias: 'bearish' as const, trigger: 'Break below 2648' },
+    ],
+  });
+  const groundedAnswer = structuredAnswer(
+    'Gold trades at 2648.3 with RSI at 61; the committee leans bullish.',
+  );
+  const hallucinatedAnswer = structuredAnswer('Gold is supported at 12345 and looks strong.');
+
+  afterEach(() => {
+    delete process.env.PHASE3_STRUCTURED_FUSION;
+  });
+
+  it('renders the structured repair through the same helper, not the raw text', async () => {
+    process.env.PHASE3_STRUCTURED_FUSION = 'true';
+    mocks.fusionTexts = ['raw-first-attempt-text', 'raw-repair-text'];
+    mocks.fusionObjects = [hallucinatedAnswer, groundedAnswer];
+
+    const result = await synthesizeCommitteeAnswer({
+      mode: 'full',
+      prompt: 'Full committee analysis',
+      packet,
+      opinions,
+      executionStats: [],
+      requestContext,
+      deps,
+    });
+
+    // The repaired answer is the deterministic rendered markdown of the
+    // repair's structured object — never the repair's raw `.text`.
+    expect(result.finalText).toBe(renderFusionAnswer(FusionAnswerSchema.parse(groundedAnswer)));
+    expect(result.finalText).not.toBe('raw-repair-text');
+    expect(result.finalText).toContain('| Scenario | Bias | Trigger |');
+    // One structured first attempt + one structured bounded repair.
+    expect(mocks.generate).toHaveBeenCalledTimes(2);
+    for (const call of mocks.generate.mock.calls) {
+      const options = call[1] as { structuredOutput?: { schema?: unknown } };
+      expect(options.structuredOutput?.schema).toBe(FusionAnswerSchema);
+    }
+    // Both attempts are ledgered as a single fusion cost entry.
+    expect(recordCost).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a grounded structured first attempt without any repair call', async () => {
+    process.env.PHASE3_STRUCTURED_FUSION = 'true';
+    mocks.fusionTexts = ['raw-first-attempt-text'];
+    mocks.fusionObjects = [groundedAnswer];
+
+    const result = await synthesizeCommitteeAnswer({
+      mode: 'full',
+      prompt: 'Full committee analysis',
+      packet,
+      opinions,
+      executionStats: [],
+      requestContext,
+      deps,
+    });
+
+    expect(result.finalText).toBe(renderFusionAnswer(FusionAnswerSchema.parse(groundedAnswer)));
+    expect(result.finalText).not.toBe('raw-first-attempt-text');
+    expect(mocks.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('verifies the rendered structured repair and fails closed when it still hallucinates', async () => {
+    process.env.PHASE3_STRUCTURED_FUSION = 'true';
+    // The single queued object repeats for the repair, so the rendered
+    // repair markdown still contains the unsupported 12345.
+    mocks.fusionTexts = ['raw-first-attempt-text'];
+    mocks.fusionObjects = [hallucinatedAnswer];
+
+    await expect(
+      synthesizeCommitteeAnswer({
+        mode: 'full',
+        prompt: 'Full committee analysis',
+        packet,
+        opinions,
+        executionStats: [],
+        requestContext,
+        deps,
+      }),
+    ).rejects.toBeInstanceOf(MastraModeStrictFailureError);
+    expect(mocks.generate).toHaveBeenCalledTimes(2);
   });
 });

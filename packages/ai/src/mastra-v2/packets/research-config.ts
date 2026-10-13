@@ -21,11 +21,17 @@ export interface ResearchWindow {
   candleCount: number;
 }
 
+// Audit plan §2.1/P1-10 — the 1h/15m windows match the shared collector's
+// `SYMBOL_RESEARCH_TIMEFRAMES` (was 200) so the XAUUSD verified-packet
+// pipeline and the committee pipeline issue identical data-layer requests
+// and share the candle cache instead of re-hitting providers per turn.
+// 160 candles comfortably covers every indicator warmup below (max period
+// 50); packet output is bounded separately via RESEARCH_CANDLE_OUTPUT.
 export const XAUUSD_RESEARCH_WINDOWS: readonly ResearchWindow[] = [
   { timeframe: '1d', candleCount: 120 },
   { timeframe: '4h', candleCount: 120 },
-  { timeframe: '1h', candleCount: 200 },
-  { timeframe: '15m', candleCount: 200 },
+  { timeframe: '1h', candleCount: 160 },
+  { timeframe: '15m', candleCount: 160 },
 ];
 
 export const XAUUSD_RESEARCH_INDICATORS: readonly IndicatorRequest[] = [

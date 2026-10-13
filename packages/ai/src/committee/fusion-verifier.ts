@@ -31,76 +31,12 @@
 
 import { metrics } from '@kestrel/shared';
 
-import { extractNarrativeNumbers } from '../mastra/report-grounding';
-import type { SymbolResearchPacket } from '../mastra/symbol-research';
-import type { MastraModeOpinion } from './types';
+import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
+import { packetEvidenceValues, ungroundedNarrativeNumbers } from './grounding';
 
 export interface FusionVerification {
   ok: boolean;
   findings: string[];
-}
-
-/** Evidence tolerance: legitimate integer rounding of indicator readings. */
-const EVIDENCE_TOLERANCE = 0.5;
-
-/** Scenario-projection wording exempts forward-looking numbers from grounding. */
-const SCENARIO_PROJECTION_WINDOW =
-  /\b(?:target|entry(?:\s+zone)?|invalidation|trigger|take.?profit|stop.?loss|\btp\b|\bsl\b|risk.?reward|r\s*:?s*r)\b/i;
-
-/** Character window around a match considered "scenario context". */
-const SCENARIO_CONTEXT_CHARS = 32;
-
-function packetEvidenceValues(packet: SymbolResearchPacket): number[] {
-  const values: number[] = [];
-  if (packet.price) {
-    values.push(packet.price.tick.bid, packet.price.tick.ask, packet.price.tick.mid);
-  }
-  for (const evidence of packet.timeframes) {
-    for (const candle of evidence.candles) {
-      values.push(candle.o, candle.h, candle.l, candle.c);
-    }
-    for (const indicator of evidence.indicators) {
-      for (const result of indicator.values) {
-        if (typeof result === 'number' && Number.isFinite(result)) values.push(result);
-        else if (result && typeof result === 'object') {
-          for (const nested of Object.values(result)) {
-            if (typeof nested === 'number' && Number.isFinite(nested)) values.push(nested);
-          }
-        }
-      }
-    }
-  }
-  // §4.2: the XAUUSD macro extension is grounding evidence for macro
-  // numbers (dollar index, real yields, event prints).
-  for (const series of [
-    packet.xauusdExtension?.dollarIndex,
-    packet.xauusdExtension?.realYields,
-    packet.xauusdExtension?.breakevenInflation,
-  ]) {
-    for (const point of series ?? []) values.push(point.value);
-  }
-  for (const event of packet.xauusdExtension?.events ?? []) {
-    for (const print of [event.actual, event.forecast, event.previous]) {
-      if (typeof print === 'number' && Number.isFinite(print)) values.push(print);
-    }
-  }
-  return values;
-}
-
-function opinionGroundedValues(opinions: readonly MastraModeOpinion[]): Set<number> {
-  // Specialist reasoning is itself verified against the packet before fusion
-  // (verifyMastraOpinion), so any number a specialist quoted is grounded.
-  const grounded = new Set<number>();
-  for (const opinion of opinions) {
-    for (const value of extractNarrativeNumbers(opinion.reasoning)) grounded.add(value);
-  }
-  return grounded;
-}
-
-function isScenarioProjection(text: string, index: number, length: number): boolean {
-  const windowStart = Math.max(0, index - SCENARIO_CONTEXT_CHARS);
-  const windowEnd = Math.min(text.length, index + length + SCENARIO_CONTEXT_CHARS);
-  return SCENARIO_PROJECTION_WINDOW.test(text.slice(windowStart, windowEnd));
 }
 
 function emitVerificationMetrics(ok: boolean, findings: readonly string[]): void {
@@ -115,14 +51,11 @@ function emitVerificationMetrics(ok: boolean, findings: readonly string[]): void
 }
 
 /**
- * Deterministically verify the free-form fusion answer against the packet
- * and the verified specialist opinions it synthesizes.
+ * Deterministically verify the free-form fusion answer against packet evidence.
+ * Specialist opinions are verified individually before fusion, so they are not
+ * a second source of grounded numbers here.
  */
-export function verifyFusionAnswer(
-  text: string,
-  packet: SymbolResearchPacket,
-  opinions: readonly MastraModeOpinion[],
-): FusionVerification {
+export function verifyFusionAnswer(text: string, packet: SymbolResearchPacket): FusionVerification {
   const findings: string[] = [];
 
   if (!text || !text.trim()) {
@@ -141,22 +74,12 @@ export function verifyFusionAnswer(
     return { ok: findings.length === 0, findings };
   }
 
-  const evidenceValues = packetEvidenceValues(packet);
-  const opinionValues = opinionGroundedValues(opinions);
-  const reported = new Set<string>();
-
-  for (const value of extractNarrativeNumbers(text)) {
-    const key = String(value);
-    if (reported.has(key)) continue;
-    reported.add(key);
-    if (opinionValues.has(value)) continue;
-    const supported = evidenceValues.some(
-      (evidenceValue) => Math.abs(evidenceValue - value) <= EVIDENCE_TOLERANCE,
-    );
-    if (supported) continue;
-    if (isScenarioProjection(text, text.indexOf(key), key.length)) continue;
+  // Specialist numbers are not trusted by proxy: each opinion is grounded
+  // against the same packet evidence (verifyMastraOpinion), and the fusion
+  // answer is grounded against that evidence directly.
+  for (const value of ungroundedNarrativeNumbers(text, packetEvidenceValues(packet))) {
     findings.push(
-      `fusion answer contains unsupported numeric value ${value}; it must come from the packet, a specialist opinion, or be labeled as a scenario projection`,
+      `fusion answer contains unsupported numeric value ${value}; it must come from the packet or be labeled as a scenario projection`,
     );
   }
 

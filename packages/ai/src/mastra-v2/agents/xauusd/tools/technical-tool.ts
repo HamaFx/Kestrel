@@ -20,11 +20,11 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
 import { computeTechnicalReading, deterministicSummary } from '../../../../tools/analyze-technical';
-import { createEvidenceId } from '../../../../mastra/evidence';
-import { candleEvidenceMetadata, type CandleEvidenceMetadata } from '../../../../mastra/legacy-tool-adapter';
-import { executeMastraTool } from '../../../../mastra/telemetry';
-import { XauusdSymbolSchema } from '../../../../mastra/tool-schemas';
-import { XAUUSD } from '../../../../mastra/types';
+import { createEvidenceId } from '../../../packets/evidence';
+import { candleEvidenceMetadata, type CandleEvidenceMetadata } from '../legacy-tool-adapter';
+import { executeMastraTool } from '../../../shared/telemetry';
+import { XauusdSymbolSchema } from '../tool-schemas';
+import { XAUUSD } from '../../../shared/types';
 
 const CANDLE_COUNT = 200;
 

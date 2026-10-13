@@ -17,10 +17,10 @@
 import { getPriceWithMeta } from '@kestrel/data';
 import { createTool } from '@mastra/core/tools';
 
-import { buildPriceEvidence } from '../../../../mastra/evidence-builders';
-import { executeMastraTool } from '../../../../mastra/telemetry';
-import { XauusdPriceInputSchema } from '../../../../mastra/tool-schemas';
-import { XauusdPriceEvidenceSchema } from '../../../../mastra/types';
+import { buildPriceEvidence } from '../../../packets/evidence-builders';
+import { executeMastraTool } from '../../../shared/telemetry';
+import { XauusdPriceInputSchema } from '../tool-schemas';
+import { XauusdPriceEvidenceSchema } from '../../../shared/types';
 
 export const xauusdPriceTool = createTool({
   id: 'get-xauusd-price',

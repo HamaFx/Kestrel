@@ -26,7 +26,7 @@ import { getToolStats } from '@kestrel/db';
 import { TOOL_NAMES, type ToolName } from '@kestrel/shared';
 import { cache } from 'react';
 
-import { capabilityUiMetadata, type MastraCapabilityId } from './mastra/capabilities';
+import { capabilityUiMetadata, type MastraCapabilityId } from './mastra-v2/capabilities';
 import { registerAllTools, toolRegistry } from './tools';
 
 export interface CatalogueEntry {

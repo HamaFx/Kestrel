@@ -19,10 +19,10 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
 import { getCorrelationTool } from '../../../../tools/get-correlation';
-import { createEvidenceId } from '../../../../mastra/evidence';
-import { executeLegacyReadOnlyTool } from '../../../../mastra/legacy-tool-adapter';
-import { executeMastraTool } from '../../../../mastra/telemetry';
-import { XAUUSD } from '../../../../mastra/types';
+import { createEvidenceId } from '../../../packets/evidence';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
+import { executeMastraTool } from '../../../shared/telemetry';
+import { XAUUSD } from '../../../shared/types';
 
 const InputSchema = GetCorrelationInputSchema;
 const OutputSchema = z.object({

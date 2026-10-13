@@ -27,18 +27,18 @@ import {
   createXauusdReportWorkflow,
   resolveXauusdReportOutputPolicy,
 } from '../src/mastra-v2/workflows/xauusd-report';
-import { XauusdResearchReportSchema } from '../src/mastra/report-types';
-import { XauusdResearchPacketSchema } from '../src/mastra/research-types';
+import { XauusdResearchReportSchema } from '../src/mastra-v2/agents/xauusd/report/report-types';
+import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
 
 const mocks = vi.hoisted(() => ({
   collectXauusdResearchPacket: vi.fn(),
   requireVerifiedXauusdReport: vi.fn(),
 }));
 
-vi.mock('../src/mastra/research-packet', () => ({
+vi.mock('../src/mastra-v2/packets/research-packet', () => ({
   collectXauusdResearchPacket: mocks.collectXauusdResearchPacket,
 }));
-vi.mock('../src/mastra/report-verifier', () => ({
+vi.mock('../src/mastra-v2/agents/xauusd/report/report-verifier', () => ({
   requireVerifiedXauusdReport: mocks.requireVerifiedXauusdReport,
   XauusdReportVerificationError: class extends Error {
     readonly findings: readonly string[];

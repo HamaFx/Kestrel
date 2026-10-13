@@ -35,7 +35,7 @@ import {
   type MutationInput,
   type MutationKind,
 } from '../workflows/mutation';
-import { runMastraStructured } from '../../mastra/text-runner';
+import { runMastraStructured } from '../agents/xauusd/text-runner';
 
 export class MutationExtractionError extends Error {
   readonly kind: MutationKind;

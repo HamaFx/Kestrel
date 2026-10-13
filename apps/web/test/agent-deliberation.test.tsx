@@ -242,6 +242,11 @@ describe('AgentDeliberation', () => {
       render(<AgentDeliberation agents={allDoneWithVerdict()} mode="full" />);
       expect(screen.getByText(/View Specialist Breakdowns/i)).toBeTruthy();
     });
+
+    it('renders nothing instead of throwing when the progress payload has no agents', () => {
+      const malformed = { step: 'technical' } as unknown as AgentProgress[];
+      expect(() => render(<AgentDeliberation agents={malformed} mode="full" />)).not.toThrow();
+    });
   });
 
   describe('mix of done and error', () => {

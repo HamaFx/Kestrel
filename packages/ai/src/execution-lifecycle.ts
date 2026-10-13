@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
-import type { BudgetHandle } from './budget-reservation';
+import type { BudgetHandle } from './budget';
 
 export type ExecutionTerminalState = 'completed' | 'failed' | 'cancelled';
 export type ExecutionAnswerOutcome = 'ready' | 'blocked' | 'degraded' | 'partial';

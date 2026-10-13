@@ -211,29 +211,25 @@ export function ThreadViewsDock({
         {activeTab === 'terminal' && (
           <div className="scrollbar-hide h-full overflow-y-auto p-4 font-mono text-xs">
             <div className="border-border/60 bg-black/40 rounded-lg border p-3">
+              {/* Audit plan §4.7 — this panel shows only real client-side data
+                  (the active chart feed and the committee run progress); the
+                  former fake "WS: CONNECTED"/"~18ms"/"worker.state" rows were
+                  removed because no such connection exists in the web client. */}
               <div className="border-border/40 text-fg-subtle mb-2.5 flex items-center justify-between border-b pb-2 text-[11px]">
                 <span className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <span>KESTREL TELEMETRY STREAM</span>
+                  <span>KESTREL RUN TELEMETRY</span>
                 </span>
-                <span>WS: CONNECTED</span>
+                <span>{agentProgress ? 'RUN ACTIVE' : 'NO ACTIVE RUN'}</span>
               </div>
               <div className="space-y-1.5 text-fg-muted">
                 <div className="flex items-center justify-between">
-                  <span>feed.symbol:</span>
+                  <span>chart.symbol:</span>
                   <span className="text-fg font-semibold">{symbol}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>feed.resolution:</span>
+                  <span>chart.resolution:</span>
                   <span className="text-fg">{timeframe}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>feed.latency:</span>
-                  <span className="text-emerald-400">~18ms</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>worker.state:</span>
-                  <span className="text-fg">IDLE (Listening)</span>
                 </div>
               </div>
 

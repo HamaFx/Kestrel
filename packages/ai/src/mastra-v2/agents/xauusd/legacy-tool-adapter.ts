@@ -18,9 +18,9 @@ import type { CandlesResult } from '@kestrel/data';
 import { createTool, type ToolObserve } from '@mastra/core/tools';
 import type { Tool } from 'ai';
 
-import { qualityFromWarnings } from '../../../mastra/evidence';
-import { MastraMutationNameSchema } from '../../../mastra/mutation-policy';
-import { executeMastraTool } from '../../../mastra/tool-telemetry';
+import { qualityFromWarnings } from '../../packets/evidence';
+import { MastraMutationNameSchema } from '../../mutation/mutation-policy';
+import { executeMastraTool } from '../../shared/tool-telemetry';
 
 interface LegacyToolWithExecute {
   description?: string;

@@ -21,11 +21,12 @@ import { flushMetrics } from '@kestrel/shared/metrics-export';
 import { estimateKnownCostUsd } from '../../cost';
 import { completeStep, recordError, recordStep } from '../../diagnostics';
 import { flushLangfuse } from '../../instrumentation';
+import { recordModelFailure, recordModelSuccess } from '../../model-circuit-breaker';
 import { getKestrelMastra } from '../instance';
 import { flushMastraObservability } from '../telemetry';
 import { recordTelemetry } from '../../persistence';
-import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from '../../mastra/constants';
-import type { MastraAnswerOutcome, MastraRunOutcome } from '../../mastra/stats';
+import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';
+import type { MastraAnswerOutcome, MastraRunOutcome } from './stats';
 
 const mlog = createCategorizedLogger('ai', {
   component: 'mastra-xauusd-run',
@@ -60,8 +61,6 @@ export interface MastraRunObservation {
   startedAt: number;
   inputTokens: number;
   outputTokens: number;
-  /** False when the provider failed before usage was available. */
-  usageKnown?: boolean;
   toolCalls: number;
   steps: number;
   outcome: MastraRunOutcome;
@@ -117,6 +116,21 @@ export function createMastraRunFinalizer(): (args: MastraRunObservation) => Prom
 export async function finishMastraRun(args: MastraRunObservation): Promise<void> {
   const durationMs = Math.max(0, Date.now() - args.startedAt);
   const status = args.outcome === 'success' ? 'completed' : 'failed';
+
+  // Audit plan §1.4 (P0-4) — feed the terminal run outcome into the
+  // per-model circuit breaker, keyed by the resolved model id (the
+  // qualified "<provider>/<model>" string, never the bare provider id).
+  // `cancelled` is a user abort rather than a provider failure, and a run
+  // whose model never resolved has no circuit to count against.
+  const breakerModelId = args.model;
+  if (breakerModelId && breakerModelId !== 'unresolved') {
+    if (args.outcome === 'success') {
+      recordModelSuccess(breakerModelId);
+    } else if (args.outcome === 'failed') {
+      recordModelFailure(breakerModelId);
+    }
+  }
+
   completeStep('mastra_xauusd_run', status, durationMs, {
     outcome: args.outcome,
     answerOutcome: args.answerOutcome,
@@ -179,7 +193,6 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
       outputTokens: args.outputTokens,
       toolCalls: args.toolCalls,
       ms: durationMs,
-      usageKnown: args.usageKnown ?? true,
       // One run has one terminal ledger row regardless of whether the
       // callback was triggered by completion, failure, or abort.
       idempotencyKey: `mastra.run:${args.runId}`,

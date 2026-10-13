@@ -119,9 +119,19 @@ export const OTHER_SYMBOL_TERMS =
 export const DEEP_RESEARCH_TERMS =
   /\b(?:analy[sz]e|analysis|outlook|forecast|predict|technical|fundamental|macro|structure|indicator|level|setup|bullish|bearish|bias|scenario|support|resistance|volatility)\b/i;
 
-/** Lexical prompt-injection / jailbreak markers (always blocks, no exceptions). */
+/**
+ * Lexical prompt-injection / jailbreak markers (always blocks, no exceptions).
+ *
+ * P1-12 — the previous pattern's trailing `\b` applied after every
+ * alternative, so the colon forms (`system\s*:`, `developer\s*:`) could only
+ * match when a word character directly followed the colon — the common
+ * "system: you are now…" / "developer: hi" spacings never fired. The
+ * role-spoof forms now tolerate optional whitespace around the colon but
+ * still require payload content after it, and the ignore-instructions form
+ * tolerates short connective phrasings ("ignore the above instructions").
+ */
 export const INJECTION_TERMS =
-  /(?:ignore\s+(?:all\s+)?(?:previous|prior|above)?\s*instructions|system\s*:|developer\s*:|DAN\s+mode)\b/i;
+  /(?:\bignore\s+(?:\w+\s+){0,3}?instructions\b|\b(?:system|developer)\s*:\s*\S|\bDAN\s+mode\b)/i;
 
 /** Report-followup phrasing (inherits scope from a saved verified report). */
 export const FOLLOWUP_TERMS =

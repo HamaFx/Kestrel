@@ -44,20 +44,20 @@ import {
   generateXauusdReport,
   repairPrompt,
   verificationFindings,
-} from '../../mastra/report-generation';
-import { patchTimeframeConflictDisclosure } from '../../mastra/report-repair';
-import { blockedXauusdResearchText } from '../../mastra/report-text';
-import { XauusdResearchReportSchema, type XauusdResearchReport } from '../../mastra/report-types';
+} from '../agents/xauusd/report/report-generation';
+import { patchTimeframeConflictDisclosure } from '../agents/xauusd/report/report-repair';
+import { blockedXauusdResearchText } from '../agents/xauusd/report/report-text';
+import { XauusdResearchReportSchema, type XauusdResearchReport } from '../agents/xauusd/report/report-types';
 import {
   requireVerifiedXauusdReport,
   XauusdReportVerificationError,
-} from '../../mastra/report-verifier';
-import { collectXauusdResearchPacket } from '../../mastra/research-packet';
-import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../../mastra/research-types';
-import type { MastraGenerationResultLike } from '../../mastra/stats';
-import { getMastraGenerationStats, type MastraGenerationStats } from '../../mastra/telemetry';
-import type { xauusdMastraTools } from '../../mastra/tools';
-import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../mastra/types';
+} from '../agents/xauusd/report/report-verifier';
+import { collectXauusdResearchPacket } from '../packets/research-packet';
+import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../packets/research-types';
+import type { MastraGenerationResultLike } from '../shared/stats';
+import { getMastraGenerationStats, type MastraGenerationStats } from '../shared/telemetry';
+import type { xauusdMastraTools } from '../agents/xauusd/tools';
+import { XauusdRequestContextSchema, type XauusdRequestContext } from '../shared/types';
 
 const StatsSchema = z.object({
   inputTokens: z.number(),

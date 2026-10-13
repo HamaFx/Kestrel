@@ -38,9 +38,9 @@ import {
   type MastraExecutionDecision,
   type MastraExecutionDecisionInput,
   type MastraExecutionRoute,
-} from '../../mastra/execution-decision';
-import { isInjectionAttempt, messageText } from '../../mastra/routing-policy';
-import { classifyMutationRequest } from '../../mastra/mutation-detect';
+} from './execution-decision';
+import { isInjectionAttempt, messageText } from './routing-policy';
+import { classifyMutationRequest } from '../mutation/mutation-detect';
 import type { MastraModelPurpose } from '../../model';
 
 /** Mutation kinds the model-based classifier can detect. */

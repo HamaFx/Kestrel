@@ -35,7 +35,7 @@
 
 import type { Tool } from 'ai';
 
-import { manifestToolsForDomain } from '../mastra/capabilities';
+import { manifestToolsForDomain } from '../mastra-v2/capabilities';
 import { toolRegistry } from './index';
 
 export type RoutingDomain = 'fundamental' | 'technical' | 'summary' | 'vision' | 'generic';

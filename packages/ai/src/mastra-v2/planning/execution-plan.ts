@@ -12,9 +12,9 @@ import {
   guardrailPolicyForCapability,
   type MastraCapability,
   type MastraCapabilityMode,
-} from '../../mastra/capabilities';
-import { decideMastraExecution, type MastraExecutionDecisionInput } from '../../mastra/execution-decision';
-import { classifyMutationRequest } from '../../mastra/mutation-detect';
+} from '../capabilities';
+import { decideMastraExecution, type MastraExecutionDecisionInput } from './execution-decision';
+import { classifyMutationRequest } from '../mutation/mutation-detect';
 
 export const ExecutionRouteSchema = z.enum([
   'canonical-chat',
@@ -26,11 +26,16 @@ export const ExecutionRouteSchema = z.enum([
 ]);
 
 /**
- * Q2 decision: exactly two analysis modes. Legacy serialized plans
- * (`quick`/`standard`) are normalized by `normalizeLegacyPlanModes` before
- * schema parsing so old durable queue rows keep executing.
+ * Q2 decision: exactly two analysis modes. The Q8 shim removal (audit plan
+ * §4.6) retired the one-release compat shim: serialized plans carrying the
+ * legacy `quick`/`standard`/`auto` values are rejected instead of being
+ * mapped. Durable Full queue rows still holding a legacy mode fail parsing
+ * with the clear message below and are terminally rejected by the worker.
  */
-export const ExecutionModeSchema = z.enum(['single', 'full']);
+export const ExecutionModeSchema = z.enum(['single', 'full'], {
+  message:
+    "analysis mode must be 'single' or 'full' (legacy quick/standard/auto values are no longer accepted)",
+});
 
 export const ExecutionPlanSchema = z
   .object({
@@ -139,22 +144,6 @@ function fallbackPolicy(
   };
 }
 
-/** Map legacy analysis modes onto the two-mode schema (Q2 compat shim). */
-function normalizeLegacyPlanModes(value: unknown): unknown {
-  if (!value || typeof value !== 'object') return value;
-  const candidate = value as Record<string, unknown>;
-  if (typeof candidate.mode !== 'string') return value;
-  const mapped =
-    candidate.mode === 'quick'
-      ? 'single'
-      : candidate.mode === 'standard'
-        ? 'full'
-        : candidate.mode === 'auto'
-          ? 'single'
-          : candidate.mode;
-  return { ...candidate, mode: mapped };
-}
-
 /** Build the one immutable, serializable plan used by downstream execution. */
 export async function createExecutionPlan(input: CreateExecutionPlanInput): Promise<ExecutionPlan> {
   const mutationRequested =
@@ -242,7 +231,7 @@ export function serializeExecutionPlan(plan: ExecutionPlan): string {
 }
 
 export function parseExecutionPlan(value: unknown): ExecutionPlan {
-  return ExecutionPlanSchema.parse(normalizeLegacyPlanModes(typeof value === 'string' ? JSON.parse(value) : value));
+  return ExecutionPlanSchema.parse(typeof value === 'string' ? JSON.parse(value) : value);
 }
 
 export function resolvedModelSnapshotForPlan(

@@ -17,7 +17,7 @@
 import { RequestContext } from '@mastra/core/request-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { xauusdPriceTool } from '../src/mastra/tools';
+import { xauusdPriceTool } from '../src/mastra-v2/agents/xauusd/tools';
 
 const mocks = vi.hoisted(() => ({
   getPriceWithMeta: vi.fn(),
@@ -35,7 +35,7 @@ vi.mock('@kestrel/data', () => ({
 vi.mock('@kestrel/indicators', () => ({
   computeIndicator: mocks.computeIndicator,
 }));
-vi.mock('../src/mastra/telemetry', () => ({
+vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: mocks.executeMastraTool,
 }));
 
