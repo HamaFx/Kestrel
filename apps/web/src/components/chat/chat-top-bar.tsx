@@ -49,16 +49,14 @@ import { SymbolChip } from '@/components/ui/symbol-chip';
 import { Tooltip } from '@/components/ui/tooltip';
 import { usePopupMenu } from '@/hooks/use-popup-menu';
 import { apiMutate } from '@/lib/api-client';
+import type { AnalysisMode } from '@/lib/analysis-mode';
 import { cn } from '@/lib/cn';
 
 import { ChatModelSelector } from './_components/chat-model-selector';
 import { ThreadSwitcher } from './_components/thread-switcher';
 
-/**
- * Q2 decision (docs/plans/decisions.log.md): exactly two analysis modes —
- * `single` (one technical desk, instant read) and `full` (4-desk committee).
- */
-export type AnalysisMode = 'single' | 'full';
+// Re-exported for client components that already import the type from here.
+export type { AnalysisMode } from '@/lib/analysis-mode';
 
 const MODE_LABELS: Record<AnalysisMode, string> = {
   single: 'Single',
@@ -69,20 +67,6 @@ const MODE_DESCRIPTIONS: Record<AnalysisMode, string> = {
   single: 'Fast one-desk technical read',
   full: '4-desk committee deliberation, verified',
 };
-
-/** Map legacy persisted modes onto the two-mode schema (Q2 compat shim). */
-export function normalizeAnalysisMode(mode: string | null | undefined): AnalysisMode {
-  switch (mode) {
-    case 'full':
-    case 'standard':
-      return 'full';
-    case 'single':
-    case 'quick':
-    case 'auto':
-    default:
-      return 'single';
-  }
-}
 
 export interface ThreadSummary {
   id: string;
