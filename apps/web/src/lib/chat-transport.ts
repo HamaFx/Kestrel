@@ -29,6 +29,7 @@ import {
   AnalysisQueuedEventSchema,
   ChatStreamEventSchema,
   MutationDraftEventSchema,
+  type ChatStreamEvent,
   type MutationDraftEvent,
 } from '@kestrel/shared';
 import {
@@ -85,15 +86,15 @@ function transformSseToDataStream(
   onProgress: (p: AgentProgress | null) => void,
 ): Response {
   const id = crypto.randomUUID();
-  let started = false;
-  let ended = false;
-  let emittedError = false;
-  let protocolError: string | null = null;
-  let activeTextId: string | null = null;
-  let pendingFlush: ReturnType<typeof setTimeout> | null = null;
-
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let started = false;
+      let ended = false;
+      let emittedError = false;
+      let protocolError: string | null = null;
+      let activeTextId: string | null = null;
+      let pendingFlush: ReturnType<typeof setTimeout> | null = null;
+
       if (!res.body) {
         controller.enqueue(
           encodeChunk({ type: 'error', errorText: 'Chat stream returned no response body.' }),
@@ -113,6 +114,157 @@ function transformSseToDataStream(
         }
       };
 
+      // Single forwarder used by both the line loop and the trailing
+      // unterminated-line branch, so tool/data/text events cannot diverge
+      // between the two paths (audit v3 P0-1).
+      const forward = (event: ChatStreamEvent): void => {
+        switch (event.type) {
+          case 'text-start': {
+            started = true;
+            activeTextId = event.id;
+            controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
+            break;
+          }
+          case 'text-delta': {
+            if (!started) {
+              started = true;
+              activeTextId = event.id;
+              controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
+            }
+            const textId = activeTextId ?? event.id;
+            controller.enqueue(
+              encodeChunk({ type: 'text-delta', id: textId, delta: event.delta }),
+            );
+            break;
+          }
+          case 'text-end': {
+            const textId = activeTextId ?? event.id;
+            if (!started) {
+              started = true;
+              activeTextId = textId;
+              controller.enqueue(encodeChunk({ type: 'text-start', id: textId }));
+            }
+            controller.enqueue(encodeChunk({ type: 'text-end', id: textId }));
+            ended = true;
+            break;
+          }
+          case 'data-multi-agent-meta': {
+            controller.enqueue(
+              encodeChunk({
+                type: event.type,
+                id: event.id,
+                data: event.data,
+                transient: event.transient,
+              }),
+            );
+            break;
+          }
+          case 'data-agent-progress': {
+            const progress = (event.data ?? event) as AgentProgress;
+            onProgress(progress);
+            controller.enqueue(
+              encodeChunk({ type: 'data-agent-progress', id, data: progress, transient: true }),
+            );
+            break;
+          }
+          case 'data-memory-degraded': {
+            controller.enqueue(
+              encodeChunk({ type: event.type, id, data: event.data }),
+            );
+            break;
+          }
+          case 'data-evidence-blocked': {
+            // Q10: replaces already-streamed unverified text in the UI; must
+            // be a real (non-transient) data part so message.tsx can swap it.
+            controller.enqueue(
+              encodeChunk({ type: event.type, id, data: event.data }),
+            );
+            break;
+          }
+          case 'tool-input-start': {
+            controller.enqueue(
+              encodeChunk({
+                type: event.type,
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+              }),
+            );
+            break;
+          }
+          case 'tool-input-delta': {
+            controller.enqueue(
+              encodeChunk({
+                type: event.type,
+                toolCallId: event.toolCallId,
+                inputTextDelta: event.inputTextDelta,
+              }),
+            );
+            break;
+          }
+          case 'tool-input-available': {
+            controller.enqueue(
+              encodeChunk({
+                type: event.type,
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                input: event.input,
+              }),
+            );
+            break;
+          }
+          case 'tool-output-available': {
+            controller.enqueue(
+              encodeChunk({
+                type: event.type,
+                toolCallId: event.toolCallId,
+                output: event.output,
+              }),
+            );
+            break;
+          }
+          case 'tool-output-error': {
+            controller.enqueue(
+              encodeChunk({
+                type: event.type,
+                toolCallId: event.toolCallId,
+                errorText: event.errorText,
+              }),
+            );
+            break;
+          }
+          case 'error': {
+            emittedError = true;
+            controller.enqueue(encodeChunk({ type: 'error', errorText: event.errorText }));
+            break;
+          }
+        }
+      };
+
+      const ingestLine = (line: string): void => {
+        if (!line.startsWith('data: ')) return;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') return;
+        let parsed: Record<string, unknown> | undefined;
+        try {
+          parsed = JSON.parse(raw) as Record<string, unknown>;
+        } catch {
+          protocolError ??= 'Chat stream contained malformed JSON.';
+          return;
+        }
+        if (!parsed) {
+          protocolError ??= 'Chat stream contained an empty event.';
+          return;
+        }
+        const streamEvent = ChatStreamEventSchema.safeParse(parsed);
+        if (!streamEvent.success) {
+          // Do not turn a truncated/unknown event into a successful assistant
+          // message. Surface the protocol failure explicitly.
+          protocolError ??= 'Chat stream contained an unsupported or malformed event.';
+          return;
+        }
+        forward(streamEvent.data);
+      };
+
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -120,158 +272,18 @@ function transformSseToDataStream(
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() ?? '';
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const raw = line.slice(6).trim();
-            if (raw === '[DONE]') continue;
-            let parsed: Record<string, unknown> | undefined;
-            try {
-              parsed = JSON.parse(raw) as Record<string, unknown>;
-            } catch {
-              protocolError ??= 'Chat stream contained malformed JSON.';
-              continue;
-            }
-            if (!parsed) {
-              protocolError ??= 'Chat stream contained an empty event.';
-              continue;
-            }
-
-            const streamEvent = ChatStreamEventSchema.safeParse(parsed);
-            if (!streamEvent.success) {
-              // Do not turn a truncated/unknown event into a successful
-              // assistant message. Surface the protocol failure explicitly.
-              protocolError ??= 'Chat stream contained an unsupported or malformed event.';
-              continue;
-            }
-            const event = streamEvent.data;
-
-            switch (event.type) {
-              case 'text-start': {
-                started = true;
-                activeTextId = event.id;
-                controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
-                break;
-              }
-              case 'text-delta': {
-                if (!started) {
-                  started = true;
-                  activeTextId = event.id;
-                  controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
-                }
-                const textId = activeTextId ?? event.id;
-                controller.enqueue(
-                  encodeChunk({ type: 'text-delta', id: textId, delta: event.delta }),
-                );
-                break;
-              }
-              case 'text-end': {
-                const textId = activeTextId ?? event.id;
-                if (!started) {
-                  started = true;
-                  activeTextId = textId;
-                  controller.enqueue(encodeChunk({ type: 'text-start', id: textId }));
-                }
-                controller.enqueue(encodeChunk({ type: 'text-end', id: textId }));
-                ended = true;
-                break;
-              }
-              case 'data-multi-agent-meta': {
-                controller.enqueue(
-                  encodeChunk({
-                    type: event.type,
-                    id: event.id,
-                    data: event.data,
-                    transient: event.transient,
-                  }),
-                );
-                break;
-              }
-              case 'data-agent-progress': {
-                const progress = (event.data ?? event) as AgentProgress;
-                onProgress(progress);
-                controller.enqueue(
-                  encodeChunk({ type: 'data-agent-progress', id, data: progress, transient: true }),
-                );
-                break;
-              }
-              case 'error': {
-                emittedError = true;
-                controller.enqueue(encodeChunk({ type: 'error', errorText: event.errorText }));
-                break;
-              }
-            }
-          }
+          for (const line of lines) ingestLine(line);
         }
 
-        // A well-formed SSE response ends events with a blank line, but
-        // flush the decoder and process a final unterminated line as a
-        // defensive measure so the last event is not silently dropped.
+        // A well-formed SSE response ends events with a blank line, but flush
+        // the decoder and process a final unterminated line as a defensive
+        // measure so the last event is not silently dropped.
         buffer += decoder.decode();
         if (buffer.startsWith('data: ')) {
-          const raw = buffer.slice(6).trim();
-          if (raw && raw !== '[DONE]') {
-            try {
-              const parsed = JSON.parse(raw) as Record<string, unknown>;
-              const streamEvent = ChatStreamEventSchema.safeParse(parsed);
-              if (!streamEvent.success) {
-                protocolError ??= 'Chat stream ended with a malformed event.';
-              } else {
-                const event = streamEvent.data;
-                if (event.type === 'text-end') {
-                  const textId = activeTextId ?? event.id;
-                  if (!started) {
-                    started = true;
-                    activeTextId = textId;
-                    controller.enqueue(encodeChunk({ type: 'text-start', id: textId }));
-                  }
-                  controller.enqueue(encodeChunk({ type: 'text-end', id: textId }));
-                  ended = true;
-                } else if (event.type === 'text-start') {
-                  started = true;
-                  activeTextId = event.id;
-                  controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
-                } else if (event.type === 'text-delta') {
-                  if (!started) {
-                    started = true;
-                    activeTextId = event.id;
-                    controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
-                  }
-                  controller.enqueue(
-                    encodeChunk({
-                      type: 'text-delta',
-                      id: activeTextId ?? event.id,
-                      delta: event.delta,
-                    }),
-                  );
-                } else if (event.type === 'data-agent-progress') {
-                  const progress = (event.data ?? event) as AgentProgress;
-                  onProgress(progress);
-                  controller.enqueue(
-                    encodeChunk({
-                      type: 'data-agent-progress',
-                      id,
-                      data: progress,
-                      transient: true,
-                    }),
-                  );
-                } else if (event.type === 'data-multi-agent-meta') {
-                  controller.enqueue(
-                    encodeChunk({
-                      type: event.type,
-                      id: event.id,
-                      data: event.data,
-                      transient: event.transient,
-                    }),
-                  );
-                } else if (event.type === 'error') {
-                  emittedError = true;
-                  controller.enqueue(encodeChunk({ type: 'error', errorText: event.errorText }));
-                }
-              }
-            } catch {
-              protocolError ??= 'Chat stream ended with malformed JSON.';
-            }
+          try {
+            ingestLine(buffer);
+          } catch {
+            protocolError ??= 'Chat stream ended with malformed JSON.';
           }
         }
       } catch (err) {

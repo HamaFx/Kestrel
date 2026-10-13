@@ -551,3 +551,13 @@ edits were kept and their remaining tails were completed by the implementing
 agent (4.6 leftover tests/comments, the 3.3 test suite, 4.4 retention tail,
 lint fixes). Nothing was lost — edits land in the working tree as they are
 made; only unwritten work is lost, and it was redone.
+
+---
+
+## 2026-10-14 — Audit v3 Owner Decisions (Hama)
+
+- **Q8 (Specialist Agent Skills, Goals & Dedicated Tools):** Each of the 4 committee specialist agents (`technical`, `fundamental`, `risk`, `sentiment`) MUST have its own dedicated Skill Playbook, specific analytical goal, and domain-specific read-only toolset (`maxSteps: 3`) in addition to an enriched baseline `SymbolResearchPacket` for all symbols. Any numbers returned by a specialist's tool calls must be dynamically merged into the run's verified evidence ledger (`AllowedEvidenceSet`) so `verifyMastraOpinion` and `verifyFusionAnswer` remain 100% strict (`strict: true`) without false-positive blocks.
+- **Q9 (Simple Non-Technical Language & Choosable Mode in Telegram/UI):** Use simple, plain-English trader language across Telegram and UI surfaces (no internal jargon like "Mastra committee", "canonical", or "packetId"). Users in Telegram must be able to choose between **Quick Check (1 Expert)** (`single`) and **Full Team Analysis (4 Experts)** (`full`) via command flags (`/analyze XAUUSD 1h quick|full`) or interactive Telegram inline buttons.
+- **Q10 (Canonical Evidence Gate Self-Correction + Clean UI Replacement):** On ungrounded numbers in canonical chat, automatically run **1 silent self-correction pass** (instructing the agent to either call the appropriate market tool or rewrite using only verified numbers from the turn's evidence ledger). Only if the retry still fails verification, emit `data-evidence-blocked` so the live UI cleanly replaces the unverified text instead of concatenating the refusal message.
+- **Q11 (Enable In-Chat `convene_committee` Tool):** Enable `convene_committee` in `CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES` and wire `conveneCommitteeTool` (`packages/ai/src/tools/system.ts`) to `runCommitteeWorkflow` so regular chat can summon the 4-expert team on demand and render `ConveneCommitteePart`.
+- **Q12 (Enable Structured Fusion by Default):** Enable `PHASE3_STRUCTURED_FUSION` by default (`process.env.PHASE3_STRUCTURED_FUSION !== 'false'`) in `full` mode so every Full Team Analysis produces a verified, plain-English Bottom Line, Main Thesis, Bull/Base/Bear Scenario Table, Key Risks, and Invalidation Level.
