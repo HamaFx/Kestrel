@@ -23,7 +23,7 @@ import { z } from 'zod';
 
 import { auth } from '@/auth';
 import { ChatScreen } from '@/components/chat/chat-screen';
-import { normalizeAnalysisMode } from '@/components/chat/chat-top-bar';
+import { normalizeAnalysisMode } from '@/lib/analysis-mode';
 // /chat/[threadId] — full-screen chat surface for a specific thread.
 //
 // Server component: validates the thread, hydrates the message history from
