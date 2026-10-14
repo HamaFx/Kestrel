@@ -18,12 +18,11 @@
 // Validates script wiring + SUT connectivity with minimal load.
 // Run this FIRST before any other load test.
 import { sleep } from 'k6';
-import http from 'k6/http';
 
-import { env } from '../config/environments.js';
 import { smoke } from '../config/load-profiles.js';
 import { MARKET_READ, MARKET_READ_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
+import { getJson, postJson } from '../lib/http.js';
 import { handleSummary } from '../lib/summary.js';
 import { marketRead } from '../scenarios/market-read.js';
 
@@ -41,28 +40,28 @@ export function setup() {
   const ctxs = bootstrapAuth();
 
   // Warmup: prime DB connection pool, JIT compilation, and server caches
-  // before any VU iterations start. Raw http.get() works in setup() but
-  // cookieJar() and __VU/__ITER do not.
-  if (env.authMode === 'legacy') {
-    http.get(`${env.baseUrl}/api/health`);
-    http.get(`${env.baseUrl}/api/market/price?symbol=XAUUSD`);
-    http.get(`${env.baseUrl}/api/market/candles?symbol=XAUUSD&timeframe=1h`);
+  // before any VU iterations start.
+  if (ctxs[0]) {
+    applyAuth(ctxs[0]);
+    getJson('/api/health', 'warmup');
+    getJson('/api/market/price?symbol=XAUUSD', 'warmup');
+    getJson('/api/market/candles?symbol=XAUUSD&timeframe=1h', 'warmup');
 
     // Warm the compute-heavy POST endpoints — these benefit most from
     // a hot JIT compiler and populated DB/cache pipelines.
-    http.post(
-      `${env.baseUrl}/api/market/indicators`,
-      JSON.stringify({
+    postJson(
+      '/api/market/indicators',
+      'warmup',
+      {
         symbol: 'XAUUSD',
         tf: '1h',
         indicators: [{ kind: 'sma', params: { period: 20 } }],
-      }),
-      { headers: { 'Content-Type': 'application/json' } },
+      },
     );
-    http.post(
-      `${env.baseUrl}/api/market/structure`,
-      JSON.stringify({ symbol: 'XAUUSD', tf: '1h' }),
-      { headers: { 'Content-Type': 'application/json' } },
+    postJson(
+      '/api/market/structure',
+      'warmup',
+      { symbol: 'XAUUSD', tf: '1h' },
     );
   }
 

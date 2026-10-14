@@ -36,6 +36,10 @@ export function setCsrfHeader(headers: HttpHeaders): void {
   _csrfHeader = headers;
 }
 
+export function getCsrfHeader(): HttpHeaders {
+  return _csrfHeader;
+}
+
 /**
  * Perform an authed GET request.
  */

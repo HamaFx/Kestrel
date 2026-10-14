@@ -18,13 +18,12 @@
 // fallback chain, usage stats, provider tests).
 // Validates script wiring + SUT connectivity across the full config surface.
 import { sleep } from 'k6';
-import http from 'k6/http';
 
-import { env } from '../config/environments.js';
 import { smoke } from '../config/load-profiles.js';
 import { CONFIG_MIX, CONFIG_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
 import { expectOk } from '../lib/checks.js';
+import { getJson, putJson } from '../lib/http.js';
 import { handleSummary } from '../lib/summary.js';
 import { configMix } from '../scenarios/config-mix.js';
 
@@ -43,23 +42,24 @@ export function setup() {
 
   // Warmup: prime DB connection pool, JIT compilation, and server caches
   // before any VU iterations start. Hits each config endpoint type once.
-  if (env.authMode === 'legacy') {
-    expectOk(http.get(`${env.baseUrl}/api/health`));
-    expectOk(http.get(`${env.baseUrl}/api/settings/symbols`));
-    expectOk(http.get(`${env.baseUrl}/api/settings/catalog`));
-    expectOk(http.get(`${env.baseUrl}/api/settings/chat-model`));
-    expectOk(http.get(`${env.baseUrl}/api/settings/analysis-mode`));
-    expectOk(http.get(`${env.baseUrl}/api/settings/fallback-chain`));
-    expectOk(http.get(`${env.baseUrl}/api/settings/usage-by-agent`));
-    expectOk(http.get(`${env.baseUrl}/api/settings/usage-by-provider`));
-    expectOk(http.get(`${env.baseUrl}/api/notifications/noise-config`));
+  if (ctxs[0]) {
+    applyAuth(ctxs[0]);
+    expectOk(getJson('/api/health', 'warmup'));
+    expectOk(getJson('/api/settings/symbols', 'warmup'));
+    expectOk(getJson('/api/settings/catalog', 'warmup'));
+    expectOk(getJson('/api/settings/chat-model', 'warmup'));
+    expectOk(getJson('/api/settings/analysis-mode', 'warmup'));
+    expectOk(getJson('/api/settings/fallback-chain', 'warmup'));
+    expectOk(getJson('/api/settings/usage-by-agent', 'warmup'));
+    expectOk(getJson('/api/settings/usage-by-provider', 'warmup'));
+    expectOk(getJson('/api/notifications/noise-config', 'warmup'));
 
     // Warm model config PUT path (may 400 if model not in spec — still primes JIT)
     expectOk(
-      http.put(
-        `${env.baseUrl}/api/settings/chat-model`,
-        JSON.stringify({ providerId: 'google', modelId: 'gemini-2.5-pro' }),
-        { headers: { 'Content-Type': 'application/json' } },
+      putJson(
+        '/api/settings/chat-model',
+        'warmup',
+        { providerId: 'google', modelId: 'gemini-2.5-pro' },
       ),
     );
   }
