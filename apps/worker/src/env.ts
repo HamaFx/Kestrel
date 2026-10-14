@@ -82,6 +82,10 @@ const WorkerEnvSchema = z.object({
   HC_JOB_WEEKLY_REVIEW_UUID: optionalNonEmpty,
   HC_JOB_RESONANCE_SYNC_UUID: optionalNonEmpty,
   HC_JOB_ALERTS_UUID: optionalNonEmpty,
+  HC_JOB_BUDGET_RECOVERY_UUID: optionalNonEmpty,
+  HC_JOB_PERSISTENCE_RECOVERY_UUID: optionalNonEmpty,
+  HC_JOB_RETENTION_UUID: optionalNonEmpty,
+  HC_JOB_DATASET_EXPORT_UUID: optionalNonEmpty,
   HC_DISK_CHECK_UUID: optionalNonEmpty,
   HC_TENANT_DELETE_UUID: optionalNonEmpty,
   HC_TENANT_EXPORT_UUID: optionalNonEmpty,
@@ -124,6 +128,16 @@ const WorkerEnvSchema = z.object({
    * 'docker' starts an internal node-cron scheduler.
    */
   WORKER_MODE: z.enum(['systemd', 'docker']).default('systemd'),
+
+  JOB_TIMEOUT_MS: z.coerce.number().int().min(1000).max(3_600_000).default(120_000),
+  WORKER_PARTITION: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.coerce.number().int().min(0).optional(),
+  ),
+  WORKER_PARTITIONS_TOTAL: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.coerce.number().int().min(1).optional(),
+  ),
 
   /**
    * Comma-separated list of crypto symbols for the Binance WebSocket
@@ -174,6 +188,15 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
   }
   if (!result.data.DATABASE_URL && !result.data.POSTGRES_URL) {
     throw new Error('Either DATABASE_URL or POSTGRES_URL must be set');
+  }
+  if (
+    result.data.WORKER_PARTITION !== undefined &&
+    result.data.WORKER_PARTITIONS_TOTAL !== undefined &&
+    result.data.WORKER_PARTITION >= result.data.WORKER_PARTITIONS_TOTAL
+  ) {
+    throw new Error(
+      `WORKER_PARTITION must be less than WORKER_PARTITIONS_TOTAL (got ${result.data.WORKER_PARTITION} >= ${result.data.WORKER_PARTITIONS_TOTAL})`,
+    );
   }
   return result.data;
 }

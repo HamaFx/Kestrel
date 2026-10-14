@@ -48,9 +48,13 @@ export class TenantRouter {
   /** True when single-worker mode (no actual partitioning). */
   readonly isSingleWorker: boolean;
 
-  constructor() {
-    const rawPartition = process.env.WORKER_PARTITION;
-    const rawTotal = process.env.WORKER_PARTITIONS_TOTAL;
+  constructor(opts?: { partition?: number; totalPartitions?: number }) {
+    const rawPartition =
+      opts?.partition !== undefined ? String(opts.partition) : process.env.WORKER_PARTITION;
+    const rawTotal =
+      opts?.totalPartitions !== undefined
+        ? String(opts.totalPartitions)
+        : process.env.WORKER_PARTITIONS_TOTAL;
 
     if (!rawPartition || !rawTotal) {
       this.partition = 0;
@@ -59,6 +63,11 @@ export class TenantRouter {
     } else {
       this.partition = Math.max(0, parseInt(rawPartition, 10) || 0);
       this.totalPartitions = Math.max(1, parseInt(rawTotal, 10) || 1);
+      if (this.partition >= this.totalPartitions) {
+        throw new Error(
+          `Invalid worker partition config: WORKER_PARTITION (${this.partition}) must be < WORKER_PARTITIONS_TOTAL (${this.totalPartitions})`,
+        );
+      }
       this.isSingleWorker = false;
     }
   }

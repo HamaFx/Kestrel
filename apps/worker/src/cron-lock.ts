@@ -66,18 +66,21 @@ export async function acquireCronLock(jobName: string, db: DbClient): Promise<Cr
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
   const staleThreshold = new Date(Date.now() - LOCK_TTL_MS);
 
-  // M-8: Check for and reclaim stale locks before attempting insert.
-  // A crashed job leaves status='started' with no finished_at.
+  // M-8 + BUG-10: Reclaim stale 'started' locks (older than LOCK_TTL_MS)
+  // OR previous 'error' runs from today (including rows marked 'error' by
+  // cleanupStaleCronRuns on worker restart) so transient failures can self-heal.
   const reclaimed = await db.execute(sql`
     UPDATE cron_runs
     SET status = 'started',
         started_at = now(),
         finished_at = NULL,
-        note = 'reclaimed stale lock'
+        note = 'reclaimed stale or failed lock'
     WHERE job_name = ${jobName}
       AND run_date = ${today}::date
-      AND status = 'started'
-      AND started_at < ${staleThreshold}
+      AND (
+        status = 'error'
+        OR (status = 'started' AND started_at < ${staleThreshold})
+      )
     RETURNING job_name
   `);
   if (reclaimed.length > 0) {

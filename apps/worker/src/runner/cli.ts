@@ -65,6 +65,9 @@ async function main(): Promise<number> {
     return 1;
   }
 
+  const { loadSecretsFromVault } = await import('@kestrel/shared/vault');
+  await loadSecretsFromVault();
+
   let env: ReturnType<typeof loadEnv>;
   try {
     env = loadEnv();
@@ -74,6 +77,9 @@ async function main(): Promise<number> {
   }
 
   const log = createLogger({ service: `worker:job:${jobName}`, commit: env.DEPLOYED_SHA });
+  const { initLangfuse, shutdownLangfuse } = await import('@kestrel/ai');
+  initLangfuse({ service: 'worker-cli' });
+
   const job = JOBS[jobName];
   const hcUuid = resolveHcUuid(env, jobName);
 
@@ -96,12 +102,15 @@ async function main(): Promise<number> {
   } catch (err) {
     const stack = err instanceof Error && typeof err.stack === 'string' ? err.stack : String(err);
     log.error('job failed', { err: String(err), stack });
-    // withHeartbeat already pinged fail; ping again with the message in
-    // case the wrapper didn't (defensive).
-    const msg = err instanceof Error ? err.message : String(err);
-    await ping(hcUuid, 'fail', msg.slice(0, 1000));
     return 2;
   } finally {
+    try {
+      const { flushMastraObservability, getKestrelMastra } = await import('@kestrel/ai/mastra');
+      await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
+      await shutdownLangfuse();
+    } catch {
+      // Best-effort observability flush
+    }
     await closeDb();
     process.removeListener('SIGTERM', sigtermHandler);
     process.removeListener('SIGINT', sigtermHandler);
