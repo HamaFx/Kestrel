@@ -23,6 +23,7 @@
 // ---------------------------------------------------------------------------
 
 import { expect, test } from './fixtures';
+import { ensureTestUser } from './test-utils';
 
 test.describe('Settings', () => {
   test('1. Profile update flow — update display name and save', async ({ authedPage }) => {
@@ -62,7 +63,8 @@ test.describe('Settings', () => {
     await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('3. Symbol add/remove/reorder flow', async ({ authedPage }) => {
+  test('3. Symbol add/remove/reorder flow', async ({ authedPage, testUser }) => {
+    await ensureTestUser(testUser.email, testUser.password, 'user', { resetWatchlist: true });
     const page = authedPage;
 
     await page.goto('/settings/symbols');
