@@ -122,4 +122,18 @@ describe('worker health server', () => {
     const response = await request(createServer(Date.now(), true), '/internal');
     expect(response.status).toBe(404);
   });
+
+  it('rejects non-GET/HEAD requests on the BiQuote proxy with 405', async () => {
+    process.env.BIQUOTE_PROXY_TOKEN = 'secret-token';
+    const proxy = createProxyServer({
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
+      getLastTickAt: () => Date.now(),
+      isSignalRConnected: () => true,
+    });
+    const response = await request(proxy, '/biquote/api/XAUUSD', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer secret-token' },
+    });
+    expect(response.status).toBe(405);
+  });
 });

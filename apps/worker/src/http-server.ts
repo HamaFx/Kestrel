@@ -9,6 +9,7 @@ export interface HealthServerDeps {
   log: Logger;
   getLastTickAt: () => number;
   isSignalRConnected: () => boolean;
+  isBinanceConnected?: () => boolean;
   getDroppedTicks?: () => number;
   isProxyConfigured?: () => boolean;
   getRequestId?: () => string;
@@ -28,6 +29,12 @@ function sendJson(res: http.ServerResponse, status: number, body: Record<string,
   res.end(JSON.stringify(body));
 }
 
+function verifyBearerToken(headerValue: string | undefined, expectedToken: string): boolean {
+  const provided = Buffer.from(headerValue ?? '');
+  const expected = Buffer.from(`Bearer ${expectedToken}`);
+  return provided.length === expected.length && timingSafeEqual(provided, expected);
+}
+
 function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
   const { getLastTickAt, isSignalRConnected } = deps;
   const healthToken = process.env.WORKER_HEALTH_TOKEN;
@@ -35,9 +42,7 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
 
   function hasValidToken(req: http.IncomingMessage): boolean {
     if (!healthToken) return !isProd;
-    const provided = Buffer.from(req.headers.authorization ?? '');
-    const expected = Buffer.from(`Bearer ${healthToken}`);
-    return provided.length === expected.length && timingSafeEqual(provided, expected);
+    return verifyBearerToken(req.headers.authorization, healthToken);
   }
 
   return (req, res) => {
@@ -73,6 +78,7 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
               ready,
               lastTickAgeMs: ageMs,
               signalrConnected: isSignalRConnected(),
+              ...(deps.isBinanceConnected ? { binanceConnected: deps.isBinanceConnected() } : {}),
               droppedTicks: deps.getDroppedTicks?.() ?? 0,
               proxyConfigured:
                 deps.isProxyConfigured?.() ?? Boolean(process.env.BIQUOTE_PROXY_TOKEN),
@@ -110,10 +116,18 @@ function createProxyHandler(deps: HealthServerDeps): http.RequestListener {
       );
       return;
     }
-    if (proxyToken && req.headers.authorization !== `Bearer ${proxyToken}`) {
+    if (proxyToken && !verifyBearerToken(req.headers.authorization, proxyToken)) {
       sendJson(res, 403, {
         status: 'error',
         message: 'forbidden',
+        ...(deps.getRequestId ? { requestId: deps.getRequestId() } : {}),
+      });
+      return;
+    }
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      sendJson(res, 405, {
+        status: 'error',
+        message: 'method not allowed',
         ...(deps.getRequestId ? { requestId: deps.getRequestId() } : {}),
       });
       return;
