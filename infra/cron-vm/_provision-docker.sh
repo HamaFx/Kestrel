@@ -220,7 +220,7 @@ LOGROTATE
 
 log 'installing systemd units (reduced set — no heavy job timers, no worker.service)'
 for unit in \
-  kestrel-light-news kestrel-light-calendar kestrel-light-alerts \
+  kestrel-light-news kestrel-light-calendar \
   kestrel-light-warm-cache kestrel-light-cleanup-uploads \
   kestrel-backup-db kestrel-backup-journal kestrel-verify-restore \
   kestrel-tenant-export kestrel-tenant-delete kestrel-billing-dlq \
@@ -231,12 +231,13 @@ for unit in \
       install -m 644 "${STAGE}/units/${unit}.${ext}" "/etc/systemd/system/"
   done
 done
+systemctl disable --now kestrel-light-alerts.timer 2>/dev/null || true
 systemctl daemon-reload
 
 log 'enabling + starting timers'
 for timer in \
   kestrel-light-news.timer kestrel-light-calendar.timer \
-  kestrel-light-alerts.timer kestrel-light-warm-cache.timer \
+  kestrel-light-warm-cache.timer \
   kestrel-light-cleanup-uploads.timer \
   kestrel-backup-db.timer kestrel-backup-journal.timer \
   kestrel-verify-restore.timer \
