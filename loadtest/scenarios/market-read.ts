@@ -16,17 +16,15 @@
 
 // Per-iteration VU function: hits the five market_read GET endpoints in a
 // weighted mix, with randomized think-time between calls.
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 
 import type { SessionCtx } from '../config/environments.js';
+import symbolsData from '../lib/data/symbols.json';
 import { getJson, postJson } from '../lib/http.js';
+import { randomItem } from '../lib/utils.js';
 
-const symbols = new SharedArray(
-  'symbols',
-  () => JSON.parse(open('../lib/data/symbols.json') as string) as string[],
-);
+const symbols = new SharedArray('symbols', () => symbolsData as string[]);
 
 export function marketRead(_ctx: SessionCtx): void {
   const symbol = randomItem(symbols);

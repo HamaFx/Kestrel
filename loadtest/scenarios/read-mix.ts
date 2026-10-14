@@ -16,17 +16,15 @@
 
 // Per-iteration VU function: broad read endpoint mix resembling a browsing
 // user on the dashboard/chat surface.
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 
 import type { SessionCtx } from '../config/environments.js';
+import symbolsData from '../lib/data/symbols.json';
 import { getJson } from '../lib/http.js';
+import { randomItem } from '../lib/utils.js';
 
-const symbols = new SharedArray(
-  'symbols',
-  () => JSON.parse(open('../lib/data/symbols.json') as string) as string[],
-);
+const symbols = new SharedArray('symbols', () => symbolsData as string[]);
 
 export function readMix(_ctx: SessionCtx): void {
   const symbol = randomItem(symbols);

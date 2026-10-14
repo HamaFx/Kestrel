@@ -32,19 +32,17 @@
 // All POST bodies use stock parameters that match each endpoint's Zod schema
 // (verified against route.ts source files).
 
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import http from 'k6/http';
 
 import { env, type SessionCtx } from '../config/environments.js';
 import { expectStatus, record429, recordAuthFailure } from '../lib/checks.js';
+import symbolsData from '../lib/data/symbols.json';
 import { getJson, patchJson, postJson } from '../lib/http.js';
+import { randomItem } from '../lib/utils.js';
 
-const symbols = new SharedArray(
-  'symbols',
-  () => JSON.parse(open('../lib/data/symbols.json') as string) as string[],
-);
+const symbols = new SharedArray('symbols', () => symbolsData as string[]);
 
 // ── Helpers ────────────────────────────────────────────────────────
 
