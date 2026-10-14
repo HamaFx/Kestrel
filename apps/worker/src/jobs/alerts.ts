@@ -19,10 +19,10 @@ import { evaluateAlerts } from '@kestrel/ai';
 import type { JobContext, JobResult } from './types.js';
 
 export async function runAlerts(ctx: JobContext): Promise<JobResult> {
-  // Build args conditionally to satisfy exactOptionalPropertyTypes:
-  // the receiving type uses `signal?: AbortSignal` (not `| undefined`),
-  // so passing `{ signal: undefined }` is rejected. Omit the key instead.
-  const result = await evaluateAlerts(ctx.signal ? { signal: ctx.signal } : {});
+  const result = await evaluateAlerts({
+    ...(ctx.signal ? { signal: ctx.signal } : {}),
+    ownsTenant: (userId) => ctx.tenantRouter.isMyTenant(userId),
+  });
 
   ctx.log.info('alerts evaluated', {
     total: result.total,

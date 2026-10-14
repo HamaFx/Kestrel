@@ -23,7 +23,7 @@ import type { JobContext, JobResult } from './types.js';
 const REPLAY_BATCH_SIZE = 25;
 
 export async function runPersistenceRecovery(ctx: JobContext): Promise<JobResult> {
-  const result = await replayPersistenceFailures(REPLAY_BATCH_SIZE);
+  const result = await replayPersistenceFailures(REPLAY_BATCH_SIZE, ctx.signal);
 
   if (result.claimed > 0 || result.dead > 0) {
     ctx.log.warn('persistence outbox replay completed', result);

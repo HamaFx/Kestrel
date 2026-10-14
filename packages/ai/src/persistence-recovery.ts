@@ -341,7 +341,10 @@ async function replayOne(item: ClaimedFailure): Promise<void> {
 }
 
 /** Process at most `limit` replay records and return terminal counters. */
-export async function replayPersistenceFailures(limit = 25): Promise<{
+export async function replayPersistenceFailures(
+  limit = 25,
+  signal?: AbortSignal,
+): Promise<{
   claimed: number;
   completed: number;
   failed: number;
@@ -354,6 +357,7 @@ export async function replayPersistenceFailures(limit = 25): Promise<{
   let dead = 0;
 
   for (let i = 0; i < boundedLimit; i++) {
+    if (signal?.aborted) break;
     const item = await claimOne();
     if (!item) break;
     claimed += 1;

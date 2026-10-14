@@ -97,7 +97,11 @@ async function loadLatestEvalReports(dir: string, count: number): Promise<EvalRe
 }
 
 /** Upload a directory to `kestrel:<bucket>/datasets/<version>` with rclone (in-memory remote). */
-async function uploadToB2(sourceDir: string, version: string): Promise<void> {
+async function uploadToB2(
+  sourceDir: string,
+  version: string,
+  signal?: AbortSignal,
+): Promise<void> {
   const bucket = process.env.B2_BUCKET ?? '';
   const keyId = process.env.B2_KEY_ID ?? '';
   const appKey = process.env.B2_APPLICATION_KEY ?? '';
@@ -115,6 +119,7 @@ async function uploadToB2(sourceDir: string, version: string): Promise<void> {
         RCLONE_CONFIG_KESTREL_KEY: appKey,
       },
       timeout: 120_000,
+      ...(signal ? { signal } : {}),
     },
   );
 }
@@ -245,7 +250,7 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
   // 7 — B2 replica (fail-open: skips until the operator configures rclone).
   let b2Uploaded = false;
   try {
-    await uploadToB2(datasetsDir, version);
+    await uploadToB2(datasetsDir, version, ctx.signal);
     b2Uploaded = true;
   } catch (err) {
     log.warn('B2 upload skipped or failed (dataset stays local)', { err: String(err) });

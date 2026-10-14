@@ -452,7 +452,7 @@ export async function runRetentionCleanup(
 }
 
 /** Run VACUUM ANALYZE on the highest-churn operational tables. */
-export async function runVacuumAnalyze(): Promise<void> {
+export async function runVacuumAnalyze(signal?: AbortSignal): Promise<void> {
   const db = getDb();
   const tables = [
     'chat_telemetry',
@@ -465,6 +465,7 @@ export async function runVacuumAnalyze(): Promise<void> {
     'chat_messages',
   ];
   for (const table of tables) {
+    if (signal?.aborted) break;
     await db.execute(sql.raw(`VACUUM ANALYZE "${table}"`));
   }
 }

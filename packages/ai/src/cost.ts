@@ -472,7 +472,9 @@ export async function releaseBudgetReservation(
 export async function recoverStaleBudgetReservations(
   cutoff: Date,
   limit = 100,
+  signal?: AbortSignal,
 ): Promise<{ scanned: number; released: number; failed: number }> {
+  if (signal?.aborted) return { scanned: 0, released: 0, failed: 0 };
   const boundedLimit = Math.max(1, Math.min(500, Math.floor(limit)));
   const rows = resultRows<{ id: string }>(
     await getDb().execute(
@@ -498,6 +500,7 @@ export async function recoverStaleBudgetReservations(
   let released = 0;
   let failed = 0;
   for (const row of rows) {
+    if (signal?.aborted) break;
     try {
       if (await releaseBudgetReservation(row.id)) released += 1;
     } catch (err) {
