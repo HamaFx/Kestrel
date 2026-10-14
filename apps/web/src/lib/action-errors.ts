@@ -30,6 +30,9 @@ export async function withServerActionLogging<T>(
   try {
     return await fn();
   } catch (err) {
+    if (String(err).includes('NEXT_REDIRECT')) {
+      throw err;
+    }
     logActionError(err, action);
     throw err;
   }

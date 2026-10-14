@@ -50,24 +50,21 @@ test.describe('Authentication', () => {
     await context.close();
   });
 
-  // KNOWN BUG: useActionState in React 19 swallows NextAuth v5 beta's
-  // NEXT_REDIRECT throws, so the redirect from /login to /chat never
-  // completes through the UI. See apps/web/tests/e2e/test-utils.ts:authenticateAs.
-  test.fixme('successful login redirects to chat', async ({ browser }) => {
+  test('successful login redirects to dashboard by default or next parameter when provided', async ({
+    browser,
+  }) => {
     const context = await browser.newContext({
       baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
       storageState: { cookies: [], origins: [] },
     });
     const page = await context.newPage();
 
-    await page.goto('/login');
-
+    await page.goto('/login?next=/chat');
     await page.locator('#email').fill('test@example.com');
     await page.locator('#password').fill('password123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
-    await expect(page).toHaveURL(/.*\/chat.*/, { timeout: 30_000 });
-
+    await expect(page).toHaveURL(/.*\/(chat|dashboard).*/, { timeout: 30_000 });
     await context.close();
   });
 

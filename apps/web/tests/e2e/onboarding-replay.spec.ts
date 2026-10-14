@@ -25,7 +25,7 @@ test.describe('Onboarding replay', () => {
     });
     const page = await context.newPage();
 
-    await authenticateAs(page, 'admin@example.com', 'password123', 'admin');
+    await authenticateAs(page, 'admin-onboarding-1@example.com', 'password123', 'admin');
     await page.goto('/settings');
     await expect(page).toHaveURL('/settings');
 
@@ -50,7 +50,7 @@ test.describe('Onboarding replay', () => {
     });
     const page = await context.newPage();
 
-    await authenticateAs(page, 'admin@example.com', 'password123', 'admin');
+    await authenticateAs(page, 'admin-onboarding-2@example.com', 'password123', 'admin');
     await page.goto('/admin');
     await expect(page).toHaveURL('/admin');
 

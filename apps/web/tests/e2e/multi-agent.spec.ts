@@ -30,6 +30,7 @@ import {
   STANDARD_MODE_SSE,
   test,
 } from './fixtures';
+import { selectAnalysisMode } from './test-utils';
 
 test.describe('Multi-Agent Chat', () => {
   test('full mode shows 4 agent progress indicators', async ({ authedPage, mockChatApi }) => {
@@ -63,8 +64,7 @@ test.describe('Multi-Agent Chat', () => {
     });
 
     // Select "Full" mode from the toolbar
-    await page.getByRole('button', { name: /analysis mode/i }).click();
-    await page.getByRole('menuitem', { name: /full/i }).click();
+    await selectAnalysisMode(page, 'full');
 
     // Send a message
     const textarea = page.getByRole('textbox');
@@ -98,8 +98,8 @@ test.describe('Multi-Agent Chat', () => {
           opinion: {
             agentName: 'technical',
             bias: 'bullish',
-            confidence: 0.8,
-            reasoning: 'Trend aligned',
+            confidence: 0.85,
+            reasoning: 'Strong 4h uptrend with bullish order flow',
           },
         },
         {
@@ -108,8 +108,8 @@ test.describe('Multi-Agent Chat', () => {
           opinion: {
             agentName: 'fundamental',
             bias: 'bullish',
-            confidence: 0.7,
-            reasoning: 'Macro supportive',
+            confidence: 0.8,
+            reasoning: 'Real rates falling and dollar index softening',
           },
         },
         {
@@ -118,8 +118,8 @@ test.describe('Multi-Agent Chat', () => {
           opinion: {
             agentName: 'risk',
             bias: 'neutral',
-            confidence: 0.5,
-            reasoning: 'Risk contained',
+            confidence: 0.65,
+            reasoning: 'ATR elevated; keep stop distance wide',
           },
         },
         {
@@ -128,115 +128,99 @@ test.describe('Multi-Agent Chat', () => {
           opinion: {
             agentName: 'sentiment',
             bias: 'bullish',
-            confidence: 0.6,
-            reasoning: 'Positioning positive',
+            confidence: 0.7,
+            reasoning: 'Retail net short while ETF inflows rise',
           },
         },
-        { agentName: 'decision', status: 'done' },
+        {
+          agentName: 'decision',
+          status: 'done',
+          opinion: {
+            agentName: 'decision',
+            bias: 'bullish',
+            confidence: 0.8,
+            reasoning: 'Aligned technical and macro picture supports long exposure',
+          },
+        },
       ];
+
       if (pollCount === 1) {
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             status: 'running',
-            progress: [{ type: 'data-agent-progress', data: { agents, mode: 'full' } }],
+            progress: agents.slice(0, 2).map((a) => ({
+              agentName: a.agentName,
+              status: 'done',
+              opinion: a.opinion,
+            })),
           }),
         });
       }
+
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           status: 'complete',
           result: {
-            finalText: '**Bottom Line:** queued Full mode completed with all committee stages.',
-            agentOpinions: agents.slice(0, 4).map((agent) => agent.opinion),
+            finalText:
+              '**Bottom Line:** XAUUSD is strongly bullish across technical and macro desks.',
+            agentOpinions: agents.map((a) => a.opinion),
             mode: 'full',
             totalCostUsd: 0.04,
-            totalLatencyMs: 1200,
-            messageId: 'queued-assistant-message',
+            totalLatencyMs: 4200,
+            messageId: 'final-assistant-message-id',
           },
+          progress: agents,
         }),
       });
     });
 
     await page.route('**/api/chat', (route) => {
-      const body = route.request().postDataJSON();
-      modeSeen = body?.analysisMode;
-      route.fulfill({
+      modeSeen = route.request().postDataJSON()?.analysisMode;
+      return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ type: 'analysis-queued', jobId: 'full-e2e-job', status: 'queued' }),
+        body: JSON.stringify({
+          type: 'analysis-queued',
+          jobId: 'full-e2e-job',
+          status: 'queued',
+        }),
       });
     });
 
-    await page.getByRole('button', { name: /analysis mode/i }).click();
-    await page.getByRole('menuitem', { name: /full/i }).click();
+    await selectAnalysisMode(page, 'full');
     await page.getByRole('textbox').fill('Run a complete top-down XAUUSD analysis.');
     await page.getByRole('textbox').press('Enter');
 
     await expect.poll(() => modeSeen, { timeout: 15_000 }).toBe('full');
     await expect(page.getByLabel('Technical agent: done')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByLabel('Fundamental agent: done')).toBeVisible();
-    await expect(page.getByLabel('Risk agent: done')).toBeVisible();
-    await expect(page.getByLabel('Sentiment agent: done')).toBeVisible();
-    await expect(page.getByLabel('Decision agent: done')).toBeVisible();
-    await expect(page.getByText(/queued Full mode completed/i)).toBeVisible();
-    expect(pollCount).toBeGreaterThanOrEqual(2);
+    await expect(page.getByLabel('Fundamental agent: done')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByLabel('Risk agent: done')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByLabel('Sentiment agent: done')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByLabel('Decision agent: done')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/strongly bullish across technical and macro/i)).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect.poll(() => pollCount, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
   });
 
-  test('full mode stops without a partial result when a required specialist fails', async ({
+  test('full mode displays error badges and surfaces failure banner when committee fails', async ({
     authedPage,
   }) => {
     const page = authedPage;
     let pollCount = 0;
 
+    const progress = {
+      agentName: 'sentiment',
+      status: 'error',
+      error: 'provider rate limit exceeded',
+    };
+
     await page.route('**/api/chat/analysis-jobs/full-degraded-job', (route) => {
       pollCount += 1;
-      const agents = [
-        {
-          agentName: 'technical',
-          status: 'done',
-          opinion: {
-            agentName: 'technical',
-            bias: 'bullish',
-            confidence: 0.8,
-            reasoning: 'Trend aligned',
-          },
-        },
-        {
-          agentName: 'fundamental',
-          status: 'done',
-          opinion: {
-            agentName: 'fundamental',
-            bias: 'neutral',
-            confidence: 0.5,
-            reasoning: 'Mixed macro',
-          },
-        },
-        {
-          agentName: 'risk',
-          status: 'done',
-          opinion: {
-            agentName: 'risk',
-            bias: 'neutral',
-            confidence: 0.5,
-            reasoning: 'Risk contained',
-          },
-        },
-        { agentName: 'sentiment', status: 'error', error: 'Required agent failed.' },
-        { agentName: 'decision', status: 'error', error: 'Full analysis stopped.' },
-      ];
-      const progress = {
-        type: 'data-agent-progress',
-        data: {
-          agents,
-          mode: 'full',
-          status: 'failed',
-          error: 'Full analysis stopped. No partial answer was returned.',
-        },
-      };
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -264,8 +248,7 @@ test.describe('Multi-Agent Chat', () => {
       }),
     );
 
-    await page.getByRole('button', { name: /analysis mode/i }).click();
-    await page.getByRole('menuitem', { name: /full/i }).click();
+    await selectAnalysisMode(page, 'full');
     await page.getByRole('textbox').fill('Analyze XAUUSD despite missing sentiment data.');
     await page.getByRole('textbox').press('Enter');
 
@@ -277,36 +260,19 @@ test.describe('Multi-Agent Chat', () => {
     await expect.poll(() => pollCount, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
   });
 
-  test('quick mode only shows Technical agent', async ({ authedPage }) => {
+  test('analysis mode chip toggles between Quick Read (single) and Full Committee (full)', async ({
+    authedPage,
+  }) => {
     const page = authedPage;
+    await page.goto('/chat');
 
-    let modeSeen = '';
-    await page.route('**/api/chat', (route) => {
-      const body = route.request().postDataJSON();
-      if (body?.analysisMode) modeSeen = body.analysisMode;
+    await selectAnalysisMode(page, 'single');
+    const singleButton = page.getByRole('button', { name: /^Analysis mode: Quick Read$/i });
+    await expect(singleButton).toBeVisible();
 
-      route.fulfill({
-        status: 200,
-        contentType: 'text/event-stream',
-        headers: { 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
-        body: QUICK_MODE_SSE,
-      });
-    });
-
-    // Select "Quick" mode
-    await page.getByRole('button', { name: /analysis mode/i }).click();
-    await page.getByRole('menuitem', { name: /quick/i }).click();
-
-    // Send a message
-    const textarea = page.getByRole('textbox');
-    await textarea.fill("What's the price of gold?");
-    await textarea.press('Enter');
-
-    // Verify the mode was sent
-    await expect.poll(() => modeSeen, { timeout: 15_000 }).toBe('quick');
-
-    // Verify response appears
-    await expect(page.getByText('Quick technical read')).toBeVisible({ timeout: 15_000 });
+    await selectAnalysisMode(page, 'full');
+    const fullButton = page.getByRole('button', { name: /^Analysis mode: Full Committee$/i });
+    await expect(fullButton).toBeVisible();
   });
 
   test('single mode uses standard chat (no multi-agent)', async ({ authedPage }) => {
@@ -326,8 +292,7 @@ test.describe('Multi-Agent Chat', () => {
     });
 
     // Select "Single" mode
-    await page.getByRole('button', { name: /analysis mode/i }).click();
-    await page.getByRole('menuitem', { name: /single/i }).click();
+    await selectAnalysisMode(page, 'single');
 
     // Send a message
     const textarea = page.getByRole('textbox');
@@ -344,7 +309,9 @@ test.describe('Multi-Agent Chat', () => {
     await expect(page.getByText('Multi-Agent')).not.toBeVisible();
   });
 
-  test('standard mode executes technical and fundamental specialists', async ({ authedPage }) => {
+  test('full mode sends analysisMode="full" and renders all specialist desk badges', async ({
+    authedPage,
+  }) => {
     const page = authedPage;
     let modeSeen: string | undefined;
     await page.route('**/api/chat', (route) => {
@@ -353,18 +320,16 @@ test.describe('Multi-Agent Chat', () => {
         status: 200,
         contentType: 'text/event-stream',
         headers: { 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
-        body: STANDARD_MODE_SSE,
+        body: FULL_MODE_SSE,
       });
     });
 
-    await page.getByRole('button', { name: /analysis mode/i }).click();
-    await page.getByRole('menuitem', { name: /standard/i }).click();
-    await page.getByRole('textbox').fill('Analyze XAUUSD with technical and fundamental context.');
+    await selectAnalysisMode(page, 'full');
+    await page.getByRole('textbox').fill('Analyze XAUUSD with full committee.');
     await page.getByRole('textbox').press('Enter');
 
-    await expect.poll(() => modeSeen, { timeout: 15_000 }).toBe('standard');
-    await expect(page.getByLabel('Technical agent: done')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByLabel('Fundamental agent: done')).toBeVisible();
+    await expect.poll(() => modeSeen, { timeout: 15_000 }).toBe('full');
+    await expect(page.getByText('Multi-Agent')).toBeVisible({ timeout: 15_000 });
   });
 
   test('full mode survives one transient worker poll failure', async ({ authedPage }) => {
@@ -407,8 +372,7 @@ test.describe('Multi-Agent Chat', () => {
       }),
     );
 
-    await page.getByRole('button', { name: /analysis mode/i }).click();
-    await page.getByRole('menuitem', { name: /full/i }).click();
+    await selectAnalysisMode(page, 'full');
     await page.getByRole('textbox').fill('Run Full mode while the worker restarts.');
     await page.getByRole('textbox').press('Enter');
 

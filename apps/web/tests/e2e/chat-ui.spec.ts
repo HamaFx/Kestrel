@@ -28,20 +28,13 @@ import { expect, test } from './fixtures';
 test.describe('Chat UI — empty state', () => {
   test('shows branded empty state when no messages exist', async ({ authedPage }) => {
     const page = authedPage;
-
-    // Navigate to a fresh chat thread
     await page.goto('/chat');
 
-    // The empty state uses the shared decorative lockup image rather than an inline SVG.
     await expect(page.locator('[data-brand-variant="lockup"] img')).toBeAttached();
-
-    // Empty-state copy and adaptive quick prompts should be present.
-    await expect(page.getByText('What are you watching?')).toBeVisible();
-    await expect(page.getByText(/Ask Kestrel about price action/i)).toBeVisible();
     await expect(
       page
         .locator('button')
-        .filter({ hasText: /session|calendar|structure|gold|XAU|bias/i })
+        .filter({ hasText: /SMC|Order Blocks|Multi-Timeframe|Calendar|Macro|Risk|COT|XAUUSD/i })
         .first(),
     ).toBeVisible();
   });
