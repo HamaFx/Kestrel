@@ -1,26 +1,8 @@
 #!/usr/bin/env node
 // @ts-check
-/**
- * set-build-id.mjs
- *
- * Prebuild step. Computes a deterministic-per-deploy build id from the git
- * short SHA (or `$VERCEL_GIT_COMMIT_SHA` / `$GITHUB_SHA` when available) and
- * an epoch-seconds suffix, then publishes it two ways:
- *
- *   1. Writes `apps/web/.build-id` — a single-line text file consumed by
- *      `generate-sw.mjs` (postbuild) when `process.env.NEXT_PUBLIC_BUILD_ID`
- *      is not propagated.
- *   2. Upserts `NEXT_PUBLIC_BUILD_ID=<value>` into `apps/web/.env.production.local`
- *      so `next build` picks it up as a public env var and the running app
- *      can ship the same id to the service worker.
- *
- * Both files are gitignored; the script is idempotent and safe to re-run.
- *
- * Requirements: 5.5, 5.6
- */
-
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -30,13 +12,6 @@ const BUILD_ID_FILE = resolve(WEB_ROOT, '.build-id');
 const ENV_FILE = resolve(WEB_ROOT, '.env.production.local');
 const ENV_KEY = 'NEXT_PUBLIC_BUILD_ID';
 
-/**
- * Best-effort short git SHA. Falls back to a 7-char random hex when git is
- * unavailable (e.g. in a stripped Docker layer) so the script never fails
- * the build.
- *
- * @returns {string} 7-char lowercase hex
- */
 export function resolveGitSha() {
   const fromEnv =
     process.env.VERCEL_GIT_COMMIT_SHA ??
@@ -54,56 +29,68 @@ export function resolveGitSha() {
       .trim();
     if (/^[0-9a-f]{7,}$/i.test(sha)) return sha.slice(0, 7).toLowerCase();
   } catch {
-    /* fall through to random */
+    /* fall through */
   }
-  // 7-char hex; collision-resistant enough for cache-bust purposes.
-  return Math.floor(Math.random() * 0xfffffff)
-    .toString(16)
-    .padStart(7, '0');
+  return 'local00';
 }
 
-/**
- * Upsert `KEY=value` in a dotenv-style file, preserving every other line.
- *
- * @param {string} path
- * @param {string} key
- * @param {string} value
- */
+export function resolveDirtySuffix(cwd = WEB_ROOT) {
+  try {
+    const porcelain = execSync('git status --porcelain --untracked-files=normal', {
+      cwd,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim();
+    if (!porcelain) return '';
+    return createHash('sha256').update(porcelain).digest('hex').slice(0, 8);
+  } catch {
+    return '';
+  }
+}
+
 export function upsertEnvLine(path, key, value) {
   const line = `${key}=${value}`;
   if (!existsSync(path)) {
     writeFileSync(path, `${line}\n`, 'utf8');
-    return;
+    return true;
   }
   const current = readFileSync(path, 'utf8');
   const lines = current.split(/\r?\n/);
   const keyPattern = new RegExp(`^\\s*${key}\\s*=`);
   const idx = lines.findIndex((l) => keyPattern.test(l));
+  let nextContent;
   if (idx === -1) {
-    // Append, ensuring file ends with newline.
     const sep = current.endsWith('\n') || current.length === 0 ? '' : '\n';
-    writeFileSync(path, `${current}${sep}${line}\n`, 'utf8');
-    return;
+    nextContent = `${current}${sep}${line}\n`;
+  } else {
+    lines[idx] = line;
+    nextContent = lines.join('\n');
   }
-  lines[idx] = line;
-  writeFileSync(path, lines.join('\n'), 'utf8');
+  if (nextContent === current) {
+    return false;
+  }
+  writeFileSync(path, nextContent, 'utf8');
+  return true;
 }
 
-/** Build id is `<git-sha>-<epoch>`. */
-export function resolveBuildId() {
-  const sha = resolveGitSha();
-  const epoch = Math.floor(Date.now() / 1000);
-  return `${sha}-${epoch}`;
+export function resolveBuildId(opts = {}) {
+  const sha = opts.sha ?? resolveGitSha();
+  const forceEpoch = opts.forceEpoch ?? process.env.KESTREL_FORCE_EPOCH_BUILD_ID === '1';
+  if (forceEpoch) {
+    return `${sha}-${Math.floor(Date.now() / 1000)}`;
+  }
+  const dirtyHash = opts.dirtyHash ?? resolveDirtySuffix();
+  return dirtyHash ? `${sha}-${dirtyHash}` : sha;
 }
 
 export function main() {
   const buildId = resolveBuildId();
-
-  writeFileSync(BUILD_ID_FILE, `${buildId}\n`, 'utf8');
+  if (!existsSync(BUILD_ID_FILE) || readFileSync(BUILD_ID_FILE, 'utf8').trim() !== buildId) {
+    writeFileSync(BUILD_ID_FILE, `${buildId}\n`, 'utf8');
+  }
   upsertEnvLine(ENV_FILE, ENV_KEY, buildId);
   upsertEnvLine(ENV_FILE, 'AUTH_MODE', 'normal');
-
-  // eslint-disable-next-line no-console
   console.log(`[set-build-id] ${ENV_KEY}=${buildId}`);
 }
 

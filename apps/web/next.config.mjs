@@ -39,7 +39,7 @@ const nextConfig = {
     '@kestrel/config',
   ],
 
-  typescript: { ignoreBuildErrors: false },
+  typescript: { ignoreBuildErrors: process.env.NEXT_BUILD_SKIP_TYPECHECK === '1' },
   images: {
     remotePatterns: [
       {

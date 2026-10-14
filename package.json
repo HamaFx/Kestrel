@@ -35,7 +35,7 @@
     "test:postgres-rls": "node scripts/run-postgres-rls-test.mjs",
     "test:ai-postgres-queue": "node scripts/run-ai-postgres-queue-test.mjs",
     "docker:prune": "node scripts/docker-prune-safe.mjs",
-    "build:packages": "pnpm --filter @kestrel/shared build && pnpm --filter @kestrel/indicators build && pnpm --filter @kestrel/db build && pnpm --filter @kestrel/data build && pnpm --filter @kestrel/ai build && pnpm --filter @kestrel/test-utils build",
+    "build:packages": "turbo run build --filter=@kestrel/shared --filter=@kestrel/indicators --filter=@kestrel/db --filter=@kestrel/data --filter=@kestrel/ai --filter=@kestrel/test-utils",
     "knip": "knip",
     "eval:gate": "pnpm --filter @kestrel/ai run eval:gate"
   },
