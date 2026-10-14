@@ -22,7 +22,7 @@ import { BaseWsConsumer } from '../base-ws-consumer.js';
 import type { Logger } from '../log.js';
 import type { NormalizedTick } from '../signalr/consumer.js';
 
-const BINANCE_WS_BASE = process.env.BINANCE_WS_URL ?? 'wss://stream.binance.com:9443';
+const DEFAULT_BINANCE_WS_BASE = 'wss://stream.binance.com:9443';
 const PING_INTERVAL_MS = 3 * 60 * 1_000;
 const MAX_EMPTY_MINUTES = 10;
 
@@ -31,31 +31,40 @@ export interface BinanceStreamConsumerOptions {
   onTick: (tick: NormalizedTick) => void;
   onActivity?: () => void;
   log: Logger;
+  wsUrl?: string | undefined;
 }
 
 export class BinanceStreamConsumer extends BaseWsConsumer {
   private lastMessageAt = 0;
   private symbols: string[];
   private readonly onTick: (tick: NormalizedTick) => void;
+  private readonly wsBaseUrl: string;
 
   constructor(opts: BinanceStreamConsumerOptions) {
     super(opts.log, opts.onActivity);
-    this.symbols = opts.symbols;
+    this.symbols = Array.from(new Set(opts.symbols));
     this.onTick = opts.onTick;
+    this.wsBaseUrl = (opts.wsUrl ?? process.env.BINANCE_WS_URL ?? DEFAULT_BINANCE_WS_BASE).replace(
+      /\/+$/,
+      '',
+    );
   }
 
-  /** Update subscriptions dynamically. Reconnects with the new symbol set. */
+  /** Update subscriptions dynamically. Reconnects only when the symbol set actually changes. */
   async updateSubscriptions(added: string[], removed: string[]): Promise<void> {
-    const newSet = new Set(this.symbols);
-    for (const s of added) newSet.add(s);
-    for (const s of removed) newSet.delete(s);
+    const prevSet = new Set(this.symbols);
+    const nextSet = new Set(this.symbols);
+    for (const s of added) nextSet.add(s);
+    for (const s of removed) nextSet.delete(s);
 
-    this.symbols.length = 0;
-    this.symbols.push(...newSet);
+    const changed =
+      prevSet.size !== nextSet.size || Array.from(nextSet).some((s) => !prevSet.has(s));
+    if (!changed) return;
 
-    // Reconnect with updated streams
-    if (this.ws && !this.destroyed) {
-      this.ws.close(4000, 'subscription update');
+    this.symbols = Array.from(nextSet);
+
+    if (!this.destroyed && this.ws) {
+      this.reconnectImmediately('subscription update');
     }
   }
 
@@ -67,7 +76,7 @@ export class BinanceStreamConsumer extends BaseWsConsumer {
       return '';
     }
     const streams = this.symbols.map((s) => `${s.toLowerCase()}@kline_1m`).join('/');
-    return `${BINANCE_WS_BASE}/stream?streams=${streams}`;
+    return `${this.wsBaseUrl}/stream?streams=${streams}`;
   }
 
   protected override onOpen(): void {

@@ -33,7 +33,19 @@
 // Phase 8 PR-6 — feeds `live_ticks` (this PR). PR-7 wires the same `onTick`
 // to the in-process 1m candle aggregator.
 
-import { BiquoteSignalRTickSchema, isKnownSymbol, SYMBOLS, type Symbol } from '@kestrel/shared';
+import {
+  BiquoteSignalRTickSchema,
+  isKnownSymbol,
+  symbolCategory,
+  SYMBOLS,
+  type Symbol,
+} from '@kestrel/shared';
+
+function isBiquoteSymbol(symbol: string): boolean {
+  if (!isKnownSymbol(symbol)) return false;
+  const category = symbolCategory(symbol);
+  return category === 'gold' || category === 'forex';
+}
 
 import type { Logger } from '../log.js';
 import { DEFAULT_RECONNECT_DELAYS, jitteredDelay } from './reconnect.js';
@@ -86,7 +98,7 @@ export class SignalRConsumer {
   private readonly opts: ConsumerOptions;
   private connection: MinimalHubConnection | null = null;
   /** Symbols we've asked the hub to subscribe to; resent on reconnect. */
-  private subscribedSymbols: string[] = [];
+  private subscribedSymbols = new Set<string>();
   /** True after `start()` resolves and until `stop()` runs. */
   private started = false;
   /**
@@ -108,8 +120,9 @@ export class SignalRConsumer {
 
   async start(): Promise<void> {
     if (this.started) return;
-    const symbols = this.opts.symbols ?? [...SYMBOLS];
-    this.subscribedSymbols = symbols;
+    const initialSymbols = (this.opts.symbols ?? [...SYMBOLS]).filter(isBiquoteSymbol);
+    for (const s of initialSymbols) this.subscribedSymbols.add(s);
+    const symbols = Array.from(this.subscribedSymbols);
 
     const conn = this.opts.buildConnection({
       hubUrl: this.opts.hubUrl,
@@ -125,10 +138,11 @@ export class SignalRConsumer {
       this.opts.log.warn('signalr reconnecting', { err: err ? String(err) : undefined });
     });
     conn.onreconnected(() => {
+      const current = Array.from(this.subscribedSymbols);
       this.opts.log.info('signalr reconnected — resubscribing', {
-        symbols: this.subscribedSymbols,
+        symbols: current,
       });
-      void this.subscribe(this.subscribedSymbols);
+      void this.subscribe(current);
     });
     conn.onclose((err) => {
       this.opts.log.error('signalr connection closed', {
@@ -156,7 +170,7 @@ export class SignalRConsumer {
     }
     if (!this.connection) return;
     try {
-      await this.unsubscribe(this.subscribedSymbols);
+      await this.unsubscribe(Array.from(this.subscribedSymbols));
     } catch (err) {
       this.opts.log.warn('signalr unsubscribe failed during stop', { err: String(err) });
     }
@@ -185,6 +199,7 @@ export class SignalRConsumer {
       this.reconnectTimer = null;
       void this.rebuild();
     }, delay);
+    this.reconnectTimer.unref();
   }
 
   private async rebuild(): Promise<void> {
@@ -216,13 +231,16 @@ export class SignalRConsumer {
    * Update active subscriptions dynamically.
    */
   async updateSubscriptions(added: string[], removed: string[]): Promise<void> {
-    if (added.length > 0) {
-      this.subscribedSymbols.push(...added);
-      await this.subscribe(added);
+    const toAdd = added.filter((s) => isBiquoteSymbol(s) && !this.subscribedSymbols.has(s));
+    const toRemove = removed.filter((s) => this.subscribedSymbols.has(s));
+
+    if (toAdd.length > 0) {
+      for (const s of toAdd) this.subscribedSymbols.add(s);
+      await this.subscribe(toAdd);
     }
-    if (removed.length > 0) {
-      this.subscribedSymbols = this.subscribedSymbols.filter((s) => !removed.includes(s));
-      await this.unsubscribe(removed);
+    if (toRemove.length > 0) {
+      for (const s of toRemove) this.subscribedSymbols.delete(s);
+      await this.unsubscribe(toRemove);
     }
   }
 

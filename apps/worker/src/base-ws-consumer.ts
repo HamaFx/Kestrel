@@ -137,7 +137,7 @@ export abstract class BaseWsConsumer {
   // ── Reconnect ───────────────────────────────────────────────────────
 
   protected scheduleReconnect(): void {
-    if (this.destroyed) return;
+    if (this.destroyed || this.reconnectTimer) return;
     const delays = this.getReconnectDelays();
     const delay = delays[Math.min(this.reconnectAttempt, delays.length - 1)]!;
     this.reconnectAttempt += 1;
@@ -145,7 +145,39 @@ export abstract class BaseWsConsumer {
       delayMs: delay,
       attempt: this.reconnectAttempt,
     });
-    this.reconnectTimer = setTimeout(() => this.connect(), delay);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
+    this.reconnectTimer.unref();
+  }
+
+  /**
+   * Immediately tear down the current socket and reconnect without
+   * incrementing backoff (used when subscriptions change intentionally).
+   */
+  protected reconnectImmediately(reason = 'subscription update'): void {
+    if (this.destroyed) return;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempt = 0;
+    if (this.ws) {
+      this.ws.removeAllListeners();
+      this.ws.onclose = null;
+      this.ws.onmessage = null;
+      this.ws.onerror = null;
+      this.ws.onopen = null;
+      try {
+        this.ws.close(4000, reason);
+      } catch {
+        // Ignore close errors on half-open sockets
+      }
+      this.ws = null;
+    }
+    this.stopHeartbeat();
+    this.connect();
   }
 
   /** Override to customize reconnect delay sequence. */
@@ -160,6 +192,7 @@ export abstract class BaseWsConsumer {
     const intervalMs = this.buildHeartbeatIntervalMs();
     if (intervalMs <= 0) return;
     this.heartbeatTimer = setInterval(() => this.sendHeartbeat(), intervalMs);
+    this.heartbeatTimer.unref();
   }
 
   protected stopHeartbeat(): void {
@@ -182,7 +215,7 @@ export abstract class BaseWsConsumer {
     }
   }
 
-  protected isConnected(): boolean {
+  public isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }
 

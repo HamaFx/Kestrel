@@ -69,11 +69,10 @@ export class SymbolManager extends EventEmitter {
    *   - 'binanceChanged' → Binance consumer updates (all crypto)
    *   - 'symbolsChanged' → aggregate event (backward compat)
    */
-  public start(): void {
-    if (this.pollTimer) return;
+  public start(): Promise<void> {
+    if (this.pollTimer) return Promise.resolve();
 
-    // Initial fetch
-    void this.poll();
+    const initialPoll = this.poll();
 
     this.pollTimer = setInterval(() => {
       void this.poll();
@@ -83,6 +82,7 @@ export class SymbolManager extends EventEmitter {
     this.pollTimer.unref();
 
     this.log.info('SymbolManager started polling', { intervalMs: this.pollIntervalMs });
+    return initialPoll;
   }
 
   public stop(): void {
