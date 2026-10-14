@@ -9,18 +9,22 @@
   ],
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./adapters/*": {
+      "source": "./src/adapters/*.ts",
       "types": "./dist/adapters/*.d.ts",
       "import": "./dist/adapters/*.js"
     },
     "./cache": {
+      "source": "./src/cache/index.ts",
       "types": "./dist/cache/index.d.ts",
       "import": "./dist/cache/index.js"
     },
     "./providers/*": {
+      "source": "./src/providers/*/index.ts",
       "types": "./dist/providers/*/index.d.ts",
       "import": "./dist/providers/*/index.js"
     }

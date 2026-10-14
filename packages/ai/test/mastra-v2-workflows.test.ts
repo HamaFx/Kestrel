@@ -43,7 +43,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra/symbol-research');
+  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra-v2/packets/symbol-research');
   return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
 });
 vi.mock('@mastra/core/agent', () => ({
