@@ -25,13 +25,39 @@ import postgres from 'postgres';
 
 import * as schema from './schema/index';
 
-let _client: ReturnType<typeof drizzle> | null = null;
-let _sql: ReturnType<typeof postgres> | null = null;
+export interface TenantDbScopeOptions {
+  userId?: string;
+}
 
 interface TenantDbScope {
   tenantId: string;
   db: DbClient;
+  userId?: string;
 }
+
+// HMR-safe pool singletons. Next.js App Router re-evaluates module scope on
+// hot reload, which would strand the previous `postgres()` pools until their
+// idle timers expire. Anchoring them on `globalThis` lets every re-evaluated
+// module instance reuse the live pools.
+interface KestrelDbPools {
+  primarySql: ReturnType<typeof postgres> | null;
+  primaryClient: DbClient | null;
+  replicaSql: ReturnType<typeof postgres> | null;
+  replicaClient: DbClient | null;
+  adminSql: ReturnType<typeof postgres> | null;
+  adminClient: DbClient | null;
+}
+
+const globalForDb = globalThis as unknown as { __kestrelDbPools?: KestrelDbPools };
+
+const pools: KestrelDbPools = (globalForDb.__kestrelDbPools ??= {
+  primarySql: null,
+  primaryClient: null,
+  replicaSql: null,
+  replicaClient: null,
+  adminSql: null,
+  adminClient: null,
+});
 
 // RLS context is request-scoped. The transaction client is carried through
 // async work so repositories that call getDb() directly still use the tenant
@@ -100,8 +126,8 @@ function resolveStatementTimeout(): number {
 }
 
 // PF-15 — read-replica client. Initialised lazily, separate pool.
-let _replicaClient: DbClient | null = null;
-let _replicaSql: ReturnType<typeof postgres> | null = null;
+// The replica pool also lives on `globalThis` for the same HMR reasons as
+// the primary pool above.
 
 /**
  * Lazy-initialised drizzle client for read-only replicas.
@@ -115,7 +141,7 @@ export function getDbRO(): DbClient {
   if (adminScope) return adminScope;
   assertTenantIsolationConfig();
 
-  if (_replicaClient) return _replicaClient;
+  if (pools.replicaClient) return pools.replicaClient;
 
   const url = process.env.DATABASE_URL_REPLICA;
   if (!url) {
@@ -123,7 +149,7 @@ export function getDbRO(): DbClient {
     return getDb();
   }
 
-  _replicaSql = postgres(url, {
+  pools.replicaSql = postgres(url, {
     prepare: false,
     max: Math.min(resolvePoolMax(), 3), // replica pool is smaller
     idle_timeout: 20,
@@ -135,8 +161,8 @@ export function getDbRO(): DbClient {
     },
   });
 
-  _replicaClient = drizzle(_replicaSql, { schema });
-  return _replicaClient;
+  pools.replicaClient = drizzle(pools.replicaSql, { schema });
+  return pools.replicaClient;
 }
 
 /**
@@ -229,8 +255,8 @@ o/bKiIz+Fq8=
   return { rejectUnauthorized: false };
 }
 
-function getPrimaryDb(): DbClient {
-  if (_client) return _client;
+export function getPrimaryDb(): DbClient {
+  if (pools.primaryClient) return pools.primaryClient;
 
   // Accept DATABASE_URL or POSTGRES_URL (the Supabase Vercel integration
   // provisions POSTGRES_URL on the transaction pooler).
@@ -247,7 +273,7 @@ function getPrimaryDb(): DbClient {
   // DB-2: TLS verification is mandatory for non-local production deployments.
   // Local Compose explicitly opts out through KESTREL_LOCAL_DOCKER=true and
   // DB_DISABLE_SSL=true.
-  _sql = postgres(url, {
+  pools.primarySql = postgres(url, {
     prepare: false,
     max: resolvePoolMax(),
     idle_timeout: 20,
@@ -259,8 +285,8 @@ function getPrimaryDb(): DbClient {
     },
   });
 
-  _client = drizzle(_sql, { schema });
-  return _client;
+  pools.primaryClient = drizzle(pools.primarySql, { schema });
+  return pools.primaryClient;
 }
 
 export function getDb(): DbClient {
@@ -289,25 +315,25 @@ export function hasTenantDbScope(): boolean {
 }
 
 /** Return the current tenant transaction, if one is active. */
-export function getTenantDbScope(): { tenantId: string; db: DbClient } | null {
+export function getTenantDbScope(): { tenantId: string; db: DbClient; userId?: string } | null {
   return tenantDbScope.getStore() ?? null;
 }
 
 /** For tests / scripts only — closes the replica pool. */
 export async function closeReplicaDb(): Promise<void> {
-  if (_replicaSql) {
-    await _replicaSql.end({ timeout: 5 });
-    _replicaSql = null;
-    _replicaClient = null;
+  if (pools.replicaSql) {
+    await pools.replicaSql.end({ timeout: 5 });
+    pools.replicaSql = null;
+    pools.replicaClient = null;
   }
 }
 
 /** For tests / scripts only — closes the underlying pool(s). */
 export async function closeDb(): Promise<void> {
-  if (_sql) {
-    await _sql.end({ timeout: 5 });
-    _sql = null;
-    _client = null;
+  if (pools.primarySql) {
+    await pools.primarySql.end({ timeout: 5 });
+    pools.primarySql = null;
+    pools.primaryClient = null;
   }
   await closeReplicaDb();
   await closeAdminDb();
@@ -352,18 +378,20 @@ function assertTenantIsolationConfig(): void {
 export async function withTenantDbFresh<T>(
   tenantId: string,
   work: (db: DbClient) => Promise<T>,
+  opts?: TenantDbScopeOptions,
 ): Promise<T> {
   assertTenantIsolationConfig();
   return getPrimaryDb().transaction(async (tx) => {
     const scopedDb = tx as unknown as DbClient;
-    if (isRlsEnabled()) {
-      // Supabase exposes the non-bypass `authenticated` role for data-plane
-      // access. Switch roles inside the transaction before setting the tenant
-      // GUC so RLS is enforced even though the pool connects as postgres.
-      await tx.execute(sql`SET LOCAL ROLE authenticated`);
-      await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
-    }
-    return tenantDbScope.run({ tenantId, db: scopedDb }, () => work(scopedDb));
+    // RLS is enforced by the non-bypass connection role (`kestrel_app`, granted
+    // in migration 0094). We deliberately do NOT `SET LOCAL ROLE authenticated`:
+    // migration 0070 revoked every table and sequence privilege from that role,
+    // so switching to it would fail with SQLSTATE 42501 on the first query.
+    await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
+    return tenantDbScope.run(
+      { tenantId, db: scopedDb, ...(opts?.userId ? { userId: opts.userId } : {}) },
+      () => work(scopedDb),
+    );
   });
 }
 
@@ -392,6 +420,7 @@ export async function withTenantDb<T>(
 export async function withTenantDbRO<T>(
   tenantId: string,
   work: (db: DbClient) => Promise<T>,
+  opts?: TenantDbScopeOptions,
 ): Promise<T> {
   const current = tenantDbScope.getStore();
   if (current?.tenantId === tenantId) return work(current.db);
@@ -402,12 +431,13 @@ export async function withTenantDbRO<T>(
   const db = getDbRO();
   return db.transaction(async (tx) => {
     await tx.execute(sql`SET TRANSACTION READ ONLY`);
-    if (isRlsEnabled()) {
-      await tx.execute(sql`SET LOCAL ROLE authenticated`);
-      await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
-    }
+    // No `SET LOCAL ROLE authenticated` — see withTenantDbFresh for why.
+    await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
     const scopedDb = tx as unknown as DbClient;
-    return tenantDbScope.run({ tenantId, db: scopedDb }, () => work(scopedDb));
+    return tenantDbScope.run(
+      { tenantId, db: scopedDb, ...(opts?.userId ? { userId: opts.userId } : {}) },
+      () => work(scopedDb),
+    );
   });
 }
 
@@ -520,9 +550,6 @@ export async function checkDbHealth(): Promise<boolean> {
   }
 }
 
-let _adminClient: DbClient | null = null;
-let _adminSql: ReturnType<typeof postgres> | null = null;
-
 /**
  * Admin DB client that connects as the `kestrel_admin` role (BYPASSRLS).
  *
@@ -534,7 +561,7 @@ let _adminSql: ReturnType<typeof postgres> | null = null;
  */
 export function getAdminDb(): DbClient {
   assertTenantIsolationConfig();
-  if (_adminClient) return _adminClient;
+  if (pools.adminClient) return pools.adminClient;
 
   const adminUrl = process.env.ADMIN_DATABASE_URL;
   if (!adminUrl) {
@@ -543,7 +570,7 @@ export function getAdminDb(): DbClient {
     );
   }
 
-  _adminSql = postgres(adminUrl, {
+  pools.adminSql = postgres(adminUrl, {
     prepare: false,
     max: resolvePoolMax(),
     idle_timeout: 20,
@@ -555,16 +582,16 @@ export function getAdminDb(): DbClient {
     },
   });
 
-  _adminClient = drizzle(_adminSql, { schema });
-  return _adminClient;
+  pools.adminClient = drizzle(pools.adminSql, { schema });
+  return pools.adminClient;
 }
 
 /** For tests / scripts only — closes the admin pool. */
 export async function closeAdminDb(): Promise<void> {
-  if (_adminSql) {
-    await _adminSql.end({ timeout: 5 });
-    _adminSql = null;
-    _adminClient = null;
+  if (pools.adminSql) {
+    await pools.adminSql.end({ timeout: 5 });
+    pools.adminSql = null;
+    pools.adminClient = null;
   }
 }
 
