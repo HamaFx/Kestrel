@@ -22,6 +22,13 @@ import type { Page } from '@playwright/test';
 import bcrypt from 'bcryptjs';
 import { eq, sql } from 'drizzle-orm';
 
+const DEFAULT_PASSWORD = 'password123';
+const DEFAULT_PASSWORD_HASH = bcrypt.hashSync(DEFAULT_PASSWORD, 10);
+
+export function workerUserEmail(workerIndex: number, role: 'user' | 'admin' = 'user'): string {
+  return `e2e-${role}-w${workerIndex}@kestrel.ai`;
+}
+
 /**
  * Encrypt a dummy BYOK payload for the test user so the chat page
  * does not redirect to /settings/api-keys (Phase A item 4).
@@ -51,12 +58,14 @@ function encryptDummyByokKey(): string | null {
 
 export async function ensureTestUser(
   email = 'test@example.com',
-  password = 'password123',
+  password = DEFAULT_PASSWORD,
   role: 'user' | 'admin' = 'user',
+  opts: { resetWatchlist?: boolean } = {},
 ) {
   const db = getDb();
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword =
+    password === DEFAULT_PASSWORD ? DEFAULT_PASSWORD_HASH : await bcrypt.hash(password, 10);
   const id = crypto.randomUUID();
 
   const result = await db
@@ -80,10 +89,30 @@ export async function ensureTestUser(
   // provider and doesn't redirect to /settings/api-keys.
   const encryptedKey = encryptDummyByokKey();
 
+  const orgId = `org-${user.id}`;
+  await db
+    .insert(schema.organization)
+    .values({
+      id: orgId,
+      name: `Org ${email}`,
+      plan: 'pro',
+    })
+    .onConflictDoNothing();
+
+  await db
+    .insert(schema.organizationMember)
+    .values({
+      orgId,
+      userId: user.id,
+      role: 'owner',
+    })
+    .onConflictDoNothing();
+
   await db
     .insert(schema.userSettings)
     .values({
       userId: user.id,
+      tenantId: orgId,
       defaultSymbol: 'XAUUSD',
       timezone: 'UTC',
       language: 'en',
@@ -93,17 +122,33 @@ export async function ensureTestUser(
     .onConflictDoUpdate({
       target: schema.userSettings.userId,
       set: {
+        tenantId: orgId,
         onboardingCompleted: true,
         ...(encryptedKey ? { aiApiKeys: encryptedKey } : {}),
       },
     });
 
-  // Reset the watchlist to a known-empty state so settings/symbol tests
-  // (and any other watchlist-dependent test) start deterministic instead of
-  // inheriting symbols left behind by a previously aborted run.
-  await db.delete(schema.userSymbols).where(eq(schema.userSymbols.userId, user.id));
+  // Reset the watchlist if requested so settings/symbol tests
+  // start deterministic instead of inheriting symbols left behind.
+  if (opts.resetWatchlist) {
+    await db.delete(schema.userSymbols).where(eq(schema.userSymbols.userId, user.id));
+  }
 
   return user;
+}
+
+export async function selectAnalysisMode(
+  page: Page,
+  targetMode: 'single' | 'full',
+): Promise<void> {
+  const expectedLabel =
+    targetMode === 'full' ? 'Analysis mode: Full Committee' : 'Analysis mode: Quick Read';
+  const modeButton = page.getByRole('button', { name: /^Analysis mode:/i });
+  await modeButton.waitFor({ state: 'visible', timeout: 15_000 });
+  const currentLabel = await modeButton.getAttribute('aria-label');
+  if (currentLabel !== expectedLabel) {
+    await modeButton.click();
+  }
 }
 
 /**
@@ -228,10 +273,30 @@ export async function ensureSystemUser() {
       set: { name: 'System (Legacy E2E)' },
     });
 
+  const orgId = 'org-__system__';
+  await db
+    .insert(schema.organization)
+    .values({
+      id: orgId,
+      name: 'System Org',
+      plan: 'pro',
+    })
+    .onConflictDoNothing();
+
+  await db
+    .insert(schema.organizationMember)
+    .values({
+      orgId,
+      userId: '__system__',
+      role: 'owner',
+    })
+    .onConflictDoNothing();
+
   await db
     .insert(schema.userSettings)
     .values({
       userId: '__system__',
+      tenantId: orgId,
       defaultSymbol: 'XAUUSD',
       timezone: 'UTC',
       language: 'en',
@@ -241,6 +306,7 @@ export async function ensureSystemUser() {
     .onConflictDoUpdate({
       target: schema.userSettings.userId,
       set: {
+        tenantId: orgId,
         onboardingCompleted: true,
         ...(encryptedKey ? { aiApiKeys: encryptedKey } : {}),
       },

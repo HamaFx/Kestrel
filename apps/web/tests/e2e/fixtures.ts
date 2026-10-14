@@ -20,8 +20,8 @@
 // Replaces manual login boilerplate in every spec with a reusable `authedPage`
 // fixture that loads a pre-authenticated storageState. Also provides:
 //   • `mockChatApi` — intercepts /api/chat with a configurable mock response
-//   • `testUser` — the default test user credentials
-//   • `cleanupUser` — removes test data after the suite
+//   • `testUser` — worker-isolated test user credentials
+//   • `workerUser` — worker-scoped authenticated user record
 //
 // Usage:
 //   import { test, expect } from './fixtures';
@@ -31,11 +31,18 @@
 import { createThread, deleteThread } from '@kestrel/ai/persistence';
 import { test as base, expect, type Page } from '@playwright/test';
 
-import { ensureTestUser } from './test-utils';
+import { createSessionForUser, ensureTestUser, workerUserEmail } from './test-utils';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+export interface WorkerUserFixture {
+  id: string;
+  email: string;
+  password: string;
+  cookie: Awaited<ReturnType<typeof createSessionForUser>>;
+}
 
 export interface ChatMockOptions {
   /** SSE body for multi-agent mode (analysisMode !== 'single') */
@@ -51,7 +58,7 @@ export interface Fixtures {
   authedPage: Page;
   /** Helper to mock the /api/chat endpoint */
   mockChatApi: (page: Page, opts?: ChatMockOptions) => Promise<void>;
-  /** Default test user credentials */
+  /** Default test user credentials (isolated per worker) */
   testUser: { email: string; password: string };
 }
 
@@ -125,9 +132,6 @@ function extractMockText(dataStream: string): string {
 // Multi-agent SSE mock bodies — current ChatStreamEventSchema protocol.
 // ---------------------------------------------------------------------------
 
-// The message id becomes the persisted assistant message id, and the fork
-// flow validates it as a UUID server-side. A literal non-UUID id makes
-// editing/forking fail with a 400, so generate a real UUID per mock.
 const TEST_MESSAGE_ID = crypto.randomUUID();
 
 export const FULL_MODE_SSE = [
@@ -180,28 +184,29 @@ export const SINGLE_MODE_SSE = [
 // Fixtures
 // ---------------------------------------------------------------------------
 
-export const test = base.extend<Fixtures>({
-  testUser: async ({}, use) => {
-    await use(DEFAULT_USER);
+export const test = base.extend<Fixtures, { workerUser: WorkerUserFixture }>({
+  workerUser: [
+    async ({}, use, workerInfo) => {
+      const email = workerUserEmail(workerInfo.parallelIndex, 'user');
+      const user = await ensureTestUser(email, 'password123', 'user', { resetWatchlist: true });
+      const cookie = await createSessionForUser(user);
+      await use({ id: user.id, email, password: 'password123', cookie });
+    },
+    { scope: 'worker' },
+  ],
+
+  testUser: async ({ workerUser }, use) => {
+    await use({ email: workerUser.email, password: workerUser.password });
   },
 
-  authedPage: async ({ page }, use) => {
-    // The storageState is already loaded via the project config. Create a
-    // dedicated empty thread so tests do not depend on auth-setup or another
-    // test's most-recent-thread state.
-    const user = await ensureTestUser('test@example.com', 'password123');
-    const thread = await createThread(user.id, { pinnedSymbol: null });
+  authedPage: async ({ page, workerUser }, use) => {
+    await page.context().addCookies([workerUser.cookie]);
+    const thread = await createThread(workerUser.id, { pinnedSymbol: null });
 
     // Specs commonly navigate to `/chat`, whose server redirect chooses the
-    // user's latest thread. Parallel tests share the seeded user, so that
-    // redirect can select another worker's thread just before its teardown.
-    // Keep landing-page navigation isolated while leaving explicit thread
-    // routes (`/chat/{id}`) and `/api/chat*` API requests unchanged. The
-    // regex anchors the path end so `/api/chat/threads/fork` is untouched.
+    // user's latest thread.
     await page.route(/\/chat(?:\?.*)?$/, async (route) => {
       const url = new URL(route.request().url());
-      // Never rewrite API paths: `/api/chat` ends in `/chat` but must reach
-      // the mock/real route, not the landing redirect.
       if (url.pathname.startsWith('/api/')) {
         await route.continue();
         return;
@@ -212,7 +217,7 @@ export const test = base.extend<Fixtures>({
 
     await page.goto(`/chat/${thread.id}`);
     await use(page);
-    await deleteThread(user.id, thread.id).catch(() => undefined);
+    await deleteThread(workerUser.id, thread.id).catch(() => undefined);
   },
 
   mockChatApi: async ({}, use) => {
