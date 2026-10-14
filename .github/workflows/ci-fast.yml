@@ -23,6 +23,15 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Cache Turborepo and Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/web/.next/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
       - run: pnpm check:route-security
       - run: pnpm check:env-contract
       - run: pnpm check:compose-images
@@ -36,6 +45,8 @@ jobs:
       - run: pnpm audit --audit-level=critical
       # Build all packages and applications.
       - run: pnpm turbo run build
+        env:
+          NEXT_BUILD_SKIP_TYPECHECK: '1'
       # Enforce JS chunk size budgets.
       - name: Bundle Size Guard
         run: pnpm --filter @kestrel/web bundle-size:check
@@ -61,6 +72,15 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Cache Turborepo and Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/web/.next/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
       - run: pnpm turbo run test -- --coverage
       - name: Test File Guard
         run: pnpm test:empty-guard

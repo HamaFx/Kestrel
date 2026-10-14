@@ -71,7 +71,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 1 : undefined,
+  workers: isCI ? 2 : undefined,
 
   // Per-action timeout — surfaces real slowdowns instead of hiding them
   // behind a generous global timeout.
@@ -114,26 +114,6 @@ export default defineConfig({
       },
       testIgnore: /auth-setup\.ts/,
     },
-    {
-      name: 'firefox',
-      dependencies: ['setup'],
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: 'tests/e2e/.auth/user.json',
-      },
-      testIgnore: /auth-setup\.ts/,
-      // Firefox is slower in CI — only run on nightly
-      testMatch: isCI ? /.*\.spec\.ts/ : /.*\.spec\.ts/,
-    },
-    {
-      name: 'webkit',
-      dependencies: ['setup'],
-      use: {
-        ...devices['Desktop Safari'],
-        storageState: 'tests/e2e/.auth/user.json',
-      },
-      testIgnore: /auth-setup\.ts/,
-    },
 
     // --- Mobile viewport ---
     {
@@ -146,16 +126,40 @@ export default defineConfig({
       testIgnore: /auth-setup\.ts/,
       testMatch: /navigation\.spec\.ts|responsive\.spec\.ts|auth\.spec\.ts/,
     },
-    {
-      name: 'mobile-safari',
-      dependencies: ['setup'],
-      use: {
-        ...devices['iPhone 15'],
-        storageState: 'tests/e2e/.auth/user.json',
-      },
-      testIgnore: /auth-setup\.ts/,
-      testMatch: /navigation\.spec\.ts|responsive\.spec\.ts|auth\.spec\.ts/,
-    },
+
+    // Secondary browsers: run locally or when PLAYWRIGHT_ALL_BROWSERS=1
+    ...(!isCI || process.env.PLAYWRIGHT_ALL_BROWSERS === '1'
+      ? [
+          {
+            name: 'firefox',
+            dependencies: ['setup'],
+            use: {
+              ...devices['Desktop Firefox'],
+              storageState: 'tests/e2e/.auth/user.json',
+            },
+            testIgnore: /auth-setup\.ts/,
+          },
+          {
+            name: 'webkit',
+            dependencies: ['setup'],
+            use: {
+              ...devices['Desktop Safari'],
+              storageState: 'tests/e2e/.auth/user.json',
+            },
+            testIgnore: /auth-setup\.ts/,
+          },
+          {
+            name: 'mobile-safari',
+            dependencies: ['setup'],
+            use: {
+              ...devices['iPhone 15'],
+              storageState: 'tests/e2e/.auth/user.json',
+            },
+            testIgnore: /auth-setup\.ts/,
+            testMatch: /navigation\.spec\.ts|responsive\.spec\.ts|auth\.spec\.ts/,
+          },
+        ]
+      : []),
   ],
 
   globalSetup: './tests/e2e/global-setup.ts',

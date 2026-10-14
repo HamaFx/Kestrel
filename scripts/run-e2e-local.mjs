@@ -66,6 +66,7 @@ for (const shard of shardNumbers) {
       // Keep the local run on the protected auth path unless the operator
       // explicitly opts into a different mode for a throwaway environment.
       AUTH_MODE: process.env.AUTH_MODE ?? 'normal',
+      REUSE_EXISTING_SERVER: process.env.REUSE_EXISTING_SERVER ?? 'true',
     },
     stdio: ['ignore', logFd, logFd],
   });
