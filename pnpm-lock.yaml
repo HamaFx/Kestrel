@@ -282,6 +282,25 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.20.1)(typescript@7.0.2))(terser@5.51.2)
 
+  loadtest:
+    dependencies:
+      bcryptjs:
+        specifier: ^3.0.3
+        version: 3.0.3
+    devDependencies:
+      '@types/k6':
+        specifier: ^0.57.0
+        version: 0.57.1
+      '@types/node':
+        specifier: ^22.13.0
+        version: 22.20.1
+      esbuild:
+        specifier: ^0.28.1
+        version: 0.28.2
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/ai:
     dependencies:
       '@ai-sdk/anthropic':
@@ -3706,6 +3725,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/k6@0.57.1':
+    resolution: {integrity: sha512-S/p2RQAYUBXyYROkR2fgeON/LaxJ0YR+KIlnPQW/TOeLBXD7tX4RfDSWaIecuDTWKblmc6UwANyP0e5QDZPhMw==}
 
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
@@ -10240,6 +10262,8 @@ snapshots:
   '@types/jsesc@2.5.1': {}
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/k6@0.57.1': {}
 
   '@types/mdast@4.0.4':
     dependencies:

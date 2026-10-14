@@ -17,10 +17,11 @@
 // Full-mode queue load test — explicitly opt-in because it invokes real LLMs.
 // This measures the user-facing enqueue path and the worker polling bridge;
 // it does not bypass the queue or mutate internal tables directly.
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { check, sleep } from 'k6';
 import http from 'k6/http';
 import { Counter, Rate, Trend } from 'k6/metrics';
+
+import { uuidv4 } from '../lib/utils.js';
 
 import { env } from '../config/environments.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';

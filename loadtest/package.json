@@ -1,27 +1,34 @@
 {
-  "name": "kestrel-loadtest",
+  "name": "@kestrel/loadtest",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && cp -r lib/data dist/lib/data/",
+    "build": "node scripts/bundle.mjs",
     "typecheck": "tsc --noEmit",
-    "smoke": "k6 run tests/smoke-read-mix.ts",
-    "smoke:market": "k6 run tests/smoke-market-read.ts",
-    "smoke:write": "k6 run tests/smoke-write-mix.ts",
-    "load": "k6 run tests/load-read-mix.ts",
-    "load:market": "k6 run tests/load-market-read.ts",
-    "load:write": "k6 run tests/load-write-mix.ts",
-    "load:full": "k6 run tests/load-full-mode.ts",
-    "stress": "k6 run tests/stress-market-read.ts",
-    "stress:write": "k6 run tests/stress-write-mix.ts",
-    "smoke:config": "k6 run tests/smoke-config-mix.ts",
-    "load:config": "k6 run tests/load-config-mix.ts",
-    "spike": "k6 run tests/spike-read-mix.ts",
-    "spike:write": "k6 run tests/spike-write-mix.ts",
-    "soak": "k6 run tests/soak-read-mix.ts",
-    "soak:write": "k6 run tests/soak-write-mix.ts",
-    "seed": "node lib/seed/seed-users.mjs"
+    "smoke": "pnpm build && k6 run dist/tests/smoke-read-mix.js",
+    "smoke:all": "pnpm build && k6 run dist/tests/smoke-all.js",
+    "smoke:market": "pnpm build && k6 run dist/tests/smoke-market-read.js",
+    "smoke:write": "pnpm build && k6 run dist/tests/smoke-write-mix.js",
+    "smoke:config": "pnpm build && k6 run dist/tests/smoke-config-mix.js",
+    "load": "pnpm build && k6 run dist/tests/load-read-mix.js",
+    "load:market": "pnpm build && k6 run dist/tests/load-market-read.js",
+    "load:write": "pnpm build && k6 run dist/tests/load-write-mix.js",
+    "load:config": "pnpm build && k6 run dist/tests/load-config-mix.js",
+    "load:chat": "pnpm build && k6 run dist/tests/load-chat.js",
+    "load:full": "pnpm build && k6 run dist/tests/load-full-mode.js",
+    "load:stream": "pnpm build && k6 run dist/tests/load-market-stream.js",
+    "load:worker": "pnpm build && k6 run dist/tests/load-worker-cron.js",
+    "load:rls": "pnpm build && k6 run dist/tests/load-rls-ratelimit.js",
+    "hybrid": "pnpm build && k6 run dist/tests/hybrid-cockpit.js",
+    "stress": "pnpm build && k6 run dist/tests/stress-market-read.js",
+    "stress:write": "pnpm build && k6 run dist/tests/stress-write-mix.js",
+    "spike": "pnpm build && k6 run dist/tests/spike-read-mix.js",
+    "spike:write": "pnpm build && k6 run dist/tests/spike-write-mix.js",
+    "soak": "pnpm build && k6 run dist/tests/soak-read-mix.js",
+    "soak:write": "pnpm build && k6 run dist/tests/soak-write-mix.js",
+    "seed": "node lib/seed/seed-users.mjs",
+    "compare": "node scripts/compare-baseline.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3"
@@ -29,6 +36,7 @@
   "devDependencies": {
     "@types/k6": "^0.57.0",
     "@types/node": "^22.13.0",
+    "esbuild": "^0.28.1",
     "typescript": "^7.0.2"
   }
 }

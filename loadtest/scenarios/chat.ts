@@ -16,8 +16,9 @@
 
 // Per-iteration VU function: POST /api/chat with a simple prompt.
 // Guarded by K6_ENABLE_CHAT=true to prevent accidental LLM cost.
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { sleep } from 'k6';
+
+import { uuidv4 } from '../lib/utils.js';
 
 import type { SessionCtx } from '../config/environments.js';
 import { record429 } from '../lib/checks.js';

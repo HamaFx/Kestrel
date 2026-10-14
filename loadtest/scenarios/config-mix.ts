@@ -30,19 +30,17 @@
 // require valid API keys and will likely return 400 in test environments.
 // They're included at low probability for code-path coverage only.
 
-import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import http from 'k6/http';
 
 import { env, type SessionCtx } from '../config/environments.js';
 import { expectStatus, record429, recordAuthFailure } from '../lib/checks.js';
+import symbolsData from '../lib/data/symbols.json';
 import { deleteReq, getJson, patchJson, postJson, putJson } from '../lib/http.js';
+import { randomItem } from '../lib/utils.js';
 
-const symbols = new SharedArray(
-  'symbols',
-  () => JSON.parse(open('../lib/data/symbols.json') as string) as string[],
-);
+const symbols = new SharedArray('symbols', () => symbolsData as string[]);
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -150,7 +148,7 @@ export function configMix(ctx: SessionCtx): void {
   } else if (roll < 0.7) {
     // PATCH /api/settings/analysis-mode — update mode (5%)
     patchJson('/api/settings/analysis-mode', 'analysis_mode_write', {
-      defaultAnalysisMode: randomItem(['single', 'quick', 'standard', 'full', 'auto']),
+      defaultAnalysisMode: randomItem(['single', 'full']),
     });
   }
   // ── Fallback chain (10%) ────────────────────────────────────────
