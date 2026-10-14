@@ -22,6 +22,9 @@ const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParal
 
 export default defineConfig({
   esbuild: { target: 'es2022' },
+  resolve: {
+    conditions: ['source'],
+  },
   test: {
     pool: 'forks',
     maxWorkers,

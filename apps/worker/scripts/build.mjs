@@ -110,7 +110,7 @@ const common = {
   bundle: true,
   format: 'esm',
   platform: 'node',
-  target: 'node20',
+  target: 'node22',
   sourcemap: true,
   external,
   nodePaths: [resolve(monorepoRoot, 'node_modules')],

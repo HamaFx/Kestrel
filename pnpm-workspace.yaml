@@ -1,7 +1,6 @@
 packages:
   - "apps/*"
   - "packages/*"
-  - "packages/test-utils"
   - "loadtest"
 
 # Mastra CLI / @mastra/deployer bundle the config with the `typescript-paths`

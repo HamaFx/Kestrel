@@ -1,5 +1,9 @@
 {
-  "globalDependencies": ["tsconfig.base.json"],
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "packages/config/typescript/*.json",
+    "packages/config/eslint/*.js"
+  ],
   "globalEnv": [
     "NODE_ENV",
     "CI",
@@ -9,6 +13,16 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!docs/**",
+        "!test/**",
+        "!tests/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx",
+        "!**/*.spec.ts"
+      ],
       "env": [
         "DATABASE_URL",
         "POSTGRES_URL",
@@ -40,7 +54,12 @@
         "SUPABASE_SERVICE_ROLE_KEY",
         "MULTI_USER_ENABLED",
         "KESTREL_ENABLE_RLS",
-        "REGISTRATION_MODE"
+        "REGISTRATION_MODE",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+        "COOKIE_SECURE_MODE",
+        "KESTREL_FORCE_EPOCH_BUILD_ID",
+        "ANALYZE"
       ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", ".build-id", ".env.production.local"]
     },
@@ -58,6 +77,13 @@
     },
     "test": {
       "dependsOn": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../scripts/setup/**",
+        "../../tools/lighthouse/**",
+        "../../loadtest/lib/**",
+        "../../loadtest/scripts/**"
+      ],
       "outputs": ["coverage/**"]
     },
     "eval": {

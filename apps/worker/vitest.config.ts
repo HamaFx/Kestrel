@@ -21,6 +21,9 @@ import { defineConfig } from 'vitest/config';
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
 export default defineConfig({
+  resolve: {
+    conditions: ['source'],
+  },
   test: {
     pool: 'forks',
     maxWorkers,
