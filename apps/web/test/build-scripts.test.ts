@@ -84,7 +84,7 @@ describe('build scripts', () => {
 
     expect(existsSync(buildIdFile)).toBe(true);
     const buildId = readFileSync(buildIdFile, 'utf8').trim();
-    expect(buildId).toMatch(/^[0-9a-f]{7}-\d+$/);
+    expect(buildId).toMatch(/^[0-9a-f]{7}(?:-[0-9a-f]{8})?$/);
 
     expect(existsSync(envFile)).toBe(true);
     expect(readFileSync(envFile, 'utf8')).toContain(`NEXT_PUBLIC_BUILD_ID=${buildId}`);

@@ -155,8 +155,8 @@ describe('cross-critique (§3.2, Q6)', () => {
     expect(instructions).toContain('confirms own view: false');
     expect(instructions).toContain('revised confidence: 0.55');
     expect(instructions).toContain('trimming conviction');
-    // Fusion must state how specialists responded to each other.
-    expect(instructions).toContain('how the specialists responded');
+    // Fusion must state how specialists/experts responded to each other.
+    expect(instructions).toContain('how the experts responded');
   });
 
   it('omits the peer-review block when no critiques ran (single mode)', () => {

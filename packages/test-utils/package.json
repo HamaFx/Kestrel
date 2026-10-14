@@ -9,18 +9,22 @@
   ],
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./factories/*": {
+      "source": "./src/factories/*.ts",
       "types": "./dist/factories/*.d.ts",
       "import": "./dist/factories/*.js"
     },
     "./mocks/*": {
+      "source": "./src/mocks/*.ts",
       "types": "./dist/mocks/*.d.ts",
       "import": "./dist/mocks/*.js"
     },
     "./helpers/*": {
+      "source": "./src/helpers/*.ts",
       "types": "./dist/helpers/*.d.ts",
       "import": "./dist/helpers/*.js"
     }

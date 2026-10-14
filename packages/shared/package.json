@@ -9,46 +9,57 @@
   ],
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./schemas/*": {
+      "source": "./src/schemas/*.ts",
       "types": "./dist/schemas/*.d.ts",
       "import": "./dist/schemas/*.js"
     },
     "./ai/*": {
+      "source": "./src/ai/*.ts",
       "types": "./dist/ai/*.d.ts",
       "import": "./dist/ai/*.js"
     },
     "./byok": {
+      "source": "./src/byok.ts",
       "types": "./dist/byok.d.ts",
       "import": "./dist/byok.js"
     },
     "./env": {
+      "source": "./src/env.ts",
       "types": "./dist/env.d.ts",
       "import": "./dist/env.js"
     },
     "./env-secrets": {
+      "source": "./src/env-secrets.ts",
       "types": "./dist/env-secrets.d.ts",
       "import": "./dist/env-secrets.js"
     },
     "./vault": {
+      "source": "./src/vault.ts",
       "types": "./dist/vault.d.ts",
       "import": "./dist/vault.js"
     },
     "./errors": {
+      "source": "./src/errors.ts",
       "types": "./dist/errors.d.ts",
       "import": "./dist/errors.js"
     },
     "./encryption": {
+      "source": "./src/encryption.ts",
       "types": "./dist/encryption.d.ts",
       "import": "./dist/encryption.js"
     },
     "./logger": {
+      "source": "./src/logger.ts",
       "types": "./dist/logger.d.ts",
       "import": "./dist/logger.js"
     },
     "./metrics-export": {
+      "source": "./src/metrics-export.ts",
       "types": "./dist/metrics-export.d.ts",
       "import": "./dist/metrics-export.js"
     }

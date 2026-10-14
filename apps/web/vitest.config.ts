@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-import path from 'path';
+import os from 'node:os';
+import path from 'node:path';
 
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+
+const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
 export default defineConfig({
   plugins: [react()],
@@ -29,9 +32,24 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
+    environment: 'node',
+    environmentMatchGlobs: [
+      ['**/*.test.tsx', 'jsdom'],
+      ['**/hooks-*.test.ts', 'jsdom'],
+      ['**/csrf.test.ts', 'jsdom'],
+      ['**/storage.test.ts', 'jsdom'],
+      ['**/shiki-sanitization.test.ts', 'jsdom'],
+    ],
+    pool: 'forks',
+    maxWorkers,
     include: ['test/**/*.test.{ts,tsx}', 'src/**/__tests__/**/*.test.{ts,tsx}'],
     setupFiles: ['./test/vitest.setup.ts'],
+    deps: {
+      optimizer: {
+        ssr: { enabled: true },
+        web: { enabled: true },
+      },
+    },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts', 'src/**/*.tsx'],
@@ -43,8 +61,6 @@ export default defineConfig({
         'src/app/**/loading.tsx',
         'src/app/**/page.tsx',
       ],
-      // PF-20 — Raised from 30/25/25/30 to 50/50/50/50 to match
-      // the other packages (ai, db, shared all target 50+).
       thresholds: {
         statements: 50,
         branches: 50,
@@ -54,7 +70,7 @@ export default defineConfig({
     },
     server: {
       deps: {
-        inline: ['next-auth', '@auth/drizzle-adapter'],
+        inline: ['next-auth', '@auth/drizzle-adapter', /eventsource-parser/],
       },
     },
   },

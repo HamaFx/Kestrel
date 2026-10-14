@@ -9,126 +9,157 @@
   ],
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./model": {
+      "source": "./src/model.ts",
       "types": "./dist/model.d.ts",
       "import": "./dist/model.js"
     },
     "./cost": {
+      "source": "./src/cost.ts",
       "types": "./dist/cost.d.ts",
       "import": "./dist/cost.js"
     },
     "./persistence": {
+      "source": "./src/persistence.ts",
       "types": "./dist/persistence.d.ts",
       "import": "./dist/persistence.js"
     },
     "./tools": {
+      "source": "./src/tools/index.ts",
       "types": "./dist/tools/index.d.ts",
       "import": "./dist/tools/index.js"
     },
     "./tools/market": {
+      "source": "./src/tools/market.ts",
       "types": "./dist/tools/market.d.ts",
       "import": "./dist/tools/market.js"
     },
     "./tools/analysis": {
+      "source": "./src/tools/analysis.ts",
       "types": "./dist/tools/analysis.d.ts",
       "import": "./dist/tools/analysis.js"
     },
     "./tools/journal": {
+      "source": "./src/tools/journal.ts",
       "types": "./dist/tools/journal.d.ts",
       "import": "./dist/tools/journal.js"
     },
     "./tools/system": {
+      "source": "./src/tools/system.ts",
       "types": "./dist/tools/system.d.ts",
       "import": "./dist/tools/system.js"
     },
     "./tools/web": {
+      "source": "./src/tools/web.ts",
       "types": "./dist/tools/web.d.ts",
       "import": "./dist/tools/web.js"
     },
     "./tools/registry": {
+      "source": "./src/tools/registry.ts",
       "types": "./dist/tools/registry.d.ts",
       "import": "./dist/tools/registry.js"
     },
     "./prompt": {
+      "source": "./src/prompt/system.ts",
       "types": "./dist/prompt/system.d.ts",
       "import": "./dist/prompt/system.js"
     },
     "./diagnostics": {
+      "source": "./src/diagnostics/index.ts",
       "types": "./dist/diagnostics/index.d.ts",
       "import": "./dist/diagnostics/index.js"
     },
     "./bot": {
+      "source": "./src/bot/index.ts",
       "types": "./dist/bot/index.d.ts",
       "import": "./dist/bot/index.js"
     },
     "./portfolio": {
+      "source": "./src/portfolio.ts",
       "types": "./dist/portfolio.d.ts",
       "import": "./dist/portfolio.js"
     },
     "./notifications": {
+      "source": "./src/notifications.ts",
       "types": "./dist/notifications.d.ts",
       "import": "./dist/notifications.js"
     },
     "./types": {
+      "source": "./src/types.ts",
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"
     },
     "./verification": {
+      "source": "./src/verification.ts",
       "types": "./dist/verification.d.ts",
       "import": "./dist/verification.js"
     },
     "./catalogue": {
+      "source": "./src/catalogue.ts",
       "types": "./dist/catalogue.d.ts",
       "import": "./dist/catalogue.js"
     },
     "./byok-providers": {
+      "source": "./src/byok-providers.ts",
       "types": "./dist/byok-providers.d.ts",
       "import": "./dist/byok-providers.js"
     },
     "./memory": {
+      "source": "./src/memory/memory-index.ts",
       "types": "./dist/memory/memory-index.d.ts",
       "import": "./dist/memory/memory-index.js"
     },
     "./share": {
+      "source": "./src/share/persistence.ts",
       "types": "./dist/share/persistence.d.ts",
       "import": "./dist/share/persistence.js"
     },
     "./embeddings": {
+      "source": "./src/embeddings.ts",
       "types": "./dist/embeddings.d.ts",
       "import": "./dist/embeddings.js"
     },
     "./rag": {
+      "source": "./src/rag.ts",
       "types": "./dist/rag.d.ts",
       "import": "./dist/rag.js"
     },
     "./usage": {
+      "source": "./src/usage.ts",
       "types": "./dist/usage.d.ts",
       "import": "./dist/usage.js"
     },
     "./instrumentation": {
+      "source": "./src/instrumentation.ts",
       "types": "./dist/instrumentation.d.ts",
       "import": "./dist/instrumentation.js"
     },
     "./eval/training-export": {
+      "source": "./src/eval/training-export.ts",
       "types": "./dist/eval/training-export.d.ts",
       "import": "./dist/eval/training-export.js"
     },
     "./eval/runner": {
+      "source": "./src/eval/runner.ts",
       "types": "./dist/eval/runner.d.ts",
       "import": "./dist/eval/runner.js"
     },
     "./mastra-v2": {
+      "source": "./src/mastra-v2/index.ts",
       "types": "./dist/mastra-v2/index.d.ts",
       "import": "./dist/mastra-v2/index.js"
     },
     "./mastra": {
+      "source": "./src/mastra/index.ts",
       "types": "./dist/mastra/index.d.ts",
       "import": "./dist/mastra/index.js"
     },
     "./mastra/routing-policy": {
+      "source": "./src/mastra-v2/planning/routing-policy.ts",
       "types": "./dist/mastra-v2/planning/routing-policy.d.ts",
       "import": "./dist/mastra-v2/planning/routing-policy.js"
     }

@@ -14,11 +14,25 @@
  * limitations under the License.
  */
 
+import os from 'node:os';
+
 import { defineConfig } from 'vitest/config';
+
+const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
 export default defineConfig({
   esbuild: { target: 'es2022' },
+  resolve: {
+    conditions: ['source'],
+  },
   test: {
+    pool: 'forks',
+    maxWorkers,
+    deps: {
+      optimizer: {
+        ssr: { enabled: true },
+      },
+    },
     environment: 'node',
     testTimeout: 30_000,
     hookTimeout: 30_000,
