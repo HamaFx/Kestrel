@@ -16,6 +16,7 @@ import {
   heartbeatFullAnalysisQueue,
   listFullAnalysisQueueRows,
   purgeOldFullAnalysisQueue,
+  purgeOldFullAnalysisQueueWithIds,
   recoverStaleFullAnalysisQueue,
   requeueFullAnalysisQueue,
   requireTenantIdForUser,
@@ -528,13 +529,20 @@ export async function updateFullAnalysisProgress(
   mode: MastraAnalysisMode = 'full',
 ): Promise<void> {
   try {
+    const entry = {
+      type: 'data-agent-progress',
+      data: committeeProgressSnapshot(mode, step),
+    };
     const row = await getFullAnalysisQueueRow(runId, undefined, getDb());
-    const progress = [
-      ...(row?.progress ?? []),
-      { type: 'data-agent-progress', data: committeeProgressSnapshot(mode, step) },
-    ].slice(-50);
+    const progress = [...(row?.progress ?? []), entry].slice(-50);
     await projectQueueRow(
-      await updateFullAnalysisQueueProgress({ runId, workerRunId, progress, db: getDb() }),
+      await updateFullAnalysisQueueProgress({
+        runId,
+        workerRunId,
+        progress,
+        entry,
+        db: getDb(),
+      }),
     );
   } catch (error) {
     if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
@@ -648,19 +656,13 @@ export async function recoverStaleFullAnalysisRuns(
 
 export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<number> {
   const db = getDb();
-  const terminalRows = (await listFullAnalysisQueueRows(undefined, db)).filter(
-    (row) =>
-      (['succeeded', 'failed', 'cancelled', 'blocked'] as const).includes(
-        normalizeWorkflowStatus(row.status) as 'succeeded' | 'failed' | 'cancelled' | 'blocked',
-      ) && row.updatedAt < retentionCutoff,
-  );
-  const deleted = await purgeOldFullAnalysisQueue(retentionCutoff, db);
+  const deletedRunIds = await purgeOldFullAnalysisQueueWithIds(retentionCutoff, db);
   const store = await workflowsStore();
-  if (store && terminalRows.length > 0) {
+  if (store && deletedRunIds.length > 0) {
     try {
-      for (const row of terminalRows)
+      for (const runId of deletedRunIds)
         await store.deleteWorkflowRunById({
-          runId: row.runId,
+          runId,
           workflowName: FULL_ANALYSIS_WORKFLOW_ID,
         });
     } catch (error) {
@@ -669,22 +671,26 @@ export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<n
       });
     }
   }
-  return deleted;
+  return deletedRunIds.length;
 }
 
 export async function getFullAnalysisQueueHealth(): Promise<FullAnalysisQueueHealth> {
   try {
-    const rows = await listFullAnalysisQueueRows(undefined, getDb());
+    const db = getDb();
+    const [pending, running] = await Promise.all([
+      listFullAnalysisQueueRows('pending', db),
+      listFullAnalysisQueueRows('running', db),
+    ]);
     const now = Date.now();
-    const pending = rows.filter((row) => row.status === 'pending');
-    const running = rows.filter((row) => row.status === 'running');
     return {
       pending: pending.length,
       running: running.length,
-      stalePending: pending.filter((row) => now - row.createdAt.getTime() > 10 * 60_000).length,
+      stalePending: pending.filter((row) => now - row.createdAt.getTime() > 10 * 60_000)
+        .length,
       stuckRunning: running.filter(
         (row) =>
-          (row.leaseExpiresAt?.getTime() ?? 0) <= now || now - row.updatedAt.getTime() > 30_000,
+          (row.leaseExpiresAt?.getTime() ?? 0) <= now ||
+          now - row.updatedAt.getTime() > 30_000,
       ).length,
     };
   } catch (error) {

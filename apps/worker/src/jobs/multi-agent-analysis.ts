@@ -126,6 +126,10 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
   let processed = 0;
 
   for (let i = 0; i < MAX_JOBS_PER_RUN; i++) {
+    if (ctx.signal?.aborted) {
+      ctx.log.info('Full-analysis poll aborted by signal');
+      break;
+    }
     const claimed = await claimNextFullAnalysisRun(workerRunId, (tenantId) =>
       ctx.tenantRouter.isMyTenant(tenantId),
     );
@@ -328,15 +332,25 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           { idempotencyKey: `analysis-job:${runId}:assistant` },
         );
 
-        void maybeGenerateThreadTitle({
-          userId: payload.userId,
-          threadId: payload.threadId,
-          firstUser: userText,
-          firstAssistant: modeResult.finalText,
-          env,
-          ledger,
-          ledgerId: `title:${runId}`,
-        });
+        try {
+          await maybeGenerateThreadTitle({
+            userId: payload.userId,
+            threadId: payload.threadId,
+            firstUser: userText,
+            firstAssistant: modeResult.finalText,
+            env,
+            ledger,
+            ledgerId: `title:${runId}`,
+          });
+        } catch (titleErr) {
+          ctx.log.warn('Thread title generation failed (non-fatal)', {
+            runId,
+            err: String(titleErr),
+          });
+        }
+
+        observedCost = ledger.total();
+        coordinator?.markResult(observedCost);
 
         await coordinator!.complete({
           finalText: modeResult.finalText,

@@ -461,4 +461,43 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     expect(mockRecoverStaleRuns).toHaveBeenCalledWith(expect.any(Date), 3);
     expect(mockPurgeOldRuns).toHaveBeenCalledWith(expect.any(Date));
   });
+
+  it('awaits maybeGenerateThreadTitle before recording observedCost and completing the run', async () => {
+    const ctx = context();
+    let totalCost = 0.04;
+    mockCreateGenerationLedger.mockReturnValueOnce({
+      record: vi.fn(() => true),
+      recordCost: vi.fn(() => true),
+      recordUsage: vi.fn(() => true),
+      snapshot: () => ({ entries: [], totalCostUsd: totalCost }),
+      total: () => totalCost,
+    });
+    const mastraMod = await import('@kestrel/ai/mastra');
+    vi.mocked(mastraMod.maybeGenerateThreadTitle).mockImplementationOnce(async () => {
+      await new Promise((r) => setTimeout(r, 15));
+      totalCost = 0.042;
+    });
+
+    await runMultiAgentAnalysis(ctx);
+
+    expect(mockCompleteFullAnalysisRun).toHaveBeenCalledWith(
+      'run-1',
+      expect.any(String),
+      expect.objectContaining({
+        totalCostUsd: 0.042,
+      }),
+    );
+  });
+
+  it('exits the claim loop immediately when ctx.signal is already aborted', async () => {
+    const ctx = context();
+    const ac = new AbortController();
+    ac.abort();
+    ctx.signal = ac.signal;
+
+    const result = await runMultiAgentAnalysis(ctx);
+
+    expect(result.processed).toBe(0);
+    expect(mockClaimNextFullAnalysisRun).not.toHaveBeenCalled();
+  });
 });

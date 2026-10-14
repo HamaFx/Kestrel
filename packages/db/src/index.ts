@@ -222,6 +222,7 @@ export {
   requeueFullAnalysisQueue,
   recoverStaleFullAnalysisQueue,
   purgeOldFullAnalysisQueue,
+  purgeOldFullAnalysisQueueWithIds,
   getFullAnalysisQueueRow,
   listFullAnalysisQueueRows,
   FullAnalysisQueueOwnershipError,
