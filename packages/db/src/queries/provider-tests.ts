@@ -20,6 +20,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
+import { getPlatformAdminSettings } from './user-settings';
 
 /**
  * Get the latest health test results for all providers for a user.
@@ -42,8 +43,8 @@ export async function getProviderHealthForUser(userId: string) {
 }
 
 /**
- * Get the user's AI API keys (encrypted) from userSettings.
- * Returns null if no settings row exists. The column is text or jsonb.
+ * Get the user's AI API keys (encrypted) from userSettings, falling back to
+ * the platform Admin's configured keys in SaaS mode.
  */
 export async function getUserApiKeys(userId: string): Promise<string | null> {
   const db = getDb();
@@ -53,5 +54,10 @@ export async function getUserApiKeys(userId: string): Promise<string | null> {
     .from(schema.userSettings)
     .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
   const val = settings?.aiApiKeys;
-  return val != null ? String(val) : null;
+  if (val != null && String(val).trim().length > 0) {
+    return String(val);
+  }
+  const adminSettings = await getPlatformAdminSettings();
+  const adminVal = adminSettings?.aiApiKeys;
+  return adminVal != null ? String(adminVal) : null;
 }

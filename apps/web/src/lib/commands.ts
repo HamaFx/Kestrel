@@ -18,24 +18,23 @@
 
 /**
  * Static command registry for the cmd-K palette.
- *
- * Phase B — UX_UPGRADE_PLAN.md item 11.
- *
- * Pure data — no JSX, no React imports. The palette component
- * imports this list and renders rows. Adding a command is one
- * entry here; no UI changes required.
  */
 
 import {
+  IconActivity,
   IconBell,
   IconBook,
   IconCalendar,
   IconChartLine,
-  IconKey,
+  IconCreditCard,
+  IconLayoutDashboard,
   IconMessagePlus,
   IconNews,
+  IconPalette,
   IconPlus,
   IconSettings,
+  IconShield,
+  IconWallet,
   type Icon,
 } from '@tabler/icons-react';
 
@@ -60,25 +59,26 @@ export interface CommandItem {
    */
   action?: () => void;
   /**
-   * Optional keyboard hint shown on the right side of the row
-   * (e.g. "Enter" or "G S"). Strings only — we render them as
-   * <kbd> chips via the existing kbd styles in the codebase.
+   * Optional keyboard hint shown on the right side of the row.
    */
   shortcut?: string;
 }
 
-/**
- * The full registry. Order within a group is the order shown when
- * the palette opens with no query. Keep under ~30 entries — the
- * palette is for power-user navigation, not a settings catalogue.
- */
 export const COMMANDS: readonly CommandItem[] = [
   // ── Navigation ───────────────────────────────────────────
-  { id: 'nav-chat', group: 'navigation', label: 'Chat', icon: IconMessagePlus, href: '/chat' },
+  {
+    id: 'nav-dashboard',
+    group: 'navigation',
+    label: 'Dashboard',
+    icon: IconLayoutDashboard,
+    href: '/dashboard',
+    keywords: ['home', 'overview', 'widgets', 'briefing'],
+  },
+  { id: 'nav-chat', group: 'navigation', label: 'AI Research Chat', icon: IconMessagePlus, href: '/chat' },
   {
     id: 'nav-chart-xau',
     group: 'navigation',
-    label: 'Chart — Gold',
+    label: 'Chart — Gold (XAUUSD)',
     icon: IconChartLine,
     href: '/chart/XAUUSD',
     keywords: ['xau', 'gold', 'xauusd'],
@@ -86,7 +86,7 @@ export const COMMANDS: readonly CommandItem[] = [
   {
     id: 'nav-chart-eur',
     group: 'navigation',
-    label: 'Chart — Euro',
+    label: 'Chart — Euro (EURUSD)',
     icon: IconChartLine,
     href: '/chart/EURUSD',
     keywords: ['eur', 'euro', 'eurusd'],
@@ -94,7 +94,7 @@ export const COMMANDS: readonly CommandItem[] = [
   {
     id: 'nav-chart-gbp',
     group: 'navigation',
-    label: 'Chart — Pound',
+    label: 'Chart — Pound (GBPUSD)',
     icon: IconChartLine,
     href: '/chart/GBPUSD',
     keywords: ['gbp', 'pound', 'cable'],
@@ -103,12 +103,12 @@ export const COMMANDS: readonly CommandItem[] = [
   {
     id: 'nav-calendar',
     group: 'navigation',
-    label: 'Calendar',
+    label: 'Economic Calendar',
     icon: IconCalendar,
     href: '/calendar',
   },
-  { id: 'nav-alerts', group: 'navigation', label: 'Alerts', icon: IconBell, href: '/alerts' },
-  { id: 'nav-journal', group: 'navigation', label: 'Journal', icon: IconBook, href: '/journal' },
+  { id: 'nav-alerts', group: 'navigation', label: 'Price Alerts', icon: IconBell, href: '/alerts' },
+  { id: 'nav-journal', group: 'navigation', label: 'Trade Journal', icon: IconBook, href: '/journal' },
   {
     id: 'nav-settings',
     group: 'navigation',
@@ -118,73 +118,64 @@ export const COMMANDS: readonly CommandItem[] = [
   },
 
   // ── Create ────────────────────────────────────────────────
-  // The "new chat" command is imperative; we wire it to a callback
-  // when the palette mounts. We can't statically describe that here,
-  // so we expose an id and let the component provide the handler.
   { id: 'create-chat', group: 'create', label: 'New chat', icon: IconPlus, shortcut: 'C' },
 
   // ── Settings deep links ───────────────────────────────────
   {
-    id: 'set-api-keys',
+    id: 'set-billing',
     group: 'settings',
-    label: 'API Keys',
-    icon: IconKey,
-    href: '/settings/api-keys',
-    keywords: ['byok', 'provider'],
+    label: 'Subscription & Billing',
+    icon: IconCreditCard,
+    href: '/settings/billing',
+    keywords: ['plan', 'upgrade', 'billing', 'subscription'],
   },
   {
-    id: 'set-agent',
+    id: 'set-portfolio',
     group: 'settings',
-    label: 'Agent settings',
-    icon: IconSettings,
-    href: '/settings/agent',
-  },
-  {
-    id: 'set-usage',
-    group: 'settings',
-    label: 'Usage & budget',
-    icon: IconSettings,
-    href: '/settings/usage',
-    keywords: ['cost', 'spend'],
-  },
-  {
-    id: 'set-profile',
-    group: 'settings',
-    label: 'Profile',
-    icon: IconSettings,
-    href: '/settings/profile',
-  },
-  {
-    id: 'set-models',
-    group: 'settings',
-    label: 'Models',
-    icon: IconSettings,
-    href: '/settings/models',
-    keywords: ['model', 'ai', 'provider'],
-  },
-  {
-    id: 'set-appearance',
-    group: 'settings',
-    label: 'Appearance',
-    icon: IconSettings,
-    href: '/settings',
-    keywords: ['theme', 'dark', 'light'],
-  },
-  {
-    id: 'set-notifications',
-    group: 'settings',
-    label: 'Notifications',
-    icon: IconSettings,
-    href: '/settings/notifications',
-    keywords: ['alert', 'push', 'email'],
+    label: 'Portfolio & Risk Rules',
+    icon: IconWallet,
+    href: '/settings/portfolio',
+    keywords: ['risk', 'drawdown', 'equity', 'positions'],
   },
   {
     id: 'set-symbols',
     group: 'settings',
-    label: 'Symbols',
+    label: 'Watchlist Symbols',
     icon: IconSettings,
     href: '/settings/symbols',
-    keywords: ['watchlist', 'forex'],
+    keywords: ['watchlist', 'forex', 'gold', 'pairs'],
+  },
+  {
+    id: 'set-notifications',
+    group: 'settings',
+    label: 'Notifications & Telegram',
+    icon: IconBell,
+    href: '/settings/notifications',
+    keywords: ['alert', 'push', 'email', 'telegram'],
+  },
+  {
+    id: 'set-profile',
+    group: 'settings',
+    label: 'Profile & Security',
+    icon: IconShield,
+    href: '/settings/profile',
+    keywords: ['password', '2fa', 'account', 'security'],
+  },
+  {
+    id: 'set-appearance',
+    group: 'settings',
+    label: 'Appearance & Data',
+    icon: IconPalette,
+    href: '/settings/appearance',
+    keywords: ['theme', 'dark', 'light', 'export'],
+  },
+  {
+    id: 'set-usage',
+    group: 'settings',
+    label: 'Activity & Quota',
+    icon: IconActivity,
+    href: '/settings/usage',
+    keywords: ['usage', 'quota', 'activity'],
   },
 ];
 

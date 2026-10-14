@@ -27,8 +27,8 @@ interface WizardStepReviewProps {
   tradingStyle: TradingStyle;
   selectedSymbols: string[];
   defaultSymbol: string;
-  selectedProvider: string | null;
-  providers: ProviderMeta[];
+  selectedProvider?: string | null;
+  providers?: ProviderMeta[];
   isSubmitting: boolean;
   onBack: () => void;
   onSubmit: () => void;
@@ -40,8 +40,6 @@ export function WizardStepReview({
   tradingStyle,
   selectedSymbols,
   defaultSymbol,
-  selectedProvider,
-  providers,
   isSubmitting,
   onBack,
   onSubmit,
@@ -50,9 +48,9 @@ export function WizardStepReview({
     <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 flex flex-col gap-6">
       <div>
         <h2 className="text-fg mb-1 text-xl font-semibold">Review & Complete</h2>
-        <p className="text-fg-subtle text-sm">Here is what we will configure for you:</p>
+        <p className="text-fg-subtle text-sm">Here is how your trading workspace is configured:</p>
       </div>
-      <ul className="text-fg border-border bg-bg-elev-2 list-inside list-disc space-y-1.5 rounded-sm border p-4 text-sm">
+      <ul className="text-fg border-border bg-bg-elev-2 list-inside list-disc space-y-1.5 rounded-xl border p-4 text-sm">
         <li>
           Display name: <span className="text-fg-subtle">{name || '—'}</span>
         </li>
@@ -70,25 +68,23 @@ export function WizardStepReview({
           Default chart symbol: <span className="text-fg-subtle">{defaultSymbol}</span>
         </li>
         <li>
-          AI provider:{' '}
-          <span className="text-fg-subtle">
-            {selectedProvider
-              ? `${providers.find((p) => p.id === selectedProvider)?.displayName} (key saved)`
-              : 'skipped — set up later'}
+          AI Analyst Committee:{' '}
+          <span className="text-bull font-medium">
+            Ready (All 4 Specialist Desks Active)
           </span>
         </li>
       </ul>
 
       {/* Sample chat preview */}
-      <details className="border-border rounded-sm border p-3">
+      <details className="border-border rounded-xl border p-3">
         <summary className="text-fg-muted hover:text-fg cursor-pointer text-sm">
-          Try a sample chat
+          Preview how your AI Committee responds
         </summary>
         <div className="mt-3 flex flex-col gap-3">
           <p className="text-fg-subtle text-xs">
-            A preview of what Kestrel can do. After setup, you will be able to ask about any symbol.
+            A quick example of Kestrel&apos;s market analysis. You can ask about any symbol on your watchlist immediately after finishing setup.
           </p>
-          <div className="bg-bg-elev-2 flex flex-col gap-2 rounded-sm p-3">
+          <div className="bg-bg-elev-2 flex flex-col gap-2 rounded-lg p-3">
             <div className="flex items-start gap-2">
               <div className="bg-bg-elev-3 mt-0.5 rounded-sm p-1.5">
                 <IconUser className="text-fg size-3" />
@@ -101,20 +97,18 @@ export function WizardStepReview({
               </div>
               <div className="text-fg flex-1 space-y-1 text-xs leading-[1.4]">
                 <p>
-                  <span className="text-bull font-medium">XAUUSD</span> is showing mixed signals on
-                  the 1H:
+                  <span className="text-bull font-medium">XAUUSD</span> is holding above key 1H demand:
                 </p>
                 <ul className="text-fg-subtle list-inside list-disc">
                   <li>
-                    Price consolidating above <span className="text-fg tabular-nums">$2,650</span>{' '}
+                    Price consolidating above <span className="text-fg tabular-nums">$2,846.50</span>{' '}
                     support
                   </li>
-                  <li>RSI at 54 — neutral</li>
-                  <li>MACD histogram flattening — momentum fading</li>
+                  <li>RSI (14) at 58 — constructive bullish momentum</li>
+                  <li>US 10Y yields softening (-4 bps), supporting gold upside</li>
                 </ul>
                 <p>
-                  Bias: <span className="text-bear font-medium">Bearish below $2,640</span> · Key
-                  resistance at <span className="tabular-nums">$2,680</span>
+                  Bias: <span className="text-bull font-medium">Bullish above $2,846.50</span> · First target at <span className="tabular-nums">$2,884.00</span>
                 </p>
               </div>
             </div>
@@ -132,7 +126,7 @@ export function WizardStepReview({
           loading={isSubmitting}
           disabled={isSubmitting}
         >
-          <IconBolt className="mr-1 size-4" /> Finish Setup
+          <IconBolt className="mr-1 size-4" /> Launch Kestrel
         </Button>
       </div>
     </div>

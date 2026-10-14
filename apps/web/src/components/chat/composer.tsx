@@ -16,17 +16,6 @@
  * limitations under the License.
  */
 
-// Premium chat composer.
-//
-// New in this iteration:
-//   - When `isStreaming` is true the IconArrowRight button morphs into a Stop button
-//     (square indicator + amber ring) wired to the AI SDK's `stop()`.
-//   - When voice input is active the mic gets a soft "mic-pulse" ring
-//     and a "Listening…" caption appears above the row so the user gets
-//     unambiguous state feedback.
-//   - Keyboard hint "Enter to send · Shift+Enter for new line" surfaces
-//     on focus (desktop only — hidden on touch).
-//   - Image thumbnail rail is keyboard-focusable for delete.
 import {
   IconChartBar,
   IconMicrophone,
@@ -46,17 +35,12 @@ import { useVoiceInput } from '@/hooks/use-voice-input';
 import { cn } from '@/lib/cn';
 import { fetchCsrf } from '@/lib/csrf';
 
-import type { AnalysisMode } from './chat-top-bar';
+import { MODE_DESCRIPTIONS, MODE_LABELS, type AnalysisMode } from './chat-top-bar';
 import { formatCharCount, getCharCountTone, MAX_TEXT_CHARS } from './composer-helpers';
 import { ComposerSlashMenu, type SlashMenuCommand } from './composer-slash-menu';
 
 export interface ComposerImage {
   id: string;
-  /**
-   * Public URL returned by `/api/upload`. The chat-screen ships this
-   * to the model in the message's `files` array; pre-Phase-3 this
-   * was a `data:` URL embedded inline.
-   */
   url: string;
   mediaType: string;
   name: string;
@@ -79,14 +63,11 @@ const DEFAULT_LANG = 'en-US';
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
-// Slash commands for CLI-style chat composer.
 interface SlashCommand {
   command: string;
   description: string;
   icon: ReactNode;
-  /** Placeholder text inserted when the command is selected. */
   placeholder: string;
-  /** If true, selecting this command navigates rather than typing. */
   action?: 'navigate';
   href?: string;
 }
@@ -114,14 +95,11 @@ const SLASH_COMMANDS: SlashCommand[] = [
   },
   {
     command: '/analyze',
-    description: 'Run full desk analysis on a symbol',
+    description: 'Run full 4-desk analysis on a symbol',
     icon: <IconTerminal2 className="size-4" />,
     placeholder: '/analyze XAUUSD',
   },
 ];
-// MAX_TEXT_CHARS and SOFT_LIMIT_CHARS are imported from ./composer-helpers
-// so the thresholds can be unit-tested and shared with the route layer if
-// the cap ever needs server-side enforcement.
 
 const SEND_PIXEL_COORDINATES: readonly [number, number][] = [
   [7, 4],
@@ -139,9 +117,9 @@ export function Composer({
   placeholder = 'Ask about price action, key levels, or market news…',
   analysisMode,
   onAnalysisModeChange,
-  chatModel,
+  chatModel: _chatModel,
   onChatModelChange: _onChatModelChange,
-  contextUsagePercent = 6,
+  contextUsagePercent,
 }: ComposerProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<ComposerImage[]>([]);
@@ -153,14 +131,11 @@ export function Composer({
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Detect touch once on mount so we can hide desktop-only affordances.
-  // Using pointer: coarse correctly targets mobile devices and ignores touch-enabled laptops.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     setIsTouch(window.matchMedia('(pointer: coarse)').matches);
   }, []);
 
-  // Auto-focus on desktop after mount and after streaming completes.
   useEffect(() => {
     if (ref.current && !disabled && !isTouch) {
       ref.current.focus();
@@ -183,7 +158,6 @@ export function Composer({
     },
   });
 
-  // M3: Slash commands via dedicated hook.
   const {
     slashActive,
     filteredCommands,
@@ -218,7 +192,6 @@ export function Composer({
       setError(`Message too long (max ${MAX_TEXT_CHARS} chars)`);
       return;
     }
-    // If a slash-command action is selected, trigger it.
     if (slashActive && slashIndex >= 0 && slashIndex < filteredCommands.length) {
       const cmd = filteredCommands[slashIndex];
       if (cmd) {
@@ -238,11 +211,6 @@ export function Composer({
     }
   }
 
-  // Phase 3 hardening §7 — images are pre-uploaded to Supabase
-  // Storage via `/api/upload` and only the public URL ships in the
-  // chat message. The pre-fix code base64-embedded each image
-  // inline, which capped at one small image per Vercel's 4.5 MB body
-  // limit.
   async function pickImages(files: FileList | null): Promise<void> {
     if (!files || files.length === 0) return;
     setError(null);
@@ -254,7 +222,6 @@ export function Composer({
 
     const chosenFiles = Array.from(files).slice(0, remaining);
 
-    // Create upload promises
     const uploadPromises = chosenFiles.map(async (file) => {
       if (!file.type.startsWith('image/')) {
         throw new Error('Only image files are accepted');
@@ -332,11 +299,6 @@ export function Composer({
       return;
     }
 
-    // Phase 1 hardening §12 — clamp pasted text to MAX_TEXT_CHARS so the
-    // counter can't pretend the user is "over the cap" while the textarea
-    // still accepts more. The textarea's own `maxLength` is now strict,
-    // but Safari + some IMEs ignore `maxLength` on paste, so we enforce
-    // it here too.
     const pasted = e.clipboardData?.getData('text');
     if (pasted) {
       const target = e.currentTarget;
@@ -372,8 +334,6 @@ export function Composer({
       ? `slash-cmd-${filteredCommands[slashIndex].command}`
       : undefined;
 
-  // Char-count tone — pure helper from composer-helpers so the
-  // thresholds are unit-tested in test/composer-helpers.test.ts.
   const charCountTone = getCharCountTone(charCount);
   const charCountClass =
     charCountTone === 'danger'
@@ -558,33 +518,28 @@ export function Composer({
                   const next = modes[(idx + 1) % modes.length];
                   if (next) onAnalysisModeChange(next);
                 }}
-                aria-label={`Analysis mode: ${analysisMode}`}
+                title={MODE_DESCRIPTIONS[analysisMode]}
+                aria-label={`Analysis mode: ${MODE_LABELS[analysisMode]}`}
                 className="border-chip-edge bg-background/50 hover:bg-bg-elev-2 active:bg-bg-elev-3 font-mono text-caption text-fg-muted hover:text-fg flex h-10 sm:h-9 min-h-10 items-center gap-1.5 rounded-md border px-2.5 font-normal transition-colors tactile-press active:translate-y-[0.5px]"
               >
-                <span className="size-1.5 rounded-full bg-brand" />
-                <span className="capitalize">{analysisMode}</span>
+                <span className={cn('size-1.5 rounded-full', analysisMode === 'full' ? 'bg-brand' : 'bg-bull')} />
+                <span>{MODE_LABELS[analysisMode]}</span>
                 <span className="text-[10px] text-fg-subtle">▾</span>
               </button>
             ) : null}
-
-            {/* Model Chip (if provided) */}
-            {chatModel && (
-              <span className="border-chip-edge bg-background/50 font-mono text-caption text-fg-subtle hidden sm:inline-flex h-10 sm:h-9 items-center gap-1 rounded-md border px-2">
-                <span className="truncate max-w-[120px]">{chatModel.split(':').pop()}</span>
-              </span>
-            )}
           </div>
 
-          {/* Right actions: Context usage meter + Char Count + Send/Stop Button */}
+          {/* Right actions: Optional Context usage meter + Char Count + Send/Stop Button */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Context usage meter */}
-            <div
-              title="Context Window Usage"
-              className="flex items-center gap-1 font-mono text-[11px] text-fg-subtle tabular-nums select-none"
-            >
-              <span className="size-3 rounded-full border border-fg-subtle/40 border-t-brand" />
-              <span>{contextUsagePercent}%</span>
-            </div>
+            {typeof contextUsagePercent === 'number' && (
+              <div
+                title="Conversation History Used"
+                className="flex items-center gap-1 font-mono text-[11px] text-fg-subtle tabular-nums select-none"
+              >
+                <span className="size-3 rounded-full border border-fg-subtle/40 border-t-brand" />
+                <span>{contextUsagePercent}%</span>
+              </div>
+            )}
 
             {/* Char count */}
             <span

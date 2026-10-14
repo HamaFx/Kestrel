@@ -28,6 +28,7 @@ import {
 } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
 import { m } from 'motion/react';
+import { Link } from 'next-view-transitions';
 import { useMemo } from 'react';
 
 import { TradingViewWidget } from '@/app/(app)/chart/[symbol]/_components/tradingview-widget';
@@ -63,7 +64,6 @@ export function ThreadViewsDock({
   agentProgress,
   messages = [],
 }: ThreadViewsDockProps) {
-  // Extract latest plan part from messages if available
   const latestPlan = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
@@ -84,12 +84,12 @@ export function ThreadViewsDock({
     { id: 'chart', label: 'Chart', icon: IconChartCandle },
     {
       id: 'opinions',
-      label: 'Opinions',
+      label: 'Desks',
       icon: IconUsers,
       badge: agentProgress?.agents ? Object.keys(agentProgress.agents).length : undefined,
     },
-    { id: 'plan', label: 'Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
-    { id: 'terminal', label: 'Terminal', icon: IconTerminal2 },
+    { id: 'plan', label: 'Action Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
+    { id: 'terminal', label: 'Context', icon: IconTerminal2 },
   ];
 
   if (!isOpen) return null;
@@ -150,7 +150,7 @@ export function ThreadViewsDock({
             <div className="border-border/40 bg-bg-elev-1/60 flex items-center justify-between border-b px-3 py-1.5 text-xs">
               <div className="flex items-center gap-2 font-mono">
                 <span className="text-fg font-bold tracking-tight">{symbol}</span>
-                <span className="text-fg-subtle text-caption">TradingView</span>
+                <span className="text-fg-subtle text-caption">Live Chart</span>
               </div>
               <Segmented
                 size="sm"
@@ -183,9 +183,9 @@ export function ThreadViewsDock({
             ) : (
               <div className="flex min-h-[300px] flex-col items-center justify-center gap-2 text-center">
                 <IconUsers className="text-fg-subtle size-8 stroke-1" />
-                <p className="text-fg-muted text-sm font-medium">Council Standby</p>
+                <p className="text-fg-muted text-sm font-medium">4-Desk Committee Ready</p>
                 <p className="text-fg-subtle max-w-xs text-xs">
-                  Committee opinions from Technical, Macro, and Sentiment desks will stream here during analysis.
+                  Opinions from the Technical, Macro, Risk, and Sentiment desks appear here during analysis.
                 </p>
               </div>
             )}
@@ -199,9 +199,9 @@ export function ThreadViewsDock({
             ) : (
               <div className="flex min-h-[300px] flex-col items-center justify-center gap-2 text-center">
                 <IconListCheck className="text-fg-subtle size-8 stroke-1" />
-                <p className="text-fg-muted text-sm font-medium">No Active Plan</p>
+                <p className="text-fg-muted text-sm font-medium">No Active Action Plan</p>
                 <p className="text-fg-subtle max-w-xs text-xs">
-                  When Mastra workflows construct execution steps, DAG goals and milestones appear in this view.
+                  Run a Full Committee analysis to generate a step-by-step trade checklist, key price levels, and risk milestones here.
                 </p>
               </div>
             )}
@@ -210,41 +210,54 @@ export function ThreadViewsDock({
 
         {activeTab === 'terminal' && (
           <div className="scrollbar-hide h-full overflow-y-auto p-4 font-mono text-xs">
-            <div className="border-border/60 bg-black/40 rounded-lg border p-3">
-              {/* Audit plan §4.7 — this panel shows only real client-side data
-                  (the active chart feed and the committee run progress); the
-                  former fake "WS: CONNECTED"/"~18ms"/"worker.state" rows were
-                  removed because no such connection exists in the web client. */}
-              <div className="border-border/40 text-fg-subtle mb-2.5 flex items-center justify-between border-b pb-2 text-[11px]">
+            <div className="border-border/60 bg-black/40 rounded-lg border p-3.5">
+              <div className="border-border/40 text-fg-subtle mb-3 flex items-center justify-between border-b pb-2 text-[11px]">
                 <span className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <span>KESTREL RUN TELEMETRY</span>
+                  <span>LIVE MARKET CONTEXT</span>
                 </span>
-                <span>{agentProgress ? 'RUN ACTIVE' : 'NO ACTIVE RUN'}</span>
+                <span>{agentProgress ? 'ANALYZING' : 'READY'}</span>
               </div>
-              <div className="space-y-1.5 text-fg-muted">
+              <div className="space-y-2 text-fg-muted">
                 <div className="flex items-center justify-between">
-                  <span>chart.symbol:</span>
+                  <span>Active Symbol</span>
                   <span className="text-fg font-semibold">{symbol}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>chart.resolution:</span>
-                  <span className="text-fg">{timeframe}</span>
+                  <span>Chart Timeframe</span>
+                  <span className="text-fg uppercase">{timeframe}</span>
                 </div>
               </div>
 
               {agentProgress && (
-                <div className="mt-3 border-t border-border/40 pt-2.5">
-                  <span className="text-fg-subtle text-[10px] uppercase tracking-wider">Active Run</span>
-                  <div className="mt-1 space-y-1 text-fg">
-                    <p>mode: {agentProgress.mode}</p>
-                    <p>status: {agentProgress.status}</p>
+                <div className="mt-3 border-t border-border/40 pt-3">
+                  <span className="text-fg-subtle text-[10px] uppercase tracking-wider">Current Session</span>
+                  <div className="mt-1.5 space-y-1.5 text-fg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-fg-muted">Analysis Mode</span>
+                      <span className="font-semibold">
+                        {agentProgress.mode === 'full' ? 'Full Committee' : 'Quick Read'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-fg-muted">Status</span>
+                      <span className="capitalize">{agentProgress.status}</span>
+                    </div>
                     {agentProgress.error && (
-                      <p className="text-rose-400">error: {agentProgress.error}</p>
+                      <p className="text-rose-400">Note: {agentProgress.error}</p>
                     )}
                   </div>
                 </div>
               )}
+
+              <div className="mt-4 border-t border-border/40 pt-3">
+                <Link
+                  href={`/chart/${symbol}?tf=${timeframe}`}
+                  className="text-brand hover:underline inline-flex items-center gap-1 text-xs font-semibold"
+                >
+                  Open full-screen {symbol} Pro Chart →
+                </Link>
+              </div>
             </div>
           </div>
         )}

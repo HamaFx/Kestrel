@@ -62,6 +62,7 @@ packages/db/drizzle/meta/*
 
 # misc
 *.pem
+*.zip
 
 # Kestrel local database and migration cache
 .kestrel/

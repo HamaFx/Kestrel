@@ -19,12 +19,14 @@
 import {
   IconBell,
   IconChevronRight,
-  IconDatabase,
+  IconCreditCard,
   IconInfoCircle,
+  IconKey,
   IconPalette,
   IconRobot,
   IconShield,
   IconTrendingUp,
+  IconWallet,
 } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -36,12 +38,11 @@ import { checkIsAdmin } from '@/lib/admin-check';
 import { AboutCard } from './_components/about-card';
 import { OnboardingResetCard } from './_components/onboarding-reset-card';
 import { SettingsSection } from './_components/settings-section';
-import { SystemStatusCard } from './_components/system-status-card';
 import { UsageGlance } from './_components/usage-glance';
 
 export const metadata: Metadata = {
   title: 'Settings',
-  description: 'Manage profile, market feeds, API keys, AI model preferences, and security.',
+  description: 'Manage your subscription, watchlist, risk rules, alerts, and account security.',
 };
 export const revalidate = 60;
 
@@ -56,7 +57,6 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SystemStatusCard userId={userId} />
       <UsageGlance userId={userId} />
 
       {/* Grouped Quick Links */}
@@ -66,48 +66,48 @@ export default async function SettingsPage() {
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <QuickLink
-            href="/settings/api-keys"
-            icon={<IconRobot className="size-4.5" />}
-            title="AI & Intelligence"
-            description="BYOK provider keys, model routing, and agent tool execution"
-          />
-          <QuickLink
-            href="/settings/security"
-            icon={<IconShield className="size-4.5" />}
-            title="Account & Security"
-            description="Profile identity, password, two-factor auth, and active sessions"
+            href="/settings/billing"
+            icon={<IconCreditCard className="size-4.5" />}
+            title="Subscription & Billing"
+            description="Plan tier, membership status, and billing history"
           />
           <QuickLink
             href="/settings/symbols"
             icon={<IconTrendingUp className="size-4.5" />}
-            title="Trading & Market"
-            description="Watchlist instruments, symbol catalog, and portfolio risk limits"
+            title="Watchlist Symbols"
+            description="Customize the Gold, Forex, and Crypto pairs on your watchlist"
+          />
+          <QuickLink
+            href="/settings/portfolio"
+            icon={<IconWallet className="size-4.5" />}
+            title="Portfolio & Risk Rules"
+            description="Account balance, max risk per trade, and open position tracking"
           />
           <QuickLink
             href="/settings/notifications"
             icon={<IconBell className="size-4.5" />}
-            title="Notifications & Channels"
-            description="Email, browser push, Telegram bot integration, and noise control"
+            title="Notifications & Telegram"
+            description="Email, browser push, Telegram bot linking, and quiet hours"
+          />
+          <QuickLink
+            href="/settings/profile"
+            icon={<IconShield className="size-4.5" />}
+            title="Profile & Security"
+            description="Display name, password, two-factor auth, and active sessions"
           />
           <QuickLink
             href="/settings/appearance"
             icon={<IconPalette className="size-4.5" />}
-            title="Display & Preferences"
-            description="Theme styling, language locale, and UI motion preferences"
-          />
-          <QuickLink
-            href="/settings/data"
-            icon={<IconDatabase className="size-4.5" />}
-            title="Data & Storage"
-            description="Local cache controls, trade history exports, and account reset"
+            title="Appearance & Data"
+            description="Theme styling, default chart symbol, and trade journal exports"
           />
         </div>
       </div>
 
       <SettingsSection
         icon={<IconInfoCircle className="size-4" />}
-        title="About"
-        description="App info and system status"
+        title="Account Session"
+        description="Sign out and platform information"
       >
         <AboutCard />
       </SettingsSection>
@@ -115,10 +115,38 @@ export default async function SettingsPage() {
       {isAdmin ? (
         <SettingsSection
           icon={<IconShield className="size-4" />}
-          title="Admin"
-          description="Debug and testing tools"
+          title="Admin & Platform Controls"
+          description="Operator-only configuration for AI providers, market feeds, and system diagnostics"
         >
-          <OnboardingResetCard />
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <QuickLink
+                href="/admin"
+                icon={<IconShield className="size-4.5" />}
+                title="Admin Console"
+                description="System health, user management, cron jobs, and audit logs"
+              />
+              <QuickLink
+                href="/settings/api-keys"
+                icon={<IconKey className="size-4.5" />}
+                title="Platform AI & Market Feeds"
+                description="Configure backend AI provider keys and market data adapters"
+              />
+              <QuickLink
+                href="/settings/models"
+                icon={<IconRobot className="size-4.5" />}
+                title="Model Routing & Fallbacks"
+                description="Default chat, vision, and embedding model configuration"
+              />
+              <QuickLink
+                href="/settings/agent"
+                icon={<IconRobot className="size-4.5" />}
+                title="Agent Tool Telemetry"
+                description="24h tool invocation latencies and tool enable/disable toggles"
+              />
+            </div>
+            <OnboardingResetCard />
+          </div>
         </SettingsSection>
       ) : null}
     </div>

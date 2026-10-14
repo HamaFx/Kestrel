@@ -19,6 +19,7 @@
  */
 import {
   IconBug,
+  IconCpu,
   IconDatabase,
   IconFlag,
   IconFlask,
@@ -46,21 +47,15 @@ import {
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 
-// ---- Lazy-loaded admin sub-components ----
-// Each tab's component is only loaded when the user navigates to it.
-// The `loading:` fallback shows a skeleton while the chunk downloads.
-
 function TabFallback() {
   return (
     <div className="border-border overflow-hidden rounded-sm border">
-      {/* Table header skeleton */}
       <div className="bg-bg-elev-2 flex gap-4 px-4 py-3">
         <SkeletonCard lines={1} className="flex-1 border-0 bg-transparent p-0" />
         <SkeletonCard lines={1} className="w-20 border-0 bg-transparent p-0" />
         <SkeletonCard lines={1} className="w-24 border-0 bg-transparent p-0" />
         <SkeletonCard lines={1} className="w-16 border-0 bg-transparent p-0" />
       </div>
-      {/* Table row skeletons */}
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="border-border flex gap-4 border-t px-4 py-3">
           <SkeletonCard lines={1} className="flex-1 border-0 bg-transparent p-0" />
@@ -72,6 +67,11 @@ function TabFallback() {
     </div>
   );
 }
+
+const AdminPlatformConfig = dynamic(
+  () => import('./_components/admin-platform-config').then((m) => m.AdminPlatformConfig),
+  { loading: TabFallback },
+) as ComponentType;
 
 const AdminSystemHealth = dynamic(
   () => import('./_components/admin-system-health').then((m) => m.AdminSystemHealth),
@@ -149,27 +149,28 @@ const AdminMastraRuns = dynamic(
 ) as ComponentType;
 
 const TABS = [
+  { id: 'platform', label: 'AI & Platform', icon: IconCpu, Component: AdminPlatformConfig },
   { id: 'health', label: 'Health', icon: IconHeartbeat, Component: AdminSystemHealth },
+  { id: 'users', label: 'Users', icon: IconUsers, Component: AdminUserTable },
+  { id: 'features', label: 'Features', icon: IconFlag, Component: AdminFeatureFlags },
   { id: 'onboarding', label: 'Onboarding', icon: IconRefresh, Component: AdminOnboardingControl },
   { id: 'cron', label: 'Cron', icon: IconHistory, Component: AdminCronTable },
   { id: 'telemetry', label: 'Telemetry', icon: IconTool, Component: AdminToolTelemetryTable },
   { id: 'traces', label: 'Traces', icon: IconStethoscope, Component: AdminDiagnosticTraces },
-  { id: 'users', label: 'Users', icon: IconUsers, Component: AdminUserTable },
-  { id: 'features', label: 'Features', icon: IconFlag, Component: AdminFeatureFlags },
   { id: 'logs', label: 'Logs', icon: IconTerminal, Component: AdminLogViewer },
   { id: 'audit', label: 'Audit', icon: IconHistory, Component: AdminAuditTable },
   { id: 'feedback', label: 'Feedback', icon: IconMessageReport, Component: AdminFeedbackReview },
   { id: 'datasets', label: 'Datasets', icon: IconDatabase, Component: AdminDatasetReview },
   { id: 'regressions', label: 'Regressions', icon: IconBug, Component: AdminRegressionCases },
   { id: 'ai-eval', label: 'AI Eval', icon: IconFlask, Component: AdminAiEval },
-  { id: 'mastra-runs', label: 'Mastra Runs', icon: IconStethoscope, Component: AdminMastraRuns },
+  { id: 'mastra-runs', label: 'Committee Runs', icon: IconStethoscope, Component: AdminMastraRuns },
   { id: 'devtools', label: 'Dev Tools', icon: IconSettingsBolt, Component: AdminDevTools },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
 
 const TAB_IDS: readonly string[] = TABS.map((t) => t.id);
-const DEFAULT_TAB: TabId = 'health';
+const DEFAULT_TAB: TabId = 'platform';
 const TAB_PARAM = 'tab';
 
 function isValidTab(id: string | null): id is TabId {
@@ -186,7 +187,6 @@ export default function AdminPage() {
     {} as Record<TabId, HTMLButtonElement | null>,
   );
 
-  // If the URL contains an unknown tab, rewrite it to the default.
   useEffect(() => {
     if (rawTab !== null && !isValidTab(rawTab)) {
       router.replace('/admin', { scroll: false });
@@ -209,8 +209,6 @@ export default function AdminPage() {
       } else {
         params.set(TAB_PARAM, tabId);
       }
-      // Trace details belong only to the Traces tab. Do not carry a stale
-      // deep-link into another section and unexpectedly reopen it later.
       if (tabId !== 'traces') {
         params.delete('trace');
       }
@@ -268,12 +266,8 @@ export default function AdminPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div
-        aria-label="Admin sections"
-        className="w-full"
-        role="tablist"
-      >
-        <div className="flex gap-1 overflow-x-auto no-scrollbar border-b border-border pb-3">
+      <div aria-label="Admin sections" className="w-full" role="tablist">
+        <div className="border-border no-scrollbar flex gap-1 overflow-x-auto border-b pb-3">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -292,7 +286,7 @@ export default function AdminPage() {
                 onClick={() => activateTab(tab.id)}
                 onKeyDown={handleKeyDown}
                 className={cn(
-                  'inline-flex min-h-10 items-center gap-2 py-2.5 px-3 whitespace-nowrap text-sm font-medium transition-colors',
+                  'inline-flex min-h-10 items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors',
                   'border-b-2',
                   active
                     ? 'border-brand text-brand'

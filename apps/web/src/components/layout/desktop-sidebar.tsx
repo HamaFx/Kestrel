@@ -31,7 +31,6 @@ import {
   IconPlus,
   IconSettings,
   IconShield,
-  IconWorld,
 } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
 import { Link } from 'next-view-transitions';
@@ -41,7 +40,6 @@ import { toast } from 'sonner';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { cn } from '@/lib/cn';
 
-import { HangingPendant } from './hanging-pendant';
 import { useSidebarState } from './sidebar-state-context';
 
 interface NavItem {
@@ -107,7 +105,7 @@ export function DesktopSidebar({
           <KestrelBrand
             variant={collapsed ? 'mark' : 'lockup'}
             markSize="sm"
-            href="/landing"
+            href="/dashboard"
             className="overflow-hidden"
           />
           <button
@@ -127,7 +125,7 @@ export function DesktopSidebar({
 
         {/* New Thread CTA Button */}
         <Link
-          href="/chat"
+          href="/chat?new=1"
           prefetch={true}
           aria-label="New thread"
           className={cn(
@@ -184,13 +182,6 @@ export function DesktopSidebar({
             );
           })}
         </nav>
-
-        {/* Interactive Verlet Physics Pendant */}
-        {!collapsed && (
-          <div className="flex justify-center py-1 opacity-75 transition-opacity hover:opacity-100">
-            <HangingPendant />
-          </div>
-        )}
       </div>
 
       {/* Bottom Footer Items */}
@@ -226,23 +217,6 @@ export function DesktopSidebar({
             {!collapsed && <span className="truncate font-sans">Admin</span>}
           </Link>
         )}
-
-        <Link
-          href="/landing"
-          prefetch={true}
-          aria-label="Showcase"
-          className={cn(
-            'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all active:translate-y-[0.5px]',
-            'text-fg-muted hover:text-fg hover:bg-bg-elev-2/50 border border-transparent',
-          )}
-          title={collapsed ? 'Showcase' : undefined}
-        >
-          <IconWorld
-            className="size-5 shrink-0 text-fg-subtle group-hover:text-brand transition-colors"
-            aria-hidden="true"
-          />
-          {!collapsed && <span className="truncate font-sans">Showcase</span>}
-        </Link>
 
         <Link
           href="/settings"

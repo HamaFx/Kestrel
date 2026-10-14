@@ -30,7 +30,7 @@ import {
   IconTrendingUp,
 } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -189,7 +189,7 @@ export function AlertList() {
           tone="muted"
           icon={<IconBell className="size-7" strokeWidth={1.75} />}
           title="No alerts configured"
-          description="Create price alerts to get notified when the market hits your targets."
+          description="Create price or indicator alerts to get notified when the market hits your levels."
           action={
             <Button type="button" onClick={() => setOpen(true)}>
               <IconPlus className="size-4" />
@@ -265,190 +265,82 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
   const StatusIcon = alert.active ? IconBell : alert.firedAt ? IconBellRinging : IconBellOff;
   const statusTone = alert.active ? 'text-fg' : alert.firedAt ? 'text-warn' : 'text-fg-subtle';
 
-  const trackRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    const content = contentRef.current;
-    if (!track || !content) return;
-
-    const initialScroll = () => {
-      track.scrollLeft = track.clientWidth;
-    };
-
-    initialScroll();
-
-    const resizeOb = new ResizeObserver(() => {
-      initialScroll();
-    });
-    resizeOb.observe(track);
-
-    let isTriggered = false;
-    let timer: ReturnType<typeof setTimeout>;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[entries.length - 1];
-        if (!entry) return;
-        const ratio = entry.intersectionRatio;
-
-        if (ratio > 0.95) {
-          isTriggered = false;
-          return;
-        }
-
-        const commitThreshold = 0.3;
-        if (ratio < commitThreshold && !isTriggered) {
-          isTriggered = true;
-          const direction =
-            entry.boundingClientRect.x - (entry.rootBounds?.x ?? 0) > 0 ? 'left' : 'right';
-
-          if (direction === 'left') {
-            onToggle();
-          } else {
-            onDelete();
-          }
-
-          timer = setTimeout(() => {
-            track.scrollTo({ left: track.clientWidth, behavior: 'smooth' });
-          }, 300);
-        }
-      },
-      {
-        root: track,
-        threshold: [0.3, 0.95],
-      },
-    );
-
-    observer.observe(content);
-
-    return () => {
-      resizeOb.disconnect();
-      observer.disconnect();
-      clearTimeout(timer);
-    };
-  }, [onToggle, onDelete]);
-
   return (
-    <li className="border-border bg-bg-elev-1 relative overflow-hidden rounded-sm border transition-all duration-200 hover:shadow-lg">
+    <li className="border-border bg-bg-elev-1 relative overflow-hidden rounded-xl border transition-all duration-200 hover:shadow-lg">
       <div
-        ref={trackRef}
-        className="overscroll-behavior-x-none grid scrollbar-none overflow-x-auto select-none"
-        style={{
-          gridTemplateColumns: '100% 100% 100%',
-          scrollSnapType: 'x mandatory',
-        }}
+        className={cn(
+          'bg-bg-elev-1 flex w-full items-center gap-3 p-4 transition-opacity duration-200',
+          !alert.active && 'opacity-65 saturate-50',
+        )}
       >
-        {/* Left Option (Re-arm / Pause) */}
-        <div
-          className="bg-bg-elev-2 text-fg flex w-full items-center justify-start pl-6"
-          style={{ scrollSnapAlign: 'start' }}
-        >
-          <StatusIcon className="size-5 animate-pulse" />
-        </div>
-
-        {/* Content (Main Alert Card) */}
-        <div
-          ref={contentRef}
-          className={cn(
-            'bg-bg-elev-1 flex w-full items-start gap-3 p-4 transition-opacity duration-200',
-            !alert.active && 'opacity-60 saturate-50',
-          )}
-          style={{ scrollSnapAlign: 'center' }}
-        >
-          {/* Touch-swipe grabber — visible only on touch devices */}
+        <div className="relative">
           <span
             aria-hidden
-            className="touch-swipe-hint text-fg-muted/30 flex items-center self-stretch"
-          >
-            ≡
-          </span>
-          <div className="relative">
-            <span
-              aria-hidden
-              className={cn(
-                'inline-flex size-12 shrink-0 items-center justify-center rounded-sm',
-                statusTone,
-              )}
-              style={{
-                background: alert.active
-                  ? 'none'
-                  : alert.firedAt
-                    ? 'rgba(245, 158, 11, 0.12)'
-                    : 'rgba(59, 130, 246, 0.08)',
-                boxShadow: 'none',
-              }}
-            >
-              <StatusIcon className="size-5" strokeWidth={1.75} />
-            </span>
-            {alert.active && !alert.firedAt && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="bg-fg absolute inline-flex h-full w-full animate-ping rounded-sm opacity-75"></span>
-                <span className="bg-fg border-bg relative inline-flex h-3 w-3 rounded-sm border-2"></span>
-              </span>
+            className={cn(
+              'inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-bg-elev-2',
+              statusTone,
             )}
-          </div>
-
-          <div className="min-w-0 flex-1 py-0.5">
-            <div className="flex items-center gap-2">
-              <div className="text-fg flex items-center gap-1.5 text-sm font-semibold tabular-nums">
-                <RuleIcon className="text-fg-muted size-4 shrink-0" aria-hidden="true" />
-                <span className="truncate">{describe(alert)}</span>
-              </div>
-              <div className="ml-1.5 flex items-center gap-1">
-                {alert.channels.includes('email') && (
-                  <IconMail className="text-fg-muted size-3.5" strokeWidth={2} />
-                )}
-                {alert.channels.includes('telegram') && (
-                  <IconArrowRight className="text-fg size-3.5" strokeWidth={2} />
-                )}
-              </div>
-            </div>
-            <p className="text-fg-subtle mt-1.5 truncate text-xs font-medium">
-              {alert.firedAt
-                ? `Triggered ${formatRelative(alert.firedAt)}`
-                : alert.active
-                  ? `Watching since ${formatRelative(alert.createdAt)}`
-                  : `Paused`}
-              {alert.note ? <span className="text-fg-muted"> · {alert.note}</span> : ''}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 gap-1 md:flex">
-            <Tooltip label={alert.active ? 'Pause' : 'Re-arm'}>
-              <button
-                type="button"
-                onClick={onToggle}
-                aria-label={alert.active ? 'Pause alert' : 'Re-arm alert'}
-                className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex size-10 items-center justify-center rounded-sm transition-colors"
-              >
-                {alert.active ? (
-                  <IconBellOff className="size-4" />
-                ) : (
-                  <IconRefresh className="size-4" />
-                )}
-              </button>
-            </Tooltip>
-            <Tooltip label="Delete">
-              <button
-                type="button"
-                onClick={onDelete}
-                aria-label="Delete alert"
-                className="text-danger/70 hover:text-danger hover:bg-danger/10 inline-flex size-10 items-center justify-center rounded-sm transition-colors"
-              >
-                <IconTrash className="size-4" />
-              </button>
-            </Tooltip>
-          </div>
+          >
+            <StatusIcon className="size-5" strokeWidth={1.75} />
+          </span>
+          {alert.active && !alert.firedAt && (
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="bg-brand absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
+              <span className="bg-brand border-bg relative inline-flex h-3 w-3 rounded-full border-2"></span>
+            </span>
+          )}
         </div>
 
-        {/* Right Option (Delete) */}
-        <div
-          className="bg-danger/10 text-danger flex w-full items-center justify-end pr-6"
-          style={{ scrollSnapAlign: 'end' }}
-        >
-          <IconTrash className="size-5 animate-pulse" />
+        <div className="min-w-0 flex-1 py-0.5">
+          <div className="flex items-center gap-2">
+            <div className="text-fg flex items-center gap-1.5 text-sm font-semibold tabular-nums">
+              <RuleIcon className="text-fg-muted size-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">{describe(alert)}</span>
+            </div>
+            <div className="ml-1.5 flex items-center gap-1">
+              {alert.channels.includes('email') && (
+                <IconMail className="text-fg-muted size-3.5" strokeWidth={2} title="Email delivery" />
+              )}
+              {alert.channels.includes('telegram') && (
+                <IconArrowRight className="text-fg size-3.5" strokeWidth={2} title="Telegram delivery" />
+              )}
+            </div>
+          </div>
+          <p className="text-fg-subtle mt-1 truncate text-xs font-medium">
+            {alert.firedAt
+              ? `Triggered ${formatRelative(alert.firedAt)}`
+              : alert.active
+                ? `Watching since ${formatRelative(alert.createdAt)}`
+                : `Paused`}
+            {alert.note ? <span className="text-fg-muted"> · {alert.note}</span> : ''}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <Tooltip label={alert.active ? 'Pause' : 'Re-arm'}>
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label={alert.active ? 'Pause alert' : 'Re-arm alert'}
+              className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex size-10 items-center justify-center rounded-lg transition-colors"
+            >
+              {alert.active ? (
+                <IconBellOff className="size-4" />
+              ) : (
+                <IconRefresh className="size-4" />
+              )}
+            </button>
+          </Tooltip>
+          <Tooltip label="Delete">
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label="Delete alert"
+              className="text-danger/70 hover:text-danger hover:bg-danger/10 inline-flex size-10 items-center justify-center rounded-lg transition-colors"
+            >
+              <IconTrash className="size-4" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </li>
@@ -472,8 +364,8 @@ function describe(a: Alert): string {
     case 'priceCross':
       return `${r.symbol} price ${r.direction} ${r.level}`;
     case 'candleClose':
-      return `${r.symbol} ${r.tf} close ${r.direction} ${r.level}`;
+      return `${r.symbol} ${r.tf.toUpperCase()} close ${r.direction} ${r.level}`;
     case 'indicatorCross':
-      return `${r.symbol} ${r.tf} ${r.indicator} ${r.direction} ${r.level}`;
+      return `${r.symbol} ${r.tf.toUpperCase()} ${r.indicator.toUpperCase()} ${r.direction} ${r.level}`;
   }
 }

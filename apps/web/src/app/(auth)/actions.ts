@@ -74,12 +74,12 @@ function registrationSignInFailureState(): AuthActionState {
  * protocol-relative URLs, backslashes, and encoded // sequences.
  */
 export async function sanitizeNext(next: string | undefined | null): Promise<string> {
-  if (typeof next !== 'string' || next.length === 0) return '/chat';
-  if (next.length > 500) return '/chat';
-  if (!next.startsWith('/')) return '/chat';
-  if (next.startsWith('//')) return '/chat';
-  if (next.includes('\\')) return '/chat';
-  if (/%2f/i.test(next) && /%2f.*%2f/i.test(next)) return '/chat';
+  if (typeof next !== 'string' || next.length === 0) return '/dashboard';
+  if (next.length > 500) return '/dashboard';
+  if (!next.startsWith('/')) return '/dashboard';
+  if (next.startsWith('//')) return '/dashboard';
+  if (next.includes('\\')) return '/dashboard';
+  if (/%2f/i.test(next) && /%2f.*%2f/i.test(next)) return '/dashboard';
   return next;
 }
 

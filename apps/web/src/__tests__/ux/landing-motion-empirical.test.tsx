@@ -195,29 +195,29 @@ describe('Milestone 5 Empirical Verification: LandingStepper Continuous SVG Pipe
     const tabs = screen.getAllByRole('tab');
     expect(tabs.length).toBe(4);
 
-    expect(screen.getByText(/venue_ingestion\.ts/i)).not.toBeNull();
-    expect(screen.getByText(/14,200 ticks\/sec/i)).not.toBeNull();
+    expect(screen.getByText(/step-01-market-scan/i)).not.toBeNull();
+    expect(screen.getByText(/15m \/ 1H \/ 4H \/ Daily/i)).not.toBeNull();
 
     await act(async () => {
       fireEvent.click(tabs[1]!);
     });
 
-    expect(await screen.findByText(/committee_deliberation\.ts/i)).not.toBeNull();
-    expect(await screen.findByText(/4 Isolated Sandboxes/i)).not.toBeNull();
+    expect(await screen.findByText(/step-02-committee-debate/i)).not.toBeNull();
+    expect(await screen.findByText(/4 Independent Analysts/i)).not.toBeNull();
     expect(await screen.findByText(/STAGE 02 VERIFIED/i)).not.toBeNull();
 
     await act(async () => {
       fireEvent.click(tabs[2]!);
     });
 
-    expect(await screen.findByText(/arbitration_veto\.ts/i)).not.toBeNull();
+    expect(await screen.findByText(/step-03-risk-guardrails/i)).not.toBeNull();
     expect(await screen.findByText(/STAGE 03 VERIFIED/i)).not.toBeNull();
 
     await act(async () => {
       fireEvent.click(tabs[3]!);
     });
 
-    expect(await screen.findByText(/execution_cones\.ts/i)).not.toBeNull();
+    expect(await screen.findByText(/step-04-trade-plan/i)).not.toBeNull();
     expect(await screen.findByText(/STAGE 04 VERIFIED/i)).not.toBeNull();
   });
 

@@ -48,76 +48,76 @@ const LAYERS: LayerSpec[] = [
     id: 'execution',
     num: '04',
     tag: 'APEX EXECUTION LAYER',
-    title: 'Cryptographic FIX Bridge & TP Cones',
-    shortDesc: 'Asymmetric order tickets with verified take-profit cones.',
+    title: 'Verified Trade Plans & Take-Profit Cones',
+    shortDesc: 'Structured trade cards with entry, invalidation, and 3 take-profit targets.',
     fullDesc:
-      'Every approved trading plan is stamped with a SHA-256 cryptographic ticket hash and dispatched via low-latency encrypted webhooks to MetaTrader, cTrader, or custom FIX 4.4 bridges.',
+      'Every approved setup produces a structured trade plan with exact entry zones, hard invalidation stops, and multi-tier take-profit targets ready to save to your Trade Journal or arm as instant alerts (with direct MT5 / cTrader bridge support on our roadmap).',
     accentColor: 'text-bull',
     borderColor: 'border-bull/50',
     glowColor: 'rgba(63, 158, 61, 0.4)',
     icon: IconArrowsSplit,
     telemetry: [
-      { label: 'DISPATCH PROTOCOL', value: 'FIX 4.4 / MT5 Bridge' },
-      { label: 'CONE RATIOS', value: '1:1.5 · 1:2.5 · 1:4.0 R:R' },
-      { label: 'SIGNING ALGO', value: 'SHA-256 Cryptographic Ticket' },
-      { label: 'EXECUTION SPEED', value: '4.2ms sub-millisecond route' },
+      { label: 'WORKFLOW OUTPUT', value: 'Trade Journal & Price Alerts' },
+      { label: 'TARGET RATIOS', value: '1:1.5 · 1:2.5 · 1:4.0 R:R' },
+      { label: 'ALERT CHANNELS', value: 'Telegram · Web Push · Email' },
+      { label: 'BROKER BRIDGE', value: 'MT5 / cTrader (On Roadmap)' },
     ],
   },
   {
     id: 'risk',
     num: '03',
     tag: 'SAFETY GOVERNOR LAYER',
-    title: '1.0% Mathematical Risk & Invalidation Firewall',
-    shortDesc: 'Immutable portfolio ceiling with instant veto authority.',
+    title: '1.0% Risk Limit & Invalidation Guardrail',
+    shortDesc: 'Strict drawdown protection that flags unsafe setups before you enter.',
     fullDesc:
-      'The risk desk enforces an unbreachable 1.0% portfolio drawdown ceiling. If volatility models or ATR invalidation stops require greater than 1% account risk, execution is mathematically vetoed.',
+      'The Risk Desk enforces a strict 1.0% account risk discipline. If high-impact news is imminent or volatility requires a stop-loss wider than your risk rules allow, Kestrel warns you to stand down or reduce size.',
     accentColor: 'text-warn',
     borderColor: 'border-warn/50',
     glowColor: 'rgba(235, 140, 31, 0.4)',
     icon: IconScale,
     telemetry: [
       { label: 'PORTFOLIO CEILING', value: '≤ 1.0% Max Loss' },
-      { label: 'MIN EXPECTED VALUE', value: '≥ 1:2.5 Risk/Reward' },
-      { label: 'VETO ENFORCEMENT', value: 'Instant Disputed Signal Abort' },
-      { label: 'INVARIATION MODEL', value: 'ATR (14) Volatility Envelope' },
+      { label: 'MIN RISK / REWARD', value: '≥ 1:2.5 Asymmetric Target' },
+      { label: 'CONFLICT PROTECTION', value: 'Instant Risk Warning' },
+      { label: 'STOP PLACEMENT', value: 'ATR (14) Volatility Buffer' },
     ],
   },
   {
     id: 'deliberation',
     num: '02',
     tag: 'CONSENSUS SYNDICATE LAYER',
-    title: '4-Desk Multi-Agent Deliberation Sandbox',
-    shortDesc: 'Four specialized models evaluating independent dimensions.',
+    title: '4-Desk Specialist AI Committee',
+    shortDesc: 'Four specialized AI analysts evaluating independent market factors.',
     fullDesc:
-      'Four autonomous specialist agents run in parallel sandboxes: SMC Technicals scans Fair Value Gaps, Central Bank Macro parses rates, Risk computes volatility stops, and Whale Sentiment queries CFTC positioning.',
+      'Four specialist AI desks analyze your setup in parallel: Technicals maps price structure and Fair Value Gaps, Macro tracks central bank policy and yields, Risk calculates position sizing, and Sentiment monitors institutional COT positioning.',
     accentColor: 'text-brand',
     borderColor: 'border-brand/50',
     glowColor: 'rgba(255, 54, 22, 0.45)',
     icon: IconCpu,
     telemetry: [
-      { label: 'PARALLEL ENGINES', value: '4 Concurrent Sandboxes' },
-      { label: 'ARBITRATION ENGINE', value: 'Weighted Confidence Matrix' },
-      { label: 'MODEL ROUTING', value: 'Sonnet 3.7 + DeepSeek-R1' },
-      { label: 'SYNTHESIS LATENCY', value: '82ms p95 convergence' },
+      { label: 'SPECIALIST DESKS', value: '4 Parallel AI Analysts' },
+      { label: 'CONSENSUS METHOD', value: 'Weighted Conviction Score' },
+      { label: 'ANALYSIS MODES', value: 'Quick Read or Full Committee' },
+      { label: 'SIGNAL INTEGRITY', value: 'Cross-Checked Against Live Data' },
     ],
   },
   {
     id: 'ingestion',
     num: '01',
     tag: 'FOUNDATION DATA LAYER',
-    title: 'Multi-Venue Interbank Ingestion Mesh',
-    shortDesc: 'Sub-18ms tick synthesis across global FX and gold liquidity.',
+    title: 'Live Gold, Forex & Macro Market Feeds',
+    shortDesc: 'Real-time price action, technical indicators, and economic calendar.',
     fullDesc:
-      'Aggregates raw institutional L2 order books across London Fix, New York AM/PM Killzones, and Tokyo sessions, cross-referenced against US 2Y/10Y Treasury yield spreads and DXY index velocity.',
+      'Continuously tracks Spot Gold (XAU/USD), major Forex pairs, and top crypto perpetuals alongside US 2Y/10Y Treasury yields, the Dollar Index (DXY), breaking financial headlines, and red-folder economic releases.',
     accentColor: 'text-info',
     borderColor: 'border-info/50',
     glowColor: 'rgba(38, 126, 224, 0.4)',
     icon: IconBolt,
     telemetry: [
-      { label: 'INGESTION LATENCY', value: '< 14ms Sub-Second Index' },
-      { label: 'PRIMARY FEEDS', value: 'XAU/USD · EUR · GBP · DXY' },
-      { label: 'MACRO SIGNALS', value: 'US10Y / US02Y Yield Spreads' },
-      { label: 'DEPTH SAMPLING', value: 'Full L2 Interbank Order Book' },
+      { label: 'PRIMARY MARKETS', value: 'XAU/USD · EUR · GBP · JPY' },
+      { label: 'MACRO BENCHMARKS', value: 'US10Y / US02Y · DXY Index' },
+      { label: 'TECHNICAL ENGINE', value: 'RSI · EMA · MACD · ATR · FVG' },
+      { label: 'CALENDAR & WIRES', value: 'Live Red-Folder Event Alerts' },
     ],
   },
 ];
@@ -177,7 +177,7 @@ export function LandingArchitecture() {
               </defs>
               <text fill="currentColor">
                 <textPath href="#circle-inner" startOffset="0%">
-                  • 1.0% VETO FIREWALL • SUB-18MS FIX BRIDGE •
+                  • 1.0% VETO FIREWALL • VERIFIED TRADE PLANS •
                 </textPath>
               </text>
             </svg>
@@ -190,7 +190,7 @@ export function LandingArchitecture() {
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono">
             <span className="size-2 rounded-full bg-brand animate-pulse" />
             <span className="text-brand font-semibold uppercase tracking-wider">
-              ※ Exploded 3D Axonometric Stack
+              ※ 4-Layer Intelligence Stack
             </span>
           </div>
 
@@ -199,7 +199,7 @@ export function LandingArchitecture() {
             <span className="font-redaction-35 italic text-brand">Unbreakable Stack</span>
           </h2>
           <p className="font-sans text-sm sm:text-base text-fg-muted max-w-xl leading-relaxed">
-            Every layer operates inside an audited cryptographic sandbox. Hover or tap any tier in the 3D stack below to trigger real-time wafer explosion separation physics.
+            Every trade setup passes through four independent layers of verification. Hover or tap any layer below to inspect how Kestrel turns live market data into a risk-checked trade plan.
           </p>
         </div>
 
@@ -275,10 +275,6 @@ export function LandingArchitecture() {
               {/* 4 Floating 3D Isometric Plates with Dynamic Spring Separation Physics */}
               {LAYERS.map((layer, index) => {
                 const isActive = layer.id === effectiveId;
-                // Vertical explosion physics:
-                // If index < activeIndex (layers physically above): launch up by -75px per distance
-                // If index > activeIndex (layers physically below): launch down by +75px per distance
-                // If index === activeIndex: stay at 0
                 const separationY =
                   index === activeIndex
                     ? -18
@@ -313,7 +309,7 @@ export function LandingArchitecture() {
                       transformStyle: 'preserve-3d',
                     }}
                   >
-                    {/* The Axonometric Silicon/Glass Plate with Hoplite Mathematical Angles */}
+                    {/* The Axonometric Plate */}
                     <div
                       className={cn(
                         'relative aspect-[354/195] w-full rounded-2xl transition-all duration-300 border backdrop-blur-md flex flex-col justify-between p-5',
@@ -326,7 +322,6 @@ export function LandingArchitecture() {
                         transformStyle: 'preserve-3d',
                       }}
                     >
-                      {/* Silicon Micro-Traces & Specular Bevel Edge */}
                       <div className="flex items-center justify-between border-b border-white/10 pb-2">
                         <div className="flex items-center gap-2">
                           <span
@@ -342,25 +337,23 @@ export function LandingArchitecture() {
                         <LayerIcon className={cn('size-4', isActive ? layer.accentColor : 'text-fg-subtle')} />
                       </div>
 
-                      {/* Middle Circuit Graphic inside Plate */}
                       <div className="flex items-center justify-between font-mono text-[10px]">
                         <span className={cn('font-bold tracking-wider', isActive ? 'text-fg' : 'text-fg-subtle')}>
                           {layer.title}
                         </span>
                         {isActive && (
                           <span className="text-brand font-bold bg-brand/10 border border-brand/30 px-1.5 py-0.5 rounded text-[9px] shadow-[0_0_8px_rgba(255,54,22,0.2)]">
-                            EXPLODED FOCUS
+                            ACTIVE LAYER
                           </span>
                         )}
                       </div>
 
-                      {/* Bottom Edge Spec Indicator */}
                       <div className="flex items-center justify-between text-[9px] font-mono text-fg-subtle border-t border-white/5 pt-1.5">
                         <div className="flex items-center gap-1">
                           <IconShieldLock className="size-3 text-bull" />
-                          <span>CRYPTOGRAPHIC SANDBOX</span>
+                          <span>VERIFIED LAYER</span>
                         </div>
-                        <span className="text-bull font-semibold">ISOLATED 100%</span>
+                        <span className="text-bull font-semibold">ACTIVE</span>
                       </div>
                     </div>
                   </m.div>

@@ -30,27 +30,27 @@ const FAQS: FAQItem[] = [
   {
     id: '01',
     question: 'What markets does Kestrel specialize in?',
-    answer: 'Kestrel is hyper-specialized for Spot Gold (XAU/USD) and major institutional Forex pairs (EUR/USD, GBP/USD, USD/JPY, AUD/USD). It continuously cross-references interbank currency flows against US Treasury yields (2Y, 10Y) and the Dollar Index (DXY).',
+    answer: 'Kestrel is built for Spot Gold (XAU/USD), major Forex pairs (EUR/USD, GBP/USD, USD/JPY, AUD/USD), and leading crypto perpetuals. Every analysis cross-references live price action against US Treasury yields (2Y, 10Y), the Dollar Index (DXY), and upcoming economic events.',
   },
   {
     id: '02',
-    question: 'How does the Full committee resolve conflicting signals?',
-    answer: 'Single mode runs one Technical Desk, so there is no cross-desk conflict to resolve. In Full mode, when the Technical Desk identifies a bullish Fair Value Gap but the Macroeconomic Desk flags hawkish central bank speech or impending NFP volatility, the desks cross-critique each other and the fusion synthesis reports the disagreement instead of hiding it. Every number in a verdict is deterministically checked against the research packet\'s market data and the desks\' verified opinions — an answer that cannot be grounded is withheld with a clear failure message rather than approximated. Kestrel will never issue a trade card unless the Full committee\'s conviction thresholds are met.',
+    question: 'How does the 4-Desk Committee resolve conflicting market signals?',
+    answer: 'Quick Read mode runs a single analyst for a fast 5-second check. In Full Committee mode, all four specialist desks (Technical, Macro, Risk, and Sentiment) evaluate the market independently. If Technicals spots a bullish setup right before a high-impact Fed release or hawkish macro shift, the desks flag the conflict openly and the Risk Desk warns you to stand down or reduce size instead of forcing a weak trade.',
   },
   {
     id: '03',
-    question: 'Does Kestrel connect directly to my broker or hold custody of funds?',
-    answer: 'Zero custody. Kestrel is an institutional intelligence and execution-planning terminal. All trading decisions generate verified institutional Trade Order cards with explicit Entry, Invalidation, and Take-Profit Cones that you can execute directly or dispatch via encrypted webhooks to MetaTrader, cTrader, or custom FIX bridges.',
+    question: 'Does Kestrel hold custody of funds or place trades automatically?',
+    answer: 'Never. Kestrel is a 100% non-custodial research and trade-planning copilot. Every committee briefing gives you exact Entry zones, Invalidation stops, position sizing, and Take-Profit targets that you can log to your Trade Journal and monitor with instant Telegram, Push, and Email alerts (with direct MT5 / cTrader bridge integration on our future roadmap).',
   },
   {
     id: '04',
-    question: 'What models and backends power Kestrel?',
-    answer: 'Kestrel runs an ensemble multi-agent committee built on the Mastra engine. By default, all four specialist desks share the frontier model you connect via your own API key (GPT, Claude, Gemini, Grok, DeepSeek and more are supported). You can assign a different top-tier model to each desk through model overrides — but no desk is ever silently downgraded to a cheaper model.',
+    question: 'Do I need to configure my own AI API keys or market data feeds?',
+    answer: 'No. Kestrel is a fully hosted subscription platform—all four specialist AI desks, real-time Gold, Forex, and Crypto market data, breaking news wires, economic calendars, and alert delivery channels are included and ready the moment you sign in.',
   },
   {
     id: '05',
-    question: 'Is Kestrel fully accessible on mobile devices?',
-    answer: 'Yes. Kestrel is built mobile-first as an installable Progressive Web Application (PWA) with hardware safe-area insets, tactile 44px+ hit targets, and touch-optimized lightweight TradingView charts.',
+    question: 'Can I use Kestrel on my phone as well as desktop?',
+    answer: 'Yes. Kestrel works seamlessly across desktop, tablet, and mobile browsers, and can be installed directly to your phone’s home screen as a web app with instant browser push and Telegram notifications for your price and indicator alerts.',
   },
 ];
 
@@ -70,14 +70,14 @@ export function LandingFAQ() {
         {/* Section Header */}
         <div className="flex flex-col items-center text-center gap-4 mb-16">
           <span className="font-mono text-xs font-semibold tracking-wider text-brand uppercase">
-            Frequently Answered Questions
+            Frequently Asked Questions
           </span>
           <h2 className="font-display text-3xl font-normal tracking-[-0.03em] text-fg sm:text-5xl">
             EVERY DETAIL{' '}
             <span className="font-redaction-35 italic text-brand">Clarified</span>
           </h2>
           <p className="font-sans text-base text-fg-muted max-w-xl">
-            Transparent explanations of Kestrel&apos;s algorithmic arbitration, non-custodial security, and data architecture.
+            Clear answers on how Kestrel&apos;s 4-desk AI committee, risk guardrails, and hosted subscription work.
           </p>
         </div>
 

@@ -40,17 +40,17 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       }}
     >
       <div className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 py-6">
-        {/* Navigation back to public landing / showcase */}
+        {/* Navigation back to public landing page */}
         <div className="flex w-full items-center justify-between px-1">
           <Link
             href="/landing"
             className="inline-flex items-center gap-1.5 font-mono text-xs text-fg-subtle transition-colors hover:text-fg active:translate-y-[0.5px]"
           >
             <IconArrowLeft className="size-3.5 text-brand" />
-            <span>Showcase</span>
+            <span>Back to Kestrel</span>
           </Link>
           <span className="font-mono text-[10px] uppercase tracking-wider text-fg-subtle/60">
-            Apex Rig
+            AI Market Copilot
           </span>
         </div>
 
@@ -64,11 +64,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="flex max-w-sm flex-col gap-2">
             <h1 className="sr-only">Kestrel</h1>
             <p className="text-fg font-display text-lg font-normal tracking-[-0.02em] sm:text-xl">
-              Sovereign AI committee for{' '}
+              The AI committee for{' '}
               <span className="font-redaction-35 italic text-brand">gold & forex</span>.
             </p>
             <p className="text-fg-muted font-sans text-xs leading-relaxed">
-              Four autonomous specialist desks deliberating with mathematical risk parameters.
+              Four specialist AI desks analyzing price action, macro catalysts, sentiment, and risk in sync.
             </p>
           </div>
           <span aria-hidden="true" className="brand-signal-line h-px w-16" />
@@ -81,5 +81,3 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     </main>
   );
 }
-
-

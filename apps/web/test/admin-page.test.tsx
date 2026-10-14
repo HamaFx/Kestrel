@@ -52,11 +52,11 @@ describe('AdminPage', () => {
     cleanup();
   });
 
-  it('renders the default health tab when no tab param is provided', () => {
+  it('renders the default platform tab when no tab param is provided', () => {
     render(<AdminPage />);
 
-    const healthTab = screen.getByRole('tab', { name: /Health/i });
-    expect(healthTab).toHaveAttribute('aria-selected', 'true');
+    const platformTab = screen.getByRole('tab', { name: /AI & Platform/i });
+    expect(platformTab).toHaveAttribute('aria-selected', 'true');
   });
 
   it('selects the tab matching the URL param', () => {
@@ -77,20 +77,20 @@ describe('AdminPage', () => {
   it('supports arrow key navigation between tabs', () => {
     render(<AdminPage />);
 
-    const healthTab = screen.getByRole('tab', { name: /Health/i });
-    healthTab.focus();
+    const platformTab = screen.getByRole('tab', { name: /AI & Platform/i });
+    platformTab.focus();
 
-    fireEvent.keyDown(healthTab, { key: 'ArrowRight' });
-    expect(mockReplace).toHaveBeenCalledWith('/admin?tab=onboarding', { scroll: false });
+    fireEvent.keyDown(platformTab, { key: 'ArrowRight' });
+    expect(mockReplace).toHaveBeenCalledWith('/admin?tab=health', { scroll: false });
   });
 
   it('moves focus to the tabpanel on ArrowDown', () => {
     render(<AdminPage />);
 
-    const healthTab = screen.getByRole('tab', { name: /Health/i });
-    healthTab.focus();
+    const platformTab = screen.getByRole('tab', { name: /AI & Platform/i });
+    platformTab.focus();
 
-    fireEvent.keyDown(healthTab, { key: 'ArrowDown' });
+    fireEvent.keyDown(platformTab, { key: 'ArrowDown' });
 
     const panel = document.activeElement;
     expect(panel).toHaveAttribute('role', 'tabpanel');

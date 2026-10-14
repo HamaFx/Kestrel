@@ -16,79 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { IconMessageCircle } from '@tabler/icons-react';
-import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
-import { auth } from '@/auth';
-
-import { TelegramLinkCard } from '../_components/telegram/telegram-link-card';
-import { TestTelegramButton } from '../_components/telegram/test-telegram-button';
-
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = {
-  title: 'Telegram · Settings',
-  description: 'Connect Telegram bot for instant push alerts and market commands.',
-};
-
-export default async function TelegramSettingsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect('/login');
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Telegram Bot</h2>
-        <p className="text-fg-subtle text-sm">
-          Link your Telegram to control Kestrel with bot commands and receive alerts.
-        </p>
-      </div>
-
-      <section className="surface-panel space-y-4 rounded-xl border border-white/10 p-6 shadow-[var(--shadow-chip)]">
-        <div className="flex items-center gap-2">
-          <IconMessageCircle className="text-brand size-5" />
-          <h3 className="text-base font-semibold">Bot Linking</h3>
-        </div>
-
-        <TelegramLinkCard />
-      </section>
-
-      <section className="surface-panel space-y-4 rounded-xl border border-white/10 p-6 shadow-[var(--shadow-chip)]">
-        <h3 className="text-fg text-sm font-semibold">Test Notification</h3>
-        <p className="text-fg-subtle text-xs">
-          Send a test message to verify your Telegram bot is configured correctly.
-        </p>
-        <TestTelegramButton />
-      </section>
-
-      <section className="surface-panel space-y-3 rounded-xl border border-white/10 p-6 shadow-[var(--shadow-chip)]">
-        <h3 className="text-fg text-sm font-semibold">Available Commands</h3>
-        <div className="grid gap-2 text-sm">
-          {[
-            { cmd: '/price <symbol>', desc: 'Get current price (e.g. /price XAUUSD)' },
-            { cmd: '/analyze <symbol>', desc: 'Full AI analysis (e.g. /analyze EURUSD)' },
-            { cmd: '/ask <question>', desc: 'Ask a question (e.g. /ask is gold bullish?)' },
-            { cmd: '/chart <symbol>', desc: 'Chart snapshot link (e.g. /chart XAUUSD)' },
-            {
-              cmd: '/alert <symbol> > <price>',
-              desc: 'Create price alert (e.g. /alert XAUUSD > 2700)',
-            },
-            { cmd: '/positions', desc: 'Show your open positions' },
-            { cmd: '/status', desc: 'System status and overview' },
-            { cmd: '/help', desc: 'List all commands' },
-          ].map((item) => (
-            <div
-              key={item.cmd}
-              className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
-            >
-              <code className="surface-well rounded-md border border-white/5 px-2 py-1 font-mono text-xs whitespace-nowrap sm:w-64">
-                {item.cmd}
-              </code>
-              <span className="text-fg-subtle text-xs">{item.desc}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
+export default function TelegramSettingsRedirect() {
+  redirect('/settings/notifications');
 }

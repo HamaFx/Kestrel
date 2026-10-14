@@ -43,116 +43,118 @@ const STEPS: Step[] = [
   {
     id: 1,
     label: '01',
-    tag: 'TICK INGESTION',
-    title: 'Multi-Venue Liquidity Sweep',
+    tag: 'MARKET SCAN',
+    title: 'Live Price, Key Levels & Macro Context',
     description:
-      'Sub-second tick ingestion aggregating interbank FX pairs, Spot Gold (XAU), US Treasury yields, and Dollar Index (DXY) into an indexed memory stream.',
-    fileName: 'venue_ingestion.ts',
-    latency: '14ms',
+      'Ask about any symbol or pick from your watchlist. Kestrel pulls multi-timeframe price action, Spot Gold (XAU/USD), US Treasury yields, and the Dollar Index (DXY) automatically.',
+    fileName: 'step-01-market-scan',
+    latency: 'Step 1 of 4',
     telemetry: [
-      { label: 'THROUGHPUT', value: '14,200 ticks/sec' },
-      { label: 'INGESTION WINDOW', value: '15m / 1h / 4h buffers' },
-      { label: 'VENUES CONNECTED', value: 'London Fix · NY Killzone' },
+      { label: 'TIMEFRAMES SCANNED', value: '15m / 1H / 4H / Daily' },
+      { label: 'CORRELATIONS', value: 'US10Y · US02Y · DXY' },
+      { label: 'ACTIVE SESSIONS', value: 'London Fix · NY Killzone' },
     ],
     codeHighlighted: (
       <>
-        <span className="text-[#6c7086]">// 1. Interbank Tick Ingestion Pipeline</span>
+        <span className="text-[#6c7086]">─── MARKET CONTEXT SNAPSHOT · XAU/USD (4H) ───</span>
         {'\n'}
-        <span className="text-[#cba6f7]">await</span> <span className="text-[#89b4fa]">kestrel</span>.
-        <span className="text-[#a6e3a1]">ingestVenueFeeds</span>({'{'}
-        {'\n'}  <span className="text-[#94e2d5]">symbol</span>: <span className="text-[#a6e3a1]">"XAUUSD"</span>,
-        {'\n'}  <span className="text-[#94e2d5]">orderBookDepth</span>: <span className="text-[#a6e3a1]">"interbank-l2"</span>,
-        {'\n'}  <span className="text-[#94e2d5]">primaryFeeds</span>: [<span className="text-[#a6e3a1]">"LONDON_FIX"</span>, <span className="text-[#a6e3a1]">"NY_AM_KILLZONE"</span>],
-        {'\n'}  <span className="text-[#94e2d5]">macroCorrelations</span>: [<span className="text-[#a6e3a1]">"US10Y"</span>, <span className="text-[#a6e3a1]">"US02Y"</span>, <span className="text-[#a6e3a1]">"DXY"</span>]
-        {'\n'}{'}'});
+        <span className="text-[#94e2d5]">Spot Price:</span>      <span className="text-[#a6e3a1]">$2,864.20 (+1.42% Session)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Key Support:</span>     <span className="text-[#f9e2af]">$2,846.50 (4H Bullish Demand + EMA 50)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Key Resistance:</span>  <span className="text-[#f9e2af]">$2,884.00 (Prior Weekly High)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Macro Context:</span>   <span className="text-[#89b4fa]">US 10Y Yield 4.28% (-4.2 bps) · DXY Softening</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Next Red Event:</span>  <span className="text-[#fab387]">US Core PCE in 18h 40m (Clear Window)</span>
       </>
     ),
   },
   {
     id: 2,
     label: '02',
-    tag: 'PARALLEL ENGINES',
-    title: '4-Desk Concurrent Deliberation',
+    tag: '4-DESK DELIBERATION',
+    title: '4 Specialist AI Desks Weigh In',
     description:
-      'Four specialized algorithmic agents spin up in parallel: Technicals scans Fair Value Gaps, Macro reviews central bank catalysts, Risk computes ATR stop-losses, and Sentiment tracks CFTC COT positioning.',
-    fileName: 'committee_deliberation.ts',
-    latency: '82ms',
+      'Four specialized AI desks evaluate the setup in parallel: Technicals maps Fair Value Gaps and structure, Macro reviews central bank catalysts, Risk calculates ATR stop distance, and Sentiment checks COT positioning.',
+    fileName: 'step-02-committee-debate',
+    latency: 'Step 2 of 4',
     telemetry: [
-      { label: 'CONCURRENT DESKS', value: '4 Isolated Sandboxes' },
-      { label: 'DELIBERATION TIME', value: '82ms p95 convergence' },
-      { label: 'SMC PATTERNS', value: 'FVG + Order Block Sweep' },
+      { label: 'SPECIALIST DESKS', value: '4 Independent Analysts' },
+      { label: 'TECHNICAL BIAS', value: 'Bullish FVG + Sweep (94%)' },
+      { label: 'COT POSITIONING', value: 'Commercials Net Long' },
     ],
     codeHighlighted: (
       <>
-        <span className="text-[#6c7086]">// 2. Concurrent 4-Desk Sandbox Execution</span>
+        <span className="text-[#6c7086]">─── INDEPENDENT 4-DESK DELIBERATION SUMMARY ───</span>
         {'\n'}
-        <span className="text-[#cba6f7]">const</span> <span className="text-[#f9e2af]">hypotheses</span> = <span className="text-[#cba6f7]">await</span> <span className="text-[#89b4fa]">committee</span>.
-        <span className="text-[#a6e3a1]">deliberate</span>({'{'}
-        {'\n'}  <span className="text-[#94e2d5]">technical</span>:   <span className="text-[#89b4fa]">scanSMCStructure</span>({'{'} timeframes: [<span className="text-[#a6e3a1]">"15m"</span>, <span className="text-[#a6e3a1]">"1h"</span>, <span className="text-[#a6e3a1]">"4h"</span>] {'}'}),
-        {'\n'}  <span className="text-[#94e2d5]">macro</span>:       <span className="text-[#89b4fa]">parseRateCatalysts</span>({'{'} wires: [<span className="text-[#a6e3a1]">"FED"</span>, <span className="text-[#a6e3a1]">"PCE"</span>, <span className="text-[#a6e3a1]">"NFP"</span>] {'}'}),
-        {'\n'}  <span className="text-[#94e2d5]">risk</span>:        <span className="text-[#89b4fa]">computeCeiling</span>({'{'} maxDrawdown: <span className="text-[#fab387]">0.01</span> {'}'}),
-        {'\n'}  <span className="text-[#94e2d5]">sentiment</span>:   <span className="text-[#89b4fa]">queryWhaleCOT</span>({'{'} symbol: <span className="text-[#a6e3a1]">"GOLD"</span> {'}'})
-        {'\n'}{'}'});
+        <span className="text-[#a6e3a1]">[TECHNICAL DESK]</span>  <span className="text-[#f9e2af]">BULLISH (94%)</span> · Asia low swept into 15m FVG
+        {'\n'}
+        <span className="text-[#89b4fa]">[MACRO DESK]</span>      <span className="text-[#f9e2af]">BULLISH (88%)</span> · Real yields compressing ahead of Fed
+        {'\n'}
+        <span className="text-[#fab387]">[RISK DESK]</span>       <span className="text-[#f9e2af]">APPROVED (92%)</span> · 17.70 pt stop fits 1.0% risk cap
+        {'\n'}
+        <span className="text-[#cba6f7]">[SENTIMENT DESK]</span>  <span className="text-[#f9e2af]">BULLISH (86%)</span> · CFTC Commercials +18.4k contracts
       </>
     ),
   },
   {
     id: 3,
     label: '03',
-    tag: 'SYNDICATE ARBITRATION',
-    title: 'Consensus Scoring & Invalidation Veto',
+    tag: 'RISK GUARDRAILS',
+    title: 'Conflict Check & 1% Risk Protection',
     description:
-      'The Lead Arbiter scores weighted desk confidence, tests for contradictory signals (e.g. bullish price action into hawkish Fed print), and enforces mathematical vetoes.',
-    fileName: 'arbitration_veto.ts',
-    latency: '44ms',
+      'The Lead Arbiter checks for conflicting signals across desks (such as bullish price action right before a high-impact Fed release) and blocks setups that violate your 1% risk limit.',
+    fileName: 'step-03-risk-guardrails',
+    latency: 'Step 3 of 4',
     telemetry: [
-      { label: 'CONSENSUS ALGORITHM', value: 'Weighted Confidence Matrix' },
-      { label: 'VETO THRESHOLD', value: 'Drawdown > 1.0% Hard Abort' },
-      { label: 'SIGNAL PURITY', value: 'Zero Contradiction Rule' },
+      { label: 'CONFLICT CHECK', value: '4/4 Desks Aligned' },
+      { label: 'RISK CEILING', value: '≤ 1.0% Account Risk' },
+      { label: 'EVENT HAZARD', value: 'No Red-Folder Imminent' },
     ],
     codeHighlighted: (
       <>
-        <span className="text-[#6c7086]">// 3. Syndicate Consensus & Mathematical Veto</span>
+        <span className="text-[#6c7086]">─── RISK GUARDRAIL & CONFLICT AUDIT ───</span>
         {'\n'}
-        <span className="text-[#cba6f7]">if</span> (<span className="text-[#f38ba8]">risk.vetoEnforced</span> || <span className="text-[#f38ba8]">technical.contradicts(macro)</span>) {'{'}
-        {'\n'}  <span className="text-[#cba6f7]">return</span> <span className="text-[#89b4fa]">committee</span>.<span className="text-[#f38ba8]">veto</span>({'{'}
-        {'\n'}    <span className="text-[#94e2d5]">status</span>: <span className="text-[#f38ba8]">"DISPUTED_SIGNAL"</span>,
-        {'\n'}    <span className="text-[#94e2d5]">reason</span>: <span className="text-[#a6e3a1]">"Conflicting Fed rate cut probability at resistance"</span>
-        {'\n'}  {'}'});
-        {'\n'}{'}'}
+        <span className="text-[#94e2d5]">Desk Alignment:</span>   <span className="text-[#a6e3a1]">4 of 4 Desks Bullish (Zero Contradictions)</span>
         {'\n'}
-        <span className="text-[#cba6f7]">const</span> <span className="text-[#f9e2af]">consensus</span> = <span className="text-[#cba6f7]">await</span> <span className="text-[#89b4fa]">arbiter</span>.<span className="text-[#a6e3a1]">synthesize</span>(hypotheses);
+        <span className="text-[#94e2d5]">Stop Placement:</span>   <span className="text-[#f9e2af]">$2,846.50 (1.5x ATR below 15m swing low)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Max Account Risk:</span> <span className="text-[#a6e3a1]">0.85% Equity (Within 1.0% Safety Cap)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Verdict Status:</span>   <span className="text-[#a6e3a1]">✓ CLEARED FOR TRADE PLAN GENERATION</span>
       </>
     ),
   },
   {
     id: 4,
     label: '04',
-    tag: 'EXECUTION PLAN',
-    title: 'Institutional Grade Trade Orders',
+    tag: 'CLEAR ACTION PLAN',
+    title: 'Complete Trade Plan & Multi-Target Cones',
     description:
-      'Generates structured institutional trade cards with explicit Entry zones, hard Invalidation levels, and multi-tier Take Profit cones (1:1.5, 1:2.5, 1:4 R:R).',
-    fileName: 'execution_cones.ts',
-    latency: '18ms',
+      'Delivers a structured trade card with exact Entry zones, hard Invalidation levels, and multi-tier Take-Profit targets (TP1, TP2, TP3) ready to log to your Trade Journal or arm as alerts.',
+    fileName: 'step-04-trade-plan',
+    latency: 'Step 4 of 4',
     telemetry: [
-      { label: 'ASPR RATIO', value: '1:3.22 Minimum Risk/Reward' },
-      { label: 'ORDER CONES', value: 'TP1 (40%) · TP2 (40%) · TP3 (20%)' },
-      { label: 'BRIDGE TARGET', value: 'Encrypted FIX 4.4 / MT5 Webhook' },
+      { label: 'RISK / REWARD', value: '1:3.22 Asymmetric Setup' },
+      { label: 'TAKE-PROFIT TIERS', value: 'TP1 (40%) · TP2 (40%) · TP3 (20%)' },
+      { label: 'ONE-CLICK ACTION', value: 'Trade Journal & Price Alerts' },
     ],
     codeHighlighted: (
       <>
-        <span className="text-[#6c7086]">// 4. Final Asymmetric Execution Card</span>
+        <span className="text-[#6c7086]">─── FINALIZED COMMITTEE TRADE PLAN · XAU/USD ───</span>
         {'\n'}
-        <span className="text-[#cba6f7]">return</span> <span className="text-[#89b4fa]">createTradeCard</span>({'{'}
-        {'\n'}  <span className="text-[#94e2d5]">action</span>: <span className="text-[#a6e3a1]">"BUY_LIMIT"</span>,
-        {'\n'}  <span className="text-[#94e2d5]">entryZone</span>: <span className="text-[#fab387]">2864.20</span>,
-        {'\n'}  <span className="text-[#94e2d5]">invalidationFloor</span>: <span className="text-[#fab387]">2846.50</span>, <span className="text-[#6c7086]">// Hard stop (1.0% max loss)</span>
-        {'\n'}  <span className="text-[#94e2d5]">takeProfitCones</span>: [
-        {'\n'}    {'{'} <span className="text-[#94e2d5]">tp1</span>: <span className="text-[#fab387]">2884.00</span>, <span className="text-[#94e2d5]">rr</span>: <span className="text-[#a6e3a1]">"1:1.1"</span>, <span className="text-[#94e2d5]">scaleOut</span>: <span className="text-[#a6e3a1]">"40%"</span> {'}'},
-        {'\n'}    {'{'} <span className="text-[#94e2d5]">tp2</span>: <span className="text-[#fab387]">2916.50</span>, <span className="text-[#94e2d5]">rr</span>: <span className="text-[#a6e3a1]">"1:3.0"</span>, <span className="text-[#94e2d5]">scaleOut</span>: <span className="text-[#a6e3a1]">"40%"</span> {'}'},
-        {'\n'}    {'{'} <span className="text-[#94e2d5]">tp3</span>: <span className="text-[#fab387]">2940.00</span>, <span className="text-[#94e2d5]">rr</span>: <span className="text-[#a6e3a1]">"1:4.3"</span>, <span className="text-[#94e2d5]">scaleOut</span>: <span className="text-[#a6e3a1]">"20%"</span> {'}'}
-        {'\n'}  ]
-        {'\n'}{'}'});
+        <span className="text-[#94e2d5]">Directional Bias:</span> <span className="text-[#a6e3a1]">BUY / LONG (91% Committee Conviction)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Entry Zone:</span>       <span className="text-[#f9e2af]">$2,862.50 – $2,864.20</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Invalidation SL:</span>  <span className="text-[#f38ba8]">$2,846.50 (-1.0R Hard Stop)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Target 1 (1.1R):</span>  <span className="text-[#a6e3a1]">$2,884.00 (Scale out 40% & move SL to BE)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Target 2 (3.0R):</span>  <span className="text-[#a6e3a1]">$2,916.50 (Scale out 40%)</span>
+        {'\n'}
+        <span className="text-[#94e2d5]">Target 3 (4.3R):</span>  <span className="text-[#a6e3a1]">$2,940.00 (Trail remaining 20% runner)</span>
       </>
     ),
   },
@@ -223,16 +225,16 @@ export function LandingStepper() {
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono">
             <span className="size-2 rounded-full bg-brand animate-pulse shadow-[0_0_8px_#ff3616]" />
             <span className="text-brand font-semibold uppercase tracking-wider">
-              ※ Continuous Execution Pipeline
+              ※ 4-Step Research Workflow
             </span>
           </div>
 
           <h2 className="font-display text-3xl font-normal tracking-[-0.03em] text-fg sm:text-5xl">
-            HOW KESTREL EXECUTES{' '}
-            <span className="font-redaction-35 italic text-brand">With Precision</span>
+            HOW KESTREL BUILDS{' '}
+            <span className="font-redaction-35 italic text-brand">Your Trade Plan</span>
           </h2>
           <p className="font-sans text-base text-fg-muted leading-relaxed">
-            From raw interbank tick arrival to finalized multi-target trade plans, every order follows an audited 4-stage algorithmic committee protocol connected by a continuous verification spine.
+            From scanning live price structure to delivering a risk-checked trade plan with exact invalidation and take-profit targets, here is what happens every time you ask Kestrel to analyze a market.
           </p>
 
           {/* Autoplay & Telemetry Status Pill */}
@@ -255,7 +257,7 @@ export function LandingStepper() {
               )}
             </button>
             <span className="font-mono text-xs text-fg-subtle">
-              TOTAL PIPELINE LATENCY: <strong className="text-bull">158ms</strong>
+              COMMITTEE WORKFLOW: <strong className="text-bull">4 VERIFIED STAGES</strong>
             </span>
           </div>
         </div>
@@ -416,7 +418,7 @@ export function LandingStepper() {
                       </div>
                       {active && isPlaying && (
                         <span className="font-mono text-[10px] text-brand uppercase font-bold animate-pulse">
-                          RUNNING
+                          ACTIVE
                         </span>
                       )}
                     </div>
@@ -443,7 +445,7 @@ export function LandingStepper() {
             })}
           </div>
 
-          {/* Right Column: Code & Operational Telemetry Workbench with Hoplite Lit State Glow Mask */}
+          {/* Right Column: Live Briefing Preview Workbench with Hoplite Lit State Glow Mask */}
           <div id="pipeline-detail-panel" role="tabpanel" className="lg:col-span-6">
             <div className="relative overflow-hidden rounded-2xl border border-brand/40 bg-[#121314] p-6 shadow-2xl">
               {/* Hoplite Signature Elliptical Radial Border Glow Mask */}
@@ -458,14 +460,14 @@ export function LandingStepper() {
                 }}
               />
 
-              {/* Workbench Header Bar with IDE Status Controls */}
+              {/* Workbench Header Bar */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4 relative z-10">
                 <div className="flex items-center gap-2">
                   <span className="size-2.5 rounded-full bg-red-500/80" />
                   <span className="size-2.5 rounded-full bg-amber-500/80" />
                   <span className="size-2.5 rounded-full bg-emerald-500/80" />
                   <span className="ml-2 font-mono text-xs text-fg-subtle">
-                    kestrel / pipeline / {current.fileName}
+                    kestrel / briefing / {current.fileName}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 font-mono text-xs">
@@ -474,7 +476,7 @@ export function LandingStepper() {
                 </div>
               </div>
 
-              {/* Code Surface with Smooth Fade */}
+              {/* Briefing Output Surface with Smooth Fade */}
               <AnimatePresence mode="wait">
                 <m.div
                   key={current.id}
@@ -507,12 +509,12 @@ export function LandingStepper() {
               <div className="mt-4 flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3.5 text-xs font-mono relative z-10">
                 <div className="flex items-center gap-2">
                   <IconActivity className="size-4 text-brand" />
-                  <span className="text-fg-subtle">EXECUTION CYCLE:</span>
+                  <span className="text-fg-subtle">WORKFLOW STAGE:</span>
                   <span className="text-bull font-semibold tabular-nums">{current.latency}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-brand">
                   <IconFlame className="size-3.5" />
-                  <span>Deterministic Kernel</span>
+                  <span>Verified Trade Protocol</span>
                 </div>
               </div>
             </div>

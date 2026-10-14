@@ -32,11 +32,11 @@ describe('Phase 4–6 UI improvements', () => {
 
       expect(
         screen.getByRole('group', {
-          name: 'Setup progress: step 3 of 5, Symbols',
+          name: 'Setup progress: step 3 of 4, Watchlist',
         }),
       ).toBeTruthy();
-      expect(screen.getByLabelText('Step 3: Symbols')).toHaveAttribute('aria-current', 'step');
-      expect(screen.getByText(/Step 3 of 5/)).toBeTruthy();
+      expect(screen.getByLabelText('Step 3: Watchlist')).toHaveAttribute('aria-current', 'step');
+      expect(screen.getByText(/Step 3 of 4/)).toBeTruthy();
     });
   });
 

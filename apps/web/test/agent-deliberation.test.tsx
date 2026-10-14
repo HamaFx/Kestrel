@@ -166,7 +166,7 @@ describe('AgentDeliberation', () => {
   describe('initial state — all pending', () => {
     it('shows "Deliberating…" when nothing is done yet', () => {
       render(<AgentDeliberation agents={allPending()} mode="standard" />);
-      expect(screen.getByText(/Deliberating…/i)).toBeTruthy();
+      expect(screen.getByText(/Analyzing live market data…/i)).toBeTruthy();
     });
 
     it('does not show the verdict panel', () => {
@@ -176,30 +176,29 @@ describe('AgentDeliberation', () => {
 
     it('renders agent nodes with "pending" aria-label', () => {
       render(<AgentDeliberation agents={allPending()} mode="standard" />);
-      expect(screen.getByLabelText(/Technical agent: pending/i)).toBeTruthy();
-      expect(screen.getByLabelText(/Fundamental agent: pending/i)).toBeTruthy();
-      expect(screen.getByLabelText(/Risk agent: pending/i)).toBeTruthy();
+      expect(screen.getByLabelText(/Technical desk: pending/i)).toBeTruthy();
+      expect(screen.getByLabelText(/Macro desk: pending/i)).toBeTruthy();
+      expect(screen.getByLabelText(/Risk desk: pending/i)).toBeTruthy();
     });
   });
 
   describe('running state', () => {
     it('shows telemetry log when not all done', () => {
       render(<AgentDeliberation agents={oneRunning()} mode="standard" />);
-      expect(screen.getByText(/System Telemetry/i)).toBeTruthy();
+      expect(screen.getByText(/Live Committee Progress/i)).toBeTruthy();
     });
 
     it('shows [ RUNNING ] tag for running agents and fusion engine', () => {
       render(<AgentDeliberation agents={oneRunning()} mode="standard" />);
-      // [ RUNNING ] appears twice: once for the running agent, once for the
-      // fusion engine (see TelemetryLog component)
-      const runningTags = screen.getAllByText(/\[ RUNNING \]/i);
-      expect(runningTags.length).toBe(2);
+      const runningTags = screen.getAllByText(/\[ ANALYZING \]/i);
+      expect(runningTags.length).toBe(1);
+      expect(screen.getByText(/trade plan synthesis\s+\[ ACTIVE \]/i)).toBeTruthy();
     });
 
     it('shows [ PENDING ] tag for pending agents', () => {
       render(<AgentDeliberation agents={oneRunning()} mode="standard" />);
       // Only one agent is running, two are pending
-      const pendingTags = screen.getAllByText(/\[ PENDING \]/i);
+      const pendingTags = screen.getAllByText(/\[ QUEUED \]/i);
       expect(pendingTags.length).toBe(2);
     });
   });
@@ -214,14 +213,14 @@ describe('AgentDeliberation', () => {
 
     it('shows [ COMPLETED ] tag for done agents', () => {
       render(<AgentDeliberation agents={oneDone()} mode="standard" />);
-      expect(screen.getByText(/\[ COMPLETED \]/i)).toBeTruthy();
+      expect(screen.getByText(/\[ READY \]/i)).toBeTruthy();
     });
   });
 
   describe('verdict reveal — all done', () => {
     it('shows the committee confidence panel', () => {
       render(<AgentDeliberation agents={allDoneWithVerdict()} mode="full" />);
-      expect(screen.getByText(/Desk Confidence/i)).toBeTruthy();
+      expect(screen.getByText(/Committee Conviction/i)).toBeTruthy();
     });
 
     it('calculates average confidence correctly', () => {
@@ -235,7 +234,7 @@ describe('AgentDeliberation', () => {
 
     it('hides telemetry log when all done', () => {
       render(<AgentDeliberation agents={allDoneWithVerdict()} mode="full" />);
-      expect(screen.queryByText(/System Telemetry/i)).toBeNull();
+      expect(screen.queryByText(/Live Committee Progress/i)).toBeNull();
     });
 
     it('shows "View Specialist Breakdowns" details element', () => {
@@ -259,7 +258,7 @@ describe('AgentDeliberation', () => {
       render(<AgentDeliberation agents={mixedDoneError()} mode="standard" />);
       // When all agents are done or errored, the telemetry log is hidden and
       // the verdict panel shows error details directly
-      expect(screen.getByText(/Fundamental agent failed: API timeout/i)).toBeTruthy();
+      expect(screen.getByText(/Macro Desk check unavailable: API timeout/i)).toBeTruthy();
     });
   });
 

@@ -20,17 +20,11 @@ import {
   IconArrowLeft,
   IconBell,
   IconChevronRight,
-  IconCpu,
   IconCreditCard,
-  IconDatabase,
-  IconKey,
   IconList,
-  IconMessageCircle,
   IconPalette,
-  IconRobot,
   IconSettings,
   IconShield,
-  IconUser,
   IconWallet,
 } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
@@ -60,53 +54,44 @@ const BASE_NAV_GROUPS: NavGroup[] = [
     shortLabel: 'Overview',
     items: [
       { href: '/settings', label: 'General', shortLabel: 'Overview', icon: IconSettings, exact: true },
-    ],
-  },
-  {
-    id: 'ai',
-    label: 'AI & Intelligence',
-    shortLabel: 'AI',
-    items: [
-      { href: '/settings/api-keys', label: 'API Keys', shortLabel: 'Keys', icon: IconKey },
-      { href: '/settings/models', label: 'Models', shortLabel: 'Models', icon: IconCpu },
-      { href: '/settings/agent', label: 'Agent Tools', shortLabel: 'Tools', icon: IconRobot },
-    ],
-  },
-  {
-    id: 'account',
-    label: 'Account & Security',
-    shortLabel: 'Account',
-    items: [
-      { href: '/settings/profile', label: 'Profile', shortLabel: 'Profile', icon: IconUser },
-      { href: '/settings/security', label: 'Security', shortLabel: 'Security', icon: IconShield },
+      {
+        href: '/settings/billing',
+        label: 'Subscription & Billing',
+        shortLabel: 'Billing',
+        icon: IconCreditCard,
+      },
     ],
   },
   {
     id: 'trading',
-    label: 'Trading & Market',
+    label: 'Trading & Risk',
     shortLabel: 'Trading',
     items: [
-      { href: '/settings/symbols', label: 'Symbols Watchlist', shortLabel: 'Symbols', icon: IconList },
-      { href: '/settings/portfolio', label: 'Portfolio Risk', shortLabel: 'Portfolio', icon: IconWallet },
+      { href: '/settings/symbols', label: 'Watchlist Symbols', shortLabel: 'Symbols', icon: IconList },
+      { href: '/settings/portfolio', label: 'Portfolio & Risk Rules', shortLabel: 'Risk', icon: IconWallet },
     ],
   },
   {
     id: 'notifications',
-    label: 'Notifications',
+    label: 'Alerts & Delivery',
     shortLabel: 'Alerts',
     items: [
-      { href: '/settings/notifications', label: 'Channels & Noise', shortLabel: 'Channels', icon: IconBell },
-      { href: '/settings/telegram', label: 'Telegram Bot', shortLabel: 'Telegram', icon: IconMessageCircle },
+      {
+        href: '/settings/notifications',
+        label: 'Notifications & Telegram',
+        shortLabel: 'Channels',
+        icon: IconBell,
+      },
     ],
   },
   {
-    id: 'workspace',
-    label: 'Workspace & System',
-    shortLabel: 'System',
+    id: 'account',
+    label: 'Account & Workspace',
+    shortLabel: 'Account',
     items: [
-      { href: '/settings/appearance', label: 'Appearance', shortLabel: 'Display', icon: IconPalette },
-      { href: '/settings/data', label: 'Data & Storage', shortLabel: 'Data', icon: IconDatabase },
-      { href: '/settings/usage', label: 'Usage Analytics', shortLabel: 'Usage', icon: IconActivity },
+      { href: '/settings/profile', label: 'Profile & Security', shortLabel: 'Profile', icon: IconShield },
+      { href: '/settings/appearance', label: 'Appearance & Data', shortLabel: 'Display', icon: IconPalette },
+      { href: '/settings/usage', label: 'Activity & Quota', shortLabel: 'Activity', icon: IconActivity },
     ],
   },
 ];
@@ -115,29 +100,11 @@ interface SettingsNavProps {
   billingEnabled?: boolean;
 }
 
-export function SettingsNav({ billingEnabled = false }: SettingsNavProps) {
+export function SettingsNav(_props: SettingsNavProps) {
   const pathname = usePathname();
   const isSubPage = pathname !== '/settings';
 
-  const groups: NavGroup[] = BASE_NAV_GROUPS.map((group) => {
-    if (group.id === 'workspace' && billingEnabled) {
-      return {
-        ...group,
-        items: [
-          ...group.items,
-          {
-            href: '/settings/billing',
-            label: 'Billing Plans',
-            shortLabel: 'Billing',
-            icon: IconCreditCard,
-          } as NavItem,
-        ],
-      };
-    }
-    return group;
-  });
-
-
+  const groups = BASE_NAV_GROUPS;
   const allItems = groups.flatMap((g) => g.items);
   const currentItem = allItems.find((item) =>
     item.exact ? pathname === item.href : pathname?.startsWith(item.href),
@@ -175,7 +142,6 @@ export function SettingsNav({ billingEnabled = false }: SettingsNavProps) {
 
       {/* MOBILE NAVIGATION: Two-tier grouped navigation (< md) */}
       <div className="flex flex-col gap-2 md:hidden">
-        {/* Tier 1: Category Chips Rail */}
         <nav
           aria-label="Settings Categories"
           className="flex snap-x flex-row gap-1.5 overflow-x-auto pb-1 scrollbar-none"
@@ -202,7 +168,6 @@ export function SettingsNav({ billingEnabled = false }: SettingsNavProps) {
           })}
         </nav>
 
-        {/* Tier 2: Sub-items for active category (if more than 1 item) */}
         {activeGroup.items.length > 1 && (
           <nav
             aria-label={`${activeGroup.label} Subsections`}

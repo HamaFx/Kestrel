@@ -16,28 +16,6 @@
  * limitations under the License.
  */
 
-/**
- * <CommandPalette> — global ⌘K / Ctrl-K launcher.
- *
- * Phase B — UX_UPGRADE_PLAN.md item 11.
- *
- * Mounts once at the app layout level. Listens for the keyboard
- * shortcut, opens a vaul drawer with an input + results list, and
- * dispatches commands on Enter.
- *
- * Mobile fallback: when the device has coarse pointer (touch), we
- * render a floating "Quick switch" button bottom-right that opens
- * the same drawer. Desktop keyboard users get ⌘K only.
- *
- * The palette is intentionally narrow in scope:
- *   - Static command list (no async search across threads here —
- *     that lives in the chat search affordance and would add API
- *     complexity for marginal value).
- *   - One keyboard shortcut. We do not implement g+key sequences
- *     (Vim-style). The plan calls for a single launcher.
- *   - No analytics. The palette is a power-user affordance; logging
- *     every selection would inflate telemetry without insight.
- */
 import { IconCommand, IconSearch } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -56,9 +34,8 @@ const GROUP_ORDER: CommandGroup[] = ['navigation', 'create', 'settings'];
 
 export interface CommandPaletteProps {
   /**
-   * Imperative handler for the "new chat" command. We don't put
-   * this in the static command list because the implementation
-   * needs `router` + the chat thread-creation route.
+   * Imperative handler for the "new chat" command. When not provided,
+   * falls back to navigating to `/chat?new=1`.
    */
   onNewChat?: () => void;
 }
@@ -71,8 +48,6 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
 
-  // Touch detection — single read on mount, no resize listener
-  // (changing input mode at runtime would be confusing).
   const [isTouch, setIsTouch] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -97,8 +72,6 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     if (open) {
       setQuery('');
       setActiveIdx(0);
-      // Focus the input after vaul animates in. requestAnimationFrame
-      // is the standard hook for "after layout".
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);
@@ -107,7 +80,11 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     (cmd: CommandItem) => {
       setOpen(false);
       if (cmd.id === 'create-chat') {
-        onNewChat?.();
+        if (onNewChat) {
+          onNewChat();
+        } else {
+          router.push('/chat?new=1');
+        }
         return;
       }
       if (cmd.action) {
@@ -121,12 +98,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     [router, onNewChat],
   );
 
-  // Build the search corpus: each command's label + keywords joined
-  // into a single searchable string. The displayed label stays
-  // untouched; we only use the joined string for matching.
   const corpus = useMemo(() => {
-    // Each row carries `label` (joined for matching) and the
-    // original CommandItem so the UI can render icon, href, etc.
     type Row = { item: CommandItem; label: string; displayLabel: string };
     const rows: Row[] = COMMANDS.map((c) => ({
       item: c,
@@ -139,16 +111,11 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
   const ranked = useMemo(() => {
     const matches = rankByQuery(query, corpus);
     return matches.map(({ item, match }) => {
-      // Translate matched indices (into the joined label + keywords
-      // string) back into the display label for highlighting. Indices
-      // outside the display label are keyword hits — drop them.
       const labelIndices = match.indices.filter((i) => i < item.displayLabel.length);
       return { command: item.item, match, labelIndices };
     });
   }, [query, corpus]);
 
-  // Group ranked results preserving the global rank order within each
-  // group so the active-index jumps between groups in a sensible way.
   const grouped = useMemo(() => {
     const out: Record<CommandGroup, Array<{ command: CommandItem; labelIndices: number[] }>> = {
       navigation: [],
@@ -160,8 +127,6 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     return out;
   }, [ranked]);
 
-  // Flatten in display order so keyboard nav (arrow up/down) can
-  // step through every visible row in a single index space.
   const flatRows = useMemo(() => {
     const out: Array<{ command: CommandItem; labelIndices: number[] }> = [];
     for (const group of GROUP_ORDER) {
@@ -170,14 +135,12 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     return out;
   }, [grouped]);
 
-  // Clamp activeIdx when the result set changes.
   useEffect(() => {
     if (flatRows.length > 0 && activeIdx >= flatRows.length) {
       setActiveIdx(0);
     }
   }, [flatRows.length, activeIdx]);
 
-  // Scroll active item into view when activeIdx changes.
   useEffect(() => {
     if (!open) return;
     const activeEl = document.querySelector(`[data-command-idx="${activeIdx}"]`);
@@ -245,7 +208,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                   setActiveIdx(0);
                 }}
                 onKeyDown={onInputKeyDown}
-                placeholder="Search…"
+                placeholder="Jump to page or action…"
                 autoComplete="off"
                 spellCheck={false}
                 className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-4 pl-10 text-sm focus:outline-none"
@@ -333,8 +296,6 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
         </DrawerContent>
       </Drawer>
 
-      {/* Touch fallback: a floating "Quick switch" button so mobile
-          users have an equivalent surface to ⌘K. */}
       {isTouch ? (
         <button
           type="button"
@@ -350,11 +311,6 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
   );
 }
 
-/**
- * Render a label with the matched indices highlighted. Indices that
- * are out of range are ignored. Non-highlighted characters render
- * normally; highlighted characters get a brand-toned background.
- */
 function HighlightedLabel({ label, indices }: { label: string; indices: number[] }) {
   if (indices.length === 0) return <>{label}</>;
   const idxSet = new Set(indices);

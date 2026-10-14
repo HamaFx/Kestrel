@@ -16,11 +16,10 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// /settings/billing — Billing & subscription management page.
-// Shows plan cards, current subscription status, and payment history.
-
 import { getUserPayments, getUserSubscription, listActivePlans } from '@kestrel/db';
+import { IconCheck, IconSparkles } from '@tabler/icons-react';
 import type { Metadata } from 'next';
+import { Link } from 'next-view-transitions';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
@@ -31,8 +30,8 @@ import { PaymentHistory } from './_components/payment-history';
 import { SubscriptionStatus } from './_components/subscription-status';
 
 export const metadata: Metadata = {
-  title: 'Billing · Settings',
-  description: 'Manage subscriptions, tier upgrades, and crypto payment invoices.',
+  title: 'Subscription & Billing · Settings',
+  description: 'Manage your Kestrel subscription, plan benefits, and billing history.',
 };
 export const revalidate = 0;
 
@@ -45,12 +44,54 @@ export default async function BillingPage() {
   const userId = session.user.id;
   if (!getServerEnv().BILLING_ENABLED) {
     return (
-      <div className="flex max-w-2xl flex-col gap-2">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Billing unavailable</h2>
-        <p className="text-fg-subtle text-sm">
-          Billing is disabled in this self-hosted deployment. Enable it explicitly only when
-          NOWPayments is configured and its operational requirements are understood.
-        </p>
+      <div className="flex max-w-2xl flex-col gap-6">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-fg text-lg font-semibold tracking-tight">Subscription & Billing</h2>
+          <p className="text-fg-subtle text-sm">Your Kestrel membership and included capabilities.</p>
+        </div>
+
+        <section className="surface-panel flex flex-col gap-4 rounded-xl border border-brand/30 p-6 shadow-[var(--shadow-chip)]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="bg-brand/15 text-brand border-brand/30 inline-flex size-9 items-center justify-center rounded-lg border">
+                <IconSparkles className="size-5" />
+              </span>
+              <div>
+                <h3 className="text-fg text-base font-semibold">Kestrel Pro Membership</h3>
+                <p className="text-fg-subtle text-xs">Full access to all 4 specialist AI desks & live market feeds</p>
+              </div>
+            </div>
+            <span className="bg-bull/15 text-bull border-bull/30 rounded-full border px-3 py-1 font-mono text-xs font-bold uppercase">
+              Active
+            </span>
+          </div>
+
+          <ul className="border-border/60 grid grid-cols-1 gap-2.5 border-t pt-4 text-xs sm:grid-cols-2">
+            <li className="text-fg-muted flex items-center gap-2">
+              <IconCheck className="text-bull size-4 shrink-0" />
+              <span>4-Desk AI Committee (Technical, Macro, Risk, Sentiment)</span>
+            </li>
+            <li className="text-fg-muted flex items-center gap-2">
+              <IconCheck className="text-bull size-4 shrink-0" />
+              <span>Real-time Gold (XAU/USD), Forex & Crypto feeds</span>
+            </li>
+            <li className="text-fg-muted flex items-center gap-2">
+              <IconCheck className="text-bull size-4 shrink-0" />
+              <span>Instant Email, Browser Push & Telegram alerts</span>
+            </li>
+            <li className="text-fg-muted flex items-center gap-2">
+              <IconCheck className="text-bull size-4 shrink-0" />
+              <span>Trade Journal with R-multiple & drawdown analytics</span>
+            </li>
+          </ul>
+
+          <div className="border-border/60 flex items-center justify-between border-t pt-3 text-xs">
+            <span className="text-fg-subtle">Want to review your recent AI research sessions?</span>
+            <Link href="/settings/usage" className="text-brand font-semibold hover:underline">
+              View Activity →
+            </Link>
+          </div>
+        </section>
       </div>
     );
   }
@@ -66,8 +107,8 @@ export default async function BillingPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Billing</h2>
-        <p className="text-fg-subtle text-sm">Manage your subscription and payment method.</p>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Subscription & Billing</h2>
+        <p className="text-fg-subtle text-sm">Manage your subscription plan and payment history.</p>
       </div>
 
       <SubscriptionStatus

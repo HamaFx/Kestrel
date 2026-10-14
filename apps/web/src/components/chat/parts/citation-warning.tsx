@@ -16,18 +16,6 @@
  * limitations under the License.
  */
 
-// Phase 7c — soft citation warning footer.
-//
-// Renders a `data-citation-warning` UiPart as a tone-muted footer pill
-// with an expandable list of unsupported claim phrases. We deliberately
-// keep this quiet — the enforcer is heuristic and `stance: 'soft'` so
-// we never want to overshadow the assistant's actual answer.
-//
-// Phase B — UX_UPGRADE_PLAN.md item 9.
-// When the warning part carries a structured `findings` array, we
-// render each finding as its own row with a "supported" / "no tool
-// source" pill. The legacy flat `unsupportedClaims` list is still
-// rendered for parts persisted before the findings field landed.
 import type { CitationWarningPart } from '@kestrel/shared';
 import {
   IconCheck,
@@ -54,23 +42,18 @@ export function CitationWarningPartView({ part }: CitationWarningProps) {
       : 'border-border bg-bg-elev-1/60 text-fg-muted';
 
   const hasFindings = (part.findings?.length ?? 0) > 0;
-  // Backward compat: parts without `findings` get one synthetic
-  // finding per `unsupportedClaims` entry so the old layout still
-  // works.
   const rows = hasFindings
     ? part.findings!.map((f) => ({
         text: f.text,
         supported: f.supported,
-        supportingTool: f.supportingTool ?? null,
       }))
     : part.unsupportedClaims.map((text) => ({
         text,
         supported: false,
-        supportingTool: null as string | null,
       }));
 
   return (
-    <Card as="section" aria-label="Citation review" className={`gap-1 p-2 ${tone}`}>
+    <Card as="section" aria-label="Data verification review" className={`gap-1 p-2 ${tone}`}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -85,7 +68,7 @@ export function CitationWarningPartView({ part }: CitationWarningProps) {
         )}
         <IconQuote className="size-3.5" />
         <span>
-          {rows.length} statement{rows.length === 1 ? '' : 's'} without a tool source
+          Note: {rows.length} market figure{rows.length === 1 ? '' : 's'} could not be cross-checked against the live data feed
         </span>
       </button>
 
@@ -96,17 +79,12 @@ export function CitationWarningPartView({ part }: CitationWarningProps) {
               {row.supported ? (
                 <IconCheck
                   className="text-success mt-0.5 size-3.5 shrink-0"
-                  aria-label="supported"
+                  aria-label="verified"
                 />
               ) : (
-                <IconX className="text-warn mt-0.5 size-3.5 shrink-0" aria-label="no tool source" />
+                <IconX className="text-warn mt-0.5 size-3.5 shrink-0" aria-label="unverified" />
               )}
               <span className="flex-1">{row.text}</span>
-              {row.supportingTool ? (
-                <span className="text-fg-subtle text-caption ml-2 font-mono">
-                  {row.supportingTool}
-                </span>
-              ) : null}
             </li>
           ))}
         </ul>

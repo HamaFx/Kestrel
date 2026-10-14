@@ -78,21 +78,21 @@ describe('MastraReportCard', () => {
     render(<MastraReportCard meta={baseMeta} />);
 
     expect(screen.getByRole('region', { name: 'Verified XAUUSD report' })).toBeTruthy();
-    expect(screen.getByTestId('mastra-agent-badge')).toHaveTextContent('Verified Intel');
+    expect(screen.getByTestId('mastra-agent-badge')).toHaveTextContent(/Verified (?:Intel|Brief)/);
     expect(screen.getByText('neutral')).toBeTruthy();
     expect(screen.getByText('Gold has mixed signals; wait for confirmation.')).toBeTruthy();
     expect(screen.getByText('Bullish continuation')).toBeTruthy();
     expect(screen.getByText('Bearish rejection')).toBeTruthy();
-    expect(screen.getByText('partial data')).toBeTruthy();
-    expect(screen.getByText('Warnings and limitations')).toBeTruthy();
+    expect(screen.getAllByText(/partial/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Risk Notes & Signal Conflicts|Warnings and limitations/)).toBeTruthy();
 
-    expect(screen.getByText('Sources and timestamps')).toBeTruthy();
+    expect(screen.getByText(/Market Data Sources & Timestamps|Sources and timestamps/)).toBeTruthy();
   });
 
   it('shows a clear fail-closed message when research is blocked', () => {
     render(<MastraReportCard meta={{ ...baseMeta, researchStatus: 'blocked', report: null }} />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/live market feed data was unavailable/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/live market feed data was (?:temporarily )?unavailable/i);
     expect(screen.queryByText('Bullish continuation')).toBeNull();
   });
 

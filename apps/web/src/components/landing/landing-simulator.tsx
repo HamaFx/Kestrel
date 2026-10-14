@@ -54,7 +54,7 @@ interface Scenario {
   bullProbability: number;
   arbiterVerdict: string;
   txHash: string;
-  fixRaw: string;
+  journalSummary: string;
 }
 
 const SCENARIOS: Scenario[] = [
@@ -64,7 +64,7 @@ const SCENARIOS: Scenario[] = [
     symbol: 'XAU/USD',
     catalyst: 'Asia session low swept into 15m Bullish Fair Value Gap + NY Open Displacement',
     action: 'BUY / LONG',
-    orderType: 'LIMIT ORDER (GTC)',
+    orderType: 'LIMIT SETUP',
     entry: '2,864.20',
     invalidation: '2,846.50',
     target1: '2,884.00',
@@ -79,9 +79,9 @@ const SCENARIOS: Scenario[] = [
     sentimentScore: 86,
     consensusScore: 90,
     bullProbability: 88,
-    arbiterVerdict: 'Unanimous 4-Desk Consensus. Asymmetric Long Authorized. 40% partial at TP1, trail balance behind 15m swing low.',
-    txHash: '0x8F4A21e903c749b581ad7c9b2084c810d7a968ef',
-    fixRaw: '8=FIX.4.4|9=188|35=D|49=KESTREL|56=FIX_BRIDGE|34=1042|52=20260904-03:15:20|11=ORD_XAU_8F4A|55=XAUUSD|54=1|38=10|40=2|44=2864.20|10=042|',
+    arbiterVerdict: 'Unanimous 4-Desk Consensus. Asymmetric Long Setup Confirmed. Scale 40% at TP1 and trail stop behind the 15m swing low.',
+    txHash: 'KSL-XAU-8F4A21',
+    journalSummary: 'Setup: XAU/USD Long @ 2,864.20 | Stop: 2,846.50 (0.85% Risk) | Targets: 2,884.00 / 2,908.50 / 2,936.00 | Alerts Armed: Telegram, Push & Email',
   },
   {
     id: 'pce-beat',
@@ -89,7 +89,7 @@ const SCENARIOS: Scenario[] = [
     symbol: 'EUR/USD',
     catalyst: 'US 10Y Yields steepen +4.8 bps; Dollar Index rejects Daily 200 EMA with bearish engulfing',
     action: 'SELL / SHORT',
-    orderType: 'STOP LIMIT',
+    orderType: 'BREAKOUT SETUP',
     entry: '1.0845',
     invalidation: '1.0875',
     target1: '1.0810',
@@ -104,17 +104,17 @@ const SCENARIOS: Scenario[] = [
     sentimentScore: 84,
     consensusScore: 89,
     bullProbability: 16,
-    arbiterVerdict: 'Macro Rate Divergence Confirmed. Institutional liquidity sweep at 1.0850 tapped. Short executed with strict 30-pip invalidation.',
-    txHash: '0x3D7C91f24ba890184c7e1e4f90117a44b912a76c',
-    fixRaw: '8=FIX.4.4|9=186|35=D|49=KESTREL|56=FIX_BRIDGE|34=1043|52=20260904-03:15:21|11=ORD_EUR_3D7C|55=EURUSD|54=2|38=25|40=2|44=1.0845|10=098|',
+    arbiterVerdict: 'Macro Rate Divergence Confirmed. Institutional liquidity sweep at 1.0850 tapped. Short plan validated with a strict 30-pip invalidation.',
+    txHash: 'KSL-EUR-3D7C91',
+    journalSummary: 'Setup: EUR/USD Short @ 1.0845 | Stop: 1.0875 (0.75% Risk) | Targets: 1.0810 / 1.0760 / 1.0715 | Alerts Armed: Telegram, Push & Email',
   },
   {
     id: 'safe-haven',
     name: 'Geopolitical Flight to Quality',
     symbol: 'XAU/USD',
-    catalyst: 'Central Bank sovereign bullion accumulation + aggressive institutional flight to sovereign duration',
+    catalyst: 'Central Bank sovereign bullion accumulation + aggressive institutional flight to safety',
     action: 'BUY / LONG',
-    orderType: 'MARKET ORDER',
+    orderType: 'MOMENTUM SETUP',
     entry: '2,870.00',
     invalidation: '2,852.00',
     target1: '2,900.00',
@@ -129,9 +129,9 @@ const SCENARIOS: Scenario[] = [
     sentimentScore: 94,
     consensusScore: 92,
     bullProbability: 92,
-    arbiterVerdict: 'Institutional Whale Accumulation. Bullion sovereign ETF inflows +24 tons. Multi-week runner target authorized.',
-    txHash: '0xEE92B4527cb34a99187e68A276db10a8ef4219cc',
-    fixRaw: '8=FIX.4.4|9=192|35=D|49=KESTREL|56=FIX_BRIDGE|34=1044|52=20260904-03:15:22|11=ORD_XAU_EE92|55=XAUUSD|54=1|38=15|40=1|44=2870.00|10=114|',
+    arbiterVerdict: 'Institutional Whale Accumulation. Sovereign bullion ETF inflows +24 tons. Multi-target runner plan approved.',
+    txHash: 'KSL-XAU-EE92B4',
+    journalSummary: 'Setup: XAU/USD Long @ 2,870.00 | Stop: 2,852.00 (0.90% Risk) | Targets: 2,900.00 / 2,945.00 / 2,990.00 | Alerts Armed: Telegram, Push & Email',
   },
 ];
 
@@ -184,16 +184,16 @@ export function LandingSimulator() {
           <div className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1 text-xs font-mono shadow-[0_0_12px_rgba(255,54,22,0.2)]">
             <span className="size-2 rounded-full bg-brand animate-pulse" />
             <span className="text-brand font-semibold uppercase tracking-wider">
-              Autonomous Trade Engine
+              Interactive Committee Simulator
             </span>
           </div>
 
           <h2 className="font-display text-3xl font-normal tracking-[-0.03em] text-fg sm:text-5xl">
-            TEST THE DELIBERATION{' '}
-            <span className="font-redaction-35 italic text-brand">Transaction Loop</span>
+            TEST THE 4-DESK{' '}
+            <span className="font-redaction-35 italic text-brand">Decision Loop</span>
           </h2>
           <p className="font-sans text-base text-fg-muted leading-relaxed">
-            Select an institutional market event below and trigger the live multi-desk arbitration pipeline. Experience how Kestrel calculates confidence, enforces risk boundaries, and stamps verified trade tickets.
+            Pick a real market scenario below and run the 4-desk analysis. Test how Kestrel scores conviction, blocks unsafe risk above 1.0%, and builds a complete trade plan ready for your journal and price alerts.
           </p>
         </div>
 
@@ -243,7 +243,7 @@ export function LandingSimulator() {
             <div className="flex flex-col gap-1 max-w-2xl">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[11px] font-bold text-brand uppercase tracking-wider">
-                  MARKET CATALYST INGESTION · {scenario.symbol}
+                  MARKET SCENARIO · {scenario.symbol}
                 </span>
                 <span className="font-mono text-[10px] text-fg-subtle border border-white/10 rounded px-1.5 py-0.2 bg-black/40">
                   {scenario.orderType}
@@ -263,7 +263,7 @@ export function LandingSimulator() {
                   className="font-mono text-xs font-semibold gap-2 shadow-sm"
                 >
                   <IconPlayerPlay className="size-4" />
-                  Run Live Deliberation
+                  Run 4-Desk Analysis
                 </Button>
               ) : (
                 <Button
@@ -283,19 +283,19 @@ export function LandingSimulator() {
           <div className="my-8">
             <div className="flex items-center justify-between mb-4">
               <span className="font-mono text-xs font-bold text-fg-subtle uppercase tracking-wider">
-                PARALLEL DESK ARBITRATION
+                4-DESK CONVICTION BREAKDOWN
               </span>
               <span className="font-mono text-xs text-brand font-semibold flex items-center gap-2">
                 {simulationStage === 'voting' && (
                   <>
                     <span className="size-2 rounded-full bg-brand animate-ping" />
-                    <span>DELIBERATING INGESTION (14ms)...</span>
+                    <span>ANALYZING MARKET STRUCTURE & MACRO...</span>
                   </>
                 )}
                 {simulationStage !== 'voting' && simulationStage !== 'idle' && (
-                  <span>CONVERGENCE ACHIEVED ({scenario.consensusScore}%)</span>
+                  <span>COMMITTEE CONSENSUS ({scenario.consensusScore}%)</span>
                 )}
-                {simulationStage === 'idle' && <span>AWAITING INGESTION TRIGGER</span>}
+                {simulationStage === 'idle' && <span>READY TO ANALYZE</span>}
               </span>
             </div>
 
@@ -317,7 +317,7 @@ export function LandingSimulator() {
                   />
                 </div>
                 <p className="mt-2 font-sans text-[11px] text-fg-muted truncate">
-                  FVG Retest & Asian Sweep
+                  FVG Retest & Session Sweep
                 </p>
               </div>
 
@@ -338,7 +338,7 @@ export function LandingSimulator() {
                   />
                 </div>
                 <p className="mt-2 font-sans text-[11px] text-fg-muted truncate">
-                  Yield Dynamics & Catalyst
+                  Yields, DXY & Rate Catalysts
                 </p>
               </div>
 
@@ -359,7 +359,7 @@ export function LandingSimulator() {
                   />
                 </div>
                 <p className="mt-2 font-sans text-[11px] text-fg-muted truncate">
-                  {isVetoed ? 'Ceiling Exceeded (>1.0%)' : '1.0% Hard Invalidation'}
+                  {isVetoed ? 'Risk Limit Exceeded (>1.0%)' : 'Within 1.0% Risk Guardrail'}
                 </p>
               </div>
 
@@ -380,7 +380,7 @@ export function LandingSimulator() {
                   />
                 </div>
                 <p className="mt-2 font-sans text-[11px] text-fg-muted truncate">
-                  CFTC Commercial Net Bias
+                  CFTC Institutional Positioning
                 </p>
               </div>
             </div>
@@ -399,7 +399,7 @@ export function LandingSimulator() {
                     BULLISH PROBABILITY {scenario.bullProbability}%
                   </span>
                   <span className="text-fg-subtle">
-                    SYNTHETIC EQUILIBRIUM
+                    COMMITTEE BIAS BALANCE
                   </span>
                   <span className="text-bear font-semibold flex items-center gap-1.5">
                     BEARISH PROBABILITY {100 - scenario.bullProbability}%
@@ -437,14 +437,14 @@ export function LandingSimulator() {
               <div>
                 <span className="font-mono text-xs font-bold text-fg uppercase tracking-wider flex items-center gap-2">
                   <IconLock className="size-3.5 text-brand" />
-                  MATHEMATICAL RISK CEILING GOVERNOR
+                  PORTFOLIO RISK GUARDRAIL (1.0% MAX LOSS)
                 </span>
                 <span className="block font-sans text-xs text-fg-muted mt-0.5">
-                  Drag the slider to test Kestrel&apos;s immutable 1.0% risk veto discipline.
+                  Drag the slider above 1.0% to see how Kestrel blocks oversized risk before you place a trade.
                 </span>
               </div>
               <div className="font-mono text-xs font-bold shrink-0">
-                PROPOSED MAX RISK:{' '}
+                RISK PER TRADE:{' '}
                 <span className={cn('tabular-nums font-mono font-black', isVetoed ? 'text-bear' : 'text-bull')}>
                   {riskSlider.toFixed(1)}%
                 </span>
@@ -478,7 +478,7 @@ export function LandingSimulator() {
                 <div className="flex items-center gap-2">
                   <IconAlertTriangle className="size-4 shrink-0 animate-bounce" />
                   <span>
-                    <strong>VETO TRIGGERED:</strong> Proposed {riskSlider.toFixed(1)}% exceeds the 1.0% institutional drawdown constraint. Execution blocked.
+                    <strong>RISK GUARDRAIL TRIGGERED:</strong> {riskSlider.toFixed(1)}% risk exceeds your 1.0% maximum drawdown rule. Trade plan paused.
                   </span>
                 </div>
                 <button
@@ -486,13 +486,13 @@ export function LandingSimulator() {
                   onClick={() => setRiskSlider(1.0)}
                   className="px-2.5 py-1 rounded bg-bear/20 hover:bg-bear/30 border border-bear/40 text-[11px] font-bold underline transition-colors cursor-pointer"
                 >
-                  Snap to 1.0% Floor
+                  Restore 1.0% Limit
                 </button>
               </m.div>
             )}
           </div>
 
-          {/* Verdict and Order Plan Ticket */}
+          {/* Verdict and Trade Plan Ticket */}
           <AnimatePresence mode="wait">
             {simulationStage === 'verdict' && isVetoed && (
               <m.div
@@ -508,25 +508,25 @@ export function LandingSimulator() {
                     <span className="size-3 rounded-full bg-bear animate-ping" />
                     <div>
                       <div className="font-mono text-sm font-bold text-bear uppercase tracking-wider">
-                        TRANSACTION VETOED BY QUANTITATIVE RISK DESK
+                        SETUP BLOCKED BY RISK GUARDRAIL
                       </div>
                       <div className="font-mono text-[11px] text-fg-subtle">
-                        REASON: RISK CEILING {riskSlider.toFixed(1)}% EXCEEDS 1.0% MAXIMUM CAPITAL TOLERANCE
+                        REASON: PROPOSED {riskSlider.toFixed(1)}% RISK EXCEEDS YOUR 1.0% MAXIMUM RISK PER TRADE
                       </div>
                     </div>
                   </div>
                   <span className="font-mono text-xs font-bold px-3 py-1 rounded-full uppercase border text-center text-bear bg-bear/10 border-bear/30">
-                    EXECUTION ABORTED
+                    RISK VETO ACTIVE
                   </span>
                 </div>
 
                 <div className="mt-4 p-4 rounded-lg surface-well bg-black/60 border border-bear/20 font-sans text-xs text-fg-muted leading-relaxed">
-                  Kestrel&apos;s mathematical risk governor strictly forbids order ticket emission when account drawdown parameters exceed 1.0%. Lower the risk ceiling slider to ≤ 1.0% to permit algorithmically verified order execution.
+                  Kestrel&apos;s Risk Desk protects your account from emotional over-sizing. Lower the risk slider back to ≤ 1.0% to unlock the verified trade plan and target levels.
                 </div>
 
                 <div className="mt-4 flex items-center justify-between pt-2">
                   <span className="font-mono text-[11px] text-fg-subtle">
-                    CAPITAL PRESERVATION PROTOCOL ACTIVE · 0 LOSS INCURRED
+                    DRAWDOWN PROTECTION ACTIVE · CAPITAL PRESERVED
                   </span>
                   <Button
                     variant="secondary"
@@ -534,7 +534,7 @@ export function LandingSimulator() {
                     onClick={() => setRiskSlider(1.0)}
                     className="font-mono text-xs text-bull border-bull/30 hover:bg-bull/10"
                   >
-                    Restore 1.0% Floor
+                    Restore 1.0% Limit
                   </Button>
                 </div>
               </m.div>
@@ -549,28 +549,28 @@ export function LandingSimulator() {
                 transition={{ duration: 0.3 }}
                 className="rounded-xl border border-brand/40 bg-brand/[0.03] p-5 sm:p-6 shadow-xl"
               >
-                {/* Certified Order Ticket Header */}
+                {/* Certified Trade Plan Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
                   <div className="flex items-center gap-3">
                     <span className="size-3 rounded-full bg-bull shadow-[0_0_8px_#3f9e3d]" />
                     <div>
                       <div className="font-mono text-sm font-bold text-fg uppercase flex items-center gap-2">
-                        <span>CERTIFIED TRANSACTION TICKET · {scenario.symbol}</span>
+                        <span>VERIFIED COMMITTEE TRADE PLAN · {scenario.symbol}</span>
                         <span className="text-[10px] text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded font-mono">
                           {scenario.orderType}
                         </span>
                       </div>
                       <div className="font-mono text-[11px] text-fg-subtle flex items-center gap-2 mt-0.5">
-                        <span>HASH: {scenario.txHash.slice(0, 10)}...{scenario.txHash.slice(-6)}</span>
+                        <span>PLAN ID: {scenario.txHash}</span>
                         <button
                           type="button"
-                          onClick={() => handleCopyHash(scenario.txHash)}
+                          onClick={() => handleCopyHash(scenario.journalSummary)}
                           className="hover:text-fg transition-colors"
-                          title="Copy Full Hash"
+                          title="Copy Trade Setup"
                         >
                           {copiedHash ? <IconCheck className="size-3 text-bull inline" /> : <IconCopy className="size-3 inline" />}
                         </button>
-                        <span>· STATUS: VERIFIED 4-DESK ARBITRATION</span>
+                        <span>· STATUS: 4-DESK CONSENSUS VERIFIED</span>
                       </div>
                     </div>
                   </div>
@@ -610,22 +610,22 @@ export function LandingSimulator() {
                 {/* Take Profit Cones Visual Breakdown */}
                 <div className="mt-5 p-4 rounded-xl border border-white/5 bg-[#0e0f10]">
                   <div className="flex items-center justify-between text-xs font-mono mb-3">
-                    <span className="text-fg-subtle uppercase">DYNAMIC TAKE-PROFIT SCALE CONES</span>
-                    <span className="text-fg font-bold">EXPECTED VALUE: {scenario.expectedValue} · SIZE: {scenario.kellySize}</span>
+                    <span className="text-fg-subtle uppercase">TAKE-PROFIT SCALING PLAN</span>
+                    <span className="text-fg font-bold">EXPECTED VALUE: {scenario.expectedValue} · RECOMMENDED RISK: {scenario.kellySize}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-xs font-mono">
                     <div className="border border-white/10 rounded-lg p-2.5 bg-black/40">
-                      <div className="text-[10px] text-fg-subtle">CONE 1 (1:1.5)</div>
+                      <div className="text-[10px] text-fg-subtle">TARGET 1 (1:1.5)</div>
                       <div className="text-bull font-bold mt-1">{scenario.target1}</div>
                       <div className="text-[10px] text-fg-muted mt-0.5">Scale Out 40%</div>
                     </div>
                     <div className="border border-white/10 rounded-lg p-2.5 bg-black/40">
-                      <div className="text-[10px] text-fg-subtle">CONE 2 (1:2.5)</div>
+                      <div className="text-[10px] text-fg-subtle">TARGET 2 (1:2.5)</div>
                       <div className="text-bull font-bold mt-1">{scenario.target2}</div>
                       <div className="text-[10px] text-fg-muted mt-0.5">Scale Out 35%</div>
                     </div>
                     <div className="border border-brand/30 rounded-lg p-2.5 bg-brand/[0.04]">
-                      <div className="text-[10px] text-brand font-bold">CONE 3 MAXIMUM (1:4.0)</div>
+                      <div className="text-[10px] text-brand font-bold">TARGET 3 RUNNER (1:4.0)</div>
                       <div className="text-bull font-bold mt-1">{scenario.target3}</div>
                       <div className="text-[10px] text-fg-muted mt-0.5">Trail Remaining 25%</div>
                     </div>
@@ -634,9 +634,14 @@ export function LandingSimulator() {
 
                 {/* Committee Verdict Rationale & Action Dispatch */}
                 <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-white/10">
-                  <p className="font-sans text-xs text-fg-muted leading-relaxed max-w-xl">
-                    &ldquo;{scenario.arbiterVerdict}&rdquo;
-                  </p>
+                  <div className="flex flex-col gap-1.5 max-w-xl">
+                    <p className="font-sans text-xs text-fg-muted leading-relaxed">
+                      &ldquo;{scenario.arbiterVerdict}&rdquo;
+                    </p>
+                    <span className="font-mono text-[10px] text-fg-subtle">
+                      Direct Broker Bridge (MT5 / cTrader) — Planned on Roadmap
+                    </span>
+                  </div>
 
                   <Button
                     variant="tactical"
@@ -645,7 +650,7 @@ export function LandingSimulator() {
                     className="font-mono text-xs font-semibold gap-2 shrink-0 shadow-md"
                   >
                     <IconSend className="size-4" />
-                    Dispatch to FIX Bridge
+                    Save to Journal & Arm Alerts
                   </Button>
                 </div>
               </m.div>
@@ -661,14 +666,14 @@ export function LandingSimulator() {
               >
                 <div className="flex items-center gap-3 font-mono text-xs text-brand mb-4">
                   <IconTerminal2 className="size-4 animate-spin" />
-                  <span>SERIALIZING ENCRYPTED FIX 4.4 STREAM TO BROKER WEBHOOK...</span>
+                  <span>LOGGING SETUP TO TRADE JOURNAL & ARMING PRICE ALERTS...</span>
                 </div>
                 <div className="surface-well rounded-lg p-4 font-mono text-[11px] text-bull/90 overflow-x-auto bg-[#08090a] border border-white/10">
-                  <code>{scenario.fixRaw}</code>
+                  <code>{scenario.journalSummary}</code>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-[11px] font-mono text-fg-subtle">
-                  <span>TLS 1.3 · SHA-256 HMAC STAMPED</span>
-                  <span>EST. DISPATCH LATENCY: 12.4ms</span>
+                  <span>CHANNELS: TELEGRAM · BROWSER PUSH · EMAIL</span>
+                  <span>R-MULTIPLE TRACKING ENABLED</span>
                 </div>
               </m.div>
             )}
@@ -684,21 +689,21 @@ export function LandingSimulator() {
                   <IconCheck className="size-6" />
                 </div>
                 <h4 className="font-display text-xl font-normal tracking-tight text-fg">
-                  TRANSACTION DISPATCHED TO BROKER BRIDGE
+                  SETUP LOGGED TO JOURNAL & PRICE ALERTS ARMED
                 </h4>
                 <p className="font-mono text-xs text-fg-muted mt-2 max-w-lg mx-auto leading-relaxed">
-                  Ticket #{scenario.txHash.slice(0, 16)}... securely transmitted via authenticated webhook to MT5 / cTrader FIX Bridge. Non-custodial signature verified in 14.2ms.
+                  Plan {scenario.txHash} has been saved to your Trade Journal with R-multiple targets and instant Telegram, Browser Push, and Email alerts armed at Entry ({scenario.entry}), Invalidation ({scenario.invalidation}), and TP1 ({scenario.target1}).
                 </p>
 
-                <div className="mt-5 flex items-center justify-center gap-3">
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => handleCopyHash(scenario.txHash)}
+                    onClick={() => handleCopyHash(scenario.journalSummary)}
                     className="font-mono text-xs gap-1.5 border-white/10"
                   >
                     {copiedHash ? <IconCheck className="size-3.5 text-bull" /> : <IconCopy className="size-3.5" />}
-                    <span>{copiedHash ? 'Hash Copied!' : 'Copy Transaction Hash'}</span>
+                    <span>{copiedHash ? 'Setup Copied!' : 'Copy Trade Plan Summary'}</span>
                   </Button>
                   <Button variant="secondary" size="sm" onClick={handleReset} className="font-mono text-xs border-white/10">
                     Simulate Another Scenario

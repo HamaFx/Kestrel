@@ -19,15 +19,6 @@
 // <NavDrawer> — left-side slide-in nav. Single global instance, controlled
 // via <NavDrawerProvider> context. See nav-drawer-context.tsx for the
 // rationale.
-//
-// vaul gives us focus trap, swipe-to-dismiss, and Escape-to-close out of
-// the box. We add:
-//   - Auto-close on route change (so tapping a destination closes the
-//     drawer without each consumer needing to call setOpen(false)).
-//   - Reduced-motion friendly transitions (vaul respects the OS pref).
-//   - Sectioned destinations (Markets / Personal) + identity strip and
-//     a footer "Sign out" action.
-//   - User identity display + nav item badges.
 import {
   IconBell,
   IconBook,
@@ -39,7 +30,6 @@ import {
   IconNews,
   IconSettings,
   IconShield,
-  IconWorld,
 } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
 import { Link } from 'next-view-transitions';
@@ -73,7 +63,7 @@ const PRIMARY: readonly NavItem[] = [
     href: '/chat',
     label: 'Chat',
     icon: IconMessageCircle,
-    description: 'Ask anything about your symbols',
+    description: 'Ask your 4-desk AI committee',
   },
   {
     href: '/chart/XAUUSD',
@@ -86,25 +76,24 @@ const PRIMARY: readonly NavItem[] = [
     href: '/news',
     label: 'News',
     icon: IconNews,
-    description: 'Tagged headlines',
+    description: 'Market headlines & sentiment',
   },
   {
     href: '/calendar',
     label: 'Calendar',
     icon: IconCalendar,
-    description: 'Macro events',
+    description: 'Upcoming economic events',
   },
 ];
 
 const SECONDARY: readonly NavItem[] = [
-  { href: '/alerts', label: 'Alerts', icon: IconBell, description: 'Price triggers' },
+  { href: '/alerts', label: 'Alerts', icon: IconBell, description: 'Price & indicator triggers' },
   { href: '/journal', label: 'Journal', icon: IconBook, description: 'Trades & R-multiples' },
-  { href: '/landing', label: 'Showcase', icon: IconWorld, description: 'Public landing & architecture' },
-  { href: '/settings', label: 'Settings', icon: IconSettings, description: 'Notifications, usage' },
+  { href: '/settings', label: 'Settings', icon: IconSettings, description: 'Subscription, risk & alerts' },
 ];
 
 const ADMIN: readonly NavItem[] = [
-  { href: '/admin', label: 'Admin', icon: IconShield, description: 'Debug & system' },
+  { href: '/admin', label: 'Admin', icon: IconShield, description: 'Platform controls & health' },
 ];
 
 export function NavDrawer({
@@ -121,8 +110,6 @@ export function NavDrawer({
   const { open, setOpen } = useNavDrawer();
   const pathname = usePathname();
 
-  // D3 — Removed dead localStorage last-path tracking (never read back).
-
   // Auto-close on route change.
   useEffect(() => {
     setOpen(false);
@@ -135,7 +122,6 @@ export function NavDrawer({
 
   async function logout() {
     try {
-      // Clear account-scoped browser state before the sign-out redirect.
       await clearKestrelClientState();
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (err) {
@@ -163,11 +149,7 @@ export function NavDrawer({
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          {/* Vaul derives the dialog's accessible name from its Title. Keep
-              the name deterministic ("Primary navigation") instead of letting
-              the user-identity strip below become the dialog title. */}
           <DrawerPrimitive.Title className="sr-only">Primary navigation</DrawerPrimitive.Title>
-          {/* Vaul drag handle (vertical edge). */}
           <div
             aria-hidden="true"
             className="bg-fg-subtle/30 absolute top-1/2 right-2 h-12 w-1 -translate-y-1/2 rounded-sm"
@@ -175,7 +157,7 @@ export function NavDrawer({
 
           {/* Brand */}
           <div className="flex items-center px-5 pt-6 pb-3">
-            <KestrelBrand variant="lockup" href="/landing" className="w-32" />
+            <KestrelBrand variant="lockup" href="/dashboard" className="w-32" />
           </div>
 
           {/* Identity strip */}
@@ -185,16 +167,16 @@ export function NavDrawer({
             </div>
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="text-fg truncate text-base font-bold tracking-tight">
-                {userName ?? 'Kestrel User'}
+                {userName ?? 'Kestrel Trader'}
               </span>
               <span className="text-fg-subtle truncate text-xs">
-                {userEmail ?? 'Personal trading copilot'}
+                {userEmail ?? 'AI Market Copilot'}
               </span>
             </div>
           </div>
 
           <DrawerPrimitive.Description className="sr-only">
-            Navigate between chat, chart, news, calendar, alerts, journal, and settings.
+            Navigate between dashboard, chat, chart, news, calendar, alerts, journal, and settings.
           </DrawerPrimitive.Description>
 
           <nav aria-label="Primary" className="scrollbar-hide flex-1 overflow-y-auto px-3 pb-4">
@@ -204,7 +186,7 @@ export function NavDrawer({
               ))}
             </Section>
 
-            <Section label="Personal">
+            <Section label="Workspace">
               {SECONDARY.map((item) => (
                 <NavLink key={item.href} item={item} active={isActive(item)} />
               ))}

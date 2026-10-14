@@ -152,6 +152,8 @@ export {
   getActiveUserIds,
   runRetentionCleanup,
   lazyPurgeExpiredTokens,
+  getPlatformAdminSettings,
+  getPlatformAdminUserId,
   getUserWithSettings,
   requireTenantIdForUser,
   createAuditLog,
