@@ -42,6 +42,7 @@ import { domainToolFilter } from '../../../tools/by-domain';
 import {
   assertCanonicalEvidence,
   checkCanonicalEvidence,
+  type CanonicalToolEvidence,
 } from './evidence';
 import { manifestForCapability, manifestToolNames } from '../../capabilities';
 import {
@@ -49,7 +50,12 @@ import {
   requireExecutionPlanModel,
   type ExecutionPlan,
 } from '../../planning/execution-plan';
-import { adaptLegacyReadOnlyTool } from '../xauusd/legacy-tool-adapter';
+import {
+  adaptLegacyReadOnlyTool,
+  extractToolPartsFromMessages,
+  type MastraToolInvocationPart,
+  type MastraToolStreamEvent,
+} from '../xauusd/legacy-tool-adapter';
 import {
   beginMastraRun,
   createMastraRunFinalizer,
@@ -90,7 +96,11 @@ export interface RunMastraCanonicalChatArgs {
   auxiliaryAccounting?: SemanticRoutingAccounting;
   /** Phase 2 planner contract. */
   executionPlan?: ExecutionPlan;
+  /** Optional pre-computed routing decision (Audit v3 Phase 3). */
+  routingDecision?: RoutingDecision;
   ledger?: GenerationLedger;
+  /** Optional listener invoked in real time as read-only tools start and finish. */
+  onToolEvent?: (event: MastraToolStreamEvent) => void;
 }
 
 export interface MastraCanonicalChatResult {
@@ -102,8 +112,11 @@ export interface MastraCanonicalChatResult {
   totalCostUsd: number;
   totalLatencyMs: number;
   toolNames: string[];
+  toolParts: MastraToolInvocationPart[];
   evidence: ReturnType<typeof checkCanonicalEvidence>;
   answerOutcome: 'ready' | 'blocked' | 'degraded';
+  /** True when the silent self-correction pass rewrote an ungrounded draft (Q10). */
+  repaired?: boolean;
   /** 'degraded' when native-memory preparation partially failed (Phase 9). */
   memoryMode: 'native' | 'degraded';
   /** Whether native memory preparation attempted legacy history backfill. */
@@ -190,6 +203,7 @@ interface CanonicalChatSetup {
   resolution: ChatModelResolution;
   callMemory: AgentMemoryOption | null;
   requestContext: RequestContext<Record<string, unknown>>;
+  toolPartsBuffer: MastraToolInvocationPart[];
   context: ToolContext;
   messages: ModelMessage[];
   scorers: BuiltScorers;
@@ -253,40 +267,45 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     }
   })();
 
-  const routing = await routeTurn({
-    userMessage: args.userMessage,
-    ...(args.modelOverride ? { modelOverride: args.modelOverride } : {}),
-    ...(semanticRouting
-      ? {
-          semanticRouting: {
-            ...semanticRouting,
-            accounting: {
-              onComplete:
-                args.auxiliaryAccounting?.onComplete ??
-                ((event: Parameters<NonNullable<SemanticRoutingAccounting['onComplete']>>[0]) => {
-                  const { modelId, inputChars, outputChars, success, latencyMs } = event;
-                  const estimatedCostUsd = estimateCostUsd(
-                    modelId,
-                    Math.ceil(inputChars / 4),
-                    Math.ceil(outputChars / 4),
-                  );
-                  generationLedger.recordCost(
-                    `semantic-routing:${runId}`,
-                    'semantic-routing',
-                    estimatedCostUsd,
-                  );
-                  mlog.debug('semantic routing call accounted', {
-                    modelId,
-                    estimatedCostUsd,
-                    success,
-                    latencyMs,
-                  });
-                }),
+  // Phase 3 (P0-3): Reuse executionPlan.routingDecision when routeUnified
+  // already classified the turn instead of invoking routeTurn a second time.
+  const routing: RoutingDecision =
+    args.routingDecision ??
+    (args.executionPlan as unknown as { routingDecision?: RoutingDecision })?.routingDecision ??
+    (await routeTurn({
+      userMessage: args.userMessage,
+      ...(args.modelOverride ? { modelOverride: args.modelOverride } : {}),
+      ...(semanticRouting
+        ? {
+            semanticRouting: {
+              ...semanticRouting,
+              accounting: {
+                onComplete:
+                  args.auxiliaryAccounting?.onComplete ??
+                  ((event: Parameters<NonNullable<SemanticRoutingAccounting['onComplete']>>[0]) => {
+                    const { modelId, inputChars, outputChars, success, latencyMs } = event;
+                    const estimatedCostUsd = estimateCostUsd(
+                      modelId,
+                      Math.ceil(inputChars / 4),
+                      Math.ceil(outputChars / 4),
+                    );
+                    generationLedger.recordCost(
+                      `semantic-routing:${runId}`,
+                      'semantic-routing',
+                      estimatedCostUsd,
+                    );
+                    mlog.debug('semantic routing call accounted', {
+                      modelId,
+                      estimatedCostUsd,
+                      success,
+                      latencyMs,
+                    });
+                  }),
+              },
             },
-          },
-        }
-      : {}),
-  });
+          }
+        : {}),
+    }));
   metrics.observe('mastra_setup_latency_ms', Date.now() - setupStartedAt, {
     tags: { phase: 'routing' },
   });
@@ -302,7 +321,9 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
   metrics.observe('mastra_setup_latency_ms', Date.now() - modelStartedAt, {
     tags: { phase: 'model' },
   });
-  const legacyTools = domainToolFilter(routing.domain, args.plan ?? undefined);
+  const effectivePlan =
+    args.plan && ['free', 'pro', 'enterprise'].includes(args.plan) ? args.plan : 'free';
+  const legacyTools = domainToolFilter(routing.domain, effectivePlan);
   const registeredTools = Object.fromEntries(
     Object.entries(legacyTools)
       .filter(([name]) => READ_ONLY_TOOL_NAMES.has(name))
@@ -320,12 +341,18 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     memoryOutcome.memoryDegraded || (memoryOutcome.prepared?.memoryDegraded ?? false);
   const memoryBackfill = memoryOutcome.prepared?.backfillAttempted ?? false;
 
-  const requestContext = new RequestContext<Record<string, unknown>>([
+  const toolPartsBuffer: MastraToolInvocationPart[] = [];
+  const contextEntries: Array<[string, unknown]> = [
     ['userId', args.userId],
     ['threadId', args.threadId],
     ['runId', runId],
     ['routingDomain', routing.domain],
-  ]);
+    ['toolParts', toolPartsBuffer],
+  ];
+  if (args.onToolEvent) {
+    contextEntries.push(['onToolEvent', args.onToolEvent]);
+  }
+  const requestContext = new RequestContext<Record<string, unknown>>(contextEntries);
   // External retrieval is enabled by the canonical allowlist, so detector
   // unavailability must fail closed rather than silently exposing raw external
   // content to an unguarded agent. The mode now derives from the capability
@@ -382,6 +409,7 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     resolution,
     callMemory,
     requestContext,
+    toolPartsBuffer,
     context,
     messages: callMemory
       ? latestUserModelMessages(args.userMessage)
@@ -390,6 +418,97 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     memoryDegraded,
     memoryBackfill,
   };
+}
+
+/**
+ * Audit v3 Phase 2 (Owner Decision Q10): When `checkCanonicalEvidence` detects
+ * ungrounded numeric claims, attempt 1 bounded silent self-correction pass on
+ * the same agent (allowing it to call a missing market-data tool or rewrite its
+ * answer using only verified figures) before blocking with `CanonicalEvidenceBlockedError`.
+ */
+async function attemptCanonicalSelfCorrection(params: {
+  agent: Agent;
+  context: ToolContext;
+  requestContext: RequestContext<Record<string, unknown>>;
+  messages: ModelMessage[];
+  draftText: string;
+  initialFindings: readonly string[];
+  initialToolEvidence: readonly CanonicalToolEvidence[];
+  initialToolNames: readonly string[];
+  toolPartsBuffer: MastraToolInvocationPart[];
+  signal?: AbortSignal;
+}): Promise<{
+  repaired: boolean;
+  text: string;
+  evidence: ReturnType<typeof checkCanonicalEvidence>;
+  toolNames: string[];
+  toolParts: MastraToolInvocationPart[];
+  extraStats: MastraGenerationStats;
+} | null> {
+  const {
+    agent,
+    context,
+    requestContext,
+    messages,
+    draftText,
+    initialFindings,
+    initialToolEvidence,
+    initialToolNames,
+    toolPartsBuffer,
+    signal,
+  } = params;
+
+  const generateFn = (agent as unknown as { generate?: typeof agent.generate }).generate;
+  if (typeof generateFn !== 'function') return null;
+
+  const verifiedSummary =
+    initialToolEvidence.length > 0
+      ? initialToolEvidence.map((t) => `${t.name}: ${t.resultText.slice(0, 600)}`).join('\n')
+      : 'None (no market-data tool was called).';
+
+  const repairInstruction = [
+    'SELF-CORRECTION REQUIRED: Your previous draft contained numeric market claims that were not verified by live tool outputs:',
+    ...initialFindings.map((f) => `- ${f}`),
+    `Verified tool outputs available so far:\n${verifiedSummary}`,
+    'Either call the appropriate market-data tool now to fetch the live values, or rewrite your answer using ONLY verified numbers from tool outputs (or qualitative explanation without unverified prices).',
+  ].join('\n\n');
+
+  try {
+    const repairMessages: ModelMessage[] = [
+      ...messages,
+      { role: 'assistant', content: draftText },
+      { role: 'user', content: repairInstruction },
+    ];
+    const repairResult = await withToolContext(context, () =>
+      agent.generate(repairMessages, {
+        requestContext,
+        toolChoice: 'auto',
+        maxSteps: 2,
+        ...(signal ? { abortSignal: signal } : {}),
+      }),
+    );
+    if (!repairResult || typeof repairResult.text !== 'string') return null;
+    const extraStats = getMastraGenerationStats(repairResult);
+    const repairToolNames = extractToolNames(repairResult.response?.messages);
+    const repairToolEvidence = extractToolEvidence(repairResult.response?.messages);
+    const mergedToolEvidence = [...initialToolEvidence, ...repairToolEvidence];
+    const mergedToolNames = [...new Set([...initialToolNames, ...repairToolNames])];
+    const mergedToolParts = extractToolPartsFromMessages(
+      repairResult.response?.messages,
+      toolPartsBuffer,
+    );
+    const repairedEvidence = checkCanonicalEvidence(repairResult.text, mergedToolEvidence);
+    return {
+      repaired: repairedEvidence.ok,
+      text: repairResult.text.trim(),
+      evidence: repairedEvidence,
+      toolNames: mergedToolNames,
+      toolParts: mergedToolParts,
+      extraStats,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function runMastraCanonicalChat(
@@ -405,6 +524,7 @@ export async function runMastraCanonicalChat(
     resolution,
     callMemory,
     requestContext,
+    toolPartsBuffer,
     context,
     messages,
     scorers,
@@ -440,9 +560,56 @@ export async function runMastraCanonicalChat(
         }),
       }),
     );
-    const stats = getMastraGenerationStats(result);
-    const toolNames = extractToolNames(result.response?.messages);
-    const evidence = checkCanonicalEvidence(result.text, extractToolEvidence(result.response?.messages));
+    let stats = getMastraGenerationStats(result);
+    const initialToolParts = extractToolPartsFromMessages(
+      result.response?.messages,
+      toolPartsBuffer,
+    );
+    let toolParts = initialToolParts;
+    let toolNames = [
+      ...new Set([
+        ...extractToolNames(result.response?.messages),
+        ...initialToolParts.map((p) => p.toolName),
+      ]),
+    ];
+    const initialToolEvidence = mergeToolEvidenceWithParts(
+      extractToolEvidence(result.response?.messages),
+      initialToolParts,
+    );
+    let finalText = result.text;
+    let evidence = checkCanonicalEvidence(finalText, initialToolEvidence);
+    let repaired = false;
+
+    if (!evidence.ok) {
+      const correction = await attemptCanonicalSelfCorrection({
+        agent,
+        context,
+        requestContext,
+        messages,
+        draftText: finalText,
+        initialFindings: evidence.findings,
+        initialToolEvidence,
+        initialToolNames: toolNames,
+        toolPartsBuffer: initialToolParts,
+        ...(args.signal ? { signal: args.signal } : {}),
+      });
+      if (correction) {
+        stats = {
+          inputTokens: stats.inputTokens + correction.extraStats.inputTokens,
+          outputTokens: stats.outputTokens + correction.extraStats.outputTokens,
+          toolCalls: stats.toolCalls + correction.extraStats.toolCalls,
+          steps: stats.steps + correction.extraStats.steps,
+        };
+        if (correction.repaired) {
+          finalText = correction.text;
+          evidence = correction.evidence;
+          toolNames = correction.toolNames;
+          toolParts = correction.toolParts;
+          repaired = true;
+        }
+      }
+    }
+
     const primaryCostUsd = estimateCostUsd(
       resolution.modelId,
       stats.inputTokens,
@@ -454,7 +621,11 @@ export async function runMastraCanonicalChat(
     if (!evidence.ok) {
       // §5.2: Q1 renamed the degraded-evidence outcome to a hard block.
       metrics.increment('canonical_evidence_blocked_total', {
-        tags: { reason: evidence.findings.some((f) => /without a market-data tool/.test(f)) ? 'no_tool' : 'ungrounded' },
+        tags: {
+          reason: evidence.findings.some((f) => /without a market-data tool/.test(f))
+            ? 'no_tool'
+            : 'ungrounded',
+        },
       });
       await finishMastraRun({
         userId: args.userId,
@@ -482,14 +653,14 @@ export async function runMastraCanonicalChat(
       startedAt,
       ...stats,
       outcome: 'success',
-      answerOutcome: result.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+      answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
       memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
       memoryBackfill: setup.memoryBackfill,
       modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
       telemetryKind: 'mastra_canonical_chat',
     });
     return {
-      text: result.text.trim(),
+      text: finalText.trim(),
       modelId: resolution.modelId,
       providerId: resolution.providerId,
       routing,
@@ -497,8 +668,10 @@ export async function runMastraCanonicalChat(
       totalCostUsd,
       totalLatencyMs,
       toolNames,
+      toolParts,
       evidence,
-      answerOutcome: result.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+      answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+      ...(repaired ? { repaired: true } : {}),
       memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
       memoryBackfill: setup.memoryBackfill,
       modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
@@ -531,6 +704,7 @@ export interface MastraCanonicalChatStream {
     text: string;
     stats: MastraGenerationStats;
     toolNames: string[];
+    toolParts: MastraToolInvocationPart[];
     routing: RoutingDecision;
     modelId: string;
     providerId: string;
@@ -538,6 +712,7 @@ export interface MastraCanonicalChatStream {
     totalLatencyMs: number;
     evidence: ReturnType<typeof checkCanonicalEvidence>;
     answerOutcome: 'ready' | 'blocked' | 'degraded';
+    repaired?: boolean;
     memoryMode: 'native' | 'degraded';
     memoryBackfill: boolean;
     modelSnapshot: { providerId: string; bareModelId: string };
@@ -547,7 +722,7 @@ export interface MastraCanonicalChatStream {
 /**
  * Token-streaming variant of the canonical chat turn. `text` yields provider
  * chunks as they arrive; `completion` resolves with the final trimmed text,
- * usage, and tool names once the stream is fully consumed.
+ * usage, tool parts, and tool names once the stream is fully consumed.
  */
 export async function runMastraCanonicalChatStream(
   args: RunMastraCanonicalChatArgs,
@@ -562,6 +737,7 @@ export async function runMastraCanonicalChatStream(
     resolution,
     callMemory,
     requestContext,
+    toolPartsBuffer,
     context,
     messages,
     scorers,
@@ -632,9 +808,56 @@ export async function runMastraCanonicalChatStream(
   const completion = (async () => {
     try {
       const full = await output.getFullOutput();
-      const stats = getMastraGenerationStats(full);
-      const toolNames = extractToolNames(full.response?.messages);
-      const evidence = checkCanonicalEvidence(full.text, extractToolEvidence(full.response?.messages));
+      let stats = getMastraGenerationStats(full);
+      const initialToolParts = extractToolPartsFromMessages(
+        full.response?.messages,
+        toolPartsBuffer,
+      );
+      let toolParts = initialToolParts;
+      let toolNames = [
+        ...new Set([
+          ...extractToolNames(full.response?.messages),
+          ...initialToolParts.map((p) => p.toolName),
+        ]),
+      ];
+      const initialToolEvidence = mergeToolEvidenceWithParts(
+        extractToolEvidence(full.response?.messages),
+        initialToolParts,
+      );
+      let finalText = full.text;
+      let evidence = checkCanonicalEvidence(finalText, initialToolEvidence);
+      let repaired = false;
+
+      if (!evidence.ok) {
+        const correction = await attemptCanonicalSelfCorrection({
+          agent,
+          context,
+          requestContext,
+          messages,
+          draftText: finalText,
+          initialFindings: evidence.findings,
+          initialToolEvidence,
+          initialToolNames: toolNames,
+          toolPartsBuffer: initialToolParts,
+          ...(args.signal ? { signal: args.signal } : {}),
+        });
+        if (correction) {
+          stats = {
+            inputTokens: stats.inputTokens + correction.extraStats.inputTokens,
+            outputTokens: stats.outputTokens + correction.extraStats.outputTokens,
+            toolCalls: stats.toolCalls + correction.extraStats.toolCalls,
+            steps: stats.steps + correction.extraStats.steps,
+          };
+          if (correction.repaired) {
+            finalText = correction.text;
+            evidence = correction.evidence;
+            toolNames = correction.toolNames;
+            toolParts = correction.toolParts;
+            repaired = true;
+          }
+        }
+      }
+
       const primaryCostUsd = estimateCostUsd(
         resolution.modelId,
         stats.inputTokens,
@@ -646,7 +869,11 @@ export async function runMastraCanonicalChatStream(
       if (!evidence.ok) {
         // §5.2: Q1 renamed the degraded-evidence outcome to a hard block.
         metrics.increment('canonical_evidence_blocked_total', {
-          tags: { reason: evidence.findings.some((f) => /without a market-data tool/.test(f)) ? 'no_tool' : 'ungrounded' },
+          tags: {
+            reason: evidence.findings.some((f) => /without a market-data tool/.test(f))
+              ? 'no_tool'
+              : 'ungrounded',
+          },
         });
         await finishRun({
           userId: args.userId,
@@ -676,23 +903,25 @@ export async function runMastraCanonicalChatStream(
         outcome: args.signal?.aborted
           ? mastraOutcomeForError(args.signal.reason, args.signal)
           : 'success',
-        answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+        answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
         memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
         memoryBackfill: setup.memoryBackfill,
         modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
         telemetryKind: 'mastra_canonical_chat',
       });
       return {
-        text: full.text.trim(),
+        text: finalText.trim(),
         stats,
         totalCostUsd,
         totalLatencyMs,
         toolNames,
+        toolParts,
         evidence,
         routing,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
-        answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+        answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+        ...(repaired ? { repaired: true } : {}),
         memoryMode: setup.memoryDegraded ? ('degraded' as const) : ('native' as const),
         memoryBackfill: setup.memoryBackfill,
         modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
@@ -733,7 +962,10 @@ function extractToolNames(messages: readonly unknown[] | undefined): string[] {
       if (!part || typeof part !== 'object') continue;
       const candidate = part as { type?: unknown; toolName?: unknown };
       if (candidate.type === 'tool-call' && typeof candidate.toolName === 'string') {
-        names.add(candidate.toolName);
+        const rawName = candidate.toolName.startsWith('kestrel-')
+          ? candidate.toolName.slice('kestrel-'.length)
+          : candidate.toolName;
+        names.add(rawName);
       }
     }
   }
@@ -762,9 +994,12 @@ function extractToolEvidence(
         result?: unknown;
       };
       if (candidate.type !== 'tool-result' || typeof candidate.toolName !== 'string') continue;
+      const rawName = candidate.toolName.startsWith('kestrel-')
+        ? candidate.toolName.slice('kestrel-'.length)
+        : candidate.toolName;
       const output = candidate.output ?? candidate.result ?? null;
       evidence.push({
-        name: candidate.toolName,
+        name: rawName,
         resultText:
           output === null || output === undefined
             ? ''
@@ -775,4 +1010,24 @@ function extractToolEvidence(
     }
   }
   return evidence;
+}
+
+function mergeToolEvidenceWithParts(
+  fromMessages: Array<{ name: string; resultText: string }>,
+  parts: readonly MastraToolInvocationPart[],
+): Array<{ name: string; resultText: string }> {
+  const out = [...fromMessages];
+  for (const part of parts) {
+    if (part.state !== 'output-available' || part.output === undefined) continue;
+    const resultText =
+      part.output === null
+        ? ''
+        : typeof part.output === 'string'
+          ? part.output
+          : JSON.stringify(part.output);
+    if (!out.some((e) => e.name === part.toolName && e.resultText === resultText)) {
+      out.push({ name: part.toolName, resultText });
+    }
+  }
+  return out;
 }

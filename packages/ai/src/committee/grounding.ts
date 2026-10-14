@@ -2,12 +2,14 @@
 
 /**
  * Shared numeric grounding for committee text. Specialist opinions and the
- * fusion answer are both checked against the same packet evidence, so the two
- * verifiers cannot disagree about what counts as a supported number.
+ * fusion answer are both checked against the same packet evidence plus any
+ * verified tool outputs returned by the specialist desks (Audit v3 Q8), so the
+ * two verifiers cannot disagree about what counts as a supported number.
  */
 
 import { extractNarrativeNumbers } from '../mastra-v2/agents/xauusd/report/report-grounding';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
+import type { MastraModeOpinion } from './types';
 
 /** Evidence tolerance: legitimate integer rounding of indicator readings. */
 export const EVIDENCE_TOLERANCE = 0.5;
@@ -19,10 +21,50 @@ const SCENARIO_PROJECTION_TERMS =
 /** Characters on either side of a number that may carry its scenario wording. */
 const SCENARIO_CONTEXT_CHARS = 24;
 
-export function packetEvidenceValues(packet: SymbolResearchPacket): number[] {
+/**
+ * Recursively extract finite numeric values from structured tool outputs so
+ * numbers fetched by a specialist's domain tools are grounded in the verifier.
+ */
+export function extractNumbersFromToolOutput(value: unknown, depth = 0): number[] {
+  if (depth > 6 || value === null || value === undefined) return [];
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? [value] : [];
+  }
+  if (typeof value === 'string') {
+    return extractNarrativeNumbers(value);
+  }
+  if (Array.isArray(value)) {
+    const out: number[] = [];
+    for (const item of value) {
+      out.push(...extractNumbersFromToolOutput(item, depth + 1));
+    }
+    return out;
+  }
+  if (typeof value === 'object') {
+    const out: number[] = [];
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (key === 't' || key === 'ts' || key === 'fetchedAt' || key === 'producedAt') continue;
+      out.push(...extractNumbersFromToolOutput(entry, depth + 1));
+    }
+    return out;
+  }
+  return [];
+}
+
+export function packetEvidenceValues(
+  packet: SymbolResearchPacket,
+  opinions?: readonly Pick<MastraModeOpinion, 'rawData'>[],
+): number[] {
   const values: number[] = [];
   if (packet.price) {
     values.push(packet.price.tick.bid, packet.price.tick.ask, packet.price.tick.mid);
+  }
+  if (packet.marketStructure) {
+    values.push(
+      packet.marketStructure.recentSwingHigh,
+      packet.marketStructure.recentSwingLow,
+      packet.marketStructure.rangeSize,
+    );
   }
   for (const evidence of packet.timeframes ?? []) {
     for (const candle of evidence.candles ?? []) {
@@ -40,7 +82,7 @@ export function packetEvidenceValues(packet: SymbolResearchPacket): number[] {
     }
   }
   // §4.2: the XAUUSD macro extension is grounding evidence for macro
-  // numbers (dollar index, real yields, event prints).
+  // numbers (dollar index, real yields, event prints, headline numbers).
   for (const series of [
     packet.xauusdExtension?.dollarIndex,
     packet.xauusdExtension?.realYields,
@@ -51,6 +93,18 @@ export function packetEvidenceValues(packet: SymbolResearchPacket): number[] {
   for (const event of packet.xauusdExtension?.events ?? []) {
     for (const print of [event.actual, event.forecast, event.previous]) {
       if (typeof print === 'number' && Number.isFinite(print)) values.push(print);
+    }
+  }
+  for (const headline of packet.xauusdExtension?.newsHeadlines ?? []) {
+    values.push(...extractNarrativeNumbers(headline.title));
+  }
+  // Audit v3 Phase 4 (Q8): merge numbers returned by specialist domain tools.
+  for (const opinion of opinions ?? []) {
+    const toolVals = opinion.rawData?.toolEvidenceValues;
+    if (Array.isArray(toolVals)) {
+      for (const v of toolVals) {
+        if (typeof v === 'number' && Number.isFinite(v)) values.push(v);
+      }
     }
   }
   return values;

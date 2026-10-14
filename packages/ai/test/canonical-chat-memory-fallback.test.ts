@@ -59,6 +59,7 @@ vi.mock('../src/mastra-v2/context', async () => {
 vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   beginMastraRun: mocks.beginMastraRun,
   finishMastraRun: mocks.finishMastraRun,
+  createMastraRunFinalizer: () => mocks.finishMastraRun,
   getMastraGenerationStats: () => ({ inputTokens: 10, outputTokens: 5, toolCalls: 0, steps: 1 }),
   mastraOutcomeForError: (error: unknown, signal?: AbortSignal) =>
     signal?.aborted || (error instanceof Error && error.name === 'AbortError')
@@ -163,5 +164,70 @@ describe('canonical chat memory fallback (§1.5)', () => {
 
     expect(result.memoryMode).toBe('native');
     expect(result.text).toBe('Here is the answer.');
+  });
+
+  it('extracts structured toolParts from response messages and self-corrects ungrounded numbers once (Q10)', async () => {
+    mocks.generate
+      .mockResolvedValueOnce({
+        text: 'Gold is trading at 9999.5 today.',
+        usage: { inputTokens: 10, outputTokens: 5 },
+        steps: [{}],
+        response: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-price-1',
+                  toolName: 'get_price',
+                  args: { symbol: 'XAUUSD' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-price-1',
+                  toolName: 'get_price',
+                  result: { symbol: 'XAUUSD', price: 2650.4 },
+                },
+              ],
+            },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({
+        text: 'Gold is trading at 2650.4 today.',
+        usage: { inputTokens: 12, outputTokens: 6 },
+        steps: [{}],
+        response: { messages: [] },
+      });
+
+    const result = await runMastraCanonicalChat({
+      userId: 'user-1',
+      threadId: 'thread-1',
+      userMessage: message('what is the price of XAUUSD?'),
+      history: [],
+      settings,
+      env,
+      routingDecision: { domain: 'technical', confidence: 1, rationale: 'test' },
+    });
+
+    expect(mocks.generate).toHaveBeenCalledTimes(2);
+    expect(result.repaired).toBe(true);
+    expect(result.text).toBe('Gold is trading at 2650.4 today.');
+    expect(result.toolParts).toEqual([
+      {
+        type: 'tool-get_price',
+        toolCallId: 'call-price-1',
+        toolName: 'get_price',
+        state: 'output-available',
+        input: { symbol: 'XAUUSD' },
+        output: { symbol: 'XAUUSD', price: 2650.4 },
+      },
+    ]);
   });
 });

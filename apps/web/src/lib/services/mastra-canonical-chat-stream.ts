@@ -38,7 +38,7 @@ import {
 } from '@kestrel/ai/mastra';
 import { listMessages } from '@kestrel/ai/persistence';
 import { getUserWithSettings } from '@kestrel/db';
-import { MemoryDegradedPartSchema } from '@kestrel/shared';
+import { MemoryDegradedPartSchema, type ChatStreamEvent } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
@@ -106,6 +106,9 @@ export async function runMastraCanonicalChatStreamService(
             : [{ type: 'text', text: row.content }],
       }));
 
+    const liveToolEvents: ChatStreamEvent[] = [];
+    const emittedToolCallIds = new Set<string>();
+
     const aiArgs: RunMastraCanonicalChatArgs = {
       userId: input.userId,
       threadId: input.threadId,
@@ -123,6 +126,10 @@ export async function runMastraCanonicalChatStreamService(
       runId,
       executionPlan: input.executionPlan,
       ledger,
+      onToolEvent: (ev) => {
+        emittedToolCallIds.add(ev.toolCallId);
+        liveToolEvents.push(ev);
+      },
       auxiliaryAccounting: {
         onComplete: async ({
           modelId,
@@ -141,23 +148,62 @@ export async function runMastraCanonicalChatStreamService(
     const stream: MastraCanonicalChatStream = await runMastraCanonicalChatStream(aiArgs);
     const messageId = crypto.randomUUID();
     let terminalStatus: 'persisted' | 'persistence-failed' | 'interrupted' | 'failed' = 'failed';
+    const postTextEvents: ChatStreamEvent[] = [];
 
-    // Build a lazy text iterable that yields chunks immediately, then
-    // persists and emits metadata once the stream completes.
-    async function* text(): AsyncIterable<string> {
+    // Build a lazy stream iterable that yields live tool events and text chunks,
+    // then persists tool parts + text + metadata once the stream completes.
+    async function* text(): AsyncIterable<string | ChatStreamEvent> {
+      let streamedAnyText = false;
       try {
-        yield* stream.text;
+        while (liveToolEvents.length > 0) {
+          const ev = liveToolEvents.shift();
+          if (ev) yield ev;
+        }
+        for await (const chunk of stream.text) {
+          while (liveToolEvents.length > 0) {
+            const ev = liveToolEvents.shift();
+            if (ev) yield ev;
+          }
+          if (chunk.length > 0) {
+            streamedAnyText = true;
+            yield chunk;
+          }
+        }
+        while (liveToolEvents.length > 0) {
+          const ev = liveToolEvents.shift();
+          if (ev) yield ev;
+        }
         let completed: Awaited<MastraCanonicalChatStream['completion']>;
         try {
           completed = await stream.completion;
         } catch (error) {
           if (!(error instanceof CanonicalEvidenceBlockedError)) throw error;
-          // Q1 strict block (audit plan §1.3): the answer's numeric claims
-          // failed the evidence gate after the tokens had already streamed.
-          // Close the turn with the standard refusal and persist only the
-          // refusal, so no unverified answer survives as a valid assistant
-          // message. Generation cost is real and still settles the budget.
-          yield CANONICAL_EVIDENCE_BLOCKED_MESSAGE;
+          // Phase 2 (Q10): Do NOT concatenate refusal text onto already-streamed
+          // unverified tokens. If no text had streamed yet, yield the refusal
+          // string; otherwise emit `data-evidence-blocked` so the live UI
+          // replaces the unverified text cleanly.
+          if (!streamedAnyText) {
+            yield CANONICAL_EVIDENCE_BLOCKED_MESSAGE;
+          }
+          postTextEvents.push({
+            type: 'data-evidence-blocked',
+            id: messageId,
+            data: { message: CANONICAL_EVIDENCE_BLOCKED_MESSAGE, repaired: false },
+          });
+          const refusalMetaData = {
+            engine: 'mastra',
+            canonical: true,
+            runId,
+            executionOutcome: 'completed',
+            answerOutcome: 'blocked',
+            evidence: { ok: false, findings: [...error.findings] },
+            terminalReason: 'canonical-evidence-blocked',
+          };
+          postTextEvents.push({
+            type: 'data-multi-agent-meta',
+            id: messageId,
+            data: refusalMetaData,
+          });
           const refusalMessage: UIMessage = {
             id: messageId,
             role: 'assistant',
@@ -165,15 +211,7 @@ export async function runMastraCanonicalChatStreamService(
               { type: 'text', text: CANONICAL_EVIDENCE_BLOCKED_MESSAGE },
               {
                 type: 'data-multi-agent-meta',
-                data: {
-                  engine: 'mastra',
-                  canonical: true,
-                  runId,
-                  executionOutcome: 'completed',
-                  answerOutcome: 'blocked',
-                  evidence: { ok: false, findings: [...error.findings] },
-                  terminalReason: 'canonical-evidence-blocked',
-                },
+                data: refusalMetaData,
               } as UIMessage['parts'][number],
             ],
           };
@@ -188,43 +226,100 @@ export async function runMastraCanonicalChatStreamService(
           await finalizer.complete(ledger.total());
           return;
         }
+
+        // Emit any tool parts discovered from completion messages that were not
+        // already emitted live (e.g. from self-correction or mocked responses).
+        const toolParts = completed.toolParts ?? [];
+        for (const tp of toolParts) {
+          if (!emittedToolCallIds.has(tp.toolCallId)) {
+            emittedToolCallIds.add(tp.toolCallId);
+            postTextEvents.push({
+              type: 'tool-input-available',
+              toolCallId: tp.toolCallId,
+              toolName: tp.toolName,
+              input: tp.input,
+            });
+            if (tp.state === 'output-available') {
+              postTextEvents.push({
+                type: 'tool-output-available',
+                toolCallId: tp.toolCallId,
+                output: tp.output ?? null,
+              });
+            } else if (tp.state === 'output-error') {
+              postTextEvents.push({
+                type: 'tool-output-error',
+                toolCallId: tp.toolCallId,
+                errorText: tp.errorText ?? 'Tool execution failed.',
+              });
+            }
+          }
+        }
+
+        // If the silent self-correction pass rewrote the draft, instruct the
+        // live UI to replace the streamed draft with the verified text.
+        if (completed.repaired) {
+          postTextEvents.push({
+            type: 'data-evidence-blocked',
+            id: messageId,
+            data: { message: completed.text, repaired: true },
+          });
+        }
+
         const observedCost = ledger.total();
+        const memoryDegradedPart =
+          completed.memoryMode === 'degraded'
+            ? MemoryDegradedPartSchema.parse({
+                type: 'data-memory-degraded',
+                reason: 'Thread memory was unavailable; answered without semantic recall.',
+                createdAt: Date.now(),
+              })
+            : null;
+        if (memoryDegradedPart) {
+          postTextEvents.push({
+            type: 'data-memory-degraded',
+            id: messageId,
+            reason: memoryDegradedPart.reason,
+            createdAt: memoryDegradedPart.createdAt,
+          });
+        }
+
+        const metaData = {
+          engine: 'mastra',
+          canonical: true,
+          runId,
+          routingDomain: completed.routing.domain,
+          modelId: completed.modelId,
+          providerId: completed.providerId,
+          observedCost,
+          totalCostUsd: observedCost,
+          totalLatencyMs: completed.totalLatencyMs,
+          toolNames: completed.toolNames,
+          evidence: completed.evidence,
+          executionOutcome: 'completed',
+          answerOutcome: completed.answerOutcome,
+          memoryMode: completed.memoryMode,
+          memoryBackfill: completed.memoryBackfill,
+          modelSnapshot: completed.modelSnapshot,
+          terminalReason: 'stream-completed',
+        };
+        postTextEvents.push({
+          type: 'data-multi-agent-meta',
+          id: messageId,
+          data: metaData,
+        });
+
         const assistantMessage: UIMessage = {
           id: messageId,
           role: 'assistant',
           parts: [
+            ...(toolParts as unknown as UIMessage['parts']),
             { type: 'text', text: completed.text },
-            // Audit plan §1.5: when native memory prep failed and the turn
-            // fell back to explicit history, tell the user recall is off.
-            ...(completed.memoryMode === 'degraded'
-              ? [
-                  MemoryDegradedPartSchema.parse({
-                    type: 'data-memory-degraded',
-                    reason: 'Thread memory was unavailable; answered without semantic recall.',
-                    createdAt: Date.now(),
-                  }) as unknown as UIMessage['parts'][number],
-                ]
+            ...(memoryDegradedPart
+              ? [memoryDegradedPart as unknown as UIMessage['parts'][number]]
               : []),
             {
               type: 'data-multi-agent-meta',
-              data: {
-                engine: 'mastra',
-                canonical: true,
-                runId,
-                routingDomain: completed.routing.domain,
-                modelId: completed.modelId,
-                providerId: completed.providerId,
-                observedCost,
-                totalLatencyMs: completed.totalLatencyMs,
-                toolNames: completed.toolNames,
-                evidence: completed.evidence,
-                executionOutcome: 'completed',
-                answerOutcome: completed.answerOutcome,
-                memoryMode: completed.memoryMode,
-                memoryBackfill: completed.memoryBackfill,
-                modelSnapshot: completed.modelSnapshot,
-                terminalReason: 'stream-completed',
-              },
+              data: metaData,
             } as UIMessage['parts'][number],
           ],
         };
@@ -254,7 +349,7 @@ export async function runMastraCanonicalChatStreamService(
     }
 
     return mastraStreamResponse(text(), messageId, {
-      meta: { id: messageId, data: { engine: 'mastra', canonical: true, runId } },
+      afterTextEvents: () => postTextEvents,
       signal: input.signal,
       onAbort: async () => {
         terminalStatus = 'interrupted';

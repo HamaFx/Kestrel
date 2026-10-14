@@ -17,16 +17,30 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { JournalEntry, JournalStats, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { z } from 'zod';
 
+import { acquireBudget } from '../budget';
 import {
   DEFAULT_MAX_DAILY_USD,
   estimateKnownCostUsd,
   releaseBudgetReservation,
-  tryReserveBudget,
 } from '../cost';
-import { runMastraText } from '../mastra-v2/agents/xauusd/text-runner';
+import * as textRunner from '../mastra-v2/agents/xauusd/text-runner';
+import {
+  beginMastraRun,
+  finishMastraRun,
+  mastraOutcomeForError,
+} from '../mastra-v2/shared/telemetry';
 import { resolveChatModel } from '../model';
 import { computeStats, listEntries } from './persistence';
+
+export const CoachInsightsOutputSchema = z.object({
+  disciplineGrade: z.enum(['A+', 'A', 'B', 'C', 'D', 'F']),
+  summary: z.string().min(1),
+  strengths: z.array(z.string()).max(5),
+  leaks: z.array(z.string()).max(5),
+  actionRules: z.array(z.string()).max(5),
+});
 
 export interface CoachInsightsArgs {
   userId: string;
@@ -151,19 +165,34 @@ ${recentNotes || '- No trade notes recorded yet.'}
 export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachInsightsResult> {
   const { userId, userSettings, env, signal } = args;
   const startedAt = Date.now();
+  const runId = crypto.randomUUID();
+  const threadId = `journal-coach:${userId}`;
 
   const { model, modelId } = resolveChatModel(userSettings, env);
+  const providerId = modelId.includes(':') ? modelId.split(':')[0]! : 'google';
 
+  // Audit v3 Phase 7 (Q4): use acquireBudget so daily caps are ledger-only
+  // unless ENFORCE_BUDGET=true.
   const estimatedUsd = 0.008;
   const maxDailyUsd = userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD;
-  const reservation = await tryReserveBudget(userId, estimatedUsd, maxDailyUsd, new Date(), {
-    runId: crypto.randomUUID(),
+  const { reservation } = await acquireBudget({
+    userId,
+    estimateUsd: estimatedUsd,
+    maxDailyUsd,
+    correlation: { runId, threadId },
   });
   if (!reservation.ok) {
     throw new Error(
       `Daily AI budget exceeded ($${reservation.spent.toFixed(2)} / $${reservation.max.toFixed(2)}).`,
     );
   }
+
+  beginMastraRun({
+    runId,
+    threadId,
+    model: modelId,
+    providerId,
+  });
 
   try {
     const [stats, entries] = await Promise.all([
@@ -173,50 +202,92 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
 
     const userPrompt = formatStatsForCoachPrompt(stats, entries);
 
-    const result = await runMastraText({
-      task: 'journal-review',
-      model,
-      system: COACH_SYSTEM_PROMPT,
-      prompt: userPrompt,
-      userId,
-      ...(signal ? { signal } : {}),
-      maxOutputTokens: 1200,
-    });
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let rawText = '';
+    let parsed: Partial<z.infer<typeof CoachInsightsOutputSchema>> = {};
+
+    if (typeof textRunner.runMastraStructured === 'function') {
+      const structuredResult = await textRunner.runMastraStructured({
+        task: 'journal-review',
+        model,
+        system: COACH_SYSTEM_PROMPT,
+        prompt: userPrompt,
+        schema: CoachInsightsOutputSchema,
+        userId,
+        threadId,
+        runId,
+        ...(signal ? { signal } : {}),
+        maxOutputTokens: 1200,
+      });
+      inputTokens = structuredResult.inputTokens;
+      outputTokens = structuredResult.outputTokens;
+      rawText = structuredResult.text ?? '';
+      if (structuredResult.object && typeof structuredResult.object === 'object') {
+        parsed = structuredResult.object;
+      }
+    } else {
+      const textResult = await textRunner.runMastraText({
+        task: 'journal-review',
+        model,
+        system: COACH_SYSTEM_PROMPT,
+        prompt: userPrompt,
+        userId,
+        threadId,
+        runId,
+        ...(signal ? { signal } : {}),
+        maxOutputTokens: 1200,
+      });
+      inputTokens = textResult.inputTokens;
+      outputTokens = textResult.outputTokens;
+      rawText = textResult.text;
+    }
 
     const latencyMs = Date.now() - startedAt;
-    const costUsd = estimateKnownCostUsd(modelId, result.inputTokens, result.outputTokens);
+    const costUsd = estimateKnownCostUsd(modelId, inputTokens, outputTokens);
+
+    await finishMastraRun({
+      userId,
+      threadId,
+      runId,
+      model: modelId,
+      providerId,
+      startedAt,
+      inputTokens,
+      outputTokens,
+      toolCalls: 0,
+      steps: 1,
+      outcome: 'success',
+      answerOutcome: 'ready',
+      telemetryKind: 'mastra_worker_task',
+    });
+
     if (reservation.reservationId) {
       const { reconcileBudgetReservation } = await import('../cost');
       await reconcileBudgetReservation(reservation.reservationId, costUsd);
     }
 
-    let parsed: {
-      disciplineGrade?: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
-      summary?: string;
-      strengths?: string[];
-      leaks?: string[];
-      actionRules?: string[];
-    } = {};
-
-    try {
-      const cleaned = result.text
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim();
-      parsed = JSON.parse(cleaned);
-    } catch (parseErr) {
-      clog.warn(
-        { err: parseErr, rawText: result.text },
-        'Failed to parse structured coach JSON, using fallback formatting',
-      );
-      parsed = {
-        disciplineGrade: stats.winRate >= 0.6 ? 'A' : stats.winRate >= 0.45 ? 'B' : 'C',
-        summary: result.text.slice(0, 300),
-        strengths: ['Consistent trade journaling discipline'],
-        leaks: ['Review trade notes and risk parameters'],
-        actionRules: ['Stick to 1% risk per trade', 'Review setups before market open'],
-      };
+    if (!parsed.summary && rawText) {
+      try {
+        const cleaned = rawText
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/\s*```$/i, '')
+          .trim();
+        parsed = JSON.parse(cleaned);
+      } catch (parseErr) {
+        clog.warn(
+          { err: parseErr, rawText },
+          'Failed to parse structured coach JSON, using fallback formatting',
+        );
+        parsed = {
+          disciplineGrade: stats.winRate >= 0.6 ? 'A' : stats.winRate >= 0.45 ? 'B' : 'C',
+          summary: rawText.slice(0, 300),
+          strengths: ['Consistent trade journaling discipline'],
+          leaks: ['Review trade notes and risk parameters'],
+          actionRules: ['Stick to 1% risk per trade', 'Review setups before market open'],
+        };
+      }
     }
 
     return {
@@ -233,12 +304,26 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       latencyMs,
     };
   } catch (err) {
+    await finishMastraRun({
+      userId,
+      threadId,
+      runId,
+      model: modelId,
+      providerId,
+      startedAt,
+      inputTokens: 0,
+      outputTokens: 0,
+      toolCalls: 0,
+      steps: 0,
+      outcome: mastraOutcomeForError(err, signal),
+      telemetryKind: 'mastra_worker_task',
+      error: err,
+    });
+
     try {
       if (reservation.reservationId) {
         await releaseBudgetReservation(reservation.reservationId);
       } else {
-        // Legacy reservations without a ledger id are not expected in production.
-        // Keep the fallback path only for compatibility with older test adapters.
         const { applyBudgetDelta } = await import('../cost');
         await applyBudgetDelta(userId, -estimatedUsd);
       }

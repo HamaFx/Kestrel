@@ -17,14 +17,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee opinion verifier (Phase 6). Moved out of the workflow file so
- * verification is a reusable, testable committee stage shared by every mode.
+ * Committee opinion verifier (Phase 6 + Audit v3 Phase 4). Moved out of the
+ * workflow file so verification is a reusable, testable committee stage shared
+ * by every mode.
  */
 
 import { metrics } from '@kestrel/shared';
 
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
-import { packetEvidenceValues, ungroundedNarrativeNumbers } from './grounding';
+import {
+  isSupportedByEvidence,
+  packetEvidenceValues,
+  ungroundedNarrativeNumbers,
+} from './grounding';
 import type { MastraModeOpinion } from './types';
 
 export interface OpinionVerification {
@@ -49,9 +54,9 @@ function emitVerificationMetrics(ok: boolean, findings: readonly string[]): void
 }
 
 /**
- * Lightweight deterministic checks for committee opinions. This intentionally
- * does not attempt to judge prose quality; it catches identity, confidence,
- * and unsupported numeric claims before synthesis.
+ * Deterministic checks for committee opinions. Checks identity, confidence,
+ * narrative numbers, and structured `rawData.keyLevels` (P1-5) against the
+ * union of packet evidence and the specialist's own tool outputs (Q8).
  */
 export function verifyMastraOpinion(
   opinion: MastraModeOpinion,
@@ -73,9 +78,27 @@ export function verifyMastraOpinion(
     findings.push('numeric reasoning is not allowed when packet data is unavailable');
   }
   if (packet.status === 'ready') {
-    const evidenceValues = packetEvidenceValues(packet);
+    const evidenceValues = packetEvidenceValues(packet, [opinion]);
     for (const value of ungroundedNarrativeNumbers(opinion.reasoning, evidenceValues)) {
       findings.push(`reasoning cites unsupported numeric value ${value} not found in packet evidence`);
+    }
+    // Audit v3 P1-5: verify support/resistance keyLevels in rawData so
+    // ungrounded levels cannot bypass specialist verification and poison fusion.
+    const keyLevels = opinion.rawData?.keyLevels;
+    if (Array.isArray(keyLevels) && evidenceValues.length > 0) {
+      for (const item of keyLevels) {
+        if (!item || typeof item !== 'object') continue;
+        const level = item as { price?: unknown; kind?: unknown };
+        if (typeof level.price !== 'number' || !Number.isFinite(level.price)) continue;
+        // Forward-looking trigger/invalidation projections are exempt like narrative scenario terms;
+        // observed support/resistance levels must match packet or tool evidence.
+        if (level.kind === 'trigger' || level.kind === 'invalidation') continue;
+        if (!isSupportedByEvidence(level.price, evidenceValues)) {
+          findings.push(
+            `keyLevels cites unsupported numeric value ${level.price} not found in packet evidence`,
+          );
+        }
+      }
     }
   }
   if (packet.symbol.length === 0) findings.push('packet symbol is missing');

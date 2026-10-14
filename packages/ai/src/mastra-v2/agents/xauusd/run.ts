@@ -43,6 +43,11 @@ import {
   assertExecutionPlanRoute,
   type ExecutionPlan,
 } from '../../planning/execution-plan';
+import {
+  extractToolPartsFromMessages,
+  type MastraToolInvocationPart,
+  type MastraToolStreamEvent,
+} from './legacy-tool-adapter';
 import { generateXauusdFollowup } from './report/report-generation';
 import { blockedXauusdResearchText } from './report/report-text';
 import type { XauusdResearchReport } from './report/report-types';
@@ -87,6 +92,8 @@ export interface RunXauusdMastraArgs {
   priorReport?: XauusdResearchReport | null;
   executionPlan?: ExecutionPlan;
   ledger?: GenerationLedger;
+  /** Optional listener invoked in real time as read-only tools start and finish. */
+  onToolEvent?: (event: MastraToolStreamEvent) => void;
 }
 
 /**
@@ -105,6 +112,7 @@ export interface XauusdMastraRunResult {
   bareModelId: string;
   stats: MastraGenerationStats;
   totalCostUsd: number;
+  toolParts?: MastraToolInvocationPart[];
   answerOutcome: 'ready' | 'blocked' | 'degraded';
   modelSnapshot: { providerId: string; bareModelId: string };
   /** 'degraded' when native-memory preparation partially failed (Phase 9). */
@@ -505,6 +513,7 @@ async function executeXauusdMastraConversationRun(
         bareModelId: resolution.bareModelId,
         stats,
         totalCostUsd: 0,
+        toolParts: [],
         answerOutcome: 'blocked',
         modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
         memoryMode: runContext.prepared.memoryDegraded ? 'degraded' : 'native',
@@ -523,7 +532,18 @@ async function executeXauusdMastraConversationRun(
       inputProcessors: guardrails,
       scorers: conversationScorers,
     });
+    const toolPartsBuffer: MastraToolInvocationPart[] = [];
     const requestContext = contextForRun(args, packet);
+    (requestContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
+      'toolParts',
+      toolPartsBuffer,
+    );
+    if (args.onToolEvent) {
+      (requestContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
+        'onToolEvent',
+        args.onToolEvent,
+      );
+    }
     const result = await agent.generate(args.prompt, {
       requestContext,
       memory: prepared.callOptions,
@@ -547,6 +567,10 @@ async function executeXauusdMastraConversationRun(
       }),
     });
     const stats = getMastraGenerationStats(result);
+    const toolParts = extractToolPartsFromMessages(
+      (result as unknown as { response?: { messages?: readonly unknown[] } }).response?.messages,
+      toolPartsBuffer,
+    );
     generationLedger.recordUsage(
       `primary:${args.runId}`,
       'primary',
@@ -577,10 +601,10 @@ async function executeXauusdMastraConversationRun(
       bareModelId: resolution.bareModelId,
       stats,
       totalCostUsd: generationLedger.total(),
+      toolParts,
       answerOutcome: 'ready',
       modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
       memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
-
       memoryBackfill: prepared.backfillAttempted,
     };
   } catch (error) {
@@ -627,6 +651,7 @@ export interface XauusdMastraConversationStream {
     providerId: string;
     bareModelId: string;
     stats: MastraGenerationStats;
+    toolParts: MastraToolInvocationPart[];
     answerOutcome: 'ready' | 'blocked' | 'degraded';
     modelSnapshot: { providerId: string; bareModelId: string };
     memoryMode: 'native' | 'degraded';
@@ -725,6 +750,7 @@ export async function runXauusdMastraConversationStream(
             providerId: resolution.providerId,
             bareModelId: resolution.bareModelId,
             stats,
+            toolParts: [],
             totalCostUsd: 0,
             answerOutcome: 'blocked' as const,
             modelSnapshot: {
@@ -750,7 +776,18 @@ export async function runXauusdMastraConversationStream(
         inputProcessors: guardrails,
         scorers: conversationScorers,
       });
+      const toolPartsBuffer: MastraToolInvocationPart[] = [];
       const requestContext = contextForRun(args, packet);
+      (requestContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
+        'toolParts',
+        toolPartsBuffer,
+      );
+      if (args.onToolEvent) {
+        (requestContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
+          'onToolEvent',
+          args.onToolEvent,
+        );
+      }
       const output = await agent.stream(args.prompt, {
         requestContext,
         memory: prepared.callOptions,
@@ -805,6 +842,11 @@ export async function runXauusdMastraConversationStream(
         try {
           const full = await output.getFullOutput();
           const stats = getMastraGenerationStats(full);
+          const toolParts = extractToolPartsFromMessages(
+            (full as unknown as { response?: { messages?: readonly unknown[] } }).response
+              ?.messages,
+            toolPartsBuffer,
+          );
           generationLedger.recordUsage(
             `primary:${args.runId}`,
             'primary',
@@ -839,6 +881,7 @@ export async function runXauusdMastraConversationStream(
             providerId: resolution.providerId,
             bareModelId: resolution.bareModelId,
             stats,
+            toolParts,
             totalCostUsd: generationLedger.total(),
             answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
             modelSnapshot: {

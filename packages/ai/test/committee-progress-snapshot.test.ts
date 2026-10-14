@@ -23,7 +23,13 @@ describe('committeeProgressSnapshot', () => {
     expect(snapshot).not.toHaveProperty('step');
   });
 
-  it('marks every specialist done on complete and the current one as error on failure', () => {
+  it('keeps specialists pending during collect-packet and marks them done on complete', () => {
+    expect(committeeProgressSnapshot('full', 'collect-packet').agents.map((a) => a.status)).toEqual([
+      'pending',
+      'pending',
+      'pending',
+      'pending',
+    ]);
     expect(committeeProgressSnapshot('single', 'technical', 'complete')).toMatchObject({
       status: 'complete',
       agents: [{ agentName: 'technical', status: 'done' }],
@@ -32,5 +38,31 @@ describe('committeeProgressSnapshot', () => {
       agentName: 'risk',
       status: 'error',
     });
+  });
+
+  it('attaches structured specialist opinions when provided on completion', () => {
+    const snapshot = committeeProgressSnapshot('full', 'fusion', 'complete', [
+      {
+        agentName: 'technical',
+        bias: 'bullish',
+        confidence: 0.82,
+        reasoning: 'EMA20 above EMA50',
+      },
+      {
+        agentName: 'fundamental',
+        bias: 'neutral',
+        confidence: 0.6,
+        reasoning: 'CPI in line with expectations',
+      },
+    ]);
+    expect(snapshot.status).toBe('complete');
+    expect(snapshot.agents[0]?.opinion).toEqual({
+      agentName: 'technical',
+      bias: 'bullish',
+      confidence: 0.82,
+      reasoning: 'EMA20 above EMA50',
+      summary: 'EMA20 above EMA50',
+    });
+    expect(snapshot.agents[1]?.opinion?.bias).toBe('neutral');
   });
 });

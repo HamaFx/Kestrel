@@ -35,6 +35,12 @@ export interface BotContext {
   signal?: AbortSignal;
 }
 
+/** Inline button definition for Telegram responses. */
+export interface BotInlineButton {
+  text: string;
+  callback_data: string;
+}
+
 /** A bot response — either text or an image (for /chart). */
 export interface BotResponse {
   text?: string;
@@ -44,6 +50,8 @@ export interface BotResponse {
   imageCaption?: string;
   /** Parse mode for Telegram (default: undefined = plain text). */
   parseMode?: 'HTML' | 'MarkdownV2' | undefined;
+  /** Optional inline keyboard rows for interactive mode selection. */
+  inlineKeyboard?: BotInlineButton[][];
 }
 
 /** A registered bot command. */
@@ -61,12 +69,26 @@ export interface ParsedCommand {
 }
 
 /**
- * Parse a raw message text into a command name and arguments.
+ * Parse a raw message text (or inline button callback data) into a command name and arguments.
  * "/analyze XAUUSD" → { command: 'analyze', args: ['XAUUSD'] }
+ * "/analyze XAUUSD full" → { command: 'analyze', args: ['XAUUSD', 'full'] }
+ * "analyze:full:XAUUSD" → { command: 'analyze', args: ['XAUUSD', 'full'] }
  * "/price EURUSD" → { command: 'price', args: ['EURUSD'] }
  */
 export function parseCommand(text: string): ParsedCommand {
   const trimmed = text.trim();
+
+  // Support callback_data format: "analyze:<mode>:<symbol>" or "committee:<mode>:<symbol>"
+  const callbackMatch = /^(analyze|committee):(quick|single|full|team):([A-Za-z0-9/_-]+)$/i.exec(
+    trimmed,
+  );
+  if (callbackMatch) {
+    const cmd = callbackMatch[1]!.toLowerCase();
+    const mode = callbackMatch[2]!.toLowerCase();
+    const symbol = callbackMatch[3]!.toUpperCase();
+    return { command: cmd, args: [symbol, mode] };
+  }
+
   if (!trimmed.startsWith('/')) {
     return { command: '', args: [] };
   }

@@ -14,69 +14,127 @@
  * limitations under the License.
  */
 
-// F7 — /analyze command: full AI analysis of a symbol.
-// /analyze EURUSD → runs the AI agent for a full analysis.
-//
-// This command costs money (AI tokens) — it checks the budget guardrail.
+// F7 — /analyze command: AI market analysis of a symbol with user-choosable mode (Q9).
+// /analyze XAUUSD [quick|full] → runs Quick Check (1 Expert) or Full Team Analysis (4 Experts).
 
 import { createHash, randomUUID } from 'crypto';
 
 import { withRateLimit } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
-import { tryMastraBotMessage } from '../mastra';
-import type { BotCommand, BotContext, BotResponse } from '../types';
+import {
+  parseTelegramAnalysisMode,
+  runTelegramSymbolAnalysis,
+  tryMastraBotMessage,
+} from '../mastra';
+import type { BotCommand, BotContext, BotInlineButton, BotResponse } from '../types';
+
+export function buildModeToggleKeyboard(
+  symbol: string,
+  currentMode: 'single' | 'full',
+): BotInlineButton[][] {
+  if (currentMode === 'single') {
+    return [
+      [
+        {
+          text: '🧠 Run Full 4-Expert Team Analysis',
+          callback_data: `analyze:full:${symbol}`,
+        },
+      ],
+    ];
+  }
+  return [
+    [
+      {
+        text: '⚡ Run Quick Check (1 Expert)',
+        callback_data: `analyze:quick:${symbol}`,
+      },
+    ],
+  ];
+}
 
 export const analyzeCommand: BotCommand = {
   name: 'analyze',
   aliases: ['a'],
-  description: 'Full AI analysis: /analyze <symbol>',
+  description: 'Market check (1 or 4 experts): /analyze <symbol> [quick|full]',
   handler: async (args: string[], ctx: BotContext): Promise<BotResponse> => {
     const symbolStr = args[0];
     if (!symbolStr) {
       return {
-        text: 'Usage: /analyze <symbol>\nExample: /analyze EURUSD',
+        text: [
+          'Usage: /analyze <symbol> [quick|full]',
+          '',
+          'Choose your analysis depth:',
+          '• /analyze XAUUSD quick — ⚡ Quick Check (1 Expert: Technical chart check)',
+          '• /analyze XAUUSD full — 🧠 Full Team (4 Experts: Technical, Macro & News, Risk, and Sentiment)',
+        ].join('\n'),
       };
     }
     const symbol = symbolStr.toUpperCase();
+
+    // Support "/analyze XAUUSD full" or "/analyze XAUUSD 1h full"
+    const parsedMode =
+      parseTelegramAnalysisMode(args[1]) ??
+      parseTelegramAnalysisMode(args[2]) ??
+      'single';
 
     // Rate limit: 10 analyses per minute per user
     const rateLimit = await withRateLimit(ctx.userId, 'bot_analyze', 10);
     if (!rateLimit.allowed) {
       return {
-        text: `⏳ Rate limit exceeded. You can run /analyze ${rateLimit.limit} times per minute. Please wait and try again.`,
+        text: `⏳ Rate limit reached. You can run /analyze ${rateLimit.limit} times per minute. Please wait a moment and try again.`,
       };
     }
 
-    // Build a chat message that triggers analysis
     const userMessage: UIMessage = {
       id: randomUUID(),
       role: 'user',
       parts: [
         {
           type: 'text',
-          text: `Please provide a full analysis of ${symbol}. Include technical, fundamental, and risk assessment.`,
+          text:
+            parsedMode === 'full'
+              ? `Run a full 4-expert team analysis of ${symbol} in simple language.`
+              : `Run a quick 1-expert check of ${symbol} in simple language.`,
         },
       ],
     };
 
     try {
-      // Use a deterministic thread ID for bot conversations per user+symbol
-      const threadId = deterministicThreadId(ctx.userId, `analyze-${symbol}`);
+      const threadId = deterministicThreadId(ctx.userId, `analyze-${symbol}-${parsedMode}`);
 
-      const mastraText = await tryMastraBotMessage({
-        userId: ctx.userId,
-        threadId,
-        userMessage,
-        prompt: `Please provide a full analysis of ${symbol}. Include technical, fundamental, and risk assessment.`,
-        system:
-          'You are Kestrel answering a Telegram market-analysis request. Use only trusted evidence, disclose missing data, use scenario language, never place trades, and keep the answer mobile-friendly.',
-        ...(ctx.signal ? { signal: ctx.signal } : {}),
-      });
+      let analysisText: string | null = null;
+      try {
+        analysisText = await runTelegramSymbolAnalysis({
+          userId: ctx.userId,
+          threadId,
+          userMessage,
+          symbol,
+          mode: parsedMode,
+          ...(ctx.signal ? { signal: ctx.signal } : {}),
+        });
+      } catch {
+        // Fallback to live-packet grounded bot message if the full workflow cannot run
+        analysisText = await tryMastraBotMessage({
+          userId: ctx.userId,
+          threadId,
+          userMessage,
+          prompt: `Provide a ${parsedMode === 'full' ? 'full 4-expert' : 'quick'} market analysis of ${symbol} in simple, everyday trader language. Include the bottom line, key price levels, and main risks.`,
+          system:
+            'You are Kestrel helping a trader on Telegram. Use only verified market data, write in simple non-technical English, use scenario language, and never place trades.',
+          ...(ctx.signal ? { signal: ctx.signal } : {}),
+        });
+      }
+
+      if (!analysisText) {
+        return {
+          text: `Could not complete the analysis of ${symbol} right now. Please try again in a moment.`,
+        };
+      }
+
       return {
-        text:
-          mastraText ??
-          `Mastra could not complete the analysis of ${symbol}. Please try again in the web app.`,
+        text: analysisText,
+        inlineKeyboard: buildModeToggleKeyboard(symbol, parsedMode),
       };
     } catch {
       return {

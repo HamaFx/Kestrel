@@ -32,6 +32,7 @@
 import { createHash } from 'node:crypto';
 
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
 import { runMastraStructured } from './mastra-v2/agents/xauusd/text-runner';
@@ -115,6 +116,7 @@ export async function classifyTurnLLM(
   env: ResolveModelEnv,
   signal?: AbortSignal | null,
   accounting?: SemanticRoutingAccounting,
+  resolvedModel?: LanguageModel | null,
 ): Promise<SemanticClassification | null> {
   const normalizedText = userText.normalize('NFKC').replace(/\s+/g, ' ').trim();
   const cacheKey = `${modelId}:${createHash('sha256').update(normalizedText).digest('hex')}`;
@@ -131,7 +133,7 @@ export async function classifyTurnLLM(
   let success = false;
   let outputChars = 0;
   try {
-    const model = resolveModel(modelId, env);
+    const model = resolvedModel ?? resolveModel(modelId, env);
     // Guard: resolveModel returns string in gateway mode, but generateObject
     // requires a LanguageModel instance. Fall back on string-return.
     if (typeof model === 'string') return null;
@@ -158,7 +160,8 @@ EXAMPLES:
       prompt: `Classify this question: "${userText}"`,
       schema: ClassificationSchema,
       signal: controller.signal,
-      maxOutputTokens: 30,
+      maxOutputTokens: 120,
+      skipInputGuardrails: true,
     });
 
     const classification: SemanticClassification = {

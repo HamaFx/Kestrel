@@ -19,6 +19,12 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import {
+  buildModeToggleKeyboard,
+  formatTelegramAnalysisReply,
+  parseCommand,
+  parseTelegramAnalysisMode,
+} from '../src/bot';
 import { chunkText } from '../src/telegram/client';
 import { _resetForTesting, isDuplicateUpdate, markProcessed } from '../src/telegram/idempotency';
 import {
@@ -141,5 +147,66 @@ describe('Text Chunking', () => {
   it('handles empty text', () => {
     const chunks = chunkText('', 4000);
     expect(chunks).toEqual(['']);
+  });
+});
+
+// ── Phase 6: Telegram Mode Selection & Plain-English Formatting ──
+
+describe('Telegram Mode Selection & Plain-English Formatting', () => {
+  it('parses quick/single and full/team mode flags', () => {
+    expect(parseTelegramAnalysisMode('quick')).toBe('single');
+    expect(parseTelegramAnalysisMode('single')).toBe('single');
+    expect(parseTelegramAnalysisMode('1')).toBe('single');
+    expect(parseTelegramAnalysisMode('full')).toBe('full');
+    expect(parseTelegramAnalysisMode('team')).toBe('full');
+    expect(parseTelegramAnalysisMode('4')).toBe('full');
+    expect(parseTelegramAnalysisMode('unknown')).toBeNull();
+  });
+
+  it('parses inline button callback_data into /analyze commands', () => {
+    expect(parseCommand('analyze:full:XAUUSD')).toEqual({
+      command: 'analyze',
+      args: ['XAUUSD', 'full'],
+    });
+    expect(parseCommand('analyze:quick:EURUSD')).toEqual({
+      command: 'analyze',
+      args: ['EURUSD', 'quick'],
+    });
+  });
+
+  it('formats full team analysis in plain trader English with expert breakdown', () => {
+    const reply = formatTelegramAnalysisReply({
+      symbol: 'XAUUSD',
+      mode: 'full',
+      finalText: 'Bottom Line: Gold holds above 2400 support.',
+      agentOpinions: [
+        {
+          agentName: 'technical',
+          bias: 'bullish',
+          confidence: 0.8,
+          reasoning: 'Above EMA20',
+        },
+        {
+          agentName: 'risk',
+          bias: 'neutral',
+          confidence: 0.65,
+          reasoning: 'Watch CPI volatility',
+        },
+      ],
+    });
+    expect(reply).toContain('🧠 Full Team Analysis (4 Experts) — XAUUSD');
+    expect(reply).toContain('📈 Technical Chartist: Bullish (80% confidence)');
+    expect(reply).toContain('🛡️ Risk Manager: Neutral (65% confidence)');
+    expect(reply).toContain('Bottom Line: Gold holds above 2400 support.');
+    expect(reply).not.toMatch(/Mastra|packetId|canonical/i);
+  });
+
+  it('builds mode toggle inline keyboard buttons', () => {
+    expect(buildModeToggleKeyboard('XAUUSD', 'single')).toEqual([
+      [{ text: '🧠 Run Full 4-Expert Team Analysis', callback_data: 'analyze:full:XAUUSD' }],
+    ]);
+    expect(buildModeToggleKeyboard('XAUUSD', 'full')).toEqual([
+      [{ text: '⚡ Run Quick Check (1 Expert)', callback_data: 'analyze:quick:XAUUSD' }],
+    ]);
   });
 });

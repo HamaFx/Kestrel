@@ -17,8 +17,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee prompts and policy fragments (Phase 6). Specialist and fusion
- * instructions are centralized here so single/full share one prompt contract.
+ * Committee prompts, specialist skill playbooks, goals, and policy fragments
+ * (Phase 6 + Audit v3 Phase 4, Owner Decisions Q8, Q9, Q12).
  *
  * Audit plan §2.2: prompts no longer interpolate the serialized packet at
  * build time. Each committee agent receives an *instructions function* that
@@ -26,12 +26,6 @@
  * XAUUSD agent's `instructionsForRequest` pattern, and the serialized
  * packet string is computed once per packet object and shared by every
  * specialist and the fusion call in the same run.
- *
- * Prompts never enforce security on their own; deterministic policy stays
- * outside prompts (execution-plan tool policies, capability manifest, the
- * read-only memory enforcement in `specialist-runner.ts`). These fragments
- * only describe the write-free research contract every committee agent
- * shares.
  */
 
 import type { RequestContext } from '@mastra/core/request-context';
@@ -47,7 +41,82 @@ import type {
   ModeRequestContext,
 } from './types';
 
-/** Per-specialist focus instructions, keyed by specialist identity. */
+/** Per-specialist core goal (Audit v3 Q8). */
+export const SPECIALIST_GOALS: Record<MastraSpecialistName, string> = {
+  technical:
+    'Identify the market regime, multi-timeframe trend alignment (1D, 4H, 1H, 15M), institutional liquidity zones (swing highs/lows and Asian/London/NY session levels), indicator confluence, and exact price invalidation levels.',
+  fundamental:
+    'Evaluate central bank policy divergence, real and nominal bond yields (DFII10, DGS10), USD strength (DTWEXBGS), upcoming high-impact economic calendar releases (CPI, NFP, FOMC, ECB, BoE), and macro news catalysts.',
+  risk:
+    'Quantify the volatility regime, ATR-based stop-loss distances, event-blackout windows (upcoming high-impact releases), cross-asset correlation exposure, and strict trade invalidation criteria.',
+  sentiment:
+    'Diagnose institutional vs. retail positioning extremes, Commitment of Traders (COT) net non-commercial flows, historical seasonality, news tone skew, and crowded-trade squeeze risk.',
+};
+
+/** Per-specialist dedicated read-only toolset names (Audit v3 Q8). */
+export const SPECIALIST_DESK_TOOL_NAMES: Record<MastraSpecialistName, readonly string[]> = {
+  technical: [
+    'get_price',
+    'get_candles',
+    'get_indicators',
+    'get_market_structure',
+    'get_session_levels',
+    'analyze_technical',
+    'replay_setup',
+  ],
+  fundamental: [
+    'get_news',
+    'get_calendar',
+    'get_intermarket',
+    'get_intermarket_resonance',
+    'analyze_fundamental',
+    'search_knowledge',
+    'web_search',
+  ],
+  risk: [
+    'forecast_volatility',
+    'compute_risk',
+    'get_correlation',
+    'get_session_levels',
+    'get_calendar',
+    'get_indicators',
+    'verify_call',
+  ],
+  sentiment: [
+    'get_cot',
+    'get_social_sentiment',
+    'get_seasonality',
+    'get_news',
+    'get_intermarket_resonance',
+    'get_market_structure',
+  ],
+};
+
+/** Per-specialist analytical skill playbook (Audit v3 Q8). */
+export const SPECIALIST_SKILL_PLAYBOOKS: Record<MastraSpecialistName, string> = {
+  technical: `Skill Playbook — Technical Structure & Liquidity Protocol:
+1. Higher-Timeframe Regime (1D / 4H): Determine whether price is trending (EMA20 vs EMA50 alignment, higher highs/higher lows) or mean-reverting inside a range.
+2. Intraday Liquidity & Session Levels (1H / 15M): Locate recent swing highs/lows and Asian/London/NY session highs/lows where stop-hunts or breakouts occur.
+3. Momentum & Volatility Confluence: Check RSI14 for momentum/divergence, MACD histogram for impulse direction, and ATR14 for expected bar range.
+4. Key Levels & Invalidation: Populate details.keyLevels with exact support, resistance, trigger, and invalidation prices grounded in the packet or tool outputs.`,
+  fundamental: `Skill Playbook — Macro Catalyst & Yield-Spread Protocol:
+1. Yield & Dollar Transmission: Assess how US real yields (DFII10), nominal yields, and the Dollar Index (DXY/DTWEXBGS) are pressuring or supporting the instrument.
+2. Economic Calendar Surprise & Event Windows: Inspect upcoming and recent high-impact releases (actual vs. forecast vs. previous) to identify macro tailwinds or binary event risk.
+3. News Catalyst Filtering: Separate genuine central-bank or geopolitical policy shifts from noise; if packet macro/news data is sparse for this symbol, use your fundamental tools (get_news, get_calendar, get_intermarket, analyze_fundamental) or state clearly what is unavailable.
+4. Macro Bias & Invalidation: State what macro print or yield move would invalidate your fundamental thesis.`,
+  risk: `Skill Playbook — Quantitative Risk & Volatility Protocol:
+1. Volatility Regime & Stop Sizing: Compare current ATR14 and recent range expansion to judge whether stops must be widened and position size reduced.
+2. Event-Blackout Audit: Flag any upcoming high-impact economic releases that could cause slippage or gap risk across the setup window.
+3. Correlation & Tail-Risk Check: Evaluate whether cross-asset correlations or degraded data quality make directional conviction unsafe.
+4. Asymmetric R:R & Hard Invalidation: Define the exact price condition or volatility event that invalidates the setup and protects capital.`,
+  sentiment: `Skill Playbook — COT Positioning & Contrarian Crowd Protocol:
+1. Institutional COT Flows: Evaluate Commitment of Traders (COT) non-commercial net positioning and extremes to see where smart money is leaning.
+2. Retail vs. Institutional Divergence: Check social/crowd sentiment skew and identify whether one side of the boat is overcrowded (squeeze risk).
+3. News Tone & Seasonality Alignment: Compare headline sentiment tone and historical seasonality against current price action.
+4. Contrarian Risk & Invalidation: Highlight where a positioning unwind or stop-sweep could trap late trend followers.`,
+};
+
+/** Legacy focus summary retained for backwards compatibility with existing imports. */
 export const SPECIALIST_FOCUS: Record<MastraSpecialistName, string> = {
   technical:
     'Focus only on trend, structure, indicators, levels, timeframe agreement, and volatility.',
@@ -60,9 +129,10 @@ export const SPECIALIST_FOCUS: Record<MastraSpecialistName, string> = {
 
 /** Shared hard-rule fragment appended to every specialist prompt. */
 export const COMMITTEE_HARD_RULES = `Hard rules:
-- Use only the trusted server-created packet provided in your request context.
+- Use only the trusted server-created packet provided in your request context and outputs from your assigned read-only tools.
 - Do not invent prices, levels, events, indicators, or current facts.
 - If the packet is blocked or degraded, say so and reduce confidence.
+- Explain your reasoning in clear, straightforward trader language without internal system jargon.
 - This is read-only research; never place trades or create mutations.
 - Return only the requested structured opinion.`;
 
@@ -81,7 +151,14 @@ function serializedPacket(packet: SymbolResearchPacket): string {
 export function specialistInstructions(name: MastraSpecialistName): string {
   return `You are Kestrel's ${name} specialist.
 
+Your Goal:
+${SPECIALIST_GOALS[name]}
+
 ${SPECIALIST_FOCUS[name]}
+
+${SPECIALIST_SKILL_PLAYBOOKS[name]}
+
+Assigned Read-Only Tools: ${SPECIALIST_DESK_TOOL_NAMES[name].join(', ')}
 
 ${COMMITTEE_HARD_RULES}`;
 }
@@ -140,9 +217,9 @@ export function fusionInstructionsForRequest({
     )
     .join('\n\n');
 
-  return `You are Kestrel's Mastra decision synthesizer${packet ? ` for ${packet.symbol}` : ''}.
+  return `You are Kestrel's lead market synthesizer${packet ? ` for ${packet.symbol}` : ''}.
 
-Use only the trusted packet and specialist opinions below. State agreement and disagreement, and when peer reviews are present, state how the specialists responded to each other's arguments (e.g. "committee split 3-1 after peer review"). Disclose missing or degraded data, and use scenario language. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing markdown answer with a bottom line, evidence-aware reasoning, risks, and invalidation conditions.
+Use only the trusted packet and specialist opinions below. Write in clear, simple, everyday trader language that is easy for non-technical traders to scan. State where the experts agree and where they disagree, and when peer reviews are present, explain how the experts responded to each other's arguments (e.g. "3 of 4 experts lean bullish after peer review"). Disclose missing or degraded data, and use scenario language. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing answer with a clear bottom line, why the team agrees or disagrees, bull/base/bear scenarios, key risks, and the price level where this idea is wrong (invalidation).
 
 ${packet ? `PACKET:\n${serializedPacket(packet)}\n\n` : ''}SPECIALIST OPINIONS:
 ${opinionBlock}${critiqueBlock ? `\n\nSPECIALIST PEER REVIEWS:\n${critiqueBlock}` : ''}`;
@@ -204,11 +281,7 @@ Hard rules:
 
 /**
  * Instructions function for the optional bounded debate round (audit plan
- * §3.3, flag `ENABLE_COMMITTEE_DEBATE`, Full mode only). After the critique
- * round, each desk reads its own initial position, its own critique, and the
- * peer critiques, then returns one FINAL structured opinion — revised or
- * reaffirmed. The output is a full opinion, so the same verification and
- * strict-failure semantics as the first round apply.
+ * §3.3, flag `ENABLE_COMMITTEE_DEBATE`, Full mode only).
  */
 export function debateRevisionInstructionsForRequest({
   name,

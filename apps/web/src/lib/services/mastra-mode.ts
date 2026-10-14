@@ -170,7 +170,12 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
         emit({ type: 'text-delta', id: messageId, delta: result.finalText });
         emit({
           type: 'data-agent-progress',
-          data: committeeProgressSnapshot(input.mode, 'fusion', 'complete'),
+          data: committeeProgressSnapshot(
+            input.mode,
+            'fusion',
+            'complete',
+            result.agentOpinions,
+          ),
         });
         emit({
           type: 'data-multi-agent-meta',
@@ -199,7 +204,7 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
       } catch (error) {
         const errorText =
           process.env.NODE_ENV === 'production'
-            ? 'Mastra could not complete this request. Please try again.'
+            ? 'Analysis could not be completed right now. Please try again.'
             : error instanceof Error
               ? error.message
               : String(error);

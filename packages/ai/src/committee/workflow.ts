@@ -27,17 +27,6 @@
  *     → critique (full only; cross-critique round, see ENABLE_COMMITTEE_CRITIQUE)
  *     → verify (both modes strict: any required specialist failure is terminal)
  *     → fusion (LLM synthesis, grounded by the fusion verifier)
- *
- * The only differences between modes are the specialist set and the
- * critique round (see `MODE_POLICY`). Progress is emitted once per
- * logical stage (`committeeProgressStages`) so durable queue projections
- * never see duplicate step events.
- *
- * The workflow is a **per-request factory**: BYOK models and per-call
- * memory are request-scoped, so the graph is built per call with the
- * resolved dependencies closed over. Run snapshots persist to the shared
- * Mastra storage when a `mastra` instance is provided (operator/Studio
- * visibility); without one the run stays in-memory (tests, hermetic runs).
  */
 
 import { readFeatureFlag } from '@kestrel/shared';
@@ -176,17 +165,6 @@ export interface CommitteeWorkflowDeps {
   deadlineMs?: number;
 }
 
-/**
- * Build a per-request committee workflow. All BYOK-sensitive dependencies
- * (model, memory, call options, abort signal) are closed over at build time;
- * the run input carries prompt/symbol/mode and the mode fixes the specialist
- * set and strict flag once per request via `committeeModePolicy`.
- *
- * `workflowId` overrides the storage key for the run records. The default
- * `symbol-research` identity is the shared research workflow; the durable
- * Full-mode queue uses `full-analysis` so claimed runs never collide with
- * synchronous Single-mode snapshots.
- */
 export function createCommitteeWorkflow(
   deps: CommitteeWorkflowDeps,
   mode: MastraAnalysisMode,
@@ -215,7 +193,6 @@ export function createCommitteeWorkflow(
     outputSchema: CollectPacketOutputSchema,
     execute: async ({ inputData, requestContext, abortSignal, bail }) => {
       const signal = runSignal ?? abortSignal;
-      // First stage is always collect-packet (see committeeProgressStages).
       await deps.onProgress?.(progressStages[0]!);
       const packet = await collectPacket(inputData.symbol, signal);
       recordCommitteeStepSpan({
@@ -248,9 +225,6 @@ export function createCommitteeWorkflow(
       id: name,
       inputSchema: SpecialistStepInputSchema,
       outputSchema: SpecialistStepResultSchema,
-      // Per-step retry with backoff (workflow retryConfig supplies the delay):
-      // transient provider errors throw so Mastra retries; permanent errors
-      // return an explicit failure marker so strict modes can fail closed.
       retries: 1,
       execute: async ({ inputData, requestContext, abortSignal }) => {
         await deps.onProgress?.(name);
@@ -269,7 +243,6 @@ export function createCommitteeWorkflow(
               model: deps.model,
               modelId: deps.modelId,
               providerId: deps.providerId,
-              // §3.1: per-specialist top-tier model when the caller provides one.
               ...(deps.resolveModelForAgent
                 ? { resolveModelForAgent: deps.resolveModelForAgent }
                 : {}),
@@ -285,9 +258,6 @@ export function createCommitteeWorkflow(
             },
           });
         } catch (error) {
-          // Audit plan §1.7 (Q3): a deadline is a specialist failure, not a
-          // retryable provider error — return the marker so verify fails the
-          // whole committee instead of burning the route's retry budget.
           if (isDeadlineAbort(runSignals)) {
             recordCommitteeStepSpan({
               step: name,
@@ -308,7 +278,6 @@ export function createCommitteeWorkflow(
           }
           throw error;
         }
-        // §5.4: one span per specialist completion.
         recordCommitteeStepSpan({
           step: name,
           runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
@@ -329,14 +298,7 @@ export function createCommitteeWorkflow(
     }),
   );
 
-  // §3.2 (Q6: ON by default for full) — one cross-critique round. Each desk
-  // reads the other desks' verified opinions (its own opinion restated
-  // alongside, §1.7) and returns a structured peer review. Disabled with
-  // ENABLE_COMMITTEE_CRITIQUE=0; single mode never runs it (one desk,
-  // nothing to critique).
   const critiqueEnabled = mode === 'full' && readFeatureFlag('ENABLE_COMMITTEE_CRITIQUE');
-  // §3.3: the debate round additionally requires the critique round to have
-  // produced peer reviews to reason over.
   const debateEnabled = critiqueEnabled && readFeatureFlag('ENABLE_COMMITTEE_DEBATE');
 
   const critiqueStep = createStep({
@@ -345,7 +307,6 @@ export function createCommitteeWorkflow(
     outputSchema: CritiqueStepOutputSchema,
     retries: 1,
     execute: async ({ requestContext, getStepResult, abortSignal }) => {
-      // Rollback flag / single mode: the step is a no-op passthrough.
       if (!critiqueEnabled) return { critiques: [], failedAgents: [] };
       await deps.onProgress?.('critique' as const);
       const collect = readCollectPacketResult(getStepResult);
@@ -380,8 +341,6 @@ export function createCommitteeWorkflow(
             name: peer.agentName,
             prompt: collect.prompt,
             packet: collect.packet,
-            // §1.7 (P1-1): the desk's own opinion is restated in the critique
-            // prompt so the "confirm your position" instruction is answerable.
             ownOpinion: peer,
             peerOpinions: peers.filter((other) => other.agentName !== peer.agentName),
             requestContext: requestContext as RequestContext<ModeRequestContext>,
@@ -405,8 +364,6 @@ export function createCommitteeWorkflow(
               maxSteps,
             },
           }).catch((error: unknown): CritiqueStepResult => {
-            // §1.7 (Q3): a critique deadline is a failed desk, not a retryable
-            // error — surface it as a marker for the strict verify step.
             if (isDeadlineAbort(runSignals)) {
               return {
                 ok: false,
@@ -423,7 +380,6 @@ export function createCommitteeWorkflow(
       const critiques: CommitteeCritique[] = [];
       const failedAgents: string[] = [];
       for (const result of results) {
-        // §5.4: one span per critique desk.
         recordCommitteeStepSpan({
           step: 'critique',
           runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
@@ -443,17 +399,12 @@ export function createCommitteeWorkflow(
     },
   });
 
-  // Audit plan §3.3 — optional bounded debate round (flag-gated, Full only,
-  // requires a completed critique round). Each desk may revise its opinion
-  // once after reading the peer critiques; the revision passes the same
-  // deterministic verification and a failed revision is a failed desk (Q3).
   const debateStep = createStep({
     id: 'debate',
     inputSchema: z.unknown(),
     outputSchema: DebateStepOutputSchema,
     retries: 1,
     execute: async ({ requestContext, getStepResult, abortSignal }) => {
-      // Rollback flag / no critiques: the step is a no-op passthrough.
       if (!debateEnabled) return { revisions: [], failedAgents: [] };
       const collect = readCollectPacketResult(getStepResult);
       const critiqueOutput = readCritiqueStepResult(getStepResult);
@@ -511,8 +462,6 @@ export function createCommitteeWorkflow(
               maxSteps,
             },
           }).catch((error: unknown): DebateStepResult => {
-            // §3.3 (Q3): a debate deadline is a failed desk, not a retryable
-            // error — surface it as a marker for the strict verify step.
             if (isDeadlineAbort(runSignals)) {
               return {
                 ok: false,
@@ -529,7 +478,6 @@ export function createCommitteeWorkflow(
       const revisions: MastraModeOpinion[] = [];
       const failedAgents: string[] = [];
       for (const result of results) {
-        // §5.4: one span per debate desk.
         recordCommitteeStepSpan({
           step: 'debate',
           runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
@@ -553,12 +501,10 @@ export function createCommitteeWorkflow(
     id: 'verify',
     inputSchema: z.unknown(),
     outputSchema: VerifyOutputSchema,
-    execute: async ({ getStepResult }) => {
+    execute: async ({ requestContext, getStepResult }) => {
       await deps.onProgress?.('verify' as const);
       const failedAgents: MastraSpecialistName[] = [];
       const deadlineAgents: string[] = [];
-      // Inside a step, getStepResult returns the raw step output (not the
-      // { status, output } wrapper that appears on the run result's steps).
       for (const name of specialists) {
         const marker = readSpecialistStepResult(getStepResult, name);
         if (marker?.ok === false) {
@@ -566,7 +512,6 @@ export function createCommitteeWorkflow(
           if (marker.error === 'deadline') deadlineAgents.push(name);
         }
       }
-      // §3.2 (Q3): a failed cross-critique desk fails the whole committee.
       if (critiqueEnabled) {
         const critiqueOutput = readCritiqueStepResult(getStepResult);
         for (const failed of critiqueOutput?.failedAgents ?? []) {
@@ -574,7 +519,6 @@ export function createCommitteeWorkflow(
           if (!failedAgents.includes(name)) failedAgents.push(name);
         }
       }
-      // §3.3 (Q3): a failed debate revision is a failed desk too.
       if (debateEnabled) {
         const debateOutput = readDebateStepResult(getStepResult);
         for (const failed of debateOutput?.failedAgents ?? []) {
@@ -582,11 +526,10 @@ export function createCommitteeWorkflow(
           if (!failedAgents.includes(name)) failedAgents.push(name);
         }
       }
-      // §5.4: the deterministic gate gets a span too.
       const collectForSpan = readCollectPacketResult(getStepResult);
       recordCommitteeStepSpan({
         step: 'verify',
-        runId: 'unknown',
+        runId: (requestContext?.get('runId') as string | undefined) ?? 'unknown',
         symbol: collectForSpan?.packet.symbol ?? 'unknown',
         mode,
         ...(collectForSpan?.packet.packetId ? { packetId: collectForSpan.packet.packetId } : {}),
@@ -610,7 +553,6 @@ export function createCommitteeWorkflow(
     id: 'fusion',
     inputSchema: z.unknown(),
     outputSchema: CommitteeWorkflowOutputSchema,
-    // Same retry policy as the specialists — no retry regression on fusion.
     retries: 1,
     execute: async ({ requestContext, getStepResult, abortSignal }) => {
       const fusionStartedAt = Date.now();
@@ -622,18 +564,14 @@ export function createCommitteeWorkflow(
       const failedAgents: MastraSpecialistName[] = [];
       const opinions: MastraModeOpinion[] = [];
       const executionStats: MastraGenerationStats[] = [];
-      // §3.2: peer reviews from the cross-critique round, when it ran.
       const critiqueOutput = critiqueEnabled ? readCritiqueStepResult(getStepResult) : undefined;
       const critiques: CommitteeCritique[] = critiqueOutput?.critiques ?? [];
-      // §3.3: revised opinions from the optional debate round, when it ran.
       const debateOutput = debateEnabled ? readDebateStepResult(getStepResult) : undefined;
       const revisions = new Map(
         (debateOutput?.revisions ?? []).map((revision) => [revision.agentName, revision]),
       );
 
       for (const name of specialists) {
-        // Raw step output (getStepResult inside a step returns the output),
-        // read once through the typed schema at the workflow boundary.
         const marker = readSpecialistStepResult(getStepResult, name);
         if (marker?.ok === false) {
           failedAgents.push(name);
@@ -642,8 +580,6 @@ export function createCommitteeWorkflow(
         if (!marker?.ok || !marker.opinion || !marker.stats) continue;
         const revised = revisions.get(name);
         if (revised) {
-          // §3.3: the debate revision supersedes the first-round opinion and
-          // carries its own model/token metadata.
           opinions.push(revised);
           executionStats.push({
             inputTokens: revised.inputTokens,
@@ -685,7 +621,6 @@ export function createCommitteeWorkflow(
             model: deps.model,
             modelId: deps.modelId,
             providerId: deps.providerId,
-            // §3.1: the fusion agent can use its own top-tier model too.
             ...(deps.resolveModelForAgent
               ? { resolveModelForAgent: deps.resolveModelForAgent }
               : {}),
@@ -698,8 +633,6 @@ export function createCommitteeWorkflow(
           },
         });
       } catch (error) {
-        // Audit plan §1.7 (Q3): a fusion deadline is a terminal committee
-        // failure — never a partial or degraded answer.
         if (isDeadlineAbort(runSignals)) {
           throw new MastraModeStrictFailureError(
             ['fusion'],
@@ -709,9 +642,6 @@ export function createCommitteeWorkflow(
         throw error;
       }
 
-      // §5.4: fusion span carries the full-run cost snapshot. §3.1 (Q2): when
-      // model diversity is opted in, report the fusion pass's real model id
-      // instead of the run's primary model.
       recordCommitteeStepSpan({
         step: 'fusion',
         runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
@@ -748,9 +678,7 @@ export function createCommitteeWorkflow(
   })
     .then(collectPacketStep)
     .parallel(specialistSteps as never)
-    // §3.2 (Q6): one cross-critique round for full before verification.
     .then(critiqueStep)
-    // §3.3: optional bounded debate round (flag-gated; no-op when disabled).
     .then(debateStep)
     .then(verifyStep)
     .then(fusionStep)

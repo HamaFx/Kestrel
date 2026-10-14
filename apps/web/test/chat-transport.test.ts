@@ -94,6 +94,46 @@ describe('createKestrelChatTransport', () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 
+  it('forwards AI SDK v5 tool stream events and data-evidence-blocked events without dropping them', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      sseResponse([
+        { type: 'text-start', id: 'msg-tool-1' },
+        { type: 'tool-input-start', toolCallId: 'call-1', toolName: 'get_price' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'get_price',
+          input: { symbol: 'XAUUSD' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: { symbol: 'XAUUSD', price: 2650.4 },
+        },
+        { type: 'text-delta', id: 'msg-tool-1', delta: 'Gold is at 2650.4' },
+        {
+          type: 'data-evidence-blocked',
+          id: 'msg-tool-1',
+          data: { message: 'Verified replacement', repaired: true },
+        },
+        { type: 'text-end', id: 'msg-tool-1' },
+      ]),
+    );
+
+    const transport = createKestrelChatTransport({ api: '/api/chat' });
+    const stream = await transport.sendMessages({
+      chatId: 'thread-1',
+      messages: [],
+      abortSignal: new AbortController().signal,
+    });
+    const chunks = await readChunks(stream as ReadableStream<Record<string, unknown>>);
+
+    expect(chunks.some((c) => c.type === 'tool-input-available')).toBe(true);
+    expect(chunks.some((c) => c.type === 'tool-output-available')).toBe(true);
+    expect(chunks.some((c) => c.type === 'data-evidence-blocked')).toBe(true);
+    expect(chunks.some((c) => c.type === 'error')).toBe(false);
+  });
+
   it('polls a queued full-mode job and emits its final metadata', async () => {
     vi.useFakeTimers();
     const progress = vi.fn();
@@ -183,7 +223,7 @@ describe('createKestrelChatTransport', () => {
   it('surfaces malformed SSE instead of presenting truncated text as complete', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
-        'data: {"type":"text-start","id":"server-message-id"}\\n\\ndata: {not-json}\\n\\n',
+        'data: {"type":"text-start","id":"server-message-id"}\n\ndata: {not-json}\n\n',
         { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
       ),
     );

@@ -257,10 +257,10 @@ export async function appendAssistantMessage(
 const STRIP_FIELDS: ReadonlySet<string> = new Set([
   'imageDataUrl',
   'image',
-  'data',
-  'candles',
   'rawResponse',
 ]);
+
+const MAX_STORED_CANDLES = 60;
 
 function stripPartsForStorage(parts: unknown): unknown {
   if (!Array.isArray(parts)) return parts;
@@ -268,7 +268,10 @@ function stripPartsForStorage(parts: unknown): unknown {
     if (p === null || typeof p !== 'object' || !('type' in (p as Record<string, unknown>)))
       return p;
     const part = p as { type: unknown; output?: unknown };
-    if (part.type !== 'tool-result' || typeof part.output !== 'object' || part.output === null)
+    const isToolPart =
+      part.type === 'tool-result' ||
+      (typeof part.type === 'string' && part.type.startsWith('tool-'));
+    if (!isToolPart || typeof part.output !== 'object' || part.output === null)
       return p;
     const output = part.output as Record<string, unknown>;
     let modified = false;
@@ -276,6 +279,11 @@ function stripPartsForStorage(parts: unknown): unknown {
     for (const [k, v] of Object.entries(output)) {
       if (STRIP_FIELDS.has(k)) {
         next[k] = '[stripped]';
+        modified = true;
+        continue;
+      }
+      if (k === 'candles' && Array.isArray(v) && v.length > MAX_STORED_CANDLES) {
+        next[k] = v.slice(-MAX_STORED_CANDLES);
         modified = true;
         continue;
       }

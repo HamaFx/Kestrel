@@ -17,11 +17,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Reusable specialist runner (Phase 6). One bounded, read-only model call
- * that produces a typed specialist step result. Transient provider errors
- * throw so the workflow retries the step; permanent errors and verification
- * failures return an explicit failure marker so non-strict modes can
- * continue (partial mode) and Full mode can fail closed in the verify step.
+ * Reusable specialist runner (Phase 6 + Audit v3 Phase 4, Owner Decision Q8).
+ * Each specialist desk runs with its own dedicated skill playbook and domain
+ * read-only toolset (`resolveSpecialistDeskTools(name)`, `maxSteps: 3`),
+ * captures any tool outputs into the run's verified evidence ledger, and
+ * validates its structured opinion via `verifyMastraOpinion`.
  */
 
 import type { AgentMemoryOption } from '@mastra/core/agent';
@@ -35,10 +35,19 @@ import { z } from 'zod';
 import { estimateCostUsd } from '../cost';
 import { classifyStreamError } from '../fallback';
 import type { GenerationLedger } from '../generation-ledger';
+import {
+  extractToolPartsFromMessages,
+  type MastraToolInvocationPart,
+} from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import { getMastraGenerationStats } from '../mastra-v2/shared/telemetry';
+import { extractNumbersFromToolOutput } from './grounding';
 import { specialistInstructionsForRequest } from './prompts';
-import { createCommitteeAgent, SPECIALIST_DEFINITIONS } from './specialists';
+import {
+  createCommitteeAgent,
+  resolveSpecialistDeskTools,
+  SPECIALIST_DEFINITIONS,
+} from './specialists';
 import {
   CollectPacketOutputSchema,
   committeeModelMetadata,
@@ -88,7 +97,7 @@ export interface SpecialistRunnerDeps {
   researchInputProcessors?: Array<InputProcessorOrWorkflow>;
   scorers?: MastraScorers;
   ledger: GenerationLedger;
-  /** Bounded single-step limit for the specialist LLM call. */
+  /** Bounded step limit for the specialist LLM + tool loop (defaults to 3 per Q8). */
   maxSteps: number;
 }
 
@@ -116,8 +125,15 @@ export async function runSpecialistGeneration(
       providerId: deps.providerId,
     };
   try {
-    // §2.2: the agent's instructions function reads the packet from the
-    // request context (injected below) instead of interpolating it eagerly.
+    // Audit v3 Phase 4 (Q8): bind each specialist's dedicated read-only domain toolset.
+    const deskTools = resolveSpecialistDeskTools(name);
+    const toolPartsBuffer: MastraToolInvocationPart[] = [];
+    const packetContext = contextWithPacket(requestContext, packet);
+    (packetContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
+      'toolParts',
+      toolPartsBuffer,
+    );
+
     const agent = createCommitteeAgent(
       agentModel.model,
       SPECIALIST_DEFINITIONS[name].agentId,
@@ -126,31 +142,62 @@ export async function runSpecialistGeneration(
       deps.memory,
       deps.researchInputProcessors ?? deps.inputProcessors,
       deps.scorers,
+      deskTools,
     );
+    const effectiveMaxSteps = Math.max(deps.maxSteps, 3);
     const result = await agent.generate(prompt, {
-      requestContext: contextWithPacket(requestContext, packet),
+      requestContext: packetContext,
       // Specialists never persist their internal opinions; the fusion/output
       // layer owns user-visible assistant writes (Phase 6).
       memory: readOnlyMemoryOptions(deps.specialistCallOptions),
-      toolChoice: 'none',
-      maxSteps: deps.maxSteps,
+      toolChoice: 'auto',
+      maxSteps: effectiveMaxSteps,
       structuredOutput: {
         schema: OpinionSchema,
         jsonPromptInjection: 'auto',
         instructions:
-          'Return a complete opinion object. Keep numeric claims tied to packet evidence and mention packet quality when it is not complete.',
+          'Return a complete opinion object. Keep numeric claims tied to packet evidence or your tool outputs and mention packet quality when it is not complete.',
       },
       ...(signal ? { abortSignal: signal } : {}),
     });
     const stats = getMastraGenerationStats(result);
-    const opinion = OpinionSchema.parse(result.object);
+    const rawOpinion = OpinionSchema.parse(result.object);
+    const capturedToolParts = extractToolPartsFromMessages(
+      (result as unknown as { response?: { messages?: readonly unknown[] } }).response?.messages,
+      toolPartsBuffer,
+    );
+    const toolEvidenceValues: number[] = [];
+    const toolsCalled: string[] = [];
+    for (const tp of capturedToolParts) {
+      toolsCalled.push(tp.toolName);
+      if (tp.state === 'output-available' && tp.output !== undefined) {
+        toolEvidenceValues.push(...extractNumbersFromToolOutput(tp.output));
+      }
+    }
+    const enrichedDetails = {
+      ...rawOpinion.details,
+      ...(toolsCalled.length > 0 ? { toolsCalled: [...new Set(toolsCalled)] } : {}),
+      ...(toolEvidenceValues.length > 0
+        ? { toolEvidenceValues: [...new Set(toolEvidenceValues)] }
+        : {}),
+    };
+    const opinion = {
+      ...rawOpinion,
+      details: enrichedDetails,
+    };
     const candidateOpinion: MastraModeOpinion = {
       agentName: name,
       bias: opinion.bias,
       confidence: opinion.confidence,
       reasoning: opinion.reasoning,
       rawData: opinion.details,
-      ...committeeModelMetadata(agentModel.modelId, agentModel.providerId, stats, 0, Date.now() - startedAt),
+      ...committeeModelMetadata(
+        agentModel.modelId,
+        agentModel.providerId,
+        stats,
+        0,
+        Date.now() - startedAt,
+      ),
     };
     const opinionVerification = verifyMastraOpinion(candidateOpinion, packet);
     if (!opinionVerification.ok) {

@@ -29,6 +29,8 @@ export {
   initializeMastraStorage,
   mastraDirectConnectionString,
   mastraSslOptions,
+  getSharedMastraStorage,
+  _resetMastraStorageCache,
   pruneMastraStorage,
   type MastraStorageKind,
   type MastraStorageResult,

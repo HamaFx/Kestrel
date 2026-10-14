@@ -37,13 +37,16 @@ const NORMALIZER = new UnicodeNormalizer({
 
 /**
  * Build input processors for the text-runner. The UnicodeNormalizer is
- * always applied. When a model is available, a PromptInjectionDetector with
- * the `block` strategy is added so injection attempts in extraction/routing
- * prompts are rejected before reaching the model — defense-in-depth on top
- * of the route-level regex gate.
+ * always applied. When a model is available and `skipInputGuardrails` is not
+ * set, a PromptInjectionDetector with the `block` strategy is added so
+ * injection attempts in extraction prompts are rejected before reaching the
+ * model — defense-in-depth on top of the route-level regex gate.
  */
-function buildInputProcessors(model?: LanguageModel): InputProcessorOrWorkflow[] {
-  if (!model) return [NORMALIZER];
+function buildInputProcessors(
+  model?: LanguageModel,
+  skipInputGuardrails = false,
+): InputProcessorOrWorkflow[] {
+  if (!model || skipInputGuardrails) return [NORMALIZER];
   try {
     const detector = new PromptInjectionDetector({
       model: model as never,
@@ -75,6 +78,13 @@ export interface MastraTextRunArgs {
   tools?: Record<string, unknown>;
   /** Maximum generated tokens; enforced by the text runner boundary. */
   maxOutputTokens?: number;
+  /**
+   * Audit v3 Phase 3 (P0-3): Skip redundant LLM PromptInjectionDetector on
+   * internal classifier calls (such as `classifyTurnLLM`) when the caller
+   * already enforces route-level and agent-level prompt injection guardrails.
+   * UnicodeNormalizer always stays active.
+   */
+  skipInputGuardrails?: boolean;
 }
 
 export interface MastraTextRunResult {
@@ -109,7 +119,7 @@ export async function runMastraText(args: MastraTextRunArgs): Promise<MastraText
     description: 'Bounded Kestrel generation executed through Mastra.',
     model: args.model,
     instructions: args.system,
-    inputProcessors: buildInputProcessors(args.model),
+    inputProcessors: buildInputProcessors(args.model, args.skipInputGuardrails),
     ...(args.tools ? { tools: args.tools } : {}),
   } as never;
   const agent = new Agent(agentOptions);
@@ -155,7 +165,7 @@ export async function runMastraStructured<TOutput>(
     description: 'Bounded structured Kestrel generation executed through Mastra.',
     model: args.model,
     instructions: args.system,
-    inputProcessors: buildInputProcessors(args.model),
+    inputProcessors: buildInputProcessors(args.model, args.skipInputGuardrails),
   });
   const result = await agent.generate(args.prompt, {
     requestContext,
