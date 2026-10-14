@@ -60,6 +60,12 @@ export interface NormalizedTick {
   ts: number;
   /** Stable string. 'biquote-signalr' or 'binance-ws'. */
   source: 'biquote-signalr' | 'binance-ws';
+  /** Optional kline high when tick originates from a kline stream. */
+  high?: number;
+  /** Optional kline low when tick originates from a kline stream. */
+  low?: number;
+  /** Optional kline cumulative volume when tick originates from a kline stream. */
+  volume?: number;
 }
 
 export interface MinimalHubConnection {
