@@ -7,19 +7,30 @@
 
 import { and, eq, isNull } from 'drizzle-orm';
 
-import { getDb, schema, type DbClient } from './client';
+import { getDb, getTenantDbScope, schema, type DbClient } from './client';
 
 /**
  * Resolve the active organization for a user.
  *
- * The supported deployment provisions one organization per tenant. The
- * membership lookup is authoritative — callers must not assume the
- * organization ID equals the user ID.
+ * Short-circuits to the active `AsyncLocalStorage` tenant scope when it was
+ * entered for the same user (or when the tenant id itself equals the user id,
+ * the personal-org convention). Inside `withTenantDbFresh(tenantId, ..., {
+ * userId })`, every repository call would otherwise re-run the
+ * `organization_member ⋈ organization` join for a tenant we already resolved.
+ *
+ * The membership lookup stays authoritative for any other user id — notably an
+ * admin route inspecting a different user must not inherit the admin's tenant.
  */
 export async function getTenantIdForUser(
   userId: string,
   db: DbClient = getDb(),
 ): Promise<string | null> {
+  if (!userId) return null;
+  const scope = getTenantDbScope();
+  if (scope && (scope.userId === userId || scope.tenantId === userId)) {
+    return scope.tenantId;
+  }
+
   const memberships = await db
     .select({ tenantId: schema.organizationMember.orgId })
     .from(schema.organizationMember)
