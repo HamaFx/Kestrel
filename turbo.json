@@ -1,42 +1,47 @@
 {
-  "globalDependencies": [".env", ".env.local"],
+  "globalDependencies": ["tsconfig.base.json"],
   "globalEnv": [
     "NODE_ENV",
-    "DATABASE_URL",
-    "POSTGRES_URL",
-    "DIRECT_URL",
-    "ADMIN_DATABASE_URL",
-    "AUTH_SECRET",
-    "CRON_SECRET",
-    "ENCRYPTION_SECRET",
-    "AI_DEFAULT_MODEL",
-    "AI_TITLE_MODEL",
-    "AI_EMBEDDING_MODEL",
-    "BIQUOTE_BASE_URL",
-    "FINNHUB_API_KEY",
-    "FRED_API_KEY",
-    "WEB_SEARCH_PROVIDER",
-    "BRAVE_SEARCH_API_KEY",
-    "EXA_API_KEY",
-    "TAVILY_API_KEY",
-    "TELEGRAM_BOT_TOKEN",
-    "RESEND_API_KEY",
-    "VAPID_PUBLIC_KEY",
-    "VAPID_PRIVATE_KEY",
-    "LANGFUSE_PUBLIC_KEY",
-    "LANGFUSE_SECRET_KEY",
-    "LANGFUSE_BASE_URL",
-    "BILLING_ENABLED",
-    "NOWPAYMENTS_API_KEY",
-    "SUPABASE_URL",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "MULTI_USER_ENABLED",
-    "KESTREL_ENABLE_RLS",
-    "REGISTRATION_MODE"
+    "CI",
+    "VERCEL",
+    "NEXT_BUILD_SKIP_TYPECHECK"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": [
+        "DATABASE_URL",
+        "POSTGRES_URL",
+        "DIRECT_URL",
+        "ADMIN_DATABASE_URL",
+        "AUTH_SECRET",
+        "CRON_SECRET",
+        "ENCRYPTION_SECRET",
+        "AI_DEFAULT_MODEL",
+        "AI_TITLE_MODEL",
+        "AI_EMBEDDING_MODEL",
+        "BIQUOTE_BASE_URL",
+        "FINNHUB_API_KEY",
+        "FRED_API_KEY",
+        "WEB_SEARCH_PROVIDER",
+        "BRAVE_SEARCH_API_KEY",
+        "EXA_API_KEY",
+        "TAVILY_API_KEY",
+        "TELEGRAM_BOT_TOKEN",
+        "RESEND_API_KEY",
+        "VAPID_PUBLIC_KEY",
+        "VAPID_PRIVATE_KEY",
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_SECRET_KEY",
+        "LANGFUSE_BASE_URL",
+        "BILLING_ENABLED",
+        "NOWPAYMENTS_API_KEY",
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "MULTI_USER_ENABLED",
+        "KESTREL_ENABLE_RLS",
+        "REGISTRATION_MODE"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", ".build-id", ".env.production.local"]
     },
     "dev": {
@@ -49,10 +54,10 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["**/*.tsbuildinfo"]
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": [],
       "outputs": ["coverage/**"]
     },
     "eval": {
