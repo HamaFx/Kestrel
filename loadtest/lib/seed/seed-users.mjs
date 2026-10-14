@@ -9,8 +9,10 @@
  * What it does:
  *   1. Upserts N users `loadtest+000@kestrel.ai` … `loadtest+NNN@kestrel.ai`
  *      with a shared bcrypt password.
- *   2. Creates one chat thread per user (needed for /api/chat tests).
- *   3. Writes loadtest/lib/data/seeded-users.json manifest.
+ *   2. Provisions organization + organizationMember tenant rows.
+ *   3. Upserts userSettings (onboardingCompleted: true, defaultSymbol: 'XAUUSD').
+ *   4. Creates one chat thread per user with tenantId.
+ *   5. Writes loadtest/lib/data/seeded-users.json manifest.
  *
  * Safety: refuses to run unless K6_ALLOW_SEED=true is set AND DATABASE_URL
  * is clearly not a production DB (no strict check; just a warning).
@@ -18,12 +20,6 @@
 
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
-
-// Dynamic imports from the workspace — the repo must be built before
-// running this script so the compiled output is available.
-// We use tsx to run ESM TypeScript directly, so relative imports
-// from workspace packages should resolve via the pnpm workspace links
-// if the script is run from the repo root.
 
 const SCRIPT_DIR = new URL('.', import.meta.url).pathname;
 
@@ -50,11 +46,10 @@ async function main() {
     process.exit(1);
   }
 
-  // ── Import workspace deps (dynamic, so they don't block the safety gates) ──
+  // ── Import workspace deps ──
   const { getDb } = await import('@kestrel/db');
   const schema = await import('@kestrel/db/schema');
-  // Dynamically import the eq helper
-  const { eq } = await import('drizzle-orm');
+  const { eq, and, isNull } = await import('drizzle-orm');
 
   const db = getDb();
 
@@ -64,14 +59,15 @@ async function main() {
 
   for (let i = 0; i < userCount; i++) {
     const email = `loadtest+${String(i).padStart(3, '0')}@kestrel.ai`;
-    const userId = randomUUID();
 
-    // Upsert user
+    // Check existing user
     const [existing] = await db
-      .select({ id: schema.users.id })
+      .select({ id: schema.users.id, email: schema.users.email })
       .from(schema.users)
       .where(eq(schema.users.email, email))
       .limit(1);
+
+    const userId = existing?.id ?? randomUUID();
 
     if (!existing) {
       await db.insert(schema.users).values({
@@ -79,28 +75,94 @@ async function main() {
         email,
         name: `LoadTest ${i}`,
         hashedPassword,
-        // role is optional; default is fine
       });
       console.log(`Created user: ${email}`);
     } else {
       console.log(`User already exists: ${email}`);
     }
 
-    // Create one chat thread per user
-    const threadId = randomUUID();
-    try {
-      await db.insert(schema.chatThreads).values({
-        id: threadId,
-        userId: existing?.id ?? userId,
-        title: `Load test thread`,
-        pinnedSymbol: 'XAUUSD',
+    // Check or create tenant (organization + member)
+    const [existingMember] = await db
+      .select({ orgId: schema.organizationMember.orgId })
+      .from(schema.organizationMember)
+      .innerJoin(
+        schema.organization,
+        and(
+          eq(schema.organization.id, schema.organizationMember.orgId),
+          eq(schema.organizationMember.userId, userId),
+          isNull(schema.organization.deletedAt),
+        ),
+      )
+      .where(eq(schema.organizationMember.userId, userId))
+      .limit(1);
+
+    let orgId = existingMember?.orgId;
+    if (!orgId) {
+      orgId = `org-${userId}`;
+      await db
+        .insert(schema.organization)
+        .values({
+          id: orgId,
+          name: `Org ${email}`,
+          plan: 'pro',
+        })
+        .onConflictDoNothing();
+
+      await db
+        .insert(schema.organizationMember)
+        .values({
+          orgId,
+          userId,
+          role: 'owner',
+        })
+        .onConflictDoNothing();
+    }
+
+    // Upsert userSettings
+    await db
+      .insert(schema.userSettings)
+      .values({
+        userId,
+        tenantId: orgId,
+        onboardingCompleted: true,
+        defaultSymbol: 'XAUUSD',
+      })
+      .onConflictDoUpdate({
+        target: schema.userSettings.userId,
+        set: {
+          tenantId: orgId,
+          onboardingCompleted: true,
+          defaultSymbol: 'XAUUSD',
+        },
       });
-    } catch {
-      // Thread might already exist; ignore constraint errors
+
+    // Create or check chat thread
+    const [existingThread] = await db
+      .select({ id: schema.chatThreads.id })
+      .from(schema.chatThreads)
+      .where(and(eq(schema.chatThreads.userId, userId), eq(schema.chatThreads.tenantId, orgId)))
+      .limit(1);
+
+    let threadId = existingThread?.id;
+    if (!threadId) {
+      threadId = randomUUID();
+      try {
+        await db.insert(schema.chatThreads).values({
+          id: threadId,
+          userId,
+          tenantId: orgId,
+          title: `Load test thread`,
+          pinnedSymbol: 'XAUUSD',
+        });
+      } catch {
+        // Thread might already exist
+      }
     }
 
     users_.push({
-      email: existing?.email ?? email,
+      email,
+      userId,
+      tenantId: orgId,
       threadId,
     });
   }

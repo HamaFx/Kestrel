@@ -17,12 +17,11 @@
 // Smoke test — broad read mix (market + news + calendar + sentiment + threads + health).
 // Validates script wiring + SUT connectivity across the full read surface with minimal load.
 import { sleep } from 'k6';
-import http from 'k6/http';
 
-import { env } from '../config/environments.js';
 import { smoke } from '../config/load-profiles.js';
 import { READ_MIX, READ_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
+import { getJson, postJson } from '../lib/http.js';
 import { handleSummary } from '../lib/summary.js';
 import { readMix } from '../scenarios/read-mix.js';
 
@@ -41,27 +40,28 @@ export function setup() {
 
   // Warmup: prime DB connection pool, JIT compilation, and server caches
   // before any VU iterations start. Hits the broader read-mix surface.
-  if (env.authMode === 'legacy') {
-    http.get(`${env.baseUrl}/api/health`);
-    http.get(`${env.baseUrl}/api/market/price?symbol=XAUUSD`);
-    http.get(`${env.baseUrl}/api/chat/threads`);
-    http.get(`${env.baseUrl}/api/news`);
+  if (ctxs[0]) {
+    applyAuth(ctxs[0]);
+    getJson('/api/health', 'warmup');
+    getJson('/api/market/price?symbol=XAUUSD', 'warmup');
+    getJson('/api/chat/threads', 'warmup');
+    getJson('/api/news', 'warmup');
 
     // Warm the compute-heavy POST endpoints to prime server caches and
     // JIT compilation before the broader read-mix VU iterations run.
-    http.post(
-      `${env.baseUrl}/api/market/indicators`,
-      JSON.stringify({
+    postJson(
+      '/api/market/indicators',
+      'warmup',
+      {
         symbol: 'XAUUSD',
         tf: '1h',
         indicators: [{ kind: 'sma', params: { period: 20 } }],
-      }),
-      { headers: { 'Content-Type': 'application/json' } },
+      },
     );
-    http.post(
-      `${env.baseUrl}/api/market/structure`,
-      JSON.stringify({ symbol: 'XAUUSD', tf: '1h' }),
-      { headers: { 'Content-Type': 'application/json' } },
+    postJson(
+      '/api/market/structure',
+      'warmup',
+      { symbol: 'XAUUSD', tf: '1h' },
     );
   }
 

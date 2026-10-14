@@ -14,86 +14,51 @@
  * limitations under the License.
  */
 
-// Auth harness for k6 load tests.
-//
-// Implements both strategies from the prompt plan (Section 4):
-//   Strategy A ('legacy'): no cookies/CSRF needed; the SUT runs with
-//     AUTH_MODE=legacy and NODE_ENV !== 'production'.
-//   Strategy B ('session'): real NextAuth credentials login to obtain
-//     session cookies + CSRF tokens for N seeded users.
-//
-// Usage:
-//   export function setup() { return bootstrapAuth(); }
-//   export default function (ctxs) {
-//     const ctx = pickUser(ctxs);
-//     applyAuth(ctx);
-//     // ... make requests ...
-//   }
-
 import http, { type RefinedResponse, type ResponseType } from 'k6/http';
 
 import { env, type SessionCtx } from '../config/environments.js';
+import seededUsersData from './data/seeded-users.json';
+import { setCsrfHeader } from './http.js';
 
-// Load seeded users manifest at init time (k6 does NOT support
-// `import ... with { type: 'json' }` — esbuild hangs on it).
-let seededUsers: Array<{ email: string; threadId: string }> = [];
-try {
-  seededUsers = JSON.parse(open('./data/seeded-users.json') as string) as typeof seededUsers;
-} catch {
-  // File may not exist — fine for Strategy A (legacy mode).
-  seededUsers = [];
+interface SeededUserRecord {
+  email: string;
+  userId?: string;
+  tenantId?: string;
+  threadId: string;
 }
 
-// ── Bootstrap (called in setup()) ──────────────────────────────────
+const seededUsers: SeededUserRecord[] = Array.isArray(seededUsersData)
+  ? (seededUsersData as SeededUserRecord[]).filter((u) => u.email !== '__placeholder__')
+  : [];
 
 export function bootstrapAuth(): SessionCtx[] {
   if (env.authMode === 'legacy') {
-    return bootstrapLegacy();
+    return [{ cookies: {}, csrfToken: '', email: '__system__' }];
   }
   return bootstrapSession();
 }
 
-/** Strategy A: single synthetic context. No cookies or CSRF needed. */
-function bootstrapLegacy(): SessionCtx[] {
-  return [
-    {
-      cookies: {},
-      csrfToken: '',
-      email: '__system__',
-    },
-  ];
-}
-
-/** Strategy B: log in each seeded user and capture session + CSRF cookies. */
 function bootstrapSession(): SessionCtx[] {
   const ctxs: SessionCtx[] = [];
-
-  // Look up seeded users from the manifest written by seed-users.mjs.
-  // If the manifest is missing or empty, we can't run Strategy B.
-  const users = Array.isArray(seededUsers) ? seededUsers : [];
-  if (users.length === 0) {
+  if (seededUsers.length === 0) {
     throw new Error(
-      'No seeded users found in lib/data/seeded-users.json. ' +
-        'Run "npm run seed" first (Strategy B only).',
+      'No seeded users found in lib/data/seeded-users.json. Run "pnpm --filter @kestrel/loadtest seed" first.',
     );
   }
 
-  for (const user of users.slice(0, env.userCount)) {
+  for (const user of seededUsers.slice(0, env.userCount)) {
     const loginRes = http.get(`${env.baseUrl}/api/auth/csrf`, {
       tags: { group: 'auth_setup' },
     });
 
-    // The CSRF endpoint returns { csrfToken: "..." }
     let csrfSetupToken = '';
     try {
       const body = JSON.parse(loginRes.body as string);
       csrfSetupToken = body.csrfToken ?? '';
     } catch {
-      // If JSON parse fails, try to extract from cookie
+      csrfSetupToken = '';
     }
 
-    // POST the credentials callback to sign in.
-    // We need the CSRF token from /api/auth/csrf for this POST.
     const callbackRes = http.post(
       `${env.baseUrl}/api/auth/callback/credentials`,
       JSON.stringify({
@@ -109,33 +74,39 @@ function bootstrapSession(): SessionCtx[] {
           ...(csrfSetupToken ? { 'x-csrf-token': csrfSetupToken } : {}),
         },
         tags: { group: 'auth_setup' },
-        redirects: 0, // Don't follow; we want the Set-Cookie header
+        redirects: 0,
       },
     );
 
-    // Extract session cookie from the response.
-    const sessionCookie = extractCookie(callbackRes, 'authjs.session-token');
+    const sessionCookieName =
+      extractCookie(callbackRes, '__Secure-authjs.session-token') !== undefined
+        ? '__Secure-authjs.session-token'
+        : 'authjs.session-token';
+    const sessionCookie = extractCookie(callbackRes, sessionCookieName);
     if (!sessionCookie) {
       throw new Error(
-        `Failed to obtain session cookie for ${user.email}. ` +
-          `Response status: ${callbackRes.status}`,
+        `Failed to obtain session cookie for ${user.email}. Response status: ${callbackRes.status}`,
       );
     }
 
-    // Do one GET to any endpoint to receive the hfx_csrf cookie.
-    // Middleware uses 'hfx_csrf' in dev and '__Host-hfx_csrf' in prod.
     const warmupRes = http.get(`${env.baseUrl}/api/chat/threads`, {
-      cookies: { 'authjs.session-token': sessionCookie },
+      cookies: { [sessionCookieName]: sessionCookie },
       tags: { group: 'auth_setup' },
     });
 
-    const csrfCookie =
-      extractCookie(warmupRes, 'hfx_csrf') ?? extractCookie(warmupRes, '__Host-hfx_csrf') ?? '';
+    const csrfCookieName =
+      extractCookie(warmupRes, '__Host-hfx_csrf') !== undefined ? '__Host-hfx_csrf' : 'hfx_csrf';
+    const csrfCookie = extractCookie(warmupRes, csrfCookieName) ?? '';
 
     ctxs.push({
-      cookies: { 'authjs.session-token': sessionCookie },
+      cookies: {
+        [sessionCookieName]: sessionCookie,
+        ...(csrfCookie ? { [csrfCookieName]: csrfCookie } : {}),
+      },
       csrfToken: csrfCookie,
       email: user.email,
+      userId: user.userId,
+      tenantId: user.tenantId,
       threadId: user.threadId,
     });
   }
@@ -143,12 +114,6 @@ function bootstrapSession(): SessionCtx[] {
   return ctxs;
 }
 
-// ── Apply (called at the start of each VU iteration) ────────────────
-
-/**
- * Set the per-VU cookie jar and return the CSRF header (if any) for
- * state-changing requests.
- */
 export function applyAuth(ctx: SessionCtx): { csrfHeader: Record<string, string> } {
   const jar = http.cookieJar();
   jar.clear(env.baseUrl);
@@ -157,18 +122,13 @@ export function applyAuth(ctx: SessionCtx): { csrfHeader: Record<string, string>
     jar.set(env.baseUrl, name, value);
   }
 
-  if (ctx.csrfToken) {
-    return { csrfHeader: { 'x-csrf-token': ctx.csrfToken } };
-  }
-  return { csrfHeader: {} };
+  const csrfHeader: Record<string, string> = ctx.csrfToken
+    ? { 'x-csrf-token': ctx.csrfToken }
+    : {};
+  setCsrfHeader(csrfHeader);
+  return { csrfHeader };
 }
 
-// ── User selection ─────────────────────────────────────────────────
-
-/**
- * Deterministic user selection by __VU/__ITER so load spreads across
- * seeded users.
- */
 export function pickUser(ctxs: SessionCtx[]): SessionCtx {
   if (ctxs.length === 0) {
     throw new Error('No auth contexts available');
@@ -177,15 +137,12 @@ export function pickUser(ctxs: SessionCtx[]): SessionCtx {
   return ctxs[idx]!;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────
-
 function extractCookie(
   res: RefinedResponse<ResponseType | undefined>,
   name: string,
 ): string | undefined {
   const setCookie = res.headers['Set-Cookie'];
   if (!setCookie) return undefined;
-  // Set-Cookie may be a comma-joined string or an array.
   const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
   for (const c of cookies) {
     const match = c.match(new RegExp(`${name}=([^;]+)`));

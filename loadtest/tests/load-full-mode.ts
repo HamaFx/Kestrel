@@ -18,13 +18,11 @@
 // This measures the user-facing enqueue path and the worker polling bridge;
 // it does not bypass the queue or mutate internal tables directly.
 import { check, sleep } from 'k6';
-import http from 'k6/http';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
 import { uuidv4 } from '../lib/utils.js';
-
-import { env } from '../config/environments.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
+import { getJson, postJson } from '../lib/http.js';
 import { handleSummary } from '../lib/summary.js';
 
 const fullModeCompleted = new Rate('full_mode_completed');
@@ -71,9 +69,10 @@ export default function (contexts: ReturnType<typeof bootstrapAuth>) {
   }
 
   const messageId = uuidv4();
-  const response = http.post(
-    `${env.baseUrl}/api/chat`,
-    JSON.stringify({
+  const response = postJson(
+    '/api/chat',
+    'full_mode_enqueue',
+    {
       threadId: ctx.threadId,
       analysisMode: 'full',
       messages: [
@@ -83,10 +82,6 @@ export default function (contexts: ReturnType<typeof bootstrapAuth>) {
           parts: [{ type: 'text', text: 'Run a complete Full-mode XAUUSD analysis.' }],
         },
       ],
-    }),
-    {
-      headers: { 'Content-Type': 'application/json' },
-      tags: { group: 'full_mode_enqueue' },
     },
   );
 
@@ -117,9 +112,7 @@ export default function (contexts: ReturnType<typeof bootstrapAuth>) {
   let polls = 0;
   for (; polls < MAX_POLLS; polls += 1) {
     sleep(2);
-    const poll = http.get(`${env.baseUrl}/api/chat/analysis-jobs/${jobId}`, {
-      tags: { group: 'full_mode_poll' },
-    });
+    const poll = getJson(`/api/chat/analysis-jobs/${jobId}`, 'full_mode_poll');
     if (poll.status < 200 || poll.status >= 300) continue;
     try {
       const body = JSON.parse(poll.body as string) as { status?: unknown };
