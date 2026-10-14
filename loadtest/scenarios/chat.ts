@@ -19,11 +19,9 @@
 import { sleep } from 'k6';
 
 import { uuidv4 } from '../lib/utils.js';
-
 import type { SessionCtx } from '../config/environments.js';
-import { record429 } from '../lib/checks.js';
-import { postJson } from '../lib/http.js';
-import { chatStreamBytes } from '../lib/metrics.js';
+import { chatStreamBytes, chatStreamEvents, chatTtfb } from '../lib/metrics.js';
+import { postSseStream } from '../lib/sse.js';
 
 export function chatTurn(ctx: SessionCtx): void {
   // Guard: skip if no threadId is available for this user
@@ -45,16 +43,11 @@ export function chatTurn(ctx: SessionCtx): void {
     ],
   };
 
-  const res = postJson('/api/chat', 'chat', body);
+  const stream = postSseStream('/api/chat', 'chat', body);
 
-  // Record stream bytes for bandwidth profiling
-  const bodyStr = res.body as string;
-  if (typeof bodyStr === 'string') {
-    chatStreamBytes.add(bodyStr.length);
-  }
-
-  // Record 429s explicitly for chat (the limiter is 30/min/user)
-  record429(res);
+  chatTtfb.add(stream.ttfbMs);
+  chatStreamBytes.add(stream.parsed.byteLength);
+  chatStreamEvents.add(stream.parsed.eventCount);
 
   // Think-time between chat turns — this user won't post again for a while
   sleep(5 + Math.random() * 10);
