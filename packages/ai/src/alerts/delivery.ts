@@ -34,17 +34,16 @@
 // they fire normally once the suppression window lifts. The dedup/cooldown
 // state is persisted via `DbNoiseState` so every cron runner shares one view.
 
-import type { Alert, AlertRule } from '@kestrel/shared';
-import { metrics, type NoiseDecision } from '@kestrel/shared';
+import { metrics, type Alert, type AlertRule, type NoiseDecision } from '@kestrel/shared';
 import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
 
-import { deletePushSubscription, listPushSubscriptions } from '../push/persistence';
-import { sendWebPush } from '../push/send';
 import { evaluateNoise, hashContent } from '../notifications/noise-control';
 import { DbNoiseState, getNoiseConfig } from '../notifications/noise-state';
-import { alertRuleRegistry } from './rule-registry';
+import { deletePushSubscription, listPushSubscriptions } from '../push/persistence';
+import { sendWebPush } from '../push/send';
 import type { EvaluatorEnv, RuleReading } from './evaluator';
 import { markFiredForAlert } from './persistence';
+import { alertRuleRegistry } from './rule-registry';
 
 function describeRule(rule: AlertRule): string {
   return alertRuleRegistry.get(rule.type).describe(rule);
@@ -94,8 +93,7 @@ async function evaluateAlertNoise(
     const state = new DbNoiseState(alert.userId);
     const decision = await evaluateNoise(content, 'alert', ALERT_NOISE_SEVERITY, config, {
       hasSeen: (dedupKey, ttlSeconds) => state.hasSeen(dedupKey, ttlSeconds),
-      inCooldown: (cooldownKey, cooldownSeconds) =>
-        state.inCooldown(cooldownKey, cooldownSeconds),
+      inCooldown: (cooldownKey, cooldownSeconds) => state.inCooldown(cooldownKey, cooldownSeconds),
       record: async () => {
         /* deferred — see record() below */
       },
@@ -165,15 +163,10 @@ export async function deliverAlert({
   }
   // Preserve the most informative failure (e.g. "not configured") for callers
   // that log the DeliveryResult; "no channels" stays for an empty list.
-  return (
-    lastAttempt ?? { alertId: alert.id, channel: 'none', ok: false, message: 'no channels' }
-  );
+  return lastAttempt ?? { alertId: alert.id, channel: 'none', ok: false, message: 'no channels' };
 }
 
-async function deliverChannel(
-  ch: string,
-  args: DeliverArgs,
-): Promise<DeliveryResult | null> {
+async function deliverChannel(ch: string, args: DeliverArgs): Promise<DeliveryResult | null> {
   switch (ch) {
     case 'email':
       return deliverEmail(args);

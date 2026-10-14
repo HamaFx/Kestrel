@@ -4,12 +4,7 @@
     "packages/config/typescript/*.json",
     "packages/config/eslint/*.js"
   ],
-  "globalEnv": [
-    "NODE_ENV",
-    "CI",
-    "VERCEL",
-    "NEXT_BUILD_SKIP_TYPECHECK"
-  ],
+  "globalEnv": ["NODE_ENV", "CI", "VERCEL", "NEXT_BUILD_SKIP_TYPECHECK"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

@@ -14,10 +14,11 @@
 //
 // Run from the package root: `pnpm --filter @kestrel/worker build`.
 
-import { build } from 'esbuild';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { build } from 'esbuild';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
@@ -40,9 +41,7 @@ const external = deps.filter(
 );
 
 // Plus Node built-ins that shouldn't be inlined.
-external.push(
-  'node:*',
-);
+external.push('node:*');
 
 // Stub out `server-only` — it's a build-time guard that throws at module
 // load time, which breaks the worker (Node.js backend with no bundler

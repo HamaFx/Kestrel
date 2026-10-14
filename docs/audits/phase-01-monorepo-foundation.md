@@ -9,33 +9,33 @@
 
 Kestrel's monorepo foundation is structurally mature—featuring strict ESM package boundaries, Zod environment schemas, PostgreSQL 16 + pgvector Row-Level Security (RLS), and CI gates for route security and environment contracts. However, recent rapid velocity across Audit v2 ([`6c0f7d7`](https://github.com/HamaFx/Kestrel/commit/6c0f7d7b97aa1412e92d1539750e92b8a0d80d6e)) and CI/test pipeline optimizations ([`0d01e14`](https://github.com/HamaFx/Kestrel/commit/0d01e1455920e7c51eedacc1cd192fd054ae14af), [`8b18a11`](https://github.com/HamaFx/Kestrel/commit/8b18a11cbea2676baad337cdb0b3c3226baee7c0), [`83cd16d`](https://github.com/HamaFx/Kestrel/commit/83cd16daa3ede9c2a5c198f55de1e7d79051abc3), [`fb04b5e`](https://github.com/HamaFx/Kestrel/commit/fb04b5e34fa254d3c8797dab05e73a8b602b6dc4)) introduced **16 concrete architectural, build-graph, type-contract, and documentation regressions** (`2 P0-Critical`, `5 P1-High`, `6 P2-Medium`, `3 P3-Low`).
 
-| Audit Pillar | Health Rating | Key Strengths | Critical / High Risks Identified |
-| :--- | :--- | :--- | :--- |
-| **1. Workspace & Turborepo Pipeline** | **Amber (Degraded)** | Incremental `tsc` `.tsbuildinfo` caching (`0d01e14`), deterministic build IDs, `pnpm` overrides for security advisories. | `turbo.json` drops `^build` from `test` while `apps/web`, `apps/worker`, and `packages/ai` lack `conditions: ['source']` (**F-01**); 5 dead subpaths in `packages/ai/package.json#exports` point to deleted files (**F-02**). |
-| **2. Boundary & Circular Dependencies** | **Amber (Degraded)** | Client bundle in `apps/web` (`275` reachable client modules) is free of direct `@kestrel/db` or `node:crypto` leaks across `'use server'` boundaries. | Broken relative cross-package import in `apps/web/scripts/setup-telegram-webhook.ts:27` (**F-05**); upward import from `@kestrel/shared` test into `@kestrel/data` (**F-06**); 12 internal value-import circular dependency cycles in `packages/db` and `packages/ai` (**F-08**). |
-| **3. Type Safety & Shared Contracts** | **Red (Action Required)** | `0` `@ts-ignore` directives across the monorepo; `4` scoped `@ts-expect-error` annotations limited to unit tests. | Worker `multi-agent-analysis.ts:215` casts raw `process.env` via `as unknown as` into `pickAiEnv`, leaving `"0"` strings truthy for booleans and skipping boot validation for `ENCRYPTION_SECRET` (**F-10**); `ENCRYPTION_SECRET` Zod schema accepts 32-char strings that crash AES-256-GCM at runtime (**F-11**); `apps/web` disables `exactOptionalPropertyTypes` and omits `test/` from `tsc` (**F-13**). |
-| **4. Dead Code & Documentation** | **Amber (Degraded)** | `knip` is wired in CI for `src/` entrypoints; legacy `src/mastra/` shims were consolidated. | `4` orphaned scripts (`probe-durable.mjs`, `db-check.mjs`, `list-tables.mjs`, `setup-telegram-webhook.ts`) (**F-14**); `127` unused or test-only exports in `packages/shared` (**F-15**); `README.md`, `docs/troubleshooting.md`, `docs/release.md`, and `docker-compose.yml` contain contradictory commands and removed 5-mode diagrams (**F-16**). |
+| Audit Pillar                            | Health Rating             | Key Strengths                                                                                                                                         | Critical / High Risks Identified                                                                                                                                                                                                                                                                                                                                                                             |
+| :-------------------------------------- | :------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Workspace & Turborepo Pipeline**   | **Amber (Degraded)**      | Incremental `tsc` `.tsbuildinfo` caching (`0d01e14`), deterministic build IDs, `pnpm` overrides for security advisories.                              | `turbo.json` drops `^build` from `test` while `apps/web`, `apps/worker`, and `packages/ai` lack `conditions: ['source']` (**F-01**); 5 dead subpaths in `packages/ai/package.json#exports` point to deleted files (**F-02**).                                                                                                                                                                                |
+| **2. Boundary & Circular Dependencies** | **Amber (Degraded)**      | Client bundle in `apps/web` (`275` reachable client modules) is free of direct `@kestrel/db` or `node:crypto` leaks across `'use server'` boundaries. | Broken relative cross-package import in `apps/web/scripts/setup-telegram-webhook.ts:27` (**F-05**); upward import from `@kestrel/shared` test into `@kestrel/data` (**F-06**); 12 internal value-import circular dependency cycles in `packages/db` and `packages/ai` (**F-08**).                                                                                                                            |
+| **3. Type Safety & Shared Contracts**   | **Red (Action Required)** | `0` `@ts-ignore` directives across the monorepo; `4` scoped `@ts-expect-error` annotations limited to unit tests.                                     | Worker `multi-agent-analysis.ts:215` casts raw `process.env` via `as unknown as` into `pickAiEnv`, leaving `"0"` strings truthy for booleans and skipping boot validation for `ENCRYPTION_SECRET` (**F-10**); `ENCRYPTION_SECRET` Zod schema accepts 32-char strings that crash AES-256-GCM at runtime (**F-11**); `apps/web` disables `exactOptionalPropertyTypes` and omits `test/` from `tsc` (**F-13**). |
+| **4. Dead Code & Documentation**        | **Amber (Degraded)**      | `knip` is wired in CI for `src/` entrypoints; legacy `src/mastra/` shims were consolidated.                                                           | `4` orphaned scripts (`probe-durable.mjs`, `db-check.mjs`, `list-tables.mjs`, `setup-telegram-webhook.ts`) (**F-14**); `127` unused or test-only exports in `packages/shared` (**F-15**); `README.md`, `docs/troubleshooting.md`, `docs/release.md`, and `docker-compose.yml` contain contradictory commands and removed 5-mode diagrams (**F-16**).                                                         |
 
 ## 2. Severity-Ranked Findings Table
 
-| ID | Severity | File:Line | Issue | Fix Complexity |
-| :--- | :--- | :--- | :--- | :--- |
-| **F-10** | `P0-Critical` | [`apps/worker/src/jobs/multi-agent-analysis.ts:215`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/worker/src/jobs/multi-agent-analysis.ts#L215) | Unsafe `process.env as unknown as Parameters<typeof pickAiEnv>[0]` bypasses `ServerEnvSchema` coercion (`"0"` becomes truthy `boolean`, numbers remain `string \| undefined`) and `apps/worker/src/env.ts` never validates `ENCRYPTION_SECRET` or AI env vars at boot. | **Medium** |
-| **F-11** | `P0-Critical` | [`packages/shared/src/env.ts:44`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/src/env.ts#L44) | `AuthEnv.ENCRYPTION_SECRET` only enforces `.min(32)` instead of 64 hex chars (`32` bytes), allowing 32-char secrets (such as `loadtest/docker-compose.loadtest.yml:113` and `README.md:285`) to pass boot validation and crash `encryptByok`/`decryptByok` (`packages/shared/src/encryption.ts:69`) at runtime. | **Low** |
-| **F-01** | `P1-High` | [`turbo.json:59-62`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/turbo.json#L59-L62) | `tasks.test` sets `"dependsOn": []`, but `apps/web/vitest.config.ts`, `apps/worker/vitest.config.ts`, and `packages/ai/vitest.config.ts` omit `resolve.conditions: ['source']`, causing clean-checkout or post-edit test runs to fail or execute against stale `dist/` artifacts. | **Low** |
-| **F-02** | `P1-High` | [`packages/ai/package.json:66-100`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/ai/package.json#L66-L100) | Five `exports` subpaths (`./prompt`, `./portfolio`, `./notifications`, `./types`, `./verification`) reference deleted or moved `src/` and `dist/` files, causing `ERR_MODULE_NOT_FOUND` on import. | **Low** |
-| **F-05** | `P1-High` | [`apps/web/scripts/setup-telegram-webhook.ts:27`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/web/scripts/setup-telegram-webhook.ts#L27) | Broken relative import `../../packages/ai/src/telegram/client` resolves to non-existent `apps/packages/ai/src/telegram/client` (and deleted module path), hidden because `apps/web/tsconfig.json:14` excludes `scripts/`. | **Low** |
-| **F-06** | `P1-High` | [`packages/shared/test/storage-boundary.test.ts:1`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/test/storage-boundary.test.ts#L1) | Upward layer boundary violation: foundation package `@kestrel/shared` imports `@kestrel/data/adapters/storage` (undeclared dependency, reverse `shared -> data` edge), hidden because `packages/shared/tsconfig.json:3` excludes `test/`. | **Low** |
-| **F-12** | `P1-High` | [`packages/shared/src/env-secrets.ts:65-69`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/src/env-secrets.ts#L65-L69) | `REQUIRED_HEALTH_ENV_VARS` checks deprecated `AUTH_COOKIE_SECRET` instead of `AUTH_SECRET` and omits required production secrets `ENCRYPTION_SECRET` and `ADMIN_DATABASE_URL` in `/api/health` (`apps/web/src/app/api/health/route.ts:137-150`). | **Low** |
-| **F-03** | `P2-Medium` | [`turbo.json:1-66`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/turbo.json#L1-L66) | Missing `inputs` arrays on `build`/`typecheck`/`lint`/`test`, missing `packages/config/**` in `globalDependencies`, and missing `NEXT_PUBLIC_*`/`WORKER_MODE` in `build.env` cause cache invalidation on doc edits and stale cache hits on config changes. | **Low** |
-| **F-04** | `P2-Medium` | [`apps/web/package.json:48-49`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/web/package.json#L48-L49) | Dependency & workspace config drift: `react` (`^19.2.8` in `apps/web` vs `^19.0.0` in `packages/ai`), `typescript` (`6.0.2` in `packages/config` vs `^7.0.2`), mixed exact/caret `@mastra/*` pins (`packages/ai/package.json:193-200`), redundant `packages/test-utils` in `pnpm-workspace.yaml:4`, and `target: 'node20'` in `apps/worker/scripts/build.mjs:113`. | **Low** |
-| **F-07** | `P2-Medium` | [`apps/web/test/loadtest-contracts.test.ts:22-24`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/web/test/loadtest-contracts.test.ts#L22-L24) | Cross-workspace relative imports in `apps/web/test/` (`../../../loadtest/*`, `../../../tools/lighthouse/run.mjs`, `../../../scripts/setup/*`) bypass workspace boundaries and Turborepo input tracking. | **Medium** |
-| **F-08** | `P2-Medium` | [`packages/db/src/active-users.ts:30`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/db/src/active-users.ts#L30) | `12` internal value-import circular dependency cycles across `packages/db` (`index.ts` <-> `active-users.ts`, `queries/billing.ts`) and `packages/ai` (`alerts/rule-registry.ts` <-> `spec.ts`, `evaluator.ts` <-> `delivery.ts`, `bot/dispatcher.ts` <-> `help.ts`, `mastra-v2/capabilities` <-> `telemetry`). | **Medium** |
-| **F-09** | `P2-Medium` | [`packages/shared/src/index.ts:124-136`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/src/index.ts#L124-L136) | Universal barrel `@kestrel/shared` has dead `export {} from './encryption'` (`:124`) and re-exports server-only `parseServerEnv`/`ServerEnvSchema` (`:127-136`); `apps/web/src/lib/env.ts` and `packages/db/src/index.ts` lack `import 'server-only'`. | **Low** |
-| **F-13** | `P2-Medium` | [`apps/web/tsconfig.json:4`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/web/tsconfig.json#L4) | Type-checking gaps & unsafe casts: `apps/web/tsconfig.json:4` sets `exactOptionalPropertyTypes: false` and excludes `test/`/`tests/` (`:14`); `tsconfig.base.json:30` leaks `@/*` path alias globally; `10` prod `any` and `82` prod `as unknown as` casts (including `decryptByok` cast in `apps/web/src/app/api/market/stream/route.ts:86`). | **Medium** |
-| **F-14** | `P3-Low` | [`packages/ai/probe-durable.mjs:1`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/ai/probe-durable.mjs#L1) | Orphaned scripts committed to repository (`packages/ai/probe-durable.mjs`, `packages/db/scripts/db-check.mjs`, `packages/db/scripts/list-tables.mjs`) with zero references in `package.json` or CI, plus `root/package.json:38` `build:packages` omitting `@kestrel/loadtest`. | **Low** |
-| **F-15** | `P3-Low` | [`packages/shared/src/index.ts:20-160`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/src/index.ts#L20-L160) | `127` exported symbols in `packages/shared` (`98` completely unused across the monorepo, `29` used exclusively in unit tests) bloat barrel surface area and IDE autocomplete. | **Medium** |
-| **F-16** | `P3-Low` | [`README.md:195-221`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/README.md#L195-L221) | Outdated & contradictory documentation: `README.md:195-221` documents removed 5-mode committee (`quick`, `standard`, `auto`) and non-existent `BYOK_ENABLED=1` (`:296`); `docker-compose.yml:113` double-prefixes `127.0.0.1:` on `APP_PUBLISHED_PORT`; `docs/troubleshooting.md:89,233` and `docs/release.md:101` cite nonexistent scripts (`db:migrate`, `dev:local`, `pnpm changeset`); duplicate 14.8 KB `kestrel-ux-upgrade-plan.md` at root and `docs/`. | **Low** |
+| ID       | Severity      | File:Line                                                                                                                                                                               | Issue                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Fix Complexity |
+| :------- | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------- |
+| **F-10** | `P0-Critical` | [`apps/worker/src/jobs/multi-agent-analysis.ts:215`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/worker/src/jobs/multi-agent-analysis.ts#L215) | Unsafe `process.env as unknown as Parameters<typeof pickAiEnv>[0]` bypasses `ServerEnvSchema` coercion (`"0"` becomes truthy `boolean`, numbers remain `string \| undefined`) and `apps/worker/src/env.ts` never validates `ENCRYPTION_SECRET` or AI env vars at boot.                                                                                                                                                                                         | **Medium**     |
+| **F-11** | `P0-Critical` | [`packages/shared/src/env.ts:44`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/src/env.ts#L44)                                       | `AuthEnv.ENCRYPTION_SECRET` only enforces `.min(32)` instead of 64 hex chars (`32` bytes), allowing 32-char secrets (such as `loadtest/docker-compose.loadtest.yml:113` and `README.md:285`) to pass boot validation and crash `encryptByok`/`decryptByok` (`packages/shared/src/encryption.ts:69`) at runtime.                                                                                                                                                | **Low**        |
+| **F-01** | `P1-High`     | [`turbo.json:59-62`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/turbo.json#L59-L62)                                                                | `tasks.test` sets `"dependsOn": []`, but `apps/web/vitest.config.ts`, `apps/worker/vitest.config.ts`, and `packages/ai/vitest.config.ts` omit `resolve.conditions: ['source']`, causing clean-checkout or post-edit test runs to fail or execute against stale `dist/` artifacts.                                                                                                                                                                              | **Low**        |
+| **F-02** | `P1-High`     | [`packages/ai/package.json:66-100`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/ai/package.json#L66-L100)                                  | Five `exports` subpaths (`./prompt`, `./portfolio`, `./notifications`, `./types`, `./verification`) reference deleted or moved `src/` and `dist/` files, causing `ERR_MODULE_NOT_FOUND` on import.                                                                                                                                                                                                                                                             | **Low**        |
+| **F-05** | `P1-High`     | [`apps/web/scripts/setup-telegram-webhook.ts:27`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/web/scripts/setup-telegram-webhook.ts#L27)       | Broken relative import `../../packages/ai/src/telegram/client` resolves to non-existent `apps/packages/ai/src/telegram/client` (and deleted module path), hidden because `apps/web/tsconfig.json:14` excludes `scripts/`.                                                                                                                                                                                                                                      | **Low**        |
+| **F-06** | `P1-High`     | [`packages/shared/test/storage-boundary.test.ts:1`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/test/storage-boundary.test.ts#L1)   | Upward layer boundary violation: foundation package `@kestrel/shared` imports `@kestrel/data/adapters/storage` (undeclared dependency, reverse `shared -> data` edge), hidden because `packages/shared/tsconfig.json:3` excludes `test/`.                                                                                                                                                                                                                      | **Low**        |
+| **F-12** | `P1-High`     | [`packages/shared/src/env-secrets.ts:65-69`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/src/env-secrets.ts#L65-L69)                | `REQUIRED_HEALTH_ENV_VARS` checks deprecated `AUTH_COOKIE_SECRET` instead of `AUTH_SECRET` and omits required production secrets `ENCRYPTION_SECRET` and `ADMIN_DATABASE_URL` in `/api/health` (`apps/web/src/app/api/health/route.ts:137-150`).                                                                                                                                                                                                               | **Low**        |
+| **F-03** | `P2-Medium`   | [`turbo.json:1-66`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/turbo.json#L1-L66)                                                                  | Missing `inputs` arrays on `build`/`typecheck`/`lint`/`test`, missing `packages/config/**` in `globalDependencies`, and missing `NEXT_PUBLIC_*`/`WORKER_MODE` in `build.env` cause cache invalidation on doc edits and stale cache hits on config changes.                                                                                                                                                                                                     | **Low**        |
+| **F-04** | `P2-Medium`   | [`apps/web/package.json:48-49`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/web/package.json#L48-L49)                                          | Dependency & workspace config drift: `react` (`^19.2.8` in `apps/web` vs `^19.0.0` in `packages/ai`), `typescript` (`6.0.2` in `packages/config` vs `^7.0.2`), mixed exact/caret `@mastra/*` pins (`packages/ai/package.json:193-200`), redundant `packages/test-utils` in `pnpm-workspace.yaml:4`, and `target: 'node20'` in `apps/worker/scripts/build.mjs:113`.                                                                                             | **Low**        |
+| **F-07** | `P2-Medium`   | [`apps/web/test/loadtest-contracts.test.ts:22-24`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/web/test/loadtest-contracts.test.ts#L22-L24)    | Cross-workspace relative imports in `apps/web/test/` (`../../../loadtest/*`, `../../../tools/lighthouse/run.mjs`, `../../../scripts/setup/*`) bypass workspace boundaries and Turborepo input tracking.                                                                                                                                                                                                                                                        | **Medium**     |
+| **F-08** | `P2-Medium`   | [`packages/db/src/active-users.ts:30`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/db/src/active-users.ts#L30)                             | `12` internal value-import circular dependency cycles across `packages/db` (`index.ts` <-> `active-users.ts`, `queries/billing.ts`) and `packages/ai` (`alerts/rule-registry.ts` <-> `spec.ts`, `evaluator.ts` <-> `delivery.ts`, `bot/dispatcher.ts` <-> `help.ts`, `mastra-v2/capabilities` <-> `telemetry`).                                                                                                                                                | **Medium**     |
+| **F-09** | `P2-Medium`   | [`packages/shared/src/index.ts:124-136`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/src/index.ts#L124-L136)                        | Universal barrel `@kestrel/shared` has dead `export {} from './encryption'` (`:124`) and re-exports server-only `parseServerEnv`/`ServerEnvSchema` (`:127-136`); `apps/web/src/lib/env.ts` and `packages/db/src/index.ts` lack `import 'server-only'`.                                                                                                                                                                                                         | **Low**        |
+| **F-13** | `P2-Medium`   | [`apps/web/tsconfig.json:4`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/apps/web/tsconfig.json#L4)                                                 | Type-checking gaps & unsafe casts: `apps/web/tsconfig.json:4` sets `exactOptionalPropertyTypes: false` and excludes `test/`/`tests/` (`:14`); `tsconfig.base.json:30` leaks `@/*` path alias globally; `10` prod `any` and `82` prod `as unknown as` casts (including `decryptByok` cast in `apps/web/src/app/api/market/stream/route.ts:86`).                                                                                                                 | **Medium**     |
+| **F-14** | `P3-Low`      | [`packages/ai/probe-durable.mjs:1`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/ai/probe-durable.mjs#L1)                                   | Orphaned scripts committed to repository (`packages/ai/probe-durable.mjs`, `packages/db/scripts/db-check.mjs`, `packages/db/scripts/list-tables.mjs`) with zero references in `package.json` or CI, plus `root/package.json:38` `build:packages` omitting `@kestrel/loadtest`.                                                                                                                                                                                 | **Low**        |
+| **F-15** | `P3-Low`      | [`packages/shared/src/index.ts:20-160`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/packages/shared/src/index.ts#L20-L160)                          | `127` exported symbols in `packages/shared` (`98` completely unused across the monorepo, `29` used exclusively in unit tests) bloat barrel surface area and IDE autocomplete.                                                                                                                                                                                                                                                                                  | **Medium**     |
+| **F-16** | `P3-Low`      | [`README.md:195-221`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/README.md#L195-L221)                                                              | Outdated & contradictory documentation: `README.md:195-221` documents removed 5-mode committee (`quick`, `standard`, `auto`) and non-existent `BYOK_ENABLED=1` (`:296`); `docker-compose.yml:113` double-prefixes `127.0.0.1:` on `APP_PUBLISHED_PORT`; `docs/troubleshooting.md:89,233` and `docs/release.md:101` cite nonexistent scripts (`db:migrate`, `dev:local`, `pnpm changeset`); duplicate 14.8 KB `kestrel-ux-upgrade-plan.md` at root and `docs/`. | **Low**        |
 
 ## 3. Detailed Technical Breakdown & Proposed Patch Plan
 
@@ -67,7 +67,7 @@ Kestrel's monorepo foundation is structurally mature—featuring strict ESM pack
 --- a/apps/worker/vitest.config.ts
 +++ b/apps/worker/vitest.config.ts
 @@ -21,6 +21,9 @@ const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParal
- 
+
  export default defineConfig({
 +  resolve: {
 +    conditions: ['source'],
@@ -78,7 +78,7 @@ Kestrel's monorepo foundation is structurally mature—featuring strict ESM pack
 --- a/packages/ai/vitest.config.ts
 +++ b/packages/ai/vitest.config.ts
 @@ -21,6 +21,9 @@ const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParal
- 
+
  export default defineConfig({
    esbuild: { target: 'es2022' },
 +  resolve: {
@@ -101,7 +101,7 @@ Kestrel's monorepo foundation is structurally mature—featuring strict ESM pack
   3. `"./notifications"` targets `./src/notifications.ts` and `./dist/notifications.js` (actual source is `./src/notifications/index.ts`).
   4. `"./types"` targets `./src/types.ts` and `./dist/types.js` (deleted).
   5. `"./verification"` targets `./src/verification.ts` and `./dist/verification.js` (deleted in Audit v2 Phase 4).
-  Importing `@kestrel/ai/portfolio` or `@kestrel/ai/notifications` throws `ERR_MODULE_NOT_FOUND` at runtime and fails `tsc` resolution.
+     Importing `@kestrel/ai/portfolio` or `@kestrel/ai/notifications` throws `ERR_MODULE_NOT_FOUND` at runtime and fails `tsc` resolution.
 - **Remediation Diff:**
 
 ```diff
@@ -233,7 +233,7 @@ Kestrel's monorepo foundation is structurally mature—featuring strict ESM pack
    - "packages/*"
 -  - "packages/test-utils"
    - "loadtest"
- 
+
  # Mastra CLI / @mastra/deployer bundle the config with the `typescript-paths`
 --- a/packages/ai/package.json
 +++ b/packages/ai/package.json
@@ -275,16 +275,16 @@ Kestrel's monorepo foundation is structurally mature—featuring strict ESM pack
 
 Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` and `packages/*` confirms the following package-level dependency edges:
 
-| Source Workspace | Imported `@kestrel/*` Packages | Layer Direction Compliance |
-| :--- | :--- | :--- |
-| `packages/config` | None (self-referential ESLint config only) | Compliant (Layer 0) |
-| `packages/shared` | **`@kestrel/data`** (`1` import in `test/storage-boundary.test.ts:1`) | **VIOLATION (F-06): `shared -> data`** |
-| `packages/indicators` | `@kestrel/shared` (`28` imports) | Compliant (Layer 2) |
-| `packages/db` | `@kestrel/shared` (`5` imports) | Compliant (Layer 2) |
-| `packages/data` | `@kestrel/shared` (`24` imports), `@kestrel/db` (`11` imports) | Compliant with `docs/architecture.md:29` (`shared -> db + indicators -> data -> ai -> web + worker`) |
-| `packages/ai` | `@kestrel/shared` (`223`), `@kestrel/db` (`82`), `@kestrel/data` (`34`), `@kestrel/indicators` (`11`) | Compliant (Layer 4) |
-| `apps/web` | `@kestrel/shared` (`159`), `@kestrel/ai` (`71`), `@kestrel/db` (`59`), `@kestrel/data` (`7`), `@kestrel/indicators` (`2`) | **1 Broken Relative Import in `scripts/` (F-05)** + **Test Escapes (F-07)** |
-| `apps/worker` | `@kestrel/ai` (`34`), `@kestrel/shared` (`19`), `@kestrel/db` (`15`), `@kestrel/data` (`9`) | Compliant (Layer 5) |
+| Source Workspace      | Imported `@kestrel/*` Packages                                                                                            | Layer Direction Compliance                                                                           |
+| :-------------------- | :------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------- |
+| `packages/config`     | None (self-referential ESLint config only)                                                                                | Compliant (Layer 0)                                                                                  |
+| `packages/shared`     | **`@kestrel/data`** (`1` import in `test/storage-boundary.test.ts:1`)                                                     | **VIOLATION (F-06): `shared -> data`**                                                               |
+| `packages/indicators` | `@kestrel/shared` (`28` imports)                                                                                          | Compliant (Layer 2)                                                                                  |
+| `packages/db`         | `@kestrel/shared` (`5` imports)                                                                                           | Compliant (Layer 2)                                                                                  |
+| `packages/data`       | `@kestrel/shared` (`24` imports), `@kestrel/db` (`11` imports)                                                            | Compliant with `docs/architecture.md:29` (`shared -> db + indicators -> data -> ai -> web + worker`) |
+| `packages/ai`         | `@kestrel/shared` (`223`), `@kestrel/db` (`82`), `@kestrel/data` (`34`), `@kestrel/indicators` (`11`)                     | Compliant (Layer 4)                                                                                  |
+| `apps/web`            | `@kestrel/shared` (`159`), `@kestrel/ai` (`71`), `@kestrel/db` (`59`), `@kestrel/data` (`7`), `@kestrel/indicators` (`2`) | **1 Broken Relative Import in `scripts/` (F-05)** + **Test Escapes (F-07)**                          |
+| `apps/worker`         | `@kestrel/ai` (`34`), `@kestrel/shared` (`19`), `@kestrel/db` (`15`), `@kestrel/data` (`9`)                               | Compliant (Layer 5)                                                                                  |
 
 #### Finding F-05 (`P1-High`) — Broken Cross-Package Relative Import in `apps/web/scripts/setup-telegram-webhook.ts:27`
 
@@ -315,10 +315,10 @@ Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` 
 @@ -22,9 +22,9 @@
  //
  // Or set VERCEL_PROJECT_PRODUCTION_URL / NEXT_PUBLIC_APP_URL env vars.
- 
+
 -import * as crypto from 'crypto';
 +import * as crypto from 'node:crypto';
- 
+
 -import { setBotCommands, telegramApiCall } from '../../packages/ai/src/telegram/client';
 +import { setBotCommands, telegramApiCall } from '@kestrel/ai/bot';
 ```
@@ -402,23 +402,23 @@ Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` 
 --- a/packages/db/src/active-users.ts
 +++ b/packages/db/src/active-users.ts
 @@ -27,7 +27,7 @@
- 
+
  import { eq, isNull } from 'drizzle-orm';
- 
+
 -import { getDb, schema } from './index';
 +import { getDb, schema } from './client';
- 
+
  /**
   * Fetch all active user IDs from the database.
 --- a/packages/db/src/queries/billing.ts
 +++ b/packages/db/src/queries/billing.ts
 @@ -21,7 +21,7 @@
- 
+
  import { and, desc, eq, gte, lt } from 'drizzle-orm';
- 
+
 -import { getDb, schema } from '../index';
 +import { getDb, schema } from '../client';
- 
+
  export interface SubscriptionWithPlan {
 --- a/packages/ai/src/alerts/delivery.ts
 +++ b/packages/ai/src/alerts/delivery.ts
@@ -452,7 +452,7 @@ Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` 
  // from '@kestrel/shared/encryption' instead. Re-exporting it here would
  // pull node:crypto into any client component that imports the barrel.
 -export {} from './encryption';
- 
+
  // Env (server-only — do NOT import from client code)
  export {
 --- a/apps/web/src/lib/env.ts
@@ -460,7 +460,7 @@ Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` 
 @@ -21,6 +21,8 @@
  // Development secrets are auto-generated when missing and cached in
  // `.kestrel/dev-secrets.json` so encrypted BYOK payloads survive restarts.
- 
+
 +import 'server-only';
 +
  import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -518,12 +518,12 @@ Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` 
 -import { pickAiEnv, type UIMessage } from '@kestrel/shared';
 +import { parseServerEnv, pickAiEnv, type UIMessage } from '@kestrel/shared';
  import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
- 
+
  import type { TenantRouter } from '../tenant-router.js';
 @@ -212,7 +212,7 @@ export async function runMultiAgentAnalysisJob(
            validateFullAnalysisPlanIdentity(executionPlan, { tenantId, payload }, symbol);
          }
- 
+
 -        const env = pickAiEnv(process.env as unknown as Parameters<typeof pickAiEnv>[0]);
 +        const env = pickAiEnv(parseServerEnv(process.env));
          const expectedModel = `${payload.modelSnapshot.providerId}/${payload.modelSnapshot.bareModelId}`;
@@ -700,10 +700,10 @@ Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` 
 +++ b/packages/db/src/with-user-scope.ts
 @@ -34,7 +34,8 @@
  // code may be migrated incrementally. The helper is tested and correct.
- 
+
  import { eq, type SQL } from 'drizzle-orm';
 +import type { AnyPgColumn } from 'drizzle-orm/pg-core';
- 
+
 -export function withUserScope<T extends { userId: unknown }>(table: T, userId: string): SQL {
 -  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 -  return eq((table as any).userId, userId);
@@ -776,7 +776,7 @@ Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` 
   - [`kestrel-ux-upgrade-plan.md:1`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/kestrel-ux-upgrade-plan.md#L1) & [`docs/kestrel-ux-upgrade-plan.md:1`](https://github.com/HamaFx/Kestrel/blob/19167d075c1e05d77cb033e1e7239deb892b0554/docs/kestrel-ux-upgrade-plan.md#L1) (Identical `14,878`-byte file duplicated at both repo root and `docs/`)
 - **Remediation Diff:**
 
-```diff
+````diff
 --- a/docker-compose.yml
 +++ b/docker-compose.yml
 @@ -110,7 +110,7 @@ services:
@@ -795,23 +795,27 @@ Scanning all `641` cross-package `@kestrel/*` import statements across `apps/*` 
  - Ensure the database has the pgvector extension enabled (`CREATE EXTENSION IF NOT EXISTS vector;`).
 -- Verify migrations ran successfully (`pnpm --filter @kestrel/db db:migrate`).
 +- Verify migrations ran successfully (`pnpm --filter @kestrel/db migrate:apply`).
- 
+
  ## Updating Kestrel
 @@ -230,7 +230,7 @@ Providers are optional and subject to availability and licensing. Check provider
  For deterministic local development without market-data network requests:
- 
+
  ```bash
 -KESTREL_OFFLINE_MODE=1 pnpm dev:local
 +KESTREL_OFFLINE_MODE=1 pnpm dev
- ```
+````
+
 --- a/docs/README.md
 +++ b/docs/README.md
 @@ -16,5 +16,3 @@ Repository-level policy and status documents:
- - [Security policy](../SECURITY.md) — vulnerability reporting and security responsibilities
- - [Contributing](../CONTRIBUTING.md) — contributor workflow and coding rules
- - [Support](../SUPPORT.md) — support channels and diagnostic information
+
+- [Security policy](../SECURITY.md) — vulnerability reporting and security responsibilities
+- [Contributing](../CONTRIBUTING.md) — contributor workflow and coding rules
+- [Support](../SUPPORT.md) — support channels and diagnostic information
 -
+
 -The `architecture-explorer.html` and `architecture-explorer.json` files in this directory are static informational snapshots. They are not runtime dependencies and are not generated automatically during builds.
+
 ```
 
 ## 4. Proposed Patch Plan (Awaiting Approval Gate)
@@ -835,3 +839,4 @@ Once approved, the fixes above will be applied in four atomic, verifiable commit
 4. **Batch 4 — Dead Code & Documentation Cleanup (`F-14`, `F-15`, `F-16`):**
    - Remove orphaned scratch scripts (`packages/ai/probe-durable.mjs`, `packages/db/scripts/db-check.mjs`, `packages/db/scripts/list-tables.mjs`) and root duplicate `kestrel-ux-upgrade-plan.md`.
    - Update `README.md`, `docs/troubleshooting.md`, `docs/release.md`, `docs/README.md`, and `docker-compose.yml:113`.
+```

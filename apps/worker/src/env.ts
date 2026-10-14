@@ -57,7 +57,10 @@ const WorkerEnvSchema = z.object({
   /** 32-byte (64 hex chars) key required in production to decrypt user BYOK keys in worker jobs. */
   ENCRYPTION_SECRET: z.preprocess(
     (v) => (v === '' ? undefined : v),
-    z.string().regex(/^[0-9a-fA-F]{64}$/, 'ENCRYPTION_SECRET must be 64 hex characters (32 bytes)').optional(),
+    z
+      .string()
+      .regex(/^[0-9a-fA-F]{64}$/, 'ENCRYPTION_SECRET must be 64 hex characters (32 bytes)')
+      .optional(),
   ),
   /** Bind address for the worker HTTP listener; keep private by default. */
   WORKER_HTTP_HOST: optionalNonEmpty,
