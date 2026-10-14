@@ -52,8 +52,9 @@ const MOCK_REQ = new Request('http://localhost/api/health');
 
 const ENV = {
   DATABASE_URL: 'test-db-url',
-  AUTH_COOKIE_SECRET: 'test-auth-secret',
+  AUTH_SECRET: 'test-auth-secret',
   CRON_SECRET: 'test-cron-secret',
+  ENCRYPTION_SECRET: 'a'.repeat(64),
   DEPLOYED_SHA: 'abc123',
 };
 

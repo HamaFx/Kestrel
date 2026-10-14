@@ -41,7 +41,13 @@ const AuthEnv = z.object({
   AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 chars').optional(),
   AUTH_COOKIE_SECRET: z.string().min(32).optional(),
   CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 chars').optional(),
-  ENCRYPTION_SECRET: z.string().min(32, 'ENCRYPTION_SECRET must be at least 32 chars').optional(),
+  ENCRYPTION_SECRET: z
+    .string()
+    .regex(
+      /^[0-9a-fA-F]{64}$/,
+      'ENCRYPTION_SECRET must be a 64-character hex string (32 bytes, e.g. openssl rand -hex 32)',
+    )
+    .optional(),
 });
 
 // We accept either DATABASE_URL or POSTGRES_URL for app traffic — the Supabase
