@@ -85,18 +85,16 @@ test.describe('Responsive layout', () => {
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
   });
 
-  test('no horizontal scroll on key pages at mobile viewport', async ({ authedPage }) => {
-    const page = authedPage;
-    const pages = ['/chat', '/dashboard', '/journal', '/alerts', '/news', '/calendar'];
-
-    for (const path of pages) {
+  for (const path of ['/chat', '/dashboard', '/journal', '/alerts', '/news', '/calendar']) {
+    test(`no horizontal scroll on ${path} at mobile viewport`, async ({ authedPage }) => {
+      const page = authedPage;
       await page.goto(path, { waitUntil: 'domcontentloaded' });
       if (path === '/chat') {
         await expect(page).toHaveURL(/\/chat(?:\/[^/?]+)?(?:\?.*)?$/);
       } else {
         await expect(page).toHaveURL(new RegExp(`${path.replace('/', '\\/')}$`));
+        await expect(page.locator('#main-content')).toBeVisible({ timeout: 15_000 });
       }
-      await page.waitForTimeout(750);
 
       let dimensions: { scrollWidth: number; clientWidth: number } | null = null;
       for (let attempt = 0; attempt < 3 && !dimensions; attempt += 1) {
@@ -107,13 +105,12 @@ test.describe('Responsive layout', () => {
           }));
         } catch (error) {
           if (!String(error).includes('Execution context was destroyed')) throw error;
-          await page.waitForTimeout(250);
         }
       }
 
       expect(dimensions).not.toBeNull();
       // Allow 2px tolerance for sub-pixel rounding
       expect(dimensions!.scrollWidth).toBeLessThanOrEqual(dimensions!.clientWidth + 2);
-    }
-  });
+    });
+  }
 });
