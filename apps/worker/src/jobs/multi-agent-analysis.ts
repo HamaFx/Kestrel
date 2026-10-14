@@ -59,7 +59,7 @@ import {
   type FullAnalysisPayload,
 } from '@kestrel/ai/mastra';
 import { schema } from '@kestrel/db';
-import { pickAiEnv } from '@kestrel/shared';
+import { parseServerEnv, pickAiEnv } from '@kestrel/shared';
 import { traceIdStorage } from '@kestrel/shared/logger';
 import type { UIMessage } from 'ai';
 import { and, eq } from 'drizzle-orm';
@@ -212,7 +212,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           validateFullAnalysisPlanIdentity(executionPlan, { tenantId, payload }, symbol);
         }
 
-        const env = pickAiEnv(process.env as unknown as Parameters<typeof pickAiEnv>[0]);
+        const env = pickAiEnv(parseServerEnv(process.env));
         const expectedModel = `${payload.modelSnapshot.providerId}/${payload.modelSnapshot.bareModelId}`;
         const resolvedSnapshot = resolveSnapshotModel(userSettings, env, payload.modelSnapshot);
         if (resolvedSnapshot.modelId !== expectedModel) {

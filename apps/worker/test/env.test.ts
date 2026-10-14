@@ -50,7 +50,7 @@ describe('loadEnv', () => {
     );
   });
 
-  it('requires health and proxy tokens in production', () => {
+  it('requires health and proxy tokens and encryption secret in production', () => {
     const base = {
       DATABASE_URL: VALID.DATABASE_URL,
       NODE_ENV: 'production',
@@ -60,11 +60,19 @@ describe('loadEnv', () => {
     expect(() =>
       loadEnv({ ...base, WORKER_HEALTH_TOKEN: 'health-token' } as unknown as NodeJS.ProcessEnv),
     ).toThrow(/BIQUOTE_PROXY_TOKEN/);
+    expect(() =>
+      loadEnv({
+        ...base,
+        WORKER_HEALTH_TOKEN: 'health-token',
+        BIQUOTE_PROXY_TOKEN: 'proxy-token',
+      } as unknown as NodeJS.ProcessEnv),
+    ).toThrow(/ENCRYPTION_SECRET/);
     expect(
       loadEnv({
         ...base,
         WORKER_HEALTH_TOKEN: 'health-token',
         BIQUOTE_PROXY_TOKEN: 'proxy-token',
+        ENCRYPTION_SECRET: 'a'.repeat(64),
       } as unknown as NodeJS.ProcessEnv).BIQUOTE_PROXY_TOKEN,
     ).toBe('proxy-token');
   });

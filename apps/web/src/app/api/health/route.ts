@@ -138,7 +138,7 @@ function checkEnv(): CheckResult {
   const required = REQUIRED_HEALTH_ENV_VARS as readonly string[];
   const missing = required.filter((key) => {
     if (key === 'DATABASE_URL') return !process.env.DATABASE_URL && !process.env.POSTGRES_URL;
-    if (key === 'AUTH_COOKIE_SECRET') {
+    if (key === 'AUTH_SECRET' || key === 'AUTH_COOKIE_SECRET') {
       return !process.env.AUTH_COOKIE_SECRET && !process.env.AUTH_SECRET;
     }
     return !process.env[key];

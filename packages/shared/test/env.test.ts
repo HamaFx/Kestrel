@@ -108,11 +108,11 @@ describe('parseServerEnv — dev mode secret ergonomics', () => {
       ...MINIMAL_ENV,
       NODE_ENV: 'development',
       AUTH_SECRET: 'a'.repeat(32),
-      ENCRYPTION_SECRET: 'b'.repeat(32),
+      ENCRYPTION_SECRET: 'b'.repeat(64),
       CRON_SECRET: 'c'.repeat(20),
     });
     expect(env.AUTH_SECRET).toBe('a'.repeat(32));
-    expect(env.ENCRYPTION_SECRET).toBe('b'.repeat(32));
+    expect(env.ENCRYPTION_SECRET).toBe('b'.repeat(64));
     expect(env.CRON_SECRET).toBe('c'.repeat(20));
   });
 });
@@ -139,7 +139,7 @@ describe('parseServerEnv — production requires secrets', () => {
       ...MINIMAL_ENV,
       NODE_ENV: 'production',
       AUTH_SECRET: 'a'.repeat(32),
-      ENCRYPTION_SECRET: 'b'.repeat(32),
+      ENCRYPTION_SECRET: 'b'.repeat(64),
       CRON_SECRET: 'c'.repeat(20),
     });
     expect(env.NODE_ENV).toBe('production');
@@ -164,6 +164,26 @@ describe('parseServerEnv — secret length validation', () => {
         ...MINIMAL_ENV,
         NODE_ENV: 'development',
         ENCRYPTION_SECRET: 'too-short',
+      }),
+    ).toThrow(/ENCRYPTION_SECRET/);
+  });
+
+  it('rejects 32-character ENCRYPTION_SECRET (requires 64 hex characters)', () => {
+    expect(() =>
+      parseServerEnv({
+        ...MINIMAL_ENV,
+        NODE_ENV: 'development',
+        ENCRYPTION_SECRET: 'b'.repeat(32),
+      }),
+    ).toThrow(/ENCRYPTION_SECRET/);
+  });
+
+  it('rejects non-hex ENCRYPTION_SECRET', () => {
+    expect(() =>
+      parseServerEnv({
+        ...MINIMAL_ENV,
+        NODE_ENV: 'development',
+        ENCRYPTION_SECRET: 'z'.repeat(64),
       }),
     ).toThrow(/ENCRYPTION_SECRET/);
   });

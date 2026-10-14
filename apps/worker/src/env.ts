@@ -54,6 +54,11 @@ const WorkerEnvSchema = z.object({
   WORKER_HEALTH_TOKEN: optionalNonEmpty,
   /** Bearer token required for the BiQuote proxy in production. */
   BIQUOTE_PROXY_TOKEN: optionalNonEmpty,
+  /** 32-byte (64 hex chars) key required in production to decrypt user BYOK keys in worker jobs. */
+  ENCRYPTION_SECRET: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().regex(/^[0-9a-fA-F]{64}$/, 'ENCRYPTION_SECRET must be 64 hex characters (32 bytes)').optional(),
+  ),
   /** Bind address for the worker HTTP listener; keep private by default. */
   WORKER_HTTP_HOST: optionalNonEmpty,
   /** Port for the worker health listener. */
@@ -185,6 +190,9 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
   }
   if (result.data.NODE_ENV === 'production' && !result.data.BIQUOTE_PROXY_TOKEN) {
     throw new Error('BIQUOTE_PROXY_TOKEN must be set in production');
+  }
+  if (result.data.NODE_ENV === 'production' && !result.data.ENCRYPTION_SECRET) {
+    throw new Error('ENCRYPTION_SECRET must be set in production');
   }
   if (!result.data.DATABASE_URL && !result.data.POSTGRES_URL) {
     throw new Error('Either DATABASE_URL or POSTGRES_URL must be set');
