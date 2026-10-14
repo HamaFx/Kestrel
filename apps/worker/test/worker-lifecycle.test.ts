@@ -101,6 +101,7 @@ describe('worker lifecycle contracts', () => {
         AI_EVALUATION_RETENTION_DAYS: 90,
         PERSISTENCE_OUTBOX_RETENTION_DAYS: 30,
         BUDGET_RESERVATION_RETENTION_DAYS: 90,
+        JOB_TIMEOUT_MS: 120_000,
       },
       log: createLogger({ service: 'test', forceJson: true }),
       buildConnection: () => fakeConn,

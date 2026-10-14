@@ -213,7 +213,7 @@ describe('canonical chat memory fallback (§1.5)', () => {
       history: [],
       settings,
       env,
-      routingDecision: { domain: 'technical', confidence: 1, rationale: 'test' },
+      routingDecision: { domain: 'technical', planRequired: true, rationale: 'test' },
     });
 
     expect(mocks.generate).toHaveBeenCalledTimes(2);

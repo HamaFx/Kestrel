@@ -78,7 +78,7 @@ async function main(): Promise<number> {
 
   const log = createLogger({ service: `worker:job:${jobName}`, commit: env.DEPLOYED_SHA });
   const { initLangfuse, shutdownLangfuse } = await import('@kestrel/ai');
-  initLangfuse({ service: 'worker-cli' });
+  initLangfuse({ service: 'worker' });
 
   const job = JOBS[jobName];
   const hcUuid = resolveHcUuid(env, jobName);
