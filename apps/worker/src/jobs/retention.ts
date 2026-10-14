@@ -19,7 +19,7 @@
 // diagnostic_traces, provider_daily_quota, Full-analysis queue, and recovery
 // ledgers).
 
-import { pruneMastraStorage } from '@kestrel/ai/mastra';
+import { getKestrelMastra, pruneMastraStorage } from '@kestrel/ai/mastra';
 import { runRetentionCleanup, runVacuumAnalyze } from '@kestrel/db';
 
 import type { JobContext, JobResult } from './types.js';
@@ -56,7 +56,9 @@ export async function runRetention(ctx: JobContext): Promise<JobResult> {
   // job. Dormant `mastra_observational_memory` rows are pruned by
   // runRetentionCleanup above (Mastra's own prune() excludes that table);
   // their count is included in `result.note`.
-  const mastraRetention = await pruneMastraStorage();
+  const mastraRetention = await pruneMastraStorage(
+    getKestrelMastra().instance.getStorage() ?? undefined,
+  );
   ctx.log.info('Mastra storage pruning', mastraRetention);
 
   return {
