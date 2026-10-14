@@ -1,0 +1,84 @@
+name: e2e-and-loadtest
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-loadtest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright-e2e:
+    name: Playwright E2E (Shard ${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: hamafx
+          POSTGRES_USER: hamafx
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U hamafx -d hamafx" --health-interval 5s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgres://hamafx:test@localhost:5432/hamafx
+      DIRECT_URL: postgres://hamafx:test@localhost:5432/hamafx
+      ADMIN_DATABASE_URL: postgres://hamafx:test@localhost:5432/hamafx
+      AUTH_SECRET: e2e-ci-auth-secret-must-be-at-least-32-chars!!
+      CRON_SECRET: e2e-ci-cron-secret-must-be-at-least-32-chars!!
+      ENCRYPTION_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      MULTI_USER_ENABLED: "1"
+      KESTREL_ENABLE_RLS: "1"
+      REGISTRATION_MODE: open
+      DB_DISABLE_SSL: "true"
+      ALLOW_INSECURE_LOCAL_TLS: "1"
+      NEXT_BUILD_SKIP_TYPECHECK: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Chromium for Playwright
+        run: pnpm --filter @kestrel/web exec playwright install --with-deps chromium
+      - name: Run Playwright E2E shard
+        run: pnpm --filter @kestrel/web exec playwright test --project=setup --project=chromium --shard=${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ strategy.job-index }}
+          path: apps/web/test-results/
+          retention-days: 7
+
+  k6-bundle-and-contract-gate:
+    name: Grafana k6 Bundle & Contract Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @kestrel/loadtest typecheck
+      - run: pnpm --filter @kestrel/loadtest build
+      - run: pnpm --filter @kestrel/web test -- test/loadtest-contracts.test.ts
