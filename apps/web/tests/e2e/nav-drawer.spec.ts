@@ -25,10 +25,14 @@
 import { expect, test } from './fixtures';
 
 test.describe('Navigation drawer', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+  });
+
   test('opens via hamburger menu trigger', async ({ authedPage }) => {
     const page = authedPage;
 
-    // The nav trigger should be visible
+    // The nav trigger should be visible on mobile
     const navTrigger = page.getByRole('button', { name: /open navigation/i });
     await expect(navTrigger).toBeVisible();
 
@@ -61,8 +65,8 @@ test.describe('Navigation drawer', () => {
     // Open the nav drawer
     await page.getByRole('button', { name: /open navigation/i }).click();
 
-    // Personal section should be visible
-    await expect(page.getByText('Personal')).toBeAttached();
+    // Workspace section should be visible (Section label="Workspace")
+    await expect(page.getByText('Workspace')).toBeAttached();
 
     // All secondary items should be present
     const personalItems = ['Alerts', 'Journal', 'Settings'];
@@ -205,5 +209,26 @@ test.describe('Navigation drawer — responsive', () => {
 
     // Should reach the dashboard page
     await expect(page).toHaveURL(/[\s\S]*dashboard/);
+  });
+});
+
+test.describe('Desktop navigation sidebar', () => {
+  test('renders desktop sidebar links and collapses/expands on desktop viewport', async ({
+    authedPage,
+  }) => {
+    const page = authedPage;
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/dashboard');
+
+    const sidebar = page.getByRole('complementary', { name: /desktop navigation sidebar/i });
+    await expect(sidebar).toBeVisible();
+
+    const expandBtn = sidebar.getByRole('button', { name: /expand sidebar|collapse sidebar/i });
+    await expect(expandBtn).toBeVisible();
+    await expandBtn.click();
+
+    for (const label of ['Dashboard', 'Chat', 'Chart', 'News', 'Calendar', 'Alerts', 'Journal', 'Settings']) {
+      await expect(sidebar.getByRole('link', { name: label })).toBeAttached();
+    }
   });
 });

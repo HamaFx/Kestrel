@@ -25,10 +25,11 @@
 import { createHash } from 'node:crypto';
 
 import bcrypt from 'bcryptjs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { sanitizeNext } from '../src/app/(auth)/actions';
+import * as actionErrors from '../src/lib/action-errors';
 import { isFailedSignIn } from '../src/lib/auth/sign-in-result';
 
 const registerSchema = z.object({
@@ -371,5 +372,23 @@ describe('remember me logic (FEAT-04)', () => {
   it('allows 30-day maxAge for remember me as config constant', () => {
     expect(THIRTY_DAYS).toBe(2592000);
     expect(ONE_DAY).toBe(86400);
+  });
+});
+
+describe('withServerActionLogging redirect handling', () => {
+  it('does not log NEXT_REDIRECT errors', async () => {
+    const loggerModule = await import('../src/lib/logger');
+    const spy = vi.spyOn(loggerModule, 'createScopedLoggerWithContext');
+    spy.mockClear();
+
+    const redirectErr = new Error('NEXT_REDIRECT');
+    await expect(
+      actionErrors.withServerActionLogging('loginAction', async () => {
+        throw redirectErr;
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT');
+
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

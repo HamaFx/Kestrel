@@ -1,4 +1,5 @@
 import { expect, test } from './fixtures';
+import { selectAnalysisMode } from './test-utils';
 
 test.describe('P3 chat contracts', () => {
   test('renders a streamed assistant response and remains usable', async ({ authedPage }) => {
@@ -83,8 +84,7 @@ test.describe('P3 chat contracts', () => {
       }),
     );
 
-    await page.getByRole('button', { name: /analysis mode/i }).click();
-    await page.getByRole('menuitem', { name: /full/i }).click();
+    await selectAnalysisMode(page, 'full');
     await page.getByRole('textbox').fill('Run a Full XAUUSD analysis.');
     await page.getByRole('textbox').press('Enter');
     await expect(page.getByText('P3 Full analysis completed.')).toBeVisible({ timeout: 20_000 });
