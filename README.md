@@ -155,6 +155,7 @@ graph TD
 #### Security Boundary & Multi-User Isolation
 
 All deployments enforce Postgres Row Level Security (RLS) across all user tables:
+
 - `MULTI_USER_ENABLED=1` and `KESTREL_ENABLE_RLS=1` are enforced at startup.
 - Tenant queries are scoped to the user ID via `withTenantDb`. Admin access requires `role='admin'`.
 - Dedicated `ADMIN_DATABASE_URL` with `BYPASSRLS` privileges is used for system migrations and worker jobs.

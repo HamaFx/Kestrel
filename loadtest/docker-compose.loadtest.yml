@@ -22,11 +22,11 @@ services:
       POSTGRES_PASSWORD: loadtest
     # S1: Bind to localhost only — even throwaway DBs should not be public.
     ports:
-      - "127.0.0.1:5432:5432"
+      - '127.0.0.1:5432:5432'
     volumes:
       - pgdata-loadtest:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kestrel -d kestrel"]
+      test: ['CMD-SHELL', 'pg_isready -U kestrel -d kestrel']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -40,30 +40,30 @@ services:
         # Needed during next build for NextAuth config validation
         AUTH_SECRET: loadtest-auth-secret-32-chars-x
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       DATABASE_URL: postgres://kestrel:loadtest@db:5432/kestrel
       ADMIN_DATABASE_URL: postgres://kestrel:loadtest@db:5432/kestrel
       NODE_ENV: development
-      DB_DISABLE_SSL: "true"
-      LIVE_TICKS_MAX_AGE_MS: "86400000"
+      DB_DISABLE_SSL: 'true'
+      LIVE_TICKS_MAX_AGE_MS: '86400000'
       AUTH_MODE: normal
-      MULTI_USER_ENABLED: "1"
-      KESTREL_ENABLE_RLS: "1"
+      MULTI_USER_ENABLED: '1'
+      KESTREL_ENABLE_RLS: '1'
       REGISTRATION_MODE: open
-      KESTREL_LOCAL_DOCKER: "true"
-      DB_POOL_MAX: "5"
+      KESTREL_LOCAL_DOCKER: 'true'
+      DB_POOL_MAX: '5'
       # Lift all rate limits so k6 can push throughput
-      MARKET_READ_RATE_LIMIT: "100000"
-      NEWS_RATE_LIMIT: "100000"
-      SENTIMENT_RATE_LIMIT: "100000"
-      CALENDAR_RATE_LIMIT: "100000"
-      DECISION_SIGNALS_RATE_LIMIT: "100000"
-      AI_CHAT_RATE_LIMIT: "1000"
-      AI_ALERT_PREVIEW_RATE_LIMIT: "1000"
-      AI_EXPORT_RATE_LIMIT: "1000"
-      AI_BULK_DELETE_RATE_LIMIT: "1000"
-      JOURNAL_IMPORT_RATE_LIMIT: "1000"
+      MARKET_READ_RATE_LIMIT: '100000'
+      NEWS_RATE_LIMIT: '100000'
+      SENTIMENT_RATE_LIMIT: '100000'
+      CALENDAR_RATE_LIMIT: '100000'
+      DECISION_SIGNALS_RATE_LIMIT: '100000'
+      AI_CHAT_RATE_LIMIT: '1000'
+      AI_ALERT_PREVIEW_RATE_LIMIT: '1000'
+      AI_EXPORT_RATE_LIMIT: '1000'
+      AI_BULK_DELETE_RATE_LIMIT: '1000'
+      JOURNAL_IMPORT_RATE_LIMIT: '1000'
       # Bootstrap secrets (throwaway — never use these in production)
       # Must be >= 32 chars per auth env validation.
       AUTH_COOKIE_SECRET: abcdef0123456789abcdef0123456789
@@ -72,10 +72,10 @@ services:
       ENCRYPTION_SECRET: abcdef0123456789abcdef0123456789
       NEXTAUTH_URL: http://localhost:3000
       # Required env vars for health check
-      VAPID_PUBLIC_KEY: "placeholder"
-      VAPID_PRIVATE_KEY: "placeholder"
-      VAPID_SUBJECT: "mailto:test@example.com"
-      RESEND_API_KEY: "placeholder"
+      VAPID_PUBLIC_KEY: 'placeholder'
+      VAPID_PRIVATE_KEY: 'placeholder'
+      VAPID_SUBJECT: 'mailto:test@example.com'
+      RESEND_API_KEY: 'placeholder'
     env_file:
       - ../.env
     depends_on:
@@ -83,7 +83,11 @@ services:
         condition: service_healthy
     healthcheck:
       # Use the minimal unauthenticated probe; /api/health requires a session.
-      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health/public | grep -q '\"status\":\"ok\"' || exit 1"]
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sf http://localhost:3000/api/health/public | grep -q ''"status":"ok"'' || exit 1',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -95,20 +99,20 @@ services:
       context: ..
       dockerfile: Dockerfile.worker
     ports:
-      - "8081:8081"
-      - "8082:8082"
+      - '8081:8081'
+      - '8082:8082'
     environment:
       DATABASE_URL: postgres://kestrel:loadtest@db:5432/kestrel
       ADMIN_DATABASE_URL: postgres://kestrel:loadtest@db:5432/kestrel
       NODE_ENV: production
-      MULTI_USER_ENABLED: "1"
+      MULTI_USER_ENABLED: '1'
       REGISTRATION_MODE: open
-      KESTREL_ENABLE_RLS: "1"
+      KESTREL_ENABLE_RLS: '1'
       WORKER_MODE: docker
-      KESTREL_LOCAL_DOCKER: "true"
-      DB_DISABLE_SSL: "true"
+      KESTREL_LOCAL_DOCKER: 'true'
+      DB_DISABLE_SSL: 'true'
       KESTREL_RUNTIME: worker
-      WORKER_DB_POOL_MAX: "3"
+      WORKER_DB_POOL_MAX: '3'
       AUTH_SECRET: abcdef0123456789abcdef0123456789
       ENCRYPTION_SECRET: abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
       CRON_SECRET: abcdef0123456789abcdef0123456789
