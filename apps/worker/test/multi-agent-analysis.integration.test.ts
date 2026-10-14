@@ -81,7 +81,7 @@ const {
     recordCost: vi.fn(() => true),
     recordUsage: vi.fn(() => true),
     snapshot: () => ({ entries: [], totalCostUsd: 0 }),
-    total: () => 0.04,
+    total: (): number => 0.04,
   })),
   mockCreateExecutionLifecycle: vi.fn(
     (budget: { reconcile: (costUsd: number) => Promise<void>; release: () => Promise<void> }) => {
