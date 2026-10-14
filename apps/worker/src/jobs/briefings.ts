@@ -44,7 +44,11 @@ export async function runBriefings(ctx: JobContext): Promise<JobResult> {
   const now = Date.now();
   const log = ctx.log;
 
-  const userIds = await getActiveUserIds();
+  const allUserIds = await getActiveUserIds();
+  const userIds = allUserIds.filter((userId) => ctx.tenantRouter.isMyTenant(userId));
+  if (userIds.length === 0) {
+    return { processed: 0, note: 'no owned active users' };
+  }
 
   // --- Pre-event window: [now, now+2h] ---
   // Any high-impact event happening in the next 2 hours gets a pre-event
@@ -62,8 +66,7 @@ export async function runBriefings(ctx: JobContext): Promise<JobResult> {
       break;
     }
     for (const userId of userIds) {
-      // PF-23: Skip tenants that belong to another worker partition.
-      if (!ctx.tenantRouter.isMyTenant(userId)) continue;
+      if (ctx.signal?.aborted) break;
       try {
         const r = await emitPreEvent(userId, c.id);
         if (r.emitted) preEmitted += 1;
@@ -90,8 +93,7 @@ export async function runBriefings(ctx: JobContext): Promise<JobResult> {
       break;
     }
     for (const userId of userIds) {
-      // PF-23: Skip tenants that belong to another worker partition.
-      if (!ctx.tenantRouter.isMyTenant(userId)) continue;
+      if (ctx.signal?.aborted) break;
       try {
         const r = await emitPostEvent(userId, c.id);
         if (r.emitted) postEmitted += 1;

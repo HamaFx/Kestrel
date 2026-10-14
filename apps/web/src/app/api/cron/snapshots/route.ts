@@ -36,10 +36,10 @@
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
+  ALL_SYMBOLS,
   computeDailySnapshot,
   getCandles,
   previousUtcMidnight,
-  SYMBOLS,
   upsertSnapshot,
 } from '@/lib/services/api-boundary';
 
@@ -56,7 +56,7 @@ export async function GET(req: Request): Promise<Response> {
     let processed = 0;
     const errors: Array<{ symbol: string; message: string }> = [];
 
-    for (const symbol of SYMBOLS) {
+    for (const symbol of ALL_SYMBOLS) {
       try {
         const candles = await getCandles(symbol, SOURCE_TF, { count: SOURCE_COUNT });
         const data = computeDailySnapshot({ candles, asOf });

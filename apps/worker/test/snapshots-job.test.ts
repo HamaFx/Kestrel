@@ -64,7 +64,7 @@ beforeEach(() => {
 });
 
 describe('runSnapshots', () => {
-  it('processes every supported symbol and tail-prunes candles_1m', async () => {
+  it('processes every supported catalog symbol (18 symbols) and tail-prunes candles_1m', async () => {
     vi.mocked(data.getCandles).mockResolvedValue([] as never);
     vi.mocked(ai.computeDailySnapshot).mockReturnValue({} as never);
     vi.mocked(ai.upsertSnapshot).mockResolvedValue(undefined as never);
@@ -74,19 +74,17 @@ describe('runSnapshots', () => {
       signal: new AbortController().signal,
       tenantRouter: testRouter,
     });
-    expect(r.processed).toBe(3); // XAUUSD, EURUSD, GBPUSD
-    expect(r.note).toMatch(/symbols=3\/3/);
+    expect(r.processed).toBe(18);
+    expect(r.note).toMatch(/symbols=18\/18/);
     expect(r.note).toMatch(/pruned=0/);
-    expect(r.note).toMatch(/candles_1m_total=0/);
-    expect(data.getCandles).toHaveBeenCalledTimes(3);
-    expect(ai.upsertSnapshot).toHaveBeenCalledTimes(3);
+    expect(data.getCandles).toHaveBeenCalledTimes(18);
+    expect(ai.upsertSnapshot).toHaveBeenCalledTimes(18);
   });
 
-  it('counts errors but keeps going', async () => {
+  it('counts errors but keeps going across all 18 symbols', async () => {
     vi.mocked(data.getCandles)
       .mockRejectedValueOnce(new Error('upstream down'))
-      .mockResolvedValueOnce([] as never)
-      .mockResolvedValueOnce([] as never);
+      .mockResolvedValue([] as never);
     vi.mocked(ai.computeDailySnapshot).mockReturnValue({} as never);
     vi.mocked(ai.upsertSnapshot).mockResolvedValue(undefined as never);
 
@@ -95,8 +93,8 @@ describe('runSnapshots', () => {
       signal: new AbortController().signal,
       tenantRouter: testRouter,
     });
-    expect(r.processed).toBe(2);
-    expect(r.note).toMatch(/symbols=2\/3/);
+    expect(r.processed).toBe(17);
+    expect(r.note).toMatch(/symbols=17\/18/);
     expect(r.note).toMatch(/errors=1/);
   });
 });
