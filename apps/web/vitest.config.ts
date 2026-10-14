@@ -26,6 +26,7 @@ export default defineConfig({
   plugins: [react()],
   esbuild: { target: 'esnext' },
   resolve: {
+    conditions: ['source'],
     alias: {
       '@': path.resolve(__dirname, './src'),
       'server-only': path.resolve(__dirname, './test/empty.ts'),
