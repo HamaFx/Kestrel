@@ -35,7 +35,7 @@
 import type { getDb } from '@kestrel/db';
 import { candles1m } from '@kestrel/db/schema';
 import type { Symbol } from '@kestrel/shared';
-import { asc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 import { ProviderEmptyError } from '../../errors';
 
@@ -79,11 +79,9 @@ export async function fetchCandles1m(args: FetchCandles1mArgs): Promise<FetchCan
   const window = args.freshnessWindowMs ?? FRESHNESS_WINDOW_MS;
   const limit = Math.max(1, Math.min(args.count, 5000));
 
-  // We pull `limit` newest rows then sort ascending in JS. Drizzle's order +
-  // limit support handles this, but doing it in two steps keeps the SQL
-  // simple and avoids a dance with `.orderBy(desc(t)).limit(N)` followed
-  // by an outer query for the ascending order.
-  const rows = await db
+  // Query only the `limit` newest rows via the (symbol, t) index, then
+  // reverse in memory so callers receive oldest-first ascending order.
+  const rowsDesc = await db
     .select({
       t: candles1m.t,
       o: candles1m.o,
@@ -95,16 +93,17 @@ export async function fetchCandles1m(args: FetchCandles1mArgs): Promise<FetchCan
     })
     .from(candles1m)
     .where(eq(candles1m.symbol, args.symbol))
-    .orderBy(asc(candles1m.t));
+    .orderBy(desc(candles1m.t))
+    .limit(limit);
 
-  if (rows.length === 0) {
+  if (rowsDesc.length === 0) {
     throw new ProviderEmptyError(PROVIDER, `no candles_1m rows for ${args.symbol}`);
   }
 
-  const newestRow = rows[rows.length - 1];
+  // Ensure ascending order regardless of whether a test stub returned asc or desc
+  const ascending = [...rowsDesc].sort((a, b) => a.t.getTime() - b.t.getTime());
+  const newestRow = ascending[ascending.length - 1];
   if (!newestRow) {
-    // unreachable given the length check above, but keeps tsc happy under
-    // noUncheckedIndexedAccess.
     throw new ProviderEmptyError(PROVIDER, 'unexpected empty rows');
   }
 
@@ -117,9 +116,7 @@ export async function fetchCandles1m(args: FetchCandles1mArgs): Promise<FetchCan
     );
   }
 
-  // Take the last `limit` bars (i.e. the most recent window). Already
-  // ascending order, so slice from the tail.
-  const slice = rows.slice(-limit);
+  const slice = ascending.slice(-limit);
   const provider = newestRow.source;
 
   return {
