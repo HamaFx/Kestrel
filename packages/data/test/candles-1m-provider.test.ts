@@ -31,12 +31,26 @@ interface FakeRow {
   source: string;
 }
 
-function makeFakeDb(rows: FakeRow[]) {
+function makeFakeDb(rows: FakeRow[], onLimit?: (n: number) => void) {
+  // Simulate Postgres ORDER BY t DESC LIMIT n when .limit(n) is chained,
+  // while also supporting the legacy un-limited call so the test fails before the fix.
+  const sortedDesc = [...rows].sort((a, b) => b.t.getTime() - a.t.getTime());
   return {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
-          orderBy: vi.fn(async () => rows),
+          orderBy: vi.fn(() => {
+            const limitFn = vi.fn(async (n: number) => {
+              onLimit?.(n);
+              return sortedDesc.slice(0, n);
+            });
+            // Allow awaiting orderBy() directly (pre-fix) or chaining .limit() (post-fix)
+            const promise = Promise.resolve(rows) as Promise<FakeRow[]> & {
+              limit: typeof limitFn;
+            };
+            promise.limit = limitFn;
+            return promise;
+          }),
         })),
       })),
     })),
@@ -56,6 +70,24 @@ function bar(tIso: string, mid: number): FakeRow {
 }
 
 describe('fetchCandles1m', () => {
+  it('pushes the row limit down to the SQL query via .limit()', async () => {
+    const now = Date.now();
+    const rows = [
+      bar(new Date(now - 60_000).toISOString(), 2390),
+      bar(new Date(now - 1_000).toISOString(), 2391),
+    ];
+    let capturedLimit = 0;
+    const db = makeFakeDb(rows, (n) => {
+      capturedLimit = n;
+    });
+
+    const r = await fetchCandles1m({ symbol: 'XAUUSD', count: 50, db });
+    expect(capturedLimit).toBe(50);
+    expect(r.bars).toHaveLength(2);
+    expect(r.bars[0]?.o).toBe(2390);
+    expect(r.bars[1]?.o).toBe(2391);
+  });
+
   it('returns the most recent bars in oldest-first order', async () => {
     const now = Date.now();
     const rows = [
