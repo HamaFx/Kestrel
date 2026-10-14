@@ -25,7 +25,7 @@
 
 import { upsertCoTReport } from '@kestrel/ai';
 import { cftc } from '@kestrel/data';
-import { SYMBOLS, type Symbol } from '@kestrel/shared';
+import { CFTC_SUPPORTED_SYMBOLS, type Symbol } from '@kestrel/shared';
 
 import type { JobContext, JobResult } from './types.js';
 
@@ -40,9 +40,9 @@ export async function runCoT(ctx: JobContext): Promise<JobResult> {
   let upserted = 0;
   const errors: Array<{ symbol: string; message: string }> = [];
 
-  for (const symbol of SYMBOLS) {
+  for (const symbol of CFTC_SUPPORTED_SYMBOLS) {
     if (ctx.signal?.aborted) {
-      log.warn('cot aborted', { processed, remaining: SYMBOLS.length - processed });
+      log.warn('cot aborted', { processed, remaining: CFTC_SUPPORTED_SYMBOLS.length - processed });
       break;
     }
     try {

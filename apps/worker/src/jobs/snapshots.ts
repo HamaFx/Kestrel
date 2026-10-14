@@ -25,10 +25,11 @@
 // writes one row per minute per symbol; left unbounded the table grows
 // ~4 MB/month — we don't need it to. (Spec §4.3 retention.)
 
-import { computeDailySnapshot, getDb, previousUtcMidnight, upsertSnapshot } from '@kestrel/ai';
+import { computeDailySnapshot, previousUtcMidnight, upsertSnapshot } from '@kestrel/ai';
 import { getCandles } from '@kestrel/data';
+import { getDb } from '@kestrel/db';
 import { candles1m } from '@kestrel/db/schema';
-import { SYMBOLS } from '@kestrel/shared';
+import { ALL_SYMBOLS } from '@kestrel/shared';
 import { lt, sql } from 'drizzle-orm';
 
 import type { JobContext, JobResult } from './types.js';
@@ -45,9 +46,9 @@ export async function runSnapshots(ctx: JobContext): Promise<JobResult> {
   let processed = 0;
   const errors: Array<{ symbol: string; message: string }> = [];
 
-  for (const symbol of SYMBOLS) {
+  for (const symbol of ALL_SYMBOLS) {
     if (ctx.signal?.aborted) {
-      log.warn('snapshots aborted mid-loop', { processed, remaining: SYMBOLS.length - processed });
+      log.warn('snapshots aborted mid-loop', { processed, remaining: ALL_SYMBOLS.length - processed });
       break;
     }
     try {
@@ -94,6 +95,6 @@ export async function runSnapshots(ctx: JobContext): Promise<JobResult> {
 
   return {
     processed,
-    note: `symbols=${processed}/${SYMBOLS.length} errors=${errors.length} pruned=${pruned} candles_1m_total=${total}`,
+    note: `symbols=${processed}/${ALL_SYMBOLS.length} errors=${errors.length} pruned=${pruned} candles_1m_total=${total}`,
   };
 }

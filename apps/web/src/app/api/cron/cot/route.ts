@@ -29,9 +29,9 @@
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
+  CFTC_SUPPORTED_SYMBOLS,
   fetchLatestRows,
   parseCftcInt,
-  SYMBOLS,
   toCftcName,
   upsertCoTReport,
   type Symbol,
@@ -50,7 +50,7 @@ export async function GET(req: Request): Promise<Response> {
     let upserted = 0;
     const errors: Array<{ symbol: string; message: string }> = [];
 
-    for (const symbol of SYMBOLS) {
+    for (const symbol of CFTC_SUPPORTED_SYMBOLS) {
       try {
         const rows = await fetchLatestRows({
           commodityName: toCftcName(symbol as Symbol),
