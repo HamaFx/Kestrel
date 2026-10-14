@@ -215,3 +215,38 @@ export const STRESS: ThresholdPreset = {
   checks: ['rate>0.95'],
   rateLimited: ['rate<0.10'],
 };
+
+// ── market_stream (SSE stream for live market ticks) ──
+export const MARKET_STREAM: ThresholdPreset = {
+  httpReqFailed: ['rate<0.01'],
+  checks: ['rate>0.99'],
+  rateLimited: ['rate<0.02'],
+};
+
+export const MARKET_STREAM_TAGGED = {
+  market_stream_ttfb: ['p(95)<2000', 'p(99)<4000'],
+  market_stream_events: ['count>0'],
+};
+
+// ── worker_cron (Worker health and cron dispatch endpoints) ──
+export const WORKER_CRON: ThresholdPreset = {
+  httpReqFailed: ['rate<0.01'],
+  checks: ['rate>0.99'],
+  rateLimited: ['rate<0.02'],
+};
+
+export const WORKER_CRON_TAGGED = {
+  'http_req_duration{group:worker_health}': ['p(95)<500', 'p(99)<1000'],
+  'http_req_duration{group:cron_dispatch}': ['p(95)<2000', 'p(99)<4000'],
+};
+
+// ── rls_isolation (Cross-tenant security checks) ──
+export const RLS_ISOLATION: ThresholdPreset = {
+  httpReqFailed: ['rate<0.05'],
+  checks: ['rate>0.95'],
+  rateLimited: ['rate<0.05'],
+};
+
+export const RLS_ISOLATION_TAGGED = {
+  rls_violations: ['count==0'],
+};

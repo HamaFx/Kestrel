@@ -20,13 +20,23 @@ import { Counter, Rate, Trend } from 'k6/metrics';
 /** Share of all requests that returned HTTP 429 (rate-limited). */
 export const rateLimited = new Rate('rate_limited');
 
-/** Time-to-first-token for /api/chat SSE streams (ms). Only recorded
- *  when the test actually measures TTFB — currently a placeholder for
- *  the xk6-sse stretch goal. */
+/** Time-to-first-token for /api/chat SSE streams (ms). */
 export const chatTtfb = new Trend('chat_ttfb', true);
 
 /** Total stream bytes received from /api/chat responses. */
 export const chatStreamBytes = new Counter('chat_stream_bytes');
+
+/** Total stream events received from /api/chat responses. */
+export const chatStreamEvents = new Counter('chat_stream_events');
+
+/** TTFB for /api/market/stream SSE (ms). */
+export const marketStreamTtfb = new Trend('market_stream_ttfb', true);
+
+/** Total stream events received from /api/market/stream responses. */
+export const marketStreamEvents = new Counter('market_stream_events');
+
+/** Count of detected cross-tenant or unauthenticated data leak violations. */
+export const rlsViolations = new Counter('rls_violations');
 
 /** Count of failed authentications (401/403). */
 export const authFailures = new Counter('auth_failures');
