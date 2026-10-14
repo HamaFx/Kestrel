@@ -228,13 +228,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
   const symbolManager = new SymbolManager(log.with({ module: 'symbol-manager' }));
 
-  // Wire per-consumer subscription updates
-  symbolManager.on('symbolsChanged', ({ added, removed }) => {
-    // Backward compat: still update BiQuote consumer via aggregate event
-    if (consumer.isStarted()) {
-      void consumer.updateSubscriptions(added, removed);
-    }
-  });
+  // Wire per-consumer subscription updates (biquoteChanged for FX/gold, binanceChanged for crypto)
   symbolManager.on('biquoteChanged', ({ added, removed }) => {
     if (consumer.isStarted()) {
       void consumer.updateSubscriptions(added, removed);
@@ -259,11 +253,12 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     onTick: handleIncomingTick,
     onActivity: () => notifyWatchdog(),
     log: log.with({ module: 'binance-ws' }),
+    ...(env.BINANCE_WS_URL ? { wsUrl: env.BINANCE_WS_URL } : {}),
   });
 
   await consumer.start(); // BiQuote SignalR
   await binanceConsumer.start(); // Binance WS
-  symbolManager.start();
+  await symbolManager.start();
   // The consumer is connected and subscribed — tell systemd we're done
   // bootstrapping. Pair with `Type=notify` in kestrel-worker.service so
   // the unit only enters `active (running)` once we're ready.

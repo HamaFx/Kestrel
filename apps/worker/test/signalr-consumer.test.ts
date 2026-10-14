@@ -236,6 +236,31 @@ describe('SignalRConsumer.handleTick', () => {
     consumer.handleTick(VALID_BIQUOTE_TICK);
     expect(onActivity).toHaveBeenCalledTimes(1);
   });
+
+  it('deduplicates updateSubscriptions and filters out crypto symbols', async () => {
+    const { build, state } = createFakeBuildConnection();
+    const consumer = new SignalRConsumer({
+      hubUrl: 'https://biquote.io/hubs/tick',
+      symbols: ['XAUUSD', 'BTCUSDT'],
+      onTick: () => undefined,
+      buildConnection: build,
+      log: createLogger({ service: 'test', forceJson: true }),
+    });
+
+    await consumer.start();
+    // Initial start should only subscribe to non-crypto known symbols
+    expect(state.invokes).toEqual([{ method: 'Subscribe', args: [['XAUUSD']] }]);
+    state.invokes.length = 0;
+
+    // Adding already-subscribed XAUUSD, new EURUSD, and crypto ETHUSDT:
+    await consumer.updateSubscriptions(['XAUUSD', 'EURUSD', 'ETHUSDT'], []);
+    expect(state.invokes).toEqual([{ method: 'Subscribe', args: [['EURUSD']] }]);
+    state.invokes.length = 0;
+
+    // Removing a symbol not subscribed is a no-op; removing EURUSD unsubscribes once:
+    await consumer.updateSubscriptions([], ['BTCUSDT', 'EURUSD']);
+    expect(state.invokes).toEqual([{ method: 'Unsubscribe', args: [['EURUSD']] }]);
+  });
 });
 
 describe('SignalRConsumer reconnect', () => {
