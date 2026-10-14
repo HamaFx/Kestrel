@@ -16,14 +16,6 @@
  * limitations under the License.
  */
 
-// Mobile-first alert creation form. Three rule types share most fields;
-// we render conditional inputs for `tf` (candle/indicator) and
-// `indicator` (indicator-only).
-//
-// All controls clear the 44pt minimum: Segmented uses h-10 buttons,
-// indicator pills are min-h 44, and the "Create alert" CTA is the size-md
-// (h-12) primary button so it lives in the thumb zone at the bottom of
-// the drawer.
 import { SYMBOLS, TIMEFRAMES, type Symbol, type Timeframe } from '@kestrel/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -45,13 +37,26 @@ const parsedSnoozeHours = (raw: string): number => {
 };
 
 interface AlertFormProps {
-  /** Defaults to the first symbol — most users land here from /chart and
-   *  expect that symbol to be pre-selected. */
   initialSymbol?: Symbol;
   onCreated?: () => void;
 }
 
-const COMMON_INDICATORS = ['rsi:14', 'ema:50', 'ema:200', 'sma:50', 'atr:14'] as const;
+const INDICATOR_PRESETS = [
+  { value: 'rsi:14', label: 'RSI (14)' },
+  { value: 'rsi:7', label: 'RSI (7)' },
+  { value: 'ema:20', label: 'EMA (20)' },
+  { value: 'ema:50', label: 'EMA (50)' },
+  { value: 'ema:200', label: 'EMA (200)' },
+  { value: 'sma:50', label: 'SMA (50)' },
+  { value: 'sma:200', label: 'SMA (200)' },
+  { value: 'atr:14', label: 'ATR (14)' },
+  { value: 'macd:12,26,9', label: 'MACD (12, 26, 9)' },
+] as const;
+
+function formatIndicatorLabel(raw: string): string {
+  const found = INDICATOR_PRESETS.find((p) => p.value === raw.trim().toLowerCase());
+  return found ? found.label : raw.toUpperCase();
+}
 
 function buildRuleObject(
   type: RuleType,
@@ -102,14 +107,10 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
 
-  // Inline validation — tracks which fields have been blurred
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const touch = (field: string) => setTouched((prev) => new Set(prev).add(field));
 
   const [channels, setChannels] = useState<('email' | 'telegram')[]>(['email']);
-  // Phase C — UX_UPGRADE_PLAN.md item 17. Snooze window in hours
-  // (0 = one-shot). Stored as a string so the input can show an
-  // empty placeholder; parsed at submit time.
   const [snoozeHours, setSnoozeHours] = useState<string>('');
 
   const fieldErrors = useMemo(() => {
@@ -163,16 +164,16 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
         },
       );
       if (data.unsupported) {
-        toast.success('Configuration valid', {
-          description: 'Rule syntax is correct (preview not available for indicator rules)',
+        toast.success('Alert rule verified', {
+          description: `Triggers when ${symbol} (${tf.toUpperCase()}) ${formatIndicatorLabel(indicator)} crosses ${direction} ${level}`,
         });
       } else {
         const count = data.count ?? 0;
-        toast.success('Configuration valid', {
+        toast.success('Alert rule verified', {
           description:
             count > 0
-              ? `Rule verified — would have triggered ${count} time${count === 1 ? '' : 's'} in 90 days`
-              : 'Rule is valid (no historical triggers in 90-day lookback)',
+              ? `Would have triggered ${count} time${count === 1 ? '' : 's'} in the last 90 days`
+              : 'Rule is valid (no historical triggers in the last 90 days)',
         });
       }
     } catch (err) {
@@ -244,9 +245,9 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
         variant="solid"
         size="md"
         options={[
-          { value: 'priceCross', label: 'price' },
-          { value: 'candleClose', label: 'candle close' },
-          { value: 'indicatorCross', label: 'indicator' },
+          { value: 'priceCross', label: 'Price Level' },
+          { value: 'candleClose', label: 'Candle Close' },
+          { value: 'indicatorCross', label: 'Technical Indicator' },
         ]}
       />
 
@@ -268,7 +269,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           role="radiogroup"
           variant="solid"
           size="md"
-          options={TIMEFRAMES.map((t) => ({ value: t, label: t }))}
+          options={TIMEFRAMES.map((t) => ({ value: t, label: t.toUpperCase() }))}
         />
       ) : null}
 
@@ -278,22 +279,22 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
             htmlFor="alert-indicator"
             className="text-fg-subtle text-body-sm tracking-wide uppercase"
           >
-            Indicator
+            Select Indicator
           </label>
-          <div className="flex flex-wrap gap-2">
-            {COMMON_INDICATORS.map((ind) => (
+          <div className="flex flex-wrap gap-1.5">
+            {INDICATOR_PRESETS.map((preset) => (
               <button
-                key={ind}
+                key={preset.value}
                 type="button"
-                onClick={() => setIndicator(ind)}
+                onClick={() => setIndicator(preset.value)}
                 className={cn(
-                  'border-border inline-flex min-h-[44px] items-center justify-center rounded-sm border px-4 text-xs font-medium transition-colors',
-                  indicator === ind
-                    ? 'bg-fg border-border text-black'
+                  'border-border inline-flex min-h-[40px] items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors',
+                  indicator === preset.value
+                    ? 'bg-brand/15 border-brand/40 text-brand font-semibold'
                     : 'bg-bg-elev-2 text-fg-muted hover:text-fg',
                 )}
               >
-                {ind}
+                {preset.label}
               </button>
             ))}
           </div>
@@ -302,7 +303,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
             value={indicator}
             onChange={(e) => setIndicator(e.target.value)}
             onBlur={() => touch('indicator')}
-            placeholder="rsi:14, ema:50, macd:12,26,9"
+            placeholder="Custom indicator (e.g. rsi:14, ema:50)"
             {...(fieldErrors.indicator ? { 'aria-describedby': 'alert-indicator-error' } : {})}
           />
           {fieldErrors.indicator ? (
@@ -321,8 +322,8 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
         variant="solid"
         size="md"
         options={[
-          { value: 'above', label: 'above ↑' },
-          { value: 'below', label: 'below ↓' },
+          { value: 'above', label: 'Crosses Above ↑' },
+          { value: 'below', label: 'Crosses Below ↓' },
         ]}
       />
 
@@ -331,7 +332,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           className="text-fg-subtle text-body-sm tracking-wide uppercase"
           htmlFor="alert-level"
         >
-          Level
+          Trigger Value / Price
         </label>
         <Input
           id="alert-level"
@@ -339,7 +340,13 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           onChange={(e) => setLevel(e.target.value)}
           onBlur={() => touch('level')}
           inputMode="decimal"
-          placeholder={symbol === 'XAUUSD' ? 'e.g. 2400' : 'e.g. 1.0850'}
+          placeholder={
+            type === 'indicatorCross' && indicator.startsWith('rsi')
+              ? 'e.g. 30 or 70'
+              : symbol === 'XAUUSD'
+                ? 'e.g. 2850.00'
+                : 'e.g. 1.0850'
+          }
           {...(fieldErrors.level ? { 'aria-describedby': 'alert-level-error' } : {})}
         />
         {fieldErrors.level ? (
@@ -349,12 +356,14 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
         ) : null}
       </div>
 
-      {/* Phase B — UX_UPGRADE_PLAN.md item 10. Live preview of how
-          often this rule would have fired historically. Debounced
-          400ms so a power user typing the level doesn't spam the
-          preview endpoint. The preview is informational only — it
-          never blocks the create button. */}
-      <PreviewCallout type={type} symbol={symbol} tf={tf} direction={direction} level={level} />
+      <PreviewCallout
+        type={type}
+        symbol={symbol}
+        tf={tf}
+        indicator={indicator}
+        direction={direction}
+        level={level}
+      />
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-fg-subtle text-body-sm tracking-wide uppercase">
@@ -404,7 +413,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           onBlur={() => touch('note')}
-          placeholder="why am I watching this level?"
+          placeholder="Why am I watching this level?"
           maxLength={280}
           {...(fieldErrors.note ? { 'aria-describedby': 'alert-note-error' } : {})}
         />
@@ -415,13 +424,6 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
         ) : null}
       </div>
 
-      {/*
-        Phase C — UX_UPGRADE_PLAN.md item 17. Snooze: if the
-        alert fires, re-arm it after N hours instead of going
-        inactive. Empty = one-shot (legacy default). 0 = also
-        one-shot. The input is opt-in by design — most users
-        won't change it; the placeholders guide the rest.
-      */}
       <div className="flex flex-col gap-2">
         <label
           className="text-fg-subtle text-body-sm tracking-wide uppercase"
@@ -437,7 +439,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           step={1}
           value={snoozeHours}
           onChange={(e) => setSnoozeHours(e.target.value)}
-          placeholder="leave empty for one-shot"
+          placeholder="Leave empty for one-shot trigger"
         />
       </div>
 
@@ -466,28 +468,18 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
           onClick={() => void testAlert()}
           className="w-full"
         >
-          {testing ? 'Testing…' : 'Test Alert'}
+          {testing ? 'Checking…' : 'Verify Alert Rule'}
         </Button>
       </div>
     </form>
   );
 }
 
-// ----------------------------------------------------------------------
-// <PreviewCallout> — debounced live preview of the rule.
-//
-// Phase B — UX_UPGRADE_PLAN.md item 10.
-// Pure presentation; the actual simulation lives in
-// packages/ai/src/alerts/simulate.ts and runs server-side via
-// /api/alerts/preview. We send the candidate rule on every input
-// change but debounce the fetch by 400ms so a power user typing
-// the level doesn't hammer the endpoint.
-// ----------------------------------------------------------------------
-
 interface PreviewCalloutProps {
   type: RuleType;
   symbol: Symbol;
   tf: Timeframe;
+  indicator: string;
   direction: 'above' | 'below';
   level: string;
 }
@@ -495,7 +487,7 @@ interface PreviewCalloutProps {
 type PreviewState =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'unsupported' }
+  | { kind: 'indicator_summary' }
   | { kind: 'empty' }
   | { kind: 'ok'; count: number; avgHoldMs: number };
 
@@ -503,22 +495,20 @@ function PreviewCallout(props: PreviewCalloutProps) {
   const [state, setState] = useState<PreviewState>({ kind: 'idle' });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Destructure so the useEffect deps array is unambiguous.
-  const { type, symbol, tf, direction, level } = props;
+  const { type, symbol, tf, indicator, direction, level } = props;
 
   useEffect(() => {
-    // Cancel any pending fetch when the inputs change.
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    if (type === 'indicatorCross') {
-      setState({ kind: 'unsupported' });
-      return;
-    }
-    const rule = buildRuleObject(type, symbol, tf, '', level, direction);
+    const rule = buildRuleObject(type, symbol, tf, indicator, level, direction);
     if (!rule) {
       setState({ kind: 'idle' });
+      return;
+    }
+    if (type === 'indicatorCross') {
+      setState({ kind: 'indicator_summary' });
       return;
     }
     setState({ kind: 'loading' });
@@ -534,7 +524,7 @@ function PreviewCallout(props: PreviewCalloutProps) {
           body: JSON.stringify({ rule, lookbackDays: 90 }),
         });
         if (data.unsupported) {
-          setState({ kind: 'unsupported' });
+          setState({ kind: 'indicator_summary' });
           return;
         }
         if (typeof data.count !== 'number' || data.count === 0) {
@@ -556,7 +546,7 @@ function PreviewCallout(props: PreviewCalloutProps) {
         timerRef.current = null;
       }
     };
-  }, [type, symbol, tf, direction, level]);
+  }, [type, symbol, tf, indicator, direction, level]);
 
   if (state.kind === 'idle' || state.kind === 'loading') return null;
 
@@ -566,18 +556,22 @@ function PreviewCallout(props: PreviewCalloutProps) {
       aria-live="polite"
       className={cn(
         'text-body-sm rounded-sm border p-3',
-        state.kind === 'ok'
+        state.kind === 'ok' || state.kind === 'indicator_summary'
           ? 'border-info/30 bg-info/10 text-fg-muted'
           : 'border-border bg-bg-elev-1/40 text-fg-subtle',
       )}
     >
-      {state.kind === 'unsupported' ? (
-        <p>Preview unavailable for indicator rules (v1).</p>
+      {state.kind === 'indicator_summary' ? (
+        <p>
+          Triggers when <span className="text-fg font-semibold">{symbol}</span> ({tf.toUpperCase()}){' '}
+          <span className="text-fg font-semibold">{formatIndicatorLabel(indicator)}</span> crosses{' '}
+          {direction} <span className="text-fg font-mono font-semibold">{level}</span>.
+        </p>
       ) : state.kind === 'empty' ? (
-        <p>No historical fires in the last 90 days for this level.</p>
+        <p>No historical triggers in the last 90 days for this level.</p>
       ) : (
         <p>
-          Would have fired <span className="text-fg font-semibold tabular-nums">{state.count}</span>{' '}
+          Would have triggered <span className="text-fg font-semibold tabular-nums">{state.count}</span>{' '}
           time{state.count === 1 ? '' : 's'} in the last 90 days.
           {state.avgHoldMs > 0 ? (
             <>

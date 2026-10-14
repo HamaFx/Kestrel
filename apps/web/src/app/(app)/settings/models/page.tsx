@@ -20,6 +20,7 @@ import { getUserWithSettings } from '@kestrel/db';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { checkIsAdmin } from '@/lib/admin-check';
 import { buildCatalogForUser } from '@/lib/catalog-server';
 
 import { FallbackChainPicker } from './_components/fallback-chain-picker';
@@ -61,6 +62,10 @@ export default async function ModelsSettingsPage() {
   const session = await auth();
   if (!session?.user?.id) {
     redirect('/login');
+  }
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    redirect('/settings');
   }
 
   const { settings: userRow } = await getUserWithSettings(session.user.id);

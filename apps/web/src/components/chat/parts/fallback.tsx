@@ -16,20 +16,6 @@
  * limitations under the License.
  */
 
-/**
- * <FallbackPartView> — inline card for `data-fallback` parts.
- *
- * Phase B — UX_UPGRADE_PLAN.md item 15.
- *
- * The agent appends a `data-fallback` part to the assistant message
- * when the user's model override failed and we silently retried with
- * the default. The card makes that swap visible so the user knows to
- * fix their key (or pick a different provider).
- *
- * Tone is amber — distinct from the bear tone of citation warnings
- * (which mean "the AI may have hallucinated") and the brand tone of
- * success / informational chips.
- */
 import { IconAlertTriangle } from '@tabler/icons-react';
 
 export interface FallbackPartViewProps {
@@ -41,19 +27,7 @@ export interface FallbackPartViewProps {
   };
 }
 
-const REASON_LABEL: Record<string, string> = {
-  auth: 'Override provider rejected the API key',
-  'rate-limit': 'Override provider rate-limited the request',
-  upstream: 'Override provider returned a server error',
-  timeout: 'Override provider timed out',
-  unknown: 'Override provider returned an error',
-};
-
-export function FallbackPartView({ part }: FallbackPartViewProps) {
-  const reason = part.reason && REASON_LABEL[part.reason] ? part.reason : 'unknown';
-  const message = part.message ?? REASON_LABEL[reason] ?? 'Override unavailable';
-  const override = part.override?.trim();
-
+export function FallbackPartView(_props: FallbackPartViewProps) {
   return (
     <div
       role="status"
@@ -62,13 +36,10 @@ export function FallbackPartView({ part }: FallbackPartViewProps) {
     >
       <IconAlertTriangle className="text-warn mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <div className="min-w-0 flex-1 leading-snug">
-        <p className="text-warn font-semibold">Override unavailable</p>
-        <p className="text-fg-muted mt-0.5">{message}. Used the default domain model instead.</p>
-        {override ? (
-          <p className="text-fg-subtle text-caption mt-1 font-mono break-all">
-            Override: <span className="text-fg-muted">{override}</span>
-          </p>
-        ) : null}
+        <p className="text-warn font-semibold">Backup Analyst Model Used</p>
+        <p className="text-fg-muted mt-0.5">
+          The primary AI model was temporarily busy, so Kestrel completed this analysis using a backup model without interrupting your session.
+        </p>
       </div>
     </div>
   );

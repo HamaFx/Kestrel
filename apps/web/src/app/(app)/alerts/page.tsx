@@ -32,7 +32,7 @@ export default function AlertsPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Alerts"
-        description="One-shot price / indicator / candle-close triggers. Email delivery via Resend."
+        description="Get notified instantly via email, browser push, or Telegram when price levels, candle closes, or technical indicators trigger."
       />
       <AlertList />
     </div>

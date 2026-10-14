@@ -37,15 +37,19 @@ function LoginForm() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showResend, setShowResend] = useState(false);
 
   useEffect(() => {
     if (state.requires2FA) setRequires2FA(true);
     if (state.success) setSuccess(true);
-  }, [state.requires2FA, state.success]);
+    if (state.error && state.error.toLowerCase().includes('verif')) {
+      setShowResend(true);
+    }
+  }, [state.requires2FA, state.success, state.error]);
 
   return (
     <div className="flex flex-col gap-6">
-      <OAuthButtons callbackUrl={next || '/chat'} action="Sign in" disabled={pending || success} />
+      <OAuthButtons callbackUrl={next || '/dashboard'} action="Sign in" disabled={pending || success} />
 
       <div>
         <form action={action} className="flex w-full flex-col gap-5">
@@ -157,15 +161,27 @@ function LoginForm() {
         </form>
       </div>
 
-      <p className="text-fg-subtle text-center text-sm">
-        Don&apos;t have an account?{' '}
-        <Link href="/register" className="text-fg font-medium hover:underline">
-          Create an account
-        </Link>
-      </p>
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-fg-subtle text-center text-sm">
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="text-fg font-medium hover:underline">
+            Create an account
+          </Link>
+        </p>
 
-      {/* P3-1: Resend verification email */}
-      <ResendVerification defaultEmail={email} />
+        {!showResend && (
+          <button
+            type="button"
+            onClick={() => setShowResend(true)}
+            className="text-fg-subtle hover:text-fg-muted cursor-pointer text-xs transition-colors"
+          >
+            Need to resend verification email?
+          </button>
+        )}
+      </div>
+
+      {/* P3-1: Resend verification email (shown on demand or verification error) */}
+      {showResend && <ResendVerification defaultEmail={email} />}
 
       {process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true' && (
         <div className="border-border flex flex-col items-center gap-2 border-t pt-4">

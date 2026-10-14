@@ -35,16 +35,15 @@ export default async function RootPage({
     console.warn('[RootPage] auth() check failed or unconfigured, rendering showcase:', err);
   }
 
-  // Authenticated users go straight into the live terminal unless they explicitly requested the showcase
+  // Authenticated users go straight into the live dashboard unless they explicitly requested the landing page
   if (session?.user && resolvedParams?.showcase !== 'true') {
-    redirect('/chat');
+    redirect('/dashboard');
   }
 
-  // Public visitors (or authenticated visitors requesting the showcase) see the full Hoplite showcase
+  // Public visitors (or authenticated visitors requesting the landing page) see the full Hoplite landing page
   return (
     <MotionRoot>
       <LandingPageView isAuthenticated={!!session?.user} />
     </MotionRoot>
   );
 }
-

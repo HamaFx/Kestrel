@@ -25,6 +25,7 @@ import { AppShellContainer } from '@/components/layout/app-shell-container';
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
 import { CommandPalette, InstallNudge } from '@/components/layout/lazy-chrome';
 import { MarketSessionBar } from '@/components/layout/market-session-bar';
+import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { NavDrawer } from '@/components/layout/nav-drawer';
 import { NavDrawerProvider } from '@/components/layout/nav-drawer-context';
 import { OfflineBanner } from '@/components/layout/offline-banner';
@@ -42,20 +43,6 @@ const getOnboardingStatus = cache(async (userId: string) => {
   return settings?.onboardingCompleted ?? false;
 });
 
-/**
- * Mobile-first & Desktop-adaptive shell shared by all authenticated pages.
- *
- *   1. <NavDrawerProvider/>   single source of truth for the menu state
- *   2. <DesktopSidebar/>      persistent sidebar rail on desktop (lg:+)
- *   3. <SkipToContent/>       a11y skip link, visible on focus only
- *   4. <TopBar/>              sticky top — hidden on /chat where
- *                              <ChatTopBar/> takes over
- *   5. <TickerTape/> + <MarketSessionBar/> ambient market telemetry
- *   6. main content           page body (id="main-content")
- *   7. <NavDrawer/>           drawer instance for mobile/touch
- *   8. <OfflineBanner/>       sticky network-state pill
- *   9. <Toaster/>             bottom-center sonner
- */
 export const dynamic = 'force-dynamic';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -114,15 +101,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <main
                 id="main-content"
                 tabIndex={-1}
-                className="mx-auto w-full max-w-2xl px-4 pt-4 focus:outline-none md:max-w-4xl lg:max-w-5xl xl:max-w-7xl xl:px-6"
+                className="mx-auto w-full max-w-2xl px-4 pt-4 pb-20 focus:outline-none md:max-w-4xl lg:max-w-5xl lg:pb-6 xl:max-w-7xl xl:px-6"
                 style={{
                   viewTransitionName: 'main-content',
-                  paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
                 }}
               >
-                {/* Phase B — UX_UPGRADE_PLAN.md item 12. PWA install hint. */}
                 <InstallNudge />
-                {/* H1: Suspense boundary for route-level streaming. */}
                 <Suspense
                   fallback={
                     <div className="flex min-h-[40svh] items-center justify-center">
@@ -134,6 +118,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </Suspense>
               </main>
             </AppShellContainer>
+            <MobileBottomNav />
             <NavDrawer
               {...(userName !== undefined ? { userName } : {})}
               {...(userEmail !== undefined ? { userEmail } : {})}
@@ -141,9 +126,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               isAdmin={isAdmin}
             />
             <OfflineBanner />
-            {/* Phase B — UX_UPGRADE_PLAN.md item 11. Global ⌘K / Ctrl-K
-              launcher. Self-contained: keyboard listener, vaul drawer,
-              floating touch button. */}
             <CommandPalette />
             <Toaster />
           </div>

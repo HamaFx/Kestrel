@@ -163,7 +163,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
           <div className="flex items-center gap-2 pr-4 border-r border-white/10 shrink-0 z-10 bg-[#141516]/90">
             <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_6px_#3f9e3d]" />
             <span className="font-mono text-[11px] font-bold tracking-wider text-fg uppercase">
-              INTERBANK L2
+              LIVE MARKET PULSE
             </span>
           </div>
 
@@ -183,10 +183,10 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
           </div>
 
           <div className="hidden lg:flex items-center gap-2 pl-4 border-l border-white/10 text-[11px] font-mono text-fg-subtle shrink-0 z-10 bg-[#141516]/90">
-            <span>FEED LATENCY:</span>
+            <span>ANALYST DESKS:</span>
             <span className="text-bull font-bold tabular-nums flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-bull animate-ping" />
-              18ms
+              4 ACTIVE
             </span>
           </div>
         </div>
@@ -198,7 +198,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
             <div className="inline-flex items-center gap-2.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 shadow-[0_0_16px_rgba(255,54,22,0.15)]">
               <Image src="/brand/kestrel-falcon.svg" alt="" width={16} height={16} className="size-4" aria-hidden="true" priority />
               <span className="font-mono text-xs font-semibold tracking-wider text-brand uppercase">
-                Sovereign Intelligence Engine
+                AI Market Research & Trade Copilot
               </span>
             </div>
 
@@ -217,14 +217,14 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
 
             {/* Subtitle */}
             <p className="max-w-2xl font-sans text-base leading-relaxed text-fg-muted sm:text-lg sm:leading-normal">
-              Choose a single technical desk for a fast read, or the Full committee: four autonomous specialist desks that synthesize price action structure, macro rate catalysts, 1% risk governance, and institutional COT positioning into a verified, high-conviction market verdict.
+              Run a fast single-desk read in seconds, or summon the Full 4-Desk Committee: four specialist AI desks that evaluate price structure, central bank rate catalysts, 1% risk guardrails, and institutional COT positioning to deliver a clear, high-conviction trade plan.
             </p>
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <TacticalFlameButton
-                href={isAuthenticated ? '/chat' : '/login'}
-                label={isAuthenticated ? 'Open Terminal' : 'Launch Terminal'}
+                href={isAuthenticated ? '/dashboard' : '/register'}
+                label={isAuthenticated ? 'Open Dashboard' : 'Get Started'}
               />
               <a href="#simulator">
                 <Button variant="secondary" size="lg" className="px-5 text-sm font-medium gap-2">
@@ -245,19 +245,19 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
                 <div className="font-mono text-2xl font-bold tracking-tight text-fg tabular-nums">
                   1 or 4 Desks
                 </div>
-                <div className="font-sans text-xs text-fg-subtle">Single or Full committee</div>
+                <div className="font-sans text-xs text-fg-subtle">Quick Read or Full Committee</div>
               </div>
               <div>
                 <div className="font-mono text-2xl font-bold tracking-tight text-brand tabular-nums">
                   1:3+ R:R
                 </div>
-                <div className="font-sans text-xs text-fg-subtle">Mathematical Floor</div>
+                <div className="font-sans text-xs text-fg-subtle">Asymmetric Target Floor</div>
               </div>
               <div>
                 <div className="font-mono text-2xl font-bold tracking-tight text-fg tabular-nums">
-                  0.0%
+                  Zero Setup
                 </div>
-                <div className="font-sans text-xs text-fg-subtle">Custodial Exposure</div>
+                <div className="font-sans text-xs text-fg-subtle">All AI & Feeds Included</div>
               </div>
             </div>
           </div>
@@ -270,7 +270,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_8px_#3f9e3d]" />
                   <span className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
-                    DELIBERATION RIG
+                    LIVE COMMITTEE BRIEFING
                   </span>
                 </div>
 
@@ -307,124 +307,124 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
               {/* Symbol Data Container */}
               <div key={active.symbol}>
                 {/* Price Display */}
-                  <div className="my-4 rounded-xl surface-well p-4 border border-white/5 bg-[#0b0c0d]">
-                    <div className="flex items-baseline justify-between">
-                      <span className="font-sans text-xs text-fg-subtle uppercase tracking-wider">
-                        {active.name}
-                      </span>
-                      <span className={cn('font-mono text-xs font-semibold', active.isPositive ? 'text-bull' : 'text-bear')}>
-                        {active.isPositive ? '▲' : '▼'} {active.change}
-                      </span>
+                <div className="my-4 rounded-xl surface-well p-4 border border-white/5 bg-[#0b0c0d]">
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-sans text-xs text-fg-subtle uppercase tracking-wider">
+                      {active.name}
+                    </span>
+                    <span className={cn('font-mono text-xs font-semibold', active.isPositive ? 'text-bull' : 'text-bear')}>
+                      {active.isPositive ? '▲' : '▼'} {active.change}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <div className="font-mono text-3xl sm:text-4xl font-bold tracking-tight text-fg tabular-nums">
+                      {active.price}
                     </div>
-                    <div className="mt-1 flex items-baseline justify-between">
-                      <div className="font-mono text-3xl sm:text-4xl font-bold tracking-tight text-fg tabular-nums">
-                        {active.price}
-                      </div>
-                      <span className="font-mono text-[11px] text-fg-subtle">
-                        Spread: {active.spread}
-                      </span>
+                    <span className="font-mono text-[11px] text-fg-subtle">
+                      Spread: {active.spread}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ── Real-Time Interactive 3D WebGL Hologram ── */}
+                <div className="relative w-full h-[190px] sm:h-[220px] rounded-xl overflow-hidden bg-black/60 border border-white/10 my-3 flex items-center justify-center shadow-inner">
+                  <div className="absolute top-2.5 left-3 flex items-center gap-2 z-10 font-mono text-[9px] text-fg-subtle select-none">
+                    <span className="size-1.5 rounded-full bg-brand animate-ping" />
+                    <span>MULTI-DESK CONSENSUS ENGINE</span>
+                  </div>
+                  <div className="absolute bottom-2 right-3 font-mono text-[9px] text-brand/80 z-10 select-none pointer-events-none">
+                    DRAG TO INSPECT
+                  </div>
+                  <Landing3DHologram className="w-full h-full" />
+                </div>
+
+                {/* 4 Hardware Specialist Desks Row */}
+                <div className="grid grid-cols-4 gap-2 py-2">
+                  {/* Tech */}
+                  <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-bull/40 transition-colors shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded bg-bull/10 border border-bull/20 text-bull">
+                      <IconChartCandle className="size-4" />
                     </div>
+                    <span className="font-mono text-[10px] font-bold text-bull uppercase">Tech</span>
+                    <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
+                      {active.techSignal}
+                    </span>
                   </div>
 
-                  {/* ── Real-Time Interactive 3D WebGL Hologram ── */}
-                  <div className="relative w-full h-[190px] sm:h-[220px] rounded-xl overflow-hidden bg-black/60 border border-white/10 my-3 flex items-center justify-center shadow-inner">
-                    <div className="absolute top-2.5 left-3 flex items-center gap-2 z-10 font-mono text-[9px] text-fg-subtle select-none">
-                      <span className="size-1.5 rounded-full bg-brand animate-ping" />
-                      <span>3D LIQUIDITY GYRO // INTERACTIVE WEBGL</span>
+                  {/* Macro */}
+                  <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-info/40 transition-colors shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded bg-info/10 border border-info/20 text-info">
+                      <IconBuildingBank className="size-4" />
                     </div>
-                    <div className="absolute bottom-2 right-3 font-mono text-[9px] text-brand/80 z-10 select-none pointer-events-none">
-                      ROTATE · TILT WITH MOUSE
-                    </div>
-                    <Landing3DHologram className="w-full h-full" />
+                    <span className="font-mono text-[10px] font-bold text-info uppercase">Macro</span>
+                    <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
+                      {active.macroSignal}
+                    </span>
                   </div>
 
-                  {/* 4 Hardware Specialist Desks Row */}
-                  <div className="grid grid-cols-4 gap-2 py-2">
-                    {/* Tech */}
-                    <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-bull/40 transition-colors shadow-xs">
-                      <div className="flex size-7 items-center justify-center rounded bg-bull/10 border border-bull/20 text-bull">
-                        <IconChartCandle className="size-4" />
-                      </div>
-                      <span className="font-mono text-[10px] font-bold text-bull uppercase">Tech</span>
-                      <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
-                        {active.techSignal}
-                      </span>
+                  {/* Risk */}
+                  <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-warn/40 transition-colors shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded bg-warn/10 border border-warn/20 text-warn">
+                      <IconScale className="size-4" />
                     </div>
-
-                    {/* Macro */}
-                    <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-info/40 transition-colors shadow-xs">
-                      <div className="flex size-7 items-center justify-center rounded bg-info/10 border border-info/20 text-info">
-                        <IconBuildingBank className="size-4" />
-                      </div>
-                      <span className="font-mono text-[10px] font-bold text-info uppercase">Macro</span>
-                      <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
-                        {active.macroSignal}
-                      </span>
-                    </div>
-
-                    {/* Risk */}
-                    <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-warn/40 transition-colors shadow-xs">
-                      <div className="flex size-7 items-center justify-center rounded bg-warn/10 border border-warn/20 text-warn">
-                        <IconScale className="size-4" />
-                      </div>
-                      <span className="font-mono text-[10px] font-bold text-warn uppercase">Risk</span>
-                      <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
-                        {active.riskSignal}
-                      </span>
-                    </div>
-
-                    {/* Sentinel */}
-                    <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-brand/40 transition-colors shadow-xs">
-                      <div className="flex size-7 items-center justify-center rounded bg-brand/10 border border-brand/20 text-brand">
-                        <IconRadar className="size-4" />
-                      </div>
-                      <span className="font-mono text-[10px] font-bold text-brand uppercase">Whales</span>
-                      <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
-                        {active.sentimentSignal}
-                      </span>
-                    </div>
+                    <span className="font-mono text-[10px] font-bold text-warn uppercase">Risk</span>
+                    <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
+                      {active.riskSignal}
+                    </span>
                   </div>
 
-                  {/* Consensus Trade Card */}
-                  <div className="mt-3 rounded-xl border border-brand/30 bg-brand/[0.06] p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-fg uppercase">
-                          Committee Order Plan
-                        </span>
-                        <span className="font-mono text-[10px] text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.5 rounded">
-                          {active.conviction}% Conviction
-                        </span>
-                      </div>
-                      <span
-                        className={cn(
-                          'font-mono text-xs font-bold px-2 py-0.5 rounded uppercase border',
-                          active.direction.startsWith('BUY')
-                            ? 'text-bull bg-bull/10 border-bull/30'
-                            : 'text-bear bg-bear/10 border-bear/30',
-                        )}
-                      >
-                        {active.direction}
+                  {/* Sentinel */}
+                  <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-brand/40 transition-colors shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded bg-brand/10 border border-brand/20 text-brand">
+                      <IconRadar className="size-4" />
+                    </div>
+                    <span className="font-mono text-[10px] font-bold text-brand uppercase">Whales</span>
+                    <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
+                      {active.sentimentSignal}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Consensus Trade Card */}
+                <div className="mt-3 rounded-xl border border-brand/30 bg-brand/[0.06] p-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-fg uppercase">
+                        Committee Trade Plan
+                      </span>
+                      <span className="font-mono text-[10px] text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.5 rounded">
+                        {active.conviction}% Conviction
                       </span>
                     </div>
+                    <span
+                      className={cn(
+                        'font-mono text-xs font-bold px-2 py-0.5 rounded uppercase border',
+                        active.direction.startsWith('BUY')
+                          ? 'text-bull bg-bull/10 border-bull/30'
+                          : 'text-bear bg-bear/10 border-bear/30',
+                      )}
+                    >
+                      {active.direction}
+                    </span>
+                  </div>
 
-                    <div className="mt-3 grid grid-cols-3 gap-2 font-mono text-xs tabular-nums text-center">
-                      <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
-                        <span className="text-[10px] text-fg-subtle block">ENTRY</span>
-                        <span className="font-bold text-fg">{active.entry}</span>
-                      </div>
-                      <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
-                        <span className="text-[10px] text-bear block">INVALIDATION</span>
-                        <span className="font-bold text-bear">{active.invalidation}</span>
-                      </div>
-                      <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
-                        <span className="text-[10px] text-bull block">TARGET ({active.rr})</span>
-                        <span className="font-bold text-bull">{active.target2}</span>
-                      </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 font-mono text-xs tabular-nums text-center">
+                    <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
+                      <span className="text-[10px] text-fg-subtle block">ENTRY</span>
+                      <span className="font-bold text-fg">{active.entry}</span>
+                    </div>
+                    <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
+                      <span className="text-[10px] text-bear block">INVALIDATION</span>
+                      <span className="font-bold text-bear">{active.invalidation}</span>
+                    </div>
+                    <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
+                      <span className="text-[10px] text-bull block">TARGET ({active.rr})</span>
+                      <span className="font-bold text-bull">{active.target2}</span>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
           </div>
         </div>
       </div>
@@ -434,7 +434,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
         aria-hidden="true"
         className="pointer-events-none absolute -bottom-10 left-6 z-0 font-bebas text-[110px] font-normal tracking-widest text-white/[0.02] select-none uppercase lg:text-[180px]"
       >
-        KESTREL // BUILD 2026.09.4
+        KESTREL // SOVEREIGN AI
       </div>
     </section>
   );

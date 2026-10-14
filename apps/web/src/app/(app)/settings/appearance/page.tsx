@@ -24,11 +24,12 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 
 import { AppearanceCard } from '../_components/appearance/appearance-card';
+import { DataCard } from '../_components/data/data-card';
 import { PreferencesCard } from '../_components/data/preferences-card';
 
 export const metadata: Metadata = {
-  title: 'Appearance · Settings',
-  description: 'Customize UI theme, visual density, and chart appearance.',
+  title: 'Appearance & Data · Settings',
+  description: 'Customize UI theme, chart defaults, time format, and trade journal exports.',
 };
 export const revalidate = 60;
 
@@ -55,13 +56,15 @@ export default async function AppearancePage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Display & Preferences</h2>
-        <p className="text-fg-subtle text-sm">Theme, locale, time formatting, motion, and chart defaults.</p>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Appearance & Data</h2>
+        <p className="text-fg-subtle text-sm">
+          Theme styling, default chart symbol, time formatting, and trade journal exports.
+        </p>
       </div>
 
       <AppearanceCard initialLocale={settings?.language ?? 'en'} />
       <PreferencesCard watchlist={watchlist} initialPrefs={uiPrefs} />
+      <DataCard />
     </div>
   );
 }
-

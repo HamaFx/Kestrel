@@ -22,32 +22,20 @@
 //   - With ?prompt=… → always create a fresh thread and forward the
 //     prompt as a query param so the chat surface auto-sends it once
 //     the page mounts. Used by "Ask AI" affordances elsewhere
-//     (article cards, calendar events) to drop the user straight into
-//     a conversation about the thing they tapped.
-//   - With ?prompt= AND no AI provider configured → still create a
-//     fresh thread but redirect to /settings/api-keys?from=chat&prompt=…
-//     so the user can configure a key, then the prompt is preserved
-//     (api-keys banner reads it and offers "Continue to chat").
-//   - Otherwise → check that the user has at least one AI provider
-//     configured (Phase A item 4). If not, redirect to
-//     /settings/api-keys?from=chat. Otherwise redirect to the most
-//     recently used thread, or create a fresh one if none exist.
+//     (article cards, calendar events, chart toolbar) to drop the user
+//     straight into a conversation about the thing they tapped.
+//   - Otherwise → redirect to the most recently used thread, or create
+//     a fresh one if none exist.
 
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import {
-  configuredProviders,
-  createThread,
-  decryptByok,
-  getUserApiKeys,
-  listThreads,
-} from '@/lib/services/api-boundary';
+import { createThread, listThreads } from '@/lib/services/api-boundary';
 
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  searchParams: Promise<{ prompt?: string }>;
+  searchParams: Promise<{ prompt?: string; new?: string }>;
 }
 
 export default async function ChatLanding({ searchParams }: PageProps) {
@@ -55,20 +43,16 @@ export default async function ChatLanding({ searchParams }: PageProps) {
   const userId = session?.user?.id;
   if (!userId) redirect('/login');
 
-  const { prompt } = await searchParams;
-
-  // Auto-redirect to api-keys when the user has no configured provider.
-  const encryptedKeys = await getUserApiKeys(userId);
-  const providers = configuredProviders(decryptByok(encryptedKeys));
-  if (providers.length === 0) {
-    const params = new URLSearchParams({ from: 'chat' });
-    if (prompt && prompt.trim().length > 0) params.set('prompt', prompt);
-    redirect(`/settings/api-keys?${params.toString()}`);
-  }
+  const { prompt, new: forceNew } = await searchParams;
 
   if (prompt && prompt.trim().length > 0) {
     const fresh = await createThread(userId);
     redirect(`/chat/${fresh.id}?prompt=${encodeURIComponent(prompt)}`);
+  }
+
+  if (forceNew === '1') {
+    const fresh = await createThread(userId);
+    redirect(`/chat/${fresh.id}`);
   }
 
   const { threads } = await listThreads(userId, 1);

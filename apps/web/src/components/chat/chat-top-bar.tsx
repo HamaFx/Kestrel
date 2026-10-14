@@ -16,21 +16,9 @@
  * limitations under the License.
  */
 
-// Chat top bar — replaces both the (app) TopBar and PageHeader for the
-// chat route. Glass surface with safe-area-top padding.
-//
-//   [☰ menu]  [title + status + symbol pill]  [+ new chat] [⋯ more]
-//
-// The menu trigger uses the SAME shared <NavTrigger> as the global TopBar
-// — both call into the single <NavDrawer> instance via context. There is
-// only ever one drawer in the DOM, which fixes the "menu sometimes
-// doesn't open" intermittent bug caused by stacked drawer instances.
 import type { Symbol } from '@kestrel/shared';
 import {
-  IconAdjustmentsHorizontal,
   IconBolt,
-  IconCheck,
-  IconChevronDown,
   IconDotsCircleHorizontal,
   IconFileDownload,
   IconLoader2,
@@ -52,20 +40,19 @@ import { apiMutate } from '@/lib/api-client';
 import type { AnalysisMode } from '@/lib/analysis-mode';
 import { cn } from '@/lib/cn';
 
-import { ChatModelSelector } from './_components/chat-model-selector';
 import { ThreadSwitcher } from './_components/thread-switcher';
 
 // Re-exported for client components that already import the type from here.
 export type { AnalysisMode } from '@/lib/analysis-mode';
 
-const MODE_LABELS: Record<AnalysisMode, string> = {
-  single: 'Single',
-  full: 'Full',
+export const MODE_LABELS: Record<AnalysisMode, string> = {
+  single: 'Quick Read',
+  full: 'Full Committee',
 };
 
-const MODE_DESCRIPTIONS: Record<AnalysisMode, string> = {
-  single: 'Fast one-desk technical read',
-  full: '4-desk committee deliberation, verified',
+export const MODE_DESCRIPTIONS: Record<AnalysisMode, string> = {
+  single: 'Fast 1-desk technical check (~5s)',
+  full: 'All 4 specialist desks + trade plan',
 };
 
 export interface ThreadSummary {
@@ -98,11 +85,6 @@ export function ChatTopBar({
   pinnedSymbol,
   threads,
   isStreaming,
-  analysisMode = 'single',
-  onAnalysisModeChange,
-  chatModel = null,
-  onChatModelChange,
-  modelSelectionPending = false,
   splitMode = false,
   onToggleSplitMode,
   viewsOpen = false,
@@ -114,9 +96,7 @@ export function ChatTopBar({
   const [unpinning, setUnpinning] = useState(false);
   const [confirmEl, confirm] = useConfirm();
 
-  // M4: Popup menus via dedicated hook.
   const overflowMenu = usePopupMenu();
-  const modeMenu = usePopupMenu({ focusFirstOnOpen: false });
 
   function newChat() {
     startTransition(async () => {
@@ -140,7 +120,7 @@ export function ChatTopBar({
     overflowMenu.setOpen(false);
     const ok = await confirm({
       title: 'Delete this conversation?',
-      description: 'Messages and tool calls in this thread will be removed permanently.',
+      description: 'Messages in this conversation will be removed permanently.',
       confirmLabel: 'Delete',
       tone: 'danger',
     });
@@ -160,12 +140,6 @@ export function ChatTopBar({
     });
   }
 
-  /**
-   * Phase B — UX_UPGRADE_PLAN.md item 14.
-   * Trigger a Markdown export download. The browser handles the
-   * download because the route returns Content-Disposition:
-   * attachment; we just open the URL in the same tab.
-   */
   function exportThread() {
     overflowMenu.setOpen(false);
     const exportUrl = `/api/chat/threads/${threadId}/export`;
@@ -183,12 +157,6 @@ export function ChatTopBar({
     }
   }
 
-  /**
-   * Phase A — UX_UPGRADE_PLAN.md item 1.
-   * Clear the thread's pinnedSymbol via PATCH. The placeholder in
-   * the composer updates on the next render (parent passes the
-   * updated thread down via router.refresh()).
-   */
   async function clearPin() {
     if (unpinning) return;
     setUnpinning(true);
@@ -218,7 +186,7 @@ export function ChatTopBar({
     >
       <div className="flex min-w-0 shrink-0 items-center gap-2">
         <NavTrigger className="lg:hidden" />
-        <KestrelBrand variant="mark" href="/chat" className="inline-flex lg:hidden" />
+        <KestrelBrand variant="mark" href="/dashboard" className="inline-flex lg:hidden" />
       </div>
 
       {/* Center: title + pinned symbol */}
@@ -234,72 +202,13 @@ export function ChatTopBar({
         ) : null}
       </div>
 
-      {/* Chat model selector. The picker uses the authenticated catalog and
-            saves the selected model for future turns. */}
-      {onChatModelChange && (
-        <div className="flex items-center [&_button]:min-h-10 [&_button]:tactile-press">
-          <ChatModelSelector
-            activeModelId={chatModel}
-            disabled={isStreaming || modelSelectionPending}
-            onPick={onChatModelChange}
-          />
-        </div>
-      )}
-
-      {/* Analysis Mode Selector */}
-      {onAnalysisModeChange && (
-        <div className="relative" ref={modeMenu.menuRef}>
-          <button
-            type="button"
-            onClick={() => modeMenu.setOpen((v) => !v)}
-            aria-label="Analysis mode"
-            {...modeMenu.triggerProps}
-            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 text-caption inline-flex shrink-0 min-h-10 items-center gap-1 rounded-md px-2.5 py-1.5 font-medium transition-colors tactile-press"
-          >
-            <IconAdjustmentsHorizontal className="size-3.5" aria-hidden="true" />
-            <span className="hidden sm:inline">{MODE_LABELS[analysisMode]}</span>
-            <IconChevronDown className="size-3" />
-          </button>
-          {modeMenu.open ? (
-            <div
-              {...modeMenu.menuProps}
-              className="bg-bg-elev-1 border-border absolute top-full right-0 z-50 mt-2 w-56 rounded-sm border p-1.5 shadow-xl"
-            >
-              {(Object.keys(MODE_LABELS) as AnalysisMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  role="menuitem"
-                  type="button"
-                  onClick={() => {
-                    onAnalysisModeChange(mode);
-                    modeMenu.setOpen(false);
-                  }}
-                  className={cn(
-                    'flex w-full items-center justify-between gap-2 rounded-sm px-3 py-2 text-left text-sm transition-colors',
-                    analysisMode === mode
-                      ? 'bg-bg-elev-2 text-fg font-medium'
-                      : 'text-fg-muted hover:bg-bg-elev-2 hover:text-fg',
-                  )}
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span>{MODE_LABELS[mode]}</span>
-                    <span className="text-caption text-fg-subtle">{MODE_DESCRIPTIONS[mode]}</span>
-                  </div>
-                  {analysisMode === mode && <IconCheck className="text-fg size-4 shrink-0" />}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* Hoplite-style Views Sidecar Trigger */}
+      {/* Views Sidecar Trigger */}
       {(onToggleViews || onToggleSplitMode) && (
         <Tooltip
           label={
             viewsOpen || splitMode
-              ? 'Close Views sidecar'
-              : 'Open Views sidecar (Chart, Opinions, Plan, Terminal)'
+              ? 'Close side panel'
+              : 'Open side panel (Live Chart, Desk Opinions & Action Plan)'
           }
           side="bottom"
         >
@@ -405,5 +314,3 @@ export function ChatTopBar({
     </header>
   );
 }
-
-// ---------------------------------------------------------------------------

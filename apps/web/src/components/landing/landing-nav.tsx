@@ -74,13 +74,13 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
             href="#stepper"
             className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
           >
-            Pipeline
+            How It Works
           </a>
           <a
             href="#architecture"
             className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
           >
-            Architecture
+            System Stack
           </a>
           <a
             href="#faq"
@@ -90,11 +90,11 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
           </a>
           {isAuthenticated && (
             <Link
-              href="/chat"
+              href="/dashboard"
               className="inline-flex items-center gap-1.5 font-mono text-xs text-brand font-semibold px-2.5 py-1 rounded-md bg-brand/10 border border-brand/25 transition-colors hover:bg-brand/20"
             >
               <span className="size-1.5 rounded-full bg-brand animate-pulse" />
-              <span>Terminal</span>
+              <span>Dashboard</span>
             </Link>
           )}
         </nav>
@@ -102,7 +102,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
         {/* Action CTAs & Mobile Toggle */}
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
-            <TacticalFlameButton href="/chat" label="Open Terminal" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
+            <TacticalFlameButton href="/dashboard" label="Open Dashboard" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
           ) : (
             <>
               <Link href="/login">
@@ -110,7 +110,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
                   Sign In
                 </Button>
               </Link>
-              <TacticalFlameButton href="/login" label="Launch Terminal" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
+              <TacticalFlameButton href="/register" label="Get Started" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
             </>
           )}
 
@@ -151,14 +151,14 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
               onClick={() => setMobileMenuOpen(false)}
               className="text-fg-muted hover:text-fg transition-colors"
             >
-              Pipeline
+              How It Works
             </a>
             <a
               href="#architecture"
               onClick={() => setMobileMenuOpen(false)}
               className="text-fg-muted hover:text-fg transition-colors"
             >
-              Architecture
+              System Stack
             </a>
             <a
               href="#faq"
@@ -168,11 +168,26 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
               FAQ
             </a>
             <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
-              <Link href={isAuthenticated ? '/chat' : '/login'} onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="tactical" size="md" className="w-full">
-                  {isAuthenticated ? 'Open Terminal' : 'Launch Terminal'}
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="tactical" size="md" className="w-full">
+                    Open Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="tactical" size="md" className="w-full">
+                      Get Started
+                    </Button>
+                  </Link>
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="secondary" size="md" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -15,10 +15,12 @@
  */
 
 // Shared query helpers for fetching user settings + user row in one call.
-// Duplicated across agent.ts, chat/route.ts, cost.ts, and usage-alerts.ts
-// — extracted here to keep field selection consistent and reduce drift.
+// In hosted SaaS mode, operator-level AI & market feed settings (API keys,
+// model routing, fallback chain, agent overrides, disabled tools, market data
+// adapter) configured by the primary Admin account automatically propagate as
+// platform defaults to all subscribers.
 
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
@@ -29,17 +31,54 @@ export interface UserWithSettings {
     name: string | null;
     email: string | null;
     plan: string | null;
+    role?: string | null;
   } | null;
 }
 
 /**
- * Fetch userSettings + basic user info (name, email) in parallel.
- * Returns null settings when no row exists (caller should handle).
+ * Fetch the primary platform admin's `user_settings` row so non-admin
+ * subscribers inherit operator-configured AI keys, model routing, market data
+ * adapters, and tool switches without needing personal BYOK credentials.
+ */
+export async function getPlatformAdminSettings(): Promise<
+  typeof schema.userSettings.$inferSelect | null
+> {
+  const db = getDb();
+  const rows = await db
+    .select({ settings: schema.userSettings })
+    .from(schema.userSettings)
+    .innerJoin(schema.users, eq(schema.users.id, schema.userSettings.userId))
+    .where(eq(schema.users.role, 'admin'))
+    .orderBy(asc(schema.users.createdAt))
+    .limit(1);
+
+  return rows[0]?.settings ?? null;
+}
+
+/**
+ * Return the primary platform admin's user ID.
+ */
+export async function getPlatformAdminUserId(): Promise<string | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ id: schema.users.id })
+    .from(schema.users)
+    .where(eq(schema.users.role, 'admin'))
+    .orderBy(asc(schema.users.createdAt))
+    .limit(1);
+
+  return rows[0]?.id ?? null;
+}
+
+/**
+ * Fetch userSettings + basic user info (name, email, plan, role) in parallel.
+ * For non-admin subscribers, operator-controlled AI/model/feed fields fall back
+ * to the platform admin's settings row.
  */
 export async function getUserWithSettings(userId: string): Promise<UserWithSettings> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  const [settings, userRow] = await Promise.all([
+  const [settings, userRow, adminSettings] = await Promise.all([
     db
       .select()
       .from(schema.userSettings)
@@ -51,6 +90,7 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
       .select({
         name: schema.users.name,
         email: schema.users.email,
+        role: schema.users.role,
         plan: schema.organization.plan,
       })
       .from(schema.users)
@@ -64,7 +104,41 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
       .leftJoin(schema.organization, eq(schema.organization.id, schema.organizationMember.orgId))
       .where(eq(schema.users.id, userId))
       .then((rows) => rows[0] ?? null),
+    getPlatformAdminSettings(),
   ]);
+
+  if (!settings) {
+    return { settings: null, user: userRow };
+  }
+
+  // If this user is not an admin (or has not configured personal overrides),
+  // inherit platform-level AI keys, model routing, market feed adapter, and
+  // disabled tool controls from the primary Admin settings row.
+  if (adminSettings && userRow?.role !== 'admin') {
+    const merged: typeof schema.userSettings.$inferSelect = {
+      ...settings,
+      aiApiKeys: adminSettings.aiApiKeys ?? settings.aiApiKeys,
+      aiApiKeysUpdatedAt: adminSettings.aiApiKeysUpdatedAt ?? settings.aiApiKeysUpdatedAt,
+      chatModel: adminSettings.chatModel ?? settings.chatModel,
+      visionModel: adminSettings.visionModel ?? settings.visionModel,
+      embeddingModel: adminSettings.embeddingModel ?? settings.embeddingModel,
+      aiFallbackChain:
+        adminSettings.aiFallbackChain && adminSettings.aiFallbackChain.length > 0
+          ? adminSettings.aiFallbackChain
+          : settings.aiFallbackChain,
+      defaultModels: adminSettings.defaultModels ?? settings.defaultModels,
+      agentModelOverrides: adminSettings.agentModelOverrides ?? settings.agentModelOverrides,
+      disabledTools:
+        adminSettings.disabledTools && adminSettings.disabledTools.length > 0
+          ? adminSettings.disabledTools
+          : settings.disabledTools,
+      marketDataProvider: adminSettings.marketDataProvider ?? settings.marketDataProvider,
+      defaultAnalysisMode: adminSettings.defaultAnalysisMode ?? settings.defaultAnalysisMode,
+      showAgentOpinions: adminSettings.showAgentOpinions ?? settings.showAgentOpinions,
+      maxDailyUsd: adminSettings.maxDailyUsd ?? settings.maxDailyUsd,
+    };
+    return { settings: merged, user: userRow };
+  }
 
   return { settings, user: userRow };
 }

@@ -16,26 +16,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Usage at a glance — shows today's spend + 7d/30d totals + a daily-budget
-// gauge, with a deep-link to /settings/usage for the full breakdown.
-// Server component.
-
 import { computeUsage } from '@kestrel/ai';
 import { IconChevronRight } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
-import { cn } from '@/lib/cn';
-import { getServerEnv } from '@/lib/env';
-
 export async function UsageGlance({ userId }: { userId?: string }) {
   if (!userId) return null;
-
-  let maxDailyUsd = 5;
-  try {
-    maxDailyUsd = getServerEnv().MAX_DAILY_USD;
-  } catch {
-    /* env not fully populated in dev */
-  }
 
   let stats: Awaited<ReturnType<typeof computeUsage>> | null = null;
   try {
@@ -44,44 +30,32 @@ export async function UsageGlance({ userId }: { userId?: string }) {
     return null;
   }
 
-  const pct = maxDailyUsd > 0 ? Math.min(100, (stats.todayUsd / maxDailyUsd) * 100) : 0;
-  const tone = pct >= 90 ? 'danger' : pct >= 60 ? 'warn' : 'success';
-  const toneClass = tone === 'danger' ? 'bg-danger' : tone === 'warn' ? 'bg-warn' : 'bg-success';
+  const todayTurns = stats.daily7[stats.daily7.length - 1]?.turns ?? 0;
+  const sevenDayTurns = stats.daily7.reduce((sum, d) => sum + d.turns, 0);
 
   return (
     <Link
       href="/settings/usage"
-      aria-label="Open detailed usage"
+      aria-label="Open activity and quota breakdown"
       className="surface-panel group flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)] transition-all hover:border-brand/30 hover:bg-bg-elev-2/60 tactile-press active:translate-y-[0.5px]"
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
-          Today (UTC)
+          Research Activity & Plan Status
         </h2>
-        <span className="text-fg-subtle font-mono text-xs tabular-nums">
-          ${stats.todayUsd.toFixed(4)} / ${maxDailyUsd.toFixed(2)}
+        <span className="surface-chip bg-bull/10 text-bull border-bull/30 rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold uppercase">
+          4-Desk Committee Active
         </span>
       </header>
 
-      <div
-        role="progressbar"
-        aria-valuenow={Math.round(pct)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Daily budget consumed"
-        className="surface-well h-2 w-full overflow-hidden rounded-full border border-white/5"
-      >
-        <div className={cn('h-full transition-all rounded-full', toneClass)} style={{ width: `${pct}%` }} />
-      </div>
-
       <dl className="grid grid-cols-3 gap-3 text-xs tabular-nums">
-        <Stat label="Last 7d" value={`$${stats.sevenDayUsd.toFixed(4)}`} />
-        <Stat label="Last 30d" value={`$${stats.thirtyDayUsd.toFixed(4)}`} />
-        <Stat label="Turns 30d" value={String(stats.thirtyDayTurns)} />
+        <Stat label="Today" value={`${todayTurns} ${todayTurns === 1 ? 'analysis' : 'analyses'}`} />
+        <Stat label="Last 7 Days" value={`${sevenDayTurns} ${sevenDayTurns === 1 ? 'session' : 'sessions'}`} />
+        <Stat label="Last 30 Days" value={`${stats.thirtyDayTurns} ${stats.thirtyDayTurns === 1 ? 'session' : 'sessions'}`} />
       </dl>
 
       <div className="text-fg-muted flex items-center justify-between gap-2 text-xs font-medium pt-1 border-t border-white/5">
-        <span>View detailed breakdown</span>
+        <span>View specialist desk activity</span>
         <IconChevronRight className="text-fg-subtle size-4 transition-transform group-hover:translate-x-0.5" />
       </div>
     </Link>

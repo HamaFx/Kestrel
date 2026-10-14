@@ -29,6 +29,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { checkIsAdmin } from '@/lib/admin-check';
 
 import { AIPrefsCard } from '../_components/agent/ai-prefs-card';
 import { AISubNav } from '../_components/ai-subnav';
@@ -46,6 +47,8 @@ export const metadata: Metadata = {
 export default async function AgentCataloguePage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) redirect('/settings');
 
   const { settings } = await getUserWithSettings(session.user.id);
 

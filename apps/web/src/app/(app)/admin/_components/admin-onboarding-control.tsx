@@ -156,7 +156,7 @@ export function AdminOnboardingControl() {
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-fg text-sm font-semibold">BYOK API keys</span>
+              <span className="text-fg text-sm font-semibold">Custom API Overrides</span>
               <span className="text-fg-subtle text-sm">
                 {status.hasApiKeys ? status.apiProviders.join(', ') : 'None configured'}
               </span>
@@ -168,7 +168,7 @@ export function AdminOnboardingControl() {
                 onCheckedChange={setFullReset}
                 srLabel="Full reset mode"
               />
-              <span className="text-fg text-sm">Full reset (clears API keys and watchlist)</span>
+              <span className="text-fg text-sm">Full reset (clears watchlist and preferences)</span>
             </div>
 
             <Button variant="danger" loading={resetting} onClick={handleReset}>

@@ -65,6 +65,8 @@ export {
   type SubscriptionWithPlan,
 } from './queries/billing';
 export {
+  getPlatformAdminSettings,
+  getPlatformAdminUserId,
   getUserWithSettings,
   updateUserSettingsField,
   listAllUserSettings,

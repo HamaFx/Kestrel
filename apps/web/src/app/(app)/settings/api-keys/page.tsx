@@ -24,6 +24,7 @@ import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { checkIsAdmin } from '@/lib/admin-check';
 import { buildCatalogForUser } from '@/lib/catalog-server';
 import { formatRelative } from '@/lib/format';
 
@@ -49,6 +50,8 @@ export default async function ApiKeysSettingsPage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) redirect('/settings');
 
   // Phase A — UX_UPGRADE_PLAN.md item 4. When the user lands here
   // from /chat with no AI provider configured, surface a dismissible
@@ -145,8 +148,7 @@ export default async function ApiKeysSettingsPage({
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">AI & Intelligence</h2>
         <p className="text-fg-subtle text-sm">
-          Kestrel is BYOK. Provide your own keys for the AI models you want to use. Keys are
-          encrypted at rest with AES-256-GCM.
+          Admin Platform AI & Market Feeds — Provider keys and market data adapters configured here power all subscriber accounts across Kestrel (encrypted with AES-256-GCM).
         </p>
       </div>
 

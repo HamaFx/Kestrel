@@ -25,23 +25,21 @@ import { completeOnboardingAction } from '@/app/onboarding/actions';
 import { apiMutate } from '@/lib/api-client';
 
 import { WizardStepProfile } from './_components/wizard-step-profile';
-import { WizardStepProvider } from './_components/wizard-step-provider';
 import { WizardStepReview } from './_components/wizard-step-review';
 import { WizardStepStyle } from './_components/wizard-step-style';
 import { WizardStepSymbols } from './_components/wizard-step-symbols';
 import { WizardStepper } from './_components/wizard-stepper';
-import type { TestState, TradingStyle } from './_components/wizard-types';
+import type { TradingStyle } from './_components/wizard-types';
 
 interface OnboardingWizardProps {
   initialName: string;
-  providers: ProviderMeta[];
+  providers?: ProviderMeta[];
   symbolsCatalog: SymbolCatalogRow[];
   initialProgress?: Record<string, unknown> | null;
 }
 
 export function OnboardingWizard({
   initialName,
-  providers,
   symbolsCatalog,
   initialProgress,
 }: OnboardingWizardProps) {
@@ -56,34 +54,15 @@ export function OnboardingWizard({
   const [tradingStyle, setTradingStyle] = useState<TradingStyle>('day_trader');
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([...DEFAULT_WATCHLIST_SYMBOLS]);
   const [defaultSymbol, setDefaultSymbol] = useState<string>(DEFAULT_WATCHLIST_SYMBOLS[0]);
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState('');
-  const [revealed, setRevealed] = useState(false);
-  const [testState, setTestState] = useState<TestState>({ kind: 'idle' });
-  const [, startTest] = useTransition();
 
-  // Wrappers that reset test state when provider/key changes.
-  function handleSelectProvider(id: string | null) {
-    setSelectedProvider(id);
-    setTestState({ kind: 'idle' });
-  }
-
-  function handleChangeApiKey(value: string) {
-    setApiKey(value);
-    if (testState.kind !== 'idle') setTestState({ kind: 'idle' });
-  }
-
-  // Restore server-side progress on mount
+  // Restore server-side progress on mount (clamped to 4 steps)
   useEffect(() => {
     if (initialProgress) {
       const p = initialProgress;
-      if (typeof p.step === 'number') setStep(p.step);
+      if (typeof p.step === 'number') setStep(Math.min(4, Math.max(1, p.step)));
       if (typeof p.name === 'string') setName(p.name);
       if (typeof p.timezone === 'string') setTimezone(p.timezone);
       if (typeof p.defaultSymbol === 'string') setDefaultSymbol(p.defaultSymbol);
-      if (typeof p.selectedProvider === 'string' || p.selectedProvider === null) {
-        setSelectedProvider(p.selectedProvider);
-      }
       if (typeof p.tradingStyle === 'string') setTradingStyle(p.tradingStyle as TradingStyle);
       if (Array.isArray(p.selectedSymbols)) setSelectedSymbols(p.selectedSymbols as string[]);
     }
@@ -92,7 +71,7 @@ export function OnboardingWizard({
   const onboardingStorageKey = 'kestrel_onboarding_wizard';
   const legacyOnboardingStorageKey = 'hfx_onboarding_wizard';
 
-  // Load saved wizard state on mount (API key intentionally excluded — in-memory only)
+  // Load saved wizard state on mount
   useEffect(() => {
     try {
       const saved =
@@ -102,13 +81,10 @@ export function OnboardingWizard({
         const parsed = JSON.parse(saved);
         sessionStorage.setItem(onboardingStorageKey, saved);
         sessionStorage.removeItem(legacyOnboardingStorageKey);
-        if (typeof parsed.step === 'number') setStep(parsed.step);
+        if (typeof parsed.step === 'number') setStep(Math.min(4, Math.max(1, parsed.step)));
         if (typeof parsed.name === 'string') setName(parsed.name);
         if (typeof parsed.timezone === 'string') setTimezone(parsed.timezone);
         if (typeof parsed.defaultSymbol === 'string') setDefaultSymbol(parsed.defaultSymbol);
-        if (typeof parsed.selectedProvider === 'string' || parsed.selectedProvider === null) {
-          setSelectedProvider(parsed.selectedProvider);
-        }
         if (typeof parsed.tradingStyle === 'string') setTradingStyle(parsed.tradingStyle);
         if (Array.isArray(parsed.selectedSymbols)) setSelectedSymbols(parsed.selectedSymbols);
       }
@@ -117,7 +93,7 @@ export function OnboardingWizard({
     }
   }, [initialProgress]);
 
-  // Save wizard state when any field changes (API key intentionally excluded)
+  // Save wizard state when any field changes
   useEffect(() => {
     try {
       const state = {
@@ -125,7 +101,6 @@ export function OnboardingWizard({
         name,
         timezone,
         defaultSymbol,
-        selectedProvider,
         tradingStyle,
         selectedSymbols,
       };
@@ -133,7 +108,7 @@ export function OnboardingWizard({
     } catch {
       // ignore
     }
-  }, [step, name, timezone, defaultSymbol, selectedProvider, tradingStyle, selectedSymbols]);
+  }, [step, name, timezone, defaultSymbol, tradingStyle, selectedSymbols]);
 
   // Server-side progress save (debounced 2s, skip step 1)
   useEffect(() => {
@@ -147,7 +122,7 @@ export function OnboardingWizard({
           name,
           timezone,
           defaultSymbol,
-          selectedProvider,
+          selectedProvider: null,
           tradingStyle,
           selectedSymbols,
         }),
@@ -156,7 +131,7 @@ export function OnboardingWizard({
       });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [step, name, timezone, defaultSymbol, selectedProvider, tradingStyle, selectedSymbols]);
+  }, [step, name, timezone, defaultSymbol, tradingStyle, selectedSymbols]);
 
   function validateStep(s: number): string | null {
     switch (s) {
@@ -165,10 +140,6 @@ export function OnboardingWizard({
         return null;
       case 3:
         if (selectedSymbols.length < 1) return 'Please select at least one symbol';
-        return null;
-      case 4:
-        if (selectedProvider === null) return null;
-        if (apiKey.trim().length < 8) return 'Please enter a valid API key (at least 8 characters)';
         return null;
       default:
         return null;
@@ -185,36 +156,9 @@ export function OnboardingWizard({
     }
     setNameError(null);
     setSymbolsError(null);
-    setStep((s) => s + 1);
+    setStep((s) => Math.min(4, s + 1));
   };
-  const handleBack = () => setStep((s) => s - 1);
-
-  function handleTestKey() {
-    if (!selectedProvider || apiKey.trim().length < 8) return;
-    setTestState({ kind: 'pending' });
-    startTest(async () => {
-      try {
-        const data = await apiMutate<{ ok: boolean; error?: string }>(
-          '/api/settings/test-provider',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider: selectedProvider, apiKey: apiKey.trim() }),
-          },
-        );
-        if (!data.ok) {
-          setTestState({ kind: 'err', message: data.error ?? 'Provider test failed' });
-        } else {
-          setTestState({ kind: 'ok' });
-        }
-      } catch (err) {
-        setTestState({
-          kind: 'err',
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
-    });
-  }
+  const handleBack = () => setStep((s) => Math.max(1, s - 1));
 
   function handleSubmit() {
     startSubmit(async () => {
@@ -243,8 +187,7 @@ export function OnboardingWizard({
         defaultSymbol: defaultSymbol || selectedSymbols[0] || DEFAULT_WATCHLIST_SYMBOLS[0],
         symbols: selectedSymbols,
         tradingStyle,
-        apiKeys:
-          selectedProvider && apiKey.trim().length > 0 ? { [selectedProvider]: apiKey.trim() } : {},
+        apiKeys: {},
       };
       const fd = new FormData();
       fd.append('payload', JSON.stringify(payload));
@@ -253,7 +196,7 @@ export function OnboardingWizard({
         if (res.ok) {
           sessionStorage.removeItem(onboardingStorageKey);
           sessionStorage.removeItem(legacyOnboardingStorageKey);
-          router.push('/chat');
+          router.push('/dashboard');
           router.refresh();
         } else {
           toast.error(res.error || 'Failed to complete onboarding');
@@ -284,7 +227,7 @@ export function OnboardingWizard({
         if (res.ok) {
           sessionStorage.removeItem(onboardingStorageKey);
           sessionStorage.removeItem(legacyOnboardingStorageKey);
-          router.push('/chat');
+          router.push('/dashboard');
           router.refresh();
         } else {
           toast.error(res.error || 'Failed to skip');
@@ -296,15 +239,8 @@ export function OnboardingWizard({
     });
   }
 
-  function handleSkipProvider() {
-    setSelectedProvider(null);
-    setApiKey('');
-    setTestState({ kind: 'idle' });
-    handleNext();
-  }
-
   return (
-    <div className="border-border bg-bg-elev-1 rounded-sm border p-6">
+    <div className="surface-panel rounded-2xl border border-white/10 p-6 sm:p-8 shadow-[var(--shadow-chip)]">
       <WizardStepper step={step} />
 
       <div className="mb-4 flex justify-end">
@@ -314,7 +250,7 @@ export function OnboardingWizard({
           disabled={isSubmitting}
           className="text-fg-subtle hover:text-fg text-xs transition-colors"
         >
-          Skip setup, explore first
+          Skip setup, explore dashboard first →
         </button>
       </div>
 
@@ -355,31 +291,12 @@ export function OnboardingWizard({
       )}
 
       {step === 4 && (
-        <WizardStepProvider
-          providers={providers}
-          selectedProvider={selectedProvider}
-          setSelectedProvider={handleSelectProvider}
-          apiKey={apiKey}
-          setApiKey={handleChangeApiKey}
-          revealed={revealed}
-          setRevealed={setRevealed}
-          testState={testState}
-          onTestKey={handleTestKey}
-          onNext={handleNext}
-          onBack={handleBack}
-          onSkipProvider={handleSkipProvider}
-        />
-      )}
-
-      {step === 5 && (
         <WizardStepReview
           name={name}
           timezone={timezone}
           tradingStyle={tradingStyle}
           selectedSymbols={selectedSymbols}
           defaultSymbol={defaultSymbol}
-          selectedProvider={selectedProvider}
-          providers={providers}
           isSubmitting={isSubmitting}
           onBack={handleBack}
           onSubmit={handleSubmit}

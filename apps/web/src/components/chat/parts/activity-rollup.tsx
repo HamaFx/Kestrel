@@ -43,15 +43,15 @@ export function ActivityRollup({
 
   const parts: string[] = [];
   if (toolCount > 0) {
-    parts.push(`${toolCount} ${toolCount === 1 ? 'tool call' : 'tool calls'}`);
+    parts.push(`${toolCount} ${toolCount === 1 ? 'market data check' : 'market data checks'}`);
   }
   if (thinkingCount > 0) {
-    parts.push(`${thinkingCount} ${thinkingCount === 1 ? 'thinking step' : 'thinking steps'}`);
+    parts.push(`${thinkingCount} ${thinkingCount === 1 ? 'analysis step' : 'analysis steps'}`);
   }
 
   const label = isRunning
-    ? `Working (${parts.join(', ') || 'running…'})`
-    : `Activity (${parts.join(', ')})`;
+    ? `Researching live market data (${parts.join(', ') || 'in progress…'})`
+    : `Market research (${parts.join(', ')})`;
 
   return (
     <div className="w-full my-1 select-none">

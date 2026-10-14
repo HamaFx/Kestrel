@@ -200,30 +200,30 @@ describe('sanitizeNext (P2-7)', () => {
   });
 
   it('blocks protocol-relative URLs', async () => {
-    expect(await sanitizeNext('//evil.com')).toBe('/chat');
+    expect(await sanitizeNext('//evil.com')).toBe('/dashboard');
   });
 
   it('blocks absolute URLs', async () => {
-    expect(await sanitizeNext('https://evil.com')).toBe('/chat');
+    expect(await sanitizeNext('https://evil.com')).toBe('/dashboard');
   });
 
   it('blocks backslash injection', async () => {
-    expect(await sanitizeNext('\\evil.com')).toBe('/chat');
-    expect(await sanitizeNext('/path\\evil')).toBe('/chat');
+    expect(await sanitizeNext('\\evil.com')).toBe('/dashboard');
+    expect(await sanitizeNext('/path\\evil')).toBe('/dashboard');
   });
 
   it('blocks encoded double-slash', async () => {
-    expect(await sanitizeNext('/%2f%2fevil')).toBe('/chat');
+    expect(await sanitizeNext('/%2f%2fevil')).toBe('/dashboard');
   });
 
   it('caps at 500 chars', async () => {
-    expect(await sanitizeNext('/' + 'a'.repeat(600))).toBe('/chat');
+    expect(await sanitizeNext('/' + 'a'.repeat(600))).toBe('/dashboard');
   });
 
   it('falls back for null/undefined/empty', async () => {
-    expect(await sanitizeNext(null)).toBe('/chat');
-    expect(await sanitizeNext(undefined)).toBe('/chat');
-    expect(await sanitizeNext('')).toBe('/chat');
+    expect(await sanitizeNext(null)).toBe('/dashboard');
+    expect(await sanitizeNext(undefined)).toBe('/dashboard');
+    expect(await sanitizeNext('')).toBe('/dashboard');
   });
 });
 

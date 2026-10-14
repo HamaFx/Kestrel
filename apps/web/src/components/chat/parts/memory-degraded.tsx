@@ -23,23 +23,20 @@ import type { MemoryDegradedPart } from '@kestrel/shared';
 import { cn } from '@/lib/cn';
 
 /**
- * Audit plan §1.5 — inline notice shown when a turn had to fall back from
- * native (semantic-recall) memory to explicit history. Purely informational:
- * the answer itself completed normally.
+ * Inline notice shown when a turn answered without loading earlier thread memory.
  */
-export function MemoryDegradedPartView({ part }: { part: MemoryDegradedPart }) {
+export function MemoryDegradedPartView({ part: _part }: { part: MemoryDegradedPart }) {
   return (
     <div
       className={cn(
         'border-chip-edge bg-background/40 text-fg-muted flex items-center gap-2 rounded-md border px-2.5 py-1.5 font-mono text-caption',
       )}
       role="note"
-      aria-label="Memory degraded notice"
+      aria-label="Conversation history notice"
     >
       <IconDatabaseOff className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
       <span>
-        Thread memory was unavailable for this answer — semantic recall was off.{' '}
-        <span className="text-fg-subtle">{part.reason}</span>
+        Earlier conversation history couldn&apos;t be loaded for this reply, so this analysis is based on your current message.
       </span>
     </div>
   );

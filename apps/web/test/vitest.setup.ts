@@ -26,6 +26,21 @@
 import '@testing-library/jest-dom/vitest';
 
 import { webcrypto } from 'node:crypto';
+import React from 'react';
+import { vi } from 'vitest';
+
+vi.mock('next-view-transitions', () => ({
+  Link: ({ children, href, ...props }: any) =>
+    React.createElement('a', { href: typeof href === 'string' ? href : undefined, ...props }, children),
+  useTransitionRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+}));
 
 // Set DB env vars for tests that import the real @kestrel/db module
 // (e.g. settings-actions.test.ts uses importOriginal). Tests use mocked

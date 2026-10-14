@@ -416,7 +416,7 @@ export function PixelDeskStandby({
         <div className="flex items-center gap-1.5">
           <span className="bg-bull inline-block size-2 animate-pulse rounded-full shadow-[0_0_6px_rgba(63,158,61,0.5)]" />
           <span className="text-fg text-caption font-mono font-bold tracking-wider uppercase">
-            4-DESK QUANTITATIVE COMMITTEE
+            4-DESK AI RESEARCH COMMITTEE
           </span>
         </div>
         <span className="border-bull/40 bg-bull/10 text-bull text-caption rounded-md border px-1.5 py-0.5 font-mono font-semibold tracking-wide uppercase">
@@ -701,7 +701,7 @@ export function PixelDeskStandby({
                       Full Desk Analysis on {activeSymbol}
                     </span>
                     <span className="text-fg-subtle sm:text-caption truncate font-mono text-[10px]">
-                      Run all 4 specialist models together
+                      Run all 4 specialist desks together
                     </span>
                   </div>
                 </div>
@@ -1125,7 +1125,7 @@ export function PixelDeskDeliberation({
         <div className="flex items-center gap-1.5">
           <span className="bg-bull inline-block size-1.5 rounded-xs shadow-[0_0_6px_rgba(34,197,94,0.4)] sm:size-2" />
           <h4 className="text-fg sm:text-caption font-mono text-[10px] font-bold tracking-wider uppercase">
-            Desk Consensus · {mode.toUpperCase()}
+            Desk Consensus · {mode === 'full' ? 'FULL COMMITTEE' : mode === 'single' ? 'QUICK READ' : mode.toUpperCase()}
           </h4>
         </div>
 

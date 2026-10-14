@@ -68,6 +68,7 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
       className="border-border/80 bg-bg-elev-1 surface-chip mt-3 flex flex-col gap-3.5 rounded-xl border border-edge/80 p-4 shadow-[var(--shadow-chip)]"
       data-testid="mastra-report-card"
       data-mastra-agent="mastra-xauusd"
+      data-packet-id={meta.packetId}
     >
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -76,16 +77,14 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
             className="border-bull/30 bg-bull/5 text-bull text-caption rounded-sm border px-1.5 py-0.5 font-semibold tracking-wide uppercase"
             data-testid="mastra-agent-badge"
           >
-            Verified Intel
+            Verified Brief
           </span>
           <h3 className="text-fg text-sm font-semibold">
-            {report?.symbol ? `${report.symbol} Market Report` : 'Verified Market Report'}
+            {report?.symbol ? `${report.symbol} Market Briefing` : 'Verified Market Briefing'}
           </h3>
         </div>
         <div className="text-caption text-fg-subtle flex items-center gap-2">
-          <span>{meta.providerId}</span>
-          <span aria-hidden="true">·</span>
-          <span>{formatModel(meta.modelId)}</span>
+          <span>4-Desk AI Committee</span>
         </div>
       </header>
 
@@ -95,7 +94,7 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
           className="border-warn/30 bg-warn/5 text-warn flex items-start gap-2 rounded-sm border p-2 text-xs"
         >
           <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>Live market feed data was unavailable. Report could not be generated.</span>
+          <span>Live market feed data was temporarily unavailable. Briefing could not be generated.</span>
         </div>
       ) : (
         <ReportBody report={report} qualityWarning={qualityWarning} />
@@ -104,10 +103,8 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
       <footer className="border-border text-caption text-fg-subtle flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2">
         <span className="inline-flex items-center gap-1">
           <IconClock className="size-3" aria-hidden="true" />
-          Run data: {meta.packetId}
+          Data Check: {meta.dataQuality === 'complete' ? 'Verified against live feed' : meta.dataQuality}
         </span>
-        <span>Quality: {meta.dataQuality}</span>
-        <span>Cost: ${meta.observedCost.toFixed(4)}</span>
       </footer>
     </section>
   );
@@ -127,9 +124,9 @@ function ReportBody({
           {report.bias}
         </span>
         <span className="text-fg-muted text-xs">
-          {Math.round(report.confidence * 100)}% confidence
+          {Math.round(report.confidence * 100)}% conviction
         </span>
-        <span className="text-fg-muted text-xs">Regime: {report.regime}</span>
+        <span className="text-fg-muted text-xs">Market Regime: {report.regime}</span>
         {qualityWarning ? (
           <span className="border-warn/30 bg-warn/5 text-caption text-warn inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-semibold">
             <IconAlertTriangle className="size-3" aria-hidden="true" />
@@ -138,7 +135,7 @@ function ReportBody({
         ) : (
           <span className="text-caption text-bull inline-flex items-center gap-1">
             <IconCircleCheck className="size-3" aria-hidden="true" />
-            complete data
+            live data verified
           </span>
         )}
       </div>
@@ -146,33 +143,33 @@ function ReportBody({
       <p className="text-fg text-sm leading-relaxed">{report.bottomLine}</p>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <Summary label="Technical" text={report.technicalSummary} />
-        <Summary label="Fundamental" text={report.fundamentalSummary} />
+        <Summary label="Technical Desk" text={report.technicalSummary} />
+        <Summary label="Macro & Fundamental Desk" text={report.fundamentalSummary} />
       </div>
 
       <MastraReportScenarios scenarios={report.scenarios} />
 
       {report.contradictions.length > 0 || report.missingData.length > 0 ? (
         <div className="border-warn/30 bg-warn/5 text-fg-muted rounded-sm border p-3 text-xs">
-          <h4 className="text-warn font-semibold">Warnings and limitations</h4>
+          <h4 className="text-warn font-semibold">Risk Notes & Signal Conflicts</h4>
           {report.contradictions.length > 0 ? (
             <List label="Conflicting signals" items={report.contradictions} />
           ) : null}
           {report.missingData.length > 0 ? (
-            <List label="Missing data" items={report.missingData} />
+            <List label="Unavailable feeds" items={report.missingData} />
           ) : null}
         </div>
       ) : null}
 
       <details className="text-fg-muted text-xs">
         <summary className="hover:text-fg flex cursor-pointer items-center gap-1 font-semibold">
-          Sources and timestamps
+          Market Data Sources & Timestamps
         </summary>
         <ul className="mt-2 space-y-1 pl-4">
           {report.sources.map((source) => (
             <li key={source.evidenceId}>
-              <span className="text-fg-subtle font-mono">{source.evidenceId}</span> {source.source}{' '}
-              · {formatTimestamp(source.dataAsOf)}
+              <span className="text-fg-subtle font-mono">{source.source}</span> ·{' '}
+              {formatTimestamp(source.dataAsOf)}
             </li>
           ))}
         </ul>
@@ -201,11 +198,6 @@ function List({ label, items }: { label: string; items: string[] }) {
       </ul>
     </div>
   );
-}
-
-function formatModel(model: string): string {
-  const tail = model.includes('/') ? model.slice(model.lastIndexOf('/') + 1) : model;
-  return tail.replace(/[-_]/g, ' ');
 }
 
 function formatTimestamp(value: string): string {

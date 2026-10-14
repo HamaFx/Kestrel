@@ -34,7 +34,7 @@ export function LandingFooter() {
           <div className="flex flex-col items-start gap-4 lg:col-span-5">
             <KestrelBrand variant="lockup" href="/" label="Kestrel" />
             <p className="max-w-md font-sans text-sm leading-relaxed text-fg-muted">
-              The sovereign AI committee for institutional gold and currency traders. Four autonomous specialist desks deliberating with mathematical precision.
+              The AI market research and trade-planning copilot for gold, forex, and crypto traders. Four specialist desks working in parallel to protect your edge.
             </p>
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono">
               <span className="size-2 rounded-full bg-bull shadow-[0_0_8px_#3f9e3d]" />
@@ -42,19 +42,19 @@ export function LandingFooter() {
             </div>
           </div>
 
-          {/* Links Column 1: Terminal */}
+          {/* Links Column 1: Platform */}
           <div className="flex flex-col gap-3 lg:col-span-2 sm:col-span-4">
             <h4 className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
-              Terminal
+              Platform
             </h4>
+            <Link href="/dashboard" className="font-sans text-sm text-fg-muted hover:text-fg transition-colors">
+              Market Dashboard
+            </Link>
             <Link href="/chat" className="font-sans text-sm text-fg-muted hover:text-fg transition-colors">
               AI Committee Chat
             </Link>
             <Link href="/calendar" className="font-sans text-sm text-fg-muted hover:text-fg transition-colors">
-              Economic Catalysts
-            </Link>
-            <Link href="/news" className="font-sans text-sm text-fg-muted hover:text-fg transition-colors">
-              Macro Wires
+              Economic Calendar
             </Link>
             <Link href="/journal" className="font-sans text-sm text-fg-muted hover:text-fg transition-colors">
               Trade Journal
@@ -67,28 +67,28 @@ export function LandingFooter() {
               Specialist Desks
             </h4>
             <span className="font-sans text-sm text-fg-muted">
-              Technical Desk · SMC / FVG Analysis
+              Technical Desk · Price Structure & Levels
             </span>
             <span className="font-sans text-sm text-fg-muted">
-              Macro News Desk · Central Bank Yields
+              Macro Desk · Central Banks & Yields
             </span>
             <span className="font-sans text-sm text-fg-muted">
-              Risk Desk · 1% Mathematical Ceiling
+              Risk Desk · 1% Drawdown Guardrail
             </span>
             <span className="font-sans text-sm text-fg-muted">
               Sentiment Desk · Institutional COT Flow
             </span>
           </div>
 
-          {/* Links Column 3: Sovereign Security */}
+          {/* Links Column 3: Security & Trust */}
           <div className="flex flex-col gap-3 lg:col-span-2 sm:col-span-4">
             <h4 className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
-              Security
+              Trust & Safety
             </h4>
-            <span className="font-sans text-sm text-fg-muted">Non-Custodial</span>
-            <span className="font-sans text-sm text-fg-muted">Zero Telemetry Leaks</span>
-            <span className="font-sans text-sm text-fg-muted">Local AES-256 Storage</span>
-            <span className="font-sans text-sm text-fg-muted">Audited Invalidation</span>
+            <span className="font-sans text-sm text-fg-muted">100% Non-Custodial</span>
+            <span className="font-sans text-sm text-fg-muted">Hosted Cloud AI</span>
+            <span className="font-sans text-sm text-fg-muted">Private Trade Journal</span>
+            <span className="font-sans text-sm text-fg-muted">Instant Multi-Channel Alerts</span>
           </div>
         </div>
 
@@ -101,8 +101,8 @@ export function LandingFooter() {
 
         {/* Bottom Strip */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 text-xs text-fg-subtle font-mono border-t border-white/5">
-          <span>© 2026 Kestrel Syndicate. All rights reserved.</span>
-          <span>DISCLAIMER: NOT FINANCIAL ADVICE. FOR INSTITUTIONAL RESEARCH ONLY.</span>
+          <span>© 2026 Kestrel. All rights reserved.</span>
+          <span>DISCLAIMER: NOT FINANCIAL ADVICE. FOR MARKET RESEARCH & EDUCATION ONLY.</span>
         </div>
       </div>
     </footer>

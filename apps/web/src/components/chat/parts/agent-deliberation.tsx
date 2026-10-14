@@ -18,17 +18,6 @@
  * limitations under the License.
  */
 
-// Phase 1.1 — Cinematic Multi-Agent Committee Theater.
-//
-// Institutional "war room" deliberation surface:
-//
-//   Zone 0 — Telemetry:      ASCII streaming status panel with live step progress.
-//   Zone 1 — Agent ring:     Circular avatar nodes with radar pulse animations,
-//                            active state indicators, and completed checkmarks.
-//   Zone 2 — Fusion:         Converging connector lines feed a central fusion node
-//                            that intensifies as agents finish.
-//   Zone 3 — Verdict reveal: Once every agent has settled, a confidence meter +
-//                            bias distribution + dissent indicator is revealed with spring physics.
 import {
   IconAlertCircle,
   IconAlertTriangle,
@@ -79,7 +68,7 @@ const AGENT_META: Record<
   },
   fundamental: {
     icon: <IconNews className="size-4" />,
-    label: 'Fundamental',
+    label: 'Macro',
     tokenClass: 'text-info',
     activeClass: 'border-info/40 bg-info/10 shadow-[0_0_12px_rgba(56,189,248,0.2)]',
   },
@@ -97,7 +86,7 @@ const AGENT_META: Record<
   },
   decision: {
     icon: <IconCpu className="size-4" />,
-    label: 'Decision',
+    label: 'Consensus',
     tokenClass: 'text-brand',
     activeClass: 'border-brand/40 bg-brand/10 shadow-[0_0_12px_rgba(245,110,15,0.25)]',
   },
@@ -105,7 +94,7 @@ const AGENT_META: Record<
 
 const FALLBACK_META = {
   icon: <IconRobot className="size-4" />,
-  label: 'Agent',
+  label: 'Specialist',
   tokenClass: 'text-fg-muted',
   activeClass: 'border-border bg-bg-elev-2',
 } as const;
@@ -119,12 +108,12 @@ const BIAS_TOKEN: Record<AgentOpinion['bias'], string> = {
 function formatPlainModeLabel(mode: string): string {
   const normalized = mode.toLowerCase();
   if (normalized === 'single') {
-    return 'Quick Check (1 Expert · single mode)';
+    return 'Quick Read (1 Specialist Desk)';
   }
   if (normalized === 'full') {
-    return 'Full Team Analysis (4 Experts · full mode)';
+    return 'Full Committee (4 Specialist Desks)';
   }
-  return `Desk Deliberation · ${mode} Mode`;
+  return `Committee Analysis · ${mode}`;
 }
 
 export function AgentDeliberation({ agents, mode, status, error }: AgentDeliberationProps) {
@@ -137,7 +126,6 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
   const doneCount = agents.filter((a) => a.status === 'done').length;
   const progressPct = agents.length > 0 ? Math.round((doneCount / agents.length) * 100) : 0;
 
-  // Verdict math — only opinions that actually arrived count.
   const opinions = agents.filter((a) => a.opinion);
   const avgConfidence =
     opinions.length > 0
@@ -170,7 +158,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
         {!allDone && (
           <div className="flex items-center gap-2">
             <span className="text-fg-subtle text-caption font-mono tabular-nums">
-              {doneCount}/{agents.length} Synced
+              {doneCount}/{agents.length} Ready
             </span>
             <div className="bg-bg-elev-3 h-1.5 w-16 overflow-hidden rounded-full">
               <m.div
@@ -184,7 +172,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
         )}
       </div>
 
-      {/* Zone 0 — ASCII terminal telemetry log */}
+      {/* Zone 0 — Live Committee Progress log */}
       {!allDone ? <TelemetryLog agents={agents} /> : null}
 
       {/* Zone 1 — Agent node avatars */}
@@ -195,7 +183,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
         })}
       </div>
 
-      {/* Zone 2 — Connector lines + fusion node */}
+      {/* Zone 2 — Connector lines + synthesis node */}
       <AnimatePresence>
         {hasDone && !allDone ? (
           <m.div
@@ -222,7 +210,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
       {/* "Deliberating…" while nothing is done yet */}
       {!hasDone ? (
         <div className="text-caption text-fg-subtle flex items-center justify-center gap-2 tracking-wider uppercase">
-          <span className="motion-safe:animate-pulse">Deliberating…</span>
+          <span className="motion-safe:animate-pulse">Analyzing live market data…</span>
         </div>
       ) : null}
 
@@ -241,7 +229,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
             {/* Confidence meter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-fg text-body-sm font-semibold">Desk Confidence</span>
+                <span className="text-fg text-body-sm font-semibold">Committee Conviction</span>
                 <span className="text-fg text-body-sm font-bold tabular-nums">
                   {avgConfidence}%
                 </span>
@@ -283,7 +271,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
                         className="border-border/80 bg-bg-elev-1/40 rounded-r-xs border-l-2 py-1 pl-3"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-fg text-body-sm font-semibold">{meta.label}</span>
+                          <span className="text-fg text-body-sm font-semibold">{meta.label} Desk</span>
                           <span
                             className={cn(
                               'text-caption font-mono font-bold uppercase',
@@ -315,7 +303,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
                   >
                     <IconAlertCircle className="size-3.5 shrink-0" />
                     <span>
-                      {meta.label} agent failed: {a.error}
+                      {meta.label} Desk check unavailable: {a.error}
                     </span>
                   </div>
                 );
@@ -335,13 +323,13 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
           )}
         >
           <div className="font-semibold">
-            {isRetrying ? 'Full analysis is being retried' : 'Full analysis was not completed'}
+            {isRetrying ? 'Retrying Full Committee analysis…' : 'Full Committee analysis incomplete'}
           </div>
           <p className="mt-1 text-xs leading-relaxed">
             {error ??
               (isRetrying
-                ? 'A temporary error occurred. Retrying the same Full-mode analysis.'
-                : 'A required agent failed. No partial answer was returned.')}
+                ? 'A temporary issue occurred. Retrying the Full Committee analysis automatically…'
+                : 'One of the specialist desks could not complete its check, so an incomplete trade plan was withheld.')}
           </p>
         </div>
       ) : null}
@@ -361,7 +349,6 @@ function AgentNode({
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className="relative">
-        {/* Glowing live radar pulse while running */}
         {status === 'running' && (
           <span
             aria-hidden="true"
@@ -369,7 +356,7 @@ function AgentNode({
           />
         )}
         <m.div
-          aria-label={`${meta.label} agent: ${status}`}
+          aria-label={`${meta.label} desk: ${status}`}
           animate={status === 'running' ? { scale: [1, 1.04, 1] } : { scale: 1 }}
           transition={
             status === 'running'
@@ -388,7 +375,6 @@ function AgentNode({
             {meta.icon}
           </span>
 
-          {/* Status badge pill */}
           {status === 'done' ? (
             <span
               className={cn(
@@ -443,7 +429,7 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
   const lines = useMemo(() => {
     const result: Array<{ line: string; tone: string }> = [];
 
-    result.push({ line: 'agent committee · session active', tone: 'text-fg-subtle' });
+    result.push({ line: '4-desk committee · analyzing live market data', tone: 'text-fg-subtle' });
     result.push({ line: '', tone: '' });
 
     for (let i = 0; i < agents.length; i++) {
@@ -456,24 +442,24 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
       let statusTone: string;
       switch (a.status) {
         case 'pending':
-          statusTag = '[ PENDING ]';
+          statusTag = '[ QUEUED ]';
           statusTone = 'text-fg-subtle/50';
           break;
         case 'running':
-          statusTag = '[ RUNNING ]';
+          statusTag = '[ ANALYZING ]';
           statusTone = 'text-fg-subtle';
           break;
         case 'done':
-          statusTag = '[ COMPLETED ]';
+          statusTag = '[ READY ]';
           statusTone = 'text-brand';
           break;
         case 'error':
-          statusTag = '[ FAILED ]';
+          statusTag = '[ UNAVAILABLE ]';
           statusTone = 'text-danger';
           break;
       }
 
-      const label = meta.label.padEnd(13, ' ');
+      const label = `${meta.label} Desk`.padEnd(16, ' ');
       result.push({
         line: `${branch} ${label} ${statusTag}`,
         tone: statusTone,
@@ -485,13 +471,13 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
     if (hasRunning) {
       result.push({ line: ' │', tone: 'text-fg-subtle' });
       result.push({
-        line: ` └─► fusion engine  [ RUNNING ]`,
+        line: ` └─► trade plan synthesis  [ ACTIVE ]`,
         tone: 'text-fg-subtle',
       });
     } else if (doneCount > 0 && agents.some((a) => a.status !== 'done' && a.status !== 'error')) {
       result.push({ line: ' │', tone: 'text-fg-subtle' });
       result.push({
-        line: ` └─► fusion engine  [ WAITING ]`,
+        line: ` └─► trade plan synthesis  [ STANDBY ]`,
         tone: 'text-fg-subtle/50',
       });
     }
@@ -504,7 +490,7 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
       <div className="border-border flex items-center gap-2 border-b px-3 py-2">
         <IconTerminal2 className="text-fg-subtle size-3" />
         <span className="text-caption text-fg-subtle font-mono tracking-wider uppercase">
-          System Telemetry
+          Live Committee Progress
         </span>
       </div>
       <div className="overflow-x-auto px-3 py-2 font-mono text-xs leading-[1.6] select-none">

@@ -318,7 +318,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
                 (
                 {Object.entries(props.fetchErrors)
                   .filter(([, v]) => v)
-                  .map(([k]) => k)
+                  .map(([k]) => ({ alerts: 'Price Alerts', events: 'Economic Calendar', entries: 'Trade Journal', news: 'Market News', briefing: 'AI Briefing', risk: 'Risk Metrics', settings: 'Settings' }[k] ?? k))
                   .join(', ')}
                 )
               </span>
@@ -409,9 +409,9 @@ function SortableWidget({
               aria-label={`Toggle span for ${WIDGET_LABELS[widget.type]}`}
               onClick={onToggleSpan}
               className="text-fg-subtle hover:text-fg bg-black/40 border border-white/10 rounded-md min-h-10 px-3 py-2 font-mono text-xs inline-flex items-center justify-center transition-colors tactile-press active:translate-y-[0.5px]"
-              title={`Current span: ${widget.span}/3 columns (click to cycle)`}
+              title={`Current span: ${widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'}umns (click to cycle)`}
             >
-              {widget.span}/3 col
+              {widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'}
             </button>
             <button
               type="button"

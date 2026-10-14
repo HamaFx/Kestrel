@@ -612,7 +612,7 @@ export function ChatScreen({
                 lastUserTextRef.current = text;
                 if (analysisMode !== 'single' && images.length > 0) {
                   toast(
-                    'Image analysis runs in single-agent mode. Switching to single-agent for this turn.',
+                    'Chart image analysis runs in Quick Read mode for this message.',
                   );
                   singleTurnOverrideRef.current = 'single';
                 }

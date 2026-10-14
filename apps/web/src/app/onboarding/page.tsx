@@ -23,7 +23,6 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { OnboardingWizard } from '@/components/onboarding/wizard';
-import { buildCatalogForUser } from '@/lib/catalog-server';
 
 export default async function OnboardingPage() {
   const session = await auth();
@@ -44,45 +43,36 @@ export default async function OnboardingPage() {
     );
 
   if (settings?.onboardingCompleted) {
-    redirect('/chat');
+    redirect('/dashboard');
   }
 
-  // Phase E — call the catalog builder directly instead of fetching
-  // our own host (RSC can't self-fetch without a full URL, and
-  // APP_URL isn't always set on Vercel). The wizard accepts the
-  // wider ProviderMeta shape so we pass it through as-is.
-  const [catalog, symbolsCatalog] = await Promise.all([
-    buildCatalogForUser(session.user.id),
-    db
-      .select()
-      .from(schema.symbolCatalog)
-      .where(
-        and(
-          eq(schema.symbolCatalog.isActive, true),
-          eq(schema.symbolCatalog.tenantId, '__system__'),
-        ),
-      )
-      .orderBy(schema.symbolCatalog.sortOrder),
-  ]);
-  const providers = catalog.providers;
+  const symbolsCatalog = await db
+    .select()
+    .from(schema.symbolCatalog)
+    .where(
+      and(
+        eq(schema.symbolCatalog.isActive, true),
+        eq(schema.symbolCatalog.tenantId, '__system__'),
+      ),
+    )
+    .orderBy(schema.symbolCatalog.sortOrder);
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col items-center text-center">
         <KestrelBrand variant="lockup" decorative priority className="mb-5 w-44 sm:w-52" />
         <p className="text-brand text-caption mb-2 font-semibold tracking-[0.18em] uppercase">
-          Your market view
+          Quick Account Setup
         </p>
         <h1 className="text-fg mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
           Welcome to Kestrel
         </h1>
         <p className="text-fg-muted max-w-md leading-relaxed">
-          Set up your watchlist, data sources, and AI workspace for a clearer view of the markets.
+          Customize your profile, trading style, and watchlist so your 4-desk AI committee is tailored to how you trade.
         </p>
       </div>
       <OnboardingWizard
         initialName={session.user.name || ''}
-        providers={providers}
         symbolsCatalog={symbolsCatalog}
         initialProgress={settings?.onboardingProgress ?? null}
       />

@@ -37,8 +37,8 @@ import { TelegramLinkCard } from '../_components/telegram/telegram-link-card';
 import { TestTelegramButton } from '../_components/telegram/test-telegram-button';
 
 export const metadata: Metadata = {
-  title: 'Notifications · Settings',
-  description: 'Configure noise control, volatility thresholds, and notification routing.',
+  title: 'Notifications & Telegram · Settings',
+  description: 'Configure alert delivery channels, Telegram bot linking, and quiet hours.',
 };
 export const revalidate = 60;
 
@@ -75,25 +75,25 @@ export default async function NotificationsPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Notifications & Channels</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Notifications & Telegram</h2>
         <p className="text-fg-subtle text-sm">
-          Alert channels, test triggers, noise control, and delivery preferences.
+          Manage email, browser push, Telegram bot linking, and quiet hours for your market alerts.
         </p>
       </div>
 
       {/* Channel Test Buttons */}
       <section className="surface-panel flex flex-col gap-1 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
         <header className="flex items-center gap-3 pb-2">
-          <h3 className="text-fg text-base font-semibold tracking-tight">Alert Channels & Testing</h3>
+          <h3 className="text-fg text-base font-semibold tracking-tight">Delivery Channels</h3>
         </header>
 
         <SettingsRow
           icon={<IconMail className="size-4" />}
-          label="Email"
+          label="Email Alerts"
           description={
             <span className="flex items-center gap-2">
               <StatusPill ready={emailReady} />
-              <span>Send a test email to verify your Resend configuration</span>
+              <span>Send a test notification to your account email address</span>
             </span>
           }
           stack
@@ -104,14 +104,14 @@ export default async function NotificationsPage() {
 
         <SettingsRow
           icon={<IconBell className="text-brand size-4" />}
-          label="Web push"
+          label="Browser Push"
           description={
             <span className="flex items-center gap-2">
               <StatusPill ready={pushReady} />
               <span>
                 {pushReady
                   ? `${pushDevices} device${pushDevices === 1 ? '' : 's'} subscribed`
-                  : 'Browser push not configured'}
+                  : 'Enable browser notifications on this device'}
               </span>
             </span>
           }
@@ -123,15 +123,11 @@ export default async function NotificationsPage() {
 
         <SettingsRow
           icon={<IconMessageCircle className="text-brand size-4" />}
-          label="Telegram Bot"
+          label="Telegram Alerts"
           description={
             <span className="flex items-center gap-2">
               <StatusPill ready={telegramReady} />
-              <span>
-                {telegramReady
-                  ? 'Telegram bot configured'
-                  : 'Configure Telegram bot token to receive push messages'}
-              </span>
+              <span>Send a test message to your linked Telegram account</span>
             </span>
           }
           stack
@@ -143,10 +139,10 @@ export default async function NotificationsPage() {
       <section className="surface-panel space-y-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
         <div className="flex items-center gap-2">
           <IconMessageCircle className="text-brand size-5" />
-          <h3 className="text-base font-semibold">Telegram Bot Linking</h3>
+          <h3 className="text-base font-semibold">Telegram Bot Connection</h3>
         </div>
         <p className="text-fg-subtle text-xs">
-          Link your Telegram chat to receive instant trade alerts and query market stats directly.
+          Connect your Telegram account to receive instant price and indicator alerts on your phone.
         </p>
         <TelegramLinkCard />
       </section>
@@ -171,7 +167,7 @@ function StatusPill({ ready }: { ready: boolean }) {
         aria-hidden
         className={ready ? 'bg-success size-1 rounded-full' : 'bg-fg-subtle size-1 rounded-full'}
       />
-      {ready ? 'Ready' : 'Off'}
+      {ready ? 'Ready' : 'Standby'}
     </span>
   );
 }

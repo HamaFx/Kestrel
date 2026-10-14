@@ -16,73 +16,50 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Phase 1.6 — Modular customizable dashboard canvas.
-//
-// Widget type definitions + the default layout. The runtime data graph
-// (which widgets exist, in what order, what span) lives here so the
-// `DashboardCanvas` client component stays presentational and the server
-// page can map `WidgetConfig[]` → props without drift.
-//
-// Design tokens (`bg-bg-elev-1`, `text-fg`, `border-border`, etc.) and
-// the rounded-sm convention from PLAN.md §2.4 are applied uniformly by
-// the widget wrapper inside `DashboardCanvas` — widget implementations
-// only need to render their own body.
-
 export type WidgetType =
-  | 'today-glance' // 1.9 — hero (4-cell strip)
-  | 'briefing' // 1.7 — AI briefing
-  | 'quant-desk' // 8-bit live quant trading floor
-  | 'pnl-heatmap' // 1.8 — P&L calendar
-  | 'equity-curve' // existing PerformanceChart
-  | 'watchlist' // live prices + sparklines
-  | 'open-positions' // from journal
-  | 'alerts' // active alerts
-  | 'calendar' // next events countdown
-  | 'news-pulse' // sentiment summary
-  | 'stats'; // win rate, total R, etc.
+  | 'today-glance'
+  | 'briefing'
+  | 'quant-desk'
+  | 'pnl-heatmap'
+  | 'equity-curve'
+  | 'watchlist'
+  | 'open-positions'
+  | 'alerts'
+  | 'calendar'
+  | 'news-pulse'
+  | 'stats';
 
 export interface WidgetConfig {
   /** Stable widget id used as the drag-sortable key. */
   id: string;
   type: WidgetType;
-  /** Grid span on desktop. 1 = 1/3 col, 2 = 2/3 col, 3 = full 3-col width. */
+  /** Grid span on desktop. 1 = Compact, 2 = Wide, 3 = Full Width. */
   span: 1 | 2 | 3;
   /** Sort order (low → left / top). Persisted in localStorage. */
   order: number;
 }
 
 /**
- * Default layout shipped to a fresh user. Order is intentionally
- * "story-first": today's glance → AI briefing → quant floor → P&L heatmap,
- * then the half-width modules in descending signal strength.
+ * Curated 6-widget default layout so new and returning traders get immediate
+ * high-signal market context without empty-state overload. Additional widgets
+ * (Performance Curve, P&L Heatmap, Open Positions, etc.) can be added in 1 click.
  */
 export const DEFAULT_LAYOUT: WidgetConfig[] = [
   { id: 'w1', type: 'today-glance', span: 3, order: 0 },
   { id: 'w2', type: 'briefing', span: 2, order: 1 },
-  { id: 'w-qd', type: 'quant-desk', span: 1, order: 2 },
-  { id: 'w4', type: 'equity-curve', span: 2, order: 3 },
-  { id: 'w5', type: 'stats', span: 1, order: 4 },
-  { id: 'w6', type: 'watchlist', span: 1, order: 5 },
-  { id: 'w7', type: 'open-positions', span: 2, order: 6 },
-  { id: 'w3', type: 'pnl-heatmap', span: 3, order: 7 },
-  { id: 'w8', type: 'alerts', span: 1, order: 8 },
-  { id: 'w9', type: 'calendar', span: 1, order: 9 },
-  { id: 'w10', type: 'news-pulse', span: 1, order: 10 },
+  { id: 'w6', type: 'watchlist', span: 1, order: 2 },
+  { id: 'w9', type: 'calendar', span: 1, order: 3 },
+  { id: 'w10', type: 'news-pulse', span: 1, order: 4 },
+  { id: 'w8', type: 'alerts', span: 1, order: 5 },
 ];
 
-/**
- * Local-storage key for the user's layout. Centralised so the dashboard
- * page and a future "reset to default" action agree on the source of
- * truth. Versioned (`v1`) so we can ship migrations without losing
- * existing layouts.
- */
 export const LAYOUT_STORAGE_KEY = 'kestrel:dashboard-layout:v1';
 
 /** Human-readable label rendered on the edit-mode toolbar. */
 export const WIDGET_LABELS: Record<WidgetType, string> = {
   'today-glance': 'Today at a Glance',
   briefing: 'AI Market Briefing',
-  'quant-desk': 'Trading Floor Specialists',
+  'quant-desk': '4-Desk AI Committee',
   'pnl-heatmap': 'P&L Heatmap',
   'equity-curve': 'Performance Curve',
   watchlist: 'Watchlist',
@@ -100,8 +77,8 @@ export const PRESET_LAYOUTS: Record<
   { name: string; description: string; layout: WidgetConfig[] }
 > = {
   default: {
-    name: 'Full Overview',
-    description: 'All widgets in balanced narrative order',
+    name: 'Essential Overview',
+    description: 'Core 6 market intelligence widgets',
     layout: DEFAULT_LAYOUT,
   },
   day_trader: {
