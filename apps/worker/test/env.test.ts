@@ -118,6 +118,16 @@ describe('loadEnv', () => {
     } as unknown as NodeJS.ProcessEnv);
     expect(env.HC_SIGNALR_UUID).toBeUndefined();
   });
+
+  it('rejects WORKER_PARTITION >= WORKER_PARTITIONS_TOTAL', () => {
+    expect(() =>
+      loadEnv({
+        ...VALID,
+        WORKER_PARTITION: '4',
+        WORKER_PARTITIONS_TOTAL: '4',
+      } as unknown as NodeJS.ProcessEnv),
+    ).toThrow(/WORKER_PARTITION must be less than WORKER_PARTITIONS_TOTAL/);
+  });
 });
 
 describe('resolveDatabaseUrl', () => {

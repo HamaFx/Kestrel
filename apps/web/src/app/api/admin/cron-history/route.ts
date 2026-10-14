@@ -35,7 +35,14 @@ export const GET = withAdminAuth(async (req) => {
 
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  const runs = await listCronRuns({ since, jobName });
-
+  const rawRuns = await listCronRuns({ since, jobName });
+  const runs = rawRuns.map((r) => ({
+    id: `${r.jobName}:${r.runDate}`,
+    jobName: r.jobName,
+    status: r.status,
+    note: r.note,
+    startedAt: r.startedAt.toISOString(),
+    finishedAt: r.finishedAt ? r.finishedAt.toISOString() : null,
+  }));
   return Response.json({ runs });
 });

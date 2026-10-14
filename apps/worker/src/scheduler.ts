@@ -29,6 +29,8 @@ import { sql } from 'drizzle-orm';
 import cron from 'node-cron';
 
 import { acquireCronLock } from './cron-lock.js';
+import type { WorkerEnv } from './env.js';
+import { withHeartbeat } from './healthchecks.js';
 import { JOBS } from './jobs/index.js';
 import type { Logger } from './log.js';
 import { tenantRouter } from './tenant-router.js';
@@ -68,7 +70,7 @@ const SKIP_DAILY_LOCK = new Set<keyof typeof JOBS>([
   'metrics-flush',
 ]);
 
-export function startScheduler(log: Logger): () => void {
+export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
   // Keep references to all scheduled tasks so we can stop
   // them on shutdown. Previously these were fire-and-forget.
   const tasks: ReturnType<typeof cron.schedule>[] = [];
@@ -100,7 +102,7 @@ export function startScheduler(log: Logger): () => void {
     }
     tasks.push(
       cron.schedule(job.schedule, () => {
-        void runJobSafely(name, log);
+        void runJobSafely(name, log, env);
       }),
     );
     log.info(`Scheduled job ${name} at "${job.schedule}"`);
@@ -111,7 +113,7 @@ export function startScheduler(log: Logger): () => void {
   // exceeds 3s. The next tick is scheduled only after the current one
   // settles (including DB transit + claim time).
   const tick = () => {
-    void runJobSafely('multi-agent-analysis', log).finally(() => {
+    void runJobSafely('multi-agent-analysis', log, env).finally(() => {
       multiAgentTimer = setTimeout(tick, 3_000);
       multiAgentTimer.unref();
     });
@@ -207,7 +209,7 @@ async function cleanupStaleCronRuns(log: Logger): Promise<void> {
   }
 }
 
-async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void> {
+async function runJobSafely(name: keyof typeof JOBS, log: Logger, env?: WorkerEnv): Promise<void> {
   const job = JOBS[name];
   if (!job) {
     log.error(`Scheduler attempted to run unknown job: ${name}`);
@@ -301,8 +303,12 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger): Promise<void>
     cleanupRequested = true;
     if (jobSettled) cleanup();
   };
+  const hcUuid =
+    env && job.hcUuidEnvVar ? (env[job.hcUuidEnvVar] as string | undefined) : undefined;
   const jobPromise = Promise.resolve()
-    .then(() => job.run({ log: jobLog, signal: ac.signal, tenantRouter }))
+    .then(() =>
+      withHeartbeat(hcUuid, () => job.run({ log: jobLog, signal: ac.signal, tenantRouter })),
+    )
     .finally(() => {
       jobSettled = true;
       if (cleanupRequested) cleanup();

@@ -101,4 +101,12 @@ describe('acquireCronLock', () => {
 
     expect(mockExecute).toHaveBeenCalledTimes(3);
   });
+
+  it('reclaims a lock when an earlier run today ended with status=error', async () => {
+    mockExecute.mockResolvedValueOnce([{ job_name: 'snapshots' }]);
+    const db = { execute: mockExecute } as unknown as Parameters<typeof acquireCronLock>[1];
+    const lock = await acquireCronLock('snapshots', db);
+    expect(lock).not.toBeNull();
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
 });

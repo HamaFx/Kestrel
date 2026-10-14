@@ -445,7 +445,7 @@ export async function main(): Promise<void> {
   });
 
   if (env.WORKER_MODE === 'docker') {
-    const stopScheduler = startScheduler(log);
+    const stopScheduler = startScheduler(log, env);
     // Register scheduler stop function so cron tasks are
     // torn down cleanly on shutdown.
     onShutdown(stopScheduler);
