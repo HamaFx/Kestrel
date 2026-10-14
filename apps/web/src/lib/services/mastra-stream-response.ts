@@ -18,7 +18,7 @@
 
 import 'server-only';
 
-import { ChatStreamEventSchema } from '@kestrel/shared';
+import { ChatStreamEventSchema, type ChatStreamEvent } from '@kestrel/shared';
 
 export interface MastraStreamResponseMeta {
   readonly id: string;
@@ -50,6 +50,8 @@ export interface MastraStreamResponseOptions {
   readonly onAbort?: () => void | Promise<void>;
   /** Called exactly once after upstream consumption, before the stream closes. */
   readonly onComplete?: () => MastraStreamTerminalStatus | Promise<MastraStreamTerminalStatus>;
+  /** Optional post-stream events (e.g. tool parts, final metadata, evidence replacement) emitted before text-end. */
+  readonly afterTextEvents?: () => ChatStreamEvent[] | Promise<ChatStreamEvent[]>;
 }
 
 function encode(event: unknown): Uint8Array {
@@ -59,11 +61,11 @@ function encode(event: unknown): Uint8Array {
 }
 
 export function mastraStreamResponse(
-  text: AsyncIterable<string>,
+  text: AsyncIterable<string | ChatStreamEvent>,
   messageId: string,
   options: MastraStreamResponseOptions = {},
 ): Response {
-  let upstreamIterator: AsyncIterator<string> | null = null;
+  let upstreamIterator: AsyncIterator<string | ChatStreamEvent> | null = null;
   let cancelled = false;
   let abortNotified = false;
   let completionNotified = false;
@@ -103,8 +105,18 @@ export function mastraStreamResponse(
           if (options.signal?.aborted) {
             throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
           }
-          if (next.value) {
-            controller.enqueue(encode({ type: 'text-delta', id: messageId, delta: next.value }));
+          if (typeof next.value === 'string') {
+            if (next.value.length > 0) {
+              controller.enqueue(encode({ type: 'text-delta', id: messageId, delta: next.value }));
+            }
+          } else if (next.value && typeof next.value === 'object') {
+            controller.enqueue(encode(next.value));
+          }
+        }
+        if (options.afterTextEvents) {
+          const extraEvents = await options.afterTextEvents();
+          for (const ev of extraEvents) {
+            controller.enqueue(encode(ev));
           }
         }
         if (options.meta) {

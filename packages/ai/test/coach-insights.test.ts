@@ -28,6 +28,9 @@ vi.mock('@kestrel/shared/encryption', () => ({
 
 vi.mock('../src/cost', () => ({
   DEFAULT_MAX_DAILY_USD: 10,
+  DEFAULT_TURN_ESTIMATE_USD: 0.01,
+  BudgetExceededError: class BudgetExceededError extends Error {},
+  applyBudgetDelta: vi.fn().mockResolvedValue(undefined),
   tryReserveBudget: vi
     .fn()
     .mockResolvedValue({ ok: true, reservationId: 'res-123', spent: 0, max: 10 }),
@@ -75,19 +78,29 @@ vi.mock('../src/journal/persistence', () => ({
   ]),
 }));
 
+const { structuredObject } = vi.hoisted(() => ({
+  structuredObject: {
+    disciplineGrade: 'A' as const,
+    summary: 'Strong trend-following execution with strict 1:2 R:R adherence.',
+    strengths: ['83% win rate in London session on Gold', 'High expectancy of 1.15 on XAUUSD'],
+    leaks: ['Slightly lower win rate outside London session'],
+    actionRules: [
+      'Only trade XAUUSD during London/NY overlap',
+      'Maintain 1% risk per trade',
+      'Log all trade notes immediately upon closure',
+    ],
+  },
+}));
+
 vi.mock('../src/mastra-v2/agents/xauusd/text-runner', () => ({
+  runMastraStructured: vi.fn().mockResolvedValue({
+    text: JSON.stringify(structuredObject),
+    object: structuredObject,
+    inputTokens: 350,
+    outputTokens: 180,
+  }),
   runMastraText: vi.fn().mockResolvedValue({
-    text: JSON.stringify({
-      disciplineGrade: 'A',
-      summary: 'Strong trend-following execution with strict 1:2 R:R adherence.',
-      strengths: ['83% win rate in London session on Gold', 'High expectancy of 1.15 on XAUUSD'],
-      leaks: ['Slightly lower win rate outside London session'],
-      actionRules: [
-        'Only trade XAUUSD during London/NY overlap',
-        'Maintain 1% risk per trade',
-        'Log all trade notes immediately upon closure',
-      ],
-    }),
+    text: JSON.stringify(structuredObject),
     inputTokens: 350,
     outputTokens: 180,
   }),

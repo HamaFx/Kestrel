@@ -223,6 +223,45 @@ export function createMastraStorage(env: NodeJS.ProcessEnv = process.env): Mastr
   return { storage: new LibSQLStore({ id: 'kestrel-mastra', url }), kind };
 }
 
+/**
+ * Module-level cached storage for maintenance / pruning jobs (Audit v3 Phase 7,
+ * fixes P1-6) so recurring `pruneMastraStorage()` runs reuse a single pool
+ * instead of leaking a new 5-connection `pg.Pool` on every invocation.
+ */
+let sharedStorageCache: { key: string; result: MastraStorageResult } | null = null;
+
+function storageCacheKey(env: NodeJS.ProcessEnv = process.env): string {
+  const kind = resolveMastraStorageKind(env);
+  if (kind === 'postgres') {
+    const conn = mastraDirectConnectionString(env) ?? '';
+    const schema = env.MASTRA_SCHEMA ?? 'mastra';
+    return `postgres:${conn}:${schema}`;
+  }
+  return `libsql:${libsqlUrl(env)}`;
+}
+
+function isMockConstructorCleared(fn: unknown): boolean {
+  if (typeof fn !== 'function' || !('mock' in fn)) return false;
+  const mockObj = (fn as { mock?: { calls?: unknown[] } }).mock;
+  return Array.isArray(mockObj?.calls) && mockObj.calls.length === 0;
+}
+
+export function getSharedMastraStorage(env: NodeJS.ProcessEnv = process.env): MastraStorageResult {
+  const key = storageCacheKey(env);
+  const mockCleared =
+    isMockConstructorCleared(PostgresStore) && isMockConstructorCleared(LibSQLStore);
+  if (sharedStorageCache && sharedStorageCache.key === key && !mockCleared) {
+    return sharedStorageCache.result;
+  }
+  const result = createMastraStorage(env);
+  sharedStorageCache = { key, result };
+  return result;
+}
+
+export function _resetMastraStorageCache(): void {
+  sharedStorageCache = null;
+}
+
 /** Explicitly initialize the storage schema (idempotent). Safe to call at boot. */
 export async function initializeMastraStorage(result: MastraStorageResult): Promise<void> {
   const store = result.storage as MastraCompositeStore & { init?: () => Promise<void> };
@@ -234,15 +273,18 @@ export async function initializeMastraStorage(result: MastraStorageResult): Prom
 
 /**
  * Run Mastra's age-based retention pruning (Phase 0 config, wired here).
+ * Reuses `getSharedMastraStorage` so cron runs never leak Postgres connection pools.
  * Best-effort: logs failures, never throws. Called from the worker's
  * daily retention job alongside the Drizzle retention cleanup.
  */
-export async function pruneMastraStorage(): Promise<{
+export async function pruneMastraStorage(
+  existingStorage?: MastraStorageResult,
+): Promise<{
   pruned: boolean;
   error?: string;
 }> {
   try {
-    const result = createMastraStorage(process.env);
+    const result = existingStorage ?? getSharedMastraStorage(process.env);
     const store = result.storage as MastraCompositeStore & { prune?: () => Promise<void> };
     if (typeof store.prune === 'function') {
       await store.prune();

@@ -16,6 +16,7 @@
 
 // @vitest-environment node
 
+import type { ChatStreamEvent } from '@kestrel/shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
@@ -109,6 +110,47 @@ describe('mastraStreamResponse onAbort', () => {
     expect(body).toContain('"type":"turn-complete"');
     expect(body).toContain('"status":"persisted"');
     expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits structured tool events and afterTextEvents before text-end', async () => {
+    async function* events(): AsyncIterable<string | ChatStreamEvent> {
+      yield {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'get_price',
+        input: { symbol: 'XAUUSD' },
+      };
+      yield {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: { symbol: 'XAUUSD', price: 2650.4 },
+      };
+      yield 'Gold is at 2650.4';
+    }
+
+    const response = mastraStreamResponse(events(), 'msg-tools', {
+      afterTextEvents: () => [
+        {
+          type: 'data-multi-agent-meta',
+          id: 'msg-tools',
+          data: { toolNames: ['get_price'], totalCostUsd: 0.002 },
+        },
+      ],
+      onComplete: () => 'persisted',
+    });
+
+    const reader = response.body!.getReader();
+    let body = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      body += new TextDecoder().decode(value);
+    }
+
+    expect(body).toContain('"type":"tool-input-available"');
+    expect(body).toContain('"type":"tool-output-available"');
+    expect(body).toContain('"type":"data-multi-agent-meta"');
+    expect(body).toContain('"toolNames":["get_price"]');
   });
 
   it('does not invoke completion twice when abort races with persistence failure', async () => {

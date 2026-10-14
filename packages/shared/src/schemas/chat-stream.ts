@@ -38,6 +38,48 @@ export const AgentProgressEventSchema = z.object({
   // resulting AI SDK data stream.
   data: z.unknown(),
 });
+export const ToolInputStartEventSchema = z.object({
+  type: z.literal('tool-input-start'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  providerExecuted: z.boolean().optional(),
+});
+export const ToolInputDeltaEventSchema = z.object({
+  type: z.literal('tool-input-delta'),
+  toolCallId: z.string(),
+  inputTextDelta: z.string(),
+});
+export const ToolInputAvailableEventSchema = z.object({
+  type: z.literal('tool-input-available'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  input: z.unknown(),
+  providerExecuted: z.boolean().optional(),
+});
+export const ToolOutputAvailableEventSchema = z.object({
+  type: z.literal('tool-output-available'),
+  toolCallId: z.string(),
+  output: z.unknown(),
+});
+export const ToolOutputErrorEventSchema = z.object({
+  type: z.literal('tool-output-error'),
+  toolCallId: z.string(),
+  errorText: z.string(),
+});
+export const DataEvidenceBlockedEventSchema = z.object({
+  type: z.literal('data-evidence-blocked'),
+  id: z.string().optional(),
+  data: z.object({
+    message: z.string(),
+    repaired: z.boolean().optional(),
+  }),
+});
+export const MemoryDegradedStreamEventSchema = z.object({
+  type: z.literal('data-memory-degraded'),
+  id: z.string().optional(),
+  reason: z.string().max(200),
+  createdAt: z.number().int(),
+});
 export const ErrorEventSchema = z.object({
   type: z.literal('error'),
   errorText: z.string(),
@@ -46,66 +88,6 @@ export const TurnCompleteEventSchema = z.object({
   type: z.literal('turn-complete'),
   id: z.string(),
   status: z.enum(['persisted', 'persistence-failed', 'interrupted', 'failed']),
-});
-
-// AI SDK v5 tool stream chunks (audit v3 P0-1). Shapes mirror the AI SDK v5
-// `UIMessageChunk` data-stream protocol one-for-one so the client transport
-// can forward them to `useChat` unchanged and live `tool-<name>` message
-// parts render generative UI cards.
-export const ToolInputStartChunkSchema = z.object({
-  type: z.literal('tool-input-start'),
-  toolCallId: z.string(),
-  toolName: z.string(),
-});
-
-export const ToolInputDeltaChunkSchema = z.object({
-  type: z.literal('tool-input-delta'),
-  toolCallId: z.string(),
-  inputTextDelta: z.string(),
-});
-
-export const ToolInputAvailableChunkSchema = z.object({
-  type: z.literal('tool-input-available'),
-  toolCallId: z.string(),
-  toolName: z.string(),
-  input: z.unknown(),
-});
-
-export const ToolOutputAvailableChunkSchema = z.object({
-  type: z.literal('tool-output-available'),
-  toolCallId: z.string(),
-  output: z.unknown(),
-});
-
-export const ToolOutputErrorChunkSchema = z.object({
-  type: z.literal('tool-output-error'),
-  toolCallId: z.string(),
-  errorText: z.string(),
-});
-
-/**
- * Emitted when the canonical evidence gate blocks an answer after tokens
- * already streamed (Q10). The client replaces the unverified text with this
- * message instead of concatenating a refusal onto it.
- */
-export const DataEvidenceBlockedChunkSchema = z.object({
-  type: z.literal('data-evidence-blocked'),
-  data: z.object({
-    message: z.string(),
-  }),
-});
-
-/**
- * Live variant of the persisted `data-memory-degraded` part (audit v3 P0-1):
- * without it the transport dropped the event and flagged a protocol error.
- * The payload mirrors `MemoryDegradedPartSchema` minus the literal type.
- */
-export const MemoryDegradedEventSchema = z.object({
-  type: z.literal('data-memory-degraded'),
-  data: z.object({
-    reason: z.string().max(200),
-    createdAt: z.number().int().optional(),
-  }),
 });
 
 /** Strict user-authored parts allowed into durable AI queue payloads. */
@@ -178,13 +160,13 @@ export const ChatStreamEventSchema = z.discriminatedUnion('type', [
   TextEndEventSchema,
   MultiAgentMetaEventSchema,
   AgentProgressEventSchema,
-  ToolInputStartChunkSchema,
-  ToolInputDeltaChunkSchema,
-  ToolInputAvailableChunkSchema,
-  ToolOutputAvailableChunkSchema,
-  ToolOutputErrorChunkSchema,
-  DataEvidenceBlockedChunkSchema,
-  MemoryDegradedEventSchema,
+  ToolInputStartEventSchema,
+  ToolInputDeltaEventSchema,
+  ToolInputAvailableEventSchema,
+  ToolOutputAvailableEventSchema,
+  ToolOutputErrorEventSchema,
+  DataEvidenceBlockedEventSchema,
+  MemoryDegradedStreamEventSchema,
   ErrorEventSchema,
   TurnCompleteEventSchema,
 ]);

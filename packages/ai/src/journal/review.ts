@@ -23,13 +23,18 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { JournalEntry, JournalStats, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
+import { acquireBudget } from '../budget';
 import {
   DEFAULT_MAX_DAILY_USD,
   estimateKnownCostUsd,
   releaseBudgetReservation,
-  tryReserveBudget,
 } from '../cost';
 import { runMastraText } from '../mastra-v2/agents/xauusd/text-runner';
+import {
+  beginMastraRun,
+  finishMastraRun,
+  mastraOutcomeForError,
+} from '../mastra-v2/shared/telemetry';
 import { resolveChatModel } from '../model';
 import { computeStats } from './persistence';
 
@@ -102,6 +107,8 @@ function formatEntryForPrompt(entry: JournalEntry, stats: JournalStats): string 
 export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewResult> {
   const { userId, entry, userSettings, env, signal } = args;
   const startedAt = Date.now();
+  const runId = crypto.randomUUID();
+  const threadId = `journal-review:${entry.id}`;
 
   if (entry.outcome === 'open') {
     throw new Error('Cannot review an open trade; close it first.');
@@ -109,18 +116,30 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
 
   // Resolve the user's default chat model (BYOK or env fallback).
   const { model, modelId } = resolveChatModel(userSettings, env);
+  const providerId = modelId.includes(':') ? modelId.split(':')[0]! : 'google';
 
-  // Budget guardrail: reserve a small estimate before the call.
+  // Audit v3 Phase 7 (Q4): use acquireBudget so daily caps are ledger-only
+  // unless ENFORCE_BUDGET=true.
   const estimatedUsd = 0.005;
   const maxDailyUsd = userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD;
-  const reservation = await tryReserveBudget(userId, estimatedUsd, maxDailyUsd, new Date(), {
-    runId: crypto.randomUUID(),
+  const { reservation } = await acquireBudget({
+    userId,
+    estimateUsd: estimatedUsd,
+    maxDailyUsd,
+    correlation: { runId, threadId },
   });
   if (!reservation.ok) {
     throw new Error(
       `Daily AI budget exceeded ($${reservation.spent.toFixed(2)} / $${reservation.max.toFixed(2)}).`,
     );
   }
+
+  beginMastraRun({
+    runId,
+    threadId,
+    model: modelId,
+    providerId,
+  });
 
   try {
     const stats = await computeStats(userId);
@@ -131,6 +150,8 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       userId,
+      threadId,
+      runId,
       ...(signal ? { signal } : {}),
       maxOutputTokens: 800,
     });
@@ -139,6 +160,22 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
     const outputTokens = result.outputTokens;
     const latencyMs = Date.now() - startedAt;
     const costUsd = estimateKnownCostUsd(modelId, inputTokens, outputTokens);
+
+    await finishMastraRun({
+      userId,
+      threadId,
+      runId,
+      model: modelId,
+      providerId,
+      startedAt,
+      inputTokens,
+      outputTokens,
+      toolCalls: 0,
+      steps: 1,
+      outcome: 'success',
+      answerOutcome: reviewText.trim().length > 0 ? 'ready' : 'degraded',
+      telemetryKind: 'mastra_worker_task',
+    });
 
     // Reconcile the durable budget reservation with actual cost.
     if (reservation.reservationId) {
@@ -155,6 +192,22 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
       latencyMs,
     };
   } catch (err) {
+    await finishMastraRun({
+      userId,
+      threadId,
+      runId,
+      model: modelId,
+      providerId,
+      startedAt,
+      inputTokens: 0,
+      outputTokens: 0,
+      toolCalls: 0,
+      steps: 0,
+      outcome: mastraOutcomeForError(err, signal),
+      telemetryKind: 'mastra_worker_task',
+      error: err,
+    });
+
     // Release the reservation on failure so the user isn't charged. A failed
     // ledger release is logged and remains recoverable for a later retry.
     try {

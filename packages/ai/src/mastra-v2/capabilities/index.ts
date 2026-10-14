@@ -98,6 +98,7 @@ const LEGACY_DOMAIN_TOOL_NAMES = {
     'compute_risk',
     'forecast_volatility',
     'verify_call',
+    'convene_committee',
     'web_search',
   ],
   technical: [
@@ -114,13 +115,14 @@ const LEGACY_DOMAIN_TOOL_NAMES = {
     'get_journal_stats',
     'replay_setup',
     'get_portfolio_snapshot',
+    'convene_committee',
   ],
 } as const satisfies Record<
   'summary' | 'vision' | 'fundamental' | 'technical',
   readonly string[]
 >;
 
-/** Explicit public read-only boundary for canonical chat. */
+/** Explicit public read-only boundary for canonical chat (Decision Q11 includes convene_committee). */
 const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
   'get_price',
   'get_candles',
@@ -142,6 +144,7 @@ const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
   'web_search',
   'search_knowledge',
   'verify_call',
+  'convene_committee',
 ] as const;
 
 /** Sensitive user-scoped reads require an explicit capability. */

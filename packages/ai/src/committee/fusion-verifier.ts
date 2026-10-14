@@ -17,13 +17,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee fusion verifier (audit plan §1.4, P0-1). Specialists are
- * verified per-opinion, but the free-form fusion answer previously reached
- * the user unverified and could hallucinate prices/levels that appear in
- * neither the packet nor any specialist opinion. This verifier mirrors the
- * XAUUSD report grounding discipline: every numeric value in the fusion
- * text must be supported by packet evidence, a verified specialist opinion,
- * structural notation, or scenario-projection wording.
+ * Committee fusion verifier (audit plan §1.4, P0-1 + Audit v3 Phase 4 Q8).
+ * Every numeric value in the fusion text must be supported by packet evidence,
+ * verified specialist tool outputs, structural notation, or scenario-projection
+ * wording.
  *
  * Q3 decision: a failed verification is terminal after one bounded repair —
  * never a degraded partial answer.
@@ -33,6 +30,7 @@ import { metrics } from '@kestrel/shared';
 
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import { packetEvidenceValues, ungroundedNarrativeNumbers } from './grounding';
+import type { MastraModeOpinion } from './types';
 
 export interface FusionVerification {
   ok: boolean;
@@ -51,11 +49,14 @@ function emitVerificationMetrics(ok: boolean, findings: readonly string[]): void
 }
 
 /**
- * Deterministically verify the free-form fusion answer against packet evidence.
- * Specialist opinions are verified individually before fusion, so they are not
- * a second source of grounded numbers here.
+ * Deterministically verify the fusion answer against packet evidence and
+ * verified specialist tool evidence (Q8).
  */
-export function verifyFusionAnswer(text: string, packet: SymbolResearchPacket): FusionVerification {
+export function verifyFusionAnswer(
+  text: string,
+  packet: SymbolResearchPacket,
+  opinions?: readonly Pick<MastraModeOpinion, 'rawData'>[],
+): FusionVerification {
   const findings: string[] = [];
 
   if (!text || !text.trim()) {
@@ -74,10 +75,8 @@ export function verifyFusionAnswer(text: string, packet: SymbolResearchPacket): 
     return { ok: findings.length === 0, findings };
   }
 
-  // Specialist numbers are not trusted by proxy: each opinion is grounded
-  // against the same packet evidence (verifyMastraOpinion), and the fusion
-  // answer is grounded against that evidence directly.
-  for (const value of ungroundedNarrativeNumbers(text, packetEvidenceValues(packet))) {
+  const evidenceValues = packetEvidenceValues(packet, opinions);
+  for (const value of ungroundedNarrativeNumbers(text, evidenceValues)) {
     findings.push(
       `fusion answer contains unsupported numeric value ${value}; it must come from the packet or be labeled as a scenario projection`,
     );

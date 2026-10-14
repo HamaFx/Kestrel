@@ -19,7 +19,21 @@
 
 export { BotDispatcher, getBotDispatcher } from './dispatcher';
 export { parseCommand } from './types';
-export type { BotCommand, BotContext, BotResponse, BotPlatform, ParsedCommand } from './types';
+export type {
+  BotCommand,
+  BotContext,
+  BotInlineButton,
+  BotResponse,
+  BotPlatform,
+  ParsedCommand,
+} from './types';
+export {
+  formatTelegramAnalysisReply,
+  parseTelegramAnalysisMode,
+  runTelegramSymbolAnalysis,
+  tryMastraBotMessage,
+} from './mastra';
+export { buildModeToggleKeyboard } from './commands/analyze';
 export { createLinkCode, resolveLinkCode, resolveBotUser, unlinkBot, getBotLink } from './linking';
 
 // Telegram client (resilient API calls with retry + chunking)

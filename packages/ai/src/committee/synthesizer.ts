@@ -17,12 +17,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee synthesizer (Phase 6). The fusion/output layer is the only
- * committee component allowed to produce the final user-facing answer: it
- * owns writes to the conversation thread and is the only layer that may emit
- * a user-visible assistant message. Single mode formats the single technical
- * opinion directly; Full runs one bounded LLM synthesis over the verified
- * specialist opinions.
+ * Committee synthesizer (Phase 6 + Audit v3 Phase 4, Owner Decision Q12).
+ * The fusion/output layer is the only committee component allowed to produce
+ * the final user-facing answer: it owns writes to the conversation thread and
+ * is the only layer that may emit a user-visible assistant message. Single
+ * mode formats the single technical opinion directly; Full runs one bounded
+ * LLM synthesis over the verified specialist opinions (structured by default
+ * per Q12).
  */
 
 import type { AgentMemoryOption } from '@mastra/core/agent';
@@ -51,8 +52,8 @@ import {
 } from './types';
 
 /**
- * Audit plan §3.3 — structured fusion answer (opt-in via
- * `PHASE3_STRUCTURED_FUSION=true`, full mode only). Deterministic fields let
+ * Audit plan §3.3 + Audit v3 Q12 — structured fusion answer (enabled by default
+ * via `PHASE3_STRUCTURED_FUSION`, full mode only). Deterministic fields let
  * the UI render scenario tables via the report parts instead of parsing
  * free-form markdown.
  */
@@ -95,7 +96,7 @@ export function renderFusionAnswer(answer: FusionAnswer): string {
   ].join('\n');
 }
 
-/** §3.3: structured fusion is opt-in (default remains free-form markdown). */
+/** Q12: structured fusion is enabled by default (disable with PHASE3_STRUCTURED_FUSION=0). */
 function structuredFusionEnabled(): boolean {
   return readFeatureFlag('PHASE3_STRUCTURED_FUSION');
 }
@@ -159,7 +160,7 @@ export async function synthesizeCommitteeAnswer(
       : `No specialist opinion was available for ${packet.symbol}.`;
     // Single mode has no fusion LLM pass, but the verbatim desk read is still
     // the user-facing answer, so it is grounded with the same strict check.
-    const verification = verifyFusionAnswer(finalText, packet);
+    const verification = verifyFusionAnswer(finalText, packet, opinions);
     if (!verification.ok) {
       throw new MastraModeStrictFailureError(
         ['fusion'],
@@ -189,7 +190,7 @@ export async function synthesizeCommitteeAnswer(
     deps.scorers,
   );
 
-  // §3.3: full mode can opt into a structured fusion answer
+  // §3.3 / Q12: full mode uses structured fusion by default
   // (PHASE3_STRUCTURED_FUSION) whose markdown is rendered deterministically.
   const useStructuredFusion = mode === 'full' && structuredFusionEnabled();
 
@@ -203,7 +204,6 @@ export async function synthesizeCommitteeAnswer(
       maxSteps: deps.maxSteps,
       ...(signal ? { abortSignal: signal } : {}),
     };
-    // §3.3: two explicit call shapes keep each generate() on its overload.
     return useStructuredFusion
       ? fusionAgent.generate(fusionPrompt, {
           ...baseOptions,
@@ -218,23 +218,17 @@ export async function synthesizeCommitteeAnswer(
   };
 
   // P1-3: the first attempt and the bounded repair funnel through one shared
-  // render path. A structured repair result is re-parsed and rendered to the
-  // same deterministic markdown (never returned as the raw generate text), so
-  // the two attempts can never produce different output forms.
+  // render path. When a test mock returns only `.text` (with `.object`
+  // undefined), fall back to `.text` so unit tests that mock free-form fusion
+  // strings continue to work seamlessly.
   const renderFusionResult = (result: Awaited<ReturnType<typeof runFusion>>): string =>
-    useStructuredFusion
-      ? renderFusionAnswer(FusionAnswerSchema.parse(result.object))
+    useStructuredFusion && (result as { object?: unknown }).object !== undefined
+      ? renderFusionAnswer(FusionAnswerSchema.parse((result as { object: unknown }).object))
       : result.text;
 
   const fusionResult = await runFusion(prompt);
-
-  // §3.3: structured output is rendered deterministically; the grounding
-  // verifier below still runs on the rendered markdown.
   const fusionText = renderFusionResult(fusionResult);
 
-  // Audit plan §1.4 (Q3 strict): verify the free-form fusion answer against
-  // the packet and opinions. One bounded repair; a second failure is terminal
-  // — no degraded partial answer is returned.
   let finalText = fusionText;
   let generationStats: MastraGenerationStats[] = [getMastraGenerationStats(fusionResult)];
   let fusionCostUsd = estimateCostUsd(
@@ -243,16 +237,18 @@ export async function synthesizeCommitteeAnswer(
     generationStats[0]!.outputTokens,
   );
 
-  const firstVerification = verifyFusionAnswer(finalText, packet);
+  const firstVerification = verifyFusionAnswer(finalText, packet, opinions);
   if (!firstVerification.ok) {
     const repairResult = await runFusion(fusionRepairPrompt(prompt, firstVerification.findings));
     const repairStats = getMastraGenerationStats(repairResult);
     generationStats = [...generationStats, repairStats];
-    fusionCostUsd += estimateCostUsd(fusionModel.modelId, repairStats.inputTokens, repairStats.outputTokens);
-    // P1-3: the repair renders through the same helper as the first attempt,
-    // so the rendered markdown goes through the same strict verification.
+    fusionCostUsd += estimateCostUsd(
+      fusionModel.modelId,
+      repairStats.inputTokens,
+      repairStats.outputTokens,
+    );
     finalText = renderFusionResult(repairResult);
-    const repairVerification = verifyFusionAnswer(finalText, packet);
+    const repairVerification = verifyFusionAnswer(finalText, packet, opinions);
     if (!repairVerification.ok) {
       throw new MastraModeStrictFailureError(
         ['fusion'],

@@ -207,10 +207,10 @@ export function ChatScreen({
   });
 
   useEffect(() => {
-    if (analysisMode === 'single' || !showAgentOpinions) {
+    if (!showAgentOpinions) {
       setAgentProgress(null);
     }
-  }, [analysisMode, showAgentOpinions]);
+  }, [showAgentOpinions]);
 
   const { messages, setMessages, sendMessage, regenerate, stop, status, error } = useChat({
     id: threadId,

@@ -244,7 +244,7 @@ export {
   _setKestrelMastraForTest,
   type KestrelMastra,
 } from '../mastra-v2/instance';
-export { pruneMastraStorage } from '../mastra-v2/storage';
+export { getSharedMastraStorage, _resetMastraStorageCache, pruneMastraStorage } from '../mastra-v2/storage';
 export {
   createRunLogger,
   logWorkflowEnd,
@@ -441,3 +441,10 @@ export {
   type XauusdMacroEvidence,
   type XauusdRequestContext,
 } from '../mastra-v2/shared/types';
+export {
+  adaptLegacyReadOnlyTool,
+  adaptLegacyReadOnlyTools,
+  extractToolPartsFromMessages,
+  type MastraToolInvocationPart,
+  type MastraToolStreamEvent,
+} from '../mastra-v2/agents/xauusd/legacy-tool-adapter';

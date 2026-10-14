@@ -107,20 +107,19 @@ describe('tools registry', () => {
       'set_alert',
       'search_knowledge',
       'share_snapshot',
-      // System (6)
+      // System (7 — includes convene_committee per Decision Q11)
       'get_system_diagnostics',
       'run_system_action',
       'get_portfolio_snapshot',
       'get_social_sentiment',
       'verify_call',
       'replay_setup',
+      'convene_committee',
       // Web (1)
       'web_search',
     ];
     expect(toolRegistry.listNames()).toEqual(expectedKeys);
-    // 31 tools: convene_committee + summarize_thread removed in Phase 9
-    // (their Mastra workflow equivalents own committee + summary behavior).
-    expect(toolRegistry.listNames().length).toBe(31);
+    expect(toolRegistry.listNames().length).toBe(32);
   });
 
   it('every tool has description, inputSchema, and execute', () => {
@@ -187,5 +186,21 @@ describe('tools registry', () => {
       minImportance: 'high',
     });
     expect(withFilters.success).toBe(true);
+  });
+
+  it('convene_committee tool validates input schema', () => {
+    const allTools = toolRegistry.resolve();
+    const convene = allTools['convene_committee'] as {
+      inputSchema: { safeParse: (v: unknown) => { success: boolean } };
+    };
+    expect(
+      convene.inputSchema.safeParse({
+        symbol: 'XAUUSD',
+        side: 'long',
+        entry: 2400,
+        stop: 2385,
+        target: 2440,
+      }).success,
+    ).toBe(true);
   });
 });

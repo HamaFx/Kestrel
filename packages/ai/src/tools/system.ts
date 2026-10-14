@@ -18,6 +18,7 @@
 // Imported by tools/index.ts for self-registration and also exposed
 // as a sub-path export: @kestrel/ai/tools/system
 
+import { conveneCommitteeTool } from './convene-committee';
 import { getPortfolioSnapshotTool } from './get-portfolio-snapshot';
 import { getSocialSentimentTool } from './get-social-sentiment';
 import { getSystemDiagnosticsTool } from './get-system-diagnostics';
@@ -33,6 +34,7 @@ const systemTools = [
   ['get_social_sentiment', getSocialSentimentTool],
   ['verify_call', verifyCallTool],
   ['replay_setup', replaySetupTool],
+  ['convene_committee', conveneCommitteeTool],
 ] as const;
 
 /**

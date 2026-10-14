@@ -17,7 +17,15 @@
 import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
-import { runMastraBackgroundText } from '../mastra';
+import {
+  collectSymbolResearchPacket,
+  extractSymbolFromPrompt,
+  runMastraBackgroundText,
+  runMastraMode,
+  serializeSymbolResearchPacket,
+  type MastraAnalysisMode,
+  type MastraModeOpinion,
+} from '../mastra';
 import { appendAssistantMessage, appendUserMessage } from '../persistence';
 import type { ResolveModelEnv } from '../env-model-factory';
 
@@ -29,10 +37,148 @@ function botEnv(): ResolveModelEnv {
   };
 }
 
+const DESK_PLAIN_LABELS: Record<string, string> = {
+  technical: '📈 Technical Chartist',
+  fundamental: '🌍 Macro & News',
+  risk: '🛡️ Risk Manager',
+  sentiment: '👥 Market Sentiment',
+};
+
+function formatBiasLabel(bias: 'bullish' | 'bearish' | 'neutral'): string {
+  if (bias === 'bullish') return 'Bullish';
+  if (bias === 'bearish') return 'Bearish';
+  return 'Neutral';
+}
+
 /**
- * Run a bot message through the bounded Mastra worker-style path. The bot no
- * longer falls back to the removed legacy agent; a failed Mastra run is
- * propagated to the command boundary so the user receives an explicit error.
+ * Parse a user-supplied mode flag (`quick`, `single`, `full`, `team`, `4`, `1`)
+ * into a canonical `MastraAnalysisMode`.
+ */
+export function parseTelegramAnalysisMode(rawMode?: string): MastraAnalysisMode | null {
+  if (!rawMode) return null;
+  const normalized = rawMode.trim().toLowerCase();
+  if (
+    normalized === 'quick' ||
+    normalized === 'single' ||
+    normalized === 'fast' ||
+    normalized === '1'
+  ) {
+    return 'single';
+  }
+  if (
+    normalized === 'full' ||
+    normalized === 'team' ||
+    normalized === 'committee' ||
+    normalized === '4'
+  ) {
+    return 'full';
+  }
+  return null;
+}
+
+/**
+ * Format a completed symbol analysis in clear, plain-English trader language
+ * (Decision Q9: no internal system jargon like "Mastra", "packetId", or "canonical").
+ */
+export function formatTelegramAnalysisReply(args: {
+  symbol: string;
+  mode: MastraAnalysisMode;
+  finalText: string;
+  agentOpinions?: ReadonlyArray<
+    Pick<MastraModeOpinion, 'agentName' | 'bias' | 'confidence' | 'reasoning'>
+  >;
+}): string {
+  const modeHeader =
+    args.mode === 'full'
+      ? `🧠 Full Team Analysis (4 Experts) — ${args.symbol}`
+      : `⚡ Quick Check (1 Expert) — ${args.symbol}`;
+
+  const sections: string[] = [modeHeader];
+
+  if (args.mode === 'full' && args.agentOpinions && args.agentOpinions.length > 0) {
+    const breakdownLines = args.agentOpinions.map((op) => {
+      const label = DESK_PLAIN_LABELS[op.agentName] ?? op.agentName;
+      const pct = Math.round(op.confidence * 100);
+      return `• ${label}: ${formatBiasLabel(op.bias)} (${pct}% confidence)`;
+    });
+    sections.push(['Expert Team Breakdown:', ...breakdownLines].join('\n'));
+  }
+
+  sections.push(args.finalText.trim());
+
+  const switchCmd =
+    args.mode === 'single'
+      ? `/analyze ${args.symbol} full`
+      : `/analyze ${args.symbol} quick`;
+  const switchLabel =
+    args.mode === 'single'
+      ? 'Full Team Analysis (4 Experts)'
+      : 'Quick Check (1 Expert)';
+  sections.push(`💡 Want a different depth? Tap the button below or send ${switchCmd} for ${switchLabel}.`);
+
+  return sections.join('\n\n');
+}
+
+/**
+ * Run a real multi-agent or single-expert symbol analysis for Telegram commands
+ * (`/analyze` and `/committee`), backed by `runMastraMode` (live `SymbolResearchPacket`
+ * + specialist desk tools + strict verification).
+ */
+export async function runTelegramSymbolAnalysis(args: {
+  userId: string;
+  threadId: string;
+  userMessage: UIMessage;
+  symbol: string;
+  mode: MastraAnalysisMode;
+  signal?: AbortSignal;
+}): Promise<string | null> {
+  const { settings } = await getUserWithSettings(args.userId);
+  if (!settings) return null;
+
+  const prompt =
+    args.mode === 'full'
+      ? `Provide a complete 4-expert team analysis for ${args.symbol} in simple, everyday trader language. Cover the bottom line, key price levels to watch, main drivers, and what would invalidate the view.`
+      : `Provide a quick technical check for ${args.symbol} in simple, everyday trader language. Cover the bottom line, key price levels to watch, and what would invalidate the setup.`;
+
+  const result = await runMastraMode({
+    prompt,
+    symbol: args.symbol,
+    userId: args.userId,
+    threadId: args.threadId,
+    runId: crypto.randomUUID(),
+    mode: args.mode,
+    settings,
+    env: botEnv(),
+    ...(args.signal ? { signal: args.signal } : {}),
+  });
+
+  if (!result.finalText || result.finalText.trim().length === 0) {
+    return null;
+  }
+
+  const formattedText = formatTelegramAnalysisReply({
+    symbol: args.symbol,
+    mode: args.mode,
+    finalText: result.finalText,
+    agentOpinions: result.agentOpinions,
+  });
+
+  await appendUserMessage(args.userId, args.threadId, args.userMessage);
+  const assistant: UIMessage = {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    parts: [{ type: 'text', text: formattedText }],
+  };
+  await appendAssistantMessage(args.userId, args.threadId, assistant);
+
+  return formattedText;
+}
+
+/**
+ * Run a free-form or `/ask` bot message through the Mastra path.
+ * When a market symbol is mentioned in the user's question, automatically
+ * collects a live `SymbolResearchPacket` so the answer is grounded in live
+ * market data and explained in simple, non-technical language.
  */
 export async function tryMastraBotMessage(args: {
   userId: string;
@@ -45,14 +191,32 @@ export async function tryMastraBotMessage(args: {
   const { settings } = await getUserWithSettings(args.userId);
   if (!settings) return null;
 
-  // Generate before persisting so a failed Mastra attempt cannot leave a
-  // duplicate user message when the caller falls back to the legacy path.
+  let enrichedPrompt = args.prompt;
+  const detectedSymbol = extractSymbolFromPrompt(args.prompt);
+  if (detectedSymbol) {
+    try {
+      const packet = await collectSymbolResearchPacket(detectedSymbol);
+      if (packet.status === 'ready') {
+        enrichedPrompt = [
+          args.prompt,
+          '',
+          'Live Market Data Snapshot (use only these verified numbers):',
+          serializeSymbolResearchPacket(packet),
+        ].join('\n');
+      }
+    } catch {
+      // Proceed with the user's prompt if live packet collection is unavailable.
+    }
+  }
+
+  // Generate before persisting so a failed attempt cannot leave a
+  // duplicate user message.
   const result = await runMastraBackgroundText({
     userId: args.userId,
     threadId: args.threadId,
     task: 'bot',
-    prompt: args.prompt,
-    system: args.system,
+    prompt: enrichedPrompt,
+    system: `${args.system} Write in simple, plain English for everyday traders. Avoid internal technical jargon.`,
     settings,
     env: botEnv(),
     ...(args.signal ? { signal: args.signal } : {}),

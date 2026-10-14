@@ -46,10 +46,11 @@ import { useMemo, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 interface AgentOpinion {
-  agentName: string;
+  agentName?: string;
   bias: 'bullish' | 'bearish' | 'neutral';
   confidence: number;
-  reasoning: string;
+  reasoning?: string;
+  summary?: string;
 }
 
 interface AgentProgress {
@@ -115,6 +116,17 @@ const BIAS_TOKEN: Record<AgentOpinion['bias'], string> = {
   neutral: 'text-fg-muted',
 };
 
+function formatPlainModeLabel(mode: string): string {
+  const normalized = mode.toLowerCase();
+  if (normalized === 'single') {
+    return 'Quick Check (1 Expert · single mode)';
+  }
+  if (normalized === 'full') {
+    return 'Full Team Analysis (4 Experts · full mode)';
+  }
+  return `Desk Deliberation · ${mode} Mode`;
+}
+
 export function AgentDeliberation({ agents, mode, status, error }: AgentDeliberationProps) {
   if (!Array.isArray(agents) || agents.length === 0) return null;
   const hasDone = agents.some((a) => a.status === 'done');
@@ -152,7 +164,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
       <div className="border-border/60 flex items-center justify-between gap-2 border-b pb-3">
         <div className="text-caption text-fg-subtle flex items-center gap-2 font-semibold tracking-wider uppercase">
           <IconCpu className="size-3.5" />
-          <span>Desk Deliberation · {mode} Mode</span>
+          <span>{formatPlainModeLabel(mode)}</span>
         </div>
 
         {!allDone && (
@@ -282,7 +294,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
                           </span>
                         </div>
                         <p className="text-fg-muted text-caption mt-1 leading-relaxed">
-                          {op.reasoning}
+                          {op.reasoning ?? op.summary}
                         </p>
                       </div>
                     );

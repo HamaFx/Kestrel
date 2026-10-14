@@ -450,12 +450,31 @@ function toPartState(state: StreamToolState): ToolPartState {
   return 'loading';
 }
 
+function findEvidenceReplacement(parts: UIMessage['parts'] | undefined): string | null {
+  if (!Array.isArray(parts)) return null;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i] as { type?: unknown; data?: { message?: unknown } } | undefined;
+    if (
+      part &&
+      part.type === 'data-evidence-blocked' &&
+      part.data &&
+      typeof part.data.message === 'string' &&
+      part.data.message.length > 0
+    ) {
+      return part.data.message;
+    }
+  }
+  return null;
+}
+
 function renderMessageParts(
   parts: UIMessage['parts'],
   isStreaming: boolean | undefined,
   role: UIMessage['role'],
 ): ReactNode[] {
   const elements: ReactNode[] = [];
+  const evidenceReplacement = findEvidenceReplacement(parts);
+  let replacedTextRendered = false;
   let currentToolGroup: Array<{
     key: number;
     name: string;
@@ -496,6 +515,20 @@ function renderMessageParts(
     if (!part) continue;
     if (part.type === 'text') {
       flushToolGroup();
+      if (evidenceReplacement !== null) {
+        if (!replacedTextRendered) {
+          replacedTextRendered = true;
+          elements.push(
+            <MemoizedTextPart
+              key={idx}
+              text={evidenceReplacement}
+              role={role === 'user' ? 'user' : 'assistant'}
+              isStreaming={false}
+            />,
+          );
+        }
+        continue;
+      }
       elements.push(
         <MemoizedTextPart
           key={idx}
@@ -525,6 +558,16 @@ function renderMessageParts(
     }
   }
   flushToolGroup();
+  if (evidenceReplacement !== null && !replacedTextRendered) {
+    elements.push(
+      <MemoizedTextPart
+        key="evidence-replaced-text"
+        text={evidenceReplacement}
+        role={role === 'user' ? 'user' : 'assistant'}
+        isStreaming={false}
+      />,
+    );
+  }
   return elements;
 }
 
@@ -533,7 +576,7 @@ function renderPart(
   idx: number,
   _role: UIMessage['role'],
 ): ReactNode {
-  if (part.type === 'reasoning') return null;
+  if (part.type === 'reasoning' || part.type === 'data-evidence-blocked') return null;
   if (part.type.startsWith('source-') || part.type === 'file' || part.type === 'step-start')
     return null;
 
@@ -632,6 +675,8 @@ function getMessageModel(message: UIMessage): string | null {
 }
 
 function extractText(m: UIMessage): string {
+  const replacement = findEvidenceReplacement(m.parts);
+  if (replacement !== null) return replacement.trim();
   return m.parts
     .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
     .map((p) => p.text)

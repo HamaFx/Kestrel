@@ -33,7 +33,7 @@ import {
   type XauusdTurnMode,
 } from '@kestrel/ai/mastra';
 import { getThread, getUserWithSettings } from '@kestrel/db';
-import { notFound } from '@kestrel/shared';
+import { notFound, type ChatStreamEvent } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
@@ -95,6 +95,9 @@ export async function runMastraXauusdConversationStreamChat(
   try {
     await appendUserMessage(input.userId, input.threadId, input.userMessage);
 
+    const liveToolEvents: ChatStreamEvent[] = [];
+    const emittedToolCallIds = new Set<string>();
+
     const stream: XauusdMastraConversationStream = await runXauusdMastraConversationStream({
       prompt: input.prompt,
       userId: input.userId,
@@ -111,16 +114,60 @@ export async function runMastraXauusdConversationStreamChat(
       ...(input.priorReport ? { priorReport: input.priorReport } : {}),
       ...(input.executionPlan ? { executionPlan: input.executionPlan } : {}),
       ledger,
+      onToolEvent: (ev) => {
+        emittedToolCallIds.add(ev.toolCallId);
+        liveToolEvents.push(ev);
+      },
     });
 
     const messageId = crypto.randomUUID();
     assistantMessageId = messageId;
     let observedCost = 0;
+    const postTextEvents: ChatStreamEvent[] = [];
 
-    async function* text(): AsyncIterable<string> {
+    async function* text(): AsyncIterable<string | ChatStreamEvent> {
       try {
-        yield* stream.text;
+        while (liveToolEvents.length > 0) {
+          const ev = liveToolEvents.shift();
+          if (ev) yield ev;
+        }
+        for await (const chunk of stream.text) {
+          while (liveToolEvents.length > 0) {
+            const ev = liveToolEvents.shift();
+            if (ev) yield ev;
+          }
+          if (chunk.length > 0) yield chunk;
+        }
+        while (liveToolEvents.length > 0) {
+          const ev = liveToolEvents.shift();
+          if (ev) yield ev;
+        }
         const completed = await stream.completion;
+        const toolParts = completed.toolParts ?? [];
+        for (const tp of toolParts) {
+          if (!emittedToolCallIds.has(tp.toolCallId)) {
+            emittedToolCallIds.add(tp.toolCallId);
+            postTextEvents.push({
+              type: 'tool-input-available',
+              toolCallId: tp.toolCallId,
+              toolName: tp.toolName,
+              input: tp.input,
+            });
+            if (tp.state === 'output-available') {
+              postTextEvents.push({
+                type: 'tool-output-available',
+                toolCallId: tp.toolCallId,
+                output: tp.output ?? null,
+              });
+            } else if (tp.state === 'output-error') {
+              postTextEvents.push({
+                type: 'tool-output-error',
+                toolCallId: tp.toolCallId,
+                errorText: tp.errorText ?? 'Tool execution failed.',
+              });
+            }
+          }
+        }
         observedCost = ledger.total();
         const meta = createMastraChatMeta({
           runId,
@@ -138,10 +185,16 @@ export async function runMastraXauusdConversationStreamChat(
           modelSnapshot: undefined,
           terminalReason: 'stream-completed',
         });
+        postTextEvents.push({
+          type: 'data-multi-agent-meta',
+          id: messageId,
+          data: meta as unknown as Record<string, unknown>,
+        });
         const assistantMessage: UIMessage = {
           id: messageId,
           role: 'assistant',
           parts: [
+            ...(toolParts as unknown as UIMessage['parts']),
             { type: 'text', text: completed.result.text },
             { type: 'data-multi-agent-meta', data: meta } as UIMessage['parts'][number],
           ],
@@ -166,7 +219,7 @@ export async function runMastraXauusdConversationStreamChat(
     }
 
     return mastraStreamResponse(text(), messageId, {
-      meta: { id: messageId, data: { engine: 'mastra', agent: 'mastra-xauusd', runId } },
+      afterTextEvents: () => postTextEvents,
       signal: input.signal,
       onAbort: () => finalizer.abort(),
     });

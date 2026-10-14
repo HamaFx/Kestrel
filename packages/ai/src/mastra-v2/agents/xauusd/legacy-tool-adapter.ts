@@ -22,6 +22,85 @@ import { qualityFromWarnings } from '../../packets/evidence';
 import { MastraMutationNameSchema } from '../../mutation/mutation-policy';
 import { executeMastraTool } from '../../shared/tool-telemetry';
 
+export type MastraToolStreamEvent =
+  | {
+      type: 'tool-input-start';
+      toolCallId: string;
+      toolName: string;
+      providerExecuted?: boolean;
+    }
+  | {
+      type: 'tool-input-available';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      providerExecuted?: boolean;
+    }
+  | {
+      type: 'tool-output-available';
+      toolCallId: string;
+      output: unknown;
+    }
+  | {
+      type: 'tool-output-error';
+      toolCallId: string;
+      errorText: string;
+    };
+
+export interface MastraToolInvocationPart {
+  type: `tool-${string}`;
+  toolCallId: string;
+  toolName: string;
+  state: 'output-available' | 'output-error';
+  input: unknown;
+  output?: unknown;
+  errorText?: string;
+}
+
+const XAUUSD_TO_UI_TOOL_NAME: Record<string, string> = {
+  getXauusdPrice: 'get_price',
+  'get-xauusd-price': 'get_price',
+  getXauusdCandles: 'get_candles',
+  'get-xauusd-candles': 'get_candles',
+  getXauusdIndicators: 'get_indicators',
+  'get-xauusd-indicators': 'get_indicators',
+  getXauusdMarketStructure: 'get_market_structure',
+  'get-xauusd-market-structure': 'get_market_structure',
+  getXauusdSessionLevels: 'get_session_levels',
+  'get-xauusd-session-levels': 'get_session_levels',
+  analyzeXauusdTechnical: 'analyze_technical',
+  'analyze-xauusd-technical': 'analyze_technical',
+  getXauusdCorrelation: 'get_correlation',
+  'get-xauusd-correlation': 'get_correlation',
+  getXauusdIntermarket: 'get_intermarket',
+  'get-xauusd-intermarket': 'get_intermarket',
+  forecastXauusdVolatility: 'forecast_volatility',
+  'forecast-xauusd-volatility': 'forecast_volatility',
+  getXauusdNews: 'get_news',
+  'get-xauusd-news': 'get_news',
+  getXauusdCalendar: 'get_calendar',
+  'get-xauusd-calendar': 'get_calendar',
+  getXauusdSocialSentiment: 'get_social_sentiment',
+  'get-xauusd-social-sentiment': 'get_social_sentiment',
+  getXauusdFundamentalContext: 'analyze_fundamental',
+  'get-xauusd-fundamental-context': 'analyze_fundamental',
+  getXauusdSeasonality: 'get_seasonality',
+  'get-xauusd-seasonality': 'get_seasonality',
+  getXauusdCot: 'get_cot',
+  'get-xauusd-cot': 'get_cot',
+  getXauusdIntermarketResonance: 'get_intermarket_resonance',
+  'get-xauusd-intermarket-resonance': 'get_intermarket_resonance',
+  searchUntrustedWeb: 'web_search',
+  'search-untrusted-web': 'web_search',
+  searchUntrustedKnowledge: 'search_knowledge',
+  'search-untrusted-knowledge': 'search_knowledge',
+};
+
+export function normalizeUiToolName(rawName: string): string {
+  const stripped = rawName.startsWith('kestrel-') ? rawName.slice('kestrel-'.length) : rawName;
+  return XAUUSD_TO_UI_TOOL_NAME[stripped] ?? stripped;
+}
+
 interface LegacyToolWithExecute {
   description?: string;
   inputSchema?: unknown;
@@ -108,6 +187,7 @@ export function adaptLegacyReadOnlyTool(name: string, legacyTool: Tool) {
   if (typeof source.execute !== 'function') {
     throw new Error(`Cannot adapt ${name}: legacy tool has no execute function`);
   }
+  const uiToolName = normalizeUiToolName(name);
 
   return createTool({
     id: `kestrel-${name}`,
@@ -122,15 +202,151 @@ export function adaptLegacyReadOnlyTool(name: string, legacyTool: Tool) {
         requestContext?: { get: (key: string) => unknown };
         observe?: ToolObserve;
       },
-    ) =>
-      executeMastraTool(`kestrel-${name}`, context, async () =>
-        source.execute!(input, {
-          ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
-          ...(context.messages ? { messages: context.messages } : {}),
-          ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-        }),
-      ),
+    ) => {
+      const toolCallId = context.toolCallId ?? `call-${uiToolName}-${crypto.randomUUID()}`;
+      const onToolEvent = context.requestContext?.get('onToolEvent') as
+        | ((event: MastraToolStreamEvent) => void)
+        | undefined;
+      const toolParts = context.requestContext?.get('toolParts') as
+        | MastraToolInvocationPart[]
+        | undefined;
+
+      if (typeof onToolEvent === 'function') {
+        try {
+          onToolEvent({ type: 'tool-input-start', toolCallId, toolName: uiToolName });
+          onToolEvent({ type: 'tool-input-available', toolCallId, toolName: uiToolName, input });
+        } catch {
+          // Tool event listeners must never break tool execution.
+        }
+      }
+
+      try {
+        const output = await executeMastraTool(`kestrel-${name}`, context, async () =>
+          source.execute!(input, {
+            ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
+            ...(context.messages ? { messages: context.messages } : {}),
+            ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+          }),
+        );
+        if (typeof onToolEvent === 'function') {
+          try {
+            onToolEvent({ type: 'tool-output-available', toolCallId, output });
+          } catch {
+            // Ignore listener errors.
+          }
+        }
+        if (Array.isArray(toolParts)) {
+          toolParts.push({
+            type: `tool-${uiToolName}`,
+            toolCallId,
+            toolName: uiToolName,
+            state: 'output-available',
+            input,
+            output,
+          });
+        }
+        return output;
+      } catch (err) {
+        const errorText = err instanceof Error ? err.message : String(err);
+        if (typeof onToolEvent === 'function') {
+          try {
+            onToolEvent({ type: 'tool-output-error', toolCallId, errorText });
+          } catch {
+            // Ignore listener errors.
+          }
+        }
+        if (Array.isArray(toolParts)) {
+          toolParts.push({
+            type: `tool-${uiToolName}`,
+            toolCallId,
+            toolName: uiToolName,
+            state: 'output-error',
+            input,
+            errorText,
+          });
+        }
+        throw err;
+      }
+    },
   } as never);
+}
+
+/**
+ * Extract structured AI SDK v5 `tool-<name>` UI parts from Mastra response
+ * messages, merging with any parts already captured live via `adaptLegacyReadOnlyTool`.
+ */
+export function extractToolPartsFromMessages(
+  messages: readonly unknown[] | undefined,
+  existingParts: readonly MastraToolInvocationPart[] = [],
+): MastraToolInvocationPart[] {
+  const byCallId = new Map<string, MastraToolInvocationPart>();
+  for (const part of existingParts) {
+    byCallId.set(part.toolCallId, part);
+  }
+  if (!messages) return [...byCallId.values()];
+
+  const inputsByCallId = new Map<string, { toolName: string; input: unknown }>();
+  for (const message of messages) {
+    if (!message || typeof message !== 'object') continue;
+    const content = (message as { content?: unknown }).content;
+    if (!Array.isArray(content)) continue;
+    for (const part of content) {
+      if (!part || typeof part !== 'object') continue;
+      const candidate = part as {
+        type?: unknown;
+        toolCallId?: unknown;
+        toolName?: unknown;
+        args?: unknown;
+        input?: unknown;
+      };
+      if (candidate.type === 'tool-call' && typeof candidate.toolName === 'string') {
+        const uiName = normalizeUiToolName(candidate.toolName);
+        const callId =
+          typeof candidate.toolCallId === 'string' && candidate.toolCallId.length > 0
+            ? candidate.toolCallId
+            : `call-${uiName}`;
+        inputsByCallId.set(callId, {
+          toolName: uiName,
+          input: candidate.input ?? candidate.args ?? {},
+        });
+      }
+    }
+  }
+
+  for (const message of messages) {
+    if (!message || typeof message !== 'object') continue;
+    const content = (message as { content?: unknown }).content;
+    if (!Array.isArray(content)) continue;
+    for (const part of content) {
+      if (!part || typeof part !== 'object') continue;
+      const candidate = part as {
+        type?: unknown;
+        toolCallId?: unknown;
+        toolName?: unknown;
+        output?: unknown;
+        result?: unknown;
+      };
+      if (candidate.type !== 'tool-result' || typeof candidate.toolName !== 'string') continue;
+      const uiName = normalizeUiToolName(candidate.toolName);
+      const callId =
+        typeof candidate.toolCallId === 'string' && candidate.toolCallId.length > 0
+          ? candidate.toolCallId
+          : `call-${uiName}`;
+      if (byCallId.has(callId)) continue;
+      const inputEntry = inputsByCallId.get(callId);
+      const output = candidate.output ?? candidate.result ?? null;
+      byCallId.set(callId, {
+        type: `tool-${uiName}`,
+        toolCallId: callId,
+        toolName: uiName,
+        state: 'output-available',
+        input: inputEntry?.input ?? {},
+        output,
+      });
+    }
+  }
+
+  return [...byCallId.values()];
 }
 
 /**

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { SPECIALIST_DEFINITIONS } from '../src/committee/specialists';
 import { verifyMastraOpinion } from '../src/mastra';
 
 const packet = {
@@ -48,7 +49,7 @@ describe('Mastra opinion verifier', () => {
   });
 });
 
-describe('Mastra opinion verifier numeric grounding (P0-2)', () => {
+describe('Mastra opinion verifier numeric grounding (P0-2 & Audit v3 Phase 4)', () => {
   const readyPacket = {
     symbol: 'XAUUSD',
     status: 'ready',
@@ -69,5 +70,50 @@ describe('Mastra opinion verifier numeric grounding (P0-2)', () => {
     expect(
       verifyMastraOpinion({ ...opinion, reasoning: 'Holding above 2648.3.' } as never, readyPacket),
     ).toEqual({ ok: true, findings: [] });
+  });
+
+  it('rejects ungrounded support/resistance prices inside rawData.keyLevels (P1-5)', () => {
+    const verification = verifyMastraOpinion(
+      {
+        ...opinion,
+        reasoning: 'Holding above 2648.3.',
+        rawData: {
+          keyLevels: [{ price: 8888.5, kind: 'support' }],
+        },
+      } as never,
+      readyPacket,
+    );
+    expect(verification.ok).toBe(false);
+    expect(verification.findings.join(' ')).toContain('8888.5');
+  });
+
+  it('accepts numbers grounded in the specialist own tool outputs (Q8 toolEvidenceValues)', () => {
+    const verification = verifyMastraOpinion(
+      {
+        ...opinion,
+        reasoning: 'Session high sits at 2662.5 while holding 2648.3.',
+        rawData: {
+          toolEvidenceValues: [2662.5],
+          keyLevels: [{ price: 2662.5, kind: 'resistance' }],
+        },
+      } as never,
+      readyPacket,
+    );
+    expect(verification).toEqual({ ok: true, findings: [] });
+  });
+
+  it('assigns each of the 4 specialist desks its own goal, skillPlaybook, and dedicated toolNames (Q8)', () => {
+    for (const desk of ['technical', 'fundamental', 'risk', 'sentiment'] as const) {
+      const def = SPECIALIST_DEFINITIONS[desk];
+      expect(def.goal.length).toBeGreaterThan(20);
+      expect(def.skillPlaybook).toContain('Skill Playbook');
+      expect(def.toolNames.length).toBeGreaterThanOrEqual(5);
+    }
+    expect(SPECIALIST_DEFINITIONS.fundamental.toolNames).toContain('get_news');
+    expect(SPECIALIST_DEFINITIONS.fundamental.toolNames).toContain('get_calendar');
+    expect(SPECIALIST_DEFINITIONS.sentiment.toolNames).toContain('get_cot');
+    expect(SPECIALIST_DEFINITIONS.sentiment.toolNames).toContain('get_social_sentiment');
+    expect(SPECIALIST_DEFINITIONS.technical.toolNames).toContain('get_market_structure');
+    expect(SPECIALIST_DEFINITIONS.risk.toolNames).toContain('compute_risk');
   });
 });

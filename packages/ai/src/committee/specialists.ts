@@ -17,10 +17,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Specialist agent definitions and the shared committee agent factory
- * (Phase 6). Specialist definitions are extracted from the workflow file so
- * the committee, Studio registration, and future capabilities all reference
- * the same agent identities.
+ * Specialist agent definitions, dedicated desk toolsets (Audit v3 Q8), and the
+ * shared committee agent factory (Phase 6). Specialist definitions are
+ * extracted from the workflow file so the committee, Studio registration, and
+ * future capabilities all reference the same agent identities.
  */
 
 import { Agent } from '@mastra/core/agent';
@@ -30,6 +30,13 @@ import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
+import { adaptLegacyReadOnlyTools } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
+import { registerAllTools, toolRegistry } from '../tools';
+import {
+  SPECIALIST_DESK_TOOL_NAMES,
+  SPECIALIST_GOALS,
+  SPECIALIST_SKILL_PLAYBOOKS,
+} from './prompts';
 import { REQUEST_CONTEXT_SCHEMA, type MastraSpecialistName, type ModeRequestContext } from './types';
 
 export interface SpecialistDefinition {
@@ -38,14 +45,62 @@ export interface SpecialistDefinition {
   readonly agentId: string;
   /** Specialists are read-only researchers; they never receive write tools. */
   readonly readOnly: true;
+  /** Specific analytical goal for this specialist desk (Q8). */
+  readonly goal: string;
+  /** Domain skill playbook for this specialist desk (Q8). */
+  readonly skillPlaybook: string;
+  /** Dedicated read-only tool names assigned to this specialist desk (Q8). */
+  readonly toolNames: readonly string[];
 }
 
 export const SPECIALIST_DEFINITIONS: Record<MastraSpecialistName, SpecialistDefinition> = {
-  technical: { name: 'technical', agentId: 'kestrel-mastra-technical', readOnly: true },
-  fundamental: { name: 'fundamental', agentId: 'kestrel-mastra-fundamental', readOnly: true },
-  risk: { name: 'risk', agentId: 'kestrel-mastra-risk', readOnly: true },
-  sentiment: { name: 'sentiment', agentId: 'kestrel-mastra-sentiment', readOnly: true },
+  technical: {
+    name: 'technical',
+    agentId: 'kestrel-mastra-technical',
+    readOnly: true,
+    goal: SPECIALIST_GOALS.technical,
+    skillPlaybook: SPECIALIST_SKILL_PLAYBOOKS.technical,
+    toolNames: SPECIALIST_DESK_TOOL_NAMES.technical,
+  },
+  fundamental: {
+    name: 'fundamental',
+    agentId: 'kestrel-mastra-fundamental',
+    readOnly: true,
+    goal: SPECIALIST_GOALS.fundamental,
+    skillPlaybook: SPECIALIST_SKILL_PLAYBOOKS.fundamental,
+    toolNames: SPECIALIST_DESK_TOOL_NAMES.fundamental,
+  },
+  risk: {
+    name: 'risk',
+    agentId: 'kestrel-mastra-risk',
+    readOnly: true,
+    goal: SPECIALIST_GOALS.risk,
+    skillPlaybook: SPECIALIST_SKILL_PLAYBOOKS.risk,
+    toolNames: SPECIALIST_DESK_TOOL_NAMES.risk,
+  },
+  sentiment: {
+    name: 'sentiment',
+    agentId: 'kestrel-mastra-sentiment',
+    readOnly: true,
+    goal: SPECIALIST_GOALS.sentiment,
+    skillPlaybook: SPECIALIST_SKILL_PLAYBOOKS.sentiment,
+    toolNames: SPECIALIST_DESK_TOOL_NAMES.sentiment,
+  },
 };
+
+export { SPECIALIST_DESK_TOOL_NAMES };
+
+/**
+ * Resolve and adapt the dedicated read-only Mastra toolset for a specialist
+ * desk (Audit v3 Phase 4, Owner Decision Q8).
+ */
+export function resolveSpecialistDeskTools(
+  name: MastraSpecialistName,
+): Record<string, unknown> {
+  registerAllTools(toolRegistry);
+  const rawTools = toolRegistry.resolve([...SPECIALIST_DESK_TOOL_NAMES[name]]);
+  return adaptLegacyReadOnlyTools(rawTools);
+}
 
 /** Sole write-capable committee layer: the decision synthesizer. */
 export const FUSION_AGENT_ID = 'kestrel-mastra-decision';
@@ -66,6 +121,7 @@ export function createCommitteeAgent(
   memory?: MastraMemory,
   inputProcessors?: Array<InputProcessorOrWorkflow>,
   scorers?: MastraScorers,
+  tools?: Record<string, unknown>,
 ) {
   return new Agent({
     id,
@@ -74,6 +130,7 @@ export function createCommitteeAgent(
     model,
     instructions,
     requestContextSchema: REQUEST_CONTEXT_SCHEMA,
+    ...(tools && Object.keys(tools).length > 0 ? { tools: tools as never } : {}),
     ...(inputProcessors && inputProcessors.length > 0 ? { inputProcessors } : {}),
     ...(memory ? { memory } : {}),
     ...(scorers && Object.keys(scorers).length > 0 ? { scorers } : {}),

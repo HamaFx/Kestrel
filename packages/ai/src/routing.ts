@@ -37,9 +37,9 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
-import type { UIMessage } from 'ai';
+import type { LanguageModel, UIMessage } from 'ai';
 
-import { derivePlannerModel, type ResolveModelEnv } from './model';
+import { derivePlannerModel, resolveChatModel, type ResolveModelEnv } from './model';
 // P2-1 — Keyword patterns externalized to routing-keywords.ts.
 // Keep the config auditable and tunable without modifying domain logic.
 import { FUNDAMENTAL_PATTERNS, SUMMARY_PATTERNS, TECHNICAL_PATTERNS } from './routing-keywords';
@@ -71,7 +71,18 @@ export function resolveSemanticRoutingConfig(
   if (!SEMANTIC_ROUTING_ENABLED) return null;
   const modelId = derivePlannerModel(userSettings, env);
   if (!modelId) return null;
-  return { modelId, env, ...(signal ? { signal } : {}) };
+  let resolvedModel: LanguageModel | null = null;
+  try {
+    resolvedModel = resolveChatModel(userSettings, env, 'summary').model;
+  } catch {
+    resolvedModel = null;
+  }
+  return {
+    modelId,
+    env,
+    ...(resolvedModel ? { model: resolvedModel } : {}),
+    ...(signal ? { signal } : {}),
+  };
 }
 
 export type RoutingDomain = 'fundamental' | 'technical' | 'summary' | 'vision' | 'generic';
@@ -104,6 +115,8 @@ export interface RouteTurnOptions {
     modelId: string;
     /** AI env subset for model resolution. */
     env: ResolveModelEnv;
+    /** Optional pre-resolved BYOK LanguageModel instance (Phase 3 P0-3). */
+    model?: LanguageModel | null;
     signal?: AbortSignal | null;
     accounting?: SemanticRoutingAccounting;
   };
@@ -156,6 +169,7 @@ export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision
         args.semanticRouting.env,
         args.semanticRouting.signal,
         args.semanticRouting.accounting,
+        args.semanticRouting.model,
       );
       if (result) {
         const domain = result.domain === 'vision' ? ('generic' as const) : result.domain;

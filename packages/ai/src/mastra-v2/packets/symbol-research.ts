@@ -64,14 +64,17 @@ const EvidenceSchema = z.object({
   indicators: z.array(IndicatorResultSchema),
 });
 
+export const MarketStructureSummarySchema = z.object({
+  recentSwingHigh: z.number(),
+  recentSwingLow: z.number(),
+  rangeSize: z.number(),
+});
+
 /**
  * Audit plan §4.2 — XAUUSD macro extension on the generalized packet. The
  * committee's XAUUSD packets carry the gold-specific context (dollar index,
- * real yields, upcoming USD events, news volume) that previously existed only
- * on the XAUUSD verified-report packet. The verified XAUUSD report pipeline
- * keeps its own richer collector (§8 strengths are preserved); this bridges
- * the same evidence into the shared packet so single/full mode for XAUUSD
- * grounds macro-aware desks without a second packet schema.
+ * real yields, upcoming USD events, news headlines & volume) that previously
+ * existed only on the XAUUSD verified-report packet.
  */
 export const XauusdExtensionSchema = z.object({
   evidenceId: z.string().min(1),
@@ -89,6 +92,16 @@ export const XauusdExtensionSchema = z.object({
     )
     .max(10),
   newsCount: z.number().int().nonnegative(),
+  newsHeadlines: z
+    .array(
+      z.object({
+        title: z.string().min(1),
+        source: z.string().optional(),
+        publishedAt: z.string().optional(),
+      }),
+    )
+    .max(8)
+    .optional(),
   warnings: z.array(z.string()),
 });
 
@@ -113,6 +126,8 @@ export const SymbolResearchPacketSchema = z.object({
     })
     .nullable(),
   timeframes: z.array(EvidenceSchema),
+  /** Deterministic swing high/low/range computed from fetched candles across all symbols (Phase 4.2). */
+  marketStructure: MarketStructureSummarySchema.optional(),
   /** §4.2: gold-specific macro context; present only for XAUUSD + includeMacro. */
   xauusdExtension: XauusdExtensionSchema.optional(),
   optionalContext: z.object({
@@ -130,14 +145,6 @@ export type SymbolResearchEvidence = z.infer<typeof EvidenceSchema>;
 export const SYMBOL_RESEARCH_TIMEFRAMES = RESEARCH_TIMEFRAMES;
 export const SYMBOL_RESEARCH_INDICATORS = RESEARCH_INDICATORS;
 
-// Audit plan §2.1 — deterministic indicator memo. `computeIndicator` is pure,
-// so results are reusable whenever the candle window is identical (same
-// symbol/timeframe/kind/params/length/last-candle). Bounded LRU; entries are
-// plain values and consumers slice copies into packets.
-// §2.1/P1-10: exported so the XAUUSD verified-packet collector shares the
-// same memo instead of recomputing per call. Kinds/params are widened to the
-// full `IndicatorRequest` vocabulary (the XAUUSD packet also carries
-// `bollinger`).
 const indicatorMemo = new Map<string, ReturnType<typeof computeIndicator>>();
 const INDICATOR_MEMO_MAX = 512;
 
@@ -152,7 +159,6 @@ export function computeIndicatorMemo(args: {
   const key = `${args.symbol}:${args.tf}:${String(args.kind)}:${JSON.stringify(args.params)}:${args.candles.length}:${lastT}`;
   const memoized = indicatorMemo.get(key);
   if (memoized) {
-    // Re-insert to mark recently used (Map preserves insertion order).
     indicatorMemo.delete(key);
     indicatorMemo.set(key, memoized);
     return memoized;
@@ -180,11 +186,32 @@ function unique(values: readonly string[]): string[] {
   return [...new Set(values)];
 }
 
+function computeMarketStructureSummary(
+  timeframes: readonly SymbolResearchEvidence[],
+): z.infer<typeof MarketStructureSummarySchema> | undefined {
+  const preferred =
+    timeframes.find((tf) => tf.timeframe === '1h' && tf.candles.length > 0) ??
+    timeframes.find((tf) => tf.candles.length > 0);
+  if (!preferred || preferred.candles.length === 0) return undefined;
+  const window = preferred.candles.slice(-50);
+  let recentSwingHigh = -Infinity;
+  let recentSwingLow = Infinity;
+  for (const c of window) {
+    if (c.h > recentSwingHigh) recentSwingHigh = c.h;
+    if (c.l < recentSwingLow) recentSwingLow = c.l;
+  }
+  if (!Number.isFinite(recentSwingHigh) || !Number.isFinite(recentSwingLow)) return undefined;
+  return {
+    recentSwingHigh,
+    recentSwingLow,
+    rangeSize: Number((recentSwingHigh - recentSwingLow).toFixed(5)),
+  };
+}
+
 export interface CollectSymbolResearchPacketOptions {
   /**
    * Audit plan §4.2 — include the XAUUSD macro extension (dollar index, real
-   * yields, upcoming USD events, news volume) on the generalized packet.
-   * Only meaningful for XAUUSD; ignored for other symbols.
+   * yields, upcoming USD events, news headlines) on the generalized packet.
    */
   includeMacro?: boolean;
 }
@@ -218,6 +245,11 @@ async function collectXauusdExtension(
         previous: event.previous ?? null,
       })),
       newsCount: data.news.length,
+      newsHeadlines: data.news.slice(0, 8).map((article) => ({
+        title: article.title,
+        ...(article.source ? { source: article.source } : {}),
+        publishedAt: new Date(article.publishedAt).toISOString(),
+      })),
       warnings: evidence.warnings,
     };
   } catch {
@@ -360,6 +392,7 @@ export async function collectSymbolResearchPacket(
           : 'complete';
 
   const macro = macroExtension;
+  const marketStructure = computeMarketStructureSummary(timeframes);
 
   return SymbolResearchPacketSchema.parse({
     packetId,
@@ -370,6 +403,7 @@ export async function collectSymbolResearchPacket(
     dataQuality,
     price,
     timeframes,
+    ...(marketStructure ? { marketStructure } : {}),
     ...(macro ? { xauusdExtension: macro } : {}),
     optionalContext: {
       available: Boolean(macro),
@@ -401,7 +435,7 @@ export const SymbolResearchIndicatorRequestSchema = IndicatorRequestSchema;
 
 const MUTATION_TERMS =
   /\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i;
-const SYMBOL_PATTERN = new RegExp(`\b(?:${ALL_SYMBOLS.join('|')})\b`, 'gi');
+const SYMBOL_PATTERN = new RegExp(`\\b(?:${ALL_SYMBOLS.join('|')})\\b`, 'gi');
 
 /** Extract one canonical symbol from a prompt, using the fallback only when no symbol is named. */
 export function extractSymbolFromPrompt(prompt: string, fallback?: string): string | null {
@@ -411,9 +445,9 @@ export function extractSymbolFromPrompt(prompt: string, fallback?: string): stri
   if (explicitSymbols.length === 1) return explicitSymbols[0]!;
   if (/\bgold\b/i.test(prompt)) return 'XAUUSD';
   const matches = [...prompt.matchAll(SYMBOL_PATTERN)].map((match) => match[0]!.toUpperCase());
-  const unique = [...new Set(matches)];
-  if (unique.length > 1) return null;
-  if (unique.length === 1) return SymbolSchema.parse(unique[0]);
+  const uniqueMatches = [...new Set(matches)];
+  if (uniqueMatches.length > 1) return null;
+  if (uniqueMatches.length === 1) return SymbolSchema.parse(uniqueMatches[0]);
   if (fallback === undefined) return null;
   const parsed = SymbolSchema.safeParse(fallback);
   return parsed.success ? parsed.data : null;
@@ -423,7 +457,7 @@ export function extractSymbolFromPrompt(prompt: string, fallback?: string): stri
 export function isSafeSymbolResearchPrompt(prompt: string): boolean {
   return (
     !MUTATION_TERMS.test(prompt) &&
-    !/ignore\\s+(?:all\\s+)?(?:previous|prior|above)\\s+instructions|system\\s*:|developer\\s*:|DAN\\s+mode/i.test(
+    !/ignore\s+(?:all\s+)?(?:previous|prior|above)\s+instructions|system\s*:|developer\s*:|DAN\s+mode/i.test(
       prompt,
     )
   );
