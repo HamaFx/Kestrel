@@ -15,6 +15,7 @@
     "bundle-size:check": "node scripts/bundle-size-guard.mjs",
     "generate:icons": "node scripts/generate-icons.mjs",
     "generate:screenshots": "node scripts/generate-pwa-screenshots.mjs",
+    "setup:telegram": "tsx scripts/setup-telegram-webhook.ts",
     "clean": "rm -rf node_modules .turbo .next"
   },
   "dependencies": {

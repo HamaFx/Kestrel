@@ -86,7 +86,7 @@ The setup wizard detects busy host ports before building and offers to remap the
 - For Docker: confirm the database container is healthy with `docker compose ps` and `docker compose logs db`.
 - For external PostgreSQL: verify `DATABASE_URL` is reachable and credentials are valid.
 - Ensure the database has the pgvector extension enabled (`CREATE EXTENSION IF NOT EXISTS vector;`).
-- Verify migrations ran successfully (`pnpm --filter @kestrel/db db:migrate`).
+- Verify migrations ran successfully (`pnpm --filter @kestrel/db migrate:apply`).
 
 ## Updating Kestrel
 
@@ -230,7 +230,7 @@ Providers are optional and subject to availability and licensing. Check provider
 For deterministic local development without market-data network requests:
 
 ```bash
-KESTREL_OFFLINE_MODE=1 pnpm dev:local
+KESTREL_OFFLINE_MODE=1 pnpm dev
 ```
 
 Offline mode does not provide a substitute AI model for normal chat.

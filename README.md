@@ -196,15 +196,10 @@ Kestrel uses a multi-agent orchestration architecture built on **Mastra**. Rathe
 flowchart LR
     User([User Prompt / Chart]) --> Router{Mode Selector}
     Router -->|Single| A1[Fast Generalist Agent]
-    Router -->|Quick| A2[Technical Specialist]
-    Router -->|Standard| A2 & A3[Fundamental & Macro]
-    Router -->|Full| A2 & A3 & A4[Risk Manager] & A5[Sentiment Analyst]
+    Router -->|Full Committee| Specialists[Specialist Agents: Technical, Fundamental, Risk, Sentiment]
 
-    A1 --> Report[Final Synthesized Report & Verification]
-    A2 --> Fusion[Fusion Orchestrator]
-    A3 --> Fusion
-    A4 --> Fusion
-    A5 --> Fusion
+    A1 --> Report[Final Synthesized Report]
+    Specialists --> Fusion[Committee Coordinator & Synthesis]
     Fusion --> Guard[Citation & Budget Verification]
     Guard --> Report
 ```
@@ -213,11 +208,8 @@ flowchart LR
 
 ### Analysis Modes
 
-1. ⚡ **Single (`single`)**: Rapid single-turn response for quick price lookups, conversions, and simple questions (~1-2s).
-2. 🎯 **Quick (`quick`)**: Dedicated Technical Analyst focusing on candlestick structure, trend, SMC levels, and momentum (~3s).
-3. ⚖️ **Standard (`standard`)**: Technical Analyst + Macro/Fundamental Specialist (Fed rates, economic calendar, inflation trends) (~5s).
-4. 🏛️ **Full Committee (`full`)**: All 4 specialist agents (Technical + Fundamental + Risk Math + Sentiment) with cross-verification and fusion synthesis (~8s).
-5. 🪄 **Auto (`auto`)**: Natural language classification automatically selects the optimal mode based on your query.
+1. ⚡ **Single (`single`)**: Rapid single-turn response for quick price lookups, market questions, and conversational analysis (~1-2s).
+2. 🏛️ **Full Committee (`full`)**: Multi-agent committee convening Technical, Fundamental/Macro, Risk Management, and Sentiment specialists with plan identity checks, citation verification, and synthesized report generation.
 
 ---
 
@@ -282,7 +274,7 @@ PORT=3000
 
 # Authentication & Encryption (Generate with: openssl rand -hex 32)
 AUTH_SECRET=your_32_character_random_hex_string
-ENCRYPTION_SECRET=your_32_character_encryption_secret
+ENCRYPTION_SECRET=your_64_character_hex_string_32_bytes
 CRON_SECRET=your_16_character_cron_bearer_token
 
 # Database (Bundled Docker default; PostgreSQL is required)
@@ -293,7 +285,6 @@ POSTGRES_PASSWORD=your_postgres_password
 MULTI_USER_ENABLED=1
 KESTREL_ENABLE_RLS=1
 REGISTRATION_MODE=open
-BYOK_ENABLED=1
 ```
 
 #### Optional Integrations
@@ -404,7 +395,7 @@ Start the bundled database container with `docker compose up -d db`, then run `p
 
 - For web port 3000: Set `PORT=3005` in your `.env` or run `PORT=3005 pnpm dev`.
 - For Docker Postgres port 5432: Set `POSTGRES_PUBLISHED_PORT=127.0.0.1:5433` in your `.env` before running `docker compose up -d`.
-- For Docker web port 3000: Set `APP_PUBLISHED_PORT=127.0.0.1:3001` in your `.env` before running `docker compose up -d`.
+- For Docker web port 3000: Set `APP_PUBLISHED_PORT=127.0.0.1:3002` in your `.env` before running `docker compose up -d`.
 
 The setup wizard detects busy ports and offers to remap them automatically.
 

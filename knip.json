@@ -35,7 +35,19 @@
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/shared": {
-      "entry": ["src/**/*.ts"],
+      "entry": [
+        "src/index.ts",
+        "src/schemas/*.ts",
+        "src/ai/*.ts",
+        "src/byok.ts",
+        "src/env.ts",
+        "src/env-secrets.ts",
+        "src/vault.ts",
+        "src/errors.ts",
+        "src/encryption.ts",
+        "src/logger.ts",
+        "src/metrics-export.ts"
+      ],
       "project": ["src/**/*.ts"]
     },
     "packages/config": {
