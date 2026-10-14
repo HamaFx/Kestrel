@@ -263,4 +263,19 @@ describe('persistence outbox replay', () => {
     });
     expect(mockDbExecute).not.toHaveBeenCalled();
   });
+
+  it('stops claiming outbox rows immediately when signal is aborted', async () => {
+    const ac = new AbortController();
+    ac.abort();
+
+    const result = await replayPersistenceFailures(10, ac.signal);
+
+    expect(result).toEqual({
+      claimed: 0,
+      completed: 0,
+      failed: 0,
+      dead: 0,
+    });
+    expect(mockTxExecute).not.toHaveBeenCalled();
+  });
 });

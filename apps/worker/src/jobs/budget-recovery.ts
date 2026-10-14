@@ -25,7 +25,7 @@ const RECOVERY_BATCH_SIZE = 100;
 
 export async function runBudgetRecovery(ctx: JobContext): Promise<JobResult> {
   const cutoff = new Date(Date.now() - RESERVATION_STALE_MS);
-  const result = await recoverStaleBudgetReservations(cutoff, RECOVERY_BATCH_SIZE);
+  const result = await recoverStaleBudgetReservations(cutoff, RECOVERY_BATCH_SIZE, ctx.signal);
 
   if (result.scanned > 0 || result.failed > 0) {
     ctx.log.warn('budget reservation recovery completed', {

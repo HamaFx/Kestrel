@@ -25,10 +25,13 @@ import { runRetentionCleanup, runVacuumAnalyze } from '@kestrel/db';
 import type { JobContext, JobResult } from './types.js';
 
 export async function runRetention(ctx: JobContext): Promise<JobResult> {
+  if (ctx.signal?.aborted) return { processed: 0, note: 'aborted' };
   const result = await runRetentionCleanup();
   // VACUUM is intentionally worker-only: it is not suitable for a Vercel
   // request and needs the persistent worker's longer statement timeout.
-  await runVacuumAnalyze();
+  if (!ctx.signal?.aborted) {
+    await runVacuumAnalyze(ctx.signal);
+  }
 
   ctx.log.info('retention cleanup completed', {
     telemetryDeleted: result.telemetryDeleted,
