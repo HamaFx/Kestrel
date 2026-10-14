@@ -4,6 +4,14 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  eventsource-parser@3.0.8:
+    hash: vpxyuswkcc7khb77e35dilmwcu
+    path: patches/eventsource-parser@3.0.8.patch
+  eventsource-parser@3.1.1:
+    hash: qrnnk2g7dbntkgsfleityshfuq
+    path: patches/eventsource-parser@3.1.1.patch
+
 importers:
 
   .:
@@ -7408,21 +7416,21 @@ snapshots:
     dependencies:
       '@ai-sdk/provider': 2.0.3
       '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.8
+      eventsource-parser: 3.0.8(patch_hash=vpxyuswkcc7khb77e35dilmwcu)
       zod: 3.25.76
 
   '@ai-sdk/provider-utils@3.0.30(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 2.0.3
       '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.8
+      eventsource-parser: 3.0.8(patch_hash=vpxyuswkcc7khb77e35dilmwcu)
       zod: 3.25.76
 
   '@ai-sdk/provider-utils@4.0.40(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 3.0.14
       '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.1.1
+      eventsource-parser: 3.1.1(patch_hash=qrnnk2g7dbntkgsfleityshfuq)
       zod: 3.25.76
 
   '@ai-sdk/provider-utils@5.0.13(zod@3.25.76)':
@@ -7430,7 +7438,7 @@ snapshots:
       '@ai-sdk/provider': 4.0.4
       '@standard-schema/spec': 1.1.0
       '@workflow/serde': 4.1.0
-      eventsource-parser: 3.1.1
+      eventsource-parser: 3.1.1(patch_hash=qrnnk2g7dbntkgsfleityshfuq)
       zod: 3.25.76
 
   '@ai-sdk/provider@2.0.3':
@@ -11306,9 +11314,9 @@ snapshots:
 
   events@3.3.0: {}
 
-  eventsource-parser@3.0.8: {}
+  eventsource-parser@3.0.8(patch_hash=vpxyuswkcc7khb77e35dilmwcu): {}
 
-  eventsource-parser@3.1.1: {}
+  eventsource-parser@3.1.1(patch_hash=qrnnk2g7dbntkgsfleityshfuq): {}
 
   eventsource@2.0.2: {}
 

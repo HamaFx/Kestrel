@@ -29,6 +29,16 @@ export default defineConfig({
     maxWorkers,
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    deps: {
+      optimizer: {
+        ssr: { enabled: true },
+      },
+    },
+    server: {
+      deps: {
+        inline: [/eventsource-parser/],
+      },
+    },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],

@@ -54,5 +54,11 @@
     "tsx": "^4.22.4",
     "turbo": "^2.10.11",
     "typescript": "^7.0.2"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "eventsource-parser@3.0.8": "patches/eventsource-parser@3.0.8.patch",
+      "eventsource-parser@3.1.1": "patches/eventsource-parser@3.1.1.patch"
+    }
   }
 }
