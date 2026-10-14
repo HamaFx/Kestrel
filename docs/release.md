@@ -34,7 +34,7 @@ A release should identify:
 - Release notes and known limitations
 - Rollback source revision/image
 
-Changesets remain available for package publishing, but publishing workspace packages alone is not a complete application release. The application version and matching GitHub Release/tag are the release identity.
+Updating workspace package versions alone is not a complete application release. The application version and matching GitHub Release/tag are the release identity.
 
 ## Local pre-release checks
 
@@ -93,17 +93,14 @@ Run current-tree and Git-history secret scans. Review:
 
 Do not publish a release if secrets or private operational data are detected. Provider and market-data redistribution rights remain the operator’s responsibility.
 
-## Changesets and package release
+## Package release and versioning
 
 For user-facing package changes:
 
-```bash
-pnpm changeset
-```
+1. Update the appropriate package version in `packages/*/package.json`.
+2. Document behavior changes in `CHANGELOG.md`.
 
-Describe the behavior change and appropriate version bump. The release workflow creates or updates a version PR and publishes packages when the Changesets action is configured to publish.
-
-Review the generated version changes and changelog before merging. Application and Docker release notes must still be maintained explicitly.
+Review the version changes and changelog before creating release tags. Application and Docker release notes must still be maintained explicitly.
 
 ## Docker release
 

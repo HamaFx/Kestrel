@@ -16,5 +16,3 @@ Repository-level policy and status documents:
 - [Security policy](../SECURITY.md) — vulnerability reporting and security responsibilities
 - [Contributing](../CONTRIBUTING.md) — contributor workflow and coding rules
 - [Support](../SUPPORT.md) — support channels and diagnostic information
-
-The `architecture-explorer.html` and `architecture-explorer.json` files in this directory are static informational snapshots. They are not runtime dependencies and are not generated automatically during builds.
