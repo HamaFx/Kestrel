@@ -47,7 +47,7 @@ describe('withUserScope', () => {
     // a SQL fragment — so a malformed table would only fail when the
     // query is executed, not when `withUserScope` is called. This test
     // documents that behavior so future readers don't assume otherwise.
-    const fakeTableWithoutUserId = { id: 'id' } as unknown as { userId: unknown };
-    expect(() => withUserScope(fakeTableWithoutUserId, 'user-123')).not.toThrow();
+    const fakeTableWithoutUserId = { id: 'id' } as unknown as { userId: any };
+    expect(() => withUserScope(fakeTableWithoutUserId as never, 'user-123')).not.toThrow();
   });
 });

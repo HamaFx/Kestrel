@@ -22,9 +22,9 @@
 //
 // Or set VERCEL_PROJECT_PRODUCTION_URL / NEXT_PUBLIC_APP_URL env vars.
 
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
-import { setBotCommands, telegramApiCall } from '../../packages/ai/src/telegram/client';
+import { setBotCommands, telegramApiCall } from '@kestrel/ai/bot';
 
 // Bot command menu (shown in Telegram client's "/" autocomplete)
 const BOT_COMMANDS = [

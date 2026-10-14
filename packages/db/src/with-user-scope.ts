@@ -34,6 +34,7 @@
 // code may be migrated incrementally. The helper is tested and correct.
 
 import { eq, type SQL } from 'drizzle-orm';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 /**
  * Build a `WHERE` fragment that scopes a query to one user.
@@ -53,11 +54,6 @@ import { eq, type SQL } from 'drizzle-orm';
  * @example
  *   await db.select().from(alerts).where(withUserScope(alerts, userId))
  */
-export function withUserScope<T extends { userId: unknown }>(table: T, userId: string): SQL {
-  // Cast: drizzle's column types are complex unions but `eq(table.userId, value)`
-  // is the canonical usage in the codebase. We trust the caller to pass a
-  // table with a userId column (TS won't catch a structural mismatch since
-  // the generic above only checks the property name).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return eq((table as any).userId, userId);
+export function withUserScope<T extends { userId: AnyPgColumn }>(table: T, userId: string): SQL {
+  return eq(table.userId, userId);
 }

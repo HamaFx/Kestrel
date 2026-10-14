@@ -27,7 +27,7 @@
 
 import { eq, isNull } from 'drizzle-orm';
 
-import { getDb, schema } from './index';
+import { getDb, schema } from './client';
 
 /**
  * Fetch all active user IDs from the database.

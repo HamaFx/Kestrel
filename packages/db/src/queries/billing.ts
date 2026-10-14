@@ -21,7 +21,7 @@
 
 import { and, desc, eq, gte, lt } from 'drizzle-orm';
 
-import { getDb, schema } from '../index';
+import { getDb, schema } from '../client';
 
 export interface SubscriptionWithPlan {
   id: string;

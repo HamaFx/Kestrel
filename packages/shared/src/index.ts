@@ -121,7 +121,6 @@ export * from './bug-report';
 // BYOK encryption is server-only (uses node:crypto) — import directly
 // from '@kestrel/shared/encryption' instead. Re-exporting it here would
 // pull node:crypto into any client component that imports the barrel.
-export {} from './encryption';
 
 // Env (server-only — do NOT import from client code)
 export {

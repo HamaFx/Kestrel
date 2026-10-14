@@ -36,8 +36,7 @@ export interface CalendarEventDTO {
   impact: string;
   forecast?: string | null;
   previous?: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const CALENDAR_RATE_LIMIT = Number(process.env.CALENDAR_RATE_LIMIT) || 60;

@@ -54,8 +54,7 @@
 export interface ExportMessagePart {
   type: string;
   /** text parts carry a `text` field; tool parts may carry `input` / `output`. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ExportMessage {
