@@ -16,7 +16,7 @@
 
 import type * as sharedModule from '@kestrel/shared';
 import type * as sharedLoggerModule from '@kestrel/shared/logger';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runMultiAgentAnalysis } from '../src/jobs/multi-agent-analysis';
 
@@ -203,8 +203,11 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 describe('runMultiAgentAnalysis Mastra durable boundary', () => {
+  const originalDatabaseUrl = process.env.DATABASE_URL;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/kestrel_test';
     mockClaimNextFullAnalysisRun.mockResolvedValueOnce(claimed).mockResolvedValueOnce(null);
     mockRecoverStaleRuns.mockResolvedValue({ requeued: 0, failed: 0 });
     mockPurgeOldRuns.mockResolvedValue(0);
@@ -257,6 +260,14 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
       },
     );
     mockValidateFullAnalysisPlanIdentity.mockReturnValue(undefined);
+  });
+
+  afterEach(() => {
+    if (originalDatabaseUrl !== undefined) {
+      process.env.DATABASE_URL = originalDatabaseUrl;
+    } else {
+      delete process.env.DATABASE_URL;
+    }
   });
 
   function context() {

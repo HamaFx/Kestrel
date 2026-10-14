@@ -46,7 +46,8 @@
         "src/errors.ts",
         "src/encryption.ts",
         "src/logger.ts",
-        "src/metrics-export.ts"
+        "src/metrics-export.ts",
+        "src/log-stream.ts"
       ],
       "project": ["src/**/*.ts"]
     },
@@ -58,6 +59,19 @@
     "packages/test-utils": {
       "entry": ["src/**/*.ts"],
       "project": ["src/**/*.ts"]
+    },
+    "loadtest": {
+      "entry": [
+        "tests/*.ts",
+        "scenarios/**/*.ts",
+        "config/**/*.ts",
+        "lib/**/*.ts",
+        "scripts/*.mjs",
+        "lib/seed/*.mjs"
+      ],
+      "project": ["**/*.{ts,mjs}"],
+      "ignoreDependencies": ["k6", "drizzle-orm"],
+      "ignoreBinaries": ["k6"]
     }
   },
   "ignoreBinaries": ["systemd-notify", "where", "xdg-open"],

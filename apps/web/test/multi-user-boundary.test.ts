@@ -6,7 +6,7 @@ const base = {
   DATABASE_URL: 'postgres://user:password@localhost:5432/kestrel',
   AUTH_SECRET: 'a'.repeat(32),
   CRON_SECRET: 'c'.repeat(16),
-  ENCRYPTION_SECRET: 'e'.repeat(32),
+  ENCRYPTION_SECRET: 'e'.repeat(64),
 };
 
 describe('multi-user boundary', () => {
