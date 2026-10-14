@@ -6,34 +6,26 @@ HMAC-SHA256 signature against WEBHOOK_SECRET, and runs docker-update.sh
 in the background.
 
 Stdlib only — no pip packages needed.
-
-Systemd socket activation: systemd listens on port 9000 and passes the
-socket to this script, so it only runs when a request arrives.
-
-Secret validation: GitHub sends X-Hub-Signature-256 = sha256=<hmac>.
-We compute HMAC(secret, body) and compare in constant time.
 """
 
 import hashlib
 import hmac
 import json
 import os
+import signal
 import subprocess
-import sys
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
-WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "").strip()
 UPDATE_SCRIPT = "/opt/kestrel/scripts/docker-update.sh"
 PORT = int(os.environ.get("WEBHOOK_PORT", "9000"))
+MAX_BODY_BYTES = 1_048_576  # 1 MiB ceiling to prevent memory exhaustion
 
 
 def verify_signature(body: bytes, signature_header: str) -> bool:
-    """Constant-time HMAC-SHA256 comparison."""
-    if not WEBHOOK_SECRET:
-        return True  # No secret configured — accept all (for testing)
-    if not signature_header:
+    """Constant-time HMAC-SHA256 comparison. Fails closed when secret is unset."""
+    if not WEBHOOK_SECRET or not signature_header:
         return False
-    # GitHub format: "sha256=<hex>"
     try:
         algo, sig_hex = signature_header.split("=", 1)
         if algo != "sha256":
@@ -54,25 +46,31 @@ class WebhookHandler(BaseHTTPRequestHandler):
             self.send_error(404, "Not Found")
             return
 
-        content_length = int(self.headers.get("Content-Length", "0"))
-        body = self.rfile.read(content_length) if content_length > 0 else b""
-
-        # Validate event type
-        event = self.headers.get("X-GitHub-Event", "")
-        if event != "push":
-            # We only care about push events
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b'{"status":"ignored","reason":"not a push event"}\n')
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            self.send_error(400, "Invalid Content-Length")
             return
 
-        # Validate HMAC signature
+        if content_length < 0 or content_length > MAX_BODY_BYTES:
+            self.send_error(413, "Payload Too Large")
+            return
+
+        body = self.rfile.read(content_length) if content_length > 0 else b""
+
+        # Validate HMAC signature first before trusting headers or JSON body
         signature = self.headers.get("X-Hub-Signature-256", "")
         if not verify_signature(body, signature):
             self.send_error(403, "Invalid signature")
             return
 
-        # Parse payload to check branch
+        event = self.headers.get("X-GitHub-Event", "")
+        if event != "push":
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"status":"ignored","reason":"not a push event"}\n')
+            return
+
         try:
             payload = json.loads(body)
         except json.JSONDecodeError:
@@ -88,15 +86,15 @@ class WebhookHandler(BaseHTTPRequestHandler):
             )
             return
 
-        # Trigger the update asynchronously
         print(
             f"[webhook] push to main detected — running {UPDATE_SCRIPT}",
             flush=True,
         )
         subprocess.Popen(
-            ["/opt/kestrel/scripts/docker-update.sh"],
+            [UPDATE_SCRIPT],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            start_new_session=True,
         )
 
         self.send_response(202)
@@ -108,6 +106,8 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
 
 def main():
+    if hasattr(signal, "SIGCHLD"):
+        signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     print(f"[webhook] starting on port {PORT}", flush=True)
     server = HTTPServer(("0.0.0.0", PORT), WebhookHandler)
     try:
