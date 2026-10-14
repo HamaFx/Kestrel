@@ -123,18 +123,13 @@ test.describe('Accessibility', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  test('no duplicate h1 on key pages', async ({ authedPage }) => {
-    const page = authedPage;
-
-    const pages = ['/dashboard', '/journal', '/alerts', '/news', '/calendar'];
-
-    for (const path of pages) {
+  for (const path of ['/dashboard', '/journal', '/alerts', '/news', '/calendar']) {
+    test(`no duplicate h1 on ${path}`, async ({ authedPage }) => {
+      const page = authedPage;
       await page.goto(path, { waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(500);
-
+      await expect(page.locator('#main-content')).toBeVisible({ timeout: 15_000 });
       const h1Count = await page.locator('h1').count();
-      // Each page should have at most one h1
       expect(h1Count).toBeLessThanOrEqual(1);
-    }
-  });
+    });
+  }
 });
