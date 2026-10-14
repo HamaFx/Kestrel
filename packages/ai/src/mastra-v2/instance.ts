@@ -135,17 +135,35 @@ export function createKestrelMastra(options: KestrelMastraOptions = {}): Kestrel
   return { instance, storageKind: storageResult.kind };
 }
 
-let cachedMastra: KestrelMastra | null = null;
+const globalForMastraInstance = globalThis as unknown as {
+  __kestrelMastraInstance?: KestrelMastra | null;
+};
 
 /** Process-wide singleton. Constructed lazily so tests can control env first. */
 export function getKestrelMastra(): KestrelMastra {
-  cachedMastra ??= createKestrelMastra();
-  return cachedMastra;
+  globalForMastraInstance.__kestrelMastraInstance ??= createKestrelMastra();
+  return globalForMastraInstance.__kestrelMastraInstance;
 }
 
 /** Test helper — resets the singleton so the next `getKestrelMastra()` rebuilds it. */
 export function _resetKestrelMastra(): void {
-  cachedMastra = null;
+  globalForMastraInstance.__kestrelMastraInstance = null;
+}
+
+/**
+ * Close every process-wide Mastra pool (PostgresStore + PgVector) and reset
+ * the singleton. Called during worker graceful shutdown so SIGTERM does not
+ * leave dangling `pg.Pool` sockets. Dynamic imports avoid a static cycle with
+ * `./memory`, which itself imports `getKestrelMastra`.
+ */
+export async function closeKestrelMastra(): Promise<void> {
+  const [{ closeMastraStorage }, { closeKestrelVectorStore }] = await Promise.all([
+    import('./storage'),
+    import('./memory'),
+  ]);
+  await closeMastraStorage();
+  await closeKestrelVectorStore();
+  globalForMastraInstance.__kestrelMastraInstance = null;
 }
 
 /**
@@ -154,7 +172,7 @@ export function _resetKestrelMastra(): void {
  * queue resolve the injected storage. Tests must reset afterwards.
  */
 export function _setKestrelMastraForTest(mastra: KestrelMastra): void {
-  cachedMastra = mastra;
+  globalForMastraInstance.__kestrelMastraInstance = mastra;
 }
 
 /**

@@ -54,7 +54,7 @@ import type { ResolveModelEnv } from '../env-model-factory';
 import { getKestrelMastra } from './instance';
 import {
   ensureLibsqlParent,
-  mastraDirectConnectionString,
+  mastraRuntimeConnectionString,
   mastraSslOptions,
   resolveMastraStorageKind,
   type MastraStorageKind,
@@ -130,18 +130,22 @@ export function createKestrelVectorStore(
   const processEnv = env as NodeJS.ProcessEnv;
   const resolvedKind = kind ?? resolveMastraStorageKind(processEnv);
   if (resolvedKind === 'postgres') {
-    const connectionString = mastraDirectConnectionString(processEnv);
+    const connectionString = mastraRuntimeConnectionString(processEnv);
     if (!connectionString) {
       throw new Error(
-        '[mastra-memory] vector store requires DIRECT_URL, POSTGRES_URL_NON_POOLING, ' +
-          'DATABASE_URL, or POSTGRES_URL to be set.',
+        '[mastra-memory] vector store requires DATABASE_URL, POSTGRES_URL, DIRECT_URL, ' +
+          'or POSTGRES_URL_NON_POOLING to be set.',
       );
     }
+    const poolMax = Number(processEnv.MASTRA_VECTOR_POOL_MAX ?? '3');
     return new PgVector({
       id: 'kestrel-mastra-vector',
       connectionString,
       schemaName: (env as Record<string, string | undefined>).MASTRA_SCHEMA ?? 'mastra',
       ssl: mastraSslOptions(processEnv),
+      max: Number.isFinite(poolMax) && poolMax > 0 ? Math.floor(poolMax) : 3,
+      idleTimeoutMillis: 20_000,
+      pgPoolOptions: { connectionTimeoutMillis: 10_000 },
     });
   }
   const url = libsqlVectorUrl(env);
@@ -149,20 +153,34 @@ export function createKestrelVectorStore(
   return new LibSQLVector({ id: 'kestrel-mastra-vector', url });
 }
 
-let cachedVectorStore: MastraVector | null = null;
+const globalForVectorStore = globalThis as unknown as {
+  __kestrelMastraVectorStore?: MastraVector | null;
+};
 
-/** Process-wide vector-store singleton (created lazily). */
+/** Process-wide vector-store singleton (created lazily, HMR-safe). */
 export function getKestrelVectorStore(
   kind?: MastraStorageKind,
   env: EnvRecord = process.env,
 ): MastraVector {
-  cachedVectorStore ??= createKestrelVectorStore(kind, env);
-  return cachedVectorStore;
+  globalForVectorStore.__kestrelMastraVectorStore ??= createKestrelVectorStore(kind, env);
+  return globalForVectorStore.__kestrelMastraVectorStore;
 }
 
 /** Test helper — resets the singleton so tests can inject isolated stores. */
 export function _resetKestrelVectorStore(): void {
-  cachedVectorStore = null;
+  globalForVectorStore.__kestrelMastraVectorStore = null;
+}
+
+/** Close the shared vector-store pool (graceful shutdown / tests). */
+export async function closeKestrelVectorStore(): Promise<void> {
+  const store = globalForVectorStore.__kestrelMastraVectorStore;
+  if (!store) return;
+  const disconnectable = store as MastraVector & { disconnect?: () => Promise<void> };
+  if (typeof disconnectable.disconnect === 'function') {
+    await disconnectable.disconnect();
+    mlog.info('Kestrel vector store pool closed');
+  }
+  globalForVectorStore.__kestrelMastraVectorStore = null;
 }
 
 // ---------------------------------------------------------------------------

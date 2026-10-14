@@ -241,10 +241,17 @@ export {
   createKestrelMastra,
   getKestrelMastra,
   initializeKestrelMastra,
+  closeKestrelMastra,
   _setKestrelMastraForTest,
   type KestrelMastra,
 } from '../mastra-v2/instance';
-export { getSharedMastraStorage, _resetMastraStorageCache, pruneMastraStorage } from '../mastra-v2/storage';
+export {
+  getSharedMastraStorage,
+  _resetMastraStorageCache,
+  pruneMastraStorage,
+  closeMastraStorage,
+} from '../mastra-v2/storage';
+export { closeKestrelVectorStore } from '../mastra-v2/memory';
 export {
   createRunLogger,
   logWorkflowEnd,
