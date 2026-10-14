@@ -310,6 +310,7 @@ export async function closeDb(): Promise<void> {
     _client = null;
   }
   await closeReplicaDb();
+  await closeAdminDb();
 }
 
 /**

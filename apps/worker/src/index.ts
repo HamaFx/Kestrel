@@ -173,14 +173,13 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   //
   // A sustained write failure remains visible in logs through the counter below.
   let candleFailureCount = 0;
+  const inFlightCandleFlushes = new Set<Promise<void>>();
 
   const aggregator = new Candle1mAggregator((bar: ClosedCandle) => {
-    // Race flushClosedCandle against a 10s safety timeout.
-    // The callback is fire-and-forget (void), so a hung DB connection
-    // would silently accumulate unresolved promises. The timeout ensures
-    // the callback always settles so GC can reclaim resources.
     const CANDLE_FLUSH_TIMEOUT_MS = 10_000;
     const flushController = new AbortController();
+    let timeoutId: NodeJS.Timeout | null = null;
+
     const flushPromise = (async () => {
       try {
         await flushClosedCandle({ db, log, bar, signal: flushController.signal });
@@ -193,7 +192,6 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
           c: bar.c,
           ticks: bar.tickVolume,
         });
-        // Reset failure counter on success
         candleFailureCount = 0;
       } catch (err) {
         candleFailureCount += 1;
@@ -202,19 +200,28 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
           symbol: bar.symbol,
           consecutiveFailures: candleFailureCount,
         });
-
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
       }
     })();
 
     const timeoutPromise = new Promise<void>((resolve) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
         flushController.abort();
         log.warn('flushClosedCandle timed out', { symbol: bar.symbol });
         resolve();
       }, CANDLE_FLUSH_TIMEOUT_MS);
+      timeoutId.unref();
     });
 
-    void Promise.race([flushPromise, timeoutPromise]);
+    const tracked = Promise.race([flushPromise, timeoutPromise]).finally(() => {
+      inFlightCandleFlushes.delete(tracked);
+    });
+    inFlightCandleFlushes.add(tracked);
   });
 
   const consumer = new SignalRConsumer({
@@ -271,10 +278,13 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   // with in-flight guard so flushes never overlap, and peek-before-drain
   // so ticks are never irretrievably lost on DB write failure.
   let flushInFlight = false;
+  let activeFlushPromise: Promise<void> | null = null;
+  let stopping = false;
   let flushTimer: NodeJS.Timeout | null = null;
   const flushIntervalMs = args.flushIntervalMs ?? 1_000;
 
   const scheduleFlush = () => {
+    if (stopping) return;
     if (flushTimer) clearTimeout(flushTimer);
     flushTimer = setTimeout(() => {
       flushTimer = null;
@@ -284,18 +294,13 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   };
 
   const runSingleFlush = async () => {
+    if (stopping) return;
     if (flushInFlight) {
       log.warn('flushLiveTicks skipped — previous flush still in flight');
       scheduleFlush();
       return;
     }
 
-    // Peek the buffer BEFORE the DB write. Only drain() on success
-    // so ticks are never lost on transient DB failures (C1 fix).
-    //
-    // Drain only the revisions that were successfully persisted. Ticks
-    // arriving while the DB write is in flight remain queued for the next
-    // cycle instead of being silently discarded.
     const drained = buffer.peek();
     if (drained.length === 0) {
       scheduleFlush();
@@ -303,33 +308,33 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     }
 
     flushInFlight = true;
-    try {
-      const r = await flushLiveTicks({ db, buffer, log }, drained);
-      // DB write succeeded — now safe to drain the buffer.
-      buffer.drain(drained);
-      if (r.written > 0) {
-        log.info('flushed live_ticks', { written: r.written, ticks: r.totalTicks });
+    const work = (async () => {
+      try {
+        const r = await flushLiveTicks({ db, buffer, log }, drained);
+        buffer.drain(drained);
+        if (r.written > 0) {
+          log.info('flushed live_ticks', { written: r.written, ticks: r.totalTicks });
+        }
+        tickFlushFailureCount = 0;
+      } catch (err) {
+        tickFlushFailureCount += 1;
+        log.error('flushLiveTicks failed — ticks retained in buffer for next attempt', {
+          err: String(err),
+          consecutiveFailures: tickFlushFailureCount,
+        });
+      } finally {
+        flushInFlight = false;
+        activeFlushPromise = null;
+        scheduleFlush();
       }
-      tickFlushFailureCount = 0;
-    } catch (err) {
-      tickFlushFailureCount += 1;
-      log.error('flushLiveTicks failed — ticks retained in buffer for next attempt', {
-        err: String(err),
-        consecutiveFailures: tickFlushFailureCount,
-      });
-
-    } finally {
-      flushInFlight = false;
-      scheduleFlush();
-    }
+    })();
+    activeFlushPromise = work;
+    await work;
   };
 
   // Kick off the first flush loop.
   scheduleFlush();
 
-  // Healthchecks heartbeat — only fires if we've actually seen a tick in
-  // the last 60s. A silent connection is treated as a failure so
-  // healthchecks.io alerts.
   const heartbeatIntervalMs = args.heartbeatIntervalMs ?? 30_000;
   let heartbeatTimer: NodeJS.Timeout | null = null;
   if (heartbeatIntervalMs > 0) {
@@ -345,24 +350,34 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   }
 
   const stop = async (): Promise<void> => {
+    stopping = true;
     notifyStopping();
     if (flushTimer) {
       clearTimeout(flushTimer);
       flushTimer = null;
     }
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
     symbolManager.stop();
 
-    // Gracefully shut down all services in parallel
+    // Gracefully shut down all stream consumers in parallel
     await Promise.all([consumer.stop(), binanceConsumer.stop()]);
 
-    // L6: Drain any pending batched ticks before final DB flush.
+    // Drain any pending batched ticks before final DB flush.
     if (batchTimer) {
       clearTimeout(batchTimer);
       batchTimer = null;
     }
     if (pendingTicks.length > 0) flushBatch();
-    // Final best-effort flush with peek-before-drain pattern (C1 fix).
+
+    // Wait for any in-flight periodic tick flush to finish before final drain.
+    if (activeFlushPromise) {
+      await activeFlushPromise;
+    }
+
+    // Final best-effort flush with peek-before-drain pattern.
     try {
       const drained = buffer.peek();
       if (drained.length > 0) {
@@ -372,9 +387,12 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     } catch (err) {
       log.warn('final flush on stop failed', { err: String(err) });
     }
-    // Force-close the open 1m bar so we don't lose the partial bar at the
-    // edge. Idempotent if the aggregator is already empty.
+
+    // Force-close open 1m bars and await all in-flight candle DB writes.
     aggregator.closeAll();
+    if (inFlightCandleFlushes.size > 0) {
+      await Promise.allSettled([...inFlightCandleFlushes]);
+    }
   };
 
   const getLastTickAt = (): number => lastTickAt;
