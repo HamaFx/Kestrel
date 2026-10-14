@@ -477,6 +477,7 @@ export async function main(): Promise<void> {
       log,
       getLastTickAt: worker.getLastTickAt,
       isSignalRConnected: () => worker.consumer.isStarted(),
+      isBinanceConnected: () => worker.binanceConsumer.isConnected(),
       // H4 fix — expose dropped-tick counter for health monitoring.
       getDroppedTicks: () => worker.consumer.droppedTicks(),
       getRequestId: () => env.DEPLOYED_SHA,
@@ -485,6 +486,7 @@ export async function main(): Promise<void> {
       log,
       getLastTickAt: worker.getLastTickAt,
       isSignalRConnected: () => worker.consumer.isStarted(),
+      isBinanceConnected: () => worker.binanceConsumer.isConnected(),
       getDroppedTicks: () => worker.consumer.droppedTicks(),
       getRequestId: () => env.DEPLOYED_SHA,
     });
