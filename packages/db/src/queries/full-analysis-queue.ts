@@ -197,12 +197,22 @@ export async function heartbeatFullAnalysisQueue(
 }
 
 export async function updateFullAnalysisQueueProgress(
-  input: FullAnalysisLeaseInput & { progress: Array<Record<string, unknown>> },
+  input: FullAnalysisLeaseInput & {
+    progress?: Array<Record<string, unknown>>;
+    entry?: Record<string, unknown>;
+  },
 ): Promise<FullAnalysisQueueRow> {
   const db = input.db ?? getDb();
+  const progressExpr = input.entry
+    ? sql`CASE
+        WHEN jsonb_array_length(coalesce(${schema.fullAnalysisQueue.progress}, '[]'::jsonb)) >= 50
+        THEN (coalesce(${schema.fullAnalysisQueue.progress}, '[]'::jsonb) - 0) || ${JSON.stringify([input.entry])}::jsonb
+        ELSE coalesce(${schema.fullAnalysisQueue.progress}, '[]'::jsonb) || ${JSON.stringify([input.entry])}::jsonb
+      END`
+    : (input.progress ?? []);
   const rows = await db
     .update(schema.fullAnalysisQueue)
-    .set({ progress: input.progress, updatedAt: new Date() })
+    .set({ progress: progressExpr as never, updatedAt: new Date() })
     .where(
       and(
         eq(schema.fullAnalysisQueue.runId, input.runId),
@@ -324,16 +334,35 @@ export async function purgeOldFullAnalysisQueue(
   retentionCutoff: Date,
   db: DbClient = getDb(),
 ): Promise<number> {
+  const rows = await purgeOldFullAnalysisQueueWithIds(retentionCutoff, db);
+  return rows.length;
+}
+
+export async function purgeOldFullAnalysisQueueWithIds(
+  retentionCutoff: Date,
+  db: DbClient = getDb(),
+): Promise<string[]> {
   const rows = await db
     .delete(schema.fullAnalysisQueue)
     .where(
       and(
-        inArray(schema.fullAnalysisQueue.status, ['succeeded', 'failed', 'cancelled', 'blocked']),
-        lt(schema.fullAnalysisQueue.updatedAt, retentionCutoff),
+        inArray(schema.fullAnalysisQueue.status, [
+          'succeeded',
+          'failed',
+          'cancelled',
+          'blocked',
+        ]),
+        or(
+          lt(schema.fullAnalysisQueue.completedAt, retentionCutoff),
+          and(
+            isNull(schema.fullAnalysisQueue.completedAt),
+            lt(schema.fullAnalysisQueue.updatedAt, retentionCutoff),
+          ),
+        ),
       ),
     )
     .returning({ runId: schema.fullAnalysisQueue.runId });
-  return rows.length;
+  return rows.map((r) => r.runId);
 }
 
 export async function getFullAnalysisQueueRow(
