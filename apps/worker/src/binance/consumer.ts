@@ -100,7 +100,8 @@ export class BinanceStreamConsumer extends BaseWsConsumer {
   }
 
   protected override handleMessage(data: WebSocket.Data): void {
-    this.lastMessageAt = Date.now();
+    const now = Date.now();
+    this.lastMessageAt = now;
 
     try {
       const msg = JSON.parse(data.toString());
@@ -111,14 +112,26 @@ export class BinanceStreamConsumer extends BaseWsConsumer {
 
       const candle = k.k;
       const symbol = k.s;
+      const close = Number.parseFloat(candle.c);
+      if (!Number.isFinite(close) || close <= 0) return;
+
+      const high = Number.parseFloat(candle.h);
+      const low = Number.parseFloat(candle.l);
+      const volume = Number.parseFloat(candle.v);
+      // Use Binance event timestamp `k.E` (actual observation time), never `candle.T`
+      // (which is the minute-end close time up to 59,999ms in the future).
+      const eventTs = typeof k.E === 'number' && Number.isFinite(k.E) && k.E > 0 ? k.E : now;
 
       const tick: NormalizedTick = {
         symbol,
-        bid: Number.parseFloat(candle.c),
-        ask: Number.parseFloat(candle.c),
-        mid: Number.parseFloat(candle.c),
-        ts: candle.T,
+        bid: close,
+        ask: close,
+        mid: close,
+        ts: eventTs,
         source: 'binance-ws',
+        ...(Number.isFinite(high) && high > 0 ? { high } : {}),
+        ...(Number.isFinite(low) && low > 0 ? { low } : {}),
+        ...(Number.isFinite(volume) && volume >= 0 ? { volume } : {}),
       };
 
       this.onTick(tick);

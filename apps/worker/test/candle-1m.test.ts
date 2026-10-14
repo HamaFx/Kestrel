@@ -167,4 +167,58 @@ describe('Candle1mAggregator', () => {
 
     expect(closed[0]?.t).toBe(BASE_TS);
   });
+
+  it('preserves kline high, low, and volume when present on NormalizedTick', () => {
+    const closed: ClosedCandle[] = [];
+    const agg = new Candle1mAggregator((b) => closed.push(b));
+
+    agg.feed({
+      symbol: 'BTCUSDT',
+      bid: 65000,
+      ask: 65000,
+      mid: 65000,
+      high: 65150,
+      low: 64900,
+      volume: 14.25,
+      ts: BASE_TS + 5_000,
+      source: 'binance-ws',
+    });
+    agg.feed({
+      symbol: 'BTCUSDT',
+      bid: 65050,
+      ask: 65050,
+      mid: 65050,
+      high: 65220,
+      low: 64890,
+      volume: 29.5,
+      ts: BASE_TS + 45_000,
+      source: 'binance-ws',
+    });
+    // Next minute rollover
+    agg.feed({
+      symbol: 'BTCUSDT',
+      bid: 65060,
+      ask: 65060,
+      mid: 65060,
+      high: 65070,
+      low: 65040,
+      volume: 1.1,
+      ts: BASE_TS + 61_000,
+      source: 'binance-ws',
+    });
+
+    expect(closed).toHaveLength(1);
+    expect(closed[0]).toEqual({
+      symbol: 'BTCUSDT',
+      t: BASE_TS,
+      o: 65000,
+      h: 65220,
+      l: 64890,
+      c: 65050,
+      v: 29.5,
+      tickVolume: 2,
+      source: 'binance-ws',
+    });
+  });
 });
+

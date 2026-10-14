@@ -52,6 +52,7 @@ interface OpenBar {
   h: number;
   l: number;
   c: number;
+  v: number | null;
   ticks: number;
   source: NormalizedTick['source'];
 }
@@ -81,7 +82,7 @@ export class Candle1mAggregator {
     const existing = this.bars.get(tick.symbol);
 
     if (!existing) {
-      this.bars.set(tick.symbol, this.openBar(bucket, tick.mid, tick.source));
+      this.bars.set(tick.symbol, this.openBar(bucket, tick));
       return;
     }
 
@@ -91,9 +92,12 @@ export class Candle1mAggregator {
     }
 
     if (bucket === existing.bucket) {
-      if (tick.mid > existing.h) existing.h = tick.mid;
-      if (tick.mid < existing.l) existing.l = tick.mid;
+      const candidateHigh = tick.high !== undefined ? Math.max(tick.mid, tick.high) : tick.mid;
+      const candidateLow = tick.low !== undefined ? Math.min(tick.mid, tick.low) : tick.mid;
+      if (candidateHigh > existing.h) existing.h = candidateHigh;
+      if (candidateLow < existing.l) existing.l = candidateLow;
       existing.c = tick.mid;
+      if (tick.volume !== undefined) existing.v = tick.volume;
       existing.ticks += 1;
       existing.source = tick.source;
       return;
@@ -104,7 +108,7 @@ export class Candle1mAggregator {
     // jumped multiple minutes (gap during BiQuote outage / weekend) —
     // creating empty bars for missing minutes is undesirable.
     this.emitClosed(tick.symbol, existing);
-    this.bars.set(tick.symbol, this.openBar(bucket, tick.mid, tick.source));
+    this.bars.set(tick.symbol, this.openBar(bucket, tick));
   }
 
   /**
@@ -124,8 +128,19 @@ export class Candle1mAggregator {
     return this.bars.get(symbol);
   }
 
-  private openBar(bucket: number, mid: number, source: NormalizedTick['source']): OpenBar {
-    return { bucket, o: mid, h: mid, l: mid, c: mid, ticks: 1, source };
+  private openBar(bucket: number, tick: NormalizedTick): OpenBar {
+    const h = tick.high !== undefined ? Math.max(tick.mid, tick.high) : tick.mid;
+    const l = tick.low !== undefined ? Math.min(tick.mid, tick.low) : tick.mid;
+    return {
+      bucket,
+      o: tick.mid,
+      h,
+      l,
+      c: tick.mid,
+      v: tick.volume ?? null,
+      ticks: 1,
+      source: tick.source,
+    };
   }
 
   private emitClosed(symbol: Symbol, bar: OpenBar): void {
@@ -136,7 +151,7 @@ export class Candle1mAggregator {
       h: bar.h,
       l: bar.l,
       c: bar.c,
-      v: null,
+      v: bar.v,
       tickVolume: bar.ticks,
       source: bar.source,
     });
