@@ -11,11 +11,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 
 import * as chromeLauncher from 'chrome-launcher';
 import lighthouse from 'lighthouse';
 
-const LIGHTHOUSE_TARGETS = [
+export const LIGHTHOUSE_TARGETS = [
   '/chat',
   '/chart/XAUUSD',
   '/news',
@@ -26,8 +27,8 @@ const LIGHTHOUSE_TARGETS = [
   '/settings/usage',
 ];
 
-const PERF_THRESHOLD = 90;
-const A11Y_THRESHOLD = 95;
+export const PERF_THRESHOLD = 90;
+export const A11Y_THRESHOLD = 95;
 
 const USAGE = `Usage: node tools/lighthouse/run.mjs --base-url <url> --cookie <cookie> [--out <dir>]
 
@@ -150,18 +151,36 @@ function scoreToInt(score) {
   return Math.round((score ?? 0) * 100);
 }
 
-async function audit(baseUrl, cookie, route) {
-  const url = joinUrl(baseUrl, route);
-  const chrome = await chromeLauncher.launch({
+export async function auditAllRoutes(
+  baseUrl,
+  cookie,
+  routes = LIGHTHOUSE_TARGETS,
+  deps = {},
+) {
+  const launch = deps.launchChrome ?? chromeLauncher.launch;
+  const runLh = deps.runLighthouseFn ?? runLighthouse;
+  const chrome = await launch({
     chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu'],
   });
+  const outcomes = [];
   try {
-    const a = await runLighthouse(url, chrome.port, cookie);
-    const b = await runLighthouse(url, chrome.port, cookie);
-    return pickHigherPerf(a, b);
+    for (const route of routes) {
+      const url = joinUrl(baseUrl, route);
+      try {
+        const a = await runLh(url, chrome.port, cookie);
+        const b = await runLh(url, chrome.port, cookie);
+        outcomes.push({ route, lhr: pickHigherPerf(a, b) });
+      } catch (e) {
+        outcomes.push({
+          route,
+          error: e instanceof Error ? e : new Error(String(e)),
+        });
+      }
+    }
   } finally {
     await chrome.kill();
   }
+  return outcomes;
 }
 
 async function main() {
@@ -209,14 +228,13 @@ async function main() {
   /** @type {{ route: string, category: 'performance' | 'accessibility', score: number, threshold: number }[]} */
   const failures = [];
 
-  for (const route of LIGHTHOUSE_TARGETS) {
-    console.log(`[lighthouse] auditing ${route} ...`);
-    let lhr;
-    try {
-      lhr = await audit(args.baseUrl, args.cookie, route);
-    } catch (e) {
+  console.log(`[lighthouse] auditing ${LIGHTHOUSE_TARGETS.length} routes using shared Chrome instance ...`);
+  const outcomes = await auditAllRoutes(args.baseUrl, args.cookie, LIGHTHOUSE_TARGETS);
+
+  for (const { route, lhr, error } of outcomes) {
+    if (error || !lhr) {
       console.error(
-        `[lighthouse] route ${route} failed to audit: ${e instanceof Error ? e.message : String(e)}`,
+        `[lighthouse] route ${route} failed to audit: ${error ? (error.message || String(error)) : 'no result'}`,
       );
       summary.push(`| ${route} | - | - | \u274C audit error |`);
       failures.push({ route, category: 'performance', score: 0, threshold: PERF_THRESHOLD });
@@ -274,7 +292,9 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((e) => {
-  console.error('[lighthouse] crashed:', e instanceof Error ? (e.stack ?? e.message) : e);
-  process.exit(2);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  main().catch((e) => {
+    console.error('[lighthouse] crashed:', e instanceof Error ? (e.stack ?? e.message) : e);
+    process.exit(2);
+  });
+}
