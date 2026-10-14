@@ -34,7 +34,7 @@
 // they fire normally once the suppression window lifts. The dedup/cooldown
 // state is persisted via `DbNoiseState` so every cron runner shares one view.
 
-import type { Alert } from '@kestrel/shared';
+import type { Alert, AlertRule } from '@kestrel/shared';
 import { metrics, type NoiseDecision } from '@kestrel/shared';
 import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
 
@@ -42,8 +42,13 @@ import { deletePushSubscription, listPushSubscriptions } from '../push/persisten
 import { sendWebPush } from '../push/send';
 import { evaluateNoise, hashContent } from '../notifications/noise-control';
 import { DbNoiseState, getNoiseConfig } from '../notifications/noise-state';
-import { describeRule, type EvaluatorEnv, type RuleReading } from './evaluator';
+import { alertRuleRegistry } from './rule-registry';
+import type { EvaluatorEnv, RuleReading } from './evaluator';
 import { markFiredForAlert } from './persistence';
+
+function describeRule(rule: AlertRule): string {
+  return alertRuleRegistry.get(rule.type).describe(rule);
+}
 
 const alog = createCategorizedLogger('ai', { component: 'alerts-delivery' });
 const EXTERNAL_DELIVERY_TIMEOUT_MS = 30_000;

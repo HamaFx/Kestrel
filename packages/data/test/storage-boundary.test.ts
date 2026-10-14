@@ -1,9 +1,8 @@
+import { deleteStorageObjects, listStorageObjects } from '../src/adapters/storage';
 import { describe, expect, it } from 'vitest';
 
-import { deleteStorageObjects, listStorageObjects } from '../src/adapters/storage';
-
 describe('storage adapter boundaries', () => {
-  it('rejects insecure storage URLs before making a request', async () => {
+  it('rejects insecure production storage URLs before making a request', async () => {
     await expect(
       listStorageObjects(
         {

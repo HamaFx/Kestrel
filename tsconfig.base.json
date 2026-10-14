@@ -24,11 +24,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "incremental": true,
-
-    "paths": {
-      "@/*": ["./apps/web/src/*"]
-    }
+    "incremental": true
   },
   "exclude": ["node_modules", ".turbo", ".next", "dist", "coverage"]
 }

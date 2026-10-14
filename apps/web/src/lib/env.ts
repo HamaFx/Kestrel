@@ -21,6 +21,8 @@
 // Development secrets are auto-generated when missing and cached in
 // `.kestrel/dev-secrets.json` so encrypted BYOK payloads survive restarts.
 
+import 'server-only';
+
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
