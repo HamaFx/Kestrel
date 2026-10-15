@@ -16,7 +16,7 @@
 
 // COT report query helpers.
 
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 
@@ -55,6 +55,6 @@ export async function upsertCotReport(input: CreateCotReportInput): Promise<CotR
 
 export async function countCotReports(): Promise<number> {
   const db = getDb();
-  const rows = await db.select({ count: schema.cotReports.id }).from(schema.cotReports);
-  return rows.length;
+  const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(schema.cotReports);
+  return row?.count ?? 0;
 }

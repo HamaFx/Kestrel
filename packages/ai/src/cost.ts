@@ -567,10 +567,19 @@ export async function getProviderMonthlySpend(
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const rows = await db
+
+  // Provider attribution must match the JS resolver: '<prefix>/model' bills to
+  // `prefix`, a bare model id bills to 'google', and only KNOWN_BYOK_PROVIDERS
+  // (or the 'google' default) are billable — anything else accrues no spend.
+  if (providerId !== 'google' && !KNOWN_BYOK_PROVIDERS.has(providerId)) return 0;
+
+  // Sum in SQL — pulling 30 days of telemetry rows into Node.js to filter by
+  // model prefix scales linearly with usage.
+  const [row] = await db
     .select({
-      model: schema.chatTelemetry.model,
-      estCostUsd: schema.chatTelemetry.estCostUsd,
+      total: sql<string>`coalesce(sum(${schema.chatTelemetry.estCostUsd}) filter (
+        where coalesce(nullif(split_part(${schema.chatTelemetry.model}, '/', 1), ''), 'google') = ${providerId}
+      ), 0)::text`,
     })
     .from(schema.chatTelemetry)
     .where(
@@ -580,27 +589,7 @@ export async function getProviderMonthlySpend(
         gte(schema.chatTelemetry.createdAt, startOfMonth),
       ),
     );
-
-  const providerIdFromModel = (modelId: string) => {
-    const slash = modelId.indexOf('/');
-    if (slash === -1) return '';
-    return modelId.slice(0, slash);
-  };
-  const canonicalizeProviderId = (prefix: string) => {
-    if (prefix === '') return 'google';
-    if (KNOWN_BYOK_PROVIDERS.has(prefix)) return prefix;
-    return null;
-  };
-
-  let total = 0;
-  for (const r of rows) {
-    const rawPrefix = providerIdFromModel(r.model);
-    const byokId = canonicalizeProviderId(rawPrefix);
-    if (byokId === providerId) {
-      total += Number(r.estCostUsd ?? 0);
-    }
-  }
-  return total;
+  return Number(row?.total ?? 0);
 }
 
 function triggerSpendAlert(

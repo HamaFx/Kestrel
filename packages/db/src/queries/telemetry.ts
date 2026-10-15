@@ -16,7 +16,7 @@
 
 // Chat telemetry query helpers.
 
-import { and, between, desc, eq } from 'drizzle-orm';
+import { and, between, desc, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
@@ -64,11 +64,12 @@ export async function getDailySpend(
 
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  const rows = await db
+  // Aggregated in SQL — fetching every telemetry row for the day into
+  // Node.js memory just to `.reduce()` it scales linearly with usage.
+  const [row] = await db
     .select({
-      estCostUsd: schema.chatTelemetry.estCostUsd,
-      inputTokens: schema.chatTelemetry.inputTokens,
-      outputTokens: schema.chatTelemetry.outputTokens,
+      cost: sql<string>`coalesce(sum(${schema.chatTelemetry.estCostUsd}), 0)::text`,
+      tokens: sql<number>`coalesce(sum(${schema.chatTelemetry.inputTokens} + ${schema.chatTelemetry.outputTokens}), 0)::int`,
     })
     .from(schema.chatTelemetry)
     .where(
@@ -80,7 +81,7 @@ export async function getDailySpend(
     );
 
   return {
-    estimatedCost: rows.reduce((sum, r) => sum + Number(r.estCostUsd), 0),
-    tokenCount: rows.reduce((sum, r) => sum + r.inputTokens + r.outputTokens, 0),
+    estimatedCost: Number(row?.cost ?? 0),
+    tokenCount: Number(row?.tokens ?? 0),
   };
 }
