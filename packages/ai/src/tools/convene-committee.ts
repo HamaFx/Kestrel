@@ -89,7 +89,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
   const tick = packet.price?.tick;
   if (!tick || packet.status === 'blocked') {
     throw new Error(
-      `Cannot synthesize fallback committee verdicts for ${symbol}: live market data packet is blocked (${packet.blockReason ?? 'no live tick'}).`,
+      `Cannot synthesize fallback committee verdicts for ${symbol}: live market data packet is blocked (${packet.warnings.join(', ') || 'no live tick'}).`,
     );
   }
   const liveMid = tick.mid;
@@ -266,7 +266,7 @@ export const conveneCommitteeTool = tool({
     const packet = await collectSymbolResearchPacketCached(symbol, signal);
     if (packet.status === 'blocked' || !packet.price?.tick) {
       throw new Error(
-        `Market data unavailable for ${symbol} (${packet.blockReason ?? 'missing live price'}). Cannot convene committee without verified market data.`,
+        `Market data unavailable for ${symbol} (${packet.warnings.join(', ') || 'missing live price'}). Cannot convene committee without verified market data.`,
       );
     }
     const fallbackVerdicts = buildPacketGroundedFallbackVerdicts({
@@ -284,7 +284,7 @@ export const conveneCommitteeTool = tool({
     // Attempt full Mastra committee workflow when an operator/default model is available.
     try {
       const runId = crypto.randomUUID();
-      const sanitizedNotes = notes ? sanitizeExternalText(notes, { maxChars: 300 }) : '';
+      const sanitizedNotes = notes ? sanitizeExternalText(notes, 300) : '';
       const prompt = [
         `Evaluate this proposed ${side.toUpperCase()} setup on ${symbol}:`,
         `- Entry: ${entry}`,
@@ -308,15 +308,13 @@ export const conveneCommitteeTool = tool({
             ctx?.userSettings?.chatModel ??
             (process.env.AI_DEFAULT_MODEL as UserSettingsRow['chatModel']) ??
             'google:gemini-2.5-flash',
-          aiApiKeys: (ctx?.userSettings?.aiApiKeys as Record<string, string> | null) ?? null,
-          embeddingModel: ctx?.userSettings?.embeddingModel,
-          agentModelOverrides: ctx?.userSettings?.agentModelOverrides,
+          aiApiKeys: (ctx?.userSettings?.aiApiKeys as string | null) ?? null,
+          embeddingModel: ctx?.userSettings?.embeddingModel ?? null,
+          agentModelOverrides: ctx?.userSettings?.agentModelOverrides ?? null,
         },
         env: {
           AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
           GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-          OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-          ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         },
       });
 

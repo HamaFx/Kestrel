@@ -21,18 +21,56 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { decryptByok } from '@kestrel/shared/encryption';
+import type { EmbeddingModel } from 'ai';
 
+import { buildByokEmbeddingModel, providerCapabilities } from './byok-providers';
 import type { ResolveModelEnv } from './env-model-factory';
+import { envFallbackKeys } from './model-helpers';
 import { resolveModelForRole } from './model-role';
+
+export interface EmbeddingModelResolutionDetails {
+  model: EmbeddingModel<string> | string;
+  modelId: string;
+}
 
 /**
  * Phase D2 — result of resolving the user's default embedding model.
- * Returns the qualified model id string only (e.g.
- * `"openai/text-embedding-3-small"`) — embeddings don't go through
- * the BYOK factory path because the AI SDK's `embedMany` handles
- * provider routing by id prefix when a gateway key is configured.
+ * Returns the qualified model id string.
  */
 export type EmbeddingModelResolution = string;
+
+/**
+ * Resolve the user's default embedding model details, returning both the
+ * qualified model id string and an instantiated EmbeddingModel instance
+ * when a direct provider BYOK key is configured.
+ */
+export function resolveEmbeddingModelDetails(
+  userSettings: Pick<UserSettingsRow, 'aiApiKeys' | 'embeddingModel'>,
+  env: ResolveModelEnv,
+): EmbeddingModelResolutionDetails {
+  const stored = decryptByok(userSettings.aiApiKeys);
+  const res = resolveModelForRole('embedding', stored ?? {}, env, {
+    userSettings: { embeddingModel: userSettings.embeddingModel },
+  });
+
+  const providerId = res.providerId;
+  const keys = {
+    ...envFallbackKeys(env),
+    ...(stored ?? {}),
+  };
+  const apiKey = keys[providerId];
+
+  if (apiKey && providerCapabilities[providerId]?.supportsEmbedding) {
+    try {
+      const model = buildByokEmbeddingModel(providerId, res.bareModelId, apiKey);
+      return { model, modelId: res.modelId };
+    } catch {
+      // Fall through to modelId string (Gateway routing)
+    }
+  }
+
+  return { model: res.modelId, modelId: res.modelId };
+}
 
 /**
  * Resolve the user's default embedding model.
@@ -53,9 +91,5 @@ export function resolveEmbeddingModel(
   userSettings: Pick<UserSettingsRow, 'aiApiKeys' | 'embeddingModel'>,
   env: ResolveModelEnv,
 ): EmbeddingModelResolution {
-  const stored = decryptByok(userSettings.aiApiKeys);
-  const res = resolveModelForRole('embedding', stored ?? {}, env, {
-    userSettings: { embeddingModel: userSettings.embeddingModel },
-  });
-  return res.modelId;
+  return resolveEmbeddingModelDetails(userSettings, env).modelId;
 }

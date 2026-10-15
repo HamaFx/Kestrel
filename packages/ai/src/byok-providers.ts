@@ -51,7 +51,10 @@ export {
   buildCatalogRateTable,
 } from './_providers/registry';
 
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { ProviderId } from '@kestrel/shared/byok';
+import type { EmbeddingModel } from 'ai';
 
 export interface ProviderCapability {
   supportsVision: boolean;
@@ -115,7 +118,7 @@ export const providerCapabilities: Record<ProviderId, ProviderCapability> = {
   },
   iamhc: {
     supportsVision: true,
-    supportsEmbedding: true,
+    supportsEmbedding: false,
     supportsToolCalling: true,
     modelPrefix: 'iamhc/',
   },
@@ -126,3 +129,33 @@ export const providerCapabilities: Record<ProviderId, ProviderCapability> = {
     modelPrefix: 'hcnsec/',
   },
 };
+
+/**
+ * Instantiate an EmbeddingModel for direct provider BYOK calls without
+ * requiring the global Vercel AI Gateway (AI_GATEWAY_API_KEY).
+ */
+export function buildByokEmbeddingModel(
+  provider: ProviderId,
+  modelId: string,
+  apiKey: string,
+): EmbeddingModel<string> {
+  const bareModelId = modelId.includes('/') ? modelId.split('/').slice(1).join('/') : modelId;
+  switch (provider) {
+    case 'google':
+      return createGoogleGenerativeAI({ apiKey }).textEmbeddingModel(bareModelId);
+    case 'openai':
+      return createOpenAICompatible({
+        name: 'openai',
+        baseURL: 'https://api.openai.com/v1',
+        apiKey,
+      }).textEmbeddingModel(bareModelId);
+    case 'mistral':
+      return createOpenAICompatible({
+        name: 'mistral',
+        baseURL: 'https://api.mistral.ai/v1',
+        apiKey,
+      }).textEmbeddingModel(bareModelId);
+    default:
+      throw new Error(`Provider "${provider}" does not support direct text embeddings.`);
+  }
+}
