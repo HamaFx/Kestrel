@@ -435,8 +435,6 @@ export function serializeSymbolResearchPacket(packet: SymbolResearchPacket): str
 export const SymbolResearchInputSchema = z.object({ symbol: SymbolSchema });
 export const SymbolResearchIndicatorRequestSchema = IndicatorRequestSchema;
 
-const MUTATION_TERMS =
-  /\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i;
 const SYMBOL_PATTERN = new RegExp(`\\b(?:${ALL_SYMBOLS.join('|')})\\b`, 'gi');
 
 /** Extract one canonical symbol from a prompt, using the fallback only when no symbol is named. */
