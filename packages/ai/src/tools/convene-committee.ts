@@ -32,9 +32,11 @@ import { tool } from 'ai';
 import type { z } from 'zod';
 
 import type { MastraModeOpinion } from '../committee/types';
+import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { collectSymbolResearchPacketCached } from '../mastra-v2/packets/packet-cache';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import { runMastraMode } from '../mastra-v2/planning/mode-runner';
+import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = ConveneCommitteeInputSchema;
 
@@ -84,7 +86,13 @@ function buildPacketGroundedFallbackVerdicts(args: {
   packet: SymbolResearchPacket;
 }): CommitteeVerdict[] {
   const { symbol, side, entry, stop, target, packet } = args;
-  const liveMid = packet.price?.tick?.mid ?? entry;
+  const tick = packet.price?.tick;
+  if (!tick || packet.status === 'blocked') {
+    throw new Error(
+      `Cannot synthesize fallback committee verdicts for ${symbol}: live market data packet is blocked (${packet.blockReason ?? 'no live tick'}).`,
+    );
+  }
+  const liveMid = tick.mid;
   const primaryEvidence =
     packet.timeframes.find((tf) => tf.timeframe === '1h') ?? packet.timeframes[0];
   const indicators = primaryEvidence?.indicators ?? [];
@@ -97,18 +105,21 @@ function buildPacketGroundedFallbackVerdicts(args: {
     return typeof last === 'number' && Number.isFinite(last) ? last : null;
   };
 
-  const ema20 = getIndicatorVal('ema', 20) ?? liveMid;
-  const ema50 = getIndicatorVal('ema', 50) ?? liveMid;
-  const rsi14 = getIndicatorVal('rsi', 14) ?? 50;
+  const ema20 = getIndicatorVal('ema', 20);
+  const ema50 = getIndicatorVal('ema', 50);
+  const rsi14 = getIndicatorVal('rsi', 14);
   const atr14 = getIndicatorVal('atr', 14);
 
-  const trendBullish = ema20 >= ema50;
+  const hasTrend = ema20 !== null && ema50 !== null;
+  const trendBullish = hasTrend ? ema20 >= ema50 : false;
   const techBias: CommitteeVerdict['verdict'] =
-    ema20 > ema50 && rsi14 >= 50
-      ? 'bullish'
-      : ema20 < ema50 && rsi14 < 50
-        ? 'bearish'
-        : 'neutral';
+    hasTrend && rsi14 !== null
+      ? ema20 > ema50 && rsi14 >= 50
+        ? 'bullish'
+        : ema20 < ema50 && rsi14 < 50
+          ? 'bearish'
+          : 'neutral'
+      : 'neutral';
   const techAligned =
     (side === 'long' && techBias === 'bullish') ||
     (side === 'short' && techBias === 'bearish');
@@ -167,7 +178,9 @@ function buildPacketGroundedFallbackVerdicts(args: {
       verdict: techBias,
       confidence: techAligned ? 8 : 6,
       keyPoints: [
-        `EMA20 (${ema20.toFixed(2)}) is ${trendBullish ? 'above' : 'below'} EMA50 (${ema50.toFixed(2)}), with RSI14 at ${rsi14.toFixed(1)}.`,
+        hasTrend && rsi14 !== null
+          ? `EMA20 (${ema20.toFixed(2)}) is ${trendBullish ? 'above' : 'below'} EMA50 (${ema50.toFixed(2)}), with RSI14 at ${rsi14.toFixed(1)}.`
+          : `${symbol} trading at ${liveMid.toFixed(2)}; technical indicators incomplete.`,
         packet.marketStructure
           ? `50-bar range spans ${packet.marketStructure.recentSwingLow} to ${packet.marketStructure.recentSwingHigh}.`
           : `Proposed ${side} entry at ${entry} vs. live mid ${liveMid}.`,
@@ -244,8 +257,18 @@ export const conveneCommitteeTool = tool({
   description:
     'Convene the Kestrel 4-Expert Committee (Technical, Macro & News, Risk Manager, and Sentiment) to evaluate a specific trade setup (symbol, side, entry, stop, target) and return a graded Go/Caution/No-Go verdict card.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, side, entry, stop, target, notes }): Promise<ConveneCommitteeOutput> => {
-    const packet = await collectSymbolResearchPacketCached(symbol);
+  execute: async (
+    { symbol, side, entry, stop, target, notes },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<ConveneCommitteeOutput> => {
+    const ctx = maybeGetToolContext();
+    const signal = options?.abortSignal ?? ctx?.signal ?? undefined;
+    const packet = await collectSymbolResearchPacketCached(symbol, signal);
+    if (packet.status === 'blocked' || !packet.price?.tick) {
+      throw new Error(
+        `Market data unavailable for ${symbol} (${packet.blockReason ?? 'missing live price'}). Cannot convene committee without verified market data.`,
+      );
+    }
     const fallbackVerdicts = buildPacketGroundedFallbackVerdicts({
       symbol,
       side,
@@ -261,12 +284,13 @@ export const conveneCommitteeTool = tool({
     // Attempt full Mastra committee workflow when an operator/default model is available.
     try {
       const runId = crypto.randomUUID();
+      const sanitizedNotes = notes ? sanitizeExternalText(notes, { maxChars: 300 }) : '';
       const prompt = [
         `Evaluate this proposed ${side.toUpperCase()} setup on ${symbol}:`,
         `- Entry: ${entry}`,
         stop !== undefined ? `- Stop: ${stop}` : '- Stop: not specified',
         target !== undefined ? `- Target: ${target}` : '- Target: not specified',
-        notes ? `- Trader notes: ${notes}` : '',
+        sanitizedNotes ? `- Trader notes: ${sanitizedNotes}` : '',
       ]
         .filter(Boolean)
         .join('\n');
@@ -274,19 +298,25 @@ export const conveneCommitteeTool = tool({
       const modeResult = await runMastraMode({
         prompt,
         symbol,
-        userId: 'canonical-committee-tool',
-        threadId: `convene-committee-${runId}`,
+        userId: ctx?.userId ?? '00000000-0000-0000-0000-000000000000',
+        threadId: ctx?.threadId ?? `convene-committee-${runId}`,
         runId,
         mode: 'full',
+        ...(signal ? { signal } : {}),
         settings: {
           chatModel:
+            ctx?.userSettings?.chatModel ??
             (process.env.AI_DEFAULT_MODEL as UserSettingsRow['chatModel']) ??
             'google:gemini-2.5-flash',
-          aiApiKeys: null,
+          aiApiKeys: (ctx?.userSettings?.aiApiKeys as Record<string, string> | null) ?? null,
+          embeddingModel: ctx?.userSettings?.embeddingModel,
+          agentModelOverrides: ctx?.userSettings?.agentModelOverrides,
         },
         env: {
           AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
           GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+          OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+          ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         },
       });
 
@@ -295,14 +325,22 @@ export const conveneCommitteeTool = tool({
         const fundOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'fundamental');
         const techOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'technical');
         const riskOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'risk');
+        const sentOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'sentiment');
+        const economistVerdict = opinionToVerdict('economist', fundOp, fallbackVerdicts[0]!);
+        if (sentOp?.reasoning && economistVerdict.keyPoints.length < 5) {
+          economistVerdict.keyPoints.push(
+            `Sentiment desk: ${sentOp.bias} (${Math.round(sentOp.confidence * 10)}/10)`,
+          );
+        }
         verdicts = [
-          opinionToVerdict('economist', fundOp, fallbackVerdicts[0]!),
+          economistVerdict,
           opinionToVerdict('technician', techOp, fallbackVerdicts[1]!),
           opinionToVerdict('risk_manager', riskOp, fallbackVerdicts[2]!),
         ];
         consensusText = modeResult.finalText ?? '';
       }
-    } catch {
+    } catch (err) {
+      if (signal?.aborted) throw err;
       // Gracefully use deterministic packet-grounded verdicts when no LLM key is configured or on timeout.
     }
 
