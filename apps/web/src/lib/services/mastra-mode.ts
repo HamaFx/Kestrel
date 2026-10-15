@@ -133,6 +133,19 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
               },
             });
 
+            // P2-06: title spend is recorded into the turn ledger; await the
+            // (bounded) title call before settling so the reservation covers
+            // the full turn cost, not just the committee workflow.
+            await maybeGenerateThreadTitle({
+              userId: input.userId,
+              threadId: input.threadId,
+              firstUser: input.prompt,
+              firstAssistant: result.finalText,
+              ledger,
+              ledgerId: `title:${runId}`,
+            });
+            const observedCost = Math.max(result.totalCostUsd, ledger.total());
+
             const assistantMessage: UIMessage = {
               id: messageId,
               role: 'assistant',
@@ -158,21 +171,13 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
                 } as UIMessage['parts'][number],
               ],
             };
-            return { result, observedCost: result.totalCostUsd, assistantMessage };
+            return { result, observedCost, assistantMessage };
           },
           buildAssistantMessage: ({ assistantMessage }) => assistantMessage!,
           isCancelled: () => input.signal?.aborted === true,
         });
 
         const result = execution.result;
-        void maybeGenerateThreadTitle({
-          userId: input.userId,
-          threadId: input.threadId,
-          firstUser: input.prompt,
-          firstAssistant: result.finalText,
-          ledger,
-          ledgerId: `title:${runId}`,
-        });
 
         emit({ type: 'text-start', id: messageId });
         emit({ type: 'text-delta', id: messageId, delta: result.finalText });

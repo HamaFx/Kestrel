@@ -168,6 +168,17 @@ export async function runMastraXauusdConversationStreamChat(
             }
           }
         }
+        // P2-06: await the bounded title call before snapshotting cost so the
+        // reservation settles the full turn spend (title call included) and
+        // the persisted meta reports the true total.
+        await maybeGenerateThreadTitle({
+          userId: input.userId,
+          threadId: input.threadId,
+          firstUser: input.prompt,
+          firstAssistant: completed.result.text,
+          ledger,
+          ledgerId: `title:${runId}`,
+        });
         observedCost = ledger.total();
         const meta = createMastraChatMeta({
           runId,
@@ -201,14 +212,6 @@ export async function runMastraXauusdConversationStreamChat(
         };
         await appendAssistantMessage(input.userId, input.threadId, assistantMessage, {
           idempotencyKey: `mastra:${input.threadId}:${input.userMessage.id}:assistant`,
-        });
-        void maybeGenerateThreadTitle({
-          userId: input.userId,
-          threadId: input.threadId,
-          firstUser: input.prompt,
-          firstAssistant: completed.result.text,
-          ledger,
-          ledgerId: `title:${runId}`,
         });
         await finalizer.complete(observedCost);
       } catch (error) {

@@ -104,13 +104,26 @@ export async function runMastraXauusdChat(
         ...(input.executionPlan ? { executionPlan: input.executionPlan } : {}),
         ledger,
       });
-      const observedCost =
+      // P2-06: title spend is recorded into the same ledger; await the
+      // (bounded) title call before settling so the reservation covers the
+      // full turn. The ledger may already track the run cost, so take the
+      // larger of the run-reported cost and the ledger total.
+      const baseCost =
         completedRun.totalCostUsd ||
         estimateCostUsd(
           completedRun.modelId,
           completedRun.stats.inputTokens,
           completedRun.stats.outputTokens,
         );
+      await maybeGenerateThreadTitle({
+        userId: input.userId,
+        threadId: input.threadId,
+        firstUser: input.prompt,
+        firstAssistant: completedRun.result.text,
+        ledger,
+        ledgerId: `title:${runId}`,
+      });
+      const observedCost = Math.max(baseCost, ledger.total());
 
       const meta = createMastraChatMeta({
         agent: 'mastra-xauusd',
@@ -145,14 +158,5 @@ export async function runMastraXauusdChat(
 
   const completedRun = execution.result.run;
   const observedCost = execution.observedCost;
-
-  void maybeGenerateThreadTitle({
-    userId: input.userId,
-    threadId: input.threadId,
-    firstUser: input.prompt,
-    firstAssistant: completedRun.result.text,
-    ledger,
-    ledgerId: `title:${runId}`,
-  });
   return { ...completedRun, runId, observedCost };
 }

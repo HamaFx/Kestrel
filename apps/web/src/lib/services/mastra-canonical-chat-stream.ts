@@ -265,6 +265,20 @@ export async function runMastraCanonicalChatStreamService(
           });
         }
 
+        // P2-06: title spend lands in the per-turn ledger, so await the
+        // (bounded) title call before snapshotting the cost and settling the
+        // budget. `maybeGenerateThreadTitle` never throws and persists the
+        // deterministic fallback title on timeout, so this cannot strand the
+        // stream tail.
+        await maybeGenerateThreadTitle({
+          userId: input.userId,
+          threadId: input.threadId,
+          firstUser: extractUserMessageText(input.userMessage),
+          firstAssistant: completed.text,
+          ledger,
+          ledgerId: `title:${runId}`,
+        });
+
         const observedCost = ledger.total();
         const memoryDegradedPart =
           completed.memoryMode === 'degraded'
@@ -332,14 +346,6 @@ export async function runMastraCanonicalChatStreamService(
           terminalStatus = 'persistence-failed';
           throw error;
         }
-        void maybeGenerateThreadTitle({
-          userId: input.userId,
-          threadId: input.threadId,
-          firstUser: extractUserMessageText(input.userMessage),
-          firstAssistant: completed.text,
-          ledger,
-          ledgerId: `title:${runId}`,
-        });
         await finalizer.complete(observedCost);
       } catch (error) {
         if (input.signal?.aborted) await finalizer.abort();

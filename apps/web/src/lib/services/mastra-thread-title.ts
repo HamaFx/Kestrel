@@ -22,13 +22,20 @@ import 'server-only';
  * Web-side entry point for best-effort LLM thread titles.
  *
  * Thin wrapper: injects the validated server env into the shared AI-package
- * orchestration (`@kestrel/ai/mastra`). Fire-and-forget safe — never blocks
- * the chat response and never throws.
+ * orchestration (`@kestrel/ai/mastra`). Never throws.
+ *
+ * Web chat services await this call before settling the turn's budget
+ * reservation (P2-06), so the title LLM call is bounded: on timeout the shared
+ * service aborts the call and persists the deterministic fallback title, and
+ * no title spend can be recorded after settlement.
  */
 
 import { maybeGenerateThreadTitle as aiMaybeGenerateThreadTitle } from '@kestrel/ai/mastra';
 
 import { getServerEnv } from '@/lib/env';
+
+/** Upper bound the stream tail spends waiting on the title model. */
+const WEB_TITLE_TIMEOUT_MS = 2_500;
 
 export type MaybeGenerateThreadTitleArgs = Omit<
   Parameters<typeof aiMaybeGenerateThreadTitle>[0],
@@ -36,5 +43,9 @@ export type MaybeGenerateThreadTitleArgs = Omit<
 >;
 
 export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArgs): Promise<void> {
-  return aiMaybeGenerateThreadTitle({ ...args, env: getServerEnv() });
+  return aiMaybeGenerateThreadTitle({
+    ...args,
+    env: getServerEnv(),
+    timeoutMs: args.timeoutMs ?? WEB_TITLE_TIMEOUT_MS,
+  });
 }
