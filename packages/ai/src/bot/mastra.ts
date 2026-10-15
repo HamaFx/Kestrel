@@ -203,9 +203,27 @@ export async function tryMastraBotMessage(args: {
           'Live Market Data Snapshot (use only these verified numbers):',
           serializeSymbolResearchPacket(packet),
         ].join('\n');
+      } else {
+        const msg = `Market data for ${detectedSymbol} is currently unavailable. I cannot provide an analysis without verified market evidence. Please retry later.`;
+        await appendUserMessage(args.userId, args.threadId, args.userMessage);
+        const assistant: UIMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          parts: [{ type: 'text', text: msg }],
+        };
+        await appendAssistantMessage(args.userId, args.threadId, assistant);
+        return msg;
       }
     } catch {
-      // Proceed with the user's prompt if live packet collection is unavailable.
+      const msg = `Market data for ${detectedSymbol} is currently unavailable. I cannot provide an analysis without verified market evidence. Please retry later.`;
+      await appendUserMessage(args.userId, args.threadId, args.userMessage);
+      const assistant: UIMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        parts: [{ type: 'text', text: msg }],
+      };
+      await appendAssistantMessage(args.userId, args.threadId, assistant);
+      return msg;
     }
   }
 

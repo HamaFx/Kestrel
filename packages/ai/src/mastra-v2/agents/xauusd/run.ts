@@ -37,6 +37,7 @@ import { createXauusdReportWorkflow } from '../../workflows/xauusd-report';
 import type { ChatModelResolution } from '../../../model';
 import { telemetryConfig } from '../../../telemetry';
 import type { ResolveModelEnv } from '../../../env-model-factory';
+import { assertCanonicalEvidence, checkCanonicalEvidence } from '../canonical/evidence';
 import { createXauusdMastraAgent } from './agent';
 import { manifestForCapability } from '../../capabilities';
 import {
@@ -571,6 +572,17 @@ async function executeXauusdMastraConversationRun(
       (result as unknown as { response?: { messages?: readonly unknown[] } }).response?.messages,
       toolPartsBuffer,
     );
+    const toolEvidence = [
+      { name: 'symbol_research_packet', resultText: JSON.stringify(packet) },
+      ...toolParts
+        .filter((p) => p.state === 'output-available' && p.output !== undefined)
+        .map((p) => ({
+          name: p.toolName,
+          resultText: typeof p.output === 'string' ? p.output : JSON.stringify(p.output),
+        })),
+    ];
+    const evidence = checkCanonicalEvidence(result.text, toolEvidence);
+    assertCanonicalEvidence(evidence);
     generationLedger.recordUsage(
       `primary:${args.runId}`,
       'primary',
@@ -847,6 +859,17 @@ export async function runXauusdMastraConversationStream(
               ?.messages,
             toolPartsBuffer,
           );
+          const toolEvidence = [
+            { name: 'symbol_research_packet', resultText: JSON.stringify(packet) },
+            ...toolParts
+              .filter((p) => p.state === 'output-available' && p.output !== undefined)
+              .map((p) => ({
+                name: p.toolName,
+                resultText: typeof p.output === 'string' ? p.output : JSON.stringify(p.output),
+              })),
+          ];
+          const evidence = checkCanonicalEvidence(full.text, toolEvidence);
+          assertCanonicalEvidence(evidence);
           generationLedger.recordUsage(
             `primary:${args.runId}`,
             'primary',

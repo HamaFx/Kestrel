@@ -19,7 +19,7 @@ export interface CanonicalEvidenceCheck {
 }
 
 const MARKET_TOOL_PATTERN =
-  /price|candle|indicator|market|news|calendar|cot|sentiment|correlation|volatility/i;
+  /price|candle|indicator|market|news|calendar|cot|sentiment|correlation|volatility|technical|fundamental|session|seasonality|risk|position|portfolio|journal|replay|verify|committee|knowledge|web_search|chart|packet|research/i;
 
 const PERCENT_CLAIM_PATTERN = /\d+(?:\.\d+)?\s*%/g;
 
