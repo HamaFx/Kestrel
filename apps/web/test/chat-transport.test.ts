@@ -257,6 +257,46 @@ describe('createKestrelChatTransport', () => {
     expect(chunks[1]?.id).toBe('server-message-id');
   });
 
+  it('sends DELETE to cancel the background analysis job when abortSignal fires', async () => {
+    vi.useFakeTimers();
+    const abortController = new AbortController();
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            type: 'analysis-queued',
+            jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+            status: 'queued',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ success: true, status: 'cancelled' }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+
+    const transport = createKestrelChatTransport({ api: '/api/chat' });
+    const stream = await transport.sendMessages({
+      chatId: 'thread-1',
+      messages: [],
+      abortSignal: abortController.signal,
+    });
+
+    const reader = (stream as ReadableStream<Uint8Array>).getReader();
+    const readPromise = reader.read();
+    abortController.abort();
+    await readPromise.catch(() => {});
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
   it('keeps failed Full-mode progress and emits no partial text', async () => {
     vi.useFakeTimers();
     const progress = vi.fn();

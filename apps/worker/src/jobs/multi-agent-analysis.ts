@@ -42,6 +42,7 @@ import {
   FULL_ANALYSIS_ESTIMATE_USD,
   FULL_ANALYSIS_WORKFLOW_ID,
   FullAnalysisBudgetAdmissionError,
+  FullAnalysisCancelledError,
   FullAnalysisHeartbeatError,
   FullAnalysisLeaseLostError,
   FullAnalysisQuotaExceededError,
@@ -147,13 +148,18 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
     });
 
     let leaseLost = false;
+    let cancelled = false;
     // Captured by the inner catch so a retryable failure can persist the exact
     // child generations already completed into the queue payload (Phase 8).
     let retryLedgerSnapshot: GenerationLedgerSnapshot | null = null;
     const leaseAbort = new AbortController();
     const leaseHeartbeat = setInterval(() => {
       void touchFullAnalysisRun(runId, workerRunId).catch((error) => {
-        if (error instanceof FullAnalysisLeaseLostError) {
+        if (error instanceof FullAnalysisCancelledError) {
+          cancelled = true;
+          leaseAbort.abort(error);
+          ctx.log.info('Full-analysis job cancelled', { runId });
+        } else if (error instanceof FullAnalysisLeaseLostError) {
           leaseLost = true;
           leaseAbort.abort(error);
           ctx.log.error('Full-analysis lease ownership lost', { err: String(error) });
@@ -256,7 +262,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
             requeue: (message) => requeueFullAnalysisRun(runId, workerRunId, message),
           },
           isLeaseLost: () => leaseLost,
-          isCancelled: () => ctx.signal.aborted || leaseAbort.signal.aborted,
+          isCancelled: () => ctx.signal.aborted || leaseAbort.signal.aborted || cancelled,
         });
 
         modeResult = await withDiagnostics(
@@ -298,6 +304,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
 
         await touchFullAnalysisRun(runId, workerRunId);
         if (leaseLost) throw new FullAnalysisLeaseLostError();
+        if (cancelled || leaseAbort.signal.aborted) throw new FullAnalysisCancelledError();
 
         const assistant: UIMessage = {
           id: crypto.randomUUID(),
@@ -370,6 +377,25 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           latencyMs: modeResult.totalLatencyMs,
         });
       } catch (error) {
+        if (cancelled || error instanceof FullAnalysisCancelledError) {
+          await appendAssistantMessage(
+            payload.userId,
+            payload.threadId,
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
+            },
+            { idempotencyKey: `analysis-job:${runId}:interrupted` },
+          ).catch((err) => {
+            ctx.log.warn('Failed to append interrupted message', { err: String(err) });
+          });
+          if (coordinator) {
+            await coordinator.settleOnError(error);
+          }
+          budget = null;
+          throw error;
+        }
         retryLedgerSnapshot = ledger.snapshot();
         if (budget && lifecycle) {
           const decision = fullAnalysisRetryAction(error, {
@@ -394,6 +420,11 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         if (payload.traceId) await traceIdStorage.run(payload.traceId, processRun);
         else await processRun();
       } catch (error) {
+        if (cancelled || error instanceof FullAnalysisCancelledError) {
+          ctx.log.info('Full-analysis job discarded after cancellation', { runId });
+          processed++;
+          continue;
+        }
         const decision = fullAnalysisRetryAction(error, {
           attemptCount: payload.attemptCount,
           maxAttempts: MAX_ANALYSIS_ATTEMPTS,

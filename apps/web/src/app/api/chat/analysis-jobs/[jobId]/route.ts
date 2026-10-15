@@ -21,7 +21,7 @@
 // Polling endpoint for background multi-agent analysis jobs.
 
 import { withAuth } from '@/lib/api';
-import { getFullAnalysisRun } from '@/lib/services/api-boundary';
+import { cancelFullAnalysisRun, getFullAnalysisRun } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -73,3 +73,29 @@ export const GET = withAuth<{ jobId: string }>(async (req, ctx) => {
           : null,
   });
 });
+
+export const DELETE = withAuth<{ jobId: string }>(async (req, ctx) => {
+  const { jobId } = await ctx.params;
+  if (!isValidJobId(jobId)) {
+    return Response.json(
+      { error: { code: 'VALIDATION', message: 'Invalid jobId' } },
+      { status: 400 },
+    );
+  }
+
+  const cancelled = await cancelFullAnalysisRun(ctx.user.userId, jobId);
+
+  if (!cancelled) {
+    return Response.json(
+      { error: { code: 'NOT_FOUND', message: 'Job not found' } },
+      { status: 404 },
+    );
+  }
+
+  return Response.json({
+    id: cancelled.id,
+    status: cancelled.status,
+    cancelled: true,
+  });
+});
+

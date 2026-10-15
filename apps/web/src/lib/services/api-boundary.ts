@@ -71,6 +71,7 @@ export {
   enqueueFullAnalysis,
   getFullAnalysisQueueHealth,
   getFullAnalysisRun,
+  cancelFullAnalysisRun,
   toMastraRunView,
   fullAnalysisRunId,
   type FullAnalysisRunView,

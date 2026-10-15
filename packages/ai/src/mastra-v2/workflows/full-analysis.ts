@@ -9,6 +9,7 @@
 import { createHash } from 'node:crypto';
 
 import {
+  cancelFullAnalysisQueue,
   claimNextFullAnalysisQueue,
   completeFullAnalysisQueue,
   failFullAnalysisQueue,
@@ -167,6 +168,14 @@ export class FullAnalysisLeaseLostError extends Error {
   constructor(message = 'The Full-analysis worker lease is no longer owned.') {
     super(message);
     this.name = 'FullAnalysisLeaseLostError';
+  }
+}
+
+export class FullAnalysisCancelledError extends Error {
+  readonly code = 'FULL_ANALYSIS_CANCELLED';
+  constructor(message = 'The Full-analysis job was cancelled.') {
+    super(message);
+    this.name = 'FullAnalysisCancelledError';
   }
 }
 
@@ -561,6 +570,14 @@ export async function touchFullAnalysisRun(runId: string, workerRunId: string): 
       }),
     );
   } catch (error) {
+    if (
+      error instanceof FullAnalysisCancelledError ||
+      (error instanceof Error &&
+        ((error as { code?: unknown }).code === 'FULL_ANALYSIS_QUEUE_CANCELLED' ||
+          (error as { code?: unknown }).code === 'FULL_ANALYSIS_CANCELLED'))
+    ) {
+      throw new FullAnalysisCancelledError();
+    }
     if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
     throw new FullAnalysisHeartbeatError('The Full-analysis heartbeat could not be persisted.', {
       cause: error,
@@ -712,6 +729,30 @@ export async function getFullAnalysisRun(
     };
   } catch (error) {
     flog.warn('Full-analysis run lookup failed', { runId, error: serializeError(error) });
+    return null;
+  }
+}
+
+export async function cancelFullAnalysisRun(
+  userId: string,
+  runId: string,
+): Promise<FullAnalysisRunView | null> {
+  try {
+    const row = await cancelFullAnalysisQueue(runId, userId, getDb());
+    if (!row) return null;
+    await projectQueueRow(row);
+    flog.info('Cancelled full-analysis run', { runId, userId });
+    return {
+      id: row.runId,
+      status: 'cancelled',
+      progress: row.progress ?? [],
+      result: row.result ?? null,
+      error: row.error ?? 'Cancelled by user',
+      createdAt: row.createdAt.toISOString(),
+      completedAt: row.completedAt?.toISOString() ?? null,
+    };
+  } catch (error) {
+    flog.warn('Full-analysis run cancel failed', { runId, error: serializeError(error) });
     return null;
   }
 }
