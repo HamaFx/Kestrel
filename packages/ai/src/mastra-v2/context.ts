@@ -45,6 +45,7 @@ import {
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { AgentMemoryOption } from '@mastra/core/agent';
+import { AIV5Adapter } from '@mastra/core/agent/message-list';
 import type { MastraDBMessage, StorageThreadType } from '@mastra/core/memory';
 import type { Memory } from '@mastra/memory';
 
@@ -159,21 +160,45 @@ export async function seedWorkingMemoryFromSettings(
 const BACKFILL_ROLES: ReadonlySet<string> = new Set(['user', 'assistant', 'system']);
 
 function toMastraMessage(
-  row: { id: string; role: string; content: string; createdAt: number },
+  row: { id: string; role: string; content: string; createdAt: number; parts?: unknown },
   userId: string,
   threadId: string,
 ): MastraDBMessage {
-  return {
-    id: row.id,
-    role: (BACKFILL_ROLES.has(row.role) ? row.role : 'system') as MastraDBMessage['role'],
-    content: {
-      format: 2,
-      parts: [{ type: 'text', text: row.content }],
-    },
-    createdAt: new Date(row.createdAt),
-    threadId,
-    resourceId: userId,
-  };
+  const role = (BACKFILL_ROLES.has(row.role) ? row.role : 'system') as MastraDBMessage['role'];
+  // P2-04: carry the stored AI SDK v5 UI parts (tool invocations, data parts)
+  // through the canonical Mastra conversion instead of collapsing every row to
+  // plain text, so backfilled threads keep their tool context.
+  const storedParts = Array.isArray(row.parts) ? row.parts : [];
+  const uiParts = storedParts.length > 0 ? storedParts : [{ type: 'text', text: row.content }];
+  try {
+    const converted = AIV5Adapter.fromUIMessage({
+      id: row.id,
+      role,
+      parts: uiParts,
+    } as unknown as Parameters<typeof AIV5Adapter.fromUIMessage>[0]);
+    return {
+      ...converted,
+      id: row.id,
+      role,
+      createdAt: new Date(row.createdAt),
+      threadId,
+      resourceId: userId,
+    };
+  } catch {
+    // One malformed legacy row must never abort the migration; degrade it to
+    // the plain-text shape this path used before.
+    return {
+      id: row.id,
+      role,
+      content: {
+        format: 2,
+        parts: [{ type: 'text', text: row.content }],
+      },
+      createdAt: new Date(row.createdAt),
+      threadId,
+      resourceId: userId,
+    };
+  }
 }
 
 /**
