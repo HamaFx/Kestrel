@@ -195,6 +195,10 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         }
 
         const userMessage = userMessageFromPayload(payload);
+        await appendUserMessage(payload.userId, payload.threadId, userMessage, {
+          idempotencyKey: `analysis-job:${runId}:user`,
+        });
+
         const executionPlan = payload.executionPlan
           ? parseExecutionPlan(payload.executionPlan)
           : undefined;
@@ -253,10 +257,6 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           },
           isLeaseLost: () => leaseLost,
           isCancelled: () => ctx.signal.aborted || leaseAbort.signal.aborted,
-        });
-
-        await appendUserMessage(payload.userId, payload.threadId, userMessage, {
-          idempotencyKey: `analysis-job:${runId}:user`,
         });
 
         modeResult = await withDiagnostics(
