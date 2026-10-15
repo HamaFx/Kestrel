@@ -71,7 +71,10 @@ import type { JobContext, JobResult } from './types.js';
 const MAX_JOBS_PER_RUN = 3;
 const STALE_JOB_TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_ANALYSIS_ATTEMPTS = 3;
-const HEARTBEAT_MS = 30_000;
+// Cancellation and lease ownership are only observed on heartbeats; a shorter
+// interval bounds how long a cancelled Full-analysis run keeps working. The
+// queue lease is FULL_ANALYSIS_LEASE_MS (90s), so 15s keeps a 6× safety margin.
+const HEARTBEAT_MS = 15_000;
 const RETENTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 function isBudgetExceededError(error: unknown): error is { spent: number; max: number } {
@@ -378,6 +381,11 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         });
       } catch (error) {
         if (cancelled || error instanceof FullAnalysisCancelledError) {
+          // A progress write racing the user's cancellation surfaces as
+          // FullAnalysisCancelledError before the heartbeat observed the flag
+          // (P2-05). Record it so settlement resolves to 'cancel' and this
+          // attempt matches the heartbeat-detected cancellation path.
+          cancelled = true;
           await appendAssistantMessage(
             payload.userId,
             payload.threadId,

@@ -543,6 +543,21 @@ function pollJobToStreamResponse(
             return;
           }
 
+          if (pollJson.status === 'cancelled') {
+            // Cancellation is a terminal, expected outcome (the user or a
+            // sibling tab cancelled the job) — report it explicitly instead of
+            // falling through to the unknown-status branch.
+            hasError = true;
+            controller.enqueue(
+              encodeChunk({
+                type: 'error',
+                errorText: 'Full analysis was cancelled before it completed.',
+              }),
+            );
+            onProgress(null);
+            return;
+          }
+
           if (pollJson.status !== 'pending' && pollJson.status !== 'running') {
             hasError = true;
             controller.enqueue(

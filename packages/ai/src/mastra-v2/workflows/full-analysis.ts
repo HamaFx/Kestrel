@@ -241,6 +241,20 @@ function isLeaseError(error: unknown): boolean {
   );
 }
 
+/**
+ * Cancellation can surface either as our own `FullAnalysisCancelledError` or as
+ * the DB-layer queue-cancelled error (e.g. a progress write racing the user's
+ * cancel). Both must classify as cancellation, never as lease loss (P2-05).
+ */
+function isFullAnalysisCancellation(error: unknown): boolean {
+  return (
+    error instanceof FullAnalysisCancelledError ||
+    (error instanceof Error &&
+      ((error as { code?: unknown }).code === 'FULL_ANALYSIS_QUEUE_CANCELLED' ||
+        (error as { code?: unknown }).code === 'FULL_ANALYSIS_CANCELLED'))
+  );
+}
+
 async function workflowsStore(): Promise<WorkflowsStorage | undefined> {
   try {
     const instance = getKestrelMastra();
@@ -554,6 +568,7 @@ export async function updateFullAnalysisProgress(
       }),
     );
   } catch (error) {
+    if (isFullAnalysisCancellation(error)) throw new FullAnalysisCancelledError();
     if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
     throw error;
   }
@@ -570,12 +585,7 @@ export async function touchFullAnalysisRun(runId: string, workerRunId: string): 
       }),
     );
   } catch (error) {
-    if (
-      error instanceof FullAnalysisCancelledError ||
-      (error instanceof Error &&
-        ((error as { code?: unknown }).code === 'FULL_ANALYSIS_QUEUE_CANCELLED' ||
-          (error as { code?: unknown }).code === 'FULL_ANALYSIS_CANCELLED'))
-    ) {
+    if (isFullAnalysisCancellation(error)) {
       throw new FullAnalysisCancelledError();
     }
     if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();

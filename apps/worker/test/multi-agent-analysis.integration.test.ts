@@ -26,6 +26,7 @@ const {
   mockFailFullAnalysisRun,
   mockRequeueFullAnalysisRun,
   mockTouchFullAnalysisRun,
+  mockUpdateFullAnalysisProgress,
   MockFullAnalysisLeaseLostError,
   MockFullAnalysisCancelledError,
   MockFullAnalysisQuotaExceededError,
@@ -47,6 +48,7 @@ const {
   mockFailFullAnalysisRun: vi.fn(),
   mockRequeueFullAnalysisRun: vi.fn(),
   mockTouchFullAnalysisRun: vi.fn(),
+  mockUpdateFullAnalysisProgress: vi.fn(),
   MockFullAnalysisLeaseLostError: class MockFullAnalysisLeaseLostError extends Error {
     code = 'FULL_ANALYSIS_LEASE_LOST';
   },
@@ -165,6 +167,7 @@ vi.mock('@kestrel/ai/mastra', () => ({
   failFullAnalysisRun: mockFailFullAnalysisRun,
   requeueFullAnalysisRun: mockRequeueFullAnalysisRun,
   touchFullAnalysisRun: mockTouchFullAnalysisRun,
+  updateFullAnalysisProgress: mockUpdateFullAnalysisProgress,
   FullAnalysisLeaseLostError: MockFullAnalysisLeaseLostError,
   FullAnalysisCancelledError: MockFullAnalysisCancelledError,
   FullAnalysisQuotaExceededError: MockFullAnalysisQuotaExceededError,
@@ -524,6 +527,36 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
   it('appends stream interrupted message and does not fail or requeue when job is cancelled', async () => {
     const ctx = context();
     mockTouchFullAnalysisRun.mockRejectedValueOnce(new MockFullAnalysisCancelledError());
+
+    const result = await runMultiAgentAnalysis(ctx);
+
+    expect(result.processed).toBe(1);
+    expect(mockAppendAssistantMessage).toHaveBeenCalledWith(
+      'user-1',
+      'thread-1',
+      expect.objectContaining({
+        role: 'assistant',
+        parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
+      }),
+      { idempotencyKey: 'analysis-job:run-1:interrupted' },
+    );
+    expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockFailFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockRequeueFullAnalysisRun).not.toHaveBeenCalled();
+  });
+
+  it('treats a progress write racing cancellation as cancellation, not lease loss', async () => {
+    const ctx = context();
+    // The user cancels while a workflow step writes progress: the queue row is
+    // no longer `running`, so the progress write rejects with the cancelled
+    // classification before the heartbeat ever observes the flag.
+    mockUpdateFullAnalysisProgress.mockRejectedValueOnce(new MockFullAnalysisCancelledError());
+    mockRunMastraMode.mockImplementationOnce(
+      async (options: { onProgress?: (step: string) => Promise<void> }) => {
+        await options.onProgress?.('technical');
+        throw new Error('unreachable — progress must throw first');
+      },
+    );
 
     const result = await runMultiAgentAnalysis(ctx);
 
