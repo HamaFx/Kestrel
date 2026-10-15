@@ -39,6 +39,8 @@ import {
 import { tool } from 'ai';
 import type { z } from 'zod';
 
+import { maybeGetToolContext } from '../tool-context';
+
 const InputSchema = VerifyCallInputSchema;
 
 declare module '@kestrel/shared' {
@@ -51,15 +53,19 @@ export const verifyCallTool = tool({
   description:
     'Verify a directional setup. Re-checks the proposed levels against the live market, validates entry/stop/target geometry, and scans recent structure for the nearest opposing liquidity (swing high above for longs, swing low below for shorts). Use after naming a setup and before presenting it as verified.',
   inputSchema: InputSchema,
-  execute: async ({
-    symbol,
-    side,
-    entry,
-    stop,
-    target,
-    tf,
-    lookbackBars,
-  }): Promise<VerifyCallOutput> => {
+  execute: async (
+    {
+      symbol,
+      side,
+      entry,
+      stop,
+      target,
+      tf,
+      lookbackBars,
+    },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<VerifyCallOutput> => {
+    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const caveats: VerifyCallCaveat[] = [];
     const nullableTarget = target ?? null;
 
@@ -67,7 +73,7 @@ export const verifyCallTool = tool({
     let marketTolerance: number | null = null;
 
     try {
-      const tick = await getPrice(symbol);
+      const tick = await (signal ? getPrice(symbol, { signal }) : getPrice(symbol));
       marketPrice = tick.mid;
       marketTolerance = marketDistanceTolerance(symbol, tick.mid, tf);
 
@@ -133,7 +139,7 @@ export const verifyCallTool = tool({
     // Structure scan for nearest opposing liquidity.
     let nearestOpposingLiquidity: VerifyCallOutput['nearestOpposingLiquidity'] = null;
     try {
-      const candles = await getCandles(symbol, tf, { count: lookbackBars });
+      const candles = await getCandles(symbol, tf, { count: lookbackBars, ...(signal ? { signal } : {}) });
       const structure = computeStructure({
         symbol,
         tf,

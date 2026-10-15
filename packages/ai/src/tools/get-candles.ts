@@ -25,6 +25,8 @@ import { SymbolSchema, TimeframeSchema, type GetCandlesOutput } from '@kestrel/s
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { maybeGetToolContext } from '../tool-context';
+
 const InputSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
@@ -42,8 +44,9 @@ export const getCandlesTool = tool({
   description:
     'Fetch OHLC candles for one symbol at one timeframe (e.g. XAUUSD 1h). Use to confirm a recent swing high/low or to feed a pattern read. For RSI/MACD/EMA/etc. prefer get_indicators.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count }): Promise<GetCandlesOutput> => {
-    const candles = await getCandles(symbol, tf, { count });
+  execute: async ({ symbol, tf, count }, options?: { abortSignal?: AbortSignal }): Promise<GetCandlesOutput> => {
+    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
+    const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
     return { symbol, tf, candles };
   },
 });

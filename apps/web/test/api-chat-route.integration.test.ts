@@ -133,6 +133,8 @@ vi.mock('@/lib/services/api-boundary', () => ({
       .filter((part) => part.type === 'text')
       .map((part) => part.text ?? '')
       .join('\n'),
+  extractMastraSymbol: (text: string) =>
+    /xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : /gbpusd/i.test(text) ? 'GBPUSD' : null,
   getThread: mockGetThread,
   listMessages: vi.fn().mockResolvedValue([]),
   resolveMode: (mode: string) => (mode === 'auto' ? 'single' : mode),

@@ -31,6 +31,8 @@ import {
 import { tool } from 'ai';
 import type { z } from 'zod';
 
+import { maybeGetToolContext } from '../tool-context';
+
 const InputSchema = GetSeasonalityInputSchema;
 
 declare module '@kestrel/shared' {
@@ -59,13 +61,14 @@ export const getSeasonalityTool = tool({
   description:
     "Per-month / per-weekday / per-hour return seasonality for a symbol. Returns median percent return, IQR, win rate, and sample count per bucket. Use for 'is January typically strong for gold', 'what's the best weekday for EURUSD', 'when does GBPUSD usually trend during the day'. Sets `thin: true` when fewer than 30 samples per bucket are available.",
   inputSchema: InputSchema,
-  execute: async ({ symbol, granularity }): Promise<GetSeasonalityOutput> => {
+  execute: async ({ symbol, granularity }, options?: { abortSignal?: AbortSignal }): Promise<GetSeasonalityOutput> => {
+    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const tf = granularity === 'hour' ? '1h' : '1d';
     const count = granularity === 'hour' ? 2160 : 1100; // ~90d on 1H, ~3yrs on 1D.
 
     let candles: { c: number; t: number }[] = [];
     try {
-      candles = await getCandles(symbol, tf, { count });
+      candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
     } catch {
       return {
         symbol,

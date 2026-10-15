@@ -35,6 +35,8 @@ import {
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { maybeGetToolContext } from '../tool-context';
+
 const InputSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
@@ -102,8 +104,9 @@ export const getMarketStructureTool = tool({
   description:
     'Detect SMC market structure on a (symbol, timeframe) window: swing pivots, break-of-structure / change-of-character events, fair value gaps, order blocks, and liquidity sweeps. Use when the user asks about trend bias, structural breaks, FVGs, OBs, or where stops likely got swept.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count, kinds, lookback }): Promise<GetMarketStructureOutput> => {
-    const candles = await getCandles(symbol, tf, { count });
+  execute: async ({ symbol, tf, count, kinds, lookback }, options?: { abortSignal?: AbortSignal }): Promise<GetMarketStructureOutput> => {
+    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
+    const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
     return computeMarketStructureOutput({
       symbol,
       tf,

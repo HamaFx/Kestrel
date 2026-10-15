@@ -33,6 +33,8 @@ import {
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { maybeGetToolContext } from '../tool-context';
+
 const InputSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
@@ -55,8 +57,9 @@ export const getIndicatorsTool = tool({
   description:
     'Compute indicators (sma, ema, rsi, macd, atr, bollinger, pivots) on a (symbol, timeframe) window. Returns the last 30 points of each series — enough for "current value + recent slope" reasoning.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count, indicators }): Promise<GetIndicatorsOutput> => {
-    const candles = await getCandles(symbol, tf, { count });
+  execute: async ({ symbol, tf, count, indicators }, options?: { abortSignal?: AbortSignal }): Promise<GetIndicatorsOutput> => {
+    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
+    const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
     const results = indicators.map(({ kind, params }) => {
       const full = computeIndicator({ symbol, tf, kind, params, candles });
       return {

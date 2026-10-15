@@ -43,6 +43,8 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { tool } from 'ai';
 import type { z } from 'zod';
 
+import { maybeGetToolContext } from '../tool-context';
+
 const InputSchema = AnalyzeTechnicalInputSchema;
 
 declare module '@kestrel/shared' {
@@ -64,8 +66,9 @@ export const analyzeTechnicalTool = tool({
   description:
     'Multi-timeframe technical readout (trend, bias, momentum, structure, levels) for a symbol. Use for any "top-down" / "what does this look like across timeframes" prompt — replaces 8+ atomic tool calls with one deterministic projection. Returns per-timeframe readings plus a templated one-paragraph summary; sets `partial: true` if a fetch failed for any requested timeframe.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, timeframes }): Promise<AnalyzeTechnicalOutput> => {
-    const readings = await Promise.all(timeframes.map((tf) => readOneTimeframe(symbol, tf)));
+  execute: async ({ symbol, timeframes }, options?: { abortSignal?: AbortSignal }): Promise<AnalyzeTechnicalOutput> => {
+    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
+    const readings = await Promise.all(timeframes.map((tf) => readOneTimeframe(symbol, tf, signal)));
     const perTimeframe = readings.filter((r): r is PerTimeframeReading => r !== null);
     const partial = perTimeframe.length < timeframes.length;
     return {
@@ -134,9 +137,10 @@ export function computeTechnicalReading({
 async function readOneTimeframe(
   symbol: Symbol,
   tf: Timeframe,
+  signal?: AbortSignal,
 ): Promise<PerTimeframeReading | null> {
   try {
-    const candles = await getCandles(symbol, tf, { count: COUNT });
+    const candles = await getCandles(symbol, tf, { count: COUNT, ...(signal ? { signal } : {}) });
     return computeTechnicalReading({ symbol, tf, candles });
   } catch (err) {
     // Best-effort: surface the failure in the response, never bubble.
@@ -166,8 +170,8 @@ function projectReading(args: ProjectArgs): PerTimeframeReading {
   const close = args.candles[args.candles.length - 1]!.c;
   const ema50Last = lastNumber(args.ema50);
   const ema200Last = lastNumber(args.ema200);
-  const rsi14 = lastNumber(args.rsi) ?? 50;
-  const macdHist = lastFromObject(args.macd, 'hist') ?? 0;
+  const rsi14 = lastNumber(args.rsi);
+  const macdHist = lastFromObject(args.macd, 'hist');
   const atr14 = lastNumber(args.atr);
   const pv = lastFromObject(args.pivots, 'pp');
   const r1 = lastFromObject(args.pivots, 'r1');
@@ -184,15 +188,21 @@ function projectReading(args: ProjectArgs): PerTimeframeReading {
 
   // Bias overlay: trend wins, RSI nudges into bullish/bearish/neutral.
   const bias: PerTimeframeReading['bias'] =
-    trend === 'up' && rsi14 >= 45
-      ? 'bullish'
-      : trend === 'down' && rsi14 <= 55
-        ? 'bearish'
-        : trend === 'range' && rsi14 >= 60
-          ? 'bullish'
-          : trend === 'range' && rsi14 <= 40
-            ? 'bearish'
-            : 'neutral';
+    rsi14 !== null
+      ? trend === 'up' && rsi14 >= 45
+        ? 'bullish'
+        : trend === 'down' && rsi14 <= 55
+          ? 'bearish'
+          : trend === 'range' && rsi14 >= 60
+            ? 'bullish'
+            : trend === 'range' && rsi14 <= 40
+              ? 'bearish'
+              : 'neutral'
+      : trend === 'up'
+        ? 'bullish'
+        : trend === 'down'
+          ? 'bearish'
+          : 'neutral';
 
   const swings = args.structure.swings ?? [];
   const recentHigh = [...swings].reverse().find((s) => s.type === 'high')?.price ?? null;

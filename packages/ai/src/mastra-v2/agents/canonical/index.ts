@@ -29,6 +29,7 @@ import { buildConversationScorers, type BuiltScorers } from '../../evals/scorers
 import { buildGuardrailInputProcessors } from '../../guardrails';
 import {
   createKestrelMemory,
+  KESTREL_MEMORY_LAST_MESSAGES,
   kestrelMemoryOptions,
   type CreateKestrelMemoryArgs,
 } from '../../memory';
@@ -147,8 +148,20 @@ function messageHistory(history: UIMessage[], latest: UIMessage): ModelMessage[]
   const source = history.some((message) => message.id === latest.id)
     ? history
     : [...history, latest];
+  const sliced = source.slice(-KESTREL_MEMORY_LAST_MESSAGES);
+  let totalChars = 0;
+  const bounded: UIMessage[] = [];
+  for (let i = sliced.length - 1; i >= 0; i--) {
+    const msg = sliced[i]!;
+    const charCount = msg.parts ? JSON.stringify(msg.parts).length : 0;
+    if (bounded.length > 0 && totalChars + charCount > 60_000) {
+      break;
+    }
+    totalChars += charCount;
+    bounded.unshift(msg);
+  }
   return convertToModelMessages(
-    source.slice(-60).map((message) => ({
+    bounded.map((message) => ({
       id: message.id,
       role: message.role,
       parts: message.parts,
@@ -402,6 +415,7 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     userSettings: args.settings,
     db: container.resolve(DB),
     toolTelemetryBuffer: [],
+    ...(args.ledger ? { ledger: args.ledger } : {}),
   };
 
   return {

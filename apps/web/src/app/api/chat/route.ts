@@ -32,6 +32,7 @@ import {
   CanonicalEvidenceBlockedError,
   createExecutionPlan,
   enqueueFullAnalysis,
+  extractMastraSymbol,
   extractUserMessageText,
   getThread,
   getUserWithSettings,
@@ -184,10 +185,12 @@ export const POST = withAuth<void>(async (req, { user }) => {
   const thread = await getThread(user.userId, body.threadId);
   if (!thread) return errorJson('NOT_FOUND', 'Thread not found', 404);
 
-  const analysisMode = body.analysisMode ?? 'single';
+  const rawMode = body.analysisMode ?? (thread.analysisMode === 'full' ? 'full' : 'single');
+  const analysisMode: 'single' | 'full' = rawMode === 'full' ? 'full' : 'single';
   const userMessage = { ...last, parts: userParts.data } as UIMessage;
   const userText = extractUserMessageText(userMessage);
   const resolvedMode = resolveMode(analysisMode, userText);
+  const fallbackSymbol = extractMastraSymbol(userText) ?? thread.pinnedSymbol ?? null;
   // Build one auditable policy/model decision at the boundary. Existing
   // route-specific services remain responsible for persistence and streaming;
   // this decision is used for parity validation and future migration.
@@ -220,6 +223,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         settings: userSettings,
         env: serverEnv,
         priorReportAvailable,
+        symbol: fallbackSymbol,
       })
     : null;
   const injectionBlocked = unified ? unified.injection.blocked : isInjectionAttempt(userText);
@@ -238,6 +242,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         priorReportAvailable,
         mutationRequested: mutationKind !== null,
         routingDecision: unified?.decision,
+        symbol: fallbackSymbol,
       })
     : null;
 

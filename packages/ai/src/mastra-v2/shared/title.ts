@@ -24,11 +24,12 @@
  * unit tests can target them without an LLM call.
  */
 
+import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { LanguageModel } from 'ai';
 
 import { estimateCostUsd } from '../../cost';
 import type { GenerationLedger } from '../../generation-ledger';
-import { resolveModel, type ResolveModelEnv } from '../../model';
+import { resolveChatModel, resolveModel, type ResolveModelEnv } from '../../model';
 import { runMastraText } from '../agents/xauusd/text-runner';
 
 export interface GenerateThreadTitleArgs {
@@ -41,6 +42,8 @@ export interface GenerateThreadTitleArgs {
   /** Qualified model id (`<provider>/<bare>`) — derive via `deriveTitleModel`. */
   titleModelId: string;
   env: ResolveModelEnv;
+  model?: LanguageModel;
+  settings?: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>;
   signal?: AbortSignal;
   accounting?: {
     onComplete?: (costUsd: number) => void | Promise<void>;
@@ -104,18 +107,29 @@ export async function generateThreadTitle(
 ): Promise<GenerateThreadTitleResult> {
   const { firstUser, firstAssistant } = args;
 
-  const resolvedModel = resolveModel(args.titleModelId, args.env, args.userId);
-  // The BYOK transport resolves to a concrete LanguageModel. A string means
-  // a gateway-only env with no direct provider key — the legacy generateText
-  // path was deleted with the old plane, so fall back deterministically.
-  if (typeof resolvedModel === 'string') {
-    return {
-      title: deterministicFallbackTitle(firstUser),
-      source: 'fallback',
-      reason: 'unresolved-model',
-    };
+  let model: LanguageModel | null = args.model ?? null;
+  if (!model && args.settings) {
+    try {
+      const resolution = resolveChatModel(args.settings, args.env, 'technical');
+      model = resolution.model;
+    } catch {
+      // Fall through to resolveModel below
+    }
   }
-  const model = resolvedModel as LanguageModel;
+  if (!model) {
+    const resolvedModel = resolveModel(args.titleModelId, args.env, args.userId);
+    // The BYOK transport resolves to a concrete LanguageModel. A string means
+    // a gateway-only env with no direct provider key — the legacy generateText
+    // path was deleted with the old plane, so fall back deterministically.
+    if (typeof resolvedModel === 'string') {
+      return {
+        title: deterministicFallbackTitle(firstUser),
+        source: 'fallback',
+        reason: 'unresolved-model',
+      };
+    }
+    model = resolvedModel as LanguageModel;
+  }
 
   const userPrompt = `${firstUser.slice(0, PROMPT_INPUT_BUDGET)}\n\n---\n\n${firstAssistant.slice(
     0,
