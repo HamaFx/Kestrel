@@ -35,7 +35,7 @@ export const ConveneCommitteeOutputSchema = z.object({
   entry: z.number(),
   stop: z.number().optional(),
   target: z.number().optional(),
-  verdicts: z.array(CommitteeVerdictSchema).length(3),
+  verdicts: z.array(CommitteeVerdictSchema).length(4),
   grade: z.enum(['A', 'B', 'C', 'D', 'F']),
   goNoGo: z.enum(['go', 'caution', 'no-go']),
   consensus: z.string(),

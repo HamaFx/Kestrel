@@ -122,7 +122,7 @@ export type VerifyWarningPart = z.infer<typeof VerifyWarningPartSchema>;
 // ---------------------------------------------------------------------------
 
 export const CommitteeVerdictSchema = z.object({
-  persona: z.enum(['economist', 'technician', 'risk_manager']),
+  persona: z.enum(['economist', 'technician', 'risk_manager', 'sentiment']),
   verdict: z.enum(['bullish', 'bearish', 'neutral']),
   confidence: z.number().min(1).max(10),
   keyPoints: z.array(z.string()).max(5),
@@ -138,7 +138,7 @@ export const CommitteeReportPartSchema = z.object({
   side: z.enum(['long', 'short']),
   entry: z.number(),
   stop: z.number().optional(),
-  verdicts: z.array(CommitteeVerdictSchema).length(3),
+  verdicts: z.array(CommitteeVerdictSchema).length(4),
   grade: z.enum(['A', 'B', 'C', 'D', 'F']),
   goNoGo: z.enum(['go', 'caution', 'no-go']),
   consensus: z.string(),

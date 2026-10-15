@@ -137,6 +137,8 @@ export interface CreateToolContextOptions {
   db?: ToolDb | undefined;
   toolTelemetryBuffer?: BatchedToolTelemetry[] | undefined;
   webSearchCalls?: number | undefined;
+  /** Turn-level generation ledger so tools can bill auxiliary spend (e.g. nested committee runs). */
+  ledger?: GenerationLedger | undefined;
 }
 
 export function createToolContext(options: CreateToolContextOptions): ToolContext {
@@ -151,6 +153,7 @@ export function createToolContext(options: CreateToolContextOptions): ToolContex
     db: options.db,
     toolTelemetryBuffer: options.toolTelemetryBuffer ?? [],
     webSearchCalls: options.webSearchCalls ?? 0,
+    ledger: options.ledger,
   };
   return ctx;
 }

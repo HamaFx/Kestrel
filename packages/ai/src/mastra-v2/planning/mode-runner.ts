@@ -333,6 +333,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       userSettings: args.settings as UserSettingsRow,
       db: toolDb,
       toolTelemetryBuffer: [],
+      ledger: generationLedger,
     });
     // The committee specialist runner enforces read-only thread memory by
     // default (Phase 6): specialists read context but never persist their

@@ -32,6 +32,7 @@ import { tool } from 'ai';
 import type { z } from 'zod';
 
 import type { MastraModeOpinion } from '../committee/types';
+import { createGenerationLedger } from '../generation-ledger';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { collectSymbolResearchPacketCached } from '../mastra-v2/packets/packet-cache';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
@@ -215,6 +216,21 @@ function buildPacketGroundedFallbackVerdicts(args: {
           ? 'Risk geometry passes; size position to 0.5%–1.0% account risk.'
           : 'Adjust stop and target to achieve at least 1.5R before entering.',
     },
+    {
+      persona: 'sentiment',
+      verdict: 'neutral',
+      confidence: 5,
+      keyPoints: [
+        `No live positioning or sentiment feed is attached to this deterministic review; ${symbol} last printed at ${liveMid.toFixed(2)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
+        macroEventsCount > 0
+          ? `${macroEventsCount} scheduled macro event(s) can still reprice positioning before the setup resolves.`
+          : 'No scheduled macro events are queued to reprice positioning near-term.',
+      ],
+      risk:
+        'Crowded one-way positioning can amplify a countertrend squeeze around key levels.',
+      recommendation:
+        'Treat sentiment as neutral and require price confirmation plus strict risk limits.',
+    },
   ];
 }
 
@@ -241,13 +257,18 @@ function computeGradeAndGoNoGo(args: {
   if (!validStop && stop !== undefined) {
     return { grade: 'F', goNoGo: 'no-go' };
   }
-  if (alignedCount === 3 && validStop && (rr === null || rr >= 1.8)) {
+  // Thresholds scale with the verdict count so the 3-verdict committee that
+  // predates the dedicated sentiment desk grades exactly as it used to.
+  const fullAlignment = verdicts.length;
+  const strongAlignment = Math.max(2, verdicts.length - 1);
+  const weakAlignment = Math.max(1, verdicts.length - 2);
+  if (alignedCount === fullAlignment && validStop && (rr === null || rr >= 1.8)) {
     return { grade: 'A', goNoGo: 'go' };
   }
-  if (alignedCount >= 2 && (validStop || stop === undefined) && opposedCount === 0) {
+  if (alignedCount >= strongAlignment && (validStop || stop === undefined) && opposedCount === 0) {
     return { grade: 'B', goNoGo: validStop ? 'go' : 'caution' };
   }
-  if (alignedCount >= 1 && opposedCount <= 1) {
+  if (alignedCount >= weakAlignment && opposedCount <= 1) {
     return { grade: 'C', goNoGo: 'caution' };
   }
   return { grade: 'D', goNoGo: 'no-go' };
@@ -281,65 +302,80 @@ export const conveneCommitteeTool = tool({
     let verdicts: CommitteeVerdict[] = fallbackVerdicts;
     let consensusText = '';
 
-    // Attempt full Mastra committee workflow when an operator/default model is available.
-    try {
+    // The LLM committee requires a per-turn ToolContext: without it there is
+    // no attributable user, thread, or budget ledger, and unattributable model
+    // spend must never be created. Direct callers outside chat get the
+    // deterministic packet-grounded verdicts below.
+    if (ctx) {
       const runId = crypto.randomUUID();
-      const sanitizedNotes = notes ? sanitizeExternalText(notes, 300) : '';
-      const prompt = [
-        `Evaluate this proposed ${side.toUpperCase()} setup on ${symbol}:`,
-        `- Entry: ${entry}`,
-        stop !== undefined ? `- Stop: ${stop}` : '- Stop: not specified',
-        target !== undefined ? `- Target: ${target}` : '- Target: not specified',
-        sanitizedNotes ? `- Trader notes: ${sanitizedNotes}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
+      // The nested committee run gets its own ledger: committee entry ids
+      // (`specialist:*`, `critique:*`, `fusion`) are not namespaced, so a
+      // shared ledger would silently drop the spend of a second committee call
+      // in the same turn. The run's total is folded into the caller's turn
+      // ledger below, where the budget reservation settles it.
+      const committeeLedger = createGenerationLedger();
+      try {
+        const sanitizedNotes = notes ? sanitizeExternalText(notes, 300) : '';
+        const prompt = [
+          `Evaluate this proposed ${side.toUpperCase()} setup on ${symbol}:`,
+          `- Entry: ${entry}`,
+          stop !== undefined ? `- Stop: ${stop}` : '- Stop: not specified',
+          target !== undefined ? `- Target: ${target}` : '- Target: not specified',
+          sanitizedNotes ? `- Trader notes: ${sanitizedNotes}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n');
 
-      const modeResult = await runMastraMode({
-        prompt,
-        symbol,
-        userId: ctx?.userId ?? '00000000-0000-0000-0000-000000000000',
-        threadId: ctx?.threadId ?? `convene-committee-${runId}`,
-        runId,
-        mode: 'full',
-        ...(signal ? { signal } : {}),
-        settings: {
-          chatModel:
-            ctx?.userSettings?.chatModel ??
-            (process.env.AI_DEFAULT_MODEL as UserSettingsRow['chatModel']) ??
-            'google:gemini-2.5-flash',
-          aiApiKeys: (ctx?.userSettings?.aiApiKeys as string | null) ?? null,
-          embeddingModel: ctx?.userSettings?.embeddingModel ?? null,
-          agentModelOverrides: ctx?.userSettings?.agentModelOverrides ?? null,
-        },
-        env: {
-          AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
-          GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-        },
-      });
+        const modeResult = await runMastraMode({
+          prompt,
+          symbol,
+          userId: ctx.userId,
+          threadId: ctx.threadId,
+          runId,
+          mode: 'full',
+          ...(signal ? { signal } : {}),
+          ledger: committeeLedger,
+          settings: {
+            chatModel:
+              ctx.userSettings?.chatModel ??
+              (process.env.AI_DEFAULT_MODEL as UserSettingsRow['chatModel']) ??
+              'google:gemini-2.5-flash',
+            aiApiKeys: (ctx.userSettings?.aiApiKeys as string | null) ?? null,
+            embeddingModel: ctx.userSettings?.embeddingModel ?? null,
+            agentModelOverrides: ctx.userSettings?.agentModelOverrides ?? null,
+          },
+          env: {
+            AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
+            GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+          },
+        });
 
-      if (modeResult.agentOpinions && modeResult.agentOpinions.length > 0) {
-        const opinions = modeResult.agentOpinions;
-        const fundOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'fundamental');
-        const techOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'technical');
-        const riskOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'risk');
-        const sentOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'sentiment');
-        const economistVerdict = opinionToVerdict('economist', fundOp, fallbackVerdicts[0]!);
-        if (sentOp?.reasoning && economistVerdict.keyPoints.length < 5) {
-          economistVerdict.keyPoints.push(
-            `Sentiment desk: ${sentOp.bias} (${Math.round(sentOp.confidence * 10)}/10)`,
-          );
+        if (modeResult.agentOpinions && modeResult.agentOpinions.length > 0) {
+          const opinions = modeResult.agentOpinions;
+          const fundOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'fundamental');
+          const techOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'technical');
+          const riskOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'risk');
+          const sentOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'sentiment');
+          verdicts = [
+            opinionToVerdict('economist', fundOp, fallbackVerdicts[0]!),
+            opinionToVerdict('technician', techOp, fallbackVerdicts[1]!),
+            opinionToVerdict('risk_manager', riskOp, fallbackVerdicts[2]!),
+            opinionToVerdict('sentiment', sentOp, fallbackVerdicts[3]!),
+          ];
+          consensusText = modeResult.finalText ?? '';
         }
-        verdicts = [
-          economistVerdict,
-          opinionToVerdict('technician', techOp, fallbackVerdicts[1]!),
-          opinionToVerdict('risk_manager', riskOp, fallbackVerdicts[2]!),
-        ];
-        consensusText = modeResult.finalText ?? '';
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        // Gracefully use deterministic packet-grounded verdicts when no LLM key is configured or on timeout.
+      } finally {
+        // Bill the nested committee run into the caller's turn ledger, including
+        // partial spend on aborted or failed runs, so the settlement at the end
+        // of the parent turn covers it.
+        const committeeCost = committeeLedger.total();
+        if (committeeCost > 0) {
+          ctx.ledger?.recordCost(`committee:${runId}`, 'specialist', committeeCost);
+        }
       }
-    } catch (err) {
-      if (signal?.aborted) throw err;
-      // Gracefully use deterministic packet-grounded verdicts when no LLM key is configured or on timeout.
     }
 
     const { grade, goNoGo } = computeGradeAndGoNoGo({
