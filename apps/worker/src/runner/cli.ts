@@ -105,9 +105,12 @@ async function main(): Promise<number> {
     return 2;
   } finally {
     try {
-      const { flushMastraObservability, getKestrelMastra } = await import('@kestrel/ai/mastra');
+      const { flushMastraObservability, getKestrelMastra, closeKestrelMastra } = await import(
+        '@kestrel/ai/mastra'
+      );
       await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
       await shutdownLangfuse();
+      await closeKestrelMastra();
     } catch {
       // Best-effort observability flush
     }

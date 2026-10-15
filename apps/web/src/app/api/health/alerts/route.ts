@@ -30,7 +30,7 @@
 
 import { withCronAuth } from '@/lib/cron';
 import { computeHealthSloService } from '@/lib/services/admin-health';
-import { getDb } from '@/lib/services/api-boundary';
+import { getAdminDb } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,7 +38,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request): Promise<Response> {
   let snapshot: Awaited<ReturnType<typeof computeHealthSloService>> | undefined;
   const authResponse = await withCronAuth(request, async () => {
-    snapshot = await computeHealthSloService(getDb(), {
+    snapshot = await computeHealthSloService(getAdminDb(), {
       hours: Number.parseInt(process.env.ALERT_WINDOW_HOURS ?? '1', 10) || 1,
     });
     return {

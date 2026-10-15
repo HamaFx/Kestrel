@@ -62,6 +62,8 @@ const RRF_K = 60; // Reciprocal-rank fusion constant — larger = flatter weight
 export interface RunRagQueryArgs {
   embedding: number[];
   limit: number;
+  /** Embedding model id used to produce `embedding` — filters out vectors from other spaces. */
+  model: string;
   /** Lexical query for FTS. Falls back to a simple to_tsquery if omitted. */
   query?: string;
   since?: number | undefined;
@@ -102,46 +104,57 @@ export async function runRagQuery(args: RunRagQueryArgs): Promise<RagRow[]> {
 interface SubQueryArgs {
   embedding: number[];
   limit: number;
+  model: string;
   since?: number | undefined;
   symbol?: Symbol | undefined;
 }
 
 async function runDenseNewsQuery(args: SubQueryArgs): Promise<RagRow[]> {
-  const { embedding, limit, since, symbol } = args;
+  const { embedding, limit, since, symbol, model } = args;
   const vec = vectorLiteral(embedding);
   const sinceClause = since !== undefined ? sql`AND na.published_at >= ${new Date(since)}` : sql``;
   const symbolClause =
     symbol !== undefined ? sql`AND na.symbols && ARRAY[${symbol}]::text[]` : sql``;
 
-  const result = await getDb().execute(sql<RagRow>`
-    SELECT
-      na.id,
-      na.title,
-      na.summary,
-      na.url,
-      na.source,
-      na.publisher,
-      na.published_at AS "publishedAt",
-      na.sentiment,
-      na.sentiment_score AS "sentimentScore",
-      1 - (ne.embedding <=> ${vec}::vector) AS similarity
-    FROM news_embeddings ne
-    JOIN news_articles na ON na.id = ne.article_id
-    WHERE 1 = 1
-      ${sinceClause}
-      ${symbolClause}
-    ORDER BY ne.embedding <=> ${vec}::vector
-    LIMIT ${limit}
-  `);
+  // HNSW ANN search must run inside a transaction so we can raise
+  // `hnsw.ef_search` / enable iterative scan before the index scan. Without
+  // `iterative_scan`, the default `ef_search = 40` truncates the candidate
+  // set before the `news_articles` post-filter, silently starving dense RAG.
+  return getDb().transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL hnsw.ef_search = 200`);
+    await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order'`);
+    await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000`);
 
-  // db.execute() returns a RowList in drizzle-orm v0.40+.
-  // Cast through unknown to access the underlying postgres-js result rows.
-  const rows = result as unknown as RagRow[];
-  return (rows as RagRow[]).map((r) => ({
-    ...r,
-    publishedAt: r.publishedAt instanceof Date ? r.publishedAt : new Date(r.publishedAt),
-    similarity: Number(r.similarity),
-  }));
+    const result = await tx.execute(sql<RagRow>`
+      SELECT
+        na.id,
+        na.title,
+        na.summary,
+        na.url,
+        na.source,
+        na.publisher,
+        na.published_at AS "publishedAt",
+        na.sentiment,
+        na.sentiment_score AS "sentimentScore",
+        1 - (ne.embedding <=> ${vec}::vector) AS similarity
+      FROM news_embeddings ne
+      JOIN news_articles na ON na.id = ne.article_id
+      WHERE ne.model = ${model}
+        ${sinceClause}
+        ${symbolClause}
+      ORDER BY ne.embedding <=> ${vec}::vector
+      LIMIT ${limit}
+    `);
+
+    // db.execute() returns a RowList in drizzle-orm v0.40+.
+    // Cast through unknown to access the underlying postgres-js result rows.
+    const rows = result as unknown as RagRow[];
+    return rows.map((r) => ({
+      ...r,
+      publishedAt: r.publishedAt instanceof Date ? r.publishedAt : new Date(r.publishedAt),
+      similarity: Number(r.similarity),
+    }));
+  });
 }
 
 interface FtsSubQueryArgs extends SubQueryArgs {
@@ -245,6 +258,8 @@ export interface RunMemoryQueryArgs {
   embedding: number[];
   limit: number;
   kinds: MemoryKind[];
+  /** Embedding model id — restricts recall to the same embedding space. */
+  model?: string;
   since?: number | undefined;
   symbol?: Symbol | undefined;
   halflifeDays?: number;
@@ -261,6 +276,7 @@ export async function runMemoryQuery(args: RunMemoryQueryArgs): Promise<MemoryRo
   };
   if (args.symbol !== undefined) memArgs.symbol = args.symbol;
   if (args.since !== undefined) memArgs.since = args.since;
+  if (args.model !== undefined) memArgs.model = args.model;
   const rows = await searchMemory(memArgs);
   return rows.map((r) => {
     const ageDays = Math.max(0, (Date.now() - r.occurredAtMs) / (24 * 60 * 60 * 1000));

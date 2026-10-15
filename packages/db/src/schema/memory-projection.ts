@@ -5,7 +5,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { index, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 
@@ -30,7 +30,10 @@ export const memoryProjectionState = pgTable(
     projectedAt: timestamp('projected_at', { withTimezone: true }),
   },
   (table) => [
-    unique('memory_projection_state_user_thread_uk').on(table.userId, table.threadId),
+    primaryKey({
+      name: 'memory_projection_state_pk',
+      columns: [table.userId, table.threadId],
+    }),
     index('memory_projection_state_status_idx').on(table.status, table.updatedAt),
     index('memory_projection_state_tenant_idx').on(table.tenantId, table.updatedAt),
   ],

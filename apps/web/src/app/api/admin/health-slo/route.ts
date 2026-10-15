@@ -26,7 +26,7 @@ import { z } from 'zod';
 import { withAdminAuth } from '@/lib/admin-auth';
 import { parseSearchParams } from '@/lib/api';
 import { computeHealthSloService } from '@/lib/services/admin-health';
-import { getDb } from '@/lib/services/api-boundary';
+import { getAdminDb } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,7 +39,7 @@ const querySchema = z.object({
 export const GET = withAdminAuth(async (req) => {
   const { hours } = parseSearchParams(req, querySchema);
 
-  const db = getDb();
+  const db = getAdminDb();
   const response = await computeHealthSloService(db, { hours });
 
   return Response.json(response);

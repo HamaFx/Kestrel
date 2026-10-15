@@ -35,6 +35,14 @@ import { resolveEmbeddingModel } from './model';
 
 const DEFAULT_MODEL = 'openai/text-embedding-3-small';
 
+/**
+ * Dimension of the `pgvector` columns (`news_embeddings.embedding`,
+ * `memory_embeddings.embedding`). Both are fixed at `vector(1536)`; a model
+ * that returns a different width would crash the query with SQLSTATE 22000, so
+ * `embedTexts` validates it before the vector ever reaches Postgres.
+ */
+export const EXPECTED_EMBEDDING_DIMENSIONS = 1536;
+
 export interface EmbedTextsArgs {
   texts: string[];
   /**
@@ -93,8 +101,17 @@ export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
 
   const result = await embedMany(callArgs);
 
+  const embeddings = result.embeddings as number[][];
+  for (const vec of embeddings) {
+    if (vec.length !== EXPECTED_EMBEDDING_DIMENSIONS) {
+      throw new Error(
+        `Embedding model "${model}" returned ${vec.length} dimensions; expected ${EXPECTED_EMBEDDING_DIMENSIONS}.`,
+      );
+    }
+  }
+
   return {
-    embeddings: result.embeddings as number[][],
+    embeddings,
     model,
     inputTokens: result.usage?.tokens ?? 0,
   };

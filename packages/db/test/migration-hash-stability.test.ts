@@ -37,6 +37,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { assertMigrationPlanIsConsistent, buildMigrationPlan } from '../src/migration-plan';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
 const HASHES_PATH = join(DRIZZLE_DIR, 'meta', '_hashes.json');
@@ -116,5 +118,44 @@ describe('Phase 10 — Migration hash stability guard', () => {
     if (hasNew) {
       saveBaseline(currentHashes);
     }
+  });
+});
+
+describe('Phase 2 — schema/migration parity', () => {
+  it('registers 0098 as the latest journal entry and keeps files consistent', () => {
+    const plan = buildMigrationPlan(DRIZZLE_DIR);
+    expect(() => assertMigrationPlanIsConsistent(plan)).not.toThrow();
+    expect(plan.entries.at(-1)?.tag).toBe('0098_phase2_db_audit_remediation');
+  });
+
+  it('defines composite primary keys on the memory state tables', async () => {
+    const { getTableConfig } = await import('drizzle-orm/pg-core');
+    const schema = await import('../src/schema');
+
+    expect(getTableConfig(schema.memoryBackfillState).primaryKeys).toHaveLength(1);
+    expect(getTableConfig(schema.memoryProjectionState).primaryKeys).toHaveLength(1);
+  });
+
+  it('restores the 0028 CHECK constraints and synced 0032 indexes', async () => {
+    const { getTableConfig } = await import('drizzle-orm/pg-core');
+    const schema = await import('../src/schema');
+
+    const journalCfg = getTableConfig(schema.journalEntries);
+    expect(journalCfg.checks.map((c) => c.name)).toContain('journal_outcome_closed_consistency');
+    expect(journalCfg.indexes.map((i) => i.config.name)).toEqual(
+      expect.arrayContaining(['journal_entries_deleted_at_idx', 'journal_entries_user_opened_idx']),
+    );
+
+    const portfolioCfg = getTableConfig(schema.portfolioPositions);
+    expect(portfolioCfg.checks.map((c) => c.name)).toContain('portfolio_status_closed_consistency');
+
+    const alertsCfg = getTableConfig(schema.alerts);
+    expect(alertsCfg.checks.map((c) => c.name)).toContain('alerts_snooze_hours_check');
+
+    const briefingsCfg = getTableConfig(schema.briefingsEmitted);
+    expect(briefingsCfg.checks.map((c) => c.name)).toContain('briefings_emitted_kind_check');
+
+    const tracesCfg = getTableConfig(schema.diagnosticTraces);
+    expect(tracesCfg.columns.map((c) => c.name)).toContain('tenant_id');
   });
 });

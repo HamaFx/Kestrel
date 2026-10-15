@@ -25,6 +25,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createMastraStorage,
   mastraDirectConnectionString,
+  mastraRuntimeConnectionString,
   mastraSslOptions,
 } from '../src/mastra-v2';
 
@@ -87,6 +88,21 @@ describe('mastra-v2 storage', () => {
 
   it('throws when postgres is requested without any connection string', () => {
     expect(() => createMastraStorage({ MASTRA_STORAGE: 'postgres' })).toThrow(/DIRECT_URL/);
+  });
+
+  it('uses the pooled runtime URL for PostgresStore and keeps the direct URL for DDL', () => {
+    const env = {
+      NODE_ENV: 'production',
+      MASTRA_STORAGE: 'postgres',
+      DATABASE_URL: 'postgresql://app:pw@pooler.supabase.com:6543/postgres',
+      DIRECT_URL: 'postgresql://app:pw@db.supabase.com:5432/postgres',
+    };
+    expect(mastraRuntimeConnectionString(env)).toBe(
+      'postgresql://app:pw@pooler.supabase.com:6543/postgres',
+    );
+    expect(mastraDirectConnectionString(env)).toBe(
+      'postgresql://app:pw@db.supabase.com:5432/postgres',
+    );
   });
 });
 
