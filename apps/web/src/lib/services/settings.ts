@@ -32,6 +32,7 @@ import {
   schema,
   updateUserSettingsField,
   withRateLimit,
+  withTenantDbFresh,
 } from '@kestrel/db';
 import { decryptByok, PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
@@ -264,15 +265,21 @@ export function bulkTestKeysService(userId: string): Promise<{
               testedAt: testedAt.toISOString(),
             }));
           if (rows.length > 0) {
-            await db
-              .delete(schema.providerTests)
-              .where(
-                and(
-                  eq(schema.providerTests.userId, userId),
-                  eq(schema.providerTests.tenantId, tenantId),
-                ),
-              );
-            await db.insert(schema.providerTests).values(rows);
+            await withTenantDbFresh(
+              tenantId,
+              async (txDb) => {
+                await txDb
+                  .delete(schema.providerTests)
+                  .where(
+                    and(
+                      eq(schema.providerTests.userId, userId),
+                      eq(schema.providerTests.tenantId, tenantId),
+                    ),
+                  );
+                await txDb.insert(schema.providerTests).values(rows);
+              },
+              { userId },
+            );
           }
 
           const ok = results.filter((r) => r.status === 'ok').length;

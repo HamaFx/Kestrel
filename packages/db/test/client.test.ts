@@ -268,6 +268,11 @@ describe('withTenantDbFresh and tenant short-circuit', () => {
       { userId: 'user-abc' },
     );
   });
+
+  it('exports getAdminDb for cross-tenant admin health routes', async () => {
+    const mod = await import('../src/index');
+    expect(typeof mod.getAdminDb).toBe('function');
+  });
 });
 
 // Import clean-up: reset singleton state so subsequent tests don't use cached _client

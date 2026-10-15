@@ -705,9 +705,9 @@ async function queryOperationalAggregate(
   try {
     const result = await db.execute(sql`
       SELECT
-        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since})::text AS full_total,
-        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since} AND snapshot ->> 'status' = 'success')::text AS full_completed,
-        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since} AND snapshot ->> 'status' = 'failed')::text AS full_failed,
+        (SELECT COUNT(*) FROM full_analysis_queue WHERE created_at >= ${since})::text AS full_total,
+        (SELECT COUNT(*) FROM full_analysis_queue WHERE created_at >= ${since} AND status = 'succeeded')::text AS full_completed,
+        (SELECT COUNT(*) FROM full_analysis_queue WHERE created_at >= ${since} AND status = 'failed')::text AS full_failed,
         (SELECT COUNT(*) FROM chat_telemetry WHERE kind IN ('multi_specialist_sentiment', 'multi_specialist_sentiment_failed') AND created_at >= ${since})::text AS sentiment_total,
         (SELECT COUNT(*) FROM chat_telemetry WHERE kind = 'multi_specialist_sentiment' AND created_at >= ${since})::text AS sentiment_succeeded,
         (SELECT COUNT(*) FROM persistence_outbox WHERE created_at >= ${since} AND status IN ('completed', 'dead'))::text AS outbox_terminal,
@@ -778,18 +778,16 @@ async function queryAnalysisAggregate(
     const result = await db.execute(sql`
       SELECT
         COUNT(*) FILTER (
-          WHERE workflow_name = 'full-analysis'
-          AND snapshot ->> 'status' = 'pending'
-          AND "createdAt" >= ${since}
-          AND "createdAt" < NOW() - INTERVAL '10 minutes'
+          WHERE status = 'pending'
+          AND created_at >= ${since}
+          AND created_at < NOW() - INTERVAL '10 minutes'
         )::text AS stale,
         COUNT(*) FILTER (
-          WHERE workflow_name = 'full-analysis'
-          AND snapshot ->> 'status' = 'running'
-          AND "createdAt" >= ${since}
-          AND "updatedAt" < NOW() - INTERVAL '30 seconds'
+          WHERE status = 'running'
+          AND created_at >= ${since}
+          AND (lease_expires_at < NOW() OR updated_at < NOW() - INTERVAL '30 seconds')
         )::text AS stuck
-      FROM mastra_workflow_snapshot
+      FROM full_analysis_queue
     `);
     const rows = extractRows(result);
     const row = rows[0] as { stale: string; stuck: string } | undefined;

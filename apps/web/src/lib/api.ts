@@ -28,7 +28,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { ProviderError, toAppError } from '@kestrel/data';
-import { getAdminDb, requireTenantIdForUser, withTenantDbFresh } from '@kestrel/db';
+import { requireTenantIdForUser, withTenantDbFresh } from '@kestrel/db';
 import { AppError, formatErrorResponse, validationError, type ErrorCode } from '@kestrel/shared';
 import { ZodError, type z } from 'zod';
 
@@ -142,11 +142,15 @@ export function withAuth<T>(
     }
     try {
       // Every authenticated request runs on a non-bypass connection with a
-      // transaction-local tenant GUC. Resolve membership through the explicit
-      // admin identity path, then keep all downstream repository and AI calls
-      // inside the tenant transaction. There is no unscoped path.
-      const tenantId = await requireTenantIdForUser(user.userId, getAdminDb());
-      return await withTenantDbFresh(tenantId, () => handler(req, { params: ctx.params, user }));
+      // transaction-local tenant GUC. Resolve membership through the primary
+      // connection, then keep all downstream repository and AI calls inside the
+      // tenant transaction. There is no unscoped path.
+      const tenantId = await requireTenantIdForUser(user.userId);
+      return await withTenantDbFresh(
+        tenantId,
+        () => handler(req, { params: ctx.params, user }),
+        { userId: user.userId },
+      );
     } catch (err) {
       return errorResponse(err, req);
     }
