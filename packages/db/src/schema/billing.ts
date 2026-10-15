@@ -150,9 +150,9 @@ export const payments = pgTable(
       .default(sql`current_setting('app.current_tenant', true)`)
       .references(() => organization.id, { onDelete: 'cascade' }),
     /** NOWPayments payment ID, populated by the first IPN (invoice creation returns an invoice ID). */
-    nowpaymentsPaymentId: text('nowpayments_payment_id').unique(),
+    nowpaymentsPaymentId: text('nowpayments_payment_id'),
     /** NOWPayments invoice ID — the stable pre-payment idempotency key. */
-    nowpaymentsInvoiceId: text('nowpayments_invoice_id').unique(),
+    nowpaymentsInvoiceId: text('nowpayments_invoice_id'),
     status: paymentStatus('status').notNull().default('waiting'),
     /** Amount paid in crypto */
     payAmount: text('pay_amount'),
@@ -170,6 +170,10 @@ export const payments = pgTable(
     index('payments_subscription_idx').on(t.subscriptionId),
     index('payments_tenant_idx').on(t.tenantId),
     index('payments_status_idx').on(t.status),
+    // Phase 2 (D2-04) — match migration 0063's unique *indexes* (not UNIQUE
+    // constraints) so `drizzle-kit generate` produces no drift.
+    uniqueIndex('payments_nowpayments_payment_id_idx').on(t.nowpaymentsPaymentId),
+    uniqueIndex('payments_nowpayments_invoice_id_idx').on(t.nowpaymentsInvoiceId),
   ],
 );
 
@@ -211,10 +215,10 @@ export const billingWebhookDlq = pgTable(
       .primaryKey()
       .default(sql`gen_random_uuid()::text`),
     provider: text('provider').notNull().default('nowpayments'),
-    eventType: text('event_type').notNull(),
-    eventId: text('event_id').notNull(),
-    payload: jsonb('payload').notNull(),
-    error: text('error').notNull(),
+    eventType: text('event_type').notNull().default('unknown'),
+    eventId: text('event_id').notNull().default('unknown'),
+    payload: jsonb('payload').notNull().default({}),
+    error: text('error').notNull().default('unknown'),
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
     replayedAt: timestamp('replayed_at', { withTimezone: true }),
     replayStartedAt: timestamp('replay_started_at', { withTimezone: true }),
@@ -240,7 +244,7 @@ export const billingCheckoutAttempts = pgTable(
       .notNull()
       .default(sql`current_setting('app.current_tenant', true)`)
       .references(() => organization.id, { onDelete: 'cascade' }),
-    idempotencyKey: text('idempotency_key').notNull(),
+    idempotencyKey: text('idempotency_key').notNull().default('legacy'),
     planId: uuid('plan_id').references(() => plans.id, { onDelete: 'restrict' }),
     status: text('status').notNull().default('pending'),
     invoiceId: text('invoice_id'),

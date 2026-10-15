@@ -15,7 +15,15 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { doublePrecision, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  doublePrecision,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 
@@ -71,5 +79,14 @@ export const journalEntries = pgTable(
     index('journal_entries_tenant_opened_idx').on(t.tenantId, t.openedAt),
     index('journal_symbol_idx').on(t.symbol),
     index('journal_opened_idx').on(t.openedAt),
+    // Phase 2 (0032) — soft-delete index, absent from the TypeScript schema.
+    index('journal_entries_deleted_at_idx').on(t.deletedAt),
+    // Phase 2 (0098) — listEntries(user_id, opened_at DESC) predicate.
+    index('journal_entries_user_opened_idx').on(t.userId, t.openedAt),
+    // Phase 2 (0028) — outcome/closedAt consistency CHECK.
+    check(
+      'journal_outcome_closed_consistency',
+      sql`(${t.outcome} = 'open' AND ${t.closedAt} IS NULL) OR (${t.outcome} IN ('win', 'loss', 'breakeven') AND ${t.closedAt} IS NOT NULL)`,
+    ),
   ],
 );

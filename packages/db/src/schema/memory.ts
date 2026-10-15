@@ -87,5 +87,13 @@ export const memoryEmbeddings = pgTable(
     // cross-user collisions on (kind, source_id). The ON CONFLICT upsert
     // path in `memory-index.ts` must use (user_id, kind, source_id).
     unique('memory_embeddings_user_kind_source_uk').on(t.userId, t.kind, t.sourceId),
+    // Phase 2 (0098) — fast-path per-user memory sets instead of walking the
+    // global HNSW graph across all tenants.
+    index('memory_embeddings_user_kind_occurred_idx').on(
+      t.tenantId,
+      t.userId,
+      t.kind,
+      t.occurredAt,
+    ),
   ],
 );
