@@ -10,6 +10,20 @@
 
 **Spec:** [`docs/audits/phase-02-database-drizzle-pgvector.md`](https://github.com/HamaFx/Kestrel/blob/c82f247033fc332aa5b7534e4e74aee38019a8f7/docs/audits/phase-02-database-drizzle-pgvector.md)
 
+## Implementation Progress (branch `phase-02-db-remediation`)
+
+| Task | Status | Commit | Notes |
+| :--- | :--- | :--- | :--- |
+| 1 — Pool singletons, role-switch fix, tenant short-circuit | **DONE** | `3180c144` | Pools on `globalThis.__kestrelDbPools`; `SET LOCAL ROLE authenticated` removed from `withTenantDbFresh`/`withTenantDbRO`; `TenantDbScope` carries `userId`; `getTenantIdForUser` short-circuits for the scoped user (plan named it `resolveTenantIdForUser` — the codebase's actual helper is `getTenantIdForUser`/`requireTenantIdForUser`, so the short-circuit lives there). |
+| 2 — Bounded `@mastra/pg` pools, pooled runtime URL, graceful shutdown | **DONE** | `0585cf68` | `mastraRuntimeConnectionString` (pooled) vs `mastraDirectConnectionString` (DDL); `PgVector` bounded (`MASTRA_VECTOR_POOL_MAX`, default 3, idle 20s, connect 10s); `PostgresStore` idle-bound; storage/vector/instance singletons on `globalThis`; `closeMastraStorage`/`closeKestrelVectorStore`/`closeKestrelMastra` wired into worker shutdown; retention prunes through the instance's own pool. |
+| 3 — Schema parity + migration `0098` | **DONE** | `65ef8edc` | PKs on memory state tables; 6 CHECKs (0028) + 2 soft-delete indexes (0032) restored; payments unique *indexes* + billing defaults (0063); `diagnostic_traces.tenant_id` + RLS/trigger + 8 composite/partial indexes in `0098_phase2_db_audit_remediation.sql` (journal `idx: 97`). |
+| 4 — HNSW iterative scan, model filter, 1536-d guard | **DONE** | `359774f9` | `EXPECTED_EMBEDDING_DIMENSIONS = 1536` enforced in `embedTexts`; `runDenseNewsQuery` wrapped in a transaction with `SET LOCAL hnsw.ef_search=200 / iterative_scan='relaxed_order' / max_scan_tuples=20000`; `ne.model` / `model` filters in news + memory search; `model` threaded through `runRagQuery`/`runMemoryQuery` from `search_knowledge`. |
+| 5 — Atomic queue claims, SQL `COUNT(*)`/`SUM()` | **DONE** | `d6d33894` | `claimNextFullAnalysisQueue` uses `FOR UPDATE SKIP LOCKED` CTE when no `ownsTenant` predicate (partitioned path keeps the conditional UPDATE); `recoverStaleFullAnalysisQueue` is two set-based UPDATEs; `listFullAnalysisQueueRows` bounded (default 200); new `getFullAnalysisQueueStats` (`COUNT(*) FILTER`) backs `getFullAnalysisQueueHealth`; `countActiveAlerts`/`countJournalEntriesThisMonth`/`countCotReports` use `count(*)::int`; `getDailySpend`/`getProviderMonthlySpend` aggregate in SQL. |
+| 6 — Transactional billing + batch journal import | pending | — | |
+| 7 — Admin health SLO + web auth boundary cleanup | pending | — | |
+
+Verification so far: `pnpm --filter @kestrel/db test` (91 passed) and `pnpm --filter @kestrel/ai test` (1436 passed) green after Tasks 1–4; db + ai typecheck clean; `@kestrel/db` dist rebuilt so dependent packages resolve the new exports.
+
 ## Global Constraints
 
 - `MULTI_USER_ENABLED=1` and `KESTREL_ENABLE_RLS=1` are mandatory in all non-test runtimes; `getDb()` must continue to fail closed if either is disabled ([`packages/db/src/client.ts:164-199`](https://github.com/HamaFx/Kestrel/blob/c82f247033fc332aa5b7534e4e74aee38019a8f7/packages/db/src/client.ts#L164-L199)).
@@ -61,7 +75,7 @@
   - `getTenantDbScope(): { db: DbClient; tenantId: string; userId?: string } | undefined` in `packages/db/src/client.ts`
   - `resolveTenantIdForUser(userId: string, db?: DbClient): Promise<string | null>` in `packages/db/src/tenant.ts`
 
-- [ ] **Step 1: Write the failing tests in `packages/db/test/client.test.ts`**
+- [x] **Step 1: Write the failing tests in `packages/db/test/client.test.ts`**
 
 ```ts
 describe('withTenantDbFresh and resolveTenantIdForUser', () => {
@@ -126,12 +140,12 @@ describe('withTenantDbFresh and resolveTenantIdForUser', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/db test -- test/client.test.ts`
 Expected: FAIL (`executedSql.some(s => s.includes('SET LOCAL ROLE authenticated'))` is `true`, and `mockTx.select` is called even for `'user-abc'`).
 
-- [ ] **Step 3: Implement `globalThis` pool singletons, role-switch removal, and `resolveTenantIdForUser` short-circuit in `packages/db/src/client.ts` and `packages/db/src/tenant.ts`**
+- [x] **Step 3: Implement `globalThis` pool singletons, role-switch removal, and `resolveTenantIdForUser` short-circuit in `packages/db/src/client.ts` and `packages/db/src/tenant.ts`**
 
 In `packages/db/src/client.ts`:
 - Back `_client`/`_sql`, `_replicaClient`/`_replicaSql`, and `_adminClient`/`_adminSql` with `globalThis.__kestrelDbState` so HMR reloads reuse active pools.
@@ -150,12 +164,12 @@ In `packages/db/src/tenant.ts:20-39`:
   const client = db ?? getPrimaryDb();
   ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/db test -- test/client.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/src/client.ts packages/db/src/tenant.ts packages/db/test/client.test.ts
@@ -181,7 +195,7 @@ git commit -m "fix(db): remove broken SET LOCAL ROLE authenticated and cache ten
   - `closeKestrelVectorStore(): Promise<void>` in `packages/ai/src/mastra-v2/memory.ts`
   - `closeKestrelMastra(): Promise<void>` in `packages/ai/src/mastra-v2/instance.ts`
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/mastra-v2-storage.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/mastra-v2-storage.test.ts`**
 
 ```ts
 it('configures PostgresStore and PgVector with pooled runtime URL and explicit pool bounds', async () => {
@@ -204,12 +218,12 @@ it('configures PostgresStore and PgVector with pooled runtime URL and explicit p
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test -- test/mastra-v2-storage.test.ts`
 Expected: FAIL (`mastraRuntimeConnectionString is not a function`).
 
-- [ ] **Step 3: Implement `mastraRuntimeConnectionString`, `PgVector` pool bounds, `globalThis` caching, and `closeKestrelMastra()`**
+- [x] **Step 3: Implement `mastraRuntimeConnectionString`, `PgVector` pool bounds, `globalThis` caching, and `closeKestrelMastra()`**
 
 - In `packages/ai/src/mastra-v2/storage.ts`:
   - Export `mastraRuntimeConnectionString(env = process.env)` returning `firstNonEmpty(env.MASTRA_DATABASE_URL, env.DATABASE_URL, env.POSTGRES_URL, env.DIRECT_URL, env.POSTGRES_URL_NON_POOLING)`.
@@ -225,12 +239,12 @@ Expected: FAIL (`mastraRuntimeConnectionString is not a function`).
 - In `apps/worker/src/index.ts:515` and `apps/worker/src/runner/cli.ts:114`:
   - Call `await closeKestrelMastra()` before `await closeDb()`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/ai test -- test/mastra-v2-storage.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/mastra-v2/storage.ts packages/ai/src/mastra-v2/memory.ts packages/ai/src/mastra-v2/instance.ts apps/worker/src/jobs/retention.ts apps/worker/src/index.ts apps/worker/src/runner/cli.ts packages/ai/test/mastra-v2-storage.test.ts
@@ -261,7 +275,7 @@ git commit -m "fix(ai,worker): bound Mastra PostgresStore and PgVector pools on 
   - `diagnosticTraces.tenantId` column (`text('tenant_id').notNull().default(sql\`current_setting('app.current_tenant', true)\`)`) in `packages/db/src/schema/diagnostic-traces.ts`
   - Migration `0098_phase2_db_audit_remediation.sql` registered at `idx: 97` in `packages/db/drizzle/meta/_journal.json`
 
-- [ ] **Step 1: Write the failing schema-parity test in `packages/db/test/migration-hash-stability.test.ts`**
+- [x] **Step 1: Write the failing schema-parity test in `packages/db/test/migration-hash-stability.test.ts`**
 
 ```ts
 it('includes 0098_phase2_db_audit_remediation in the journal and defines composite primary keys on memory state tables', async () => {
@@ -291,12 +305,12 @@ it('includes 0098_phase2_db_audit_remediation in the journal and defines composi
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/db test -- test/migration-hash-stability.test.ts`
 Expected: FAIL (`plan.entries.at(-1)?.tag` is `'0097_provider_circuit_state'`, and `backfillCfg.primaryKeys` has length `0`).
 
-- [ ] **Step 3: Sync Drizzle schema files and create `packages/db/drizzle/0098_phase2_db_audit_remediation.sql`**
+- [x] **Step 3: Sync Drizzle schema files and create `packages/db/drizzle/0098_phase2_db_audit_remediation.sql`**
 
 1. In `packages/db/src/schema/memory-backfill.ts:31-34` and `memory-projection.ts:32-36`: replace `unique('..._uk').on(table.userId, table.threadId)` with `primaryKey({ name: 'memory_backfill_state_pk', columns: [table.userId, table.threadId] })` and `primaryKey({ name: 'memory_projection_state_pk', columns: [table.userId, table.threadId] })`.
 2. In `alerts.ts`, `briefings.ts`, `journal.ts`, and `portfolio.ts`: add the 6 `check(...)` definitions from migration `0028` (`alerts_snooze_hours_check`, `briefings_emitted_kind_check`, `journal_outcome_closed_consistency`, `portfolio_status_closed_consistency`, `portfolio_settings_max_risk_pct_check`, `portfolio_settings_max_exposure_pct_check`) and the 2 soft-delete indexes from migration `0032` (`journal_entries_deleted_at_idx`, `portfolio_positions_deleted_at_idx`).
@@ -305,12 +319,12 @@ Expected: FAIL (`plan.entries.at(-1)?.tag` is `'0097_provider_circuit_state'`, a
 5. Add the remaining composite indexes in `chat.ts` (`chat_threads_user_updated_id_idx`), `alerts.ts` (`alerts_user_active_created_idx`, `alerts_evaluable_idx`), `journal.ts` (`journal_entries_user_opened_idx`), `portfolio.ts` (`portfolio_positions_user_status_opened_idx`), `tool-telemetry.ts` (`tool_telemetry_user_created_idx`), and `memory.ts` (`memory_embeddings_user_kind_occurred_idx`).
 6. Create `packages/db/drizzle/0098_phase2_db_audit_remediation.sql` containing the `CREATE INDEX IF NOT EXISTS` statements plus idempotent `diagnostic_traces.tenant_id` backfill, FK, trigger (`hamafx_diagnostic_traces_tenant_id`), and `FORCE ROW LEVEL SECURITY` policy (`tenant_isolation`), and append entry `idx: 97` (`0098_phase2_db_audit_remediation`) to `packages/db/drizzle/meta/_journal.json`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/db test -- test/migration-hash-stability.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/src/schema/ packages/db/drizzle/0098_phase2_db_audit_remediation.sql packages/db/drizzle/meta/_journal.json packages/db/test/migration-hash-stability.test.ts
@@ -331,7 +345,7 @@ git commit -m "feat(db): sync Drizzle schema with migrations and add 0098 compos
   - `EXPECTED_EMBEDDING_DIMENSIONS = 1536` exported from `packages/ai/src/embeddings.ts`
   - `runDenseNewsQuery(args: { queryVector: number[]; model: string; cutoff: Date; symbol?: Symbol }): Promise<DenseCandidate[]>` in `packages/ai/src/rag.ts`
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/memory-index.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/memory-index.test.ts`**
 
 ```ts
 it('filters searchMemory by the resolved embedding model and rejects non-1536d vectors', async () => {
@@ -340,12 +354,12 @@ it('filters searchMemory by the resolved embedding model and rejects non-1536d v
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test -- test/memory-index.test.ts`
 Expected: FAIL (`EXPECTED_EMBEDDING_DIMENSIONS` is `undefined`).
 
-- [ ] **Step 3: Implement 1536-d validation in `embeddings.ts`, transactional HNSW iterative scan in `rag.ts`, and `model` filtering in `rag.ts` and `memory-index.ts`**
+- [x] **Step 3: Implement 1536-d validation in `embeddings.ts`, transactional HNSW iterative scan in `rag.ts`, and `model` filtering in `rag.ts` and `memory-index.ts`**
 
 - In `packages/ai/src/embeddings.ts`:
   - Export `export const EXPECTED_EMBEDDING_DIMENSIONS = 1536;`.
@@ -360,12 +374,12 @@ Expected: FAIL (`EXPECTED_EMBEDDING_DIMENSIONS` is `undefined`).
 - In `packages/ai/src/memory/memory-index.ts:368-378`:
   - Add `AND model = ${embedRes.model}` to the `WHERE` clause in `searchMemory`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/ai test -- test/memory-index.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/embeddings.ts packages/ai/src/rag.ts packages/ai/src/memory/memory-index.ts packages/ai/test/memory-index.test.ts
@@ -388,7 +402,7 @@ git commit -m "fix(ai): enable HNSW iterative scan on news RAG and filter vector
 - Produces:
   - `getFullAnalysisQueueStats(db?: DbClient): Promise<{ pending: number; running: number; stalePending: number; stuckRunning: number }>` in `packages/db/src/queries/full-analysis-queue.ts` (re-exported from `packages/db/src/index.ts`)
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/mastra-v2-full-analysis.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/mastra-v2-full-analysis.test.ts`**
 
 ```ts
 it('computes queue health via bounded SQL aggregates instead of unbounded row fetches', async () => {
@@ -398,12 +412,12 @@ it('computes queue health via bounded SQL aggregates instead of unbounded row fe
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test -- test/mastra-v2-full-analysis.test.ts`
 Expected: PASS/baseline check before adding `getFullAnalysisQueueStats` assertion.
 
-- [ ] **Step 3: Implement atomic `FOR UPDATE SKIP LOCKED` claim, set-based `recoverStaleFullAnalysisQueue`, and SQL `COUNT(*)` / `SUM()` aggregations**
+- [x] **Step 3: Implement atomic `FOR UPDATE SKIP LOCKED` claim, set-based `recoverStaleFullAnalysisQueue`, and SQL `COUNT(*)` / `SUM()` aggregations**
 
 - In `packages/db/src/queries/full-analysis-queue.ts`:
   - When `options.ownsTenant` is omitted, execute a single CTE `WITH next_job AS (SELECT run_id FROM full_analysis_queue WHERE status = 'pending' ORDER BY created_at ASC FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE full_analysis_queue AS q SET ... FROM next_job WHERE q.run_id = next_job.run_id RETURNING q.*` in `claimNextFullAnalysisQueue`.
@@ -418,12 +432,12 @@ Expected: PASS/baseline check before adding `getFullAnalysisQueueStats` assertio
 - In `packages/db/src/queries/telemetry.ts:56-86` (`getDailySpend`) and `packages/ai/src/cost.ts:562-604` (`getProviderMonthlySpend`):
   - Push `SUM(est_cost_usd)`, `SUM(input_tokens)`, `SUM(output_tokens)`, and `COUNT(*)` into SQL.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/ai test -- test/mastra-v2-full-analysis.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/src/queries/full-analysis-queue.ts packages/db/src/index.ts packages/ai/src/mastra-v2/workflows/full-analysis.ts packages/db/src/queries/billing.ts packages/db/src/queries/cot.ts packages/db/src/queries/telemetry.ts packages/ai/src/cost.ts packages/ai/test/mastra-v2-full-analysis.test.ts
