@@ -40,6 +40,7 @@ import { and, asc, gte, inArray, lte } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import { getDb } from '../db';
+import { quarantineExternalText } from '../mastra-v2/packets/external-content';
 import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = ForecastVolatilityInputSchema;
@@ -114,7 +115,7 @@ export const forecastVolatilityTool = tool({
     const next = events[0];
     const nextHighImpact: ForecastVolatilityOutput['nextHighImpact'] = next
       ? {
-          title: next.title,
+          title: quarantineExternalText(next.title, 240).text || '[filtered]',
           whenIso: new Date(next.date).toISOString(),
           currency: next.currency,
         }
