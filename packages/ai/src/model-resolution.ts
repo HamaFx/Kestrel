@@ -50,7 +50,9 @@ export interface MastraResolvedModel extends ChatModelResolution {
 
 export interface ResolveMastraModelInput {
   purpose: MastraModelPurpose;
-  settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>;
+  settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> & {
+    aiFallbackChain?: readonly string[] | string[] | null | undefined;
+  };
   env: ResolveModelEnv;
   domain: ModelDomain;
   modelOverride?: string | null;
@@ -111,7 +113,11 @@ export function resolveMastraModel(args: ResolveMastraModelInput): ChatModelReso
   const selected = configuredOverride(args.modelOverride) ?? pinnedModelFor(args.purpose);
   if (selected) {
     return resolveChatModel(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: selected },
+      {
+        aiApiKeys: args.settings.aiApiKeys,
+        chatModel: selected,
+        aiFallbackChain: args.settings.aiFallbackChain,
+      },
       args.env,
       args.domain,
     );
@@ -119,7 +125,11 @@ export function resolveMastraModel(args: ResolveMastraModelInput): ChatModelReso
 
   if (args.purpose === 'xauusd') {
     return resolveChatModel(
-      { aiApiKeys: args.settings.aiApiKeys, chatModel: null },
+      {
+        aiApiKeys: args.settings.aiApiKeys,
+        chatModel: null,
+        aiFallbackChain: args.settings.aiFallbackChain,
+      },
       args.env,
       args.domain,
     );

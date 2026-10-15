@@ -78,7 +78,9 @@ export interface ChatModelResolution {
  * surface mutates it any more.
  */
 export function resolveChatModel(
-  userSettings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
+  userSettings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> & {
+    aiFallbackChain?: readonly string[] | string[] | null | undefined;
+  },
   env: ResolveModelEnv,
   /** Optional routing domain — picks the matching tier from defaultModels
    *  (fundamental→pro, technical→fast, summary→cheapest, etc.). Defaults to
@@ -90,7 +92,10 @@ export function resolveChatModel(
   const hasStoredKeys = stored && Object.keys(stored).length > 0;
   const byok = hasStoredKeys ? stored : (stored ?? {});
   const res = resolveModelForRole('chat', byok, env, {
-    userSettings: { chatModel: userSettings.chatModel },
+    userSettings: {
+      chatModel: userSettings.chatModel,
+      aiFallbackChain: userSettings.aiFallbackChain,
+    },
     domain,
   });
 

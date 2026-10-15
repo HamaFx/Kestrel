@@ -96,9 +96,12 @@ export { SPECIALIST_DESK_TOOL_NAMES };
  */
 export function resolveSpecialistDeskTools(
   name: MastraSpecialistName,
+  disabledTools?: readonly string[] | null,
 ): Record<string, unknown> {
   registerAllTools(toolRegistry);
-  const rawTools = toolRegistry.resolve([...SPECIALIST_DESK_TOOL_NAMES[name]]);
+  const disabled = new Set(disabledTools ?? []);
+  const toolNames = SPECIALIST_DESK_TOOL_NAMES[name].filter((t) => !disabled.has(t));
+  const rawTools = toolRegistry.resolve([...toolNames]);
   return adaptLegacyReadOnlyTools(rawTools);
 }
 

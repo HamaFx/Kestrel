@@ -35,6 +35,7 @@ import { z } from 'zod';
 import { estimateCostUsd } from '../cost';
 import { classifyStreamError } from '../fallback';
 import type { GenerationLedger } from '../generation-ledger';
+import { withRetry } from '../retry';
 import { maybeGetToolContext, withToolContext, type ToolContext } from '../tool-context';
 import {
   extractToolPartsFromMessages,
@@ -101,6 +102,7 @@ export interface SpecialistRunnerDeps {
   /** Bounded step limit for the specialist LLM + tool loop (defaults to 3 per Q8). */
   maxSteps: number;
   toolContext?: ToolContext;
+  disabledTools?: readonly string[] | null;
 }
 
 export interface RunSpecialistGenerationArgs {
@@ -128,7 +130,7 @@ export async function runSpecialistGeneration(
     };
   try {
     // Audit v3 Phase 4 (Q8): bind each specialist's dedicated read-only domain toolset.
-    const deskTools = resolveSpecialistDeskTools(name);
+    const deskTools = resolveSpecialistDeskTools(name, deps.disabledTools);
     const toolPartsBuffer: MastraToolInvocationPart[] = [];
     const packetContext = contextWithPacket(requestContext, packet);
     (packetContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
@@ -164,7 +166,9 @@ export async function runSpecialistGeneration(
         },
         ...(signal ? { abortSignal: signal } : {}),
       });
-    const result = toolCtx ? await withToolContext(toolCtx, generateFn) : await generateFn();
+    const result = toolCtx
+      ? await withToolContext(toolCtx, () => withRetry(generateFn, { maxAttempts: 2, signal }))
+      : await withRetry(generateFn, { maxAttempts: 2, signal });
     const stats = getMastraGenerationStats(result);
     const rawOpinion = OpinionSchema.parse(result.object);
     const capturedToolParts = extractToolPartsFromMessages(
