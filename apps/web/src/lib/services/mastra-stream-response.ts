@@ -129,29 +129,39 @@ export function mastraStreamResponse(
         controller.enqueue(encode({ type: 'turn-complete', id: messageId, status }));
         ended = true;
       } catch (error) {
-        if (started && !ended) {
+        if (started && !ended && !cancelled) {
           const status = options.signal?.aborted
             ? 'interrupted'
             : options.onComplete
               ? await notifyCompletion()
               : 'failed';
-          controller.enqueue(encode({ type: 'turn-complete', id: messageId, status }));
+          try {
+            controller.enqueue(encode({ type: 'turn-complete', id: messageId, status }));
+          } catch {}
         }
         if (!cancelled && !options.signal?.aborted) {
-          controller.enqueue(
-            encode({
-              type: 'error',
-              errorText: error instanceof Error ? error.message : 'Mastra stream failed.',
-            }),
-          );
+          try {
+            controller.enqueue(
+              encode({
+                type: 'error',
+                errorText: error instanceof Error ? error.message : 'Mastra stream failed.',
+              }),
+            );
+          } catch {}
         }
         if (started && !ended) await notifyAbort();
       } finally {
         if (started && !ended && !cancelled) {
-          controller.enqueue(encode({ type: 'text-end', id: messageId }));
+          try {
+            controller.enqueue(encode({ type: 'text-end', id: messageId }));
+          } catch {}
         }
         upstreamIterator = null;
-        if (!cancelled) controller.close();
+        if (!cancelled) {
+          try {
+            controller.close();
+          } catch {}
+        }
       }
     },
     async cancel() {

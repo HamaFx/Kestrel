@@ -44,6 +44,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '../db';
 import { computeStats } from '../journal/persistence';
 import { runMastraBackgroundText } from '../mastra';
+import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { rememberBriefing } from '../memory/memory-index';
 import { appendAssistantMessage } from '../persistence';
 import { getOrCreateBriefingsThread, recordEmitted, wasEmitted } from './persistence';
@@ -175,7 +176,7 @@ async function composeEventSummary(
 export function buildEventPrompt(event: EconomicEvent, kind: 'pre' | 'post'): string {
   const iso = new Date(event.date).toISOString();
   const lines = [
-    `Event: ${event.title}`,
+    `Event: ${sanitizeExternalText(event.title, 200)}`,
     `Country: ${event.country}; Currency: ${event.currency ?? 'n/a'}`,
     `Importance: ${event.importance}`,
     `Scheduled: ${iso}`,

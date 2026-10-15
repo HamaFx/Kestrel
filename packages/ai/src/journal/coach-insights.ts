@@ -31,6 +31,7 @@ import {
   finishMastraRun,
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
+import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { resolveChatModel } from '../model';
 import { computeStats, listEntries } from './persistence';
 
@@ -110,7 +111,7 @@ function formatStatsForCoachPrompt(stats: JournalStats, entries: JournalEntry[])
     .slice(0, 10)
     .map(
       (e) =>
-        `- [${e.symbol} ${e.side.toUpperCase()}] Outcome: ${e.outcome}, R: ${e.rMultiple ?? 'N/A'}, Tags: [${e.tags.join(', ')}], Notes: "${e.notes}"`,
+        `- [${e.symbol} ${e.side.toUpperCase()}] Outcome: ${e.outcome}, R: ${e.rMultiple ?? 'N/A'}, Tags: [${e.tags.map((t) => sanitizeExternalText(t, 50)).join(', ')}], Notes: "${sanitizeExternalText(e.notes, 500)}"`,
     )
     .join('\n');
 

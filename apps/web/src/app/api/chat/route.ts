@@ -91,7 +91,11 @@ function sanitizeCustomInstructions(value: string): string | undefined {
     `[${String.fromCharCode(0)}-${String.fromCharCode(31)}${String.fromCharCode(127)}]`,
     'g',
   );
-  const normalized = value.replace(controlCharacters, ' ').trim().slice(0, 2_000);
+  const normalized = value
+    .replace(controlCharacters, ' ')
+    .replace(/[<>]/g, '')
+    .trim()
+    .slice(0, 2_000);
   if (!normalized) return undefined;
   if (
     /\b(?:ignore|system|developer|tool|function|execute|mutation|safety|policy|reveal|secret|memory|permission|instruction|jailbreak|override)\b/i.test(

@@ -25,6 +25,7 @@ import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../
 import { telemetryConfig } from '../../../telemetry';
 import type { ResolveModelEnv } from '../../../env-model-factory';
 import { manifestForCapability } from '../../capabilities';
+import { buildGuardrailInputProcessors } from '../../guardrails';
 import {
   beginMastraRun,
   finishMastraRun,
@@ -41,6 +42,7 @@ export interface RunMastraBackgroundTextArgs {
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel' | 'maxDailyUsd'>;
   env: ResolveModelEnv;
   signal?: AbortSignal;
+  skipInputGuardrails?: boolean;
   /** Conservative reservation for this bounded background generation. */
   estimateUsd?: number;
   ledger?: GenerationLedger;
@@ -98,12 +100,22 @@ export async function runMastraBackgroundText(
       providerId: resolution.providerId,
     });
 
+    const guardrails = args.skipInputGuardrails
+      ? []
+      : buildGuardrailInputProcessors({
+          settings: { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
+          env: args.env,
+          strategy: 'block',
+          mode: 'availability',
+        }).processors;
+
     const agent = new Agent({
       id: `kestrel-mastra-worker-${args.task}`,
       name: `Kestrel Mastra ${args.task}`,
       description: 'Bounded read-only background generation for Kestrel.',
       model: resolution.model,
       instructions: args.system,
+      ...(guardrails.length > 0 ? { inputProcessors: guardrails } : {}),
     });
     const requestContext = new RequestContext([
       ['userId', args.userId],
