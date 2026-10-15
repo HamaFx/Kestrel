@@ -131,7 +131,7 @@ export const DEEP_RESEARCH_TERMS =
  * tolerates short connective phrasings ("ignore the above instructions").
  */
 export const INJECTION_TERMS =
-  /(?:\bignore\s+(?:\w+\s+){0,3}?instructions\b|\b(?:system|developer)\s*:\s*\S|\bDAN\s+mode\b)/i;
+  /(?:\b(?:ignore|disregard|forget)\s+(?:\w+\s+){0,3}?instructions\b|\b(?:system|developer)\s*:\s*\S|\bDAN\s+mode\b|<\|im_start\|>|\[INST\])/i;
 
 /** Report-followup phrasing (inherits scope from a saved verified report). */
 export const FOLLOWUP_TERMS =

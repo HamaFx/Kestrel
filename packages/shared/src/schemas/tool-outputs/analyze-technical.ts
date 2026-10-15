@@ -51,8 +51,8 @@ export const PerTimeframeReadingSchema = z.object({
   trend: TrendSchema,
   bias: BiasSchema,
   momentum: z.object({
-    rsi14: z.number(),
-    macdHist: z.number(),
+    rsi14: z.number().nullable(),
+    macdHist: z.number().nullable(),
   }),
   structure: z.object({
     swingHigh: z.number().nullable(),

@@ -75,6 +75,7 @@ export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArg
       firstAssistant,
       titleModelId,
       env,
+      ...(settings ? { settings } : {}),
       ...(args.accounting ? { accounting: args.accounting } : {}),
       ...(args.ledger ? { ledger: args.ledger } : {}),
       ...(args.ledgerId ? { ledgerId: args.ledgerId } : {}),

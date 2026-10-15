@@ -34,6 +34,8 @@ import {
 import { tool } from 'ai';
 import type { z } from 'zod';
 
+import { maybeGetToolContext } from '../tool-context';
+
 const InputSchema = ReplaySetupInputSchema;
 
 declare module '@kestrel/shared' {
@@ -46,10 +48,11 @@ export const replaySetupTool = tool({
   description:
     "Replay a closed-set rule over recent candles and return per-trade entries/exits + win-rate / avg R / total R. Two rule kinds: `ema_cross` (fast/slow EMA crossover) and `rsi_threshold` (RSI crossing a level). Stop and target are ATR multiples (default 1.5 / 2 RR) or fixed pips. Use when the user describes a setup ('does an EMA50 cross with RSI > 60 actually work on EURUSD 1H'). Returns thin=true when fewer than 5 trades fired.",
   inputSchema: InputSchema,
-  execute: async (input): Promise<ReplaySetupOutput> => {
+  execute: async (input, options?: { abortSignal?: AbortSignal }): Promise<ReplaySetupOutput> => {
+    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const { symbol, tf, windowBars, rule, exit } = input;
     const need = Math.min(windowBars + 50, 2000);
-    const candles = await getCandles(symbol, tf, { count: need });
+    const candles = await getCandles(symbol, tf, { count: need, ...(signal ? { signal } : {}) });
 
     const ruleLabel = describeRule(rule);
     if (candles.length < 30) {

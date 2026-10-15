@@ -27,6 +27,8 @@ import type { DbClient } from '@kestrel/db';
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ServerEnv } from '@kestrel/shared';
 
+import type { GenerationLedger } from './generation-ledger';
+
 /** The slice of env tools may need at runtime. */
 export type ToolEnv = Pick<
   ServerEnv,
@@ -98,6 +100,8 @@ export interface ToolContext {
   toolTelemetryBuffer?: BatchedToolTelemetry[] | undefined;
   /** Number of live web searches made during this turn. */
   webSearchCalls?: number | undefined;
+  /** Generation ledger for tracking auxiliary spend. */
+  ledger?: GenerationLedger | undefined;
 }
 
 const store = new AsyncLocalStorage<ToolContext>();

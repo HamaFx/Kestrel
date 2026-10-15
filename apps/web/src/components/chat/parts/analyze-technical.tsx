@@ -118,11 +118,21 @@ function TfCard({
         <dd className={`text-right font-medium ${biasTone}`}>{reading.bias}</dd>
 
         <dt className="text-fg-subtle">RSI14</dt>
-        <dd className="text-fg text-right">{reading.momentum.rsi14.toFixed(1)}</dd>
+        <dd className="text-fg text-right">
+          {reading.momentum.rsi14 !== null ? reading.momentum.rsi14.toFixed(1) : '—'}
+        </dd>
 
         <dt className="text-fg-subtle">MACD h</dt>
-        <dd className={`text-right ${reading.momentum.macdHist >= 0 ? 'text-bull' : 'text-bear'}`}>
-          {reading.momentum.macdHist.toFixed(4)}
+        <dd
+          className={`text-right ${
+            reading.momentum.macdHist !== null
+              ? reading.momentum.macdHist >= 0
+                ? 'text-bull'
+                : 'text-bear'
+              : 'text-fg-subtle'
+          }`}
+        >
+          {reading.momentum.macdHist !== null ? reading.momentum.macdHist.toFixed(4) : '—'}
         </dd>
 
         {reading.levels.pivot !== null ? (

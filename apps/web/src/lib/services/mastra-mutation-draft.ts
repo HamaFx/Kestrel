@@ -31,7 +31,7 @@ import 'server-only';
  * The actual write happens on the confirm route after the user confirms.
  */
 
-import { deriveTitleModel } from '@kestrel/ai';
+import { resolveChatModel } from '@kestrel/ai';
 import {
   assertMastraMutationDraftAllowed,
   classifyMutationRequest,
@@ -39,7 +39,6 @@ import {
   extractMutationInput,
   getKestrelMastra,
   MutationExtractionError,
-  resolveModel,
   runMutationWorkflow,
   type MutationKind,
   type MutationSuspendPayload,
@@ -93,21 +92,17 @@ export async function startMutationDraft(
   const settingsRow = settings as unknown as
     Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> | null | undefined;
   const env = getServerEnv();
-  const extractionModelId = deriveTitleModel(
-    settingsRow ?? { aiApiKeys: null, chatModel: null },
-    env,
-  );
-  if (!extractionModelId) {
-    throw new MutationExtractionError('No model is configured for mutation extraction.', kind);
-  }
-
-  // Resolve through the same BYOK transport the agents use. A string means a
-  // gateway-only env with no direct provider key — extraction needs a real
-  // model, so fail clearly instead of guessing.
-  const resolved = resolveModel(extractionModelId, env, userId) as LanguageModel | string;
-  if (typeof resolved === 'string') {
+  let model: LanguageModel;
+  try {
+    const resolution = resolveChatModel(
+      settingsRow ?? { aiApiKeys: null, chatModel: null },
+      env,
+      'technical',
+    );
+    model = resolution.model;
+  } catch (error) {
     throw new MutationExtractionError(
-      'No direct provider model is configured for mutation extraction.',
+      error instanceof Error ? error.message : 'No direct provider model is configured for mutation extraction.',
       kind,
     );
   }
@@ -115,7 +110,7 @@ export async function startMutationDraft(
   const input = await extractMutationInput({
     kind,
     text: userText,
-    model: resolved,
+    model,
     userId,
     threadId,
   });

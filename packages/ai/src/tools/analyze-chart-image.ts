@@ -46,6 +46,7 @@ import { tool, type ModelMessage } from 'ai';
 import { and, desc, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 
+import { estimateCostUsd } from '../cost';
 import { getDb } from '../db';
 import { runMastraText } from '../mastra-v2/agents/xauusd/text-runner';
 import { resolveModel, resolveVisionModel } from '../model';
@@ -159,18 +160,22 @@ export const analyzeChartImageTool = tool({
           bareModelId: modelId.replace(/^.*\//, ''),
         };
       }
-      const text = (
-        await runMastraText({
-          task: 'chart-image-analysis',
-          model: vision.model,
-          system: SYSTEM_PROMPT,
-          messages,
-          ...(ctx?.userId ? { userId: ctx.userId } : {}),
-          threadId,
-          ...(ctx?.signal ? { signal: ctx.signal } : {}),
-          maxOutputTokens: 1200,
-        })
-      ).text;
+      const signal = _options?.abortSignal ?? ctx?.signal ?? null;
+      const result = await runMastraText({
+        task: 'chart-image-analysis',
+        model: vision.model,
+        system: SYSTEM_PROMPT,
+        messages,
+        ...(ctx?.userId ? { userId: ctx.userId } : {}),
+        threadId,
+        ...(signal ? { signal } : {}),
+        maxOutputTokens: 1200,
+      });
+      const text = result.text;
+      if (ctx?.ledger && result.inputTokens && result.outputTokens) {
+        const cost = estimateCostUsd(vision.modelId, result.inputTokens, result.outputTokens);
+        ctx.ledger.recordCost(`vision:${threadId}`, 'auxiliary', cost);
+      }
 
       // Try strict parse first; if the model returned plain text, build a
       // graceful no-overlay shape with the text in `observed`.
@@ -263,16 +268,22 @@ function asContentImagePart(part: ImagePartShape): { type: 'image'; image: strin
 
 function tryParseStructured(text: string): AnalyzeChartImageOutput | null {
   // Strip code fences and try to JSON-parse the first object literal.
-  const trimmed = text
-    .trim()
-    .replace(/^```(?:json)?/i, '')
-    .replace(/```$/, '')
-    .trim();
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  const raw = (jsonMatch && jsonMatch[1]) ? jsonMatch[1].trim() : text.trim();
   let parsed: unknown;
   try {
-    parsed = JSON.parse(trimmed);
+    parsed = JSON.parse(raw);
   } catch {
-    return null;
+    const braceMatch = raw.match(/\{[\s\S]*\}/);
+    if (braceMatch) {
+      try {
+        parsed = JSON.parse(braceMatch[0]);
+      } catch {
+        return null;
+      }
+    } else {
+      return null;
+    }
   }
   const result = AnalyzeChartImageOutputSchema.safeParse(parsed);
   return result.success ? result.data : null;
