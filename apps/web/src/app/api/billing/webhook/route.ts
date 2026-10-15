@@ -35,6 +35,7 @@ import {
   recordBillingWebhookFailure,
   updatePaymentStatus,
   updateSubscriptionFromPayment,
+  withTenantDbFresh,
 } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
@@ -109,24 +110,31 @@ export async function processVerifiedIpnPayload(payload: IpnPayload): Promise<vo
     throw new Error('Payment row not found for IPN');
   }
 
-  const paymentUpdated = await updatePaymentStatus(payment.id, {
-    status: mapPaymentStatus(payment_status),
-    nowpaymentsPaymentId: payment_id,
-    txHash: txid ?? payment.txHash,
-    payAmount: pay_amount ?? payment.payAmount,
-    payCurrency: pay_currency ?? payment.payCurrency,
-    ipnPayload: payload,
-    tenantId: payment.tenantId,
-  });
+  const mappedStatus = mapPaymentStatus(payment_status);
 
-  if (paymentUpdated && payment.subscriptionId) {
-    await updateSubscriptionFromPayment(payment.subscriptionId, payment_status, {
+  await withTenantDbFresh(payment.tenantId, async () => {
+    const paymentUpdated = await updatePaymentStatus(payment.id, {
+      status: mappedStatus,
+      nowpaymentsPaymentId: payment_id,
+      txHash: txid ?? payment.txHash,
+      payAmount: pay_amount ?? payment.payAmount,
+      payCurrency: pay_currency ?? payment.payCurrency,
+      ipnPayload: payload,
       tenantId: payment.tenantId,
-      ...(invoice_id ? { invoiceId: invoice_id } : {}),
     });
-  }
 
-  await markIpnProcessed(payment_id, payment_status, null);
+    const shouldUpdateSubscription =
+      (paymentUpdated || payment.status === mappedStatus) && payment.subscriptionId;
+
+    if (shouldUpdateSubscription && payment.subscriptionId) {
+      await updateSubscriptionFromPayment(payment.subscriptionId, payment_status, {
+        tenantId: payment.tenantId,
+        ...(invoice_id ? { invoiceId: invoice_id } : {}),
+      });
+    }
+
+    await markIpnProcessed(payment_id, payment_status, null);
+  });
 }
 
 export async function POST(req: Request): Promise<Response> {

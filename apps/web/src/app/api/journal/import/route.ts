@@ -17,7 +17,13 @@
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
-import { ALL_SYMBOLS, createJournalEntry, withRateLimit } from '@/lib/services/api-boundary';
+import {
+  ALL_SYMBOLS,
+  getDb,
+  requireTenantIdForUser,
+  schema,
+  withRateLimit,
+} from '@/lib/services/api-boundary';
 
 const ImportRowSchema = z.object({
   symbol: z
@@ -64,17 +70,20 @@ export const POST = withAuth<void>(async (req, { user }) => {
       );
     }
     const { trades } = await parseJsonBody(req, ImportPayloadSchema);
+    const db = getDb();
+    const tenantId = await requireTenantIdForUser(user.userId, db);
 
-    const created = [];
-
-    for (const trade of trades) {
+    const rows = trades.map((trade) => {
       const exit = trade.exit ?? null;
-      const closedAt = trade.closedAt ?? null;
+      const closedAt =
+        trade.closedAt !== null && trade.closedAt !== undefined ? new Date(trade.closedAt) : null;
 
       let outcome: 'win' | 'loss' | 'breakeven' | 'open' = 'open';
       let rMultiple: number | null = null;
 
-      if (exit !== null && trade.stop !== null && trade.stop !== undefined) {
+      // journal_outcome_closed_consistency (migration 0028) requires outcome to be
+      // 'open' if closedAt is NULL. Only calculate win/loss/breakeven when closedAt is present.
+      if (closedAt !== null && exit !== null && trade.stop !== null && trade.stop !== undefined) {
         const diff = trade.side === 'long' ? exit - trade.entry : trade.entry - exit;
         const risk = trade.side === 'long' ? trade.entry - trade.stop : trade.stop - trade.entry;
         if (risk > 0) {
@@ -90,8 +99,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
             : 'open';
       }
 
-      const row = await createJournalEntry({
+      return {
         userId: user.userId,
+        tenantId,
         symbol: trade.symbol,
         side: trade.side,
         entry: trade.entry,
@@ -100,14 +110,17 @@ export const POST = withAuth<void>(async (req, { user }) => {
         exit,
         size: trade.size ?? null,
         openedAt: new Date(trade.openedAt),
-        closedAt: closedAt !== null ? new Date(closedAt) : null,
+        closedAt,
         outcome,
         rMultiple,
         notes: trade.notes ?? null,
-      });
+      };
+    });
 
-      created.push(row);
-    }
+    const created = await db
+      .insert(schema.journalEntries)
+      .values(rows)
+      .returning({ id: schema.journalEntries.id });
 
     return Response.json({ count: created.length });
   } catch (err) {
