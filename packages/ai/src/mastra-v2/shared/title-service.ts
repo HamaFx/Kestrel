@@ -19,8 +19,13 @@
  *
  * Web chat services and the durable full-analysis worker both call this after
  * persisting the first assistant message of an untitled thread. It never
- * throws and never blocks: model failures fall back to a deterministic title,
- * and the untitled check is race-safe so a concurrent writer wins.
+ * throws: model failures fall back to a deterministic title, and the untitled
+ * check is race-safe so a concurrent writer wins.
+ *
+ * `timeoutMs` (P2-06): awaiting callers that settle the turn's budget
+ * reservation must not hang on a slow title model. When the budget elapses the
+ * in-flight LLM call is aborted and the deterministic fallback title is
+ * persisted, so no title spend is recorded after settlement.
  */
 
 import { getUserWithSettings } from '@kestrel/db';
@@ -47,10 +52,16 @@ export interface MaybeGenerateThreadTitleArgs {
   };
   ledger?: GenerationLedger;
   ledgerId?: string;
+  /**
+   * Bound the title LLM call (P2-06). Required by web paths that await this
+   * call before settling the turn budget; the durable worker bills the exact
+   * spend and therefore leaves it unbounded.
+   */
+  timeoutMs?: number;
 }
 
 export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArgs): Promise<void> {
-  const { userId, threadId, firstUser, firstAssistant, env } = args;
+  const { userId, threadId, firstUser, firstAssistant, env, timeoutMs } = args;
   try {
     // Race-safe guard: only title threads that are still untitled.
     const thread = await getThread(userId, threadId);
@@ -68,18 +79,35 @@ export async function maybeGenerateThreadTitle(args: MaybeGenerateThreadTitleArg
       return;
     }
 
-    const result = await generateThreadTitle({
-      userId,
-      threadId,
-      firstUser,
-      firstAssistant,
-      titleModelId,
-      env,
-      ...(settings ? { settings } : {}),
-      ...(args.accounting ? { accounting: args.accounting } : {}),
-      ...(args.ledger ? { ledger: args.ledger } : {}),
-      ...(args.ledgerId ? { ledgerId: args.ledgerId } : {}),
-    });
+    const timeoutController =
+      timeoutMs !== undefined && timeoutMs > 0 ? new AbortController() : null;
+    const timeoutTimer = timeoutController
+      ? setTimeout(
+          () =>
+            timeoutController.abort(
+              new DOMException('Thread-title generation timed out', 'TimeoutError'),
+            ),
+          timeoutMs,
+        )
+      : null;
+    let result: Awaited<ReturnType<typeof generateThreadTitle>>;
+    try {
+      result = await generateThreadTitle({
+        userId,
+        threadId,
+        firstUser,
+        firstAssistant,
+        titleModelId,
+        env,
+        ...(settings ? { settings } : {}),
+        ...(args.accounting ? { accounting: args.accounting } : {}),
+        ...(args.ledger ? { ledger: args.ledger } : {}),
+        ...(args.ledgerId ? { ledgerId: args.ledgerId } : {}),
+        ...(timeoutController ? { signal: timeoutController.signal } : {}),
+      });
+    } finally {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+    }
     await updateThreadTitle(userId, threadId, result.title, result.source);
     tilog.debug(
       { threadId, source: result.source, reason: result.reason },
