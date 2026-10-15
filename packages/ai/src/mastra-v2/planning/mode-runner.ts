@@ -28,8 +28,11 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { readFeatureFlag } from '@kestrel/shared';
+import { pickAiEnv, readFeatureFlag } from '@kestrel/shared';
 import { RequestContext } from '@mastra/core/request-context';
+
+import { getDb } from '../../db';
+import { createToolContext, withToolContext } from '../../tool-context';
 
 import {
   MastraModeStrictFailureError,
@@ -311,6 +314,26 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
     const requestContext = contextForRun(args);
     // §3.1: per-agent top-tier committee models when the user configured them.
     const resolveModelForAgent = committeeModelResolver(args.settings, args.env);
+    let toolDb: ReturnType<typeof getDb> | undefined;
+    try {
+      toolDb = getDb();
+    } catch {
+      // In unit test environments without DB env config, db is optional
+    }
+    const toolContext = createToolContext({
+      threadId: args.threadId,
+      userId: args.userId,
+      latestUserMessageText: args.prompt,
+      env: pickAiEnv(args.env),
+      signal: args.signal ?? null,
+      budget: {
+        spent: 0,
+        max: (args.settings as UserSettingsRow).maxDailyUsd ?? args.env.MAX_DAILY_USD ?? 10,
+      },
+      userSettings: args.settings as UserSettingsRow,
+      db: toolDb,
+      toolTelemetryBuffer: [],
+    });
     // The committee specialist runner enforces read-only thread memory by
     // default (Phase 6): specialists read context but never persist their
     // internal opinions. Only the fusion/output layer writes user-visible
@@ -330,6 +353,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         ...(resolveModelForAgent ? { resolveModelForAgent } : {}),
         ledger: generationLedger,
         mastra: getKestrelMastra().instance,
+        toolContext,
         // Audit plan §1.7: synchronous web runs get a 45s committee deadline
         // (strict failure on timeout); the durable worker is lease-governed.
         ...(args.telemetryKind === 'mastra_full_job' ? {} : { deadlineMs: COMMITTEE_DEADLINE_MS }),
@@ -398,8 +422,8 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         hasDurableWorkflowState,
       },
     });
-    const result =
-      persistedStatus === 'success' && persisted?.result
+    const result = await withToolContext(toolContext, async () => {
+      return persistedStatus === 'success' && persisted?.result
         ? ({
             status: 'success',
             result: persisted.result,
@@ -409,6 +433,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
             ['running', 'suspended', 'waiting', 'paused', 'pending'].includes(persistedStatus ?? '')
           ? await run.restart({ requestContext, tracingOptions })
           : await run.start({ inputData, requestContext, tracingOptions });
+    });
     logWorkflowEnd({
       runId: args.runId,
       workflowId: args.workflowId ?? 'symbol-research',
