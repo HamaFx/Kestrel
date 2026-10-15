@@ -35,6 +35,7 @@ import {
   finishMastraRun,
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
+import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { resolveChatModel } from '../model';
 import { computeStats } from './persistence';
 
@@ -92,8 +93,8 @@ function formatEntryForPrompt(entry: JournalEntry, stats: JournalStats): string 
     `Outcome: ${entry.outcome}`,
     `R-multiple: ${entry.rMultiple ?? 'unknown'}`,
     `Size (lots): ${entry.size ?? 'unknown'}`,
-    `Tags: ${entry.tags.length > 0 ? entry.tags.join(', ') : 'none'}`,
-    `Notes: ${entry.notes ?? 'none'}`,
+    `Tags: ${entry.tags.length > 0 ? entry.tags.map((t) => sanitizeExternalText(t, 50)).join(', ') : 'none'}`,
+    `Notes: ${entry.notes ? sanitizeExternalText(entry.notes, 500) : 'none'}`,
     '',
     `User baseline (last closed trades):`,
     `- Win rate: ${(stats.winRate * 100).toFixed(1)}%`,

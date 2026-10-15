@@ -88,9 +88,17 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
   });
   const ledger = createGenerationLedger();
 
+  let cancelled = false;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const emit = (event: unknown) => controller.enqueue(encodeSse(event));
+      const emit = (event: unknown) => {
+        if (cancelled || input.signal?.aborted) return;
+        try {
+          controller.enqueue(encodeSse(event));
+        } catch {
+          // Stream controller closed or errored
+        }
+      };
       try {
         const execution = await runBufferedExecution<MastraModeResult>({
           budget,
@@ -202,21 +210,32 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
         emit({ type: 'text-end', id: messageId });
         emit({ type: 'turn-complete', id: messageId, status: 'persisted' });
       } catch (error) {
-        const errorText =
-          process.env.NODE_ENV === 'production'
-            ? 'Analysis could not be completed right now. Please try again.'
-            : error instanceof Error
-              ? error.message
-              : String(error);
-        emit({
-          type: 'data-agent-progress',
-          data: { ...committeeProgressSnapshot(input.mode, 'verify'), status: 'failed' as const },
-        });
-        emit({ type: 'error', errorText });
-        emit({ type: 'turn-complete', id: messageId, status: 'failed' });
+        if (!cancelled && !input.signal?.aborted) {
+          const errorText =
+            process.env.NODE_ENV === 'production'
+              ? 'Analysis could not be completed right now. Please try again.'
+              : error instanceof Error
+                ? error.message
+                : String(error);
+          emit({
+            type: 'data-agent-progress',
+            data: { ...committeeProgressSnapshot(input.mode, 'verify'), status: 'failed' as const },
+          });
+          emit({ type: 'error', errorText });
+          emit({ type: 'turn-complete', id: messageId, status: 'failed' });
+        }
       } finally {
-        controller.close();
+        if (!cancelled) {
+          try {
+            controller.close();
+          } catch {
+            // Already closed or errored
+          }
+        }
       }
+    },
+    cancel() {
+      cancelled = true;
     },
   });
 

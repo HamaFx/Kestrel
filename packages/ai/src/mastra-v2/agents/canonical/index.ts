@@ -438,6 +438,7 @@ async function attemptCanonicalSelfCorrection(params: {
   initialToolEvidence: readonly CanonicalToolEvidence[];
   initialToolNames: readonly string[];
   toolPartsBuffer: MastraToolInvocationPart[];
+  callMemory?: AgentMemoryOption | null;
   signal?: AbortSignal;
 }): Promise<{
   repaired: boolean;
@@ -457,6 +458,7 @@ async function attemptCanonicalSelfCorrection(params: {
     initialToolEvidence,
     initialToolNames,
     toolPartsBuffer,
+    callMemory,
     signal,
   } = params;
 
@@ -486,6 +488,7 @@ async function attemptCanonicalSelfCorrection(params: {
         requestContext,
         toolChoice: 'auto',
         maxSteps: 2,
+        ...(callMemory ? { memory: callMemory } : {}),
         ...(signal ? { abortSignal: signal } : {}),
       }),
     );
@@ -597,6 +600,7 @@ export async function runMastraCanonicalChat(
         initialToolEvidence,
         initialToolNames: toolNames,
         toolPartsBuffer: initialToolParts,
+        callMemory,
         ...(args.signal ? { signal: args.signal } : {}),
       });
       if (correction) {
@@ -849,6 +853,7 @@ export async function runMastraCanonicalChatStream(
           initialToolEvidence,
           initialToolNames: toolNames,
           toolPartsBuffer: initialToolParts,
+          callMemory,
           ...(args.signal ? { signal: args.signal } : {}),
         });
         if (correction) {
