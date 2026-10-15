@@ -31,6 +31,7 @@ import { and, asc, desc, eq, gte, ilike, isNull, lte, or, sql } from 'drizzle-or
 
 import { getDb } from './db';
 import { embedTexts } from './embeddings';
+import { quarantineExternalText } from './mastra-v2/packets/external-content';
 
 /**
  * Upsert a batch of articles into `news_articles`. Returns counts so the
@@ -47,11 +48,11 @@ export async function upsertArticles(
 
   const rows = articles.map((a) => ({
     id: a.id,
-    title: a.title,
-    summary: a.summary,
+    title: quarantineExternalText(a.title, 240).text || '[filtered]',
+    summary: a.summary ? (quarantineExternalText(a.summary, 420).text || null) : null,
     url: a.url,
-    source: a.source,
-    publisher: a.publisher,
+    source: quarantineExternalText(a.source, 80).text || 'unknown',
+    publisher: a.publisher ? (quarantineExternalText(a.publisher, 80).text || null) : null,
     publishedAt: new Date(a.publishedAt),
     symbols: a.symbols as string[],
     sentiment: a.sentiment,

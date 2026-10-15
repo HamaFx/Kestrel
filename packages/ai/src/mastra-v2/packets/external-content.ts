@@ -26,6 +26,7 @@ export function sanitizeExternalText(value: unknown, maxLength = 2_000): string 
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, maxLength)
+      .trim()
   );
 }
 
@@ -50,6 +51,12 @@ export function containsExternalInstructions(value: unknown): boolean {
   return text.length > 0 && INSTRUCTION_LIKE_EXTERNAL_CONTENT.test(text);
 }
 
+export interface QuarantinedTextResult {
+  text: string;
+  quarantined: boolean;
+  toString(): string;
+}
+
 /**
  * Sanitize external text and quarantine content that looks like an embedded
  * instruction. The source URL/title remains available for citation, but the
@@ -57,17 +64,36 @@ export function containsExternalInstructions(value: unknown): boolean {
  */
 export function quarantineExternalText(
   value: unknown,
-  maxLength = 2_000,
-): { text: string; quarantined: boolean } {
+  limit: number | { maxChars?: number } = 2_000,
+): QuarantinedTextResult {
+  const maxLength = typeof limit === 'number' ? limit : (limit.maxChars ?? 2_000);
   const text = sanitizeExternalText(value, maxLength);
-  if (!text) return { text: '', quarantined: false };
-  if (containsExternalInstructions(text)) {
+  if (!text) {
     return {
-      text: '[External content quarantined: instruction-like text detected.]',
-      quarantined: true,
+      text: '',
+      quarantined: false,
+      toString() {
+        return '';
+      },
     };
   }
-  return { text, quarantined: false };
+  if (containsExternalInstructions(text)) {
+    const quarantinedText = '[External content quarantined: instruction-like text detected.]';
+    return {
+      text: quarantinedText,
+      quarantined: true,
+      toString() {
+        return quarantinedText;
+      },
+    };
+  }
+  return {
+    text,
+    quarantined: false,
+    toString() {
+      return text;
+    },
+  };
 }
 
 export function wrapExternalContent(value: unknown, maxLength = 2_000): string {

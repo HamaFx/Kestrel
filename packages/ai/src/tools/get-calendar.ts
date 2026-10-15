@@ -26,6 +26,7 @@ import { and, asc, gte, inArray, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { getDb } from '../db';
+import { quarantineExternalText } from '../mastra-v2/packets/external-content';
 import { maybeGetToolContext } from '../tool-context';
 
 const ImportanceSchema = z.enum(['low', 'medium', 'high']);
@@ -93,7 +94,7 @@ export const getCalendarTool = tool({
       pipelinePending: false,
       items: rows.map((r) => ({
         id: r.id,
-        title: r.title,
+        title: quarantineExternalText(r.title, 240).text || '[filtered]',
         country: r.country,
         currency: r.currency,
         importance: r.importance as 'low' | 'medium' | 'high',
@@ -102,7 +103,7 @@ export const getCalendarTool = tool({
         forecast: r.forecast,
         previous: r.previous,
         unit: r.unit,
-        source: r.source,
+        source: quarantineExternalText(r.source, 80).text || 'unknown',
       })),
     };
   },

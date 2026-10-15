@@ -36,6 +36,7 @@ import { sql } from 'drizzle-orm';
 
 import { getDb } from './db';
 import { embedTexts, vectorLiteral } from './embeddings';
+import { quarantineExternalText } from './mastra-v2/packets/external-content';
 import { searchMemory, type MemoryKind, type MemoryRow } from './memory/memory-index';
 
 /** Exported for testing — RAG result row shape. */
@@ -307,11 +308,11 @@ export function ragRowToItem(r: RagRow): SearchKnowledgeItem {
   const sim = Math.max(0, Math.min(1, r.similarity));
   return {
     id: r.id,
-    title: r.title,
-    summary: r.summary,
+    title: quarantineExternalText(r.title, 240).text || '[filtered]',
+    summary: r.summary ? (quarantineExternalText(r.summary, 420).text || null) : null,
     url: r.url,
-    source: r.source,
-    publisher: r.publisher,
+    source: quarantineExternalText(r.source, 80).text || 'unknown',
+    publisher: r.publisher ? (quarantineExternalText(r.publisher, 80).text || null) : null,
     publishedAt: r.publishedAt.getTime(),
     sentiment,
     sentimentScore: r.sentimentScore,

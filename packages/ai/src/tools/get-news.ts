@@ -27,6 +27,7 @@ import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { getDb } from '../db';
+import { quarantineExternalText } from '../mastra-v2/packets/external-content';
 import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = z.object({
@@ -86,11 +87,11 @@ export const getNewsTool = tool({
       pipelinePending: false,
       items: rows.map((r) => ({
         id: r.id,
-        title: r.title,
-        summary: r.summary,
+        title: quarantineExternalText(r.title, 240).text || '[filtered]',
+        summary: r.summary ? (quarantineExternalText(r.summary, 420).text || null) : null,
         url: r.url,
-        source: r.source,
-        publisher: r.publisher,
+        source: quarantineExternalText(r.source, 80).text || 'unknown',
+        publisher: r.publisher ? (quarantineExternalText(r.publisher, 80).text || null) : null,
         publishedAt: r.publishedAt.getTime(),
         sentiment: (r.sentiment as ToolNewsItem['sentiment']) ?? null,
         sentimentScore: r.sentimentScore,

@@ -42,6 +42,7 @@ import { and, desc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import { getDb } from '../db';
+import { quarantineExternalText } from '../mastra-v2/packets/external-content';
 import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = AnalyzeFundamentalInputSchema;
@@ -132,7 +133,7 @@ async function fetchEventsInWindow(args: EventQuery): Promise<EconomicEvent[]> {
 
   return rows.map((r) => ({
     id: r.id,
-    title: r.title,
+    title: quarantineExternalText(r.title, 240).text || '[filtered]',
     country: r.country,
     currency: (r.currency as EventCurrency | null) ?? null,
     importance: r.importance as Importance,
@@ -141,7 +142,7 @@ async function fetchEventsInWindow(args: EventQuery): Promise<EconomicEvent[]> {
     forecast: r.forecast,
     previous: r.previous,
     unit: r.unit,
-    source: r.source,
+    source: quarantineExternalText(r.source, 80).text || 'unknown',
   }));
 }
 
@@ -178,11 +179,11 @@ async function fetchHeadlinesForCurrencies(args: HeadlineQuery): Promise<ToolNew
     seen.add(r.id);
     out.push({
       id: r.id,
-      title: r.title,
-      summary: r.summary,
+      title: quarantineExternalText(r.title, 240).text || '[filtered]',
+      summary: r.summary ? (quarantineExternalText(r.summary, 420).text || null) : null,
       url: r.url,
-      source: r.source,
-      publisher: r.publisher,
+      source: quarantineExternalText(r.source, 80).text || 'unknown',
+      publisher: r.publisher ? (quarantineExternalText(r.publisher, 80).text || null) : null,
       publishedAt: r.publishedAt.getTime(),
       sentiment: (r.sentiment as NewsSentiment | null) ?? null,
       sentimentScore: r.sentimentScore,
