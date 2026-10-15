@@ -475,6 +475,20 @@ describe('POST /api/chat Mastra boundary', () => {
     );
   });
 
+  it('returns 409 ONBOARDING_REQUIRED when user settings are missing', async () => {
+    mockGetUserWithSettings.mockResolvedValue({ settings: null });
+
+    const response = await POST(request(body()), { params: Promise.resolve(undefined) });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { code: 'ONBOARDING_REQUIRED' },
+    });
+    expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
+    expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
+    expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
+  });
+
   it("rejects a turn addressed to another user's thread before any model work", async () => {
     // A thread lookup scoped to the authenticated user returns nothing for a
     // mismatched owner — the route must fail closed with 404 and never touch

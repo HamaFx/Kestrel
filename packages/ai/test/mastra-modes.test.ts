@@ -161,6 +161,7 @@ describe('generalized Mastra symbol routing', () => {
     expect(extractSymbolFromPrompt('Analyse EURUSD 1H')).toBe('EURUSD');
     expect(extractSymbolFromPrompt('Analyse gold')).toBe('XAUUSD');
     expect(extractSymbolFromPrompt('Compare EURUSD and GBPUSD')).toBeNull();
+    expect(extractSymbolFromPrompt('Compare gold and EURUSD')).toBeNull();
     expect(extractSymbolFromPrompt('Analyse my default market', 'BTCUSDT')).toBe('BTCUSDT');
     expect(isSafeSymbolResearchPrompt('Analyse EURUSD')).toBe(true);
     expect(isSafeSymbolResearchPrompt('Buy EURUSD now')).toBe(false);

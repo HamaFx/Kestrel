@@ -83,15 +83,17 @@ export function messageText(message: UIMessage): string {
 }
 
 export function extractMastraSymbol(prompt: string): string | null {
-  if (/\bgold\b/i.test(prompt)) return 'XAUUSD';
+  const matched = new Set<string>();
+  if (/\bgold\b/i.test(prompt)) matched.add('XAUUSD');
   const explicitSymbols = ALL_SYMBOLS.filter((symbol) => prompt.toUpperCase().includes(symbol));
-  if (explicitSymbols.length > 1) return null;
-  if (explicitSymbols.length === 1) return explicitSymbols[0]!;
+  for (const s of explicitSymbols) matched.add(s);
   const matches = [...prompt.matchAll(new RegExp(`\\b(?:${ALL_SYMBOLS.join('|')})\\b`, 'gi'))].map(
     (match) => normalizeSymbol(match[0] ?? ''),
   );
-  const unique = [...new Set(matches)].filter(isKnownSymbol);
-  return unique.length === 1 ? unique[0]! : null;
+  for (const m of matches) {
+    if (isKnownSymbol(m)) matched.add(m);
+  }
+  return matched.size === 1 ? matched.values().next().value ?? null : null;
 }
 
 export function isInjectionAttempt(prompt: string): boolean {
