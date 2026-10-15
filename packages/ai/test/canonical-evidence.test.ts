@@ -32,14 +32,42 @@ describe('canonical evidence check', () => {
     });
   });
 
-  it('does not treat small integers, percentages, or scenario counts as market claims', () => {
-    expect(checkCanonicalEvidence('Watch 2 scenarios; RSI near 62; size at 2.5% risk.', [])).toEqual(
-      {
-        ok: true,
-        findings: [],
-        numericClaimCount: 0,
-      },
-    );
+  it('recognizes all 13 canonical/specialist tools as market data tools (P1-06)', () => {
+    const technicalResult = [
+      { name: 'analyze_technical', resultText: '{"summary":{"trend":"bullish","rsi":65.5,"keyLevels":[2650.5]}}' },
+    ];
+    expect(checkCanonicalEvidence('RSI is at 65.5 and level is 2650.5.', technicalResult)).toEqual({
+      ok: true,
+      findings: [],
+      numericClaimCount: 2,
+    });
+
+    const sessionResult = [
+      { name: 'get_session_levels', resultText: '{"london":{"high":2665.2,"low":2630.1}}' },
+    ];
+    expect(checkCanonicalEvidence('London high was 2665.2.', sessionResult)).toEqual({
+      ok: true,
+      findings: [],
+      numericClaimCount: 1,
+    });
+
+    const riskResult = [
+      { name: 'compute_risk', resultText: '{"var95":1250.75}' },
+    ];
+    expect(checkCanonicalEvidence('Value at risk is 1250.75.', riskResult)).toEqual({
+      ok: true,
+      findings: [],
+      numericClaimCount: 1,
+    });
+
+    const committeeResult = [
+      { name: 'convene_committee', resultText: '{"fusion":{"entry":2645.5}}' },
+    ];
+    expect(checkCanonicalEvidence('Committee recommended entry at 2645.5.', committeeResult)).toEqual({
+      ok: true,
+      findings: [],
+      numericClaimCount: 1,
+    });
   });
 });
 
