@@ -5,7 +5,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { index, integer, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 
@@ -29,7 +29,10 @@ export const memoryBackfillState = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => [
-    unique('memory_backfill_state_user_thread_uk').on(table.userId, table.threadId),
+    primaryKey({
+      name: 'memory_backfill_state_pk',
+      columns: [table.userId, table.threadId],
+    }),
     index('memory_backfill_state_tenant_idx').on(table.tenantId, table.updatedAt),
   ],
 );

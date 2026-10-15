@@ -24,6 +24,7 @@
 
 import { sql } from 'drizzle-orm';
 import {
+  check,
   doublePrecision,
   index,
   pgTable,
@@ -78,6 +79,15 @@ export const portfolioPositions = pgTable(
   (t) => [
     index('portfolio_positions_user_status_idx').on(t.userId, t.status),
     index('portfolio_positions_symbol_idx').on(t.symbol, t.status),
+    // Phase 2 (0032) — soft-delete index, absent from the TypeScript schema.
+    index('portfolio_positions_deleted_at_idx').on(t.deletedAt),
+    // Phase 2 (0098) — listOpenPositions / listAllPositions predicate.
+    index('portfolio_positions_user_status_opened_idx').on(t.userId, t.status, t.openedAt),
+    // Phase 2 (0028) — status/closedAt consistency CHECK.
+    check(
+      'portfolio_status_closed_consistency',
+      sql`(${t.status} = 'open' AND ${t.closedAt} IS NULL) OR (${t.status} = 'closed' AND ${t.closedAt} IS NOT NULL)`,
+    ),
   ],
 );
 
@@ -109,5 +119,16 @@ export const portfolioSettings = pgTable(
       .notNull()
       .$onUpdate(() => new Date()),
   },
-  (t) => [uniqueIndex('portfolio_settings_user_idx').on(t.userId)],
+  (t) => [
+    uniqueIndex('portfolio_settings_user_idx').on(t.userId),
+    // Phase 2 (0028) — percentage range CHECKs, absent from the TypeScript schema.
+    check(
+      'portfolio_settings_max_risk_pct_check',
+      sql`${t.maxRiskPerTradePct} >= 0 AND ${t.maxRiskPerTradePct} <= 100`,
+    ),
+    check(
+      'portfolio_settings_max_exposure_pct_check',
+      sql`${t.maxTotalExposurePct} >= 0 AND ${t.maxTotalExposurePct} <= 100`,
+    ),
+  ],
 );

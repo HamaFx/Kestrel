@@ -67,18 +67,52 @@ export function mastraDirectConnectionString(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
 ): string | null {
   const e = env as Record<string, string | undefined>;
-  return (
-    e.DIRECT_URL ??
-    e.POSTGRES_URL_NON_POOLING ??
-    e.POSTGRES_PRISMA_URL ??
-    e.DATABASE_URL ??
-    e.POSTGRES_URL ??
-    process.env.DIRECT_URL ??
-    process.env.POSTGRES_URL_NON_POOLING ??
-    process.env.POSTGRES_PRISMA_URL ??
-    process.env.DATABASE_URL ??
-    process.env.POSTGRES_URL ??
-    null
+  return firstNonEmpty(
+    e.DIRECT_URL,
+    e.POSTGRES_URL_NON_POOLING,
+    e.POSTGRES_PRISMA_URL,
+    e.DATABASE_URL,
+    e.POSTGRES_URL,
+    process.env.DIRECT_URL,
+    process.env.POSTGRES_URL_NON_POOLING,
+    process.env.POSTGRES_PRISMA_URL,
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_URL,
+  );
+}
+
+function firstNonEmpty(...values: Array<string | undefined>): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.length > 0) return value;
+  }
+  return null;
+}
+
+/**
+ * Pooled (PgBouncer transaction-mode) connection string for *runtime* Mastra
+ * storage and vector queries.
+ *
+ * DDL/schema initialization legitimately needs the direct connection, but
+ * routing steady-state runtime traffic over `DIRECT_URL` bypasses the pooler
+ * and opens one un-pooled Postgres socket per serverless instance. A fleet of
+ * instances plus the worker then exhausts `max_connections`. Runtime callers
+ * use this pooled string; only explicit DDL paths use the direct one.
+ */
+export function mastraRuntimeConnectionString(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): string | null {
+  const e = env as Record<string, string | undefined>;
+  return firstNonEmpty(
+    e.MASTRA_DATABASE_URL,
+    e.DATABASE_URL,
+    e.POSTGRES_URL,
+    e.DIRECT_URL,
+    e.POSTGRES_URL_NON_POOLING,
+    process.env.MASTRA_DATABASE_URL,
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_URL,
+    process.env.DIRECT_URL,
+    process.env.POSTGRES_URL_NON_POOLING,
   );
 }
 
@@ -190,15 +224,18 @@ export function createMastraStorage(env: NodeJS.ProcessEnv = process.env): Mastr
   const kind: MastraStorageKind = resolveMastraStorageKind(env);
 
   if (kind === 'postgres') {
-    const connectionString = mastraDirectConnectionString(env);
+    // Runtime storage uses the pooled URL; DDL/schema init still uses the
+    // direct connection (see `initializeMastraStorage` callers with
+    // `mastraDirectConnectionString`).
+    const connectionString = mastraRuntimeConnectionString(env);
     if (!connectionString) {
       throw new Error(
-        '[mastra] MASTRA_STORAGE=postgres requires DIRECT_URL, POSTGRES_URL_NON_POOLING, ' +
-          'DATABASE_URL, or POSTGRES_URL to be set.',
+        '[mastra] MASTRA_STORAGE=postgres requires DATABASE_URL, POSTGRES_URL, DIRECT_URL, ' +
+          'or POSTGRES_URL_NON_POOLING to be set.',
       );
     }
     const schemaName = env.MASTRA_SCHEMA ?? 'mastra';
-    const poolMax = Number(env.MASTRA_DB_POOL_MAX ?? '5');
+    const poolMax = Number(env.MASTRA_DB_POOL_MAX ?? env.MASTRA_STORAGE_POOL_MAX ?? '5');
     mlog.debug('Creating Mastra Postgres storage', {
       schemaName,
       poolMax: Number.isFinite(poolMax) && poolMax > 0 ? Math.floor(poolMax) : 5,
@@ -211,6 +248,7 @@ export function createMastraStorage(env: NodeJS.ProcessEnv = process.env): Mastr
         schemaName,
         ssl: mastraSslOptions(env),
         max: Number.isFinite(poolMax) && poolMax > 0 ? Math.floor(poolMax) : 5,
+        idleTimeoutMillis: 20_000,
         retention: mastraRetention(),
       }),
       kind,
@@ -224,16 +262,19 @@ export function createMastraStorage(env: NodeJS.ProcessEnv = process.env): Mastr
 }
 
 /**
- * Module-level cached storage for maintenance / pruning jobs (Audit v3 Phase 7,
- * fixes P1-6) so recurring `pruneMastraStorage()` runs reuse a single pool
- * instead of leaking a new 5-connection `pg.Pool` on every invocation.
+ * Process-wide cached storage for maintenance / pruning jobs (Audit v3 Phase 7,
+ * fixes P1-6). Anchored on `globalThis` (Phase 2, P1-03) so Next.js HMR
+ * re-evaluations reuse the live pool instead of stranding a 5-connection
+ * `pg.Pool`.
  */
-let sharedStorageCache: { key: string; result: MastraStorageResult } | null = null;
+const globalForMastraStorage = globalThis as unknown as {
+  __kestrelMastraStorageCache?: { key: string; result: MastraStorageResult } | null;
+};
 
 function storageCacheKey(env: NodeJS.ProcessEnv = process.env): string {
   const kind = resolveMastraStorageKind(env);
   if (kind === 'postgres') {
-    const conn = mastraDirectConnectionString(env) ?? '';
+    const conn = mastraRuntimeConnectionString(env) ?? '';
     const schema = env.MASTRA_SCHEMA ?? 'mastra';
     return `postgres:${conn}:${schema}`;
   }
@@ -248,18 +289,33 @@ function isMockConstructorCleared(fn: unknown): boolean {
 
 export function getSharedMastraStorage(env: NodeJS.ProcessEnv = process.env): MastraStorageResult {
   const key = storageCacheKey(env);
+  const cached = globalForMastraStorage.__kestrelMastraStorageCache ?? null;
   const mockCleared =
     isMockConstructorCleared(PostgresStore) && isMockConstructorCleared(LibSQLStore);
-  if (sharedStorageCache && sharedStorageCache.key === key && !mockCleared) {
-    return sharedStorageCache.result;
+  if (cached && cached.key === key && !mockCleared) {
+    return cached.result;
   }
   const result = createMastraStorage(env);
-  sharedStorageCache = { key, result };
+  globalForMastraStorage.__kestrelMastraStorageCache = { key, result };
   return result;
 }
 
 export function _resetMastraStorageCache(): void {
-  sharedStorageCache = null;
+  globalForMastraStorage.__kestrelMastraStorageCache = null;
+}
+
+/** Close the shared Mastra storage pool (graceful shutdown / tests). */
+export async function closeMastraStorage(): Promise<void> {
+  const cached = globalForMastraStorage.__kestrelMastraStorageCache ?? null;
+  if (!cached) return;
+  const store = cached.result.storage as MastraCompositeStore & {
+    close?: () => Promise<void>;
+  };
+  if (typeof store.close === 'function') {
+    await store.close();
+    mlog.info('Mastra storage pool closed', { kind: cached.result.kind });
+  }
+  globalForMastraStorage.__kestrelMastraStorageCache = null;
 }
 
 /** Explicitly initialize the storage schema (idempotent). Safe to call at boot. */
@@ -274,17 +330,28 @@ export async function initializeMastraStorage(result: MastraStorageResult): Prom
 /**
  * Run Mastra's age-based retention pruning (Phase 0 config, wired here).
  * Reuses `getSharedMastraStorage` so cron runs never leak Postgres connection pools.
- * Best-effort: logs failures, never throws. Called from the worker's
- * daily retention job alongside the Drizzle retention cleanup.
+ *
+ * Accepts either the full `MastraStorageResult` wrapper or a raw
+ * `MastraCompositeStore` (e.g. `getKestrelMastra().instance.getStorage()`),
+ * so the worker can prune through the instance's existing pool instead of
+ * spinning up a second `PostgresStore` just for retention (Phase 2, P1-02).
+ *
+ * Best-effort: logs failures, never throws.
  */
 export async function pruneMastraStorage(
-  existingStorage?: MastraStorageResult,
+  existingStorage?: MastraStorageResult | MastraCompositeStore,
 ): Promise<{
   pruned: boolean;
   error?: string;
 }> {
   try {
-    const result = existingStorage ?? getSharedMastraStorage(process.env);
+    const result: MastraStorageResult | undefined =
+      existingStorage === undefined
+        ? getSharedMastraStorage(process.env)
+        : 'storage' in existingStorage
+          ? (existingStorage as MastraStorageResult)
+          : { storage: existingStorage, kind: 'postgres' };
+    if (!result) return { pruned: false, error: 'no storage configured' };
     const store = result.storage as MastraCompositeStore & { prune?: () => Promise<void> };
     if (typeof store.prune === 'function') {
       await store.prune();

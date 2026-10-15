@@ -28,10 +28,12 @@ export {
   createMastraStorage,
   initializeMastraStorage,
   mastraDirectConnectionString,
+  mastraRuntimeConnectionString,
   mastraSslOptions,
   getSharedMastraStorage,
   _resetMastraStorageCache,
   pruneMastraStorage,
+  closeMastraStorage,
   type MastraStorageKind,
   type MastraStorageResult,
 } from './storage';
@@ -60,6 +62,7 @@ export {
   createKestrelMastra,
   getKestrelMastra,
   initializeKestrelMastra,
+  closeKestrelMastra,
   _resetKestrelMastra,
   _setKestrelMastraForTest,
   MASTRA_DEFAULT_HOST,
@@ -67,6 +70,7 @@ export {
   type KestrelMastra,
   type KestrelMastraOptions,
 } from './instance';
+export { closeKestrelVectorStore } from './memory';
 export {
   MASTRA_WORKFLOW_IDS,
   providerFromModel,

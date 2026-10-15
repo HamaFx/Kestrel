@@ -17,6 +17,7 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -89,5 +90,15 @@ export const alerts = pgTable(
     index('alerts_fired_at_idx').on(t.firedAt),
     index('alerts_last_fired_at_idx').on(t.lastFiredAt),
     index('alerts_delivery_claimed_at_idx').on(t.deliveryClaimedAt),
+    // Phase 2 (0098) — high-frequency listAlerts / listEvaluable predicates.
+    index('alerts_user_active_created_idx').on(t.userId, t.active, t.createdAt),
+    index('alerts_evaluable_idx')
+      .on(t.createdAt)
+      .where(sql`${t.active} = true AND ${t.firedAt} IS NULL`),
+    // Phase 2 (0028) — snooze range CHECK, absent from the TypeScript schema.
+    check(
+      'alerts_snooze_hours_check',
+      sql`${t.snoozeHours} >= 0 AND ${t.snoozeHours} <= 168`,
+    ),
   ],
 );

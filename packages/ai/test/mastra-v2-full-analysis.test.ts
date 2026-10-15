@@ -203,3 +203,11 @@ describe.skipIf(process.env.RUN_AI_QUEUE_POSTGRES_TESTS !== '1')('database-backe
     });
   });
 });
+
+describe('Full-analysis queue query surface', () => {
+  it('exports bounded row listing and SQL-aggregate stats helpers', async () => {
+    const mod = await import('@kestrel/db');
+    expect(typeof mod.listFullAnalysisQueueRows).toBe('function');
+    expect(typeof mod.getFullAnalysisQueueStats).toBe('function');
+  });
+});

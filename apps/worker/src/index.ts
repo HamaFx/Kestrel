@@ -29,6 +29,7 @@
 //   5. heartbeat to healthchecks.io every 30s while the consumer is alive.
 
 import { getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
+import { closeKestrelMastra } from '@kestrel/ai/mastra';
 import { closeDb } from '@kestrel/db';
 import { getCapabilityReport } from '@kestrel/shared';
 
@@ -512,7 +513,10 @@ export async function main(): Promise<void> {
       healthServer!.listen(env.WORKER_HTTP_PORT, env.WORKER_HTTP_HOST ?? '127.0.0.1');
     });
 
-    onShutdown(() => closeDb());
+    onShutdown(async () => {
+      await closeKestrelMastra();
+      await closeDb();
+    });
     await new Promise<void>((resolve, reject) => {
       const onError = (error: Error) => {
         proxyServer?.off('listening', onListening);

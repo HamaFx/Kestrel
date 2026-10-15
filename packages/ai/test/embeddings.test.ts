@@ -17,8 +17,13 @@
 import { embedMany } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { embedTexts, vectorLiteral } from '../src/embeddings';
+import { embedTexts, EXPECTED_EMBEDDING_DIMENSIONS, vectorLiteral } from '../src/embeddings';
 import { resolveEmbeddingModel } from '../src/model';
+
+/** A valid 1536-dimension vector for the mocked provider. */
+function vec(fill = 0.1): number[] {
+  return Array.from({ length: EXPECTED_EMBEDDING_DIMENSIONS }, () => fill);
+}
 
 // Mock AI SDK embedMany before importing
 vi.mock('ai', () => ({
@@ -54,13 +59,17 @@ describe('vectorLiteral', () => {
 });
 
 describe('embedTexts', () => {
+  it('pins the pgvector column dimension at 1536', () => {
+    expect(EXPECTED_EMBEDDING_DIMENSIONS).toBe(1536);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('uses default model when no args provided', async () => {
     vi.mocked(embedMany).mockResolvedValueOnce({
-      embeddings: [[0.1, 0.2]],
+      embeddings: [vec(0.1)],
       usage: { tokens: 10 },
     } as never);
 
@@ -68,12 +77,12 @@ describe('embedTexts', () => {
 
     expect(result.model).toBe('openai/text-embedding-3-small');
     expect(result.inputTokens).toBe(10);
-    expect(result.embeddings).toEqual([[0.1, 0.2]]);
+    expect(result.embeddings).toEqual([vec(0.1)]);
   });
 
   it('uses explicit model override', async () => {
     vi.mocked(embedMany).mockResolvedValueOnce({
-      embeddings: [[0.5]],
+      embeddings: [vec(0.5)],
       usage: { tokens: 5 },
     } as never);
 
@@ -84,7 +93,7 @@ describe('embedTexts', () => {
 
   it('uses env.AI_EMBEDDING_MODEL when no userSettings or model', async () => {
     vi.mocked(embedMany).mockResolvedValueOnce({
-      embeddings: [[0.1]],
+      embeddings: [vec(0.1)],
       usage: { tokens: 3 },
     } as never);
 
@@ -99,7 +108,7 @@ describe('embedTexts', () => {
   it('passes abortSignal when signal is provided', async () => {
     const ac = new AbortController();
     vi.mocked(embedMany).mockResolvedValueOnce({
-      embeddings: [[0.1]],
+      embeddings: [vec(0.1)],
       usage: { tokens: 3 },
     } as never);
 
@@ -110,7 +119,7 @@ describe('embedTexts', () => {
 
   it('resolves model from userSettings', async () => {
     vi.mocked(embedMany).mockResolvedValueOnce({
-      embeddings: [[0.1]],
+      embeddings: [vec(0.1)],
       usage: { tokens: 3 },
     } as never);
 
@@ -121,5 +130,14 @@ describe('embedTexts', () => {
 
     expect(result.model).toBe('mocked-embedding-model');
     expect(resolveEmbeddingModel).toHaveBeenCalled();
+  });
+
+  it('rejects vectors that are not 1536 dimensions', async () => {
+    vi.mocked(embedMany).mockResolvedValueOnce({
+      embeddings: [[0.1, 0.2]],
+      usage: { tokens: 3 },
+    } as never);
+
+    await expect(embedTexts({ texts: ['test'] })).rejects.toThrow(/returned 2 dimensions/);
   });
 });

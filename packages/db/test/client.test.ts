@@ -196,6 +196,85 @@ describe('closeDb / closeReplicaDb', () => {
   });
 });
 
+function extractSqlText(query: unknown): string {
+  const chunks = (query as { queryChunks?: unknown[] } | null)?.queryChunks ?? [];
+  return chunks.map((chunk) => JSON.stringify(chunk)).join(' ');
+}
+
+describe('withTenantDbFresh and tenant short-circuit', () => {
+  beforeEach(async () => {
+    vi.stubEnv('DATABASE_URL', 'postgres://mock:5432/db');
+    vi.stubEnv('MULTI_USER_ENABLED', '1');
+    vi.stubEnv('KESTREL_ENABLE_RLS', '1');
+    const { closeDb } = await import('../src/client');
+    await closeDb();
+  });
+
+  afterEach(async () => {
+    const { closeDb } = await import('../src/client');
+    await closeDb();
+    vi.unstubAllEnvs();
+  });
+
+  it('sets app.current_tenant without executing SET LOCAL ROLE authenticated', async () => {
+    const { getPrimaryDb, withTenantDbFresh } = await import('../src/client');
+    const executedSql: string[] = [];
+    const mockTx = {
+      execute: vi.fn(async (q: unknown) => {
+        executedSql.push(extractSqlText(q));
+      }),
+    };
+    const primary = getPrimaryDb();
+    vi.mocked(primary.transaction).mockImplementationOnce(async (cb: unknown) =>
+      (cb as (tx: unknown) => Promise<unknown>)(mockTx),
+    );
+
+    await withTenantDbFresh('tenant-123', async () => 'done', { userId: 'user-123' });
+
+    expect(executedSql.some((s) => s.includes('SET LOCAL ROLE authenticated'))).toBe(false);
+    expect(executedSql.some((s) => s.includes('app.current_tenant'))).toBe(true);
+  });
+
+  it('short-circuits for the scoped userId but queries the DB for a different userId', async () => {
+    const { getPrimaryDb, withTenantDbFresh } = await import('../src/client');
+    const { getTenantIdForUser } = await import('../src/tenant');
+    const mockSelectChain = {
+      from: vi.fn().mockReturnThis(),
+      innerJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue([{ tenantId: 'other-tenant' }]),
+    };
+    const mockTx = {
+      execute: vi.fn().mockResolvedValue(undefined),
+      select: vi.fn(() => mockSelectChain),
+    };
+    const primary = getPrimaryDb();
+    vi.mocked(primary.transaction).mockImplementationOnce(async (cb: unknown) =>
+      (cb as (tx: unknown) => Promise<unknown>)(mockTx),
+    );
+
+    await withTenantDbFresh(
+      'tenant-abc',
+      async (txDb) => {
+        const sameUserTenant = await getTenantIdForUser('user-abc', txDb);
+        expect(sameUserTenant).toBe('tenant-abc');
+        expect(mockTx.select).not.toHaveBeenCalled();
+
+        const otherUserTenant = await getTenantIdForUser('user-other', txDb);
+        expect(otherUserTenant).toBe('other-tenant');
+        expect(mockTx.select).toHaveBeenCalledTimes(1);
+      },
+      { userId: 'user-abc' },
+    );
+  });
+
+  it('exports getAdminDb for cross-tenant admin health routes', async () => {
+    const mod = await import('../src/index');
+    expect(typeof mod.getAdminDb).toBe('function');
+  });
+});
+
 // Import clean-up: reset singleton state so subsequent tests don't use cached _client
 afterEach(() => {
   vi.resetModules();

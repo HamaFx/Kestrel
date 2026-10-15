@@ -5,7 +5,7 @@
  */
 
 import { metrics } from '@kestrel/shared';
-import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 
 import { getDb, schema, type DbClient } from '../client';
 import type { FullAnalysisQueueRow, FullAnalysisQueueStatus } from '../schema/full-analysis-queue';
@@ -99,6 +99,36 @@ export async function claimNextFullAnalysisQueue(
   const db = options.db ?? getDb();
   const now = new Date();
   const leaseExpiresAt = new Date(now.getTime() + options.leaseMs);
+
+  // Fast path — a single atomic CTE. `FOR UPDATE SKIP LOCKED` lets concurrent
+  // workers pick distinct rows without thrashing; the outer UPDATE claims the
+  // locked row in the same statement so no JS-side retry loop is needed.
+  if (!options.ownsTenant) {
+    const rows = await db.execute<FullAnalysisQueueRow>(sql`
+      WITH next_job AS (
+        SELECT run_id
+        FROM full_analysis_queue
+        WHERE status = 'pending'
+        ORDER BY created_at ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+      )
+      UPDATE full_analysis_queue AS q
+      SET
+        status = 'running',
+        worker_run_id = ${options.workerRunId},
+        lease_expires_at = ${leaseExpiresAt.toISOString()},
+        attempt_count = q.attempt_count + 1,
+        updated_at = ${now.toISOString()}
+      FROM next_job
+      WHERE q.run_id = next_job.run_id
+      RETURNING q.*
+    `);
+    return (rows as unknown as FullAnalysisQueueRow[])[0] ?? null;
+  }
+
+  // Tenant-partitioned path — the JS predicate filters candidates before the
+  // claim, so we keep the per-candidate conditional UPDATE.
   const candidates = await db
     .select({
       runId: schema.fullAnalysisQueue.runId,
@@ -110,7 +140,7 @@ export async function claimNextFullAnalysisQueue(
     .limit(100);
 
   for (const candidate of candidates) {
-    if (options.ownsTenant && !options.ownsTenant(candidate.tenantId)) continue;
+    if (!options.ownsTenant(candidate.tenantId)) continue;
     const claimed = await db
       .update(schema.fullAnalysisQueue)
       .set({
@@ -282,52 +312,48 @@ export async function recoverStaleFullAnalysisQueue(
   maxAttempts: number,
   db: DbClient = getDb(),
 ): Promise<{ requeued: number; failed: number; runIds: string[] }> {
-  const stale = await db
-    .select()
-    .from(schema.fullAnalysisQueue)
-    .where(
+  const now = new Date();
+  const stalePredicate = and(
+    eq(schema.fullAnalysisQueue.status, 'running'),
+    or(
+      lte(schema.fullAnalysisQueue.leaseExpiresAt, now),
       and(
-        eq(schema.fullAnalysisQueue.status, 'running'),
-        or(
-          lte(schema.fullAnalysisQueue.leaseExpiresAt, new Date()),
-          lte(schema.fullAnalysisQueue.updatedAt, staleBefore),
-        ),
+        isNull(schema.fullAnalysisQueue.leaseExpiresAt),
+        lte(schema.fullAnalysisQueue.updatedAt, staleBefore),
       ),
-    );
-  let requeued = 0;
-  let failed = 0;
-  const runIds: string[] = [];
-  for (const row of stale) {
-    const nextStatus = row.attemptCount < maxAttempts ? 'pending' : 'failed';
-    const updated = await db
-      .update(schema.fullAnalysisQueue)
-      .set({
-        status: nextStatus,
-        workerRunId: null,
-        leaseExpiresAt: null,
-        error:
-          nextStatus === 'failed'
-            ? 'Job timed out — maximum worker attempts reached.'
-            : 'Worker lease expired; requeued for retry.',
-        completedAt: nextStatus === 'failed' ? new Date() : null,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(schema.fullAnalysisQueue.runId, row.runId),
-          eq(schema.fullAnalysisQueue.status, 'running'),
-          row.workerRunId
-            ? eq(schema.fullAnalysisQueue.workerRunId, row.workerRunId)
-            : isNull(schema.fullAnalysisQueue.workerRunId),
-        ),
-      )
-      .returning({ runId: schema.fullAnalysisQueue.runId });
-    if (updated.length === 0) continue;
-    runIds.push(row.runId);
-    if (nextStatus === 'pending') requeued += 1;
-    else failed += 1;
-  }
-  return { requeued, failed, runIds };
+    ),
+  );
+
+  // Two set-based UPDATEs replace the previous unbounded SELECT + N+1 loop.
+  // Requeue attempts that still have budget; fail the rest in one statement.
+  const requeuedRows = await db
+    .update(schema.fullAnalysisQueue)
+    .set({
+      status: 'pending',
+      workerRunId: null,
+      leaseExpiresAt: null,
+      error: 'Worker lease expired; requeued for retry.',
+      completedAt: null,
+      updatedAt: now,
+    })
+    .where(and(stalePredicate, lt(schema.fullAnalysisQueue.attemptCount, maxAttempts)))
+    .returning({ runId: schema.fullAnalysisQueue.runId });
+
+  const failedRows = await db
+    .update(schema.fullAnalysisQueue)
+    .set({
+      status: 'failed',
+      workerRunId: null,
+      leaseExpiresAt: null,
+      error: 'Job timed out — maximum worker attempts reached.',
+      completedAt: now,
+      updatedAt: now,
+    })
+    .where(and(stalePredicate, gte(schema.fullAnalysisQueue.attemptCount, maxAttempts)))
+    .returning({ runId: schema.fullAnalysisQueue.runId });
+
+  const runIds = [...requeuedRows.map((r) => r.runId), ...failedRows.map((r) => r.runId)];
+  return { requeued: requeuedRows.length, failed: failedRows.length, runIds };
 }
 
 export async function purgeOldFullAnalysisQueue(
@@ -389,10 +415,57 @@ export async function getFullAnalysisQueueRow(
 export async function listFullAnalysisQueueRows(
   status?: FullAnalysisQueueStatus,
   db: DbClient = getDb(),
+  limit = 200,
 ): Promise<FullAnalysisQueueRow[]> {
   return db
     .select()
     .from(schema.fullAnalysisQueue)
     .where(status ? eq(schema.fullAnalysisQueue.status, status) : undefined)
-    .orderBy(asc(schema.fullAnalysisQueue.createdAt));
+    .orderBy(asc(schema.fullAnalysisQueue.createdAt))
+    .limit(Math.max(1, Math.min(limit, 1000)));
+}
+
+export interface FullAnalysisQueueStats {
+  pending: number;
+  running: number;
+  stalePending: number;
+  stuckRunning: number;
+}
+
+/**
+ * Queue health via one bounded aggregate instead of fetching every pending and
+ * running row (including multi-KB `payload` / `progress` / `result` blobs) into
+ * Node.js memory. Called on every `/api/health` request.
+ */
+export async function getFullAnalysisQueueStats(
+  db: DbClient = getDb(),
+): Promise<FullAnalysisQueueStats> {
+  const rows = await db.execute<{
+    pending: number | string;
+    running: number | string;
+    stalePending: number | string;
+    stuckRunning: number | string;
+  }>(sql`
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'pending')::int AS "pending",
+      COUNT(*) FILTER (WHERE status = 'running')::int AS "running",
+      COUNT(*) FILTER (
+        WHERE status = 'pending' AND created_at < now() - interval '10 minutes'
+      )::int AS "stalePending",
+      COUNT(*) FILTER (
+        WHERE status = 'running'
+          AND (
+            lease_expires_at <= now()
+            OR (lease_expires_at IS NULL AND updated_at < now() - interval '30 seconds')
+          )
+      )::int AS "stuckRunning"
+    FROM full_analysis_queue
+  `);
+  const row = (rows as unknown as Array<Record<string, unknown>>)[0] ?? {};
+  return {
+    pending: Number(row['pending'] ?? 0),
+    running: Number(row['running'] ?? 0),
+    stalePending: Number(row['stalePending'] ?? 0),
+    stuckRunning: Number(row['stuckRunning'] ?? 0),
+  };
 }
