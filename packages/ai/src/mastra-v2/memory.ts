@@ -251,12 +251,12 @@ export interface KestrelMemoryOptionsArgs {
  * - lastMessages: 20 recent messages from the current thread.
  * - workingMemory: resource-scoped markdown preferences (seeded once from
  *   Drizzle; agent-maintained afterwards).
- * - semanticRecall: on by default; scope 'resource' so recall spans the
- *   user's threads without crossing users. Per-capability overrides come
- *   through `semanticRecall`; otherwise the global gate
- *   `ENABLE_MASTRA_SEMANTIC_RECALL` applies (default on).
+ * - semanticRecall: on by default; scope 'thread' so recall is strictly bounded
+ *   to the current conversation thread, avoiding cross-thread setup bleed.
+ *   Per-capability overrides come through `semanticRecall`; otherwise the global
+ *   gate `ENABLE_MASTRA_SEMANTIC_RECALL` applies (default on).
  * - observationalMemory: off by default; enable with
- *   `ENABLE_MASTRA_OBSERVATIONAL_MEMORY=true` on long-lived paths.
+ *   `ENABLE_MASTRA_OBSERVATIONAL_MEMORY=true` on long-lived paths (thread-scoped).
  */
 export function kestrelMemoryOptions(args: KestrelMemoryOptionsArgs): MemoryConfigInternal {
   const recallEnabled =
@@ -265,13 +265,13 @@ export function kestrelMemoryOptions(args: KestrelMemoryOptionsArgs): MemoryConf
     ? {
         topK: KESTREL_MEMORY_SEMANTIC_TOP_K,
         messageRange: { before: 1, after: 1 } as const,
-        scope: 'resource' as const,
+        scope: 'thread' as const,
       }
     : false;
   const observationalMemory =
     args.forceObservationalMemory === true ||
     process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY === 'true'
-      ? { scope: 'resource' as const }
+      ? { scope: 'thread' as const }
       : false;
   return {
     lastMessages: KESTREL_MEMORY_LAST_MESSAGES,

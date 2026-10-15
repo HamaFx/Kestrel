@@ -86,8 +86,8 @@ export { resolveVisionModel } from './model-vision';
 export type { VisionModelResolution } from './model-vision';
 
 // ── Embedding model resolution ───────────────────────────────────────
-export { resolveEmbeddingModel } from './model-embedding';
-export type { EmbeddingModelResolution } from './model-embedding';
+export { resolveEmbeddingModel, resolveEmbeddingModelDetails } from './model-embedding';
+export type { EmbeddingModelResolution, EmbeddingModelResolutionDetails } from './model-embedding';
 
 // ── Override model resolution ────────────────────────────────────────
 export { resolveOverrideModel } from './model-override';

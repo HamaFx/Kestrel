@@ -113,7 +113,7 @@ describe('mastra-v2 memory options', () => {
     const options = kestrelMemoryOptions({ env: NO_KEYS_ENV });
     expect(options.lastMessages).toBe(20);
     expect(options.workingMemory).toMatchObject({ enabled: true, scope: 'resource' });
-    expect(options.semanticRecall).toMatchObject({ topK: 4, scope: 'resource' });
+    expect(options.semanticRecall).toMatchObject({ topK: 4, scope: 'thread' });
     expect(options.observationalMemory).toBe(false);
   });
 
@@ -134,7 +134,7 @@ describe('mastra-v2 memory options', () => {
     process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY = 'true';
     try {
       const options = kestrelMemoryOptions({ env: NO_KEYS_ENV });
-      expect(options.observationalMemory).toMatchObject({ scope: 'resource' });
+      expect(options.observationalMemory).toMatchObject({ scope: 'thread' });
     } finally {
       if (previous === undefined) delete process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY;
       else process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY = previous;
@@ -146,7 +146,7 @@ describe('mastra-v2 memory options', () => {
     process.env.ENABLE_MASTRA_SEMANTIC_RECALL = 'false';
     try {
       const on = kestrelMemoryOptions({ env: NO_KEYS_ENV, semanticRecall: true });
-      expect(on.semanticRecall).toMatchObject({ topK: 4, scope: 'resource' });
+      expect(on.semanticRecall).toMatchObject({ topK: 4, scope: 'thread' });
       const off = kestrelMemoryOptions({ env: NO_KEYS_ENV, semanticRecall: false });
       expect(off.semanticRecall).toBe(false);
     } finally {

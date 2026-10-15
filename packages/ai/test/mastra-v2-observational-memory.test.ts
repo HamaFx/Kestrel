@@ -36,19 +36,19 @@ describe('kestrelMemoryOptions forceObservationalMemory', () => {
   it('enables observational memory when forceObservationalMemory is true', () => {
     delete process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY;
     const options = kestrelMemoryOptions({ env: ENV, forceObservationalMemory: true });
-    expect(options.observationalMemory).toEqual({ scope: 'resource' });
+    expect(options.observationalMemory).toEqual({ scope: 'thread' });
   });
 
   it('enables observational memory when env var is set', () => {
     process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY = 'true';
     const options = kestrelMemoryOptions({ env: ENV });
-    expect(options.observationalMemory).toEqual({ scope: 'resource' });
+    expect(options.observationalMemory).toEqual({ scope: 'thread' });
   });
 
   it('forceObservationalMemory takes priority over env=false', () => {
     process.env.ENABLE_MASTRA_OBSERVATIONAL_MEMORY = 'false';
     const options = kestrelMemoryOptions({ env: ENV, forceObservationalMemory: true });
-    expect(options.observationalMemory).toEqual({ scope: 'resource' });
+    expect(options.observationalMemory).toEqual({ scope: 'thread' });
   });
 
   it('semantic recall stays on by default', () => {

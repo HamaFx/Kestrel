@@ -71,6 +71,7 @@ export {
   resolveMastraExecutionModel,
   resolveVisionModel,
   resolveEmbeddingModel,
+  resolveEmbeddingModelDetails,
   derivePlannerModel,
   deriveTitleModel,
   testProviderKey,
@@ -82,6 +83,7 @@ export {
   type MastraResolvedModel,
   type VisionModelResolution,
   type EmbeddingModelResolution,
+  type EmbeddingModelResolutionDetails,
 } from './model';
 export {
   estimateCostUsd,

@@ -29,9 +29,13 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ServerEnv } from '@kestrel/shared';
-import { embedMany } from 'ai';
+import { decryptByok, type ProviderId } from '@kestrel/shared/encryption';
+import { embedMany, type EmbeddingModel } from 'ai';
 
+import { buildByokEmbeddingModel, providerCapabilities } from './byok-providers';
 import { resolveEmbeddingModel } from './model';
+import { resolveEmbeddingModelDetails } from './model-embedding';
+import { envFallbackKeys } from './model-helpers';
 
 const DEFAULT_MODEL = 'openai/text-embedding-3-small';
 
@@ -47,10 +51,9 @@ export interface EmbedTextsArgs {
   texts: string[];
   /**
    * Explicit model override (takes precedence over userSettings +
-   * env). The caller is responsible for ensuring the dimension
-   * matches the DB column when changing models.
+   * env). Accepts either an instantiated EmbeddingModel or a string ID.
    */
-  model?: string;
+  model?: EmbeddingModel<string> | string;
   /**
    * Phase D2 — user's embedding model from
    * /settings/models → Advanced. When provided, the resolver picks
@@ -76,20 +79,77 @@ export interface EmbedResult {
 export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
   // Resolution priority:
   //   1. args.model (explicit caller override)
-  //   2. resolveEmbeddingModel(userSettings, env) — Phase D2 user pick
+  //   2. resolveEmbeddingModelDetails(userSettings, env) — Phase D2 user pick
   //   3. env.AI_EMBEDDING_MODEL (legacy operator fallback)
   //   4. DEFAULT_MODEL
-  const model =
-    args.model ??
-    (args.userSettings
-      ? resolveEmbeddingModel(args.userSettings, {
-          ...(args.env?.AI_EMBEDDING_MODEL !== undefined
-            ? { AI_EMBEDDING_MODEL: args.env.AI_EMBEDDING_MODEL }
-            : {}),
-        })
-      : null) ??
-    args.env?.AI_EMBEDDING_MODEL ??
-    DEFAULT_MODEL;
+  let model: EmbeddingModel<string> | string = DEFAULT_MODEL;
+  let modelId = DEFAULT_MODEL;
+
+  if (args.model) {
+    if (typeof args.model === 'string') {
+      modelId = args.model;
+      const slash = modelId.indexOf('/');
+      const providerId = (slash > 0 ? modelId.slice(0, slash) : 'openai') as ProviderId;
+      const keys = {
+        ...envFallbackKeys(args.env ?? {}),
+        ...(args.userSettings ? decryptByok(args.userSettings.aiApiKeys) ?? {} : {}),
+      };
+      const apiKey = keys[providerId];
+      if (apiKey && providerCapabilities[providerId]?.supportsEmbedding) {
+        try {
+          model = buildByokEmbeddingModel(providerId, modelId, apiKey);
+        } catch {
+          model = modelId;
+        }
+      } else {
+        model = modelId;
+      }
+    } else {
+      model = args.model;
+      modelId = (args.model as { modelId?: string }).modelId ?? 'custom';
+    }
+  } else if (args.userSettings) {
+    const resolvedModelId = resolveEmbeddingModel(args.userSettings, {
+      ...(args.env?.AI_EMBEDDING_MODEL !== undefined
+        ? { AI_EMBEDDING_MODEL: args.env.AI_EMBEDDING_MODEL }
+        : {}),
+    });
+    modelId = resolvedModelId ?? DEFAULT_MODEL;
+
+    const details = resolveEmbeddingModelDetails(args.userSettings, {
+      ...(args.env?.AI_EMBEDDING_MODEL !== undefined
+        ? { AI_EMBEDDING_MODEL: args.env.AI_EMBEDDING_MODEL }
+        : {}),
+    });
+    model = typeof details.model === 'object' ? details.model : modelId;
+  } else if (args.env?.AI_EMBEDDING_MODEL) {
+    modelId = args.env.AI_EMBEDDING_MODEL;
+    const slash = modelId.indexOf('/');
+    const providerId = (slash > 0 ? modelId.slice(0, slash) : 'openai') as ProviderId;
+    const keys = envFallbackKeys(args.env ?? {});
+    const apiKey = keys[providerId];
+    if (apiKey && providerCapabilities[providerId]?.supportsEmbedding) {
+      try {
+        model = buildByokEmbeddingModel(providerId, modelId, apiKey);
+      } catch {
+        model = modelId;
+      }
+    } else {
+      model = modelId;
+    }
+  } else {
+    // Universal default fallback (try operator env keys for openai)
+    const keys = envFallbackKeys(args.env ?? {});
+    if (keys.openai) {
+      try {
+        model = buildByokEmbeddingModel('openai', DEFAULT_MODEL, keys.openai);
+      } catch {
+        model = DEFAULT_MODEL;
+      }
+    } else {
+      model = DEFAULT_MODEL;
+    }
+  }
 
   // AI SDK v5 expects either a model instance or a model string when the
   // gateway is configured globally via AI_GATEWAY_API_KEY.
@@ -105,14 +165,14 @@ export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
   for (const vec of embeddings) {
     if (vec.length !== EXPECTED_EMBEDDING_DIMENSIONS) {
       throw new Error(
-        `Embedding model "${model}" returned ${vec.length} dimensions; expected ${EXPECTED_EMBEDDING_DIMENSIONS}.`,
+        `Embedding model "${modelId}" returned ${vec.length} dimensions; expected ${EXPECTED_EMBEDDING_DIMENSIONS}.`,
       );
     }
   }
 
   return {
     embeddings,
-    model,
+    model: modelId,
     inputTokens: result.usage?.tokens ?? 0,
   };
 }

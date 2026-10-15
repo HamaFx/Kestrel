@@ -324,11 +324,11 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       threadId: args.threadId,
       userId: args.userId,
       latestUserMessageText: args.prompt,
-      env: pickAiEnv(args.env),
+      env: args.env as any,
       signal: args.signal ?? null,
       budget: {
         spent: 0,
-        max: (args.settings as UserSettingsRow).maxDailyUsd ?? args.env.MAX_DAILY_USD ?? 10,
+        max: (args.settings as UserSettingsRow).maxDailyUsd ?? (args.env as { MAX_DAILY_USD?: number }).MAX_DAILY_USD ?? 10,
       },
       userSettings: args.settings as UserSettingsRow,
       db: toolDb,

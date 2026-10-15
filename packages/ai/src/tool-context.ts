@@ -78,7 +78,7 @@ export interface ToolContext {
   /** Phase A — the authenticated user making this request. */
   userId: string;
   /** Latest end-user text for mutation-intent screening. */
-  latestUserMessageText?: string;
+  latestUserMessageText?: string | undefined;
   env: ToolEnv;
   signal: AbortSignal | null;
   budget: { spent: number; max: number };
@@ -92,12 +92,12 @@ export interface ToolContext {
    * Optional for backward compatibility with test contexts that
    * construct ToolContext without DB access.
    */
-  db?: ToolDb;
+  db?: ToolDb | undefined;
   /** M4: Buffer for batching tool telemetry inserts. Optional — callers
    *  that don't pass it get direct inserts (backward-compatible). */
-  toolTelemetryBuffer?: BatchedToolTelemetry[];
+  toolTelemetryBuffer?: BatchedToolTelemetry[] | undefined;
   /** Number of live web searches made during this turn. */
-  webSearchCalls?: number;
+  webSearchCalls?: number | undefined;
 }
 
 const store = new AsyncLocalStorage<ToolContext>();
@@ -125,18 +125,18 @@ export function maybeGetToolContext(): ToolContext | null {
 export interface CreateToolContextOptions {
   threadId: string;
   userId: string;
-  latestUserMessageText?: string;
-  env?: Partial<ToolEnv>;
-  signal?: AbortSignal | null;
-  budget?: { spent: number; max: number };
-  userSettings?: UserSettingsRow | Partial<UserSettingsRow> | null;
-  db?: ToolDb;
-  toolTelemetryBuffer?: BatchedToolTelemetry[];
-  webSearchCalls?: number;
+  latestUserMessageText?: string | undefined;
+  env?: Partial<ToolEnv> | undefined;
+  signal?: AbortSignal | null | undefined;
+  budget?: { spent: number; max: number } | undefined;
+  userSettings?: UserSettingsRow | Partial<UserSettingsRow> | null | undefined;
+  db?: ToolDb | undefined;
+  toolTelemetryBuffer?: BatchedToolTelemetry[] | undefined;
+  webSearchCalls?: number | undefined;
 }
 
 export function createToolContext(options: CreateToolContextOptions): ToolContext {
-  return {
+  const ctx: ToolContext = {
     threadId: options.threadId,
     userId: options.userId,
     latestUserMessageText: options.latestUserMessageText,
@@ -148,4 +148,5 @@ export function createToolContext(options: CreateToolContextOptions): ToolContex
     toolTelemetryBuffer: options.toolTelemetryBuffer ?? [],
     webSearchCalls: options.webSearchCalls ?? 0,
   };
+  return ctx;
 }
