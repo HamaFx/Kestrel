@@ -321,6 +321,12 @@ export interface SearchMemoryArgs {
   userId: string;
   /** Phase 3 — future org/workspace tenant boundary. Defaults to userId today. */
   tenantId?: string;
+  /**
+   * Embedding model id used to produce `embedding`. When set, only vectors
+   * from the same embedding space are compared — otherwise cosine distance
+   * across incompatible models yields meaningless similarity scores.
+   */
+  model?: string;
 }
 
 /**
@@ -348,6 +354,7 @@ export async function searchMemory(args: SearchMemoryArgs): Promise<MemoryRow[]>
   const sinceClause = since !== undefined ? sql`AND occurred_at >= ${new Date(since)}` : sql``;
   const tenantClause = sql`AND tenant_id = ${tenantId}`;
   const userClause = sql`AND user_id = ${args.userId}`;
+  const modelClause = args.model ? sql`AND model = ${args.model}` : sql``;
 
   const result = await withTenantDb(tenantId, async (db) => {
     await db.execute(sql`SET LOCAL hnsw.ef_search = 100`);
@@ -372,6 +379,7 @@ export async function searchMemory(args: SearchMemoryArgs): Promise<MemoryRow[]>
         ${sinceClause}
         ${tenantClause}
         ${userClause}
+        ${modelClause}
       ORDER BY embedding <=> ${vec}::vector
       LIMIT ${limit}
     `);

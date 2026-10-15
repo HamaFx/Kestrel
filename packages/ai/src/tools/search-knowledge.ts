@@ -130,6 +130,7 @@ export const searchKnowledgeTool = tool({
       wantsNews && newsCount > 0
         ? runRagQuery({
             embedding,
+            model,
             limit,
             query,
             ...(since !== undefined ? { since } : {}),
@@ -140,6 +141,7 @@ export const searchKnowledgeTool = tool({
       memoryKinds.length > 0 && memoryCount > 0
         ? runMemoryQuery({
             embedding,
+            model,
             limit,
             kinds: memoryKinds,
             userId: memoryUserId!,
