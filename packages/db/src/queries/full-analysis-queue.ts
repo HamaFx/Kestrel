@@ -270,7 +270,22 @@ export async function updateFullAnalysisQueueProgress(
     )
     .returning();
   const row = rows[0];
-  if (!row) throw new FullAnalysisQueueOwnershipError();
+  if (!row) {
+    // A progress write can race the user's cancellation: the queue row is no
+    // longer `running`, so the ownership predicate matches nothing. Mirror the
+    // heartbeat classification here so the worker treats that race as a
+    // cancellation (interrupted notice + cancel settlement) instead of a lost
+    // lease. Genuine lease loss still throws the ownership error.
+    const existing = await db
+      .select({ status: schema.fullAnalysisQueue.status })
+      .from(schema.fullAnalysisQueue)
+      .where(eq(schema.fullAnalysisQueue.runId, input.runId))
+      .limit(1);
+    if (existing[0]?.status === 'cancelled') {
+      throw new FullAnalysisQueueCancelledError();
+    }
+    throw new FullAnalysisQueueOwnershipError();
+  }
   return row;
 }
 
