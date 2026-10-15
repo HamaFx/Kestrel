@@ -23,6 +23,7 @@ import {
   IconChevronDown,
   IconCircleCheck,
   IconCircleX,
+  IconGauge,
   IconTrendingUp,
   IconUsers,
   IconLink as LinkIcon,
@@ -35,6 +36,7 @@ const PERSONA_LABELS: Record<CommitteeVerdict['persona'], { label: string; Icon:
   economist: { label: 'Economist', Icon: IconBriefcase },
   technician: { label: 'Technician', Icon: IconTrendingUp },
   risk_manager: { label: 'Risk Manager', Icon: IconAlertTriangle },
+  sentiment: { label: 'Sentiment', Icon: IconGauge },
 };
 
 function GradeBadge({
