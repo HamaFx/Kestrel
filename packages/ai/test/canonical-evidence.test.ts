@@ -101,3 +101,60 @@ describe('canonical evidence gate (P0-3)', () => {
     ).not.toThrow();
   });
 });
+
+describe('canonical evidence check (P1-06 contextual claims)', () => {
+  it('treats a market-context percentage as a checkable claim', () => {
+    const text = 'Gold rallied 2.6% in the London session.';
+    expect(checkCanonicalEvidence(text, [])).toMatchObject({
+      ok: false,
+      numericClaimCount: 1,
+    });
+    expect(
+      checkCanonicalEvidence(text, [{ name: 'get_price', resultText: '{"changePct":2.6}' }]).ok,
+    ).toBe(true);
+    expect(
+      checkCanonicalEvidence(text, [{ name: 'get_price', resultText: '{"changePct":0.4}' }]),
+    ).toMatchObject({ ok: false, numericClaimCount: 1 });
+  });
+
+  it('treats signed percentages as claims without market context', () => {
+    expect(checkCanonicalEvidence('Position change: +1.4%.', [])).toMatchObject({
+      ok: false,
+      numericClaimCount: 1,
+    });
+    expect(
+      checkCanonicalEvidence('Position change: +1.4%.', [
+        { name: 'get_price', resultText: '{"changePct":1.4}' },
+      ]).ok,
+    ).toBe(true);
+  });
+
+  it('keeps advice percentages and risk sizing free', () => {
+    expect(
+      checkCanonicalEvidence(
+        'Keep per-trade risk at or below 1%; size the position at 0.5% of account equity.',
+        [],
+      ),
+    ).toEqual({ ok: true, findings: [], numericClaimCount: 0 });
+    expect(checkCanonicalEvidence('Risk 0.5%-1.0% of account equity.', [])).toMatchObject({
+      ok: true,
+      numericClaimCount: 0,
+    });
+  });
+
+  it('treats small integers near market readings as claims', () => {
+    expect(checkCanonicalEvidence('RSI is at 72.', [])).toMatchObject({
+      ok: false,
+      numericClaimCount: 1,
+    });
+    expect(
+      checkCanonicalEvidence('RSI is at 72.', [
+        { name: 'get_indicators', resultText: '{"rsi":71.6}' },
+      ]).ok,
+    ).toBe(true);
+    expect(checkCanonicalEvidence('The 4-scenario plan covers 2 wins.', [])).toMatchObject({
+      ok: true,
+      numericClaimCount: 0,
+    });
+  });
+});

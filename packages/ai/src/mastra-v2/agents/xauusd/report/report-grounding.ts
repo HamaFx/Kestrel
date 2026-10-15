@@ -177,27 +177,53 @@ function structuralNumericRanges(text: string): Array<readonly [start: number, e
 }
 
 /**
+ * One tokenized narrative number with its source position. Positions let
+ * callers classify the token from its surrounding context (P1-06: "RSI at 72"
+ * is a market claim, "risk 1%" is not) without re-tokenizing the text.
+ */
+export interface NarrativeNumberToken {
+  /** Numeric value with thousands separators stripped. */
+  value: number;
+  /** Exact matched text, including a leading sign when present. */
+  raw: string;
+  /** Index of the first matched character in the source text. */
+  start: number;
+  /** Index just past the last matched character in the source text. */
+  end: number;
+}
+
+/**
  * Audit plan §1.4 — narrative number extraction is shared with the committee
  * fusion verifier so both grounding checks tokenize market prose identically.
  * Structural numerics (timeframes, indicator periods, date-like notation) are
- * excluded; every other numeric token is returned as a plain number.
+ * excluded; every other numeric token is returned with its source position.
+ */
+export function extractNarrativeNumberTokens(text: string): NarrativeNumberToken[] {
+  const structuralRanges = structuralNumericRanges(text);
+  const tokens: NarrativeNumberToken[] = [];
+  for (const match of text.matchAll(NARRATIVE_NUMBER_PATTERN)) {
+    const start = match.index ?? 0;
+    const end = start + match[0].length;
+    if (
+      structuralRanges.some(([rangeStart, rangeEnd]) => start >= rangeStart && end <= rangeEnd)
+    ) {
+      continue;
+    }
+    const value = Number(match[0].replaceAll(',', ''));
+    if (Number.isFinite(value)) tokens.push({ value, raw: match[0], start, end });
+  }
+  return tokens;
+}
+
+/**
+ * Audit plan §1.4 — value-only view of the shared narrative tokenizer.
  */
 export function extractNarrativeNumbers(text: string): number[] {
-  return narrativeNumbers(text);
+  return extractNarrativeNumberTokens(text).map((token) => token.value);
 }
 
 function narrativeNumbers(text: string): number[] {
-  const structuralRanges = structuralNumericRanges(text);
-  return [...text.matchAll(NARRATIVE_NUMBER_PATTERN)]
-    .filter((match) => {
-      const start = match.index ?? 0;
-      const end = start + match[0].length;
-      return !structuralRanges.some(
-        ([rangeStart, rangeEnd]) => start >= rangeStart && end <= rangeEnd,
-      );
-    })
-    .map((match) => Number(match[0].replaceAll(',', '')))
-    .filter((value) => Number.isFinite(value));
+  return extractNarrativeNumbers(text);
 }
 
 /**
