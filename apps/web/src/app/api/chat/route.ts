@@ -188,6 +188,13 @@ export const POST = withAuth<void>(async (req, { user }) => {
   // route-specific services remain responsible for persistence and streaming;
   // this decision is used for parity validation and future migration.
   const { settings: userSettings } = await getUserWithSettings(user.userId);
+  if (!userSettings) {
+    return errorJson(
+      'ONBOARDING_REQUIRED',
+      'Complete onboarding to configure your AI provider and model before starting chat.',
+      409,
+    );
+  }
   const provisionalReport =
     /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(
       userText,

@@ -19,7 +19,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { autoDetectMode, isInjectionAttempt, resolveMode } from '../src/mastra-v2/planning/routing-policy';
+import { autoDetectMode, extractMastraSymbol, isInjectionAttempt, resolveMode } from '../src/mastra-v2/planning/routing-policy';
 
 describe('autoDetectMode', () => {
   it('returns single for greetings and thanks', () => {
@@ -124,3 +124,23 @@ describe('isInjectionAttempt — P1-12 lexicon variants', () => {
     expect(isInjectionAttempt('my system:')).toBe(false);
   });
 });
+
+describe('extractMastraSymbol (P1-02)', () => {
+  it('extracts single symbol from prompt', () => {
+    expect(extractMastraSymbol('Analyze gold chart')).toBe('XAUUSD');
+    expect(extractMastraSymbol('Analyze XAUUSD 1H')).toBe('XAUUSD');
+    expect(extractMastraSymbol('Analyze EURUSD structure')).toBe('EURUSD');
+  });
+
+  it('returns null when multiple symbols are referenced, including gold', () => {
+    expect(extractMastraSymbol('Compare gold vs EURUSD')).toBeNull();
+    expect(extractMastraSymbol('Compare EURUSD and GBPUSD')).toBeNull();
+    expect(extractMastraSymbol('Gold and silver analysis')).toBe('XAUUSD'); // silver is not in ALL_SYMBOLS
+    expect(extractMastraSymbol('Correlation between gold and USDJPY')).toBeNull();
+  });
+
+  it('returns null when no symbol is found', () => {
+    expect(extractMastraSymbol('How does RSI work?')).toBeNull();
+  });
+});
+
