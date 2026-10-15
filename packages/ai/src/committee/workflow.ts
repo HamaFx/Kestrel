@@ -43,6 +43,7 @@ import { z } from 'zod';
 import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
 import type { MastraGenerationStats } from '../mastra-v2/shared/stats';
 import { collectSymbolResearchPacketCached, SymbolResearchPacketSchema } from '../mastra-v2/packets/packet-cache';
+import type { ToolContext } from '../tool-context';
 import {
   readCritiqueStepResult,
   readDebateStepResult,
@@ -163,6 +164,7 @@ export interface CommitteeWorkflowDeps {
    * opaque route abort. Sync web runs pass 45s; durable worker runs omit it.
    */
   deadlineMs?: number;
+  toolContext?: ToolContext;
 }
 
 export function createCommitteeWorkflow(
@@ -255,6 +257,7 @@ export function createCommitteeWorkflow(
               ...(deps.scorers ? { scorers: deps.scorers } : {}),
               ledger: generationLedger,
               maxSteps,
+              ...(deps.toolContext ? { toolContext: deps.toolContext } : {}),
             },
           });
         } catch (error) {

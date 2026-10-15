@@ -35,6 +35,7 @@ import { z } from 'zod';
 import { estimateCostUsd } from '../cost';
 import { classifyStreamError } from '../fallback';
 import type { GenerationLedger } from '../generation-ledger';
+import { maybeGetToolContext, withToolContext, type ToolContext } from '../tool-context';
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
@@ -99,6 +100,7 @@ export interface SpecialistRunnerDeps {
   ledger: GenerationLedger;
   /** Bounded step limit for the specialist LLM + tool loop (defaults to 3 per Q8). */
   maxSteps: number;
+  toolContext?: ToolContext;
 }
 
 export interface RunSpecialistGenerationArgs {
@@ -145,21 +147,24 @@ export async function runSpecialistGeneration(
       deskTools,
     );
     const effectiveMaxSteps = Math.max(deps.maxSteps, 3);
-    const result = await agent.generate(prompt, {
-      requestContext: packetContext,
-      // Specialists never persist their internal opinions; the fusion/output
-      // layer owns user-visible assistant writes (Phase 6).
-      memory: readOnlyMemoryOptions(deps.specialistCallOptions),
-      toolChoice: 'auto',
-      maxSteps: effectiveMaxSteps,
-      structuredOutput: {
-        schema: OpinionSchema,
-        jsonPromptInjection: 'auto',
-        instructions:
-          'Return a complete opinion object. Keep numeric claims tied to packet evidence or your tool outputs and mention packet quality when it is not complete.',
-      },
-      ...(signal ? { abortSignal: signal } : {}),
-    });
+    const toolCtx = deps.toolContext ?? maybeGetToolContext();
+    const generateFn = () =>
+      agent.generate(prompt, {
+        requestContext: packetContext,
+        // Specialists never persist their internal opinions; the fusion/output
+        // layer owns user-visible assistant writes (Phase 6).
+        memory: readOnlyMemoryOptions(deps.specialistCallOptions),
+        toolChoice: 'auto',
+        maxSteps: effectiveMaxSteps,
+        structuredOutput: {
+          schema: OpinionSchema,
+          jsonPromptInjection: 'auto',
+          instructions:
+            'Return a complete opinion object. Keep numeric claims tied to packet evidence or your tool outputs and mention packet quality when it is not complete.',
+        },
+        ...(signal ? { abortSignal: signal } : {}),
+      });
+    const result = toolCtx ? await withToolContext(toolCtx, generateFn) : await generateFn();
     const stats = getMastraGenerationStats(result);
     const rawOpinion = OpinionSchema.parse(result.object);
     const capturedToolParts = extractToolPartsFromMessages(

@@ -121,3 +121,31 @@ export function getToolContext(): ToolContext {
 export function maybeGetToolContext(): ToolContext | null {
   return store.getStore() ?? null;
 }
+
+export interface CreateToolContextOptions {
+  threadId: string;
+  userId: string;
+  latestUserMessageText?: string;
+  env?: Partial<ToolEnv>;
+  signal?: AbortSignal | null;
+  budget?: { spent: number; max: number };
+  userSettings?: UserSettingsRow | Partial<UserSettingsRow> | null;
+  db?: ToolDb;
+  toolTelemetryBuffer?: BatchedToolTelemetry[];
+  webSearchCalls?: number;
+}
+
+export function createToolContext(options: CreateToolContextOptions): ToolContext {
+  return {
+    threadId: options.threadId,
+    userId: options.userId,
+    latestUserMessageText: options.latestUserMessageText,
+    env: (options.env ?? {}) as ToolEnv,
+    signal: options.signal ?? null,
+    budget: options.budget ?? { spent: 0, max: 10 },
+    userSettings: (options.userSettings ?? {}) as UserSettingsRow,
+    db: options.db,
+    toolTelemetryBuffer: options.toolTelemetryBuffer ?? [],
+    webSearchCalls: options.webSearchCalls ?? 0,
+  };
+}
