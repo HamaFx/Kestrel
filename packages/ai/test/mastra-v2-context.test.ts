@@ -233,6 +233,47 @@ describe('mastra-v2 thread backfill', () => {
     ]);
   });
 
+  it('preserves stored tool parts when backfilling legacy rows', async () => {
+    const memory = await buildMemory();
+    const rows = [
+      {
+        id: 'd1',
+        threadId: 't1',
+        role: 'assistant',
+        content: 'gold is at 2650.4',
+        parts: [
+          { type: 'text', text: 'gold is at 2650.4' },
+          {
+            type: 'tool-get_gold_price',
+            toolCallId: 'call-1',
+            toolName: 'get_gold_price',
+            state: 'output-available',
+            input: {},
+            output: { price: 2650.4 },
+          },
+        ],
+        createdAt: Date.now(),
+      },
+    ];
+    vi.mocked(listMessages).mockResolvedValue(rows as never);
+
+    const backfilled = await backfillThreadHistoryIfNeeded({
+      memory,
+      userId: 'u1',
+      threadId: 't1',
+    });
+    expect(backfilled).toBe(1);
+    const listed = await memory.recall({ threadId: 't1', resourceId: 'u1', perPage: 10 });
+    const parts = (listed.messages[0]?.content as { parts?: unknown[] } | undefined)?.parts ?? [];
+    const toolPart = parts.find(
+      (part): part is { type: string; toolInvocation?: { toolName?: string } } =>
+        typeof part === 'object' &&
+        part !== null &&
+        (part as { type?: string }).type === 'tool-invocation',
+    );
+    expect(toolPart?.toolInvocation?.toolName).toBe('get_gold_price');
+  });
+
   it('returns 0 when Drizzle has no history', async () => {
     const memory = await buildMemory();
     vi.mocked(listMessages).mockResolvedValue([]);
