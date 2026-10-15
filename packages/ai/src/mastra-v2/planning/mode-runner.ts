@@ -354,6 +354,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         ledger: generationLedger,
         mastra: getKestrelMastra().instance,
         toolContext,
+        disabledTools: (args.settings as UserSettingsRow)?.disabledTools,
         // Audit plan §1.7: synchronous web runs get a 45s committee deadline
         // (strict failure on timeout); the durable worker is lease-governed.
         ...(args.telemetryKind === 'mastra_full_job' ? {} : { deadlineMs: COMMITTEE_DEADLINE_MS }),

@@ -124,6 +124,21 @@ describe('Phase F — resolveChatModel', () => {
     expect(r.providerId).toBe('google');
   });
 
+  it('respects userSettings.aiFallbackChain ordering over default PROVIDER_PRIORITY (P1-03)', () => {
+    __setByok({ anthropic: 'sk-ant', openai: 'sk-openai', google: 'goog' });
+    const r = resolveChatModel(
+      { aiApiKeys: null, chatModel: null, aiFallbackChain: ['anthropic', 'google', 'openai'] },
+      ENV,
+    );
+    expect(r.providerId).toBe('anthropic');
+
+    const r2 = resolveChatModel(
+      { aiApiKeys: null, chatModel: null, aiFallbackChain: ['openai', 'anthropic'] },
+      ENV,
+    );
+    expect(r2.providerId).toBe('openai');
+  });
+
   it('priority order: anthropic > openai when google is not configured', () => {
     __setByok({ anthropic: 'sk-ant', openai: 'sk-openai' });
     const r = resolveChatModel({ aiApiKeys: null, chatModel: null }, ENV);

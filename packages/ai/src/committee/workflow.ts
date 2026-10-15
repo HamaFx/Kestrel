@@ -165,6 +165,7 @@ export interface CommitteeWorkflowDeps {
    */
   deadlineMs?: number;
   toolContext?: ToolContext;
+  disabledTools?: readonly string[] | null;
 }
 
 export function createCommitteeWorkflow(
@@ -258,6 +259,7 @@ export function createCommitteeWorkflow(
               ledger: generationLedger,
               maxSteps,
               ...(deps.toolContext ? { toolContext: deps.toolContext } : {}),
+              ...(deps.disabledTools ? { disabledTools: deps.disabledTools } : {}),
             },
           });
         } catch (error) {

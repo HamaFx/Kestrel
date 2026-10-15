@@ -90,7 +90,7 @@ export interface RetryOptions {
    */
   maxRetryAfterMs?: number;
   /** AbortSignal to cancel retries on client disconnect. */
-  signal?: AbortSignal | null;
+  signal?: AbortSignal | null | undefined;
   /**
    * Custom predicate to decide whether an error is retryable.
    * Defaults to checking the classifyStreamError reason (429 / 5xx / timeout).

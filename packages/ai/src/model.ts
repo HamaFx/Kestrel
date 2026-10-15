@@ -54,6 +54,7 @@ export { PROVIDER_PRIORITY, supportsPromptCaching } from './model-helpers';
 
 // ── Role-based model resolution ──────────────────────────────────────
 export {
+  getAvailableProviders,
   resolveModelForRole,
   type ModelRole,
   type ModelRoleResolution,

@@ -36,6 +36,7 @@ import { runTracingOptions } from '../../telemetry';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../../routing';
 import type { SemanticRoutingAccounting } from '../../../semantic-routing';
+import { withRetry } from '../../../retry';
 import { DB } from '../../../tokens';
 import { withToolContext, type ToolContext } from '../../../tool-context';
 import { domainToolFilter } from '../../../tools/by-domain';
@@ -324,9 +325,10 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
   const effectivePlan =
     args.plan && ['free', 'pro', 'enterprise'].includes(args.plan) ? args.plan : 'free';
   const legacyTools = domainToolFilter(routing.domain, effectivePlan);
+  const disabledTools = new Set(args.settings?.disabledTools ?? []);
   const registeredTools = Object.fromEntries(
     Object.entries(legacyTools)
-      .filter(([name]) => READ_ONLY_TOOL_NAMES.has(name))
+      .filter(([name]) => READ_ONLY_TOOL_NAMES.has(name) && !disabledTools.has(name))
       .map(([name, legacyTool]) => [name, adaptLegacyReadOnlyTool(name, legacyTool)]),
   );
 
@@ -538,27 +540,31 @@ export async function runMastraCanonicalChat(
 
   try {
     const result = await withToolContext(context, () =>
-      agent.generate(messages, {
-        requestContext,
-        ...(callMemory ? { memory: callMemory } : {}),
-        toolChoice: 'auto',
-        maxSteps: Math.min(
-          args.env.MAX_TOOL_ITERATIONS ?? manifestForCapability('canonical-chat').maxSteps,
-          manifestForCapability('canonical-chat').maxSteps,
-        ),
-        ...(Object.keys(scorers.entries).length > 0 ? { scorers: scorers.entries } : {}),
-        ...(args.signal ? { abortSignal: args.signal } : {}),
-        tracingOptions: runTracingOptions({
-          runId,
-          userId: args.userId,
-          threadId: args.threadId,
-          kind: 'mastra_canonical_chat',
-          capabilityId: 'canonical-chat',
-          tags: ['chat'],
-          memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
-          memoryBackfill: setup.memoryBackfill,
-        }),
-      }),
+      withRetry(
+        () =>
+          agent.generate(messages, {
+            requestContext,
+            ...(callMemory ? { memory: callMemory } : {}),
+            toolChoice: 'auto',
+            maxSteps: Math.min(
+              args.env.MAX_TOOL_ITERATIONS ?? manifestForCapability('canonical-chat').maxSteps,
+              manifestForCapability('canonical-chat').maxSteps,
+            ),
+            ...(Object.keys(scorers.entries).length > 0 ? { scorers: scorers.entries } : {}),
+            ...(args.signal ? { abortSignal: args.signal } : {}),
+            tracingOptions: runTracingOptions({
+              runId,
+              userId: args.userId,
+              threadId: args.threadId,
+              kind: 'mastra_canonical_chat',
+              capabilityId: 'canonical-chat',
+              tags: ['chat'],
+              memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+              memoryBackfill: setup.memoryBackfill,
+            }),
+          }),
+        { maxAttempts: 2, signal: args.signal },
+      ),
     );
     let stats = getMastraGenerationStats(result);
     const initialToolParts = extractToolPartsFromMessages(
@@ -750,27 +756,31 @@ export async function runMastraCanonicalChatStream(
   });
 
   const output = await withToolContext(context, () =>
-    agent.stream(messages, {
-      requestContext,
-      ...(callMemory ? { memory: callMemory } : {}),
-      toolChoice: 'auto',
-      maxSteps: Math.min(
-        args.env.MAX_TOOL_ITERATIONS ?? manifestForCapability('canonical-chat').maxSteps,
-        manifestForCapability('canonical-chat').maxSteps,
-      ),
-      ...(Object.keys(scorers.entries).length > 0 ? { scorers: scorers.entries } : {}),
-      ...(args.signal ? { abortSignal: args.signal } : {}),
-      tracingOptions: runTracingOptions({
-        runId,
-        userId: args.userId,
-        threadId: args.threadId,
-        kind: 'mastra_canonical_chat',
-        capabilityId: 'canonical-chat',
-        tags: ['chat'],
-        memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
-        memoryBackfill: setup.memoryBackfill,
-      }),
-    }),
+    withRetry(
+      () =>
+        agent.stream(messages, {
+          requestContext,
+          ...(callMemory ? { memory: callMemory } : {}),
+          toolChoice: 'auto',
+          maxSteps: Math.min(
+            args.env.MAX_TOOL_ITERATIONS ?? manifestForCapability('canonical-chat').maxSteps,
+            manifestForCapability('canonical-chat').maxSteps,
+          ),
+          ...(Object.keys(scorers.entries).length > 0 ? { scorers: scorers.entries } : {}),
+          ...(args.signal ? { abortSignal: args.signal } : {}),
+          tracingOptions: runTracingOptions({
+            runId,
+            userId: args.userId,
+            threadId: args.threadId,
+            kind: 'mastra_canonical_chat',
+            capabilityId: 'canonical-chat',
+            tags: ['chat'],
+            memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+            memoryBackfill: setup.memoryBackfill,
+          }),
+        }),
+      { maxAttempts: 2, signal: args.signal },
+    ),
   );
 
   const finishRun = createMastraRunFinalizer();

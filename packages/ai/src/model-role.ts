@@ -37,6 +37,7 @@ export interface ResolveRoleOptions {
     chatModel?: string | null | undefined;
     embeddingModel?: string | null | undefined;
     visionModel?: string | null | undefined;
+    aiFallbackChain?: readonly string[] | string[] | null | undefined;
   } | undefined;
   domain?: ModelDomain | undefined;
 }
@@ -46,6 +47,25 @@ export interface ModelRoleResolution {
   bareModelId: string;
   modelId: string;
   model?: LanguageModel | undefined;
+}
+
+/**
+ * Return configured providers in priority order, respecting userSettings.aiFallbackChain.
+ */
+export function getAvailableProviders(
+  keys: ByokPayload,
+  userSettings?: { aiFallbackChain?: readonly string[] | string[] | null | undefined } | null,
+): ProviderId[] {
+  const available = configuredProviders(keys);
+  const availableSet = new Set(available);
+  const customChain = Array.isArray(userSettings?.aiFallbackChain)
+    ? (userSettings.aiFallbackChain as ProviderId[])
+    : [];
+  const orderedPriority = [
+    ...customChain.filter((p) => (PROVIDER_IDS as readonly string[]).includes(p)),
+    ...PROVIDER_PRIORITY.filter((p) => !customChain.includes(p)),
+  ];
+  return orderedPriority.filter((p) => availableSet.has(p));
 }
 
 /**
@@ -66,9 +86,7 @@ export function resolveModelForRole(
     ...(byok ?? {}),
   };
 
-  const configured = configuredProviders(keys)
-    .slice()
-    .sort((a, b) => PROVIDER_PRIORITY.indexOf(a) - PROVIDER_PRIORITY.indexOf(b));
+  const configured = getAvailableProviders(keys, options?.userSettings);
 
   if (role === 'embedding') {
     // 1. User's explicit pick
