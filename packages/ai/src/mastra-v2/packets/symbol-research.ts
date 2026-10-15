@@ -35,6 +35,8 @@ import {
 } from '@kestrel/shared';
 import { z } from 'zod';
 
+import { INJECTION_TERMS, isHighConfidenceMutationIntent } from '../../routing-keywords';
+
 const RESEARCH_TIMEFRAMES: readonly { timeframe: Timeframe; count: number }[] = [
   { timeframe: '1d', count: 120 },
   { timeframe: '4h', count: 120 },
@@ -455,10 +457,9 @@ export function extractSymbolFromPrompt(prompt: string, fallback?: string): stri
 
 /** Conservative server-side guard for the read-only generalized mode path. */
 export function isSafeSymbolResearchPrompt(prompt: string): boolean {
-  return (
-    !MUTATION_TERMS.test(prompt) &&
-    !/ignore\s+(?:all\s+)?(?:previous|prior|above)\s+instructions|system\s*:|developer\s*:|DAN\s+mode/i.test(
-      prompt,
-    )
-  );
+  const trimmed = prompt.trim();
+  if (!trimmed) return false;
+  if (INJECTION_TERMS.test(trimmed)) return false;
+  if (isHighConfidenceMutationIntent(trimmed)) return false;
+  return true;
 }
