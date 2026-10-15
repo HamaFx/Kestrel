@@ -19,10 +19,10 @@
 | 3 — Schema parity + migration `0098` | **DONE** | `65ef8edc` | PKs on memory state tables; 6 CHECKs (0028) + 2 soft-delete indexes (0032) restored; payments unique *indexes* + billing defaults (0063); `diagnostic_traces.tenant_id` + RLS/trigger + 8 composite/partial indexes in `0098_phase2_db_audit_remediation.sql` (journal `idx: 97`). |
 | 4 — HNSW iterative scan, model filter, 1536-d guard | **DONE** | `359774f9` | `EXPECTED_EMBEDDING_DIMENSIONS = 1536` enforced in `embedTexts`; `runDenseNewsQuery` wrapped in a transaction with `SET LOCAL hnsw.ef_search=200 / iterative_scan='relaxed_order' / max_scan_tuples=20000`; `ne.model` / `model` filters in news + memory search; `model` threaded through `runRagQuery`/`runMemoryQuery` from `search_knowledge`. |
 | 5 — Atomic queue claims, SQL `COUNT(*)`/`SUM()` | **DONE** | `d6d33894` | `claimNextFullAnalysisQueue` uses `FOR UPDATE SKIP LOCKED` CTE when no `ownsTenant` predicate (partitioned path keeps the conditional UPDATE); `recoverStaleFullAnalysisQueue` is two set-based UPDATEs; `listFullAnalysisQueueRows` bounded (default 200); new `getFullAnalysisQueueStats` (`COUNT(*) FILTER`) backs `getFullAnalysisQueueHealth`; `countActiveAlerts`/`countJournalEntriesThisMonth`/`countCotReports` use `count(*)::int`; `getDailySpend`/`getProviderMonthlySpend` aggregate in SQL. |
-| 6 — Transactional billing + batch journal import | pending | — | |
-| 7 — Admin health SLO + web auth boundary cleanup | pending | — | |
+| 6 — Transactional billing + batch journal import | **DONE** | `2997e49e` | `upsertSubscription` atomic `onConflictDoUpdate`; `processVerifiedIpnPayload` transactional via `withTenantDbFresh` and heals subscriptions on replay; `/api/journal/import` batches `schema.journalEntries` inserts and enforces `closedAt !== null` before computing closed outcome (CHECK `0028` consistency); `test/billing-transactions.test.ts`. |
+| 7 — Admin health SLO + web auth boundary cleanup | **DONE** | `c68447f4` | `withAuth` resolves tenant via primary DB and threads `{ userId }`; `health-slo` and `health/alerts` pass `getAdminDb()`; `admin-health.ts` queries `full_analysis_queue` instead of `mastra_workflow_snapshot`; `bulkTestKeysService` scopes streaming provider test writes in `withTenantDbFresh`. |
 
-Verification so far: `pnpm --filter @kestrel/db test` (91 passed) and `pnpm --filter @kestrel/ai test` (1436 passed) green after Tasks 1–4; db + ai typecheck clean; `@kestrel/db` dist rebuilt so dependent packages resolve the new exports.
+Verification: `pnpm --filter @kestrel/db test` (94 passed), `pnpm --filter @kestrel/web test` (51 passed), `pnpm --filter @kestrel/ai test` (1436 passed); db + web + ai typecheck clean; `@kestrel/db` dist rebuilt.
 
 ## Global Constraints
 
@@ -459,7 +459,7 @@ git commit -m "perf(db,ai): use SKIP LOCKED queue claims and SQL COUNT/SUM aggre
   - Atomic `upsertSubscription(userId: string, opts: UpsertSubscriptionOpts): Promise<string>` in `packages/db/src/queries/billing-extras.ts`
   - Transactional `processVerifiedIpnPayload(payload: IpnPayload): Promise<void>` in `apps/web/src/app/api/billing/webhook/route.ts`
 
-- [ ] **Step 1: Write the failing test in `packages/db/test/billing-transactions.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/db/test/billing-transactions.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -474,27 +474,27 @@ describe('journal import outcome consistency with 0028 CHECK constraint', () => 
 });
 ```
 
-- [ ] **Step 2: Run test to verify it passes unit logic and inspect `apps/web/src/app/api/journal/import/route.ts:77`**
+- [x] **Step 2: Run test to verify it passes unit logic and inspect `apps/web/src/app/api/journal/import/route.ts:77`**
 
 Run: `pnpm --filter @kestrel/db test -- test/billing-transactions.test.ts`
 Expected: PASS
 
-- [ ] **Step 3: Implement atomic `upsertSubscription`, transactional `processVerifiedIpnPayload`, and batch journal import**
+- [x] **Step 3: Implement atomic `upsertSubscription`, transactional `processVerifiedIpnPayload`, and batch journal import**
 
 - In `packages/db/src/queries/billing-extras.ts:67-103`:
-  - Replace the `SELECT` + conditional `UPDATE`/`INSERT` in `upsertSubscription` with a single `db.insert(schema.subscriptions).values(...).onConflictDoUpdate({ target: [schema.subscriptions.tenantId], targetWhere: sql\`\${schema.subscriptions.status} IN ('active', 'trialing')\`, set: { ... } }).returning({ id: schema.subscriptions.id })`.
+  - Replace the `SELECT` + conditional `UPDATE`/`INSERT` in `upsertSubscription` with a single `db.insert(schema.subscriptions).values(...).onConflictDoUpdate({ target: [schema.subscriptions.tenantId], targetWhere: sql`${schema.subscriptions.status} IN ('active', 'trialing')`, set: { ... } }).returning({ id: schema.subscriptions.id })`.
 - In `apps/web/src/app/api/billing/webhook/route.ts:104-130`:
   - Wrap `processVerifiedIpnPayload` in `await getDb().transaction(async (tx) => { ... })` (or ensure `updateSubscriptionFromPayment` still executes when `(paymentUpdated || payment.status === mapPaymentStatus(payment_status)) && payment.subscriptionId` so replays after partial failure heal the subscription).
 - In `apps/web/src/app/api/journal/import/route.ts:70-110`:
   - Require `closedAt !== null && exit !== null && trade.stop !== null && trade.stop !== undefined` before computing a closed `outcome` (`'win' | 'loss' | 'breakeven'`); if `closedAt === null`, keep `outcome = 'open'` so `journal_outcome_closed_consistency` is never violated.
   - Resolve `tenantId` once via `requireTenantIdForUser(user.userId, db)` and insert all validated trade rows in a single batch `db.insert(schema.journalEntries).values(rows).returning({ id: schema.journalEntries.id })`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/db test -- test/billing-transactions.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/src/queries/billing-extras.ts apps/web/src/app/api/billing/checkout/route.ts apps/web/src/app/api/billing/webhook/route.ts apps/web/src/app/api/journal/import/route.ts packages/db/test/billing-transactions.test.ts
@@ -518,7 +518,7 @@ git commit -m "fix(billing,journal): make subscription upserts atomic and batch 
   - `getAdminDb` re-exported from `apps/web/src/lib/services/api-boundary.ts`
   - `queryOperationalAggregate` and `queryAnalysisAggregate` in `apps/web/src/lib/services/admin-health.ts` reading from `full_analysis_queue` (in `public`) instead of unqualified `mastra_workflow_snapshot`
 
-- [ ] **Step 1: Write the failing test in `packages/db/test/client.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/db/test/client.test.ts`**
 
 ```ts
 it('exports getAdminDb for cross-tenant admin health routes', async () => {
@@ -527,12 +527,12 @@ it('exports getAdminDb for cross-tenant admin health routes', async () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it passes**
+- [x] **Step 2: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/db test -- test/client.test.ts`
 Expected: PASS
 
-- [ ] **Step 3: Update `withAuth`, `health-slo`, `health/alerts`, `admin-health.ts`, and `bulkTestKeysService`**
+- [x] **Step 3: Update `withAuth`, `health-slo`, `health/alerts`, `admin-health.ts`, and `bulkTestKeysService`**
 
 - In `apps/web/src/lib/api.ts:148-149`:
   - Replace `const tenantId = await requireTenantIdForUser(user.userId, getAdminDb());` with `const tenantId = await requireTenantIdForUser(user.userId);` (which uses `getPrimaryDb()` since `organization` and `organization_member` do not have RLS enabled) and pass `{ userId: user.userId }` as the third argument to `withTenantDbFresh(tenantId, () => handler(req, { params: ctx.params, user }), { userId: user.userId })`.
@@ -550,12 +550,12 @@ Expected: PASS
 - In `apps/web/src/lib/services/settings.ts:266-276`:
   - Wrap the post-stream `providerTests` `DELETE` + `INSERT` inside `await withTenantDbFresh(tenantId, async (txDb) => { ... }, { userId })` so it does not use the already-closed request transaction handle.
 
-- [ ] **Step 4: Run full package tests to verify everything passes**
+- [x] **Step 4: Run full package tests to verify everything passes**
 
 Run: `pnpm --filter @kestrel/db test && pnpm --filter @kestrel/ai test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/lib/api.ts apps/web/src/lib/services/api-boundary.ts apps/web/src/app/api/admin/health-slo/route.ts apps/web/src/app/api/health/alerts/route.ts apps/web/src/lib/services/admin-health.ts apps/web/src/lib/services/settings.ts
