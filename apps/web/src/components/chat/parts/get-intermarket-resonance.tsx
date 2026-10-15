@@ -44,9 +44,14 @@ export function GetIntermarketResonancePart({
     );
   }
 
-  const roundedDivergence = Number(output.currentDivergence.toFixed(2));
-  const roundedYield = Number(output.currentRealYield.toFixed(2));
-  const roundedInflation = Number(output.currentBreakevenInflation.toFixed(2));
+  const roundedDivergence =
+    output.currentDivergence != null ? Number(output.currentDivergence.toFixed(2)) : null;
+  const roundedYield =
+    output.currentRealYield != null ? Number(output.currentRealYield.toFixed(2)) : null;
+  const roundedInflation =
+    output.currentBreakevenInflation != null
+      ? Number(output.currentBreakevenInflation.toFixed(2))
+      : null;
 
   // Determine styling based on the active regime
   let regimeColor = 'text-fg';
@@ -64,10 +69,12 @@ export function GetIntermarketResonancePart({
     regimeBg = 'bg-bear/10';
     regimeLabel = 'YIELD DISCOUNT (OVERSOLD OVERRIDE)';
     Icon = IconTrendingDown;
+  } else if (!output.regime) {
+    regimeLabel = 'UNAVAILABLE';
   }
 
   // Calculate percentage offset for the horizontal needle gauge (bounds [-3, +3])
-  const clampedDiv = Math.max(-3, Math.min(3, roundedDivergence));
+  const clampedDiv = roundedDivergence != null ? Math.max(-3, Math.min(3, roundedDivergence)) : 0;
   const needlePercent = ((clampedDiv + 3) / 6) * 100;
 
   return (
@@ -96,7 +103,7 @@ export function GetIntermarketResonancePart({
             10Y Real Yield
           </span>
           <span className="text-fg mt-0.5 block text-xs font-bold tabular-nums sm:text-sm md:text-base">
-            {roundedYield}%
+            {roundedYield != null ? `${roundedYield}%` : 'N/A'}
           </span>
         </div>
         <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-1.5 sm:p-2">
@@ -104,7 +111,7 @@ export function GetIntermarketResonancePart({
             10Y Breakeven
           </span>
           <span className="text-fg mt-0.5 block text-xs font-bold tabular-nums sm:text-sm md:text-base">
-            {roundedInflation}%
+            {roundedInflation != null ? `${roundedInflation}%` : 'N/A'}
           </span>
         </div>
         <div className="bg-bg-elev-2/50 border-border/25 rounded-sm border p-1.5 sm:p-2">
@@ -114,7 +121,11 @@ export function GetIntermarketResonancePart({
           <span
             className={`mt-0.5 block text-xs font-bold tabular-nums sm:text-sm md:text-base ${regimeColor}`}
           >
-            {roundedDivergence >= 0 ? `+${roundedDivergence}` : roundedDivergence} SD
+            {roundedDivergence != null
+              ? roundedDivergence >= 0
+                ? `+${roundedDivergence} SD`
+                : `${roundedDivergence} SD`
+              : 'N/A'}
           </span>
         </div>
       </div>

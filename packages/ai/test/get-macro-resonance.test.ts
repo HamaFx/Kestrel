@@ -88,4 +88,42 @@ describe('getIntermarketResonanceTool', () => {
     expect(result.regime).toBe('divergent_hedging');
     expect(result.narrative).toContain('HEDGING');
   });
+
+  it('returns nulls and available:false without fabricated values when data is missing', async () => {
+    const emptyDb = {
+      select: () => ({
+        from: () => ({
+          orderBy: () => ({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      }),
+    };
+
+    const result = (await withToolContext(
+      {
+        threadId: '00000000-0000-0000-0000-000000000000',
+        userId: 'test-user',
+        db: emptyDb as any,
+        env: {} as any,
+        signal: null,
+        budget: { spent: 0, max: 5 },
+        userSettings: {} as any,
+      },
+      () =>
+        Promise.resolve(
+          getIntermarketResonanceTool.execute!({ symbol: 'XAUUSD', days: 10 }, {} as any),
+        ),
+    )) as GetIntermarketResonanceOutput;
+
+    expect(result.symbol).toBe('XAUUSD');
+    expect(result.days).toBe(10);
+    expect(result.observations).toEqual([]);
+    expect(result.currentDivergence).toBeNull();
+    expect(result.currentRealYield).toBeNull();
+    expect(result.currentBreakevenInflation).toBeNull();
+    expect(result.regime).toBeNull();
+    expect(result.available).toBe(false);
+    expect(result.narrative).toContain('No intermarket resonance historical entries found');
+  });
 });

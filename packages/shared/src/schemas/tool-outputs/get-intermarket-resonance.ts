@@ -37,10 +37,11 @@ export const GetIntermarketResonanceOutputSchema = z.object({
   symbol: SymbolSchema,
   days: z.number(),
   observations: z.array(ResonanceObservationSchema),
-  currentDivergence: z.number(),
-  currentRealYield: z.number(),
-  currentBreakevenInflation: z.number(),
-  regime: z.enum(['convergent', 'divergent_hedging', 'divergent_discount']),
+  currentDivergence: z.number().nullable(),
+  currentRealYield: z.number().nullable(),
+  currentBreakevenInflation: z.number().nullable(),
+  regime: z.enum(['convergent', 'divergent_hedging', 'divergent_discount']).nullable(),
+  available: z.boolean().default(true).optional(),
   narrative: z.string(),
 });
 export type GetIntermarketResonanceOutput = z.infer<typeof GetIntermarketResonanceOutputSchema>;

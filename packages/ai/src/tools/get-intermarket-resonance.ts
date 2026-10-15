@@ -62,10 +62,11 @@ export const getIntermarketResonanceTool = tool({
         symbol: requestedSymbol,
         days,
         observations: [],
-        currentDivergence: 0,
-        currentRealYield: 2.1,
-        currentBreakevenInflation: 2.3,
-        regime: 'convergent',
+        currentDivergence: null,
+        currentRealYield: null,
+        currentBreakevenInflation: null,
+        regime: null,
+        available: false,
         narrative:
           'No intermarket resonance historical entries found in the database. Sync pipeline pending.',
       };
@@ -80,16 +81,20 @@ export const getIntermarketResonanceTool = tool({
     }));
 
     const latest = sorted[sorted.length - 1]!;
-    const currentDivergence = latest.divergenceScore ?? 0.0;
-    const currentRealYield = latest.realYieldPct ?? 2.1;
-    const currentBreakevenInflation = latest.breakevenInflationPct ?? 2.3;
+    const currentDivergence = latest.divergenceScore ?? null;
+    const currentRealYield = latest.realYieldPct ?? null;
+    const currentBreakevenInflation = latest.breakevenInflationPct ?? null;
 
     // Define regimes based on standard deviations (z-scores)
-    let regime: GetIntermarketResonanceOutput['regime'] = 'convergent';
-    if (currentDivergence > 1.5) {
-      regime = 'divergent_hedging';
-    } else if (currentDivergence < -1.5) {
-      regime = 'divergent_discount';
+    let regime: GetIntermarketResonanceOutput['regime'] = null;
+    if (currentDivergence !== null) {
+      if (currentDivergence > 1.5) {
+        regime = 'divergent_hedging';
+      } else if (currentDivergence < -1.5) {
+        regime = 'divergent_discount';
+      } else {
+        regime = 'convergent';
+      }
     }
 
     const narrative = compileNarrative(
@@ -108,6 +113,7 @@ export const getIntermarketResonanceTool = tool({
       currentRealYield,
       currentBreakevenInflation,
       regime,
+      available: true,
       narrative,
     };
   },
@@ -115,23 +121,29 @@ export const getIntermarketResonanceTool = tool({
 
 function compileNarrative(
   symbol: Symbol,
-  divergence: number,
-  yieldPct: number,
-  inflationPct: number,
+  divergence: number | null,
+  yieldPct: number | null,
+  inflationPct: number | null,
   regime: GetIntermarketResonanceOutput['regime'],
 ): string {
-  const roundedDiv = Number(divergence.toFixed(2));
-  const roundedYield = Number(yieldPct.toFixed(2));
-  const roundedInf = Number(inflationPct.toFixed(2));
+  const roundedDiv =
+    divergence !== null
+      ? `${divergence >= 0 ? '+' : ''}${divergence.toFixed(2)}`
+      : 'N/A';
+  const roundedYield = yieldPct !== null ? `${yieldPct.toFixed(2)}%` : 'N/A';
+  const roundedInf = inflationPct !== null ? `${inflationPct.toFixed(2)}%` : 'N/A';
 
   let desc = '';
   if (regime === 'divergent_hedging') {
-    desc = `Gold is trading at a significant premium (+${roundedDiv} SD) relative to its historical real-yield baseline. This highlights high institutional safe-haven demand, central bank accumulation, or geopolitical hedging premium overrides.`;
+    desc = `Gold is trading at a significant premium (${roundedDiv} SD) relative to its historical real-yield baseline. This highlights high institutional safe-haven demand, central bank accumulation, or geopolitical hedging premium overrides.`;
   } else if (regime === 'divergent_discount') {
     desc = `Gold is trading at a significant discount (${roundedDiv} SD) relative to yield opportunities. This indicates a highly oversold market, high opportunity cost exhaustion, or potential institutional accumulation territory.`;
-  } else {
+  } else if (regime === 'convergent') {
     desc = `Gold and US real yields are trading in normal historical alignment (${roundedDiv} SD). The yield opportunity cost model is dominant and governing pricing.`;
+  } else {
+    desc = 'Intermarket yield and inflation baseline metrics are currently unavailable.';
   }
 
-  return `${symbol} Resonance: Yield ${roundedYield}% · Inflation Expectation ${roundedInf}% · Divergence ${roundedDiv} SD [${regime.toUpperCase()}]. ${desc}`;
+  const regimeLabel = regime ? ` [${regime.toUpperCase()}]` : '';
+  return `${symbol} Resonance: Yield ${roundedYield} · Inflation Expectation ${roundedInf} · Divergence ${roundedDiv} SD${regimeLabel}. ${desc}`;
 }
