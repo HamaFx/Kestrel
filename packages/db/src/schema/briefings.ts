@@ -30,7 +30,7 @@
 // dangling pointers.
 
 import { sql } from 'drizzle-orm';
-import { pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { check, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 import { chatMessages } from './chat';
@@ -53,5 +53,12 @@ export const briefingsEmitted = pgTable(
       .references(() => chatMessages.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.eventId, t.kind] })],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.eventId, t.kind] }),
+    // Phase 2 (0028) — kind allow-list CHECK, absent from the TypeScript schema.
+    check(
+      'briefings_emitted_kind_check',
+      sql`${t.kind} IN ('pre', 'post', 'weekly_review')`,
+    ),
+  ],
 );

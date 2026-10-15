@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
+import { sql } from 'drizzle-orm';
 import { index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
-import { users } from './auth';
+import { organization, users } from './auth';
 
 export const diagnosticTraces = pgTable(
   'diagnostic_traces',
   {
     id: text('id').primaryKey(), // traceId (UUID)
     userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    // Phase 2 (D2-05) — tenant isolation. The table previously stored
+    // user-scoped trace payloads with no tenant column and no RLS policy.
+    tenantId: text('tenant_id')
+      .notNull()
+      .default(sql`current_setting('app.current_tenant', true)`)
+      .references(() => organization.id, { onDelete: 'cascade' }),
     threadId: text('thread_id'),
     startedAt: timestamp('started_at', { withTimezone: true, mode: 'date' }).notNull(),
     durationMs: integer('duration_ms'),
@@ -39,6 +46,8 @@ export const diagnosticTraces = pgTable(
     index('diagnostic_traces_thread_id_idx').on(t.threadId),
     index('diagnostic_traces_started_at_idx').on(t.startedAt),
     index('diagnostic_traces_created_at_idx').on(t.createdAt),
+    // Phase 2 (0098) — listDiagnosticTraces: user_id + started_at DESC.
+    index('diagnostic_traces_user_started_idx').on(t.userId, t.startedAt),
   ],
 );
 

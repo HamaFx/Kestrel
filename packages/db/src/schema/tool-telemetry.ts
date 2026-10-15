@@ -84,6 +84,8 @@ export const chatToolTelemetry = pgTable(
     index('chat_tool_telemetry_job_idx').on(t.jobId, t.createdAt),
     uniqueIndex('chat_tool_telemetry_idempotency_uk').on(t.idempotencyKey),
     index('tool_telemetry_tool_idx').on(t.tool),
+    // Phase 2 (0098) — listToolTelemetry: user_id + created_at DESC.
+    index('tool_telemetry_user_created_idx').on(t.userId, t.createdAt),
   ],
 );
 
