@@ -135,6 +135,13 @@ vi.mock('@/lib/services/api-boundary', () => ({
       .join('\n'),
   extractMastraSymbol: (text: string) =>
     /xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : /gbpusd/i.test(text) ? 'GBPUSD' : null,
+  extractMastraSymbols: (text: string) => {
+    const symbols: string[] = [];
+    if (/xauusd|gold/i.test(text)) symbols.push('XAUUSD');
+    if (/eurusd/i.test(text)) symbols.push('EURUSD');
+    if (/gbpusd/i.test(text)) symbols.push('GBPUSD');
+    return symbols;
+  },
   getThread: mockGetThread,
   listMessages: vi.fn().mockResolvedValue([]),
   resolveMode: (mode: string) => (mode === 'auto' ? 'single' : mode),
