@@ -5,7 +5,11 @@
  */
 
 import { EVIDENCE_TOLERANCE } from '../../../committee/grounding';
-import { extractNarrativeNumbers } from '../xauusd/report/report-grounding';
+import {
+  extractNarrativeNumberTokens,
+  extractNarrativeNumbers,
+  type NarrativeNumberToken,
+} from '../xauusd/report/report-grounding';
 
 export interface CanonicalToolEvidence {
   name: string;
@@ -21,32 +25,94 @@ export interface CanonicalEvidenceCheck {
 const MARKET_TOOL_PATTERN =
   /price|candle|indicator|market|news|calendar|cot|sentiment|correlation|volatility|technical|fundamental|session|seasonality|risk|position|portfolio|journal|replay|verify|committee|knowledge|web_search|chart|packet|research/i;
 
-const PERCENT_CLAIM_PATTERN = /\d+(?:\.\d+)?\s*%/g;
+/**
+ * Market-move/reading context that promotes an unsigned percentage to a claim.
+ * Advice vocabulary (risk, size, account, equity) is deliberately absent so
+ * "keep risk at 1%" and "size 0.5%" stay free.
+ */
+const PERCENT_CLAIM_CONTEXT_PATTERN =
+  /\b(?:rsi|sma|ema|atr|macd|bollinger|adx|cot|positioning|sentiment|price|candles?|indicators?|session|swing|support|resistance|trend|momentum|volatility|yield|spread|rall(?:y|ied|ies)|sell-?off|drop(?:ped|s)?|gain(?:ed|s)?|loss|lost|rose|risen|rising|fall(?:ing|s|en)?|fell|declin\w*|surg\w*|climb(?:ed|s)?|mov(?:e|es|ed|ing)|chang(?:e|ed|es)|higher|lower|up|down)\b/i;
+
+/**
+ * Market-reading context that promotes a small integer to a claim (e.g. "RSI
+ * at 72"). Indicator-period notation ("RSI 14") is structural and already
+ * excluded before tokens reach this check.
+ */
+const READING_CLAIM_CONTEXT_PATTERN =
+  /\b(?:rsi|sma|ema|atr|macd|bollinger|adx|stoch(?:astic)?|cot|positioning|percentile)\b/i;
+
+const CLAIM_CONTEXT_RADIUS = 32;
 
 /**
  * Price-band filter (audit plan §1.3): only market-like magnitudes count as
  * claims — decimal fractions (quotes, rates) and thousand-plus values (metals,
- * indices, crypto). Small integers stay free (counts, arithmetic, RSI-style
- * readings), so benign prose never trips the gate.
+ * indices, crypto). Small integers stay free unless they read as an indicator
+ * or positioning value (P1-06), so benign prose never trips the gate.
  */
 function isMarketLikeClaim(value: number): boolean {
   return !Number.isInteger(value) || Math.abs(value) >= 1000;
+}
+
+function contextAround(text: string, token: NarrativeNumberToken): string {
+  return text.slice(
+    Math.max(0, token.start - CLAIM_CONTEXT_RADIUS),
+    Math.min(text.length, token.end + CLAIM_CONTEXT_RADIUS),
+  );
+}
+
+function isPercentToken(text: string, token: NarrativeNumberToken): boolean {
+  return /^\s*%/.test(text.slice(token.end, token.end + 2));
+}
+
+/**
+ * P1-06: percentages used to be stripped from the text and never verified, so
+ * "gold is up 4%" could never fail the gate. A percentage is now a claim when:
+ * - it carries an explicit `+`/`-` sign that is not a range continuation
+ *   ("0.5%-1.0% account risk" stays free), or
+ * - a market keyword (never advice vocabulary) appears beside it.
+ */
+function isPercentClaim(text: string, token: NarrativeNumberToken): boolean {
+  const leading = text[token.start];
+  if (leading === '+' || leading === '-') {
+    const isRangeContinuation =
+      leading === '-' &&
+      /[0-9%]\s*$/.test(text.slice(Math.max(0, token.start - 2), token.start));
+    if (!isRangeContinuation) return true;
+  }
+  return PERCENT_CLAIM_CONTEXT_PATTERN.test(contextAround(text, token));
+}
+
+function collectCanonicalClaims(text: string): number[] {
+  const claims = new Set<number>();
+  for (const token of extractNarrativeNumberTokens(text)) {
+    if (isPercentToken(text, token)) {
+      if (isPercentClaim(text, token)) claims.add(token.value);
+      continue;
+    }
+    if (isMarketLikeClaim(token.value)) {
+      claims.add(token.value);
+      continue;
+    }
+    if (READING_CLAIM_CONTEXT_PATTERN.test(contextAround(text, token))) {
+      claims.add(token.value);
+    }
+  }
+  return [...claims];
 }
 
 /**
  * Post-generation guard for canonical chat (audit plan §1.3, P0-3). A numeric
  * market claim requires a market-data tool result, and the claimed value must
  * actually appear in that tool's output — tool presence alone is not evidence.
- * Dates, years, timeframes, and percentages are structural and never claimed.
+ * Dates, years, and timeframes are structural and never claimed. Percentages
+ * are claims when signed or next to market context, and small integers are
+ * claims when they read as an indicator/positioning value (P1-06).
  */
 export function checkCanonicalEvidence(
   text: string,
   toolEvidence: readonly CanonicalToolEvidence[],
 ): CanonicalEvidenceCheck {
-  const claimText = text.replace(PERCENT_CLAIM_PATTERN, ' ');
-  const claims = [
-    ...new Set(extractNarrativeNumbers(claimText).filter(isMarketLikeClaim)),
-  ];
+  const claims = collectCanonicalClaims(text);
   const marketTools = toolEvidence.filter((tool) => MARKET_TOOL_PATTERN.test(tool.name));
   const findings: string[] = [];
   if (claims.length > 0 && marketTools.length === 0) {
