@@ -18,7 +18,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { and, desc, eq, isNull, lt, or } from 'drizzle-orm';
+import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
@@ -40,10 +40,13 @@ export async function getPlan(planId: string) {
 export async function getUserSubscription(userId: string) {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId);
+  // Historical rows (canceled/expired) can coexist with the active one, so
+  // always read the newest row for the tenant.
   const [sub] = await db
     .select()
     .from(schema.subscriptions)
     .where(eq(schema.subscriptions.tenantId, tenantId))
+    .orderBy(desc(schema.subscriptions.createdAt))
     .limit(1);
   return sub ?? null;
 }
@@ -61,8 +64,17 @@ export async function getUserPayments(userId: string, limit: number = 50) {
 }
 
 /**
- * Upsert a subscription for a user. If one exists, update it; otherwise create it.
- * Returns the subscription ID.
+ * Upsert a subscription for a user in one atomic statement.
+ *
+ * The previous SELECT-then-INSERT/UPDATE raced under concurrent checkout or
+ * webhook calls: both saw no row and both INSERTed, violating
+ * `subscriptions_tenant_active_idx` (SQLSTATE 23505). `ON CONFLICT` against
+ * that partial unique index serialises the claim — the loser of the race
+ * updates the winner's row instead of crashing.
+ *
+ * Non-active historical rows (canceled/expired/past_due) do not conflict; a
+ * fresh active row is inserted for the tenant, matching the index's intent of
+ * preserving history.
  */
 export async function upsertSubscription(
   userId: string,
@@ -70,27 +82,8 @@ export async function upsertSubscription(
 ): Promise<string> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId);
-  const existing = await db
-    .select({ id: schema.subscriptions.id })
-    .from(schema.subscriptions)
-    .where(eq(schema.subscriptions.tenantId, tenantId))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const sub = existing[0]!;
-    await db
-      .update(schema.subscriptions)
-      .set({
-        planId: data.planId,
-        status: 'active',
-        nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(schema.subscriptions.id, sub.id), eq(schema.subscriptions.tenantId, tenantId)));
-    return sub.id;
-  }
-
-  const [newSub] = await db
+  const now = new Date();
+  const [row] = await db
     .insert(schema.subscriptions)
     .values({
       tenantId,
@@ -98,8 +91,18 @@ export async function upsertSubscription(
       status: 'active',
       nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
     })
-    .returning();
-  return newSub!.id;
+    .onConflictDoUpdate({
+      target: [schema.subscriptions.tenantId],
+      targetWhere: sql`${schema.subscriptions.status} IN ('active', 'trialing')`,
+      set: {
+        planId: data.planId,
+        status: 'active',
+        nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
+        updatedAt: now,
+      },
+    })
+    .returning({ id: schema.subscriptions.id });
+  return row!.id;
 }
 
 /**

@@ -31,8 +31,10 @@ import {
   createPayment,
   failCheckoutAttempt,
   getPlan,
+  getTenantDbScope,
   saveCheckoutInvoice,
   upsertSubscription,
+  withTenantDbFresh,
 } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
@@ -122,6 +124,15 @@ export const POST = withAuth<void>(async (req, { user }) => {
     const orderId = `${user.userId}-${plan.id}-${idempotencyKey}`;
     const priceAmount = plan.priceUsdCents / 100;
 
+    // Billing bookkeeping deliberately runs in its OWN tenant transactions
+    // instead of the request-scoped one from withAuth. If any step throws a
+    // DB error, the request transaction is left aborted (25P02) and rolled
+    // back — which previously wiped claimCheckoutAttempt + saveCheckoutInvoice
+    // and lost the created NOWPayments invoice. Fresh transactions keep the
+    // claim and the provider invoice durable, and let failCheckoutAttempt
+    // persist on a connection that is not poisoned.
+    const tenantId = getTenantDbScope()?.tenantId;
+
     try {
       const recoveredInvoice =
         claim.kind === 'claimed' && claim.attempt.invoiceId && claim.attempt.checkoutUrl
@@ -143,40 +154,53 @@ export const POST = withAuth<void>(async (req, { user }) => {
         }));
 
       if (!recoveredInvoice) {
-        await saveCheckoutInvoice({
+        if (!tenantId) throw new Error('Checkout requires an active tenant scope');
+        await withTenantDbFresh(tenantId, () =>
+          saveCheckoutInvoice({
+            attemptId: claim.attempt.id,
+            invoiceId: invoice.id,
+            checkoutUrl: invoice.invoice_url,
+            processingToken: claim.attempt.processingToken!,
+          }),
+        );
+      }
+
+      if (!tenantId) throw new Error('Checkout requires an active tenant scope');
+      await withTenantDbFresh(tenantId, async () => {
+        const subscriptionId = await upsertSubscription(user.userId, {
+          planId: plan.id,
+          nowpaymentsInvoiceId: invoice.id,
+        });
+        await createPayment({
+          subscriptionId,
+          userId: user.userId,
+          nowpaymentsInvoiceId: invoice.id,
+          payCurrency: plan.payCurrency ?? 'usdt',
+        });
+        await completeCheckoutAttempt({
           attemptId: claim.attempt.id,
           invoiceId: invoice.id,
           checkoutUrl: invoice.invoice_url,
           processingToken: claim.attempt.processingToken!,
         });
-      }
-
-      const subscriptionId = await upsertSubscription(user.userId, {
-        planId: plan.id,
-        nowpaymentsInvoiceId: invoice.id,
-      });
-
-      await createPayment({
-        subscriptionId,
-        userId: user.userId,
-        nowpaymentsInvoiceId: invoice.id,
-        payCurrency: plan.payCurrency ?? 'usdt',
-      });
-
-      await completeCheckoutAttempt({
-        attemptId: claim.attempt.id,
-        invoiceId: invoice.id,
-        checkoutUrl: invoice.invoice_url,
-        processingToken: claim.attempt.processingToken!,
       });
 
       return Response.json({ checkoutUrl: invoice.invoice_url, invoiceId: invoice.id });
     } catch (err) {
-      await failCheckoutAttempt(
-        claim.attempt.id,
-        err instanceof Error ? err.message : String(err),
-        claim.attempt.processingToken!,
-      );
+      const failureMessage = err instanceof Error ? err.message : String(err);
+      if (tenantId) {
+        // Persist the failure outside the (possibly aborted) request
+        // transaction so a retry can reclaim the claim row.
+        await withTenantDbFresh(tenantId, () =>
+          failCheckoutAttempt(claim.attempt.id, failureMessage, claim.attempt.processingToken!),
+        ).catch(() => {});
+      } else {
+        await failCheckoutAttempt(
+          claim.attempt.id,
+          failureMessage,
+          claim.attempt.processingToken!,
+        ).catch(() => {});
+      }
       throw err;
     }
   } catch (err) {
