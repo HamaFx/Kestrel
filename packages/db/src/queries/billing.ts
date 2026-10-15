@@ -19,7 +19,7 @@
 // These functions provide a cached lookup of a tenant's active subscription
 // and associated plan, used by feature gating checks across the app.
 
-import { and, desc, eq, gte, lt } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 
@@ -137,11 +137,11 @@ export function getEffectiveTokenCap(sub: SubscriptionWithPlan | null): number |
  */
 export async function countActiveAlerts(tenantId: string): Promise<number> {
   const db = getDb();
-  const result = await db
-    .select({ id: schema.alerts.id })
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
     .from(schema.alerts)
     .where(and(eq(schema.alerts.tenantId, tenantId), eq(schema.alerts.active, true)));
-  return result.length;
+  return row?.count ?? 0;
 }
 
 /**
@@ -154,8 +154,8 @@ export async function countJournalEntriesThisMonth(tenantId: string): Promise<nu
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const result = await db
-    .select({ id: schema.journalEntries.id })
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
     .from(schema.journalEntries)
     .where(
       and(
@@ -164,5 +164,5 @@ export async function countJournalEntriesThisMonth(tenantId: string): Promise<nu
         lt(schema.journalEntries.openedAt, nextMonthStart),
       ),
     );
-  return result.length;
+  return row?.count ?? 0;
 }

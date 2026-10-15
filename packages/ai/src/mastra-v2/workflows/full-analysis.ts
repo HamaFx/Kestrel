@@ -13,8 +13,8 @@ import {
   completeFullAnalysisQueue,
   failFullAnalysisQueue,
   getFullAnalysisQueueRow,
+  getFullAnalysisQueueStats,
   heartbeatFullAnalysisQueue,
-  listFullAnalysisQueueRows,
   purgeOldFullAnalysisQueue,
   purgeOldFullAnalysisQueueWithIds,
   recoverStaleFullAnalysisQueue,
@@ -677,22 +677,9 @@ export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<n
 export async function getFullAnalysisQueueHealth(): Promise<FullAnalysisQueueHealth> {
   try {
     const db = getDb();
-    const [pending, running] = await Promise.all([
-      listFullAnalysisQueueRows('pending', db),
-      listFullAnalysisQueueRows('running', db),
-    ]);
-    const now = Date.now();
-    return {
-      pending: pending.length,
-      running: running.length,
-      stalePending: pending.filter((row) => now - row.createdAt.getTime() > 10 * 60_000)
-        .length,
-      stuckRunning: running.filter(
-        (row) =>
-          (row.leaseExpiresAt?.getTime() ?? 0) <= now ||
-          now - row.updatedAt.getTime() > 30_000,
-      ).length,
-    };
+    // One bounded aggregate instead of fetching every pending/running row
+    // (with its multi-KB JSONB blobs) into Node.js memory on /api/health.
+    return await getFullAnalysisQueueStats(db);
   } catch (error) {
     flog.warn('Full-analysis queue health unavailable', { error: serializeError(error) });
     return { pending: 0, running: 0, stalePending: 0, stuckRunning: 0, unavailable: true };
