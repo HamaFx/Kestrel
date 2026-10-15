@@ -27,6 +27,7 @@ const {
   mockRequeueFullAnalysisRun,
   mockTouchFullAnalysisRun,
   MockFullAnalysisLeaseLostError,
+  MockFullAnalysisCancelledError,
   MockFullAnalysisQuotaExceededError,
   MockFullAnalysisBudgetAdmissionError,
   mockFullAnalysisRetryAction,
@@ -48,6 +49,13 @@ const {
   mockTouchFullAnalysisRun: vi.fn(),
   MockFullAnalysisLeaseLostError: class MockFullAnalysisLeaseLostError extends Error {
     code = 'FULL_ANALYSIS_LEASE_LOST';
+  },
+  MockFullAnalysisCancelledError: class MockFullAnalysisCancelledError extends Error {
+    code = 'FULL_ANALYSIS_CANCELLED';
+    constructor() {
+      super('Full analysis job was cancelled.');
+      this.name = 'FullAnalysisCancelledError';
+    }
   },
   MockFullAnalysisQuotaExceededError: class MockFullAnalysisQuotaExceededError extends Error {
     code = 'FULL_ANALYSIS_BUDGET_EXCEEDED';
@@ -158,6 +166,7 @@ vi.mock('@kestrel/ai/mastra', () => ({
   requeueFullAnalysisRun: mockRequeueFullAnalysisRun,
   touchFullAnalysisRun: mockTouchFullAnalysisRun,
   FullAnalysisLeaseLostError: MockFullAnalysisLeaseLostError,
+  FullAnalysisCancelledError: MockFullAnalysisCancelledError,
   FullAnalysisQuotaExceededError: MockFullAnalysisQuotaExceededError,
   FullAnalysisBudgetAdmissionError: MockFullAnalysisBudgetAdmissionError,
   fullAnalysisRetryAction: mockFullAnalysisRetryAction,
@@ -511,4 +520,26 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     expect(result.processed).toBe(0);
     expect(mockClaimNextFullAnalysisRun).not.toHaveBeenCalled();
   });
+
+  it('appends stream interrupted message and does not fail or requeue when job is cancelled', async () => {
+    const ctx = context();
+    mockTouchFullAnalysisRun.mockRejectedValueOnce(new MockFullAnalysisCancelledError());
+
+    const result = await runMultiAgentAnalysis(ctx);
+
+    expect(result.processed).toBe(1);
+    expect(mockAppendAssistantMessage).toHaveBeenCalledWith(
+      'user-1',
+      'thread-1',
+      expect.objectContaining({
+        role: 'assistant',
+        parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
+      }),
+      { idempotencyKey: 'analysis-job:run-1:interrupted' },
+    );
+    expect(mockCompleteFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockFailFullAnalysisRun).not.toHaveBeenCalled();
+    expect(mockRequeueFullAnalysisRun).not.toHaveBeenCalled();
+  });
 });
+

@@ -320,8 +320,22 @@ function pollJobToStreamResponse(
         controller.close();
       };
 
-      const abortHandler = () => closeOnce();
+      const cancelJob = () => {
+        void fetch(`/api/chat/analysis-jobs/${jobId}`, {
+          method: 'DELETE',
+          headers: { 'X-CSRF-Token': getCsrfToken() ?? '' },
+          keepalive: true,
+        }).catch(() => {});
+      };
+
+      const abortHandler = () => {
+        cancelJob();
+        closeOnce();
+      };
       abortSignal?.addEventListener('abort', abortHandler);
+      if (abortSignal?.aborted) {
+        cancelJob();
+      }
 
       try {
         while (Date.now() - startPoll < MAX_POLL_TIME_MS) {

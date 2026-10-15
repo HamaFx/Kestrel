@@ -43,6 +43,15 @@ export class FullAnalysisQueueOwnershipError extends Error {
   }
 }
 
+export class FullAnalysisQueueCancelledError extends Error {
+  readonly code = 'FULL_ANALYSIS_QUEUE_CANCELLED';
+
+  constructor(message = 'The Full-analysis job was cancelled.') {
+    super(message);
+    this.name = 'FullAnalysisQueueCancelledError';
+  }
+}
+
 export class FullAnalysisQueuePayloadError extends Error {
   readonly code = 'FULL_ANALYSIS_QUEUE_PAYLOAD_INVALID';
 
@@ -220,6 +229,14 @@ export async function heartbeatFullAnalysisQueue(
     .returning();
   const row = rows[0];
   if (!row) {
+    const existing = await db
+      .select({ status: schema.fullAnalysisQueue.status })
+      .from(schema.fullAnalysisQueue)
+      .where(eq(schema.fullAnalysisQueue.runId, input.runId))
+      .limit(1);
+    if (existing[0]?.status === 'cancelled') {
+      throw new FullAnalysisQueueCancelledError();
+    }
     metrics.increment('queue_stale_lease_completion_total');
     throw new FullAnalysisQueueOwnershipError();
   }
@@ -389,6 +406,42 @@ export async function purgeOldFullAnalysisQueueWithIds(
     )
     .returning({ runId: schema.fullAnalysisQueue.runId });
   return rows.map((r) => r.runId);
+}
+
+export async function cancelFullAnalysisQueue(
+  runId: string,
+  userId: string,
+  db: DbClient = getDb(),
+): Promise<FullAnalysisQueueRow | null> {
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const now = new Date();
+  const rows = await db
+    .update(schema.fullAnalysisQueue)
+    .set({
+      status: 'cancelled',
+      error: 'Cancelled by user',
+      completedAt: now,
+      updatedAt: now,
+      leaseExpiresAt: null,
+    })
+    .where(
+      and(
+        eq(schema.fullAnalysisQueue.runId, runId),
+        eq(schema.fullAnalysisQueue.userId, userId),
+        eq(schema.fullAnalysisQueue.tenantId, tenantId),
+        inArray(schema.fullAnalysisQueue.status, ['pending', 'running']),
+      ),
+    )
+    .returning();
+  const row = rows[0];
+  if (!row) {
+    const existing = await getFullAnalysisQueueRow(runId, userId, db);
+    if (existing?.status === 'cancelled') {
+      return existing;
+    }
+    return null;
+  }
+  return row;
 }
 
 export async function getFullAnalysisQueueRow(
