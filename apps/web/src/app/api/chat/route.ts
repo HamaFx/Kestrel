@@ -32,7 +32,7 @@ import {
   CanonicalEvidenceBlockedError,
   createExecutionPlan,
   enqueueFullAnalysis,
-  extractMastraSymbol,
+  extractMastraSymbols,
   extractUserMessageText,
   getThread,
   getUserWithSettings,
@@ -190,7 +190,20 @@ export const POST = withAuth<void>(async (req, { user }) => {
   const userMessage = { ...last, parts: userParts.data } as UIMessage;
   const userText = extractUserMessageText(userMessage);
   const resolvedMode = resolveMode(analysisMode, userText);
-  const fallbackSymbol = extractMastraSymbol(userText) ?? thread.pinnedSymbol ?? null;
+  // P2-01: the thread pin is a fallback for prompts that name no symbol, or
+  // that name the pinned symbol among others. A prompt that names other
+  // symbols but not the pin must stay ambiguous (null) instead of being
+  // silently routed to an unrelated pinned market.
+  const mentionedSymbols = extractMastraSymbols(userText);
+  const pinnedSymbol = thread.pinnedSymbol ?? null;
+  const fallbackSymbol =
+    mentionedSymbols.length === 1
+      ? mentionedSymbols[0]!
+      : mentionedSymbols.length === 0
+        ? pinnedSymbol
+        : pinnedSymbol && mentionedSymbols.includes(pinnedSymbol)
+          ? pinnedSymbol
+          : null;
   // Build one auditable policy/model decision at the boundary. Existing
   // route-specific services remain responsible for persistence and streaming;
   // this decision is used for parity validation and future migration.

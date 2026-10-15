@@ -27,6 +27,7 @@ export {
 } from '../mastra-v2/planning/execution-plan';
 export {
   extractMastraSymbol,
+  extractMastraSymbols,
   autoDetectMode,
   resolveMode,
   isInjectionAttempt,

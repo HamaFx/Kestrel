@@ -19,7 +19,13 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { autoDetectMode, extractMastraSymbol, isInjectionAttempt, resolveMode } from '../src/mastra-v2/planning/routing-policy';
+import {
+  autoDetectMode,
+  extractMastraSymbol,
+  extractMastraSymbols,
+  isInjectionAttempt,
+  resolveMode,
+} from '../src/mastra-v2/planning/routing-policy';
 
 describe('autoDetectMode', () => {
   it('returns single for greetings and thanks', () => {
@@ -141,6 +147,28 @@ describe('extractMastraSymbol (P1-02)', () => {
 
   it('returns null when no symbol is found', () => {
     expect(extractMastraSymbol('How does RSI work?')).toBeNull();
+  });
+});
+
+describe('extractMastraSymbols (P2-01)', () => {
+  it('returns every symbol the prompt mentions', () => {
+    expect(extractMastraSymbols('Compare gold vs EURUSD')).toEqual(['XAUUSD', 'EURUSD']);
+    expect(extractMastraSymbols('Correlation between GBPUSD and USDJPY')).toEqual([
+      'GBPUSD',
+      'USDJPY',
+    ]);
+    expect(extractMastraSymbols('Analyze XAUUSD 1H')).toEqual(['XAUUSD']);
+    expect(extractMastraSymbols('How does RSI work?')).toEqual([]);
+  });
+
+  it('supports the pin fallback decision without routing to an unrelated market', () => {
+    // Prompt names the pin among several symbols → the pin may fill in.
+    const named = extractMastraSymbols('Gold is leading; compare with EURUSD');
+    expect(named).toContain('XAUUSD');
+    // Prompt names only other symbols → the pin must not be used.
+    const others = extractMastraSymbols('Compare EURUSD and GBPUSD');
+    expect(others).toEqual(['EURUSD', 'GBPUSD']);
+    expect(others).not.toContain('XAUUSD');
   });
 });
 

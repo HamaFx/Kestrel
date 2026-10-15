@@ -54,6 +54,7 @@ export {
   resolveMode,
   decideMastraExecution,
   extractMastraSymbol,
+  extractMastraSymbols,
   routeUnified,
   isInjectionAttempt,
   isHighConfidenceMutationIntent,

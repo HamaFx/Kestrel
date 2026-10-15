@@ -82,18 +82,31 @@ export function messageText(message: UIMessage): string {
     .trim();
 }
 
-export function extractMastraSymbol(prompt: string): string | null {
+/**
+ * Every symbol the prompt mentions (deduplicated). Callers that choose a
+ * routing fallback need the full set, not just the unambiguous single match:
+ * a prompt naming several symbols must not be silently routed to the thread's
+ * pinned symbol when it never mentions the pin (P2-01).
+ */
+export function extractMastraSymbols(prompt: string): string[] {
   const matched = new Set<string>();
   if (/\bgold\b/i.test(prompt)) matched.add('XAUUSD');
-  const explicitSymbols = ALL_SYMBOLS.filter((symbol) => prompt.toUpperCase().includes(symbol));
-  for (const s of explicitSymbols) matched.add(s);
+  const upper = prompt.toUpperCase();
+  for (const symbol of ALL_SYMBOLS) {
+    if (upper.includes(symbol)) matched.add(symbol);
+  }
   const matches = [...prompt.matchAll(new RegExp(`\\b(?:${ALL_SYMBOLS.join('|')})\\b`, 'gi'))].map(
     (match) => normalizeSymbol(match[0] ?? ''),
   );
   for (const m of matches) {
     if (isKnownSymbol(m)) matched.add(m);
   }
-  return matched.size === 1 ? matched.values().next().value ?? null : null;
+  return [...matched];
+}
+
+export function extractMastraSymbol(prompt: string): string | null {
+  const matched = extractMastraSymbols(prompt);
+  return matched.length === 1 ? (matched[0] ?? null) : null;
 }
 
 export function isInjectionAttempt(prompt: string): boolean {
