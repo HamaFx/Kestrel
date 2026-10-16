@@ -17,33 +17,24 @@
 // Price adapter — public surface for "what's the latest mid price?".
 //
 // Pipeline:
-//   zod-validate → cache → primary → fallback (with health-aware ordering) → DTO
+//   zod-validate → cache → primary (on-demand BiQuote REST / Binance REST) → fallback → DTO
 //
-// Phase 7a:
-//   - Cache uses `fetchWithMeta` so adapters can surface `stale` to callers.
-//   - When the producer fails AND a recently-cached value exists within the
-//     SWR window, we return the stale value with `stale=true` and let the UI
-//     surface it via `<StaleIndicator/>`.
-//
-// Phase 8 PR-8 final order:
-//   1. live-ticks   — Postgres snapshot table maintained by the worker.
-//                     When the row is fresh, /api/market/price is served
-//                     directly from Postgres with zero outbound HTTP.
-//   2. biquote      — REST fallback when the worker is down.
-//   3. finnhub      — third tier.
-//
-// Twelve Data removed — BiQuote primary covers forex/gold.
+// Multi-symbol batching (`getPrices` / `getPricesWithMeta`):
+//   - Collapses N FX/Gold symbols into a single `GET /api/latest?symbols=A&symbols=B`
+//     round-trip when ≥2 FX/Gold symbols miss the 3s cache, populating per-symbol
+//     cache entries and falling back seamlessly to `getPriceWithMeta` per symbol.
 
 import { SymbolSchema, type Symbol, type Tick } from '@kestrel/shared';
 
 import { cacheKey, cacheTag, getDefaultCache, PRICE_TTL } from '../cache';
 import { runWithFailover, type ProviderAttempt } from '../failover';
-// P2-2 — Build provider attempts from the plugin registry instead of
-// hardcoded imports. Adding a new provider means registering a plugin
-// — no adapter code changes (OCP).
+import { recordFailure, recordSuccess } from '../health';
 import '../providers/provider-adapters'; // side-effect: register providers
-
-import { marketDataProviders } from '../providers/provider-registry';
+import { isTickStreamEnabled } from '../providers/provider-adapters';
+import {
+  marketDataProviders,
+  type ProviderPriceSnapshot,
+} from '../providers/provider-registry';
 
 export interface GetPriceOptions {
   signal?: AbortSignal;
@@ -72,10 +63,8 @@ export interface PriceResult {
   /** ms epoch UTC the upstream produced this value. */
   producedAt: number;
   /**
-   * Phase 2 hardening §3 — milliseconds since the worker observed the
-   * tick. Only meaningful when the live-ticks provider served the
-   * value; for REST fallbacks (`biquote` / `finnhub`) this is `null`
-   * because we don't get a server-side observation timestamp.
+   * Milliseconds since the upstream observed the tick (either from worker
+   * `live_ticks` or BiQuote's `quoteAgeSeconds * 1000`).
    */
   ageMs: number | null;
 }
@@ -85,6 +74,20 @@ function resolveKeys(opts: GetPriceOptions) {
     finnhub: opts.apiKeys?.finnhub ?? process.env.FINNHUB_API_KEY ?? '',
     biquoteBaseUrl:
       opts.apiKeys?.biquoteBaseUrl ?? process.env.BIQUOTE_BASE_URL ?? 'https://biquote.io',
+  };
+}
+
+function snapshotToTick(symbol: Symbol, value: ProviderPriceSnapshot, fetchedAt: number): Tick {
+  return {
+    symbol,
+    bid: value.price,
+    ask: value.price,
+    mid: value.price,
+    ts: fetchedAt,
+    source: value.provider,
+    ...(value.marketState ? { marketState: value.marketState } : {}),
+    ...(value.quoteAgeSeconds !== undefined ? { quoteAgeSeconds: value.quoteAgeSeconds } : {}),
+    ...(value.dayDiffPercent !== undefined ? { dayDiffPercent: value.dayDiffPercent } : {}),
   };
 }
 
@@ -118,29 +121,32 @@ export async function getPriceWithMeta(
   const r = await cache.fetchWithMeta<{ tick: Tick; ageMs: number | null }>(
     key,
     async () => {
-      // P2-2 — Build provider attempts from the plugin registry.
-      // Providers declare their own fetchPrice logic (pinned, key guards,
-      // category routing) — the adapter just iterates and runs failover.
       const providers = marketDataProviders.list();
-      const attempts: ProviderAttempt<{ price: number; provider: string; ageMs: number | null }>[] =
-        providers
-          .filter((p) => p.supports?.(symbol) ?? true)
-          .map((p) => ({
-            name: p.name,
-            pinned: p.pinned ?? false,
-            run: async () => {
-              const result = await p.fetchPrice(symbol, {
-                ...(opts.signal ? { signal: opts.signal } : {}),
-                baseUrl: keys.biquoteBaseUrl,
-                apiKey: keys.finnhub,
-              });
-              return {
-                price: result.price,
-                provider: result.provider,
-                ageMs: result.ageMs ?? null,
-              };
-            },
-          }));
+      const attempts: ProviderAttempt<ProviderPriceSnapshot>[] = providers
+        .filter((p) => p.supports?.(symbol) ?? true)
+        .map((p) => ({
+          name: p.name,
+          pinned: p.pinned ?? false,
+          run: async () => {
+            const result = await p.fetchPrice(symbol, {
+              ...(opts.signal ? { signal: opts.signal } : {}),
+              baseUrl: keys.biquoteBaseUrl,
+              apiKey: keys.finnhub,
+            });
+            return {
+              price: result.price,
+              provider: result.provider,
+              ageMs: result.ageMs ?? null,
+              ...(result.marketState ? { marketState: result.marketState } : {}),
+              ...(result.quoteAgeSeconds !== undefined
+                ? { quoteAgeSeconds: result.quoteAgeSeconds }
+                : {}),
+              ...(result.dayDiffPercent !== undefined
+                ? { dayDiffPercent: result.dayDiffPercent }
+                : {}),
+            };
+          },
+        }));
 
       if (opts.marketDataProvider) {
         attempts.forEach((attempt) => {
@@ -155,19 +161,8 @@ export async function getPriceWithMeta(
 
       const { value } = await runWithFailover(attempts);
       const fetchedAt = Date.now();
-
-      // Personal-mode: providers don't expose bid/ask on free tiers, so we
-      // synthesise a ±0.5 pip spread around mid so downstream chart/UI code
-      // doesn't have to special-case nullable bid/ask.
-      const tick: Tick = {
-        symbol,
-        bid: value.price,
-        ask: value.price,
-        mid: value.price,
-        ts: fetchedAt,
-        source: value.provider,
-      };
-      return { tick, ageMs: value.ageMs };
+      const tick = snapshotToTick(symbol, value, fetchedAt);
+      return { tick, ageMs: value.ageMs ?? null };
     },
     { ttlSeconds: ttl, maxStaleSeconds: swr, tags },
   );
@@ -178,4 +173,94 @@ export async function getPriceWithMeta(
     producedAt: r.meta.producedAt,
     ageMs: r.value.ageMs,
   };
+}
+
+/**
+ * Batch price lookup for multiple symbols with SWR metadata.
+ *
+ * When 2 or more FX/Gold symbols miss the fresh cache tier in on-demand mode,
+ * this issues a single `GET /api/latest?symbols=A&symbols=B` batch request via
+ * `biquoteProvider.fetchPrices()`, populates each symbol's cache entry, and
+ * falls back to `getPriceWithMeta()` for any unquoted or crypto symbols.
+ */
+export async function getPricesWithMeta(
+  symbolsInput: readonly Symbol[],
+  opts: GetPriceOptions = {},
+): Promise<PriceResult[]> {
+  if (symbolsInput.length === 0) return [];
+  const symbols = symbolsInput.map((s) => SymbolSchema.parse(s));
+  if (symbols.length === 1) {
+    return [await getPriceWithMeta(symbols[0]!, opts)];
+  }
+
+  const keys = resolveKeys(opts);
+  const ttl = opts.ttlSeconds ?? PRICE_TTL.ttlSeconds;
+  const swr = opts.maxStaleSeconds ?? PRICE_TTL.maxStaleSeconds;
+  const cache = await getDefaultCache();
+
+  const biquoteProvider = marketDataProviders.has('biquote')
+    ? marketDataProviders.get('biquote')
+    : null;
+  const canBatchBiquote =
+    !isTickStreamEnabled() &&
+    Boolean(biquoteProvider?.fetchPrices) &&
+    (!opts.marketDataProvider || opts.marketDataProvider === 'biquote');
+
+  if (canBatchBiquote && biquoteProvider?.fetchPrices) {
+    // Identify unique BiQuote-supported symbols that are not fresh in cache.
+    const coldBiquoteSymbols: Symbol[] = [];
+    const seen = new Set<Symbol>();
+    for (const s of symbols) {
+      if (seen.has(s)) continue;
+      seen.add(s);
+      if (!(biquoteProvider.supports?.(s) ?? false)) continue;
+      const existing = await cache.getWithMeta<{ tick: Tick; ageMs: number | null }>(
+        cacheKey({ resource: 'price', symbol: s }),
+      );
+      if (!existing || existing.meta.stale) {
+        coldBiquoteSymbols.push(s);
+      }
+    }
+
+    if (coldBiquoteSymbols.length >= 2) {
+      try {
+        const batchMap = await biquoteProvider.fetchPrices(coldBiquoteSymbols, {
+          ...(opts.signal ? { signal: opts.signal } : {}),
+          baseUrl: keys.biquoteBaseUrl,
+        });
+        recordSuccess('biquote');
+        const fetchedAt = Date.now();
+        await Promise.all(
+          [...batchMap.entries()].map(async ([sym, snap]) => {
+            const tick = snapshotToTick(sym, snap, fetchedAt);
+            await cache.set(
+              cacheKey({ resource: 'price', symbol: sym }),
+              { tick, ageMs: snap.ageMs ?? null },
+              {
+                ttlSeconds: ttl,
+                maxStaleSeconds: swr,
+                tags: [cacheTag('price'), cacheTag('price', sym)],
+              },
+            );
+          }),
+        );
+      } catch (err) {
+        recordFailure('biquote', err);
+        // Fall through to per-symbol getPriceWithMeta with full failover + SWR.
+      }
+    }
+  }
+
+  return Promise.all(symbols.map((s) => getPriceWithMeta(s, opts)));
+}
+
+/**
+ * Batch price lookup returning normalized `Tick[]` in input order.
+ */
+export async function getPrices(
+  symbolsInput: readonly Symbol[],
+  opts: GetPriceOptions = {},
+): Promise<Tick[]> {
+  const results = await getPricesWithMeta(symbolsInput, opts);
+  return results.map((r) => r.tick);
 }
