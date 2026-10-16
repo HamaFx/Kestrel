@@ -13,6 +13,7 @@ services:
       dockerfile: Dockerfile.worker
       args:
         DEPLOYED_SHA: ${DEPLOYED_SHA:-unknown}
+    image: hamafx-worker:latest
     container_name: hamafx-worker
     restart: unless-stopped
     env_file:
