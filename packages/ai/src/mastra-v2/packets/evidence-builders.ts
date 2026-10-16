@@ -35,9 +35,12 @@ function iso(ms: number): string {
 
 export function buildPriceEvidence(result: PriceResult): XauusdPriceEvidence {
   const { tick, ageMs } = result;
+  const isMarketClosed = tick.marketState === 'closed';
   const warnings = [
     ...(result.stale ? ['Price was served from stale-while-error cache'] : []),
-    ...(ageMs !== null && ageMs > 10_000 ? ['Price is older than the fresh-data threshold'] : []),
+    ...(!isMarketClosed && ageMs !== null && ageMs > 10_000
+      ? ['Price is older than the fresh-data threshold']
+      : []),
   ];
 
   return XauusdPriceEvidenceSchema.parse({
@@ -47,7 +50,7 @@ export function buildPriceEvidence(result: PriceResult): XauusdPriceEvidence {
     source: tick.source,
     fetchedAt: iso(result.producedAt),
     dataAsOf: iso(tick.ts),
-    freshness: result.stale ? 'stale' : freshnessFromAge(ageMs, 10_000),
+    freshness: result.stale ? 'stale' : isMarketClosed ? 'fresh' : freshnessFromAge(ageMs, 10_000),
     quality: qualityFromWarnings(warnings),
     warnings,
     trust: 'trusted-deterministic',
@@ -65,11 +68,6 @@ export function buildCandlesEvidence(
   const latestCandle = candles.at(-1);
   const warnings = [
     ...(result.stale ? ['Candles were served from stale-while-error cache'] : []),
-    // §2.1/P1-10 — availability is measured on the FETCHED window, not the
-    // output-bounded slice: bounding the packet to the last N candles is a
-    // size limit, not a provider shortfall. Comparing the slice length
-    // against requestedCount warned on every fresh packet, which degraded
-    // every packet and defeated the fresh-only packet cache.
     ...(result.candles.length < requestedCount
       ? [`Only ${result.candles.length} candles were available; ${requestedCount} were requested`]
       : []),
@@ -103,10 +101,6 @@ export function buildIndicatorsEvidence(
 ): XauusdIndicatorsEvidence {
   const candles = result.candles.slice(-maxCandleOutput);
   const results = indicators.map(({ kind, params }) => {
-    // §2.1/P1-10 — memoized compute: the XAUUSD packet path shares the
-    // bounded indicator memo with the committee collector, so repeated
-    // collections over an identical candle window (bursts, report repair
-    // re-runs, tool calls) never recompute a pure indicator.
     const computed = computeIndicatorMemo({
       symbol: XAUUSD,
       tf: timeframe,
@@ -118,8 +112,6 @@ export function buildIndicatorsEvidence(
   });
   const warnings = [
     ...(result.stale ? ['Indicator candles were served from stale-while-error cache'] : []),
-    // §2.1/P1-10 — same as buildCandlesEvidence: compare the FETCHED window
-    // against the request, not the output-bounded slice used for compute.
     ...(result.candles.length < requestedCount
       ? [`Only ${result.candles.length} candles were available; ${requestedCount} were requested`]
       : []),

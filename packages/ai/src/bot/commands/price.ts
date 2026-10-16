@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-// F7 — /price command: get current price for a symbol.
+// F7 — /price command: get current price for a symbol on-demand via @kestrel/data.
 // /price XAUUSD → current gold price
 
-import { schema } from '@kestrel/db';
-import { desc, eq } from 'drizzle-orm';
+import { getPriceWithMeta } from '@kestrel/data';
+import { isKnownSymbol } from '@kestrel/shared';
 
-import { getDb } from '../../db';
 import type { BotCommand, BotResponse } from '../types';
 
 export const priceCommand: BotCommand = {
@@ -28,50 +27,39 @@ export const priceCommand: BotCommand = {
   aliases: ['p'],
   description: 'Get current price: /price <symbol>',
   handler: async (args: string[]): Promise<BotResponse> => {
-    const symbolStr = args[0];
+    const symbolStr = args[0]?.trim().toUpperCase();
     if (!symbolStr) {
       return {
         text: 'Usage: /price <symbol>\nExample: /price XAUUSD',
       };
     }
 
-    const symbol = symbolStr.toUpperCase();
+    if (!isKnownSymbol(symbolStr)) {
+      return {
+        text: `Unknown symbol: ${symbolStr}. Example: /price XAUUSD`,
+      };
+    }
 
     try {
-      const db = getDb();
-      const [tick] = await db
-        .select({
-          bid: schema.liveTicks.bid,
-          ask: schema.liveTicks.ask,
-          mid: schema.liveTicks.mid,
-          ts: schema.liveTicks.ts,
-        })
-        .from(schema.liveTicks)
-        .where(eq(schema.liveTicks.symbol, symbol))
-        .orderBy(desc(schema.liveTicks.ts))
-        .limit(1);
-
-      if (!tick) {
-        return {
-          text: `No live data available for ${symbol}. The market may be closed or the symbol is not tracked.`,
-        };
-      }
-
+      const { tick } = await getPriceWithMeta(symbolStr);
       const time = new Date(tick.ts).toISOString();
+      const statusLine =
+        tick.marketState === 'closed' ? 'Status: Market Closed (Last Price)' : 'Status: Live';
 
       return {
         text: [
-          `📊 ${symbol}`,
-          ``,
+          `📊 ${tick.symbol}`,
+          statusLine,
           `Bid: ${tick.bid}`,
           `Ask: ${tick.ask}`,
           `Mid: ${tick.mid}`,
+          `Source: ${tick.source}`,
           `Updated: ${time}`,
         ].join('\n'),
       };
     } catch (err) {
       return {
-        text: `Failed to fetch price for ${symbol}: ${err instanceof Error ? err.message : 'unknown error'}`,
+        text: `Failed to fetch price for ${symbolStr}: ${err instanceof Error ? err.message : 'unknown error'}`,
       };
     }
   },

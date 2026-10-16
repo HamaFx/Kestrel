@@ -72,12 +72,6 @@ export const MarketStructureSummarySchema = z.object({
   rangeSize: z.number(),
 });
 
-/**
- * Audit plan §4.2 — XAUUSD macro extension on the generalized packet. The
- * committee's XAUUSD packets carry the gold-specific context (dollar index,
- * real yields, upcoming USD events, news headlines & volume) that previously
- * existed only on the XAUUSD verified-report packet.
- */
 export const XauusdExtensionSchema = z.object({
   evidenceId: z.string().min(1),
   dollarIndex: z.array(z.object({ asOf: z.string(), value: z.number() })).max(10),
@@ -128,9 +122,7 @@ export const SymbolResearchPacketSchema = z.object({
     })
     .nullable(),
   timeframes: z.array(EvidenceSchema),
-  /** Deterministic swing high/low/range computed from fetched candles across all symbols (Phase 4.2). */
   marketStructure: MarketStructureSummarySchema.optional(),
-  /** §4.2: gold-specific macro context; present only for XAUUSD + includeMacro. */
   xauusdExtension: XauusdExtensionSchema.optional(),
   optionalContext: z.object({
     available: z.boolean(),
@@ -211,17 +203,9 @@ function computeMarketStructureSummary(
 }
 
 export interface CollectSymbolResearchPacketOptions {
-  /**
-   * Audit plan §4.2 — include the XAUUSD macro extension (dollar index, real
-   * yields, upcoming USD events, news headlines) on the generalized packet.
-   */
   includeMacro?: boolean;
 }
 
-/**
- * Compact the XAUUSD macro evidence into the packet's extension envelope.
- * Failures degrade to a warning — the technical packet itself stays valid.
- */
 async function collectXauusdExtension(
   packetId: string,
   generatedAt: string,
@@ -255,17 +239,10 @@ async function collectXauusdExtension(
       warnings: evidence.warnings,
     };
   } catch {
-    // Macro context is optional evidence; a failed macro fetch must never
-    // block or degrade the technical packet (Q1: quality, not fragility).
     return null;
   }
 }
 
-/**
- * Collect one bounded technical packet for any canonical Kestrel symbol.
- * XAUUSD packets can carry the §4.2 macro extension via `includeMacro`;
- * the verified XAUUSD report path keeps its own richer collector (§8).
- */
 export async function collectSymbolResearchPacket(
   symbolInput: Symbol,
   signal?: AbortSignal,
@@ -277,8 +254,6 @@ export async function collectSymbolResearchPacket(
   const generatedAt = new Date().toISOString();
   const packetId = `symbol-research-${symbol}-${randomUUID()}`;
   const wantsMacro = symbol === 'XAUUSD' && options?.includeMacro === true;
-  // §4.2: the XAUUSD macro context fetches alongside the technical
-  // evidence without widening the candle result types.
   const [technicalSettled, macroExtension] = await Promise.all([
     Promise.allSettled([
       getPriceWithMeta(symbol, signal ? { signal } : {}),
@@ -301,9 +276,10 @@ export async function collectSymbolResearchPacket(
 
   if (priceResult?.status === 'fulfilled') {
     const result = priceResult.value;
+    const isMarketClosed = result.tick.marketState === 'closed';
     const priceWarnings = [
       ...(result.stale ? ['Price was served from stale-while-error cache'] : []),
-      ...(result.ageMs !== null && result.ageMs > 10_000
+      ...(!isMarketClosed && result.ageMs !== null && result.ageMs > 10_000
         ? ['Price is older than the fresh-data threshold']
         : []),
     ];
@@ -315,9 +291,11 @@ export async function collectSymbolResearchPacket(
       dataAsOf: iso(result.tick.ts),
       freshness: result.stale
         ? 'stale'
-        : result.ageMs !== null && result.ageMs > 10_000
-          ? 'stale'
-          : 'fresh',
+        : isMarketClosed
+          ? 'fresh'
+          : result.ageMs !== null && result.ageMs > 10_000
+            ? 'stale'
+            : 'fresh',
       quality: priceWarnings.length === 0 ? 'complete' : 'degraded',
       warnings: priceWarnings,
       tick: result.tick,
