@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-// E2E test for the news adapter. Mocks `fetch` to return a Marketaux-shaped
-// payload and asserts the normalised NewsArticle output.
+// E2E test for the news adapter covering Marketaux and zero-key BiQuote fallback.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { articleIdFromUrl, fetchNews } from '../src/adapters/news';
 import { _resetThrottle } from '../src/cache/throttle';
+import { _resetHealth } from '../src/health';
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -52,9 +52,10 @@ const SAMPLE_RESPONSE = {
   ],
 };
 
-describe('fetchNews (marketaux)', () => {
+describe('fetchNews (marketaux & biquote zero-key fallback)', () => {
   beforeEach(() => {
     _resetThrottle();
+    _resetHealth();
   });
   afterEach(() => {
     globalThis.fetch = ORIGINAL_FETCH;
@@ -97,7 +98,35 @@ describe('fetchNews (marketaux)', () => {
     expect(articles.map((a) => a.title)).toEqual(['Gold rallies on Fed dovish signals']);
   });
 
-  it('throws when no provider key is configured', async () => {
-    await expect(fetchNews({ apiKeys: {} })).rejects.toThrow(/no news provider/);
+  it('falls back to zero-key BiQuote /api/news/market when Finnhub and Marketaux keys are unset', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            title: 'Gold surges above $2,400 on safe-haven demand',
+            description: 'XAUUSD rallied during the London session.',
+            url: 'https://example.com/biquote-gold-news',
+            publisher: 'Reuters',
+            publishedDate: '2026-05-27T10:00:00Z',
+            imageUrl: null,
+            category: 'Commodities',
+            language: 'en',
+            country: 'US',
+          },
+        ]),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch;
+
+    const articles = await fetchNews({ apiKeys: {}, symbol: 'XAUUSD' });
+    expect(articles).toHaveLength(1);
+    expect(articles[0]).toMatchObject({
+      id: articleIdFromUrl('https://example.com/biquote-gold-news'),
+      title: 'Gold surges above $2,400 on safe-haven demand',
+      summary: 'XAUUSD rallied during the London session.',
+      source: 'biquote',
+      publisher: 'Reuters',
+    });
+    expect(articles[0]?.symbols).toContain('XAUUSD');
   });
 });

@@ -22,7 +22,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { _resetThrottle } from '../src/cache/throttle';
 import { ProviderError } from '../src/errors';
-import { fetchLatest, fetchOhlc, fetchTick } from '../src/providers/biquote/rest';
+import {
+  BIQUOTE_THROTTLE_LIMIT,
+  fetchCalendar,
+  fetchCalendarUpcoming,
+  fetchLatest,
+  fetchMarketNews,
+  fetchOhlc,
+  fetchTick,
+} from '../src/providers/biquote/rest';
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -49,6 +57,10 @@ const VALID_TICK = {
   direction: 'FLAT',
   dayDiffPercent: 0.4,
   spread: 0.2,
+  marketState: 'open',
+  stale: false,
+  quoteAgeSeconds: 1,
+  lastQuoteAt: '2026-05-27T18:35:01Z',
 };
 
 function bar(openTime: string, opts: Partial<{ isOpen: boolean }> = {}): unknown {
@@ -79,7 +91,7 @@ describe('biquote fetchTick', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns a parsed BiquoteTick for a happy 200 response', async () => {
+  it('returns a parsed BiquoteTick for a happy 200 response including marketState', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(jsonResponse(VALID_TICK));
     globalThis.fetch = fetchSpy as unknown as typeof fetch;
 
@@ -87,6 +99,8 @@ describe('biquote fetchTick', () => {
     expect(tick.symbol).toBe('XAUUSD');
     expect(tick.bid).toBeCloseTo(2390.12);
     expect(tick.source).toBe('MetaTrader 5 (Broker 1)');
+    expect(tick.marketState).toBe('open');
+    expect(tick.quoteAgeSeconds).toBe(1);
 
     // Verify URL shape: /api/XAUUSD against the default base.
     const url = String(fetchSpy.mock.calls[0]?.[0]);
@@ -163,7 +177,25 @@ describe('biquote fetchLatest', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('joins symbols with commas and parses the array body', async () => {
+  it('repeats the symbols query parameter (?symbols=XAUUSD&symbols=EURUSD) and parses symbol-keyed object responses', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(
+      jsonResponse({
+        XAUUSD: VALID_TICK,
+        EURUSD: { ...VALID_TICK, symbol: 'EURUSD', mid: 1.085 },
+      }),
+    );
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+    const ticks = await fetchLatest(['XAUUSD', 'EURUSD']);
+    expect(ticks).toHaveLength(2);
+    expect(ticks.map((t) => t.symbol)).toEqual(['XAUUSD', 'EURUSD']);
+
+    const url = String(fetchSpy.mock.calls[0]?.[0]);
+    expect(url).toBe('https://biquote.io/api/latest?symbols=XAUUSD&symbols=EURUSD');
+    expect(url).not.toContain('%2C');
+  });
+
+  it('also accepts an array response envelope for backward compatibility', async () => {
     const fetchSpy = vi
       .fn()
       .mockResolvedValue(
@@ -174,10 +206,6 @@ describe('biquote fetchLatest', () => {
     const ticks = await fetchLatest(['XAUUSD', 'EURUSD']);
     expect(ticks).toHaveLength(2);
     expect(ticks[1]?.symbol).toBe('EURUSD');
-
-    const url = String(fetchSpy.mock.calls[0]?.[0]);
-    // Note: URLSearchParams percent-encodes commas as %2C.
-    expect(url).toContain('symbols=XAUUSD%2CEURUSD');
   });
 });
 
@@ -233,6 +261,27 @@ describe('biquote fetchOhlc', () => {
     expect(out[1]?.isOpen).toBe(true);
   });
 
+  it('passes optional from and to ISO-8601 query params on fetchOhlc', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(ohlcEnvelope([bar('2026-05-20T12:00:00Z')])));
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+    await fetchOhlc({
+      symbol: 'XAUUSD',
+      tf: '15m',
+      count: 200,
+      from: '2026-05-20T00:00:00.000Z',
+      to: '2026-05-21T00:00:00.000Z',
+    });
+
+    const url = new URL(String(fetchSpy.mock.calls[0]?.[0]));
+    expect(url.searchParams.get('interval')).toBe('15m');
+    expect(url.searchParams.get('limit')).toBe('200');
+    expect(url.searchParams.get('from')).toBe('2026-05-20T00:00:00.000Z');
+    expect(url.searchParams.get('to')).toBe('2026-05-21T00:00:00.000Z');
+  });
+
   it('refuses 1w because BiQuote does not provide weekly bars', async () => {
     const fetchSpy = vi.fn();
     globalThis.fetch = fetchSpy as unknown as typeof fetch;
@@ -265,6 +314,77 @@ describe('biquote fetchOhlc', () => {
   });
 });
 
+describe('biquote calendar & news REST endpoints', () => {
+  beforeEach(() => _resetThrottle());
+  afterEach(() => {
+    globalThis.fetch = ORIGINAL_FETCH;
+    vi.restoreAllMocks();
+  });
+
+  it('fetches calendar and upcoming calendar events with countries and importance filters', async () => {
+    const eventPayload = [
+      {
+        id: 'mql5:900001',
+        eventId: 'mql5:840',
+        time: '2026-08-07T12:30:00Z',
+        countryCode: 'US',
+        currency: 'USD',
+        name: 'Nonfarm Payrolls',
+        importance: 'high',
+        unit: 'job',
+        multiplier: 'thousands',
+        actual: null,
+        forecast: 150000,
+        previous: 147000,
+        revisedPrevious: 149000,
+        source: 'mql5',
+      },
+    ];
+    const fetchSpy = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(eventPayload)));
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+    const cal = await fetchCalendar({
+      from: '2026-08-01T00:00:00Z',
+      to: '2026-08-15T00:00:00Z',
+      countries: 'US,EU,GB,JP',
+      importance: 'high',
+    });
+    expect(cal).toHaveLength(1);
+    expect(cal[0]?.actual).toBeNull();
+    expect(cal[0]?.revisedPrevious).toBe(149000);
+
+    const upcoming = await fetchCalendarUpcoming({ limit: 50, importance: 'high' });
+    expect(upcoming).toHaveLength(1);
+  });
+
+  it('fetches market news articles via /api/news/market', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(
+      jsonResponse([
+        {
+          title: 'Gold holds gains ahead of CPI',
+          description: 'Spot XAUUSD steady near record highs.',
+          url: 'https://example.com/news/1',
+          publisher: 'Reuters',
+          publishedDate: '2026-08-07T10:00:00Z',
+          imageUrl: null,
+          category: 'Commodities',
+          language: 'en',
+          country: 'US',
+        },
+      ]),
+    );
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+    const news = await fetchMarketNews({ symbol: 'XAUUSD', maxResults: 10 });
+    expect(news).toHaveLength(1);
+    expect(news[0]?.publisher).toBe('Reuters');
+    const url = new URL(String(fetchSpy.mock.calls[0]?.[0]));
+    expect(url.pathname).toBe('/api/news/market');
+    expect(url.searchParams.get('symbol')).toBe('XAUUSD');
+    expect(url.searchParams.get('maxResults')).toBe('10');
+  });
+});
+
 describe('biquote throttle', () => {
   beforeEach(() => _resetThrottle());
   afterEach(() => {
@@ -272,17 +392,14 @@ describe('biquote throttle', () => {
     vi.restoreAllMocks();
   });
 
-  it('throws PROVIDER_QUOTA_EXCEEDED after the 51st call within the window', async () => {
-    // A `Response` body can only be consumed once, so each fetch call must
-    // get a fresh Response. Use mockImplementation, not mockResolvedValue.
+  it('throws PROVIDER_QUOTA_EXCEEDED after exceeding BIQUOTE_THROTTLE_LIMIT (1500/min) within the window', async () => {
     globalThis.fetch = vi
       .fn()
       .mockImplementation(() =>
         Promise.resolve(jsonResponse(VALID_TICK)),
       ) as unknown as typeof fetch;
 
-    // 50 calls succeed; the 51st must throw without hitting fetch.
-    for (let i = 0; i < 50; i += 1) {
+    for (let i = 0; i < BIQUOTE_THROTTLE_LIMIT; i += 1) {
       await fetchTick('XAUUSD');
     }
     await expect(fetchTick('XAUUSD')).rejects.toBeInstanceOf(ProviderError);

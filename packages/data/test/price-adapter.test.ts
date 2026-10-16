@@ -16,15 +16,14 @@
 
 // End-to-end tests for the price adapter using a URL-routed mock fetch.
 // The price adapter now tries:
-//   1. live_ticks pseudo-provider (Phase 8 PR-8)
-//   2. BiQuote REST (Phase 8 PR-4)
-//   3. Binance for canonical crypto pairs
-//   4. Finnhub
-// so tests need to be explicit about which provider is expected to answer.
+//   1. BiQuote REST on-demand (primary default when WORKER_ENABLE_TICK_STREAM=0)
+//   2. Binance for canonical crypto pairs
+//   3. Finnhub fallback
+//   (live_ticks pseudo-provider is gated behind WORKER_ENABLE_TICK_STREAM=1)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getPrice, getPriceWithMeta } from '../src/adapters/price';
+import { getPrice, getPrices, getPriceWithMeta, getPricesWithMeta } from '../src/adapters/price';
 import { setDefaultCache } from '../src/cache';
 import { MemoryCache } from '../src/cache/memory';
 import { _resetThrottle } from '../src/cache/throttle';
@@ -32,12 +31,6 @@ import { ProviderEmptyError } from '../src/errors';
 import { _resetHealth } from '../src/health';
 import { fetchLiveTick } from '../src/providers/live-ticks';
 
-// Auto-mock the live-ticks pseudo-provider for every test in this file —
-// most tests don't have a Postgres connection so we make the live_ticks
-// attempt always throw a `ProviderEmptyError`, which lets failover skip
-// to the network providers without recording a health failure (Phase 2
-// hardening §2). Individual tests that DO want to exercise live_ticks
-// override this with `vi.mocked(fetchLiveTick).mockImplementationOnce(...)`.
 vi.mock('../src/providers/live-ticks', () => ({
   fetchLiveTick: vi.fn().mockImplementation(() => {
     throw new ProviderEmptyError('live-ticks', 'live_ticks not configured (test default)');
@@ -102,10 +95,7 @@ beforeEach(() => {
   setDefaultCache(new MemoryCache());
   _resetThrottle();
   _resetHealth();
-  // Reset the live_ticks mock to "throw ProviderEmptyError" so failover
-  // skips it (without health penalty) and tests below this point
-  // exercise the network path. Tests that explicitly want a live_ticks
-  // hit re-set the implementation.
+  delete process.env.WORKER_ENABLE_TICK_STREAM;
   vi.mocked(fetchLiveTick).mockImplementation(() => {
     throw new ProviderEmptyError('live-ticks', 'live_ticks not configured (test default)');
   });
@@ -113,24 +103,37 @@ beforeEach(() => {
 
 afterEach(() => {
   globalThis.fetch = ORIGINAL_FETCH;
+  delete process.env.WORKER_ENABLE_TICK_STREAM;
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
-describe('getPrice — provider order (Phase 8: live-ticks, then catalog-routed providers)', () => {
-  it('returns a normalised Tick from biquote when available', async () => {
+describe('getPrice — provider order (on-demand BiQuote REST primary, live_ticks skipped by default)', () => {
+  it('returns a normalised Tick from biquote without querying live_ticks when WORKER_ENABLE_TICK_STREAM is unset', async () => {
     globalThis.fetch = createRoutedFetch([
       {
         match: (u) => u.includes('biquote.io/api/'),
-        respond: () => ({ body: VALID_BIQUOTE_TICK('XAUUSD', 2345.678) }),
+        respond: () => ({
+          body: {
+            ...VALID_BIQUOTE_TICK('XAUUSD', 2345.678),
+            marketState: 'closed',
+            quoteAgeSeconds: 1800,
+            dayDiffPercent: -0.25,
+          },
+        }),
       },
     ]);
 
-    const tick = await getPrice('XAUUSD');
-    expect(tick.source).toBe('biquote');
-    expect(tick.mid).toBeCloseTo(2345.678);
-    expect(tick.bid).toBe(tick.mid);
-    expect(tick.ask).toBe(tick.mid);
+    const res = await getPriceWithMeta('XAUUSD');
+    expect(res.tick.source).toBe('biquote');
+    expect(res.tick.mid).toBeCloseTo(2345.678);
+    expect(res.tick.bid).toBe(res.tick.mid);
+    expect(res.tick.ask).toBe(res.tick.mid);
+    expect(res.tick.marketState).toBe('closed');
+    expect(res.tick.quoteAgeSeconds).toBe(1800);
+    expect(res.tick.dayDiffPercent).toBeNull();
+    expect(res.ageMs).toBe(1_800_000);
+    expect(fetchLiveTick).not.toHaveBeenCalled();
   });
 
   it('serves the second call from cache without hitting fetch again', async () => {
@@ -186,9 +189,64 @@ describe('getPrice — provider order (Phase 8: live-ticks, then catalog-routed 
         respond: () => ({ body: VALID_BIQUOTE_TICK('XAUUSD', 2400) }),
       },
     ]);
-    // No apiKeys provided — only the keyless BiQuote attempt is wired.
     const tick = await getPrice('XAUUSD');
     expect(tick.source).toBe('biquote');
+  });
+});
+
+describe('getPricesWithMeta — multi-symbol batching', () => {
+  it('batches multiple FX/Gold symbols into a single /api/latest request and populates per-symbol cache', async () => {
+    let latestCalls = 0;
+    let singleCalls = 0;
+    globalThis.fetch = createRoutedFetch([
+      {
+        match: (u) => u.includes('biquote.io/api/latest'),
+        respond: () => {
+          latestCalls += 1;
+          return {
+            body: {
+              XAUUSD: {
+                ...VALID_BIQUOTE_TICK('XAUUSD', 2410.5),
+                marketState: 'open',
+                quoteAgeSeconds: 1,
+                dayDiffPercent: 0.45,
+              },
+              EURUSD: {
+                ...VALID_BIQUOTE_TICK('EURUSD', 1.086),
+                marketState: 'closed',
+                quoteAgeSeconds: 7200,
+                dayDiffPercent: -0.1,
+              },
+            },
+          };
+        },
+      },
+      {
+        match: (u) => u.includes('biquote.io/api/'),
+        respond: () => {
+          singleCalls += 1;
+          return { body: VALID_BIQUOTE_TICK('XAUUSD', 2410.5) };
+        },
+      },
+    ]);
+
+    const results = await getPricesWithMeta(['XAUUSD', 'EURUSD']);
+    expect(results).toHaveLength(2);
+    expect(latestCalls).toBe(1);
+    expect(singleCalls).toBe(0);
+    expect(results[0]?.tick.marketState).toBe('open');
+    expect(results[0]?.tick.dayDiffPercent).toBe(0.45);
+    expect(results[1]?.tick.marketState).toBe('closed');
+    expect(results[1]?.tick.dayDiffPercent).toBeNull();
+
+    // Second call for XAUUSD alone hits the populated per-symbol cache (0 additional HTTP calls)
+    const cachedSingle = await getPriceWithMeta('XAUUSD');
+    expect(cachedSingle.tick.mid).toBeCloseTo(2410.5);
+    expect(latestCalls).toBe(1);
+    expect(singleCalls).toBe(0);
+
+    const ticks = await getPrices(['XAUUSD', 'EURUSD']);
+    expect(ticks).toHaveLength(2);
   });
 });
 
@@ -226,8 +284,9 @@ describe('getPriceWithMeta — Phase 7a SWR (still works post-PR-4)', () => {
   });
 });
 
-describe('getPrice — live_ticks pseudo-provider (Phase 8 PR-8)', () => {
-  it('serves from live_ticks when fresh, skipping every network provider', async () => {
+describe('getPrice — live_ticks pseudo-provider (opt-in via WORKER_ENABLE_TICK_STREAM=1)', () => {
+  it('serves from live_ticks when WORKER_ENABLE_TICK_STREAM=1 and row is fresh, skipping every network provider', async () => {
+    process.env.WORKER_ENABLE_TICK_STREAM = '1';
     const fetchSpy = vi.fn();
     globalThis.fetch = fetchSpy as unknown as typeof fetch;
 
@@ -242,12 +301,11 @@ describe('getPrice — live_ticks pseudo-provider (Phase 8 PR-8)', () => {
     const tick = await getPrice('XAUUSD');
     expect(tick.source).toBe('biquote-signalr');
     expect(tick.mid).toBe(2390.5);
-    // Crucially: zero outbound HTTP — the worker-served path is sub-ms.
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('falls through to BiQuote REST when live_ticks is stale / missing', async () => {
-    // Auto-mock already throws by default. Then BiQuote answers.
+    process.env.WORKER_ENABLE_TICK_STREAM = '1';
     globalThis.fetch = createRoutedFetch([
       {
         match: (u) => u.includes('biquote.io/api/'),
