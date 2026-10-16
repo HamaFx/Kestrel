@@ -23,10 +23,9 @@ services:
       WORKER_MODE: docker
       NODE_OPTIONS: '--max-old-space-size=512'
       DEPLOYED_SHA: ${DEPLOYED_SHA:-unknown}
-      WORKER_HTTP_HOST: 127.0.0.1
-      WORKER_HEALTH_PORT: 8081
-      BIQUOTE_PROXY_HOST: 127.0.0.1
-      BIQUOTE_PROXY_PORT: 8082
+      WORKER_HTTP_HOST: 0.0.0.0
+      WORKER_HTTP_PORT: 8081
+      WORKER_PROXY_PORT: 8082
     ports:
       - '127.0.0.1:8081:8081'
       - '127.0.0.1:8082:8082'
