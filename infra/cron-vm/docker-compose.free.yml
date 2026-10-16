@@ -1,0 +1,38 @@
+# ==============================================================================
+# Kestrel — Google Cloud Always Free (e2-micro, 1 GB RAM + 2 GB Swap) Compose
+# ==============================================================================
+# Tuned specifically for GCP `e2-micro` (1 GB physical RAM + 2 GB swapfile).
+# Runs both the heavy job scheduler (`WORKER_MODE=docker`) and the light cron
+# poker (`scripts/botkeep-start.mjs`) in a single memory-bounded container.
+# ==============================================================================
+
+services:
+  worker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.worker
+      args:
+        DEPLOYED_SHA: ${DEPLOYED_SHA:-unknown}
+    container_name: hamafx-worker
+    restart: unless-stopped
+    env_file:
+      - /opt/hamafx/.env
+    environment:
+      NODE_ENV: production
+      WORKER_MODE: docker
+      NODE_OPTIONS: '--max-old-space-size=512'
+      DEPLOYED_SHA: ${DEPLOYED_SHA:-unknown}
+      WORKER_HTTP_HOST: 127.0.0.1
+      WORKER_HEALTH_PORT: 8081
+      BIQUOTE_PROXY_HOST: 127.0.0.1
+      BIQUOTE_PROXY_PORT: 8082
+    ports:
+      - '127.0.0.1:8081:8081'
+      - '127.0.0.1:8082:8082'
+    mem_limit: 700m
+    memswap_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
