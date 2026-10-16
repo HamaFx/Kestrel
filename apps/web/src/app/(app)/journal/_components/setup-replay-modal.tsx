@@ -303,6 +303,12 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
         </DrawerHeader>
 
         <div className="flex flex-col gap-6 p-4 pt-0">
+          {replay?.stats.replayWindowFallback && (
+            <div className="border-warn/30 bg-warn/10 text-warn rounded-sm border px-3 py-2 text-xs">
+              Historical trade window predates provider intraday retention for {timeframe.toUpperCase()} — showing latest available bars. Try switching to 1H or 4H for deeper historical coverage.
+            </div>
+          )}
+
           {/* Chart Area */}
           <div className="border-border bg-bg-elev-1 relative min-h-[280px] w-full overflow-hidden rounded-sm border">
             {isLoading ? (

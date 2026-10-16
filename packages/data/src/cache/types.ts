@@ -75,6 +75,17 @@ export interface Cache {
     options: CacheFetchOptions,
   ): Promise<{ value: T; meta: CacheEntryMeta }>;
 
+  /**
+   * Get a cached entry with metadata without calling a producer.
+   * Returns null if missing or expired past SWR window.
+   */
+  getWithMeta?<T>(key: string): Promise<{ value: T; meta: CacheEntryMeta } | null>;
+
+  /**
+   * Manually write an entry with options into the cache.
+   */
+  set?<T>(key: string, value: T, options: CacheFetchOptions): Promise<void>;
+
   /** Revalidate everything tagged with `tag`. No-op if not supported. */
   invalidateTag?(tag: string): Promise<void> | void;
 

@@ -23,12 +23,7 @@
 // Live tickers for a curated list of symbols, with mid-price + a small
 // sparkline of the most recent mids. Uses the existing `usePrices` hook
 // so updates pool through the shared 3s cache (no per-widget polls).
-//
-// Features:
-// - Customizable symbol list with localStorage persistence
-// - 1-Click "Ask AI Copilot" deep prompt link on every symbol
-// - Direct link to interactive TradingView chart
-// - Live-tick flash animation and mini sparkline
+
 import { priceDecimals, SYMBOLS, type Symbol, type Tick } from '@kestrel/shared';
 import {
   IconAlertTriangle,
@@ -232,13 +227,13 @@ function WatchRow({
   canRemove: boolean;
   onRemove: () => void;
 }) {
-  // tickVersion is referenced so React knows the row re-rendered on update.
   void tickVersion;
   const buf = buffersRef.current.get(tick.symbol) ?? [];
   const decimals = priceDecimals(tick.symbol);
   const first = buf[0] ?? tick.mid;
   const last = tick.mid;
   const isBull = last >= first;
+  const isClosed = tick.marketState === 'closed';
 
   // Live-tick flash: brief green/red tint behind the price when it moves.
   const [flash, setFlash] = useState<FlashTone>(null);
@@ -246,11 +241,11 @@ function WatchRow({
   useEffect(() => {
     const prev = prevMidRef.current;
     prevMidRef.current = last;
-    if (prev === null || prev === last) return;
+    if (isClosed || prev === null || prev === last) return;
     setFlash(last > prev ? 'bull' : 'bear');
     const timer = setTimeout(() => setFlash(null), FLASH_MS);
     return () => clearTimeout(timer);
-  }, [last]);
+  }, [last, isClosed]);
 
   const aiPrompt = encodeURIComponent(
     `Analyze market structure, key liquidity levels, and intraday trading bias for ${tick.symbol}`,
@@ -260,14 +255,24 @@ function WatchRow({
     <li className="border-divider group flex items-center justify-between gap-2 border-b py-2.5 last:border-0">
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex min-w-0 flex-col font-mono">
-          <Link
-            href={`/chart/${tick.symbol}`}
-            className="text-fg hover:text-brand flex items-center gap-1.5 text-sm font-bold tracking-tight transition-colors"
-            title={`Open ${tick.symbol} chart`}
-          >
-            <span>{tick.symbol}</span>
-            <IconChartLine className="text-fg-subtle size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <Link
+              href={`/chart/${tick.symbol}`}
+              className="text-fg hover:text-brand flex items-center gap-1.5 text-sm font-bold tracking-tight transition-colors"
+              title={`Open ${tick.symbol} chart`}
+            >
+              <span>{tick.symbol}</span>
+              <IconChartLine className="text-fg-subtle size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+            </Link>
+            {isClosed && (
+              <span
+                className="text-fg-subtle bg-bg-elev-2 rounded-xs px-1 py-0.5 text-[10px] font-medium uppercase"
+                title="Market closed — last price"
+              >
+                Closed
+              </span>
+            )}
+          </div>
           <span
             className={cn(
               '-mx-1 inline-flex w-fit items-center rounded-md px-1.5 py-0.5 font-mono text-xs font-medium tabular-nums transition-colors duration-500',
@@ -282,7 +287,7 @@ function WatchRow({
       </div>
 
       <div className="flex items-center gap-2">
-        {buf.length >= 2 ? (
+        {buf.length >= 2 && !isClosed ? (
           <SparklineCanvas
             values={buf}
             tone={isBull ? 'bull' : 'bear'}
@@ -292,15 +297,25 @@ function WatchRow({
           <div className="h-6 w-14" aria-hidden />
         )}
 
-        <span
-          className={cn(
-            'w-4 text-center text-xs font-bold tabular-nums',
-            isBull ? 'text-bull' : 'text-bear',
-          )}
-          aria-label={isBull ? 'Trending up' : 'Trending down'}
-        >
-          {isBull ? '▲' : '▼'}
-        </span>
+        {isClosed ? (
+          <span
+            className="text-fg-subtle w-4 text-center text-xs font-medium"
+            aria-label="Market closed"
+            title="Market closed"
+          >
+            —
+          </span>
+        ) : (
+          <span
+            className={cn(
+              'w-4 text-center text-xs font-bold tabular-nums',
+              isBull ? 'text-bull' : 'text-bear',
+            )}
+            aria-label={isBull ? 'Trending up' : 'Trending down'}
+          >
+            {isBull ? '▲' : '▼'}
+          </span>
+        )}
 
         {/* 1-Click Ask AI Copilot */}
         <Link

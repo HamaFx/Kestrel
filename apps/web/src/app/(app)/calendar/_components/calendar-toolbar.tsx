@@ -23,7 +23,7 @@ import { cn } from '@/lib/cn';
 import { handleRadioKeyDown } from '@/lib/datetime';
 
 export type ImportanceFilter = Importance | 'all';
-export type CurrencyFilter = EventCurrency | 'all';
+export type CurrencyFilter = 'USD' | 'EUR' | 'GBP' | 'all';
 
 interface CalendarToolbarProps {
   importance: ImportanceFilter;

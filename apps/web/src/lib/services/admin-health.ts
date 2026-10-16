@@ -19,15 +19,9 @@
 // PR-06: Admin health SLO service.
 //
 // Computes real-time service level indicators from existing telemetry
-// tables. No new data collection — everything is derived from tables
-// already populated: chat_telemetry, chat_tool_telemetry, cron_runs,
-// live_ticks, and the Mastra `full-analysis` workflow run records
-// (mastra_workflow_snapshot) that replaced analysis_jobs in Phase 3.
-//
-// Audit plan v2 §5.3 (Q4 decision): also surfaces a non-blocking spend
-// watch — per-user daily (UTC) ledger spend reaching ADMIN_SPEND_ALERT_USD
-// becomes an anomaly and a `spendWatch` aggregate. The daily ledger stays
-// uncapped; these alerts inform, they never block a turn.
+// tables. In default on-demand BiQuote REST mode (`WORKER_ENABLE_TICK_STREAM=0`),
+// empty `live_ticks` tables are expected and reported as healthy on-demand
+// mode rather than false outage anomalies.
 
 import { metrics } from '@kestrel/shared';
 import { sql, type SQLWrapper } from 'drizzle-orm';
@@ -45,12 +39,7 @@ export interface ComputeHealthSloOptions {
   spendAlertThresholdUsd?: number;
 }
 
-/** Minimal DB surface needed by the health service. */
-/** Helper: extract rows from db.execute() which returns {rows: [...]} across all drivers. */
 function extractRows(result: unknown): Record<string, unknown>[] {
-  // postgres-js returns a Result array; other adapters may expose
-  // `{ rows }`. Supporting both prevents health metrics from
-  // becoming unavailable when the driver changes.
   if (Array.isArray(result)) return result as Record<string, unknown>[];
   if (
     result &&
@@ -114,29 +103,15 @@ const ONE_MINUTE = 60 * ONE_SECOND;
 
 // ── §5.3 spend watch (non-blocking, Q4) ────────────────────────────────────
 
-/** Default per-user daily spend alert threshold when the env flag is unset. */
 export const DEFAULT_ADMIN_SPEND_ALERT_USD = 25;
-
-/** Max per-user rows fetched from the daily ledger (one row per user/day). */
 const SPEND_WATCH_QUERY_LIMIT = 100;
-
-/** Max per-user anomalies pushed per snapshot (aggregate keeps the total). */
 const SPEND_WATCH_ANOMALY_LIMIT = 10;
 
-/** Raw ledger row: today's (UTC) reserved+reconciled counter for one user. */
 export interface DailySpendRow {
   userId: string;
   spendUsdCents: number;
 }
 
-/**
- * Resolve the per-user daily spend alert threshold (USD).
- *
- * ADMIN_SPEND_ALERT_USD is declared with the same default in
- * `packages/shared/src/env.ts` (validated at boot); this mirrors the
- * ALERT_WINDOW_HOURS pattern of reading the raw value at the call site so a
- * late/unparsed flag degrades to the default instead of throwing.
- */
 export function resolveAdminSpendAlertThresholdUsd(): number {
   const raw = process.env.ADMIN_SPEND_ALERT_USD;
   if (raw === undefined || raw === '') return DEFAULT_ADMIN_SPEND_ALERT_USD;
@@ -148,11 +123,6 @@ function formatUsd(value: number): string {
   return `$${value.toFixed(2)}`;
 }
 
-/**
- * Pure §5.3 threshold/aggregation helper: turns today's per-user ledger rows
- * into the spend-watch summary. A user is over threshold when their spend
- * *reached* the threshold (>=), matching the usage-alert convention.
- */
 export function resolveSpendWatch(rows: DailySpendRow[], thresholdUsd: number): SpendWatchSummary {
   const thresholdCents = Math.round(thresholdUsd * 100);
   const overThreshold = rows
@@ -167,15 +137,8 @@ export function resolveSpendWatch(rows: DailySpendRow[], thresholdUsd: number): 
   };
 }
 
-/**
- * Per-process dedup of threshold crossings for the metric below — the admin
- * dashboard polls every 30s, so one counter tick per (user, UTC day) keeps
- * `admin_spend_threshold_total` an event count rather than a poll count.
- * Mirrors the `sentAlerts` set in usage-alerts.ts.
- */
 const spendThresholdObserved = new Set<string>();
 
-/** Test hook — clears the per-process (user, day) dedup set. */
 export function resetAdminSpendAlertDedup(): void {
   spendThresholdObserved.clear();
 }
@@ -199,28 +162,13 @@ function computeErrorBudget(current: number | null, sloTarget: number): number |
   if (current >= 1) return 1;
   if (sloTarget >= 1) return current >= 1 ? 1 : 0;
 
-  // Error budget is remaining budget, not an unbounded score. Once the
-  // target is missed the budget is exhausted and must render as 0, rather
-  // than a negative percentage that the UI would clamp inconsistently.
   return pct(Math.max(0, Math.min(1, (current - sloTarget) / (1 - sloTarget))));
 }
 
-/**
- * Compute the current health SLO snapshot.
- *
- * Independent telemetry queries are executed concurrently with
- * Promise.allSettled. A rejected settlement is treated the same as the
- * original per-query try/catch: the table is assumed missing/empty and
- * that SLI falls back to null/0, so one missing table cannot break the
- * rest of the dashboard.
- */
 export async function computeHealthSloService(
   db: HealthSloDb,
   { hours, spendAlertThresholdUsd }: ComputeHealthSloOptions,
 ): Promise<HealthSloResponse> {
-  // Drizzle's postgres-js execute path serializes raw SQL parameters more
-  // reliably as ISO strings than as Date instances (especially through the
-  // Supabase transaction pooler).
   const since = new Date(Date.now() - hours * 60 * ONE_MINUTE).toISOString();
 
   // ── DB probe (kept separate; it drives overall status) ───────────────────
@@ -267,14 +215,26 @@ export async function computeHealthSloService(
   // ── Build tick SLI / anomaly ────────────────────────────────────────────
   const TICK_FRESH_S = 60;
   const TICK_OK_S = 300;
+  const tickStreamExplicitlyEnabled =
+    process.env.WORKER_ENABLE_TICK_STREAM === '1' ||
+    process.env.WORKER_ENABLE_TICK_STREAM === 'true';
+  const tickStreamExplicitlyDisabled =
+    process.env.WORKER_ENABLE_TICK_STREAM === '0' ||
+    process.env.WORKER_ENABLE_TICK_STREAM === 'false';
+
   let tickOk = false;
   let tickAgeSeconds: number | null = null;
   let tickSymbolCount = 0;
+  let onDemandTickMode = false;
 
   if (ticks) {
     tickSymbolCount = ticks.symbolCount;
     tickAgeSeconds = ticks.oldestAgeSeconds;
-    if (tickAgeSeconds !== null) {
+
+    if (tickStreamExplicitlyDisabled || (!tickStreamExplicitlyEnabled && tickSymbolCount === 0)) {
+      onDemandTickMode = true;
+      tickOk = true;
+    } else if (tickAgeSeconds !== null) {
       tickOk = tickAgeSeconds <= TICK_OK_S;
       if (tickAgeSeconds > TICK_FRESH_S) {
         anomalies.push(
@@ -380,9 +340,6 @@ export async function computeHealthSloService(
   }
 
   // ── §5.3 (Q4) spend watch — non-blocking per-user daily alert ───────────
-  // The daily ledger stays uncapped per the owner's Q4 decision; reaching
-  // ADMIN_SPEND_ALERT_USD only surfaces anomalies for the admin dashboard
-  // (and, through them, the existing cron health-alert webhook).
   const spendThresholdUsd = spendAlertThresholdUsd ?? resolveAdminSpendAlertThresholdUsd();
   const spendWatch: SpendWatchSummary = resolveSpendWatch(dailySpend ?? [], spendThresholdUsd);
 
@@ -405,8 +362,8 @@ export async function computeHealthSloService(
   // ── Langfuse ────────────────────────────────────────────────────────────
   const langfuseActive = Boolean(
     process.env.LANGFUSE_PUBLIC_KEY &&
-    process.env.LANGFUSE_SECRET_KEY &&
-    process.env.LANGFUSE_BASE_URL,
+      process.env.LANGFUSE_SECRET_KEY &&
+      process.env.LANGFUSE_BASE_URL,
   );
   const langfuseBaseUrl = process.env.LANGFUSE_BASE_URL ?? null;
 
@@ -530,20 +487,33 @@ export async function computeHealthSloService(
     : [];
 
   const slis: SliSnapshot[] = [
-    {
-      key: 'worker_ticks',
-      label: 'Worker / Tick Freshness',
-      current: tickSymbolCount > 0 ? (tickOk ? 1 : 0) : null,
-      sloTarget: 0.999,
-      window: 'current',
-      success: tickOk ? 1 : 0,
-      total: tickSymbolCount > 0 ? 1 : 0,
-      errorBudget: tickSymbolCount > 0 ? (tickOk ? 1 : 0) : null,
-      details:
-        tickSymbolCount > 0 && tickAgeSeconds !== null
-          ? `Oldest symbol tick ${tickAgeSeconds}s old across ${tickSymbolCount} symbols`
-          : 'No tick data',
-    },
+    onDemandTickMode
+      ? {
+          key: 'worker_ticks',
+          label: 'Worker / Tick Freshness',
+          current: 1,
+          sloTarget: 0.999,
+          window: 'current',
+          success: 1,
+          total: 1,
+          errorBudget: 1,
+          informational: true,
+          details: 'On-demand BiQuote REST mode active (tick stream disabled)',
+        }
+      : {
+          key: 'worker_ticks',
+          label: 'Worker / Tick Freshness',
+          current: tickSymbolCount > 0 ? (tickOk ? 1 : 0) : null,
+          sloTarget: 0.999,
+          window: 'current',
+          success: tickOk ? 1 : 0,
+          total: tickSymbolCount > 0 ? 1 : 0,
+          errorBudget: tickSymbolCount > 0 ? (tickOk ? 1 : 0) : null,
+          details:
+            tickSymbolCount > 0 && tickAgeSeconds !== null
+              ? `Oldest symbol tick ${tickAgeSeconds}s old across ${tickSymbolCount} symbols`
+              : 'No tick data',
+        },
     {
       key: 'cron_jobs',
       label: 'Cron Job Completion',
@@ -609,11 +579,6 @@ export async function computeHealthSloService(
     spendWatch,
   };
 }
-
-// ── Query helpers (each returns null when its source table is missing) ─────
-// Cron totals/completions/stuck counts are all selected-window activity.
-// Analysis counts are selected-window cohorts whose current status has
-// crossed the stale/running threshold.
 
 async function queryTickAggregate(db: HealthSloDb): Promise<TickAggregate | null> {
   try {
@@ -705,9 +670,9 @@ async function queryOperationalAggregate(
   try {
     const result = await db.execute(sql`
       SELECT
-        (SELECT COUNT(*) FROM full_analysis_queue WHERE created_at >= ${since})::text AS full_total,
-        (SELECT COUNT(*) FROM full_analysis_queue WHERE created_at >= ${since} AND status = 'succeeded')::text AS full_completed,
-        (SELECT COUNT(*) FROM full_analysis_queue WHERE created_at >= ${since} AND status = 'failed')::text AS full_failed,
+        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since})::text AS full_total,
+        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since} AND snapshot ->> 'status' = 'success')::text AS full_completed,
+        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since} AND snapshot ->> 'status' = 'failed')::text AS full_failed,
         (SELECT COUNT(*) FROM chat_telemetry WHERE kind IN ('multi_specialist_sentiment', 'multi_specialist_sentiment_failed') AND created_at >= ${since})::text AS sentiment_total,
         (SELECT COUNT(*) FROM chat_telemetry WHERE kind = 'multi_specialist_sentiment' AND created_at >= ${since})::text AS sentiment_succeeded,
         (SELECT COUNT(*) FROM persistence_outbox WHERE created_at >= ${since} AND status IN ('completed', 'dead'))::text AS outbox_terminal,
@@ -772,22 +737,21 @@ async function queryAnalysisAggregate(
   since: string,
 ): Promise<AnalysisAggregate | null> {
   try {
-    // Phase 3: analysis_jobs was replaced by Mastra durable workflow runs.
-    // Stale pending (>10 min unclaimed) signals the worker is not claiming;
-    // stuck running (>30 s without a lease heartbeat) signals a dead worker.
     const result = await db.execute(sql`
       SELECT
         COUNT(*) FILTER (
-          WHERE status = 'pending'
-          AND created_at >= ${since}
-          AND created_at < NOW() - INTERVAL '10 minutes'
+          WHERE workflow_name = 'full-analysis'
+          AND snapshot ->> 'status' = 'pending'
+          AND "createdAt" >= ${since}
+          AND "createdAt" < NOW() - INTERVAL '10 minutes'
         )::text AS stale,
         COUNT(*) FILTER (
-          WHERE status = 'running'
-          AND created_at >= ${since}
-          AND (lease_expires_at < NOW() OR updated_at < NOW() - INTERVAL '30 seconds')
+          WHERE workflow_name = 'full-analysis'
+          AND snapshot ->> 'status' = 'running'
+          AND "createdAt" >= ${since}
+          AND "updatedAt" < NOW() - INTERVAL '30 seconds'
         )::text AS stuck
-      FROM full_analysis_queue
+      FROM mastra_workflow_snapshot
     `);
     const rows = extractRows(result);
     const row = rows[0] as { stale: string; stuck: string } | undefined;
@@ -801,14 +765,6 @@ async function queryAnalysisAggregate(
   }
 }
 
-/**
- * §5.3 (Q4) — today's per-user daily ledger rows (bounded, spend desc).
- *
- * `daily_ai_spend.total_usd_cents` is the authoritative reserved+reconciled
- * counter: tryReserveBudget adds the estimate atomically, reconciliation
- * applies the (actual − reserved) delta, and release refunds. The UTC day
- * filter matches the `utcDayKey()` used by the ledger writers.
- */
 async function queryDailySpendRows(db: HealthSloDb): Promise<DailySpendRow[] | null> {
   try {
     const result = await db.execute(sql`

@@ -99,7 +99,7 @@ function resolveBaseUrl(opts: CallOptions): string {
 async function call<T>(
   path: string,
   query: QueryParams,
-  schema: z.ZodType<T>,
+  schema: z.ZodType<T, any, any>,
   opts: CallOptions,
 ): Promise<T> {
   if (!opts.skipThrottle && !(await tryReserve(PROVIDER, THROTTLE))) {

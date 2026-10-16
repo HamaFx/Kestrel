@@ -14,28 +14,63 @@
  * limitations under the License.
  */
 
-// Phase 8 PR-13 — `fred-actuals` daily backfill, migrated from
-// /api/cron/fred-actuals on Vercel (route stays as manual fallback).
-//
-// Patches `economic_events.actual` for FRED rows whose value was null at
-// ingestion time. Schedule: 01:30 UTC daily — most US BLS data has
-// landed by then. Idempotent: only patches rows where
-// `actuals_filled_at IS NULL`.
+// Phase 8 PR-13 + BiQuote Calendar Actuals Backfill:
+//   1. Refreshes the trailing 7d + upcoming 14d window from BiQuote's
+//      zero-key 54-country MT5 Economic Calendar (`fetchUpcomingEvents` +
+//      `upsertEvents`), which populates `actual`, `forecast`, and
+//      `revisedPrevious` directly from MetaTrader 5 without requiring an API key.
+//   2. When `FRED_API_KEY` is configured, also backfills any legacy `fred:*`
+//      rows whose `actual` is still null.
 
-import { listFredEventsMissingActual, parseFredEventId, patchEventActual } from '@kestrel/ai';
-import { fred } from '@kestrel/data';
+import * as ai from '@kestrel/ai';
+import * as data from '@kestrel/data';
 
 import type { JobContext, JobResult } from './types.js';
 
-const { fetchObservations, fredMeta } = fred;
+const { listFredEventsMissingActual, parseFredEventId, patchEventActual } = ai;
+const { fetchObservations, fredMeta } = data.fred;
 
 /** Look-back window for the observation query (FRED is sometimes late). */
 const LOOKBACK_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function runFredActuals(ctx: JobContext): Promise<JobResult> {
   const log = ctx.log;
+  const now = Date.now();
+  let biquoteUpserted = 0;
+
+  // Step 1: Zero-key BiQuote calendar refresh when wired in runtime
+  if (typeof data.fetchUpcomingEvents === 'function' && typeof ai.upsertEvents === 'function') {
+    try {
+      const events = await data.fetchUpcomingEvents({
+        fromMs: now - LOOKBACK_DAYS * DAY_MS,
+        toMs: now + 14 * DAY_MS,
+        ...(ctx.signal ? { signal: ctx.signal } : {}),
+      });
+      const { inserted } = await ai.upsertEvents(events);
+      biquoteUpserted = inserted;
+      log.info('biquote calendar actuals refreshed', {
+        fetched: events.length,
+        upserted: inserted,
+      });
+    } catch (err) {
+      log.warn('biquote calendar refresh failed (continuing to FRED backfill)', {
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   const apiKey = process.env['FRED_API_KEY'];
   if (!apiKey) {
+    if (biquoteUpserted > 0) {
+      log.info('FRED_API_KEY missing — completed via zero-key BiQuote calendar refresh', {
+        biquoteUpserted,
+      });
+      return {
+        processed: biquoteUpserted,
+        note: `biquote_upserted=${biquoteUpserted}, FRED_API_KEY missing`,
+      };
+    }
     log.warn('FRED_API_KEY missing — skipping');
     return { processed: 0, note: 'FRED_API_KEY missing' };
   }
@@ -93,13 +128,14 @@ export async function runFredActuals(ctx: JobContext): Promise<JobResult> {
   }
 
   log.info('fred-actuals complete', {
+    biquoteUpserted,
     candidates: candidates.length,
     filled,
     skipped,
     errors: errors.length,
   });
   return {
-    processed: candidates.length,
+    processed: biquoteUpserted + candidates.length,
     note: `filled=${filled}, skipped=${skipped}, errors=${errors.length}`,
   };
 }

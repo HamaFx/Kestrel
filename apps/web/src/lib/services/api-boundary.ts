@@ -232,6 +232,8 @@ export {
   getCandles,
   getCandlesWithMeta,
   getPriceWithMeta,
+  getPrices,
+  getPricesWithMeta,
   fetchNews,
   fetchUpcomingEvents,
   ProviderError,

@@ -44,6 +44,7 @@ import { getCandles } from '@kestrel/data';
 import type { UserSettingsRow } from '@kestrel/db';
 import { ema, rsi } from '@kestrel/indicators';
 import {
+  msPerTimeframe,
   pipSize,
   SymbolSchema,
   TimeframeSchema,
@@ -215,6 +216,8 @@ export interface TradeSetupReplayDTO {
     plannedRR: number | null;
     realizedRR: number | null;
     executionEfficiencyPct: number | null;
+    /** True when the historical window fell outside provider retention and fell back to latest bars. */
+    replayWindowFallback?: boolean;
   };
   keyLevels: {
     entry: number;
@@ -238,6 +241,55 @@ export async function getCoachInsightsService(args: {
   });
 }
 
+const REPLAY_WARMUP_BARS = 55;
+const REPLAY_POST_CLOSE_BARS = 20;
+const REPLAY_MIN_BARS = 140;
+const REPLAY_MAX_BARS = 1000;
+const WEEKEND_PAD_MS = 48 * 60 * 60 * 1000;
+
+/**
+ * Compute the date-bounded (`from` / `to`) OHLC window for Trade Setup Replay.
+ *
+ * Includes 55 bars of lead-in before `openedAt` so `ema(20)`, `ema(50)`, and
+ * `rsi(14)` warm up accurately before the entry bar (plus a 48h weekend pad
+ * when the warmup window crosses a weekend), and 20 bars after `closedAt`
+ * (capped at BiQuote's 1,000-bar limit).
+ */
+export function computeReplayWindow(
+  openedAt: number,
+  closedAt: number | null,
+  tf: Timeframe,
+  nowMs: number = Date.now(),
+): { from: string; to: string; count: number } {
+  const tfMs = msPerTimeframe(tf);
+  const effectiveCloseMs = closedAt && closedAt >= openedAt ? closedAt : nowMs;
+  const rawWarmupMs = REPLAY_WARMUP_BARS * tfMs;
+  let fromMs = openedAt - rawWarmupMs;
+
+  // Pad 48h when the warmup window crosses a weekend so at least 55 trading bars precede openedAt.
+  const openDay = new Date(openedAt).getUTCDay();
+  const fromDay = new Date(fromMs).getUTCDay();
+  if (openDay === 0 || openDay === 1 || fromDay === 6 || fromDay === 0 || fromDay > openDay) {
+    fromMs -= WEEKEND_PAD_MS;
+  }
+
+  let toMs = Math.min(nowMs, effectiveCloseMs + REPLAY_POST_CLOSE_BARS * tfMs);
+  const tradeBars = Math.max(1, Math.ceil((effectiveCloseMs - openedAt) / tfMs));
+  const desiredBars = REPLAY_WARMUP_BARS + tradeBars + REPLAY_POST_CLOSE_BARS + 10;
+  const count = Math.min(REPLAY_MAX_BARS, Math.max(REPLAY_MIN_BARS, desiredBars));
+
+  if (desiredBars > REPLAY_MAX_BARS) {
+    const maxSpanMs = (REPLAY_MAX_BARS - REPLAY_WARMUP_BARS) * tfMs;
+    toMs = Math.min(toMs, openedAt + maxSpanMs);
+  }
+
+  return {
+    from: new Date(fromMs).toISOString(),
+    to: new Date(Math.max(openedAt + tfMs, toMs)).toISOString(),
+    count,
+  };
+}
+
 export async function getTradeSetupReplayService(args: {
   userId: string;
   id: string;
@@ -250,10 +302,21 @@ export async function getTradeSetupReplayService(args: {
   const tf = TimeframeSchema.parse(timeframe);
 
   const durationMs = entry.closedAt ? entry.closedAt - entry.openedAt : null;
+  const window = computeReplayWindow(entry.openedAt, entry.closedAt, tf);
 
-  const candleList = await getCandles(entry.symbol, tf, {
-    count: 140,
-  });
+  let replayWindowFallback = false;
+  let candleList = await getCandles(entry.symbol, tf, {
+    count: window.count,
+    from: window.from,
+    to: window.to,
+  }).catch(() => []);
+
+  if (candleList.length === 0) {
+    replayWindowFallback = true;
+    candleList = await getCandles(entry.symbol, tf, {
+      count: REPLAY_MIN_BARS,
+    });
+  }
 
   const ema20 = ema(candleList, 20);
   const ema50 = ema(candleList, 50);
@@ -369,6 +432,7 @@ export async function getTradeSetupReplayService(args: {
       plannedRR,
       realizedRR,
       executionEfficiencyPct,
+      ...(replayWindowFallback ? { replayWindowFallback: true } : {}),
     },
     keyLevels: {
       entry: entry.entry,

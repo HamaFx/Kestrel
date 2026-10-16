@@ -19,17 +19,10 @@
 // The worker validates only the runtime settings it consumes. Optional
 // integrations remain no-ops when their credentials are absent.
 //
-// We deliberately *don't* re-use `parseServerEnv` from `@kestrel/shared`
-// because the worker is a different runtime — it doesn't need APP_PASSWORD,
-// AUTH_COOKIE_SECRET, NEXT_PUBLIC_*, etc. Validating the smaller surface
-// keeps boot fast and the failure modes clear.
-//
-// Empty-string handling: when systemd's EnvironmentFile= loads
-// `KEY=`, the value arrives as the literal empty string. zod's
-// `.optional()` only short-circuits on `undefined`. We pre-process every
-// optional-string field via `coerceEmptyToUndefined` so the operator
-// can leave a row blank in `/opt/kestrel/.env` without tripping the
-// .min(1) check.
+// By default (`WORKER_ENABLE_TICK_STREAM=0`), the worker operates in
+// 100% on-demand mode: it runs Mastra durable workflows and scheduled jobs
+// without maintaining 24/7 SignalR/Binance DB write loops or requiring
+// `BIQUOTE_PROXY_TOKEN`.
 
 import { z } from 'zod';
 
@@ -52,8 +45,16 @@ const WorkerEnvSchema = z.object({
   BIQUOTE_BASE_URL: optionalUrl,
   /** Bearer token required by the health endpoint. */
   WORKER_HEALTH_TOKEN: optionalNonEmpty,
-  /** Bearer token required for the BiQuote proxy in production. */
+  /** Bearer token for the optional legacy BiQuote proxy (:8082). */
   BIQUOTE_PROXY_TOKEN: optionalNonEmpty,
+  /**
+   * Opt-in flag for the legacy 24/7 SignalR + Binance -> Postgres (`live_ticks` /
+   * `candles_1m`) streaming pipeline. Defaults to `'0'` (100% on-demand BiQuote REST mode).
+   */
+  WORKER_ENABLE_TICK_STREAM: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.enum(['0', '1', 'true', 'false']).default('0'),
+  ),
   /** 32-byte (64 hex chars) key required in production to decrypt user BYOK keys in worker jobs. */
   ENCRYPTION_SECRET: z.preprocess(
     (v) => (v === '' ? undefined : v),
@@ -73,15 +74,13 @@ const WorkerEnvSchema = z.object({
 
   /**
    * healthchecks.io UUIDs. Optional — when missing, healthchecks become
-   * no-ops so local dev / tests work without configuration. Production
-   * sets all of these via /opt/kestrel/.env.
+   * no-ops so local dev / tests work without configuration.
    */
   HC_SIGNALR_UUID: optionalNonEmpty,
   HC_BACKUP_DB_UUID: optionalNonEmpty,
   HC_BACKUP_JOURNAL_UUID: optionalNonEmpty,
   HC_VERIFY_RESTORE_UUID: optionalNonEmpty,
   HC_UPDATE_UUID: optionalNonEmpty,
-  // Per-job heartbeat UUIDs. Each migrated heavy job gets its own.
   HC_JOB_EMBEDDING_BACKFILL_UUID: optionalNonEmpty,
   HC_JOB_BRIEFINGS_UUID: optionalNonEmpty,
   HC_JOB_SNAPSHOTS_UUID: optionalNonEmpty,
@@ -121,12 +120,6 @@ const WorkerEnvSchema = z.object({
   PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
   BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
 
-  /**
-   * Deployed commit SHA, written by `update.sh` to /opt/kestrel/.deployed-sha.
-   * The bootstrap script reads the file and exports it before exec.
-   * Used as a Sentry tag and embedded in healthcheck POST bodies so we can
-   * pinpoint a regression to a specific deploy.
-   */
   DEPLOYED_SHA: coerceEmptyToUndefined.pipe(z.string().min(1).optional()).default('unknown'),
 
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -147,38 +140,21 @@ const WorkerEnvSchema = z.object({
     z.coerce.number().int().min(1).optional(),
   ),
 
-  /**
-   * Comma-separated list of crypto symbols for the Binance WebSocket
-   * consumer. Defaults to the six catalog crypto pairs.
-   */
   BINANCE_CRYPTO_SYMBOLS: optionalNonEmpty,
-
-  /**
-   * Binance WebSocket base URL. Override to stream.binance.us for US-hosted
-   * VMs since stream.binance.com blocks US IPs (HTTP 451).
-   */
   BINANCE_WS_URL: optionalUrl,
-
-  /**
-   * Where the nightly training-dataset export writes JSONL + manifest.
-   * Defaults to /opt/kestrel/datasets. Read directly by the dataset-export
-   * job, so a wrong value only degrades that job, never boot.
-   */
   DATASETS_DIR: optionalNonEmpty,
-  /** Where eval JSON reports are read from. Defaults to <DATASETS_DIR>/eval-reports. */
   EVAL_REPORTS_DIR: optionalNonEmpty,
 });
 
 export type WorkerEnv = z.infer<typeof WorkerEnvSchema>;
 
+export function isWorkerTickStreamEnabled(env: Pick<WorkerEnv, 'WORKER_ENABLE_TICK_STREAM'>): boolean {
+  return env.WORKER_ENABLE_TICK_STREAM === '1' || env.WORKER_ENABLE_TICK_STREAM === 'true';
+}
+
 /**
  * Parse `process.env` (or an injected map for tests) into a typed worker
  * env. Throws a readable error listing every missing/invalid variable.
- *
- * Caller usage:
- *
- *     const env = loadEnv();
- *     // ...
  */
 export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
   const result = WorkerEnvSchema.safeParse(input);
@@ -191,8 +167,12 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
   if (result.data.NODE_ENV === 'production' && !result.data.WORKER_HEALTH_TOKEN) {
     throw new Error('WORKER_HEALTH_TOKEN must be set in production');
   }
-  if (result.data.NODE_ENV === 'production' && !result.data.BIQUOTE_PROXY_TOKEN) {
-    throw new Error('BIQUOTE_PROXY_TOKEN must be set in production');
+  if (
+    result.data.NODE_ENV === 'production' &&
+    isWorkerTickStreamEnabled(result.data) &&
+    !result.data.BIQUOTE_PROXY_TOKEN
+  ) {
+    throw new Error('BIQUOTE_PROXY_TOKEN must be set in production when WORKER_ENABLE_TICK_STREAM=1');
   }
   if (result.data.NODE_ENV === 'production' && !result.data.ENCRYPTION_SECRET) {
     throw new Error('ENCRYPTION_SECRET must be set in production');

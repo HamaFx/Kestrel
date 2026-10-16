@@ -64,6 +64,23 @@ describe('worker health server', () => {
     await expect(response.json()).resolves.toMatchObject({ status: 'degraded', ready: false });
   });
 
+  it('reports ready=true in on-demand mode when tick streaming is disabled', async () => {
+    const server = createHealthServer({
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
+      getLastTickAt: () => 0,
+      isSignalRConnected: () => false,
+      isTickStreamEnabled: () => false,
+    });
+    const response = await request(server, '/health/ready');
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      status: 'ok',
+      ready: true,
+      tickStreamEnabled: false,
+      lastTickAgeMs: null,
+    });
+  });
+
   it('exposes a redacted capability report for operators', async () => {
     const response = await request(createServer(Date.now(), true), '/health/dependencies');
     expect(response.status).toBe(200);

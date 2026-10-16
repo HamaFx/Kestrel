@@ -93,8 +93,9 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
   const providersList = [
     {
       id: 'biquote',
-      name: 'BiQuote REST',
-      description: 'Free, fallback API. Unauthenticated, standard 10 req/min throttle limit.',
+      name: 'BiQuote REST (On-Demand Primary)',
+      description:
+        'Free, zero-key primary API (15,000 req/min quota). Provides batch quotes, historical OHLC, 54-country MT5 economic calendar, and market news.',
       requiresKey: false,
     },
     {
@@ -106,8 +107,9 @@ export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataC
     },
     {
       id: 'live-ticks',
-      name: 'Live Ticks (Worker)',
-      description: 'Worker-maintained low-latency cache. Reads directly from local database.',
+      name: 'Live Ticks (Legacy Worker Stream)',
+      description:
+        'Opt-in worker-maintained Postgres snapshot cache (requires WORKER_ENABLE_TICK_STREAM=1).',
       requiresKey: false,
     },
   ];
