@@ -25,6 +25,7 @@ COPY packages/data/package.json packages/data/
 COPY packages/db/package.json packages/db/
 COPY packages/indicators/package.json packages/indicators/
 COPY packages/shared/package.json packages/shared/
+COPY patches/ patches/
 
 # OPT-2: pnpm fetch + install pattern. fetch downloads all tarballs into the
 # store using only the lockfile (no package.json resolution); install --offline
