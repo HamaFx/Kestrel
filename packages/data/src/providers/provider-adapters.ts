@@ -21,12 +21,11 @@
 // global `marketDataProviders` registry. Import this module once at
 // startup; it is idempotent.
 //
-// After registration, adapters like price.ts can build ProviderAttempt[]
-// from `marketDataProviders.list()` instead of hardcoded imports (OCP).
-//
-// Provider-selection policy (crypto→binance, forex→biquote→finnhub,
-// 1m→candles-1m) lives in each provider's `supports()` / `fetchCandles()`
-// so adapters just iterate the registry.
+// By default (`WORKER_ENABLE_TICK_STREAM=0`), Kestrel runs in 100% on-demand
+// REST mode: `liveTicksProvider.supports()` returns false so price and 1m
+// candle requests route directly to BiQuote (FX/Gold) and Binance (Crypto)
+// without polling Postgres tables. Setting `WORKER_ENABLE_TICK_STREAM=1`
+// re-enables the legacy Postgres snapshot tier.
 
 import { getSymbolDefinition, type Candle, type Symbol, type Timeframe } from '@kestrel/shared';
 
@@ -41,12 +40,22 @@ import {
   marketDataProviders,
   type MarketDataProvider,
   type ProviderFetchOptions,
+  type ProviderPriceSnapshot,
 } from './provider-registry';
 import { toCandle, toCandleFromBiquote } from './to-candle';
 
-// ── Provider adapter wrappers ────────────────────────────────────────
+/**
+ * Returns true only when the legacy 24/7 worker Postgres tick/candle stream
+ * is explicitly enabled via `WORKER_ENABLE_TICK_STREAM=1` (or `true`).
+ */
+export function isTickStreamEnabled(): boolean {
+  const raw = process.env.WORKER_ENABLE_TICK_STREAM;
+  return raw === '1' || raw === 'true';
+}
 
-/** Wraps the live-ticks (Postgres snapshot) provider. */
+// ── Provider adapter wrappers ──────────────────────────────────────────
+
+/** Wraps the live-ticks (Postgres snapshot) provider (opt-in via WORKER_ENABLE_TICK_STREAM=1). */
 const liveTicksProvider: MarketDataProvider = {
   name: 'live-ticks',
   label: 'Live Ticks (Worker Postgres Snapshot)',
@@ -55,15 +64,19 @@ const liveTicksProvider: MarketDataProvider = {
     const r = await fetchLiveTick({ symbol });
     return { price: r.price, provider: r.provider, ageMs: r.ageMs };
   },
-  async fetchCandles(symbol: Symbol, tf: Timeframe, count: number): Promise<Candle[] | null> {
-    if (tf !== '1m') return null; // LSP-2 fix — no throw, just skip
+  async fetchCandles(
+    symbol: Symbol,
+    tf: Timeframe,
+    count: number,
+    opts?: ProviderFetchOptions,
+  ): Promise<Candle[] | null> {
+    if (tf !== '1m' || opts?.from || opts?.to) return null;
     const r = await fetchCandles1m({ symbol, count });
     const fetchedAt = Date.now();
     return r.bars.map((bar) => toCandle(bar, { symbol, tf, source: r.provider, fetchedAt }));
   },
   supports(_symbol: Symbol, tf?: Timeframe): boolean {
-    // Price requests omit a timeframe; live snapshots support those too.
-    // For candle requests, this provider is intentionally limited to 1m.
+    if (!isTickStreamEnabled()) return false;
     return tf === undefined || tf === '1m';
   },
   async testConnection(): Promise<{ ok: boolean; error?: string }> {
@@ -76,19 +89,49 @@ const liveTicksProvider: MarketDataProvider = {
   },
 };
 
-/** Wraps the BiQuote REST provider for forex/gold. */
+/** Wraps the BiQuote REST provider for forex/gold (15,000 req/min anonymous quota). */
 const biquoteProvider: MarketDataProvider = {
   name: 'biquote',
   label: 'BiQuote (REST, free tier)',
   pinned: false,
-  async fetchPrice(symbol: Symbol, opts?: ProviderFetchOptions) {
+  async fetchPrice(symbol: Symbol, opts?: ProviderFetchOptions): Promise<ProviderPriceSnapshot> {
     const baseUrl = opts?.baseUrl ?? process.env.BIQUOTE_BASE_URL ?? 'https://biquote.io';
     const tick = await biquote.fetchTick(symbol, {
       baseUrl,
       ...(opts?.signal ? { signal: opts.signal } : {}),
     });
     const mid = tick.mid ?? (tick.bid + tick.ask) / 2;
-    return { price: mid, provider: 'biquote', ageMs: null };
+    return {
+      price: mid,
+      provider: 'biquote',
+      ageMs: tick.quoteAgeSeconds != null ? tick.quoteAgeSeconds * 1000 : null,
+      ...(tick.marketState ? { marketState: tick.marketState } : {}),
+      quoteAgeSeconds: tick.quoteAgeSeconds ?? null,
+      dayDiffPercent: tick.marketState === 'closed' ? null : (tick.dayDiffPercent ?? null),
+    };
+  },
+  async fetchPrices(
+    symbols: Symbol[],
+    opts?: ProviderFetchOptions,
+  ): Promise<Map<Symbol, ProviderPriceSnapshot>> {
+    const baseUrl = opts?.baseUrl ?? process.env.BIQUOTE_BASE_URL ?? 'https://biquote.io';
+    const ticks = await biquote.fetchLatest(symbols, {
+      baseUrl,
+      ...(opts?.signal ? { signal: opts.signal } : {}),
+    });
+    const out = new Map<Symbol, ProviderPriceSnapshot>();
+    for (const tick of ticks) {
+      const mid = tick.mid ?? (tick.bid + tick.ask) / 2;
+      out.set(tick.symbol, {
+        price: mid,
+        provider: 'biquote',
+        ageMs: tick.quoteAgeSeconds != null ? tick.quoteAgeSeconds * 1000 : null,
+        ...(tick.marketState ? { marketState: tick.marketState } : {}),
+        quoteAgeSeconds: tick.quoteAgeSeconds ?? null,
+        dayDiffPercent: tick.marketState === 'closed' ? null : (tick.dayDiffPercent ?? null),
+      });
+    }
+    return out;
   },
   async fetchCandles(
     symbol: Symbol,
@@ -104,6 +147,9 @@ const biquoteProvider: MarketDataProvider = {
       tf,
       count: Math.min(count, 1000),
       baseUrl,
+      ...(opts?.from ? { from: opts.from } : {}),
+      ...(opts?.to ? { to: opts.to } : {}),
+      ...(opts?.includeOpenBar !== undefined ? { includeOpenBar: opts.includeOpenBar } : {}),
       ...(opts?.signal ? { signal: opts.signal } : {}),
     });
     const fetchedAt = Date.now();
@@ -165,9 +211,6 @@ function createFinnhubProvider(): MarketDataProvider {
       return raw.map((bar) => toCandle(bar, { symbol, tf, source: 'finnhub', fetchedAt }));
     },
     supports(_symbol: Symbol, _tf?: Timeframe): boolean {
-      // Finnhub can serve any symbol/timeframe with a valid API key.
-      // The key check happens at call time in fetchCandles (returns null
-      // when key is missing) so that opts-based keys also work.
       return true;
     },
     async testConnection(opts?: ProviderFetchOptions): Promise<{ ok: boolean; error?: string }> {
@@ -232,7 +275,7 @@ const binanceProvider: MarketDataProvider = {
   },
 };
 
-// ── Bootstrap ─────────────────────────────────────────────────────────
+// ── Bootstrap ──────────────────────────────────────────────────────────
 
 /** Build the provider list — all providers registered; key checks happen at call time. */
 function buildProviderList(): MarketDataProvider[] {
