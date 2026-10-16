@@ -16,36 +16,32 @@
 
 // Candles adapter — public surface for OHLC windows.
 //
-// Cache discipline: we cache the *closed-bar* portion of a window separately
-// from the in-progress last bar. Phase-1a keeps it simple — one cache entry
-// per (symbol, tf, count) bucket with TTL chosen by `lastBar=true` math
-// (i.e. assume the window includes the live bar).
-//
-// Phase 7a: opt-in SWR via TTL policy + `getCandlesWithMeta` for callers
-// that want to surface staleness.
-//
-// Symbol routing:
-//   Crypto (BTCUSDT, ETHUSDT, etc.) → binance → biquote → finnhub
-//   Forex/Gold (EURUSD, XAUUSD)     → biquote → finnhub
-//   1m:                              candles-1m (pinned) → above
-//   1w:                              finnhub (biquote unsupported)
+// Cache discipline:
+//   - Latest windows are cached by `hfx:candles:${symbol}:${tf}:n${count}` with
+//     `lastBar=true` TTLs (30s..5m).
+//   - Date-bounded historical windows (`from` / `to`, e.g. Trade Setup Replay)
+//     include `:f${from}:t${to}` in the cache key so historical queries never
+//     collide with live latest-bar cache entries, and use `lastBar=false` TTL
+//     (10 minutes) when `to` is in the past.
 
 import { SymbolSchema, type Candle, type Symbol, type Timeframe } from '@kestrel/shared';
 
 import { cacheKey, cacheTag, candleTtl, getDefaultCache } from '../cache';
 import { ProviderError } from '../errors';
 import { runWithFailover, type ProviderAttempt } from '../failover';
-// P2-2 — Build provider attempts from the plugin registry instead of
-// hardcoded imports. Adding a new provider means registering a plugin
-// — no adapter code changes (OCP).
 import '../providers/provider-adapters'; // side-effect: register providers
-
 import { marketDataProviders } from '../providers/provider-registry';
 
 export interface GetCandlesOptions {
   signal?: AbortSignal;
   /** Number of bars to request (capped at 5000 by upstream). Default 300. */
   count?: number;
+  /** Optional ISO-8601 UTC start timestamp for historical range queries (e.g. Trade Setup Replay). */
+  from?: string;
+  /** Optional ISO-8601 UTC end timestamp for historical range queries (e.g. Trade Setup Replay). */
+  to?: string;
+  /** Optional flag to include the live open bar when supported by upstream. */
+  includeOpenBar?: boolean;
   apiKeys?: Partial<{ finnhub: string; biquoteBaseUrl: string }>;
   marketDataProvider?: string;
 }
@@ -94,19 +90,28 @@ export async function getCandlesWithMeta(
   const symbol = SymbolSchema.parse(symbolInput);
   const count = Math.max(1, Math.min(opts.count ?? DEFAULT_COUNT, MAX_COUNT));
   const keys = resolveKeys(opts);
-  const policy = candleTtl(tf, true);
+
+  const isHistoricalClosedWindow = Boolean(
+    opts.to && Number.isFinite(Date.parse(opts.to)) && Date.parse(opts.to) < Date.now() - 60_000,
+  );
+  const policy = candleTtl(tf, !isHistoricalClosedWindow);
+
+  const rangeSuffix =
+    opts.from || opts.to ? `:f${opts.from ?? ''}:t${opts.to ?? ''}` : '';
+  const openSuffix = opts.includeOpenBar ? ':open1' : '';
 
   const cache = await getDefaultCache();
-  const key = cacheKey({ resource: 'candles', symbol, tf, extra: `n${count}` });
+  const key = cacheKey({
+    resource: 'candles',
+    symbol,
+    tf,
+    extra: `n${count}${rangeSuffix}${openSuffix}`,
+  });
   const tags = [cacheTag('candles'), cacheTag('candles', symbol)];
 
   const r = await cache.fetchWithMeta<Candle[]>(
     key,
     async () => {
-      // P2-2 — Build provider attempts from the plugin registry.
-      // Providers declare their own fetchCandles logic (category routing,
-      // key guards, timeframe filtering) via optional supports()/fetchCandles()
-      // — the adapter just iterates and runs failover.
       const providers = marketDataProviders.list();
       const attempts: ProviderAttempt<Candle[]>[] = providers
         .filter((p) => typeof p.fetchCandles === 'function' && (p.supports?.(symbol, tf) ?? true))
@@ -116,6 +121,11 @@ export async function getCandlesWithMeta(
           run: async () => {
             const c = await p.fetchCandles!(symbol, tf, count, {
               ...(opts.signal ? { signal: opts.signal } : {}),
+              ...(opts.from ? { from: opts.from } : {}),
+              ...(opts.to ? { to: opts.to } : {}),
+              ...(opts.includeOpenBar !== undefined
+                ? { includeOpenBar: opts.includeOpenBar }
+                : {}),
               apiKey: keys.finnhub,
               baseUrl: keys.biquoteBaseUrl,
             });

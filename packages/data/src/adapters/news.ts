@@ -16,11 +16,10 @@
 
 // News adapter — public surface for "fetch latest articles".
 //
-// Phase 4: Finnhub is the PRIMARY news source (60 req/min free, dedicated
-// forex category, high volume). Marketaux is the FALLBACK (100 req/day free,
-// but has entity tagging + sentiment scores).
-//
-// The failover pattern: try Finnhub first → on error, try Marketaux.
+// Provider priority:
+//   1. Finnhub (when FINNHUB_API_KEY is set — 60 req/min free, forex category)
+//   2. Marketaux (when MARKETAUX_API_KEY is set — entity tagging + sentiment)
+//   3. BiQuote `/api/news/market` (always available — zero-key 15,000 req/min REST)
 
 import { createHash } from 'node:crypto';
 
@@ -32,8 +31,8 @@ import {
   type SymbolOrCurrencyTag,
 } from '@kestrel/shared';
 
-import { ProviderError } from '../errors';
 import { runWithFailover, type ProviderAttempt } from '../failover';
+import * as biquote from '../providers/biquote';
 import * as finnhub from '../providers/finnhub';
 import * as marketaux from '../providers/marketaux';
 
@@ -45,13 +44,15 @@ export interface FetchNewsOptions {
   /** Restrict to articles tagged with this symbol after extraction. */
   symbol?: Symbol;
   signal?: AbortSignal;
-  apiKeys?: Partial<{ finnhub: string; marketaux: string }>;
+  apiKeys?: Partial<{ finnhub: string; marketaux: string; biquoteBaseUrl: string }>;
 }
 
 function resolveKeys(opts: FetchNewsOptions) {
   return {
     finnhub: opts.apiKeys?.finnhub ?? process.env.FINNHUB_API_KEY ?? '',
     marketaux: opts.apiKeys?.marketaux ?? process.env.MARKETAUX_API_KEY ?? '',
+    biquoteBaseUrl:
+      opts.apiKeys?.biquoteBaseUrl ?? process.env.BIQUOTE_BASE_URL ?? 'https://biquote.io',
   };
 }
 
@@ -64,7 +65,7 @@ export function articleIdFromUrl(url: string): string {
  * Pull the latest news batch. Returns normalised `NewsArticle[]` ready to
  * upsert into `news_articles`. Caller handles the embedding step separately.
  *
- * Provider priority: Finnhub (primary) → Marketaux (fallback).
+ * Provider priority: Finnhub → Marketaux → BiQuote (zero-key automatic fallback).
  */
 export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticle[]> {
   const keys = resolveKeys(opts);
@@ -72,7 +73,7 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
 
   const attempts: ProviderAttempt<NewsArticle[]>[] = [];
 
-  // PRIMARY: Finnhub — 60 req/min, dedicated forex category, high volume
+  // TIER 1: Finnhub — 60 req/min, dedicated forex category, high volume
   if (keys.finnhub) {
     attempts.push({
       name: 'finnhub',
@@ -83,7 +84,6 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
           ...(opts.signal ? { signal: opts.signal } : {}),
         });
 
-        // Filter by publishedAfter if specified
         let filtered = raw;
         if (opts.publishedAfter) {
           const cutoff = Date.parse(opts.publishedAfter);
@@ -92,7 +92,6 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
           }
         }
 
-        // Apply limit
         const limited = opts.limit ? filtered.slice(0, opts.limit) : filtered;
 
         return limited.map((a) => {
@@ -106,7 +105,7 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
             publisher: a.source || null,
             publishedAt: a.datetime * 1000,
             symbols,
-            sentiment: null, // Finnhub doesn't provide sentiment
+            sentiment: null,
             sentimentScore: null,
             topics: [],
           });
@@ -115,7 +114,7 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
     });
   }
 
-  // FALLBACK: Marketaux — 100 req/day, but has entity tagging + sentiment
+  // TIER 2: Marketaux — 100 req/day, entity tagging + sentiment
   if (keys.marketaux) {
     attempts.push({
       name: 'marketaux',
@@ -151,13 +150,49 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
     });
   }
 
-  if (attempts.length === 0) {
-    throw new ProviderError(
-      'NO_PROVIDER_AVAILABLE',
-      'none',
-      'no news provider configured (set FINNHUB_API_KEY or MARKETAUX_API_KEY)',
-    );
-  }
+  // TIER 3 (Zero-Key Primary/Fallback): BiQuote `/api/news/market`
+  attempts.push({
+    name: 'biquote',
+    run: async () => {
+      const raw = await biquote.fetchMarketNews({
+        ...(opts.symbol ? { symbol: opts.symbol } : {}),
+        maxResults: Math.min(opts.limit ?? 25, 50),
+        baseUrl: keys.biquoteBaseUrl,
+        ...(opts.signal ? { signal: opts.signal } : {}),
+      });
+
+      let filtered = raw;
+      if (opts.publishedAfter) {
+        const cutoff = Date.parse(opts.publishedAfter);
+        if (!Number.isNaN(cutoff)) {
+          filtered = raw.filter((a) => Date.parse(a.publishedDate) >= cutoff);
+        }
+      }
+
+      const limited = opts.limit ? filtered.slice(0, opts.limit) : filtered;
+
+      return limited.map((a) => {
+        const extracted = extractSymbolsFromText(a.title, a.description ?? '', opts.symbol);
+        const symbols = opts.symbol
+          ? [...new Set<SymbolOrCurrencyTag>([opts.symbol, ...extracted])]
+          : extracted;
+        const publishedAt = Date.parse(a.publishedDate);
+        return NewsArticleSchema.parse({
+          id: articleIdFromUrl(a.url),
+          title: a.title,
+          summary: a.description || null,
+          url: a.url,
+          source: 'biquote',
+          publisher: a.publisher || null,
+          publishedAt: Number.isNaN(publishedAt) ? Date.now() : publishedAt,
+          symbols,
+          sentiment: null,
+          sentimentScore: null,
+          topics: a.category ? [a.category] : [],
+        });
+      });
+    },
+  });
 
   const { value } = await runWithFailover(attempts);
 
@@ -171,15 +206,22 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
   return value;
 }
 
-// ---------------------------------------------------------------------------
-// Finnhub text-based symbol extraction
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Text-based symbol extraction (Finnhub & BiQuote)
+// -----------------------------------------------------------------------------
 
 /** Keywords that map to our supported symbols/currencies. */
 const SYMBOL_KEYWORDS: Array<[RegExp, SymbolOrCurrencyTag]> = [
   [/\b(XAU|gold|XAUUSD)\b/i, 'XAUUSD'],
   [/\b(EUR\/USD|EURUSD|euro)\b/i, 'EURUSD'],
   [/\b(GBP\/USD|GBPUSD|sterling|pound)\b/i, 'GBPUSD'],
+  [/\b(USD\/JPY|USDJPY|yen)\b/i, 'USDJPY'],
+  [/\b(AUD\/USD|AUDUSD|aussie)\b/i, 'AUDUSD'],
+  [/\b(USD\/CAD|USDCAD|loonie)\b/i, 'USDCAD'],
+  [/\b(NZD\/USD|NZDUSD|kiwi)\b/i, 'NZDUSD'],
+  [/\b(USD\/CHF|USDCHF|swissy|franc)\b/i, 'USDCHF'],
+  [/\b(BTC|bitcoin|BTCUSDT)\b/i, 'BTCUSDT'],
+  [/\b(ETH|ethereum|ETHUSDT)\b/i, 'ETHUSDT'],
   [/\b(USD|dollar|greenback|DXY)\b/i, 'USD'],
   [/\b(EUR|euro)\b/i, 'EUR'],
   [/\b(GBP|pound|sterling)\b/i, 'GBP'],
