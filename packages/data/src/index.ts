@@ -23,6 +23,8 @@ import './providers/provider-adapters';
 export {
   getPrice,
   getPriceWithMeta,
+  getPrices,
+  getPricesWithMeta,
   type GetPriceOptions,
   type PriceResult,
 } from './adapters/price';
@@ -83,6 +85,7 @@ export * as cftc from './providers/cftc';
 export * as fred from './providers/fred';
 export * as binance from './providers/binance';
 export * as biquote from './providers/biquote';
+export { isTickStreamEnabled } from './providers/provider-adapters';
 
 // P2-2 — Market Data Provider Plugin Registry.
 // Adding a new provider means registering a plugin — no adapter code changes (OCP).
@@ -90,4 +93,5 @@ export { marketDataProviders, MarketDataProviderRegistry } from './providers/pro
 export type {
   MarketDataProvider as IMarketDataProvider,
   ProviderFetchOptions,
+  ProviderPriceSnapshot,
 } from './providers/provider-registry';

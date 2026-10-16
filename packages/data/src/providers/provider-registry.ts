@@ -23,9 +23,9 @@
 //
 // Pattern mirrors ToolRegistry, IndicatorRegistry, and AlertRuleRegistry.
 
-import type { Candle, Symbol, Timeframe } from '@kestrel/shared';
+import type { BiquoteMarketState, Candle, Symbol, Timeframe } from '@kestrel/shared';
 
-// --- Plugin interface ----------------------------------------------------
+// --- Plugin interface -----------------------------------------------------
 
 /** Options passed to every provider fetch call. */
 export interface ProviderFetchOptions {
@@ -34,20 +34,33 @@ export interface ProviderFetchOptions {
   apiKey?: string;
   /** Per-call base URL override. */
   baseUrl?: string;
+  /** Optional ISO-8601 UTC start timestamp for historical candle queries. */
+  from?: string;
+  /** Optional ISO-8601 UTC end timestamp for historical candle queries. */
+  to?: string;
+  /** Optional flag to include the live open bar on OHLC requests. */
+  includeOpenBar?: boolean;
+}
+
+export interface ProviderPriceSnapshot {
+  price: number;
+  provider: string;
+  /** ms since the upstream observed the value. null for REST providers that don't report quote age. */
+  ageMs?: number | null;
+  /** Market session state ('open' | 'closed') when reported by the provider. */
+  marketState?: BiquoteMarketState;
+  /** Quote age in seconds when reported by BiQuote. */
+  quoteAgeSeconds?: number | null;
+  /** Daily percentage change since session open (null when marketState === 'closed'). */
+  dayDiffPercent?: number | null;
 }
 
 /**
  * A market data provider plugin.
  *
- * Each provider implements fetchPrice (latest tick) and optionally
- * fetchCandles (OHLCV history). Providers that don't support candles
- * are skipped by the candles adapter.
- *
- * Capability methods (all optional — providers declare what they can do):
- *   - fetchCandles  — OHLCV history. Returns null when unsupported.
- *   - testConnection — connectivity probe for the settings UI.
- *   - supports       — per-provider guard: can this provider serve this
- *                      symbol/timeframe at all?
+ * Each provider implements fetchPrice (latest tick), optionally fetchPrices
+ * (multi-symbol batch quote), and optionally fetchCandles (OHLCV history).
+ * Providers that don't support candles are skipped by the candles adapter.
  */
 export interface MarketDataProvider {
   /** Unique provider name (e.g. 'biquote', 'finnhub', 'binance'). */
@@ -59,17 +72,17 @@ export interface MarketDataProvider {
   /**
    * Fetch the latest price for a symbol.
    * Returns the price, provider name, and optionally the data age in ms
-   * (for SWR staleness tracking with live-tick providers).
+   * and market-closure metadata.
    */
-  fetchPrice(
-    symbol: Symbol,
+  fetchPrice(symbol: Symbol, opts?: ProviderFetchOptions): Promise<ProviderPriceSnapshot>;
+  /**
+   * Optional batch price fetch for multiple symbols in a single HTTP round-trip
+   * (e.g. BiQuote `GET /api/latest?symbols=XAUUSD&symbols=EURUSD`).
+   */
+  fetchPrices?(
+    symbols: Symbol[],
     opts?: ProviderFetchOptions,
-  ): Promise<{
-    price: number;
-    provider: string;
-    /** ms since the upstream observed the value. null for REST providers. */
-    ageMs?: number | null;
-  }>;
+  ): Promise<Map<Symbol, ProviderPriceSnapshot>>;
   /**
    * Fetch OHLCV candles. Returns null when the provider cannot serve this
    * symbol/timeframe (no throw — callers skip null gracefully).
@@ -92,7 +105,7 @@ export interface MarketDataProvider {
   supports?(symbol: Symbol, tf?: Timeframe): boolean;
 }
 
-// --- Registry ------------------------------------------------------------
+// --- Registry -------------------------------------------------------------
 
 export class MarketDataProviderRegistry {
   private providers = new Map<string, MarketDataProvider>();

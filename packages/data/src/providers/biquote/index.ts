@@ -20,6 +20,19 @@
 // SignalR consumer that holds the persistent BiQuote hub connection lives
 // in `apps/worker/src/signalr/` (Phase 8 PR-6).
 
-export { fetchTick, fetchLatest, fetchOhlc, type FetchOhlcArgs } from './rest';
+export {
+  BIQUOTE_THROTTLE_LIMIT,
+  fetchTick,
+  fetchLatest,
+  fetchOhlc,
+  fetchCalendar,
+  fetchCalendarUpcoming,
+  fetchMarketNews,
+  type CallOptions,
+  type FetchOhlcArgs,
+  type FetchBiquoteCalendarArgs,
+  type FetchBiquoteCalendarUpcomingArgs,
+  type FetchBiquoteNewsArgs,
+} from './rest';
 export { toBiquoteSymbol, toBiquoteTimeframe, parseBiquoteDate } from './map';
 export { assertSupportedSymbol } from './filter';
