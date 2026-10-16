@@ -8,18 +8,22 @@ import { runWorker } from '../src/index.js';
 import { createLogger } from '../src/log.js';
 import type { MinimalHubConnection } from '../src/signalr/consumer.js';
 
-vi.mock('@kestrel/ai', () => ({
-  getDb: () => ({
-    insert: () => ({
-      values: () => ({
-        onConflictDoNothing: async () => undefined,
-        onConflictDoUpdate: async () => undefined,
+vi.mock('@kestrel/ai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/ai')>();
+  return {
+    ...actual,
+    getDb: () => ({
+      insert: () => ({
+        values: () => ({
+          onConflictDoNothing: async () => undefined,
+          onConflictDoUpdate: async () => undefined,
+        }),
       }),
     }),
-  }),
-  initLangfuse: vi.fn(),
-  shutdownLangfuse: vi.fn(),
-}));
+    initLangfuse: vi.fn(),
+    shutdownLangfuse: vi.fn(),
+  };
+});
 
 vi.mock('@kestrel/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@kestrel/db')>();
@@ -85,6 +89,7 @@ describe('worker lifecycle contracts', () => {
         DATABASE_URL: 'postgres://localhost:5432/test',
         BIQUOTE_HUB_URL: 'https://biquote.io/hubs/tick',
         BINANCE_CRYPTO_SYMBOLS: '',
+        WORKER_ENABLE_TICK_STREAM: '1',
         WORKER_HTTP_PORT: 8081,
         WORKER_PROXY_PORT: 8082,
         DEPLOYED_SHA: 'test',

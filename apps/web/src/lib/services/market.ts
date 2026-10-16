@@ -24,7 +24,12 @@
 // Pattern: Service (PF-22). Controllers remain thin: parse request →
 // call service → format Response.
 
-import { getCandles, getCandlesWithMeta, getDefaultCache, getPriceWithMeta } from '@kestrel/data';
+import {
+  getCandles,
+  getCandlesWithMeta,
+  getDefaultCache,
+  getPricesWithMeta,
+} from '@kestrel/data';
 import { requireTenantIdForUser, schema, withRateLimit, withTenantDbRO } from '@kestrel/db';
 import { computeIndicator } from '@kestrel/indicators';
 import { BUILTIN_SYMBOLS, type Candle, type IndicatorResult, type Tick } from '@kestrel/shared';
@@ -130,14 +135,10 @@ export async function getCandlesService(
 export async function getPriceService(userId: string, symbols: string[]): Promise<PriceResultDTO> {
   const { finnhubKey, marketDataProvider } = await loadUserMarketPrefs(userId);
 
-  const results = await Promise.all(
-    symbols.map((s) =>
-      getPriceWithMeta(s, {
-        apiKeys: { finnhub: finnhubKey },
-        marketDataProvider,
-      }),
-    ),
-  );
+  const results = await getPricesWithMeta(symbols, {
+    apiKeys: { finnhub: finnhubKey },
+    marketDataProvider,
+  });
 
   const ticks: TickWithMetaDTO[] = results.map((r) => ({
     ...r.tick,

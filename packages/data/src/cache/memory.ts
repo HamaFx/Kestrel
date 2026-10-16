@@ -151,6 +151,34 @@ export class MemoryCache implements Cache {
     }
   }
 
+  async getWithMeta<T>(key: string): Promise<{ value: T; meta: CacheEntryMeta } | null> {
+    const now = Date.now();
+    const hit = this.store.get(key) as Entry<T> | undefined;
+    if (!hit) return null;
+    if (hit.expiresAt > now) {
+      return { value: hit.value, meta: { producedAt: hit.producedAt, stale: false } };
+    }
+    if (hit.hardExpiresAt > now) {
+      return { value: hit.value, meta: { producedAt: hit.producedAt, stale: true } };
+    }
+    return null;
+  }
+
+  async set<T>(key: string, value: T, options: CacheFetchOptions): Promise<void> {
+    const now = Date.now();
+    const ttlMs = options.ttlSeconds * 1000;
+    const swrMs = (options.maxStaleSeconds ?? 0) * 1000;
+    const tags = options.tags ?? [];
+    this.evictIfNeeded();
+    this.store.set(key, {
+      value,
+      producedAt: now,
+      expiresAt: now + ttlMs,
+      hardExpiresAt: now + ttlMs + swrMs,
+      tags: new Set(tags),
+    });
+  }
+
   invalidateTag(tag: string): void {
     for (const [key, entry] of this.store) {
       if (entry.tags.has(tag)) this.store.delete(key);

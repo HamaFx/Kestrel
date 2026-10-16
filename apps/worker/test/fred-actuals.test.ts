@@ -27,13 +27,11 @@ vi.mock('@kestrel/ai', () => ({
   listFredEventsMissingActual: vi.fn(),
   parseFredEventId: vi.fn(),
   patchEventActual: vi.fn(),
+  upsertEvents: vi.fn().mockResolvedValue({ inserted: 0 }),
 }));
 
-// Phase 3 hardening §19 — `apps/worker/src/jobs/fred-actuals.ts` now
-// imports the FRED helpers via `import { fred } from '@kestrel/data'`
-// instead of the deep `@kestrel/data/providers/fred` path. Match the
-// new import shape so vitest's module resolver finds the mock.
 vi.mock('@kestrel/data', () => ({
+  fetchUpcomingEvents: vi.fn().mockResolvedValue([]),
   fred: {
     fetchObservations: vi.fn(),
     fredMeta: vi.fn(),

@@ -23,25 +23,20 @@
 // few minutes.
 //
 // Schedule: every 2 minutes via the GCE-VM crontab. Idempotent + fast.
-// Tight scope on purpose: prices for the legacy CFTC/intermarket trio + the single most-
-// requested candle key (1h × 200). 4h is requested rarely enough that
-// burning quota on it inside warm-cache hits the per-provider self-throttle
-// AND the upstream's quota — leave it to lazy fetch on first user view.
 
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { getCandlesWithMeta, getPriceWithMeta, SYMBOLS } from '@/lib/services/api-boundary';
+import { getCandlesWithMeta, getPricesWithMeta, SYMBOLS } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 /**
- * Tight scope on purpose. BiQuote's free tier covers FX + XAU at 10 req/min
- * via our internal self-throttle; warming the three legacy CFTC/intermarket
- * symbols × 1 tf leaves headroom
- * for the live polling that follows. 1h on every tick; 4h every 10 minutes
- * (low-frequency tier — see Phase 3 hardening §14).
+ * BiQuote provides 15,000 req/min/IP over anonymous REST and supports
+ * multi-symbol batching via `/api/latest?symbols=A&symbols=B`. We warm
+ * `SYMBOLS` in a single batch price call plus `1h` candles on every tick
+ * and `4h` candles every 10 minutes.
  */
 const TIMEFRAMES_TO_WARM: Array<'1h'> = ['1h'];
 /** Less-hot timeframes warmed only on every 10th cron tick. */
@@ -60,19 +55,15 @@ export async function GET(req: Request): Promise<Response> {
     const errors: Array<{ key: string; message: string }> = [];
     let processed = 0;
 
-    // Prices: parallel — three symbols, one upstream provider.
-    await Promise.all(
-      SYMBOLS.map(async (s) => {
-        try {
-          await getPriceWithMeta(s);
-          processed += 1;
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          errors.push({ key: `price:${s}`, message });
-          log.warn('price warm failed', { symbol: s, message });
-        }
-      }),
-    );
+    // Prices: single batched call via getPricesWithMeta (`/api/latest`).
+    try {
+      const results = await getPricesWithMeta([...SYMBOLS]);
+      processed += results.length;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push({ key: 'price:batch', message });
+      log.warn('price batch warm failed', { message });
+    }
 
     // H4: Parallelize candle warming with a concurrency cap instead of
     // serial execution. 3 symbols × 2 tfs × 1.5s stagger = 9s serial.

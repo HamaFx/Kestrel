@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { loadEnv, resolveDatabaseUrl } from '../src/env';
+import { isWorkerTickStreamEnabled, loadEnv, resolveDatabaseUrl } from '../src/env';
 
 const VALID = {
   DATABASE_URL: 'postgres://user:pw@localhost:5432/db',
@@ -26,7 +26,7 @@ const VALID = {
 };
 
 describe('loadEnv', () => {
-  it('accepts the minimal happy path', () => {
+  it('accepts the minimal happy path and defaults WORKER_ENABLE_TICK_STREAM to 0', () => {
     const env = loadEnv(VALID as unknown as NodeJS.ProcessEnv);
     expect(env.DATABASE_URL).toBe(VALID.DATABASE_URL);
     expect(env.BIQUOTE_HUB_URL).toBe('https://biquote.io/hubs/tick');
@@ -35,6 +35,8 @@ describe('loadEnv', () => {
     expect(env.WORKER_HTTP_PORT).toBe(8081);
     expect(env.WORKER_PROXY_PORT).toBe(8082);
     expect(env.WORKER_HTTP_HOST).toBeUndefined();
+    expect(env.WORKER_ENABLE_TICK_STREAM).toBe('0');
+    expect(isWorkerTickStreamEnabled(env)).toBe(false);
   });
 
   it('accepts POSTGRES_URL as an alternative to DATABASE_URL', () => {
@@ -50,27 +52,38 @@ describe('loadEnv', () => {
     );
   });
 
-  it('requires health and proxy tokens and encryption secret in production', () => {
+  it('requires health token and encryption secret in production, and only requires BIQUOTE_PROXY_TOKEN when WORKER_ENABLE_TICK_STREAM=1', () => {
     const base = {
       DATABASE_URL: VALID.DATABASE_URL,
       NODE_ENV: 'production',
     } as unknown as NodeJS.ProcessEnv;
 
     expect(() => loadEnv(base)).toThrow(/WORKER_HEALTH_TOKEN/);
-    expect(() =>
-      loadEnv({ ...base, WORKER_HEALTH_TOKEN: 'health-token' } as unknown as NodeJS.ProcessEnv),
-    ).toThrow(/BIQUOTE_PROXY_TOKEN/);
+
+    // In default on-demand mode (WORKER_ENABLE_TICK_STREAM=0), BIQUOTE_PROXY_TOKEN is optional.
+    const onDemandEnv = loadEnv({
+      ...base,
+      WORKER_HEALTH_TOKEN: 'health-token',
+      ENCRYPTION_SECRET: 'a'.repeat(64),
+    } as unknown as NodeJS.ProcessEnv);
+    expect(onDemandEnv.WORKER_ENABLE_TICK_STREAM).toBe('0');
+    expect(onDemandEnv.BIQUOTE_PROXY_TOKEN).toBeUndefined();
+
+    // When WORKER_ENABLE_TICK_STREAM=1, BIQUOTE_PROXY_TOKEN is required in production.
     expect(() =>
       loadEnv({
         ...base,
         WORKER_HEALTH_TOKEN: 'health-token',
-        BIQUOTE_PROXY_TOKEN: 'proxy-token',
+        WORKER_ENABLE_TICK_STREAM: '1',
+        ENCRYPTION_SECRET: 'a'.repeat(64),
       } as unknown as NodeJS.ProcessEnv),
-    ).toThrow(/ENCRYPTION_SECRET/);
+    ).toThrow(/BIQUOTE_PROXY_TOKEN/);
+
     expect(
       loadEnv({
         ...base,
         WORKER_HEALTH_TOKEN: 'health-token',
+        WORKER_ENABLE_TICK_STREAM: '1',
         BIQUOTE_PROXY_TOKEN: 'proxy-token',
         ENCRYPTION_SECRET: 'a'.repeat(64),
       } as unknown as NodeJS.ProcessEnv).BIQUOTE_PROXY_TOKEN,

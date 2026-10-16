@@ -71,7 +71,8 @@ export function TickerTape() {
     const prev = prevPricesRef.current.get(t.symbol) ?? t.mid;
     const isBull = t.mid >= prev;
     const changeStr = pctChange(prev, t.mid);
-    return { symbol: t.symbol, mid: t.mid.toFixed(decimals), isBull, changeStr };
+    const isClosed = t.marketState === 'closed';
+    return { symbol: t.symbol, mid: t.mid.toFixed(decimals), isBull, changeStr, isClosed };
   });
 
   // Fallback: show static symbols when live prices aren't available yet
@@ -105,14 +106,23 @@ export function TickerTape() {
     <span key={`${item.symbol}-${i}`} className="inline-flex shrink-0 items-center gap-2">
       <span className="text-fg font-semibold tracking-tight">{item.symbol}</span>
       <span className="text-fg-subtle tabular-nums">{item.mid}</span>
-      <span
-        className={cn(
-          'text-xs font-semibold tabular-nums px-1 rounded-xs',
-          item.isBull ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10',
-        )}
-      >
-        {item.isBull ? '▲' : '▼'} {item.changeStr}
-      </span>
+      {item.isClosed ? (
+        <span
+          className="text-fg-subtle bg-bg-elev-2 rounded-xs px-1 text-xs font-medium"
+          title="Market closed — last price"
+        >
+          CLOSED
+        </span>
+      ) : (
+        <span
+          className={cn(
+            'text-xs font-semibold tabular-nums px-1 rounded-xs',
+            item.isBull ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10',
+          )}
+        >
+          {item.isBull ? '▲' : '▼'} {item.changeStr}
+        </span>
+      )}
       <span className="text-fg-subtle/30 mx-2 select-none">·</span>
     </span>
   ));

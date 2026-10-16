@@ -16,9 +16,9 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock all external dependencies for buildLiveSnapshot
 vi.mock('@kestrel/data', () => ({
   getPrice: vi.fn(),
+  getPrices: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@kestrel/db', () => ({

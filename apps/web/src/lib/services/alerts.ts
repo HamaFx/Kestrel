@@ -20,14 +20,6 @@
 //
 // Separates business logic from HTTP handling. Route handlers (controllers)
 // call these service functions instead of importing @kestrel/ai directly.
-// The service layer handles:
-//   - Input validation (Zod schemas)
-//   - Authorization checks (scoped to userId)
-//   - Error wrapping (converts domain errors to typed results)
-//   - Response formatting (returns typed DTOs)
-//
-// Pattern: Service (PF-22). Controllers remain thin: parse request →
-// call service → format Response.
 
 import {
   createAlert as aiCreateAlert,
@@ -39,6 +31,7 @@ import {
   simulateAlert,
   type SimCandle,
 } from '@kestrel/ai';
+import { getCandles } from '@kestrel/data';
 import { getRecentCandles, withRateLimit } from '@kestrel/db';
 import {
   SEVERITY_RANK,
@@ -99,7 +92,6 @@ export interface PreviewDigestDTO {
 
 // ── DTO mappers ──────────────────────────────────────────────────────────────
 
-/** Map domain Alert → AlertDTO (number timestamps → Date objects, field name mapping). */
 function toAlertDTO(a: Alert): AlertDTO {
   return {
     id: a.id,
@@ -111,7 +103,7 @@ function toAlertDTO(a: Alert): AlertDTO {
     active: a.active,
     firedAt: a.lastFiredAt ?? a.firedAt ?? null,
     createdAt: new Date(a.createdAt),
-    updatedAt: new Date(a.createdAt), // Alert has no updatedAt; use createdAt as fallback
+    updatedAt: new Date(a.createdAt),
   };
 }
 
@@ -160,20 +152,42 @@ export async function deleteAlertService(userId: string, id: string): Promise<vo
 
 const PREVIEW_RATE_LIMIT = Number(process.env.AI_ALERT_PREVIEW_RATE_LIMIT ?? '10');
 
-async function fetchCandles(rule: AlertRule, _lookbackDays: number): Promise<SimCandle[]> {
-  const rows = await getRecentCandles(rule.symbol, 1500);
-  return rows
-    .map((r) => {
-      const t = (r as { t?: number | Date | string }).t;
-      const o = (r as { o?: number }).o ?? 0;
-      const h = (r as { h?: number }).h ?? 0;
-      const l = (r as { l?: number }).l ?? 0;
-      const c = (r as { c?: number }).c ?? 0;
-      const tMs =
-        typeof t === 'number' ? t : t instanceof Date ? t.getTime() : Date.parse(String(t));
-      return { t: tMs, o, h, l, c } satisfies SimCandle;
-    })
-    .filter((candle) => Number.isFinite(candle.t));
+async function fetchCandles(rule: AlertRule, lookbackDays: number): Promise<SimCandle[]> {
+  try {
+    const rows = await getRecentCandles(rule.symbol, 1500);
+    if (rows.length > 0) {
+      return rows
+        .map((r) => {
+          const t = (r as { t?: number | Date | string }).t;
+          const o = (r as { o?: number }).o ?? 0;
+          const h = (r as { h?: number }).h ?? 0;
+          const l = (r as { l?: number }).l ?? 0;
+          const c = (r as { c?: number }).c ?? 0;
+          const tMs =
+            typeof t === 'number' ? t : t instanceof Date ? t.getTime() : Date.parse(String(t));
+          return { t: tMs, o, h, l, c } satisfies SimCandle;
+        })
+        .filter((candle) => Number.isFinite(candle.t));
+    }
+  } catch {
+    // Fall through to on-demand BiQuote / Binance OHLC fetch below.
+  }
+
+  if (typeof getCandles === 'function') {
+    const tf = lookbackDays <= 1 ? '1m' : lookbackDays <= 7 ? '5m' : '15m';
+    const barsPerDay = tf === '1m' ? 1440 : tf === '5m' ? 288 : 96;
+    const count = Math.min(1000, Math.max(100, lookbackDays * barsPerDay));
+    const onDemand = await getCandles(rule.symbol, tf, { count }).catch(() => []);
+    return onDemand.map((bar) => ({
+      t: bar.t,
+      o: bar.o,
+      h: bar.h,
+      l: bar.l,
+      c: bar.c,
+    }));
+  }
+
+  return [];
 }
 
 export async function previewAlertRuleService(

@@ -19,6 +19,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as IndicatorsModule from '@kestrel/indicators';
 
+import { buildPriceEvidence } from '../src/mastra-v2/packets/evidence-builders';
 import { _resetPacketCache } from '../src/mastra-v2/packets/packet-cache';
 import { XAUUSD_RESEARCH_WINDOWS } from '../src/mastra-v2/packets/research-config';
 import { collectXauusdResearchPacket } from '../src/mastra-v2/packets/research-packet';
@@ -146,12 +147,32 @@ describe('bounded XAUUSD research packet', () => {
     mocks.fetchUpcomingEvents.mockReset().mockResolvedValue([]);
     mocks.fetchObservations.mockReset();
     mocks.fetchResonanceInputs.mockReset();
-    // Keep the real compute implementation installed by the module mock;
-    // only the call history is cleared between cases.
     mocks.computeIndicator.mockClear();
     mocks.recordStep.mockReset();
     mocks.completeStep.mockReset();
     mocks.logErrorContext.mockReset();
+  });
+
+  it('treats marketState="closed" ticks as complete evidence without false stale-age degradation', () => {
+    const evidence = buildPriceEvidence({
+      tick: {
+        symbol: 'XAUUSD',
+        bid: 2400,
+        ask: 2400.2,
+        mid: 2400.1,
+        ts: Date.now() - 3_600_000,
+        source: 'biquote',
+        marketState: 'closed',
+        quoteAgeSeconds: 3600,
+        dayDiffPercent: null,
+      },
+      stale: false,
+      producedAt: Date.now(),
+      ageMs: 3_600_000,
+    });
+    expect(evidence.freshness).toBe('fresh');
+    expect(evidence.quality).toBe('complete');
+    expect(evidence.warnings).toEqual([]);
   });
 
   it('collects the fixed multi-timeframe scope and computes indicators in code', async () => {
@@ -220,9 +241,6 @@ describe('bounded XAUUSD research packet', () => {
   });
 
   it('keeps the XAUUSD research windows aligned with the shared collector windows (§2.1/P1-10)', () => {
-    // Drift guard: both pipelines must request identical (symbol, tf, count)
-    // windows so they share the data-layer candle cache instead of issuing
-    // parallel provider fetches per turn.
     expect(
       XAUUSD_RESEARCH_WINDOWS.map(({ timeframe, candleCount }) => ({
         timeframe,
@@ -256,15 +274,12 @@ describe('bounded XAUUSD research packet', () => {
     expect(first.status).toBe('ready');
     expect(first.dataQuality).toBe('complete');
     expect(second.packetId).toBe(first.packetId);
-    // One provider burst: the cached collection did not re-hit the providers.
     expect(mocks.getPriceWithMeta).toHaveBeenCalledOnce();
     expect(mocks.getCandlesWithMeta).toHaveBeenCalledTimes(4);
     expect(metrics.snapshot().counters['packet_cache_hit_total']).toBe(1);
   });
 
   it('never caches blocked, degraded, or partial XAUUSD packets (fresh-only, Q5)', async () => {
-    // configureSuccessfulData leaves the macro providers down → missingData
-    // is populated → the packet is partial and must never be cached.
     configureSuccessfulData();
 
     const first = await collectXauusdResearchPacket();
@@ -282,7 +297,6 @@ describe('bounded XAUUSD research packet', () => {
     const first = await collectXauusdResearchPacket();
     const second = await collectXauusdResearchPacket();
 
-    // No caching on the rollback path: both turns collect fresh.
     expect(second.packetId).not.toBe(first.packetId);
     expect(mocks.getPriceWithMeta).toHaveBeenCalledTimes(2);
     expect(metrics.snapshot().counters['packet_cache_hit_total'] ?? 0).toBe(0);
@@ -294,9 +308,6 @@ describe('bounded XAUUSD research packet', () => {
     await collectXauusdResearchPacket();
     const callsAfterFirst = mocks.computeIndicator.mock.calls.length;
 
-    // The partial packet above is not cacheable, so this re-collects (fresh
-    // provider fetches) — but every indicator is served from the shared memo
-    // because the candle windows are identical.
     await collectXauusdResearchPacket();
 
     expect(mocks.getPriceWithMeta).toHaveBeenCalledTimes(2);

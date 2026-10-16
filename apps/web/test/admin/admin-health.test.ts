@@ -28,18 +28,13 @@ import {
 function createMockDb(
   scenario:
     | 'healthy'
+    | 'on-demand-empty-ticks'
     | 'missing-live-ticks'
     | 'stale-tick'
     | 'silent'
     | 'spend-over-threshold'
     | 'missing-daily-spend' = 'healthy',
 ) {
-  // The service always issues queries in the same order:
-  // 1) DB probe, 2) live_ticks, 3) cron_runs, 4) chat_tool_telemetry,
-  // 5) chat_telemetry, 6) full-analysis workflow runs (stale/stuck),
-  // 7) operational recovery signals, 8) daily_ai_spend (§5.3 spend watch).
-  // We use a counter because Drizzle `sql` objects do not stringify to
-  // their SQL text reliably.
   let callIndex = 0;
 
   return {
@@ -53,6 +48,9 @@ function createMockDb(
       if (callIndex === 2) {
         if (scenario === 'missing-live-ticks') {
           throw new Error('relation "live_ticks" does not exist');
+        }
+        if (scenario === 'on-demand-empty-ticks') {
+          return { rows: [{ symbol_count: 0, oldest_age_s: null }] };
         }
         return scenario === 'stale-tick'
           ? { rows: [{ symbol_count: 3, oldest_age_s: 90 }] }
@@ -138,6 +136,17 @@ describe('computeHealthSloService', () => {
     expect(result.slis.find((s) => s.key === 'sentiment_health')?.current).toBe(0.9);
   });
 
+  it('reports healthy on-demand REST mode when live_ticks is empty and WORKER_ENABLE_TICK_STREAM is disabled', async () => {
+    const db = createMockDb('on-demand-empty-ticks');
+    const result = await computeHealthSloService(db, { hours: 24 });
+
+    const tickSli = result.slis.find((s) => s.key === 'worker_ticks');
+    expect(tickSli?.current).toBe(1);
+    expect(tickSli?.informational).toBe(true);
+    expect(tickSli?.details).toContain('On-demand BiQuote REST mode active');
+    expect(result.anomalies).not.toContain('No live tick data — worker may not be running');
+  });
+
   it('does not break other SLIs when live_ticks is missing', async () => {
     const db = createMockDb('missing-live-ticks');
     const result = await computeHealthSloService(db, { hours: 24 });
@@ -212,16 +221,12 @@ describe('computeHealthSloService', () => {
     );
   });
 
-  // ── §5.3 (Q4) spend watch — non-blocking per-user daily alerts ────────────
-
   it('flags users whose daily ledger spend reaches the threshold as anomalies', async () => {
     resetAdminSpendAlertDedup();
     const db = createMockDb('spend-over-threshold');
     const result = await computeHealthSloService(db, { hours: 24, spendAlertThresholdUsd: 25 });
 
     expect(result.spendWatch?.thresholdUsd).toBe(25);
-    // $41.00 and exactly $25.00 count (>=, matching usage-alert semantics);
-    // $9.00 does not.
     expect(result.spendWatch?.usersOverThreshold).toBe(2);
     expect(result.spendWatch?.overThreshold.map((e) => e.userId)).toEqual(['user-1', 'user-2']);
     expect(result.anomalies).toContain(
@@ -241,7 +246,7 @@ describe('computeHealthSloService', () => {
       const result = await computeHealthSloService(db, { hours: 24 });
 
       expect(result.spendWatch?.thresholdUsd).toBe(40);
-      expect(result.spendWatch?.usersOverThreshold).toBe(1); // only user-1 at $41.00
+      expect(result.spendWatch?.usersOverThreshold).toBe(1);
     } finally {
       vi.unstubAllEnvs();
     }

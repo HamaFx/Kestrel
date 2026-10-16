@@ -19,7 +19,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import {
   decryptByok,
-  getPriceWithMeta,
+  getPricesWithMeta,
   getUserApiKeys,
   SymbolSchema,
 } from '@/lib/services/api-boundary';
@@ -53,7 +53,7 @@ async function* generatePrices(
     iteration++;
     const fetchStart = Date.now();
     try {
-      const results = await Promise.all(symbols.map((s) => getPriceWithMeta(s, { apiKeys: keys })));
+      const results = await getPricesWithMeta(symbols, { apiKeys: keys });
       const ticks = results.map((r) => r.tick);
       yield `data: ${JSON.stringify({ ticks, ts: Date.now() })}\n\n`;
     } catch (err) {

@@ -16,26 +16,21 @@
 
 // Kestrel worker entry point.
 //
-// The worker holds persistent market-data connections. Ticks flow into
-// `TickBuffer`, which is drained once per second and upserted into
-// `live_ticks`; the candle aggregator consumes the same validated stream.
-// Binance WebSocket data is handled alongside the primary feed.
+// By default (`WORKER_ENABLE_TICK_STREAM=0`), the worker operates in
+// 100% on-demand mode: it boots Mastra durable workflows, the job scheduler,
+// and the `:8081` health endpoint without opening 24/7 SignalR/Binance
+// WebSocket connections or writing to `live_ticks` / `candles_1m`.
 //
-// Lifecycle:
-//   1. loadEnv — fail fast if required env is missing.
-//   2. createLogger — JSON in prod, pretty in dev.
-//   3. installSignalHandlers — graceful shutdown on SIGTERM / SIGINT.
-//   4. start SignalR consumer + Binance WS consumer + the 1Hz flush loop.
-//   5. heartbeat to healthchecks.io every 30s while the consumer is alive.
+// When `WORKER_ENABLE_TICK_STREAM=1` is explicitly enabled, `main()` invokes
+// `runWorker()` to start the legacy SignalR + Binance streaming consumers.
 
 import { getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
-import { closeKestrelMastra } from '@kestrel/ai/mastra';
 import { closeDb } from '@kestrel/db';
 import { getCapabilityReport } from '@kestrel/shared';
 
 import { Candle1mAggregator, type ClosedCandle } from './aggregator/candle-1m.js';
 import { BinanceStreamConsumer } from './binance/index.js';
-import { loadEnv, type WorkerEnv } from './env.js';
+import { isWorkerTickStreamEnabled, loadEnv, type WorkerEnv } from './env.js';
 import { ping } from './healthchecks.js';
 import { createHealthServer, createProxyServer } from './http-server.js';
 import { createLogger, type Logger } from './log.js';
@@ -132,13 +127,9 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
   let lastTickAt = 0;
 
-  // L6: Batch ticks before feeding to aggregator and buffer.
-  // During high-volume windows (news events), ticks arrive faster than
-  // they can be individually processed. Batched feeding reduces method
-  // call overhead and Map lookups in both the buffer and aggregator.
   let pendingTicks: NormalizedTick[] = [];
   let batchTimer: NodeJS.Timeout | null = null;
-  const BATCH_MS = 50; // flush every 50ms — imperceptible delay for candles
+  const BATCH_MS = 50;
 
   const flushBatch = () => {
     if (pendingTicks.length === 0) return;
@@ -162,17 +153,9 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
         flushBatch();
       }, BATCH_MS);
     }
-    // Notify watchdog immediately on first tick in batch so healthchecks
-    // stay responsive.
     if (pendingTicks.length === 1) notifyWatchdog();
   };
 
-  // 1m candle aggregator — emits ClosedCandle events on minute rollover.
-  // We write each closed bar to `candles_1m` synchronously; failures are
-  // logged but do NOT throw, because a single failed insert shouldn't
-  // take down the consumer.
-  //
-  // A sustained write failure remains visible in logs through the counter below.
   let candleFailureCount = 0;
   const inFlightCandleFlushes = new Set<Promise<void>>();
 
@@ -230,13 +213,11 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     onTick: handleIncomingTick,
     buildConnection,
     log: log.with({ module: 'signalr' }),
-    // Default to empty; SymbolManager will immediately populate it
     symbols: [],
   });
 
   const symbolManager = new SymbolManager(log.with({ module: 'symbol-manager' }));
 
-  // Wire per-consumer subscription updates (biquoteChanged for FX/gold, binanceChanged for crypto)
   symbolManager.on('biquoteChanged', ({ added, removed }) => {
     if (consumer.isStarted()) {
       void consumer.updateSubscriptions(added, removed);
@@ -248,7 +229,6 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     }
   });
 
-  // Binance WebSocket consumer for live crypto klines.
   const cryptoSymbols = (
     env.BINANCE_CRYPTO_SYMBOLS ?? 'BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT'
   )
@@ -267,17 +247,11 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   await consumer.start(); // BiQuote SignalR
   await binanceConsumer.start(); // Binance WS
   await symbolManager.start();
-  // The consumer is connected and subscribed — tell systemd we're done
-  // bootstrapping. Pair with `Type=notify` in kestrel-worker.service so
-  // the unit only enters `active (running)` once we're ready.
   notifyReady();
   notifyStatus('signalr + binance ws connected; tick stream active');
 
-  let tickFlushFailureCount = 0; // 5 minutes
+  let tickFlushFailureCount = 0;
 
-  // C1/C2 fix (RELIABILITY_AUDIT_REPORT.md): self-rescheduling setTimeout
-  // with in-flight guard so flushes never overlap, and peek-before-drain
-  // so ticks are never irretrievably lost on DB write failure.
   let flushInFlight = false;
   let activeFlushPromise: Promise<void> | null = null;
   let stopping = false;
@@ -333,7 +307,6 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     await work;
   };
 
-  // Kick off the first flush loop.
   scheduleFlush();
 
   const heartbeatIntervalMs = args.heartbeatIntervalMs ?? 30_000;
@@ -363,22 +336,18 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
     }
     symbolManager.stop();
 
-    // Gracefully shut down all stream consumers in parallel
     await Promise.all([consumer.stop(), binanceConsumer.stop()]);
 
-    // Drain any pending batched ticks before final DB flush.
     if (batchTimer) {
       clearTimeout(batchTimer);
       batchTimer = null;
     }
     if (pendingTicks.length > 0) flushBatch();
 
-    // Wait for any in-flight periodic tick flush to finish before final drain.
     if (activeFlushPromise) {
       await activeFlushPromise;
     }
 
-    // Final best-effort flush with peek-before-drain pattern.
     try {
       const drained = buffer.peek();
       if (drained.length > 0) {
@@ -389,7 +358,6 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
       log.warn('final flush on stop failed', { err: String(err) });
     }
 
-    // Force-close open 1m bars and await all in-flight candle DB writes.
     aggregator.closeAll();
     if (inFlightCandleFlushes.size > 0) {
       await Promise.allSettled([...inFlightCandleFlushes]);
@@ -402,20 +370,14 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 }
 
 export async function main(): Promise<void> {
-  // Load secrets from the configured vault before
-  // loadEnv() runs. No-op when SECRETS_VAULT_PROVIDER is unset or 'none'.
   const { loadSecretsFromVault } = await import('@kestrel/shared/vault');
   await loadSecretsFromVault();
 
   const env = loadEnv();
   const log = createLogger({ service: 'worker', commit: env.DEPLOYED_SHA });
 
-  // ── Langfuse LLM Observability ──────────────────────────────────────
-  // Silently skipped when LANGFUSE_* env vars are not set.
   initLangfuse({ service: 'worker' });
 
-  // Eagerly initialize Mastra storage schema so the first workflow run
-  // doesn't pay the one-time DDL cost. Non-fatal: lazy init retries.
   const { initializeKestrelMastra } = await import('@kestrel/ai/mastra');
   await initializeKestrelMastra().catch((err: unknown) => {
     log.warn('Mastra storage init failed (non-fatal; lazy init will retry)', { err: String(err) });
@@ -438,25 +400,23 @@ export async function main(): Promise<void> {
     disabled: capabilityReport.disabled,
   });
 
+  const tickStreamEnabled = isWorkerTickStreamEnabled(env);
   log.info('worker starting', {
     nodeVersion: process.version,
     biquoteHubUrl: env.BIQUOTE_HUB_URL,
     healthchecksConfigured: Boolean(env.HC_SIGNALR_UUID),
     workerMode: env.WORKER_MODE,
+    tickStreamEnabled,
   });
 
   if (env.WORKER_MODE === 'docker') {
     const stopScheduler = startScheduler(log, env);
-    // Register scheduler stop function so cron tasks are
-    // torn down cleanly on shutdown.
     onShutdown(stopScheduler);
   }
 
   process.on('unhandledRejection', (reason) => {
     log.error('unhandledRejection', { reason: String(reason) });
   });
-  // Node.js documentation warns that resuming after an uncaught exception can
-  // lead to undefined behavior; exit and let the supervisor restart the worker.
   process.on('uncaughtException', (err) => {
     log.error('uncaughtException', { err: String(err) });
     process.exit(1);
@@ -464,37 +424,51 @@ export async function main(): Promise<void> {
 
   installSignalHandlers(log);
 
-  const worker = await runWorker({ env, log });
+  const worker: Pick<
+    RunningWorker,
+    'getLastTickAt' | 'stop'
+  > & {
+    isSignalRConnected: () => boolean;
+    isBinanceConnected: () => boolean;
+    getDroppedTicks: () => number;
+  } = tickStreamEnabled
+    ? await (async () => {
+        const running = await runWorker({ env, log });
+        return {
+          getLastTickAt: running.getLastTickAt,
+          stop: running.stop,
+          isSignalRConnected: () => running.consumer.isStarted(),
+          isBinanceConnected: () => running.binanceConsumer.isConnected(),
+          getDroppedTicks: () => running.consumer.droppedTicks(),
+        };
+      })()
+    : (() => {
+        notifyReady();
+        notifyStatus('on-demand REST mode active; tick streaming disabled');
+        return {
+          getLastTickAt: () => 0,
+          stop: async () => {
+            notifyStopping();
+          },
+          isSignalRConnected: () => false,
+          isBinanceConnected: () => false,
+          getDroppedTicks: () => 0,
+        };
+      })();
 
-  // ── HTTP server: health checks + BiQuote REST proxy ──────────────────
-  // Wrap post-startup initialisation in try/catch so the worker's
-  // stop() is always called if the health server or shutdown registrations
-  // fail. This ensures timers (heartbeat, flush, batch) are properly cleared.
-  // healthServer is hoisted so the catch block can close the port.
   let healthServer: ReturnType<typeof createHealthServer> | null = null;
   let proxyServer: ReturnType<typeof createProxyServer> | null = null;
   try {
     healthServer = createHealthServer({
       log,
       getLastTickAt: worker.getLastTickAt,
-      isSignalRConnected: () => worker.consumer.isStarted(),
-      isBinanceConnected: () => worker.binanceConsumer.isConnected(),
-      // H4 fix — expose dropped-tick counter for health monitoring.
-      getDroppedTicks: () => worker.consumer.droppedTicks(),
-      getRequestId: () => env.DEPLOYED_SHA,
-    });
-    proxyServer = createProxyServer({
-      log,
-      getLastTickAt: worker.getLastTickAt,
-      isSignalRConnected: () => worker.consumer.isStarted(),
-      isBinanceConnected: () => worker.binanceConsumer.isConnected(),
-      getDroppedTicks: () => worker.consumer.droppedTicks(),
+      isSignalRConnected: worker.isSignalRConnected,
+      isBinanceConnected: worker.isBinanceConnected,
+      isTickStreamEnabled: () => tickStreamEnabled,
+      getDroppedTicks: worker.getDroppedTicks,
       getRequestId: () => env.DEPLOYED_SHA,
     });
 
-    // Bind on all container interfaces so Docker's published localhost port
-    // can reach the server. Compose keeps the host-side port bound to
-    // 127.0.0.1, so this does not expose the worker publicly.
     await new Promise<void>((resolve, reject) => {
       const onError = (error: Error) => {
         healthServer?.off('listening', onListening);
@@ -513,27 +487,37 @@ export async function main(): Promise<void> {
       healthServer!.listen(env.WORKER_HTTP_PORT, env.WORKER_HTTP_HOST ?? '127.0.0.1');
     });
 
-    onShutdown(async () => {
-      await closeKestrelMastra();
-      await closeDb();
-    });
-    await new Promise<void>((resolve, reject) => {
-      const onError = (error: Error) => {
-        proxyServer?.off('listening', onListening);
-        reject(error);
-      };
-      const onListening = () => {
-        proxyServer?.off('error', onError);
-        log.info('Proxy server listening', {
-          host: env.WORKER_HTTP_HOST ?? '127.0.0.1',
-          port: env.WORKER_PROXY_PORT,
-        });
-        resolve();
-      };
-      proxyServer!.once('error', onError);
-      proxyServer!.once('listening', onListening);
-      proxyServer!.listen(env.WORKER_PROXY_PORT, env.WORKER_HTTP_HOST ?? '127.0.0.1');
-    });
+    onShutdown(() => closeDb());
+
+    if (env.BIQUOTE_PROXY_TOKEN) {
+      proxyServer = createProxyServer({
+        log,
+        getLastTickAt: worker.getLastTickAt,
+        isSignalRConnected: worker.isSignalRConnected,
+        isBinanceConnected: worker.isBinanceConnected,
+        isTickStreamEnabled: () => tickStreamEnabled,
+        getDroppedTicks: worker.getDroppedTicks,
+        getRequestId: () => env.DEPLOYED_SHA,
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        const onError = (error: Error) => {
+          proxyServer?.off('listening', onListening);
+          reject(error);
+        };
+        const onListening = () => {
+          proxyServer?.off('error', onError);
+          log.info('Proxy server listening', {
+            host: env.WORKER_HTTP_HOST ?? '127.0.0.1',
+            port: env.WORKER_PROXY_PORT,
+          });
+          resolve();
+        };
+        proxyServer!.once('error', onError);
+        proxyServer!.once('listening', onListening);
+        proxyServer!.listen(env.WORKER_PROXY_PORT, env.WORKER_HTTP_HOST ?? '127.0.0.1');
+      });
+    }
 
     onShutdown(() => {
       healthServer!.close();
@@ -541,26 +525,23 @@ export async function main(): Promise<void> {
       return worker.stop();
     });
     onShutdown(() => shutdownLangfuse());
-    // Flush Mastra observability exporters (Langfuse traces) before exit
-    // so in-flight spans are not lost on process termination.
     onShutdown(async () => {
       const { flushMastraObservability, getKestrelMastra } = await import('@kestrel/ai/mastra');
       await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
     });
   } catch (err) {
-    // Clean up worker resources if post-startup initialisation
-    // fails. Without this, internal timers (heartbeat, flush, batch)
-    // would leak because onShutdown was never registered.
     log.error('post-startup initialisation failed — tearing down worker', { err: String(err) });
     healthServer?.close();
-    // The proxy may have been created before its listener bound.
-    // Close is idempotent for an unbound server.
     proxyServer?.close();
     await worker.stop();
     throw err;
   }
 
-  log.info('worker running — feeding live_ticks from BiQuote SignalR');
+  log.info(
+    tickStreamEnabled
+      ? 'worker running — feeding live_ticks from BiQuote SignalR'
+      : 'worker running — 100% on-demand BiQuote REST mode (tick stream disabled)',
+  );
 }
 
 // Only run main() when invoked as the entrypoint, not when imported by tests.
@@ -582,8 +563,6 @@ if (isEntryPoint) {
       msg: 'worker bootstrap failed',
       err: String(err),
     });
-    // Use process.stderr so the structured JSON error goes to stderr
-    // where the systemd journal / container runtime can capture it.
     process.stderr.write(msg + '\n');
     process.exit(1);
   });

@@ -197,6 +197,55 @@ export class RedisCache implements Cache {
     }
   }
 
+  async getWithMeta<T>(key: string): Promise<{ value: T; meta: CacheEntryMeta } | null> {
+    try {
+      await this.ensureConnected();
+    } catch {
+      return null;
+    }
+    const client = this.client!;
+    const lKey = this.ledgerKey(key);
+    try {
+      const raw = await client.get(lKey);
+      if (!raw) return null;
+      const entry = JSON.parse(raw) as RedisValue<T>;
+      const now = Date.now();
+      if (entry.h < now) {
+        await client.del(lKey).catch(() => {});
+        return null;
+      }
+      return { value: entry.v, meta: { producedAt: entry.p, stale: false } };
+    } catch {
+      return null;
+    }
+  }
+
+  async set<T>(key: string, value: T, options: CacheFetchOptions): Promise<void> {
+    try {
+      await this.ensureConnected();
+    } catch {
+      return;
+    }
+    const now = Date.now();
+    const client = this.client!;
+    const lKey = this.ledgerKey(key);
+    const ttlMs = options.ttlSeconds * 1000;
+    const swrMs = (options.maxStaleSeconds ?? 0) * 1000;
+    const hardExpiresAt = now + ttlMs + swrMs;
+    const envelope: RedisValue<T> = {
+      v: value,
+      p: now,
+      h: hardExpiresAt,
+      t: options.tags ?? [],
+    };
+    await client.set(lKey, JSON.stringify(envelope)).catch(() => {});
+    if (options.tags && options.tags.length > 0) {
+      for (const tag of options.tags) {
+        client.sAdd(this.tagKey(tag), lKey).catch(() => {});
+      }
+    }
+  }
+
   async invalidateTag(tag: string): Promise<void> {
     try {
       await this.ensureConnected();

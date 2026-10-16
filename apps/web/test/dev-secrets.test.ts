@@ -30,6 +30,8 @@ let workdir = '';
 beforeEach(() => {
   workdir = mkdtempSync(join(tmpdir(), 'kestrel-dev-secrets-'));
   vi.spyOn(process, 'cwd').mockReturnValue(workdir);
+  for (const k of ['AUTH_SECRET', 'ENCRYPTION_SECRET', 'CRON_SECRET', 'NODE_ENV'])
+    delete process.env[k];
 });
 
 afterEach(() => {

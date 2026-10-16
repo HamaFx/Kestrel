@@ -10,6 +10,8 @@ export interface HealthServerDeps {
   getLastTickAt: () => number;
   isSignalRConnected: () => boolean;
   isBinanceConnected?: () => boolean;
+  /** Whether the legacy 24/7 tick streaming pipeline is enabled (defaults to true for legacy callers). */
+  isTickStreamEnabled?: () => boolean;
   getDroppedTicks?: () => number;
   isProxyConfigured?: () => boolean;
   getRequestId?: () => string;
@@ -65,8 +67,11 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
 
     const liveOnly = req.url === '/health/live';
     const dependenciesOnly = req.url === '/health/dependencies';
-    const ageMs = Date.now() - getLastTickAt();
-    const ready = getLastTickAt() > 0 && ageMs < 120_000 && isSignalRConnected();
+    const tickStreamEnabled = deps.isTickStreamEnabled?.() ?? true;
+    const lastTickAt = getLastTickAt();
+    const ageMs = lastTickAt > 0 ? Date.now() - lastTickAt : null;
+    const ready =
+      !tickStreamEnabled || (lastTickAt > 0 && ageMs !== null && ageMs < 120_000 && isSignalRConnected());
     const healthy = liveOnly || dependenciesOnly || ready;
     sendJson(res, healthy ? 200 : 503, {
       status: liveOnly || dependenciesOnly ? 'ok' : ready ? 'ok' : 'degraded',
@@ -76,6 +81,7 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
           ? { capabilities: getCapabilityReport(process.env) }
           : {
               ready,
+              tickStreamEnabled,
               lastTickAgeMs: ageMs,
               signalrConnected: isSignalRConnected(),
               ...(deps.isBinanceConnected ? { binanceConnected: deps.isBinanceConnected() } : {}),

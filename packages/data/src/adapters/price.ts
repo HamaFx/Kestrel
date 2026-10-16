@@ -214,7 +214,7 @@ export async function getPricesWithMeta(
       if (seen.has(s)) continue;
       seen.add(s);
       if (!(biquoteProvider.supports?.(s) ?? false)) continue;
-      const existing = await cache.getWithMeta<{ tick: Tick; ageMs: number | null }>(
+      const existing = await cache.getWithMeta?.<{ tick: Tick; ageMs: number | null }>(
         cacheKey({ resource: 'price', symbol: s }),
       );
       if (!existing || existing.meta.stale) {
@@ -233,7 +233,7 @@ export async function getPricesWithMeta(
         await Promise.all(
           [...batchMap.entries()].map(async ([sym, snap]) => {
             const tick = snapshotToTick(sym, snap, fetchedAt);
-            await cache.set(
+            await cache.set?.(
               cacheKey({ resource: 'price', symbol: sym }),
               { tick, ageMs: snap.ageMs ?? null },
               {
@@ -244,8 +244,8 @@ export async function getPricesWithMeta(
             );
           }),
         );
-      } catch (err) {
-        recordFailure('biquote', err);
+      } catch {
+        recordFailure('biquote');
         // Fall through to per-symbol getPriceWithMeta with full failover + SWR.
       }
     }
