@@ -16,17 +16,17 @@
 
 // BiQuote (https://biquote.io) wire-format schemas.
 //
-// BiQuote is a free, no-key REST + SignalR market-data service. We adopt it
-// as the primary price + 1m-candle source in Phase 8. These schemas mirror
-// BiQuote's response shapes verbatim — the provider adapter
+// BiQuote is a free, no-key REST + SignalR market-data service (15,000 req/min/IP).
+// These schemas mirror BiQuote's response shapes verbatim — the provider adapter
 // (packages/data/src/providers/biquote/map.ts) maps them to our internal
-// Tick / Candle DTOs.
+// Tick / Candle / EconomicEvent / NewsArticle DTOs.
 //
 // References:
 //   - https://biquote.io/docs#models
 //   - https://biquote.io/docs#ticks
 //   - https://biquote.io/docs#ohlc
-//   - https://biquote.io/docs#websocket
+//   - https://biquote.io/docs#calendar
+//   - https://biquote.io/docs#news
 //
 // Tolerance: BiQuote's wire format may grow extra fields (e.g. additional
 // telemetry on tick payloads). Schemas are deliberately permissive on extras
@@ -35,8 +35,12 @@
 
 import { z } from 'zod';
 
+/** Market session state reported by BiQuote ('open' | 'closed'). */
+export const BiquoteMarketStateSchema = z.enum(['open', 'closed']);
+export type BiquoteMarketState = z.infer<typeof BiquoteMarketStateSchema>;
+
 /**
- * BiQuote tick payload — REST `GET /api/{symbol}` response.
+ * BiQuote tick payload — REST `GET /api/{symbol}` and `/api/latest` response item.
  *
  * The REST shape evolved from earlier docs:
  *   - `time` is a dot-separated local-format string ("2026.05.27 22:09:20"),
@@ -47,9 +51,8 @@ import { z } from 'zod';
  *   - `last` is `0.0` for FX (BiQuote intentionally suppresses last-traded
  *     price for spot markets); use `mid` for downstream consumers.
  *   - `direction` is a string ('UP'|'DOWN'|'FLAT'), not a number.
- *
- * Permissive on extras so a future server-side schema tweak doesn't drop
- * every tick.
+ *   - `marketState` ('open'|'closed'), `stale` (boolean), `quoteAgeSeconds`
+ *     (number), and `lastQuoteAt` (ISO-8601 UTC) report market-closure state.
  */
 export const BiquoteTickSchema = z.object({
   symbol: z.string().min(1),
@@ -77,9 +80,22 @@ export const BiquoteTickSchema = z.object({
   /** Dot-separated local-format time string. NOT parseable by Date.parse. */
   time: z.string().optional(),
   spread: z.number().finite().nullable().optional(),
+  marketState: BiquoteMarketStateSchema.optional(),
+  stale: z.boolean().optional(),
+  quoteAgeSeconds: z.number().finite().nonnegative().nullable().optional(),
+  lastQuoteAt: z.string().nullable().optional(),
 });
 
 export type BiquoteTick = z.infer<typeof BiquoteTickSchema>;
+
+/**
+ * BiQuote `GET /api/latest?symbols=EURUSD&symbols=XAUUSD` response envelope.
+ * Live BiQuote returns a symbol-keyed object `{ EURUSD: BiquoteTick, XAUUSD: BiquoteTick }`.
+ * We also accept `BiquoteTick[]` for backward compatibility and normalize to `BiquoteTick[]`.
+ */
+export const BiquoteLatestResponseSchema = z
+  .union([z.array(BiquoteTickSchema), z.record(z.string(), BiquoteTickSchema)])
+  .transform((val): BiquoteTick[] => (Array.isArray(val) ? val : Object.values(val)));
 
 /**
  * BiQuote SignalR `ReceiveTick` push payload. Differs from the REST
@@ -121,7 +137,7 @@ export const BiquoteSignalRTickSchema = z.object({
 export type BiquoteSignalRTick = z.infer<typeof BiquoteSignalRTickSchema>;
 
 /**
- * BiQuote OHLC bar — `GET /api/{symbol}/ohlc?tf=&limit=` response item.
+ * BiQuote OHLC bar — `GET /api/{symbol}/ohlc?interval=&limit=` response item.
  *
  * `volume` is real volume (0 for FX). `tickVolume` is the count of ticks
  * that produced the bar, which we surface as a non-null integer everywhere
@@ -148,11 +164,6 @@ export type BiquoteOhlcBar = z.infer<typeof BiquoteOhlcBarSchema>;
 /**
  * BiQuote symbol metadata — `GET /api/symbols` response item, also returned
  * by `/api/symbols/search` and `/api/symbols/{name}`.
- *
- * We don't currently consume this in production — it's here so the symbol
- * filter in the BiQuote adapter can sanity-check that BiQuote still supports
- * a symbol before we attempt to subscribe. Phase 8 only ever queries our
- * three internal symbols, so the runtime cost is negligible.
  */
 export const BiquoteSymbolSchema = z.object({
   name: z.string().min(1),
@@ -168,3 +179,56 @@ export type BiquoteSymbol = z.infer<typeof BiquoteSymbolSchema>;
 export const BiquoteTimeframeSchema = z.enum(['1m', '5m', '15m', '30m', '1h', '4h', '1d']);
 
 export type BiquoteTimeframe = z.infer<typeof BiquoteTimeframeSchema>;
+
+/** Importance level on BiQuote economic calendar events. */
+export const BiquoteCalendarImportanceSchema = z.enum(['low', 'medium', 'high']);
+
+/**
+ * BiQuote 54-country MT5 Economic Calendar event item —
+ * returned by `GET /api/calendar`, `GET /api/calendar/upcoming`, and
+ * `GET /api/calendar/{eventId}/history`.
+ *
+ * Note: `actual: null` means the release has not yet been published (never coerce to 0).
+ */
+export const BiquoteCalendarEventSchema = z.object({
+  id: z.string().min(1),
+  eventId: z.string().min(1).optional(),
+  time: z.string().min(1),
+  period: z.string().nullable().optional(),
+  countryCode: z.string().min(1),
+  currency: z.string().nullable().optional(),
+  name: z.string().min(1),
+  importance: BiquoteCalendarImportanceSchema.catch('low'),
+  type: z.string().nullable().optional(),
+  sector: z.string().nullable().optional(),
+  unit: z.string().nullable().optional(),
+  multiplier: z.string().nullable().optional(),
+  digits: z.number().int().nullable().optional(),
+  actual: z.number().finite().nullable().optional().default(null),
+  forecast: z.number().finite().nullable().optional().default(null),
+  previous: z.number().finite().nullable().optional().default(null),
+  revisedPrevious: z.number().finite().nullable().optional().default(null),
+  revision: z.number().int().nullable().optional(),
+  timeMode: z.string().nullable().optional(),
+  sourceUrl: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
+});
+
+export type BiquoteCalendarEvent = z.infer<typeof BiquoteCalendarEventSchema>;
+
+/**
+ * BiQuote Market News item — returned by `GET /api/news/market`.
+ */
+export const BiquoteNewsArticleSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().nullable().optional().default(null),
+  url: z.string().url(),
+  publisher: z.string().nullable().optional().default(null),
+  publishedDate: z.string().min(1),
+  imageUrl: z.string().nullable().optional().default(null),
+  category: z.string().nullable().optional().default(null),
+  language: z.string().nullable().optional().default(null),
+  country: z.string().nullable().optional().default(null),
+});
+
+export type BiquoteNewsArticle = z.infer<typeof BiquoteNewsArticleSchema>;

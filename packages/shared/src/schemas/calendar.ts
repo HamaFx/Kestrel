@@ -23,10 +23,34 @@ export type Importance = z.infer<typeof ImportanceSchema>;
  * Country code is loosely typed: well-known regions get an enum slot, anything
  * else falls through as a free string so we don't drop an event we can't map.
  */
-export const KnownCountrySchema = z.enum(['US', 'EZ', 'UK', 'DE', 'FR', 'XAU']);
+export const KnownCountrySchema = z.enum([
+  'US',
+  'EU',
+  'EZ',
+  'GB',
+  'UK',
+  'JP',
+  'CA',
+  'AU',
+  'NZ',
+  'CH',
+  'DE',
+  'FR',
+  'XAU',
+]);
 export const CountrySchema = z.union([KnownCountrySchema, z.string()]);
 
-export const EventCurrencySchema = z.enum(['USD', 'EUR', 'GBP']);
+export const KnownEventCurrencySchema = z.enum([
+  'USD',
+  'EUR',
+  'GBP',
+  'JPY',
+  'AUD',
+  'CAD',
+  'NZD',
+  'CHF',
+]);
+export const EventCurrencySchema = z.union([KnownEventCurrencySchema, z.string()]);
 export type EventCurrency = z.infer<typeof EventCurrencySchema>;
 
 export const EconomicEventSchema = z.object({

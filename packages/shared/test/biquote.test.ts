@@ -20,11 +20,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BiquoteCalendarEventSchema,
+  BiquoteLatestResponseSchema,
+  BiquoteNewsArticleSchema,
   BiquoteOhlcBarSchema,
   BiquoteSymbolSchema,
   BiquoteTickSchema,
   BiquoteTimeframeSchema,
+  EconomicEventSchema,
   LiveTickSchema,
+  TickSchema,
 } from '../src';
 
 describe('BiquoteTickSchema', () => {
@@ -78,6 +83,101 @@ describe('BiquoteTickSchema', () => {
 
   it('rejects empty source', () => {
     expect(() => BiquoteTickSchema.parse({ ...valid, source: '' })).toThrow();
+  });
+
+  it('parses marketState, stale, quoteAgeSeconds, and lastQuoteAt on BiquoteTickSchema', () => {
+    const parsed = BiquoteTickSchema.parse({
+      ...valid,
+      symbol: 'XAUUSD',
+      marketState: 'closed',
+      stale: false,
+      quoteAgeSeconds: 43200,
+      lastQuoteAt: '2026-05-29T21:59:59Z',
+    });
+    expect(parsed.marketState).toBe('closed');
+    expect(parsed.stale).toBe(false);
+    expect(parsed.quoteAgeSeconds).toBe(43200);
+    expect(parsed.lastQuoteAt).toBe('2026-05-29T21:59:59Z');
+  });
+
+  it('normalizes both symbol-keyed object maps and arrays in BiquoteLatestResponseSchema', () => {
+    const fromRecord = BiquoteLatestResponseSchema.parse({ EURUSD: valid });
+    const fromArray = BiquoteLatestResponseSchema.parse([valid]);
+    expect(fromRecord).toHaveLength(1);
+    expect(fromRecord[0]?.symbol).toBe('EURUSD');
+    expect(fromArray).toHaveLength(1);
+  });
+});
+
+describe('BiquoteCalendarEventSchema & BiquoteNewsArticleSchema', () => {
+  it('parses BiquoteCalendarEventSchema with actual: null as unpublished (not zero) and G8 currencies', () => {
+    const ev = BiquoteCalendarEventSchema.parse({
+      id: 'mql5:900001',
+      eventId: 'mql5:840',
+      time: '2026-08-07T12:30:00Z',
+      period: '2026-07-01T00:00:00Z',
+      countryCode: 'JP',
+      currency: 'JPY',
+      name: 'BoJ Interest Rate Decision',
+      importance: 'high',
+      type: 'indicator',
+      sector: 'money',
+      unit: 'percent',
+      multiplier: null,
+      digits: 2,
+      actual: null,
+      forecast: 0.25,
+      previous: 0.1,
+      revisedPrevious: null,
+      revision: 0,
+      timeMode: 'exact',
+      sourceUrl: 'https://www.boj.or.jp/',
+      source: 'mql5',
+    });
+    expect(ev.actual).toBeNull();
+    expect(
+      EconomicEventSchema.parse({
+        id: ev.id,
+        title: ev.name,
+        country: ev.countryCode,
+        currency: ev.currency ?? null,
+        importance: ev.importance,
+        date: Date.parse(ev.time),
+        actual: ev.actual,
+        forecast: ev.forecast,
+        previous: ev.revisedPrevious ?? ev.previous,
+        unit: ev.unit ?? null,
+        source: 'biquote',
+      }).currency,
+    ).toBe('JPY');
+  });
+
+  it('parses BiquoteNewsArticleSchema and TickSchema marketState fields', () => {
+    const news = BiquoteNewsArticleSchema.parse({
+      title: 'Gold steadies ahead of CPI',
+      description: 'Spot gold held near $2,400...',
+      url: 'https://example.com/gold-cpi',
+      publisher: 'Reuters',
+      publishedDate: '2026-05-27T09:15:00Z',
+      imageUrl: null,
+      category: null,
+      language: 'en',
+      country: 'US',
+    });
+    expect(news.publisher).toBe('Reuters');
+
+    const tick = TickSchema.parse({
+      symbol: 'XAUUSD',
+      bid: 2400,
+      ask: 2400,
+      mid: 2400,
+      ts: 1748378101000,
+      source: 'biquote',
+      marketState: 'closed',
+      quoteAgeSeconds: 3600,
+      dayDiffPercent: -0.15,
+    });
+    expect(tick.marketState).toBe('closed');
   });
 });
 
