@@ -17,6 +17,7 @@
 import { z } from 'zod';
 
 import { SymbolSchema } from '../symbols';
+import { BiquoteMarketStateSchema } from './biquote';
 
 export const TickSchema = z.object({
   symbol: SymbolSchema,
@@ -26,6 +27,12 @@ export const TickSchema = z.object({
   /** Tick timestamp, ms epoch UTC. */
   ts: z.number().int(),
   source: z.string(),
+  /** Market state reported by upstream ('open' | 'closed'). Optional for providers that do not report it. */
+  marketState: BiquoteMarketStateSchema.optional(),
+  /** Seconds since the last upstream quote when reported by BiQuote. */
+  quoteAgeSeconds: z.number().nonnegative().nullable().optional(),
+  /** Daily percentage change since session open (null/hidden when marketState === 'closed'). */
+  dayDiffPercent: z.number().finite().nullable().optional(),
 });
 
 export type Tick = z.infer<typeof TickSchema>;
