@@ -463,12 +463,45 @@ export const SYMBOL_MAP: ReadonlyMap<string, SymbolDefinition> = new Proxy(SYMBO
   },
 });
 
-/** Canonicalize user/provider input without accepting unsupported aliases. */
+const SYMBOL_ALIAS_MAP: Readonly<Record<string, string>> = {
+  GOLD: 'XAUUSD',
+  XAU: 'XAUUSD',
+  SPOTGOLD: 'XAUUSD',
+  CABLE: 'GBPUSD',
+  FIBRE: 'EURUSD',
+  FIBER: 'EURUSD',
+  BTC: 'BTCUSDT',
+  BTCUSD: 'BTCUSDT',
+  XBTUSD: 'BTCUSDT',
+  XBTUSDT: 'BTCUSDT',
+  BITCOIN: 'BTCUSDT',
+  ETH: 'ETHUSDT',
+  ETHUSD: 'ETHUSDT',
+  ETHEREUM: 'ETHUSDT',
+  SOL: 'SOLUSDT',
+  SOLUSD: 'SOLUSDT',
+  SOLANA: 'SOLUSDT',
+  BNB: 'BNBUSDT',
+  BNBUSD: 'BNBUSDT',
+  XRP: 'XRPUSDT',
+  XRPUSD: 'XRPUSDT',
+  RIPPLE: 'XRPUSDT',
+  ADA: 'ADAUSDT',
+  ADAUSD: 'ADAUSDT',
+  CARDANO: 'ADAUSDT',
+};
+
+/** Canonicalize user/provider input and resolve common exchange/natural-language aliases. */
 export function normalizeSymbol(symbol: string): string {
-  return symbol.trim().toUpperCase();
+  const cleaned = symbol
+    .trim()
+    .toUpperCase()
+    .replace(/^(?:OANDA|BINANCE|FOREX|CRYPTO|FX|SPOT):/, '')
+    .replace(/[\s/_-]+/g, '');
+  return SYMBOL_ALIAS_MAP[cleaned] ?? cleaned;
 }
 
-/** Check if a string is a known canonical symbol. */
+/** Check if a string is a known canonical symbol (or known alias). */
 export function isKnownSymbol(symbol: string): boolean {
   return SYMBOL_MAP.has(normalizeSymbol(symbol));
 }

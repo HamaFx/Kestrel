@@ -19,10 +19,35 @@ import { z } from 'zod';
 export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'] as const;
 export type Timeframe = (typeof TIMEFRAMES)[number];
 
-export const TimeframeSchema = z.enum(TIMEFRAMES);
+const TIMEFRAME_ALIAS_MAP: Readonly<Record<string, Timeframe>> = {
+  M1: '1m', '1MIN': '1m', '1MINUTE': '1m',
+  M5: '5m', '5MIN': '5m', '5MINUTE': '5m',
+  M15: '15m', '15MIN': '15m', '15MINUTE': '15m',
+  M30: '30m', '30MIN': '30m', '30MINUTE': '30m',
+  H1: '1h', '1HR': '1h', '1HOUR': '1h', HOURLY: '1h',
+  H4: '4h', '4HR': '4h', '4HOUR': '4h',
+  D: '1d', D1: '1d', DAILY: '1d', '1DAY': '1d',
+  W: '1w', W1: '1w', WEEKLY: '1w', '1WK': '1w', '1WEEK': '1w',
+};
+
+export function normalizeTimeframe(tf: string): string {
+  const lower = tf.trim().toLowerCase();
+  if ((TIMEFRAMES as readonly string[]).includes(lower)) return lower;
+  const upper = tf.trim().toUpperCase();
+  return TIMEFRAME_ALIAS_MAP[upper] ?? lower;
+}
+
+export const TimeframeSchema = z
+  .string()
+  .transform((val) => normalizeTimeframe(val))
+  .refine((val): val is Timeframe => (TIMEFRAMES as readonly string[]).includes(val), {
+    message: `Unsupported timeframe. Expected one of: ${TIMEFRAMES.join(', ')}`,
+  });
 
 export function isTimeframe(value: unknown): value is Timeframe {
-  return typeof value === 'string' && (TIMEFRAMES as readonly string[]).includes(value);
+  if (typeof value !== 'string') return false;
+  const normalized = normalizeTimeframe(value);
+  return (TIMEFRAMES as readonly string[]).includes(normalized);
 }
 
 /** Approx milliseconds per bar — for cache TTLs and time math. */

@@ -114,17 +114,19 @@ describe('symbol normalization and validation', () => {
     expect(isSymbol('  XAUUSD ')).toBe(true);
   });
 
-  it('rejects unsupported aliases instead of silently remapping them', () => {
-    expect(isKnownSymbol('BTCUSD')).toBe(false);
+  it('resolves supported aliases while rejecting truly unsupported instruments', () => {
+    expect(isKnownSymbol('BTCUSD')).toBe(true);
+    expect(SymbolSchema.parse('BTCUSD')).toBe('BTCUSDT');
     expect(isKnownSymbol('US100')).toBe(false);
     expect(isSymbol('XAGUSD')).toBe(false);
-    expect(SymbolSchema.safeParse('BTCUSD').success).toBe(false);
+    expect(SymbolSchema.safeParse('US100').success).toBe(false);
   });
 
   it('resolves definitions using normalized input', () => {
     expect(getSymbolDefinition(' ethusdt ').internal).toBe('ETHUSDT');
     expect(getSymbolDefinition('USDJPY').capabilities.quantityUnit).toBe('lots');
-    expect(() => getSymbolDefinition('BTCUSD')).toThrow('Unknown symbol: BTCUSD');
+    expect(getSymbolDefinition('BTCUSD').internal).toBe('BTCUSDT');
+    expect(() => getSymbolDefinition('US100')).toThrow('Unknown symbol: US100');
   });
 
   it('keeps the lookup map read-only while preserving Map reads', () => {
