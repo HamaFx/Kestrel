@@ -160,6 +160,10 @@ describe('generalized Mastra symbol routing', () => {
   it('extracts one canonical symbol and rejects mixed or mutating prompts', () => {
     expect(extractSymbolFromPrompt('Analyse EURUSD 1H')).toBe('EURUSD');
     expect(extractSymbolFromPrompt('Analyse gold')).toBe('XAUUSD');
+    expect(extractSymbolFromPrompt('Analyse Bitcoin 1H')).toBe('BTCUSDT');
+    expect(extractSymbolFromPrompt('What is BTC/USD doing?')).toBe('BTCUSDT');
+    expect(extractSymbolFromPrompt('Run committee on Cable')).toBe('GBPUSD');
+    expect(extractSymbolFromPrompt('Check EUR/USD on 4h')).toBe('EURUSD');
     expect(extractSymbolFromPrompt('Compare EURUSD and GBPUSD')).toBeNull();
     expect(extractSymbolFromPrompt('Compare gold and EURUSD')).toBeNull();
     expect(extractSymbolFromPrompt('Analyse my default market', 'BTCUSDT')).toBe('BTCUSDT');

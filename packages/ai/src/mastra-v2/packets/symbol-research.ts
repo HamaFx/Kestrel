@@ -23,6 +23,7 @@ import { computeIndicator } from '@kestrel/indicators';
 import {
   ALL_SYMBOLS,
   CandleSchema,
+  extractSymbolsFromText,
   type Candle,
   IndicatorRequestSchema,
   IndicatorResultSchema,
@@ -413,21 +414,11 @@ export function serializeSymbolResearchPacket(packet: SymbolResearchPacket): str
 export const SymbolResearchInputSchema = z.object({ symbol: SymbolSchema });
 export const SymbolResearchIndicatorRequestSchema = IndicatorRequestSchema;
 
-const SYMBOL_PATTERN = new RegExp(`\\b(?:${ALL_SYMBOLS.join('|')})\\b`, 'gi');
-
 /** Extract one canonical symbol from a prompt, using the fallback only when no symbol is named. */
 export function extractSymbolFromPrompt(prompt: string, fallback?: string): string | null {
-  const matched = new Set<string>();
-  if (/\bgold\b/i.test(prompt)) matched.add('XAUUSD');
-  const explicitSymbols = ALL_SYMBOLS.filter((symbol) => prompt.toUpperCase().includes(symbol));
-  for (const s of explicitSymbols) matched.add(s);
-  const matches = [...prompt.matchAll(SYMBOL_PATTERN)].map((match) => match[0]!.toUpperCase());
-  for (const m of matches) {
-    const parsed = SymbolSchema.safeParse(m);
-    if (parsed.success) matched.add(parsed.data);
-  }
-  if (matched.size > 1) return null;
-  if (matched.size === 1) return matched.values().next().value ?? null;
+  const matched = extractSymbolsFromText(prompt);
+  if (matched.length > 1) return null;
+  if (matched.length === 1) return matched[0] ?? null;
   if (fallback === undefined) return null;
   const parsed = SymbolSchema.safeParse(fallback);
   return parsed.success ? parsed.data : null;
