@@ -16,9 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { IconArrowLeft } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
+import { IconArrowLeft } from '@tabler/icons-react';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
@@ -44,12 +44,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="flex w-full items-center justify-between px-1">
           <Link
             href="/landing"
-            className="text-fg-subtle hover:text-fg inline-flex items-center gap-1.5 font-mono text-xs transition-colors active:translate-y-[0.5px]"
+            className="inline-flex items-center gap-1.5 font-mono text-xs text-fg-subtle transition-colors hover:text-fg active:translate-y-[0.5px]"
           >
-            <IconArrowLeft className="text-brand size-3.5" />
+            <IconArrowLeft className="size-3.5 text-brand" />
             <span>Back to Kestrel</span>
           </Link>
-          <span className="text-fg-subtle/60 font-mono text-[10px] tracking-wider uppercase">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-fg-subtle/60">
             AI Market Copilot
           </span>
         </div>
@@ -65,17 +65,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <h1 className="sr-only">Kestrel</h1>
             <p className="text-fg font-display text-lg font-normal tracking-[-0.02em] sm:text-xl">
               The AI committee for{' '}
-              <span className="font-redaction-35 text-brand italic">gold & forex</span>.
+              <span className="font-redaction-35 italic text-brand">gold & forex</span>.
             </p>
             <p className="text-fg-muted font-sans text-xs leading-relaxed">
-              Four specialist AI desks analyzing price action, macro catalysts, sentiment, and risk
-              in sync.
+              Four specialist AI desks analyzing price action, macro catalysts, sentiment, and risk in sync.
             </p>
           </div>
           <span aria-hidden="true" className="brand-signal-line h-px w-16" />
         </header>
 
-        <div className="surface-panel border-brand-border/70 flex flex-col gap-6 rounded-2xl border p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.1)]">
+        <div className="surface-panel rounded-2xl border border-brand-border/70 flex flex-col gap-6 p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.1)]">
           {children}
         </div>
       </div>

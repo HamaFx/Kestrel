@@ -69,3 +69,4 @@ export function stdevPopulation(xs: number[]): number {
   for (const x of xs) sq += (x - m) ** 2;
   return Math.sqrt(sq / xs.length);
 }
+

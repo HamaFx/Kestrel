@@ -67,7 +67,7 @@ export function SortableSymbolRow({
       className={cn(
         'flex items-center justify-between rounded-xl border p-3 transition-all',
         isDragging
-          ? 'surface-panel z-20 scale-[1.01] border-cyan-500/50 opacity-95 shadow-xl'
+          ? 'surface-panel border-cyan-500/50 z-20 opacity-95 shadow-xl scale-[1.01]'
           : isSelected
             ? 'surface-panel border-cyan-500/30 bg-cyan-500/5 shadow-sm'
             : 'surface-well border-white/5 hover:border-white/15',
@@ -76,7 +76,7 @@ export function SortableSymbolRow({
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
-          className="text-fg-muted hover:text-fg -ml-1 flex size-[44px] shrink-0 cursor-grab touch-none items-center justify-center rounded-lg hover:bg-white/5 active:cursor-grabbing"
+          className="text-fg-muted hover:text-fg hover:bg-white/5 -ml-1 flex size-[44px] shrink-0 cursor-grab touch-none items-center justify-center rounded-lg active:cursor-grabbing"
           aria-label={`Drag to reorder ${item.symbol}`}
           {...attributes}
           {...listeners}
@@ -93,7 +93,7 @@ export function SortableSymbolRow({
             checked={isSelected}
             onChange={() => onToggleSelect(item.symbol)}
             aria-label={`Select ${item.symbol}`}
-            className="bg-bg-elev-2 size-4 cursor-pointer rounded-md border-white/15 text-cyan-400 focus:ring-cyan-500/20"
+            className="border-white/15 bg-bg-elev-2 text-cyan-400 focus:ring-cyan-500/20 size-4 cursor-pointer rounded-md"
           />
         </label>
         <div className="flex min-w-0 flex-col">
@@ -113,9 +113,7 @@ export function SortableSymbolRow({
             {price !== undefined ? price.toFixed(decimals) : '\u2014'}
           </span>
           {price !== undefined && (
-            <span className="font-mono text-[10px] tracking-wider text-cyan-400 uppercase">
-              Live
-            </span>
+            <span className="text-cyan-400 text-[10px] font-mono tracking-wider uppercase">Live</span>
           )}
         </div>
 
@@ -130,7 +128,7 @@ export function SortableSymbolRow({
           >
             <IconArrowUp className="size-3.5" />
           </button>
-          <div className="h-5 w-px bg-white/10" />
+          <div className="bg-white/10 h-5 w-px" />
           <button
             type="button"
             onClick={() => onMove(index, 'down')}
@@ -146,11 +144,12 @@ export function SortableSymbolRow({
           type="button"
           onClick={() => onRemove(item.symbol)}
           aria-label={`Remove ${item.symbol} from watchlist`}
-          className="text-fg-subtle hover:text-danger hover:bg-danger/10 tactile-press flex size-[44px] items-center justify-center rounded-lg transition-colors"
+          className="text-fg-subtle hover:text-danger hover:bg-danger/10 flex size-[44px] items-center justify-center rounded-lg transition-colors tactile-press"
         >
           <IconTrash className="size-4" />
         </button>
       </div>
     </div>
+
   );
 }

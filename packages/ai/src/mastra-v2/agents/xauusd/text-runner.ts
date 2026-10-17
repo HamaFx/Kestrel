@@ -24,8 +24,8 @@ import { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel, ModelMessage } from 'ai';
 import type { z } from 'zod';
 
-import { getMastraGenerationStats } from '../../shared/telemetry';
 import { runTracingOptions } from '../../telemetry';
+import { getMastraGenerationStats } from '../../shared/telemetry';
 
 /** Shared Unicode normalizer applied to every text-runner agent. */
 const NORMALIZER = new UnicodeNormalizer({

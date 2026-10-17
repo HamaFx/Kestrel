@@ -16,10 +16,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as throttle from '../src/cache/throttle';
 import { fetchTickerPrice } from '../src/providers/binance/rest';
 import { fetchLatestRows } from '../src/providers/cftc/rest';
 import { finnhubProvider } from '../src/providers/provider-adapters';
+import * as throttle from '../src/cache/throttle';
 
 describe('upstream throttling and backoff (F-06, F-07)', () => {
   const originalFetch = globalThis.fetch;

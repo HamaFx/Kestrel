@@ -45,10 +45,7 @@ export const getPriceTool = tool({
   description:
     'Fetch the most recent mid price for one or more symbols supported by the canonical gold, forex, and crypto catalog. Use only when the LIVE_SNAPSHOT in the system prompt is missing the symbol or older than 10 seconds.',
   inputSchema: InputSchema,
-  execute: async (
-    { symbols },
-    options?: { abortSignal?: AbortSignal },
-  ): Promise<GetPriceOutput> => {
+  execute: async ({ symbols }, options?: { abortSignal?: AbortSignal }): Promise<GetPriceOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const ticks = await Promise.all(
       symbols.map(async (s) => {

@@ -34,6 +34,7 @@ import {
   withRateLimit,
 } from '@kestrel/db';
 import { decryptSecret, encryptSecret } from '@kestrel/shared/encryption';
+import { logActionError } from '@/lib/action-errors';
 import bcrypt from 'bcryptjs';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -41,7 +42,6 @@ import { generateSecret, generateURI, verifySync } from 'otplib';
 import QRCode from 'qrcode';
 
 import { auth, signOut } from '@/auth';
-import { logActionError } from '@/lib/action-errors';
 import { passwordSchema } from '@/lib/validation';
 
 import { verifyAccountPassword, type ActionResult } from './_actions-shared';

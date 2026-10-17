@@ -2,14 +2,14 @@
 
 Kestrel supports two **$0/month** cloud worker setups alongside **Vercel Hobby** (web app) and **Supabase Free** (PostgreSQL + `pgvector`), with **zero dependency on GitHub Actions**:
 
-| Feature              | Option A: Botkeep Founder Free (Recommended)                                | Option B: Google Cloud Always Free (`e2-micro`)           |
-| :------------------- | :-------------------------------------------------------------------------- | :-------------------------------------------------------- |
-| **Monthly Cost**     | **$0 / month** (No expiry)                                                  | **$0 / month** (`us-central1`, `us-east1`, or `us-west1`) |
-| **RAM**              | **2 GB RAM** (shared across up to 5 slots)                                  | **1 GB physical RAM** + **2 GB swapfile**                 |
-| **CPU**              | **1.5 vCore**                                                               | **2 shared vCPUs** (`0.25` baseline, burstable)           |
-| **Storage**          | **2 GB total storage** (slim build uses **~180 MB**)                        | **Up to 30 GB Standard Persistent Disk**                  |
-| **Setup Difficulty** | **Easiest** — paste `.env.botkeep` + 1 startup command                      | **Moderate** — requires SSH + running 1 bash script       |
-| **Crons & Jobs**     | Runs all heavy jobs + pokes all 9 Vercel `/api/cron/*` routes automatically | Runs all heavy jobs + host/in-process light crons         |
+| Feature | Option A: Botkeep Founder Free (Recommended) | Option B: Google Cloud Always Free (`e2-micro`) |
+| :--- | :--- | :--- |
+| **Monthly Cost** | **$0 / month** (No expiry) | **$0 / month** (`us-central1`, `us-east1`, or `us-west1`) |
+| **RAM** | **2 GB RAM** (shared across up to 5 slots) | **1 GB physical RAM** + **2 GB swapfile** |
+| **CPU** | **1.5 vCore** | **2 shared vCPUs** (`0.25` baseline, burstable) |
+| **Storage** | **2 GB total storage** (slim build uses **~180 MB**) | **Up to 30 GB Standard Persistent Disk** |
+| **Setup Difficulty** | **Easiest** — paste `.env.botkeep` + 1 startup command | **Moderate** — requires SSH + running 1 bash script |
+| **Crons & Jobs** | Runs all heavy jobs + pokes all 9 Vercel `/api/cron/*` routes automatically | Runs all heavy jobs + host/in-process light crons |
 
 ---
 
@@ -24,7 +24,6 @@ node scripts/deploy-cloud.mjs \
 ```
 
 This creates two gitignored files with matching secrets:
-
 - **`.env.botkeep`** — ready to paste into **Botkeep** (or `/opt/hamafx/.env` on Google Cloud).
 - **`.env.vercel`** — ready to paste into **Vercel → Project Settings → Environment Variables**.
 
@@ -42,7 +41,7 @@ Because Botkeep Founder Free gives you **2 GB total storage**, do **not** run a 
    ```bash
    node scripts/botkeep-start.mjs
    ```
-   _(Or `bash botkeep.sh`)_
+   *(Or `bash botkeep.sh`)*
 4. Optional auto-pull on restart: set `BOTKEEP_PULL_ON_START=1` in Botkeep Environment Variables so restarting the server in Botkeep automatically pulls the latest commit from `main` and rebuilds if needed.
 
 ---

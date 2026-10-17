@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-
 import { cn } from '@/lib/cn';
 
 interface Props {
@@ -42,11 +42,7 @@ export function Landing3DHologram({ className }: Props) {
     // 2. WebGL Renderer with Alpha transparency (guarded against WebGL context failures)
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({
-        alpha: true,
-        antialias: true,
-        powerPreference: 'high-performance',
-      });
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
       renderer.setSize(width, height);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -253,7 +249,9 @@ export function Landing3DHologram({ className }: Props) {
     const clock = new THREE.Clock();
     let isVisible = true;
     const motionMediaQuery =
-      typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+      typeof window !== 'undefined'
+        ? window.matchMedia('(prefers-reduced-motion: reduce)')
+        : null;
     let prefersReducedMotion = motionMediaQuery?.matches ?? false;
     let speedMultiplier = prefersReducedMotion ? 0.05 : 1;
 
@@ -372,7 +370,7 @@ export function Landing3DHologram({ className }: Props) {
     <div
       ref={containerRef}
       className={cn(
-        'relative mx-auto aspect-square w-full max-w-[420px] cursor-grab touch-none select-none active:cursor-grabbing',
+        'relative w-full aspect-square max-w-[420px] mx-auto select-none touch-none cursor-grab active:cursor-grabbing',
         className,
       )}
     />

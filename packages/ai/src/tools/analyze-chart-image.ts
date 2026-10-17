@@ -269,7 +269,7 @@ function asContentImagePart(part: ImagePartShape): { type: 'image'; image: strin
 function tryParseStructured(text: string): AnalyzeChartImageOutput | null {
   // Strip code fences and try to JSON-parse the first object literal.
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const raw = jsonMatch && jsonMatch[1] ? jsonMatch[1].trim() : text.trim();
+  const raw = (jsonMatch && jsonMatch[1]) ? jsonMatch[1].trim() : text.trim();
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);

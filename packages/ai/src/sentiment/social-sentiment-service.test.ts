@@ -20,72 +20,51 @@
 // and the shared helper functions (scoreToLabel, detectContrarianSignal).
 
 import { detectContrarianSignal, scoreToLabel } from '@kestrel/shared';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { resetSentimentService, SocialSentimentService } from './social-sentiment-service';
 
 afterEach(() => {
   resetSentimentService();
+  vi.unstubAllGlobals();
 });
 
 describe('scoreToLabel', () => {
-  it('maps high positive scores to very_bullish', () => {
-    expect(scoreToLabel(0.6)).toBe('very_bullish');
-    expect(scoreToLabel(0.5)).toBe('very_bullish');
-  });
-
-  it('maps moderate positive scores to bullish', () => {
-    expect(scoreToLabel(0.2)).toBe('bullish');
-    expect(scoreToLabel(0.15)).toBe('bullish');
-  });
-
-  it('maps near-zero scores to neutral', () => {
-    expect(scoreToLabel(0)).toBe('neutral');
-    expect(scoreToLabel(0.1)).toBe('neutral');
-    expect(scoreToLabel(-0.1)).toBe('neutral');
-  });
-
-  it('maps moderate negative scores to bearish', () => {
-    expect(scoreToLabel(-0.2)).toBe('bearish');
-    expect(scoreToLabel(-0.15)).toBe('bearish');
-  });
-
-  it('maps high negative scores to very_bearish', () => {
-    expect(scoreToLabel(-0.6)).toBe('very_bearish');
-    expect(scoreToLabel(-0.5)).toBe('very_bearish');
+  it.each([
+    [0.6, 'very_bullish'],
+    [0.5, 'very_bullish'],
+    [0.2, 'bullish'],
+    [0.15, 'bullish'],
+    [0, 'neutral'],
+    [0.1, 'neutral'],
+    [-0.1, 'neutral'],
+    [-0.15, 'bearish'],
+    [-0.2, 'bearish'],
+    [-0.5, 'very_bearish'],
+    [-0.6, 'very_bearish'],
+  ] as const)('maps score %f to %s', (score, label) => {
+    expect(scoreToLabel(score)).toBe(label);
   });
 });
 
 describe('detectContrarianSignal', () => {
-  it('detects bearish contrarian signal when retail is extremely long', () => {
-    const result = detectContrarianSignal(80);
-    expect(result.signal).toBe(true);
-    expect(result.note).toContain('contrarian bearish');
-  });
-
-  it('detects bullish contrarian signal when retail is extremely short', () => {
-    const result = detectContrarianSignal(20);
-    expect(result.signal).toBe(true);
-    expect(result.note).toContain('contrarian bullish');
-  });
-
-  it('returns no signal for moderate positioning', () => {
-    const result = detectContrarianSignal(50);
-    expect(result.signal).toBe(false);
-    expect(result.note).toBeNull();
-  });
-
-  it('returns no signal when retailLongPct is null', () => {
-    const result = detectContrarianSignal(null);
-    expect(result.signal).toBe(false);
-    expect(result.note).toBeNull();
-  });
-
-  it('handles boundary values correctly', () => {
-    expect(detectContrarianSignal(75).signal).toBe(true);
-    expect(detectContrarianSignal(25).signal).toBe(true);
-    expect(detectContrarianSignal(74).signal).toBe(false);
-    expect(detectContrarianSignal(26).signal).toBe(false);
+  it.each([
+    [80, true, 'contrarian bearish'],
+    [75, true, 'contrarian bearish'],
+    [74, false, null],
+    [50, false, null],
+    [26, false, null],
+    [25, true, 'contrarian bullish'],
+    [20, true, 'contrarian bullish'],
+    [null, false, null],
+  ] as const)('retailLongPct %s -> signal %s', (retailLongPct, signal, note) => {
+    const result = detectContrarianSignal(retailLongPct);
+    expect(result.signal).toBe(signal);
+    if (note === null) {
+      expect(result.note).toBeNull();
+    } else {
+      expect(result.note).toContain(note);
+    }
   });
 });
 
@@ -113,5 +92,40 @@ describe('SocialSentimentService', () => {
   it('is available when API key and URL are configured', () => {
     const service = new SocialSentimentService('test-key', 'https://api.example.com');
     expect(service.isAvailable).toBe(true);
+  });
+
+  it('passes the abort signal to the external request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          sentiment: 'bullish',
+          score: 0.7,
+          retailLongPct: 42,
+          sampleSize: 100,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new SocialSentimentService('test-key', 'https://sentiment.test');
+    const controller = new AbortController();
+
+    await service.getAggregatedSentiment('XAUUSD', controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://sentiment.test/sentiment?symbol=XAUUSD',
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
+  it('does not swallow cancellation as an unavailable-data result', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new SocialSentimentService('test-key', 'https://sentiment.test');
+    const controller = new AbortController();
+    controller.abort(new Error('turn cancelled'));
+
+    await expect(service.getSentiment('XAUUSD', controller.signal)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

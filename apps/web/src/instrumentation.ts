@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 export async function register() {
   // Phase 3 §3.9 — load secrets from vault (GCP Secret Manager) before
   // anything else runs. No-op when SECRETS_VAULT_PROVIDER is unset or 'none'.

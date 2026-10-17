@@ -21,8 +21,6 @@ import { cleanup, fireEvent, render } from '@testing-library/react';
 import React, { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { Segmented, type SegmentedOption } from '../segmented';
-
 afterEach(cleanup);
 
 vi.mock('next-view-transitions', () => ({
@@ -32,6 +30,8 @@ vi.mock('next-view-transitions', () => ({
 vi.mock('next/link', () => ({
   default: ({ children, ...props }: React.ComponentProps<'a'>) => <a {...props}>{children}</a>,
 }));
+
+import { Segmented, type SegmentedOption } from '../segmented';
 
 const TIMEFRAME_OPTIONS: SegmentedOption<string>[] = [
   { value: '1m', label: '1m' },
@@ -45,7 +45,12 @@ const TIMEFRAME_OPTIONS: SegmentedOption<string>[] = [
 describe('Tier 1: Segmented Control Touch Targets & Tactile Press (>=5 tests)', () => {
   it('ensures size="sm" applies h-10 sm:h-9 (guaranteeing >=40px touch height on mobile)', () => {
     const { container } = render(
-      <Segmented value="1m" options={TIMEFRAME_OPTIONS} onChange={vi.fn()} size="sm" />,
+      <Segmented
+        value="1m"
+        options={TIMEFRAME_OPTIONS}
+        onChange={vi.fn()}
+        size="sm"
+      />,
     );
     const buttons = container.querySelectorAll('button');
     expect(buttons.length).toBe(6);
@@ -57,7 +62,12 @@ describe('Tier 1: Segmented Control Touch Targets & Tactile Press (>=5 tests)', 
 
   it('ensures size="sm" items enforce min-w-[44px] sm:min-w-[36px] for mobile tap clearance', () => {
     const { container } = render(
-      <Segmented value="1m" options={TIMEFRAME_OPTIONS} onChange={vi.fn()} size="sm" />,
+      <Segmented
+        value="1m"
+        options={TIMEFRAME_OPTIONS}
+        onChange={vi.fn()}
+        size="sm"
+      />,
     );
     const buttons = container.querySelectorAll('button');
     for (const btn of buttons) {
@@ -68,7 +78,11 @@ describe('Tier 1: Segmented Control Touch Targets & Tactile Press (>=5 tests)', 
 
   it('verifies tactile micro-press travel active:translate-y-[0.5px] and tactile-press on all segments', () => {
     const { container } = render(
-      <Segmented value="5m" options={TIMEFRAME_OPTIONS} onChange={vi.fn()} />,
+      <Segmented
+        value="5m"
+        options={TIMEFRAME_OPTIONS}
+        onChange={vi.fn()}
+      />,
     );
     const buttons = container.querySelectorAll('button');
     for (const btn of buttons) {
@@ -80,7 +94,11 @@ describe('Tier 1: Segmented Control Touch Targets & Tactile Press (>=5 tests)', 
   it('executes onChange callback with selected value when a segment is clicked', () => {
     const handleChange = vi.fn();
     const { getByRole } = render(
-      <Segmented value="1m" options={TIMEFRAME_OPTIONS} onChange={handleChange} />,
+      <Segmented
+        value="1m"
+        options={TIMEFRAME_OPTIONS}
+        onChange={handleChange}
+      />,
     );
     const btn15m = getByRole('tab', { name: '15m' });
     fireEvent.click(btn15m);
@@ -104,7 +122,12 @@ describe('Tier 1: Segmented Control Touch Targets & Tactile Press (>=5 tests)', 
 
   it('highlights the active segment with proper variant styling (solid, accent, tone)', () => {
     const { getByRole } = render(
-      <Segmented variant="solid" value="4h" options={TIMEFRAME_OPTIONS} onChange={vi.fn()} />,
+      <Segmented
+        variant="solid"
+        value="4h"
+        options={TIMEFRAME_OPTIONS}
+        onChange={vi.fn()}
+      />,
     );
     const activeTab = getByRole('tab', { name: '4H' });
     expect(activeTab.className).toContain('bg-fg');
@@ -116,7 +139,11 @@ describe('Tier 1: Segmented Control Touch Targets & Tactile Press (>=5 tests)', 
 describe('Tier 2: Boundary Cases & Keyboard Navigation (>=5 tests)', () => {
   it('moves focus across segments using ArrowRight and ArrowLeft keyboard keys', () => {
     const { container } = render(
-      <Segmented value="1m" options={TIMEFRAME_OPTIONS} onChange={vi.fn()} />,
+      <Segmented
+        value="1m"
+        options={TIMEFRAME_OPTIONS}
+        onChange={vi.fn()}
+      />,
     );
     const wrapper = container.querySelector('[role="tablist"]')!;
     const buttons = container.querySelectorAll('button');
@@ -133,7 +160,11 @@ describe('Tier 2: Boundary Cases & Keyboard Navigation (>=5 tests)', () => {
 
   it('moves focus to first and last items using Home and End keyboard keys', () => {
     const { container } = render(
-      <Segmented value="15m" options={TIMEFRAME_OPTIONS} onChange={vi.fn()} />,
+      <Segmented
+        value="15m"
+        options={TIMEFRAME_OPTIONS}
+        onChange={vi.fn()}
+      />,
     );
     const wrapper = container.querySelector('[role="tablist"]')!;
     const buttons = container.querySelectorAll('button');
@@ -148,7 +179,12 @@ describe('Tier 2: Boundary Cases & Keyboard Navigation (>=5 tests)', () => {
 
   it('supports role="radiogroup" for form choices with aria-checked states', () => {
     const { getByRole } = render(
-      <Segmented role="radiogroup" value="5m" options={TIMEFRAME_OPTIONS} onChange={vi.fn()} />,
+      <Segmented
+        role="radiogroup"
+        value="5m"
+        options={TIMEFRAME_OPTIONS}
+        onChange={vi.fn()}
+      />,
     );
     const radio5m = getByRole('radio', { name: '5m' });
     expect(radio5m.getAttribute('aria-checked')).toBe('true');
@@ -160,7 +196,11 @@ describe('Tier 2: Boundary Cases & Keyboard Navigation (>=5 tests)', () => {
   it('handles single option gracefully without boundary exceptions', () => {
     const singleOption = [{ value: 'single', label: 'All' }];
     const { getByRole } = render(
-      <Segmented value="single" options={singleOption} onChange={vi.fn()} />,
+      <Segmented
+        value="single"
+        options={singleOption}
+        onChange={vi.fn()}
+      />,
     );
     expect(getByRole('tab', { name: 'All' })).not.toBeNull();
   });
@@ -187,7 +227,11 @@ describe('Tier 3: Cross-Feature Context Combinations', () => {
       return (
         <div className="surface-panel rounded-xl p-4">
           <h3 className="text-sm font-semibold">Chart Timeframe</h3>
-          <Segmented value={selected} options={TIMEFRAME_OPTIONS} onChange={setSelected} />
+          <Segmented
+            value={selected}
+            options={TIMEFRAME_OPTIONS}
+            onChange={setSelected}
+          />
         </div>
       );
     }

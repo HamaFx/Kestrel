@@ -17,120 +17,48 @@
 // ---------------------------------------------------------------------------
 // E2E: Theme tokens
 //
-// Verifies that the CSS design token system renders correctly across key
-// pages. Tests check that semantic color classes (bear, bull, brand, etc.)
-// and surface tokens apply the expected computed CSS values.
+// Verifies that the Hoplite Dark CSS design tokens declared in
+// apps/web/src/app/globals.css render correctly on :root. A single navigation
+// reads every semantic token in one evaluate pass (values are asserted against
+// globals.css — keep them in sync when the theme changes).
 // ---------------------------------------------------------------------------
 
 import { expect, test } from './fixtures';
 
-test.describe('Theme tokens — semantic colors', () => {
-  test('bear token renders as red accent', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/alerts');
-
-    // Check the computed value of --color-bear via a sample element
-    const bearColor = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-bear').trim(),
-    );
-    // Should be a red-ish color. The browser lowercases computed hex values.
-    expect(bearColor.toLowerCase()).toBe('#ef4444');
-  });
-
-  test('bull token renders as green accent', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/dashboard');
-
-    const bullColor = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-bull').trim(),
-    );
-    expect(bullColor.toLowerCase()).toBe('#22c55e');
-  });
-
-  test('brand token renders as orange accent', async ({ authedPage }) => {
+test.describe('Theme tokens — Hoplite Dark root custom properties', () => {
+  test('root CSS custom properties match the globals.css design tokens', async ({ authedPage }) => {
     const page = authedPage;
     await page.goto('/chat');
 
-    const brandColor = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-brand').trim(),
-    );
-    expect(brandColor.toLowerCase()).toBe('#f56e0f');
-  });
+    const tokens = await page.evaluate(() => {
+      const rootStyles = getComputedStyle(document.documentElement);
+      const read = (name: string) => rootStyles.getPropertyValue(name).trim().toLowerCase();
+      return {
+        bear: read('--color-bear'),
+        bull: read('--color-bull'),
+        brand: read('--color-brand'),
+        bg: read('--color-bg'),
+        surface: read('--color-bg-elev-1'),
+        border: read('--color-border'),
+        fg: read('--color-fg'),
+        fgMuted: read('--color-fg-muted'),
+        radiusSm: read('--radius-sm'),
+        bodyBg: getComputedStyle(document.body).backgroundColor,
+      };
+    });
 
-  test('bg token renders as near-black', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/chat');
-
-    const bgColor = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim(),
-    );
-    expect(bgColor.toLowerCase()).toBe('#0a0a0a');
-  });
-});
-
-test.describe('Theme tokens — surface tokens', () => {
-  test('body background is near-black', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/chat');
-
-    const bodyBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    // Should be rgb(10, 10, 10) = #0A0A0A
-    expect(bodyBg).toBe('rgb(10, 10, 10)');
-  });
-
-  test('page content uses elev-1 surfaces', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/alerts');
-
-    // Check that card-like elements (sections) use the correct surface color
-    const surfaceColor = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-bg-elev-1').trim(),
-    );
-    expect(surfaceColor).toBe('#141414');
-  });
-
-  test('border token renders correctly', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/settings/profile');
-
-    const borderColor = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-border').trim(),
-    );
-    expect(borderColor).toBe('#262626');
-  });
-});
-
-test.describe('Theme tokens — text colors', () => {
-  test('fg token renders as light gray', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/chat');
-
-    const fgColor = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-fg').trim(),
-    );
-    expect(fgColor.toLowerCase()).toBe('#f0f0f0');
-  });
-
-  test('fg-muted token renders', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/chat');
-
-    const fgMuted = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--color-fg-muted').trim(),
-    );
-    // #808080 is the gray color keyword; the browser may emit either form.
-    expect(['#808080', 'gray']).toContain(fgMuted.toLowerCase());
-  });
-});
-
-test.describe('Theme tokens — radii', () => {
-  test('border radius tokens are 2px (sharp)', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/chat');
-
-    const radiusSm = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--radius-sm').trim(),
-    );
-    expect(radiusSm).toBe('2px');
+    expect(tokens).toEqual({
+      bear: '#e02c10',
+      bull: '#3f9e3d',
+      brand: '#ff3616',
+      bg: '#121212',
+      surface: '#1a1a1a',
+      border: '#2c2c2c',
+      fg: '#f0f0f0',
+      fgMuted: '#8e8e8e',
+      radiusSm: '4px',
+      // rgb(18, 18, 18) = #121212 (--color-bg)
+      bodyBg: 'rgb(18, 18, 18)',
+    });
   });
 });

@@ -13,8 +13,8 @@ import {
   type MastraCapability,
   type MastraCapabilityMode,
 } from '../capabilities';
-import { classifyMutationRequest } from '../mutation/mutation-detect';
 import { decideMastraExecution, type MastraExecutionDecisionInput } from './execution-decision';
+import { classifyMutationRequest } from '../mutation/mutation-detect';
 
 export const ExecutionRouteSchema = z.enum([
   'canonical-chat',

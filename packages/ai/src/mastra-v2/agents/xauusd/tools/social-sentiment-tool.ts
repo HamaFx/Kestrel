@@ -22,8 +22,8 @@ import { getSentimentService } from '../../../../sentiment';
 import { createEvidenceId, freshnessFromAge } from '../../../packets/evidence';
 import { EXTERNAL_CONTENT_TRUST_WARNING } from '../../../packets/external-content';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XAUUSD } from '../../../shared/types';
 import { XauusdSymbolSchema } from '../tool-schemas';
+import { XAUUSD } from '../../../shared/types';
 
 const InputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),

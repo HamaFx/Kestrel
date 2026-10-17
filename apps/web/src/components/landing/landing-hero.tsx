@@ -15,14 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconBuildingBank, IconChartCandle, IconRadar, IconScale } from '@tabler/icons-react';
-import { m } from 'motion/react';
-import Image from 'next/image';
-import { useState } from 'react';
 
-import { Landing3DHologram } from '@/components/landing/landing-3d-hologram';
-import { TacticalFlameButton } from '@/components/landing/landing-button';
+import { useState } from 'react';
+import Image from 'next/image';
+import { m } from 'motion/react';
+import {
+  IconChartCandle,
+  IconBuildingBank,
+  IconScale,
+  IconRadar,
+} from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
+import { TacticalFlameButton } from '@/components/landing/landing-button';
+import { Landing3DHologram } from '@/components/landing/landing-3d-hologram';
 import { cn } from '@/lib/cn';
 
 interface SymbolTelemetry {
@@ -130,11 +135,10 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
       {/* ── Neoclassical Cyber-Art Backdrop (Horus / Kestrel Falcon Masterpiece) ── */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-0 z-0 h-[80%] w-full -translate-y-1/2 opacity-25 mix-blend-screen select-none lg:w-[62%] lg:opacity-35"
+        className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 w-full lg:w-[62%] h-[80%] z-0 select-none opacity-25 lg:opacity-35 mix-blend-screen"
         style={{
           maskImage: 'radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%)',
-          WebkitMaskImage:
-            'radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%)',
         }}
       >
         <Image
@@ -155,38 +159,34 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Top Market Ticker Strip */}
-        <div className="mb-10 flex items-center justify-between overflow-hidden rounded-full border border-white/10 bg-[#141516]/80 px-4 py-2 shadow-sm backdrop-blur-md">
-          <div className="z-10 flex shrink-0 items-center gap-2 border-r border-white/10 bg-[#141516]/90 pr-4">
-            <span className="bg-bull size-2 animate-pulse rounded-full shadow-[0_0_6px_#3f9e3d]" />
-            <span className="text-fg font-mono text-[11px] font-bold tracking-wider uppercase">
+        <div className="mb-10 flex items-center justify-between overflow-hidden rounded-full border border-white/10 bg-[#141516]/80 px-4 py-2 backdrop-blur-md shadow-sm">
+          <div className="flex items-center gap-2 pr-4 border-r border-white/10 shrink-0 z-10 bg-[#141516]/90">
+            <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_6px_#3f9e3d]" />
+            <span className="font-mono text-[11px] font-bold tracking-wider text-fg uppercase">
               LIVE MARKET PULSE
             </span>
           </div>
 
-          <div className="mask-fade-x relative flex-1 overflow-hidden">
-            <div className="ticker-track flex items-center gap-8 font-mono text-xs whitespace-nowrap">
+          <div className="relative flex-1 overflow-hidden mask-fade-x">
+            <div className="ticker-track flex items-center gap-8 text-xs font-mono whitespace-nowrap">
               {doubledTicker.map((item, idx) => (
-                <div key={`${item.symbol}-${idx}`} className="flex shrink-0 items-center gap-2">
+                <div key={`${item.symbol}-${idx}`} className="flex items-center gap-2 shrink-0">
                   <span className="text-fg-subtle">{item.symbol}</span>
                   <span className="text-fg font-semibold tabular-nums">{item.price}</span>
-                  <span
-                    className={cn(
-                      'py-0.2 rounded px-1 text-[11px] font-medium tabular-nums',
-                      item.up ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10',
-                    )}
-                  >
+                  <span className={cn('text-[11px] font-medium tabular-nums px-1 py-0.2 rounded', item.up ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10')}>
                     {item.change}
                   </span>
-                  <span className="ml-2 text-white/10 select-none">/</span>
+                  <span className="text-white/10 select-none ml-2">/</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="text-fg-subtle z-10 hidden shrink-0 items-center gap-2 border-l border-white/10 bg-[#141516]/90 pl-4 font-mono text-[11px] lg:flex">
+          <div className="hidden lg:flex items-center gap-2 pl-4 border-l border-white/10 text-[11px] font-mono text-fg-subtle shrink-0 z-10 bg-[#141516]/90">
             <span>ANALYST DESKS:</span>
-            <span className="text-bull flex items-center gap-1.5 font-bold tabular-nums">
-              <span className="bg-bull size-1.5 animate-ping rounded-full" />4 ACTIVE
+            <span className="text-bull font-bold tabular-nums flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-bull animate-ping" />
+              4 ACTIVE
             </span>
           </div>
         </div>
@@ -195,17 +195,9 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
           {/* Left Column: Monumental Headline & Value Prop */}
           <div className="flex flex-col items-start gap-6 lg:col-span-7">
             {/* Predator Badge */}
-            <div className="border-brand/30 bg-brand/10 inline-flex items-center gap-2.5 rounded-full border px-3.5 py-1.5 shadow-[0_0_16px_rgba(255,54,22,0.15)]">
-              <Image
-                src="/brand/kestrel-falcon.svg"
-                alt=""
-                width={16}
-                height={16}
-                className="size-4"
-                aria-hidden="true"
-                priority
-              />
-              <span className="text-brand font-mono text-xs font-semibold tracking-wider uppercase">
+            <div className="inline-flex items-center gap-2.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 shadow-[0_0_16px_rgba(255,54,22,0.15)]">
+              <Image src="/brand/kestrel-falcon.svg" alt="" width={16} height={16} className="size-4" aria-hidden="true" priority />
+              <span className="font-mono text-xs font-semibold tracking-wider text-brand uppercase">
                 AI Market Research & Trade Copilot
               </span>
             </div>
@@ -215,7 +207,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
               <span className="bg-gradient-to-b from-white via-white/95 to-white/60 bg-clip-text text-transparent">
                 THE APEX AI COMMITTEE FOR{' '}
               </span>
-              <span className="font-redaction-35 text-brand tracking-normal italic">
+              <span className="font-redaction-35 italic text-brand tracking-normal">
                 Institutional
               </span>{' '}
               <span className="bg-gradient-to-b from-white via-white/95 to-white/60 bg-clip-text text-transparent">
@@ -224,11 +216,8 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
             </h1>
 
             {/* Subtitle */}
-            <p className="text-fg-muted max-w-2xl font-sans text-base leading-relaxed sm:text-lg sm:leading-normal">
-              Run a fast single-desk read in seconds, or summon the Full 4-Desk Committee: four
-              specialist AI desks that evaluate price structure, central bank rate catalysts, 1%
-              risk guardrails, and institutional COT positioning to deliver a clear, high-conviction
-              trade plan.
+            <p className="max-w-2xl font-sans text-base leading-relaxed text-fg-muted sm:text-lg sm:leading-normal">
+              Run a fast single-desk read in seconds, or summon the Full 4-Desk Committee: four specialist AI desks that evaluate price structure, central bank rate catalysts, 1% risk guardrails, and institutional COT positioning to deliver a clear, high-conviction trade plan.
             </p>
 
             {/* CTAs */}
@@ -238,59 +227,55 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
                 label={isAuthenticated ? 'Open Dashboard' : 'Get Started'}
               />
               <a href="#simulator">
-                <Button variant="secondary" size="lg" className="gap-2 px-5 text-sm font-medium">
-                  <span className="bg-brand size-2 animate-pulse rounded-full" />
+                <Button variant="secondary" size="lg" className="px-5 text-sm font-medium gap-2">
+                  <span className="size-2 rounded-full bg-brand animate-pulse" />
                   Try Live Simulator
                 </Button>
               </a>
               <a href="#desks">
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className="text-fg-muted hover:text-fg px-4 text-sm font-medium"
-                >
+                <Button variant="ghost" size="lg" className="px-4 text-sm font-medium text-fg-muted hover:text-fg">
                   Explore the Desks
                 </Button>
               </a>
             </div>
 
             {/* Social Proof / Metrics strip */}
-            <div className="grid w-full max-w-lg grid-cols-3 gap-6 border-t border-white/10 pt-6">
+            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-white/10 w-full max-w-lg">
               <div>
-                <div className="text-fg font-mono text-2xl font-bold tracking-tight tabular-nums">
+                <div className="font-mono text-2xl font-bold tracking-tight text-fg tabular-nums">
                   1 or 4 Desks
                 </div>
-                <div className="text-fg-subtle font-sans text-xs">Quick Read or Full Committee</div>
+                <div className="font-sans text-xs text-fg-subtle">Quick Read or Full Committee</div>
               </div>
               <div>
-                <div className="text-brand font-mono text-2xl font-bold tracking-tight tabular-nums">
+                <div className="font-mono text-2xl font-bold tracking-tight text-brand tabular-nums">
                   1:3+ R:R
                 </div>
-                <div className="text-fg-subtle font-sans text-xs">Asymmetric Target Floor</div>
+                <div className="font-sans text-xs text-fg-subtle">Asymmetric Target Floor</div>
               </div>
               <div>
-                <div className="text-fg font-mono text-2xl font-bold tracking-tight tabular-nums">
+                <div className="font-mono text-2xl font-bold tracking-tight text-fg tabular-nums">
                   Zero Setup
                 </div>
-                <div className="text-fg-subtle font-sans text-xs">All AI & Feeds Included</div>
+                <div className="font-sans text-xs text-fg-subtle">All AI & Feeds Included</div>
               </div>
             </div>
           </div>
 
           {/* Right Column: Interactive Hardware Telemetry Rig with 3D Hologram */}
           <div className="lg:col-span-5">
-            <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#141516]/95 p-5 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-6">
+            <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#141516]/95 p-5 sm:p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)]">
               {/* Header Status & Symbol Switcher */}
               <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
                 <div className="flex items-center gap-2">
-                  <span className="bg-bull size-2 animate-pulse rounded-full shadow-[0_0_8px_#3f9e3d]" />
-                  <span className="text-fg font-mono text-xs font-bold tracking-wider uppercase">
+                  <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_8px_#3f9e3d]" />
+                  <span className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
                     LIVE COMMITTEE BRIEFING
                   </span>
                 </div>
 
                 {/* Symbol Pills with Fluid Gliding Indicator */}
-                <div className="flex items-center gap-1 rounded-lg border border-white/5 bg-black/40 p-1">
+                <div className="flex items-center gap-1 rounded-lg bg-black/40 p-1 border border-white/5">
                   {SYMBOLS.map((s, idx) => {
                     const isSelected = idx === activeSymbolIndex;
                     return (
@@ -299,7 +284,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
                         type="button"
                         onClick={() => setActiveSymbolIndex(idx)}
                         className={cn(
-                          'relative rounded px-2.5 py-1 font-mono text-[10px] font-semibold transition-colors duration-200 active:translate-y-[0.5px]',
+                          'relative px-2.5 py-1 rounded font-mono text-[10px] font-semibold transition-colors duration-200 active:translate-y-[0.5px]',
                           isSelected
                             ? 'text-white'
                             : 'text-fg-subtle hover:text-fg hover:bg-white/5',
@@ -308,7 +293,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
                         {isSelected && (
                           <m.div
                             layoutId="hero-symbol-gliding-pill"
-                            className="bg-brand absolute inset-0 -z-10 rounded shadow-sm"
+                            className="absolute inset-0 rounded bg-brand shadow-sm -z-10"
                             transition={{ type: 'spring', stiffness: 450, damping: 32 }}
                           />
                         )}
@@ -322,111 +307,98 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
               {/* Symbol Data Container */}
               <div key={active.symbol}>
                 {/* Price Display */}
-                <div className="surface-well my-4 rounded-xl border border-white/5 bg-[#0b0c0d] p-4">
+                <div className="my-4 rounded-xl surface-well p-4 border border-white/5 bg-[#0b0c0d]">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-fg-subtle font-sans text-xs tracking-wider uppercase">
+                    <span className="font-sans text-xs text-fg-subtle uppercase tracking-wider">
                       {active.name}
                     </span>
-                    <span
-                      className={cn(
-                        'font-mono text-xs font-semibold',
-                        active.isPositive ? 'text-bull' : 'text-bear',
-                      )}
-                    >
+                    <span className={cn('font-mono text-xs font-semibold', active.isPositive ? 'text-bull' : 'text-bear')}>
                       {active.isPositive ? '▲' : '▼'} {active.change}
                     </span>
                   </div>
                   <div className="mt-1 flex items-baseline justify-between">
-                    <div className="text-fg font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+                    <div className="font-mono text-3xl sm:text-4xl font-bold tracking-tight text-fg tabular-nums">
                       {active.price}
                     </div>
-                    <span className="text-fg-subtle font-mono text-[11px]">
+                    <span className="font-mono text-[11px] text-fg-subtle">
                       Spread: {active.spread}
                     </span>
                   </div>
                 </div>
 
                 {/* ── Real-Time Interactive 3D WebGL Hologram ── */}
-                <div className="relative my-3 flex h-[190px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-inner sm:h-[220px]">
-                  <div className="text-fg-subtle absolute top-2.5 left-3 z-10 flex items-center gap-2 font-mono text-[9px] select-none">
-                    <span className="bg-brand size-1.5 animate-ping rounded-full" />
+                <div className="relative w-full h-[190px] sm:h-[220px] rounded-xl overflow-hidden bg-black/60 border border-white/10 my-3 flex items-center justify-center shadow-inner">
+                  <div className="absolute top-2.5 left-3 flex items-center gap-2 z-10 font-mono text-[9px] text-fg-subtle select-none">
+                    <span className="size-1.5 rounded-full bg-brand animate-ping" />
                     <span>MULTI-DESK CONSENSUS ENGINE</span>
                   </div>
-                  <div className="text-brand/80 pointer-events-none absolute right-3 bottom-2 z-10 font-mono text-[9px] select-none">
+                  <div className="absolute bottom-2 right-3 font-mono text-[9px] text-brand/80 z-10 select-none pointer-events-none">
                     DRAG TO INSPECT
                   </div>
-                  <Landing3DHologram className="h-full w-full" />
+                  <Landing3DHologram className="w-full h-full" />
                 </div>
 
                 {/* 4 Hardware Specialist Desks Row */}
                 <div className="grid grid-cols-4 gap-2 py-2">
                   {/* Tech */}
-                  <div className="surface-chip hover:border-bull/40 flex flex-col items-center gap-1.5 rounded-lg border border-white/10 bg-[#151617] p-2 shadow-xs transition-colors">
-                    <div className="bg-bull/10 border-bull/20 text-bull flex size-7 items-center justify-center rounded border">
+                  <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-bull/40 transition-colors shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded bg-bull/10 border border-bull/20 text-bull">
                       <IconChartCandle className="size-4" />
                     </div>
-                    <span className="text-bull font-mono text-[10px] font-bold uppercase">
-                      Tech
-                    </span>
-                    <span className="text-fg-subtle max-w-[64px] truncate text-center font-mono text-[9px]">
+                    <span className="font-mono text-[10px] font-bold text-bull uppercase">Tech</span>
+                    <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
                       {active.techSignal}
                     </span>
                   </div>
 
                   {/* Macro */}
-                  <div className="surface-chip hover:border-info/40 flex flex-col items-center gap-1.5 rounded-lg border border-white/10 bg-[#151617] p-2 shadow-xs transition-colors">
-                    <div className="bg-info/10 border-info/20 text-info flex size-7 items-center justify-center rounded border">
+                  <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-info/40 transition-colors shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded bg-info/10 border border-info/20 text-info">
                       <IconBuildingBank className="size-4" />
                     </div>
-                    <span className="text-info font-mono text-[10px] font-bold uppercase">
-                      Macro
-                    </span>
-                    <span className="text-fg-subtle max-w-[64px] truncate text-center font-mono text-[9px]">
+                    <span className="font-mono text-[10px] font-bold text-info uppercase">Macro</span>
+                    <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
                       {active.macroSignal}
                     </span>
                   </div>
 
                   {/* Risk */}
-                  <div className="surface-chip hover:border-warn/40 flex flex-col items-center gap-1.5 rounded-lg border border-white/10 bg-[#151617] p-2 shadow-xs transition-colors">
-                    <div className="bg-warn/10 border-warn/20 text-warn flex size-7 items-center justify-center rounded border">
+                  <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-warn/40 transition-colors shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded bg-warn/10 border border-warn/20 text-warn">
                       <IconScale className="size-4" />
                     </div>
-                    <span className="text-warn font-mono text-[10px] font-bold uppercase">
-                      Risk
-                    </span>
-                    <span className="text-fg-subtle max-w-[64px] truncate text-center font-mono text-[9px]">
+                    <span className="font-mono text-[10px] font-bold text-warn uppercase">Risk</span>
+                    <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
                       {active.riskSignal}
                     </span>
                   </div>
 
                   {/* Sentinel */}
-                  <div className="surface-chip hover:border-brand/40 flex flex-col items-center gap-1.5 rounded-lg border border-white/10 bg-[#151617] p-2 shadow-xs transition-colors">
-                    <div className="bg-brand/10 border-brand/20 text-brand flex size-7 items-center justify-center rounded border">
+                  <div className="surface-chip flex flex-col items-center gap-1.5 p-2 rounded-lg bg-[#151617] border border-white/10 hover:border-brand/40 transition-colors shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded bg-brand/10 border border-brand/20 text-brand">
                       <IconRadar className="size-4" />
                     </div>
-                    <span className="text-brand font-mono text-[10px] font-bold uppercase">
-                      Whales
-                    </span>
-                    <span className="text-fg-subtle max-w-[64px] truncate text-center font-mono text-[9px]">
+                    <span className="font-mono text-[10px] font-bold text-brand uppercase">Whales</span>
+                    <span className="font-mono text-[9px] text-fg-subtle truncate max-w-[64px] text-center">
                       {active.sentimentSignal}
                     </span>
                   </div>
                 </div>
 
                 {/* Consensus Trade Card */}
-                <div className="border-brand/30 bg-brand/[0.06] mt-3 rounded-xl border p-4 shadow-sm">
+                <div className="mt-3 rounded-xl border border-brand/30 bg-brand/[0.06] p-4 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-fg font-mono text-xs font-bold uppercase">
+                      <span className="font-mono text-xs font-bold text-fg uppercase">
                         Committee Trade Plan
                       </span>
-                      <span className="text-brand bg-brand/10 border-brand/20 rounded border px-1.5 py-0.5 font-mono text-[10px]">
+                      <span className="font-mono text-[10px] text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.5 rounded">
                         {active.conviction}% Conviction
                       </span>
                     </div>
                     <span
                       className={cn(
-                        'rounded border px-2 py-0.5 font-mono text-xs font-bold uppercase',
+                        'font-mono text-xs font-bold px-2 py-0.5 rounded uppercase border',
                         active.direction.startsWith('BUY')
                           ? 'text-bull bg-bull/10 border-bull/30'
                           : 'text-bear bg-bear/10 border-bear/30',
@@ -436,18 +408,18 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
                     </span>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-center font-mono text-xs tabular-nums">
-                    <div className="surface-well rounded-lg border border-white/5 bg-[#0a0b0c] p-2">
-                      <span className="text-fg-subtle block text-[10px]">ENTRY</span>
-                      <span className="text-fg font-bold">{active.entry}</span>
+                  <div className="mt-3 grid grid-cols-3 gap-2 font-mono text-xs tabular-nums text-center">
+                    <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
+                      <span className="text-[10px] text-fg-subtle block">ENTRY</span>
+                      <span className="font-bold text-fg">{active.entry}</span>
                     </div>
-                    <div className="surface-well rounded-lg border border-white/5 bg-[#0a0b0c] p-2">
-                      <span className="text-bear block text-[10px]">INVALIDATION</span>
-                      <span className="text-bear font-bold">{active.invalidation}</span>
+                    <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
+                      <span className="text-[10px] text-bear block">INVALIDATION</span>
+                      <span className="font-bold text-bear">{active.invalidation}</span>
                     </div>
-                    <div className="surface-well rounded-lg border border-white/5 bg-[#0a0b0c] p-2">
-                      <span className="text-bull block text-[10px]">TARGET ({active.rr})</span>
-                      <span className="text-bull font-bold">{active.target2}</span>
+                    <div className="rounded-lg surface-well p-2 bg-[#0a0b0c] border border-white/5">
+                      <span className="text-[10px] text-bull block">TARGET ({active.rr})</span>
+                      <span className="font-bold text-bull">{active.target2}</span>
                     </div>
                   </div>
                 </div>
@@ -460,7 +432,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
       {/* Background watermark in Bebas Neue */}
       <div
         aria-hidden="true"
-        className="font-bebas pointer-events-none absolute -bottom-10 left-6 z-0 text-[110px] font-normal tracking-widest text-white/[0.02] uppercase select-none lg:text-[180px]"
+        className="pointer-events-none absolute -bottom-10 left-6 z-0 font-bebas text-[110px] font-normal tracking-widest text-white/[0.02] select-none uppercase lg:text-[180px]"
       >
         KESTREL // SOVEREIGN AI
       </div>

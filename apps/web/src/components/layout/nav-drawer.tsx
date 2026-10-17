@@ -89,12 +89,7 @@ const PRIMARY: readonly NavItem[] = [
 const SECONDARY: readonly NavItem[] = [
   { href: '/alerts', label: 'Alerts', icon: IconBell, description: 'Price & indicator triggers' },
   { href: '/journal', label: 'Journal', icon: IconBook, description: 'Trades & R-multiples' },
-  {
-    href: '/settings',
-    label: 'Settings',
-    icon: IconSettings,
-    description: 'Subscription, risk & alerts',
-  },
+  { href: '/settings', label: 'Settings', icon: IconSettings, description: 'Subscription, risk & alerts' },
 ];
 
 const ADMIN: readonly NavItem[] = [

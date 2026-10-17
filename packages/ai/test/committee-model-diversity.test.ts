@@ -19,11 +19,12 @@
 // resolver never downgrades to a cheaper tier, and unresolvable picks fall
 // back to the run's primary model.
 
-import { RequestContext } from '@mastra/core/request-context';
-import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { LanguageModel } from 'ai';
+
 import { createCommitteeWorkflow } from '../src/committee/workflow';
+import { RequestContext } from '@mastra/core/request-context';
 import { committeeModelResolver } from '../src/mastra-v2/planning/mode-runner';
 
 const mocks = vi.hoisted(() => ({
@@ -33,9 +34,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>(
-    '../src/mastra-v2/packets/symbol-research',
-  );
+  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra-v2/packets/symbol-research');
   return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
 });
 
@@ -52,11 +51,7 @@ vi.mock('@mastra/core/agent', () => ({
 
     async generate(): Promise<unknown> {
       if (this.id.includes('decision')) {
-        return {
-          text: 'Synthesized read.',
-          usage: { inputTokens: 20, outputTokens: 10 },
-          steps: [{}],
-        };
+        return { text: 'Synthesized read.', usage: { inputTokens: 20, outputTokens: 10 }, steps: [{}] };
       }
       if (this.id.includes('-critique')) {
         return {
@@ -98,9 +93,7 @@ beforeEach(() => {
 
 describe('committee model diversity (§3.1, Q1)', () => {
   it('uses the resolved per-agent top-tier models when provided', async () => {
-    const resolveModelForAgent = (
-      agent: 'technical' | 'fundamental' | 'risk' | 'sentiment' | 'fusion',
-    ) => ({
+    const resolveModelForAgent = (agent: 'technical' | 'fundamental' | 'risk' | 'sentiment' | 'fusion') => ({
       model: {
         modelId: `top-tier/${agent}`,
       } as unknown as LanguageModel,
@@ -152,11 +145,7 @@ describe('committee model diversity (§3.1, Q1)', () => {
   it('falls back to the primary model for agents without a pick', async () => {
     const resolveModelForAgent = (agent: 'technical' | 'fusion') =>
       agent === 'technical'
-        ? {
-            model: { modelId: 'top-tier/technical' } as unknown as LanguageModel,
-            modelId: 'top-tier/technical',
-            providerId: 'top-tier',
-          }
+        ? { model: { modelId: 'top-tier/technical' } as unknown as LanguageModel, modelId: 'top-tier/technical', providerId: 'top-tier' }
         : null;
 
     const workflow = createCommitteeWorkflow(
@@ -193,11 +182,7 @@ describe('committee model diversity (§3.1, Q1)', () => {
 
   it('returns no resolver while PHASE3_MODEL_DIVERSITY is off (rollback flag)', () => {
     const resolver = committeeModelResolver(
-      {
-        aiApiKeys: null,
-        chatModel: null,
-        agentModelOverrides: { technical: 'google:gemini-2.5-pro' },
-      },
+      { aiApiKeys: null, chatModel: null, agentModelOverrides: { technical: 'google:gemini-2.5-pro' } },
       {} as never,
     );
     expect(resolver).toBeUndefined();
@@ -206,11 +191,7 @@ describe('committee model diversity (§3.1, Q1)', () => {
   it('builds a resolver from user overrides when the flag is on', () => {
     process.env.PHASE3_MODEL_DIVERSITY = '1';
     const resolver = committeeModelResolver(
-      {
-        aiApiKeys: null,
-        chatModel: null,
-        agentModelOverrides: { technical: 'google:gemini-2.5-pro' },
-      },
+      { aiApiKeys: null, chatModel: null, agentModelOverrides: { technical: 'google:gemini-2.5-pro' } },
       {} as never,
     );
     expect(resolver).toBeTypeOf('function');

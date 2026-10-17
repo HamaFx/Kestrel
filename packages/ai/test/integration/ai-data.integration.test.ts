@@ -14,209 +14,237 @@
  * limitations under the License.
  */
 
-// Integration test: AI → Data pipeline.
+// Batch 4 integration test: AI tools → REAL @kestrel/indicators math.
 //
-// Validates that the AI tools layer correctly imports from and interacts
-// with the data layer. Tests that cross-package function signatures match,
-// that shared types are compatible, and that the full tool→data→response
-// chain works with the network layer mocked.
-//
-// Catches:
-//   - Mismatched function signatures between @kestrel/ai and @kestrel/data
-//   - Shared type compatibility regressions
-//   - Import resolution errors at package boundaries
+// The previous revision mocked BOTH @kestrel/data and @kestrel/indicators,
+// turning this file into duplicate mock-only unit tests. The indicator and
+// SMC packages are real workspace code with deterministic math, so the only
+// boundary that needs a mock is the external market-data fetch
+// (@kestrel/data getCandles / getPrice). Every asserted number below is
+// computed by the real @kestrel/indicators package at runtime.
 
-// Import shared types to verify cross-package type compatibility
-import {
-  SymbolSchema,
-  TimeframeSchema,
-  type GetCandlesOutput,
-  type GetPriceOutput,
-} from '@kestrel/shared';
+import { computeIndicator, computeStructure } from '@kestrel/indicators';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { computeRiskTool } from '../../src/tools/compute-risk';
-import { getCandlesTool } from '../../src/tools/get-candles';
-// Import tools from the AI package — paths are relative to test/integration/
-// so we need ../../src/ to reach packages/ai/src/
-import { getPriceTool } from '../../src/tools/get-price';
+// Cross-package test fixture: the deterministic candle factory lives with the
+// indicator tests it feeds (see test_audit_plan.md §4.3, DO NOT DELETE).
+// eslint-disable-next-line no-restricted-imports -- cross-package test fixture, not production code
+import { makeCandles } from '../../../indicators/test/fixtures';
+import { getIndicatorsTool } from '../../src/tools/get-indicators';
+import { getMarketStructureTool } from '../../src/tools/get-market-structure';
 import { verifyCallTool } from '../../src/tools/verify-call';
 
-// Mock external service boundaries — the tools' real logic runs, only
-// the network/DB calls are intercepted.
-const mockGetPrice = vi.fn();
 const mockGetCandles = vi.fn();
-const mockComputeStructure = vi.fn();
+const mockGetPrice = vi.fn();
 
 vi.mock('@kestrel/data', () => ({
-  getPrice: (...args: unknown[]) => mockGetPrice(...args),
   getCandles: (...args: unknown[]) => mockGetCandles(...args),
-  ProviderError: class ProviderError extends Error {
-    constructor(_code: string, _provider: string, message: string) {
-      super(message);
-    }
-  },
+  getPrice: (...args: unknown[]) => mockGetPrice(...args),
 }));
 
-vi.mock('@kestrel/indicators', () => ({
-  computeIndicator: vi.fn(),
-  computeStructure: (...args: unknown[]) => mockComputeStructure(...args),
-}));
+const execIndicators = getIndicatorsTool.execute as unknown as (input: {
+  symbol: string;
+  tf: string;
+  count: number;
+  indicators: Array<{ kind: string; params: Record<string, unknown> }>;
+}) => Promise<{
+  symbol: string;
+  tf: string;
+  results: Array<{
+    kind: string;
+    params: Record<string, unknown>;
+    values: unknown[];
+  }>;
+}>;
 
-vi.mock('@kestrel/shared/logger', () => ({
-  createCategorizedLogger: () => ({
-    warn: vi.fn(),
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }),
-  logErrorContext: vi.fn(),
-}));
+const execStructure = getMarketStructureTool.execute as unknown as (input: {
+  symbol: string;
+  tf: string;
+  count: number;
+  lookback: number;
+}) => Promise<{
+  symbol: string;
+  tf: string;
+  bars: number;
+  swings?: Array<{ type: string; price: number; index: number }>;
+  events?: Array<{ kind: string; direction: string; index: number; level: number }>;
+  summary: string;
+}>;
 
-describe('AI → Data integration', () => {
+const execVerify = verifyCallTool.execute as unknown as (input: {
+  symbol: string;
+  side: 'long' | 'short';
+  entry: number;
+  stop: number;
+  target?: number | null;
+  tf?: string;
+  lookbackBars?: number;
+}) => Promise<{
+  agree: boolean;
+  marketPrice: number | null;
+  caveats: Array<{ code: string; message: string }>;
+  nearestOpposingLiquidity: {
+    price: number;
+    kind: 'swing_high' | 'swing_low';
+    barsAgo: number;
+  } | null;
+}>;
+
+/** 50-bar gold uptrend with pullbacks — exercises RSI/EMA/MACD on real data. */
+const TREND_CLOSES = [
+  2610, 2608, 2612, 2615, 2614, 2617, 2620, 2619, 2623, 2626, 2622, 2625, 2629, 2631, 2628, 2632,
+  2636, 2634, 2638, 2641, 2639, 2642, 2646, 2644, 2648, 2651, 2649, 2653, 2656, 2654, 2658, 2661,
+  2659, 2662, 2666, 2664, 2668, 2671, 2669, 2673, 2676, 2674, 2678, 2681, 2679, 2682, 2686, 2684,
+  2688, 2691,
+];
+
+/** 40-bar zigzag — produces alternating swing highs/lows plus BOS/CHoCH events. */
+const ZIGZAG_CLOSES = [
+  100, 101, 102, 103, 102, 101, 100, 99, 98, 99, 100, 101, 102, 103, 104, 105, 104, 103, 102, 101,
+  100, 99, 98, 97, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 106, 105, 104, 103,
+];
+
+describe('AI tools → real @kestrel/indicators integration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockGetCandles.mockReset();
+    mockGetPrice.mockReset();
   });
 
-  describe('get_price → @kestrel/data', () => {
-    it('returns properly shaped output through the full tool chain', async () => {
-      mockGetPrice.mockResolvedValue({
-        bid: 1.0801,
-        ask: 1.0803,
-        mid: 1.0802,
-        timestamp: Date.now(),
-      });
+  it('get_indicators computes real RSI/EMA/MACD series and trims each to 15 tail points', async () => {
+    const candles = makeCandles(TREND_CLOSES);
+    mockGetCandles.mockResolvedValue(candles);
 
-      const exec = getPriceTool.execute as unknown as (input: {
-        symbols: string[];
-      }) => Promise<GetPriceOutput>;
-      const result = await exec({ symbols: ['EURUSD'] });
+    const requested = [
+      { kind: 'rsi', params: { period: 14 } },
+      { kind: 'ema', params: { period: 20 } },
+      { kind: 'macd', params: { fast: 12, slow: 26, signal: 9 } },
+    ] as const;
 
-      // Verify the output conforms to the shared GetPriceOutput type
-      expect(Array.isArray(result.ticks)).toBe(true);
-      expect(result.ticks.length).toBe(1);
-      expect(typeof result.asOf).toBe('string');
+    const result = await execIndicators({
+      symbol: 'XAUUSD',
+      tf: '1h',
+      count: 50,
+      indicators: requested.map((r) => ({ kind: r.kind, params: { ...r.params } })),
     });
 
-    it('uses shared SymbolSchema to validate forex symbols', () => {
-      const valid = ['EURUSD', 'XAUUSD', 'GBPUSD'] as const;
-      for (const sym of valid) {
-        expect(SymbolSchema.safeParse(sym).success).toBe(true);
-      }
-      expect(SymbolSchema.safeParse('INVALIDXYZ').success).toBe(false);
-      expect(SymbolSchema.safeParse('BTCUSD').data).toBe('BTCUSDT');
-    });
-  });
+    expect(mockGetCandles).toHaveBeenCalledWith('XAUUSD', '1h', { count: 50 });
+    expect(result.symbol).toBe('XAUUSD');
+    expect(result.tf).toBe('1h');
+    expect(result.results).toHaveLength(3);
 
-  describe('get_candles → @kestrel/data', () => {
-    it('calls the data layer with correct symbol and timeframe', async () => {
-      mockGetCandles.mockResolvedValue([]);
-
-      const exec = getCandlesTool.execute as unknown as (input: {
-        symbol: string;
-        tf: string;
-        count?: number;
-      }) => Promise<GetCandlesOutput>;
-      const result = await exec({ symbol: 'EURUSD', tf: '1h', count: 200 });
-
-      expect(result.symbol).toBe('EURUSD');
-      expect(result.tf).toBe('1h');
-      expect(mockGetCandles).toHaveBeenCalledWith('EURUSD', '1h', { count: 200 });
-    });
-
-    it('validates all standard TimeframeSchema values', () => {
-      const valid = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'] as const;
-      for (const tf of valid) {
-        expect(TimeframeSchema.safeParse(tf).success).toBe(true);
-      }
-      expect(TimeframeSchema.safeParse('2h').success).toBe(false);
-    });
-  });
-
-  describe('compute_risk — numeric pipeline', () => {
-    it('calculates position sizing using shared forex metadata', async () => {
-      const exec = computeRiskTool.execute as unknown as (input: {
-        symbol: string;
-        side: string;
-        entry: number;
-        stop: number;
-        target?: number;
-        accountUsd: number;
-        riskPct: number;
-      }) => Promise<{ riskUsd: number; pipsToStop: number; positionSizeLots: number }>;
-
-      const result = await exec({
-        symbol: 'EURUSD',
-        side: 'long',
-        entry: 1.085,
-        stop: 1.082,
-        target: 1.092,
-        accountUsd: 10_000,
-        riskPct: 1,
-      });
-
-      expect(result.riskUsd).toBeCloseTo(100, 2);
-      expect(result.pipsToStop).toBeCloseTo(30, 2);
-      expect(result.positionSizeLots).toBeGreaterThan(0);
-    });
-  });
-
-  describe('verify_call → data + indicators', () => {
-    it('validates a trade setup through data and indicator layers', async () => {
-      mockGetPrice.mockResolvedValue({
-        symbol: 'EURUSD',
-        bid: 1.0799,
-        ask: 1.0801,
-        mid: 1.08,
-        ts: Date.now(),
-        source: 'test',
-      });
-      mockGetCandles.mockResolvedValue([
-        {
-          t: Date.now(),
-          o: 1.079,
-          h: 1.09,
-          l: 1.07,
-          c: 1.085,
-          symbol: 'EURUSD',
-          tf: '1h',
-          v: null,
-          source: 'test',
-          fetchedAt: Date.now(),
-        },
-      ]);
-      mockComputeStructure.mockReturnValue({
-        symbol: 'EURUSD',
+    for (const [i, request] of requested.entries()) {
+      const expected = computeIndicator({
+        symbol: 'XAUUSD',
         tf: '1h',
-        bars: 1,
-        fetchedAt: Date.now(),
-        swings: [{ type: 'high', price: 1.095, index: 0 }],
-        events: [],
-        fvgs: [],
-        orderBlocks: [],
+        kind: request.kind,
+        params: { ...request.params },
+        candles,
       });
 
-      const exec = verifyCallTool.execute as unknown as (input: {
-        symbol: string;
-        side: string;
-        entry: number;
-        stop: number;
-        target?: number | null;
-      }) => Promise<{ agree: boolean; caveats: Array<{ code: string }> }>;
+      const entry = result.results[i]!;
+      expect(entry.kind).toBe(request.kind);
+      expect(expected.values.length).toBeGreaterThan(15);
+      expect(entry.values.length).toBe(15);
+      expect(entry.values).toEqual(expected.values.slice(-15));
+    }
 
-      const result = await exec({
-        symbol: 'EURUSD',
-        side: 'long',
-        entry: 1.08,
-        stop: 1.075,
-        target: 1.09,
-      });
+    // Ground one concrete number: a steady uptrend must close RSI in
+    // overbought territory rather than the neutral 50 band.
+    const rsiValues = result.results[0]!.values as Array<number | null>;
+    expect(rsiValues[rsiValues.length - 1]).toBeGreaterThan(60);
+  });
 
-      expect(result.agree).toBe(true);
-      expect(result.caveats).toHaveLength(0);
-      // Verify both data and indicator mocks were called (proves full chain ran)
-      expect(mockGetCandles).toHaveBeenCalled();
-      expect(mockComputeStructure).toHaveBeenCalled();
+  it('get_market_structure derives real swings, BOS/CHoCH events and summary from the candle window', async () => {
+    const candles = makeCandles(ZIGZAG_CLOSES);
+    mockGetCandles.mockResolvedValue(candles);
+
+    const result = await execStructure({ symbol: 'XAUUSD', tf: '1h', count: 40, lookback: 3 });
+
+    const expected = computeStructure({
+      symbol: 'XAUUSD',
+      tf: '1h',
+      candles,
+      swings: { lookback: 3 },
+    });
+
+    expect(mockGetCandles).toHaveBeenCalledWith('XAUUSD', '1h', { count: 40 });
+    expect(result.bars).toBe(40);
+    expect(result.swings).toEqual(expected.swings!.slice(-15));
+    expect(result.events).toEqual(expected.events!.slice(-15));
+
+    // Real structural features: alternating pivots plus both event kinds.
+    expect(result.swings!.some((s) => s.type === 'high')).toBe(true);
+    expect(result.swings!.some((s) => s.type === 'low')).toBe(true);
+    const kinds = result.events!.map((e) => e.kind);
+    expect(kinds).toContain('bos');
+    expect(kinds).toContain('choch');
+    expect(result.summary).toContain('swings');
+    expect(result.summary).toContain('last structure');
+  });
+
+  it('verify_call agrees when the nearest real swing high sits beyond the target', async () => {
+    mockGetPrice.mockResolvedValue({
+      symbol: 'XAUUSD',
+      bid: 2599.5,
+      ask: 2600.5,
+      mid: 2600,
+      ts: Date.now(),
+      source: 'test',
+    });
+    const candles = makeCandles([2575, 2585, 2634, 2592, 2570, 2582], {
+      highs: [2576, 2586, 2635, 2593, 2571, 2583],
+    });
+    mockGetCandles.mockResolvedValue(candles);
+
+    const result = await execVerify({
+      symbol: 'XAUUSD',
+      side: 'long',
+      entry: 2600,
+      stop: 2590,
+      target: 2625,
+      tf: '1h',
+      lookbackBars: 6,
+    });
+
+    expect(mockGetCandles).toHaveBeenCalledWith('XAUUSD', '1h', { count: 6 });
+    expect(result.marketPrice).toBe(2600);
+    expect(result.agree).toBe(true);
+    expect(result.caveats).toEqual([]);
+    expect(result.nearestOpposingLiquidity).toEqual({
+      price: 2635,
+      kind: 'swing_high',
+      barsAgo: 3,
+    });
+  });
+
+  it('verify_call flags opposing liquidity when a real swing high blocks a long target', async () => {
+    mockGetPrice.mockResolvedValue({
+      symbol: 'XAUUSD',
+      bid: 2599.5,
+      ask: 2600.5,
+      mid: 2600,
+      ts: Date.now(),
+      source: 'test',
+    });
+    mockGetCandles.mockResolvedValue(makeCandles([2595, 2605, 2609, 2600, 2590, 2600]));
+
+    const result = await execVerify({
+      symbol: 'XAUUSD',
+      side: 'long',
+      entry: 2600,
+      stop: 2590,
+      target: 2620,
+      tf: '1h',
+      lookbackBars: 6,
+    });
+
+    expect(result.agree).toBe(false);
+    expect(result.caveats).toHaveLength(1);
+    expect(result.caveats[0]!.code).toBe('opposing_liquidity_in_path');
+    expect(result.nearestOpposingLiquidity).toEqual({
+      price: 2610,
+      kind: 'swing_high',
+      barsAgo: 3,
     });
   });
 });

@@ -19,8 +19,8 @@ import { createTool } from '@mastra/core/tools';
 
 import { buildCandlesEvidence } from '../../../packets/evidence-builders';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdCandlesEvidenceSchema } from '../../../shared/types';
 import { XauusdCandlesInputSchema } from '../tool-schemas';
+import { XauusdCandlesEvidenceSchema } from '../../../shared/types';
 
 export const xauusdCandlesTool = createTool({
   id: 'get-xauusd-candles',

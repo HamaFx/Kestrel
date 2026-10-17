@@ -107,20 +107,75 @@ describe('canonical symbol catalog', () => {
 });
 
 describe('symbol normalization and validation', () => {
-  it('normalizes supported symbols at the strict schema boundary', () => {
-    expect(normalizeSymbol('  btcusdt ')).toBe('BTCUSDT');
-    expect(SymbolSchema.parse('  btcusdt ')).toBe('BTCUSDT');
-    expect(SymbolSchema.parse(' eurusd ')).toBe('EURUSD');
-    expect(isSymbol('  XAUUSD ')).toBe(true);
+  it.each([
+    {
+      symbol: 'XAUUSD',
+      category: 'gold',
+      decimals: 2,
+      pipSize: 0.1,
+      contractSize: 100,
+      tradingView: 'OANDA:XAUUSD',
+    },
+    {
+      symbol: 'EURUSD',
+      category: 'forex',
+      decimals: 5,
+      pipSize: 0.0001,
+      contractSize: 100_000,
+      tradingView: 'OANDA:EURUSD',
+    },
+    {
+      symbol: 'USDJPY',
+      category: 'forex',
+      decimals: 3,
+      pipSize: 0.01,
+      contractSize: 100_000,
+      tradingView: 'OANDA:USDJPY',
+    },
+    {
+      symbol: 'BTCUSDT',
+      category: 'crypto',
+      decimals: 2,
+      pipSize: 0.01,
+      contractSize: 1,
+      tradingView: 'BINANCE:BTCUSDT',
+    },
+    {
+      symbol: 'XRPUSDT',
+      category: 'crypto',
+      decimals: 4,
+      pipSize: 0.0001,
+      contractSize: 1,
+      tradingView: 'BINANCE:XRPUSDT',
+    },
+  ] as const)(
+    'exposes complete $$symbol metadata (category, decimals, pipSize, contract size, TV ticker)',
+    ({ symbol, category, decimals, pipSize, contractSize, tradingView }) => {
+      const def = getSymbolDefinition(symbol);
+      expect(def).toMatchObject({ internal: symbol, category, decimals, pipSize, tradingView });
+      expect(def.capabilities.contractSize).toBe(contractSize);
+    },
+  );
+
+  it.each([
+    ['  btcusdt ', 'BTCUSDT'],
+    [' eurusd ', 'EURUSD'],
+    ['BTCUSD', 'BTCUSDT'],
+    [' ethusdt ', 'ETHUSDT'],
+    ['USD/JPY', 'USDJPY'],
+  ] as const)('normalizes supported symbol %j at the strict schema boundary', (raw, canonical) => {
+    expect(normalizeSymbol(raw)).toBe(canonical);
+    expect(SymbolSchema.parse(raw)).toBe(canonical);
+    expect(isSymbol(raw)).toBe(true);
   });
 
-  it('resolves supported aliases while rejecting truly unsupported instruments', () => {
-    expect(isKnownSymbol('BTCUSD')).toBe(true);
-    expect(SymbolSchema.parse('BTCUSD')).toBe('BTCUSDT');
-    expect(isKnownSymbol('US100')).toBe(false);
-    expect(isSymbol('XAGUSD')).toBe(false);
-    expect(SymbolSchema.safeParse('US100').success).toBe(false);
-  });
+  it.each([['US100'], ['XAGUSD'], ['DOGEUSDT']] as const)(
+    'rejects unsupported instrument %s',
+    (raw) => {
+      expect(isSymbol(raw)).toBe(false);
+      expect(SymbolSchema.safeParse(raw).success).toBe(false);
+    },
+  );
 
   it('resolves definitions using normalized input', () => {
     expect(getSymbolDefinition(' ethusdt ').internal).toBe('ETHUSDT');

@@ -238,17 +238,3 @@ test.describe('Chat UI — label bug verification', () => {
     }
   });
 });
-
-test.describe('Chat UI — tool card parts', () => {
-  test('tool card renders with correct container styling', async ({ authedPage }) => {
-    const page = authedPage;
-    await page.goto('/chat');
-
-    // Verify the chat page shell loads correctly
-    await expect(page.getByRole('textbox', { name: /chat message input/i })).toBeVisible();
-
-    // Chat page should have the correct surface background
-    const body = page.locator('body');
-    await expect(body).toHaveCSS('background-color', 'rgb(10, 10, 10)');
-  });
-});

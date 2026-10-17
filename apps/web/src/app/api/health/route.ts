@@ -91,7 +91,11 @@ async function checkPgvector(): Promise<CheckResult> {
 async function checkCronRuns(): Promise<CheckResult & { recentRuns?: number; stuckRuns?: number }> {
   try {
     const db = getDb();
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // postgres.js `unsafe()` bindings accept strings, not Date instances —
+    // passing a Date here throws ERR_INVALID_ARG_TYPE inside the driver and
+    // makes /api/health fail for authenticated callers. Bind an ISO string
+    // (cast explicitly so parameter inference is unambiguous).
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     // Count recent cron runs and detect any that are stuck in 'started' > 5 min ago.
     const [row] = await db.execute<{ recent: string; stuck: string }>(sql`
       SELECT
@@ -101,7 +105,7 @@ async function checkCronRuns(): Promise<CheckResult & { recentRuns?: number; stu
           AND started_at < now() - INTERVAL '5 minutes'
         )::text AS stuck
       FROM cron_runs
-      WHERE started_at >= ${since}
+      WHERE started_at >= ${since}::timestamptz
     `);
     return {
       ok: true,

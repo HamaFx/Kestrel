@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { AppError, ERROR_PATTERNS, findErrorPattern } from '../src';
+import { AppError, ERROR_PATTERNS, findErrorPattern, type ErrorCode } from '../src';
 
 describe('ERROR_PATTERNS', () => {
   it('contains patterns for common operational errors', () => {
@@ -43,70 +43,81 @@ describe('findErrorPattern', () => {
     expect(findErrorPattern('unknown failure')).toBeNull();
   });
 
-  it('matches by error code', () => {
-    const err = new AppError('BUDGET_EXCEEDED', 'Daily AI budget exceeded', 503);
-    const pattern = findErrorPattern(err);
-    expect(pattern).not.toBeNull();
-    expect(pattern?.code).toBe('BUDGET_EXCEEDED');
-    expect(pattern?.retryable).toBe(false);
-  });
+  it.each<{
+    label: string;
+    error: unknown;
+    expectedCode: ErrorCode | null;
+    expectedRetryable: boolean;
+    expectedDescription?: string;
+  }>([
+    {
+      label: 'by error code (BUDGET_EXCEEDED)',
+      error: new AppError('BUDGET_EXCEEDED', 'Daily AI budget exceeded', 503),
+      expectedCode: 'BUDGET_EXCEEDED',
+      expectedRetryable: false,
+    },
+    {
+      label: 'by onboarding message substring',
+      error: new Error('User settings not found during onboarding'),
+      expectedCode: null,
+      expectedRetryable: false,
+      expectedDescription: 'User has not completed onboarding',
+    },
+    {
+      label: 'by CSRF regex',
+      error: new Error('CSRF token missing or invalid'),
+      expectedCode: null,
+      expectedRetryable: false,
+      expectedDescription: 'CSRF token validation failed',
+    },
+    {
+      label: 'provider unavailable errors',
+      error: new Error('provider unavailable: BiQuote returned 500'),
+      expectedCode: 'PROVIDER_UNAVAILABLE',
+      expectedRetryable: true,
+    },
+    {
+      label: 'unauthorized errors',
+      error: new Error('UNAUTHORIZED: session expired'),
+      expectedCode: 'UNAUTHORIZED',
+      expectedRetryable: false,
+    },
+    {
+      label: 'forbidden errors',
+      error: new Error('Forbidden: admin access required'),
+      expectedCode: 'FORBIDDEN',
+      expectedRetryable: false,
+    },
+    {
+      label: 'rate limited errors',
+      error: new AppError('RATE_LIMITED', 'Too Many Requests', 429),
+      expectedCode: 'RATE_LIMITED',
+      expectedRetryable: true,
+    },
+    {
+      label: 'validation errors',
+      error: new AppError('VALIDATION', 'Invalid input', 400),
+      expectedCode: 'VALIDATION',
+      expectedRetryable: false,
+    },
+    {
+      label: 'internal errors',
+      error: new AppError('INTERNAL', 'Unexpected failure', 500),
+      expectedCode: 'INTERNAL',
+      expectedRetryable: false,
+    },
+  ])('matches $label', ({ error, expectedCode, expectedRetryable, expectedDescription }) => {
+    const pattern = findErrorPattern(error);
 
-  it('matches by message substring', () => {
-    const err = new Error('User settings not found during onboarding');
-    const pattern = findErrorPattern(err);
     expect(pattern).not.toBeNull();
-    expect(pattern?.description).toBe('User has not completed onboarding');
-  });
-
-  it('matches regex patterns', () => {
-    const err = new Error('CSRF token missing or invalid');
-    const pattern = findErrorPattern(err);
-    expect(pattern).not.toBeNull();
-    expect(pattern?.code).toBeUndefined();
-    expect(pattern?.description).toBe('CSRF token validation failed');
-  });
-
-  it('matches provider unavailable errors', () => {
-    const err = new Error('provider unavailable: BiQuote returned 500');
-    const pattern = findErrorPattern(err);
-    expect(pattern).not.toBeNull();
-    expect(pattern?.code).toBe('PROVIDER_UNAVAILABLE');
-    expect(pattern?.retryable).toBe(true);
-  });
-
-  it('matches unauthorized errors', () => {
-    const err = new Error('UNAUTHORIZED: session expired');
-    const pattern = findErrorPattern(err);
-    expect(pattern).not.toBeNull();
-    expect(pattern?.code).toBe('UNAUTHORIZED');
-  });
-
-  it('matches forbidden errors', () => {
-    const err = new Error('Forbidden: admin access required');
-    const pattern = findErrorPattern(err);
-    expect(pattern).not.toBeNull();
-    expect(pattern?.code).toBe('FORBIDDEN');
-  });
-
-  it('matches rate limited errors', () => {
-    const err = new AppError('RATE_LIMITED', 'Too Many Requests', 429);
-    const pattern = findErrorPattern(err);
-    expect(pattern).not.toBeNull();
-    expect(pattern?.code).toBe('RATE_LIMITED');
-    expect(pattern?.retryable).toBe(true);
-  });
-
-  it('matches validation errors', () => {
-    const err = new AppError('VALIDATION', 'Invalid input', 400);
-    const pattern = findErrorPattern(err);
-    expect(pattern).not.toBeNull();
-    expect(pattern?.code).toBe('VALIDATION');
-  });
-
-  it('matches internal errors', () => {
-    const err = new AppError('INTERNAL', 'Unexpected failure', 500);
-    const pattern = findErrorPattern(err);
-    expect(pattern).not.toBeNull();
-    expect(pattern?.code).toBe('INTERNAL');
+    expect(pattern?.retryable).toBe(expectedRetryable);
+    if (expectedCode === null) {
+      expect(pattern?.code).toBeUndefined();
+    } else {
+      expect(pattern?.code).toBe(expectedCode);
+    }
+    if (expectedDescription !== undefined) {
+      expect(pattern?.description).toBe(expectedDescription);
+    }
   });
 });

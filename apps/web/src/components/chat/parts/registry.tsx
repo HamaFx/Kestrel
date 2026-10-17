@@ -245,7 +245,7 @@ export const partRegistry: { [K in ToolName]: ComponentType<ToolPartProps<K>> } 
  * The mapped type guarantees one schema per known tool, in lockstep with
  * `partRegistry`.
  */
-const partSchemas: { [K in ToolName]: z.ZodType<ToolOutput<K>, z.ZodTypeDef, any> } = {
+const partSchemas: { [K in ToolName]: z.ZodType<ToolOutput<K>, z.ZodTypeDef, unknown> } = {
   get_price: GetPriceOutputSchema,
   get_candles: GetCandlesOutputSchema,
   get_indicators: GetIndicatorsOutputSchema,

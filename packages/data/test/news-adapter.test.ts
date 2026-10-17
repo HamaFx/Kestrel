@@ -180,3 +180,4 @@ describe('fetchNews (marketaux & biquote zero-key fallback)', () => {
     expect(symbols).toContain('JPY');
   });
 });
+

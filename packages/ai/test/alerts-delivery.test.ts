@@ -28,9 +28,7 @@ import { sendTextMessage } from '../src/telegram/client';
 
 const noiseMocks = vi.hoisted(() => ({
   hasSeen: vi.fn(async (_dedupKey: string, _ttlSeconds: number): Promise<boolean> => false),
-  inCooldown: vi.fn(
-    async (_cooldownKey: string, _cooldownSeconds: number): Promise<boolean> => false,
-  ),
+  inCooldown: vi.fn(async (_cooldownKey: string, _cooldownSeconds: number): Promise<boolean> => false),
   record: vi.fn(async (_dedupKey: string, _cooldownKey: string): Promise<void> => undefined),
 }));
 
@@ -145,7 +143,9 @@ describe('deliverAlert — noise control (audit plan §1.11 / P1-16)', () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain('quiet_hours');
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(metrics.snapshot().counters['alert_noise_suppressed_total{reason=quiet_hours}']).toBe(1);
+    expect(metrics.snapshot().counters['alert_noise_suppressed_total{reason=quiet_hours}']).toBe(
+      1,
+    );
   });
 
   it('records dedup/cooldown state only after a confirmed delivery', async () => {

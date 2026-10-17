@@ -180,7 +180,9 @@ export async function getPortfolioRiskReport(userId: string): Promise<PortfolioR
     const def = tryGetSymbolDefinition(p.symbol);
     const isUsdBase =
       def?.baseCurrency === 'USD' && def.quoteCurrency !== 'USD' && def.quoteCurrency !== 'USDT';
-    const exposure = isUsdBase ? contractSize * p.lotSize : p.entryPrice * contractSize * p.lotSize;
+    const exposure = isUsdBase
+      ? contractSize * p.lotSize
+      : p.entryPrice * contractSize * p.lotSize;
     return sum + exposure;
   }, 0);
 
@@ -198,7 +200,9 @@ export async function getPortfolioRiskReport(userId: string): Promise<PortfolioR
     const def = tryGetSymbolDefinition(p.symbol);
     const isUsdBase =
       def?.baseCurrency === 'USD' && def.quoteCurrency !== 'USD' && def.quoteCurrency !== 'USDT';
-    const exposure = isUsdBase ? contractSize * p.lotSize : p.entryPrice * contractSize * p.lotSize;
+    const exposure = isUsdBase
+      ? contractSize * p.lotSize
+      : p.entryPrice * contractSize * p.lotSize;
     exposureBySymbol.set(p.symbol, (exposureBySymbol.get(p.symbol) ?? 0) + exposure);
   }
   for (const [symbol, exposure] of exposureBySymbol) {

@@ -222,10 +222,10 @@ describe('createKestrelChatTransport', () => {
 
   it('surfaces malformed SSE instead of presenting truncated text as complete', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('data: {"type":"text-start","id":"server-message-id"}\n\ndata: {not-json}\n\n', {
-        status: 200,
-        headers: { 'content-type': 'text/event-stream; charset=utf-8' },
-      }),
+      new Response(
+        'data: {"type":"text-start","id":"server-message-id"}\n\ndata: {not-json}\n\n',
+        { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8' } },
+      ),
     );
 
     const transport = createKestrelChatTransport({ api: '/api/chat' });
@@ -273,10 +273,10 @@ describe('createKestrelChatTransport', () => {
         ),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true, status: 'cancelled' }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({ success: true, status: 'cancelled' }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
       );
 
     const transport = createKestrelChatTransport({ api: '/api/chat' });

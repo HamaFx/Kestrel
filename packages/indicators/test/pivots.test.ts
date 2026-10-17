@@ -51,54 +51,10 @@ describe('pivotsAligned', () => {
     const day2T2 = Date.parse('2026-03-02T11:00:00Z');
 
     const candles = [
-      {
-        symbol: 'XAUUSD' as const,
-        tf: '1h' as const,
-        t: day1T1,
-        o: 100,
-        h: 110,
-        l: 95,
-        c: 105,
-        v: null,
-        source: 'test',
-        fetchedAt: 0,
-      },
-      {
-        symbol: 'XAUUSD' as const,
-        tf: '1h' as const,
-        t: day1T2,
-        o: 105,
-        h: 115,
-        l: 100,
-        c: 108,
-        v: null,
-        source: 'test',
-        fetchedAt: 0,
-      },
-      {
-        symbol: 'XAUUSD' as const,
-        tf: '1h' as const,
-        t: day2T1,
-        o: 108,
-        h: 120,
-        l: 106,
-        c: 118,
-        v: null,
-        source: 'test',
-        fetchedAt: 0,
-      },
-      {
-        symbol: 'XAUUSD' as const,
-        tf: '1h' as const,
-        t: day2T2,
-        o: 118,
-        h: 125,
-        l: 115,
-        c: 120,
-        v: null,
-        source: 'test',
-        fetchedAt: 0,
-      },
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, t: day1T1, o: 100, h: 110, l: 95, c: 105, v: null, source: 'test', fetchedAt: 0 },
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, t: day1T2, o: 105, h: 115, l: 100, c: 108, v: null, source: 'test', fetchedAt: 0 },
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, t: day2T1, o: 108, h: 120, l: 106, c: 118, v: null, source: 'test', fetchedAt: 0 },
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, t: day2T2, o: 118, h: 125, l: 115, c: 120, v: null, source: 'test', fetchedAt: 0 },
     ];
 
     const out = pivotsAligned(candles);

@@ -40,8 +40,8 @@ import { PromptInjectionDetector, UnicodeNormalizer } from '@mastra/core/process
 import type { LanguageModel } from 'ai';
 
 import { hashLogValue } from '../diagnostics/redact';
-import type { ResolveModelEnv } from '../env-model-factory';
 import { resolveChatModel } from '../model';
+import type { ResolveModelEnv } from '../env-model-factory';
 
 const glog = createCategorizedLogger('ai', { component: 'mastra-guardrails' });
 

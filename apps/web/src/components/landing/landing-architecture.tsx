@@ -15,18 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import { useState } from 'react';
+import { m, AnimatePresence } from 'motion/react';
 import {
-  IconArrowsSplit,
-  IconBolt,
   IconCpu,
-  IconLayersLinked,
-  IconLock,
+  IconBolt,
   IconScale,
+  IconArrowsSplit,
+  IconLock,
+  IconLayersLinked,
   IconShieldLock,
 } from '@tabler/icons-react';
-import { AnimatePresence, m } from 'motion/react';
-import { useState } from 'react';
-
 import { cn } from '@/lib/cn';
 
 interface LayerSpec {
@@ -131,29 +131,26 @@ export function LandingArchitecture() {
   const activeLayer = LAYERS[activeIndex >= 0 ? activeIndex : 1]!;
 
   return (
-    <section
-      id="architecture"
-      className="relative overflow-hidden border-t border-white/5 bg-[#0e0f10] py-28 lg:py-36"
-    >
+    <section id="architecture" className="relative py-28 lg:py-36 bg-[#0e0f10] border-t border-white/5 overflow-hidden">
       {/* Background Halftone Columns & Ambient Light Cone */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-contain bg-left bg-no-repeat opacity-15 select-none"
+        className="pointer-events-none absolute inset-y-0 left-0 w-1/3 opacity-15 select-none bg-contain bg-no-repeat bg-left"
         style={{ backgroundImage: 'url(/landing/faq-halftone-columns.png)' }}
       />
       <div
         aria-hidden="true"
-        className="bg-brand/5 pointer-events-none absolute right-1/4 -bottom-40 size-[700px] rounded-full blur-[160px] select-none"
+        className="pointer-events-none absolute -bottom-40 right-1/4 size-[700px] rounded-full bg-brand/5 blur-[160px] select-none"
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header with Concentric Rotating Marquee Badge */}
-        <div className="mb-20 flex flex-col items-center gap-4 text-center">
+        <div className="flex flex-col items-center text-center gap-4 mb-20">
           {/* Dual Concentric Circular Rotating SVG Marquee */}
-          <div className="relative mb-2 flex size-32 items-center justify-center select-none sm:size-40">
+          <div className="relative size-32 sm:size-40 flex items-center justify-center mb-2 select-none">
             <svg
               viewBox="0 0 400 400"
-              className="text-fg-subtle absolute inset-0 size-full animate-[spin_32s_linear_infinite] font-mono text-[11px] tracking-[0.22em] uppercase opacity-70 motion-reduce:animate-none"
+              className="absolute inset-0 size-full animate-[spin_32s_linear_infinite] motion-reduce:animate-none text-fg-subtle text-[11px] font-mono tracking-[0.22em] uppercase opacity-70"
             >
               <defs>
                 <path
@@ -170,7 +167,7 @@ export function LandingArchitecture() {
 
             <svg
               viewBox="0 0 400 400"
-              className="text-brand absolute inset-0 size-full animate-[spin_24s_linear_infinite_reverse] font-mono text-[10px] tracking-[0.18em] uppercase opacity-85 motion-reduce:animate-none"
+              className="absolute inset-0 size-full animate-[spin_24s_linear_infinite_reverse] motion-reduce:animate-none text-brand text-[10px] font-mono tracking-[0.18em] uppercase opacity-85"
             >
               <defs>
                 <path
@@ -185,33 +182,31 @@ export function LandingArchitecture() {
               </text>
             </svg>
 
-            <div className="surface-chip text-brand flex size-14 items-center justify-center rounded-full border border-white/20 bg-[#18191a] shadow-[0_0_16px_rgba(255,54,22,0.4)]">
-              <IconLock className="text-brand size-6" />
+            <div className="size-14 rounded-full surface-chip bg-[#18191a] border border-white/20 flex items-center justify-center text-brand shadow-[0_0_16px_rgba(255,54,22,0.4)]">
+              <IconLock className="size-6 text-brand" />
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
-            <span className="bg-brand size-2 animate-pulse rounded-full" />
-            <span className="text-brand font-semibold tracking-wider uppercase">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono">
+            <span className="size-2 rounded-full bg-brand animate-pulse" />
+            <span className="text-brand font-semibold uppercase tracking-wider">
               ※ 4-Layer Intelligence Stack
             </span>
           </div>
 
-          <h2 className="font-display text-fg max-w-2xl text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
+          <h2 className="font-display text-3xl font-normal tracking-[-0.03em] text-fg sm:text-5xl max-w-2xl">
             ENGINEERED AS AN{' '}
-            <span className="font-redaction-35 text-brand italic">Unbreakable Stack</span>
+            <span className="font-redaction-35 italic text-brand">Unbreakable Stack</span>
           </h2>
-          <p className="text-fg-muted max-w-xl font-sans text-sm leading-relaxed sm:text-base">
-            Every trade setup passes through four independent layers of verification. Hover or tap
-            any layer below to inspect how Kestrel turns live market data into a risk-checked trade
-            plan.
+          <p className="font-sans text-sm sm:text-base text-fg-muted max-w-xl leading-relaxed">
+            Every trade setup passes through four independent layers of verification. Hover or tap any layer below to inspect how Kestrel turns live market data into a risk-checked trade plan.
           </p>
         </div>
 
         {/* ── 3D ISOMETRIC EXPLODED STACK WORKBENCH ── */}
         <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
           {/* Left Column: Layer Selector Tabs */}
-          <div className="flex flex-col gap-3 lg:col-span-4">
+          <div className="lg:col-span-4 flex flex-col gap-3">
             {LAYERS.map((layer) => {
               const isActive = layer.id === activeLayerId;
               const Icon = layer.icon;
@@ -223,45 +218,43 @@ export function LandingArchitecture() {
                   onMouseEnter={() => setHoveredLayerId(layer.id)}
                   onMouseLeave={() => setHoveredLayerId(null)}
                   className={cn(
-                    'group relative flex cursor-pointer items-start gap-4 rounded-xl border p-4 text-left transition-all duration-200 active:translate-y-[0.5px] sm:p-5',
+                    'group relative flex items-start gap-4 rounded-xl p-4 sm:p-5 text-left transition-all duration-200 border cursor-pointer active:translate-y-[0.5px]',
                     isActive
-                      ? 'surface-chip border-white/20 bg-[#171819] shadow-[var(--shadow-chip)]'
-                      : 'border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]',
+                      ? 'surface-chip bg-[#171819] border-white/20 shadow-[var(--shadow-chip)]'
+                      : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10',
                   )}
                 >
                   {/* Active Indicator Top Line */}
                   {isActive && (
                     <m.div
                       layoutId="active-iso-tab-indicator"
-                      className="border-brand/40 bg-brand/[0.03] absolute inset-0 -z-10 rounded-xl border"
+                      className="absolute inset-0 rounded-xl border border-brand/40 bg-brand/[0.03] -z-10"
                       transition={{ type: 'spring', stiffness: 450, damping: 32 }}
                     />
                   )}
 
                   <div
                     className={cn(
-                      'flex size-10 shrink-0 items-center justify-center rounded-lg border font-mono text-xs font-bold transition-colors',
+                      'flex size-10 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold transition-colors border',
                       isActive
-                        ? 'bg-brand border-brand text-white shadow-[0_0_14px_rgba(255,54,22,0.5)]'
-                        : 'text-fg-subtle group-hover:text-fg border-white/10 bg-black/40',
+                        ? 'bg-brand text-white border-brand shadow-[0_0_14px_rgba(255,54,22,0.5)]'
+                        : 'bg-black/40 border-white/10 text-fg-subtle group-hover:text-fg',
                     )}
                   >
                     {layer.num}
                   </div>
 
-                  <div className="flex w-full flex-col gap-1">
+                  <div className="flex flex-col gap-1 w-full">
                     <div className="flex items-center justify-between">
-                      <span className="text-brand font-mono text-[10px] font-bold tracking-wider uppercase">
+                      <span className="font-mono text-[10px] font-bold text-brand uppercase tracking-wider">
                         {layer.tag}
                       </span>
-                      <Icon
-                        className={cn('size-4', isActive ? layer.accentColor : 'text-fg-subtle')}
-                      />
+                      <Icon className={cn('size-4', isActive ? layer.accentColor : 'text-fg-subtle')} />
                     </div>
-                    <h3 className="font-display text-fg text-base font-normal tracking-tight group-hover:text-white">
+                    <h3 className="font-display text-base font-normal tracking-tight text-fg group-hover:text-white">
                       {layer.title}
                     </h3>
-                    <p className="text-fg-muted font-sans text-xs leading-relaxed">
+                    <p className="font-sans text-xs text-fg-muted leading-relaxed">
                       {layer.shortDesc}
                     </p>
                   </div>
@@ -271,9 +264,9 @@ export function LandingArchitecture() {
           </div>
 
           {/* Center Column: Interactive 3D Exploded Isometric Stack Projection */}
-          <div className="flex items-center justify-center py-12 lg:col-span-5 lg:py-0">
+          <div className="lg:col-span-5 flex items-center justify-center py-12 lg:py-0">
             <div
-              className="relative h-[480px] w-[320px] select-none sm:w-[380px]"
+              className="relative w-[320px] sm:w-[380px] h-[480px] select-none"
               style={{
                 perspective: '1200px',
                 transformStyle: 'preserve-3d',
@@ -309,7 +302,7 @@ export function LandingArchitecture() {
                       damping: 24,
                       mass: 0.8,
                     }}
-                    className="group absolute inset-x-0 cursor-pointer"
+                    className="absolute inset-x-0 cursor-pointer group"
                     style={{
                       top: `${baseTopPercent}%`,
                       zIndex: isActive ? 50 : 20 + (4 - index),
@@ -319,10 +312,10 @@ export function LandingArchitecture() {
                     {/* The Axonometric Plate */}
                     <div
                       className={cn(
-                        'relative flex aspect-[354/195] w-full flex-col justify-between rounded-2xl border p-5 backdrop-blur-md transition-all duration-300',
+                        'relative aspect-[354/195] w-full rounded-2xl transition-all duration-300 border backdrop-blur-md flex flex-col justify-between p-5',
                         isActive
-                          ? 'border-brand ring-brand/40 bg-[#18191b]/98 shadow-[0_24px_60px_rgba(255,54,22,0.35),inset_0_1.5px_0_rgba(255,255,255,0.3)] ring-1'
-                          : 'border-white/10 bg-[#111213]/85 shadow-[0_12px_32px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-white/20 hover:bg-[#141516]/95',
+                          ? 'bg-[#18191b]/98 border-brand shadow-[0_24px_60px_rgba(255,54,22,0.35),inset_0_1.5px_0_rgba(255,255,255,0.3)] ring-1 ring-brand/40'
+                          : 'bg-[#111213]/85 border-white/10 hover:border-white/20 hover:bg-[#141516]/95 shadow-[0_12px_32px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.1)]',
                       )}
                       style={{
                         transform: 'rotate(30deg) skewX(-30deg) scaleY(0.866025)',
@@ -334,39 +327,30 @@ export function LandingArchitecture() {
                           <span
                             className={cn(
                               'size-2 rounded-full',
-                              isActive
-                                ? 'bg-brand animate-pulse shadow-[0_0_8px_#ff3616]'
-                                : 'bg-white/20',
+                              isActive ? 'bg-brand animate-pulse shadow-[0_0_8px_#ff3616]' : 'bg-white/20',
                             )}
                           />
-                          <span className="text-fg-subtle font-mono text-[10px] font-bold tracking-wider uppercase">
+                          <span className="font-mono text-[10px] font-bold text-fg-subtle uppercase tracking-wider">
                             TIER {layer.num} // {layer.id.toUpperCase()}
                           </span>
                         </div>
-                        <LayerIcon
-                          className={cn('size-4', isActive ? layer.accentColor : 'text-fg-subtle')}
-                        />
+                        <LayerIcon className={cn('size-4', isActive ? layer.accentColor : 'text-fg-subtle')} />
                       </div>
 
                       <div className="flex items-center justify-between font-mono text-[10px]">
-                        <span
-                          className={cn(
-                            'font-bold tracking-wider',
-                            isActive ? 'text-fg' : 'text-fg-subtle',
-                          )}
-                        >
+                        <span className={cn('font-bold tracking-wider', isActive ? 'text-fg' : 'text-fg-subtle')}>
                           {layer.title}
                         </span>
                         {isActive && (
-                          <span className="text-brand bg-brand/10 border-brand/30 rounded border px-1.5 py-0.5 text-[9px] font-bold shadow-[0_0_8px_rgba(255,54,22,0.2)]">
+                          <span className="text-brand font-bold bg-brand/10 border border-brand/30 px-1.5 py-0.5 rounded text-[9px] shadow-[0_0_8px_rgba(255,54,22,0.2)]">
                             ACTIVE LAYER
                           </span>
                         )}
                       </div>
 
-                      <div className="text-fg-subtle flex items-center justify-between border-t border-white/5 pt-1.5 font-mono text-[9px]">
+                      <div className="flex items-center justify-between text-[9px] font-mono text-fg-subtle border-t border-white/5 pt-1.5">
                         <div className="flex items-center gap-1">
-                          <IconShieldLock className="text-bull size-3" />
+                          <IconShieldLock className="size-3 text-bull" />
                           <span>VERIFIED LAYER</span>
                         </div>
                         <span className="text-bull font-semibold">ACTIVE</span>
@@ -380,21 +364,21 @@ export function LandingArchitecture() {
 
           {/* Right Column: Active Layer Live Telemetry Console */}
           <div className="lg:col-span-3">
-            <div className="surface-panel relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl">
+            <div className="surface-panel rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl flex flex-col gap-5 relative overflow-hidden">
               {/* Lit Corner Flare */}
               <div
                 aria-hidden="true"
-                className="bg-brand/10 pointer-events-none absolute -top-12 -right-12 size-32 rounded-full blur-2xl select-none"
+                className="pointer-events-none absolute -top-12 -right-12 size-32 rounded-full bg-brand/10 blur-2xl select-none"
               />
 
-              <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3 relative z-10">
                 <div className="flex items-center gap-2">
-                  <span className="bg-brand size-2 animate-pulse rounded-full shadow-[0_0_8px_#ff3616]" />
-                  <span className="text-brand font-mono text-[10px] font-bold tracking-wider uppercase">
+                  <span className="size-2 rounded-full bg-brand animate-pulse shadow-[0_0_8px_#ff3616]" />
+                  <span className="font-mono text-[10px] font-bold text-brand uppercase tracking-wider">
                     TIER {activeLayer.num} TELEMETRY
                   </span>
                 </div>
-                <div className="text-bull flex items-center gap-1 font-mono text-[10px]">
+                <div className="flex items-center gap-1 font-mono text-[10px] text-bull">
                   <IconLayersLinked className="size-3.5" />
                   <span>SYNCED</span>
                 </div>
@@ -407,26 +391,26 @@ export function LandingArchitecture() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.18 }}
-                  className="relative z-10 flex flex-col gap-4"
+                  className="flex flex-col gap-4 relative z-10"
                 >
                   <div>
-                    <h3 className="font-display text-fg text-xl font-normal tracking-tight">
+                    <h3 className="font-display text-xl font-normal tracking-tight text-fg">
                       {activeLayer.title}
                     </h3>
-                    <p className="text-fg-muted mt-2 font-sans text-xs leading-relaxed">
+                    <p className="mt-2 font-sans text-xs leading-relaxed text-fg-muted">
                       {activeLayer.fullDesc}
                     </p>
                   </div>
 
                   {/* Telemetry Metrics */}
-                  <div className="flex flex-col gap-2 border-t border-white/10 pt-2 font-mono text-xs">
+                  <div className="flex flex-col gap-2 pt-2 border-t border-white/10 font-mono text-xs">
                     {activeLayer.telemetry.map((t, idx) => (
                       <div
                         key={idx}
-                        className="surface-well flex flex-col gap-0.5 rounded-lg border border-white/5 bg-black/40 p-2.5"
+                        className="rounded-lg surface-well p-2.5 bg-black/40 border border-white/5 flex flex-col gap-0.5"
                       >
-                        <span className="text-fg-subtle text-[9px] uppercase">{t.label}</span>
-                        <span className="text-fg truncate text-[11px] font-bold">{t.value}</span>
+                        <span className="text-[9px] text-fg-subtle uppercase">{t.label}</span>
+                        <span className="font-bold text-fg text-[11px] truncate">{t.value}</span>
                       </div>
                     ))}
                   </div>

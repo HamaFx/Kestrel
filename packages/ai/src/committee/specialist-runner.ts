@@ -35,14 +35,14 @@ import { z } from 'zod';
 import { estimateCostUsd } from '../cost';
 import { classifyStreamError } from '../fallback';
 import type { GenerationLedger } from '../generation-ledger';
+import { withRetry } from '../retry';
+import { maybeGetToolContext, withToolContext, type ToolContext } from '../tool-context';
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
 } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import { getMastraGenerationStats } from '../mastra-v2/shared/telemetry';
-import { withRetry } from '../retry';
-import { maybeGetToolContext, withToolContext, type ToolContext } from '../tool-context';
 import { extractNumbersFromToolOutput } from './grounding';
 import { specialistInstructionsForRequest } from './prompts';
 import {
@@ -122,11 +122,12 @@ export async function runSpecialistGeneration(
   const { name, prompt, packet, requestContext, signal, startedAt, deps } = args;
   // §3.1: resolve the specialist's own top-tier model when configured;
   // otherwise the run's primary (always top-tier) model is used.
-  const agentModel = deps.resolveModelForAgent?.(name) ?? {
-    model: deps.model,
-    modelId: deps.modelId,
-    providerId: deps.providerId,
-  };
+  const agentModel =
+    deps.resolveModelForAgent?.(name) ?? {
+      model: deps.model,
+      modelId: deps.modelId,
+      providerId: deps.providerId,
+    };
   try {
     // Audit v3 Phase 4 (Q8): bind each specialist's dedicated read-only domain toolset.
     const deskTools = resolveSpecialistDeskTools(name, deps.disabledTools);
@@ -140,9 +141,8 @@ export async function runSpecialistGeneration(
     const agent = createCommitteeAgent(
       agentModel.model,
       SPECIALIST_DEFINITIONS[name].agentId,
-      (ctx: {
-        requestContext: Parameters<typeof specialistInstructionsForRequest>[0]['requestContext'];
-      }) => specialistInstructionsForRequest({ name, requestContext: ctx.requestContext }),
+      (ctx: { requestContext: Parameters<typeof specialistInstructionsForRequest>[0]['requestContext'] }) =>
+        specialistInstructionsForRequest({ name, requestContext: ctx.requestContext }),
       deps.memory,
       deps.researchInputProcessors ?? deps.inputProcessors,
       deps.scorers,

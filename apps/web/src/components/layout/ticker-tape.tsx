@@ -91,10 +91,7 @@ export function TickerTape() {
         aria-label="Market ticker tape — awaiting data"
         role="marquee"
       >
-        <div
-          className="ticker-track font-mono text-xs leading-7 whitespace-nowrap"
-          aria-hidden="true"
-        >
+        <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap" aria-hidden="true">
           {fallback}
           {fallback}
         </div>
@@ -119,7 +116,7 @@ export function TickerTape() {
       ) : (
         <span
           className={cn(
-            'rounded-xs px-1 text-xs font-semibold tabular-nums',
+            'text-xs font-semibold tabular-nums px-1 rounded-xs',
             item.isBull ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10',
           )}
         >
@@ -136,12 +133,7 @@ export function TickerTape() {
       aria-label="Market ticker tape"
       role="marquee"
     >
-      <div
-        className="ticker-track font-mono text-xs leading-7 whitespace-nowrap"
-        aria-hidden="true"
-      >
-        {content}
-      </div>
+      <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap" aria-hidden="true">{content}</div>
     </div>
   );
 }

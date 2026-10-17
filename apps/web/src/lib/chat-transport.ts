@@ -112,7 +112,9 @@ function transformSseToDataStream(
           controller.enqueue(encodeChunk({ type: 'text-start', id: event.id }));
         }
         const textId = activeTextId ?? event.id;
-        controller.enqueue(encodeChunk({ type: 'text-delta', id: textId, delta: event.delta }));
+        controller.enqueue(
+          encodeChunk({ type: 'text-delta', id: textId, delta: event.delta }),
+        );
         break;
       }
       case 'text-end': {
@@ -457,9 +459,7 @@ function pollJobToStreamResponse(
               const opinionMap = new Map(
                 rawOpinions
                   .filter(
-                    (
-                      op,
-                    ): op is {
+                    (op): op is {
                       agentName: string;
                       bias: 'bullish' | 'bearish' | 'neutral';
                       confidence: number;

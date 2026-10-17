@@ -17,7 +17,7 @@
  */
 
 // Calendar toolbar — importance + currency filters + "show past" toggle.
-import type { EventCurrency, Importance } from '@kestrel/shared';
+import type { Importance } from '@kestrel/shared';
 
 import { cn } from '@/lib/cn';
 import { handleRadioKeyDown } from '@/lib/datetime';

@@ -61,6 +61,22 @@ export class FullAnalysisQueuePayloadError extends Error {
   }
 }
 
+/**
+ * `db.execute` bypasses Drizzle's row mapper: raw driver rows arrive with
+ * snake_case keys and unparsed timestamp strings. The atomic claim therefore
+ * returns only the claimed run id and re-reads the row through the typed
+ * query builder, guaranteeing a real `FullAnalysisQueueRow` (Date instances,
+ * JSON columns and JS-key names) for callers.
+ */
+async function readClaimedRow(db: DbClient, runId: string): Promise<FullAnalysisQueueRow | null> {
+  const rows = await db
+    .select()
+    .from(schema.fullAnalysisQueue)
+    .where(eq(schema.fullAnalysisQueue.runId, runId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 export async function enqueueFullAnalysisQueue(
   input: EnqueueFullAnalysisQueueInput,
 ): Promise<FullAnalysisQueueRow> {
@@ -111,9 +127,11 @@ export async function claimNextFullAnalysisQueue(
 
   // Fast path — a single atomic CTE. `FOR UPDATE SKIP LOCKED` lets concurrent
   // workers pick distinct rows without thrashing; the outer UPDATE claims the
-  // locked row in the same statement so no JS-side retry loop is needed.
+  // locked row in the same statement so no JS-side retry loop is needed. The
+  // raw driver result is used only for the claimed id; the row is then
+  // re-read through the typed builder so timestamps/JSON are parsed.
   if (!options.ownsTenant) {
-    const rows = await db.execute<FullAnalysisQueueRow>(sql`
+    const rows = await db.execute<{ run_id: string }>(sql`
       WITH next_job AS (
         SELECT run_id
         FROM full_analysis_queue
@@ -131,9 +149,11 @@ export async function claimNextFullAnalysisQueue(
         updated_at = ${now.toISOString()}
       FROM next_job
       WHERE q.run_id = next_job.run_id
-      RETURNING q.*
+      RETURNING q.run_id
     `);
-    return (rows as unknown as FullAnalysisQueueRow[])[0] ?? null;
+    const claimedRunId = (rows as unknown as Array<{ run_id?: string }>)[0]?.run_id;
+    if (!claimedRunId) return null;
+    return readClaimedRow(db, claimedRunId);
   }
 
   // Tenant-partitioned path — the JS predicate filters candidates before the
@@ -349,10 +369,10 @@ export async function recoverStaleFullAnalysisQueue(
     eq(schema.fullAnalysisQueue.status, 'running'),
     or(
       lte(schema.fullAnalysisQueue.leaseExpiresAt, now),
-      and(
-        isNull(schema.fullAnalysisQueue.leaseExpiresAt),
-        lte(schema.fullAnalysisQueue.updatedAt, staleBefore),
-      ),
+      // Unconditional heartbeat-fallback (pre-perf-refactor contract): a
+      // running row not updated since `staleBefore` is recovered even if its
+      // lease timestamp still sits in the future.
+      lte(schema.fullAnalysisQueue.updatedAt, staleBefore),
     ),
   );
 

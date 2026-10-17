@@ -422,7 +422,7 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
               variant="ghost"
               size="sm"
               onClick={handleExport}
-              className="text-fg-subtle hover:text-fg tactile-press h-9 cursor-pointer gap-1.5 rounded-lg text-xs"
+              className="text-fg-subtle hover:text-fg h-9 cursor-pointer gap-1.5 rounded-lg text-xs tactile-press"
             >
               <IconDownload className="size-3.5" /> Export CSV
             </Button>
@@ -430,7 +430,7 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
               variant="ghost"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              className="text-fg-subtle hover:text-fg tactile-press h-9 cursor-pointer gap-1.5 rounded-lg text-xs"
+              className="text-fg-subtle hover:text-fg h-9 cursor-pointer gap-1.5 rounded-lg text-xs tactile-press"
             >
               <IconUpload className="size-3.5" /> Import
             </Button>
@@ -455,7 +455,7 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
             value={watchlistSearch}
             onChange={(e) => setWatchlistSearch(e.target.value)}
             placeholder="Filter active watchlist symbols..."
-            className="surface-well h-10 rounded-lg border-white/10 pl-9 text-sm"
+            className="surface-well border-white/10 h-10 rounded-lg pl-9 text-sm"
           />
         </div>
 
@@ -535,7 +535,9 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
       <div className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
         <div className="flex items-center justify-between border-b border-white/5 pb-3">
           <div>
-            <h3 className="text-fg text-sm font-semibold tracking-tight">Instrument Catalog</h3>
+            <h3 className="text-fg text-sm font-semibold tracking-tight">
+              Instrument Catalog
+            </h3>
             <p className="text-fg-subtle text-xs">
               Subscribe to global forex pairs, commodities, and digital assets
             </p>
@@ -569,7 +571,7 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
               value={catalogSearch}
               onChange={(e) => setCatalogSearch(e.target.value)}
               placeholder="Search catalog by symbol or name..."
-              className="surface-well h-10 rounded-lg border-white/10 pl-9 text-sm"
+              className="surface-well border-white/10 h-10 rounded-lg pl-9 text-sm"
             />
           </div>
 
@@ -582,13 +584,13 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
               value={bulkInput}
               onChange={(e) => setBulkInput(e.target.value)}
               placeholder="EURUSD, GBPUSD..."
-              className="surface-well h-10 w-44 rounded-lg border-white/10 font-mono text-sm uppercase"
+              className="surface-well border-white/10 h-10 w-44 rounded-lg text-sm font-mono uppercase"
             />
             <Button
               type="button"
               onClick={handleBulkAdd}
               disabled={isBulkAdding || !bulkInput.trim()}
-              className="tactile-press h-10 cursor-pointer gap-1 rounded-lg px-3 text-xs"
+              className="h-10 cursor-pointer gap-1 rounded-lg px-3 text-xs tactile-press"
             >
               <IconPlus className="size-3.5" /> Bulk Add
             </Button>
@@ -619,7 +621,7 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
                 variant="secondary"
                 size="sm"
                 onClick={() => handleAdd(item.symbol)}
-                className="text-fg-subtle surface-chip tactile-press h-9 w-9 rounded-lg border border-white/10 p-0 hover:border-cyan-500/30 hover:text-cyan-400"
+                className="text-fg-subtle hover:text-cyan-400 hover:border-cyan-500/30 surface-chip h-9 w-9 rounded-lg border border-white/10 p-0 tactile-press"
                 aria-label={`Add ${item.symbol} to watchlist`}
               >
                 <IconPlus className="size-4" />
@@ -635,19 +637,17 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
         </ul>
 
         {filteredCatalog.length > CATALOG_PAGE_SIZE && (
-          <div className="flex items-center justify-between border-t border-white/5 pt-3">
-            <span className="text-caption text-fg-muted font-mono">
-              {filteredCatalog.length} symbols
-            </span>
+          <div className="border-t border-white/5 flex items-center justify-between pt-3">
+            <span className="text-caption text-fg-muted font-mono">{filteredCatalog.length} symbols</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setCatalogPage((p) => Math.max(0, p - 1))}
                 disabled={catalogPage === 0}
                 className={cn(
-                  'surface-chip h-9 rounded-lg border border-white/10 px-3 font-mono text-xs font-medium',
+                  'surface-chip h-9 rounded-lg border border-white/10 px-3 text-xs font-mono font-medium',
                   'text-fg-subtle hover:text-fg hover:border-white/20',
-                  'tactile-press cursor-pointer disabled:cursor-not-allowed disabled:opacity-30',
+                  'cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 tactile-press',
                 )}
               >
                 Previous
@@ -660,9 +660,9 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
                 onClick={() => setCatalogPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={catalogPage >= totalPages - 1}
                 className={cn(
-                  'surface-chip h-9 rounded-lg border border-white/10 px-3 font-mono text-xs font-medium',
+                  'surface-chip h-9 rounded-lg border border-white/10 px-3 text-xs font-mono font-medium',
                   'text-fg-subtle hover:text-fg hover:border-white/20',
-                  'tactile-press cursor-pointer disabled:cursor-not-allowed disabled:opacity-30',
+                  'cursor-pointer disabled:cursor-not-allowed disabled:opacity-30 tactile-press',
                 )}
               >
                 Next
@@ -674,3 +674,4 @@ export function SymbolsForm({ initialSymbols, catalog }: SymbolsFormProps) {
     </div>
   );
 }
+

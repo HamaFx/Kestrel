@@ -37,11 +37,7 @@ import {
   SPECIALIST_GOALS,
   SPECIALIST_SKILL_PLAYBOOKS,
 } from './prompts';
-import {
-  REQUEST_CONTEXT_SCHEMA,
-  type MastraSpecialistName,
-  type ModeRequestContext,
-} from './types';
+import { REQUEST_CONTEXT_SCHEMA, type MastraSpecialistName, type ModeRequestContext } from './types';
 
 export interface SpecialistDefinition {
   readonly name: MastraSpecialistName;
@@ -118,7 +114,8 @@ export const FUSION_AGENT_ID = 'kestrel-mastra-decision';
  * single injected context instead of pre-serialized strings.
  */
 export type CommitteeInstructions =
-  string | ((args: { requestContext: RequestContext<ModeRequestContext> }) => string);
+  | string
+  | ((args: { requestContext: RequestContext<ModeRequestContext> }) => string);
 
 export function createCommitteeAgent(
   model: LanguageModel,

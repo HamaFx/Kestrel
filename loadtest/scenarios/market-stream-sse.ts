@@ -21,7 +21,11 @@ import { marketStreamEvents, marketStreamTtfb } from '../lib/metrics.js';
 import { getSseStream } from '../lib/sse.js';
 
 export function marketStreamSse(_ctx?: SessionCtx): void {
-  const stream = getSseStream('/api/market/stream?symbols=XAUUSD,EURUSD', 'market_stream', 5000);
+  const stream = getSseStream(
+    '/api/market/stream?symbols=XAUUSD,EURUSD',
+    'market_stream',
+    5000,
+  );
   marketStreamTtfb.add(stream.ttfbMs);
   marketStreamEvents.add(stream.parsed.eventCount);
   sleep(1);

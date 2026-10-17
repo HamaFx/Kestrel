@@ -37,7 +37,6 @@
     "clsx": "^2.1.1",
     "dompurify": "^3.4.14",
     "drizzle-orm": "^0.45.2",
-    "glob": "^11.0.0",
     "lightweight-charts": "^5.0.4",
     "motion": "^12.40.0",
     "next": "^16.3.2",

@@ -17,6 +17,7 @@
 import type { CandlesResult, PriceResult } from '@kestrel/data';
 import type { IndicatorRequest, Timeframe } from '@kestrel/shared';
 
+import { createEvidenceId, freshnessFromAge, qualityFromWarnings } from './evidence';
 import {
   XAUUSD,
   XauusdCandlesEvidenceSchema,
@@ -26,7 +27,6 @@ import {
   type XauusdIndicatorsEvidence,
   type XauusdPriceEvidence,
 } from '../shared/types';
-import { createEvidenceId, freshnessFromAge, qualityFromWarnings } from './evidence';
 import { computeIndicatorMemo } from './symbol-research';
 
 function iso(ms: number): string {

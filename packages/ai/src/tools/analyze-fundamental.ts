@@ -57,13 +57,7 @@ declare module '@kestrel/shared' {
 function getCurrenciesForSymbol(symbol: Symbol): EventCurrency[] {
   try {
     const def = getSymbolDefinition(symbol);
-    if (def.category === 'forex') {
-      return [def.baseCurrency, def.quoteCurrency] as EventCurrency[];
-    }
-    const filtered = def.currencies.filter((c) =>
-      (['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF'] as string[]).includes(c),
-    );
-    return (filtered.length > 0 ? filtered : ['USD']) as EventCurrency[];
+    return [...def.currencies] as EventCurrency[];
   } catch {
     return ['USD'];
   }
@@ -189,10 +183,10 @@ async function fetchHeadlinesForCurrencies(args: HeadlineQuery): Promise<ToolNew
     out.push({
       id: r.id,
       title: quarantineExternalText(r.title, 240).text || '[filtered]',
-      summary: r.summary ? quarantineExternalText(r.summary, 420).text || null : null,
+      summary: r.summary ? (quarantineExternalText(r.summary, 420).text || null) : null,
       url: r.url,
       source: quarantineExternalText(r.source, 80).text || 'unknown',
-      publisher: r.publisher ? quarantineExternalText(r.publisher, 80).text || null : null,
+      publisher: r.publisher ? (quarantineExternalText(r.publisher, 80).text || null) : null,
       publishedAt: r.publishedAt.getTime(),
       sentiment: (r.sentiment as NewsSentiment | null) ?? null,
       sentimentScore: r.sentimentScore,

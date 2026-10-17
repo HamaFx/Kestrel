@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   BYOK_PROVIDERS,
@@ -23,6 +23,7 @@ import {
   resolveEmbeddingModel,
   resolveModel,
   resolveModelForProvider,
+  resolveOverrideModel,
   resolveVisionModel,
   testProviderKey,
 } from '../src/model';
@@ -133,6 +134,85 @@ describe('resolveModel — low-level model resolver', () => {
     };
     const result = resolveModel('google/gemini-2.5-flash', env);
     expect(result).toBe('google/gemini-2.5-flash');
+  });
+});
+
+describe('resolveOverrideModel', () => {
+  // envFallbackKeys also reads common operator env vars (ANTHROPIC_API_KEY,
+  // OPENAI_API_KEY, …). Blank them so "no key configured" cases are
+  // deterministic on machines that export real keys.
+  beforeEach(() => {
+    for (const name of [
+      'ANTHROPIC_API_KEY',
+      'OPENAI_API_KEY',
+      'GROQ_API_KEY',
+      'MISTRAL_API_KEY',
+      'OPENROUTER_API_KEY',
+      'XAI_API_KEY',
+      'DEEPSEEK_API_KEY',
+      'IAMHC_API_KEY',
+      'HCNSEC_API_KEY',
+    ]) {
+      vi.stubEnv(name, '');
+    }
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    ['an empty override', ''],
+    ['a gateway-style slash id', 'openai/gpt-4o'],
+    ['an unknown provider id', 'mystery-provider'],
+    ['a known provider with no BYOK or env key', 'anthropic'],
+    [
+      'a known provider + explicit model with no BYOK or env key',
+      'anthropic:claude-sonnet-4-20250514',
+    ],
+  ])('returns null for %s', (_label, override) => {
+    const result = resolveOverrideModel({
+      override,
+      userSettings: { aiApiKeys: null },
+      env: ENV,
+    });
+    expect(result).toBeNull();
+  });
+
+  it('falls back to operator env keys for a provider-only override', () => {
+    const env = { ...ENV, GOOGLE_GENERATIVE_AI_API_KEY: 'env-key-1234567890' };
+    const result = resolveOverrideModel({
+      override: 'google',
+      userSettings: { aiApiKeys: null },
+      env,
+    });
+    expect(result).not.toBeNull();
+    expect(result?.providerId).toBe('google');
+    // modelId is the registry-prefixed form: "google/<model>"
+    expect(result?.modelId.startsWith('google/')).toBe(true);
+  });
+
+  it('honours an explicit model id in a provider:model override', () => {
+    const env = { ...ENV, GOOGLE_GENERATIVE_AI_API_KEY: 'env-key-1234567890' };
+    const result = resolveOverrideModel({
+      override: 'google:gemini-2.5-pro',
+      userSettings: { aiApiKeys: null },
+      env,
+    });
+    expect(result).not.toBeNull();
+    expect(result?.providerId).toBe('google');
+    expect(result?.modelId).toBe('google/gemini-2.5-pro');
+  });
+
+  it('prefers the stored BYOK key over operator env keys', () => {
+    __setByok({ anthropic: 'sk-ant-stored-key' });
+    const env = { ...ENV, GOOGLE_GENERATIVE_AI_API_KEY: 'env-key-1234567890' };
+    const result = resolveOverrideModel({
+      override: 'anthropic',
+      userSettings: { aiApiKeys: null },
+      env,
+    });
+    expect(result?.providerId).toBe('anthropic');
   });
 });
 
@@ -268,6 +348,19 @@ describe('resolveVisionModel — vision-capable model', () => {
     expect(result.bareModelId).toBe('gemini-2.5-pro');
   });
 
+  it('silently ignores an invalid user pick and falls back to the provider default', () => {
+    __setByok({ google: 'a'.repeat(40) });
+    const result = resolveVisionModel(
+      {
+        aiApiKeys: null,
+        visionModel: 'google:nonexistent-model',
+      },
+      ENV,
+    );
+    expect(result.providerId).toBe('google');
+    expect(result.bareModelId).toBe(BYOK_PROVIDERS.google.defaultModels.vision);
+  });
+
   it('throws when no vision-capable provider is configured', () => {
     expect(() => resolveVisionModel({ aiApiKeys: null, visionModel: null }, ENV)).toThrow(
       /No vision-capable model available/,
@@ -316,6 +409,18 @@ describe('resolveEmbeddingModel — embedding model', () => {
     );
     expect(result).toBe('google/text-embedding-004');
   });
+
+  it('silently ignores an invalid user pick and falls back to the provider default', () => {
+    __setByok({ google: 'a'.repeat(40) });
+    const result = resolveEmbeddingModel(
+      {
+        aiApiKeys: null,
+        embeddingModel: 'google:nonexistent-model',
+      },
+      ENV,
+    );
+    expect(result).toMatch(/^google\//);
+  });
 });
 
 describe('testProviderKey — key validation', () => {
@@ -354,7 +459,21 @@ describe('testProviderKey — key validation', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toContain('401');
+      expect(result.error.toLowerCase()).toContain('unauthorized');
     }
+    expect(generateTextMock).toHaveBeenCalledOnce();
+  });
+
+  it('returns ok=false with a friendly message on plain network error', async () => {
+    generateTextMock.mockRejectedValueOnce(new Error('fetch failed'));
+
+    const result = await testProviderKey('groq', 'gsk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      // Plain Error path — no statusCode → just the extracted message.
+      expect(result.error).toContain('fetch failed');
+    }
+    expect(generateTextMock).toHaveBeenCalledOnce();
   });
 
   it('returns ok=true when generateText resolves', async () => {
@@ -363,31 +482,26 @@ describe('testProviderKey — key validation', () => {
     const result = await testProviderKey('openai', 'sk-abcdefghijklmnopqrstuvwxyz1234567890');
     expect(result.ok).toBe(true);
     expect(generateTextMock).toHaveBeenCalledOnce();
+
+    // The prompt should be tiny (maxOutputTokens: 1) — confirm we asked for
+    // the right shape, since the call is what's actually costing the user.
+    const callArgs = generateTextMock.mock.calls[0]?.[0] as {
+      prompt: string;
+      maxOutputTokens: number;
+    };
+    expect(callArgs.maxOutputTokens).toBe(1);
+    expect(typeof callArgs.prompt).toBe('string');
   });
 });
 
 describe('defaultModelFor', () => {
-  it('uses a Groq tool-compatible model for fundamental analysis', () => {
-    expect(defaultModelFor('groq', 'fundamental')).toBe('llama-3.3-70b-versatile');
-  });
-
-  it('returns the fundamental model for google', () => {
-    expect(defaultModelFor('google', 'fundamental')).toBe(
-      BYOK_PROVIDERS.google.defaultModels.fundamental,
-    );
-  });
-
-  it('returns the vision model for anthropic', () => {
-    expect(defaultModelFor('anthropic', 'vision')).toBe(
-      BYOK_PROVIDERS.anthropic.defaultModels.vision,
-    );
-  });
-
-  it('returns null for unknown provider', () => {
-    expect(defaultModelFor('unknown' as never, 'fundamental')).toBeNull();
-  });
-
-  it('returns null for deepseek vision (no vision model)', () => {
-    expect(defaultModelFor('deepseek', 'vision')).toBeNull();
+  it.each([
+    ['groq', 'fundamental', 'llama-3.3-70b-versatile'],
+    ['google', 'fundamental', BYOK_PROVIDERS.google.defaultModels.fundamental],
+    ['anthropic', 'vision', BYOK_PROVIDERS.anthropic.defaultModels.vision],
+    ['unknown', 'fundamental', null],
+    ['deepseek', 'vision', null],
+  ] as const)('resolves %s/%s to %s', (provider, domain, expected) => {
+    expect(defaultModelFor(provider as never, domain as never)).toBe(expected);
   });
 });

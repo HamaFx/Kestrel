@@ -29,9 +29,9 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { metrics } from '@kestrel/shared';
 import type { MemoryConfigInternal } from '@mastra/core/memory';
 import type { Memory } from '@mastra/memory';
+import { metrics } from '@kestrel/shared';
 
 import type { ResolveModelEnv } from '../env-model-factory';
 import { prepareKestrelMemory, type PreparedKestrelMemory } from './context';

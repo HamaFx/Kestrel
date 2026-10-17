@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
+import type { ToolCallOptions } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
 import { createToolContext, withToolContext } from '../src/tool-context';
 import { conveneCommitteeTool } from '../src/tools/convene-committee';
+
+const TOOL_CALL_OPTIONS: ToolCallOptions = { toolCallId: 'test-call', messages: [] };
 
 const { mockRunMastraMode } = vi.hoisted(() => ({ mockRunMastraMode: vi.fn() }));
 vi.mock('../src/mastra-v2/planning/mode-runner', () => ({ runMastraMode: mockRunMastraMode }));
@@ -116,6 +119,19 @@ function readyPacket(): SymbolResearchPacket {
   } as unknown as SymbolResearchPacket;
 }
 
+interface CommitteeVerdict {
+  persona: string;
+  verdict: string;
+  keyPoints: string[];
+}
+
+interface CommitteeResult {
+  symbol: string;
+  verdicts: CommitteeVerdict[];
+  grade: string;
+  goNoGo: string;
+}
+
 describe('convene_committee tool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -123,7 +139,7 @@ describe('convene_committee tool', () => {
   });
 
   it('throws an error when live market data packet is blocked', async () => {
-    const mockPacket: any = {
+    const mockPacket = {
       packetId: 'packet-blocked',
       kind: 'symbol_research_packet',
       generatedAt: new Date().toISOString(),
@@ -135,7 +151,7 @@ describe('convene_committee tool', () => {
       price: null,
       timeframes: [],
       optionalContext: { available: false, reason: 'none' },
-    };
+    } as unknown as SymbolResearchPacket;
 
     vi.spyOn(
       await import('../src/mastra-v2/packets/packet-cache'),
@@ -149,7 +165,7 @@ describe('convene_committee tool', () => {
           side: 'long',
           entry: 2650,
         },
-        {} as any,
+        TOOL_CALL_OPTIONS,
       ),
     ).rejects.toThrow(/Market data unavailable for XAUUSD/);
     expect(mockRunMastraMode).not.toHaveBeenCalled();
@@ -176,24 +192,24 @@ describe('convene_committee tool', () => {
             stop: 2638.2,
             target: 2674.2,
           },
-          {} as any,
+          TOOL_CALL_OPTIONS,
         ),
       ),
-    )) as any;
+    )) as unknown as CommitteeResult;
 
     expect(result.symbol).toBe('XAUUSD');
     expect(result.verdicts).toHaveLength(4);
-    expect(result.verdicts.map((v: any) => v.persona)).toEqual([
+    expect(result.verdicts.map((v) => v.persona)).toEqual([
       'economist',
       'technician',
       'risk_manager',
       'sentiment',
     ]);
-    const technician = result.verdicts.find((v: any) => v.persona === 'technician');
+    const technician = result.verdicts.find((v) => v.persona === 'technician');
     expect(technician).toBeDefined();
     expect(technician?.keyPoints[0]).toContain('EMA20 (2648.00) is above EMA50 (2642.00)');
     expect(technician?.keyPoints[0]).toContain('RSI14 at 55.5');
-    const sentiment = result.verdicts.find((v: any) => v.persona === 'sentiment');
+    const sentiment = result.verdicts.find((v) => v.persona === 'sentiment');
     expect(sentiment?.verdict).toBe('neutral');
     // Three of four desks align, no opposition, valid 2R geometry → B/go under
     // the scaled thresholds.
@@ -223,11 +239,11 @@ describe('convene_committee tool', () => {
         stop: 2638.2,
         target: 2674.2,
       },
-      {} as any,
-    )) as any;
+      TOOL_CALL_OPTIONS,
+    )) as unknown as CommitteeResult;
 
     expect(result.verdicts).toHaveLength(4);
-    expect(result.verdicts.map((v: any) => v.persona)).toEqual([
+    expect(result.verdicts.map((v) => v.persona)).toEqual([
       'economist',
       'technician',
       'risk_manager',

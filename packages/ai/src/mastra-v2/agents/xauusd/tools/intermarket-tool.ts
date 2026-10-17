@@ -20,9 +20,9 @@ import { z } from 'zod';
 
 import { getIntermarketTool } from '../../../../tools/get-intermarket';
 import { createEvidenceId } from '../../../packets/evidence';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
 import { XAUUSD } from '../../../shared/types';
-import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 
 const InputSchema = GetIntermarketInputSchema;
 const OutputSchema = z.object({

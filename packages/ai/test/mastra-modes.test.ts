@@ -16,11 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  extractSymbolFromPrompt,
-  isSafeSymbolResearchPrompt,
-} from '../src/mastra-v2/packets/symbol-research';
 import { MastraModeStrictFailureError, runMastraMode } from '../src/mastra-v2/planning/mode-runner';
+import { extractSymbolFromPrompt, isSafeSymbolResearchPrompt } from '../src/mastra-v2/packets/symbol-research';
 
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
@@ -43,9 +40,7 @@ vi.mock('../src/model', () => ({
   resolveEmbeddingModel: mocks.resolveEmbeddingModel,
 }));
 vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>(
-    '../src/mastra-v2/packets/symbol-research',
-  );
+  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra-v2/packets/symbol-research');
   return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
 });
 vi.mock('../src/mastra-v2/shared/telemetry', () => ({

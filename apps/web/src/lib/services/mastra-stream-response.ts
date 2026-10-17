@@ -137,7 +137,9 @@ export function mastraStreamResponse(
               : 'failed';
           try {
             controller.enqueue(encode({ type: 'turn-complete', id: messageId, status }));
-          } catch {}
+          } catch {
+            // Best-effort: the client may already have disconnected.
+          }
         }
         if (!cancelled && !options.signal?.aborted) {
           try {
@@ -147,20 +149,26 @@ export function mastraStreamResponse(
                 errorText: error instanceof Error ? error.message : 'Mastra stream failed.',
               }),
             );
-          } catch {}
+          } catch {
+            // Best-effort: the client may already have disconnected.
+          }
         }
         if (started && !ended) await notifyAbort();
       } finally {
         if (started && !ended && !cancelled) {
           try {
             controller.enqueue(encode({ type: 'text-end', id: messageId }));
-          } catch {}
+          } catch {
+            // Best-effort: the client may already have disconnected.
+          }
         }
         upstreamIterator = null;
         if (!cancelled) {
           try {
             controller.close();
-          } catch {}
+          } catch {
+            // Best-effort: the client may already have disconnected.
+          }
         }
       }
     },

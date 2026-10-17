@@ -21,11 +21,11 @@ import { getDb } from '@kestrel/ai';
 import { requireTenantIdForUser, schema, updateUserDisplayName, withRateLimit } from '@kestrel/db';
 import { PresentationPreferencesSchema } from '@kestrel/shared';
 import { PROVIDER_IDS } from '@kestrel/shared/encryption';
+import { logActionError } from '@/lib/action-errors';
 import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
-import { logActionError } from '@/lib/action-errors';
 
 import { NAME_MAX, NAME_MIN, type ActionResult } from './_actions-shared';
 

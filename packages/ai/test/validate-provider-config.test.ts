@@ -38,60 +38,87 @@ vi.mock('@kestrel/shared/encryption', () => ({
 }));
 
 describe('validateProviderConfig & testProviderKey rejection', () => {
-  it('rejects vertex provider id as removed', () => {
-    const r = validateProviderConfig('vertex', 'any-key-here-12345');
-    expect(r.ok).toBe(false);
-    expect(r.reason).toMatch(/Vertex AI has been removed/i);
+  const SERVICE_ACCOUNT_JSON = JSON.stringify({
+    type: 'service_account',
+    project_id: 'test-project',
+    client_email: 'sa@test-project.iam.gserviceaccount.com',
   });
 
-  it('rejects google-vertex provider id as removed', () => {
-    const r = validateProviderConfig('google-vertex', 'any-key-here-12345');
-    expect(r.ok).toBe(false);
-    expect(r.reason).toMatch(/Vertex AI has been removed/i);
-  });
+  it.each<{ label: string; provider: string; key: string; ok: boolean; reason?: RegExp }>([
+    {
+      label: 'rejects the vertex provider id as removed',
+      provider: 'vertex',
+      key: 'any-key-here-12345',
+      ok: false,
+      reason: /Vertex AI has been removed/i,
+    },
+    {
+      label: 'rejects the google-vertex provider id as removed',
+      provider: 'google-vertex',
+      key: 'any-key-here-12345',
+      ok: false,
+      reason: /Vertex AI has been removed/i,
+    },
+    {
+      label: 'rejects service account JSON even for other providers',
+      provider: 'google',
+      key: SERVICE_ACCOUNT_JSON,
+      ok: false,
+      reason: /service account JSON is not supported/i,
+    },
+    {
+      label: 'rejects keys that are too short',
+      provider: 'openai',
+      key: 'short',
+      ok: false,
+      reason: /too short/i,
+    },
+    {
+      label: 'rejects empty or missing keys',
+      provider: 'openai',
+      key: '   ',
+      ok: false,
+      reason: /API key is required/i,
+    },
+    {
+      label: 'rejects an Anthropic key provided for OpenAI',
+      provider: 'openai',
+      key: 'sk-ant-api03-abcdef12345',
+      ok: false,
+      reason: /Anthropic key provided for OpenAI/i,
+    },
+    {
+      label: 'rejects an OpenAI project key provided for Anthropic',
+      provider: 'anthropic',
+      key: 'sk-proj-abcdef12345678',
+      ok: false,
+      reason: /OpenAI project key provided for Anthropic/i,
+    },
+    {
+      label: 'accepts a valid OpenAI project key',
+      provider: 'openai',
+      key: 'sk-proj-valid-openai-key-12345',
+      ok: true,
+    },
+    {
+      label: 'accepts a valid Google Gemini key',
+      provider: 'google',
+      key: 'AIzaSyValidGeminiKey1234567890',
+      ok: true,
+    },
+    {
+      label: 'accepts a valid Anthropic key',
+      provider: 'anthropic',
+      key: 'sk-ant-valid-anthropic-key-12345',
+      ok: true,
+    },
+  ])('$label', ({ provider, key, ok, reason }) => {
+    const result = validateProviderConfig(provider, key);
 
-  it('rejects service account JSON even for other providers', () => {
-    const saJson = JSON.stringify({
-      type: 'service_account',
-      project_id: 'test-project',
-      client_email: 'sa@test-project.iam.gserviceaccount.com',
-    });
-    const r = validateProviderConfig('google', saJson);
-    expect(r.ok).toBe(false);
-    expect(r.reason).toMatch(/service account JSON is not supported/i);
-  });
-
-  it('rejects keys that are too short', () => {
-    const r = validateProviderConfig('openai', 'short');
-    expect(r.ok).toBe(false);
-    expect(r.reason).toMatch(/too short/i);
-  });
-
-  it('rejects empty or missing keys', () => {
-    const r = validateProviderConfig('openai', '   ');
-    expect(r.ok).toBe(false);
-    expect(r.reason).toMatch(/API key is required/i);
-  });
-
-  it('rejects mismatched provider key prefixes', () => {
-    const r1 = validateProviderConfig('openai', 'sk-ant-api03-abcdef12345');
-    expect(r1.ok).toBe(false);
-    expect(r1.reason).toMatch(/Anthropic key provided for OpenAI/i);
-
-    const r2 = validateProviderConfig('anthropic', 'sk-proj-abcdef12345678');
-    expect(r2.ok).toBe(false);
-    expect(r2.reason).toMatch(/OpenAI project key provided for Anthropic/i);
-  });
-
-  it('accepts valid provider configurations', () => {
-    const r1 = validateProviderConfig('openai', 'sk-proj-valid-openai-key-12345');
-    expect(r1.ok).toBe(true);
-
-    const r2 = validateProviderConfig('google', 'AIzaSyValidGeminiKey1234567890');
-    expect(r2.ok).toBe(true);
-
-    const r3 = validateProviderConfig('anthropic', 'sk-ant-valid-anthropic-key-12345');
-    expect(r3.ok).toBe(true);
+    expect(result.ok).toBe(ok);
+    if (reason) {
+      expect(result.reason).toMatch(reason);
+    }
   });
 
   it('testProviderKey uses validateProviderConfig to reject invalid keys', async () => {

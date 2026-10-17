@@ -54,9 +54,7 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
             <h2 id="appearance-heading" className="text-fg text-sm font-semibold tracking-tight">
               Theme & Regional
             </h2>
-            <p className="text-fg-subtle text-xs">
-              Visual skin, language, and formatting conventions
-            </p>
+            <p className="text-fg-subtle text-xs">Visual skin, language, and formatting conventions</p>
           </div>
         </div>
         <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium tracking-wider uppercase">
@@ -71,7 +69,7 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
             value={locale}
             onChange={handleLocaleChange}
             aria-label="Locale"
-            className="bg-bg-elev-2 text-fg rounded-lg border border-white/10 px-3 py-2 text-sm transition-colors focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none"
+            className="border-white/10 bg-bg-elev-2 text-fg focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none transition-colors"
           >
             {LOCALES.map((l) => (
               <option key={l.value} value={l.value}>
@@ -86,7 +84,7 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
           label="Color Scheme"
           description="Kestrel is tuned for dark cyber-industrial trading desks. Light mode is coming in a future update."
           action={
-            <span className="surface-chip text-fg-subtle inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 font-mono text-xs font-medium">
+            <span className="surface-chip text-fg-subtle inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 text-xs font-mono font-medium">
               <IconMoon className="size-3.5 text-cyan-400" />
               Dark (Standard)
             </span>
@@ -96,3 +94,4 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
     </section>
   );
 }
+

@@ -227,16 +227,7 @@ test.describe('Desktop navigation sidebar', () => {
     await expect(expandBtn).toBeVisible();
     await expandBtn.click();
 
-    for (const label of [
-      'Dashboard',
-      'Chat',
-      'Chart',
-      'News',
-      'Calendar',
-      'Alerts',
-      'Journal',
-      'Settings',
-    ]) {
+    for (const label of ['Dashboard', 'Chat', 'Chart', 'News', 'Calendar', 'Alerts', 'Journal', 'Settings']) {
       await expect(sidebar.getByRole('link', { name: label })).toBeAttached();
     }
   });

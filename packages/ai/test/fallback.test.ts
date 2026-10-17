@@ -18,83 +18,114 @@ import { describe, expect, it } from 'vitest';
 
 import { classifyStreamError, makeFallbackPart, shouldFallback } from '../src/fallback';
 
-describe('classifyStreamError — recoverable errors (fallback = true)', () => {
-  it('falls back on a plain HTTP 401 object', () => {
-    const decision = classifyStreamError({ statusCode: 401 });
-    expect(decision.fallback).toBe(true);
-    expect(decision.reason).toBe('auth');
-  });
+describe('classifyStreamError', () => {
+  it.each<{
+    label: string;
+    input: unknown;
+    expectedFallback: boolean;
+    expectedReason: string;
+  }>([
+    // Recoverable errors — the agent retries with the default domain model.
+    {
+      label: 'plain HTTP 401 object',
+      input: { statusCode: 401 },
+      expectedFallback: true,
+      expectedReason: 'auth',
+    },
+    {
+      label: '403 from the response.status path',
+      input: { response: { status: 403 } },
+      expectedFallback: true,
+      expectedReason: 'auth',
+    },
+    {
+      label: '429 rate limit',
+      input: { statusCode: 429 },
+      expectedFallback: true,
+      expectedReason: 'rate-limit',
+    },
+    {
+      label: '502 upstream failure',
+      input: { status: 502 },
+      expectedFallback: true,
+      expectedReason: 'upstream',
+    },
+    {
+      label: '503 upstream failure',
+      input: { status: 503 },
+      expectedFallback: true,
+      expectedReason: 'upstream',
+    },
+    {
+      label: '504 upstream failure',
+      input: { status: 504 },
+      expectedFallback: true,
+      expectedReason: 'upstream',
+    },
+    {
+      label: 'network timeout message',
+      input: new Error('Request timed out after 30s'),
+      expectedFallback: true,
+      expectedReason: 'timeout',
+    },
+    {
+      label: '"Invalid API key" message without a status code',
+      input: new Error('Invalid API key provided.'),
+      expectedFallback: true,
+      expectedReason: 'auth',
+    },
+    {
+      label: 'quota-exhausted message',
+      input: new Error('You have exceeded your quota'),
+      expectedFallback: true,
+      expectedReason: 'rate-limit',
+    },
+    // Non-recoverable errors — retrying cannot fix these.
+    {
+      label: '400 bad request',
+      input: { statusCode: 400 },
+      expectedFallback: false,
+      expectedReason: 'hard-error',
+    },
+    {
+      label: '422 unprocessable',
+      input: { statusCode: 422 },
+      expectedFallback: false,
+      expectedReason: 'hard-error',
+    },
+    {
+      label: 'generic Error with no status code',
+      input: new Error('something exploded'),
+      expectedFallback: false,
+      expectedReason: 'unknown',
+    },
+    { label: 'string error', input: 'boom', expectedFallback: false, expectedReason: 'unknown' },
+    { label: 'null', input: null, expectedFallback: false, expectedReason: 'unknown' },
+    { label: 'undefined', input: undefined, expectedFallback: false, expectedReason: 'unknown' },
+    // Status extraction boundaries.
+    {
+      label: 'out-of-range status code 99',
+      input: { statusCode: 99 },
+      expectedFallback: false,
+      expectedReason: 'unknown',
+    },
+    {
+      label: 'out-of-range status code 600',
+      input: { statusCode: 600 },
+      expectedFallback: false,
+      expectedReason: 'unknown',
+    },
+    {
+      label: 'statusCode taking precedence over status',
+      input: { statusCode: 401, status: 500 },
+      expectedFallback: true,
+      expectedReason: 'auth',
+    },
+  ])('classifies $label', ({ input, expectedFallback, expectedReason }) => {
+    const decision = classifyStreamError(input);
 
-  it('falls back on a 403 from the response.status path', () => {
-    const decision = classifyStreamError({ response: { status: 403 } });
-    expect(decision.fallback).toBe(true);
-    expect(decision.reason).toBe('auth');
-  });
-
-  it('falls back on a 429 rate limit', () => {
-    expect(classifyStreamError({ statusCode: 429 }).reason).toBe('rate-limit');
-  });
-
-  it('falls back on a 500-series upstream failure', () => {
-    expect(classifyStreamError({ status: 502 }).reason).toBe('upstream');
-    expect(classifyStreamError({ status: 503 }).reason).toBe('upstream');
-    expect(classifyStreamError({ status: 504 }).reason).toBe('upstream');
-  });
-
-  it('falls back on a network timeout message', () => {
-    const decision = classifyStreamError(new Error('Request timed out after 30s'));
-    expect(decision.fallback).toBe(true);
-    expect(decision.reason).toBe('timeout');
-  });
-
-  it('falls back on an "Invalid API key" message (no status code)', () => {
-    const decision = classifyStreamError(new Error('Invalid API key provided.'));
-    expect(decision.fallback).toBe(true);
-    expect(decision.reason).toBe('auth');
-  });
-
-  it('falls back on a quota-exhausted message', () => {
-    const decision = classifyStreamError(new Error('You have exceeded your quota'));
-    expect(decision.fallback).toBe(true);
-    expect(decision.reason).toBe('rate-limit');
-  });
-});
-
-describe('classifyStreamError — non-recoverable errors (fallback = false)', () => {
-  it('does NOT fall back on a 400 bad request', () => {
-    expect(classifyStreamError({ statusCode: 400 }).fallback).toBe(false);
-  });
-
-  it('does NOT fall back on a 422 unprocessable', () => {
-    expect(classifyStreamError({ statusCode: 422 }).fallback).toBe(false);
-  });
-
-  it('does NOT fall back on a generic Error with no status code', () => {
-    expect(classifyStreamError(new Error('something exploded')).fallback).toBe(false);
-  });
-
-  it('does NOT fall back on a string error', () => {
-    expect(classifyStreamError('boom').fallback).toBe(false);
-  });
-
-  it('does NOT fall back on null/undefined', () => {
-    expect(classifyStreamError(null).fallback).toBe(false);
-    expect(classifyStreamError(undefined).fallback).toBe(false);
-  });
-});
-
-describe('classifyStreamError — status extraction', () => {
-  it('does not treat out-of-range numeric values as status codes', () => {
-    // 99 / 600 / -1 should not be classified as HTTP statuses.
-    expect(classifyStreamError({ statusCode: 99 }).reason).toBe('unknown');
-    expect(classifyStreamError({ statusCode: 600 }).reason).toBe('unknown');
-  });
-
-  it('prefers statusCode over status when both are present', () => {
-    // 401 wins over 500 — both would be recoverable, but the more
-    // specific status wins. This documents the field precedence.
-    const decision = classifyStreamError({ statusCode: 401, status: 500 });
-    expect(decision.reason).toBe('auth');
+    expect(decision.fallback).toBe(expectedFallback);
+    expect(decision.reason).toBe(expectedReason);
   });
 });
 

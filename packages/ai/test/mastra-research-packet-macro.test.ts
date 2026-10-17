@@ -182,9 +182,9 @@ describe('XAUUSD macro evidence assembly', () => {
     expect(result.evidence).not.toBeNull();
     const newsIds = result.evidence?.data.news.map((item) => item.id) ?? [];
     expect(newsIds).toEqual(['news-clean']);
-    expect(
-      result.warnings.some((w) => w.includes('2 gold-relevant news item(s) were skipped')),
-    ).toBe(true);
+    expect(result.warnings.some((w) => w.includes('2 gold-relevant news item(s) were skipped'))).toBe(
+      true,
+    );
     // Quarantine warnings degrade quality rather than failing the packet.
     expect(result.evidence?.quality).toBe('degraded');
   });

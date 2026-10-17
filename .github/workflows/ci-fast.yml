@@ -62,7 +62,7 @@ jobs:
           POSTGRES_DB: hamafx
           POSTGRES_USER: hamafx
           POSTGRES_PASSWORD: test
-        ports: ["5432:5432"]
+        ports: ['5432:5432']
         options: --health-cmd "pg_isready -U hamafx -d hamafx" --health-interval 5s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -82,6 +82,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
       - run: pnpm turbo run test -- --coverage
+        env:
+          # The unit-tests job provisions the pgvector service container, so
+          # the Postgres-gated suites (RLS isolation, query-layer integration,
+          # full-analysis queue) run here — they are part of the coverage
+          # thresholds.
+          RUN_POSTGRES_RLS_TESTS: '1'
+          TEST_POSTGRES_ADMIN_URL: postgres://hamafx:test@localhost:5432/hamafx
+          RUN_AI_QUEUE_POSTGRES_TESTS: '1'
       - name: Test File Guard
         run: pnpm test:empty-guard
       - name: Report Coverage

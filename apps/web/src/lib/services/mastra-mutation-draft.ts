@@ -102,9 +102,7 @@ export async function startMutationDraft(
     model = resolution.model;
   } catch (error) {
     throw new MutationExtractionError(
-      error instanceof Error
-        ? error.message
-        : 'No direct provider model is configured for mutation extraction.',
+      error instanceof Error ? error.message : 'No direct provider model is configured for mutation extraction.',
       kind,
     );
   }

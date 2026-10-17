@@ -65,7 +65,7 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
     <section
       role="region"
       aria-label="Verified XAUUSD report"
-      className="border-border/80 bg-bg-elev-1 surface-chip border-edge/80 mt-3 flex flex-col gap-3.5 rounded-xl border p-4 shadow-[var(--shadow-chip)]"
+      className="border-border/80 bg-bg-elev-1 surface-chip mt-3 flex flex-col gap-3.5 rounded-xl border border-edge/80 p-4 shadow-[var(--shadow-chip)]"
       data-testid="mastra-report-card"
       data-mastra-agent="mastra-xauusd"
       data-packet-id={meta.packetId}
@@ -94,9 +94,7 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
           className="border-warn/30 bg-warn/5 text-warn flex items-start gap-2 rounded-sm border p-2 text-xs"
         >
           <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>
-            Live market feed data was temporarily unavailable. Briefing could not be generated.
-          </span>
+          <span>Live market feed data was temporarily unavailable. Briefing could not be generated.</span>
         </div>
       ) : (
         <ReportBody report={report} qualityWarning={qualityWarning} />
@@ -105,8 +103,7 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
       <footer className="border-border text-caption text-fg-subtle flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2">
         <span className="inline-flex items-center gap-1">
           <IconClock className="size-3" aria-hidden="true" />
-          Data Check:{' '}
-          {meta.dataQuality === 'complete' ? 'Verified against live feed' : meta.dataQuality}
+          Data Check: {meta.dataQuality === 'complete' ? 'Verified against live feed' : meta.dataQuality}
         </span>
       </footer>
     </section>

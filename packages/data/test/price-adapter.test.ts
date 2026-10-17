@@ -23,7 +23,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getPrice, getPrices, getPricesWithMeta, getPriceWithMeta } from '../src/adapters/price';
+import { getPrice, getPrices, getPriceWithMeta, getPricesWithMeta } from '../src/adapters/price';
 import { setDefaultCache } from '../src/cache';
 import { MemoryCache } from '../src/cache/memory';
 import { _resetThrottle } from '../src/cache/throttle';

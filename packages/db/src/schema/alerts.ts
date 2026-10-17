@@ -96,6 +96,9 @@ export const alerts = pgTable(
       .on(t.createdAt)
       .where(sql`${t.active} = true AND ${t.firedAt} IS NULL`),
     // Phase 2 (0028) — snooze range CHECK, absent from the TypeScript schema.
-    check('alerts_snooze_hours_check', sql`${t.snoozeHours} >= 0 AND ${t.snoozeHours} <= 168`),
+    check(
+      'alerts_snooze_hours_check',
+      sql`${t.snoozeHours} >= 0 AND ${t.snoozeHours} <= 168`,
+    ),
   ],
 );

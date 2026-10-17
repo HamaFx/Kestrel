@@ -128,49 +128,114 @@ describe('withRetry — custom isRetryable', () => {
   });
 });
 
+describe('withRetry — AbortSignal cancellation', () => {
+  it('rejects with AbortError before the first attempt when already aborted', async () => {
+    const ac = new AbortController();
+    ac.abort();
+    const fn = vi.fn().mockResolvedValue('never');
+
+    await expect(
+      withRetry(fn, { maxAttempts: 3, baseDelayMs: 0, signal: ac.signal }),
+    ).rejects.toThrow('Aborted');
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('rejects with AbortError during backoff without starting another attempt', async () => {
+    const ac = new AbortController();
+    const err = Object.assign(new Error('transient'), {
+      statusCode: 503,
+      responseHeaders: { 'retry-after': '1' },
+    });
+    const fn = vi.fn().mockRejectedValue(err);
+    let retriesScheduled = 0;
+
+    await expect(
+      withRetry(fn, {
+        maxAttempts: 3,
+        baseDelayMs: 0,
+        signal: ac.signal,
+        onRetry: () => {
+          retriesScheduled += 1;
+          // Cancel while the backoff sleep is being armed: the helper's
+          // defensive abort check must short-circuit the sleep and reject
+          // with AbortError instead of scheduling another attempt.
+          ac.abort();
+        },
+      }),
+    ).rejects.toThrow('Aborted');
+
+    expect(retriesScheduled).toBe(1);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('getRetryAfterMs', () => {
-  it('parses seconds from retry-after header', () => {
-    const err = { responseHeaders: { 'retry-after': '2' } };
-    expect(getRetryAfterMs(err)).toBe(2000);
-  });
+  type RetryAfterCase = {
+    label: string;
+    err: () => unknown;
+    expected: number | null | { min: number; max: number };
+  };
 
-  it('parses HTTP-date from retry-after header', () => {
-    const future = new Date(Date.now() + 5000).toUTCString();
-    const err = { responseHeaders: { 'retry-after': future } };
-    const ms = getRetryAfterMs(err);
-    expect(ms).toBeGreaterThan(0);
-    expect(ms).toBeLessThanOrEqual(6000);
-  });
+  const cases: RetryAfterCase[] = [
+    {
+      label: 'integer seconds from responseHeaders',
+      err: () => ({ responseHeaders: { 'retry-after': '2' } }),
+      expected: 2000,
+    },
+    {
+      label: 'numeric retryAfter field',
+      err: () => ({ retryAfter: 3 }),
+      expected: 3000,
+    },
+    {
+      label: 'far-future seconds capped at 60_000ms',
+      err: () => ({ responseHeaders: { 'retry-after': '9999' } }),
+      expected: 60_000,
+    },
+    {
+      label: 'headers.get(retry-after)',
+      err: () => ({ headers: { get: () => '5' } }),
+      expected: 5000,
+    },
+    {
+      label: 'future HTTP-date as a positive bounded delay',
+      err: () => ({
+        responseHeaders: { 'retry-after': new Date(Date.now() + 5000).toUTCString() },
+      }),
+      expected: { min: 1, max: 6000 },
+    },
+    {
+      label: 'past HTTP-date',
+      err: () => ({
+        responseHeaders: { 'retry-after': new Date(Date.now() - 5000).toUTCString() },
+      }),
+      expected: null,
+    },
+    {
+      label: 'empty headers',
+      err: () => ({ responseHeaders: {} }),
+      expected: null,
+    },
+    {
+      label: 'non-object errors',
+      err: () => null,
+      expected: null,
+    },
+    {
+      label: 'string errors',
+      err: () => 'string',
+      expected: null,
+    },
+  ];
 
-  it('caps seconds at 60_000ms', () => {
-    const err = { responseHeaders: { 'retry-after': '9999' } };
-    expect(getRetryAfterMs(err)).toBe(60_000);
-  });
-
-  it('returns null for past HTTP-dates', () => {
-    const past = new Date(Date.now() - 5000).toUTCString();
-    const err = { responseHeaders: { 'retry-after': past } };
-    expect(getRetryAfterMs(err)).toBeNull();
-  });
-
-  it('returns null when no retry-after is present', () => {
-    const err = { responseHeaders: {} };
-    expect(getRetryAfterMs(err)).toBeNull();
-  });
-
-  it('returns null for non-object errors', () => {
-    expect(getRetryAfterMs(null)).toBeNull();
-    expect(getRetryAfterMs('string')).toBeNull();
-  });
-
-  it('reads from headers.get()', () => {
-    const err = { headers: { get: () => '5' } };
-    expect(getRetryAfterMs(err)).toBe(5000);
-  });
-
-  it('reads from bare retryAfter field', () => {
-    const err = { retryAfter: 3 };
-    expect(getRetryAfterMs(err)).toBe(3000);
+  it.each(cases)('parses $label', ({ err, expected }) => {
+    const ms = getRetryAfterMs(err());
+    if (expected !== null && typeof expected === 'object') {
+      expect(ms).toBeGreaterThanOrEqual(expected.min);
+      expect(ms).toBeLessThanOrEqual(expected.max);
+    } else {
+      expect(ms).toBe(expected);
+    }
   });
 });
 

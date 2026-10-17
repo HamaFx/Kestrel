@@ -148,9 +148,7 @@ const WorkerEnvSchema = z.object({
 
 export type WorkerEnv = z.infer<typeof WorkerEnvSchema>;
 
-export function isWorkerTickStreamEnabled(
-  env: Pick<WorkerEnv, 'WORKER_ENABLE_TICK_STREAM'>,
-): boolean {
+export function isWorkerTickStreamEnabled(env: Pick<WorkerEnv, 'WORKER_ENABLE_TICK_STREAM'>): boolean {
   return env.WORKER_ENABLE_TICK_STREAM === '1' || env.WORKER_ENABLE_TICK_STREAM === 'true';
 }
 
@@ -174,9 +172,7 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
     isWorkerTickStreamEnabled(result.data) &&
     !result.data.BIQUOTE_PROXY_TOKEN
   ) {
-    throw new Error(
-      'BIQUOTE_PROXY_TOKEN must be set in production when WORKER_ENABLE_TICK_STREAM=1',
-    );
+    throw new Error('BIQUOTE_PROXY_TOKEN must be set in production when WORKER_ENABLE_TICK_STREAM=1');
   }
   if (result.data.NODE_ENV === 'production' && !result.data.ENCRYPTION_SECRET) {
     throw new Error('ENCRYPTION_SECRET must be set in production');

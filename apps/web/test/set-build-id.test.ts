@@ -1,7 +1,6 @@
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { resolveBuildId, upsertEnvLine } from '../scripts/set-build-id.mjs';

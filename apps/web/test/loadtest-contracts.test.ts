@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { parseSseBody } from '../../../loadtest/lib/sse.js';
-import { generateJunitXml } from '../../../loadtest/lib/summary.js';
-import { compareSummaries } from '../../../loadtest/scripts/compare-baseline.mjs';
-
 vi.mock('k6', () => ({
   check: vi.fn(),
 }));
@@ -17,19 +13,15 @@ vi.mock('k6/http', () => ({
 }));
 
 vi.mock('k6/metrics', () => ({
-  Counter: class {
-    add() {}
-  },
-  Rate: class {
-    add() {}
-  },
-  Trend: class {
-    add() {}
-  },
-  Gauge: class {
-    add() {}
-  },
+  Counter: class { add() {} },
+  Rate: class { add() {} },
+  Trend: class { add() {} },
+  Gauge: class { add() {} },
 }));
+
+import { parseSseBody } from '../../../loadtest/lib/sse.js';
+import { generateJunitXml } from '../../../loadtest/lib/summary.js';
+import { compareSummaries } from '../../../loadtest/scripts/compare-baseline.mjs';
 
 describe('k6 loadtest summary & JUnit contract', () => {
   it('flags threshold breaches on any metric, not just http_req_failed', () => {

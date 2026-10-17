@@ -14,40 +14,42 @@
  * limitations under the License.
  */
 
-import { eq } from 'drizzle-orm';
+// Batch 4: exercises `withUserScope` against the REAL Drizzle schema tables
+// and compiles the fragment through Drizzle's Postgres dialect, instead of
+// asserting equality against a fake `{ userId: { name } }` object literal.
+
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
+import { alerts, chatThreads, journalEntries } from '../src/schema';
 import { withUserScope } from '../src/with-user-scope';
 
+const SCOPE_TABLES = [
+  ['alerts', alerts, '"alerts"."user_id" = $1'],
+  ['chatThreads', chatThreads, '"chat_threads"."user_id" = $1'],
+  ['journalEntries', journalEntries, '"journal_entries"."user_id" = $1'],
+] as const;
+
 describe('withUserScope', () => {
-  it('builds an eq(userId, x) SQL fragment for a table with a userId column', () => {
-    // Mock a minimal drizzle table object. The helper only reads .userId,
-    // so we don't need a real Drizzle column instance.
-    const fakeTable = { userId: { name: 'user_id' } };
-    const frag = withUserScope(fakeTable as never, 'user-123');
+  it.each(SCOPE_TABLES)(
+    'compiles %s to a parameterized user_id equality against the real Drizzle table',
+    (_name, table, expectedSql) => {
+      const query = new PgDialect().sqlToQuery(withUserScope(table, 'user-123'));
 
-    // Compare against the canonical eq(table.userId, value) expression.
-    const expected = eq(fakeTable.userId as never, 'user-123');
-    expect(frag).toEqual(expected);
-  });
+      expect(query.sql).toBe(expectedSql);
+      expect(query.params).toEqual(['user-123']);
+    },
+  );
 
-  it('produces a different fragment for a different userId', () => {
-    const fakeTable = { userId: { name: 'user_id' } };
-    const a = withUserScope(fakeTable as never, 'user-A');
-    const b = withUserScope(fakeTable as never, 'user-B');
-    // SQL fragments have value-equal queries via toQuery() comparison, but
-    // the easier check is that they reference the same column but different
-    // params — verifying with a JSON dump of the internal shape.
-    expect(JSON.stringify(a)).not.toEqual(JSON.stringify(b));
-  });
+  it('binds a different userId parameter per call', () => {
+    const dialect = new PgDialect();
 
-  it('produces a SQL fragment (does not validate the column shape)', () => {
-    // The generic `T extends { userId: unknown }` enforces the column
-    // shape at compile time. At runtime, drizzle's `eq()` blindly builds
-    // a SQL fragment — so a malformed table would only fail when the
-    // query is executed, not when `withUserScope` is called. This test
-    // documents that behavior so future readers don't assume otherwise.
-    const fakeTableWithoutUserId = { id: 'id' } as unknown as { userId: any };
-    expect(() => withUserScope(fakeTableWithoutUserId as never, 'user-123')).not.toThrow();
+    const a = dialect.sqlToQuery(withUserScope(alerts, 'user-A'));
+    const b = dialect.sqlToQuery(withUserScope(alerts, 'user-B'));
+
+    expect(a.sql).toBe('"alerts"."user_id" = $1');
+    expect(b.sql).toBe('"alerts"."user_id" = $1');
+    expect(a.params).toEqual(['user-A']);
+    expect(b.params).toEqual(['user-B']);
   });
 });

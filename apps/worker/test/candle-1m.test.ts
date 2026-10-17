@@ -221,3 +221,4 @@ describe('Candle1mAggregator', () => {
     });
   });
 });
+

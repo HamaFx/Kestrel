@@ -172,9 +172,7 @@ export function NoiseControlCard({ initialConfig }: { initialConfig?: NoiseConfi
           </div>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-fg font-mono text-2xl font-bold tabular-nums">
-                {preview.breakdown.total}
-              </p>
+              <p className="text-fg text-2xl font-bold font-mono tabular-nums">{preview.breakdown.total}</p>
               <p className="text-fg-subtle text-xs">Total</p>
             </div>
             <div>

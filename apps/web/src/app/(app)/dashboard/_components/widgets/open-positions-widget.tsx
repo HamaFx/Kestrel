@@ -135,9 +135,7 @@ function PositionRow({ entry, tick }: { entry: JournalEntry; tick?: Tick }) {
         <span
           className={cn(
             'inline-flex size-6 shrink-0 items-center justify-center rounded-md',
-            entry.side === 'long'
-              ? 'bg-bull/15 text-bull shadow-[0_0_8px_rgba(63,158,61,0.2)]'
-              : 'bg-bear/15 text-bear shadow-[0_0_8px_rgba(224,44,16,0.2)]',
+            entry.side === 'long' ? 'bg-bull/15 text-bull shadow-[0_0_8px_rgba(63,158,61,0.2)]' : 'bg-bear/15 text-bear shadow-[0_0_8px_rgba(224,44,16,0.2)]',
           )}
         >
           {entry.side === 'long' ? (

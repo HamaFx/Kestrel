@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createLinkCode, resolveLinkCode } from './linking';
 
@@ -56,10 +56,14 @@ describe('Link Code Resolution', () => {
   });
 
   it('returns null for an expired code', async () => {
-    createLinkCode('user-expired');
-    // We can't easily mock time in this test, but we can test
-    // that a non-existent code returns null
-    const result = await resolveLinkCode('ZZZZZZ', '123', 'telegram');
-    expect(result).toBeNull();
+    vi.useFakeTimers();
+    try {
+      const { code } = createLinkCode('user-expired');
+      vi.advanceTimersByTime(11 * 60 * 1000);
+      const result = await resolveLinkCode(code, '123', 'telegram');
+      expect(result).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -18,9 +18,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -105,14 +115,18 @@ describe('build scripts', () => {
   });
 
   it('generate-sw fails the build when the template is missing', () => {
-    const templateFile = resolve(process.cwd(), 'scripts/sw.template.js');
-    const backup = `${templateFile}.bak`;
-    renameSync(templateFile, backup);
-
+    // Run a throwaway copy of the generator in an isolated fake web root so
+    // the shared scripts/sw.template.js is never renamed — service-worker
+    // tests run in parallel workers and read that path.
+    const tmpRoot = mkdtempSync(join(tmpdir(), 'kestrel-sw-missing-'));
     try {
-      expect(() => execSync('node scripts/generate-sw.mjs', { cwd: process.cwd() })).toThrow();
+      mkdirSync(join(tmpRoot, 'scripts'), { recursive: true });
+      const generator = join(tmpRoot, 'scripts', 'generate-sw.mjs');
+      copyFileSync(resolve(process.cwd(), 'scripts/generate-sw.mjs'), generator);
+
+      expect(() => execSync(`node ${JSON.stringify(generator)}`, { cwd: tmpRoot })).toThrow();
     } finally {
-      renameSync(backup, templateFile);
+      rmSync(tmpRoot, { recursive: true, force: true });
     }
   });
 });

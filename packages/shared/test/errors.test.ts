@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AppError,
   budgetExceeded,
+  conflict,
   ERROR_CODES,
   forbidden,
   formatErrorResponse,
@@ -28,10 +29,11 @@ import {
   rateLimited,
   unauthorized,
   validationError,
+  type ErrorCode,
 } from '../src';
 
 describe('ERROR_CODES', () => {
-  it('contains all expected error codes', () => {
+  it('exposes the 9 stable error codes in canonical order', () => {
     expect(ERROR_CODES).toEqual([
       'VALIDATION',
       'UNAUTHORIZED',
@@ -43,9 +45,6 @@ describe('ERROR_CODES', () => {
       'BUDGET_EXCEEDED',
       'INTERNAL',
     ]);
-  });
-
-  it('is a readonly tuple', () => {
     expect(ERROR_CODES.length).toBe(9);
   });
 });
@@ -59,109 +58,131 @@ describe('AppError', () => {
     expect(err.message).toBe('Invalid input');
     expect(err.status).toBe(400);
     expect(err.details).toEqual({ field: 'symbol' });
-  });
 
-  it('allows details to be undefined', () => {
-    const err = new AppError('NOT_FOUND', 'Not found', 404);
-    expect(err.details).toBeUndefined();
+    const withoutDetails = new AppError('NOT_FOUND', 'Not found', 404);
+    expect(withoutDetails.details).toBeUndefined();
   });
 });
 
 // ---------------------------------------------------------------------------
 // Factory helpers
 // ---------------------------------------------------------------------------
-describe('validationError', () => {
-  it('creates a 400 VALIDATION error', () => {
-    const err = validationError('Symbol is required', { symbol: 'XAUUSD' });
+describe('error factories', () => {
+  it.each<{
+    label: string;
+    make: () => AppError;
+    code: ErrorCode;
+    status: number;
+    message: string;
+    details?: unknown;
+  }>([
+    {
+      label: 'validationError',
+      make: () => validationError('Symbol is required', { symbol: 'XAUUSD' }),
+      code: 'VALIDATION',
+      status: 400,
+      message: 'Symbol is required',
+      details: { symbol: 'XAUUSD' },
+    },
+    {
+      label: 'validationError without details',
+      make: () => validationError('Symbol is required'),
+      code: 'VALIDATION',
+      status: 400,
+      message: 'Symbol is required',
+    },
+    {
+      label: 'unauthorized with default message',
+      make: () => unauthorized(),
+      code: 'UNAUTHORIZED',
+      status: 401,
+      message: 'Unauthorized',
+    },
+    {
+      label: 'unauthorized with custom message',
+      make: () => unauthorized('Invalid API key'),
+      code: 'UNAUTHORIZED',
+      status: 401,
+      message: 'Invalid API key',
+    },
+    {
+      label: 'forbidden with default message',
+      make: () => forbidden(),
+      code: 'FORBIDDEN',
+      status: 403,
+      message: 'Forbidden',
+    },
+    {
+      label: 'forbidden with custom message',
+      make: () => forbidden('Insufficient permissions'),
+      code: 'FORBIDDEN',
+      status: 403,
+      message: 'Insufficient permissions',
+    },
+    {
+      label: 'notFound with default message',
+      make: () => notFound(),
+      code: 'NOT_FOUND',
+      status: 404,
+      message: 'Not found',
+    },
+    {
+      label: 'conflict with details',
+      make: () => conflict('Already exists', { id: 'abc' }),
+      code: 'CONFLICT',
+      status: 409,
+      message: 'Already exists',
+      details: { id: 'abc' },
+    },
+    {
+      label: 'rateLimited with default message',
+      make: () => rateLimited(),
+      code: 'RATE_LIMITED',
+      status: 429,
+      message: 'Too Many Requests',
+    },
+    {
+      label: 'providerUnavailable with details',
+      make: () => providerUnavailable('BiQuote returned 500', { provider: 'biquote' }),
+      code: 'PROVIDER_UNAVAILABLE',
+      status: 503,
+      message: 'BiQuote returned 500',
+      details: { provider: 'biquote' },
+    },
+    {
+      label: 'budgetExceeded with default message',
+      make: () => budgetExceeded(),
+      code: 'BUDGET_EXCEEDED',
+      status: 503,
+      message: 'Daily AI budget exceeded',
+    },
+    {
+      label: 'internalError with details',
+      make: () => internalError('Unexpected error', { cause: 'timeout' }),
+      code: 'INTERNAL',
+      status: 500,
+      message: 'Unexpected error',
+      details: { cause: 'timeout' },
+    },
+    {
+      label: 'internalError with defaults',
+      make: () => internalError(),
+      code: 'INTERNAL',
+      status: 500,
+      message: 'Internal error',
+    },
+  ])('$label creates an AppError', ({ make, code, status, message, details }) => {
+    const err = make();
+
     expect(err).toBeInstanceOf(AppError);
-    expect(err.code).toBe('VALIDATION');
-    expect(err.status).toBe(400);
-    expect(err.details).toEqual({ symbol: 'XAUUSD' });
-  });
-
-  it('works without details', () => {
-    const err = validationError('Symbol is required');
-    expect(err.status).toBe(400);
-    expect(err.details).toBeUndefined();
-  });
-});
-
-describe('unauthorized', () => {
-  it('creates a 401 UNAUTHORIZED error with default message', () => {
-    const err = unauthorized();
-    expect(err.code).toBe('UNAUTHORIZED');
-    expect(err.status).toBe(401);
-    expect(err.message).toBe('Unauthorized');
-    expect(err.details).toBeUndefined();
-  });
-
-  it('accepts custom message', () => {
-    const err = unauthorized('Invalid API key');
-    expect(err.message).toBe('Invalid API key');
-  });
-});
-
-describe('forbidden', () => {
-  it('creates a 403 FORBIDDEN error with default message', () => {
-    const err = forbidden();
-    expect(err.code).toBe('FORBIDDEN');
-    expect(err.status).toBe(403);
-    expect(err.message).toBe('Forbidden');
-  });
-
-  it('accepts custom message', () => {
-    const err = forbidden('Insufficient permissions');
-    expect(err.message).toBe('Insufficient permissions');
-  });
-});
-
-describe('notFound', () => {
-  it('creates a 404 NOT_FOUND error with default message', () => {
-    const err = notFound();
-    expect(err.code).toBe('NOT_FOUND');
-    expect(err.status).toBe(404);
-  });
-});
-
-describe('rateLimited', () => {
-  it('creates a 429 RATE_LIMITED error', () => {
-    const err = rateLimited();
-    expect(err.code).toBe('RATE_LIMITED');
-    expect(err.status).toBe(429);
-    expect(err.details).toBeUndefined();
-  });
-});
-
-describe('providerUnavailable', () => {
-  it('creates a 503 PROVIDER_UNAVAILABLE error', () => {
-    const err = providerUnavailable('BiQuote returned 500', { provider: 'biquote' });
-    expect(err.code).toBe('PROVIDER_UNAVAILABLE');
-    expect(err.status).toBe(503);
-    expect(err.details).toEqual({ provider: 'biquote' });
-  });
-});
-
-describe('budgetExceeded', () => {
-  it('creates a 503 BUDGET_EXCEEDED error with default message', () => {
-    const err = budgetExceeded();
-    expect(err.code).toBe('BUDGET_EXCEEDED');
-    expect(err.status).toBe(503);
-    expect(err.message).toBe('Daily AI budget exceeded');
-  });
-});
-
-describe('internalError', () => {
-  it('creates a 500 INTERNAL error', () => {
-    const err = internalError('Unexpected error', { cause: 'timeout' });
-    expect(err.code).toBe('INTERNAL');
-    expect(err.status).toBe(500);
-    expect(err.details).toEqual({ cause: 'timeout' });
-  });
-
-  it('uses defaults when no args given', () => {
-    const err = internalError();
-    expect(err.message).toBe('Internal error');
-    expect(err.details).toBeUndefined();
+    expect(err.code).toBe(code);
+    expect(err.status).toBe(status);
+    expect(err.message).toBe(message);
+    if (details === undefined) {
+      expect(err.details).toBeUndefined();
+    } else {
+      expect(err.details).toEqual(details);
+    }
   });
 });
 

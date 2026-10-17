@@ -332,12 +332,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
       }
       let resolvedModel: ReturnType<typeof resolveMastraModeModel>;
       try {
-        resolvedModel = resolveMastraModeModel(
-          settings,
-          serverEnv,
-          body.modelOverride ?? null,
-          executionPlan,
-        );
+        resolvedModel = resolveMastraModeModel(settings, serverEnv, body.modelOverride ?? null, executionPlan);
       } catch {
         return errorJson(
           'MODEL_OVERRIDE_UNAVAILABLE',

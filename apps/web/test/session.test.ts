@@ -18,125 +18,170 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { getSessionInfo } from '../src/lib/session';
+import { getSessionInfo, type TradingSession } from '../src/lib/session';
 
 /**
  * Helper to build a UTC Date at a specific (year, month-1, day, hour, minute).
- * Months are 0-indexed so callers can write 6 for July.
+ * Months are 0-indexed so callers can write 5 for June.
  */
 function utc(year: number, month: number, day: number, hour: number, minute = 0): Date {
   return new Date(Date.UTC(year, month, day, hour, minute, 0));
 }
 
-describe('getSessionInfo — UTC-anchored session cuts', () => {
-  it('classifies 03:00 UTC Wednesday as Asian', () => {
-    const d = utc(2026, 5, 17, 3); // Wed Jun 17 2026 03:00 UTC
-    expect(getSessionInfo(d)).toEqual({
-      session: 'asian',
-      label: 'Asian',
-      weekday: 3,
-    });
-  });
+const CASES: Array<{
+  label: string;
+  date: Date;
+  expectedSession: TradingSession;
+  expectedLabel: string;
+  expectedWeekday: number;
+}> = [
+  // Wednesday session windows and boundaries (2026-06-17 is a Wednesday).
+  {
+    label: 'Wednesday 00:00 UTC (midnight roll-over) as Asian',
+    date: utc(2026, 5, 17, 0),
+    expectedSession: 'asian',
+    expectedLabel: 'Asian',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 03:00 UTC as Asian',
+    date: utc(2026, 5, 17, 3),
+    expectedSession: 'asian',
+    expectedLabel: 'Asian',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 06:59 UTC as Asian (boundary)',
+    date: utc(2026, 5, 17, 6, 59),
+    expectedSession: 'asian',
+    expectedLabel: 'Asian',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 07:00 UTC as London (boundary)',
+    date: utc(2026, 5, 17, 7),
+    expectedSession: 'london',
+    expectedLabel: 'London',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 10:00 UTC as London',
+    date: utc(2026, 5, 17, 10),
+    expectedSession: 'london',
+    expectedLabel: 'London',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 11:59 UTC as London (boundary)',
+    date: utc(2026, 5, 17, 11, 59),
+    expectedSession: 'london',
+    expectedLabel: 'London',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 12:00 UTC as NY (boundary)',
+    date: utc(2026, 5, 17, 12),
+    expectedSession: 'ny',
+    expectedLabel: 'NY',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 14:00 UTC as NY',
+    date: utc(2026, 5, 17, 14),
+    expectedSession: 'ny',
+    expectedLabel: 'NY',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 16:59 UTC as NY (boundary)',
+    date: utc(2026, 5, 17, 16, 59),
+    expectedSession: 'ny',
+    expectedLabel: 'NY',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 17:00 UTC as Closed (boundary)',
+    date: utc(2026, 5, 17, 17),
+    expectedSession: 'closed',
+    expectedLabel: 'Closed',
+    expectedWeekday: 3,
+  },
+  {
+    label: 'Wednesday 20:00 UTC as Closed',
+    date: utc(2026, 5, 17, 20),
+    expectedSession: 'closed',
+    expectedLabel: 'Closed',
+    expectedWeekday: 3,
+  },
+  // Weekend window (Friday 22:00 UTC inclusive – Sunday 22:00 UTC exclusive).
+  {
+    label: 'Friday 21:59 UTC as still outside the weekend window',
+    date: utc(2026, 5, 19, 21, 59),
+    expectedSession: 'closed',
+    expectedLabel: 'Closed',
+    expectedWeekday: 5,
+  },
+  {
+    label: 'Friday 22:00 UTC as the start of the weekend window',
+    date: utc(2026, 5, 19, 22),
+    expectedSession: 'weekend',
+    expectedLabel: 'Weekend',
+    expectedWeekday: 5,
+  },
+  {
+    label: 'Saturday 12:00 UTC as Weekend',
+    date: utc(2026, 5, 20, 12),
+    expectedSession: 'weekend',
+    expectedLabel: 'Weekend',
+    expectedWeekday: 6,
+  },
+  {
+    label: 'Sunday 12:00 UTC as Weekend',
+    date: utc(2026, 5, 21, 12),
+    expectedSession: 'weekend',
+    expectedLabel: 'Weekend',
+    expectedWeekday: 0,
+  },
+  {
+    label: 'Sunday 21:59 UTC as still Weekend (boundary)',
+    date: utc(2026, 5, 21, 21, 59),
+    expectedSession: 'weekend',
+    expectedLabel: 'Weekend',
+    expectedWeekday: 0,
+  },
+  {
+    label: 'Sunday 22:00 UTC as Closed (weekend window ends exclusive)',
+    date: utc(2026, 5, 21, 22),
+    expectedSession: 'closed',
+    expectedLabel: 'Closed',
+    expectedWeekday: 0,
+  },
+  {
+    label: 'Sunday 23:00 UTC as Closed with weekday 0',
+    date: utc(2026, 5, 21, 23),
+    expectedSession: 'closed',
+    expectedLabel: 'Closed',
+    expectedWeekday: 0,
+  },
+  // Weekday field (2026-06-15 is a Monday).
+  {
+    label: 'Monday 10:00 UTC as London with weekday 1',
+    date: utc(2026, 5, 15, 10),
+    expectedSession: 'london',
+    expectedLabel: 'London',
+    expectedWeekday: 1,
+  },
+];
 
-  it('classifies 10:00 UTC Wednesday as London', () => {
-    const d = utc(2026, 5, 17, 10);
-    expect(getSessionInfo(d).session).toBe('london');
-  });
-
-  it('classifies 14:00 UTC Wednesday as NY', () => {
-    const d = utc(2026, 5, 17, 14);
-    expect(getSessionInfo(d).session).toBe('ny');
-  });
-
-  it('classifies 20:00 UTC Wednesday as Closed', () => {
-    const d = utc(2026, 5, 17, 20);
-    expect(getSessionInfo(d).session).toBe('closed');
-  });
-
-  it('boundary 06:59 UTC is still Asian', () => {
-    const d = utc(2026, 5, 17, 6, 59);
-    expect(getSessionInfo(d).session).toBe('asian');
-  });
-
-  it('boundary 07:00 UTC flips to London', () => {
-    const d = utc(2026, 5, 17, 7);
-    expect(getSessionInfo(d).session).toBe('london');
-  });
-
-  it('boundary 11:59 UTC is still London', () => {
-    const d = utc(2026, 5, 17, 11, 59);
-    expect(getSessionInfo(d).session).toBe('london');
-  });
-
-  it('boundary 12:00 UTC flips to NY', () => {
-    const d = utc(2026, 5, 17, 12);
-    expect(getSessionInfo(d).session).toBe('ny');
-  });
-
-  it('boundary 16:59 UTC is still NY', () => {
-    const d = utc(2026, 5, 17, 16, 59);
-    expect(getSessionInfo(d).session).toBe('ny');
-  });
-
-  it('boundary 17:00 UTC flips to Closed', () => {
-    const d = utc(2026, 5, 17, 17);
-    expect(getSessionInfo(d).session).toBe('closed');
-  });
-
-  it('00:00 UTC is Asian (the midnight roll-over)', () => {
-    const d = utc(2026, 5, 17, 0);
-    expect(getSessionInfo(d).session).toBe('asian');
-  });
-});
-
-describe('getSessionInfo — weekend window', () => {
-  it('classifies Saturday 12:00 UTC as Weekend', () => {
-    // 2026-06-20 is a Saturday
-    const d = utc(2026, 5, 20, 12);
-    expect(getSessionInfo(d).session).toBe('weekend');
-  });
-
-  it('classifies Sunday 12:00 UTC as Weekend', () => {
-    // 2026-06-21 is a Sunday
-    const d = utc(2026, 5, 21, 12);
-    expect(getSessionInfo(d).session).toBe('weekend');
-  });
-
-  it('Friday 21:59 UTC is still in the regular Friday session', () => {
-    // 2026-06-19 is a Friday; 21:59 UTC is NY closing time.
-    const d = utc(2026, 5, 19, 21, 59);
-    expect(getSessionInfo(d).session).not.toBe('weekend');
-  });
-
-  it('Friday 22:00 UTC starts the weekend window', () => {
-    const d = utc(2026, 5, 19, 22);
-    expect(getSessionInfo(d).session).toBe('weekend');
-  });
-
-  it('Sunday 21:59 UTC is still Weekend', () => {
-    const d = utc(2026, 5, 21, 21, 59);
-    expect(getSessionInfo(d).session).toBe('weekend');
-  });
-
-  it('Sunday 22:00 UTC ends the weekend window (Closed gap before Asia)', () => {
-    // The weekend boundary is exclusive at the end. The first two
-    // hours after the weekend (22:00 – 23:59 UTC Sunday) are a
-    // genuine closed gap before Asian session opens at 00:00 UTC.
-    const d = utc(2026, 5, 21, 22);
-    expect(getSessionInfo(d).session).toBe('closed');
-    expect(getSessionInfo(d).weekday).toBe(0); // Still Sunday in UTC.
-  });
-});
-
-describe('getSessionInfo — weekday field', () => {
-  it('reports Monday (weekday=1) on a Monday', () => {
-    // 2026-06-15 is a Monday
-    const d = utc(2026, 5, 15, 10);
-    expect(getSessionInfo(d).weekday).toBe(1);
-  });
-
-  it('reports Sunday (weekday=0) on a Sunday', () => {
-    const d = utc(2026, 5, 21, 23);
-    expect(getSessionInfo(d).weekday).toBe(0);
-  });
+describe('getSessionInfo — UTC-anchored session cuts and weekend window', () => {
+  it.each(CASES)(
+    'classifies $label',
+    ({ date, expectedSession, expectedLabel, expectedWeekday }) => {
+      expect(getSessionInfo(date)).toEqual({
+        session: expectedSession,
+        label: expectedLabel,
+        weekday: expectedWeekday,
+      });
+    },
+  );
 });

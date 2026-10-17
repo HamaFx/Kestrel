@@ -20,10 +20,10 @@
 import { check, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
+import { uuidv4 } from '../lib/utils.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
 import { getJson, postJson } from '../lib/http.js';
 import { handleSummary } from '../lib/summary.js';
-import { uuidv4 } from '../lib/utils.js';
 
 const fullModeCompleted = new Rate('full_mode_completed');
 const fullModeFailures = new Counter('full_mode_failures');
@@ -69,17 +69,21 @@ export default function (contexts: ReturnType<typeof bootstrapAuth>) {
   }
 
   const messageId = uuidv4();
-  const response = postJson('/api/chat', 'full_mode_enqueue', {
-    threadId: ctx.threadId,
-    analysisMode: 'full',
-    messages: [
-      {
-        id: messageId,
-        role: 'user',
-        parts: [{ type: 'text', text: 'Run a complete Full-mode XAUUSD analysis.' }],
-      },
-    ],
-  });
+  const response = postJson(
+    '/api/chat',
+    'full_mode_enqueue',
+    {
+      threadId: ctx.threadId,
+      analysisMode: 'full',
+      messages: [
+        {
+          id: messageId,
+          role: 'user',
+          parts: [{ type: 'text', text: 'Run a complete Full-mode XAUUSD analysis.' }],
+        },
+      ],
+    },
+  );
 
   const accepted = check(response, {
     'full mode enqueue accepted': (res) => res.status >= 200 && res.status < 300,

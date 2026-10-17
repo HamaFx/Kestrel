@@ -57,12 +57,8 @@ export function WizardStepper({ step }: WizardStepperProps) {
                   {isCompleted ? <IconCheck className="size-4" /> : i}
                 </div>
                 <span
-                  className={`hidden text-xs font-medium sm:inline ${
-                    isCurrent
-                      ? 'text-fg font-semibold'
-                      : isCompleted
-                        ? 'text-fg-muted'
-                        : 'text-fg-subtle'
+                  className={`hidden sm:inline text-xs font-medium ${
+                    isCurrent ? 'text-fg font-semibold' : isCompleted ? 'text-fg-muted' : 'text-fg-subtle'
                   }`}
                 >
                   {STEP_LABELS[i - 1]}

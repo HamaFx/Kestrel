@@ -23,12 +23,12 @@ import { LibSQLStore } from '@mastra/libsql';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createKestrelMastra, initializeKestrelMastra } from '../src/mastra-v2';
-import { XauusdResearchReportSchema } from '../src/mastra-v2/agents/xauusd/report/report-types';
-import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
 import {
   createXauusdReportWorkflow,
   resolveXauusdReportOutputPolicy,
 } from '../src/mastra-v2/workflows/xauusd-report';
+import { XauusdResearchReportSchema } from '../src/mastra-v2/agents/xauusd/report/report-types';
+import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
 
 const mocks = vi.hoisted(() => ({
   collectXauusdResearchPacket: vi.fn(),

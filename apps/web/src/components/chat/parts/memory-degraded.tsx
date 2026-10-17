@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import type { MemoryDegradedPart } from '@kestrel/shared';
 import { IconDatabaseOff } from '@tabler/icons-react';
+
+import type { MemoryDegradedPart } from '@kestrel/shared';
 
 import { cn } from '@/lib/cn';
 
@@ -28,15 +29,14 @@ export function MemoryDegradedPartView({ part: _part }: { part: MemoryDegradedPa
   return (
     <div
       className={cn(
-        'border-chip-edge bg-background/40 text-fg-muted text-caption flex items-center gap-2 rounded-md border px-2.5 py-1.5 font-mono',
+        'border-chip-edge bg-background/40 text-fg-muted flex items-center gap-2 rounded-md border px-2.5 py-1.5 font-mono text-caption',
       )}
       role="note"
       aria-label="Conversation history notice"
     >
       <IconDatabaseOff className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
       <span>
-        Earlier conversation history couldn&apos;t be loaded for this reply, so this analysis is
-        based on your current message.
+        Earlier conversation history couldn&apos;t be loaded for this reply, so this analysis is based on your current message.
       </span>
     </div>
   );

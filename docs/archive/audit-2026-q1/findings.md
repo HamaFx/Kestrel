@@ -18,14 +18,14 @@ The technical foundation is strong: a real pnpm/Turborepo monorepo, typed packag
 | -------------------------------------- | -----: | ----------------------------------------------------------------------------------- |
 | Docker Compose multi-user self-hosting |   8/10 | Complete local/self-hosted multi-user stack with Postgres and pgvector              |
 | Contributor onboarding                 |   7/10 | Good tooling, but the repository is complex for non-senior contributors             |
-| Private repository presentation        |   7/10 | Clear positioning, but maintainer assumptions and links need strict separation      |
+| Private repository presentation             |   7/10 | Clear positioning, but maintainer assumptions and links need strict separation      |
 | Security baseline                      |   7/10 | Thoughtful controls; no independent security audit                                  |
 | API security                           |   7/10 | Good wrappers and static checks; runtime authorization needs HTTP tests             |
 | Database/migrations                    |   7/10 | Extensive coverage, but many migrations and mode combinations increase upgrade risk |
 | CI/CD and release hygiene              |   7/10 | Broad checks; release/version/provenance contract is incomplete                     |
 | Licensing/compliance                   |   6/10 | Apache-2.0 baseline; dependency and asset inventory incomplete                      |
 | Multi-user tenant isolation            |   8/10 | Enforced via Postgres RLS on all user data                                          |
-| Production-grade private release       | 7.5/10 | Conditional until P0/P1 operational gaps are closed                                 |
+| Production-grade private release           | 7.5/10 | Conditional until P0/P1 operational gaps are closed                                 |
 
 ## Supported private self-hosting contract
 

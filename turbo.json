@@ -72,6 +72,16 @@
     },
     "test": {
       "dependsOn": [],
+      "env": [
+        "RUN_POSTGRES_RLS_TESTS",
+        "TEST_POSTGRES_ADMIN_URL",
+        "RUN_AI_QUEUE_POSTGRES_TESTS",
+        "RUN_PG_TESTS",
+        "THROTTLE_TEST_DATABASE_URL",
+        "THROTTLE_TEST_DATABASE_CONFIRM",
+        "DB_DISABLE_SSL",
+        "KESTREL_LOCAL_DOCKER"
+      ],
       "inputs": [
         "$TURBO_DEFAULT$",
         "../../scripts/setup/**",

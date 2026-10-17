@@ -19,13 +19,13 @@ import type { RequestContext } from '@mastra/core/request-context';
 
 import { telemetryConfig } from '../../../../telemetry';
 import { manifestForCapability } from '../../../capabilities';
-import type { XauusdResearchPacket } from '../../../packets/research-types';
-import type { MastraGenerationResultLike } from '../../../shared/stats';
-import type { XauusdRequestContext } from '../../../shared/types';
 import { guardXauusdFollowupText } from '../followup-safety';
-import type { xauusdMastraTools } from '../tools';
 import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
 import { XauusdReportVerificationError } from './report-verifier';
+import type { XauusdResearchPacket } from '../../../packets/research-types';
+import type { MastraGenerationResultLike } from '../../../shared/stats';
+import type { xauusdMastraTools } from '../tools';
+import type { XauusdRequestContext } from '../../../shared/types';
 
 export type XauusdReportGenerationResult = Awaited<ReturnType<typeof generateXauusdReport>>;
 

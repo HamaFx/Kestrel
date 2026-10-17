@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import {
   IconAlertCircle,
   IconBuildingBank,
@@ -63,12 +64,7 @@ const TOOL_VERBS: Record<string, string> = {
 };
 
 function getToolIcon(name: string) {
-  if (
-    name.includes('price') ||
-    name.includes('candles') ||
-    name.includes('technical') ||
-    name.includes('indicator')
-  ) {
+  if (name.includes('price') || name.includes('candles') || name.includes('technical') || name.includes('indicator')) {
     return IconChartCandle;
   }
   if (name.includes('news') || name.includes('calendar') || name.includes('fundamental')) {
@@ -139,7 +135,7 @@ export function CompactTelemetryRow({
   const target = formatTarget(name, input);
 
   return (
-    <div className="w-full py-0.5 select-text">
+    <div className="w-full select-text py-0.5">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -171,7 +167,7 @@ export function CompactTelemetryRow({
                 )}
               />
               {celebrate && (
-                <span className="text-success animate-in fade-in zoom-in-75 pointer-events-none absolute inset-0 grid place-items-center duration-200">
+                <span className="text-success pointer-events-none absolute inset-0 grid place-items-center animate-in fade-in zoom-in-75 duration-200">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -188,7 +184,7 @@ export function CompactTelemetryRow({
         {/* Tool Verb */}
         <span
           className={cn(
-            'text-body shrink-0 font-medium',
+            'text-body font-medium shrink-0',
             isError ? 'text-danger' : isRunning ? 'text-brand' : 'text-fg',
           )}
         >
@@ -197,7 +193,7 @@ export function CompactTelemetryRow({
 
         {/* Monospace Target Path or Arguments */}
         {target ? (
-          <span className="text-caption text-fg-subtle min-w-0 flex-1 truncate font-mono">
+          <span className="font-mono text-caption text-fg-subtle min-w-0 flex-1 truncate">
             {target}
           </span>
         ) : (
@@ -229,7 +225,7 @@ export function CompactTelemetryRow({
               ) : isError ? (
                 <p className="text-danger font-mono">{errorMessage ?? 'Tool execution failed'}</p>
               ) : (
-                <pre className="text-caption text-fg-muted overflow-x-auto font-mono whitespace-pre-wrap">
+                <pre className="font-mono text-caption text-fg-muted overflow-x-auto whitespace-pre-wrap">
                   {typeof output === 'string'
                     ? output
                     : JSON.stringify(output ?? input ?? {}, null, 2)}

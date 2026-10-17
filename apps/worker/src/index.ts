@@ -428,7 +428,10 @@ export async function main(): Promise<void> {
 
   installSignalHandlers(log);
 
-  const worker: Pick<RunningWorker, 'getLastTickAt' | 'stop'> & {
+  const worker: Pick<
+    RunningWorker,
+    'getLastTickAt' | 'stop'
+  > & {
     isSignalRConnected: () => boolean;
     isBinanceConnected: () => boolean;
     getDroppedTicks: () => number;

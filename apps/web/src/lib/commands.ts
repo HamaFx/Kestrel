@@ -74,13 +74,7 @@ export const COMMANDS: readonly CommandItem[] = [
     href: '/dashboard',
     keywords: ['home', 'overview', 'widgets', 'briefing'],
   },
-  {
-    id: 'nav-chat',
-    group: 'navigation',
-    label: 'AI Research Chat',
-    icon: IconMessagePlus,
-    href: '/chat',
-  },
+  { id: 'nav-chat', group: 'navigation', label: 'AI Research Chat', icon: IconMessagePlus, href: '/chat' },
   {
     id: 'nav-chart-xau',
     group: 'navigation',
@@ -114,13 +108,7 @@ export const COMMANDS: readonly CommandItem[] = [
     href: '/calendar',
   },
   { id: 'nav-alerts', group: 'navigation', label: 'Price Alerts', icon: IconBell, href: '/alerts' },
-  {
-    id: 'nav-journal',
-    group: 'navigation',
-    label: 'Trade Journal',
-    icon: IconBook,
-    href: '/journal',
-  },
+  { id: 'nav-journal', group: 'navigation', label: 'Trade Journal', icon: IconBook, href: '/journal' },
   {
     id: 'nav-settings',
     group: 'navigation',

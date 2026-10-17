@@ -46,3 +46,4 @@ export const GetCandlesOutputSchema = z.object({
 });
 
 export type GetCandlesOutput = z.infer<typeof GetCandlesOutputSchema>;
+

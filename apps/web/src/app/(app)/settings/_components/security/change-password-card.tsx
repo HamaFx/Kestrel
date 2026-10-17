@@ -64,7 +64,7 @@ export function ChangePasswordCard() {
 
   return (
     <div className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
-      <div className="flex items-center gap-2 border-b border-white/5 pb-1">
+      <div className="flex items-center gap-2 pb-1 border-b border-white/5">
         <IconLock className="text-brand size-4.5" />
         <h3 className="text-fg text-base font-semibold tracking-tight">Change Password</h3>
       </div>

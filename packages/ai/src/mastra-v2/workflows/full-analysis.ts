@@ -16,7 +16,6 @@ import {
   getFullAnalysisQueueRow,
   getFullAnalysisQueueStats,
   heartbeatFullAnalysisQueue,
-  purgeOldFullAnalysisQueue,
   purgeOldFullAnalysisQueueWithIds,
   recoverStaleFullAnalysisQueue,
   requeueFullAnalysisQueue,

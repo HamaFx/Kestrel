@@ -60,7 +60,10 @@ export const buildCatalogForUser = cache(async function buildCatalogForUser(
     };
 
     const models = (p.models ?? []).map((m) => {
-      const qualifiedId = p.id === 'openrouter' ? m.modelId : `${p.id}/${m.modelId}`;
+      const qualifiedId =
+        p.id === 'openrouter'
+          ? m.modelId
+          : `${p.id}/${m.modelId}`;
       // Is this model the default for any domain? (per-provider spec)
       const defaultFor = (Object.entries(specDefaults) as [ModelDomain, string | null][]).find(
         ([, id]) => id === m.modelId,

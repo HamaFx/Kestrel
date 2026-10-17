@@ -38,7 +38,9 @@ test.describe('Authentication', () => {
     });
     const page = await context.newPage();
 
-    await page.goto('/');
+    // `/` is the public marketing landing page; assert the redirect from a
+    // protected application route instead.
+    await page.goto('/chat');
 
     await expect(page).toHaveURL(/.*\/login/);
     // The auth layout renders an <h1> with the product name ("Kestrel")

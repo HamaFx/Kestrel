@@ -146,9 +146,11 @@ export function withAuth<T>(
       // connection, then keep all downstream repository and AI calls inside the
       // tenant transaction. There is no unscoped path.
       const tenantId = await requireTenantIdForUser(user.userId);
-      return await withTenantDbFresh(tenantId, () => handler(req, { params: ctx.params, user }), {
-        userId: user.userId,
-      });
+      return await withTenantDbFresh(
+        tenantId,
+        () => handler(req, { params: ctx.params, user }),
+        { userId: user.userId },
+      );
     } catch (err) {
       return errorResponse(err, req);
     }

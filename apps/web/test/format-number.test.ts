@@ -30,44 +30,33 @@ import {
 // ── formatMs ──────────────────────────────────────────────────────────
 
 describe('formatMs', () => {
-  it('returns "0ms" for zero', () => {
-    expect(formatMs(0)).toBe('0ms');
-  });
-
-  it('returns ms for values under 1000', () => {
-    expect(formatMs(1)).toBe('1ms');
-    expect(formatMs(500)).toBe('500ms');
-    expect(formatMs(999)).toBe('999ms');
-    expect(formatMs(999.6)).toBe('1000ms'); // rounds to nearest ms
-  });
-
-  it('converts to seconds at 1000ms', () => {
-    expect(formatMs(1000)).toBe('1.0s');
-  });
-
-  it('shows one decimal place for seconds', () => {
-    expect(formatMs(1500)).toBe('1.5s');
-    expect(formatMs(2345)).toBe('2.3s');
-    expect(formatMs(2999)).toBe('3.0s');
-  });
-
-  it('handles large durations', () => {
-    expect(formatMs(60_000)).toBe('60.0s');
-    expect(formatMs(1_234_567)).toBe('1234.6s');
+  it.each([
+    [0, '0ms'],
+    [1, '1ms'],
+    [500, '500ms'],
+    [999, '999ms'],
+    [999.6, '1000ms'], // rounds to nearest ms
+    [1000, '1.0s'],
+    [1500, '1.5s'],
+    [2345, '2.3s'],
+    [2999, '3.0s'],
+    [60_000, '60.0s'],
+    [1_234_567, '1234.6s'],
+  ])('formats %dms as %j', (ms, expected) => {
+    expect(formatMs(ms)).toBe(expected);
   });
 });
 
 // ── formatNumber ──────────────────────────────────────────────────────
 
 describe('formatNumber', () => {
-  it('formats small numbers without separators', () => {
-    expect(formatNumber(0)).toBe('0');
-    expect(formatNumber(999)).toBe('999');
-  });
-
-  it('adds thousands separators', () => {
-    expect(formatNumber(1_000)).toBe('1,000');
-    expect(formatNumber(1_234_567)).toBe('1,234,567');
+  it.each([
+    [0, '0'],
+    [999, '999'],
+    [1_000, '1,000'],
+    [1_234_567, '1,234,567'],
+  ])('formats %d as %j', (n, expected) => {
+    expect(formatNumber(n)).toBe(expected);
   });
 });
 
@@ -76,53 +65,62 @@ describe('formatNumber', () => {
 describe('formatRelativeTime', () => {
   const NOW = new Date('2026-07-24T12:00:00Z').getTime();
 
-  it('returns empty string for non-finite timestamps', () => {
-    expect(formatRelativeTime('not-a-date', NOW)).toBe('');
-    expect(formatRelativeTime('', NOW)).toBe('');
+  it.each<{ label: string; iso: string; expected: string }>([
+    { label: 'a non-date string', iso: 'not-a-date', expected: '' },
+    { label: 'an empty string', iso: '', expected: '' },
+    {
+      label: 'a future timestamp (clock skew)',
+      iso: new Date(NOW + 30_000).toISOString(),
+      expected: 'just now',
+    },
+    {
+      label: 'a timestamp <1 minute ago',
+      iso: new Date(NOW - 5_000).toISOString(),
+      expected: '5s ago',
+    },
+    {
+      label: 'a timestamp 59 seconds ago',
+      iso: new Date(NOW - 59_000).toISOString(),
+      expected: '59s ago',
+    },
+    {
+      label: 'a timestamp 1 minute ago',
+      iso: new Date(NOW - 60_000).toISOString(),
+      expected: '1m ago',
+    },
+    {
+      label: 'a timestamp 59 minutes ago',
+      iso: new Date(NOW - 59 * 60_000).toISOString(),
+      expected: '59m ago',
+    },
+    {
+      label: 'a timestamp 1 hour ago',
+      iso: new Date(NOW - 3_600_000).toISOString(),
+      expected: '1h ago',
+    },
+    {
+      label: 'a timestamp 23 hours ago',
+      iso: new Date(NOW - 23 * 3_600_000).toISOString(),
+      expected: '23h ago',
+    },
+    {
+      label: 'a timestamp 1 day ago',
+      iso: new Date(NOW - 86_400_000).toISOString(),
+      expected: '1d ago',
+    },
+    {
+      label: 'a timestamp 29 days ago',
+      iso: new Date(NOW - 29 * 86_400_000).toISOString(),
+      expected: '29d ago',
+    },
+  ])('formats $label', ({ iso, expected }) => {
+    expect(formatRelativeTime(iso, NOW)).toBe(expected);
   });
 
-  it('returns "just now" for timestamps in the future (clock skew)', () => {
-    const future = new Date(NOW + 30_000).toISOString();
-    expect(formatRelativeTime(future, NOW)).toBe('just now');
-  });
-
-  it('returns seconds for <1 minute ago', () => {
-    const fiveSecondsAgo = new Date(NOW - 5_000).toISOString();
-    expect(formatRelativeTime(fiveSecondsAgo, NOW)).toBe('5s ago');
-
-    const fiftyNineSecondsAgo = new Date(NOW - 59_000).toISOString();
-    expect(formatRelativeTime(fiftyNineSecondsAgo, NOW)).toBe('59s ago');
-  });
-
-  it('returns minutes for 1–59 minutes ago', () => {
-    const oneMinAgo = new Date(NOW - 60_000).toISOString();
-    expect(formatRelativeTime(oneMinAgo, NOW)).toBe('1m ago');
-
-    const fiftyNineMinAgo = new Date(NOW - 59 * 60_000).toISOString();
-    expect(formatRelativeTime(fiftyNineMinAgo, NOW)).toBe('59m ago');
-  });
-
-  it('returns hours for 1–23 hours ago', () => {
-    const oneHourAgo = new Date(NOW - 3_600_000).toISOString();
-    expect(formatRelativeTime(oneHourAgo, NOW)).toBe('1h ago');
-
-    const twentyThreeHoursAgo = new Date(NOW - 23 * 3_600_000).toISOString();
-    expect(formatRelativeTime(twentyThreeHoursAgo, NOW)).toBe('23h ago');
-  });
-
-  it('returns days for 1–29 days ago', () => {
-    const oneDayAgo = new Date(NOW - 86_400_000).toISOString();
-    expect(formatRelativeTime(oneDayAgo, NOW)).toBe('1d ago');
-
-    const twentyNineDaysAgo = new Date(NOW - 29 * 86_400_000).toISOString();
-    expect(formatRelativeTime(twentyNineDaysAgo, NOW)).toBe('29d ago');
-  });
-
-  it('returns short date for 30+ days ago', () => {
+  it('falls back to a short absolute date 30+ days ago', () => {
     const thirtyDaysAgo = new Date(NOW - 30 * 86_400_000).toISOString();
-    const result = formatRelativeTime(thirtyDaysAgo, NOW);
     // Should be a short date like "Jun 24" (not a relative string)
-    expect(result).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
+    expect(formatRelativeTime(thirtyDaysAgo, NOW)).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
   });
 });
 

@@ -78,7 +78,7 @@ export function ConfirmDrawer({
 }: ConfirmDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="surface-panel border-border rounded-t-xl border-t">
+      <DrawerContent className="surface-panel rounded-t-xl border-t border-border">
         <DrawerHeader>
           <div className="flex items-center gap-3">
             {tone === 'danger' ? (

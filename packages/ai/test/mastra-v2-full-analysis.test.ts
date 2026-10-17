@@ -173,9 +173,28 @@ describe.skipIf(process.env.RUN_AI_QUEUE_POSTGRES_TESTS !== '1')(
         await updateFullAnalysisProgress(runId!, 'worker-1', 'collect-packet');
         await updateFullAnalysisProgress(runId!, 'worker-1', 'technical');
         const poll = await getFullAnalysisRun('user-1', runId!);
-        expect(poll?.progress).toEqual([
-          { type: 'data-agent-progress', data: { step: 'collect-packet' } },
-          { type: 'data-agent-progress', data: { step: 'technical' } },
+        const entries = (poll?.progress ?? []) as Array<{
+          type: string;
+          data: { mode: string; agents: Array<{ agentName: string; status: string }> };
+        }>;
+        // The persisted payload is the CommitteeProgressSnapshot consumed by
+        // AgentDeliberation: all four full-mode specialists as status rows.
+        expect(entries.map((entry) => entry.type)).toEqual([
+          'data-agent-progress',
+          'data-agent-progress',
+        ]);
+        expect(entries.map((entry) => entry.data.mode)).toEqual(['full', 'full']);
+        expect(entries[0]!.data.agents.map((a) => `${a.agentName}:${a.status}`)).toEqual([
+          'technical:pending',
+          'fundamental:pending',
+          'risk:pending',
+          'sentiment:pending',
+        ]);
+        expect(entries[1]!.data.agents.map((a) => `${a.agentName}:${a.status}`)).toEqual([
+          'technical:running',
+          'fundamental:pending',
+          'risk:pending',
+          'sentiment:pending',
         ]);
       });
     });

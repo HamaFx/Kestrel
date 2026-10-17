@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import type { CitationWarningPart } from '@kestrel/shared';
 import {
   IconCheck,
@@ -67,8 +68,7 @@ export function CitationWarningPartView({ part }: CitationWarningProps) {
         )}
         <IconQuote className="size-3.5" />
         <span>
-          Note: {rows.length} market figure{rows.length === 1 ? '' : 's'} could not be cross-checked
-          against the live data feed
+          Note: {rows.length} market figure{rows.length === 1 ? '' : 's'} could not be cross-checked against the live data feed
         </span>
       </button>
 
