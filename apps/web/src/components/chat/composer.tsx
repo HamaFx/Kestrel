@@ -17,6 +17,7 @@
  */
 
 import {
+  IconArrowUp,
   IconChartBar,
   IconMicrophone,
   IconNotebook,
@@ -35,6 +36,7 @@ import { useVoiceInput } from '@/hooks/use-voice-input';
 import { cn } from '@/lib/cn';
 import { fetchCsrf } from '@/lib/csrf';
 
+import { ChatModelSelector } from './_components/chat-model-selector';
 import { MODE_DESCRIPTIONS, MODE_LABELS, type AnalysisMode } from './chat-top-bar';
 import { formatCharCount, getCharCountTone, MAX_TEXT_CHARS } from './composer-helpers';
 import { ComposerSlashMenu, type SlashMenuCommand } from './composer-slash-menu';
@@ -101,14 +103,6 @@ const SLASH_COMMANDS: SlashCommand[] = [
   },
 ];
 
-const SEND_PIXEL_COORDINATES: readonly [number, number][] = [
-  [7, 4],
-  [12.5, 10],
-  [1.19, 10],
-  [4, 7],
-  [10, 7],
-];
-
 export function Composer({
   onSubmit,
   onStop,
@@ -117,8 +111,8 @@ export function Composer({
   placeholder = 'Ask about price action, key levels, or market news…',
   analysisMode,
   onAnalysisModeChange,
-  chatModel: _chatModel,
-  onChatModelChange: _onChatModelChange,
+  chatModel,
+  onChatModelChange,
   contextUsagePercent,
 }: ComposerProps) {
   const [value, setValue] = useState('');
@@ -127,7 +121,6 @@ export function Composer({
   const [focused, setFocused] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
-  const [pulsing, setPulsing] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -199,8 +192,6 @@ export function Composer({
         return;
       }
     }
-    setPulsing(true);
-    setTimeout(() => setPulsing(false), 1400);
     onSubmit(trimmed, images);
     setValue('');
     setImages([]);
@@ -343,11 +334,11 @@ export function Composer({
         : 'text-fg-subtle';
 
   return (
-    <div className="message-composer-safe-bottom sticky bottom-0 z-20 mx-auto w-full max-w-4xl xl:max-w-5xl px-3 pb-[max(env(safe-area-inset-bottom),12px)] transition-all duration-300">
+    <div className="message-composer-safe-bottom sticky bottom-0 z-20 mx-auto w-full pb-[max(env(safe-area-inset-bottom),12px)]">
       <form
         className={cn(
-          'border-chip-edge bg-surface-panel bg-bg-elev-1 surface-chip-dark relative z-10 flex w-full flex-col gap-1.5 rounded-[16px] border-[0.5px] p-2 shadow-(--shadow-chat-bar) transition-all duration-150',
-          focused && 'border-brand/50 ring-1 ring-brand/30',
+          'border-border bg-bg-elev-1 relative z-10 flex w-full flex-col gap-1.5 rounded-xl border p-2.5 shadow-md transition-colors duration-150',
+          focused && 'border-fg-subtle/60',
           dragOver && 'border-brand ring-2 ring-brand/40',
         )}
         onSubmit={(e) => {
@@ -361,14 +352,6 @@ export function Composer({
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        {pulsing && (
-          <span
-            aria-hidden="true"
-            className="prompt-pulse pointer-events-none absolute inset-0 rounded-[16px]"
-          />
-        )}
-
-        {/* Voice listening pill */}
         {voice.active ? (
           <div
             role="status"
@@ -380,9 +363,8 @@ export function Composer({
           </div>
         ) : null}
 
-        {/* Attached Images */}
         {images.length > 0 ? (
-          <ul className="flex flex-wrap gap-2 px-3 pt-2 pb-1" aria-label="Attached images">
+          <ul className="flex flex-wrap gap-2 px-2 pt-1 pb-1" aria-label="Attached images">
             {images.map((img, idx) => (
               <li key={img.id} className="relative">
                 <Image
@@ -391,13 +373,13 @@ export function Composer({
                   width={56}
                   height={56}
                   unoptimized
-                  className="border-border size-14 rounded-lg border object-cover shadow-sm"
+                  className="border-border size-14 rounded-lg border object-cover"
                 />
                 <button
                   type="button"
                   aria-label={`Remove ${img.name}`}
                   onClick={() => removeImage(img.id)}
-                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg absolute -top-1.5 -right-1.5 inline-flex size-5 items-center justify-center rounded-full border text-xs leading-none focus:outline-none focus-visible:ring-2 shadow"
+                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg absolute -top-1.5 -right-1.5 inline-flex size-5 items-center justify-center rounded-full border text-xs leading-none focus:outline-none focus-visible:ring-2"
                 >
                   ×
                 </button>
@@ -407,7 +389,7 @@ export function Composer({
         ) : null}
 
         {error ? (
-          <p id="composer-error" role="alert" className="text-danger px-3 pt-1 text-xs">
+          <p id="composer-error" role="alert" className="text-danger px-2 pt-1 text-xs">
             {error}
           </p>
         ) : null}
@@ -421,8 +403,8 @@ export function Composer({
           onHover={setSlashIndex}
         />
 
-        {/* Main Textarea Container */}
-        <div className="flex min-h-0 flex-1 flex-col px-3 pt-1">
+        {/* Textarea Input */}
+        <div className="flex min-h-0 flex-1 flex-col px-2 pt-0.5">
           <textarea
             ref={ref}
             aria-label="Chat message input"
@@ -439,8 +421,8 @@ export function Composer({
             disabled={disabled}
             maxLength={MAX_TEXT_CHARS}
             className={cn(
-              'text-fg placeholder:text-fg-subtle w-full resize-none border-0 bg-transparent p-0 text-body leading-[1.45] shadow-none focus:outline-none focus-visible:ring-0',
-              'max-h-[4lh] min-h-[38px] sm:max-h-[10lh] [field-sizing:content]',
+              'text-fg placeholder:text-fg-subtle text-body w-full resize-none border-0 bg-transparent p-0 leading-[1.45] shadow-none focus:outline-none focus-visible:ring-0',
+              'max-h-[4lh] min-h-[36px] sm:max-h-[10lh] [field-sizing:content]',
             )}
             onKeyDown={(e) => {
               if (handleSlashKeyDown(e)) return;
@@ -455,22 +437,18 @@ export function Composer({
           />
         </div>
 
-        {/* Bottom Instrument Tool Bar */}
-        <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
-          {/* Left tool chips */}
-          <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none]">
-            {/* Attach File/Image button */}
+        {/* Bottom Control Bar */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto [scrollbar-width:none]">
             <button
               type="button"
               aria-label="Attach image"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || images.length >= MAX_IMAGES}
               className={cn(
-                'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg transition-colors tactile-press',
-                'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2 active:translate-y-[0.5px]',
-                disabled || images.length >= MAX_IMAGES
-                  ? 'cursor-not-allowed opacity-50'
-                  : '',
+                'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2',
+                disabled || images.length >= MAX_IMAGES ? 'cursor-not-allowed opacity-50' : '',
               )}
             >
               <IconPaperclip className="size-4" strokeWidth={1.75} />
@@ -496,11 +474,9 @@ export function Composer({
                 onClick={() => (voice.active ? voice.stop() : voice.start())}
                 disabled={disabled}
                 className={cn(
-                  'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg transition-colors tactile-press',
-                  'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2 active:translate-y-[0.5px]',
-                  voice.active
-                    ? 'text-danger mic-pulse bg-danger/10'
-                    : '',
+                  'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                  'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2',
+                  voice.active ? 'text-danger bg-danger/10' : '',
                   disabled ? 'cursor-not-allowed opacity-50' : '',
                 )}
               >
@@ -508,7 +484,7 @@ export function Composer({
               </button>
             ) : null}
 
-            {/* Mode / Analysis Chip */}
+            {/* Analysis Mode Toggle */}
             {analysisMode && onAnalysisModeChange ? (
               <button
                 type="button"
@@ -520,83 +496,82 @@ export function Composer({
                 }}
                 title={MODE_DESCRIPTIONS[analysisMode]}
                 aria-label={`Analysis mode: ${MODE_LABELS[analysisMode]}`}
-                className="border-chip-edge bg-background/50 hover:bg-bg-elev-2 active:bg-bg-elev-3 font-mono text-caption text-fg-muted hover:text-fg flex h-10 sm:h-9 min-h-10 items-center gap-1.5 rounded-md border px-2.5 font-normal transition-colors tactile-press active:translate-y-[0.5px]"
+                className={cn(
+                  'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
+                  analysisMode === 'full'
+                    ? 'border-brand/40 bg-brand/10 text-brand'
+                    : 'border-border bg-bg-elev-2 text-fg-muted hover:text-fg',
+                )}
               >
-                <span className={cn('size-1.5 rounded-full', analysisMode === 'full' ? 'bg-brand' : 'bg-bull')} />
+                <span
+                  className={cn(
+                    'size-1.5 rounded-full',
+                    analysisMode === 'full' ? 'bg-brand' : 'bg-bull',
+                  )}
+                />
                 <span>{MODE_LABELS[analysisMode]}</span>
-                <span className="text-[10px] text-fg-subtle">▾</span>
               </button>
+            ) : null}
+
+            {/* Restored Model Picker */}
+            {onChatModelChange ? (
+              <ChatModelSelector
+                activeModelId={chatModel ?? null}
+                disabled={disabled}
+                onPick={onChatModelChange}
+              />
             ) : null}
           </div>
 
-          {/* Right actions: Optional Context usage meter + Char Count + Send/Stop Button */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             {typeof contextUsagePercent === 'number' && (
               <div
                 title="Conversation History Used"
-                className="flex items-center gap-1 font-mono text-[11px] text-fg-subtle tabular-nums select-none"
+                className="text-fg-subtle flex items-center gap-1 font-mono text-xs tabular-nums select-none"
               >
-                <span className="size-3 rounded-full border border-fg-subtle/40 border-t-brand" />
                 <span>{contextUsagePercent}%</span>
               </div>
             )}
 
-            {/* Char count */}
             <span
               aria-live="polite"
               aria-label={`${charCount} of ${MAX_TEXT_CHARS} characters used`}
-              className={cn('text-[11px] font-mono tabular-nums', charCountClass)}
+              className={cn('font-mono text-xs tabular-nums', charCountClass)}
             >
               {formatCharCount(charCount)}
             </span>
-
-            {focused && !isTouch && !isStreaming ? (
-              <p className="text-fg-subtle text-[11px] font-mono hidden pr-1 tabular-nums lg:block">
-                <kbd className="bg-bg-elev-2 border-border/80 rounded border px-1 text-[10px]">
-                  ↵
-                </kbd>
-              </p>
-            ) : null}
 
             <AnimatePresence mode="popLayout" initial={false}>
               {isStreaming && onStop ? (
                 <m.button
                   key="stop"
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.85 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.15 }}
                   type="button"
                   onClick={onStop}
                   aria-label="Stop generating"
-                  className="chip-press text-danger border-danger/40 bg-danger/15 inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg border tactile-press active:translate-y-[0.5px]"
+                  className="text-danger border-danger/40 bg-danger/15 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border"
                 >
                   <IconSquare className="size-3.5 fill-current" strokeWidth={0} />
                 </m.button>
               ) : (
                 <m.button
                   key="send"
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.85 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.15 }}
                   type="submit"
                   disabled={!canSend}
                   aria-label="Send message"
                   className={cn(
-                    'chip-press group bg-fg hover:bg-white text-black inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg font-medium transition-colors tactile-press',
-                    'disabled:cursor-not-allowed disabled:opacity-35 disabled:grayscale active:translate-y-[0.5px]',
+                    'bg-fg hover:bg-white text-black inline-flex size-9 shrink-0 items-center justify-center rounded-lg font-medium transition-colors',
+                    'disabled:cursor-not-allowed disabled:opacity-30',
                   )}
                 >
-                  <span className="relative block size-[16px]">
-                    {SEND_PIXEL_COORDINATES.map(([left, top], idx) => (
-                      <span
-                        key={idx}
-                        style={{ left: `${left}px`, top: `${top}px` }}
-                        className="bg-black absolute size-[2.5px] rounded-[0.6px]"
-                      />
-                    ))}
-                  </span>
+                  <IconArrowUp className="size-4" strokeWidth={2.25} />
                 </m.button>
               )}
             </AnimatePresence>

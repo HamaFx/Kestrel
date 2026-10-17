@@ -20,6 +20,7 @@
 import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 
+import type { AgentProgress } from '@/lib/chat-transport';
 import { cn } from '@/lib/cn';
 import { getSessionInfo } from '@/lib/session';
 
@@ -27,40 +28,19 @@ import {
   ChartWizardSprite,
   KestrelFalconSprite,
   MacroMageSprite,
-  MacroWorkstation,
   RiskKnightSprite,
-  RiskWorkstation,
-  SentinelWorkstation,
-  TechnicalWorkstation,
-  TradingFloorDesk,
 } from './pixel-sprites';
 
 const QUANT_STATUS_STEPS = [
-  'Reading 15m, 1h & 4h charts…',
-  'Checking key support, resistance & levels…',
-  'Evaluating moving averages & RSI…',
-  'Calculating risk & stop loss levels…',
-  'Combining all 4 specialist desk views…',
+  'Reading 15m, 1h & 4h market structure…',
+  'Evaluating macro catalysts, real yields & DXY…',
+  'Auditing 1% risk sizing & ATR invalidation levels…',
+  'Scanning CFTC COT positioning & order flow…',
+  'Synthesizing 4-desk committee consensus…',
 ];
 
-const THINKING_BUBBLES: Record<
-  number,
-  {
-    agent: string;
-    tag: string;
-    text: string;
-    theme: 'technical' | 'fundamental' | 'risk' | 'sentiment';
-  }
-> = {
-  0: { agent: 'technical', tag: 'CHARTS', text: 'Checking price action…', theme: 'technical' },
-  1: { agent: 'technical', tag: 'LEVELS', text: 'Key levels mapped', theme: 'technical' },
-  2: { agent: 'fundamental', tag: 'NEWS', text: 'Checking news & yields…', theme: 'fundamental' },
-  3: { agent: 'risk', tag: 'RISK', text: 'Setting stop loss…', theme: 'risk' },
-  4: { agent: 'sentiment', tag: 'SUMMARY', text: 'Consensus ready!', theme: 'sentiment' },
-};
-
 export interface CharacterProfile {
-  id: string;
+  id: 'technical' | 'fundamental' | 'risk' | 'sentiment';
   name: string;
   role: string;
   badgeClass: string;
@@ -74,49 +54,56 @@ export interface CharacterProfile {
 export const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
   technical: {
     id: 'technical',
-    name: 'Chart Analyst',
-    role: 'Technical Desk',
-    badgeClass: 'text-bull border-bull/40 bg-bull/10',
-    glowColor: 'rgba(34, 197, 94, 0.25)',
-    title: 'Charts, Levels & Trends',
-    specialty: '15m/1h structure, trends, order blocks & key levels',
-    indicators: 'EMAs (20/50/200), RSI-14, MACD, Support/Resistance',
-    motto: '“Trade the trend and respect your levels.”',
+    name: 'Technical Structure',
+    role: 'Desk 01 · Price Action',
+    badgeClass: 'text-bull border-bull/30 bg-bull/10',
+    glowColor: 'rgba(63, 158, 61, 0.14)',
+    title: 'Multi-Timeframe Structure & Liquidity',
+    specialty: '4H/1H/15m market structure, order blocks, FVGs & session highs/lows',
+    indicators: 'EMA 20/50/200, RSI-14, ATR-14, Session Pivots',
+    motto: 'Price structure and liquidity levels define the execution frame.',
   },
   fundamental: {
     id: 'fundamental',
-    name: 'Macro Analyst',
-    role: 'Macro News Desk',
-    badgeClass: 'text-info border-info/40 bg-info/10',
-    glowColor: 'rgba(56, 189, 248, 0.25)',
-    title: 'Economic News & Catalysts',
-    specialty: 'Interest rates, inflation, economic calendar & news events',
-    indicators: 'Economic Calendar, Bond Yields, Dollar Index',
-    motto: '“Understand the big picture before entering the market.”',
+    name: 'Macro & Rates',
+    role: 'Desk 02 · Catalysts',
+    badgeClass: 'text-info border-info/30 bg-info/10',
+    glowColor: 'rgba(79, 163, 181, 0.14)',
+    title: 'Central Banks, Real Yields & Releases',
+    specialty: '10Y real yields, DXY correlation, central bank policy & high-impact calendar',
+    indicators: 'US10Y Real Yield, DXY, CPI/NFP/FOMC Releases',
+    motto: 'Rate differentials and macro catalysts drive sustained directional flow.',
   },
   risk: {
     id: 'risk',
-    name: 'Risk Manager',
-    role: 'Risk Desk',
-    badgeClass: 'text-bear border-bear/40 bg-bear/10',
-    glowColor: 'rgba(244, 63, 94, 0.25)',
-    title: 'Position Sizing & Capital Protection',
-    specialty: '1% position sizing, stop losses, and risk/reward ratios',
-    indicators: 'ATR Volatility, 1:2+ R:R, Max Drawdown Limits',
-    motto: '“Protect your capital first. Profit comes second.”',
+    name: 'Risk & Sizing',
+    role: 'Desk 03 · Governance',
+    badgeClass: 'text-bear border-bear/30 bg-bear/10',
+    glowColor: 'rgba(224, 44, 16, 0.14)',
+    title: 'Invalidation, Stop Placement & R:R',
+    specialty: '1% capital sizing, ATR volatility buffers, and hard invalidation thresholds',
+    indicators: 'ATR-14 Stop Distance, 1:2.5+ R:R, Drawdown Guard',
+    motto: 'Every thesis requires an explicit price invalidation level before entry.',
   },
   sentiment: {
     id: 'sentiment',
-    name: 'Market Scout',
-    role: 'Sentiment Desk',
-    badgeClass: 'text-warn border-warn/40 bg-warn/10',
-    glowColor: 'rgba(245, 158, 11, 0.25)',
-    title: 'Market Sentiment & Flow',
-    specialty: 'Institutional positioning, COT data & market sentiment',
-    indicators: 'COT positioning, market sentiment, volume trends',
-    motto: '“Follow institutional flow, not the crowd.”',
+    name: 'Flow & Positioning',
+    role: 'Desk 04 · Sentiment',
+    badgeClass: 'text-warn border-warn/30 bg-warn/10',
+    glowColor: 'rgba(217, 143, 0, 0.14)',
+    title: 'COT Institutional Flow & Crowd Skew',
+    specialty: 'CFTC Commitments of Traders (COT), commercial hedging & retail crowding',
+    indicators: 'CFTC Net Non-Commercials, Retail Long/Short Skew',
+    motto: 'Institutional positioning reveals whether a move is crowded or supported.',
   },
 };
+
+const DESK_ORDER: Array<'technical' | 'fundamental' | 'risk' | 'sentiment'> = [
+  'technical',
+  'fundamental',
+  'risk',
+  'sentiment',
+];
 
 export interface PixelAgentOpinion {
   agentName: string;
@@ -131,143 +118,28 @@ interface PixelDeskDeliberationProps {
   className?: string;
 }
 
-/**
- * Unified Status / Speech Bubble
- * Clean, single-bubble system with optional tag and status styling.
- */
-function UnifiedDeskBubble({
-  tag,
-  text,
-  theme = 'technical',
-  side = 'top',
-}: {
-  tag?: string;
-  text: string;
-  theme?: 'technical' | 'fundamental' | 'risk' | 'sentiment' | 'bullish' | 'bearish' | 'neutral';
-  side?: 'top' | 'bottom';
-}) {
-  const themeClasses =
-    theme === 'bullish' || theme === 'technical'
-      ? 'border-bull/60 text-bull shadow-[0_2px_8px_rgba(34,197,94,0.15)]'
-      : theme === 'bearish' || theme === 'risk'
-        ? 'border-bear/60 text-bear shadow-[0_2px_8px_rgba(244,63,94,0.15)]'
-        : theme === 'fundamental'
-          ? 'border-info/60 text-info shadow-[0_2px_8px_rgba(56,189,248,0.15)]'
-          : theme === 'sentiment'
-            ? 'border-warn/60 text-warn shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
-            : 'border-border text-fg-muted';
-
-  return (
-    <m.div
-      initial={{ opacity: 0, y: side === 'top' ? 3 : -3, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: side === 'top' ? 2 : -2, scale: 0.92 }}
-      transition={{ type: 'spring', damping: 18, stiffness: 320 }}
-      className={cn(
-        'pointer-events-none absolute z-20 flex w-max max-w-[72px] flex-col items-center select-none sm:max-w-[120px]',
-        side === 'top'
-          ? '-top-5 left-1/2 -translate-x-1/2 sm:-top-6'
-          : '-bottom-5 left-1/2 -translate-x-1/2 sm:-bottom-6',
-      )}
-    >
-      <div
-        className={cn(
-          'bg-bg-elev-3/95 rounded-2xs py-0.2 flex items-center gap-1 border px-1 font-mono text-[9px] leading-none font-bold backdrop-blur-xs sm:rounded-xs sm:px-1.5 sm:py-0.5 sm:text-[10px]',
-          themeClasses,
-        )}
-      >
-        {tag && (
-          <span className="hidden text-[9px] font-semibold tracking-wide uppercase opacity-75 sm:inline">
-            [{tag}]
-          </span>
-        )}
-        <span className="truncate">{text}</span>
-      </div>
-      <div
-        className={cn(
-          'size-0 border-x-[2.5px] border-x-transparent',
-          side === 'top'
-            ? 'border-t-border -mt-[1px] border-t-[2.5px]'
-            : 'border-b-border order-first -mb-[1px] border-b-[2.5px]',
-        )}
-      />
-    </m.div>
-  );
+function renderDeskGlyph(
+  deskId: string,
+  opts?: { isThinking?: boolean; isDone?: boolean; bias?: 'bullish' | 'bearish' | 'neutral' },
+) {
+  switch (deskId) {
+    case 'technical':
+      return <ChartWizardSprite {...opts} />;
+    case 'fundamental':
+      return <MacroMageSprite {...opts} />;
+    case 'risk':
+      return <RiskKnightSprite {...opts} />;
+    default:
+      return <KestrelFalconSprite {...opts} />;
+  }
 }
 
-/**
- * CharacterProfileCard
- * Sleek 8-bit trading profile card popover with retro glow and stats.
- */
-function CharacterProfileCard({
-  profile,
-  onClose,
-}: {
-  profile: CharacterProfile;
-  onClose: () => void;
-}) {
-  return (
-    <m.div
-      initial={{ opacity: 0, y: 4, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 3, scale: 0.96 }}
-      transition={{ duration: 0.14, ease: 'easeOut' }}
-      style={{
-        boxShadow: `0 8px 24px -4px ${profile.glowColor}`,
-      }}
-      className="border-brand/40 bg-bg-elev-3/95 relative z-30 flex w-full flex-col gap-2 rounded-xs border p-2.5 shadow-xl backdrop-blur-md sm:p-3"
-    >
-      <div className="border-border/60 flex items-start justify-between border-b pb-1.5 sm:pb-2">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <span className="text-fg font-mono text-[11px] font-bold tracking-wide sm:text-xs">
-              {profile.name}
-            </span>
-            <span
-              className={cn(
-                'rounded-2xs py-0.2 border px-1.5 font-mono text-[9px] font-semibold uppercase sm:text-[10px]',
-                profile.badgeClass,
-              )}
-            >
-              {profile.role}
-            </span>
-          </div>
-          <span className="text-fg-subtle font-mono text-[10px] sm:text-[11px]">
-            {profile.title}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[30px] min-w-[30px] cursor-pointer touch-manipulation items-center justify-center rounded-xs p-1 font-mono text-xs leading-none transition-colors"
-          aria-label="Close character profile"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-1.5 font-mono text-xs">
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-fg-subtle shrink-0 text-xs font-bold uppercase">Focus:</span>
-          <span className="text-fg-muted text-xs leading-snug">{profile.specialty}</span>
-        </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-fg-subtle shrink-0 text-xs font-bold uppercase">Tools:</span>
-          <span className="text-fg-muted text-xs leading-snug">{profile.indicators}</span>
-        </div>
-      </div>
-
-      <div className="border-border/40 bg-bg-elev-2 rounded-xs border px-2.5 py-1.5 text-center">
-        <p className="text-brand font-mono text-xs leading-snug italic">{profile.motto}</p>
-      </div>
-    </m.div>
-  );
-}
+const QUICK_SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'BTCUSD', 'USDJPY'] as const;
 
 /**
  * PixelDeskStandby
- * Rendered on the Chat Welcome Screen and Dashboard Widget.
- * The 4 animated specialists are actively on standby, merged with session-aware recommended prompts.
+ * Clean, high-signal 4-Desk Research Ledger for the Chat empty state and Dashboard widget.
+ * Replaces arcade CRT clutter with a calm, institutional 4-desk matrix and direct brief launcher.
  */
 export function PixelDeskStandby({
   pinnedSymbol,
@@ -282,8 +154,7 @@ export function PixelDeskStandby({
   now?: Date;
   className?: string;
 }) {
-  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<
+  const [activeDesk, setActiveDesk] = useState<
     'all' | 'technical' | 'fundamental' | 'risk' | 'sentiment'
   >('all');
   const [customSymbol, setCustomSymbol] = useState<string | null>(null);
@@ -291,559 +162,230 @@ export function PixelDeskStandby({
   const sessionInfo = useMemo(() => getSessionInfo(now ?? new Date()), [now]);
   const activeSymbol = (customSymbol ?? pinnedSymbol ?? 'XAUUSD').toUpperCase();
 
-  // Dynamic session-aware recommended prompts organized by specialist discipline
-  const SPECIALIST_PROMPT_CATALOG = useMemo(() => {
+  const deskBriefs = useMemo(() => {
     const s = activeSymbol;
     return {
       technical: [
         {
           id: 't1',
-          tag: '15m SMC',
-          title: `${s} 15m SMC & Order Blocks`,
-          desc: 'Scan liquidity sweeps & Fair Value Gaps',
-          prompt: `Analyze ${s} 15m/1h SMC liquidity sweeps, order blocks & market structure.`,
+          desk: 'Technical',
+          title: `${s} 4H → 15m structure & key levels`,
+          detail: 'Order blocks, liquidity sweeps, and session high/low pivots',
+          prompt: `Run a top-down 4H to 15m technical structure and key liquidity level analysis on ${s}.`,
         },
         {
           id: 't2',
-          tag: '4H→15M',
-          title: `Top-Down Multi-Timeframe`,
-          desc: '4H macro trend alignment down to 15m entry',
-          prompt: `Run top-down multi-timeframe analysis for ${s} from 4H structure to 15m execution.`,
-        },
-        {
-          id: 't3',
-          tag: 'FVG/OB',
-          title: `Imbalances & Key Zones`,
-          desc: 'Map premium/discount zones and mitigation blocks',
-          prompt: `Identify key Fair Value Gaps (FVG) and premium/discount order blocks for ${s}.`,
+          desk: 'Technical',
+          title: `${s} imbalance zones & EMA alignment`,
+          detail: 'Fair value gaps, RSI-14 regime, and 20/50/200 EMA confluence',
+          prompt: `Map active Fair Value Gaps (FVG) and 20/50/200 EMA trend alignment on ${s}.`,
         },
       ],
       fundamental: [
         {
           id: 'f1',
-          tag: 'CATALYST',
-          title: `${sessionInfo.label} Economic News`,
-          desc: 'High-impact events & central bank expectations',
-          prompt: `What are the upcoming economic calendar catalysts and central bank drivers for ${s}?`,
+          desk: 'Macro',
+          title: `${sessionInfo.label} macro catalysts for ${s}`,
+          detail: 'Upcoming high-impact releases and central bank rate expectations',
+          prompt: `What are the key economic calendar catalysts and central bank drivers for ${s} this session?`,
         },
         {
           id: 'f2',
-          tag: 'YIELDS',
-          title: 'US Real Yields & DXY',
-          desc: '10Y real rates, inflation breakevens & dollar index',
-          prompt: `Analyze US 10-year Treasury yields, real rates, and DXY index correlation with ${s}.`,
-        },
-        {
-          id: 'f3',
-          tag: 'MACRO',
-          title: 'Central Bank Policy Bias',
-          desc: 'Fed / ECB / BOE rate trajectory & policy stance',
-          prompt: `Provide the central bank policy stance and rate cut/hike trajectory affecting ${s}.`,
+          desk: 'Macro',
+          title: `US 10Y real yields & DXY vs ${s}`,
+          detail: 'Cross-asset rate divergence and dollar index pressure',
+          prompt: `Analyze US 10-year real yields and DXY correlation against ${s} right now.`,
         },
       ],
       risk: [
         {
           id: 'r1',
-          tag: '1% RISK',
-          title: 'Optimal 1% Position Sizing',
-          desc: 'Strict account risk & lot size calculator',
-          prompt: `Calculate optimal 1% risk position sizing and ATR invalidation stop loss for ${s}.`,
+          desk: 'Risk',
+          title: `${s} 1% position size & ATR invalidation`,
+          detail: 'Volatility-adjusted stop placement and 1:2.5+ target structure',
+          prompt: `Calculate 1% risk position sizing, ATR stop loss distance, and invalidation level for ${s}.`,
         },
         {
           id: 'r2',
-          tag: '1:3 R:R',
-          title: 'Multi-Target Take Profit Cones',
-          desc: 'Partial TP scaling (1:1.5, 1:2.5, 1:4 R:R)',
-          prompt: `Design a 1:3 R:R trade execution plan with partial take-profit cones for ${s}.`,
-        },
-        {
-          id: 'r3',
-          tag: 'ALERT',
-          title: 'Invalidation & Level Alert',
-          desc: 'Key support/resistance breach guard',
-          prompt: `Set an invalidation risk alert for ${s} at the nearest major session high/low.`,
+          desk: 'Risk',
+          title: `Scenario stress test & key breach levels`,
+          detail: 'Bull/bear invalidation triggers and maximum drawdown guardrails',
+          prompt: `What price level invalidates the current ${s} thesis, and where should risk alerts sit?`,
         },
       ],
       sentiment: [
         {
           id: 's1',
-          tag: 'COT',
-          title: 'CFTC Institutional Positioning',
-          desc: 'Commercial hedge vs non-commercial speculators',
-          prompt: `Check CFTC Commitments of Traders (COT) institutional whale positioning for ${s}.`,
+          desk: 'Sentiment',
+          title: `${s} CFTC COT institutional positioning`,
+          detail: 'Non-commercial speculator net flow vs commercial hedgers',
+          prompt: `Check CFTC Commitments of Traders (COT) institutional positioning and net flow for ${s}.`,
         },
         {
           id: 's2',
-          tag: 'REGIME',
-          title: 'Retail vs Smart Money Flow',
-          desc: 'Sentiment extremes & contrarian reversal odds',
-          prompt: `Analyze retail sentiment extremes and smart money order flow divergence on ${s}.`,
-        },
-        {
-          id: 's3',
-          tag: 'CONSENSUS',
-          title: 'Multi-Desk Committee Verdict',
-          desc: 'Full 4-agent weighted consensus score',
-          prompt: `Convene full quantitative committee deliberation on ${s} across Technicals, Macro, Risk, and Sentiment.`,
+          desk: 'Sentiment',
+          title: `Crowd skew & contrarian exhaustion check`,
+          detail: 'Retail positioning extremes and smart-money divergence',
+          prompt: `Analyze retail sentiment skew and institutional order flow divergence on ${s}.`,
         },
       ],
     };
   }, [activeSymbol, sessionInfo.label]);
 
-  const QUICK_SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'BTCUSD', 'USDJPY'];
+  const visibleBriefs = useMemo(() => {
+    if (activeDesk === 'all') {
+      return [
+        deskBriefs.technical[0]!,
+        deskBriefs.fundamental[0]!,
+        deskBriefs.risk[0]!,
+        deskBriefs.sentiment[0]!,
+      ];
+    }
+    return deskBriefs[activeDesk];
+  }, [activeDesk, deskBriefs]);
 
   return (
     <div
       role="region"
-      aria-label="Quantitative floor on standby"
+      aria-label="4-Desk AI Research Committee"
       className={cn(
-        'border-border/80 bg-bg-elev-1 surface-chip relative my-1 flex w-full max-w-xl flex-col gap-2.5 overflow-hidden rounded-xl border border-edge/80 p-3 shadow-[var(--shadow-chip)] sm:my-2 sm:gap-3 sm:p-4',
+        'border-border bg-bg-elev-1 flex w-full max-w-2xl flex-col rounded-xl border text-left shadow-sm overflow-hidden',
         className,
       )}
     >
-      {/* Subtle CRT Scanline Background Overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(0deg, #000, #000 1px, transparent 1px, transparent 2px)',
-          backgroundSize: '100% 2px',
-        }}
-      />
-
-      {/* Header Bar with Live Session Sync */}
-      <div className="border-border/60 flex items-center justify-between border-b pb-2">
-        <div className="flex items-center gap-1.5">
-          <span className="bg-bull inline-block size-2 animate-pulse rounded-full shadow-[0_0_6px_rgba(63,158,61,0.5)]" />
-          <span className="text-fg text-caption font-mono font-bold tracking-wider uppercase">
-            4-DESK AI RESEARCH COMMITTEE
+      {/* Top Bar: Committee Identity + Active Session + Symbol Selector */}
+      <div className="border-border/70 flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="bg-bull size-2 rounded-full" />
+          <span className="text-fg text-xs font-semibold tracking-tight">
+            4-Desk Research Committee
+          </span>
+          <span className="text-fg-subtle text-xs">·</span>
+          <span className="text-fg-muted font-mono text-xs tabular-nums">
+            {sessionInfo.label} Session
           </span>
         </div>
-        <span className="border-bull/40 bg-bull/10 text-bull text-caption rounded-md border px-1.5 py-0.5 font-mono font-semibold tracking-wide uppercase">
-          {sessionInfo.label.toUpperCase()} · READY
-        </span>
-      </div>
 
-      {/* The 8-Bit Trading Floor / Character Row with Custom Workstations */}
-      <div className="flex flex-col gap-0 pt-5 sm:pt-6">
-        <div className="flex items-end justify-around gap-1 px-0.5 pb-1 sm:gap-2 sm:px-1">
-          {/* Desk 1: Chart Wizard */}
-          <m.button
-            type="button"
-            disabled={disabled}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setSelectedProfile(selectedProfile === 'technical' ? null : 'technical');
-              setActiveTab('technical');
-            }}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 disabled:opacity-50 sm:gap-1"
-            title="Technical Desk · 15M RSI, FVG & Order Flow"
-          >
-            <UnifiedDeskBubble tag="TECH" text="FVG Scan" theme="technical" />
-            <ChartWizardSprite />
-            <div className="flex flex-col items-center gap-0.5">
-              <TechnicalWorkstation />
-              <span className="bg-bull size-1 rounded-full" />
-            </div>
-            <span
-              className={cn(
-                'text-caption font-mono font-semibold transition-colors',
-                activeTab === 'technical'
-                  ? 'text-bull font-bold'
-                  : 'text-fg-subtle group-hover:text-brand',
-              )}
-            >
-              Technical
-            </span>
-          </m.button>
-
-          {/* Desk 2: Macro Mage */}
-          <m.button
-            type="button"
-            disabled={disabled}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental');
-              setActiveTab('fundamental');
-            }}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 disabled:opacity-50 sm:gap-1"
-            title="Macro Desk · Central Bank Yields & High-Impact Calendar"
-          >
-            <UnifiedDeskBubble tag="MACRO" text="News Ready" theme="fundamental" />
-            <MacroMageSprite />
-            <div className="flex flex-col items-center gap-0.5">
-              <MacroWorkstation />
-              <span className="bg-info size-1 rounded-full" />
-            </div>
-            <span
-              className={cn(
-                'text-caption font-mono font-semibold transition-colors',
-                activeTab === 'fundamental'
-                  ? 'text-info font-bold'
-                  : 'text-fg-subtle group-hover:text-brand',
-              )}
-            >
-              Macro
-            </span>
-          </m.button>
-
-          {/* Desk 3: Risk Knight */}
-          <m.button
-            type="button"
-            disabled={disabled}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setSelectedProfile(selectedProfile === 'risk' ? null : 'risk');
-              setActiveTab('risk');
-            }}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 disabled:opacity-50 sm:gap-1"
-            title="Risk Desk · Drawdown Guard & Hard-Stop Rules"
-          >
-            <UnifiedDeskBubble tag="RISK" text="1% Guard" theme="risk" />
-            <RiskKnightSprite />
-            <div className="flex flex-col items-center gap-0.5">
-              <RiskWorkstation />
-              <span className="bg-bear size-1 rounded-full" />
-            </div>
-            <span
-              className={cn(
-                'text-caption font-mono font-semibold transition-colors',
-                activeTab === 'risk'
-                  ? 'text-bear font-bold'
-                  : 'text-fg-subtle group-hover:text-brand',
-              )}
-            >
-              Risk
-            </span>
-          </m.button>
-
-          {/* Desk 4: Sentinel Falcon */}
-          <m.button
-            type="button"
-            disabled={disabled}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment');
-              setActiveTab('sentiment');
-            }}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 disabled:opacity-50 sm:gap-1"
-            title="Sentiment Desk · Institutional Positioning & COT Scan"
-          >
-            <UnifiedDeskBubble tag="FLOW" text="Order Flow" theme="sentiment" />
-            <KestrelFalconSprite />
-            <div className="flex flex-col items-center gap-0.5">
-              <SentinelWorkstation />
-              <span className="bg-warn size-1 rounded-full" />
-            </div>
-            <span
-              className={cn(
-                'text-caption font-mono font-semibold transition-colors',
-                activeTab === 'sentiment'
-                  ? 'text-warn font-bold'
-                  : 'text-fg-subtle group-hover:text-brand',
-              )}
-            >
-              Sentiment
-            </span>
-          </m.button>
+        {/* Clean Instrument Switcher */}
+        <div className="bg-bg-elev-2 border-border/70 flex items-center gap-0.5 rounded-lg border p-0.5">
+          {QUICK_SYMBOLS.map((sym) => {
+            const isSelected = activeSymbol === sym;
+            return (
+              <button
+                key={sym}
+                type="button"
+                onClick={() => setCustomSymbol(sym)}
+                className={cn(
+                  'cursor-pointer touch-manipulation rounded-md px-2 py-1 font-mono text-xs font-medium transition-colors',
+                  isSelected
+                    ? 'bg-bg-elev-3 text-fg font-semibold shadow-2xs'
+                    : 'text-fg-subtle hover:text-fg',
+                )}
+              >
+                {sym}
+              </button>
+            );
+          })}
         </div>
-
-        {/* Continuous Trading Desk Counter with Ambient Props */}
-        <TradingFloorDesk />
       </div>
 
-      {/* Selected Character Profile Card Popover */}
-      <AnimatePresence>
-        {selectedProfile && CHARACTER_PROFILES[selectedProfile] && (
-          <div className="flex flex-col gap-2">
-            <CharacterProfileCard
-              profile={CHARACTER_PROFILES[selectedProfile]!}
-              onClose={() => setSelectedProfile(null)}
-            />
-            {onSelectPrompt && (
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() =>
-                  onSelectPrompt(
-                    SPECIALIST_PROMPT_CATALOG[
-                      selectedProfile as keyof typeof SPECIALIST_PROMPT_CATALOG
-                    ]?.[0]?.prompt ?? '',
-                  )
-                }
-                className="bg-brand/10 hover:bg-brand/20 text-brand border-brand/40 flex w-full cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-xs border py-2 font-mono text-xs font-bold tracking-wide uppercase transition-colors disabled:opacity-50"
-              >
-                <span>
-                  ▶ Deploy {CHARACTER_PROFILES[selectedProfile]?.name} on {activeSymbol}
-                </span>
-              </button>
-            )}
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Merged Interactive Prompt Command Hub */}
-      {onSelectPrompt && !selectedProfile && (
-        <div className="flex flex-col gap-1.5 pt-1 sm:gap-2">
-          {/* Top Bar: Category Tabs & Asset Switcher */}
-          <div className="border-border/40 flex flex-wrap items-center justify-between gap-1.5 border-b pb-1.5">
-            {/* Category Filter Tabs */}
-            <div className="no-scrollbar flex items-center gap-1 overflow-x-auto">
-              <button
-                type="button"
-                onClick={() => setActiveTab('all')}
-                className={cn(
-                  'shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono text-[10px] font-medium transition-colors sm:text-xs',
-                  activeTab === 'all'
-                    ? 'bg-brand/15 text-brand border-brand/40 border font-semibold'
-                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
-                )}
-              >
-                Top Picks
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('technical')}
-                className={cn(
-                  'shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono text-[10px] font-medium transition-colors sm:text-xs',
-                  activeTab === 'technical'
-                    ? 'bg-bull/15 text-bull border-bull/40 border font-semibold'
-                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
-                )}
-              >
-                Technicals
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('fundamental')}
-                className={cn(
-                  'shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono text-[10px] font-medium transition-colors sm:text-xs',
-                  activeTab === 'fundamental'
-                    ? 'border-info/40 bg-info/15 text-info border font-semibold'
-                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
-                )}
-              >
-                Macro News
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('risk')}
-                className={cn(
-                  'shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono text-[10px] font-medium transition-colors sm:text-xs',
-                  activeTab === 'risk'
-                    ? 'bg-bear/15 text-bear border-bear/40 border font-semibold'
-                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
-                )}
-              >
-                Risk Guard
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('sentiment')}
-                className={cn(
-                  'shrink-0 cursor-pointer touch-manipulation rounded-xs px-2 py-0.5 font-mono text-[10px] font-medium transition-colors sm:text-xs',
-                  activeTab === 'sentiment'
-                    ? 'border-warn/40 bg-warn/15 text-warn border font-semibold'
-                    : 'text-fg-subtle hover:text-fg bg-bg-elev-2 border border-transparent',
-                )}
-              >
-                Sentiment
-              </button>
-            </div>
-
-            {/* Quick Symbol Switcher */}
-            <div className="flex items-center gap-1">
-              <span className="text-fg-subtle sm:text-caption font-mono text-[10px]">Pair:</span>
-              <div className="flex items-center gap-0.5">
-                {QUICK_SYMBOLS.map((sym) => (
-                  <button
-                    key={sym}
-                    type="button"
-                    onClick={() => setCustomSymbol(sym)}
-                    className={cn(
-                      'sm:text-caption rounded-2xs cursor-pointer touch-manipulation px-1 py-0.5 font-mono text-[10px] transition-colors',
-                      activeSymbol === sym
-                        ? 'bg-brand text-bg font-bold shadow-xs'
-                        : 'text-fg-subtle hover:text-fg bg-bg-elev-2',
-                    )}
-                  >
-                    {sym.replace('USD', '')}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Action List based on Active Tab */}
-          {activeTab === 'all' ? (
-            <div className="flex flex-col gap-1.5">
-              {/* Full Multi-Agent Desk Hero Trigger */}
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() =>
-                  onSelectPrompt(
-                    `Analyze ${activeSymbol} across all 4 desks: Technicals, Macro News, Risk, and Sentiment.`,
-                  )
-                }
-                className="from-brand/15 to-bull/15 hover:from-brand/25 hover:to-bull/25 border-brand/50 hover:border-brand group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border bg-gradient-to-r via-amber-500/10 p-2 text-left shadow-xs transition-all disabled:opacity-50 sm:p-2.5"
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <span className="bg-brand text-bg sm:text-caption flex size-4.5 shrink-0 items-center justify-center rounded-xs font-mono text-[10px] font-extrabold sm:size-5">
-                    ALL
-                  </span>
-                  <div className="flex flex-col truncate">
-                    <span className="text-fg group-hover:text-brand truncate font-mono text-[11px] font-bold sm:text-xs">
-                      Full Desk Analysis on {activeSymbol}
-                    </span>
-                    <span className="text-fg-subtle sm:text-caption truncate font-mono text-[10px]">
-                      Run all 4 specialist desks together
-                    </span>
-                  </div>
-                </div>
-                <span className="text-brand shrink-0 font-mono text-[10px] font-bold sm:text-xs">
-                  ▶ RUN
-                </span>
-              </button>
-
-              {/* 4 Flagship Specialist Briefs */}
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                {/* Technical */}
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.technical[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bull/50 group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 text-left transition-all disabled:opacity-50 sm:p-2"
-                >
-                  <div className="flex flex-col gap-0.5 truncate">
-                    <span className="text-bull font-mono text-[11px] font-semibold sm:text-xs">
-                      {SPECIALIST_PROMPT_CATALOG.technical[0]!.title}
-                    </span>
-                    <span className="text-fg-subtle group-hover:text-fg sm:text-caption truncate font-mono text-[10px]">
-                      {SPECIALIST_PROMPT_CATALOG.technical[0]!.desc}
-                    </span>
-                  </div>
-                  <span className="text-fg-subtle group-hover:text-bull shrink-0 font-mono text-[11px] sm:text-xs">
-                    →
-                  </span>
-                </button>
-
-                {/* Macro */}
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.fundamental[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group hover:border-info/50 flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 text-left transition-all disabled:opacity-50 sm:p-2"
-                >
-                  <div className="flex flex-col gap-0.5 truncate">
-                    <span className="text-info font-mono text-[11px] font-semibold sm:text-xs">
-                      {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.title}
-                    </span>
-                    <span className="text-fg-subtle group-hover:text-fg sm:text-caption truncate font-mono text-[10px]">
-                      {SPECIALIST_PROMPT_CATALOG.fundamental[0]!.desc}
-                    </span>
-                  </div>
-                  <span className="text-fg-subtle group-hover:text-info shrink-0 font-mono text-[11px] sm:text-xs">
-                    →
-                  </span>
-                </button>
-
-                {/* Risk */}
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.risk[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border hover:border-bear/50 group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 text-left transition-all disabled:opacity-50 sm:p-2"
-                >
-                  <div className="flex flex-col gap-0.5 truncate">
-                    <span className="text-bear font-mono text-[11px] font-semibold sm:text-xs">
-                      {SPECIALIST_PROMPT_CATALOG.risk[0]!.title}
-                    </span>
-                    <span className="text-fg-subtle group-hover:text-fg sm:text-caption truncate font-mono text-[10px]">
-                      {SPECIALIST_PROMPT_CATALOG.risk[0]!.desc}
-                    </span>
-                  </div>
-                  <span className="text-fg-subtle group-hover:text-bear shrink-0 font-mono text-[11px] sm:text-xs">
-                    →
-                  </span>
-                </button>
-
-                {/* Sentiment */}
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSelectPrompt(SPECIALIST_PROMPT_CATALOG.sentiment[0]!.prompt)}
-                  className="bg-bg-elev-2 hover:bg-bg-elev-3 border-border group hover:border-warn/50 flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 text-left transition-all disabled:opacity-50 sm:p-2"
-                >
-                  <div className="flex flex-col gap-0.5 truncate">
-                    <span className="text-warn font-mono text-[11px] font-semibold sm:text-xs">
-                      {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.title}
-                    </span>
-                    <span className="text-fg-subtle group-hover:text-fg sm:text-caption truncate font-mono text-[10px]">
-                      {SPECIALIST_PROMPT_CATALOG.sentiment[0]!.desc}
-                    </span>
-                  </div>
-                  <span className="text-fg-subtle group-hover:text-warn shrink-0 font-mono text-[11px] sm:text-xs">
-                    →
-                  </span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* Dedicated Specialist Toolkit View */
-            <div className="flex flex-col gap-1.5">
-              {SPECIALIST_PROMPT_CATALOG[activeTab].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSelectPrompt(item.prompt)}
+      {/* 4-Column Interactive Desk Matrix (Click any desk to filter its briefs) */}
+      <div className="border-border/70 grid grid-cols-2 divide-x divide-y border-b sm:grid-cols-4 sm:divide-y-0">
+        {DESK_ORDER.map((deskId) => {
+          const profile = CHARACTER_PROFILES[deskId]!;
+          const isSelected = activeDesk === deskId;
+          return (
+            <button
+              key={deskId}
+              type="button"
+              disabled={disabled}
+              onClick={() => setActiveDesk(isSelected ? 'all' : deskId)}
+              aria-pressed={isSelected}
+              className={cn(
+                'group flex cursor-pointer touch-manipulation flex-col items-start gap-2 p-3.5 text-left transition-colors disabled:opacity-50',
+                isSelected ? 'bg-bg-elev-2' : 'hover:bg-bg-elev-2/50 bg-transparent',
+              )}
+            >
+              <div className="flex w-full items-center justify-between">
+                {renderDeskGlyph(deskId)}
+                <span
                   className={cn(
-                    'bg-bg-elev-2 hover:bg-bg-elev-3 border-border group flex cursor-pointer touch-manipulation items-center justify-between gap-2 rounded-xs border p-1.5 text-left transition-all disabled:opacity-50 sm:p-2',
-                    activeTab === 'technical'
-                      ? 'hover:border-bull/50'
-                      : activeTab === 'fundamental'
-                        ? 'hover:border-info/50'
-                        : activeTab === 'risk'
-                          ? 'hover:border-bear/50'
-                          : 'hover:border-warn/50',
+                    'rounded-sm border px-1.5 py-0.5 font-mono text-xs font-medium',
+                    isSelected
+                      ? profile.badgeClass
+                      : 'border-border/60 bg-bg-elev-2 text-fg-subtle',
                   )}
                 >
-                  <div className="flex items-center gap-2 truncate">
-                    <span
-                      className={cn(
-                        'rounded-2xs py-0.2 shrink-0 border px-1.5 font-mono text-[9px] font-bold uppercase sm:text-[10px]',
-                        activeTab === 'technical'
-                          ? 'text-bull border-bull/30 bg-bull/10'
-                          : activeTab === 'fundamental'
-                            ? 'border-info/30 bg-info/10 text-info'
-                            : activeTab === 'risk'
-                              ? 'text-bear border-bear/30 bg-bear/10'
-                              : 'border-warn/30 bg-warn/10 text-warn',
-                      )}
-                    >
-                      {item.tag}
-                    </span>
-                    <div className="flex flex-col truncate">
-                      <span className="text-fg group-hover:text-brand truncate font-mono text-[11px] font-semibold sm:text-xs">
-                        {item.title}
-                      </span>
-                      <span className="text-fg-subtle sm:text-caption truncate font-mono text-[10px]">
-                        {item.desc}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-fg-subtle group-hover:text-fg shrink-0 font-mono text-[11px] sm:text-xs">
-                    →
-                  </span>
+                  {deskId === 'technical'
+                    ? 'TECH'
+                    : deskId === 'fundamental'
+                      ? 'MACRO'
+                      : deskId === 'risk'
+                        ? 'RISK'
+                        : 'FLOW'}
+                </span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-fg text-xs font-semibold">{profile.name}</span>
+                <span className="text-fg-subtle line-clamp-1 text-xs">{profile.indicators}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Primary Committee Action + Curated Desk Prompts */}
+      {onSelectPrompt && (
+        <div className="flex flex-col gap-3 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-fg-muted text-xs font-medium">
+                {activeDesk === 'all'
+                  ? `Recommended briefs for ${activeSymbol}`
+                  : `${CHARACTER_PROFILES[activeDesk]?.name} briefs for ${activeSymbol}`}
+              </span>
+              {activeDesk !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveDesk('all')}
+                  className="text-brand hover:underline cursor-pointer text-xs font-medium"
+                >
+                  Show all 4 desks
                 </button>
-              ))}
+              )}
             </div>
-          )}
+
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() =>
+                onSelectPrompt(
+                  `Convene full 4-desk research committee on ${activeSymbol} across Technical Structure, Macro & Rates, Risk Sizing, and Institutional Flow.`,
+                )
+              }
+              className="bg-brand hover:bg-brand-soft text-brand-fg inline-flex cursor-pointer touch-manipulation items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              <span>Convene Full Committee on {activeSymbol}</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {visibleBriefs.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => onSelectPrompt(item.prompt)}
+                className="border-border/80 bg-bg-elev-2/60 hover:bg-bg-elev-2 hover:border-fg-subtle/40 flex cursor-pointer touch-manipulation flex-col gap-1 rounded-lg border p-3 text-left transition-colors disabled:opacity-50"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-fg text-xs font-semibold">{item.title}</span>
+                  <span className="text-fg-subtle font-mono text-xs">{item.desk}</span>
+                </div>
+                <span className="text-fg-muted line-clamp-1 text-xs">{item.detail}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -852,206 +394,120 @@ export function PixelDeskStandby({
 
 /**
  * PixelDeskThinking
- * Active deliberation state: shows the 4 pixel agents computing in real time.
- * Renders the 4 pixel specialists at their custom workstations with connected trading desk.
+ * Clean live deliberation state rendered inside the conversation stream.
+ * Connects to live `agentProgress` when available, with a graceful step progression fallback.
  */
-export function PixelDeskThinking({ className }: { className?: string }) {
+export function PixelDeskThinking({
+  agentProgress,
+  className,
+}: {
+  agentProgress?: AgentProgress | null;
+  className?: string;
+}) {
   const [stepIdx, setStepIdx] = useState(0);
-  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
 
   useEffect(() => {
     const stepTimer = setInterval(() => {
       setStepIdx((prev) => (prev + 1) % QUANT_STATUS_STEPS.length);
-    }, 2200);
-    return () => {
-      clearInterval(stepTimer);
-    };
+    }, 2400);
+    return () => clearInterval(stepTimer);
   }, []);
 
-  const progressPercent = Math.min(25 + stepIdx * 18, 92);
-  const activeBubble = THINKING_BUBBLES[stepIdx];
+  const liveAgents = agentProgress?.agents ?? [];
+  const doneCount = liveAgents.filter((a) => a.status === 'done').length;
+  const progressPercent =
+    liveAgents.length > 0
+      ? Math.max(15, Math.round((doneCount / liveAgents.length) * 100))
+      : Math.min(20 + stepIdx * 18, 90);
 
   return (
     <div
       role="status"
       aria-label="Specialists deliberating"
       className={cn(
-        'border-border/80 bg-bg-elev-1 relative my-1 flex w-full max-w-xl flex-col gap-2.5 overflow-hidden rounded-sm border p-2.5 shadow-sm sm:my-2 sm:gap-3 sm:p-3.5',
+        'border-border bg-bg-elev-1 my-1 flex w-full max-w-2xl flex-col gap-3 rounded-xl border p-4 shadow-sm',
         className,
       )}
     >
-      {/* Subtle CRT Scanline Background Overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(0deg, #000, #000 1px, transparent 1px, transparent 2px)',
-          backgroundSize: '100% 2px',
-        }}
-      />
-
-      {/* Header Bar */}
-      <div className="border-border/60 flex items-center justify-between border-b pb-1.5 sm:pb-2">
-        <div className="flex items-center gap-1.5">
-          <span className="bg-brand inline-block size-1.5 animate-pulse rounded-xs shadow-[0_0_6px_rgba(245,110,15,0.4)] sm:size-2" />
-          <span className="text-fg-subtle sm:text-caption font-mono text-[10px] font-bold tracking-wider uppercase">
-            Trading Floor Deliberation
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="bg-brand size-2 animate-pulse rounded-full" />
+          <span className="text-fg text-xs font-semibold">
+            {agentProgress?.mode === 'single'
+              ? 'Specialist Desk Analysis'
+              : '4-Desk Committee Deliberation'}
           </span>
         </div>
-        <span className="border-brand/40 bg-brand/10 text-brand sm:text-caption py-0.2 rounded-xs border px-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase sm:py-0.5">
-          Analyzing
+        <span className="text-fg-muted font-mono text-xs tabular-nums">
+          {liveAgents.length > 0 ? `${doneCount}/${liveAgents.length} desks ready` : `${progressPercent}%`}
         </span>
       </div>
 
-      {/* The 8-Bit Trading Floor / Character Row with Custom Workstations */}
-      <div className="flex flex-col gap-0 pt-4 sm:pt-6">
-        <div className="flex items-end justify-around gap-1 px-0.5 pb-1 sm:gap-2 sm:px-1">
-          {/* Desk 1: Chart Wizard */}
-          <m.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 sm:gap-1"
-            title="Technical Desk · 15M RSI, FVG & Order Flow"
-          >
-            <AnimatePresence>
-              {activeBubble?.agent === 'technical' && (
-                <UnifiedDeskBubble
-                  tag={activeBubble.tag}
-                  text={activeBubble.text}
-                  theme="technical"
-                />
-              )}
-            </AnimatePresence>
-            <ChartWizardSprite isThinking={true} />
-            <div className="flex flex-col items-center gap-0.5">
-              <TechnicalWorkstation isThinking={true} />
-              <span className="bg-bull size-1 animate-ping rounded-full opacity-75" />
-            </div>
-            <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
-              Technical
-            </span>
-          </m.button>
+      {/* 4-Column Live Status Strip */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {DESK_ORDER.map((deskId, idx) => {
+          const profile = CHARACTER_PROFILES[deskId]!;
+          const liveAgent = liveAgents.find((a) => a.agentName === deskId);
+          const status =
+            liveAgent?.status ??
+            (idx < stepIdx ? 'done' : idx === stepIdx ? 'running' : 'pending');
 
-          {/* Desk 2: Macro Mage */}
-          <m.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() =>
-              setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')
-            }
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 sm:gap-1"
-            title="Macro Desk · Central Bank Yields & High-Impact Calendar"
-          >
-            <AnimatePresence>
-              {activeBubble?.agent === 'fundamental' && (
-                <UnifiedDeskBubble
-                  tag={activeBubble.tag}
-                  text={activeBubble.text}
-                  theme="fundamental"
-                />
+          return (
+            <div
+              key={deskId}
+              className={cn(
+                'border-border/80 flex items-center gap-2.5 rounded-lg border p-2.5 transition-colors',
+                status === 'running'
+                  ? 'bg-bg-elev-2 border-brand/40'
+                  : status === 'done'
+                    ? 'bg-bg-elev-2/70 border-bull/30'
+                    : 'bg-bg-elev-1 opacity-65',
               )}
-            </AnimatePresence>
-            <MacroMageSprite isThinking={true} />
-            <div className="flex flex-col items-center gap-0.5">
-              <MacroWorkstation isThinking={true} />
-              <span className="size-1 animate-ping rounded-full bg-sky-400 opacity-75" />
+            >
+              {renderDeskGlyph(deskId, {
+                isThinking: status === 'running',
+                isDone: status === 'done',
+                bias: liveAgent?.opinion?.bias,
+              })}
+              <div className="flex min-w-0 flex-col">
+                <span className="text-fg truncate text-xs font-semibold">
+                  {deskId === 'technical'
+                    ? 'Technical'
+                    : deskId === 'fundamental'
+                      ? 'Macro'
+                      : deskId === 'risk'
+                        ? 'Risk'
+                        : 'Sentiment'}
+                </span>
+                <span
+                  className={cn(
+                    'font-mono text-xs capitalize tabular-nums',
+                    status === 'running'
+                      ? 'text-brand'
+                      : status === 'done'
+                        ? 'text-bull'
+                        : 'text-fg-subtle',
+                  )}
+                >
+                  {liveAgent?.opinion?.bias ?? status}
+                </span>
+              </div>
             </div>
-            <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
-              Macro
-            </span>
-          </m.button>
-
-          {/* Desk 3: Risk Knight */}
-          <m.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 sm:gap-1"
-            title="Risk Desk · Drawdown Guard & Hard-Stop Rules"
-          >
-            <AnimatePresence>
-              {activeBubble?.agent === 'risk' && (
-                <UnifiedDeskBubble tag={activeBubble.tag} text={activeBubble.text} theme="risk" />
-              )}
-            </AnimatePresence>
-            <RiskKnightSprite isThinking={true} />
-            <div className="flex flex-col items-center gap-0.5">
-              <RiskWorkstation isThinking={true} />
-              <span className="bg-bear size-1 animate-ping rounded-full opacity-75" />
-            </div>
-            <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
-              Risk
-            </span>
-          </m.button>
-
-          {/* Desk 4: Sentinel Falcon */}
-          <m.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 sm:gap-1"
-            title="Sentiment Desk · Institutional Positioning & COT Scan"
-          >
-            <AnimatePresence>
-              {activeBubble?.agent === 'sentiment' && (
-                <UnifiedDeskBubble
-                  tag={activeBubble.tag}
-                  text={activeBubble.text}
-                  theme="sentiment"
-                />
-              )}
-            </AnimatePresence>
-            <KestrelFalconSprite isThinking={true} />
-            <div className="flex flex-col items-center gap-0.5">
-              <SentinelWorkstation isThinking={true} />
-              <span className="size-1 animate-ping rounded-full bg-amber-400 opacity-75" />
-            </div>
-            <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
-              Sentiment
-            </span>
-          </m.button>
-        </div>
-
-        {/* Continuous Trading Desk Counter with Ambient Props & Active Glow */}
-        <TradingFloorDesk isThinking={true} />
+          );
+        })}
       </div>
 
-      {/* Selected Character Profile Card Popover */}
-      <AnimatePresence>
-        {selectedProfile && CHARACTER_PROFILES[selectedProfile] && (
-          <CharacterProfileCard
-            profile={CHARACTER_PROFILES[selectedProfile]!}
-            onClose={() => setSelectedProfile(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Telemetry Stage Ticker & Stepped Progress Bar */}
-      <div className="bg-bg-elev-2 border-border/60 flex flex-col gap-1 rounded-xs border p-2 sm:gap-2 sm:p-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-fg-muted truncate font-mono text-[10px] sm:text-xs">
-            <span className="text-brand mr-1">▶</span>
-            <span>{QUANT_STATUS_STEPS[stepIdx]}</span>
-          </div>
-          <span className="text-fg-subtle sm:text-caption shrink-0 font-mono text-[10px] font-bold tabular-nums">
-            {progressPercent}%
-          </span>
-        </div>
-
-        {/* Stepped 8-Bit Progress Bar */}
-        <div className="bg-bg-elev-3 border-border/40 h-1.5 w-full overflow-hidden rounded-xs border p-[1px] sm:h-2">
+      {/* Progress Bar & Active Step */}
+      <div className="flex flex-col gap-1.5">
+        <div className="bg-bg-elev-3 h-1 w-full overflow-hidden rounded-full">
           <m.div
-            className="from-brand to-bull h-full rounded-xs bg-gradient-to-r via-amber-500"
+            className="bg-brand h-full rounded-full"
             initial={{ width: '15%' }}
             animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
           />
         </div>
+        <span className="text-fg-muted text-xs">{QUANT_STATUS_STEPS[stepIdx]}</span>
       </div>
     </div>
   );
@@ -1059,7 +515,8 @@ export function PixelDeskThinking({ className }: { className?: string }) {
 
 /**
  * PixelDeskDeliberation
- * Renders the settled committee view with custom workstations and continuous trading desk.
+ * Renders the settled 4-Desk Committee Consensus Ledger inside assistant messages.
+ * Replaces tilted rubber stamps and tug-of-war bars with a clean institutional scorecard.
  */
 export function PixelDeskDeliberation({
   opinions,
@@ -1067,12 +524,6 @@ export function PixelDeskDeliberation({
   className,
 }: PixelDeskDeliberationProps) {
   const [expanded, setExpanded] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
-
-  const techOp = opinions.find((o) => o.agentName === 'technical');
-  const macroOp = opinions.find((o) => o.agentName === 'fundamental');
-  const riskOp = opinions.find((o) => o.agentName === 'risk');
-  const sentOp = opinions.find((o) => o.agentName === 'sentiment');
 
   const avgConfidence =
     opinions.length > 0
@@ -1099,332 +550,167 @@ export function PixelDeskDeliberation({
         ? 'bearish'
         : 'neutral';
 
-  const tugPercent = Math.max(
-    10,
-    Math.min(
-      90,
-      Math.round(
-        ((biasCounts.bullish * 1.0 + biasCounts.neutral * 0.5) /
-          Math.max(1, biasCounts.bullish + biasCounts.bearish + biasCounts.neutral)) *
-          100,
-      ),
-    ),
-  );
-
   return (
     <div
       role="region"
       aria-label="Multi-agent committee verdict"
       className={cn(
-        'border-border/80 bg-bg-elev-1 mt-2 flex w-full flex-col gap-2 rounded-sm border p-2.5 shadow-sm sm:mt-3 sm:gap-3 sm:p-3.5',
+        'border-border bg-bg-elev-1 mt-2 flex w-full flex-col gap-3 rounded-xl border p-4 shadow-sm',
         className,
       )}
     >
-      {/* Header with Animated Retro Stamp */}
-      <div className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b pb-1.5 sm:pb-2">
-        <div className="flex items-center gap-1.5">
-          <span className="bg-bull inline-block size-1.5 rounded-xs shadow-[0_0_6px_rgba(34,197,94,0.4)] sm:size-2" />
-          <h4 className="text-fg sm:text-caption font-mono text-[10px] font-bold tracking-wider uppercase">
-            Desk Consensus · {mode === 'full' ? 'FULL COMMITTEE' : mode === 'single' ? 'QUICK READ' : mode.toUpperCase()}
+      {/* Header Row: Mode + Verdict Pill + Aggregate Conviction */}
+      <div className="border-border/70 flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'size-2 rounded-full',
+              isDisputed
+                ? 'bg-warn'
+                : majorityBias === 'bullish'
+                  ? 'bg-bull'
+                  : majorityBias === 'bearish'
+                    ? 'bg-bear'
+                    : 'bg-fg-muted',
+            )}
+          />
+          <h4 className="text-fg text-xs font-semibold">
+            {mode === 'full'
+              ? '4-Desk Committee Consensus'
+              : mode === 'single'
+                ? 'Specialist Desk Read'
+                : `Committee Consensus · ${mode}`}
           </h4>
         </div>
 
-        {/* Animated Rubber Stamp */}
-        <m.div
-          initial={{ scale: 2.2, opacity: 0, rotate: -14 }}
-          animate={{ scale: 1, opacity: 1, rotate: isDisputed ? -5 : 0 }}
-          transition={{ type: 'spring', damping: 13, stiffness: 240, delay: 0.12 }}
-          className={cn(
-            'py-0.2 rounded-xs border px-1.5 font-mono text-[9px] font-extrabold tracking-wider uppercase shadow-xs select-none sm:px-2 sm:py-0.5 sm:text-[10px]',
-            isDisputed
-              ? 'border-warn/80 bg-warn/15 text-warn shadow-[0_0_8px_rgba(234,179,8,0.25)]'
-              : majorityBias === 'bullish'
-                ? 'border-bull/80 bg-bull/15 text-bull shadow-[0_0_8px_rgba(34,197,94,0.25)]'
-                : majorityBias === 'bearish'
-                  ? 'border-bear/80 bg-bear/15 text-bear shadow-[0_0_8px_rgba(244,63,94,0.25)]'
-                  : 'border-border bg-bg-elev-2 text-fg-muted',
-          )}
-        >
-          {isDisputed
-            ? 'MIXED SIGNALS'
-            : majorityBias === 'bullish'
-              ? 'BUY CONSENSUS'
-              : majorityBias === 'bearish'
-                ? 'SELL CONSENSUS'
-                : 'NEUTRAL CONSENSUS'}
-        </m.div>
-      </div>
-
-      {/* The 4 Pixel Agents in Settled Poses with Custom Workstations & Unified Call Badges */}
-      <div className="flex flex-col gap-0 pt-4 sm:pt-6">
-        <div className="flex items-end justify-around gap-1 px-0.5 pb-1 sm:gap-2 sm:px-1">
-          {/* Technical */}
-          <m.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'technical' ? null : 'technical')}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 sm:gap-1"
-            title="Click to view Technical Specialist profile"
-          >
-            <UnifiedDeskBubble
-              text={
-                techOp?.bias === 'bullish' ? 'BUY' : techOp?.bias === 'bearish' ? 'SELL' : 'NEUT'
-              }
-              theme={techOp?.bias ?? 'bullish'}
-            />
-            <ChartWizardSprite
-              isDone={true}
-              bias={techOp?.bias ?? 'bullish'}
-              isSparkling={majorityBias === 'bullish' && avgConfidence >= 80}
-            />
-            <div className="flex flex-col items-center gap-0.5">
-              <TechnicalWorkstation isThinking={false} />
-              <span
-                className={cn(
-                  'size-1 rounded-full',
-                  techOp?.bias === 'bullish'
-                    ? 'bg-bull'
-                    : techOp?.bias === 'bearish'
-                      ? 'bg-bear'
-                      : 'bg-fg-subtle',
-                )}
-              />
-            </div>
-            <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
-              Technical
-            </span>
-          </m.button>
-
-          {/* Macro */}
-          <m.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() =>
-              setSelectedProfile(selectedProfile === 'fundamental' ? null : 'fundamental')
-            }
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 sm:gap-1"
-            title="Click to view Macro Specialist profile"
-          >
-            <UnifiedDeskBubble
-              text={
-                macroOp?.bias === 'bullish'
-                  ? 'GROWTH'
-                  : macroOp?.bias === 'bearish'
-                    ? 'RECESS'
-                    : 'STEADY'
-              }
-              theme={macroOp?.bias ?? 'bullish'}
-            />
-            <MacroMageSprite isDone={true} bias={macroOp?.bias ?? 'bullish'} />
-            <div className="flex flex-col items-center gap-0.5">
-              <MacroWorkstation isThinking={false} />
-              <span
-                className={cn(
-                  'size-1 rounded-full',
-                  macroOp?.bias === 'bullish'
-                    ? 'bg-bull'
-                    : macroOp?.bias === 'bearish'
-                      ? 'bg-bear'
-                      : 'bg-fg-subtle',
-                )}
-              />
-            </div>
-            <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
-              Macro
-            </span>
-          </m.button>
-
-          {/* Risk */}
-          <m.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'risk' ? null : 'risk')}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 sm:gap-1"
-            title="Click to view Risk Specialist profile"
-          >
-            <UnifiedDeskBubble
-              text={riskOp?.bias === 'bullish' ? 'SAFE' : 'CAUTION'}
-              theme={riskOp?.bias === 'bullish' ? 'bullish' : 'risk'}
-            />
-            <RiskKnightSprite
-              isDone={true}
-              bias={riskOp?.bias ?? 'bullish'}
-              hasAlarm={isDisputed || riskOp?.bias === 'bearish'}
-            />
-            <div className="flex flex-col items-center gap-0.5">
-              <RiskWorkstation isThinking={false} />
-              <span
-                className={cn(
-                  'size-1 rounded-full',
-                  riskOp?.bias === 'bullish'
-                    ? 'bg-bull'
-                    : riskOp?.bias === 'bearish'
-                      ? 'bg-bear'
-                      : 'bg-warn',
-                )}
-              />
-            </div>
-            <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
-              Risk
-            </span>
-          </m.button>
-
-          {/* Sentinel */}
-          <m.button
-            type="button"
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedProfile(selectedProfile === 'sentiment' ? null : 'sentiment')}
-            className="group relative flex cursor-pointer touch-manipulation flex-col items-center gap-0.5 sm:gap-1"
-            title="Click to view Sentiment Specialist profile"
-          >
-            <UnifiedDeskBubble
-              text={!isDisputed ? 'CONSENSUS' : 'DISPUTED'}
-              theme={!isDisputed ? 'bullish' : 'sentiment'}
-            />
-            <KestrelFalconSprite
-              isDone={true}
-              bias={sentOp?.bias ?? 'bullish'}
-              hasWingsSpread={!isDisputed && majorityBias === 'bullish'}
-            />
-            <div className="flex flex-col items-center gap-0.5">
-              <SentinelWorkstation isThinking={false} />
-              <span
-                className={cn(
-                  'size-1 rounded-full',
-                  sentOp?.bias === 'bullish'
-                    ? 'bg-bull'
-                    : sentOp?.bias === 'bearish'
-                      ? 'bg-bear'
-                      : 'bg-fg-subtle',
-                )}
-              />
-            </div>
-            <span className="text-fg-subtle group-hover:text-brand sm:text-caption font-mono text-[10px] font-semibold transition-colors">
-              Sentiment
-            </span>
-          </m.button>
-        </div>
-
-        {/* Continuous Trading Desk Counter with Ambient Props & Consensus Underglow */}
-        <TradingFloorDesk consensusBias={isDisputed ? 'disputed' : majorityBias} />
-      </div>
-
-      {/* Selected Character Profile Card Popover */}
-      <AnimatePresence>
-        {selectedProfile && CHARACTER_PROFILES[selectedProfile] && (
-          <CharacterProfileCard
-            profile={CHARACTER_PROFILES[selectedProfile]!}
-            onClose={() => setSelectedProfile(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Bulls vs. Bears Tug-of-War Battle Bar */}
-      <div className="bg-bg-elev-2 border-border/60 flex flex-col gap-1.5 rounded-xs border p-2 sm:gap-2 sm:p-2.5">
-        <div className="flex items-center justify-between font-mono text-[10px] sm:text-xs">
-          <div className="text-bull flex items-center gap-1 font-bold">
-            <span>BULLS</span>
-            <span className="tabular-nums opacity-80">({biasCounts.bullish})</span>
-          </div>
-          <span className="text-fg font-mono font-semibold tabular-nums">
-            Score: {avgConfidence}%
+        <div className="flex items-center gap-2">
+          <span className="text-fg-muted font-mono text-xs tabular-nums">
+            Conviction {avgConfidence}%
           </span>
-          <div className="text-bear flex items-center gap-1 font-bold">
-            <span className="tabular-nums opacity-80">({biasCounts.bearish})</span>
-            <span>BEARS</span>
-          </div>
-        </div>
-
-        {/* Tug Track with Sliding Glowing Tug Flag */}
-        <div className="bg-bg-elev-3 border-border/40 relative h-2 w-full overflow-hidden rounded-xs border sm:h-2.5">
-          {/* Center Midpoint Line */}
-          <div className="bg-border/80 absolute inset-y-0 left-1/2 z-10 w-0.5 -translate-x-1/2" />
-
-          {/* Green Bull Fill (Left) */}
-          <m.div
-            initial={{ width: '50%' }}
-            animate={{ width: `${tugPercent}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="from-bull/40 to-bull/80 absolute inset-y-0 left-0 bg-gradient-to-r"
-          />
-
-          {/* Red Bear Fill (Right) */}
-          <m.div
-            initial={{ width: '50%' }}
-            animate={{ width: `${100 - tugPercent}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="from-bear/40 to-bear/80 absolute inset-y-0 right-0 bg-gradient-to-l"
-          />
-
-          {/* Glowing Tug Indicator Flag */}
-          <m.div
-            className="absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
-            initial={{ left: '50%' }}
-            animate={{ left: `${tugPercent}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+          <span
+            className={cn(
+              'rounded-md border px-2 py-0.5 font-mono text-xs font-semibold uppercase',
+              isDisputed
+                ? 'border-warn/40 bg-warn/10 text-warn'
+                : majorityBias === 'bullish'
+                  ? 'border-bull/40 bg-bull/10 text-bull'
+                  : majorityBias === 'bearish'
+                    ? 'border-bear/40 bg-bear/10 text-bear'
+                    : 'border-border bg-bg-elev-2 text-fg-muted',
+            )}
           >
-            <div className="rounded-2xs h-3 w-1 bg-white shadow-[0_0_8px_rgba(255,255,255,1)]" />
-          </m.div>
+            {isDisputed
+              ? 'Mixed / Split'
+              : majorityBias === 'bullish'
+                ? 'Bullish Consensus'
+                : majorityBias === 'bearish'
+                  ? 'Bearish Consensus'
+                  : 'Neutral Consensus'}
+          </span>
         </div>
       </div>
 
-      {/* Expandable Agent Rationales */}
-      {opinions.length > 0 && (
-        <div className="pt-0.5">
+      {/* 4-Column Desk Scorecard */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {DESK_ORDER.map((deskId) => {
+          const op = opinions.find((o) => o.agentName === deskId);
+          const bias = op?.bias ?? 'neutral';
+          const conf = op ? Math.round((op.confidence ?? 0.8) * 100) : null;
+
+          return (
+            <div
+              key={deskId}
+              className="border-border/80 bg-bg-elev-2/60 flex flex-col gap-1.5 rounded-lg border p-2.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-fg text-xs font-semibold">
+                  {deskId === 'technical'
+                    ? 'Technical'
+                    : deskId === 'fundamental'
+                      ? 'Macro'
+                      : deskId === 'risk'
+                        ? 'Risk'
+                        : 'Sentiment'}
+                </span>
+                {conf !== null && (
+                  <span className="text-fg-subtle font-mono text-xs tabular-nums">{conf}%</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span
+                  className={cn(
+                    'font-mono text-xs font-semibold uppercase',
+                    bias === 'bullish'
+                      ? 'text-bull'
+                      : bias === 'bearish'
+                        ? 'text-bear'
+                        : 'text-fg-muted',
+                  )}
+                >
+                  {op ? bias : 'Standby'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Segmented Conviction Distribution Bar (Clean Replacement for Tug-of-War) */}
+      <div className="flex items-center justify-between gap-4 text-xs">
+        <div className="flex items-center gap-3 font-mono tabular-nums">
+          <span className="text-bull">Bull: {biasCounts.bullish}</span>
+          <span className="text-fg-muted">Neutral: {biasCounts.neutral}</span>
+          <span className="text-bear">Bear: {biasCounts.bearish}</span>
+        </div>
+        {opinions.length > 0 && (
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="text-fg-muted hover:text-fg flex w-full cursor-pointer touch-manipulation items-center justify-between font-mono text-[10px] font-medium transition-colors sm:text-xs"
+            className="text-fg-muted hover:text-fg cursor-pointer touch-manipulation font-medium transition-colors"
           >
-            <span>{expanded ? 'Hide Specialist Breakdown' : 'View Specialist Breakdown'}</span>
-            <span className="text-fg-subtle">{opinions.length} Specialist Reports</span>
+            {expanded ? 'Hide desk notes' : `Read ${opinions.length} desk rationales`}
           </button>
+        )}
+      </div>
 
-          <AnimatePresence>
-            {expanded && (
-              <m.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="mt-1.5 flex flex-col gap-1.5 overflow-hidden pt-1"
+      {/* Expandable Desk Rationales */}
+      <AnimatePresence initial={false}>
+        {expanded && opinions.length > 0 && (
+          <m.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="border-border/70 flex flex-col gap-2 overflow-hidden border-t pt-3"
+          >
+            {opinions.map((op) => (
+              <div
+                key={op.agentName}
+                className="border-border/80 bg-bg-elev-2/50 flex flex-col gap-1 rounded-lg border p-3"
               >
-                {opinions.map((op) => (
-                  <div
-                    key={op.agentName}
-                    className="border-border bg-bg-elev-2 flex flex-col gap-1 rounded-xs border p-2 sm:p-2.5"
+                <div className="flex items-center justify-between">
+                  <span className="text-fg text-xs font-semibold capitalize">
+                    {op.agentName} Desk
+                  </span>
+                  <span
+                    className={cn(
+                      'font-mono text-xs font-semibold uppercase tabular-nums',
+                      op.bias === 'bullish'
+                        ? 'text-bull'
+                        : op.bias === 'bearish'
+                          ? 'text-bear'
+                          : 'text-fg-muted',
+                    )}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-fg font-mono text-[11px] font-bold capitalize sm:text-xs">
-                        {op.agentName} Specialist
-                      </span>
-                      <span
-                        className={cn(
-                          'font-mono text-[10px] font-semibold uppercase sm:text-[11px]',
-                          op.bias === 'bullish'
-                            ? 'text-bull'
-                            : op.bias === 'bearish'
-                              ? 'text-bear'
-                              : 'text-fg-muted',
-                        )}
-                      >
-                        {op.bias} · {Math.round((op.confidence ?? 0.8) * 100)}%
-                      </span>
-                    </div>
-                    <p className="text-fg-muted font-mono text-[10px] leading-relaxed sm:text-xs">
-                      {op.reasoning}
-                    </p>
-                  </div>
-                ))}
-              </m.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+                    {op.bias} · {Math.round((op.confidence ?? 0.8) * 100)}%
+                  </span>
+                </div>
+                <p className="text-fg-muted text-xs leading-relaxed">{op.reasoning}</p>
+              </div>
+            ))}
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

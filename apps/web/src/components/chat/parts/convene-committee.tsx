@@ -23,7 +23,7 @@ import {
   IconChevronDown,
   IconCircleCheck,
   IconCircleX,
-  IconGauge,
+  IconRadar,
   IconTrendingUp,
   IconUsers,
   IconLink as LinkIcon,
@@ -32,11 +32,11 @@ import {
 
 import type { ToolPartProps } from './registry';
 
-const PERSONA_LABELS: Record<CommitteeVerdict['persona'], { label: string; Icon: Icon }> = {
-  economist: { label: 'Economist', Icon: IconBriefcase },
-  technician: { label: 'Technician', Icon: IconTrendingUp },
-  risk_manager: { label: 'Risk Manager', Icon: IconAlertTriangle },
-  sentiment: { label: 'Sentiment', Icon: IconGauge },
+const PERSONA_LABELS: Record<string, { label: string; Icon: Icon }> = {
+  economist: { label: 'Macro & Rates Desk', Icon: IconBriefcase },
+  technician: { label: 'Technical Structure Desk', Icon: IconTrendingUp },
+  risk_manager: { label: 'Risk & Sizing Desk', Icon: IconAlertTriangle },
+  sentiment: { label: 'Flow & Sentiment Desk', Icon: IconRadar },
 };
 
 function GradeBadge({
@@ -46,23 +46,23 @@ function GradeBadge({
   grade: ConveneCommitteeOutput['grade'];
   goNoGo: ConveneCommitteeOutput['goNoGo'];
 }) {
-  let bgTone = 'bg-bg-elev-2 text-fg-muted';
+  let bgTone = 'bg-bg-elev-2 text-fg-muted border-border';
   let icon = null;
 
   if (goNoGo === 'go') {
-    bgTone = 'bg-bull/10 text-bull';
-    icon = <IconCircleCheck className="mr-1 size-3" />;
+    bgTone = 'bg-bull/10 text-bull border-bull/30';
+    icon = <IconCircleCheck className="mr-1 size-3.5" />;
   } else if (goNoGo === 'caution') {
-    bgTone = 'bg-warn/10 text-warn';
-    icon = <IconAlertTriangle className="mr-1 size-3" />;
+    bgTone = 'bg-warn/10 text-warn border-warn/30';
+    icon = <IconAlertTriangle className="mr-1 size-3.5" />;
   } else {
-    bgTone = 'bg-bear/10 text-bear';
-    icon = <IconCircleX className="mr-1 size-3" />;
+    bgTone = 'bg-bear/10 text-bear border-bear/30';
+    icon = <IconCircleX className="mr-1 size-3.5" />;
   }
 
   return (
     <div
-      className={`flex items-center rounded-sm px-2 py-0.5 text-xs font-bold tracking-wide uppercase ${bgTone}`}
+      className={`inline-flex items-center rounded-md border px-2.5 py-0.5 font-mono text-xs font-semibold uppercase ${bgTone}`}
     >
       {icon}
       Grade {grade}
@@ -83,52 +83,58 @@ export function ConveneCommitteePart({
   }
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3">
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
+    <div className="border-border bg-bg-elev-1 flex flex-col gap-3.5 rounded-xl border p-4 shadow-sm">
+      <header className="border-border/70 flex flex-col gap-2.5 border-b pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <IconUsers className="text-fg size-4" />
+            <IconUsers className="text-brand size-4" />
             <h3 className="text-fg text-sm font-semibold">
               Committee Review · {output.symbol} {output.side.toUpperCase()}
             </h3>
           </div>
           <GradeBadge grade={output.grade} goNoGo={output.goNoGo} />
         </div>
-        <div className="text-fg-subtle flex items-center gap-4 text-xs tabular-nums">
-          <span>
-            Entry: <strong className="text-fg">{output.entry}</strong>
-          </span>
-          {output.stop !== undefined && (
-            <span>
-              Stop: <strong className="text-fg">{output.stop}</strong>
-            </span>
-          )}
-          {output.target !== undefined && (
-            <span>
-              Target: <strong className="text-fg">{output.target}</strong>
-            </span>
-          )}
+
+        {/* Execution Level Strip */}
+        <div className="grid grid-cols-3 gap-2 font-mono text-xs tabular-nums">
+          <div className="bg-bg-elev-2/70 border-border/60 rounded-lg border px-2.5 py-1.5">
+            <span className="text-fg-subtle block text-xs">Entry</span>
+            <strong className="text-fg">{output.entry}</strong>
+          </div>
+          <div className="bg-bg-elev-2/70 border-border/60 rounded-lg border px-2.5 py-1.5">
+            <span className="text-fg-subtle block text-xs">Invalidation Stop</span>
+            <strong className="text-bear">{output.stop ?? '—'}</strong>
+          </div>
+          <div className="bg-bg-elev-2/70 border-border/60 rounded-lg border px-2.5 py-1.5">
+            <span className="text-fg-subtle block text-xs">Primary Target</span>
+            <strong className="text-bull">{output.target ?? '—'}</strong>
+          </div>
         </div>
       </header>
 
+      {/* Consensus Executive Summary First */}
+      <div className="border-border/80 bg-bg-elev-2/60 rounded-lg border p-3">
+        <div className="text-fg-subtle mb-1 font-mono text-xs font-semibold uppercase">
+          Committee Synthesis
+        </div>
+        <p className="text-fg text-sm leading-relaxed">{output.consensus}</p>
+      </div>
+
+      {/* Individual Desk Verdicts */}
       <div className="flex flex-col gap-2">
         {output.verdicts.map((v) => (
           <VerdictCard key={v.persona} verdict={v} />
         ))}
-      </div>
-
-      <div className="border-border bg-bg-elev-2 rounded-sm border p-3 text-sm">
-        <div className="text-fg-muted mb-1 text-xs font-semibold tracking-wider uppercase">
-          Consensus
-        </div>
-        <p className="text-fg text-sm leading-[1.4]">{output.consensus}</p>
       </div>
     </div>
   );
 }
 
 function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
-  const meta = PERSONA_LABELS[verdict.persona];
+  const meta = PERSONA_LABELS[verdict.persona] ?? {
+    label: verdict.persona,
+    Icon: IconUsers,
+  };
   const Icon = meta.Icon;
 
   const tone =
@@ -139,27 +145,29 @@ function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
         : 'text-fg-muted';
 
   return (
-    <details className="border-border bg-bg-elev-2 group rounded-sm border [&_summary::-webkit-details-marker]:hidden">
-      <summary className="focus-visible:ring-fg flex cursor-pointer items-center justify-between rounded-sm p-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset">
+    <details className="border-border/80 bg-bg-elev-2/40 group rounded-lg border [&_summary::-webkit-details-marker]:hidden">
+      <summary className="focus-visible:ring-fg flex cursor-pointer items-center justify-between rounded-lg p-3 outline-none focus-visible:ring-2 focus-visible:ring-inset">
         <div className="flex items-center gap-2">
           <Icon className="text-fg-subtle size-4" />
           <span className="text-fg text-xs font-semibold">{meta.label}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className={`text-body-sm font-medium uppercase ${tone}`}>{verdict.verdict}</span>
-          <span className="bg-bg-elev-1 border-border text-fg-subtle text-caption rounded-sm border px-1.5 py-0.5 tabular-nums">
-            Conf: {verdict.confidence}/10
+        <div className="flex items-center gap-2.5">
+          <span className={`font-mono text-xs font-semibold uppercase ${tone}`}>
+            {verdict.verdict}
+          </span>
+          <span className="bg-bg-elev-1 border-border text-fg-subtle rounded-md border px-2 py-0.5 font-mono text-xs tabular-nums">
+            {verdict.confidence}/10
           </span>
           <IconChevronDown className="text-fg-subtle size-3.5 transition-transform group-open:rotate-180" />
         </div>
       </summary>
 
-      <div className="px-2.5 pt-0 pb-2.5 text-xs">
-        <div className="border-border mt-1 space-y-2 border-t pt-2">
+      <div className="px-3 pt-0 pb-3 text-xs">
+        <div className="border-border/60 mt-1 space-y-2 border-t pt-2.5">
           {verdict.keyPoints.length > 0 && (
             <div>
               <span className="text-fg-muted font-semibold">Key Points:</span>
-              <ul className="text-fg mt-1 list-disc space-y-0.5 pl-4">
+              <ul className="text-fg mt-1 list-disc space-y-1 pl-4 leading-relaxed">
                 {verdict.keyPoints.map((kp, i) => (
                   <li key={i}>{kp}</li>
                 ))}
@@ -167,18 +175,18 @@ function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
             </div>
           )}
 
-          <div className="flex flex-col gap-1">
-            <div>
-              <span className="text-fg-muted font-semibold">Risk:</span>{' '}
-              <span className="text-fg">{verdict.risk}</span>
+          <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
+            <div className="bg-bg-elev-1/60 border-border/60 rounded-md border p-2">
+              <span className="text-fg-subtle block font-semibold">Primary Risk</span>
+              <span className="text-fg mt-0.5 block leading-relaxed">{verdict.risk}</span>
             </div>
-            <div>
-              <span className="text-fg-muted font-semibold">Rec:</span>{' '}
-              <span className="text-fg">{verdict.recommendation}</span>
+            <div className="bg-bg-elev-1/60 border-border/60 rounded-md border p-2">
+              <span className="text-fg-subtle block font-semibold">Desk Recommendation</span>
+              <span className="text-fg mt-0.5 block leading-relaxed">{verdict.recommendation}</span>
             </div>
           </div>
 
-          {verdict.persona === 'economist' && verdict.sources && verdict.sources.length > 0 && (
+          {verdict.sources && verdict.sources.length > 0 && (
             <div className="pt-1">
               <span className="text-fg-muted flex items-center gap-1 font-semibold">
                 <LinkIcon className="size-3" /> Sources:
@@ -206,12 +214,12 @@ function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
                           href={href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-fg text-body-sm inline-block max-w-[200px] truncate align-bottom hover:underline"
+                          className="text-fg inline-block max-w-[200px] truncate align-bottom text-xs hover:underline"
                         >
                           {host}
                         </a>
                       ) : (
-                        <span className="text-fg-subtle text-body-sm">{src}</span>
+                        <span className="text-fg-subtle text-xs">{src}</span>
                       )}
                     </li>
                   );
@@ -228,7 +236,7 @@ function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
 function SkeletonCard() {
   return (
     <div
-      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3"
+      className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4"
       aria-busy="true"
       aria-label="Convening committee"
     >
@@ -236,16 +244,12 @@ function SkeletonCard() {
         <div className="bg-bg-elev-2 h-5 w-1/3 animate-pulse rounded-sm" />
         <div className="bg-bg-elev-2 h-5 w-16 animate-pulse rounded-sm" />
       </div>
-      <div className="flex gap-2">
-        <div className="bg-bg-elev-2 h-4 w-20 animate-pulse rounded-sm" />
-        <div className="bg-bg-elev-2 h-4 w-20 animate-pulse rounded-sm" />
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-bg-elev-2 h-10 animate-pulse rounded-md" />
+        <div className="bg-bg-elev-2 h-10 animate-pulse rounded-md" />
+        <div className="bg-bg-elev-2 h-10 animate-pulse rounded-md" />
       </div>
-      <div className="flex flex-col gap-2">
-        <div className="bg-bg-elev-2 h-10 animate-pulse rounded-sm" />
-        <div className="bg-bg-elev-2 h-10 animate-pulse rounded-sm" />
-        <div className="bg-bg-elev-2 h-10 animate-pulse rounded-sm" />
-      </div>
-      <div className="bg-bg-elev-2 h-16 animate-pulse rounded-sm" />
+      <div className="bg-bg-elev-2 h-14 animate-pulse rounded-md" />
     </div>
   );
 }
@@ -254,7 +258,7 @@ function ErrorCard({ message }: { message?: string }) {
   return (
     <div
       role="alert"
-      className="border-danger/30 bg-bg-elev-1 text-danger rounded-sm border p-3 text-sm"
+      className="border-danger/30 bg-bg-elev-1 text-danger rounded-xl border p-3.5 text-xs"
     >
       Committee convening failed{message ? ` · ${message}` : ''}
     </div>

@@ -84,11 +84,11 @@ export function ThreadViewsDock({
     { id: 'chart', label: 'Chart', icon: IconChartCandle },
     {
       id: 'opinions',
-      label: 'Desks',
+      label: '4-Desk',
       icon: IconUsers,
-      badge: agentProgress?.agents ? Object.keys(agentProgress.agents).length : undefined,
+      badge: Array.isArray(agentProgress?.agents) ? agentProgress.agents.length : undefined,
     },
-    { id: 'plan', label: 'Action Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
+    { id: 'plan', label: 'Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
     { id: 'terminal', label: 'Context', icon: IconTerminal2 },
   ];
 
@@ -100,11 +100,11 @@ export function ThreadViewsDock({
       initial={{ width: 0, opacity: 0 }}
       animate={{ width: '100%', opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
-      transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-      className="border-border/60 bg-bg/95 relative hidden h-full shrink-0 flex-col overflow-hidden border-l backdrop-blur-xl lg:flex lg:w-[420px] xl:w-[480px] 2xl:w-[540px]"
+      transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+      className="border-border bg-bg relative hidden h-full shrink-0 flex-col overflow-hidden border-l lg:flex lg:w-[420px] xl:w-[480px] 2xl:w-[540px]"
     >
       {/* Dock Header & Navigation Tabs */}
-      <div className="border-border/40 bg-bg-elev-1 flex h-11 shrink-0 items-center justify-between border-b px-3">
+      <div className="border-border bg-bg-elev-1 flex h-12 shrink-0 items-center justify-between border-b px-3">
         <div className="flex items-center gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -115,16 +115,16 @@ export function ThreadViewsDock({
                 type="button"
                 onClick={() => onTabChange(tab.id)}
                 className={cn(
-                  'border-chip-edge relative flex items-center gap-1.5 rounded-[8px] border px-2.5 py-1 text-xs font-medium transition-all active:translate-y-[0.5px]',
+                  'relative flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
                   isActive
-                    ? 'border-brand/40 bg-brand/10 text-brand shadow-(--shadow-chip)'
-                    : 'text-fg-muted hover:text-fg hover:bg-white/[0.04] border-transparent',
+                    ? 'border-brand/40 bg-brand/10 text-brand'
+                    : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2 border-transparent',
                 )}
               >
                 <Icon className="size-3.5" />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="bg-brand/20 text-brand min-w-[16px] rounded-full px-1 text-[10px] font-mono leading-tight">
+                  <span className="bg-brand/20 text-brand min-w-[16px] rounded-full px-1 font-mono text-xs leading-tight tabular-nums">
                     {tab.badge}
                   </span>
                 )}
@@ -137,7 +137,7 @@ export function ThreadViewsDock({
           type="button"
           onClick={onClose}
           aria-label="Close Views"
-          className="text-fg-muted hover:text-fg hover:bg-white/[0.06] rounded-md p-1 transition-colors active:translate-y-[0.5px]"
+          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 rounded-lg p-1.5 transition-colors"
         >
           <IconX className="size-4" />
         </button>
@@ -147,10 +147,10 @@ export function ThreadViewsDock({
       <div className="relative flex-1 overflow-hidden">
         {activeTab === 'chart' && (
           <div className="flex h-full flex-col">
-            <div className="border-border/40 bg-bg-elev-1/60 flex items-center justify-between border-b px-3 py-1.5 text-xs">
+            <div className="border-border bg-bg-elev-1/60 flex items-center justify-between border-b px-3 py-2 text-xs">
               <div className="flex items-center gap-2 font-mono">
                 <span className="text-fg font-bold tracking-tight">{symbol}</span>
-                <span className="text-fg-subtle text-caption">Live Chart</span>
+                <span className="text-fg-subtle text-xs">Live Chart</span>
               </div>
               <Segmented
                 size="sm"
@@ -210,15 +210,15 @@ export function ThreadViewsDock({
 
         {activeTab === 'terminal' && (
           <div className="scrollbar-hide h-full overflow-y-auto p-4 font-mono text-xs">
-            <div className="border-border/60 bg-black/40 rounded-lg border p-3.5">
-              <div className="border-border/40 text-fg-subtle mb-3 flex items-center justify-between border-b pb-2 text-[11px]">
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <span>LIVE MARKET CONTEXT</span>
+            <div className="border-border bg-bg-elev-1 rounded-xl border p-4">
+              <div className="border-border/70 text-fg-subtle mb-3 flex items-center justify-between border-b pb-2.5 text-xs">
+                <span className="flex items-center gap-2">
+                  <span className="bg-bull size-2 rounded-full" />
+                  <span className="text-fg font-semibold">Session Context</span>
                 </span>
                 <span>{agentProgress ? 'ANALYZING' : 'READY'}</span>
               </div>
-              <div className="space-y-2 text-fg-muted">
+              <div className="text-fg-muted space-y-2">
                 <div className="flex items-center justify-between">
                   <span>Active Symbol</span>
                   <span className="text-fg font-semibold">{symbol}</span>
@@ -230,9 +230,8 @@ export function ThreadViewsDock({
               </div>
 
               {agentProgress && (
-                <div className="mt-3 border-t border-border/40 pt-3">
-                  <span className="text-fg-subtle text-[10px] uppercase tracking-wider">Current Session</span>
-                  <div className="mt-1.5 space-y-1.5 text-fg">
+                <div className="border-border/70 mt-3 border-t pt-3">
+                  <div className="text-fg space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-fg-muted">Analysis Mode</span>
                       <span className="font-semibold">
@@ -244,18 +243,18 @@ export function ThreadViewsDock({
                       <span className="capitalize">{agentProgress.status}</span>
                     </div>
                     {agentProgress.error && (
-                      <p className="text-rose-400">Note: {agentProgress.error}</p>
+                      <p className="text-danger">Note: {agentProgress.error}</p>
                     )}
                   </div>
                 </div>
               )}
 
-              <div className="mt-4 border-t border-border/40 pt-3">
+              <div className="border-border/70 mt-4 border-t pt-3">
                 <Link
                   href={`/chart/${symbol}?tf=${timeframe}`}
                   className="text-brand hover:underline inline-flex items-center gap-1 text-xs font-semibold"
                 >
-                  Open full-screen {symbol} Pro Chart →
+                  Open full-screen {symbol} Pro Chart
                 </Link>
               </div>
             </div>
