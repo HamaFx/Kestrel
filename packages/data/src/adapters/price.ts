@@ -83,7 +83,7 @@ function snapshotToTick(symbol: Symbol, value: ProviderPriceSnapshot, fetchedAt:
     bid: value.price,
     ask: value.price,
     mid: value.price,
-    ts: fetchedAt,
+    ts: value.observedAt ?? fetchedAt,
     source: value.provider,
     ...(value.marketState ? { marketState: value.marketState } : {}),
     ...(value.quoteAgeSeconds !== undefined ? { quoteAgeSeconds: value.quoteAgeSeconds } : {}),
@@ -137,6 +137,7 @@ export async function getPriceWithMeta(
               price: result.price,
               provider: result.provider,
               ageMs: result.ageMs ?? null,
+              ...(result.observedAt !== undefined ? { observedAt: result.observedAt } : {}),
               ...(result.marketState ? { marketState: result.marketState } : {}),
               ...(result.quoteAgeSeconds !== undefined
                 ? { quoteAgeSeconds: result.quoteAgeSeconds }

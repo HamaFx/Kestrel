@@ -62,7 +62,7 @@ const liveTicksProvider: MarketDataProvider = {
   pinned: true,
   async fetchPrice(symbol: Symbol, _opts?: ProviderFetchOptions) {
     const r = await fetchLiveTick({ symbol });
-    return { price: r.price, provider: r.provider, ageMs: r.ageMs };
+    return { price: r.price, provider: r.provider, ageMs: r.ageMs, observedAt: r.ts };
   },
   async fetchCandles(
     symbol: Symbol,
@@ -122,9 +122,20 @@ const biquoteProvider: MarketDataProvider = {
     const out = new Map<Symbol, ProviderPriceSnapshot>();
     for (const tick of ticks) {
       const mid = tick.mid ?? (tick.bid + tick.ask) / 2;
+      const parsedObserved = tick.lastQuoteAt
+        ? Date.parse(tick.lastQuoteAt)
+        : tick.timestamp
+          ? Date.parse(tick.timestamp)
+          : tick.quoteAgeSeconds != null
+            ? Date.now() - tick.quoteAgeSeconds * 1000
+            : undefined;
+      const observedAt =
+        parsedObserved !== undefined && Number.isFinite(parsedObserved) ? parsedObserved : undefined;
+
       out.set(tick.symbol, {
         price: mid,
         provider: 'biquote',
+        ...(observedAt !== undefined ? { observedAt } : {}),
         ageMs: tick.quoteAgeSeconds != null ? tick.quoteAgeSeconds * 1000 : null,
         ...(tick.marketState ? { marketState: tick.marketState } : {}),
         quoteAgeSeconds: tick.quoteAgeSeconds ?? null,
