@@ -24,6 +24,7 @@ import {
   ALL_SYMBOLS,
   CandleSchema,
   extractSymbolsFromText,
+  priceDecimals,
   type Candle,
   IndicatorRequestSchema,
   IndicatorResultSchema,
@@ -183,6 +184,7 @@ function unique(values: readonly string[]): string[] {
 
 function computeMarketStructureSummary(
   timeframes: readonly SymbolResearchEvidence[],
+  symbol?: string,
 ): z.infer<typeof MarketStructureSummarySchema> | undefined {
   const preferred =
     timeframes.find((tf) => tf.timeframe === '1h' && tf.candles.length > 0) ??
@@ -196,10 +198,11 @@ function computeMarketStructureSummary(
     if (c.l < recentSwingLow) recentSwingLow = c.l;
   }
   if (!Number.isFinite(recentSwingHigh) || !Number.isFinite(recentSwingLow)) return undefined;
+  const dec = symbol ? priceDecimals(symbol) : 5;
   return {
     recentSwingHigh,
     recentSwingLow,
-    rangeSize: Number((recentSwingHigh - recentSwingLow).toFixed(5)),
+    rangeSize: Number((recentSwingHigh - recentSwingLow).toFixed(dec)),
   };
 }
 
@@ -373,7 +376,7 @@ export async function collectSymbolResearchPacket(
           : 'complete';
 
   const macro = macroExtension;
-  const marketStructure = computeMarketStructureSummary(timeframes);
+  const marketStructure = computeMarketStructureSummary(timeframes, symbol);
 
   return SymbolResearchPacketSchema.parse({
     packetId,

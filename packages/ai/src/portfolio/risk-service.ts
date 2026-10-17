@@ -21,7 +21,7 @@
 //
 // See DSA_FEATURE_EXPANSION_PLAN.md §F2 for the full design.
 
-import { getPrice } from '@kestrel/data';
+import { getPrice, getPricesWithMeta } from '@kestrel/data';
 import {
   getContractSize,
   tryGetSymbolDefinition,
@@ -125,16 +125,23 @@ export async function getOpenPositionsWithPnL(userId: string): Promise<PositionW
   const symbols = [...new Set(positions.map((p) => p.symbol))];
   const priceMap = new Map<string, number>();
 
-  await Promise.all(
-    symbols.map(async (sym) => {
-      try {
-        const tick = await getPrice(sym);
-        priceMap.set(sym, tick.mid);
-      } catch {
-        // Price fetch failed — positions with this symbol will be stale
-      }
-    }),
-  );
+  try {
+    const results = await getPricesWithMeta(symbols);
+    for (const r of results) {
+      priceMap.set(r.tick.symbol, r.tick.mid);
+    }
+  } catch {
+    await Promise.all(
+      symbols.map(async (sym) => {
+        try {
+          const tick = await getPrice(sym);
+          priceMap.set(sym, tick.mid);
+        } catch {
+          // Price fetch failed — positions with this symbol will be stale
+        }
+      }),
+    );
+  }
 
   return positions.map((p) => {
     const price = priceMap.get(p.symbol);

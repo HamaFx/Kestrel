@@ -28,6 +28,7 @@
 import { schema } from '@kestrel/db';
 import {
   AnalyzeFundamentalInputSchema,
+  getSymbolDefinition,
   type AnalyzeFundamentalOutput,
   type EconomicEvent,
   type EventCurrency,
@@ -53,12 +54,14 @@ declare module '@kestrel/shared' {
   }
 }
 
-/** Map from symbol to the relevant currency tags used by the calendar + news. */
-const CURRENCIES_BY_SYMBOL: Record<Symbol, EventCurrency[]> = {
-  XAUUSD: ['USD'],
-  EURUSD: ['EUR', 'USD'],
-  GBPUSD: ['GBP', 'USD'],
-};
+function getCurrenciesForSymbol(symbol: Symbol): EventCurrency[] {
+  try {
+    const def = getSymbolDefinition(symbol);
+    return [...def.currencies] as EventCurrency[];
+  } catch {
+    return ['USD'];
+  }
+}
 
 /** Per-currency news cap so a noisy Marketaux day can't drown one currency. */
 const NEWS_PER_CURRENCY = 5;
@@ -71,7 +74,7 @@ export const analyzeFundamentalTool = tool({
     "Aggregate the upcoming high/medium-impact macro events for a symbol's currencies plus the most recent news, with a sentiment chip strip. Use for any 'what's the fundamental backdrop on X' or 'are there any catalysts in the next N hours' prompt. Window is `horizonHours` (default 24h). Sentiment buckets are read from news_articles.sentiment; no inference. Sets `pipelinePending: true` when both events and headlines are empty.",
   inputSchema: InputSchema,
   execute: async ({ symbol, horizonHours }): Promise<AnalyzeFundamentalOutput> => {
-    const currencies = CURRENCIES_BY_SYMBOL[symbol] || ['USD'];
+    const currencies = getCurrenciesForSymbol(symbol);
     const now = Date.now();
     const windowToMs = now + horizonHours * 60 * 60 * 1000;
 
