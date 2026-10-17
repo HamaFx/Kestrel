@@ -43,4 +43,31 @@ describe('pivotsAligned', () => {
     expect(out[1]).not.toBeNull();
     expect(out[2]).not.toBeNull();
   });
+
+  it('aggregates intraday bars by UTC day so all bars on day D share prior day pivots (F-13)', () => {
+    const day1T1 = Date.parse('2026-03-01T10:00:00Z');
+    const day1T2 = Date.parse('2026-03-01T11:00:00Z');
+    const day2T1 = Date.parse('2026-03-02T10:00:00Z');
+    const day2T2 = Date.parse('2026-03-02T11:00:00Z');
+
+    const candles = [
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, t: day1T1, o: 100, h: 110, l: 95, c: 105, v: null, source: 'test', fetchedAt: 0 },
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, t: day1T2, o: 105, h: 115, l: 100, c: 108, v: null, source: 'test', fetchedAt: 0 },
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, t: day2T1, o: 108, h: 120, l: 106, c: 118, v: null, source: 'test', fetchedAt: 0 },
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, t: day2T2, o: 118, h: 125, l: 115, c: 120, v: null, source: 'test', fetchedAt: 0 },
+    ];
+
+    const out = pivotsAligned(candles);
+    // Day 1 bars have no prior day in dataset: null
+    expect(out[0]).toBeNull();
+    expect(out[1]).toBeNull();
+
+    // Day 1 aggregated: H=115, L=95, C=108. pp = (115 + 95 + 108) / 3 = 106
+    expect(out[2]).not.toBeNull();
+    expect(out[3]).not.toBeNull();
+    expect(out[2]!.pp).toBeCloseTo(106, 5);
+    expect(out[3]!.pp).toBeCloseTo(106, 5);
+    expect(out[2]!.r1).toBe(out[3]!.r1);
+    expect(out[2]!.s1).toBe(out[3]!.s1);
+  });
 });

@@ -32,6 +32,12 @@ interface CallOptions {
   skipThrottle?: boolean;
 }
 
+export interface BinanceFetchCandlesOptions extends CallOptions {
+  includeOpenBar?: boolean;
+  now?: number;
+}
+
+
 async function klinesCall(
   query: Record<string, string>,
   opts: CallOptions,
@@ -101,6 +107,7 @@ async function klinesCall(
       l: Number.parseFloat(k.low),
       c: Number.parseFloat(k.close),
       v: Number.parseFloat(k.volume),
+      closeTime: k.closeTime,
     });
   }
 
@@ -116,7 +123,7 @@ export async function fetchCandles(
   symbol: Symbol,
   tf: Timeframe,
   count: number,
-  opts: CallOptions = {},
+  opts: BinanceFetchCandlesOptions = {},
 ): Promise<NormalizedBinanceCandle[]> {
   const canonical = symbol.trim().toUpperCase();
   if (!isCryptoSymbol(canonical)) {
@@ -128,12 +135,20 @@ export async function fetchCandles(
   }
 
   const interval = toBinanceInterval(tf);
-  const limit = Math.min(count, 1000);
+  const reqCount = opts.includeOpenBar ? count : count + 1;
+  const limit = Math.min(reqCount, 1000);
 
-  return klinesCall(
+  const raw = await klinesCall(
     { symbol: getSymbolDefinition(canonical).binance!, interval, limit: String(limit) },
     opts,
   );
+
+  const nowMs = opts.now ?? Date.now();
+  const filtered = opts.includeOpenBar
+    ? raw
+    : raw.filter((c) => c.closeTime !== undefined && c.closeTime <= nowMs);
+
+  return filtered.slice(-count);
 }
 
 /** GET /api/v3/ticker/price?symbol=BTCUSDT — lightweight current price fetch. */

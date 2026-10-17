@@ -53,4 +53,6 @@ export interface NormalizedBinanceCandle {
   l: number;
   c: number;
   v: number;
+  closeTime?: number;
 }
+

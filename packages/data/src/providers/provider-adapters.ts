@@ -216,6 +216,7 @@ function createFinnhubProvider(): MarketDataProvider {
         tf,
         count,
         apiKey: key,
+        ...(opts?.includeOpenBar !== undefined ? { includeOpenBar: opts.includeOpenBar } : {}),
         ...(opts?.signal ? { signal: opts.signal } : {}),
       });
       const fetchedAt = Date.now();
@@ -270,6 +271,7 @@ const binanceProvider: MarketDataProvider = {
     const def = getSymbolDefinition(symbol);
     if (!def?.binance) return null;
     const raw = await binance.fetchCandles(def.binance, tf, count, {
+      ...(opts?.includeOpenBar !== undefined ? { includeOpenBar: opts.includeOpenBar } : {}),
       ...(opts?.signal ? { signal: opts.signal } : {}),
     });
     const fetchedAt = Date.now();

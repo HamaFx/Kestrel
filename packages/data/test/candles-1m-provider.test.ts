@@ -112,9 +112,13 @@ describe('fetchCandles1m', () => {
   });
 
   it('throws ProviderEmptyError when the freshest bar is older than the freshness window', async () => {
-    const stale = bar(new Date(Date.now() - 5 * 60_000).toISOString(), 2390);
+    // Fixed weekday (Wednesday) so weekend exemption does not apply
+    const wednesday = Date.parse('2026-10-14T12:00:00Z');
+    const stale = bar(new Date(wednesday - 5 * 60_000).toISOString(), 2390);
     const db = makeFakeDb([stale]);
-    await expect(fetchCandles1m({ symbol: 'XAUUSD', count: 100, db })).rejects.toMatchObject({
+    await expect(
+      fetchCandles1m({ symbol: 'XAUUSD', count: 100, db, now: wednesday }),
+    ).rejects.toMatchObject({
       provider: 'candles-1m',
       message: expect.stringContaining('stale') as unknown as string,
     });

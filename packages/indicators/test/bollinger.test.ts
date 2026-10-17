@@ -39,4 +39,15 @@ describe('bollinger', () => {
     // middle at index 4 (5th close) = mean(1..5) = 3
     expect(out[4]!.middle).toBe(3);
   });
+
+  it('uses population standard deviation (divide by N) instead of sample stdev (F-13)', () => {
+    // [2, 4, 4, 4, 5, 5, 7, 9]: mean=5, population variance=32/8=4, stdev=2
+    const closes = [2, 4, 4, 4, 5, 5, 7, 9];
+    const out = bollinger(makeCandles(closes), 8, 2);
+    const last = out.at(-1)!;
+    expect(last.middle).toBe(5);
+    expect(last.upper).toBe(9); // 5 + 2*2
+    expect(last.lower).toBe(1); // 5 - 2*2
+  });
 });
+
