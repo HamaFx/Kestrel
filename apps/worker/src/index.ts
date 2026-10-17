@@ -26,7 +26,7 @@
 
 import { getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
 import { closeDb } from '@kestrel/db';
-import { getCapabilityReport } from '@kestrel/shared';
+import { getCapabilityReport, isForexWeekend } from '@kestrel/shared';
 
 import { Candle1mAggregator, type ClosedCandle } from './aggregator/candle-1m.js';
 import { BinanceStreamConsumer } from './binance/index.js';
@@ -314,8 +314,12 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   if (heartbeatIntervalMs > 0) {
     heartbeatTimer = setInterval(() => {
       const ageMs = Date.now() - lastTickAt;
+      const isWeekend = isForexWeekend();
+      const hasCrypto = cryptoSymbols.length > 0;
       if (lastTickAt > 0 && ageMs < 60_000) {
         void ping(env.HC_SIGNALR_UUID, 'success', `last_tick=${ageMs}ms`);
+      } else if (isWeekend && !hasCrypto) {
+        void ping(env.HC_SIGNALR_UUID, 'success', 'market_closed_weekend');
       } else {
         void ping(env.HC_SIGNALR_UUID, 'fail', `no_ticks_for=${Math.floor(ageMs / 1000)}s`);
       }

@@ -34,7 +34,7 @@
 
 import type { getDb } from '@kestrel/db';
 import { candles1m } from '@kestrel/db/schema';
-import type { Symbol } from '@kestrel/shared';
+import { isForexWeekend, tryGetSymbolDefinition, type Symbol } from '@kestrel/shared';
 import { desc, eq } from 'drizzle-orm';
 
 import { ProviderEmptyError } from '../../errors';
@@ -109,7 +109,9 @@ export async function fetchCandles1m(args: FetchCandles1mArgs): Promise<FetchCan
 
   const newest = newestRow.t.getTime();
   const ageMs = Date.now() - newest;
-  if (ageMs > window) {
+  const isWeekend =
+    isForexWeekend() && tryGetSymbolDefinition(args.symbol)?.category !== 'crypto';
+  if (!isWeekend && ageMs > window) {
     throw new ProviderEmptyError(
       PROVIDER,
       `candles_1m stale for ${args.symbol}: newest bar ${ageMs}ms ago`,
