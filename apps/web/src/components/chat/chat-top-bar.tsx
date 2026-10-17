@@ -18,9 +18,10 @@
 
 import type { Symbol } from '@kestrel/shared';
 import {
-  IconBolt,
-  IconDotsCircleHorizontal,
+  IconDots,
   IconFileDownload,
+  IconHistory,
+  IconLayoutSidebarRight,
   IconLoader2,
   IconMessages,
   IconPlus,
@@ -42,7 +43,6 @@ import { cn } from '@/lib/cn';
 
 import { ThreadSwitcher } from './_components/thread-switcher';
 
-// Re-exported for client components that already import the type from here.
 export type { AnalysisMode } from '@/lib/analysis-mode';
 
 export const MODE_LABELS: Record<AnalysisMode, string> = {
@@ -97,6 +97,7 @@ export function ChatTopBar({
   const [confirmEl, confirm] = useConfirm();
 
   const overflowMenu = usePopupMenu();
+  const isSidecarOpen = viewsOpen || splitMode;
 
   function newChat() {
     startTransition(async () => {
@@ -180,123 +181,133 @@ export function ChatTopBar({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full shrink-0 items-center justify-between',
-        'border-border bg-bg/90 pt-safe border-b px-3 backdrop-blur-md',
+        'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full shrink-0 items-center justify-between gap-2',
+        'border-border bg-bg/95 pt-safe border-b px-3 backdrop-blur-md sm:px-4',
       )}
     >
-      <div className="flex min-w-0 shrink-0 items-center gap-2">
+      {/* Left: Mobile Nav + Thread Title & Active Symbol */}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         <NavTrigger className="lg:hidden" />
         <KestrelBrand variant="mark" href="/dashboard" className="inline-flex lg:hidden" />
-      </div>
 
-      {/* Center: title + pinned symbol */}
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
-        <h1 className="text-fg truncate text-sm font-semibold tracking-tight">{title}</h1>
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className="hover:bg-bg-elev-2 group flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left transition-colors"
+          title="Switch conversation"
+        >
+          <h1 className="text-fg truncate text-sm font-semibold tracking-tight">{title}</h1>
+          <IconHistory className="text-fg-subtle group-hover:text-fg size-3.5 shrink-0 transition-colors" />
+        </button>
+
         {pinnedSymbol ? (
           <SymbolChip symbol={pinnedSymbol} clearing={unpinning} onClear={() => void clearPin()} />
         ) : null}
+
         {isStreaming ? (
-          <span className="text-fg-subtle text-caption inline-flex items-center gap-1 font-medium">
-            <IconBolt className="size-2.5 animate-pulse" /> analyzing market…
+          <span className="text-brand bg-brand/10 border-brand/30 hidden items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-xs font-medium sm:inline-flex">
+            <span className="bg-brand size-1.5 animate-pulse rounded-full" />
+            Live
           </span>
         ) : null}
       </div>
 
-      {/* Views Sidecar Trigger */}
-      {(onToggleViews || onToggleSplitMode) && (
-        <Tooltip
-          label={
-            viewsOpen || splitMode
-              ? 'Close side panel'
-              : 'Open side panel (Live Chart, Desk Opinions & Action Plan)'
-          }
-          side="bottom"
-        >
+      {/* Right: Workspace Sidecar Toggle + New Chat + Overflow Menu */}
+      <div className="flex shrink-0 items-center gap-1.5">
+        {(onToggleViews || onToggleSplitMode) && (
+          <Tooltip
+            label={
+              isSidecarOpen
+                ? 'Close chart & desk panel'
+                : 'Open live chart, desk consensus & action plan'
+            }
+            side="bottom"
+          >
+            <button
+              type="button"
+              onClick={onToggleViews ?? onToggleSplitMode}
+              aria-label="Toggle views"
+              aria-pressed={isSidecarOpen}
+              className={cn(
+                'hidden h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors lg:inline-flex',
+                isSidecarOpen
+                  ? 'border-brand/40 bg-brand/10 text-brand'
+                  : 'border-border bg-bg-elev-1 text-fg-muted hover:text-fg hover:bg-bg-elev-2',
+              )}
+            >
+              <IconLayoutSidebarRight className="size-4" />
+              <span>Chart & Desks</span>
+            </button>
+          </Tooltip>
+        )}
+
+        <Tooltip label="New chat" side="bottom">
           <button
             type="button"
-            onClick={onToggleViews ?? onToggleSplitMode}
-            aria-label="Toggle views"
-            className={cn(
-              'border-chip-edge text-caption relative hidden shrink-0 items-center gap-1.5 rounded-[10px] border px-2.5 py-1.5 font-mono font-medium transition-all active:translate-y-[0.5px] lg:inline-flex',
-              viewsOpen || splitMode
-                ? 'border-brand/40 bg-brand/10 text-brand shadow-(--shadow-chip)'
-                : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]',
-            )}
+            onClick={newChat}
+            disabled={pending}
+            aria-label="New chat"
+            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent transition-colors disabled:opacity-50"
           >
-            <span className="text-fg-subtle text-[11px] font-mono">
-              [{viewsOpen || splitMode ? '•' : ' '}]
-            </span>
-            <span>Views</span>
+            {pending ? (
+              <IconLoader2 className="size-4 animate-spin" />
+            ) : (
+              <IconPlus className="size-4" />
+            )}
           </button>
         </Tooltip>
-      )}
 
-      <Tooltip label="New chat" side="bottom">
-        <button
-          type="button"
-          onClick={newChat}
-          disabled={pending}
-          aria-label="New chat"
-          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors disabled:opacity-50"
-        >
-          {pending ? (
-            <IconLoader2 className="size-5 animate-spin" />
-          ) : (
-            <IconPlus className="size-5" />
-          )}
-        </button>
-      </Tooltip>
-
-      <div className="relative" ref={overflowMenu.menuRef}>
-        <button
-          ref={overflowMenu.triggerRef}
-          type="button"
-          onClick={() => overflowMenu.setOpen((v) => !v)}
-          aria-label="Conversation menu"
-          {...overflowMenu.triggerProps}
-          className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors"
-        >
-          <IconDotsCircleHorizontal className="size-5" />
-        </button>
-        {overflowMenu.open ? (
-          <div
-            {...overflowMenu.menuProps}
-            className="surface-elevated text-body-sm absolute top-12 right-0 z-50 w-56 overflow-hidden rounded-sm"
+        <div className="relative" ref={overflowMenu.menuRef}>
+          <button
+            ref={overflowMenu.triggerRef}
+            type="button"
+            onClick={() => overflowMenu.setOpen((v) => !v)}
+            aria-label="Conversation menu"
+            {...overflowMenu.triggerProps}
+            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors"
           >
-            <button
-              role="menuitem"
-              type="button"
-              onClick={() => {
-                overflowMenu.setOpen(false);
-                setDrawerOpen(true);
-              }}
-              className="text-fg hover:bg-bg-elev-2 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
+            <IconDots className="size-4" />
+          </button>
+          {overflowMenu.open ? (
+            <div
+              {...overflowMenu.menuProps}
+              className="surface-elevated text-body-sm absolute top-11 right-0 z-50 w-56 overflow-hidden rounded-lg border border-border shadow-lg"
             >
-              <IconMessages className="size-4" />
-              Switch conversation
-            </button>
-            <div className="border-border/60 border-t" />
-            <button
-              role="menuitem"
-              type="button"
-              onClick={exportThread}
-              className="text-fg hover:bg-bg-elev-2 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
-            >
-              <IconFileDownload className="size-4" />
-              Export as Markdown
-            </button>
-            <div className="border-border/60 border-t" />
-            <button
-              role="menuitem"
-              type="button"
-              onClick={() => void deleteCurrent()}
-              className="text-danger hover:bg-danger/10 flex min-h-[48px] w-full items-center gap-2 px-4 py-3 text-left"
-            >
-              <IconTrash className="size-4" />
-              Delete conversation
-            </button>
-          </div>
-        ) : null}
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => {
+                  overflowMenu.setOpen(false);
+                  setDrawerOpen(true);
+                }}
+                className="text-fg hover:bg-bg-elev-2 flex min-h-[44px] w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-medium"
+              >
+                <IconMessages className="size-4" />
+                Switch conversation
+              </button>
+              <div className="border-border/60 border-t" />
+              <button
+                role="menuitem"
+                type="button"
+                onClick={exportThread}
+                className="text-fg hover:bg-bg-elev-2 flex min-h-[44px] w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-medium"
+              >
+                <IconFileDownload className="size-4" />
+                Export as Markdown
+              </button>
+              <div className="border-border/60 border-t" />
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => void deleteCurrent()}
+                className="text-danger hover:bg-danger/10 flex min-h-[44px] w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-medium"
+              >
+                <IconTrash className="size-4" />
+                Delete conversation
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <ThreadSwitcher

@@ -17,30 +17,6 @@
  */
 
 // Full-screen chat experience.
-//
-// Layout: fixed inset-0 with three rows:
-//
-//   ┌──────────────────────────────────┐
-//   │ ChatTopBar    ☰ · title · + · ⋯ │  sticky
-//   ├──────────────────────────────────┤
-//   │  message scroll area             │  flex-1, no-overscroll
-//   │  (or empty state w/ prompts)     │
-//   ├──────────────────────────────────┤
-//   │ Composer                         │  sticky
-//   └──────────────────────────────────┘
-//
-// Stability tweaks vs. previous iteration:
-//   - `paint-isolated` so the chat's full-bleed surface doesn't repaint
-//     when sibling routes update (eliminates a flash visible during route
-//     transitions on slow devices).
-//   - `no-overscroll` on the scroll container so iOS Safari doesn't bounce
-//     past the composer/top bar.
-//   - Auto-scroll only fires when the user is within 240px of the bottom
-//     and never scrolls during a streaming token tick (fixes "page
-//     jumps while reading").
-//   - Initial scroll uses an instant `scrollTop = scrollHeight`, never
-//     `behavior: 'smooth'` — smooth-scroll on mount is the source of the
-//     "drift" feeling.
 import { useChat } from '@ai-sdk/react';
 import type { Symbol, Timeframe } from '@kestrel/shared';
 import { IconArrowBackUp, IconArrowDown, IconX } from '@tabler/icons-react';
@@ -50,7 +26,6 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { useSidebarState } from '@/components/layout/sidebar-state-context';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
@@ -68,9 +43,7 @@ import { getCsrfToken } from '@/lib/csrf';
 import { ThreadSummaryHeader } from './_components/thread-summary-header';
 import { ChatTopBar, type AnalysisMode, type ThreadSummary } from './chat-top-bar';
 import { Composer } from './composer';
-import { ComposerActionChips } from './composer-action-chips';
 import { MessageList } from './message-list';
-import { AgentDeliberation } from './parts/agent-deliberation';
 import { PixelDeskStandby } from './parts/pixel-desk/pixel-desk';
 import { ThreadTocRail } from './thread-toc-rail';
 import { ThreadViewsDock, type DockTab } from './thread-views-dock';
@@ -87,12 +60,9 @@ interface ChatScreenProps {
   initialChatModel?: string | null;
   /** Whether the completed committee opinions should remain visible. */
   initialShowAgentOpinions?: boolean;
-  /** Server-side AI custom instructions. Using the DB value as the
-   *  source of truth prevents cross-device drift from localStorage. */
+  /** Server-side AI custom instructions. */
   initialCustomInstructions?: string | null;
-  /** Optional prompt to auto-submit on mount. Used by deep-link
-   *  affordances elsewhere in the app (Ask AI from a news article or
-   *  calendar event). Sent at most once per thread. */
+  /** Optional prompt to auto-submit on mount. */
   autoSubmitPrompt?: string | null;
 }
 
@@ -115,9 +85,6 @@ export function ChatScreen({
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
   const router = useRouter();
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>(initialAnalysisMode);
-  // Keep the latest selector value available synchronously to the transport.
-  // React state updates are asynchronous, so a user can select Full and press
-  // Enter before a re-render updates the callback closure.
   const analysisModeRef = useRef<AnalysisMode>(initialAnalysisMode);
   const [showAgentOpinions] = useState(initialShowAgentOpinions);
   const [chatModel, setChatModel] = useState<string | null>(initialChatModel);
@@ -131,15 +98,10 @@ export function ChatScreen({
   const [agentProgress, setAgentProgress] = useState<AgentProgress | null>(null);
   const [confirmEl, confirm] = useConfirm();
 
-  // P3: DB is the source of truth for AI custom instructions so that
-  // changes made on another device are reflected immediately on the
-  // next page load. The prop comes from the server component and is
-  // stable for the lifetime of this client view.
   const customInstructions = initialCustomInstructions ?? '';
   const responseStyle: 'default' | 'concise' | 'technical' | 'risk-first' = 'default';
   const citeSources = false;
 
-  // Phase 1.5 — thread summary header state.
   const [summary, setSummary] = useState<{
     synopsis: string;
     insights: Array<{ text: string; symbol?: string | null }>;
@@ -153,7 +115,7 @@ export function ChatScreen({
   useWebappShortcuts({
     onFocusComposer: () => {
       const textarea = document.querySelector<HTMLTextAreaElement>(
-        'textarea[aria-label="Chat prompt"]',
+        'textarea[aria-label="Chat message input"]',
       );
       textarea?.focus();
     },
@@ -172,9 +134,6 @@ export function ChatScreen({
         prepareSendMessagesRequest: ({ messages, id, body }) => {
           const override = modelOverrideRef.current;
           const singleTurnOverride = singleTurnOverrideRef.current;
-          // Consume the image-mode override inside the transport callback,
-          // not immediately after sendMessage(). AI SDK transport preparation
-          // may be deferred, so clearing it in the composer can race this read.
           singleTurnOverrideRef.current = null;
           const csrf = getCsrfToken();
           const prefs = { customInstructions, responseStyle, citeSources };
@@ -183,8 +142,6 @@ export function ChatScreen({
           const reqBody = {
             ...body,
             modelOverride: override ?? undefined,
-            // Request-critical fields must be written after `body`; callers
-            // may pass a stale body snapshot through the AI SDK transport.
             analysisMode: singleTurnOverride ?? analysisModeRef.current,
             threadId,
             id,
@@ -218,7 +175,6 @@ export function ChatScreen({
     messages: initialMessages,
   });
 
-  // H2: Thread title fetching via dedicated hook.
   const { title } = useThreadTitle({
     threadId,
     initialTitle,
@@ -226,18 +182,13 @@ export function ChatScreen({
     messageCount: messages.length,
   });
 
-  // Ref to hold the latest messages array — avoids stale closure.
   const messagesRef = useRef(messages);
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Phase 1.5 — fetch thread summary once the thread grows past 20 messages.
   useEffect(() => {
     if (messages.length > 20 && !summary) {
-      // STAB-15: Use an AbortController to cancel in-flight fetches
-      // when the component unmounts or threadId changes, preventing
-      // stale responses from overwriting the current thread's summary.
       const ac = new AbortController();
       apiFetch<{ synopsis: string; insights: Array<{ text: string; symbol?: string | null }> }>(
         `/api/chat/threads/${threadId}/summary`,
@@ -253,7 +204,6 @@ export function ChatScreen({
     }
   }, [messages.length, threadId, summary]);
 
-  // H2: Auto-scroll via dedicated hook (isStreaming defined before use).
   const isStreaming = useMemo(() => status === 'submitted' || status === 'streaming', [status]);
 
   const setScrollContainer = useCallback((element: HTMLDivElement | null) => {
@@ -269,7 +219,6 @@ export function ChatScreen({
     isStreaming,
   });
 
-  // Auto-submit a prompt passed via ?prompt= (Ask AI deep links).
   useEffect(() => {
     if (!autoSubmitPrompt) return;
     if (autoSubmittedRef.current === threadId) return;
@@ -280,10 +229,6 @@ export function ChatScreen({
     void sendMessage({ text: autoSubmitPrompt });
   }, [autoSubmitPrompt, threadId, messages.length, isStreaming, sendMessage]);
 
-  // Clear one-shot controls after a failed/settled turn as a safety net.
-  // The transport normally consumes the image override before the request
-  // starts; this also prevents a failed preparation from leaking it into the
-  // next turn.
   useEffect(() => {
     if (status === 'ready' || (error && status === 'error')) {
       modelOverrideRef.current = null;
@@ -291,7 +236,6 @@ export function ChatScreen({
     }
   }, [status, error]);
 
-  // Reset error dismissal when new stream starts.
   useEffect(() => {
     if (isStreaming) {
       setDismissedError(false);
@@ -352,8 +296,6 @@ export function ChatScreen({
   const handleAnalysisModeChange = useCallback(
     (nextMode: AnalysisMode) => {
       const previousMode = analysisModeRef.current;
-      // Update the ref before state so an immediately-submitted turn uses the
-      // mode the user just selected, even before React re-renders.
       analysisModeRef.current = nextMode;
       setAnalysisMode(nextMode);
       void apiMutate(`/api/chat/threads/${threadId}`, {
@@ -373,8 +315,6 @@ export function ChatScreen({
 
   const handleEdit = useCallback(
     async (messageId: string, newText: string) => {
-      // Read messages from the ref so this callback is stable across stream tokens
-      // (avoids recreating it on every token, which would defeat MessageList's memo).
       const cur = messagesRef.current;
       const idx = cur.findIndex((m) => m.id === messageId);
       if (idx === -1) return;
@@ -402,10 +342,6 @@ export function ChatScreen({
             },
           );
           toast.success('Forked into a new thread');
-          // Match newChat(): refresh the server component so the forked
-          // thread's messages hydrate into useChat, then navigate. Without
-          // the refresh, useChat keeps the source thread's state and the
-          // forked thread renders stale messages.
           router.refresh();
           router.push(`/chat/${newThreadId}`);
         } catch (err) {
@@ -422,7 +358,6 @@ export function ChatScreen({
 
   const isEmpty = messages.length === 0;
 
-  // Last assistant message id — gets the Regenerate affordance.
   const lastAssistantId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
       const m = messages[i];
@@ -465,7 +400,7 @@ export function ChatScreen({
             <div
               className={cn(
                 'mx-auto px-4 py-4',
-                splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-4xl xl:max-w-5xl',
+                splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-3xl xl:max-w-4xl',
               )}
             >
               {summary ? (
@@ -477,16 +412,7 @@ export function ChatScreen({
                   />
                 </div>
               ) : null}
-              {showAgentOpinions && agentProgress && Array.isArray(agentProgress.agents) && (
-                <div className="px-3 py-2">
-                  <AgentDeliberation
-                    agents={agentProgress.agents}
-                    mode={agentProgress.mode}
-                    status={agentProgress.status}
-                    error={agentProgress.error}
-                  />
-                </div>
-              )}
+
               {isEmpty ? (
                 <EmptyChatState
                   pinnedSymbol={pinnedSymbol}
@@ -502,6 +428,7 @@ export function ChatScreen({
                   messages={messages}
                   isStreaming={isStreaming}
                   showTypingIndicator={status === 'submitted'}
+                  agentProgress={showAgentOpinions ? agentProgress : null}
                   scrollElement={scrollElement}
                   lastAssistantId={lastAssistantId}
                   onCopy={handleCopy}
@@ -513,6 +440,7 @@ export function ChatScreen({
                   }}
                 />
               )}
+
               <AnimatePresence>
                 {error && !dismissedError ? (
                   <m.div
@@ -523,11 +451,9 @@ export function ChatScreen({
                     transition={{ duration: 0.2 }}
                     role="alert"
                     className={cn(
-                      'bg-danger/10 text-danger border-danger/30 mx-3 mb-2 flex items-center justify-between gap-2 rounded-sm border p-3 text-xs',
+                      'bg-danger/10 text-danger border-danger/30 mx-3 mb-2 flex items-center justify-between gap-2 rounded-lg border p-3 text-xs',
                     )}
                   >
-                    {/* P1-15 — unwrap a raw `{error:{code,message}}` envelope
-                        so the server's message is shown, not the JSON. */}
                     <span className="line-clamp-2 flex-1">{chatErrorText(error)}</span>
                     <div className="flex shrink-0 items-center gap-1.5">
                       <button
@@ -567,8 +493,8 @@ export function ChatScreen({
                   transition={{ duration: 0.2 }}
                   onClick={scrollToBottom}
                   aria-label="Scroll to latest"
-                  className="scroll-fab surface-elevated text-fg text-body-sm absolute left-1/2 z-30 inline-flex h-11 -translate-x-1/2 items-center gap-1.5 rounded-sm px-4 font-medium transition-all"
-                  style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
+                  className="scroll-fab surface-elevated text-fg text-body-sm absolute left-1/2 z-30 inline-flex h-10 -translate-x-1/2 items-center gap-1.5 rounded-full px-4 font-medium transition-all"
+                  style={{ bottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}
                 >
                   <IconArrowDown className="size-3.5" />
                   Latest
@@ -576,33 +502,25 @@ export function ChatScreen({
               )}
             </AnimatePresence>
 
-            <ThreadTocRail
-              messages={messages}
-              onScrollToTurn={(idx) => {
-                const target = scrollElement?.querySelector(`[data-index="${idx}"]`);
-                if (target) {
-                  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }}
-            />
+            {!splitMode && (
+              <ThreadTocRail
+                messages={messages}
+                onScrollToTurn={(idx) => {
+                  const target = scrollElement?.querySelector(`[data-index="${idx}"]`);
+                  if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
+              />
+            )}
           </div>
 
           <div
             className={cn(
-              'mx-auto flex w-full flex-col px-4',
-              splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-4xl xl:max-w-5xl',
+              'mx-auto flex w-full flex-col px-4 pt-1',
+              splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-3xl xl:max-w-4xl',
             )}
           >
-            {!isEmpty && (
-              <ComposerActionChips
-                pinnedSymbol={pinnedSymbol}
-                disabled={isStreaming}
-                onSelect={(text) => {
-                  lastUserTextRef.current = text;
-                  void sendMessage({ text });
-                }}
-              />
-            )}
             <Composer
               analysisMode={analysisMode}
               onAnalysisModeChange={handleAnalysisModeChange}
@@ -611,9 +529,7 @@ export function ChatScreen({
               onSubmit={(text, images) => {
                 lastUserTextRef.current = text;
                 if (analysisMode !== 'single' && images.length > 0) {
-                  toast(
-                    'Chart image analysis runs in Quick Read mode for this message.',
-                  );
+                  toast('Chart image analysis runs in Quick Read mode for this message.');
                   singleTurnOverrideRef.current = 'single';
                 }
                 if (images.length === 0) {
@@ -635,12 +551,14 @@ export function ChatScreen({
               }}
               isStreaming={isStreaming}
               disabled={isStreaming || modelSelectionPending}
-              placeholder={pinnedSymbol ? `Ask about ${pinnedSymbol}…` : 'Ask about XAU, EUR, GBP…'}
+              placeholder={
+                pinnedSymbol ? `Ask about ${pinnedSymbol}…` : 'Ask about XAU, EUR, GBP…'
+              }
             />
           </div>
         </div>
 
-        {/* Docked Elastic Sidecar */}
+        {/* Docked Sidecar Workspace */}
         <AnimatePresence>
           {splitMode && (
             <ThreadViewsDock
@@ -673,11 +591,17 @@ interface EmptyChatStateProps {
 
 function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProps) {
   return (
-    <div className="flex min-h-[60svh] flex-col items-center justify-center gap-3 px-3 py-6 text-center">
-      <KestrelBrand variant="lockup" decorative priority className="w-36 opacity-95" />
+    <div className="flex min-h-[64svh] flex-col items-center justify-center gap-5 px-2 py-6">
+      <div className="flex w-full max-w-2xl flex-col items-start gap-1 text-left">
+        <h2 className="text-fg font-display text-lg font-semibold tracking-tight sm:text-xl">
+          Market Research & Committee Desk
+        </h2>
+        <p className="text-fg-muted text-xs sm:text-sm">
+          Select an instrument to run a 4-desk consensus review or ask a direct question below.
+        </p>
+      </div>
 
-      {/* Unified 8-Bit Pixel Quant Floor & Recommended Prompts Hub */}
-      <div className="flex w-full max-w-xl justify-center">
+      <div className="flex w-full max-w-2xl justify-center">
         <PixelDeskStandby
           pinnedSymbol={pinnedSymbol}
           onSelectPrompt={onSelect}

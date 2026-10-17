@@ -22,13 +22,12 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { UIMessage } from 'ai';
 import { memo, useEffect, useState } from 'react';
 
+import type { AgentProgress } from '@/lib/chat-transport';
+
 import { Message } from './message';
+import { AgentDeliberation } from './parts/agent-deliberation';
 import { PixelDeskThinking } from './parts/pixel-desk/pixel-desk';
 
-// Phase 7 task 7.3 — sr-only polite live region so screen readers announce
-// streamed assistant text. Mirrors the pattern in chart-canvas.tsx.
-// The visual stream updates at ~10Hz, but the live region is debounced
-// so screen readers don't announce every token.
 function StreamingLiveRegion({ text }: { text: string }) {
   const [debouncedText, setDebouncedText] = useState(text);
 
@@ -49,6 +48,7 @@ interface MessageListProps {
   messages: UIMessage[];
   isStreaming?: boolean;
   showTypingIndicator?: boolean;
+  agentProgress?: AgentProgress | null;
   scrollElement?: HTMLDivElement | null;
   /** Index of the last assistant message — gets the regenerate affordance. */
   lastAssistantId?: string;
@@ -63,6 +63,7 @@ export const MessageList = memo(function MessageList({
   messages,
   isStreaming,
   showTypingIndicator,
+  agentProgress,
   scrollElement,
   lastAssistantId,
   onCopy,
@@ -70,7 +71,11 @@ export const MessageList = memo(function MessageList({
   onEdit,
   onFollowUpSelect,
 }: MessageListProps) {
-  const count = messages.length + (showTypingIndicator ? 1 : 0);
+  const hasLiveDeliberation = Boolean(
+    agentProgress && Array.isArray(agentProgress.agents) && agentProgress.agents.length > 0,
+  );
+  const showFooterRow = Boolean(showTypingIndicator || hasLiveDeliberation);
+  const count = messages.length + (showFooterRow ? 1 : 0);
 
   const rowVirtualizer = useVirtualizer({
     count,
@@ -78,7 +83,6 @@ export const MessageList = memo(function MessageList({
     estimateSize: (index) => {
       const msg = messages[index];
       if (!msg) return 180;
-      // More granular estimate based on content type
       const hasToolCall = msg.parts?.some((p) => p.type.startsWith('tool-'));
       const hasMarkdown = msg.parts?.some((p) => p.type === 'text' && p.text.length > 500);
       const hasTables = msg.parts?.some((p) => p.type === 'text' && /\|.*\|/.test(p.text));
@@ -99,9 +103,9 @@ export const MessageList = memo(function MessageList({
       }}
     >
       {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-        const isTypingRow = virtualRow.index === messages.length;
+        const isFooterRow = virtualRow.index === messages.length;
 
-        if (isTypingRow) {
+        if (isFooterRow) {
           return (
             <div
               key={virtualRow.key}
@@ -111,13 +115,24 @@ export const MessageList = memo(function MessageList({
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                width: 'calc(100% - 2rem)', // Account for px-4 padding (1rem on each side)
+                width: 'calc(100% - 2rem)',
                 transform: `translateY(${virtualRow.start}px)`,
               }}
               className="py-2"
             >
-              <div className="flex justify-start">
-                <PixelDeskThinking />
+              <div className="flex w-full justify-start">
+                {hasLiveDeliberation && agentProgress ? (
+                  <div className="w-full max-w-2xl">
+                    <AgentDeliberation
+                      agents={agentProgress.agents}
+                      mode={agentProgress.mode}
+                      status={agentProgress.status}
+                      error={agentProgress.error}
+                    />
+                  </div>
+                ) : (
+                  <PixelDeskThinking agentProgress={agentProgress} />
+                )}
               </div>
             </div>
           );
@@ -137,7 +152,7 @@ export const MessageList = memo(function MessageList({
               position: 'absolute',
               top: 0,
               left: 0,
-              width: 'calc(100% - 2rem)', // Account for px-4 padding (1rem on each side)
+              width: 'calc(100% - 2rem)',
               transform: `translateY(${virtualRow.start}px)`,
             }}
           >

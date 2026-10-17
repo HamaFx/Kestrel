@@ -64,31 +64,31 @@ const AGENT_META: Record<
     icon: <IconTrendingUp className="size-4" />,
     label: 'Technical',
     tokenClass: 'text-bull',
-    activeClass: 'border-bull/40 bg-bull/10 shadow-[0_0_12px_rgba(34,197,94,0.2)]',
+    activeClass: 'border-bull/40 bg-bull/10',
   },
   fundamental: {
     icon: <IconNews className="size-4" />,
     label: 'Macro',
     tokenClass: 'text-info',
-    activeClass: 'border-info/40 bg-info/10 shadow-[0_0_12px_rgba(56,189,248,0.2)]',
+    activeClass: 'border-info/40 bg-info/10',
   },
   risk: {
     icon: <IconShield className="size-4" />,
     label: 'Risk',
     tokenClass: 'text-bear',
-    activeClass: 'border-bear/40 bg-bear/10 shadow-[0_0_12px_rgba(244,63,94,0.2)]',
+    activeClass: 'border-bear/40 bg-bear/10',
   },
   sentiment: {
     icon: <IconRobot className="size-4" />,
     label: 'Sentiment',
     tokenClass: 'text-warn',
-    activeClass: 'border-warn/40 bg-warn/10 shadow-[0_0_12px_rgba(234,179,8,0.2)]',
+    activeClass: 'border-warn/40 bg-warn/10',
   },
   decision: {
     icon: <IconCpu className="size-4" />,
     label: 'Consensus',
     tokenClass: 'text-brand',
-    activeClass: 'border-brand/40 bg-brand/10 shadow-[0_0_12px_rgba(245,110,15,0.25)]',
+    activeClass: 'border-brand/40 bg-brand/10',
   },
 };
 
@@ -146,23 +146,23 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
     <div
       role="status"
       aria-live="polite"
-      className="surface-panel border-border/80 bg-bg-elev-1 flex flex-col gap-4 rounded-xl border p-4 shadow-sm"
+      className="surface-panel border-border/80 bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
     >
       {/* Header & Step Progress */}
-      <div className="border-border/60 flex items-center justify-between gap-2 border-b pb-3">
-        <div className="text-caption text-fg-subtle flex items-center gap-2 font-semibold tracking-wider uppercase">
-          <IconCpu className="size-3.5" />
+      <div className="border-border/60 flex items-center justify-between gap-2 border-b pb-2.5">
+        <div className="text-fg flex items-center gap-2 text-xs font-semibold">
+          <IconCpu className="text-brand size-3.5" />
           <span>{formatPlainModeLabel(mode)}</span>
         </div>
 
         {!allDone && (
           <div className="flex items-center gap-2">
-            <span className="text-fg-subtle text-caption font-mono tabular-nums">
+            <span className="text-fg-subtle font-mono text-xs tabular-nums">
               {doneCount}/{agents.length} Ready
             </span>
             <div className="bg-bg-elev-3 h-1.5 w-16 overflow-hidden rounded-full">
               <m.div
-                className="from-brand to-bull h-full rounded-full bg-gradient-to-r"
+                className="bg-brand h-full rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPct}%` }}
                 transition={{ duration: 0.3 }}
@@ -172,18 +172,15 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
         )}
       </div>
 
-      {/* Zone 0 — Live Committee Progress log */}
-      {!allDone ? <TelemetryLog agents={agents} /> : null}
-
-      {/* Zone 1 — Agent node avatars */}
-      <div className="flex flex-wrap items-start justify-center gap-3">
+      {/* Unified Horizontal 4-Desk Status Cards */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {agents.map((a) => {
           const meta = AGENT_META[a.agentName] ?? FALLBACK_META;
           return <AgentNode key={a.agentName} agent={a} meta={meta} />;
         })}
       </div>
 
-      {/* Zone 2 — Connector lines + synthesis node */}
+      {/* Subtle SVG Progress Connector when partially complete */}
       <AnimatePresence>
         {hasDone && !allDone ? (
           <m.div
@@ -195,42 +192,35 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
             className="flex flex-col items-center"
           >
             <ConnectorLines agents={agents} />
-            <m.div
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-              className={cn(
-                'bg-brand size-2.5 rounded-sm shadow-[0_0_8px_rgba(245,110,15,0.4)]',
-                doneCount >= 2 && 'bg-bull size-3 shadow-[0_0_10px_rgba(34,197,94,0.4)]',
-              )}
-            />
           </m.div>
         ) : null}
       </AnimatePresence>
 
-      {/* "Deliberating…" while nothing is done yet */}
+      {/* Compact Live Committee Progress Trace */}
+      {!allDone ? <TelemetryLog agents={agents} /> : null}
+
       {!hasDone ? (
-        <div className="text-caption text-fg-subtle flex items-center justify-center gap-2 tracking-wider uppercase">
-          <span className="motion-safe:animate-pulse">Analyzing live market data…</span>
+        <div className="text-fg-subtle flex items-center justify-between text-xs">
+          <span>Analyzing live market data…</span>
         </div>
       ) : null}
 
-      {/* Zone 3 — Verdict reveal */}
+      {/* Settled Verdict Summary */}
       <AnimatePresence>
         {allDone && !isFailed && !isRetrying ? (
           <m.div
             key="verdict"
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             aria-label={`Desk verdict: ${dissent ? 'mixed' : (opinions[0]?.opinion?.bias ?? 'neutral')}, ${avgConfidence}% confidence`}
-            className="surface-well border-border bg-bg-elev-2 flex flex-col gap-3 rounded-xl border p-3.5 shadow-xs"
+            className="surface-well border-border bg-bg-elev-2 flex flex-col gap-3 rounded-lg border p-3.5"
           >
-            {/* Confidence meter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-fg text-body-sm font-semibold">Committee Conviction</span>
-                <span className="text-fg text-body-sm font-bold tabular-nums">
+                <span className="text-fg text-xs font-semibold">Committee Conviction</span>
+                <span className="text-fg font-mono text-xs font-bold tabular-nums">
                   {avgConfidence}%
                 </span>
               </div>
@@ -239,26 +229,24 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
                   className={cn('h-full rounded-sm', confidenceTone)}
                   initial={{ width: 0 }}
                   animate={{ width: `${avgConfidence}%` }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
               </div>
             </div>
 
-            {/* Bias distribution + dissent */}
-            <div className="flex items-center justify-between gap-3 pt-1">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
               <BiasDistribution counts={biasCounts} total={opinions.length} />
               {dissent ? (
-                <span className="text-caption text-warn bg-warn/10 border-warn/30 inline-flex items-center gap-1 rounded-xs border px-2 py-0.5 font-semibold">
+                <span className="text-warn bg-warn/10 border-warn/30 inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-xs font-semibold">
                   <IconAlertTriangle className="size-3.5" />
                   Mixed signals
                 </span>
               ) : null}
             </div>
 
-            {/* Expandable opinions */}
             {opinions.length > 0 ? (
-              <details className="group/details mt-1">
-                <summary className="text-body-sm text-fg-muted hover:text-fg cursor-pointer list-none select-none">
+              <details className="group/details mt-0.5">
+                <summary className="text-fg-muted hover:text-fg cursor-pointer list-none text-xs font-medium select-none">
                   View Specialist Breakdowns
                 </summary>
                 <div className="border-border/60 mt-2 flex flex-col gap-2 border-t pt-2">
@@ -268,20 +256,20 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
                     return (
                       <div
                         key={a.agentName}
-                        className="border-border/80 bg-bg-elev-1/40 rounded-r-xs border-l-2 py-1 pl-3"
+                        className="border-border/80 bg-bg-elev-1/50 rounded-md border p-2.5"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-fg text-body-sm font-semibold">{meta.label} Desk</span>
+                          <span className="text-fg text-xs font-semibold">{meta.label} Desk</span>
                           <span
                             className={cn(
-                              'text-caption font-mono font-bold uppercase',
+                              'font-mono text-xs font-bold uppercase tabular-nums',
                               BIAS_TOKEN[op.bias],
                             )}
                           >
                             {op.bias} · {Math.round(op.confidence * 100)}%
                           </span>
                         </div>
-                        <p className="text-fg-muted text-caption mt-1 leading-relaxed">
+                        <p className="text-fg-muted mt-1 text-xs leading-relaxed">
                           {op.reasoning ?? op.summary}
                         </p>
                       </div>
@@ -291,7 +279,6 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
               </details>
             ) : null}
 
-            {/* Errors */}
             {agents
               .filter((a) => a.status === 'error' && a.error)
               .map((a) => {
@@ -299,7 +286,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
                 return (
                   <div
                     key={`error-${a.agentName}`}
-                    className="text-danger bg-danger/10 border-danger/30 flex items-center gap-1.5 rounded-xs border p-2 text-xs"
+                    className="text-danger bg-danger/10 border-danger/30 flex items-center gap-1.5 rounded-sm border p-2 text-xs"
                   >
                     <IconAlertCircle className="size-3.5 shrink-0" />
                     <span>
@@ -316,7 +303,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
         <div
           role="status"
           className={cn(
-            'rounded-sm p-3 text-sm',
+            'rounded-md p-3 text-xs',
             isFailed
               ? 'border-danger/30 bg-danger/10 text-danger border'
               : 'border-warn/30 bg-warn/10 text-warn border',
@@ -325,7 +312,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
           <div className="font-semibold">
             {isRetrying ? 'Retrying Full Committee analysis…' : 'Full Committee analysis incomplete'}
           </div>
-          <p className="mt-1 text-xs leading-relaxed">
+          <p className="mt-1 leading-relaxed">
             {error ??
               (isRetrying
                 ? 'A temporary issue occurred. Retrying the Full Committee analysis automatically…'
@@ -347,52 +334,36 @@ function AgentNode({
   const status = agent.status;
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="relative">
-        {status === 'running' && (
-          <span
-            aria-hidden="true"
-            className="bg-brand pointer-events-none absolute inset-0 animate-ping rounded-sm opacity-30"
-          />
-        )}
-        <m.div
-          aria-label={`${meta.label} desk: ${status}`}
-          animate={status === 'running' ? { scale: [1, 1.04, 1] } : { scale: 1 }}
-          transition={
-            status === 'running'
-              ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }
-              : { type: 'spring', stiffness: 400, damping: 25 }
-          }
-          className={cn(
-            'relative flex size-12 items-center justify-center rounded-sm border transition-all',
-            status === 'pending' && 'bg-bg-elev-2 text-fg-subtle border-border/60',
-            status === 'running' && cn('text-fg', meta.activeClass),
-            status === 'done' && 'bg-bg-elev-2 text-fg border-border/80 shadow-2xs',
-            status === 'error' && 'bg-danger/10 text-danger border-danger/40',
-          )}
-        >
-          <span className={cn(status !== 'error' && status !== 'pending' && meta.tokenClass)}>
-            {meta.icon}
-          </span>
-
-          {status === 'done' ? (
-            <span
-              className={cn(
-                'bg-bg-elev-1 border-border absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border shadow-xs',
-                meta.tokenClass,
-              )}
-            >
-              <IconCircleCheck className="size-3.5" />
-            </span>
-          ) : null}
-          {status === 'error' ? (
-            <span className="bg-bg-elev-1 border-danger/40 text-danger absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border shadow-xs">
-              <IconAlertCircle className="size-3.5" />
-            </span>
-          ) : null}
-        </m.div>
+    <div
+      aria-label={`${meta.label} desk: ${status}`}
+      className={cn(
+        'flex items-center justify-between gap-2 rounded-lg border p-2.5 transition-colors',
+        status === 'pending' && 'bg-bg-elev-2/50 text-fg-subtle border-border/60',
+        status === 'running' && cn('text-fg', meta.activeClass),
+        status === 'done' && 'bg-bg-elev-2 text-fg border-border/80',
+        status === 'error' && 'bg-danger/10 text-danger border-danger/40',
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <span className={cn('shrink-0', status !== 'error' && status !== 'pending' && meta.tokenClass)}>
+          {meta.icon}
+        </span>
+        <span className="truncate text-xs font-semibold">{meta.label}</span>
       </div>
-      <span className="text-caption text-fg-subtle font-medium">{meta.label}</span>
+
+      {status === 'done' ? (
+        <span className={cn('shrink-0', meta.tokenClass)}>
+          <IconCircleCheck className="size-3.5" />
+        </span>
+      ) : status === 'error' ? (
+        <span className="text-danger shrink-0">
+          <IconAlertCircle className="size-3.5" />
+        </span>
+      ) : status === 'running' ? (
+        <span className="bg-brand size-2 shrink-0 animate-pulse rounded-full" />
+      ) : (
+        <span className="bg-border size-1.5 shrink-0 rounded-full" />
+      )}
     </div>
   );
 }
@@ -400,13 +371,13 @@ function AgentNode({
 function ConnectorLines({ agents }: { agents: AgentProgress[] }) {
   const n = agents.length;
   const cx = 50;
-  const cy = 20;
+  const cy = 12;
   const lines = agents
     .map((a, i) => ({ a, x: n > 0 ? ((i + 0.5) / n) * 100 : 50 }))
     .filter((d) => d.a.status === 'done');
 
   return (
-    <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="h-5 w-full" aria-hidden="true">
+    <svg viewBox="0 0 100 12" preserveAspectRatio="none" className="h-3 w-full" aria-hidden="true">
       {lines.map((d, i) => (
         <m.line
           key={i}
@@ -414,11 +385,11 @@ function ConnectorLines({ agents }: { agents: AgentProgress[] }) {
           y1={0}
           x2={cx}
           y2={cy}
-          stroke="var(--color-divider)"
-          strokeWidth={0.6}
+          stroke="var(--color-border)"
+          strokeWidth={0.8}
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 0.4, delay: i * 0.08 }}
+          transition={{ duration: 0.3, delay: i * 0.05 }}
         />
       ))}
     </svg>
@@ -429,29 +400,24 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
   const lines = useMemo(() => {
     const result: Array<{ line: string; tone: string }> = [];
 
-    result.push({ line: '4-desk committee · analyzing live market data', tone: 'text-fg-subtle' });
-    result.push({ line: '', tone: '' });
-
     for (let i = 0; i < agents.length; i++) {
       const a = agents[i]!;
       const meta = AGENT_META[a.agentName] ?? FALLBACK_META;
-      const isLast = i === agents.length - 1;
-      const branch = isLast ? '└─' : '├─';
 
       let statusTag: string;
       let statusTone: string;
       switch (a.status) {
         case 'pending':
           statusTag = '[ QUEUED ]';
-          statusTone = 'text-fg-subtle/50';
+          statusTone = 'text-fg-subtle';
           break;
         case 'running':
           statusTag = '[ ANALYZING ]';
-          statusTone = 'text-fg-subtle';
+          statusTone = 'text-fg';
           break;
         case 'done':
           statusTag = '[ READY ]';
-          statusTone = 'text-brand';
+          statusTone = 'text-bull';
           break;
         case 'error':
           statusTag = '[ UNAVAILABLE ]';
@@ -461,7 +427,7 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
 
       const label = `${meta.label} Desk`.padEnd(16, ' ');
       result.push({
-        line: `${branch} ${label} ${statusTag}`,
+        line: `${label} ${statusTag}`,
         tone: statusTone,
       });
     }
@@ -469,16 +435,14 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
     const hasRunning = agents.some((a) => a.status === 'running');
     const doneCount = agents.filter((a) => a.status === 'done').length;
     if (hasRunning) {
-      result.push({ line: ' │', tone: 'text-fg-subtle' });
       result.push({
-        line: ` └─► trade plan synthesis  [ ACTIVE ]`,
-        tone: 'text-fg-subtle',
+        line: `trade plan synthesis  [ ACTIVE ]`,
+        tone: 'text-brand',
       });
     } else if (doneCount > 0 && agents.some((a) => a.status !== 'done' && a.status !== 'error')) {
-      result.push({ line: ' │', tone: 'text-fg-subtle' });
       result.push({
-        line: ` └─► trade plan synthesis  [ STANDBY ]`,
-        tone: 'text-fg-subtle/50',
+        line: `trade plan synthesis  [ STANDBY ]`,
+        tone: 'text-fg-subtle',
       });
     }
 
@@ -486,25 +450,17 @@ function TelemetryLog({ agents }: { agents: AgentProgress[] }) {
   }, [agents]);
 
   return (
-    <div className="surface-panel bg-bg-elev-1 border-border overflow-hidden rounded-xl border">
-      <div className="border-border flex items-center gap-2 border-b px-3 py-2">
+    <div className="bg-bg-elev-2/50 border-border/70 overflow-hidden rounded-lg border">
+      <div className="border-border/60 flex items-center gap-2 border-b px-3 py-1.5">
         <IconTerminal2 className="text-fg-subtle size-3" />
-        <span className="text-caption text-fg-subtle font-mono tracking-wider uppercase">
-          Live Committee Progress
-        </span>
+        <span className="text-fg-subtle font-mono text-xs">Live Committee Progress</span>
       </div>
-      <div className="overflow-x-auto px-3 py-2 font-mono text-xs leading-[1.6] select-none">
-        {lines.map((l, i) => {
-          if (!l.line) return <div key={i} className="h-1" />;
-          return (
-            <div key={i} className={l.tone || 'text-fg-subtle'}>
-              {l.line}
-            </div>
-          );
-        })}
-        {agents.some((a) => a.status === 'running') ? (
-          <span className="terminal-cursor text-fg-subtle">_</span>
-        ) : null}
+      <div className="grid grid-cols-1 gap-1 px-3 py-2 font-mono text-xs sm:grid-cols-2">
+        {lines.map((l, i) => (
+          <div key={i} className={l.tone || 'text-fg-subtle'}>
+            {l.line}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -524,23 +480,21 @@ function BiasDistribution({
   ];
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-wrap items-center gap-3">
       {rows.map((r) => {
         const pct = total > 0 ? (r.count / total) * 100 : 0;
         return (
-          <div key={r.label} className="flex items-center gap-2">
-            <span className="text-caption text-fg-subtle w-12 tracking-wide uppercase">
-              {r.label}
-            </span>
-            <div className="bg-bg-elev-3 h-1.5 w-24 overflow-hidden rounded-sm">
+          <div key={r.label} className="flex items-center gap-1.5">
+            <span className="text-fg-subtle text-xs">{r.label}</span>
+            <div className="bg-bg-elev-3 h-1.5 w-12 overflow-hidden rounded-sm">
               <m.div
                 className={cn('h-full rounded-sm', r.bar)}
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
               />
             </div>
-            <span className="text-caption text-fg-muted tabular-nums">{r.count}</span>
+            <span className="text-fg-muted font-mono text-xs tabular-nums">{r.count}</span>
           </div>
         );
       })}
