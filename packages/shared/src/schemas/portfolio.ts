@@ -24,7 +24,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../symbols';
+import { SymbolSchema, tryGetSymbolDefinition, pipSize } from '../symbols';
 
 // ---------------------------------------------------------------------------
 // Position
@@ -166,13 +166,17 @@ export const CONTRACT_SIZES: Record<string, number> = {
 };
 
 export function getContractSize(symbol: string): number {
+  const def = tryGetSymbolDefinition(symbol);
+  if (def) return def.capabilities.contractSize;
   return CONTRACT_SIZES[symbol.toUpperCase()] ?? 100_000;
 }
 
+/** Lot units alias for contract size. */
+export const lotUnits = getContractSize;
+
 /** Pip value per standard lot in USD. */
 export function getPipValue(symbol: string, lotSize: number): number {
-  const s = symbol.toUpperCase();
-  const pip = s === 'XAUUSD' ? 0.1 : s.endsWith('JPY') ? 0.01 : 0.0001;
-  const contractSize = getContractSize(s);
+  const pip = pipSize(symbol);
+  const contractSize = getContractSize(symbol);
   return pip * contractSize * lotSize;
 }

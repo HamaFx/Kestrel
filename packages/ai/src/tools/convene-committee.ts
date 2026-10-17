@@ -24,6 +24,7 @@
 import {
   ConveneCommitteeInputSchema,
   ConveneCommitteeOutputSchema,
+  priceDecimals,
   type CommitteeVerdict,
   type ConveneCommitteeOutput,
 } from '@kestrel/shared';
@@ -154,13 +155,16 @@ function buildPacketGroundedFallbackVerdicts(args: {
   const openPrice = candles[0]?.o ?? liveMid;
   const changePct = openPrice > 0 ? ((liveMid - openPrice) / openPrice) * 100 : 0;
 
+  const dec = priceDecimals(symbol);
+  const atrDec = Math.max(2, dec);
+
   return [
     {
       persona: 'economist',
       verdict: econVerdict,
       confidence: macroEventsCount > 0 ? 7 : 6,
       keyPoints: [
-        `${symbol} live mid price is ${liveMid} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
+        `${symbol} live mid price is ${liveMid.toFixed(dec)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
         macroEventsCount > 0
           ? `${macroEventsCount} high-impact macro event(s) on the radar; size conservatively around releases.`
           : 'No immediate high-impact macro release blocking execution.',
@@ -180,15 +184,15 @@ function buildPacketGroundedFallbackVerdicts(args: {
       confidence: techAligned ? 8 : 6,
       keyPoints: [
         hasTrend && rsi14 !== null
-          ? `EMA20 (${ema20.toFixed(2)}) is ${trendBullish ? 'above' : 'below'} EMA50 (${ema50.toFixed(2)}), with RSI14 at ${rsi14.toFixed(1)}.`
-          : `${symbol} trading at ${liveMid.toFixed(2)}; technical indicators incomplete.`,
+          ? `EMA20 (${ema20.toFixed(dec)}) is ${trendBullish ? 'above' : 'below'} EMA50 (${ema50.toFixed(dec)}), with RSI14 at ${rsi14.toFixed(1)}.`
+          : `${symbol} trading at ${liveMid.toFixed(dec)}; technical indicators incomplete.`,
         packet.marketStructure
           ? `50-bar range spans ${packet.marketStructure.recentSwingLow} to ${packet.marketStructure.recentSwingHigh}.`
-          : `Proposed ${side} entry at ${entry} vs. live mid ${liveMid}.`,
+          : `Proposed ${side} entry at ${entry} vs. live mid ${liveMid.toFixed(dec)}.`,
       ],
       risk:
         atr14 !== null
-          ? `1H ATR14 is ${atr14.toFixed(2)}; stops tighter than 1x ATR risk premature sweep.`
+          ? `1H ATR14 is ${atr14.toFixed(atrDec)}; stops tighter than 1x ATR risk premature sweep.`
           : 'Ensure stop sits beyond the nearest structural swing.',
       recommendation: techAligned
         ? `Technical structure aligns with the ${side} bias from ${entry}.`
@@ -221,7 +225,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
       verdict: 'neutral',
       confidence: 5,
       keyPoints: [
-        `No live positioning or sentiment feed is attached to this deterministic review; ${symbol} last printed at ${liveMid.toFixed(2)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
+        `No live positioning or sentiment feed is attached to this deterministic review; ${symbol} last printed at ${liveMid.toFixed(dec)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
         macroEventsCount > 0
           ? `${macroEventsCount} scheduled macro event(s) can still reprice positioning before the setup resolves.`
           : 'No scheduled macro events are queued to reprice positioning near-term.',

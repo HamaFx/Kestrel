@@ -24,6 +24,7 @@
 import { getPrice } from '@kestrel/data';
 import {
   getContractSize,
+  tryGetSymbolDefinition,
   type ConcentrationItem,
   type CorrelationRiskItem,
   type PortfolioPosition,
@@ -44,12 +45,19 @@ import { getPortfolioSettings, listOpenPositions } from './position-service';
  */
 export function computePnL(position: PortfolioPosition, currentPrice: number): PositionWithPnL {
   const contractSize = getContractSize(position.symbol);
+  const def = tryGetSymbolDefinition(position.symbol);
+  const isUsdBase =
+    def?.baseCurrency === 'USD' && def.quoteCurrency !== 'USD' && def.quoteCurrency !== 'USDT';
+
   const priceDiff =
     position.direction === 'long'
       ? currentPrice - position.entryPrice
       : position.entryPrice - currentPrice;
 
-  const unrealizedPnlUsd = priceDiff * contractSize * position.lotSize;
+  let unrealizedPnlUsd = priceDiff * contractSize * position.lotSize;
+  if (isUsdBase && currentPrice > 0) {
+    unrealizedPnlUsd /= currentPrice;
+  }
   const unrealizedPnlPct = position.entryPrice > 0 ? (priceDiff / position.entryPrice) * 100 : 0;
 
   // Risk/reward calculations
@@ -63,7 +71,12 @@ export function computePnL(position: PortfolioPosition, currentPrice: number): P
       position.direction === 'long'
         ? position.entryPrice - position.stopLoss
         : position.stopLoss - position.entryPrice;
-    riskUsd = Math.abs(stopDistance) * contractSize * position.lotSize;
+    let risk = Math.abs(stopDistance) * contractSize * position.lotSize;
+    if (isUsdBase) {
+      const conv = position.entryPrice > 0 ? position.entryPrice : currentPrice;
+      if (conv > 0) risk /= conv;
+    }
+    riskUsd = risk;
     distanceToStopPct =
       position.direction === 'long'
         ? ((currentPrice - position.stopLoss) / position.entryPrice) * 100
@@ -75,7 +88,12 @@ export function computePnL(position: PortfolioPosition, currentPrice: number): P
       position.direction === 'long'
         ? position.takeProfit - position.entryPrice
         : position.entryPrice - position.takeProfit;
-    rewardUsd = Math.abs(targetDistance) * contractSize * position.lotSize;
+    let reward = Math.abs(targetDistance) * contractSize * position.lotSize;
+    if (isUsdBase) {
+      const conv = position.entryPrice > 0 ? position.entryPrice : currentPrice;
+      if (conv > 0) reward /= conv;
+    }
+    rewardUsd = reward;
   }
 
   if (riskUsd !== null && rewardUsd !== null && riskUsd > 0) {
@@ -152,7 +170,13 @@ export async function getPortfolioRiskReport(userId: string): Promise<PortfolioR
   // Total exposure
   const totalExposureUsd = positions.reduce((sum, p) => {
     const contractSize = getContractSize(p.symbol);
-    return sum + p.entryPrice * contractSize * p.lotSize;
+    const def = tryGetSymbolDefinition(p.symbol);
+    const isUsdBase =
+      def?.baseCurrency === 'USD' && def.quoteCurrency !== 'USD' && def.quoteCurrency !== 'USDT';
+    const exposure = isUsdBase
+      ? contractSize * p.lotSize
+      : p.entryPrice * contractSize * p.lotSize;
+    return sum + exposure;
   }, 0);
 
   const totalExposurePct = accountBalance > 0 ? (totalExposureUsd / accountBalance) * 100 : 0;
@@ -166,7 +190,12 @@ export async function getPortfolioRiskReport(userId: string): Promise<PortfolioR
   const exposureBySymbol = new Map<string, number>();
   for (const p of positions) {
     const contractSize = getContractSize(p.symbol);
-    const exposure = p.entryPrice * contractSize * p.lotSize;
+    const def = tryGetSymbolDefinition(p.symbol);
+    const isUsdBase =
+      def?.baseCurrency === 'USD' && def.quoteCurrency !== 'USD' && def.quoteCurrency !== 'USDT';
+    const exposure = isUsdBase
+      ? contractSize * p.lotSize
+      : p.entryPrice * contractSize * p.lotSize;
     exposureBySymbol.set(p.symbol, (exposureBySymbol.get(p.symbol) ?? 0) + exposure);
   }
   for (const [symbol, exposure] of exposureBySymbol) {

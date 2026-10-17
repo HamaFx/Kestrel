@@ -32,6 +32,8 @@ import { getCandles, getPrice } from '@kestrel/data';
 import { computeStructure } from '@kestrel/indicators';
 import {
   VerifyCallInputSchema,
+  pipSize,
+  priceDecimals,
   type Symbol,
   type VerifyCallCaveat,
   type VerifyCallOutput,
@@ -229,7 +231,7 @@ export const verifyCallTool = tool({
 // ---------------------------------------------------------------------------
 
 function decimals(symbol: Symbol): number {
-  return symbol === 'XAUUSD' ? 2 : 5;
+  return priceDecimals(symbol);
 }
 
 /**
@@ -243,6 +245,9 @@ const INSTRUMENT_VOLATILITY: Record<string, number> = {
   XAGUSD: 0.025,
   BTCUSD: 0.04, // crypto moves more
   ETHUSD: 0.04,
+  BTCUSDT: 0.04,
+  ETHUSDT: 0.04,
+  SOLUSDT: 0.05,
   EURUSD: 0.02, // forex majors keep the original 2% baseline
   GBPUSD: 0.02,
   USDJPY: 0.02,
@@ -278,7 +283,7 @@ function marketDistanceTolerance(symbol: Symbol, livePrice: number, tf = '1h'): 
   const percentageFactor = volFactor * tfScalar;
   // Floor: keep a minimum pip-equivalent window so rounding noise never
   // produces a zero-width tolerance.
-  const pipFloor = symbol === 'XAUUSD' ? 5.0 : 0.001;
+  const pipFloor = symbol === 'XAUUSD' ? 5.0 : pipSize(symbol) * 10;
   return Math.max(pipFloor, livePrice * percentageFactor);
 }
 
