@@ -19,11 +19,13 @@
 // (§1.7) so it can confirm or refine its position; fusion then sees both
 // opinions and peer reviews.
 
+import { RequestContext } from '@mastra/core/request-context';
 import { describe, expect, it } from 'vitest';
 
-import { RequestContext } from '@mastra/core/request-context';
-
-import { critiqueInstructionsForRequest, fusionInstructionsForRequest } from '../src/committee/prompts';
+import {
+  critiqueInstructionsForRequest,
+  fusionInstructionsForRequest,
+} from '../src/committee/prompts';
 import { CritiqueSchema, type ModeRequestContext } from '../src/committee/types';
 
 function contextWith(entries: Array<[string, unknown]>): RequestContext<ModeRequestContext> {
@@ -84,7 +86,7 @@ describe('cross-critique (§3.2, Q6)', () => {
       requestContext: contextWith([['packet', packet]]),
     });
 
-    expect(instructions).toContain('Kestrel\'s technical specialist');
+    expect(instructions).toContain("Kestrel's technical specialist");
     // Peer desks and their positions are visible for critique.
     expect(instructions).toContain('### risk');
     expect(instructions).toContain('bias: bearish');
@@ -93,7 +95,7 @@ describe('cross-critique (§3.2, Q6)', () => {
     expect(instructions).not.toContain('### technical');
   });
 
-  it('restates the desk\'s own opinion as its initial position alongside the peers (§1.7)', () => {
+  it("restates the desk's own opinion as its initial position alongside the peers (§1.7)", () => {
     const instructions = critiqueInstructionsForRequest({
       name: 'technical',
       ownOpinion: opinions[0]!,
@@ -120,8 +122,12 @@ describe('cross-critique (§3.2, Q6)', () => {
 
   it('requests a structured critique (confirms, revisedConfidence, critique)', () => {
     const schema = CritiqueSchema;
-    expect(schema.safeParse({ confirms: true, revisedConfidence: 0.7, critique: 'peers agree' }).success).toBe(true);
-    expect(schema.safeParse({ confirms: true, revisedConfidence: 1.5, critique: 'x' }).success).toBe(false);
+    expect(
+      schema.safeParse({ confirms: true, revisedConfidence: 0.7, critique: 'peers agree' }).success,
+    ).toBe(true);
+    expect(
+      schema.safeParse({ confirms: true, revisedConfidence: 1.5, critique: 'x' }).success,
+    ).toBe(false);
     expect(schema.safeParse({ confirms: true, revisedConfidence: 0.7 }).success).toBe(false);
   });
 

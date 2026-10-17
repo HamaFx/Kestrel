@@ -129,4 +129,54 @@ describe('fetchNews (marketaux & biquote zero-key fallback)', () => {
     });
     expect(articles[0]?.symbols).toContain('XAUUSD');
   });
+
+  it('does not leak Gold (XAU) articles into non-Gold symbol queries (F-04)', async () => {
+    globalThis.fetch = vi.fn().mockImplementation(
+      async () =>
+        new Response(JSON.stringify(SAMPLE_RESPONSE), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    ) as unknown as typeof fetch;
+
+    const eurusdArticles = await fetchNews({
+      symbol: 'EURUSD',
+      apiKeys: { marketaux: 'X' },
+    });
+    // SAMPLE_RESPONSE only contains Gold and Apple, so EURUSD should return empty
+    expect(eurusdArticles).toHaveLength(0);
+
+    const xauArticles = await fetchNews({
+      symbol: 'XAUUSD',
+      apiKeys: { marketaux: 'X' },
+    });
+    expect(xauArticles).toHaveLength(1);
+    expect(xauArticles[0]?.symbols).toContain('XAU');
+  });
+
+  it('extracts crypto and cross-pair symbols from news text (F-04)', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            title: 'Solana surges past $200 while Cardano and Ripple follow',
+            description: 'SOL and ADA rallied strongly following BoJ interest rate remarks.',
+            url: 'https://example.com/crypto-sol-ada',
+            publisher: 'CoinDesk',
+            publishedDate: '2026-05-27T11:00:00Z',
+            category: 'Crypto',
+          },
+        ]),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch;
+
+    const articles = await fetchNews({ apiKeys: {} });
+    expect(articles).toHaveLength(1);
+    const symbols = articles[0]!.symbols;
+    expect(symbols).toContain('SOLUSDT');
+    expect(symbols).toContain('ADAUSDT');
+    expect(symbols).toContain('XRPUSDT');
+    expect(symbols).toContain('JPY');
+  });
 });

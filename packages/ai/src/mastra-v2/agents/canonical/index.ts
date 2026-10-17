@@ -24,6 +24,14 @@ import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
 import { estimateCostUsd } from '../../../cost';
 import { createGenerationLedger, type GenerationLedger } from '../../../generation-ledger';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
+import { withRetry } from '../../../retry';
+import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../../routing';
+import type { SemanticRoutingAccounting } from '../../../semantic-routing';
+import { DB } from '../../../tokens';
+import { withToolContext, type ToolContext } from '../../../tool-context';
+import { domainToolFilter } from '../../../tools/by-domain';
+import { manifestForCapability, manifestToolNames } from '../../capabilities';
 import { prepareKestrelMemory } from '../../context';
 import { buildConversationScorers, type BuiltScorers } from '../../evals/scorers';
 import { buildGuardrailInputProcessors } from '../../guardrails';
@@ -33,31 +41,11 @@ import {
   kestrelMemoryOptions,
   type CreateKestrelMemoryArgs,
 } from '../../memory';
-import { runTracingOptions } from '../../telemetry';
-import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
-import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../../routing';
-import type { SemanticRoutingAccounting } from '../../../semantic-routing';
-import { withRetry } from '../../../retry';
-import { DB } from '../../../tokens';
-import { withToolContext, type ToolContext } from '../../../tool-context';
-import { domainToolFilter } from '../../../tools/by-domain';
-import {
-  assertCanonicalEvidence,
-  checkCanonicalEvidence,
-  type CanonicalToolEvidence,
-} from './evidence';
-import { manifestForCapability, manifestToolNames } from '../../capabilities';
 import {
   assertExecutionPlanRoute,
   requireExecutionPlanModel,
   type ExecutionPlan,
 } from '../../planning/execution-plan';
-import {
-  adaptLegacyReadOnlyTool,
-  extractToolPartsFromMessages,
-  type MastraToolInvocationPart,
-  type MastraToolStreamEvent,
-} from '../xauusd/legacy-tool-adapter';
 import {
   beginMastraRun,
   createMastraRunFinalizer,
@@ -66,6 +54,18 @@ import {
   mastraOutcomeForError,
   type MastraGenerationStats,
 } from '../../shared/telemetry';
+import { runTracingOptions } from '../../telemetry';
+import {
+  adaptLegacyReadOnlyTool,
+  extractToolPartsFromMessages,
+  type MastraToolInvocationPart,
+  type MastraToolStreamEvent,
+} from '../xauusd/legacy-tool-adapter';
+import {
+  assertCanonicalEvidence,
+  checkCanonicalEvidence,
+  type CanonicalToolEvidence,
+} from './evidence';
 
 const mlog = createCategorizedLogger('ai', { component: 'mastra-canonical-chat' });
 

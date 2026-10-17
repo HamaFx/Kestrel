@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { XAUUSD } from '../shared/types';
 import { buildPriceEvidence } from './evidence-builders';
 import { XAUUSD_RESEARCH_WINDOWS } from './research-config';
 import { collectCandleEvidence } from './research-packet-candles';
@@ -28,7 +29,6 @@ import {
   warningForResearchFailure,
 } from './research-packet-stages';
 import { XauusdResearchPacketSchema, type XauusdResearchPacket } from './research-types';
-import { XAUUSD } from '../shared/types';
 
 export function assembleXauusdResearchPacket(
   packetId: string,

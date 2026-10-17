@@ -312,8 +312,7 @@ export const PATCH = withAdminAuth(async (req, { user }) => {
           .update(schema.userSettings)
           .set({
             aiApiKeys: Object.keys(currentKeys).length > 0 ? encryptByok(currentKeys) : null,
-            aiApiKeysUpdatedAt:
-              Object.keys(currentUpdatedAt).length > 0 ? currentUpdatedAt : null,
+            aiApiKeysUpdatedAt: Object.keys(currentUpdatedAt).length > 0 ? currentUpdatedAt : null,
           })
           .where(
             and(

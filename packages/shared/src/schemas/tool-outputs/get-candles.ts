@@ -22,10 +22,27 @@ import { z } from 'zod';
 
 import { CandleSchema } from '../candle';
 
+export const CandlePeriodSummarySchema = z.object({
+  fromIso: z.string(),
+  toIso: z.string(),
+  open: z.number(),
+  high: z.number(),
+  highAtIso: z.string().optional(),
+  low: z.number(),
+  lowAtIso: z.string().optional(),
+  close: z.number(),
+  change: z.number(),
+  changePct: z.number(),
+  avgBarRange: z.number(),
+  totalVolume: z.number(),
+});
+export type CandlePeriodSummary = z.infer<typeof CandlePeriodSummarySchema>;
+
 export const GetCandlesOutputSchema = z.object({
   symbol: z.string(),
   tf: z.string(),
   candles: z.array(CandleSchema),
+  summary: CandlePeriodSummarySchema.optional().nullable(),
 });
 
 export type GetCandlesOutput = z.infer<typeof GetCandlesOutputSchema>;

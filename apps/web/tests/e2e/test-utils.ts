@@ -137,10 +137,7 @@ export async function ensureTestUser(
   return user;
 }
 
-export async function selectAnalysisMode(
-  page: Page,
-  targetMode: 'single' | 'full',
-): Promise<void> {
+export async function selectAnalysisMode(page: Page, targetMode: 'single' | 'full'): Promise<void> {
   const expectedLabel =
     targetMode === 'full' ? 'Analysis mode: Full Committee' : 'Analysis mode: Quick Read';
   const modeButton = page.getByRole('button', { name: /^Analysis mode:/i });

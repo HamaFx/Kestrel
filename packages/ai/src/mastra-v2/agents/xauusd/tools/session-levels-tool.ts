@@ -21,10 +21,10 @@ import { z } from 'zod';
 
 import { computeSessionLevels } from '../../../../tools/get-session-levels';
 import { createEvidenceId } from '../../../packets/evidence';
-import { candleEvidenceMetadata } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD } from '../../../shared/types';
+import { candleEvidenceMetadata } from '../legacy-tool-adapter';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const CANDLE_COUNT = 60;
 

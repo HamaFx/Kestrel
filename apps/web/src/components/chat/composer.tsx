@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import {
   IconArrowUp,
   IconChartBar,
@@ -339,7 +338,7 @@ export function Composer({
         className={cn(
           'border-border bg-bg-elev-1 relative z-10 flex w-full flex-col gap-1.5 rounded-xl border p-2.5 shadow-md transition-colors duration-150',
           focused && 'border-fg-subtle/60',
-          dragOver && 'border-brand ring-2 ring-brand/40',
+          dragOver && 'border-brand ring-brand/40 ring-2',
         )}
         onSubmit={(e) => {
           e.preventDefault();
@@ -422,7 +421,7 @@ export function Composer({
             maxLength={MAX_TEXT_CHARS}
             className={cn(
               'text-fg placeholder:text-fg-subtle text-body w-full resize-none border-0 bg-transparent p-0 leading-[1.45] shadow-none focus:outline-none focus-visible:ring-0',
-              'max-h-[4lh] min-h-[36px] sm:max-h-[10lh] [field-sizing:content]',
+              '[field-sizing:content] max-h-[4lh] min-h-[36px] sm:max-h-[10lh]',
             )}
             onKeyDown={(e) => {
               if (handleSlashKeyDown(e)) return;
@@ -439,7 +438,7 @@ export function Composer({
 
         {/* Bottom Control Bar */}
         <div className="flex items-center justify-between gap-2 pt-1">
-          <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto [scrollbar-width:none]">
+          <div className="flex min-w-0 flex-1 [scrollbar-width:none] flex-nowrap items-center gap-1.5 overflow-x-auto">
             <button
               type="button"
               aria-label="Attach image"
@@ -567,7 +566,7 @@ export function Composer({
                   disabled={!canSend}
                   aria-label="Send message"
                   className={cn(
-                    'bg-fg hover:bg-white text-black inline-flex size-9 shrink-0 items-center justify-center rounded-lg font-medium transition-colors',
+                    'bg-fg inline-flex size-9 shrink-0 items-center justify-center rounded-lg font-medium text-black transition-colors hover:bg-white',
                     'disabled:cursor-not-allowed disabled:opacity-30',
                   )}
                 >

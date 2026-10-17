@@ -21,13 +21,14 @@
 // canonical chat and return the structured `ConveneCommitteeOutput` card
 // rendered by `ConveneCommitteePart` (`apps/web/src/components/chat/parts/convene-committee.tsx`).
 
+import type { UserSettingsRow } from '@kestrel/db/schema';
 import {
   ConveneCommitteeInputSchema,
   ConveneCommitteeOutputSchema,
+  priceDecimals,
   type CommitteeVerdict,
   type ConveneCommitteeOutput,
 } from '@kestrel/shared';
-import type { UserSettingsRow } from '@kestrel/db/schema';
 import { tool } from 'ai';
 import type { z } from 'zod';
 
@@ -70,10 +71,7 @@ function opinionToVerdict(
     verdict: opinion.bias,
     confidence: Math.max(1, Math.min(10, Math.round(opinion.confidence * 10))),
     keyPoints: keyPoints.length > 0 ? keyPoints : [opinion.reasoning.slice(0, 200)],
-    risk:
-      missingEvidence[0] ??
-      assumptions[0] ??
-      fallback.risk,
+    risk: missingEvidence[0] ?? assumptions[0] ?? fallback.risk,
     recommendation: sentences[sentences.length - 1] ?? fallback.recommendation,
   };
 }
@@ -122,8 +120,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
           : 'neutral'
       : 'neutral';
   const techAligned =
-    (side === 'long' && techBias === 'bullish') ||
-    (side === 'short' && techBias === 'bearish');
+    (side === 'long' && techBias === 'bullish') || (side === 'short' && techBias === 'bearish');
 
   const stopDistance = stop !== undefined ? Math.abs(entry - stop) : null;
   const rewardDistance = target !== undefined ? Math.abs(target - entry) : null;
@@ -133,11 +130,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
       : null;
 
   const stopGeometryValid =
-    stop === undefined
-      ? false
-      : side === 'long'
-        ? stop < entry
-        : stop > entry;
+    stop === undefined ? false : side === 'long' ? stop < entry : stop > entry;
 
   const riskVerdict: CommitteeVerdict['verdict'] =
     stopGeometryValid && (rrRatio === null || rrRatio >= 1.5)
@@ -147,12 +140,14 @@ function buildPacketGroundedFallbackVerdicts(args: {
       : 'neutral';
 
   const macroEventsCount = packet.xauusdExtension?.events?.length ?? 0;
-  const econVerdict: CommitteeVerdict['verdict'] =
-    macroEventsCount > 2 ? 'neutral' : techBias;
+  const econVerdict: CommitteeVerdict['verdict'] = macroEventsCount > 2 ? 'neutral' : techBias;
 
   const candles = primaryEvidence?.candles ?? [];
   const openPrice = candles[0]?.o ?? liveMid;
   const changePct = openPrice > 0 ? ((liveMid - openPrice) / openPrice) * 100 : 0;
+
+  const dec = priceDecimals(symbol);
+  const atrDec = Math.max(2, dec);
 
   return [
     {
@@ -160,7 +155,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
       verdict: econVerdict,
       confidence: macroEventsCount > 0 ? 7 : 6,
       keyPoints: [
-        `${symbol} live mid price is ${liveMid} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
+        `${symbol} live mid price is ${liveMid.toFixed(dec)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
         macroEventsCount > 0
           ? `${macroEventsCount} high-impact macro event(s) on the radar; size conservatively around releases.`
           : 'No immediate high-impact macro release blocking execution.',
@@ -180,15 +175,15 @@ function buildPacketGroundedFallbackVerdicts(args: {
       confidence: techAligned ? 8 : 6,
       keyPoints: [
         hasTrend && rsi14 !== null
-          ? `EMA20 (${ema20.toFixed(2)}) is ${trendBullish ? 'above' : 'below'} EMA50 (${ema50.toFixed(2)}), with RSI14 at ${rsi14.toFixed(1)}.`
-          : `${symbol} trading at ${liveMid.toFixed(2)}; technical indicators incomplete.`,
+          ? `EMA20 (${ema20.toFixed(dec)}) is ${trendBullish ? 'above' : 'below'} EMA50 (${ema50.toFixed(dec)}), with RSI14 at ${rsi14.toFixed(1)}.`
+          : `${symbol} trading at ${liveMid.toFixed(dec)}; technical indicators incomplete.`,
         packet.marketStructure
           ? `50-bar range spans ${packet.marketStructure.recentSwingLow} to ${packet.marketStructure.recentSwingHigh}.`
-          : `Proposed ${side} entry at ${entry} vs. live mid ${liveMid}.`,
+          : `Proposed ${side} entry at ${entry} vs. live mid ${liveMid.toFixed(dec)}.`,
       ],
       risk:
         atr14 !== null
-          ? `1H ATR14 is ${atr14.toFixed(2)}; stops tighter than 1x ATR risk premature sweep.`
+          ? `1H ATR14 is ${atr14.toFixed(atrDec)}; stops tighter than 1x ATR risk premature sweep.`
           : 'Ensure stop sits beyond the nearest structural swing.',
       recommendation: techAligned
         ? `Technical structure aligns with the ${side} bias from ${entry}.`
@@ -221,13 +216,12 @@ function buildPacketGroundedFallbackVerdicts(args: {
       verdict: 'neutral',
       confidence: 5,
       keyPoints: [
-        `No live positioning or sentiment feed is attached to this deterministic review; ${symbol} last printed at ${liveMid.toFixed(2)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
+        `No live positioning or sentiment feed is attached to this deterministic review; ${symbol} last printed at ${liveMid.toFixed(dec)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%).`,
         macroEventsCount > 0
           ? `${macroEventsCount} scheduled macro event(s) can still reprice positioning before the setup resolves.`
           : 'No scheduled macro events are queued to reprice positioning near-term.',
       ],
-      risk:
-        'Crowded one-way positioning can amplify a countertrend squeeze around key levels.',
+      risk: 'Crowded one-way positioning can amplify a countertrend squeeze around key levels.',
       recommendation:
         'Treat sentiment as neutral and require price confirmation plus strict risk limits.',
     },
@@ -247,8 +241,7 @@ function computeGradeAndGoNoGo(args: {
   const opposedCount = verdicts.filter(
     (v) => v.verdict !== 'neutral' && v.verdict !== desiredVerdict,
   ).length;
-  const validStop =
-    stop !== undefined && (side === 'long' ? stop < entry : stop > entry);
+  const validStop = stop !== undefined && (side === 'long' ? stop < entry : stop > entry);
   const rr =
     validStop && target !== undefined && Math.abs(entry - stop) > 0
       ? Math.abs(target - entry) / Math.abs(entry - stop)

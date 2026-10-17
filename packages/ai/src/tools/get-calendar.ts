@@ -30,7 +30,7 @@ import { quarantineExternalText } from '../mastra-v2/packets/external-content';
 import { maybeGetToolContext } from '../tool-context';
 
 const ImportanceSchema = z.enum(['low', 'medium', 'high']);
-const CurrencySchema = z.enum(['USD', 'EUR', 'GBP']);
+const CurrencySchema = z.enum(['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF']);
 
 const InputSchema = z.object({
   /** ms epoch UTC lower bound, default = now. */

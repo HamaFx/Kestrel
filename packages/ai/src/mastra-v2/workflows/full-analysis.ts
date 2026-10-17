@@ -33,10 +33,9 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { reserveTurnBudget } from '../../budget';
+import type { MastraAnalysisMode } from '../../committee/types';
 import { getDb } from '../../db';
 import type { GenerationLedgerSnapshot } from '../../generation-ledger';
-import type { MastraAnalysisMode } from '../../committee/types';
-import { ExecutionPlanSchema, type ExecutionPlan } from '../planning/execution-plan';
 import {
   normalizeWorkflowStatus,
   toMastraWorkflowStatus,
@@ -44,6 +43,7 @@ import {
 } from '../../workflow-status';
 import { getKestrelMastra } from '../instance';
 import { observationalMemoryAllowanceUsd } from '../memory';
+import { ExecutionPlanSchema, type ExecutionPlan } from '../planning/execution-plan';
 import { committeeProgressSnapshot } from '../shared/progress';
 
 const flog = createCategorizedLogger('ai', { component: 'mastra-full-analysis' });

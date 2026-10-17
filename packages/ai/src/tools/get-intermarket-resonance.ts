@@ -127,9 +127,7 @@ function compileNarrative(
   regime: GetIntermarketResonanceOutput['regime'],
 ): string {
   const roundedDiv =
-    divergence !== null
-      ? `${divergence >= 0 ? '+' : ''}${divergence.toFixed(2)}`
-      : 'N/A';
+    divergence !== null ? `${divergence >= 0 ? '+' : ''}${divergence.toFixed(2)}` : 'N/A';
   const roundedYield = yieldPct !== null ? `${yieldPct.toFixed(2)}%` : 'N/A';
   const roundedInf = inflationPct !== null ? `${inflationPct.toFixed(2)}%` : 'N/A';
 

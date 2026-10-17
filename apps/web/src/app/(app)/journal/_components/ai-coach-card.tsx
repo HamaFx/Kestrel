@@ -78,11 +78,11 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
   };
 
   return (
-    <div className="border-border/80 bg-bg-elev-1 surface-chip flex flex-col gap-5 rounded-xl border border-edge/80 p-5 shadow-[var(--shadow-chip)]">
+    <div className="border-border/80 bg-bg-elev-1 surface-chip border-edge/80 flex flex-col gap-5 rounded-xl border p-5 shadow-[var(--shadow-chip)]">
       {/* Card Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="bg-brand/10 text-brand surface-chip rounded-xl p-2.5 border border-brand/20 shadow-xs">
+          <div className="bg-brand/10 text-brand surface-chip border-brand/20 rounded-xl border p-2.5 shadow-xs">
             <IconBrain className="size-5" />
           </div>
           <div>
@@ -90,7 +90,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
               <h3 className="text-fg font-display text-base font-normal tracking-tight">
                 Trading Performance & Habit Review
               </h3>
-              <span className="bg-brand/10 text-brand border border-brand/30 text-caption rounded-md px-1.5 py-0.5 font-bold uppercase font-mono">
+              <span className="bg-brand/10 text-brand border-brand/30 text-caption rounded-md border px-1.5 py-0.5 font-mono font-bold uppercase">
                 Coach v2
               </span>
             </div>
@@ -116,9 +116,9 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
 
       {/* Empty / Initial State */}
       {!insights && !loading && !error && (
-        <div className="border-border/60 surface-well bg-[#121212] flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 text-center">
+        <div className="border-border/60 surface-well flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-[#121212] p-6 text-center">
           <IconBrain className="text-fg-subtle size-8 opacity-60" />
-          <p className="text-fg text-xs font-semibold font-sans">
+          <p className="text-fg font-sans text-xs font-semibold">
             Ready to analyze your trading psychology and edge
           </p>
           <p className="text-fg-subtle text-caption max-w-md font-sans">
@@ -130,7 +130,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
 
       {/* Error state */}
       {error && (
-        <div className="border border-danger/30 bg-danger/5 text-danger flex items-center gap-2 rounded-xl p-3 text-xs font-mono">
+        <div className="border-danger/30 bg-danger/5 text-danger flex items-center gap-2 rounded-xl border p-3 font-mono text-xs">
           <IconAlertTriangle className="size-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -140,12 +140,12 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
       {insights && (
         <div className="animate-in fade-in flex flex-col gap-4 duration-300">
           {/* Executive Row */}
-          <div className="surface-panel border border-white/10 bg-[#161718] flex flex-col items-start justify-between gap-4 rounded-xl p-5 shadow-sm sm:flex-row sm:items-center">
+          <div className="surface-panel flex flex-col items-start justify-between gap-4 rounded-xl border border-white/10 bg-[#161718] p-5 shadow-sm sm:flex-row sm:items-center">
             <div className="flex flex-col gap-1">
               <span className="text-brand text-caption font-mono font-bold tracking-wider uppercase">
                 Coach Assessment & Edge
               </span>
-              <p className="text-fg text-xs font-sans leading-relaxed">{insights.summary}</p>
+              <p className="text-fg font-sans text-xs leading-relaxed">{insights.summary}</p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <div className="flex flex-col items-end">
@@ -168,8 +168,8 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           {/* Strengths & Leaks 2-Column Grid */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Strengths */}
-            <div className="surface-chip border border-bull/20 bg-bull/[0.03] flex flex-col gap-2.5 rounded-xl p-4 shadow-sm">
-              <div className="text-bull flex items-center gap-1.5 text-xs font-mono font-bold tracking-wider uppercase">
+            <div className="surface-chip border-bull/20 bg-bull/[0.03] flex flex-col gap-2.5 rounded-xl border p-4 shadow-sm">
+              <div className="text-bull flex items-center gap-1.5 font-mono text-xs font-bold tracking-wider uppercase">
                 <IconShieldCheck className="size-4" />
                 <span>Identified Edges & Strengths</span>
               </div>
@@ -184,8 +184,8 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
             </div>
 
             {/* Leaks */}
-            <div className="surface-chip border border-bear/20 bg-bear/[0.03] flex flex-col gap-2.5 rounded-xl p-4 shadow-sm">
-              <div className="text-bear flex items-center gap-1.5 text-xs font-mono font-bold tracking-wider uppercase">
+            <div className="surface-chip border-bear/20 bg-bear/[0.03] flex flex-col gap-2.5 rounded-xl border p-4 shadow-sm">
+              <div className="text-bear flex items-center gap-1.5 font-mono text-xs font-bold tracking-wider uppercase">
                 <IconAlertTriangle className="size-4" />
                 <span>Psychological & Execution Leaks</span>
               </div>
@@ -201,7 +201,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
           </div>
 
           {/* Action Rules */}
-          <div className="surface-panel border border-white/10 bg-[#141516] flex flex-col gap-3 rounded-xl p-4.5 shadow-sm">
+          <div className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 bg-[#141516] p-4.5 shadow-sm">
             <h4 className="text-fg text-caption font-mono font-bold tracking-wider uppercase sm:text-xs">
               Action Plan: 3 Key Rules For Your Next Trading Session
             </h4>
@@ -209,7 +209,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
               {insights.actionRules.map((rule, idx) => (
                 <div
                   key={idx}
-                  className="surface-well bg-black/50 border border-white/10 flex items-start gap-2.5 rounded-lg p-3"
+                  className="surface-well flex items-start gap-2.5 rounded-lg border border-white/10 bg-black/50 p-3"
                 >
                   <span className="bg-brand/10 text-brand text-caption flex size-5 shrink-0 items-center justify-center rounded-full font-mono font-bold">
                     {idx + 1}

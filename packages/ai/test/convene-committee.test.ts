@@ -16,9 +16,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { conveneCommitteeTool } from '../src/tools/convene-committee';
-import { createToolContext, withToolContext } from '../src/tool-context';
 import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
+import { createToolContext, withToolContext } from '../src/tool-context';
+import { conveneCommitteeTool } from '../src/tools/convene-committee';
 
 const { mockRunMastraMode } = vi.hoisted(() => ({ mockRunMastraMode: vi.fn() }));
 vi.mock('../src/mastra-v2/planning/mode-runner', () => ({ runMastraMode: mockRunMastraMode }));
@@ -137,8 +137,10 @@ describe('convene_committee tool', () => {
       optionalContext: { available: false, reason: 'none' },
     };
 
-    vi.spyOn(await import('../src/mastra-v2/packets/packet-cache'), 'collectSymbolResearchPacketCached')
-      .mockResolvedValueOnce(mockPacket);
+    vi.spyOn(
+      await import('../src/mastra-v2/packets/packet-cache'),
+      'collectSymbolResearchPacketCached',
+    ).mockResolvedValueOnce(mockPacket);
 
     await expect(
       conveneCommitteeTool.execute!(
@@ -154,8 +156,10 @@ describe('convene_committee tool', () => {
   });
 
   it('generates grounded fallback verdicts when the committee model is unavailable', async () => {
-    vi.spyOn(await import('../src/mastra-v2/packets/packet-cache'), 'collectSymbolResearchPacketCached')
-      .mockResolvedValueOnce(readyPacket());
+    vi.spyOn(
+      await import('../src/mastra-v2/packets/packet-cache'),
+      'collectSymbolResearchPacketCached',
+    ).mockResolvedValueOnce(readyPacket());
 
     const ctx = createToolContext({
       userId: '11111111-1111-1111-1111-111111111111',
@@ -206,8 +210,10 @@ describe('convene_committee tool', () => {
   });
 
   it('runs the deterministic committee without a tool context and never starts LLM spend', async () => {
-    vi.spyOn(await import('../src/mastra-v2/packets/packet-cache'), 'collectSymbolResearchPacketCached')
-      .mockResolvedValueOnce(readyPacket());
+    vi.spyOn(
+      await import('../src/mastra-v2/packets/packet-cache'),
+      'collectSymbolResearchPacketCached',
+    ).mockResolvedValueOnce(readyPacket());
 
     const result = (await conveneCommitteeTool.execute!(
       {

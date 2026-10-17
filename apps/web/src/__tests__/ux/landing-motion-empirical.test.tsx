@@ -19,9 +19,17 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { cleanup, render, screen, fireEvent, act } from '@testing-library/react';
+
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+import { Landing3DHologram } from '@/components/landing/landing-3d-hologram';
+import { LandingArchitecture } from '@/components/landing/landing-architecture';
+import { LandingPageView } from '@/components/landing/landing-page-view';
+import { LandingStepper } from '@/components/landing/landing-stepper';
+import { TickerTape } from '@/components/layout/ticker-tape';
+import { MotionRoot } from '@/components/ui/motion-config';
 
 afterEach(cleanup);
 
@@ -109,13 +117,6 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/hooks/use-prices', () => ({
   usePrices: () => ({ data: undefined, isLoading: false }),
 }));
-
-import { MotionRoot } from '@/components/ui/motion-config';
-import { LandingPageView } from '@/components/landing/landing-page-view';
-import { LandingStepper } from '@/components/landing/landing-stepper';
-import { LandingArchitecture } from '@/components/landing/landing-architecture';
-import { Landing3DHologram } from '@/components/landing/landing-3d-hologram';
-import { TickerTape } from '@/components/layout/ticker-tape';
 
 describe('Milestone 5 Empirical Verification: Motion Root & LandingPageView', () => {
   it('verifies MotionRoot configures LazyMotion with domAnimation and strict mode', () => {
@@ -306,7 +307,10 @@ describe('Milestone 5 Empirical Verification: Landing3DHologram Reduced-Motion &
   });
 
   it('verifies dynamic reduced-motion event listener and cleanup contracts in source implementation', () => {
-    const hologramSourcePath = path.resolve(__dirname, '../../components/landing/landing-3d-hologram.tsx');
+    const hologramSourcePath = path.resolve(
+      __dirname,
+      '../../components/landing/landing-3d-hologram.tsx',
+    );
     const source = fs.readFileSync(hologramSourcePath, 'utf8');
 
     // 1. Dynamic media query change listener
@@ -315,7 +319,9 @@ describe('Milestone 5 Empirical Verification: Landing3DHologram Reduced-Motion &
     expect(source).toContain('speedMultiplier = prefersReducedMotion ? 0.05 : 1;');
 
     // 2. Cleanup contracts on unmount
-    expect(source).toContain("motionMediaQuery?.removeEventListener('change', handleMotionChange);");
+    expect(source).toContain(
+      "motionMediaQuery?.removeEventListener('change', handleMotionChange);",
+    );
     expect(source).toContain('observer.disconnect();');
     expect(source).toContain('cancelAnimationFrame(animationId);');
     expect(source).toContain("container.removeEventListener('pointerdown', onPointerDown);");

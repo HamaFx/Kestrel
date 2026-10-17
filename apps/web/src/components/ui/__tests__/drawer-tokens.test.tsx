@@ -21,8 +21,6 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React, { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-afterEach(cleanup);
-
 import { ConfirmDrawer } from '../confirm-drawer';
 import {
   Drawer,
@@ -33,6 +31,8 @@ import {
   DrawerTitle,
 } from '../drawer';
 import { Segmented } from '../segmented';
+
+afterEach(cleanup);
 
 vi.mock('next-view-transitions', () => ({
   Link: ({ children, ...props }: React.ComponentProps<'a'>) => <a {...props}>{children}</a>,
@@ -237,7 +237,7 @@ describe('Tier 3: Cross-Feature Combinations (Segmented Control inside Drawer)',
               />
             </div>
             <DrawerFooter>
-              <button type="button" className="h-10 w-full rounded-md bg-brand text-white">
+              <button type="button" className="bg-brand h-10 w-full rounded-md text-white">
                 Save
               </button>
             </DrawerFooter>

@@ -60,3 +60,12 @@ export function stdev(xs: number[]): number {
   for (const x of xs) sq += (x - m) ** 2;
   return Math.sqrt(sq / (xs.length - 1));
 }
+
+/** Population standard deviation (divide by N). Used by Bollinger Bands (TradingView / MT5 standard). NaN for empty input. */
+export function stdevPopulation(xs: number[]): number {
+  if (xs.length === 0) return Number.NaN;
+  const m = mean(xs);
+  let sq = 0;
+  for (const x of xs) sq += (x - m) ** 2;
+  return Math.sqrt(sq / xs.length);
+}

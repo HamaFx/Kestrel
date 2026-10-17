@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import type { Symbol } from '@kestrel/shared';
 import {
   IconDots,
@@ -37,8 +36,8 @@ import { useConfirm } from '@/components/ui/confirm-drawer';
 import { SymbolChip } from '@/components/ui/symbol-chip';
 import { Tooltip } from '@/components/ui/tooltip';
 import { usePopupMenu } from '@/hooks/use-popup-menu';
-import { apiMutate } from '@/lib/api-client';
 import type { AnalysisMode } from '@/lib/analysis-mode';
+import { apiMutate } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
 
 import { ThreadSwitcher } from './_components/thread-switcher';
@@ -271,7 +270,7 @@ export function ChatTopBar({
           {overflowMenu.open ? (
             <div
               {...overflowMenu.menuProps}
-              className="surface-elevated text-body-sm absolute top-11 right-0 z-50 w-56 overflow-hidden rounded-lg border border-border shadow-lg"
+              className="surface-elevated text-body-sm border-border absolute top-11 right-0 z-50 w-56 overflow-hidden rounded-lg border shadow-lg"
             >
               <button
                 role="menuitem"

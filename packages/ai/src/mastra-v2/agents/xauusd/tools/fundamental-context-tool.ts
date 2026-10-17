@@ -22,10 +22,13 @@ import { z } from 'zod';
 
 import { getSentimentService } from '../../../../sentiment';
 import { createEvidenceId } from '../../../packets/evidence';
-import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from '../../../packets/research-packet-macro';
+import {
+  assembleXauusdMacroEvidence,
+  fetchXauusdMacroData,
+} from '../../../packets/research-packet-macro';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD, XauusdMacroEvidenceSchema } from '../../../shared/types';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),

@@ -67,10 +67,7 @@ o/bKiIz+Fq8=
   }
 
   if (process.env.DB_DISABLE_SSL === 'true') {
-    if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.KESTREL_LOCAL_DOCKER === 'true'
-    ) {
+    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
       return false;
     }
     throw new Error(

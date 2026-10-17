@@ -29,12 +29,11 @@ import { SymbolSchema, type Symbol, type Tick } from '@kestrel/shared';
 import { cacheKey, cacheTag, getDefaultCache, PRICE_TTL } from '../cache';
 import { runWithFailover, type ProviderAttempt } from '../failover';
 import { recordFailure, recordSuccess } from '../health';
+
 import '../providers/provider-adapters'; // side-effect: register providers
+
 import { isTickStreamEnabled } from '../providers/provider-adapters';
-import {
-  marketDataProviders,
-  type ProviderPriceSnapshot,
-} from '../providers/provider-registry';
+import { marketDataProviders, type ProviderPriceSnapshot } from '../providers/provider-registry';
 
 export interface GetPriceOptions {
   signal?: AbortSignal;
@@ -83,7 +82,7 @@ function snapshotToTick(symbol: Symbol, value: ProviderPriceSnapshot, fetchedAt:
     bid: value.price,
     ask: value.price,
     mid: value.price,
-    ts: fetchedAt,
+    ts: value.observedAt ?? fetchedAt,
     source: value.provider,
     ...(value.marketState ? { marketState: value.marketState } : {}),
     ...(value.quoteAgeSeconds !== undefined ? { quoteAgeSeconds: value.quoteAgeSeconds } : {}),
@@ -123,7 +122,9 @@ export async function getPriceWithMeta(
     async () => {
       const providers = marketDataProviders.list();
       const attempts: ProviderAttempt<ProviderPriceSnapshot>[] = providers
-        .filter((p) => p.supports?.(symbol) ?? true)
+        .filter((p) =>
+          p.name === 'finnhub' ? Boolean(keys.finnhub) : (p.supports?.(symbol) ?? true),
+        )
         .map((p) => ({
           name: p.name,
           pinned: p.pinned ?? false,
@@ -137,6 +138,7 @@ export async function getPriceWithMeta(
               price: result.price,
               provider: result.provider,
               ageMs: result.ageMs ?? null,
+              ...(result.observedAt !== undefined ? { observedAt: result.observedAt } : {}),
               ...(result.marketState ? { marketState: result.marketState } : {}),
               ...(result.quoteAgeSeconds !== undefined
                 ? { quoteAgeSeconds: result.quoteAgeSeconds }
@@ -159,7 +161,10 @@ export async function getPriceWithMeta(
         attempts.sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
       }
 
-      const { value } = await runWithFailover(attempts);
+      const { value } = await runWithFailover(
+        attempts,
+        opts.signal ? { signal: opts.signal } : undefined,
+      );
       const fetchedAt = Date.now();
       const tick = snapshotToTick(symbol, value, fetchedAt);
       return { tick, ageMs: value.ageMs ?? null };
@@ -244,7 +249,10 @@ export async function getPricesWithMeta(
             );
           }),
         );
-      } catch {
+      } catch (err) {
+        if (opts.signal?.aborted || (err as Error)?.name === 'AbortError') {
+          throw opts.signal?.reason ?? err;
+        }
         recordFailure('biquote');
         // Fall through to per-symbol getPriceWithMeta with full failover + SWR.
       }

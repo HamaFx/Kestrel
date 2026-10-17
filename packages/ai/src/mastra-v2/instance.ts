@@ -38,8 +38,8 @@ import type { IMastraLogger } from '@mastra/core/logger';
 import type { ObservabilityEntrypoint } from '@mastra/core/observability';
 import type { MastraCompositeStore } from '@mastra/core/storage';
 
-import { MastraPinoLogger } from './logger';
 import { registerAllTools } from '../tools';
+import { MastraPinoLogger } from './logger';
 import { createMastraStorage, initializeMastraStorage, type MastraStorageKind } from './storage';
 import { createMastraObservability } from './telemetry';
 

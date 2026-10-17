@@ -98,4 +98,3 @@ export const DELETE = withAuth<{ jobId: string }>(async (req, ctx) => {
     cancelled: true,
   });
 });
-

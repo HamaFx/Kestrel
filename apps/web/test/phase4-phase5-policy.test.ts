@@ -33,7 +33,10 @@ const authSource = [
   readFileSync(resolve(root, 'apps/web/src/lib/auth/credentials-authorize.ts'), 'utf8'),
 ].join('\n');
 const actionsSource = readFileSync(resolve(root, 'apps/web/src/app/(auth)/actions.ts'), 'utf8');
-const promptSource = readFileSync(resolve(root, 'packages/ai/src/mastra-v2/agents/canonical/index.ts'), 'utf8');
+const promptSource = readFileSync(
+  resolve(root, 'packages/ai/src/mastra-v2/agents/canonical/index.ts'),
+  'utf8',
+);
 const read = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
 
 describe('Phase 4 authentication persistence policy', () => {

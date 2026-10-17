@@ -29,6 +29,7 @@ import { schema } from '@kestrel/db';
 import { atr } from '@kestrel/indicators';
 import {
   ForecastVolatilityInputSchema,
+  getSymbolDefinition,
   pipSize,
   type EventCurrency,
   type ForecastVolatilityOutput,
@@ -62,11 +63,20 @@ const BAR_MS: Record<Timeframe, number> = {
   '1w': 7 * 24 * 60 * 60_000,
 };
 
-const CURRENCIES_BY_SYMBOL: Record<Symbol, EventCurrency[]> = {
-  XAUUSD: ['USD'],
-  EURUSD: ['EUR', 'USD'],
-  GBPUSD: ['GBP', 'USD'],
-};
+function getCurrenciesForSymbol(symbol: Symbol): EventCurrency[] {
+  try {
+    const def = getSymbolDefinition(symbol);
+    if (def.category === 'forex') {
+      return [def.baseCurrency, def.quoteCurrency] as EventCurrency[];
+    }
+    const filtered = def.currencies.filter((c) =>
+      (['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF'] as string[]).includes(c),
+    );
+    return (filtered.length > 0 ? filtered : ['USD']) as EventCurrency[];
+  } catch {
+    return ['USD'];
+  }
+}
 
 export const forecastVolatilityTool = tool({
   description:
@@ -88,7 +98,7 @@ export const forecastVolatilityTool = tool({
 
     // High-impact events inside the horizon window.
     const events = await listHighImpactEventsInWindow({
-      currencies: CURRENCIES_BY_SYMBOL[symbol] || ['USD'],
+      currencies: getCurrenciesForSymbol(symbol),
       fromMs: now,
       toMs: now + horizonHours * 60 * 60 * 1000,
     });

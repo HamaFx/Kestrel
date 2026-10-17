@@ -167,7 +167,6 @@ describe('estimateCostUsd', () => {
     expect(mini).toBeLessThan(main / 4);
   });
 
-
   it('prices bare BYOK Gemini id like the gateway id', () => {
     const bare = estimateCostUsd('gemini-2.5-pro', 1_000_000, 0);
     const gateway = estimateCostUsd('google/gemini-2.5-pro', 1_000_000, 0);

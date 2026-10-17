@@ -551,9 +551,7 @@ export function ChatScreen({
               }}
               isStreaming={isStreaming}
               disabled={isStreaming || modelSelectionPending}
-              placeholder={
-                pinnedSymbol ? `Ask about ${pinnedSymbol}…` : 'Ask about XAU, EUR, GBP…'
-              }
+              placeholder={pinnedSymbol ? `Ask about ${pinnedSymbol}…` : 'Ask about XAU, EUR, GBP…'}
             />
           </div>
         </div>

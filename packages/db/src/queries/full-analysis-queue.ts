@@ -404,12 +404,7 @@ export async function purgeOldFullAnalysisQueueWithIds(
     .delete(schema.fullAnalysisQueue)
     .where(
       and(
-        inArray(schema.fullAnalysisQueue.status, [
-          'succeeded',
-          'failed',
-          'cancelled',
-          'blocked',
-        ]),
+        inArray(schema.fullAnalysisQueue.status, ['succeeded', 'failed', 'cancelled', 'blocked']),
         or(
           lt(schema.fullAnalysisQueue.completedAt, retentionCutoff),
           and(

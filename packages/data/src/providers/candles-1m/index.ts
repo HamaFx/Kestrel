@@ -34,7 +34,7 @@
 
 import type { getDb } from '@kestrel/db';
 import { candles1m } from '@kestrel/db/schema';
-import type { Symbol } from '@kestrel/shared';
+import { isForexWeekend, tryGetSymbolDefinition, type Symbol } from '@kestrel/shared';
 import { desc, eq } from 'drizzle-orm';
 
 import { ProviderEmptyError } from '../../errors';
@@ -50,6 +50,8 @@ export interface FetchCandles1mArgs {
   db?: ReturnType<typeof getDb>;
   /** Override the freshness window (used by tests). */
   freshnessWindowMs?: number;
+  /** Override the current time (used by tests). */
+  now?: number;
 }
 
 export interface Candles1mBar {
@@ -107,9 +109,12 @@ export async function fetchCandles1m(args: FetchCandles1mArgs): Promise<FetchCan
     throw new ProviderEmptyError(PROVIDER, 'unexpected empty rows');
   }
 
+  const nowDate = args.now ? new Date(args.now) : new Date();
   const newest = newestRow.t.getTime();
-  const ageMs = Date.now() - newest;
-  if (ageMs > window) {
+  const ageMs = nowDate.getTime() - newest;
+  const isWeekend =
+    isForexWeekend(nowDate) && tryGetSymbolDefinition(args.symbol)?.category !== 'crypto';
+  if (!isWeekend && ageMs > window) {
     throw new ProviderEmptyError(
       PROVIDER,
       `candles_1m stale for ${args.symbol}: newest bar ${ageMs}ms ago`,

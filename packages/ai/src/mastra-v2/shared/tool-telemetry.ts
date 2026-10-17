@@ -19,8 +19,8 @@ import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger
 import type { ToolObserve } from '@mastra/core/tools';
 
 import { recordToolTelemetry } from '../../persistence';
-import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';
 import { requireXauusdUserContext } from '../packets/evidence';
+import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';
 import { errorCodeForMastra, outputLength } from './stats';
 
 const mlog = createCategorizedLogger('ai', {

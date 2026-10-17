@@ -78,6 +78,7 @@ import type { z } from 'zod';
 import { AnalyzeFundamentalPart } from './analyze-fundamental';
 import { AnalyzeTechnicalPart } from './analyze-technical';
 import { AnnotateChartPart } from './annotate-chart';
+import { CompactTelemetryRow } from './compact-telemetry-row';
 import { GetCalendarPart } from './get-calendar';
 import { GetCandlesPart } from './get-candles';
 import { GetIndicatorsPart } from './get-indicators';
@@ -92,7 +93,6 @@ import { SearchKnowledgePart } from './search-knowledge';
 import { SetAlertPart } from './set-alert';
 import { ShareSnapshotPart } from './share-snapshot';
 import { SummarizeThreadPart } from './summarize-thread';
-import { CompactTelemetryRow } from './compact-telemetry-row';
 import { VerifyCallPart } from './verify-call';
 
 function PartSkeletonFallback() {
@@ -245,7 +245,7 @@ export const partRegistry: { [K in ToolName]: ComponentType<ToolPartProps<K>> } 
  * The mapped type guarantees one schema per known tool, in lockstep with
  * `partRegistry`.
  */
-const partSchemas: { [K in ToolName]: z.ZodType<ToolOutput<K>> } = {
+const partSchemas: { [K in ToolName]: z.ZodType<ToolOutput<K>, z.ZodTypeDef, any> } = {
   get_price: GetPriceOutputSchema,
   get_candles: GetCandlesOutputSchema,
   get_indicators: GetIndicatorsOutputSchema,

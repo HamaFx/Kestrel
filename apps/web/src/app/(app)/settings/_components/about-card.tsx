@@ -37,16 +37,17 @@ export async function AboutCard() {
       </header>
 
       <SettingsRow
-        icon={<IconLogout className="size-4 text-danger" />}
+        icon={<IconLogout className="text-danger size-4" />}
         label="Sign out"
         description="Sign out of your Kestrel account on this device"
         action={<LogoutButton />}
       />
 
-      <div className="surface-well mt-2 flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 font-mono text-[11px] shadow-inner text-fg-subtle">
-        <p className="font-semibold text-fg">Kestrel AI Market Copilot</p>
+      <div className="surface-well text-fg-subtle mt-2 flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 font-mono text-[11px] shadow-inner">
+        <p className="text-fg font-semibold">Kestrel AI Market Copilot</p>
         <p className="text-fg-subtle/80">
-          4-desk AI market research, real-time alerts, and trade journaling for Gold, Forex, and Crypto.
+          4-desk AI market research, real-time alerts, and trade journaling for Gold, Forex, and
+          Crypto.
         </p>
       </div>
     </section>

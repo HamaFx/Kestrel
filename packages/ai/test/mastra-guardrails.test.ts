@@ -16,16 +16,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { guardrailPolicyForCapability, MASTRA_CAPABILITIES } from '../src/mastra-v2/capabilities';
 import {
   buildConversationGuardrails,
   buildGuardrailInputProcessors,
   buildResearchGuardrails,
   GuardrailUnavailableError,
 } from '../src/mastra-v2/guardrails';
-import {
-  MASTRA_CAPABILITIES,
-  guardrailPolicyForCapability,
-} from '../src/mastra-v2/capabilities';
 import { createExecutionPlan } from '../src/mastra-v2/planning/execution-plan';
 
 const mocks = vi.hoisted(() => ({
@@ -166,9 +163,9 @@ describe('guardrail policy from the manifest (§1.2)', () => {
     mocks.resolveChatModel.mockImplementation(() => {
       throw new Error('No AI API keys configured');
     });
-    expect(() =>
-      buildResearchGuardrails(settings as never, env as never, 'strict'),
-    ).toThrow(GuardrailUnavailableError);
+    expect(() => buildResearchGuardrails(settings as never, env as never, 'strict')).toThrow(
+      GuardrailUnavailableError,
+    );
   });
 
   it('carries the manifest-derived guardrail policy on the execution plan', async () => {

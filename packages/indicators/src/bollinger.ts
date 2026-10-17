@@ -18,7 +18,7 @@
 
 import type { Candle } from '@kestrel/shared';
 
-import { closes, padFront, stdev } from './util';
+import { closes, padFront, stdevPopulation } from './util';
 
 export interface BollingerPoint {
   upper: number | null;
@@ -37,7 +37,7 @@ export function bollinger(candles: Candle[], period = 20, multiplier = 2): Bolli
   for (let i = period - 1; i < xs.length; i += 1) {
     const window = xs.slice(i - period + 1, i + 1);
     const m = window.reduce((a, b) => a + b, 0) / period;
-    const sd = stdev(window);
+    const sd = stdevPopulation(window);
     out.push({
       middle: m,
       upper: m + multiplier * sd,

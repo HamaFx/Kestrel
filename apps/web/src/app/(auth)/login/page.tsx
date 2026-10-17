@@ -49,7 +49,11 @@ function LoginForm() {
 
   return (
     <div className="flex flex-col gap-6">
-      <OAuthButtons callbackUrl={next || '/dashboard'} action="Sign in" disabled={pending || success} />
+      <OAuthButtons
+        callbackUrl={next || '/dashboard'}
+        action="Sign in"
+        disabled={pending || success}
+      />
 
       <div>
         <form action={action} className="flex w-full flex-col gap-5">
