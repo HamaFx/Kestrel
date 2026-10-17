@@ -66,7 +66,13 @@ const BAR_MS: Record<Timeframe, number> = {
 function getCurrenciesForSymbol(symbol: Symbol): EventCurrency[] {
   try {
     const def = getSymbolDefinition(symbol);
-    return [...def.currencies] as EventCurrency[];
+    if (def.category === 'forex') {
+      return [def.baseCurrency, def.quoteCurrency] as EventCurrency[];
+    }
+    const filtered = def.currencies.filter((c) =>
+      (['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF'] as string[]).includes(c),
+    );
+    return (filtered.length > 0 ? filtered : ['USD']) as EventCurrency[];
   } catch {
     return ['USD'];
   }

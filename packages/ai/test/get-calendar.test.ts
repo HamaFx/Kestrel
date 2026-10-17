@@ -103,14 +103,15 @@ describe('get_calendar — Phase 0.10', () => {
     if (parsed.data) expect(parsed.data.minImportance).toBe('medium');
   });
 
-  it('validates input schema — currencies accepts USD/EUR/GBP', () => {
+  it('validates input schema — currencies accepts G8 currencies', () => {
     const schema = getCalendarTool.inputSchema as {
       safeParse: (v: unknown) => { success: boolean };
     };
     expect(schema.safeParse({ currencies: ['USD'] }).success).toBe(true);
     expect(schema.safeParse({ currencies: ['USD', 'EUR'] }).success).toBe(true);
     expect(schema.safeParse({ currencies: ['USD', 'EUR', 'GBP'] }).success).toBe(true);
-    expect(schema.safeParse({ currencies: ['JPY'] }).success).toBe(false);
+    expect(schema.safeParse({ currencies: ['JPY'] }).success).toBe(true);
+    expect(schema.safeParse({ currencies: ['INVALID'] }).success).toBe(false);
   });
 
   it('validates input schema — from/to must be integers', () => {
