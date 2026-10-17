@@ -208,7 +208,7 @@ export async function fetchUpcomingEvents(
       : [biquoteAttempt, fredAttempt]
     : [biquoteAttempt];
 
-  const { value } = await runWithFailover(attempts);
+  const { value } = await runWithFailover(attempts, { signal: opts.signal });
   return value;
 }
 

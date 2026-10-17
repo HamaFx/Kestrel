@@ -123,7 +123,9 @@ export async function getPriceWithMeta(
     async () => {
       const providers = marketDataProviders.list();
       const attempts: ProviderAttempt<ProviderPriceSnapshot>[] = providers
-        .filter((p) => p.supports?.(symbol) ?? true)
+        .filter((p) =>
+          p.name === 'finnhub' ? Boolean(keys.finnhub) : (p.supports?.(symbol) ?? true),
+        )
         .map((p) => ({
           name: p.name,
           pinned: p.pinned ?? false,
@@ -160,7 +162,7 @@ export async function getPriceWithMeta(
         attempts.sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
       }
 
-      const { value } = await runWithFailover(attempts);
+      const { value } = await runWithFailover(attempts, { signal: opts.signal });
       const fetchedAt = Date.now();
       const tick = snapshotToTick(symbol, value, fetchedAt);
       return { tick, ageMs: value.ageMs ?? null };
@@ -245,7 +247,10 @@ export async function getPricesWithMeta(
             );
           }),
         );
-      } catch {
+      } catch (err) {
+        if (opts.signal?.aborted || (err as Error)?.name === 'AbortError') {
+          throw opts.signal?.reason ?? err;
+        }
         recordFailure('biquote');
         // Fall through to per-symbol getPriceWithMeta with full failover + SWR.
       }

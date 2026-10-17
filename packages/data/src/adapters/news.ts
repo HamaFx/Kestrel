@@ -194,13 +194,15 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
     },
   });
 
-  const { value } = await runWithFailover(attempts);
+  const { value } = await runWithFailover(attempts, { signal: opts.signal });
 
   // Optional symbol filter applied AFTER mapping so we still benefit from
   // dedupe across symbols within a single fetch.
   if (opts.symbol) {
     return value.filter(
-      (a) => a.symbols.includes(opts.symbol as Symbol) || a.symbols.includes('XAU'),
+      (a) =>
+        a.symbols.includes(opts.symbol as Symbol) ||
+        (opts.symbol === 'XAUUSD' && a.symbols.includes('XAU')),
     );
   }
   return value;

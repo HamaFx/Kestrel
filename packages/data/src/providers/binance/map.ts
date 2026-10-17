@@ -36,6 +36,11 @@ export function toBinanceInterval(tf: Timeframe): string {
  * unsupported aliases and unlisted exchange pairs out of the data boundary.
  */
 export function isCryptoSymbol(symbol: string): boolean {
-  const definition = tryGetSymbolDefinition(symbol.trim().toUpperCase());
-  return definition?.category === 'crypto' && definition.binance !== null;
+  const canonical = symbol.trim().toUpperCase();
+  const definition = tryGetSymbolDefinition(canonical);
+  return (
+    definition?.category === 'crypto' &&
+    definition.binance !== null &&
+    definition.internal === canonical
+  );
 }

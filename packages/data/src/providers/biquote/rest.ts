@@ -134,6 +134,9 @@ async function call<T>(
   try {
     res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
   } catch (cause) {
+    if (opts?.signal?.aborted) {
+      throw opts.signal.reason ?? cause;
+    }
     const isAbort = (cause as Error)?.name === 'AbortError';
     throw new ProviderError(
       isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',

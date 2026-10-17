@@ -114,7 +114,11 @@ export async function getCandlesWithMeta(
     async () => {
       const providers = marketDataProviders.list();
       const attempts: ProviderAttempt<Candle[]>[] = providers
-        .filter((p) => typeof p.fetchCandles === 'function' && (p.supports?.(symbol, tf) ?? true))
+        .filter(
+          (p) =>
+            typeof p.fetchCandles === 'function' &&
+            (p.name === 'finnhub' ? Boolean(keys.finnhub) : (p.supports?.(symbol, tf) ?? true)),
+        )
         .map((p) => ({
           name: p.name,
           pinned: p.pinned ?? false,
@@ -158,7 +162,7 @@ export async function getCandlesWithMeta(
         attempts.sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
       }
 
-      const { value } = await runWithFailover(attempts);
+      const { value } = await runWithFailover(attempts, { signal: opts.signal });
       return value;
     },
     { ttlSeconds: policy.ttlSeconds, maxStaleSeconds: policy.maxStaleSeconds, tags },

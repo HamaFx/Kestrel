@@ -222,7 +222,7 @@ function createFinnhubProvider(): MarketDataProvider {
       return raw.map((bar) => toCandle(bar, { symbol, tf, source: 'finnhub', fetchedAt }));
     },
     supports(_symbol: Symbol, _tf?: Timeframe): boolean {
-      return true;
+      return Boolean(process.env.FINNHUB_API_KEY);
     },
     async testConnection(opts?: ProviderFetchOptions): Promise<{ ok: boolean; error?: string }> {
       try {
@@ -238,6 +238,9 @@ function createFinnhubProvider(): MarketDataProvider {
     },
   };
 }
+
+export const finnhubProvider = createFinnhubProvider();
+export { liveTicksProvider, biquoteProvider, binanceProvider };
 
 /** Wraps the Binance REST provider for crypto. */
 const binanceProvider: MarketDataProvider = {
@@ -293,7 +296,7 @@ function buildProviderList(): MarketDataProvider[] {
   if (process.env.KESTREL_OFFLINE_MODE === '1' || process.env.KESTREL_OFFLINE_MODE === 'true') {
     return [offlineMarketDataProvider];
   }
-  return [liveTicksProvider, biquoteProvider, binanceProvider, createFinnhubProvider()];
+  return [liveTicksProvider, biquoteProvider, binanceProvider, finnhubProvider];
 }
 
 let _bootstrapped = false;
