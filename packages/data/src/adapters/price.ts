@@ -29,11 +29,12 @@ import { SymbolSchema, type Symbol, type Tick } from '@kestrel/shared';
 import { cacheKey, cacheTag, getDefaultCache, PRICE_TTL } from '../cache';
 import { runWithFailover, type ProviderAttempt } from '../failover';
 import { recordFailure, recordSuccess } from '../health';
-
 import '../providers/provider-adapters'; // side-effect: register providers
-
 import { isTickStreamEnabled } from '../providers/provider-adapters';
-import { marketDataProviders, type ProviderPriceSnapshot } from '../providers/provider-registry';
+import {
+  marketDataProviders,
+  type ProviderPriceSnapshot,
+} from '../providers/provider-registry';
 
 export interface GetPriceOptions {
   signal?: AbortSignal;
@@ -161,10 +162,7 @@ export async function getPriceWithMeta(
         attempts.sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
       }
 
-      const { value } = await runWithFailover(
-        attempts,
-        opts.signal ? { signal: opts.signal } : undefined,
-      );
+      const { value } = await runWithFailover(attempts, opts.signal ? { signal: opts.signal } : undefined);
       const fetchedAt = Date.now();
       const tick = snapshotToTick(symbol, value, fetchedAt);
       return { tick, ageMs: value.ageMs ?? null };

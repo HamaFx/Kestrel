@@ -20,11 +20,11 @@
 import { deleteAllThreads, getDb } from '@kestrel/ai';
 import { requireTenantIdForUser, schema, withRateLimit } from '@kestrel/db';
 import { decryptSecret } from '@kestrel/shared/encryption';
+import { logActionError } from '@/lib/action-errors';
 import { and, eq, inArray } from 'drizzle-orm';
 import { verifySync } from 'otplib';
 
 import { auth } from '@/auth';
-import { logActionError } from '@/lib/action-errors';
 
 import { verifyAccountPassword, type ActionResult } from './_actions-shared';
 

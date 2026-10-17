@@ -17,7 +17,6 @@
 import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
-import type { ResolveModelEnv } from '../env-model-factory';
 import {
   collectSymbolResearchPacket,
   extractSymbolFromPrompt,
@@ -28,6 +27,7 @@ import {
   type MastraModeOpinion,
 } from '../mastra';
 import { appendAssistantMessage, appendUserMessage } from '../persistence';
+import type { ResolveModelEnv } from '../env-model-factory';
 
 function botEnv(): ResolveModelEnv {
   return {
@@ -107,12 +107,14 @@ export function formatTelegramAnalysisReply(args: {
   sections.push(args.finalText.trim());
 
   const switchCmd =
-    args.mode === 'single' ? `/analyze ${args.symbol} full` : `/analyze ${args.symbol} quick`;
+    args.mode === 'single'
+      ? `/analyze ${args.symbol} full`
+      : `/analyze ${args.symbol} quick`;
   const switchLabel =
-    args.mode === 'single' ? 'Full Team Analysis (4 Experts)' : 'Quick Check (1 Expert)';
-  sections.push(
-    `💡 Want a different depth? Tap the button below or send ${switchCmd} for ${switchLabel}.`,
-  );
+    args.mode === 'single'
+      ? 'Full Team Analysis (4 Experts)'
+      : 'Quick Check (1 Expert)';
+  sections.push(`💡 Want a different depth? Tap the button below or send ${switchCmd} for ${switchLabel}.`);
 
   return sections.join('\n\n');
 }

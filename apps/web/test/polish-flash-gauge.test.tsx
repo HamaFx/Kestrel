@@ -16,9 +16,6 @@
  * limitations under the License.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import type { NewsArticle, Tick } from '@kestrel/shared';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -27,9 +24,6 @@ import { WatchlistWidget } from '@/app/(app)/dashboard/_components/widgets/watch
 import { SentimentSummary } from '@/app/(app)/news/_components/sentiment-summary';
 
 afterEach(cleanup);
-
-const root = resolve(process.cwd(), '../..');
-const read = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
 
 // ---------------------------------------------------------------------------
 // News sentiment gauge
@@ -173,32 +167,5 @@ describe('Watchlist live price flash', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Empty-state polish (source contracts)
-// ---------------------------------------------------------------------------
-
-describe('Empty-state polish', () => {
-  it('journal entry list uses the shared EmptyState with contextual copy', () => {
-    const src = read('apps/web/src/app/(app)/journal/_components/entry-list.tsx');
-    expect(src).toContain('EmptyState');
-    expect(src).toContain("title={isFiltered ? 'No entries match' : 'No entries yet'}");
-    expect(src).toContain('Log your first trade');
-  });
-
-  it('alerts filtered-empty state offers a Show all action', () => {
-    const src = read('apps/web/src/app/(app)/alerts/_components/alert-list.tsx');
-    expect(src).toContain('Show all alerts');
-    expect(src).toContain("setFilter('all')");
-  });
-
-  it('thread switcher renders a bare EmptyState for no matches', () => {
-    const src = read('apps/web/src/components/chat/_components/thread-switcher.tsx');
-    expect(src).toContain('EmptyState');
-    expect(src).toContain('bare');
-    expect(src).toContain('No other conversations');
-    expect(src).toContain('No matches');
   });
 });

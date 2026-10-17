@@ -19,90 +19,59 @@ import { describe, expect, it } from 'vitest';
 import { redactSecrets, redactString } from '../src/diagnostics/redact';
 
 describe('redactSecrets — string patterns', () => {
-  it('redacts Authorization headers with Bearer', () => {
-    const input = 'authorization: Bearer eyJhbGciOiJIUzI1NiJ9.test';
-    const out = redactString(input);
-    expect(out).toBe('authorization=<redacted>');
-  });
-
-  it('redacts Authorization headers with Basic', () => {
-    const input = 'Authorization: Basic dXNlcjpwYXNz';
-    const out = redactString(input);
-    expect(out).toBe('authorization=<redacted>');
-  });
-
-  it('redacts authorization=Token patterns', () => {
-    const input = 'authorization=Token abc123xyz';
-    const out = redactString(input);
-    expect(out).toBe('authorization=<redacted>');
-  });
-
-  it('redacts URLs with embedded credentials', () => {
-    const input = 'https://user:secretpass@api.example.com/data';
-    const out = redactString(input);
-    expect(out).toBe('https://<redacted>:<redacted>@api.example.com/data');
-  });
-
-  it('redacts URLs with token query params', () => {
-    const input = 'https://api.example.com/data?token=secret123&foo=bar';
-    const out = redactString(input);
-    expect(out).toBe('<redacted-url>');
-  });
-
-  it('redacts URLs with key query params', () => {
-    const input = 'https://api.example.com/webhook?key=abc456';
-    const out = redactString(input);
-    expect(out).toBe('<redacted-url>');
-  });
-
-  it('redacts JSON-style key: "value" patterns', () => {
-    const input = '"api_key": "sk-1234567890abcdef"';
-    const out = redactString(input);
-    expect(out).toContain('<redacted>');
-    expect(out).not.toContain('sk-1234567890abcdef');
-  });
-
-  it('redacts single-quote JSON-style patterns', () => {
-    const input = "'access_token': 'abc123secret'";
-    const out = redactString(input);
-    expect(out).toContain('<redacted>');
-    expect(out).not.toContain('abc123secret');
-  });
-
-  it('redacts key=value patterns', () => {
-    const input = 'api_key=sk-1234567890abcdef';
-    const out = redactString(input);
-    expect(out).toBe('api_key=<redacted>');
-  });
-
-  it('redacts password=value patterns', () => {
-    const input = 'password=mySecretPass123';
-    const out = redactString(input);
-    expect(out).toBe('password=<redacted>');
-  });
-
-  it('redacts Bearer tokens in text', () => {
-    const input = 'Using Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIx';
-    const out = redactString(input);
-    expect(out).toBe('Using Bearer <redacted>');
-  });
-
-  it('redacts x-api-key headers', () => {
-    const input = 'x-api-key: my-secret-api-key-123';
-    const out = redactString(input);
-    expect(out).toBe('x-api-key=<redacted>');
-  });
-
-  it('preserves non-sensitive strings', () => {
-    const input = 'The price of XAUUSD is 2345.60 as of 2026-06-27 14:00 UTC';
-    const out = redactString(input);
-    expect(out).toBe(input);
-  });
-
-  it('handles multiple secrets in one string', () => {
-    const input = 'api_key=sk-abc123 token=xyz456 password=secret789';
-    const out = redactString(input);
-    expect(out).toBe('api_key=<redacted> token=<redacted> password=<redacted>');
+  it.each([
+    [
+      'Authorization headers with Bearer',
+      'authorization: Bearer eyJhbGciOiJIUzI1NiJ9.test',
+      'authorization=<redacted>',
+    ],
+    [
+      'Authorization headers with Basic',
+      'Authorization: Basic dXNlcjpwYXNz',
+      'authorization=<redacted>',
+    ],
+    ['authorization=Token patterns', 'authorization=Token abc123xyz', 'authorization=<redacted>'],
+    [
+      'URLs with embedded credentials',
+      'https://user:secretpass@api.example.com/data',
+      'https://<redacted>:<redacted>@api.example.com/data',
+    ],
+    [
+      'URLs with token query params',
+      'https://api.example.com/data?token=secret123&foo=bar',
+      '<redacted-url>',
+    ],
+    ['URLs with key query params', 'https://api.example.com/webhook?key=abc456', '<redacted-url>'],
+    [
+      'JSON-style key: "value" patterns',
+      '"api_key": "sk-1234567890abcdef"',
+      '"api_key": "<redacted>"',
+    ],
+    [
+      'single-quote JSON-style patterns',
+      "'access_token': 'abc123secret'",
+      "'access_token': '<redacted>'",
+    ],
+    ['key=value patterns', 'api_key=sk-1234567890abcdef', 'api_key=<redacted>'],
+    ['password=value patterns', 'password=mySecretPass123', 'password=<redacted>'],
+    [
+      'Bearer tokens in text',
+      'Using Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIx',
+      'Using Bearer <redacted>',
+    ],
+    ['x-api-key headers', 'x-api-key: my-secret-api-key-123', 'x-api-key=<redacted>'],
+    [
+      'non-sensitive strings',
+      'The price of XAUUSD is 2345.60 as of 2026-06-27 14:00 UTC',
+      'The price of XAUUSD is 2345.60 as of 2026-06-27 14:00 UTC',
+    ],
+    [
+      'multiple secrets in one string',
+      'api_key=sk-abc123 token=xyz456 password=secret789',
+      'api_key=<redacted> token=<redacted> password=<redacted>',
+    ],
+  ] as const)('redacts %s', (_label, input, expected) => {
+    expect(redactString(input)).toBe(expected);
   });
 });
 

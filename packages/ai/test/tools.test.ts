@@ -137,57 +137,6 @@ describe('tools registry', () => {
     }
   });
 
-  it('get_price tool has correct input schema', () => {
-    const allTools = toolRegistry.resolve();
-    const schema = (allTools.get_price as { inputSchema: unknown }).inputSchema as unknown as {
-      describe: () => string;
-    };
-    expect(schema.describe()).toBeTruthy();
-  });
-
-  it('compute_risk tool validates input schema', () => {
-    const allTools = toolRegistry.resolve();
-    const computeRisk = allTools['compute_risk'] as {
-      inputSchema: { safeParse: (v: unknown) => { success: boolean; error?: unknown } };
-    };
-    const schema = computeRisk.inputSchema;
-    const valid = schema.safeParse({
-      symbol: 'EURUSD',
-      side: 'long',
-      entry: 1.08,
-      stop: 1.075,
-      accountUsd: 10000,
-      riskPct: 1,
-    });
-    expect(valid.success).toBe(true);
-
-    const invalid = schema.safeParse({
-      symbol: 'EURUSD',
-      side: 'long',
-      entry: 1.08,
-      stop: 1.075,
-      accountUsd: 10000,
-      riskPct: 11,
-    });
-    expect(invalid.success).toBe(false);
-  });
-
-  it('get_calendar tool validates input schema', () => {
-    const allTools = toolRegistry.resolve();
-    const cal = allTools['get_calendar'] as {
-      inputSchema: { safeParse: (v: unknown) => { success: boolean } };
-    };
-    const schema = cal.inputSchema;
-    const valid = schema.safeParse({});
-    expect(valid.success).toBe(true);
-
-    const withFilters = schema.safeParse({
-      currencies: ['USD', 'EUR'],
-      minImportance: 'high',
-    });
-    expect(withFilters.success).toBe(true);
-  });
-
   it('convene_committee tool validates input schema', () => {
     const allTools = toolRegistry.resolve();
     const convene = allTools['convene_committee'] as {

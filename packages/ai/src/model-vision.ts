@@ -20,7 +20,10 @@
 // envFallbackKeys).
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { decryptByok, type ProviderId } from '@kestrel/shared/encryption';
+import {
+  decryptByok,
+  type ProviderId,
+} from '@kestrel/shared/encryption';
 import type { LanguageModel } from 'ai';
 
 import type { ResolveModelEnv } from './env-model-factory';

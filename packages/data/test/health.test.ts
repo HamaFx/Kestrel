@@ -18,6 +18,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { _resetHealth, getHealth, getScore, recordFailure, recordSuccess } from '../src/health';
 
+type Sample = 'ok' | 'fail';
+
 describe('provider health — Phase 7a', () => {
   beforeEach(() => {
     _resetHealth();
@@ -26,11 +28,50 @@ describe('provider health — Phase 7a', () => {
     vi.useRealTimers();
   });
 
-  it('reports neutral score with no samples', () => {
-    expect(getScore('twelve-data')).toBe(0.5);
+  it.each<{ label: string; history: Sample[]; expectedScore: number }>([
+    {
+      label: 'reports the neutral 0.5 score with no samples',
+      history: [],
+      expectedScore: 0.5,
+    },
+    { label: 'scores 1 isolated failure at 0', history: ['fail'], expectedScore: 0 },
+    { label: 'scores 2 consecutive failures at 0', history: ['fail', 'fail'], expectedScore: 0 },
+    {
+      label: 'scores 3 consecutive failures at 0',
+      history: ['fail', 'fail', 'fail'],
+      expectedScore: 0,
+    },
+    {
+      label: 'scores 5 consecutive failures at 0',
+      history: ['fail', 'fail', 'fail', 'fail', 'fail'],
+      expectedScore: 0,
+    },
+    { label: 'scores one fresh success at 1', history: ['ok'], expectedScore: 1 },
+    {
+      label: 'scores a failure followed by a success at 0.5',
+      history: ['fail', 'ok'],
+      expectedScore: 0.5,
+    },
+    {
+      label: 'weights an old isolated failure at 2/3',
+      history: ['ok', 'ok', 'fail'],
+      expectedScore: 2 / 3,
+    },
+    {
+      label: 'recovers to 0.25 after 3 failures + 1 success',
+      history: ['fail', 'fail', 'fail', 'ok'],
+      expectedScore: 0.25,
+    },
+  ])('$label', ({ history, expectedScore }) => {
+    for (const sample of history) {
+      if (sample === 'ok') recordSuccess('twelve-data');
+      else recordFailure('twelve-data');
+    }
+
+    expect(getScore('twelve-data')).toBeCloseTo(expectedScore);
   });
 
-  it('drops to ~0 after consecutive failures, recovers on a success', () => {
+  it('reports the failure snapshot and recovers on a success', () => {
     recordFailure('twelve-data');
     recordFailure('twelve-data');
     recordFailure('twelve-data');

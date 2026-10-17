@@ -43,9 +43,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>(
-    '../src/mastra-v2/packets/symbol-research',
-  );
+  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra-v2/packets/symbol-research');
   return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
 });
 vi.mock('@mastra/core/agent', () => ({
@@ -60,11 +58,7 @@ vi.mock('@mastra/core/agent', () => ({
       mocks.generateCalls.push({ id: this.id, ...(options ? { options } : {}) });
       if (this.id.includes('-critique')) {
         return {
-          object: {
-            confirms: true,
-            revisedConfidence: 0.65,
-            critique: `${this.id} agrees with peers`,
-          },
+          object: { confirms: true, revisedConfidence: 0.65, critique: `${this.id} agrees with peers` },
           usage: { inputTokens: 8, outputTokens: 4 },
           steps: [{}],
         };

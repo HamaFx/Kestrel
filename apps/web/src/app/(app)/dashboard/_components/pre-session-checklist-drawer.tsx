@@ -152,7 +152,7 @@ export function PreSessionChecklistDrawer() {
         <button
           type="button"
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold transition-all active:translate-y-[0.5px]',
+            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-mono font-semibold transition-all active:translate-y-[0.5px]',
             isCompleted
               ? 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/20 shadow-[0_0_8px_rgba(255,54,22,0.15)]'
               : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg hover:border-border-hover',
@@ -207,7 +207,7 @@ export function PreSessionChecklistDrawer() {
                     className={cn(
                       'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all active:translate-y-[0.5px]',
                       active
-                        ? 'border-brand bg-brand/10 text-fg ring-brand shadow-[0_0_12px_rgba(255,54,22,0.15)] ring-1'
+                        ? 'border-brand bg-brand/10 text-fg ring-brand ring-1 shadow-[0_0_12px_rgba(255,54,22,0.15)]'
                         : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg hover:border-border-hover',
                     )}
                   >
@@ -296,7 +296,7 @@ export function PreSessionChecklistDrawer() {
           </div>
 
           {/* Step 4: Mandatory Acknowledgements */}
-          <div className="surface-chip flex flex-col gap-2.5 rounded-xl border border-white/10 p-3.5 shadow-sm">
+          <div className="surface-chip border border-white/10 flex flex-col gap-2.5 rounded-xl p-3.5 shadow-sm">
             <span className="text-caption text-fg-subtle font-semibold tracking-wider uppercase">
               4. Session Protocol Verification
             </span>

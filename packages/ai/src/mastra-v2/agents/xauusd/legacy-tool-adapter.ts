@@ -18,8 +18,8 @@ import type { CandlesResult } from '@kestrel/data';
 import { createTool, type ToolObserve } from '@mastra/core/tools';
 import type { Tool } from 'ai';
 
-import { MastraMutationNameSchema } from '../../mutation/mutation-policy';
 import { qualityFromWarnings } from '../../packets/evidence';
+import { MastraMutationNameSchema } from '../../mutation/mutation-policy';
 import { executeMastraTool } from '../../shared/tool-telemetry';
 
 export type MastraToolStreamEvent =
@@ -205,9 +205,11 @@ export function adaptLegacyReadOnlyTool(name: string, legacyTool: Tool) {
     ) => {
       const toolCallId = context.toolCallId ?? `call-${uiToolName}-${crypto.randomUUID()}`;
       const onToolEvent = context.requestContext?.get('onToolEvent') as
-        ((event: MastraToolStreamEvent) => void) | undefined;
+        | ((event: MastraToolStreamEvent) => void)
+        | undefined;
       const toolParts = context.requestContext?.get('toolParts') as
-        MastraToolInvocationPart[] | undefined;
+        | MastraToolInvocationPart[]
+        | undefined;
 
       if (typeof onToolEvent === 'function') {
         try {

@@ -194,10 +194,7 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
     },
   });
 
-  const { value } = await runWithFailover(
-    attempts,
-    opts.signal ? { signal: opts.signal } : undefined,
-  );
+  const { value } = await runWithFailover(attempts, opts.signal ? { signal: opts.signal } : undefined);
 
   // Optional symbol filter applied AFTER mapping so we still benefit from
   // dedupe across symbols within a single fetch.

@@ -135,16 +135,14 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Visual Tab Switcher */}
-      <div className="flex flex-col justify-between gap-3 border-b border-white/10 pb-2 sm:flex-row sm:items-center">
-        <div className="surface-well flex self-start rounded-xl border border-white/10 p-1 shadow-inner">
+      <div className="border-white/10 flex flex-col justify-between gap-3 border-b pb-2 sm:flex-row sm:items-center">
+        <div className="surface-well border-white/10 flex self-start rounded-xl border p-1 shadow-inner">
           <button
             onClick={() => setTab('active')}
             aria-pressed={tab === 'active'}
             className={cn(
-              'focus-visible:ring-brand relative flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none active:translate-y-[0.5px]',
-              tab === 'active'
-                ? 'bg-fg font-bold text-black shadow-sm'
-                : 'text-fg-muted hover:text-fg',
+              'focus-visible:ring-brand relative flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all active:translate-y-[0.5px] focus-visible:ring-2 focus-visible:outline-none',
+              tab === 'active' ? 'bg-fg text-black shadow-sm font-bold' : 'text-fg-muted hover:text-fg',
             )}
           >
             Active Positions
@@ -153,7 +151,7 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
                 aria-hidden="true"
                 className={cn(
                   'size-2 rounded-full',
-                  tab === 'active' ? 'animate-ping bg-black' : 'bg-fg animate-pulse',
+                  tab === 'active' ? 'bg-black animate-ping' : 'bg-fg animate-pulse',
                 )}
               />
             )}
@@ -162,10 +160,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
             onClick={() => setTab('closed')}
             aria-pressed={tab === 'closed'}
             className={cn(
-              'focus-visible:ring-brand cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none active:translate-y-[0.5px]',
-              tab === 'closed'
-                ? 'bg-fg font-bold text-black shadow-sm'
-                : 'text-fg-muted hover:text-fg',
+              'focus-visible:ring-brand cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all active:translate-y-[0.5px] focus-visible:ring-2 focus-visible:outline-none',
+              tab === 'closed' ? 'bg-fg text-black shadow-sm font-bold' : 'text-fg-muted hover:text-fg',
             )}
           >
             Closed History
@@ -175,10 +171,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
             onClick={() => setTab('all')}
             aria-pressed={tab === 'all'}
             className={cn(
-              'focus-visible:ring-brand cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none active:translate-y-[0.5px]',
-              tab === 'all'
-                ? 'bg-fg font-bold text-black shadow-sm'
-                : 'text-fg-muted hover:text-fg',
+              'focus-visible:ring-brand cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all active:translate-y-[0.5px] focus-visible:ring-2 focus-visible:outline-none',
+              tab === 'all' ? 'bg-fg text-black shadow-sm font-bold' : 'text-fg-muted hover:text-fg',
             )}
           >
             All Logs
@@ -195,7 +189,7 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
               aria-label="Search trades"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="surface-well text-fg w-full rounded-xl border border-white/10 py-2 pr-4 pl-9 text-xs shadow-inner transition-all focus:border-white/20 focus:outline-none"
+              className="surface-well border-white/10 text-fg w-full rounded-xl border py-2 pr-4 pl-9 text-xs transition-all focus:border-white/20 focus:outline-none shadow-inner"
             />
           </div>
           <button
@@ -204,8 +198,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
             aria-expanded={showFilters}
             aria-controls="entry-filter-panel"
             className={cn(
-              'surface-chip text-fg-muted hover:text-fg focus-visible:ring-brand cursor-pointer rounded-xl border border-white/10 p-2.5 transition-all focus-visible:ring-2 focus-visible:outline-none active:translate-y-[0.5px]',
-              showFilters && 'text-fg border-white/20 bg-[#1c1d1f]',
+              'surface-chip border-white/10 text-fg-muted hover:text-fg focus-visible:ring-brand cursor-pointer rounded-xl border p-2.5 transition-all active:translate-y-[0.5px] focus-visible:ring-2 focus-visible:outline-none',
+              showFilters && 'border-white/20 text-fg bg-[#1c1d1f]',
             )}
           >
             <IconAdjustmentsHorizontal aria-hidden="true" className="size-4" />
@@ -217,7 +211,7 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
       {showFilters && (
         <div
           id="entry-filter-panel"
-          className="surface-panel animate-in slide-in-from-top-2 grid grid-cols-2 gap-4 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] duration-200"
+          className="surface-panel border-white/10 animate-in slide-in-from-top-2 grid grid-cols-2 gap-4 rounded-xl border p-4 duration-200 shadow-[var(--shadow-chip)]"
         >
           <div className="flex flex-col gap-1.5">
             <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
@@ -230,9 +224,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
                   onClick={() => setSymbolFilter(sym)}
                   aria-pressed={symbolFilter === sym}
                   className={cn(
-                    'surface-chip cursor-pointer rounded-lg border border-white/10 px-2.5 py-1 text-xs font-semibold transition-all hover:border-white/20 active:translate-y-[0.5px]',
-                    symbolFilter === sym &&
-                      'bg-fg border-transparent font-bold text-black shadow-sm',
+                    'surface-chip border-white/10 hover:border-white/20 cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-semibold active:translate-y-[0.5px] transition-all',
+                    symbolFilter === sym && 'border-transparent bg-fg text-black shadow-sm font-bold',
                   )}
                 >
                   {sym}
@@ -252,9 +245,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
                   onClick={() => setSideFilter(side)}
                   aria-pressed={sideFilter === side}
                   className={cn(
-                    'surface-chip cursor-pointer rounded-lg border border-white/10 px-2.5 py-1 text-xs font-semibold transition-all hover:border-white/20 active:translate-y-[0.5px]',
-                    sideFilter === side &&
-                      'bg-fg border-transparent font-bold text-black shadow-sm',
+                    'surface-chip border-white/10 hover:border-white/20 cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-semibold active:translate-y-[0.5px] transition-all',
+                    sideFilter === side && 'border-transparent bg-fg text-black shadow-sm font-bold',
                   )}
                 >
                   {side === 'ALL' ? 'ALL' : side === 'long' ? 'Buy ↑' : 'Sell ↓'}
@@ -274,8 +266,8 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
                   onClick={() => setTagFilter(tag)}
                   aria-pressed={tagFilter === tag}
                   className={cn(
-                    'surface-chip cursor-pointer rounded-lg border border-white/10 px-2.5 py-1 text-xs font-semibold transition-all hover:border-white/20 active:translate-y-[0.5px]',
-                    tagFilter === tag && 'bg-fg border-transparent font-bold text-black shadow-sm',
+                    'surface-chip border-white/10 hover:border-white/20 cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-semibold active:translate-y-[0.5px] transition-all',
+                    tagFilter === tag && 'border-transparent bg-fg text-black shadow-sm font-bold',
                   )}
                 >
                   {tag === 'ALL' ? 'ALL' : `#${tag}`}

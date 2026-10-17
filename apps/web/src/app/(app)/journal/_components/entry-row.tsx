@@ -174,12 +174,8 @@ export function EntryRow({
   return (
     <li
       className={cn(
-        'surface-panel flex flex-col gap-3.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] backdrop-blur-md transition-all duration-200 hover:border-white/20',
-        isWin
-          ? 'border-l-bull/80 border-l-2'
-          : isLoss
-            ? 'border-l-bear/80 border-l-2'
-            : 'border-l-2 border-l-white/20',
+        'surface-panel flex flex-col gap-3.5 rounded-xl border border-white/10 p-4 transition-all duration-200 hover:border-white/20 shadow-[var(--shadow-chip)] backdrop-blur-md',
+        isWin ? 'border-l-2 border-l-bull/80' : isLoss ? 'border-l-2 border-l-bear/80' : 'border-l-2 border-l-white/20',
       )}
     >
       <div className="flex items-start gap-4">
@@ -195,7 +191,7 @@ export function EntryRow({
             >
               {entry.side}
             </span>
-            <span className="text-fg font-display text-base tracking-tight">{entry.symbol}</span>
+            <span className="text-fg text-base tracking-tight font-display">{entry.symbol}</span>
             <span className="text-fg-muted text-xs font-medium">at</span>
             <span className="text-fg font-extrabold">{entry.entry}</span>
 
@@ -260,7 +256,7 @@ export function EntryRow({
                 alt="Trade chart screenshot"
                 width={48}
                 height={48}
-                className="size-12 rounded-lg border border-white/10 object-cover transition-opacity hover:opacity-80"
+                className="border-white/10 size-12 rounded-lg border object-cover transition-opacity hover:opacity-80"
                 unoptimized
               />
             </button>
@@ -268,7 +264,7 @@ export function EntryRow({
 
           {/* Notes display */}
           {entry.notes && (
-            <p className="text-fg-muted mt-1.5 border-l-2 border-white/15 py-0.5 pl-2.5 text-xs leading-[1.4]">
+            <p className="text-fg-muted border-white/15 mt-1.5 border-l-2 py-0.5 pl-2.5 text-xs leading-[1.4]">
               {entry.notes}
             </p>
           )}
@@ -349,7 +345,7 @@ export function EntryRow({
                 type="button"
                 aria-label="Replay setup"
                 onClick={() => setReplayOpen(true)}
-                className="surface-chip inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 text-sky-400/80 transition-all hover:border-white/20 hover:bg-sky-500/10 hover:text-sky-400 active:translate-y-[0.5px]"
+                className="surface-chip border-white/10 hover:border-white/20 inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border text-sky-400/80 transition-all hover:bg-sky-500/10 hover:text-sky-400 active:translate-y-[0.5px]"
               >
                 <IconHistory className="size-4" />
               </button>
@@ -361,7 +357,7 @@ export function EntryRow({
                 aria-label="Delete entry"
                 onClick={() => void remove()}
                 disabled={busy}
-                className="surface-chip hover:border-bear/30 text-bear/75 hover:text-bear hover:bg-bear/10 inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 transition-all active:translate-y-[0.5px] disabled:opacity-50"
+                className="surface-chip border-white/10 hover:border-bear/30 text-bear/75 hover:text-bear hover:bg-bear/10 inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border transition-all active:translate-y-[0.5px] disabled:opacity-50"
               >
                 <IconTrash className="size-4" />
               </button>
@@ -376,14 +372,14 @@ export function EntryRow({
         entry.target !== null &&
         livePrice &&
         sliderPosition !== null && (
-          <div className="animate-in fade-in flex flex-col gap-1.5 border-t border-white/10 pt-3 duration-200">
+          <div className="border-white/10 animate-in fade-in flex flex-col gap-1.5 border-t pt-3 duration-200">
             <div className="text-fg-subtle flex items-center justify-between text-xs font-bold tracking-wider uppercase">
               <span className="text-bear">SL: {entry.stop}</span>
               <span className="text-fg-muted">Entry: {entry.entry}</span>
               <span className="text-bull">Target: {entry.target}</span>
             </div>
 
-            <div className="surface-well relative mt-1 flex h-2 w-full items-center overflow-visible rounded-full border border-white/10">
+            <div className="surface-well border-white/10 relative mt-1 flex h-2 w-full items-center overflow-visible rounded-full border">
               {/* Entry Line Indicator */}
               <div
                 style={{
@@ -444,7 +440,7 @@ export function EntryRow({
 
       {/* Manual close input stack */}
       {closing && (
-        <div className="flex flex-col gap-3 border-t border-white/10 pt-3">
+        <div className="border-white/10 flex flex-col gap-3 border-t pt-3">
           <div>
             <label
               className="text-fg-subtle text-caption font-bold tracking-wider uppercase"
@@ -458,7 +454,7 @@ export function EntryRow({
               onChange={(ev) => setExit(ev.target.value)}
               inputMode="decimal"
               autoFocus
-              className="surface-well mt-1.5 rounded-lg border-white/10 focus:border-white/20"
+              className="surface-well border-white/10 focus:border-white/20 mt-1.5 rounded-lg"
             />
             {error ? <p className="text-danger mt-2 text-xs font-semibold">{error}</p> : null}
           </div>

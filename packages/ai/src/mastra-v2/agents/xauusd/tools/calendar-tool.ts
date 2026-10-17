@@ -25,9 +25,9 @@ import {
   quarantineExternalText,
   toUntrustedExternalEvidence,
 } from '../../../packets/external-content';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
 import { XAUUSD } from '../../../shared/types';
-import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 
 const InputSchema = z.object({
   from: z.number().int().optional(),

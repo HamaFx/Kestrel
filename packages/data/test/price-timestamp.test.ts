@@ -17,14 +17,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { getPriceWithMeta } from '../src/adapters/price';
-import { marketDataProviders } from '../src/providers/provider-registry';
+import { marketDataProviders, type MarketDataProvider } from '../src/providers/provider-registry';
 
 describe('Price quote observation timestamp preservation (F-10)', () => {
   it('preserves observedAt timestamp from provider instead of overwriting with live Date.now()', async () => {
     const historicalObservedAt = Date.parse('2026-05-01T21:59:58.000Z');
 
     // Register a mock provider that reports a historical quote (e.g. Friday close over the weekend)
-    const mockProvider = {
+    const mockProvider: MarketDataProvider = {
       name: 'mock-weekend-provider',
       label: 'Mock Weekend Provider',
       pinned: true,
@@ -41,7 +41,7 @@ describe('Price quote observation timestamp preservation (F-10)', () => {
       },
     };
 
-    marketDataProviders.register(mockProvider as any);
+    marketDataProviders.register(mockProvider);
 
     const result = await getPriceWithMeta('XAUUSD', {
       marketDataProvider: 'mock-weekend-provider',

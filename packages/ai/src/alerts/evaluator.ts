@@ -323,7 +323,9 @@ export async function evaluateAlerts(
   } = {},
 ): Promise<EvaluationResult> {
   const allAlerts = await listEvaluable();
-  const alerts = opts.ownsTenant ? allAlerts.filter((a) => opts.ownsTenant!(a.userId)) : allAlerts;
+  const alerts = opts.ownsTenant
+    ? allAlerts.filter((a) => opts.ownsTenant!(a.userId))
+    : allAlerts;
   const globalEnv: EvaluatorEnv = opts.env ?? {
     RESEND_API_KEY: process.env.RESEND_API_KEY ?? undefined,
     ALERT_FROM_EMAIL: process.env.ALERT_FROM_EMAIL ?? undefined,

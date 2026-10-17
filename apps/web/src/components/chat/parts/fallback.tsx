@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { IconAlertTriangle } from '@tabler/icons-react';
 
 export interface FallbackPartViewProps {
@@ -37,8 +38,7 @@ export function FallbackPartView(_props: FallbackPartViewProps) {
       <div className="min-w-0 flex-1 leading-snug">
         <p className="text-warn font-semibold">Backup Analyst Model Used</p>
         <p className="text-fg-muted mt-0.5">
-          The primary AI model was temporarily busy, so Kestrel completed this analysis using a
-          backup model without interrupting your session.
+          The primary AI model was temporarily busy, so Kestrel completed this analysis using a backup model without interrupting your session.
         </p>
       </div>
     </div>

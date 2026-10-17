@@ -157,6 +157,19 @@ const ConfirmedInputSchema = z.object({
   input: MutationInputSchema,
 });
 
+/**
+ * Workflow-boundary view of the input schema.
+ *
+ * Mastra's `Workflow` infers its `TInput` from the raw schema's *input* side,
+ * while `createStep` types `inputData` from the *parsed output*. Because
+ * `AlertRuleSchema` normalizes `tf` through a transform (input `string` →
+ * output `Timeframe`), those two sides diverge and the first `.then(draftStep)`
+ * fails type-checking. Pinning the boundary type to the parsed `MutationInput`
+ * keeps the `.then()` chain in lockstep with the step schemas; runtime
+ * validation still runs the full `MutationInputSchema`.
+ */
+const WorkflowInputSchema = MutationInputSchema as unknown as z.ZodType<MutationInput>;
+
 // --- executor contracts ----------------------------------------------------
 
 export interface MutationExecutorResult {
@@ -523,14 +536,12 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     execute: async ({ inputData }) => inputData,
   });
 
-  return (
-    new Workflow({
-      id: `mutation-${mutation}`,
-      inputSchema: MutationInputSchema,
-      outputSchema: MutationOutputSchema,
-      ...(deps.mastra ? { mastra: deps.mastra } : {}),
-    }) as any
-  )
+  return new Workflow({
+    id: `mutation-${mutation}`,
+    inputSchema: WorkflowInputSchema,
+    outputSchema: MutationOutputSchema,
+    ...(deps.mastra ? { mastra: deps.mastra } : {}),
+  })
     .then(draftStep)
     .then(executeStep)
     .then(notifyStep)

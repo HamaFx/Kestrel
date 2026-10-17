@@ -54,7 +54,11 @@ export function setup() {
     expectOk(getJson('/api/health', 'warmup'));
 
     // 2. Create a seed thread (will be used by GET/PATCH/POST/fork in VU iterations)
-    const threadRes = postJson('/api/chat/threads', 'warmup', { pinnedSymbol: 'XAUUSD' });
+    const threadRes = postJson(
+      '/api/chat/threads',
+      'warmup',
+      { pinnedSymbol: 'XAUUSD' },
+    );
     let threadId: string | null = null;
     try {
       const body = JSON.parse(threadRes.body as string);
@@ -65,80 +69,104 @@ export function setup() {
 
     // 3. Warm the compute-heavy POST endpoints.
     expectOk(
-      postJson('/api/alerts/preview', 'warmup', {
-        rule: { type: 'priceCross', symbol: 'XAUUSD', direction: 'above', level: 2100 },
-        lookbackDays: 30,
-      }),
+      postJson(
+        '/api/alerts/preview',
+        'warmup',
+        {
+          rule: { type: 'priceCross', symbol: 'XAUUSD', direction: 'above', level: 2100 },
+          lookbackDays: 30,
+        },
+      ),
     );
     expectOk(
-      postJson('/api/alerts', 'warmup', {
-        rule: { type: 'priceCross', symbol: 'XAUUSD', direction: 'above', level: 2100 },
-        channels: ['email'],
-        note: 'k6 warmup',
-        snoozeHours: 0,
-      }),
+      postJson(
+        '/api/alerts',
+        'warmup',
+        {
+          rule: { type: 'priceCross', symbol: 'XAUUSD', direction: 'above', level: 2100 },
+          channels: ['email'],
+          note: 'k6 warmup',
+          snoozeHours: 0,
+        },
+      ),
     );
     expectOk(
-      postJson('/api/journal', 'warmup', {
-        symbol: 'XAUUSD',
-        side: 'long',
-        openedAt: Date.now() - 86400000 * 7,
-        entry: 1950,
-        stop: 1900,
-        target: 2050,
-        size: 1,
-        notes: 'k6 warmup entry',
-        tags: ['k6', 'warmup'],
-      }),
+      postJson(
+        '/api/journal',
+        'warmup',
+        {
+          symbol: 'XAUUSD',
+          side: 'long',
+          openedAt: Date.now() - 86400000 * 7,
+          entry: 1950,
+          stop: 1900,
+          target: 2050,
+          size: 1,
+          notes: 'k6 warmup entry',
+          tags: ['k6', 'warmup'],
+        },
+      ),
     );
     expectOk(
-      postJson('/api/portfolio/positions', 'warmup', {
-        symbol: 'XAUUSD',
-        direction: 'long',
-        entryPrice: 1950,
-        stopLoss: 1900,
-        takeProfit: 2050,
-        lotSize: 1,
-        openedAt: Date.now(),
-      }),
+      postJson(
+        '/api/portfolio/positions',
+        'warmup',
+        {
+          symbol: 'XAUUSD',
+          direction: 'long',
+          entryPrice: 1950,
+          stopLoss: 1900,
+          takeProfit: 2050,
+          lotSize: 1,
+          openedAt: Date.now(),
+        },
+      ),
     );
     expectOk(
-      postJson('/api/onboarding/save-progress', 'warmup', {
-        step: 5,
-        name: 'k6 warmup user',
-        timezone: 'UTC',
-        tradingStyle: 'swing',
-      }),
+      postJson(
+        '/api/onboarding/save-progress',
+        'warmup',
+        {
+          step: 5,
+          name: 'k6 warmup user',
+          timezone: 'UTC',
+          tradingStyle: 'swing',
+        },
+      ),
     );
     expectOk(
-      postJson('/api/journal/import', 'warmup', {
-        trades: [
-          {
-            symbol: 'XAUUSD',
-            side: 'long',
-            entry: 1930,
-            stop: 1900,
-            target: 2000,
-            exit: 2010,
-            size: 2,
-            openedAt: Date.now() - 86400000 * 14,
-            closedAt: Date.now() - 86400000 * 7,
-            notes: 'k6 warmup import',
-          },
-          {
-            symbol: 'EURUSD',
-            side: 'short',
-            entry: 1.08,
-            stop: 1.09,
-            target: 1.05,
-            exit: 1.04,
-            size: 50000,
-            openedAt: Date.now() - 86400000 * 10,
-            closedAt: Date.now() - 86400000 * 5,
-            notes: 'k6 warmup import 2',
-          },
-        ],
-      }),
+      postJson(
+        '/api/journal/import',
+        'warmup',
+        {
+          trades: [
+            {
+              symbol: 'XAUUSD',
+              side: 'long',
+              entry: 1930,
+              stop: 1900,
+              target: 2000,
+              exit: 2010,
+              size: 2,
+              openedAt: Date.now() - 86400000 * 14,
+              closedAt: Date.now() - 86400000 * 7,
+              notes: 'k6 warmup import',
+            },
+            {
+              symbol: 'EURUSD',
+              side: 'short',
+              entry: 1.08,
+              stop: 1.09,
+              target: 1.05,
+              exit: 1.04,
+              size: 50000,
+              openedAt: Date.now() - 86400000 * 10,
+              closedAt: Date.now() - 86400000 * 5,
+              notes: 'k6 warmup import 2',
+            },
+          ],
+        },
+      ),
     );
   }
 

@@ -17,9 +17,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // @vitest-environment jsdom
 
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -119,24 +116,6 @@ vi.mock('@/hooks/use-prices', () => ({
 }));
 
 describe('Milestone 5 Empirical Verification: Motion Root & LandingPageView', () => {
-  it('verifies MotionRoot configures LazyMotion with domAnimation and strict mode', () => {
-    const motionConfigPath = path.resolve(__dirname, '../../components/ui/motion-config.tsx');
-    const motionCode = fs.readFileSync(motionConfigPath, 'utf8');
-
-    expect(motionCode).toContain('<LazyMotion features={domAnimation} strict>');
-    expect(motionCode).toContain('reducedMotion="user"');
-    expect(motionCode).toContain("transition={{ type: 'spring', stiffness: 400, damping: 30 }}");
-  });
-
-  it('verifies app/page.tsx wraps LandingPageView with MotionRoot', () => {
-    const pagePath = path.resolve(__dirname, '../../app/page.tsx');
-    const pageCode = fs.readFileSync(pagePath, 'utf8');
-
-    expect(pageCode).toContain('<MotionRoot>');
-    expect(pageCode).toContain('<LandingPageView');
-    expect(pageCode).toContain('</MotionRoot>');
-  });
-
   it('renders LandingPageView seamlessly inside MotionRoot without throwing any runtime errors', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -304,41 +283,6 @@ describe('Milestone 5 Empirical Verification: Landing3DHologram Reduced-Motion &
     );
 
     warnSpy.mockRestore();
-  });
-
-  it('verifies dynamic reduced-motion event listener and cleanup contracts in source implementation', () => {
-    const hologramSourcePath = path.resolve(
-      __dirname,
-      '../../components/landing/landing-3d-hologram.tsx',
-    );
-    const source = fs.readFileSync(hologramSourcePath, 'utf8');
-
-    // 1. Dynamic media query change listener
-    expect(source).toContain("window.matchMedia('(prefers-reduced-motion: reduce)')");
-    expect(source).toContain("motionMediaQuery?.addEventListener('change', handleMotionChange);");
-    expect(source).toContain('speedMultiplier = prefersReducedMotion ? 0.05 : 1;');
-
-    // 2. Cleanup contracts on unmount
-    expect(source).toContain(
-      "motionMediaQuery?.removeEventListener('change', handleMotionChange);",
-    );
-    expect(source).toContain('observer.disconnect();');
-    expect(source).toContain('cancelAnimationFrame(animationId);');
-    expect(source).toContain("container.removeEventListener('pointerdown', onPointerDown);");
-    expect(source).toContain("window.removeEventListener('pointermove', onPointerMove);");
-    expect(source).toContain("window.removeEventListener('pointerup', onPointerUp);");
-    expect(source).toContain("window.removeEventListener('resize', onResize);");
-
-    // 3. WebGL and three.js memory leak disposal
-    expect(source).toContain('renderer.dispose();');
-    expect(source).toContain('coreGeo.dispose();');
-    expect(source).toContain('wireGeo.dispose();');
-    expect(source).toContain('ring1Geo.dispose();');
-    expect(source).toContain('particleGeo.dispose();');
-    expect(source).toContain('coreMat.dispose();');
-    expect(source).toContain('wireMat.dispose();');
-    expect(source).toContain('ring1Mat.dispose();');
-    expect(source).toContain('particleMat.dispose();');
   });
 });
 

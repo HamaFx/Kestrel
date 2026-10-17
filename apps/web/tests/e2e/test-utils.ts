@@ -20,7 +20,7 @@ import { encode } from '@auth/core/jwt';
 import { getDb, schema } from '@kestrel/db';
 import type { Page } from '@playwright/test';
 import bcrypt from 'bcryptjs';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 
 const DEFAULT_PASSWORD = 'password123';
 const DEFAULT_PASSWORD_HASH = bcrypt.hashSync(DEFAULT_PASSWORD, 10);
@@ -89,7 +89,12 @@ export async function ensureTestUser(
   // provider and doesn't redirect to /settings/api-keys.
   const encryptedKey = encryptDummyByokKey();
 
-  const orgId = `org-${user.id}`;
+  // The user-table trigger auto-provisions a personal organization whose id
+  // equals the user id, and `getTenantIdForUser` fails closed on more than
+  // one active membership. Use that personal org and purge any stale
+  // memberships left behind by earlier fixture revisions so tenant
+  // resolution stays unambiguous across reruns.
+  const orgId = user.id;
   await db
     .insert(schema.organization)
     .values({
@@ -98,6 +103,15 @@ export async function ensureTestUser(
       plan: 'pro',
     })
     .onConflictDoNothing();
+
+  await db
+    .delete(schema.organizationMember)
+    .where(
+      and(
+        eq(schema.organizationMember.userId, user.id),
+        ne(schema.organizationMember.orgId, orgId),
+      ),
+    );
 
   await db
     .insert(schema.organizationMember)

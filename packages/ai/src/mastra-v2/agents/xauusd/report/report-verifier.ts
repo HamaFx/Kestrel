@@ -16,7 +16,6 @@
 
 import { metrics } from '@kestrel/shared';
 
-import type { XauusdResearchPacket } from '../../../packets/research-types';
 import {
   addUnsupportedIds,
   availableEvidenceIds,
@@ -27,6 +26,7 @@ import {
 import { verifyReportSafety } from './report-safety';
 import { verifyTemporalDisclosure } from './report-temporal';
 import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
+import type { XauusdResearchPacket } from '../../../packets/research-types';
 
 export interface XauusdReportVerification {
   ok: boolean;

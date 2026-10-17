@@ -48,10 +48,7 @@ export async function runSnapshots(ctx: JobContext): Promise<JobResult> {
 
   for (const symbol of ALL_SYMBOLS) {
     if (ctx.signal?.aborted) {
-      log.warn('snapshots aborted mid-loop', {
-        processed,
-        remaining: ALL_SYMBOLS.length - processed,
-      });
+      log.warn('snapshots aborted mid-loop', { processed, remaining: ALL_SYMBOLS.length - processed });
       break;
     }
     try {

@@ -21,7 +21,6 @@ import {
   IconCheck,
   IconCircleCheck,
   IconCircleX,
-  IconCpu,
   IconDatabase,
   IconKey,
   IconRefresh,

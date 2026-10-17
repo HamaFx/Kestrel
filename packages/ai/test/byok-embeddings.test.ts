@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as encryptionModule from '@kestrel/shared/encryption';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildByokEmbeddingModel } from '../src/byok-providers';
@@ -21,7 +22,7 @@ import { kestrelMemoryOptions } from '../src/mastra-v2/memory';
 import { resolveEmbeddingModelDetails } from '../src/model-embedding';
 
 vi.mock('@kestrel/shared/encryption', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/shared/encryption')>();
+  const actual = await importOriginal<typeof encryptionModule>();
   return {
     ...actual,
     decryptByok: (keys: unknown) => {
@@ -42,19 +43,19 @@ describe('buildByokEmbeddingModel (P0-06)', () => {
   it('instantiates an embedding model for google', () => {
     const model = buildByokEmbeddingModel('google', 'google/gemini-embedding-001', 'AIzaTestKey');
     expect(model).toBeDefined();
-    expect(typeof (model as any).doEmbed).toBe('function');
+    expect(typeof (model as { doEmbed?: unknown }).doEmbed).toBe('function');
   });
 
   it('instantiates an embedding model for openai', () => {
     const model = buildByokEmbeddingModel('openai', 'openai/text-embedding-3-small', 'sk-test-key');
     expect(model).toBeDefined();
-    expect(typeof (model as any).doEmbed).toBe('function');
+    expect(typeof (model as { doEmbed?: unknown }).doEmbed).toBe('function');
   });
 
   it('instantiates an embedding model for mistral', () => {
     const model = buildByokEmbeddingModel('mistral', 'mistral/mistral-embed', 'test-mistral-key');
     expect(model).toBeDefined();
-    expect(typeof (model as any).doEmbed).toBe('function');
+    expect(typeof (model as { doEmbed?: unknown }).doEmbed).toBe('function');
   });
 
   it('throws for unsupported embedding providers', () => {

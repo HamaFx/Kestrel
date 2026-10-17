@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import type * as aiModule from '@kestrel/ai';
+import type * as dbModule from '@kestrel/db';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as cronLockModule from '../src/cron-lock';
@@ -26,7 +28,7 @@ vi.mock('@kestrel/shared/vault', () => ({
 }));
 
 vi.mock('@kestrel/ai', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/ai')>();
+  const actual = await importOriginal<typeof aiModule>();
   return {
     ...actual,
     initLangfuse: vi.fn(),
@@ -42,7 +44,7 @@ vi.mock('@kestrel/ai/mastra', () => ({
 }));
 
 vi.mock('@kestrel/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  const actual = await importOriginal<typeof dbModule>();
   return {
     ...actual,
     closeDb: vi.fn().mockResolvedValue(undefined),

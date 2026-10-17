@@ -49,8 +49,8 @@ import { Memory } from '@mastra/memory';
 import { PgVector } from '@mastra/pg';
 
 import { embedTexts } from '../embeddings';
-import type { ResolveModelEnv } from '../env-model-factory';
 import { resolveEmbeddingModel } from '../model';
+import type { ResolveModelEnv } from '../env-model-factory';
 import { getKestrelMastra } from './instance';
 import {
   ensureLibsqlParent,

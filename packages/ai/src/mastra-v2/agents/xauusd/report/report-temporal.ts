@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import type { XauusdResearchPacket } from '../../../packets/research-types';
 import type { XauusdResearchReport } from './report-types';
+import type { XauusdResearchPacket } from '../../../packets/research-types';
 
 export function verifyTemporalDisclosure(
   report: XauusdResearchReport,

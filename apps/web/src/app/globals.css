@@ -145,31 +145,25 @@
   --shadow-md: 0 2px 8px -2px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 4px 16px -4px rgba(0, 0, 0, 0.8);
   --shadow-xl: 0 8px 32px -8px rgba(0, 0, 0, 0.9);
-  --shadow-chip-inset:
-    inset 0 1.429px 0 rgba(255, 255, 255, 0.25), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-chip:
-    0 13px 5px rgba(0, 0, 0, 0.03), 0 7px 4px rgba(0, 0, 0, 0.06), 0 3px 3px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.12), var(--shadow-chip-inset);
+  --shadow-chip-inset: inset 0 1.429px 0 rgba(255, 255, 255, 0.25), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-chip: 0 13px 5px rgba(0, 0, 0, 0.03), 0 7px 4px rgba(0, 0, 0, 0.06), 0 3px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.12), var(--shadow-chip-inset);
   --shadow-well: 0 1px 1px rgba(255, 255, 255, 0.06), inset 0 2px 3px -1px rgba(0, 0, 0, 0.65);
-  --shadow-housing:
-    inset 8.3px 6.1px 5.4px -7.2px rgba(213, 213, 213, 0.18),
-    inset -7.2px 6.1px 5.4px -7.2px rgba(213, 213, 213, 0.18),
-    inset 0 3.3px 2.9px -1.1px rgba(0, 0, 0, 0.35);
+  --shadow-housing: inset 8.3px 6.1px 5.4px -7.2px rgba(213, 213, 213, 0.18), inset -7.2px 6.1px 5.4px -7.2px rgba(213, 213, 213, 0.18), inset 0 3.3px 2.9px -1.1px rgba(0, 0, 0, 0.35);
   --shadow-groove: 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 1.5px 2px rgba(0, 0, 0, 0.7);
   --shadow-keycap: 2px 2.5px 0 -0.5px rgba(0, 0, 0, 0.6), 1px 1px 0 rgba(255, 255, 255, 0.18);
   --shadow-chat-bar: var(--shadow-chip);
   --chip-edge: rgba(255, 255, 255, 0.14);
 
   /* ── Fonts ── */
-  --font-display: 'Funnel Display', 'Funnel Sans', sans-serif;
-  --font-sans: 'Funnel Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'Geist Mono', SFMono-Regular, Menlo, Consolas, monospace;
-  --font-redaction: 'Redaction', serif;
-  --font-redaction-35: 'Redaction 35', serif;
-  --font-redaction-50: 'Redaction 50', serif;
-  --font-redaction-70: 'Redaction 70', serif;
-  --font-redaction-100: 'Redaction 100', serif;
-  --font-bebas: 'Bebas Neue', sans-serif;
+  --font-display: "Funnel Display", "Funnel Sans", sans-serif;
+  --font-sans: "Funnel Sans", -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: "Geist Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --font-redaction: "Redaction", serif;
+  --font-redaction-35: "Redaction 35", serif;
+  --font-redaction-50: "Redaction 50", serif;
+  --font-redaction-70: "Redaction 70", serif;
+  --font-redaction-100: "Redaction 100", serif;
+  --font-bebas: "Bebas Neue", sans-serif;
 
   /* ── Type scale ── */
   --leading-prose: 1.5;
@@ -354,17 +348,13 @@ html {
 @utility surface-panel {
   background: var(--color-bg-elev-1);
   border: 1px solid var(--color-border);
-  box-shadow:
-    0 12px 32px -12px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @utility surface-elevated {
   background: var(--color-bg-elev-2);
   border: 1px solid var(--color-border);
-  box-shadow:
-    0 4px 16px -4px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @utility surface-flat {
@@ -394,20 +384,14 @@ html {
   color: #fff;
   background: #181818;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 13px 5px rgba(0, 0, 0, 0.05),
-    0 7px 4px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.2),
-    inset 0 1.429px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 13px 5px rgba(0, 0, 0, 0.05), 0 7px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1.429px 0 rgba(255, 255, 255, 0.3);
 }
 
 @utility surface-chip-destructive {
   color: #fff;
   background: var(--color-brand);
   border: 1px solid #d92c10;
-  box-shadow:
-    0 4px 14px rgba(255, 54, 22, 0.35),
-    inset 0 1.429px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 14px rgba(255, 54, 22, 0.35), inset 0 1.429px 0 rgba(255, 255, 255, 0.3);
 }
 
 @utility tactile-press {
@@ -420,7 +404,7 @@ html {
 
 /* Neutralize compound translate when active:translate-y-[0.5px] is paired with tactile-press */
 .tactile-press.active\:translate-y-\[0\.5px\]:active,
-[class*='active:translate-y-'].tactile-press:active {
+[class*="active:translate-y-"].tactile-press:active {
   --tw-translate-y: 0px !important;
   translate: 0 0 !important;
 }
@@ -512,81 +496,34 @@ html {
 
 /* ── Hoplite Circuit & Hardware Keyframes ── */
 @keyframes setup-card-dot-hop {
-  0% {
-    left: 129px;
-    background: rgba(37, 37, 37, 0.2);
-  }
-  8% {
-    background: #ff3616;
-  }
-  42% {
-    left: 156px;
-  }
-  55% {
-    background: #ff3616;
-  }
-  100% {
-    left: 156px;
-    background: rgba(37, 37, 37, 0.2);
-  }
+  0% { left: 129px; background: rgba(37,37,37,0.2); }
+  8% { background: #ff3616; }
+  42% { left: 156px; }
+  55% { background: #ff3616; }
+  100% { left: 156px; background: rgba(37,37,37,0.2); }
 }
 
 @keyframes setup-card-trail-grow {
-  0% {
-    width: 2px;
-    opacity: 0;
-  }
-  8% {
-    opacity: 1;
-  }
-  42% {
-    width: 33px;
-  }
-  55% {
-    opacity: 1;
-  }
-  100% {
-    width: 33px;
-    opacity: 0;
-  }
+  0% { width: 2px; opacity: 0; }
+  8% { opacity: 1; }
+  42% { width: 33px; }
+  55% { opacity: 1; }
+  100% { width: 33px; opacity: 0; }
 }
 
 @keyframes setup-card-wash-descend {
-  0% {
-    height: 0px;
-    opacity: 0;
-  }
-  8% {
-    opacity: 1;
-  }
-  70% {
-    opacity: 1;
-  }
-  100% {
-    height: 158px;
-    opacity: 0;
-  }
+  0% { height: 0px; opacity: 0; }
+  8% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { height: 158px; opacity: 0; }
 }
 
 @keyframes usecase-trace-pulse {
-  0% {
-    stroke-dashoffset: 120;
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  62% {
-    opacity: 1;
-  }
-  72% {
-    stroke-dashoffset: -24;
-    opacity: 0;
-  }
-  100% {
-    stroke-dashoffset: -24;
-    opacity: 0;
-  }
+  0% { stroke-dashoffset: 120; opacity: 0; }
+  10% { opacity: 1; }
+  62% { opacity: 1; }
+  72% { stroke-dashoffset: -24; opacity: 0; }
+  100% { stroke-dashoffset: -24; opacity: 0; }
 }
 
 .usecase-trace-pulse {
@@ -599,14 +536,8 @@ html {
 }
 
 @keyframes usecase-step-in {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .usecase-step-in {
@@ -614,16 +545,8 @@ html {
 }
 
 @keyframes usecase-typing-dot {
-  0%,
-  60%,
-  100% {
-    opacity: 0.3;
-    transform: translateY(0);
-  }
-  30% {
-    opacity: 1;
-    transform: translateY(-1px);
-  }
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-1px); }
 }
 
 .usecase-typing-dot {
@@ -632,12 +555,8 @@ html {
 }
 
 @keyframes tick-countdown {
-  0% {
-    background-color: rgba(255, 54, 22, 0.28);
-  }
-  100% {
-    background-color: transparent;
-  }
+  0% { background-color: rgba(255, 54, 22, 0.28); }
+  100% { background-color: transparent; }
 }
 
 .tick-flash {
@@ -645,30 +564,14 @@ html {
 }
 
 /* ── Typography Utilities ── */
-.font-display {
-  font-family: var(--font-display);
-}
-.font-sans {
-  font-family: var(--font-sans);
-}
-.font-mono {
-  font-family: var(--font-mono);
-}
-.font-redaction {
-  font-family: var(--font-redaction);
-}
-.font-redaction-35 {
-  font-family: var(--font-redaction-35);
-}
-.font-redaction-50 {
-  font-family: var(--font-redaction-50);
-}
-.font-redaction-70 {
-  font-family: var(--font-redaction-70);
-}
-.font-bebas {
-  font-family: var(--font-bebas);
-}
+.font-display { font-family: var(--font-display); }
+.font-sans { font-family: var(--font-sans); }
+.font-mono { font-family: var(--font-mono); }
+.font-redaction { font-family: var(--font-redaction); }
+.font-redaction-35 { font-family: var(--font-redaction-35); }
+.font-redaction-50 { font-family: var(--font-redaction-50); }
+.font-redaction-70 { font-family: var(--font-redaction-70); }
+.font-bebas { font-family: var(--font-bebas); }
 
 @keyframes shimmer {
   0% {
@@ -1060,3 +963,4 @@ html[data-reduce-motion='force'] *::after {
   animation-timing-function: linear;
   animation-fill-mode: forwards;
 }
+

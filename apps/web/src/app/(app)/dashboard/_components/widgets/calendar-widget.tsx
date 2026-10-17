@@ -129,7 +129,7 @@ export function CalendarWidget({ events: initialEvents, limit = 3 }: CalendarWid
                 <div className="flex shrink-0 items-center gap-1.5">
                   <span
                     className={cn(
-                      'rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider uppercase',
+                      'rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider',
                       importanceTone,
                     )}
                   >

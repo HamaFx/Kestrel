@@ -87,7 +87,7 @@ export default async function AgentCataloguePage() {
         <h2 className="text-fg text-lg font-semibold tracking-tight">AI & Intelligence</h2>
         <p className="text-fg-subtle text-sm">
           Every tool the agent can call. Counts and latencies come from{' '}
-          <code className="surface-well text-fg rounded-md border border-white/5 px-1.5 py-0.5 font-mono text-xs">
+          <code className="surface-well text-fg rounded-md px-1.5 py-0.5 font-mono text-xs border border-white/5">
             chat_tool_telemetry
           </code>{' '}
           over the last 24 hours.
@@ -160,8 +160,6 @@ function Pill({ label, tone }: { label: string; tone: 'muted' | 'danger' | 'succ
         ? 'bg-success/15 text-success'
         : 'surface-chip bg-bg-elev-2 text-fg-muted border border-white/5';
   return (
-    <span className={`rounded-md px-2 py-0.5 font-mono text-[11px] font-medium ${cls}`}>
-      {label}
-    </span>
+    <span className={`text-[11px] rounded-md px-2 py-0.5 font-mono font-medium ${cls}`}>{label}</span>
   );
 }

@@ -20,12 +20,11 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import * as schema from '@kestrel/db/schema';
-import { container as dependencyContainer } from '@kestrel/shared';
 import { LibSQLStore } from '@mastra/libsql';
-import { sql } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { sql } from 'drizzle-orm';
+import { container as dependencyContainer } from '@kestrel/shared';
 
 import {
   _resetKestrelMastra,
@@ -34,6 +33,7 @@ import {
   initializeKestrelMastra,
 } from '../../src/mastra-v2';
 import { DB } from '../../src/tokens';
+import * as schema from '@kestrel/db/schema';
 
 export type QueueTestDb = ReturnType<typeof drizzle<typeof schema>>;
 

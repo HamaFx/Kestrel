@@ -19,7 +19,7 @@ export function uuidv4(): string {
     } else if (i === 14) {
       out += '4';
     } else if (i === 19) {
-      out += hex[Math.floor(Math.random() * 4) + 8]!;
+      out += hex[(Math.floor(Math.random() * 4) + 8)]!;
     } else {
       out += hex[Math.floor(Math.random() * 16)]!;
     }

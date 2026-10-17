@@ -53,13 +53,7 @@ const BASE_NAV_GROUPS: NavGroup[] = [
     label: 'Overview',
     shortLabel: 'Overview',
     items: [
-      {
-        href: '/settings',
-        label: 'General',
-        shortLabel: 'Overview',
-        icon: IconSettings,
-        exact: true,
-      },
+      { href: '/settings', label: 'General', shortLabel: 'Overview', icon: IconSettings, exact: true },
       {
         href: '/settings/billing',
         label: 'Subscription & Billing',
@@ -73,18 +67,8 @@ const BASE_NAV_GROUPS: NavGroup[] = [
     label: 'Trading & Risk',
     shortLabel: 'Trading',
     items: [
-      {
-        href: '/settings/symbols',
-        label: 'Watchlist Symbols',
-        shortLabel: 'Symbols',
-        icon: IconList,
-      },
-      {
-        href: '/settings/portfolio',
-        label: 'Portfolio & Risk Rules',
-        shortLabel: 'Risk',
-        icon: IconWallet,
-      },
+      { href: '/settings/symbols', label: 'Watchlist Symbols', shortLabel: 'Symbols', icon: IconList },
+      { href: '/settings/portfolio', label: 'Portfolio & Risk Rules', shortLabel: 'Risk', icon: IconWallet },
     ],
   },
   {
@@ -105,24 +89,9 @@ const BASE_NAV_GROUPS: NavGroup[] = [
     label: 'Account & Workspace',
     shortLabel: 'Account',
     items: [
-      {
-        href: '/settings/profile',
-        label: 'Profile & Security',
-        shortLabel: 'Profile',
-        icon: IconShield,
-      },
-      {
-        href: '/settings/appearance',
-        label: 'Appearance & Data',
-        shortLabel: 'Display',
-        icon: IconPalette,
-      },
-      {
-        href: '/settings/usage',
-        label: 'Activity & Quota',
-        shortLabel: 'Activity',
-        icon: IconActivity,
-      },
+      { href: '/settings/profile', label: 'Profile & Security', shortLabel: 'Profile', icon: IconShield },
+      { href: '/settings/appearance', label: 'Appearance & Data', shortLabel: 'Display', icon: IconPalette },
+      { href: '/settings/usage', label: 'Activity & Quota', shortLabel: 'Activity', icon: IconActivity },
     ],
   },
 ];
@@ -162,7 +131,7 @@ export function SettingsNav(_props: SettingsNavProps) {
           </Link>
           {currentItem && (
             <>
-              <IconChevronRight className="text-fg-subtle/60 size-3 shrink-0" aria-hidden />
+              <IconChevronRight className="size-3 shrink-0 text-fg-subtle/60" aria-hidden />
               <span className="text-fg truncate font-medium" aria-current="page">
                 {currentItem.label}
               </span>
@@ -175,7 +144,7 @@ export function SettingsNav(_props: SettingsNavProps) {
       <div className="flex flex-col gap-2 md:hidden">
         <nav
           aria-label="Settings Categories"
-          className="flex snap-x scrollbar-none flex-row gap-1.5 overflow-x-auto pb-1"
+          className="flex snap-x flex-row gap-1.5 overflow-x-auto pb-1 scrollbar-none"
         >
           {groups.map((group) => {
             const isGroupActive = group.id === activeGroup.id;
@@ -187,10 +156,10 @@ export function SettingsNav(_props: SettingsNavProps) {
                 href={primaryHref}
                 aria-current={isGroupActive ? 'true' : undefined}
                 className={cn(
-                  'tactile-press flex min-h-10 snap-start items-center justify-center rounded-xl px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-all active:translate-y-[0.5px]',
+                  'flex snap-start min-h-10 items-center justify-center rounded-xl px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-all tactile-press active:translate-y-[0.5px]',
                   isGroupActive
-                    ? 'surface-panel bg-brand/12 text-brand ring-brand/30 shadow-[var(--shadow-chip)] ring-1'
-                    : 'text-fg-subtle bg-bg-elev-1/70 hover:bg-bg-elev-2 hover:text-fg border border-white/5',
+                    ? 'surface-panel bg-brand/12 text-brand ring-1 ring-brand/30 shadow-[var(--shadow-chip)]'
+                    : 'text-fg-subtle bg-bg-elev-1/70 border border-white/5 hover:bg-bg-elev-2 hover:text-fg',
                 )}
               >
                 {group.shortLabel}
@@ -202,10 +171,12 @@ export function SettingsNav(_props: SettingsNavProps) {
         {activeGroup.items.length > 1 && (
           <nav
             aria-label={`${activeGroup.label} Subsections`}
-            className="surface-well flex scrollbar-none flex-row gap-1 overflow-x-auto rounded-xl border border-white/5 p-1"
+            className="surface-well flex flex-row gap-1 overflow-x-auto rounded-xl border border-white/5 p-1 scrollbar-none"
           >
             {activeGroup.items.map((item) => {
-              const active = item.exact ? pathname === item.href : pathname?.startsWith(item.href);
+              const active = item.exact
+                ? pathname === item.href
+                : pathname?.startsWith(item.href);
               const Icon = item.icon;
 
               return (
@@ -214,9 +185,9 @@ export function SettingsNav(_props: SettingsNavProps) {
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'tactile-press flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all active:translate-y-[0.5px]',
+                    'flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all tactile-press active:translate-y-[0.5px]',
                     active
-                      ? 'surface-chip bg-bg-elev-2 text-fg font-semibold shadow-xs'
+                      ? 'surface-chip bg-bg-elev-2 text-fg shadow-xs font-semibold'
                       : 'text-fg-subtle hover:text-fg',
                   )}
                 >
@@ -255,9 +226,9 @@ export function SettingsNav(_props: SettingsNavProps) {
                         href={item.href}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
-                          'tactile-press flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium whitespace-nowrap transition-all active:translate-y-[0.5px]',
+                          'flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium whitespace-nowrap transition-all tactile-press active:translate-y-[0.5px]',
                           active
-                            ? 'bg-brand/12 text-brand ring-brand/25 font-semibold shadow-xs ring-1'
+                            ? 'bg-brand/12 text-brand ring-1 ring-brand/25 font-semibold shadow-xs'
                             : 'text-fg-subtle hover:bg-bg-elev-2/80 hover:text-fg',
                         )}
                       >

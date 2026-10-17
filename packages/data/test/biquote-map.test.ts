@@ -27,58 +27,23 @@ import {
 } from '../src/providers/biquote/map';
 
 describe('biquote map', () => {
-  it('maps every supported symbol identically (BiQuote uses our codes)', () => {
-    expect(toBiquoteSymbol('XAUUSD')).toBe('XAUUSD');
-    expect(toBiquoteSymbol('EURUSD')).toBe('EURUSD');
-    expect(toBiquoteSymbol('GBPUSD')).toBe('GBPUSD');
+  it.each([
+    ['XAUUSD', 'XAUUSD'],
+    ['EURUSD', 'EURUSD'],
+    ['GBPUSD', 'GBPUSD'],
+    [' eurusd ', 'EURUSD'],
+  ] as const)('maps %j to the canonical BiQuote symbol %s', (raw, canonical) => {
+    expect(toBiquoteSymbol(raw)).toBe(canonical);
+    expect(assertSupportedSymbol(raw)).toBe(canonical);
   });
 
-  it('fails fast for symbols without a BiQuote catalog mapping', () => {
-    expect(() => toBiquoteSymbol('BTCUSDT')).toThrow(/no catalog mapping/);
-    expect(() => toBiquoteSymbol('DOGEUSDT')).toThrow(/no catalog mapping/);
-  });
-
-  it('maps every BiQuote-supported timeframe', () => {
-    expect(toBiquoteTimeframe('1m')).toBe('1m');
-    expect(toBiquoteTimeframe('5m')).toBe('5m');
-    expect(toBiquoteTimeframe('15m')).toBe('15m');
-    expect(toBiquoteTimeframe('30m')).toBe('30m');
-    expect(toBiquoteTimeframe('1h')).toBe('1h');
-    expect(toBiquoteTimeframe('4h')).toBe('4h');
-    expect(toBiquoteTimeframe('1d')).toBe('1d');
-  });
-
-  it('returns null for weekly (BiQuote does not support W1)', () => {
-    expect(toBiquoteTimeframe('1w')).toBeNull();
-  });
-
-  it('parses BiQuote ISO-8601 timestamps as UTC', () => {
-    expect(parseBiquoteDate('2026-05-27T18:35:01Z')).toBe(Date.UTC(2026, 4, 27, 18, 35, 1));
-    expect(parseBiquoteDate('2026-05-27T18:35:01.234Z')).toBe(
-      Date.UTC(2026, 4, 27, 18, 35, 1) + 234,
-    );
-  });
-
-  it('throws on unparseable datetime', () => {
-    expect(() => parseBiquoteDate('not-a-date')).toThrow(/cannot parse datetime/);
-  });
-});
-
-describe('assertSupportedSymbol', () => {
-  it('returns canonical symbols for valid mapped inputs', () => {
-    expect(assertSupportedSymbol('XAUUSD')).toBe('XAUUSD');
-    expect(assertSupportedSymbol('EURUSD')).toBe('EURUSD');
-    expect(assertSupportedSymbol('GBPUSD')).toBe('GBPUSD');
-    expect(assertSupportedSymbol(' eurusd ')).toBe('EURUSD');
-  });
-
-  it('throws ProviderError for unsupported or unmapped instruments', () => {
-    expect(() => assertSupportedSymbol('BTCUSD')).toThrow(ProviderError);
-    expect(() => assertSupportedSymbol('BTCUSDT')).toThrow(ProviderError);
-    expect(() => assertSupportedSymbol('DOGEUSDT')).toThrow(ProviderError);
-    expect(() => assertSupportedSymbol('GARAN')).toThrow(ProviderError);
-    expect(() => assertSupportedSymbol('ZZZZZZ')).toThrow(ProviderError);
-  });
+  it.each([['BTCUSD'], ['BTCUSDT'], ['DOGEUSDT'], ['GARAN'], ['ZZZZZZ']] as const)(
+    'fails fast for the unsupported or unmapped symbol %s',
+    (raw) => {
+      expect(() => toBiquoteSymbol(raw)).toThrow(/no catalog mapping/);
+      expect(() => assertSupportedSymbol(raw)).toThrow(ProviderError);
+    },
+  );
 
   it('error message names the offender so debugging is fast', () => {
     try {
@@ -88,5 +53,29 @@ describe('assertSupportedSymbol', () => {
       expect(e.provider).toBe('biquote');
       expect(e.message).toContain('ZZZZZZ');
     }
+  });
+
+  it.each([
+    ['1m', '1m'],
+    ['5m', '5m'],
+    ['15m', '15m'],
+    ['30m', '30m'],
+    ['1h', '1h'],
+    ['4h', '4h'],
+    ['1d', '1d'],
+    ['1w', null],
+  ] as const)('maps the %s timeframe to %j (null = unsupported by BiQuote)', (tf, expected) => {
+    expect(toBiquoteTimeframe(tf)).toBe(expected);
+  });
+
+  it.each([
+    ['2026-05-27T18:35:01Z', Date.UTC(2026, 4, 27, 18, 35, 1)],
+    ['2026-05-27T18:35:01.234Z', Date.UTC(2026, 4, 27, 18, 35, 1) + 234],
+  ] as const)('parses the BiQuote ISO-8601 timestamp %s as UTC', (iso, expected) => {
+    expect(parseBiquoteDate(iso)).toBe(expected);
+  });
+
+  it('throws on unparseable datetime', () => {
+    expect(() => parseBiquoteDate('not-a-date')).toThrow(/cannot parse datetime/);
   });
 });

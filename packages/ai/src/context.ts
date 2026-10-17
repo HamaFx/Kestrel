@@ -25,8 +25,8 @@ import { getPrice, getPrices } from '@kestrel/data';
 import { listUserSymbols, schema } from '@kestrel/db';
 import {
   getMarketPhase,
-  SYMBOLS,
   type MarketPhaseContext,
+  SYMBOLS,
   type Symbol,
   type Tick,
 } from '@kestrel/shared';
@@ -142,7 +142,10 @@ export async function buildLiveSnapshot(
   // Warm the batch cache in 1 round-trip when getPrices is available, then read per symbol.
   if (typeof getPrices === 'function' && activeSymbols.length >= 2) {
     try {
-      const batchPromise = getPrices(activeSymbols, opts.signal ? { signal: opts.signal } : {});
+      const batchPromise = getPrices(
+        activeSymbols,
+        opts.signal ? { signal: opts.signal } : {},
+      );
       const batchTimeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), 800),
       );

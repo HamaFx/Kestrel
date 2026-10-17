@@ -20,51 +20,19 @@ import { BotDispatcher, getBotDispatcher } from './dispatcher';
 import { parseCommand } from './types';
 
 describe('parseCommand', () => {
-  it('parses a simple command', () => {
-    const result = parseCommand('/analyze XAUUSD');
-    expect(result.command).toBe('analyze');
-    expect(result.args).toEqual(['XAUUSD']);
-  });
-
-  it('parses a command with multiple args', () => {
-    const result = parseCommand('/alert XAUUSD > 2700');
-    expect(result.command).toBe('alert');
-    expect(result.args).toEqual(['XAUUSD', '>', '2700']);
-  });
-
-  it('handles command with @botname suffix', () => {
-    const result = parseCommand('/price@kestrelbot EURUSD');
-    expect(result.command).toBe('price');
-    expect(result.args).toEqual(['EURUSD']);
-  });
-
-  it('handles command with no args', () => {
-    const result = parseCommand('/help');
-    expect(result.command).toBe('help');
-    expect(result.args).toEqual([]);
-  });
-
-  it('handles non-command text', () => {
-    const result = parseCommand('hello world');
-    expect(result.command).toBe('');
-    expect(result.args).toEqual([]);
-  });
-
-  it('handles empty string', () => {
-    const result = parseCommand('');
-    expect(result.command).toBe('');
-    expect(result.args).toEqual([]);
-  });
-
-  it('handles extra whitespace', () => {
-    const result = parseCommand('/ask   is   gold   bullish?');
-    expect(result.command).toBe('ask');
-    expect(result.args).toEqual(['is', 'gold', 'bullish?']);
-  });
-
-  it('lowercases the command name', () => {
-    const result = parseCommand('/ANALYZE XAUUSD');
-    expect(result.command).toBe('analyze');
+  it.each([
+    ['a simple command', '/analyze XAUUSD', 'analyze', ['XAUUSD']],
+    ['a command with multiple args', '/alert XAUUSD > 2700', 'alert', ['XAUUSD', '>', '2700']],
+    ['a command with @botname suffix', '/price@kestrelbot EURUSD', 'price', ['EURUSD']],
+    ['a command with no args', '/help', 'help', []],
+    ['non-command text', 'hello world', '', []],
+    ['an empty string', '', '', []],
+    ['extra whitespace', '/ask   is   gold   bullish?', 'ask', ['is', 'gold', 'bullish?']],
+    ['an uppercase command name', '/ANALYZE XAUUSD', 'analyze', ['XAUUSD']],
+  ])('parses %s', (_label, input, expectedCommand, expectedArgs) => {
+    const result = parseCommand(input);
+    expect(result.command).toBe(expectedCommand);
+    expect(result.args).toEqual(expectedArgs);
   });
 });
 
@@ -104,7 +72,7 @@ describe('BotDispatcher', () => {
     };
 
     const response = await dispatcher.dispatch('hello there', ctx);
-    expect(response.text).toBeDefined();
+    expect(response.text).toContain('Kestrel Bot Commands');
   });
 
   it('listCommands returns all registered commands', () => {
@@ -129,7 +97,14 @@ describe('BotDispatcher', () => {
     expect(d1).toBe(d2);
   });
 
-  it('dispatches /price with no args → usage message', async () => {
+  it.each([
+    ['price', 'Usage: /price'],
+    ['alert', 'Usage: /alert'],
+    ['link', 'Link Your Kestrel Account'],
+    ['ask', 'Usage: /ask'],
+    ['analyze', 'Usage: /analyze'],
+    ['chart', 'Usage: /chart'],
+  ])('dispatches /%s with no args → usage/instructions response', async (command, expectedText) => {
     const dispatcher = new BotDispatcher();
     const ctx = {
       userId: 'test-user',
@@ -137,67 +112,7 @@ describe('BotDispatcher', () => {
       platform: 'telegram' as const,
     };
 
-    const response = await dispatcher.dispatch('/price', ctx);
-    expect(response.text).toContain('Usage: /price');
-  });
-
-  it('dispatches /alert with no args → usage message', async () => {
-    const dispatcher = new BotDispatcher();
-    const ctx = {
-      userId: 'test-user',
-      chatId: '123',
-      platform: 'telegram' as const,
-    };
-
-    const response = await dispatcher.dispatch('/alert', ctx);
-    expect(response.text).toContain('Usage: /alert');
-  });
-
-  it('dispatches /link with no args → instructions', async () => {
-    const dispatcher = new BotDispatcher();
-    const ctx = {
-      userId: '',
-      chatId: '123',
-      platform: 'telegram' as const,
-    };
-
-    const response = await dispatcher.dispatch('/link', ctx);
-    expect(response.text).toContain('Link Your Kestrel Account');
-  });
-
-  it('dispatches /ask with no args → usage message', async () => {
-    const dispatcher = new BotDispatcher();
-    const ctx = {
-      userId: 'test-user',
-      chatId: '123',
-      platform: 'telegram' as const,
-    };
-
-    const response = await dispatcher.dispatch('/ask', ctx);
-    expect(response.text).toContain('Usage: /ask');
-  });
-
-  it('dispatches /analyze with no args → usage message', async () => {
-    const dispatcher = new BotDispatcher();
-    const ctx = {
-      userId: 'test-user',
-      chatId: '123',
-      platform: 'telegram' as const,
-    };
-
-    const response = await dispatcher.dispatch('/analyze', ctx);
-    expect(response.text).toContain('Usage: /analyze');
-  });
-
-  it('dispatches /chart with no args → usage message', async () => {
-    const dispatcher = new BotDispatcher();
-    const ctx = {
-      userId: 'test-user',
-      chatId: '123',
-      platform: 'telegram' as const,
-    };
-
-    const response = await dispatcher.dispatch('/chart', ctx);
-    expect(response.text).toContain('Usage: /chart');
+    const response = await dispatcher.dispatch(`/${command}`, ctx);
+    expect(response.text).toContain(expectedText);
   });
 });

@@ -41,14 +41,14 @@ import {
   type Symbol,
 } from '@kestrel/shared';
 
-import type { Logger } from '../log.js';
-import { DEFAULT_RECONNECT_DELAYS, jitteredDelay } from './reconnect.js';
-
 function isBiquoteSymbol(symbol: string): boolean {
   if (!isKnownSymbol(symbol)) return false;
   const category = symbolCategory(symbol);
   return category === 'gold' || category === 'forex';
 }
+
+import type { Logger } from '../log.js';
+import { DEFAULT_RECONNECT_DELAYS, jitteredDelay } from './reconnect.js';
 
 export interface NormalizedTick {
   symbol: Symbol;

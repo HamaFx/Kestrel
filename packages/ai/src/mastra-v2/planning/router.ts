@@ -30,11 +30,9 @@
 
 import type { UIMessage } from 'ai';
 
-import type { ResolveModelEnv } from '../../env-model-factory';
-import type { MastraModelPurpose } from '../../model';
-import type { RoutingDecision, RoutingDomain } from '../../routing';
 import { isHighConfidenceMutationIntent } from '../../routing-keywords';
-import { classifyMutationRequest } from '../mutation/mutation-detect';
+import type { ResolveModelEnv } from '../../env-model-factory';
+import type { RoutingDecision, RoutingDomain } from '../../routing';
 import {
   decideMastraExecution,
   type MastraExecutionDecision,
@@ -42,6 +40,8 @@ import {
   type MastraExecutionRoute,
 } from './execution-decision';
 import { isInjectionAttempt, messageText } from './routing-policy';
+import { classifyMutationRequest } from '../mutation/mutation-detect';
+import type { MastraModelPurpose } from '../../model';
 
 /** Mutation kinds the model-based classifier can detect. */
 export type UnifiedMutationKind = NonNullable<ReturnType<typeof classifyMutationRequest>>;
@@ -99,10 +99,7 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
   const highConfidenceMutationIntent = isHighConfidenceMutationIntent(promptText);
   const mutationKind = input.classifiedMutationKind ?? classifyMutationRequest(promptText);
 
-  const decision = await decideMastraExecution({
-    ...input,
-    mutationRequested: mutationKind !== null,
-  });
+  const decision = await decideMastraExecution({ ...input, mutationRequested: mutationKind !== null });
 
   const routing = decision.routing;
   const rationale = [

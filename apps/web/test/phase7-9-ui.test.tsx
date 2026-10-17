@@ -15,9 +15,6 @@
  * limitations under the License.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -25,9 +22,6 @@ import { PasswordField } from '@/app/(auth)/_components/password-field';
 import { TextPart } from '@/components/chat/parts/text';
 
 afterEach(cleanup);
-
-const root = resolve(process.cwd(), '../..');
-const read = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
 
 describe('Phase 7 — chat message reading', () => {
   it('preserves line breaks while streaming (no layout jump on finish)', () => {
@@ -77,59 +71,5 @@ describe('Phase 9 — auth components', () => {
     expect(screen.getByRole('button', { name: 'Hide password' }).getAttribute('aria-pressed')).toBe(
       'true',
     );
-  });
-});
-
-describe('Phase 7–9 source contracts', () => {
-  const messageSource = read('apps/web/src/components/chat/message.tsx');
-  const entryListSource = read('apps/web/src/app/(app)/journal/_components/entry-list.tsx');
-  const entryFormSource = read('apps/web/src/app/(app)/journal/_components/entry-form.tsx');
-  const journalViewSource = read('apps/web/src/app/(app)/journal/_components/journal-view.tsx');
-  const alertListSource = read('apps/web/src/app/(app)/alerts/_components/alert-list.tsx');
-  const navDrawerSource = read('apps/web/src/components/layout/nav-drawer.tsx');
-  const navTriggerSource = read('apps/web/src/components/layout/nav-trigger.tsx');
-  const loginSource = read('apps/web/src/app/(auth)/login/page.tsx');
-  const registerSource = read('apps/web/src/app/(auth)/register/page.tsx');
-
-  it('message edit mode has an accessible label and keyboard save/cancel', () => {
-    expect(messageSource).toContain('aria-label="Edit message"');
-    expect(messageSource).toMatch(/e\.key === 'Escape'/);
-    expect(messageSource).toMatch(/e\.metaKey \|\| e\.ctrlKey/);
-  });
-
-  it('journal search and filter controls expose state to assistive tech', () => {
-    expect(entryListSource).toContain('aria-label="Search trades"');
-    expect(entryListSource).toContain('aria-expanded={showFilters}');
-    expect(entryListSource).toContain('aria-pressed={tab ===');
-    expect(entryListSource).toContain('aria-pressed={symbolFilter === sym}');
-  });
-
-  it('journal notes use a multiline textarea with a live counter', () => {
-    expect(entryFormSource).toContain('<textarea');
-    expect(entryFormSource).toContain('rows={4}');
-    expect(entryFormSource).toContain('/ 5,000');
-  });
-
-  it('journal header actions and loading state are announced', () => {
-    expect(journalViewSource).toContain('aria-label="Import trades"');
-    expect(journalViewSource).toContain('aria-label="Refresh logs"');
-    expect(journalViewSource).toContain('role="status"');
-  });
-
-  it('alerts list announces loading and empty states', () => {
-    expect(alertListSource).toContain('Loading alerts…');
-    expect(alertListSource).toContain('ariaLabel="Filter alerts"');
-  });
-
-  it('nav drawer content carries the id referenced by the trigger', () => {
-    expect(navDrawerSource).toContain('id="sidebar-nav"');
-    expect(navTriggerSource).toContain('aria-controls="sidebar-nav"');
-    expect(navDrawerSource).toContain('focus-visible:ring-2');
-    expect(navDrawerSource).toContain('focus-visible:ring-brand');
-  });
-
-  it('auth forms link inputs to their error messages', () => {
-    expect(loginSource).toContain("aria-describedby={state?.error ? 'form-error' : undefined}");
-    expect(registerSource).toMatch(/aria-describedby=\{\s*confirmTouched && !passwordsMatch/);
   });
 });

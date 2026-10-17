@@ -47,12 +47,10 @@ export default async function BillingPage() {
       <div className="flex max-w-2xl flex-col gap-6">
         <div className="flex flex-col gap-1">
           <h2 className="text-fg text-lg font-semibold tracking-tight">Subscription & Billing</h2>
-          <p className="text-fg-subtle text-sm">
-            Your Kestrel membership and included capabilities.
-          </p>
+          <p className="text-fg-subtle text-sm">Your Kestrel membership and included capabilities.</p>
         </div>
 
-        <section className="surface-panel border-brand/30 flex flex-col gap-4 rounded-xl border p-6 shadow-[var(--shadow-chip)]">
+        <section className="surface-panel flex flex-col gap-4 rounded-xl border border-brand/30 p-6 shadow-[var(--shadow-chip)]">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
               <span className="bg-brand/15 text-brand border-brand/30 inline-flex size-9 items-center justify-center rounded-lg border">
@@ -60,9 +58,7 @@ export default async function BillingPage() {
               </span>
               <div>
                 <h3 className="text-fg text-base font-semibold">Kestrel Pro Membership</h3>
-                <p className="text-fg-subtle text-xs">
-                  Full access to all 4 specialist AI desks & live market feeds
-                </p>
+                <p className="text-fg-subtle text-xs">Full access to all 4 specialist AI desks & live market feeds</p>
               </div>
             </div>
             <span className="bg-bull/15 text-bull border-bull/30 rounded-full border px-3 py-1 font-mono text-xs font-bold uppercase">

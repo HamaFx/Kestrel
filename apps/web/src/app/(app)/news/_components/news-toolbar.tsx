@@ -74,14 +74,14 @@ export function NewsToolbar({
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Search headlines…"
           aria-label="Search headlines"
-          className="surface-well text-fg placeholder:text-fg-subtle h-11 w-full rounded-xl border border-white/10 pr-10 pl-10 text-sm shadow-inner transition-all focus:border-white/20 focus:outline-none"
+          className="surface-well border-white/10 focus:border-white/20 text-fg placeholder:text-fg-subtle h-11 w-full rounded-xl border pr-10 pl-10 text-sm shadow-inner transition-all focus:outline-none"
         />
         {query ? (
           <button
             type="button"
             aria-label="Clear search"
             onClick={() => onQuery('')}
-            className="text-fg-subtle hover:text-fg focus-visible:ring-fg tactile-press absolute top-1/2 right-1.5 inline-flex size-10 min-h-10 min-w-10 -translate-y-1/2 items-center justify-center rounded-lg transition-all focus-visible:ring-2 focus-visible:outline-none"
+            className="text-fg-subtle hover:text-fg focus-visible:ring-fg absolute top-1/2 right-1.5 inline-flex size-10 min-h-10 min-w-10 -translate-y-1/2 items-center justify-center rounded-lg transition-all focus-visible:ring-2 focus-visible:outline-none tactile-press"
           >
             <IconX className="size-4" />
           </button>
@@ -106,10 +106,10 @@ export function NewsToolbar({
               tabIndex={active ? 0 : -1}
               onClick={() => onSentiment(s.value)}
               className={cn(
-                'focus-visible:ring-fg inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none active:translate-y-[0.5px]',
+                'focus-visible:ring-fg inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all active:translate-y-[0.5px] focus-visible:ring-2 focus-visible:outline-none',
                 active
-                  ? 'bg-fg border-transparent font-bold text-black shadow-sm'
-                  : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
+                  ? 'bg-fg border-transparent text-black font-bold shadow-sm'
+                  : 'surface-chip border-white/10 text-fg-muted hover:text-fg hover:border-white/20',
               )}
             >
               <span aria-hidden="true" className={cn(active ? '' : s.tone)}>
@@ -174,10 +174,10 @@ function SymbolChip({
       tabIndex={tabIndex ?? -1}
       onClick={onClick}
       className={cn(
-        'text-body-sm focus-visible:ring-fg inline-flex h-10 shrink-0 items-center rounded-lg border px-3 font-semibold uppercase tabular-nums transition-all focus-visible:ring-2 focus-visible:outline-none active:translate-y-[0.5px]',
+        'text-body-sm focus-visible:ring-fg inline-flex h-10 shrink-0 items-center rounded-lg border px-3 font-semibold uppercase tabular-nums transition-all active:translate-y-[0.5px] focus-visible:ring-2 focus-visible:outline-none',
         active
-          ? 'bg-fg border-transparent font-bold text-black shadow-sm'
-          : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
+          ? 'bg-fg border-transparent text-black font-bold shadow-sm'
+          : 'surface-chip border-white/10 text-fg-muted hover:text-fg hover:border-white/20',
       )}
     >
       {label}

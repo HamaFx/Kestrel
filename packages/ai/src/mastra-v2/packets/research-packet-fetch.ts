@@ -16,9 +16,9 @@
 
 import { getCandlesWithMeta, getPriceWithMeta } from '@kestrel/data';
 
-import { XAUUSD } from '../shared/types';
 import { XAUUSD_RESEARCH_WINDOWS } from './research-config';
 import { fetchXauusdMacroData, type XauusdMacroFetchResult } from './research-packet-macro';
+import { XAUUSD } from '../shared/types';
 
 export interface XauusdResearchFetchResult {
   price: PromiseSettledResult<Awaited<ReturnType<typeof getPriceWithMeta>>>;

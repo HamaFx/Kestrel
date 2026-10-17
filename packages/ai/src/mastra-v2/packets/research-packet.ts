@@ -19,12 +19,15 @@ import { randomUUID } from 'node:crypto';
 import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
-import { XAUUSD } from '../shared/types';
-import { createPacketCache } from './packet-cache';
 import { assembleXauusdResearchPacket } from './research-packet-assemble';
 import { fetchXauusdResearchData } from './research-packet-fetch';
 import { startResearchStage } from './research-packet-stages';
-import { XauusdResearchPacketSchema, type XauusdResearchPacket } from './research-types';
+import {
+  XauusdResearchPacketSchema,
+  type XauusdResearchPacket,
+} from './research-types';
+import { XAUUSD } from '../shared/types';
+import { createPacketCache } from './packet-cache';
 
 const rlog = createCategorizedLogger('ai', {
   component: 'mastra-xauusd-research-packet',
@@ -41,9 +44,7 @@ export function isFreshCacheableXauusdPacket(packet: XauusdResearchPacket): bool
   if (packet.dataQuality !== 'complete') return false;
   if (packet.price?.freshness !== 'fresh') return false;
   return (
-    packet.candles.every(
-      (evidence) => evidence.freshness === 'fresh' && evidence.quality === 'complete',
-    ) &&
+    packet.candles.every((evidence) => evidence.freshness === 'fresh' && evidence.quality === 'complete') &&
     packet.indicators.every(
       (evidence) => evidence.freshness === 'fresh' && evidence.quality === 'complete',
     )

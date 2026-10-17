@@ -105,7 +105,7 @@ export function EventCard({ event }: EventCardProps) {
 
       <div className={cn('flex flex-col gap-2 p-3.5 sm:p-4', hasRibbon && 'pl-4 sm:pl-5')}>
         {/* Meta strip */}
-        <div className="flex flex-wrap items-center gap-1.5 font-mono text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
           <span
             className="text-fg font-bold uppercase tabular-nums"
             title={importance.label}
@@ -144,7 +144,7 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-fg line-clamp-2 font-sans text-sm leading-snug font-semibold sm:text-base">
+        <h3 className="text-fg line-clamp-2 text-sm leading-snug font-semibold sm:text-base font-sans">
           {event.title}
         </h3>
 
@@ -166,7 +166,7 @@ export function EventCard({ event }: EventCardProps) {
         >
           <Link
             href={`/chat?prompt=${askPrompt}`}
-            className="surface-chip bg-bg-elev-2 text-fg-muted hover:text-fg tactile-press border-edge/60 inline-flex min-h-10 items-center gap-1.5 rounded-md border px-3.5 py-2 text-xs font-medium shadow-xs transition-all active:translate-y-[0.5px]"
+            className="surface-chip bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 text-xs font-medium transition-all tactile-press active:translate-y-[0.5px] border border-edge/60 shadow-xs"
           >
             <IconBolt className="size-3.5" />
             Ask AI
@@ -183,7 +183,7 @@ export function EventCard({ event }: EventCardProps) {
 function DataRow({ event }: { event: EconomicEvent }) {
   const beat = beatMiss(event);
   return (
-    <dl className="surface-well bg-bg/60 border-edge/40 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border p-2 font-mono text-xs tabular-nums sm:text-sm">
+    <dl className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs tabular-nums sm:text-sm font-mono surface-well rounded-md p-2 bg-bg/60 border border-edge/40">
       {event.actual !== null && (
         <Stat label="actual" value={event.actual} unit={event.unit} emphasis />
       )}
@@ -314,7 +314,7 @@ function RemindButton({ event }: { event: EconomicEvent }) {
       disabled={armed}
       aria-pressed={armed}
       className={cn(
-        'text-body-sm tactile-press pointer-events-auto inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 font-medium transition-colors active:translate-y-[0.5px]',
+        'text-body-sm pointer-events-auto inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 font-medium transition-colors tactile-press active:translate-y-[0.5px]',
         armed ? 'text-fg bg-bg-elev-2' : 'text-fg-muted hover:text-fg bg-bg-elev-2',
       )}
     >

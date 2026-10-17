@@ -191,14 +191,7 @@ export function summarizeWorkflowRunState(
   workflowId: string,
 ): WorkflowRunStatusView {
   if (!snapshot)
-    return {
-      workflowId: null,
-      status: null,
-      failedSteps: [],
-      completedSteps: 0,
-      totalSteps: 0,
-      error: null,
-    };
+    return { workflowId: null, status: null, failedSteps: [], completedSteps: 0, totalSteps: 0, error: null };
   const failedSteps: string[] = [];
   let completedSteps = 0;
   let totalSteps = 0;

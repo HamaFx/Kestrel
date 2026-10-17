@@ -24,7 +24,12 @@
 // Pattern: Service (PF-22). Controllers remain thin: parse request →
 // call service → format Response.
 
-import { getCandles, getCandlesWithMeta, getDefaultCache, getPricesWithMeta } from '@kestrel/data';
+import {
+  getCandles,
+  getCandlesWithMeta,
+  getDefaultCache,
+  getPricesWithMeta,
+} from '@kestrel/data';
 import { requireTenantIdForUser, schema, withRateLimit, withTenantDbRO } from '@kestrel/db';
 import { computeIndicator } from '@kestrel/indicators';
 import { BUILTIN_SYMBOLS, type Candle, type IndicatorResult, type Tick } from '@kestrel/shared';

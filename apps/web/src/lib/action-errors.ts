@@ -23,7 +23,10 @@ export function logActionError(err: unknown, action: string): void {
   );
 }
 
-export async function withServerActionLogging<T>(action: string, fn: () => Promise<T>): Promise<T> {
+export async function withServerActionLogging<T>(
+  action: string,
+  fn: () => Promise<T>,
+): Promise<T> {
   try {
     return await fn();
   } catch (err) {

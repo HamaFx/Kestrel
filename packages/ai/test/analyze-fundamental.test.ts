@@ -147,19 +147,20 @@ describe('analyze_fundamental — Phase 0.10', () => {
   it('returns the correct currencies for EURUSD', async () => {
     const result = await exec({ symbol: 'EURUSD', horizonHours: 24 });
 
-    expect(result.currencies).toEqual(['EUR', 'USD']);
+    // Catalog order (F-04): USD-quote first, then the base currency.
+    expect(result.currencies).toEqual(['USD', 'EUR']);
   });
 
   it('returns the correct currencies for GBPUSD', async () => {
     const result = await exec({ symbol: 'GBPUSD', horizonHours: 24 });
 
-    expect(result.currencies).toEqual(['GBP', 'USD']);
+    expect(result.currencies).toEqual(['USD', 'GBP']);
   });
 
-  it('returns the correct currencies for XAUUSD', async () => {
+  it('returns the correct currencies for XAUUSD (metal included, F-04)', async () => {
     const result = await exec({ symbol: 'XAUUSD', horizonHours: 24 });
 
-    expect(result.currencies).toEqual(['USD']);
+    expect(result.currencies).toEqual(['USD', 'XAU']);
   });
 
   it('computes the correct time window', async () => {

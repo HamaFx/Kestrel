@@ -17,6 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import {
   IconAlertCircle,
   IconAlertTriangle,
@@ -309,9 +310,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
           )}
         >
           <div className="font-semibold">
-            {isRetrying
-              ? 'Retrying Full Committee analysis…'
-              : 'Full Committee analysis incomplete'}
+            {isRetrying ? 'Retrying Full Committee analysis…' : 'Full Committee analysis incomplete'}
           </div>
           <p className="mt-1 leading-relaxed">
             {error ??
@@ -346,9 +345,7 @@ function AgentNode({
       )}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <span
-          className={cn('shrink-0', status !== 'error' && status !== 'pending' && meta.tokenClass)}
-        >
+        <span className={cn('shrink-0', status !== 'error' && status !== 'pending' && meta.tokenClass)}>
           {meta.icon}
         </span>
         <span className="truncate text-xs font-semibold">{meta.label}</span>

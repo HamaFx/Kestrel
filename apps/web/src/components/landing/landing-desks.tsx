@@ -15,17 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
-  IconBuildingBank,
-  IconChartCandle,
-  IconCheck,
-  IconRadar,
-  IconScale,
-} from '@tabler/icons-react';
-import { AnimatePresence, m } from 'motion/react';
-import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
 
+import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { m, AnimatePresence } from 'motion/react';
+import {
+  IconCheck,
+  IconChartCandle,
+  IconBuildingBank,
+  IconScale,
+  IconRadar,
+} from '@tabler/icons-react';
 import { cn } from '@/lib/cn';
 
 interface DeskSpec {
@@ -56,7 +56,7 @@ const DESKS: DeskSpec[] = [
     color: 'text-bull',
     borderColor: 'border-bull/30',
     bgGlow: 'from-bull/10 to-transparent',
-    sprite: <IconChartCandle className="text-bull size-5" />,
+    sprite: <IconChartCandle className="size-5 text-bull" />,
     methodology: 'Multi-Timeframe Smart Money Concepts (SMC)',
     verdict: {
       bias: 'BULLISH',
@@ -80,7 +80,7 @@ const DESKS: DeskSpec[] = [
     color: 'text-info',
     borderColor: 'border-info/30',
     bgGlow: 'from-info/10 to-transparent',
-    sprite: <IconBuildingBank className="text-info size-5" />,
+    sprite: <IconBuildingBank className="size-5 text-info" />,
     methodology: 'Central Bank Reaction Functions & Yield Dynamics',
     verdict: {
       bias: 'BULLISH',
@@ -104,7 +104,7 @@ const DESKS: DeskSpec[] = [
     color: 'text-warn',
     borderColor: 'border-warn/30',
     bgGlow: 'from-warn/10 to-transparent',
-    sprite: <IconScale className="text-warn size-5" />,
+    sprite: <IconScale className="size-5 text-warn" />,
     methodology: 'Kelly-Adjusted Volatility Invalidation Protocol',
     verdict: {
       bias: 'BULLISH',
@@ -128,7 +128,7 @@ const DESKS: DeskSpec[] = [
     color: 'text-brand',
     borderColor: 'border-brand/30',
     bgGlow: 'from-brand/10 to-transparent',
-    sprite: <IconRadar className="text-brand size-5" />,
+    sprite: <IconRadar className="size-5 text-brand" />,
     methodology: 'CFTC Commitments of Traders & Interbank Flow',
     verdict: {
       bias: 'BULLISH',
@@ -176,16 +176,15 @@ export function LandingDesks() {
       id="desks"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative overflow-hidden border-t border-white/5 bg-[#101112] py-28 lg:py-36"
+      className="relative py-28 lg:py-36 bg-[#101112] border-t border-white/5 overflow-hidden"
     >
       {/* ── Neoclassical Cybernetic Hoplite Bust Artwork ── */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-0 z-0 h-[85%] w-full -translate-y-1/2 opacity-20 mix-blend-screen select-none lg:w-[48%] lg:opacity-25"
+        className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 w-full lg:w-[48%] h-[85%] z-0 select-none opacity-20 lg:opacity-25 mix-blend-screen"
         style={{
           maskImage: 'radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%)',
-          WebkitMaskImage:
-            'radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%)',
         }}
       >
         <Image
@@ -201,27 +200,25 @@ export function LandingDesks() {
       {/* Background Radial Glow */}
       <div
         aria-hidden="true"
-        className="bg-brand/5 pointer-events-none absolute -top-40 right-0 size-[600px] rounded-full blur-[120px] select-none"
+        className="pointer-events-none absolute -top-40 right-0 size-[600px] rounded-full bg-brand/5 blur-[120px] select-none"
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="mb-16 flex max-w-3xl flex-col items-start gap-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
-            <span className="bg-brand size-2 animate-pulse rounded-full" />
-            <span className="text-brand font-semibold tracking-wider uppercase">
+        <div className="flex flex-col items-start gap-4 mb-16 max-w-3xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono">
+            <span className="size-2 rounded-full bg-brand animate-pulse" />
+            <span className="text-brand font-semibold uppercase tracking-wider">
               Autonomous Syndicate
             </span>
           </div>
 
-          <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
+          <h2 className="font-display text-3xl font-normal tracking-[-0.03em] text-fg sm:text-5xl">
             THE 4 SPECIALIST DESKS{' '}
-            <span className="font-redaction-35 text-brand italic">Deliberating In Sync</span>
+            <span className="font-redaction-35 italic text-brand">Deliberating In Sync</span>
           </h2>
-          <p className="text-fg-muted font-sans text-base leading-relaxed">
-            Unlike single-prompt trading bots that make emotional decisions, Kestrel operates as an
-            institutional multi-desk trading committee. Each specialist evaluates markets from an
-            independent mathematical lens.
+          <p className="font-sans text-base text-fg-muted leading-relaxed">
+            Unlike single-prompt trading bots that make emotional decisions, Kestrel operates as an institutional multi-desk trading committee. Each specialist evaluates markets from an independent mathematical lens.
           </p>
         </div>
 
@@ -229,7 +226,7 @@ export function LandingDesks() {
         <div
           role="tablist"
           aria-label="Specialist Desks"
-          className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8"
         >
           {DESKS.map((desk) => {
             const isSelected = desk.id === selectedId;
@@ -246,17 +243,17 @@ export function LandingDesks() {
                   setIsPaused(true);
                 }}
                 className={cn(
-                  'group relative flex flex-col items-start gap-3 overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 active:translate-y-[0.5px] sm:p-5',
+                  'group relative flex flex-col items-start gap-3 rounded-xl p-4 sm:p-5 text-left transition-all duration-200 border overflow-hidden active:translate-y-[0.5px]',
                   isSelected
-                    ? 'surface-chip border-white/20 bg-[#18191a] shadow-[var(--shadow-chip)]'
-                    : 'border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]',
+                    ? 'surface-chip bg-[#18191a] border-white/20 shadow-[var(--shadow-chip)]'
+                    : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10',
                 )}
               >
                 {/* Active Indicator Top Line with Spring Gliding */}
                 {isSelected && (
                   <m.div
                     layoutId="active-desk-tab-indicator"
-                    className="bg-brand absolute inset-x-4 top-0 h-[2px] rounded-full shadow-[0_0_8px_#ff3616]"
+                    className="absolute inset-x-4 top-0 h-[2px] bg-brand rounded-full shadow-[0_0_8px_#ff3616]"
                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}
@@ -266,22 +263,22 @@ export function LandingDesks() {
                   <div className="absolute inset-x-0 bottom-0 h-[2px] bg-white/5">
                     <div
                       key={desk.id}
-                      className="bg-brand/80 landing-cycle-progress h-full origin-left transition-all"
+                      className="h-full bg-brand/80 transition-all origin-left landing-cycle-progress"
                       style={{ animationDuration: `${CYCLE_DURATION_MS}ms` }}
                     />
                   </div>
                 )}
 
-                <div className="flex w-full items-center justify-between">
-                  <div className="flex size-10 items-center justify-center rounded-lg border border-white/10 bg-black/40">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-black/40 border border-white/10">
                     {desk.sprite}
                   </div>
                   <span
                     className={cn(
-                      'rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold',
+                      'font-mono text-[10px] font-bold px-2 py-0.5 rounded-full border',
                       isSelected
                         ? 'bg-brand/10 border-brand/30 text-brand'
-                        : 'text-fg-subtle border-white/5 bg-white/5',
+                        : 'bg-white/5 border-white/5 text-fg-subtle',
                     )}
                   >
                     {desk.verdict.conviction}%
@@ -289,10 +286,12 @@ export function LandingDesks() {
                 </div>
 
                 <div>
-                  <h3 className="font-display text-fg text-base font-normal tracking-tight group-hover:text-white">
+                  <h3 className="font-display text-base font-normal tracking-tight text-fg group-hover:text-white">
                     {desk.name}
                   </h3>
-                  <p className="text-fg-muted truncate font-sans text-xs">{desk.role}</p>
+                  <p className="font-sans text-xs text-fg-muted truncate">
+                    {desk.role}
+                  </p>
                 </div>
               </button>
             );
@@ -310,22 +309,22 @@ export function LandingDesks() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="surface-panel relative overflow-hidden rounded-2xl border border-white/10 bg-[#141516]/95 p-6 shadow-2xl backdrop-blur-md sm:p-8"
+            className="surface-panel relative overflow-hidden rounded-2xl border border-white/10 bg-[#141516]/95 backdrop-blur-md p-6 sm:p-8 shadow-2xl"
           >
             <div className="grid gap-8 lg:grid-cols-12 lg:items-center">
               {/* Left Col: Spec & Methodology */}
-              <div className="flex flex-col gap-6 lg:col-span-7">
+              <div className="lg:col-span-7 flex flex-col gap-6">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-fg-subtle rounded-md border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-xs font-semibold tracking-wider uppercase">
+                  <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-fg-subtle uppercase tracking-wider">
                     {activeDesk.badge}
                   </span>
-                  <span className="text-fg-muted font-mono text-xs font-medium">
+                  <span className="font-mono text-xs font-medium text-fg-muted">
                     Methodology: <strong className="text-fg">{activeDesk.methodology}</strong>
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="font-display text-fg text-2xl font-normal tracking-tight sm:text-3xl">
+                  <h3 className="font-display text-2xl sm:text-3xl font-normal tracking-tight text-fg">
                     {activeDesk.name} · {activeDesk.role}
                   </h3>
                 </div>
@@ -334,10 +333,10 @@ export function LandingDesks() {
                 <div className="flex flex-col gap-3">
                   {activeDesk.features.map((feat, idx) => (
                     <div key={idx} className="flex items-start gap-3">
-                      <div className="bg-brand/10 border-brand/20 text-brand mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border">
+                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/10 border border-brand/20 text-brand mt-0.5">
                         <IconCheck className="size-3" />
                       </div>
-                      <span className="text-fg-muted font-sans text-sm leading-relaxed">
+                      <span className="font-sans text-sm text-fg-muted leading-relaxed">
                         {feat}
                       </span>
                     </div>
@@ -347,55 +346,49 @@ export function LandingDesks() {
 
               {/* Right Col: Live Desk Verdict Rig */}
               <div className="lg:col-span-5">
-                <div className="rounded-xl border border-white/10 bg-[#0d0e0f] p-5 shadow-inner sm:p-6">
+                <div className="rounded-xl border border-white/10 bg-[#0d0e0f] p-5 sm:p-6 shadow-inner">
                   {/* Header */}
                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="bg-bull size-2 animate-pulse rounded-full" />
-                      <span className="text-fg font-mono text-xs font-bold tracking-wider uppercase">
+                      <span className="size-2 rounded-full bg-bull animate-pulse" />
+                      <span className="font-mono text-xs font-bold tracking-wider text-fg uppercase">
                         ACTIVE HYPOTHESIS
                       </span>
                     </div>
-                    <span
-                      className={cn(
-                        'rounded border px-2 py-0.5 font-mono text-xs font-bold',
-                        activeDesk.borderColor,
-                        activeDesk.color,
-                      )}
-                    >
+                    <span className={cn('font-mono text-xs font-bold px-2 py-0.5 rounded border', activeDesk.borderColor, activeDesk.color)}>
                       {activeDesk.verdict.bias} · {activeDesk.verdict.conviction}%
                     </span>
                   </div>
 
                   {/* Key Metric Gauge */}
-                  <div className="surface-well my-4 rounded-lg border border-white/5 bg-black/50 p-3.5">
-                    <div className="text-fg-subtle font-mono text-[10px] uppercase">
+                  <div className="my-4 rounded-lg surface-well p-3.5 bg-black/50 border border-white/5">
+                    <div className="font-mono text-[10px] uppercase text-fg-subtle">
                       PRIMARY DECISION METRIC
                     </div>
-                    <div className="text-fg mt-1 font-mono text-base font-bold sm:text-lg">
+                    <div className="mt-1 font-mono text-base sm:text-lg font-bold text-fg">
                       {activeDesk.verdict.keyMetric}
                     </div>
                   </div>
 
                   {/* Committee Rationale */}
-                  <div className="surface-well text-fg-muted rounded-lg border border-white/5 bg-black/50 p-3.5 font-sans text-xs leading-relaxed">
-                    <span className="text-fg-subtle mb-1 block font-mono text-[10px] uppercase">
+                  <div className="rounded-lg surface-well p-3.5 bg-black/50 border border-white/5 font-sans text-xs leading-relaxed text-fg-muted">
+                    <span className="font-mono text-[10px] uppercase text-fg-subtle block mb-1">
                       DELIBERATION RATIONALE
                     </span>
                     &ldquo;{activeDesk.verdict.rationale}&rdquo;
                   </div>
 
                   {/* Confidence Bar */}
-                  <div className="mt-4 border-t border-white/10 pt-3">
-                    <div className="mb-1.5 flex items-center justify-between font-mono text-[11px]">
+                  <div className="mt-4 pt-3 border-t border-white/10">
+                    <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
                       <span className="text-fg-subtle">COMMITTEE CONVICTION</span>
-                      <span className="text-fg font-bold tabular-nums">
+                      <span className="font-bold text-fg tabular-nums">
                         {activeDesk.verdict.conviction} / 100
                       </span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
+                    <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
                       <m.div
-                        className="from-brand to-bull h-full rounded-full bg-gradient-to-r"
+                        className="h-full bg-gradient-to-r from-brand to-bull rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${activeDesk.verdict.conviction}%` }}
                         transition={{ duration: 0.8, ease: 'easeOut' }}

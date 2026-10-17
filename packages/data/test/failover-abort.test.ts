@@ -16,7 +16,6 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProviderError } from '../src/errors';
 import { runWithFailover } from '../src/failover';
 import { _resetHealth, getScore } from '../src/health';
 

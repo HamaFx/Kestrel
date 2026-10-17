@@ -25,6 +25,7 @@
 // Calls `emitWeeklyReview` exactly once. Idempotent within an ISO week
 // via `briefings_emitted` PK on (`weekly_review:<isoWeek>`, 'weekly_review').
 
+
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { emitWeeklyReview, getActiveUserIds } from '@/lib/services/api-boundary';
@@ -47,7 +48,7 @@ export async function GET(req: Request): Promise<Response> {
         if (r.emitted) emittedCount++;
         if (r.reason) reasons.push(`[${userId}]: ${r.reason}`);
       } catch (err) {
-        log.errorContext(err, 'emitWeeklyReview', { userId });
+                log.errorContext(err, 'emitWeeklyReview', { userId });
         reasons.push(`[${userId}]: error`);
       }
     }

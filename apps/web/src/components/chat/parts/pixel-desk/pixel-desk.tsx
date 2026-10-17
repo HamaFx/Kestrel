@@ -448,7 +448,6 @@ export function PixelDeskThinking({
       {/* 4-Column Live Status Strip */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {DESK_ORDER.map((deskId, idx) => {
-          const profile = CHARACTER_PROFILES[deskId]!;
           const liveAgent = liveAgents.find((a) => a.agentName === deskId);
           const status =
             liveAgent?.status ?? (idx < stepIdx ? 'done' : idx === stepIdx ? 'running' : 'pending');

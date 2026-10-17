@@ -33,12 +33,12 @@ export function PageHeader({ title, description, icon, children }: PageHeaderPro
           {icon ? (
             <span
               aria-hidden="true"
-              className="text-brand surface-chip bg-bg-elev-2 border-edge/60 inline-flex size-11 items-center justify-center rounded-xl border shadow-xs"
+              className="text-brand surface-chip bg-bg-elev-2 inline-flex size-11 items-center justify-center rounded-xl border border-edge/60 shadow-xs"
             >
               {icon}
             </span>
           ) : null}
-          <h1 className="text-fg font-display text-2xl font-normal tracking-[-0.02em] sm:text-3xl">
+          <h1 className="text-fg font-display text-2xl sm:text-3xl font-normal tracking-[-0.02em]">
             {title}
           </h1>
         </div>

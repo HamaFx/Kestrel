@@ -23,8 +23,6 @@
 
 import {
   buildToolCatalogue,
-  BYOK_PROVIDERS,
-  BYOK_PROVIDERS_LIST,
   computeUsage,
   getDb,
   testProviderKey,

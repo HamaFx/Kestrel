@@ -28,7 +28,7 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { pickAiEnv, readFeatureFlag } from '@kestrel/shared';
+import { readFeatureFlag } from '@kestrel/shared';
 import { RequestContext } from '@mastra/core/request-context';
 
 import {
@@ -46,7 +46,7 @@ import { getDb } from '../../db';
 import type { ResolveModelEnv } from '../../env-model-factory';
 import { createGenerationLedger, type GenerationLedger } from '../../generation-ledger';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../../model';
-import { createToolContext, withToolContext } from '../../tool-context';
+import { createToolContext, withToolContext, type ToolEnv } from '../../tool-context';
 import { getKestrelMastra } from '../instance';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../logger';
 import { kestrelMemoryOptions } from '../memory';
@@ -325,7 +325,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       threadId: args.threadId,
       userId: args.userId,
       latestUserMessageText: args.prompt,
-      env: args.env as any,
+      env: args.env as Partial<ToolEnv>,
       signal: args.signal ?? null,
       budget: {
         spent: 0,

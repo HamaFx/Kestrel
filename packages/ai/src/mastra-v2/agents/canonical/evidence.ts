@@ -6,8 +6,8 @@
 
 import { EVIDENCE_TOLERANCE } from '../../../committee/grounding';
 import {
-  extractNarrativeNumbers,
   extractNarrativeNumberTokens,
+  extractNarrativeNumbers,
   type NarrativeNumberToken,
 } from '../xauusd/report/report-grounding';
 
@@ -75,7 +75,8 @@ function isPercentClaim(text: string, token: NarrativeNumberToken): boolean {
   const leading = text[token.start];
   if (leading === '+' || leading === '-') {
     const isRangeContinuation =
-      leading === '-' && /[0-9%]\s*$/.test(text.slice(Math.max(0, token.start - 2), token.start));
+      leading === '-' &&
+      /[0-9%]\s*$/.test(text.slice(Math.max(0, token.start - 2), token.start));
     if (!isRangeContinuation) return true;
   }
   return PERCENT_CLAIM_CONTEXT_PATTERN.test(contextAround(text, token));
@@ -121,7 +122,8 @@ export function checkCanonicalEvidence(
       marketTools.map((tool) => tool.resultText).join('\n'),
     );
     const ungrounded = claims.filter(
-      (claim) => !evidenceValues.some((value) => Math.abs(value - claim) <= EVIDENCE_TOLERANCE),
+      (claim) =>
+        !evidenceValues.some((value) => Math.abs(value - claim) <= EVIDENCE_TOLERANCE),
     );
     if (ungrounded.length > 0) {
       findings.push(

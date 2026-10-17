@@ -16,10 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  requireVerifiedXauusdReport,
-  verifyXauusdReport,
-} from '../src/mastra-v2/agents/xauusd/report/report-verifier';
+import { requireVerifiedXauusdReport, verifyXauusdReport } from '../src/mastra-v2/agents/xauusd/report/report-verifier';
 import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
 
 const evidenceId = 'kestrel-price-xauusd-fixture';

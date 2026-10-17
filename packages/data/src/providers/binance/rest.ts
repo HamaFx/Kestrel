@@ -37,6 +37,7 @@ export interface BinanceFetchCandlesOptions extends CallOptions {
   now?: number;
 }
 
+
 async function klinesCall(
   query: Record<string, string>,
   opts: CallOptions,

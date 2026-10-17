@@ -17,14 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { LandingArchitecture } from './landing-architecture';
-import { LandingDesks } from './landing-desks';
-import { LandingFAQ } from './landing-faq';
-import { LandingFooter } from './landing-footer';
-import { LandingHero } from './landing-hero';
+
 import { LandingNav } from './landing-nav';
+import { LandingHero } from './landing-hero';
+import { LandingDesks } from './landing-desks';
 import { LandingSimulator } from './landing-simulator';
 import { LandingStepper } from './landing-stepper';
+import { LandingArchitecture } from './landing-architecture';
+import { LandingFAQ } from './landing-faq';
+import { LandingFooter } from './landing-footer';
 
 export interface LandingPageViewProps {
   isAuthenticated?: boolean;
@@ -32,7 +33,7 @@ export interface LandingPageViewProps {
 
 export function LandingPageView({ isAuthenticated = false }: LandingPageViewProps) {
   return (
-    <div className="text-fg selection:bg-brand flex min-h-screen flex-col bg-[#101112] selection:text-white">
+    <div className="flex min-h-screen flex-col bg-[#101112] text-fg selection:bg-brand selection:text-white">
       <LandingNav isAuthenticated={isAuthenticated} />
       <main className="flex-1">
         <LandingHero isAuthenticated={isAuthenticated} />

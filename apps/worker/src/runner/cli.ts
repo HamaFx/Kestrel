@@ -29,7 +29,7 @@ import { closeDb } from '@kestrel/db';
 
 import { acquireCronLock, type CronLock } from '../cron-lock.js';
 import { loadEnv } from '../env.js';
-import { ping, withHeartbeat } from '../healthchecks.js';
+import { withHeartbeat } from '../healthchecks.js';
 import { JOBS, type JobName } from '../jobs/index.js';
 import { createLogger } from '../log.js';
 import { SKIP_DAILY_LOCK } from '../scheduler.js';

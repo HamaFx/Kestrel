@@ -15,7 +15,15 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { check, doublePrecision, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  doublePrecision,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 

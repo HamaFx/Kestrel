@@ -22,40 +22,6 @@ import { describe, expect, it } from 'vitest';
 // this test only exercises the pure helpers).
 import { providerIdFromModel } from '../src/usage';
 
-/**
- * The canonicalizeProviderId helper is not exported from usage.ts
- * directly (it's internal). We replicate the mapping here so the
- * test serves as a documentation of the contract; if a future
- * refactor changes the canonicalization we want this test to
- * fail loud.
- *
- * Mapping table (must match usage.ts):
- *   '' (no prefix)     -> 'google'    (BYOK google uses bare ids)
- *   'google'           -> 'google'
- *   'anthropic'        -> 'anthropic'
- *   'openai'           -> 'openai'
- *   'groq'             -> 'groq'
- *   'mistral'          -> 'mistral'
- *   'openrouter'       -> 'openrouter'
- *   'xai'              -> 'xai'
- *   'deepseek'         -> 'deepseek'
- *   anything else      -> null
- */
-function canonicalize(prefix: string): string | null {
-  if (prefix === '') return 'google';
-  const KNOWN = new Set([
-    'google',
-    'anthropic',
-    'openai',
-    'groq',
-    'mistral',
-    'openrouter',
-    'xai',
-    'deepseek',
-  ]);
-  return KNOWN.has(prefix) ? prefix : null;
-}
-
 describe('Phase D — providerIdFromModel', () => {
   it('returns the segment before the first slash for prefixed ids', () => {
     expect(providerIdFromModel('google/gemini-2.5-flash')).toBe('google');
@@ -77,30 +43,5 @@ describe('Phase D — providerIdFromModel', () => {
 
   it('returns empty string for empty input', () => {
     expect(providerIdFromModel('')).toBe('');
-  });
-});
-
-describe('Phase D — canonical BYOK id mapping', () => {
-  it('maps empty prefix to google (BYOK google uses bare ids)', () => {
-    expect(canonicalize('')).toBe('google');
-  });
-
-  it('passes through the known BYOK providers', () => {
-    expect(canonicalize('google')).toBe('google');
-    expect(canonicalize('anthropic')).toBe('anthropic');
-    expect(canonicalize('openai')).toBe('openai');
-    expect(canonicalize('groq')).toBe('groq');
-    expect(canonicalize('mistral')).toBe('mistral');
-    expect(canonicalize('openrouter')).toBe('openrouter');
-    expect(canonicalize('xai')).toBe('xai');
-    expect(canonicalize('deepseek')).toBe('deepseek');
-  });
-
-  it('returns null for unknown prefixes', () => {
-    expect(canonicalize('vertex')).toBe(null);
-    expect(canonicalize('google-vertex')).toBe(null);
-    expect(canonicalize('cohere')).toBe(null);
-    expect(canonicalize('azure')).toBe(null);
-    expect(canonicalize('random-model-prefix')).toBe(null);
   });
 });

@@ -240,7 +240,7 @@ export function OnboardingWizard({
   }
 
   return (
-    <div className="surface-panel rounded-2xl border border-white/10 p-6 shadow-[var(--shadow-chip)] sm:p-8">
+    <div className="surface-panel rounded-2xl border border-white/10 p-6 sm:p-8 shadow-[var(--shadow-chip)]">
       <WizardStepper step={step} />
 
       <div className="mb-4 flex justify-end">

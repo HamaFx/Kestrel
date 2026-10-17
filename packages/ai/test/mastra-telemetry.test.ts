@@ -25,7 +25,10 @@ import {
   mastraOutcomeForError,
   resetMastraTelemetryHealth,
 } from '../src/mastra-v2/shared/telemetry';
-import { TELEMETRY_KINDS, type TelemetryInput } from '../src/persistence/telemetry-persistence';
+import {
+  TELEMETRY_KINDS,
+  type TelemetryInput,
+} from '../src/persistence/telemetry-persistence';
 
 const mocks = vi.hoisted(() => ({
   recordTelemetry: vi.fn().mockResolvedValue(undefined),

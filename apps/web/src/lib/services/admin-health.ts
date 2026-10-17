@@ -362,8 +362,8 @@ export async function computeHealthSloService(
   // ── Langfuse ────────────────────────────────────────────────────────────
   const langfuseActive = Boolean(
     process.env.LANGFUSE_PUBLIC_KEY &&
-    process.env.LANGFUSE_SECRET_KEY &&
-    process.env.LANGFUSE_BASE_URL,
+      process.env.LANGFUSE_SECRET_KEY &&
+      process.env.LANGFUSE_BASE_URL,
   );
   const langfuseBaseUrl = process.env.LANGFUSE_BASE_URL ?? null;
 

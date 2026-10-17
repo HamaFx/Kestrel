@@ -22,7 +22,7 @@
 
 - **Repeated `symbols` Query Parameter & Dual Envelope on `/api/latest`:** [BiQuote API Docs](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fdocs%2F) and the [BiQuote Python Guide](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fguides%2Ffree-forex-api-python.html) specify that comma-separated `?symbols=XAUUSD,EURUSD` is unsupported (must be repeated `?symbols=XAUUSD&symbols=EURUSD`) and `/api/latest` returns a symbol-keyed object `{ EURUSD: {...}, XAUUSD: {...} }`. `fetchLatest()` must emit repeated `symbols` params and accept both the live symbol-keyed map and array envelopes via `BiquoteLatestResponseSchema`.
 - **Historical Replay Cache Key Isolation:** `getCandlesWithMeta()` currently keys cache entries solely by `hfx:candles:${symbol}:${tf}:n${count}`. When `from` or `to` is supplied by Trade Setup Replay, omitting `from`/`to` from `extra` would poison live chart/indicator cache reads with old historical replay bars (or return latest bars for a historical trade).
-- **`calendar-persistence.ts` Latent `ON CONFLICT DO UPDATE` Bug:** `packages/ai/src/calendar-persistence.ts:47-51` currently sets `actual: schema.economicEvents.actual` on conflict, which references the existing table column (often `NULL`) instead of `sql\`excluded.actual\``. This must be fixed to `sql\`COALESCE(excluded.actual, ${schema.economicEvents.actual})\``so newly published actuals from BiQuote and FRED overwrite prior`NULL`values, while`actual: null`is strictly preserved as "not yet published" (never coerced to`0`).
+- **`calendar-persistence.ts` Latent `ON CONFLICT DO UPDATE` Bug:** `packages/ai/src/calendar-persistence.ts:47-51` currently sets `actual: schema.economicEvents.actual` on conflict, which references the existing table column (often `NULL`) instead of `sql\`excluded.actual\``. This must be fixed to `sql\`COALESCE(excluded.actual, ${schema.economicEvents.actual})\`` so newly published actuals from BiQuote and FRED overwrite prior `NULL` values, while `actual: null` is strictly preserved as "not yet published" (never coerced to `0`).
 - **G8 Currency Schema Widening for Calendar Events:** `packages/shared/src/schemas/calendar.ts` currently restricts `EventCurrencySchema` to `z.enum(['USD', 'EUR', 'GBP'])`. Fetching BiQuote calendar events for `US,EU,GB,JP,CA,AU,NZ,CH` produces `JPY`, `CAD`, `AUD`, `NZD`, and `CHF`, which would throw a Zod parse error unless `EventCurrencySchema` is widened to all catalog currencies plus fallback string union.
 - **False Degraded Health Alerts When `live_ticks` Stops Updating:** `apps/web/src/lib/services/admin-health.ts` (`computeHealthSloService`) currently pushes an anomaly whenever `live_ticks` is empty or older than 60s, flipping `overall` to `'degraded'` and triggering `/api/cron/health-alerts` every 5 minutes. When `WORKER_ENABLE_TICK_STREAM=0` (default), `admin-health.ts`, `apps/worker/src/http-server.ts`, and `apps/worker/src/jobs/metrics-flush.ts` must treat on-demand REST mode as healthy without requiring `live_ticks` rows.
 
@@ -33,16 +33,14 @@
 ### 1.1 Why This Upgrade Matters
 
 Kestrel's Phase 8 worker pipeline was engineered around two assumptions that no longer hold:
-
 1. `packages/data/src/providers/biquote/rest.ts` assumed BiQuote enforced an undocumented ~10–50 req/min rate limit (`const THROTTLE: ThrottleConfig = { limit: 50, windowMs: 60_000 }`). In reality, [BiQuote's API documentation](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fdocs%2F) and [operational engineering breakdown](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fguides%2Fwhat-free-costs.html) confirm an anonymous quota of **15,000 requests/minute per IP (250 req/sec)** with **no API key and no signup**.
 2. To work around that assumed 50 req/min ceiling, `apps/worker` maintained 24/7 persistent connections to BiQuote SignalR (`https://biquote.io/hubs/tick`) and Binance WebSocket (`wss://stream.binance.com:9443`), coalescing ticks in `TickBuffer`, building 1-minute bars in `Candle1mAggregator`, and executing **continuous PostgreSQL writes every second (`live_ticks`) and every minute (`candles_1m`)**, plus binding a second `:8082` HTTP proxy server requiring `BIQUOTE_PROXY_TOKEN`.
 
 That 24/7 database-persistence loop created unnecessary operational friction:
-
 - **Database Write & Connection Pressure:** 86,400 UPSERT batches/day into `live_ticks` and ~25,920 INSERTs/day into `candles_1m` across 18 symbols, keeping the Supabase/PostgreSQL connection pool continuously hot even when zero users are online.
 - **False Health & Readiness Failures:** On weekends (when FX/Gold stops quoting from Friday 22:00 UTC to Sunday 22:00 UTC) or during brief SignalR reconnects, `lastTickAt` exceeds 60–120 seconds, causing `apps/worker/src/http-server.ts` (`/health/ready` -> `503`), `HC_SIGNALR_UUID`, and `apps/web/src/lib/services/admin-health.ts` (`worker_ticks` SLI -> `degraded`) to fire false-positive outage alerts.
 - **Broken Multi-Symbol Batching:** `fetchLatest()` in `packages/data/src/providers/biquote/rest.ts:196` joins symbols with commas (`?symbols=XAUUSD%2CEURUSD`), which [BiQuote explicitly rejects](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fdocs%2F) (`repeat the symbols parameter — the comma form is not supported`), and validates the response against `z.array(BiquoteTickSchema)` instead of BiQuote's symbol-keyed object map. Meanwhile, `getPriceService`, `/api/market/stream`, `warm-cache`, and `buildLiveSnapshot` wasn't even calling `fetchLatest()`, issuing $N$ separate HTTP requests instead of 1 batched request.
-- **Broken Trade Setup Replay for Older Trades:** `getTradeSetupReplayService` in `apps/web/src/lib/services/journal.ts:253` calls `getCandles(entry.symbol, tf, { count: 140 })` without `from` or `to` dates. On `15m`, 140 bars is only 35 hours—meaning any trade logged more than 1.5 days ago replays the _current_ market instead of the historical trade window, producing meaningless MFE/MAE excursions and entry/exit alignments.
+- **Broken Trade Setup Replay for Older Trades:** `getTradeSetupReplayService` in `apps/web/src/lib/services/journal.ts:253` calls `getCandles(entry.symbol, tf, { count: 140 })` without `from` or `to` dates. On `15m`, 140 bars is only 35 hours—meaning any trade logged more than 1.5 days ago replays the *current* market instead of the historical trade window, producing meaningless MFE/MAE excursions and entry/exit alignments.
 - **Unused Free BiQuote Calendar & News Endpoints:** Kestrel currently fails closed when `FRED_API_KEY` or `FINNHUB_API_KEY`/`MARKETAUX_API_KEY` are unset, even though [BiQuote provides a free 54-country MT5 Economic Calendar](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fdocs%2F) (`GET /api/calendar`, `GET /api/calendar/upcoming`, `GET /api/calendar/{eventId}/history` with `actual`, `forecast`, `previous`, `revisedPrevious`) and [free symbol/market news](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fdocs%2F) (`GET /api/news/market?symbol=XAUUSD`).
 
 ### 1.2 Architecture Before vs. After Diagram
@@ -123,7 +121,6 @@ AFTER: 100% On-Demand BiQuote REST + Lightweight AI/Cron Worker
 ### 1.3 Architectural Decision on `live-ticks` & `candles-1m` (Workstream 1)
 
 We **gate the legacy streaming pipeline behind `WORKER_ENABLE_TICK_STREAM=0` (default `'0'`)** while keeping all Drizzle table definitions (`packages/db/src/schema/live-ticks.ts`, `packages/db/src/schema/candles-1m.ts`) and unit-tested modules intact:
-
 1. **Why Gating Beats Hard Deletion:**
    - Existing database migrations (`0005`..`0079`) and schema drift tests (`packages/db/test/schema-drift.test.ts`, `packages/db/test/full-migration-chain.test.ts`) require `liveTicks` and `candles1m` in `@kestrel/db/schema`.
    - Keeping `SignalRConsumer`, `BinanceStreamConsumer`, `TickBuffer`, `Candle1mAggregator`, `live-ticks`, and `candles-1m` modules in place (with their unit tests passing) while taking them out of the default runtime path (`WORKER_ENABLE_TICK_STREAM=0`) eliminates 100% of the 24/7 DB writes and network overhead in production without churning 15+ test files or losing the SignalR code if an operator ever wants local streaming.
@@ -139,20 +136,19 @@ We **gate the legacy streaming pipeline behind `WORKER_ENABLE_TICK_STREAM=0` (de
 
 All endpoints below were verified against the live [BiQuote API Reference (https://biquote.io/docs/)](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fdocs%2F), the [BiQuote Python Integration Guide (https://biquote.io/guides/free-forex-api-python.html)](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fguides%2Ffree-forex-api-python.html), and the [BiQuote Production Traffic Analysis (https://biquote.io/guides/what-free-costs.html)](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fguides%2Fwhat-free-costs.html).
 
-| Endpoint                          | Method & Query Parameters                                                                                                                                            | Rate Limit & Auth         | Verified Wire Response Shape                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| :-------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/{symbol}`                   | `GET /api/{symbol}?allowStale=true\|false` (`allowStale` default `true`; `false` returns `404` if quote > 5m old)                                                    | 15,000 req/min/IP, No Key | Single `BiquoteTick` JSON object with `symbol`, `bid`, `ask`, `mid`, `spread`, `last` (`0.0` for FX), `volume` (`0` for FX), `high`, `low`, `direction` (`"UP"\|"DOWN"\|"FLAT"`), `dayDiffPercent`, `timestamp` (ISO-8601 UTC), `time` (MT5 dot string), `source`, `marketState` (`"open"\|"closed"`), `stale` (`boolean`), `quoteAgeSeconds` (`number`), `lastQuoteAt` (ISO-8601 UTC). Also sets `X-Quote-State` and `X-Quote-Age-Seconds` HTTP headers. |
-| `/api/latest`                     | `GET /api/latest?symbols=EURUSD&symbols=XAUUSD` (**Repeated `symbols` param required**; comma-separated `?symbols=A,B` is **not** supported; up to 100 symbols/call) | 15,000 req/min/IP, No Key | Symbol-keyed JSON object `{ "EURUSD": BiquoteTick, "XAUUSD": BiquoteTick }` (verified in [BiQuote Python Guide](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fguides%2Ffree-forex-api-python.html): `for sym, t in r.items()`). Unquoted symbols are omitted. Our schema union also accepts `BiquoteTick[]` for backward compatibility with existing unit test fixtures.                                                                     |
-| `/api/{symbol}/ohlc`              | `GET /api/{symbol}/ohlc?interval=1m\|5m\|15m\|30m\|1h\|4h\|1d&limit=1..1000&from=<ISO-8601>&to=<ISO-8601>`                                                           | 15,000 req/min/IP, No Key | Envelope `{ "symbol": "EURUSD", "interval": "1h", "bars": [BiquoteOhlcBar, ...] }` ordered **newest-first** (`bars[0]` has `isOpen: true` when window includes current live bar). Each bar has `{ openTime, open, high, low, close, volume, tickVolume, isOpen }`.                                                                                                                                                                                        |
-| `/api/calendar`                   | `GET /api/calendar?from=<ISO-8601>&to=<ISO-8601>&countries=US,EU,GB,JP,CA,AU,NZ,CH&importance=low\|medium\|high&type=event\|indicator\|holiday&limit=1..500`         | 15,000 req/min/IP, No Key | Bare JSON array `BiquoteCalendarEvent[]` ordered **oldest-first** across a rolling -90d/+90d window across 54 countries (MT5 + emerging markets). `actual`, `forecast`, `previous`, and `revisedPrevious` are `number \| null` (`null` = not yet published, **never** `0`).                                                                                                                                                                               |
-| `/api/calendar/upcoming`          | `GET /api/calendar/upcoming?limit=1..500&countries=US,EU,GB...&importance=low\|medium\|high`                                                                         | 15,000 req/min/IP, No Key | Bare JSON array `BiquoteCalendarEvent[]` ordered **soonest-first** over a 30-day forward horizon.                                                                                                                                                                                                                                                                                                                                                         |
-| `/api/calendar/{eventId}/history` | `GET /api/calendar/{eventId}/history?limit=1..500` (e.g. `eventId = "mql5:840"`)                                                                                     | 15,000 req/min/IP, No Key | Bare JSON array `BiquoteCalendarEvent[]` of past releases for that recurring series, ordered **newest-first**.                                                                                                                                                                                                                                                                                                                                            |
-| `/api/news/market`                | `GET /api/news/market?symbol=XAUUSD&language=en&country=US&maxResults=1..50`                                                                                         | 15,000 req/min/IP, No Key | Bare JSON array `BiquoteNewsArticle[]` ordered **newest-first**: `[{ title, description, url, publisher, publishedDate, imageUrl, category, language, country }]`.                                                                                                                                                                                                                                                                                        |
+| Endpoint | Method & Query Parameters | Rate Limit & Auth | Verified Wire Response Shape |
+| :--- | :--- | :--- | :--- |
+| `/api/{symbol}` | `GET /api/{symbol}?allowStale=true\|false` (`allowStale` default `true`; `false` returns `404` if quote > 5m old) | 15,000 req/min/IP, No Key | Single `BiquoteTick` JSON object with `symbol`, `bid`, `ask`, `mid`, `spread`, `last` (`0.0` for FX), `volume` (`0` for FX), `high`, `low`, `direction` (`"UP"\|"DOWN"\|"FLAT"`), `dayDiffPercent`, `timestamp` (ISO-8601 UTC), `time` (MT5 dot string), `source`, `marketState` (`"open"\|"closed"`), `stale` (`boolean`), `quoteAgeSeconds` (`number`), `lastQuoteAt` (ISO-8601 UTC). Also sets `X-Quote-State` and `X-Quote-Age-Seconds` HTTP headers. |
+| `/api/latest` | `GET /api/latest?symbols=EURUSD&symbols=XAUUSD` (**Repeated `symbols` param required**; comma-separated `?symbols=A,B` is **not** supported; up to 100 symbols/call) | 15,000 req/min/IP, No Key | Symbol-keyed JSON object `{ "EURUSD": BiquoteTick, "XAUUSD": BiquoteTick }` (verified in [BiQuote Python Guide](https://www.google.com/search?q=https%3A%2F%2Fbiquote.io%2Fguides%2Ffree-forex-api-python.html): `for sym, t in r.items()`). Unquoted symbols are omitted. Our schema union also accepts `BiquoteTick[]` for backward compatibility with existing unit test fixtures. |
+| `/api/{symbol}/ohlc` | `GET /api/{symbol}/ohlc?interval=1m\|5m\|15m\|30m\|1h\|4h\|1d&limit=1..1000&from=<ISO-8601>&to=<ISO-8601>` | 15,000 req/min/IP, No Key | Envelope `{ "symbol": "EURUSD", "interval": "1h", "bars": [BiquoteOhlcBar, ...] }` ordered **newest-first** (`bars[0]` has `isOpen: true` when window includes current live bar). Each bar has `{ openTime, open, high, low, close, volume, tickVolume, isOpen }`. |
+| `/api/calendar` | `GET /api/calendar?from=<ISO-8601>&to=<ISO-8601>&countries=US,EU,GB,JP,CA,AU,NZ,CH&importance=low\|medium\|high&type=event\|indicator\|holiday&limit=1..500` | 15,000 req/min/IP, No Key | Bare JSON array `BiquoteCalendarEvent[]` ordered **oldest-first** across a rolling -90d/+90d window across 54 countries (MT5 + emerging markets). `actual`, `forecast`, `previous`, and `revisedPrevious` are `number \| null` (`null` = not yet published, **never** `0`). |
+| `/api/calendar/upcoming` | `GET /api/calendar/upcoming?limit=1..500&countries=US,EU,GB...&importance=low\|medium\|high` | 15,000 req/min/IP, No Key | Bare JSON array `BiquoteCalendarEvent[]` ordered **soonest-first** over a 30-day forward horizon. |
+| `/api/calendar/{eventId}/history` | `GET /api/calendar/{eventId}/history?limit=1..500` (e.g. `eventId = "mql5:840"`) | 15,000 req/min/IP, No Key | Bare JSON array `BiquoteCalendarEvent[]` of past releases for that recurring series, ordered **newest-first**. |
+| `/api/news/market` | `GET /api/news/market?symbol=XAUUSD&language=en&country=US&maxResults=1..50` | 15,000 req/min/IP, No Key | Bare JSON array `BiquoteNewsArticle[]` ordered **newest-first**: `[{ title, description, url, publisher, publishedDate, imageUrl, category, language, country }]`. |
 
 ### Verified Wire Payloads
 
 #### 1. `GET /api/{symbol}` & `GET /api/latest?symbols=EURUSD&symbols=XAUUSD`
-
 ```json
 {
   "symbol": "EURUSD",
@@ -163,8 +159,8 @@ All endpoints below were verified against the live [BiQuote API Reference (https
   "spread": 0.00006,
   "last": 0.0,
   "volume": 0,
-  "high": 1.088,
-  "low": 1.0853,
+  "high": 1.08800,
+  "low": 1.08530,
   "direction": "FLAT",
   "dayDiffPercent": -0.09,
   "timestamp": "2026-02-24T10:30:00Z",
@@ -178,7 +174,6 @@ All endpoints below were verified against the live [BiQuote API Reference (https
 ```
 
 #### 2. `GET /api/calendar` & `GET /api/calendar/upcoming`
-
 ```json
 [
   {
@@ -208,7 +203,6 @@ All endpoints below were verified against the live [BiQuote API Reference (https
 ```
 
 #### 3. `GET /api/news/market?symbol=XAUUSD&maxResults=25`
-
 ```json
 [
   {
@@ -229,50 +223,50 @@ All endpoints below were verified against the live [BiQuote API Reference (https
 
 ## 3. File-by-File Impact Matrix
 
-| Package / App     | File Path                                                                     | Action | Responsibility / Change Summary                                                                                                                                                                                                                                                                                                                                    |
-| :---------------- | :---------------------------------------------------------------------------- | :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/shared` | `packages/shared/src/schemas/biquote.ts`                                      | Modify | Add `BiquoteMarketStateSchema` (`'open' \| 'closed'`), `marketState`, `stale`, `quoteAgeSeconds`, `lastQuoteAt` to `BiquoteTickSchema`; add `BiquoteLatestResponseSchema`, `BiquoteCalendarEventSchema`, `BiquoteNewsArticleSchema`.                                                                                                                               |
-| `packages/shared` | `packages/shared/src/schemas/tick.ts`                                         | Modify | Add optional `marketState?: 'open' \| 'closed'`, `quoteAgeSeconds?: number \| null`, `dayDiffPercent?: number \| null` to `TickSchema` so UI and AI consumers receive market-closure state.                                                                                                                                                                        |
-| `packages/shared` | `packages/shared/src/schemas/calendar.ts`                                     | Modify | Widen `KnownCountrySchema` (`EU`, `GB`, `JP`, `CA`, `AU`, `NZ`, `CH`) and `EventCurrencySchema` to accept all 8 G8 catalog currencies (`USD`, `EUR`, `GBP`, `JPY`, `AUD`, `CAD`, `NZD`, `CHF`) plus string fallback.                                                                                                                                               |
-| `packages/shared` | `packages/shared/src/index.ts`                                                | Modify | Re-export `BiquoteMarketStateSchema`, `BiquoteLatestResponseSchema`, `BiquoteCalendarEventSchema`, `BiquoteNewsArticleSchema`, and their inferred types.                                                                                                                                                                                                           |
-| `packages/shared` | `packages/shared/test/biquote.test.ts`                                        | Modify | Add unit tests for `marketState`, `quoteAgeSeconds`, `BiquoteLatestResponseSchema` (record & array), `BiquoteCalendarEventSchema` (`actual: null`), and `BiquoteNewsArticleSchema`.                                                                                                                                                                                |
-| `packages/data`   | `packages/data/src/providers/biquote/rest.ts`                                 | Modify | Raise `THROTTLE.limit` from `50` to `1500` req/min; update `call()` to support repeated query params (`string \| readonly string[]`); fix `fetchLatest()` to pass repeated `symbols` and normalize `BiquoteLatestResponseSchema`; add `from`/`to` to `FetchOhlcArgs` and `fetchOhlc()`; add `fetchCalendar()`, `fetchCalendarUpcoming()`, and `fetchMarketNews()`. |
-| `packages/data`   | `packages/data/src/providers/biquote/index.ts`                                | Modify | Export `fetchCalendar`, `fetchCalendarUpcoming`, `fetchMarketNews`, and their argument types.                                                                                                                                                                                                                                                                      |
-| `packages/data`   | `packages/data/src/providers/provider-registry.ts`                            | Modify | Extend `ProviderFetchOptions` with `from?: string`, `to?: string`, `includeOpenBar?: boolean`; extend `MarketDataProvider.fetchPrice` return type with `marketState?: 'open' \| 'closed'`, `quoteAgeSeconds?: number \| null`, `dayDiffPercent?: number \| null`; add optional `fetchPrices?(symbols, opts)` batch method.                                         |
-| `packages/data`   | `packages/data/src/providers/provider-adapters.ts`                            | Modify | Gate `liveTicksProvider.supports()` behind `WORKER_ENABLE_TICK_STREAM=1`; wire `biquoteProvider.fetchPrices()` (batch `/api/latest`) and pass `from`/`to` into `biquote.fetchOhlc()`; forward `marketState`, `quoteAgeSeconds`, `dayDiffPercent` from `biquote.fetchTick()`.                                                                                       |
-| `packages/data`   | `packages/data/src/adapters/price.ts`                                         | Modify | Preserve `marketState`, `quoteAgeSeconds`, `dayDiffPercent` on `Tick` and `PriceResult`; add `getPricesWithMeta(symbols, opts)` and `getPrices(symbols, opts)` that check per-symbol cache first, batch cache-missed FX/Gold symbols into a single `biquote.fetchLatest()` call, populate per-symbol caches, and fall back to per-symbol `getPriceWithMeta()`.     |
-| `packages/data`   | `packages/data/src/adapters/candles.ts`                                       | Modify | Add `from?: string`, `to?: string`, `includeOpenBar?: boolean` to `GetCandlesOptions`; include `from`/`to` in cache key `extra` (`n${count}:f${from}:t${to}`) and use `candleTtl(tf, !opts.to)` so historical windows cache for 10m; forward `from`/`to` to `p.fetchCandles()`.                                                                                    |
-| `packages/data`   | `packages/data/src/adapters/calendar.ts`                                      | Modify | Wire BiQuote (`biquote.fetchCalendar` / `biquote.fetchCalendarUpcoming`) as zero-key primary calendar provider across `US,EU,GB,JP,CA,AU,NZ,CH`, mapping `revisedPrevious ?? previous`, unit/multiplier formatting, and `actual: null` preservation, with optional FRED release-date merge when `FRED_API_KEY` is set.                                             |
-| `packages/data`   | `packages/data/src/adapters/news.ts`                                          | Modify | Wire `biquote.fetchMarketNews()` as an automatic zero-key provider in `fetchNews()` (after Finnhub and Marketaux when keys are set, or primary when neither key is configured), reusing `articleIdFromUrl()` and `extractSymbolsFromText()`.                                                                                                                       |
-| `packages/data`   | `packages/data/src/index.ts`                                                  | Modify | Re-export `getPrices`, `getPricesWithMeta` from `./adapters/price`.                                                                                                                                                                                                                                                                                                |
-| `packages/data`   | `packages/data/test/biquote-rest.test.ts`                                     | Modify | Update `fetchLatest` test for repeated `symbols=XAUUSD&symbols=EURUSD` + object/array response shapes; add `fetchOhlc` `from`/`to` tests; update throttle test to `1500` req/min; add `fetchCalendar` and `fetchMarketNews` tests.                                                                                                                                 |
-| `packages/data`   | `packages/data/test/price-adapter.test.ts`                                    | Modify | Add tests for `getPricesWithMeta()` batching (1 HTTP call for multiple FX/Gold symbols + cache population + mixed crypto routing) and `marketState: 'closed'` preservation.                                                                                                                                                                                        |
-| `packages/data`   | `packages/data/test/calendar-adapter.test.ts`                                 | Modify | Add tests verifying zero-key BiQuote calendar retrieval, `actual: null` vs numeric preservation, `revisedPrevious` precedence, and FRED fallback/merge.                                                                                                                                                                                                            |
-| `packages/data`   | `packages/data/test/news-adapter.test.ts`                                     | Modify | Add tests verifying zero-key BiQuote news retrieval when `FINNHUB_API_KEY` and `MARKETAUX_API_KEY` are unset or fail.                                                                                                                                                                                                                                              |
-| `packages/ai`     | `packages/ai/src/calendar-persistence.ts`                                     | Modify | Fix `upsertEvents()` `ON CONFLICT DO UPDATE` clause to use `sql\`COALESCE(excluded.actual, ${schema.economicEvents.actual})\``(and same for`forecast`, `previous`, `unit`, `actualsFilledAt`) instead of referencing the old table columns.                                                                                                                        |
-| `packages/ai`     | `packages/ai/src/context.ts`                                                  | Modify | Replace $N$ parallel `getPrice()` calls in `buildLiveSnapshot()` with `getPrices(activeSymbols)` batch call.                                                                                                                                                                                                                                                       |
-| `packages/ai`     | `packages/ai/src/bot/commands/price.ts`                                       | Modify | Replace direct `schema.liveTicks` DB query with `getPriceWithMeta(symbol)` from `@kestrel/data` so `/price` works in 100% on-demand mode and displays market-closed status.                                                                                                                                                                                        |
-| `packages/ai`     | `packages/ai/src/mastra-v2/packets/evidence-builders.ts`                      | Modify | In `buildPriceEvidence()`, treat `tick.marketState === 'closed'` as an expected market-closed state (info note rather than a degraded stale error warning).                                                                                                                                                                                                        |
-| `packages/ai`     | `packages/ai/src/mastra-v2/packets/symbol-research.ts`                        | Modify | In `collectSymbolResearchPacket()`, avoid marking `price.freshness` as `'stale'` / `'degraded'` when `result.tick.marketState === 'closed'` and `!result.stale`.                                                                                                                                                                                                   |
-| `apps/worker`     | `apps/worker/src/env.ts`                                                      | Modify | Add `WORKER_ENABLE_TICK_STREAM` (default `'0'`); remove mandatory production throw for `BIQUOTE_PROXY_TOKEN` unless `WORKER_ENABLE_TICK_STREAM === '1'` (keeping `BIQUOTE_PROXY_TOKEN: optionalNonEmpty` in schema for `check-env-contract.mjs`).                                                                                                                  |
-| `apps/worker`     | `apps/worker/src/index.ts`                                                    | Modify | Gate `SignalRConsumer`, `BinanceStreamConsumer`, `SymbolManager`, `TickBuffer`, and `Candle1mAggregator` behind `WORKER_ENABLE_TICK_STREAM=1`; only bind `:8082` `proxyServer` when `BIQUOTE_PROXY_TOKEN` is set; call `notifyReady()` immediately in on-demand mode.                                                                                              |
-| `apps/worker`     | `apps/worker/src/http-server.ts`                                              | Modify | Add `isTickStreamEnabled?: () => boolean` to `HealthServerDeps`; when `false` (default on-demand mode), `/health` and `/health/ready` return `200 OK` (`ready: true, tickStreamEnabled: false`) without requiring `lastTickAt`.                                                                                                                                    |
-| `apps/worker`     | `apps/worker/src/jobs/snapshots.ts`                                           | Modify | Keep 18-symbol `getCandles(symbol, '1h', { count: 240 })` on-demand computation; guard `candles_1m` tail-prune so it only runs when `WORKER_ENABLE_TICK_STREAM=1` (or logs `candles_1m_prune=skipped(on-demand)`).                                                                                                                                                 |
-| `apps/worker`     | `apps/worker/src/jobs/metrics-flush.ts`                                       | Modify | When `WORKER_ENABLE_TICK_STREAM` is disabled, skip querying `live_ticks` so stale legacy rows never emit false `worker_tick_freshness_ms` spikes; return `note: 'mode=on-demand'`.                                                                                                                                                                                 |
-| `apps/worker`     | `apps/worker/src/jobs/fred-actuals.ts`                                        | Modify | Before/alongside FRED observation backfill, refresh recent `biquote` calendar events via `fetchUpcomingEvents({ fromMs: now - 7d, toMs: now + 14d })` + `upsertEvents()` so MT5 actuals land even when `FRED_API_KEY` is unset.                                                                                                                                    |
-| `apps/worker`     | `apps/worker/test/env.test.ts`                                                | Modify | Update production token test to assert `BIQUOTE_PROXY_TOKEN` is optional by default and only required when `WORKER_ENABLE_TICK_STREAM=1`; test `WORKER_ENABLE_TICK_STREAM` default `'0'`.                                                                                                                                                                          |
-| `apps/worker`     | `apps/worker/test/http-server.test.ts`                                        | Modify | Add test verifying `/health/ready` returns `200 OK` with `tickStreamEnabled: false` when `getLastTickAt() === 0`.                                                                                                                                                                                                                                                  |
-| `apps/web`        | `apps/web/src/lib/services/api-boundary.ts`                                   | Modify | Re-export `getPrices`, `getPricesWithMeta` from `@kestrel/data`.                                                                                                                                                                                                                                                                                                   |
-| `apps/web`        | `apps/web/src/lib/services/market.ts`                                         | Modify | Update `getPriceService()` to call `getPricesWithMeta(symbols, ...)` instead of `Promise.all(symbols.map(getPriceWithMeta))`.                                                                                                                                                                                                                                      |
-| `apps/web`        | `apps/web/src/app/api/market/stream/route.ts`                                 | Modify | Update `generatePrices()` SSE loop to call `getPricesWithMeta(symbols, { apiKeys: keys })` (1 batched HTTP request per 3s tick instead of $N$).                                                                                                                                                                                                                    |
-| `apps/web`        | `apps/web/src/app/api/cron/warm-cache/route.ts`                               | Modify | Update price warming to call `getPricesWithMeta([...SYMBOLS])` in 1 batch call and update stale comment about 10 req/min throttle.                                                                                                                                                                                                                                 |
-| `apps/web`        | `apps/web/src/lib/services/journal.ts`                                        | Modify | Update `getTradeSetupReplayService()` to compute `from` (50 bars before `entry.openedAt`, weekend-adjusted) and `to` (20 bars after `entry.closedAt ?? Date.now()`, capped at `1000` bars), pass `{ count, from, to }` to `getCandles()`, and fall back gracefully to latest bars with `replayWindowFallback: true` if BiQuote returns empty for a very old trade. |
-| `apps/web`        | `apps/web/src/lib/services/alerts.ts`                                         | Modify | Update `fetchCandles()` in `previewAlertRuleService()` to fetch historical candles via `getCandles()` from `@kestrel/data` when `candles_1m` is empty.                                                                                                                                                                                                             |
-| `apps/web`        | `apps/web/src/lib/services/admin-health.ts`                                   | Modify | When `WORKER_ENABLE_TICK_STREAM` is not enabled (`'0'`), report `worker_ticks` SLI as healthy on-demand mode (`current: 1`, `informational: true`) without pushing false `'No live tick data'` or `'Tick data is stale'` anomalies.                                                                                                                                |
-| `apps/web`        | `apps/web/src/components/layout/ticker-tape.tsx`                              | Modify | When `tick.marketState === 'closed'`, render a muted `CLOSED` pill instead of a directional `▲/▼` change badge.                                                                                                                                                                                                                                                    |
-| `apps/web`        | `apps/web/src/app/(app)/dashboard/_components/widgets/watchlist-widget.tsx`   | Modify | When `tick.marketState === 'closed'`, show a `Market Closed` badge/label on the row and suppress live bull/bear flash animations.                                                                                                                                                                                                                                  |
-| `apps/web`        | `apps/web/src/app/(app)/settings/api-keys/_components/market-data-config.tsx` | Modify | Update BiQuote description from `"10 req/min throttle limit"` to `"15,000 req/min anonymous REST quota, batch quotes, OHLC, calendar & news"`.                                                                                                                                                                                                                     |
-| `apps/web`        | `apps/web/test/admin/admin-health.test.ts`                                    | Modify | Test both default on-demand mode (`WORKER_ENABLE_TICK_STREAM=0` -> no false tick anomalies) and opt-in streaming mode (`WORKER_ENABLE_TICK_STREAM=1`).                                                                                                                                                                                                             |
+| Package / App | File Path | Action | Responsibility / Change Summary |
+| :--- | :--- | :--- | :--- |
+| `packages/shared` | `packages/shared/src/schemas/biquote.ts` | Modify | Add `BiquoteMarketStateSchema` (`'open' \| 'closed'`), `marketState`, `stale`, `quoteAgeSeconds`, `lastQuoteAt` to `BiquoteTickSchema`; add `BiquoteLatestResponseSchema`, `BiquoteCalendarEventSchema`, `BiquoteNewsArticleSchema`. |
+| `packages/shared` | `packages/shared/src/schemas/tick.ts` | Modify | Add optional `marketState?: 'open' \| 'closed'`, `quoteAgeSeconds?: number \| null`, `dayDiffPercent?: number \| null` to `TickSchema` so UI and AI consumers receive market-closure state. |
+| `packages/shared` | `packages/shared/src/schemas/calendar.ts` | Modify | Widen `KnownCountrySchema` (`EU`, `GB`, `JP`, `CA`, `AU`, `NZ`, `CH`) and `EventCurrencySchema` to accept all 8 G8 catalog currencies (`USD`, `EUR`, `GBP`, `JPY`, `AUD`, `CAD`, `NZD`, `CHF`) plus string fallback. |
+| `packages/shared` | `packages/shared/src/index.ts` | Modify | Re-export `BiquoteMarketStateSchema`, `BiquoteLatestResponseSchema`, `BiquoteCalendarEventSchema`, `BiquoteNewsArticleSchema`, and their inferred types. |
+| `packages/shared` | `packages/shared/test/biquote.test.ts` | Modify | Add unit tests for `marketState`, `quoteAgeSeconds`, `BiquoteLatestResponseSchema` (record & array), `BiquoteCalendarEventSchema` (`actual: null`), and `BiquoteNewsArticleSchema`. |
+| `packages/data` | `packages/data/src/providers/biquote/rest.ts` | Modify | Raise `THROTTLE.limit` from `50` to `1500` req/min; update `call()` to support repeated query params (`string \| readonly string[]`); fix `fetchLatest()` to pass repeated `symbols` and normalize `BiquoteLatestResponseSchema`; add `from`/`to` to `FetchOhlcArgs` and `fetchOhlc()`; add `fetchCalendar()`, `fetchCalendarUpcoming()`, and `fetchMarketNews()`. |
+| `packages/data` | `packages/data/src/providers/biquote/index.ts` | Modify | Export `fetchCalendar`, `fetchCalendarUpcoming`, `fetchMarketNews`, and their argument types. |
+| `packages/data` | `packages/data/src/providers/provider-registry.ts` | Modify | Extend `ProviderFetchOptions` with `from?: string`, `to?: string`, `includeOpenBar?: boolean`; extend `MarketDataProvider.fetchPrice` return type with `marketState?: 'open' \| 'closed'`, `quoteAgeSeconds?: number \| null`, `dayDiffPercent?: number \| null`; add optional `fetchPrices?(symbols, opts)` batch method. |
+| `packages/data` | `packages/data/src/providers/provider-adapters.ts` | Modify | Gate `liveTicksProvider.supports()` behind `WORKER_ENABLE_TICK_STREAM=1`; wire `biquoteProvider.fetchPrices()` (batch `/api/latest`) and pass `from`/`to` into `biquote.fetchOhlc()`; forward `marketState`, `quoteAgeSeconds`, `dayDiffPercent` from `biquote.fetchTick()`. |
+| `packages/data` | `packages/data/src/adapters/price.ts` | Modify | Preserve `marketState`, `quoteAgeSeconds`, `dayDiffPercent` on `Tick` and `PriceResult`; add `getPricesWithMeta(symbols, opts)` and `getPrices(symbols, opts)` that check per-symbol cache first, batch cache-missed FX/Gold symbols into a single `biquote.fetchLatest()` call, populate per-symbol caches, and fall back to per-symbol `getPriceWithMeta()`. |
+| `packages/data` | `packages/data/src/adapters/candles.ts` | Modify | Add `from?: string`, `to?: string`, `includeOpenBar?: boolean` to `GetCandlesOptions`; include `from`/`to` in cache key `extra` (`n${count}:f${from}:t${to}`) and use `candleTtl(tf, !opts.to)` so historical windows cache for 10m; forward `from`/`to` to `p.fetchCandles()`. |
+| `packages/data` | `packages/data/src/adapters/calendar.ts` | Modify | Wire BiQuote (`biquote.fetchCalendar` / `biquote.fetchCalendarUpcoming`) as zero-key primary calendar provider across `US,EU,GB,JP,CA,AU,NZ,CH`, mapping `revisedPrevious ?? previous`, unit/multiplier formatting, and `actual: null` preservation, with optional FRED release-date merge when `FRED_API_KEY` is set. |
+| `packages/data` | `packages/data/src/adapters/news.ts` | Modify | Wire `biquote.fetchMarketNews()` as an automatic zero-key provider in `fetchNews()` (after Finnhub and Marketaux when keys are set, or primary when neither key is configured), reusing `articleIdFromUrl()` and `extractSymbolsFromText()`. |
+| `packages/data` | `packages/data/src/index.ts` | Modify | Re-export `getPrices`, `getPricesWithMeta` from `./adapters/price`. |
+| `packages/data` | `packages/data/test/biquote-rest.test.ts` | Modify | Update `fetchLatest` test for repeated `symbols=XAUUSD&symbols=EURUSD` + object/array response shapes; add `fetchOhlc` `from`/`to` tests; update throttle test to `1500` req/min; add `fetchCalendar` and `fetchMarketNews` tests. |
+| `packages/data` | `packages/data/test/price-adapter.test.ts` | Modify | Add tests for `getPricesWithMeta()` batching (1 HTTP call for multiple FX/Gold symbols + cache population + mixed crypto routing) and `marketState: 'closed'` preservation. |
+| `packages/data` | `packages/data/test/calendar-adapter.test.ts` | Modify | Add tests verifying zero-key BiQuote calendar retrieval, `actual: null` vs numeric preservation, `revisedPrevious` precedence, and FRED fallback/merge. |
+| `packages/data` | `packages/data/test/news-adapter.test.ts` | Modify | Add tests verifying zero-key BiQuote news retrieval when `FINNHUB_API_KEY` and `MARKETAUX_API_KEY` are unset or fail. |
+| `packages/ai` | `packages/ai/src/calendar-persistence.ts` | Modify | Fix `upsertEvents()` `ON CONFLICT DO UPDATE` clause to use `sql\`COALESCE(excluded.actual, ${schema.economicEvents.actual})\`` (and same for `forecast`, `previous`, `unit`, `actualsFilledAt`) instead of referencing the old table columns. |
+| `packages/ai` | `packages/ai/src/context.ts` | Modify | Replace $N$ parallel `getPrice()` calls in `buildLiveSnapshot()` with `getPrices(activeSymbols)` batch call. |
+| `packages/ai` | `packages/ai/src/bot/commands/price.ts` | Modify | Replace direct `schema.liveTicks` DB query with `getPriceWithMeta(symbol)` from `@kestrel/data` so `/price` works in 100% on-demand mode and displays market-closed status. |
+| `packages/ai` | `packages/ai/src/mastra-v2/packets/evidence-builders.ts` | Modify | In `buildPriceEvidence()`, treat `tick.marketState === 'closed'` as an expected market-closed state (info note rather than a degraded stale error warning). |
+| `packages/ai` | `packages/ai/src/mastra-v2/packets/symbol-research.ts` | Modify | In `collectSymbolResearchPacket()`, avoid marking `price.freshness` as `'stale'` / `'degraded'` when `result.tick.marketState === 'closed'` and `!result.stale`. |
+| `apps/worker` | `apps/worker/src/env.ts` | Modify | Add `WORKER_ENABLE_TICK_STREAM` (default `'0'`); remove mandatory production throw for `BIQUOTE_PROXY_TOKEN` unless `WORKER_ENABLE_TICK_STREAM === '1'` (keeping `BIQUOTE_PROXY_TOKEN: optionalNonEmpty` in schema for `check-env-contract.mjs`). |
+| `apps/worker` | `apps/worker/src/index.ts` | Modify | Gate `SignalRConsumer`, `BinanceStreamConsumer`, `SymbolManager`, `TickBuffer`, and `Candle1mAggregator` behind `WORKER_ENABLE_TICK_STREAM=1`; only bind `:8082` `proxyServer` when `BIQUOTE_PROXY_TOKEN` is set; call `notifyReady()` immediately in on-demand mode. |
+| `apps/worker` | `apps/worker/src/http-server.ts` | Modify | Add `isTickStreamEnabled?: () => boolean` to `HealthServerDeps`; when `false` (default on-demand mode), `/health` and `/health/ready` return `200 OK` (`ready: true, tickStreamEnabled: false`) without requiring `lastTickAt`. |
+| `apps/worker` | `apps/worker/src/jobs/snapshots.ts` | Modify | Keep 18-symbol `getCandles(symbol, '1h', { count: 240 })` on-demand computation; guard `candles_1m` tail-prune so it only runs when `WORKER_ENABLE_TICK_STREAM=1` (or logs `candles_1m_prune=skipped(on-demand)`). |
+| `apps/worker` | `apps/worker/src/jobs/metrics-flush.ts` | Modify | When `WORKER_ENABLE_TICK_STREAM` is disabled, skip querying `live_ticks` so stale legacy rows never emit false `worker_tick_freshness_ms` spikes; return `note: 'mode=on-demand'`. |
+| `apps/worker` | `apps/worker/src/jobs/fred-actuals.ts` | Modify | Before/alongside FRED observation backfill, refresh recent `biquote` calendar events via `fetchUpcomingEvents({ fromMs: now - 7d, toMs: now + 14d })` + `upsertEvents()` so MT5 actuals land even when `FRED_API_KEY` is unset. |
+| `apps/worker` | `apps/worker/test/env.test.ts` | Modify | Update production token test to assert `BIQUOTE_PROXY_TOKEN` is optional by default and only required when `WORKER_ENABLE_TICK_STREAM=1`; test `WORKER_ENABLE_TICK_STREAM` default `'0'`. |
+| `apps/worker` | `apps/worker/test/http-server.test.ts` | Modify | Add test verifying `/health/ready` returns `200 OK` with `tickStreamEnabled: false` when `getLastTickAt() === 0`. |
+| `apps/web` | `apps/web/src/lib/services/api-boundary.ts` | Modify | Re-export `getPrices`, `getPricesWithMeta` from `@kestrel/data`. |
+| `apps/web` | `apps/web/src/lib/services/market.ts` | Modify | Update `getPriceService()` to call `getPricesWithMeta(symbols, ...)` instead of `Promise.all(symbols.map(getPriceWithMeta))`. |
+| `apps/web` | `apps/web/src/app/api/market/stream/route.ts` | Modify | Update `generatePrices()` SSE loop to call `getPricesWithMeta(symbols, { apiKeys: keys })` (1 batched HTTP request per 3s tick instead of $N$). |
+| `apps/web` | `apps/web/src/app/api/cron/warm-cache/route.ts` | Modify | Update price warming to call `getPricesWithMeta([...SYMBOLS])` in 1 batch call and update stale comment about 10 req/min throttle. |
+| `apps/web` | `apps/web/src/lib/services/journal.ts` | Modify | Update `getTradeSetupReplayService()` to compute `from` (50 bars before `entry.openedAt`, weekend-adjusted) and `to` (20 bars after `entry.closedAt ?? Date.now()`, capped at `1000` bars), pass `{ count, from, to }` to `getCandles()`, and fall back gracefully to latest bars with `replayWindowFallback: true` if BiQuote returns empty for a very old trade. |
+| `apps/web` | `apps/web/src/lib/services/alerts.ts` | Modify | Update `fetchCandles()` in `previewAlertRuleService()` to fetch historical candles via `getCandles()` from `@kestrel/data` when `candles_1m` is empty. |
+| `apps/web` | `apps/web/src/lib/services/admin-health.ts` | Modify | When `WORKER_ENABLE_TICK_STREAM` is not enabled (`'0'`), report `worker_ticks` SLI as healthy on-demand mode (`current: 1`, `informational: true`) without pushing false `'No live tick data'` or `'Tick data is stale'` anomalies. |
+| `apps/web` | `apps/web/src/components/layout/ticker-tape.tsx` | Modify | When `tick.marketState === 'closed'`, render a muted `CLOSED` pill instead of a directional `▲/▼` change badge. |
+| `apps/web` | `apps/web/src/app/(app)/dashboard/_components/widgets/watchlist-widget.tsx` | Modify | When `tick.marketState === 'closed'`, show a `Market Closed` badge/label on the row and suppress live bull/bear flash animations. |
+| `apps/web` | `apps/web/src/app/(app)/settings/api-keys/_components/market-data-config.tsx` | Modify | Update BiQuote description from `"10 req/min throttle limit"` to `"15,000 req/min anonymous REST quota, batch quotes, OHLC, calendar & news"`. |
+| `apps/web` | `apps/web/test/admin/admin-health.test.ts` | Modify | Test both default on-demand mode (`WORKER_ENABLE_TICK_STREAM=0` -> no false tick anomalies) and opt-in streaming mode (`WORKER_ENABLE_TICK_STREAM=1`). |
 
 ---
 
@@ -283,7 +277,6 @@ All endpoints below were verified against the live [BiQuote API Reference (https
 #### Task 1.1: Expand BiQuote, Tick, and Calendar Schemas in `@kestrel/shared`
 
 **Files:**
-
 - Modify: `packages/shared/src/schemas/biquote.ts`
 - Modify: `packages/shared/src/schemas/tick.ts`
 - Modify: `packages/shared/src/schemas/calendar.ts`
@@ -291,7 +284,6 @@ All endpoints below were verified against the live [BiQuote API Reference (https
 - Test: `packages/shared/test/biquote.test.ts`
 
 **Interfaces:**
-
 - Produces:
   - `BiquoteMarketStateSchema = z.enum(['open', 'closed'])` (`export type BiquoteMarketState`)
   - Extended `BiquoteTickSchema` with `marketState`, `stale`, `quoteAgeSeconds`, `lastQuoteAt`
@@ -433,7 +425,6 @@ Expected: FAIL with missing exports `BiquoteLatestResponseSchema`, `BiquoteCalen
 - [x] **Step 3: Implement schema updates in `packages/shared/src/schemas/biquote.ts`, `tick.ts`, `calendar.ts`, and `index.ts`**
 
 In `packages/shared/src/schemas/biquote.ts`:
-
 ```ts
 export const BiquoteMarketStateSchema = z.enum(['open', 'closed']);
 export type BiquoteMarketState = z.infer<typeof BiquoteMarketStateSchema>;
@@ -506,10 +497,8 @@ export type BiquoteNewsArticle = z.infer<typeof BiquoteNewsArticleSchema>;
 ```
 
 In `packages/shared/src/schemas/tick.ts`:
-
 ```ts
 import { z } from 'zod';
-
 import { SymbolSchema } from '../symbols';
 import { BiquoteMarketStateSchema } from './biquote';
 
@@ -533,7 +522,6 @@ export type Tick = z.infer<typeof TickSchema>;
 ```
 
 In `packages/shared/src/schemas/calendar.ts`:
-
 ```ts
 export const KnownCountrySchema = z.enum([
   'US',
@@ -583,13 +571,11 @@ git commit -m "feat(shared): add BiQuote marketState, batch latest, calendar, an
 #### Task 1.2: Fix `fetchLatest()` Repeated Params, Raise Self-Throttle to 1,500/min, Add `from`/`to` OHLC & Calendar/News REST Methods
 
 **Files:**
-
 - Modify: `packages/data/src/providers/biquote/rest.ts`
 - Modify: `packages/data/src/providers/biquote/index.ts`
 - Test: `packages/data/test/biquote-rest.test.ts`
 
 **Interfaces:**
-
 - Consumes: `BiquoteLatestResponseSchema`, `BiquoteCalendarEventSchema`, `BiquoteNewsArticleSchema` from `@kestrel/shared`
 - Produces:
   - `THROTTLE: ThrottleConfig = { limit: 1500, windowMs: 60_000 }` (10% of BiQuote's 15,000 req/min IP limit, leaving 90% headroom while eliminating false self-throttling)
@@ -602,44 +588,44 @@ git commit -m "feat(shared): add BiQuote marketState, batch latest, calendar, an
 - [x] **Step 1: Write the failing tests in `packages/data/test/biquote-rest.test.ts`**
 
 ```ts
-it('repeats the symbols query parameter (?symbols=XAUUSD&symbols=EURUSD) and parses both object and array responses', async () => {
-  const fetchSpy = vi.fn().mockResolvedValue(
-    jsonResponse({
-      XAUUSD: VALID_TICK,
-      EURUSD: { ...VALID_TICK, symbol: 'EURUSD', mid: 1.085 },
-    }),
-  );
-  globalThis.fetch = fetchSpy as unknown as typeof fetch;
+  it('repeats the symbols query parameter (?symbols=XAUUSD&symbols=EURUSD) and parses both object and array responses', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(
+      jsonResponse({
+        XAUUSD: VALID_TICK,
+        EURUSD: { ...VALID_TICK, symbol: 'EURUSD', mid: 1.085 },
+      }),
+    );
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
 
-  const ticks = await fetchLatest(['XAUUSD', 'EURUSD']);
-  expect(ticks).toHaveLength(2);
-  expect(ticks.map((t) => t.symbol)).toEqual(['XAUUSD', 'EURUSD']);
+    const ticks = await fetchLatest(['XAUUSD', 'EURUSD']);
+    expect(ticks).toHaveLength(2);
+    expect(ticks.map((t) => t.symbol)).toEqual(['XAUUSD', 'EURUSD']);
 
-  const url = String(fetchSpy.mock.calls[0]?.[0]);
-  expect(url).toBe('https://biquote.io/api/latest?symbols=XAUUSD&symbols=EURUSD');
-  expect(url).not.toContain('%2C');
-});
-
-it('passes optional from and to ISO-8601 query params on fetchOhlc', async () => {
-  const fetchSpy = vi
-    .fn()
-    .mockResolvedValue(jsonResponse(ohlcEnvelope([bar('2026-05-20T12:00:00Z')])));
-  globalThis.fetch = fetchSpy as unknown as typeof fetch;
-
-  await fetchOhlc({
-    symbol: 'XAUUSD',
-    tf: '15m',
-    count: 200,
-    from: '2026-05-20T00:00:00.000Z',
-    to: '2026-05-21T00:00:00.000Z',
+    const url = String(fetchSpy.mock.calls[0]?.[0]);
+    expect(url).toBe('https://biquote.io/api/latest?symbols=XAUUSD&symbols=EURUSD');
+    expect(url).not.toContain('%2C');
   });
 
-  const url = new URL(String(fetchSpy.mock.calls[0]?.[0]));
-  expect(url.searchParams.get('interval')).toBe('15m');
-  expect(url.searchParams.get('limit')).toBe('200');
-  expect(url.searchParams.get('from')).toBe('2026-05-20T00:00:00.000Z');
-  expect(url.searchParams.get('to')).toBe('2026-05-21T00:00:00.000Z');
-});
+  it('passes optional from and to ISO-8601 query params on fetchOhlc', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(ohlcEnvelope([bar('2026-05-20T12:00:00Z')])));
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+    await fetchOhlc({
+      symbol: 'XAUUSD',
+      tf: '15m',
+      count: 200,
+      from: '2026-05-20T00:00:00.000Z',
+      to: '2026-05-21T00:00:00.000Z',
+    });
+
+    const url = new URL(String(fetchSpy.mock.calls[0]?.[0]));
+    expect(url.searchParams.get('interval')).toBe('15m');
+    expect(url.searchParams.get('limit')).toBe('200');
+    expect(url.searchParams.get('from')).toBe('2026-05-20T00:00:00.000Z');
+    expect(url.searchParams.get('to')).toBe('2026-05-21T00:00:00.000Z');
+  });
 ```
 
 - [x] **Step 2: Run test to verify it fails**
@@ -650,7 +636,6 @@ Expected: FAIL (`symbols=XAUUSD%2CEURUSD` instead of repeated params, `from`/`to
 - [x] **Step 3: Implement `call()` query array handling, `fetchLatest()`, `fetchOhlc()` `from`/`to`, `fetchCalendar()`, `fetchCalendarUpcoming()`, and `fetchMarketNews()` in `packages/data/src/providers/biquote/rest.ts`**
 
 Key implementation details in `packages/data/src/providers/biquote/rest.ts`:
-
 ```ts
 export const BIQUOTE_THROTTLE_LIMIT = 1500;
 const THROTTLE: ThrottleConfig = { limit: BIQUOTE_THROTTLE_LIMIT, windowMs: 60_000 };
@@ -663,21 +648,19 @@ const ErrorEnvelopeSchema = z.object({
 type QueryParams = Record<string, string | readonly string[] | undefined> | null;
 
 // Inside call():
-const url = new URL(path, resolveBaseUrl(opts));
-if (query) {
-  for (const [k, v] of Object.entries(query)) {
-    if (v === undefined) continue;
-    if (Array.isArray(v)) {
-      for (const item of v) url.searchParams.append(k, item);
-    } else {
-      url.searchParams.set(k, v as string);
+  const url = new URL(path, resolveBaseUrl(opts));
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v === undefined) continue;
+      if (Array.isArray(v)) {
+        for (const item of v) url.searchParams.append(k, item);
+      } else {
+        url.searchParams.set(k, v as string);
+      }
     }
   }
-}
 ```
-
 And for `fetchLatest()`, `fetchOhlc()`, `fetchCalendar()`, `fetchCalendarUpcoming()`, `fetchMarketNews()`:
-
 ```ts
 const MAX_LATEST_BATCH = 100;
 
@@ -708,23 +691,21 @@ export interface FetchOhlcArgs extends CallOptions {
 }
 
 // Inside fetchOhlc():
-const limit = Math.max(1, Math.min(args.count, 1000));
-const path = `/api/${toBiquoteSymbol(validated)}/ohlc`;
-const env = await call(
-  path,
-  {
-    interval: tf,
-    limit: String(limit),
-    ...(args.from ? { from: args.from } : {}),
-    ...(args.to ? { to: args.to } : {}),
-  },
-  OhlcEnvelopeSchema,
-  args,
-);
+  const limit = Math.max(1, Math.min(args.count, 1000));
+  const path = `/api/${toBiquoteSymbol(validated)}/ohlc`;
+  const env = await call(
+    path,
+    {
+      interval: tf,
+      limit: String(limit),
+      ...(args.from ? { from: args.from } : {}),
+      ...(args.to ? { to: args.to } : {}),
+    },
+    OhlcEnvelopeSchema,
+    args,
+  );
 ```
-
 And add `fetchCalendar`, `fetchCalendarUpcoming`, and `fetchMarketNews`:
-
 ```ts
 const CalendarArraySchema = z.array(BiquoteCalendarEventSchema);
 const NewsArraySchema = z.array(BiquoteNewsArticleSchema);
@@ -823,7 +804,6 @@ git commit -m "feat(data): fix biquote fetchLatest repeated params, add OHLC fro
 #### Task 2.1: Gate `liveTicksProvider` Behind `WORKER_ENABLE_TICK_STREAM=1` & Add Batch `getPricesWithMeta()`
 
 **Files:**
-
 - Modify: `packages/data/src/providers/provider-registry.ts`
 - Modify: `packages/data/src/providers/provider-adapters.ts`
 - Modify: `packages/data/src/adapters/price.ts`
@@ -832,14 +812,14 @@ git commit -m "feat(data): fix biquote fetchLatest repeated params, add OHLC fro
 - Test: `packages/data/test/price-adapter.test.ts`
 
 **Interfaces:**
-
 - Produces:
   - `getPricesWithMeta(symbolsInput: readonly Symbol[], opts?: GetPriceOptions): Promise<PriceResult[]>`
   - `getPrices(symbolsInput: readonly Symbol[], opts?: GetPriceOptions): Promise<Tick[]>`
   - `GetCandlesOptions` with `from?: string`, `to?: string`, `includeOpenBar?: boolean`
   - Cache key rule for candles in `packages/data/src/adapters/candles.ts`:
     ```ts
-    const rangeSuffix = opts.from || opts.to ? `:f${opts.from ?? ''}:t${opts.to ?? ''}` : '';
+    const rangeSuffix =
+      opts.from || opts.to ? `:f${opts.from ?? ''}:t${opts.to ?? ''}` : '';
     const key = cacheKey({
       resource: 'candles',
       symbol,
@@ -912,7 +892,6 @@ Expected: FAIL (`getPricesWithMeta is not a function`).
 - [x] **Step 3: Implement `getPricesWithMeta()`, `biquoteProvider.fetchPrices()`, `liveTicksProvider` gating, and `candles.ts` `from`/`to` cache key isolation**
 
 In `packages/data/src/providers/provider-adapters.ts`:
-
 ```ts
 function isTickStreamEnabled(): boolean {
   return (
@@ -947,11 +926,9 @@ const liveTicksProvider: MarketDataProvider = {
   // ...
 };
 ```
-
 Note on `price-adapter.test.ts` compatibility: For existing unit tests in `price-adapter.test.ts` that specifically test `getPrice — live_ticks pseudo-provider (Phase 8 PR-8)`, set `process.env.WORKER_ENABLE_TICK_STREAM = '1'` inside that `describe` block (or allow `liveTicksProvider.supports()` to check `process.env.WORKER_ENABLE_TICK_STREAM !== '0'` only when explicitly mocked, or set `vi.stubEnv('WORKER_ENABLE_TICK_STREAM', '1')` in that `describe` block). Setting `vi.stubEnv('WORKER_ENABLE_TICK_STREAM', '1')` in `describe('getPrice — live_ticks pseudo-provider')` explicitly tests the opt-in legacy flag while verifying that default mode skips `live_ticks`!
 
 And in `packages/data/src/providers/provider-adapters.ts` on `biquoteProvider`:
-
 ```ts
   async fetchPrice(symbol: Symbol, opts?: ProviderFetchOptions) {
     const baseUrl = opts?.baseUrl ?? process.env.BIQUOTE_BASE_URL ?? 'https://biquote.io';
@@ -1029,7 +1006,6 @@ And in `packages/data/src/providers/provider-adapters.ts` on `biquoteProvider`:
 ```
 
 And in `packages/data/src/adapters/price.ts`, implement `getPricesWithMeta(symbolsInput, opts)`:
-
 1. Normalize and validate all symbols via `SymbolSchema.parse()`.
 2. Partition symbols that support `biquote` (when `!isTickStreamEnabled()` and `opts.marketDataProvider !== 'finnhub'`).
 3. When ≥2 FX/Gold symbols are requested, call `biquote.fetchLatest(biquoteSymbols)` for any symbols not already warm in cache (or populate the cache via `cache.set(cacheKey({ resource: 'price', symbol }), { tick, ageMs }, { ttlSeconds: ttl, maxStaleSeconds: swr, tags })`), and fall back to per-symbol `getPriceWithMeta(s, opts)` for any missing/crypto symbols or on batch error!
@@ -1051,7 +1027,6 @@ git commit -m "feat(data): add batch getPricesWithMeta, gate live-ticks by defau
 #### Task 2.2: Wire `getPricesWithMeta()` into `/api/market/stream`, `getPriceService`, `warm-cache`, AI `context.ts`, and Telegram `/price`
 
 **Files:**
-
 - Modify: `apps/web/src/lib/services/api-boundary.ts`
 - Modify: `apps/web/src/lib/services/market.ts`
 - Modify: `apps/web/src/app/api/market/stream/route.ts`
@@ -1060,14 +1035,12 @@ git commit -m "feat(data): add batch getPricesWithMeta, gate live-ticks by defau
 - Modify: `packages/ai/src/bot/commands/price.ts`
 
 **Interfaces:**
-
 - Consumes: `getPrices`, `getPricesWithMeta` from `@kestrel/data`
 - Produces: 1-request batch price polling in `/api/market/stream`, `/api/market/price`, `warm-cache`, and `buildLiveSnapshot()`, plus on-demand `/price` in Telegram.
 
 - [x] **Step 1: Update `apps/web/src/lib/services/api-boundary.ts`, `market.ts`, `stream/route.ts`, and `warm-cache/route.ts`**
 
 In `apps/web/src/lib/services/market.ts`:
-
 ```ts
 export async function getPriceService(userId: string, symbols: string[]): Promise<PriceResultDTO> {
   const { finnhubKey, marketDataProvider } = await loadUserMarketPrefs(userId);
@@ -1088,38 +1061,31 @@ export async function getPriceService(userId: string, symbols: string[]): Promis
   return { ticks, anyStale };
 }
 ```
-
 In `apps/web/src/app/api/market/stream/route.ts`:
-
 ```ts
-try {
-  const results = await getPricesWithMeta(symbols, { apiKeys: keys });
-  const ticks = results.map((r) => r.tick);
-  yield`data: ${JSON.stringify({ ticks, ts: Date.now() })}\n\n`;
-} catch (err) {
-  yield`data: ${JSON.stringify({ error: String(err), ts: Date.now() })}\n\n`;
-}
+    try {
+      const results = await getPricesWithMeta(symbols, { apiKeys: keys });
+      const ticks = results.map((r) => r.tick);
+      yield `data: ${JSON.stringify({ ticks, ts: Date.now() })}\n\n`;
+    } catch (err) {
+      yield `data: ${JSON.stringify({ error: String(err), ts: Date.now() })}\n\n`;
+    }
 ```
-
 In `apps/web/src/app/api/cron/warm-cache/route.ts`:
-
 ```ts
-try {
-  const results = await getPricesWithMeta([...SYMBOLS]);
-  processed += results.length;
-} catch (err) {
-  const message = err instanceof Error ? err.message : String(err);
-  errors.push({ key: 'price:batch', message });
-  log.warn('price batch warm failed', { message });
-}
+    try {
+      const results = await getPricesWithMeta([...SYMBOLS]);
+      processed += results.length;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push({ key: 'price:batch', message });
+      log.warn('price batch warm failed', { message });
+    }
 ```
-
 In `packages/ai/src/bot/commands/price.ts`:
-
 ```ts
 import { getPriceWithMeta } from '@kestrel/data';
 import { isKnownSymbol } from '@kestrel/shared';
-
 import type { BotCommand, BotResponse } from '../types';
 
 export const priceCommand: BotCommand = {
@@ -1178,20 +1144,17 @@ git commit -m "feat(web,ai): wire batch getPricesWithMeta into stream, price ser
 #### Task 3.1: Compute Historical `from` / `to` Window in `getTradeSetupReplayService`
 
 **Files:**
-
 - Modify: `apps/web/src/lib/services/journal.ts`
 - Modify: `apps/web/src/app/(app)/journal/_components/setup-replay-modal.tsx`
 - Test: `apps/web/test/route-journal-replay.test.ts` (and new unit test `apps/web/test/journal-replay-service.test.ts`)
 
 **Interfaces:**
-
 - Consumes: `getCandles(symbol, tf, { count, from, to })` from `@kestrel/data`, `msPerTimeframe(tf)` from `@kestrel/shared`
 - Produces:
   - `computeReplayWindow(openedAt: number, closedAt: number | null, tf: Timeframe, nowMs?: number): { from: string; to: string; count: number }`
   - Extended `TradeSetupReplayDTO.stats` with optional `replayWindowFallback?: boolean`
 
 **Exact Algorithm & Edge-Case Math (`computeReplayWindow`):**
-
 1. **Indicator Warm-Up Lead-In (`WARMUP_BARS = 55`):** `ema(50)` requires 50 bars to seed its initial SMA before exponential smoothing begins; `ema(20)` needs 20; `rsi(14)` needs 15. Requesting `55` bars before `entry.openedAt` guarantees that `ema50`, `ema20`, and `rsi14` are warm and non-null at `openIndex`.
 2. **Weekend Gap Compensation:** Forex/Gold is closed for 48 hours every weekend (Friday 22:00 UTC -> Sunday 22:00 UTC). If the raw warmup window `[openedAt - 55 * tfMs, openedAt]` straddles a weekend (or `openedAt`'s UTC day is Sunday/Monday and `55 * tfMs < 72h`), pad `fromMs` by an additional `48 * 3_600_000` (48 hours) so at least 55 trading bars precede `openedAt`.
 3. **Post-Exit Context (`POST_CLOSE_BARS = 20`):** Pad `toMs = Math.min(nowMs, effectiveCloseMs + 20 * tfMs)` so the replay chart clearly shows price action immediately after the exit (did price reverse after stop-out, or keep running after take-profit?).
@@ -1201,11 +1164,10 @@ git commit -m "feat(web,ai): wire batch getPricesWithMeta into stream, price ser
 - [x] **Step 1: Write the failing test in `apps/web/test/journal-replay-service.test.ts`**
 
 ```ts
-import * as ai from '@kestrel/ai';
-import * as data from '@kestrel/data';
 import { describe, expect, it, vi } from 'vitest';
-
 import { computeReplayWindow, getTradeSetupReplayService } from '@/lib/services/journal';
+import * as data from '@kestrel/data';
+import * as ai from '@kestrel/ai';
 
 vi.mock('@kestrel/data', () => ({
   getCandles: vi.fn(),
@@ -1256,18 +1218,7 @@ describe('computeReplayWindow & getTradeSetupReplayService', () => {
     vi.mocked(data.getCandles)
       .mockRejectedValueOnce(new Error('empty candle response'))
       .mockResolvedValueOnce([
-        {
-          symbol: 'XAUUSD',
-          tf: '15m',
-          t: openedAt,
-          o: 2350,
-          h: 2368,
-          l: 2348,
-          c: 2365,
-          v: null,
-          source: 'biquote',
-          fetchedAt: Date.now(),
-        },
+        { symbol: 'XAUUSD', tf: '15m', t: openedAt, o: 2350, h: 2368, l: 2348, c: 2365, v: null, source: 'biquote', fetchedAt: Date.now() },
       ]);
 
     const res = await getTradeSetupReplayService({ userId: 'u1', id: 'entry-1', timeframe: '15m' });
@@ -1332,22 +1283,20 @@ export function computeReplayWindow(
   };
 }
 ```
-
 And in `getTradeSetupReplayService()`:
-
 ```ts
-const window = computeReplayWindow(entry.openedAt, entry.closedAt, tf);
-let replayWindowFallback = false;
-let candleList = await getCandles(entry.symbol, tf, {
-  count: window.count,
-  from: window.from,
-  to: window.to,
-}).catch(() => []);
+  const window = computeReplayWindow(entry.openedAt, entry.closedAt, tf);
+  let replayWindowFallback = false;
+  let candleList = await getCandles(entry.symbol, tf, {
+    count: window.count,
+    from: window.from,
+    to: window.to,
+  }).catch(() => []);
 
-if (candleList.length === 0) {
-  replayWindowFallback = true;
-  candleList = await getCandles(entry.symbol, tf, { count: REPLAY_MIN_BARS });
-}
+  if (candleList.length === 0) {
+    replayWindowFallback = true;
+    candleList = await getCandles(entry.symbol, tf, { count: REPLAY_MIN_BARS });
+  }
 ```
 
 - [x] **Step 4: Run test to verify it passes**
@@ -1369,21 +1318,18 @@ git commit -m "feat(journal): wire historical from/to OHLC window into Trade Set
 #### Task 4.1: Fix `calendar-persistence.ts` Conflict Upsert & Wire BiQuote 54-Country Calendar Provider
 
 **Files:**
-
 - Modify: `packages/ai/src/calendar-persistence.ts`
 - Modify: `packages/data/src/adapters/calendar.ts`
 - Modify: `apps/worker/src/jobs/fred-actuals.ts`
 - Test: `packages/data/test/calendar-adapter.test.ts`
 
 **Interfaces:**
-
 - Consumes: `biquote.fetchCalendar`, `biquote.fetchCalendarUpcoming` from `@kestrel/data/providers/biquote`
 - Produces:
   - Zero-key primary `fetchUpcomingEvents(opts?: FetchCalendarOptions): Promise<EconomicEvent[]>` in `packages/data/src/adapters/calendar.ts`
   - Fixed `upsertEvents()` in `packages/ai/src/calendar-persistence.ts` that updates `actual`, `forecast`, `previous`, `unit`, `date`, and `actualsFilledAt` on conflict.
 
 **Mapping Contract (BiQuote Calendar -> Kestrel `EconomicEvent`):**
-
 - `id`: `ev.id` (already prefixed by BiQuote as e.g. `"mql5:900001"`)
 - `title`: `ev.name`
 - `country`: `ev.countryCode === 'EU' ? 'EZ' : ev.countryCode === 'GB' ? 'UK' : ev.countryCode` (normalizes `EU` -> `EZ` and `GB` -> `UK` for Kestrel UI filter parity while preserving `US`, `JP`, `CA`, `AU`, `NZ`, `CH`)
@@ -1453,28 +1399,26 @@ Expected: FAIL (`no calendar provider configured (set FRED_API_KEY)`).
 - [x] **Step 3: Implement BiQuote calendar adapter in `packages/data/src/adapters/calendar.ts`, fix `packages/ai/src/calendar-persistence.ts`, and update `apps/worker/src/jobs/fred-actuals.ts`**
 
 In `packages/ai/src/calendar-persistence.ts`:
-
 ```ts
-const inserted = await getDb()
-  .insert(schema.economicEvents)
-  .values(rows)
-  .onConflictDoUpdate({
-    target: schema.economicEvents.id,
-    set: {
-      title: sql`excluded.title`,
-      actual: sql`COALESCE(excluded.actual, ${schema.economicEvents.actual})`,
-      forecast: sql`COALESCE(excluded.forecast, ${schema.economicEvents.forecast})`,
-      previous: sql`COALESCE(excluded.previous, ${schema.economicEvents.previous})`,
-      unit: sql`COALESCE(excluded.unit, ${schema.economicEvents.unit})`,
-      date: sql`excluded.date`,
-      actualsFilledAt: sql`CASE WHEN excluded.actual IS NOT NULL AND ${schema.economicEvents.actualsFilledAt} IS NULL THEN now() ELSE ${schema.economicEvents.actualsFilledAt} END`,
-    },
-  })
-  .returning({ id: schema.economicEvents.id });
+  const inserted = await getDb()
+    .insert(schema.economicEvents)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: schema.economicEvents.id,
+      set: {
+        title: sql`excluded.title`,
+        actual: sql`COALESCE(excluded.actual, ${schema.economicEvents.actual})`,
+        forecast: sql`COALESCE(excluded.forecast, ${schema.economicEvents.forecast})`,
+        previous: sql`COALESCE(excluded.previous, ${schema.economicEvents.previous})`,
+        unit: sql`COALESCE(excluded.unit, ${schema.economicEvents.unit})`,
+        date: sql`excluded.date`,
+        actualsFilledAt: sql`CASE WHEN excluded.actual IS NOT NULL AND ${schema.economicEvents.actualsFilledAt} IS NULL THEN now() ELSE ${schema.economicEvents.actualsFilledAt} END`,
+      },
+    })
+    .returning({ id: schema.economicEvents.id });
 ```
 
 In `packages/data/src/adapters/calendar.ts`:
-
 - Try `biquote.fetchCalendar({ from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString(), countries: opts.countries ?? 'US,EU,GB,JP,CA,AU,NZ,CH', ...(opts.importance ? { importance: opts.importance } : {}), limit: opts.limit ?? 200, baseUrl: keys.biquoteBaseUrl, ...(opts.signal ? { signal: opts.signal } : {}) })` first (unless `opts.apiKeys?.fred` is explicitly passed without a BiQuote route in legacy FRED unit tests—handle both via `runWithFailover` `[biquoteAttempt, ...(keys.fred ? [fredAttempt] : [])]` so BiQuote is primary and FRED is automatic fallback!).
 
 - [x] **Step 4: Run test to verify it passes**
@@ -1494,17 +1438,14 @@ git commit -m "feat(data,ai): wire zero-key BiQuote 54-country economic calendar
 #### Task 4.2: Wire Zero-Key BiQuote Market News Provider into `packages/data/src/adapters/news.ts`
 
 **Files:**
-
 - Modify: `packages/data/src/adapters/news.ts`
 - Test: `packages/data/test/news-adapter.test.ts`
 
 **Interfaces:**
-
 - Consumes: `biquote.fetchMarketNews` from `../providers/biquote`
 - Produces: Automatic zero-key fallback in `fetchNews(opts)` when `FINNHUB_API_KEY` and `MARKETAUX_API_KEY` are unset or fail.
 
 **Mapping Contract (BiQuote News -> Kestrel `NewsArticle`):**
-
 - `id`: `articleIdFromUrl(a.url)` (`sha1(url)` hex—deduplicates seamlessly across Finnhub, Marketaux, and BiQuote!)
 - `title`: `a.title`
 - `summary`: `a.description ?? null`
@@ -1518,37 +1459,37 @@ git commit -m "feat(data,ai): wire zero-key BiQuote 54-country economic calendar
 - [x] **Step 1: Write the failing test in `packages/data/test/news-adapter.test.ts`**
 
 ```ts
-it('falls back to zero-key BiQuote /api/news/market when Finnhub and Marketaux keys are unset', async () => {
-  globalThis.fetch = vi.fn().mockResolvedValue(
-    new Response(
-      JSON.stringify([
-        {
-          title: 'Gold surges above $2,400 on safe-haven demand',
-          description: 'XAUUSD rallied during the London session.',
-          url: 'https://example.com/biquote-gold-news',
-          publisher: 'Reuters',
-          publishedDate: '2026-05-27T10:00:00Z',
-          imageUrl: null,
-          category: 'Commodities',
-          language: 'en',
-          country: 'US',
-        },
-      ]),
-      { status: 200, headers: { 'content-type': 'application/json' } },
-    ),
-  ) as unknown as typeof fetch;
+  it('falls back to zero-key BiQuote /api/news/market when Finnhub and Marketaux keys are unset', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            title: 'Gold surges above $2,400 on safe-haven demand',
+            description: 'XAUUSD rallied during the London session.',
+            url: 'https://example.com/biquote-gold-news',
+            publisher: 'Reuters',
+            publishedDate: '2026-05-27T10:00:00Z',
+            imageUrl: null,
+            category: 'Commodities',
+            language: 'en',
+            country: 'US',
+          },
+        ]),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch;
 
-  const articles = await fetchNews({ apiKeys: {}, symbol: 'XAUUSD' });
-  expect(articles).toHaveLength(1);
-  expect(articles[0]).toMatchObject({
-    id: articleIdFromUrl('https://example.com/biquote-gold-news'),
-    title: 'Gold surges above $2,400 on safe-haven demand',
-    summary: 'XAUUSD rallied during the London session.',
-    source: 'biquote',
-    publisher: 'Reuters',
+    const articles = await fetchNews({ apiKeys: {}, symbol: 'XAUUSD' });
+    expect(articles).toHaveLength(1);
+    expect(articles[0]).toMatchObject({
+      id: articleIdFromUrl('https://example.com/biquote-gold-news'),
+      title: 'Gold surges above $2,400 on safe-haven demand',
+      summary: 'XAUUSD rallied during the London session.',
+      source: 'biquote',
+      publisher: 'Reuters',
+    });
+    expect(articles[0]?.symbols).toContain('XAUUSD');
   });
-  expect(articles[0]?.symbols).toContain('XAUUSD');
-});
 ```
 
 - [x] **Step 2: Run test to verify it fails**
@@ -1579,7 +1520,6 @@ git commit -m "feat(data): add zero-key BiQuote market news provider to news ada
 #### Task 5.1: Worker De-Bloat (`WORKER_ENABLE_TICK_STREAM=0` Default, Optional `BIQUOTE_PROXY_TOKEN`, On-Demand Health & Jobs)
 
 **Files:**
-
 - Modify: `apps/worker/src/env.ts`
 - Modify: `apps/worker/src/index.ts`
 - Modify: `apps/worker/src/http-server.ts`
@@ -1590,7 +1530,6 @@ git commit -m "feat(data): add zero-key BiQuote market news provider to news ada
 - Test: `apps/worker/test/env.test.ts`, `apps/worker/test/http-server.test.ts`, `apps/worker/test/metrics-flush.test.ts`, `apps/web/test/admin/admin-health.test.ts`
 
 **Interfaces:**
-
 - `WorkerEnvSchema` in `apps/worker/src/env.ts`:
   - Keep `BIQUOTE_PROXY_TOKEN: optionalNonEmpty` (satisfies `scripts/check-env-contract.mjs` line 91 `/BIQUOTE_PROXY_TOKEN\s*:\s*optionalNonEmpty/`).
   - Add `WORKER_ENABLE_TICK_STREAM: z.preprocess((v) => (v === '' ? undefined : v), z.enum(['0', '1', 'true', 'false']).default('0'))`.
@@ -1664,7 +1603,6 @@ git commit -m "feat(worker,web): default worker to on-demand mode and make BIQUO
 #### Task 5.2: Respect `marketState: "closed"` Across UI (`TickerTape`, `WatchlistWidget`) & AI Evidence Builders
 
 **Files:**
-
 - Modify: `packages/ai/src/mastra-v2/packets/evidence-builders.ts`
 - Modify: `packages/ai/src/mastra-v2/packets/symbol-research.ts`
 - Modify: `apps/web/src/components/layout/ticker-tape.tsx`
@@ -1673,7 +1611,6 @@ git commit -m "feat(worker,web): default worker to on-demand mode and make BIQUO
 - Test: `packages/ai/test/mastra-research-packet.test.ts`
 
 **Interfaces:**
-
 - Consumes: `tick.marketState` (`'open' | 'closed' | undefined`), `tick.quoteAgeSeconds`
 - Produces:
   - Clean weekend/market-closed handling in `buildPriceEvidence()` and `collectSymbolResearchPacket()` so closed markets do not trigger false `'Price is older than the fresh-data threshold'` degraded quality warnings.
@@ -1713,7 +1650,6 @@ Expected: FAIL (`evidence.quality` is `'degraded'` due to `ageMs > 10_000`).
 - [x] **Step 3: Update `evidence-builders.ts`, `symbol-research.ts`, `ticker-tape.tsx`, `watchlist-widget.tsx`, and `market-data-config.tsx`**
 
 In `packages/ai/src/mastra-v2/packets/evidence-builders.ts`:
-
 ```ts
 export function buildPriceEvidence(result: PriceResult): XauusdPriceEvidence {
   const { tick, ageMs } = result;
@@ -1740,11 +1676,10 @@ export function buildPriceEvidence(result: PriceResult): XauusdPriceEvidence {
   });
 }
 ```
-
 And apply the same `isMarketClosed = result.tick.marketState === 'closed'` guard in `packages/ai/src/mastra-v2/packets/symbol-research.ts:413-432`.
 
 In `apps/web/src/components/layout/ticker-tape.tsx`:
-When `t.marketState === 'closed'`, render `<span className="text-fg-subtle bg-bg-elev-2 rounded-xs px-1 text-xs font-medium">CLOSED</span>` instead of the `▲/▼ +0.00%` badge (per BiQuote docs: _"Render it as 'market closed — last price', and hide the day-change percentage, which belongs to a session that has ended"_).
+When `t.marketState === 'closed'`, render `<span className="text-fg-subtle bg-bg-elev-2 rounded-xs px-1 text-xs font-medium">CLOSED</span>` instead of the `▲/▼ +0.00%` badge (per BiQuote docs: *"Render it as 'market closed — last price', and hide the day-change percentage, which belongs to a session that has ended"*).
 
 - [x] **Step 4: Run tests to verify they pass**
 
@@ -1780,35 +1715,27 @@ git commit -m "feat(ai,web): respect BiQuote marketState=closed in AI evidence p
 ### 5.2 Execution Verification Commands
 
 - [x] **Step 1: Environment Contract Gate**
-
   ```bash
   pnpm check:env-contract
   ```
-
   Expected: `Environment contract check passed.` (exit `0`).
 
 - [x] **Step 2: Monorepo Typecheck**
-
   ```bash
   pnpm turbo run typecheck
   ```
-
   Expected: All workspace packages (`@kestrel/shared`, `@kestrel/db`, `@kestrel/data`, `@kestrel/indicators`, `@kestrel/ai`, `@kestrel/worker`, `@kestrel/web`) pass with `0` TypeScript errors.
 
 - [x] **Step 3: Monorepo Lint**
-
   ```bash
   pnpm turbo run lint
   ```
-
   Expected: `0` ESLint errors or warnings.
 
 - [x] **Step 4: Monorepo Unit & Policy Test Suite**
-
   ```bash
   pnpm turbo run test
   ```
-
   Expected: All test suites in `packages/shared`, `packages/data`, `packages/db`, `packages/indicators`, `packages/ai`, `apps/worker`, and `apps/web` pass (`0` failures).
 
 - [x] **Step 5: Dead-Code & Dependency Gate (Knip)**

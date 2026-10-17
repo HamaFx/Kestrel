@@ -31,8 +31,7 @@ import { TwoFactorSetup } from '../_components/security/two-factor-setup';
 
 export const metadata: Metadata = {
   title: 'Profile & Security · Settings',
-  description:
-    'Manage your profile identity, password, two-factor authentication, and active sessions.',
+  description: 'Manage your profile identity, password, two-factor authentication, and active sessions.',
 };
 export const dynamic = 'force-dynamic';
 
@@ -61,8 +60,7 @@ export default async function ProfileSettingsPage() {
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Profile & Security</h2>
         <p className="text-fg-subtle text-sm">
-          Manage your display name, password, two-factor authentication, connected accounts, and
-          active devices.
+          Manage your display name, password, two-factor authentication, connected accounts, and active devices.
         </p>
       </div>
 

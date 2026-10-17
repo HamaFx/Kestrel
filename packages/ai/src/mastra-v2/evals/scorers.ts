@@ -44,8 +44,8 @@ import {
 } from '@mastra/evals/scorers/prebuilt';
 import type { LanguageModel } from 'ai';
 
-import type { ResolveModelEnv } from '../../env-model-factory';
 import { resolveChatModel } from '../../model';
+import type { ResolveModelEnv } from '../../env-model-factory';
 import { createCitationScorer, createGroundingScorer } from './custom';
 
 const slog = createCategorizedLogger('ai', { component: 'mastra-evals-scorers' });

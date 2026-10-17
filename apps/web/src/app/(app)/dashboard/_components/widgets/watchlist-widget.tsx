@@ -23,6 +23,7 @@
 // Live tickers for a curated list of symbols, with mid-price + a small
 // sparkline of the most recent mids. Uses the existing `usePrices` hook
 // so updates pool through the shared 3s cache (no per-widget polls).
+
 import { priceDecimals, SYMBOLS, type Symbol, type Tick } from '@kestrel/shared';
 import {
   IconAlertTriangle,
@@ -130,22 +131,22 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
             <button
               type="button"
               onClick={() => setShowAddMenu((v) => !v)}
-              className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[30px] items-center gap-1 rounded-md px-2.5 py-1 font-mono text-xs font-medium transition-colors active:translate-y-[0.5px]"
+              className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 flex min-h-[30px] items-center gap-1 rounded-md px-2.5 py-1 text-xs font-mono font-medium transition-colors active:translate-y-[0.5px]"
               title="Add symbol to watchlist"
             >
-              <IconPlus className="text-brand size-3.5" />
+              <IconPlus className="size-3.5 text-brand" />
               <span>Add</span>
             </button>
           )}
 
           {showAddMenu && (
-            <div className="surface-panel absolute top-full right-0 z-30 mt-1.5 flex max-h-48 min-w-[150px] flex-col gap-0.5 overflow-y-auto rounded-xl border border-white/15 bg-[#141516]/98 p-1.5 shadow-2xl backdrop-blur-xl">
+            <div className="surface-panel border border-white/15 bg-[#141516]/98 absolute top-full right-0 z-30 mt-1.5 flex max-h-48 min-w-[150px] flex-col gap-0.5 overflow-y-auto rounded-xl p-1.5 shadow-2xl backdrop-blur-xl">
               {availableToAdd.map((sym) => (
                 <button
                   key={sym}
                   type="button"
                   onClick={() => addSymbol(sym)}
-                  className="text-fg-muted hover:text-fg w-full rounded-lg px-2.5 py-1.5 text-left font-mono text-xs font-medium transition-colors hover:bg-white/5 active:translate-y-[0.5px]"
+                  className="text-fg-muted hover:text-fg hover:bg-white/5 w-full rounded-lg px-2.5 py-1.5 text-left font-mono text-xs font-medium transition-colors active:translate-y-[0.5px]"
                 >
                   {sym}
                 </button>
@@ -162,7 +163,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
         </div>
       </header>
 
-      <ul className="scrollbar-hide flex flex-col overflow-x-auto">
+      <ul className="flex flex-col overflow-x-auto scrollbar-hide">
         {(() => {
           if (isError) {
             return (
@@ -319,7 +320,7 @@ function WatchRow({
         {/* 1-Click Ask AI Copilot */}
         <Link
           href={`/chat?prompt=${aiPrompt}`}
-          className="text-fg-subtle hover:text-brand hover:bg-brand/10 tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg p-2 transition-colors active:translate-y-[0.5px]"
+          className="text-fg-subtle hover:text-brand hover:bg-brand/10 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg p-2 transition-colors tactile-press active:translate-y-[0.5px]"
           title={`Ask AI Copilot to analyze ${tick.symbol}`}
           aria-label={`Ask AI Copilot to analyze ${tick.symbol}`}
         >
@@ -331,7 +332,7 @@ function WatchRow({
           <button
             type="button"
             onClick={onRemove}
-            className="text-fg-subtle hover:text-danger tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg p-2 opacity-0 transition-all group-hover:opacity-100 active:translate-y-[0.5px]"
+            className="text-fg-subtle hover:text-danger inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg p-2 opacity-0 transition-all group-hover:opacity-100 tactile-press active:translate-y-[0.5px]"
             title={`Remove ${tick.symbol} from watchlist`}
             aria-label={`Remove ${tick.symbol}`}
           >

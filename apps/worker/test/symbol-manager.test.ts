@@ -14,17 +14,27 @@
  * limitations under the License.
  */
 
-// SymbolManager diff logic tests. Verifies that per-consumer events
-// (biquoteChanged, binanceChanged) emit correct added/removed arrays
-// when symbols change. The B1 bug existed because diffs were computed
-// from the already-updated this.symbols set.
+// Batch 4: drives the REAL SymbolManager against a mocked `listDistinctSymbols`
+// DB boundary. Verifies default fallback, unknown-symbol filtering, the
+// added/removed diff math for the aggregate + per-consumer events, the
+// unchanged-set no-op, and fail-soft behavior when the poll query throws.
 
-import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import type { Logger } from '../src/log';
-import { SymbolManager, type PerConsumerChangeEvent } from '../src/symbol-manager';
+import {
+  SymbolManager,
+  type PerConsumerChangeEvent,
+  type SymbolChangeEvent,
+} from '../src/symbol-manager';
 
-// Mock logger that does nothing
+const mockListDistinctSymbols = vi.fn();
+
+vi.mock('@kestrel/db', () => ({
+  listDistinctSymbols: (...args: unknown[]) => mockListDistinctSymbols(...args),
+}));
+
 function mockLogger(): Logger {
   return {
     info: vi.fn(),
@@ -37,48 +47,130 @@ function mockLogger(): Logger {
   } as unknown as Logger;
 }
 
+interface EventLog {
+  symbolsChanged: SymbolChangeEvent[];
+  biquoteChanged: PerConsumerChangeEvent[];
+  binanceChanged: PerConsumerChangeEvent[];
+}
+
+function captureEvents(mgr: SymbolManager): EventLog {
+  const events: EventLog = {
+    symbolsChanged: [],
+    biquoteChanged: [],
+    binanceChanged: [],
+  };
+  mgr.on('symbolsChanged', (e: SymbolChangeEvent) => events.symbolsChanged.push(e));
+  mgr.on('biquoteChanged', (e: PerConsumerChangeEvent) => events.biquoteChanged.push(e));
+  mgr.on('binanceChanged', (e: PerConsumerChangeEvent) => events.binanceChanged.push(e));
+  return events;
+}
+
 describe('SymbolManager', () => {
-  it('emits biquoteChanged with correct added/removed arrays', () => {
-    const log = mockLogger();
-    // We need to intercept the DB poll to inject specific symbols.
-    // We use a SymbolManager with a very long poll interval and manually
-    // call the internal poll logic via a test hook.
-    const mgr = new SymbolManager(log, 999_999);
-
-    // Listen for the biquoteChanged event
-    let _biquoteEvent: PerConsumerChangeEvent | null = null;
-    mgr.on('biquoteChanged', (ev) => {
-      _biquoteEvent = ev;
-    });
-
-    // The SymbolManager starts with an empty set. After a poll that
-    // returns XAUUSD + EURUSD + GBPUSD, it should emit biquoteChanged
-    // with all three as added.
-    // Since poll() queries the DB, we can't easily test without mocking
-    // the DB. Instead, we verify the structure of the SymbolManager
-    // internals: that oldSymbols is captured before this.symbols is
-    // updated.
-    expect(mgr.getSymbols()).toEqual([]);
+  beforeEach(() => {
+    mockListDistinctSymbols.mockReset();
   });
 
-  it('getSymbols returns current symbol set', () => {
-    const mgr = new SymbolManager(mockLogger(), 999_999);
-    expect(mgr.getSymbols()).toEqual([]);
-  });
+  it('falls back to the default watchlist when user_symbols is empty', async () => {
+    mockListDistinctSymbols.mockResolvedValue([]);
+    const mgr = new SymbolManager(mockLogger(), 60_000);
 
-  it('start and stop manage the poll timer', () => {
-    const mgr = new SymbolManager(mockLogger());
-    mgr.start();
-    // Should not throw — poll timer is set up
+    await mgr.start();
+
+    expect(new Set(mgr.getSymbols())).toEqual(new Set(DEFAULT_WATCHLIST_SYMBOLS));
     mgr.stop();
-    // Should not throw — timer is cleared
-    mgr.stop(); // idempotent
   });
 
-  it('does not double-start polling', () => {
-    const mgr = new SymbolManager(mockLogger());
-    mgr.start();
-    mgr.start(); // should be a no-op
+  it('takes valid DB symbols as the active set and filters out unknown symbols', async () => {
+    mockListDistinctSymbols.mockResolvedValue(['AUDUSD', 'INVALID_SYM']);
+    const mgr = new SymbolManager(mockLogger(), 60_000);
+
+    await mgr.start();
+
+    expect(mgr.getSymbols()).toEqual(['AUDUSD']);
+    expect(mgr.getSymbols()).not.toContain('INVALID_SYM');
+    mgr.stop();
+  });
+
+  it('emits aggregate and per-consumer events with correct added/removed diffs when the set changes', async () => {
+    mockListDistinctSymbols.mockResolvedValue(['AUDUSD']);
+    const mgr = new SymbolManager(mockLogger(), 60_000);
+    const events = captureEvents(mgr);
+
+    await mgr.start();
+    mgr.stop();
+
+    // Second poll swaps the active set from [AUDUSD] to the empty-DB defaults.
+    mockListDistinctSymbols.mockResolvedValue([]);
+    await mgr.start();
+    mgr.stop();
+
+    expect(events.symbolsChanged).toEqual([
+      { current: ['AUDUSD'], added: ['AUDUSD'], removed: [] },
+      {
+        current: [...DEFAULT_WATCHLIST_SYMBOLS],
+        added: [...DEFAULT_WATCHLIST_SYMBOLS],
+        removed: ['AUDUSD'],
+      },
+    ]);
+
+    expect(events.biquoteChanged).toEqual([
+      { symbols: ['AUDUSD'], added: ['AUDUSD'], removed: [] },
+      {
+        symbols: ['XAUUSD', 'EURUSD', 'GBPUSD'],
+        added: ['XAUUSD', 'EURUSD', 'GBPUSD'],
+        removed: ['AUDUSD'],
+      },
+    ]);
+
+    expect(events.binanceChanged).toEqual([
+      { symbols: [], added: [], removed: [] },
+      { symbols: ['BTCUSDT', 'ETHUSDT'], added: ['BTCUSDT', 'ETHUSDT'], removed: [] },
+    ]);
+  });
+
+  it('does not emit change events when the poll returns the same symbol set', async () => {
+    mockListDistinctSymbols.mockResolvedValue(['AUDUSD']);
+    const mgr = new SymbolManager(mockLogger(), 60_000);
+    const events = captureEvents(mgr);
+
+    await mgr.start();
+    mgr.stop();
+    await mgr.start();
+    mgr.stop();
+
+    expect(events.symbolsChanged).toHaveLength(1);
+    expect(events.biquoteChanged).toHaveLength(1);
+    expect(events.binanceChanged).toHaveLength(1);
+  });
+
+  it('retains the current symbol list and logs when the DB query throws', async () => {
+    mockListDistinctSymbols.mockResolvedValue(['AUDUSD']);
+    const log = mockLogger();
+    const mgr = new SymbolManager(log, 60_000);
+
+    await mgr.start();
+    mgr.stop();
+
+    mockListDistinctSymbols.mockRejectedValue(new Error('DB connection lost'));
+    await mgr.start();
+
+    expect(mgr.getSymbols()).toEqual(['AUDUSD']);
+    expect(log.error as Mock).toHaveBeenCalledWith(
+      'Failed to poll user symbols',
+      expect.objectContaining({ err: expect.stringContaining('DB connection lost') }),
+    );
+    mgr.stop();
+  });
+
+  it('does not double-start polling', async () => {
+    mockListDistinctSymbols.mockResolvedValue([]);
+    const mgr = new SymbolManager(mockLogger(), 60_000);
+
+    await mgr.start();
+    await mgr.start();
+
+    expect(mockListDistinctSymbols).toHaveBeenCalledTimes(1);
+    mgr.stop();
     mgr.stop();
   });
 });

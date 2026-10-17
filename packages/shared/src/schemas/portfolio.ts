@@ -24,7 +24,7 @@
 
 import { z } from 'zod';
 
-import { pipSize, SymbolSchema, tryGetSymbolDefinition } from '../symbols';
+import { SymbolSchema, tryGetSymbolDefinition, pipSize } from '../symbols';
 
 // ---------------------------------------------------------------------------
 // Position

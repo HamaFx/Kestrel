@@ -54,7 +54,7 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
       action={action}
       className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <div className="flex items-center gap-2 border-b border-white/5 pb-1">
+      <div className="flex items-center gap-2 pb-1 border-b border-white/5">
         <IconUser className="text-brand size-4.5" />
         <h3 className="text-fg text-base font-semibold tracking-tight">Personal Identity</h3>
       </div>
@@ -64,7 +64,9 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
           Email
         </label>
         <Input id="settings-email" value={email} readOnly disabled className="opacity-50" />
-        <p className="text-fg-subtle text-xs">Your email address cannot be changed right now.</p>
+        <p className="text-xs text-fg-subtle">
+          Your email address cannot be changed right now.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -81,11 +83,7 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
       </div>
 
       <div className="flex justify-end pt-2">
-        <Button
-          type="submit"
-          loading={pending}
-          className="tactile-press active:translate-y-[0.5px]"
-        >
+        <Button type="submit" loading={pending} className="tactile-press active:translate-y-[0.5px]">
           Save Profile
         </Button>
       </div>

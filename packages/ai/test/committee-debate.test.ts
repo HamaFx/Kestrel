@@ -21,19 +21,16 @@
 // opinion once after reading the peer critiques; revisions pass the same
 // deterministic verification and a failed revision is a failed desk (Q3).
 
-import { RequestContext } from '@mastra/core/request-context';
-import type { LanguageModel } from 'ai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runDebateRevision } from '../src/committee/critique';
-import { debateRevisionInstructionsForRequest } from '../src/committee/prompts';
-import type {
-  CommitteeCritique,
-  MastraModeOpinion,
-  ModeRequestContext,
-} from '../src/committee/types';
-import { createCommitteeWorkflow } from '../src/committee/workflow';
+import type { LanguageModel } from 'ai';
+import { RequestContext } from '@mastra/core/request-context';
+
 import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
+import { debateRevisionInstructionsForRequest } from '../src/committee/prompts';
+import { runDebateRevision } from '../src/committee/critique';
+import { createCommitteeWorkflow } from '../src/committee/workflow';
+import type { CommitteeCritique, MastraModeOpinion, ModeRequestContext } from '../src/committee/types';
 
 const mocks = vi.hoisted(() => ({
   collectSymbolResearchPacket: vi.fn(),
@@ -47,16 +44,12 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>(
-    '../src/mastra-v2/packets/symbol-research',
-  );
+  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra-v2/packets/symbol-research');
   return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
 });
 
 vi.mock('../src/mastra-v2/packets/packet-cache', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>(
-    '../src/mastra-v2/packets/packet-cache',
-  );
+  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra-v2/packets/packet-cache');
   return { ...actual, collectSymbolResearchPacketCached: mocks.collectSymbolResearchPacket };
 });
 
@@ -76,11 +69,7 @@ vi.mock('@mastra/core/agent', () => ({
         if (this.id.includes(suffix)) throw error;
       }
       if (this.id.includes('decision')) {
-        return {
-          text: 'Synthesized read.',
-          usage: { inputTokens: 20, outputTokens: 10 },
-          steps: [{}],
-        };
+        return { text: 'Synthesized read.', usage: { inputTokens: 20, outputTokens: 10 }, steps: [{}] };
       }
       if (this.id.includes('-critique')) {
         return {
@@ -90,7 +79,9 @@ vi.mock('@mastra/core/agent', () => ({
         };
       }
       if (this.id.includes('-debate')) {
-        const hallucinating = [...mocks.hallucinateFor].some((suffix) => this.id.includes(suffix));
+        const hallucinating = [...mocks.hallucinateFor].some((suffix) =>
+          this.id.includes(suffix),
+        );
         return {
           object: {
             bias: 'neutral',
@@ -268,14 +259,11 @@ describe('runDebateRevision (§3.3, Q3)', () => {
   });
 
   it('propagates abort errors instead of marking the desk failed', async () => {
-    mocks.rejectFor.set(
-      '-debate',
-      (() => {
-        const error = new Error('The operation was aborted');
-        error.name = 'AbortError';
-        return error;
-      })(),
-    );
+    mocks.rejectFor.set('-debate', (() => {
+      const error = new Error('The operation was aborted');
+      error.name = 'AbortError';
+      return error;
+    })());
     await expect(
       runDebateRevision({
         name: 'technical',

@@ -20,9 +20,9 @@ import { z } from 'zod';
 
 import { getCorrelationTool } from '../../../../tools/get-correlation';
 import { createEvidenceId } from '../../../packets/evidence';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
 import { XAUUSD } from '../../../shared/types';
-import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 
 const InputSchema = GetCorrelationInputSchema;
 const OutputSchema = z.object({

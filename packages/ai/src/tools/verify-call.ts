@@ -31,9 +31,9 @@
 import { getCandles, getPrice } from '@kestrel/data';
 import { computeStructure } from '@kestrel/indicators';
 import {
+  VerifyCallInputSchema,
   pipSize,
   priceDecimals,
-  VerifyCallInputSchema,
   type Symbol,
   type VerifyCallCaveat,
   type VerifyCallOutput,
@@ -56,7 +56,15 @@ export const verifyCallTool = tool({
     'Verify a directional setup. Re-checks the proposed levels against the live market, validates entry/stop/target geometry, and scans recent structure for the nearest opposing liquidity (swing high above for longs, swing low below for shorts). Use after naming a setup and before presenting it as verified.',
   inputSchema: InputSchema,
   execute: async (
-    { symbol, side, entry, stop, target, tf, lookbackBars },
+    {
+      symbol,
+      side,
+      entry,
+      stop,
+      target,
+      tf,
+      lookbackBars,
+    },
     options?: { abortSignal?: AbortSignal },
   ): Promise<VerifyCallOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
@@ -133,10 +141,7 @@ export const verifyCallTool = tool({
     // Structure scan for nearest opposing liquidity.
     let nearestOpposingLiquidity: VerifyCallOutput['nearestOpposingLiquidity'] = null;
     try {
-      const candles = await getCandles(symbol, tf, {
-        count: lookbackBars,
-        ...(signal ? { signal } : {}),
-      });
+      const candles = await getCandles(symbol, tf, { count: lookbackBars, ...(signal ? { signal } : {}) });
       const structure = computeStructure({
         symbol,
         tf,

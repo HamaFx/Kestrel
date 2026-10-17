@@ -304,7 +304,9 @@ async function replayOne(item: ClaimedFailure): Promise<void> {
         // legacy queued row may carry a historical kind the live writers no
         // longer emit; replay restores it verbatim — the `chat_telemetry`
         // column still accepts the stored vocabulary.
-        ...(input.kind ? { kind: input.kind as NonNullable<TelemetryInput['kind']> } : {}),
+        ...(input.kind
+          ? { kind: input.kind as NonNullable<TelemetryInput['kind']> }
+          : {}),
       });
       return;
     }

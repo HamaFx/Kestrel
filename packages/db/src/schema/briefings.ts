@@ -56,6 +56,9 @@ export const briefingsEmitted = pgTable(
   (t) => [
     primaryKey({ columns: [t.userId, t.eventId, t.kind] }),
     // Phase 2 (0028) — kind allow-list CHECK, absent from the TypeScript schema.
-    check('briefings_emitted_kind_check', sql`${t.kind} IN ('pre', 'post', 'weekly_review')`),
+    check(
+      'briefings_emitted_kind_check',
+      sql`${t.kind} IN ('pre', 'post', 'weekly_review')`,
+    ),
   ],
 );

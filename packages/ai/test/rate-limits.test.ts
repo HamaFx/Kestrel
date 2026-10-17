@@ -16,85 +16,103 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { extractRateLimits } from '../src/rate-limits';
+import { extractRateLimits, type RateLimitData } from '../src/rate-limits';
 
-describe('extractRateLimits', () => {
-  it('parses OpenAI-style rate limit headers', () => {
-    const result = extractRateLimits({
+const CASES: Array<{
+  label: string;
+  headers: Record<string, string> | null | undefined;
+  expected: Partial<RateLimitData> | undefined;
+}> = [
+  {
+    label: 'parses OpenAI-style rate limit headers',
+    headers: {
       'x-ratelimit-remaining-requests': '49',
       'x-ratelimit-remaining-tokens': '50000',
       'x-ratelimit-reset-requests': '1s',
       'x-ratelimit-reset-tokens': '10s',
-    });
-    expect(result).toBeDefined();
-    expect(result!.remainingRequests).toBe(49);
-    expect(result!.remainingTokens).toBe(50000);
-    expect(result!.resetRequests).toBe('1s');
-    expect(result!.resetTokens).toBe('10s');
-  });
-
-  it('parses Anthropic-style rate limit headers', () => {
-    const result = extractRateLimits({
+    },
+    expected: {
+      remainingRequests: 49,
+      remainingTokens: 50000,
+      resetRequests: '1s',
+      resetTokens: '10s',
+    },
+  },
+  {
+    label: 'parses Anthropic-style rate limit headers',
+    headers: {
       'anthropic-ratelimit-requests-remaining': '10',
       'anthropic-ratelimit-tokens-remaining': '8000',
       'anthropic-ratelimit-requests-reset': '2026-06-28T12:00:00Z',
       'anthropic-ratelimit-tokens-reset': '2026-06-28T12:00:00Z',
-    });
-    expect(result).toBeDefined();
-    expect(result!.remainingRequests).toBe(10);
-    expect(result!.remainingTokens).toBe(8000);
-    expect(result!.resetRequests).toBe('2026-06-28T12:00:00Z');
-    expect(result!.resetTokens).toBe('2026-06-28T12:00:00Z');
-  });
-
-  it('returns undefined when headers are null', () => {
-    expect(extractRateLimits(null as unknown as Record<string, string>)).toBeUndefined();
-  });
-
-  it('returns undefined when headers are undefined', () => {
-    expect(extractRateLimits(undefined)).toBeUndefined();
-  });
-
-  it('returns undefined when no rate limit headers are present', () => {
-    const result = extractRateLimits({ 'content-type': 'application/json' });
-    expect(result).toBeUndefined();
-  });
-
-  it('handles mixed case header names (case-insensitive)', () => {
-    const result = extractRateLimits({
-      'X-RateLimit-Remaining-Requests': '99',
-      'Anthropic-RateLimit-Requests-Remaining': '5',
-    });
-    expect(result).toBeDefined();
-    expect(result!.remainingRequests).toBe(5);
-  });
-
-  it('returns undefined for NaN values in numeric fields', () => {
-    const result = extractRateLimits({
-      'x-ratelimit-remaining-requests': 'not-a-number',
-    });
-    expect(result!.remainingRequests).toBeUndefined();
-  });
-
-  it('returns undefined for empty headers object', () => {
-    expect(extractRateLimits({})).toBeUndefined();
-  });
-
-  it('parses Groq-style headers (same format as OpenAI)', () => {
-    const result = extractRateLimits({
+    },
+    expected: {
+      remainingRequests: 10,
+      remainingTokens: 8000,
+      resetRequests: '2026-06-28T12:00:00Z',
+      resetTokens: '2026-06-28T12:00:00Z',
+    },
+  },
+  {
+    label: 'parses Groq-style headers (same format as OpenAI)',
+    headers: {
       'x-ratelimit-remaining-requests': '100',
       'x-ratelimit-remaining-tokens': '6000',
-    });
-    expect(result).toBeDefined();
-    expect(result!.remainingRequests).toBe(100);
-    expect(result!.remainingTokens).toBe(6000);
-  });
-
-  it('Anthropic headers override OpenAI headers when both present', () => {
-    const result = extractRateLimits({
+    },
+    expected: { remainingRequests: 100, remainingTokens: 6000 },
+  },
+  {
+    label: 'lets Anthropic headers override OpenAI headers when both are present',
+    headers: {
       'x-ratelimit-remaining-requests': '50',
       'anthropic-ratelimit-requests-remaining': '10',
-    });
-    expect(result!.remainingRequests).toBe(10);
+    },
+    expected: { remainingRequests: 10 },
+  },
+  {
+    label: 'handles mixed case header names (case-insensitive)',
+    headers: {
+      'X-RateLimit-Remaining-Requests': '99',
+      'Anthropic-RateLimit-Requests-Remaining': '5',
+    },
+    expected: { remainingRequests: 5 },
+  },
+  {
+    label: 'reports NaN numeric fields as undefined',
+    headers: { 'x-ratelimit-remaining-requests': 'not-a-number' },
+    expected: { remainingRequests: undefined },
+  },
+  {
+    label: 'returns undefined when headers are null',
+    headers: null,
+    expected: undefined,
+  },
+  {
+    label: 'returns undefined when headers are undefined',
+    headers: undefined,
+    expected: undefined,
+  },
+  {
+    label: 'returns undefined when no rate limit headers are present',
+    headers: { 'content-type': 'application/json' },
+    expected: undefined,
+  },
+  {
+    label: 'returns undefined for an empty headers object',
+    headers: {},
+    expected: undefined,
+  },
+];
+
+describe('extractRateLimits', () => {
+  it.each(CASES)('$label', ({ headers, expected }) => {
+    const result = extractRateLimits(headers as Record<string, string> | undefined);
+
+    if (expected === undefined) {
+      expect(result).toBeUndefined();
+      return;
+    }
+    expect(result).toBeDefined();
+    expect(result).toMatchObject(expected);
   });
 });

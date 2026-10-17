@@ -23,13 +23,13 @@ import { auth } from '@/auth';
 import { checkIsAdmin } from '@/lib/admin-check';
 import { buildCatalogForUser } from '@/lib/catalog-server';
 
-import { AISubNav } from '../_components/ai-subnav';
 import { FallbackChainPicker } from './_components/fallback-chain-picker';
 import {
   ChatModelPicker,
   EmbeddingModelPicker,
   VisionModelPicker,
 } from './_components/model-picker';
+import { AISubNav } from '../_components/ai-subnav';
 
 export const revalidate = 60;
 
@@ -90,8 +90,8 @@ export default async function ModelsSettingsPage() {
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">AI & Intelligence</h2>
         <p className="text-fg-subtle text-sm">
-          Pick the model that handles every chat turn. Per-turn overrides via the chat toolbar still
-          work.
+          Pick the model that handles every chat turn. Per-turn overrides via the chat toolbar
+          still work.
         </p>
       </div>
 
@@ -156,7 +156,7 @@ export default async function ModelsSettingsPage() {
                   <td className="text-fg px-4 py-2.5 font-medium">{m.providerName}</td>
                   <td className="text-fg px-4 py-2.5 font-mono text-xs">{m.label ?? m.modelId}</td>
                   <td className="px-4 py-2.5">
-                    <span className="surface-chip bg-bg-elev-2 text-fg-subtle inline-flex items-center rounded-md border border-white/5 px-2 py-0.5 font-mono text-[11px] font-medium">
+                    <span className="surface-chip bg-bg-elev-2 text-[11px] text-fg-subtle border border-white/5 inline-flex items-center rounded-md px-2 py-0.5 font-mono font-medium">
                       {m.tier ?? 'flagship'}
                     </span>
                   </td>
@@ -169,12 +169,12 @@ export default async function ModelsSettingsPage() {
                   <td className="px-4 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       {m.tier !== 'embedding' ? (
-                        <span className="surface-chip bg-success/15 text-success inline-flex items-center rounded-md px-2 py-0.5 font-mono text-[11px] font-medium">
+                        <span className="surface-chip bg-success/15 text-success text-[11px] inline-flex items-center rounded-md px-2 py-0.5 font-mono font-medium">
                           Chat
                         </span>
                       ) : null}
                       {m.tier === 'embedding' ? (
-                        <span className="surface-chip bg-bg-elev-3 text-fg-muted inline-flex items-center rounded-md px-2 py-0.5 font-mono text-[11px] font-medium">
+                        <span className="surface-chip bg-bg-elev-3 text-fg-muted text-[11px] inline-flex items-center rounded-md px-2 py-0.5 font-mono font-medium">
                           Embed
                         </span>
                       ) : null}

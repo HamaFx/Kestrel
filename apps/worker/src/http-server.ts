@@ -71,8 +71,7 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
     const lastTickAt = getLastTickAt();
     const ageMs = lastTickAt > 0 ? Date.now() - lastTickAt : null;
     const ready =
-      !tickStreamEnabled ||
-      (lastTickAt > 0 && ageMs !== null && ageMs < 120_000 && isSignalRConnected());
+      !tickStreamEnabled || (lastTickAt > 0 && ageMs !== null && ageMs < 120_000 && isSignalRConnected());
     const healthy = liveOnly || dependenciesOnly || ready;
     sendJson(res, healthy ? 200 : 503, {
       status: liveOnly || dependenciesOnly ? 'ok' : ready ? 'ok' : 'degraded',

@@ -92,7 +92,7 @@ export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
       const providerId = (slash > 0 ? modelId.slice(0, slash) : 'openai') as ProviderId;
       const keys = {
         ...envFallbackKeys(args.env ?? {}),
-        ...(args.userSettings ? (decryptByok(args.userSettings.aiApiKeys) ?? {}) : {}),
+        ...(args.userSettings ? decryptByok(args.userSettings.aiApiKeys) ?? {} : {}),
       };
       const apiKey = keys[providerId];
       if (apiKey && providerCapabilities[providerId]?.supportsEmbedding) {

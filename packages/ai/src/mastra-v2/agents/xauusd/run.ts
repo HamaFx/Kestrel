@@ -15,34 +15,6 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import type { LanguageModel } from 'ai';
-
-import { estimateCostUsd } from '../../../cost';
-import { getDiagnosticContext, withDiagnostics } from '../../../diagnostics';
-import type { ResolveModelEnv } from '../../../env-model-factory';
-import { createGenerationLedger, type GenerationLedger } from '../../../generation-ledger';
-import type { ChatModelResolution } from '../../../model';
-import { telemetryConfig } from '../../../telemetry';
-import { manifestForCapability } from '../../capabilities';
-import { getKestrelMastra } from '../../instance';
-import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../../logger';
-import { kestrelMemoryOptions } from '../../memory';
-import { collectXauusdResearchPacket } from '../../packets/research-packet';
-import type { XauusdResearchPacket } from '../../packets/research-types';
-import { assertExecutionPlanRoute, type ExecutionPlan } from '../../planning/execution-plan';
-import { prepareResearchRunContext } from '../../research-context';
-import type { MastraGenerationResultLike, MastraGenerationStats } from '../../shared/stats';
-import {
-  beginMastraRun,
-  createMastraRunFinalizer,
-  finishMastraRun,
-  getMastraGenerationStats,
-  mastraOutcomeForError,
-} from '../../shared/telemetry';
-import { runTracingOptions } from '../../telemetry';
-import { createXauusdReportWorkflow } from '../../workflows/xauusd-report';
-import { assertCanonicalEvidence, checkCanonicalEvidence } from '../canonical/evidence';
-import { createXauusdMastraAgent } from './agent';
 import {
   baseContextForRun,
   blockedStats,
@@ -50,6 +22,28 @@ import {
   followupPacketFromReport,
   resolveXauusdMastraModel,
 } from './context';
+export { resolveXauusdMastraModel } from './context';
+import type { LanguageModel } from 'ai';
+
+import { estimateCostUsd } from '../../../cost';
+import { getDiagnosticContext, withDiagnostics } from '../../../diagnostics';
+import { createGenerationLedger, type GenerationLedger } from '../../../generation-ledger';
+import { getKestrelMastra } from '../../instance';
+import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../../logger';
+import { kestrelMemoryOptions } from '../../memory';
+import { prepareResearchRunContext } from '../../research-context';
+import { runTracingOptions } from '../../telemetry';
+import { createXauusdReportWorkflow } from '../../workflows/xauusd-report';
+import type { ChatModelResolution } from '../../../model';
+import { telemetryConfig } from '../../../telemetry';
+import type { ResolveModelEnv } from '../../../env-model-factory';
+import { assertCanonicalEvidence, checkCanonicalEvidence } from '../canonical/evidence';
+import { createXauusdMastraAgent } from './agent';
+import { manifestForCapability } from '../../capabilities';
+import {
+  assertExecutionPlanRoute,
+  type ExecutionPlan,
+} from '../../planning/execution-plan';
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
@@ -58,9 +52,17 @@ import {
 import { generateXauusdFollowup } from './report/report-generation';
 import { blockedXauusdResearchText } from './report/report-text';
 import type { XauusdResearchReport } from './report/report-types';
+import { collectXauusdResearchPacket } from '../../packets/research-packet';
+import type { XauusdResearchPacket } from '../../packets/research-types';
+import type { MastraGenerationResultLike, MastraGenerationStats } from '../../shared/stats';
+import {
+  beginMastraRun,
+  createMastraRunFinalizer,
+  finishMastraRun,
+  getMastraGenerationStats,
+  mastraOutcomeForError,
+} from '../../shared/telemetry';
 import { xauusdMastraConversationToolNames } from './tools';
-
-export { resolveXauusdMastraModel } from './context';
 
 export interface XauusdMastraSettings extends Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> {
   embeddingModel?: UserSettingsRow['embeddingModel'];
@@ -767,8 +769,9 @@ export async function runXauusdMastraConversationStream(
               providerId: resolution.providerId,
               bareModelId: resolution.bareModelId,
             },
-            memoryMode: (runContext.prepared.memoryDegraded ? 'degraded' : 'native') as
-              'native' | 'degraded',
+            memoryMode: (runContext.prepared.memoryDegraded
+              ? 'degraded'
+              : 'native') as 'native' | 'degraded',
             memoryBackfill: runContext.prepared.backfillAttempted,
           }),
         };

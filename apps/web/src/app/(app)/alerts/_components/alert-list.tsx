@@ -277,7 +277,7 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
           <span
             aria-hidden
             className={cn(
-              'bg-bg-elev-2 inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-white/5',
+              'inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-bg-elev-2',
               statusTone,
             )}
           >
@@ -299,18 +299,10 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
             </div>
             <div className="ml-1.5 flex items-center gap-1">
               {alert.channels.includes('email') && (
-                <IconMail
-                  className="text-fg-muted size-3.5"
-                  strokeWidth={2}
-                  title="Email delivery"
-                />
+                <IconMail className="text-fg-muted size-3.5" strokeWidth={2} title="Email delivery" />
               )}
               {alert.channels.includes('telegram') && (
-                <IconArrowRight
-                  className="text-fg size-3.5"
-                  strokeWidth={2}
-                  title="Telegram delivery"
-                />
+                <IconArrowRight className="text-fg size-3.5" strokeWidth={2} title="Telegram delivery" />
               )}
             </div>
           </div>

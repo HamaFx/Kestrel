@@ -19,9 +19,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BudgetExceededError,
   dailySpendUsd,
+  DEFAULT_MAX_DAILY_USD,
   DEFAULT_TURN_ESTIMATE_USD,
   enforceDailyBudget,
   estimateCostUsd,
+  estimateKnownCostUsd,
   getMonthlySpend,
   getProviderMonthlySpend,
   reconcileBudgetReservation,
@@ -30,6 +32,7 @@ import {
   reservedSpendUsd,
   resolveModelRate,
   tryReserveBudget,
+  UnknownModelPricingError,
 } from '../src/cost';
 
 vi.mock('server-only', () => ({}));
@@ -144,58 +147,66 @@ describe('Phase 1 cost aggregation invariants', () => {
 });
 
 describe('estimateCostUsd', () => {
-  it('returns 0 for zero tokens', () => {
-    expect(estimateCostUsd('openai/gpt-4.1', 0, 0)).toBe(0);
+  it.each([
+    // The live catalog wins over the conservative STATIC_RATES bound.
+    ['openai/gpt-4.1', 1_000_000, 1_000_000, 2 + 8],
+    // Not in the catalog — priced from the static table ($0.4/M in, $1.6/M out).
+    ['openai/gpt-4.1-mini', 1_000_000, 1_000_000, 0.4 + 1.6],
+    ['google/gemini-2.5-flash-lite', 1_000_000, 1_000_000, 0.1 + 0.4],
+    ['google/gemini-3.5-flash', 1_000_000, 1_000_000, 1.5 + 9.0],
+    // Bare BYOK id is normalized to the gateway id (google/ prefix).
+    ['gemini-3.5-flash', 1_000_000, 1_000_000, 1.5 + 9.0],
+    ['gemini-2.5-pro', 1_000_000, 0, 1.25],
+    ['google/gemini-2.5-pro', 1_000_000, 0, 1.25],
+    ['anthropic/claude-3.7-sonnet', 1_000_000, 1_000_000, 3 + 15],
+    ['anthropic/claude-sonnet-4', 1_000_000, 1_000_000, 3 + 15],
+    ['deepseek/deepseek-v4-flash', 1_000_000, 500_000, 0.14 + 0.14],
+    // Fractional token counts scale linearly.
+    ['openai/gpt-4.1', 500_000, 250_000, 2 * 0.5 + 8 * 0.25],
+    // Safety fallback rate $5/M in, $15/M out.
+    ['does-not-exist/x', 1_000_000, 1_000_000, 20],
+    // Zero tokens cost nothing.
+    ['openai/gpt-4.1', 0, 0, 0],
+  ])('prices %s (%i in / %i out) at %f USD', (model, inputTokens, outputTokens, expected) => {
+    expect(estimateCostUsd(model, inputTokens, outputTokens)).toBeCloseTo(expected, 6);
   });
 
-  it('uses the listed gpt-4.1 rates', () => {
-    // gpt-4.1 is priced by the live catalog ($2/M in, $8/M out), which
-    // wins over the STATIC_RATES upper bound ($5/M in, $15/M out).
-    expect(estimateCostUsd('openai/gpt-4.1', 1_000_000, 1_000_000)).toBeCloseTo(2 + 8, 6);
+  it('returns negative cost for negative tokens (caller must validate)', () => {
+    // estimateCostUsd is a pure calculation; negative tokens produce
+    // negative costs. Callers are responsible for clamping inputs.
+    const cost = estimateCostUsd('any/model', -100, -50);
+    expect(cost).toBeLessThan(0);
+  });
+});
+
+describe('estimateKnownCostUsd — strict accounting', () => {
+  it('prices known models at their exact configured rate', () => {
+    // gemini-2.5-flash: $0.30/M input, $2.50/M output
+    // 1000 input + 200 output tokens
+    expect(estimateKnownCostUsd('google/gemini-2.5-flash', 1_000, 200)).toBeCloseTo(0.0008, 6);
   });
 
-  it('falls back to the safety rate for unknown models', () => {
-    expect(estimateCostUsd('does-not-exist/x', 1_000_000, 1_000_000)).toBeCloseTo(20, 6);
+  it('resolves the bare BYOK Gemini id exactly like the gateway id', () => {
+    expect(estimateKnownCostUsd('gemini-2.5-flash', 1_000, 100)).toBe(
+      estimateKnownCostUsd('google/gemini-2.5-flash', 1_000, 100),
+    );
   });
 
-  it('mini model is much cheaper', () => {
-    // gpt-4.1 resolves to the catalog rate ($2/M in, $8/M out); the mini
-    // stays on its static rate ($0.4/M in, $1.6/M out) — exactly 5x
-    // cheaper, so assert against main/4 to stay clear of the boundary.
-    const main = estimateCostUsd('openai/gpt-4.1', 100_000, 50_000);
-    const mini = estimateCostUsd('openai/gpt-4.1-mini', 100_000, 50_000);
-    expect(mini).toBeLessThan(main / 4);
+  it('fails closed for unknown models when strict accounting is requested', () => {
+    expect(() => estimateKnownCostUsd('unknown/model', 1_000, 100)).toThrow(
+      UnknownModelPricingError,
+    );
   });
 
-  it('prices bare BYOK Gemini id like the gateway id', () => {
-    const bare = estimateCostUsd('gemini-2.5-pro', 1_000_000, 0);
-    const gateway = estimateCostUsd('google/gemini-2.5-pro', 1_000_000, 0);
-    expect(bare).toBeCloseTo(gateway, 6);
-  });
-
-  it('still falls back for genuinely unknown providers', () => {
-    expect(estimateCostUsd('does-not-exist/x', 1_000_000, 1_000_000)).toBeCloseTo(20, 6);
-  });
-
-  it('calculates fractional tokens correctly', () => {
-    // Catalog rates for gpt-4.1: $2/M input, $8/M output.
-    const cost = estimateCostUsd('openai/gpt-4.1', 500_000, 250_000);
-    expect(cost).toBeCloseTo(2 * 0.5 + 8 * 0.25, 6);
-  });
-
-  it('prices google/gemini-2.5-flash-lite at its listed rate', () => {
-    const cost = estimateCostUsd('google/gemini-2.5-flash-lite', 1_000_000, 1_000_000);
-    expect(cost).toBeCloseTo(0.1 + 0.4, 6);
-  });
-
-  it('prices anthropic/claude-3.7-sonnet correctly', () => {
-    const cost = estimateCostUsd('anthropic/claude-3.7-sonnet', 1_000_000, 1_000_000);
-    expect(cost).toBeCloseTo(3 + 15, 6);
-  });
-
-  it('prices anthropic/claude-sonnet-4 correctly', () => {
-    const cost = estimateCostUsd('anthropic/claude-sonnet-4', 1_000_000, 1_000_000);
-    expect(cost).toBeCloseTo(3 + 15, 6);
+  it.each([
+    ['negative input tokens', -1, 0],
+    ['negative output tokens', 0, -1],
+    ['NaN input tokens', Number.NaN, 0],
+    ['infinite output tokens', 0, Number.POSITIVE_INFINITY],
+  ])('rejects %s', (_label, inputTokens, outputTokens) => {
+    expect(() =>
+      estimateKnownCostUsd('google/gemini-2.5-flash', inputTokens, outputTokens),
+    ).toThrow('token counts must be finite and non-negative');
   });
 });
 
@@ -224,6 +235,12 @@ describe('catalog precedence over STATIC_RATES', () => {
 describe('DEFAULT_TURN_ESTIMATE_USD', () => {
   it('is 0.01 USD', () => {
     expect(DEFAULT_TURN_ESTIMATE_USD).toBe(0.01);
+  });
+});
+
+describe('DEFAULT_MAX_DAILY_USD', () => {
+  it('is a positive last-resort daily cap', () => {
+    expect(DEFAULT_MAX_DAILY_USD).toBeGreaterThan(0);
   });
 });
 

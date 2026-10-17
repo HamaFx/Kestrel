@@ -34,10 +34,7 @@ describe('canonical evidence check', () => {
 
   it('recognizes all 13 canonical/specialist tools as market data tools (P1-06)', () => {
     const technicalResult = [
-      {
-        name: 'analyze_technical',
-        resultText: '{"summary":{"trend":"bullish","rsi":65.5,"keyLevels":[2650.5]}}',
-      },
+      { name: 'analyze_technical', resultText: '{"summary":{"trend":"bullish","rsi":65.5,"keyLevels":[2650.5]}}' },
     ];
     expect(checkCanonicalEvidence('RSI is at 65.5 and level is 2650.5.', technicalResult)).toEqual({
       ok: true,
@@ -54,7 +51,9 @@ describe('canonical evidence check', () => {
       numericClaimCount: 1,
     });
 
-    const riskResult = [{ name: 'compute_risk', resultText: '{"var95":1250.75}' }];
+    const riskResult = [
+      { name: 'compute_risk', resultText: '{"var95":1250.75}' },
+    ];
     expect(checkCanonicalEvidence('Value at risk is 1250.75.', riskResult)).toEqual({
       ok: true,
       findings: [],
@@ -64,9 +63,7 @@ describe('canonical evidence check', () => {
     const committeeResult = [
       { name: 'convene_committee', resultText: '{"fusion":{"entry":2645.5}}' },
     ];
-    expect(
-      checkCanonicalEvidence('Committee recommended entry at 2645.5.', committeeResult),
-    ).toEqual({
+    expect(checkCanonicalEvidence('Committee recommended entry at 2645.5.', committeeResult)).toEqual({
       ok: true,
       findings: [],
       numericClaimCount: 1,

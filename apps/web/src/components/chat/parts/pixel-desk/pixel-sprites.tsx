@@ -63,31 +63,19 @@ function InstrumentGlyph({
  * Technical Structure Glyph — Minimalist candlestick & structure level vector
  */
 export function ChartWizardSprite({ className, isThinking, bias, style }: SpriteProps) {
-  const stroke = bias === 'bearish' ? '#e02c10' : bias === 'bullish' ? '#3f9e3d' : '#f0f0f0';
+  const stroke =
+    bias === 'bearish' ? '#e02c10' : bias === 'bullish' ? '#3f9e3d' : '#f0f0f0';
 
   return (
-    <InstrumentGlyph style={style} className={cn(isThinking && 'border-fg/30', className)}>
+    <InstrumentGlyph
+      style={style}
+      className={cn(isThinking && 'border-fg/30', className)}
+    >
       <line x1="6" y1="6" x2="6" y2="18" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" />
       <rect x="4.5" y="9" width="3" height="6" rx="0.75" fill={stroke} />
-      <line
-        x1="12"
-        y1="8"
-        x2="12"
-        y2="19"
-        stroke="#8e8e8e"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <line x1="12" y1="8" x2="12" y2="19" stroke="#8e8e8e" strokeWidth="1.5" strokeLinecap="round" />
       <rect x="10.5" y="11" width="3" height="5" rx="0.75" fill="#8e8e8e" />
-      <line
-        x1="18"
-        y1="4"
-        x2="18"
-        y2="16"
-        stroke={stroke}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <line x1="18" y1="4" x2="18" y2="16" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" />
       <rect x="16.5" y="6" width="3" height="6.5" rx="0.75" fill={stroke} />
     </InstrumentGlyph>
   );
@@ -97,25 +85,21 @@ export function ChartWizardSprite({ className, isThinking, bias, style }: Sprite
  * Macro & Rates Glyph — Yield curve & central bank differential vector
  */
 export function MacroMageSprite({ className, isThinking, bias, style }: SpriteProps) {
-  const stroke = bias === 'bearish' ? '#e02c10' : bias === 'bullish' ? '#3f9e3d' : '#4fa3b5';
+  const stroke =
+    bias === 'bearish' ? '#e02c10' : bias === 'bullish' ? '#3f9e3d' : '#4fa3b5';
 
   return (
-    <InstrumentGlyph style={style} className={cn(isThinking && 'border-fg/30', className)}>
+    <InstrumentGlyph
+      style={style}
+      className={cn(isThinking && 'border-fg/30', className)}
+    >
       <path
         d="M4 17C7 16.5 9.5 14 12 11.5C14.5 9 17 7.5 20 7"
         stroke={stroke}
         strokeWidth="1.75"
         strokeLinecap="round"
       />
-      <line
-        x1="4"
-        y1="19"
-        x2="20"
-        y2="19"
-        stroke="#727272"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-      />
+      <line x1="4" y1="19" x2="20" y2="19" stroke="#727272" strokeWidth="1.25" strokeLinecap="round" />
       <circle cx="18.5" cy="7.2" r="2" fill={stroke} />
     </InstrumentGlyph>
   );
@@ -126,25 +110,24 @@ export function MacroMageSprite({ className, isThinking, bias, style }: SpritePr
  */
 export function RiskKnightSprite({ className, isThinking, bias, hasAlarm, style }: SpriteProps) {
   const stroke =
-    hasAlarm || bias === 'bearish' ? '#e02c10' : bias === 'bullish' ? '#3f9e3d' : '#d98f00';
+    hasAlarm || bias === 'bearish'
+      ? '#e02c10'
+      : bias === 'bullish'
+        ? '#3f9e3d'
+        : '#d98f00';
 
   return (
-    <InstrumentGlyph style={style} className={cn(isThinking && 'border-fg/30', className)}>
+    <InstrumentGlyph
+      style={style}
+      className={cn(isThinking && 'border-fg/30', className)}
+    >
       <path
         d="M12 3.5L19 6.5V11.5C19 16 15.9 19.6 12 20.8C8.1 19.6 5 16 5 11.5V6.5L12 3.5Z"
         stroke={stroke}
         strokeWidth="1.6"
         strokeLinejoin="round"
       />
-      <line
-        x1="9"
-        y1="12"
-        x2="15"
-        y2="12"
-        stroke="#f0f0f0"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <line x1="9" y1="12" x2="15" y2="12" stroke="#f0f0f0" strokeWidth="1.5" strokeLinecap="round" />
     </InstrumentGlyph>
   );
 }
@@ -153,21 +136,17 @@ export function RiskKnightSprite({ className, isThinking, bias, hasAlarm, style 
  * Sentiment & Positioning Glyph — COT institutional flow radar vector
  */
 export function KestrelFalconSprite({ className, isThinking, bias, style }: SpriteProps) {
-  const stroke = bias === 'bearish' ? '#e02c10' : bias === 'bullish' ? '#3f9e3d' : '#ff3616';
+  const stroke =
+    bias === 'bearish' ? '#e02c10' : bias === 'bullish' ? '#3f9e3d' : '#ff3616';
 
   return (
-    <InstrumentGlyph style={style} className={cn(isThinking && 'border-fg/30', className)}>
+    <InstrumentGlyph
+      style={style}
+      className={cn(isThinking && 'border-fg/30', className)}
+    >
       <circle cx="12" cy="12" r="7.5" stroke="#727272" strokeWidth="1.25" />
       <circle cx="12" cy="12" r="3.5" stroke={stroke} strokeWidth="1.5" />
-      <line
-        x1="12"
-        y1="12"
-        x2="17.2"
-        y2="6.8"
-        stroke={stroke}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
+      <line x1="12" y1="12" x2="17.2" y2="6.8" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" />
     </InstrumentGlyph>
   );
 }

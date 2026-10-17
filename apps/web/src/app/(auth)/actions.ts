@@ -26,6 +26,7 @@ import {
   userExistsByEmail,
   withRateLimit,
 } from '@kestrel/db';
+import { logActionError, withServerActionLogging } from '@/lib/action-errors';
 import bcrypt from 'bcryptjs';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { AuthError } from 'next-auth';
@@ -34,7 +35,6 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { signIn } from '@/auth';
-import { logActionError, withServerActionLogging } from '@/lib/action-errors';
 import { recordAuthEvent } from '@/lib/auth-anomaly';
 import { generateToken, hashToken } from '@/lib/auth-tokens';
 import { isFailedSignIn } from '@/lib/auth/sign-in-result';
@@ -188,7 +188,7 @@ export async function loginAction(
         }
         if (message === 'AUTH_SYSTEM_ERROR' || message === 'SESSION_SYSTEM_ERROR') {
           logActionError(error, 'loginAction');
-          return { error: 'Unable to sign in right now. Please try again.' };
+      return { error: 'Unable to sign in right now. Please try again.' };
         }
         return invalidCredentialsState();
       }

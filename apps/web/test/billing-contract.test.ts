@@ -46,11 +46,7 @@ const mockCountStaleBillingWebhookFailures = vi.hoisted(() => vi.fn());
 const mockLoggerError = vi.hoisted(() => vi.fn());
 const mockLoggerWarn = vi.hoisted(() => vi.fn());
 const mockLoggerInfo = vi.hoisted(() => vi.fn());
-const mockLogger = vi.hoisted(() => ({
-  error: mockLoggerError,
-  warn: mockLoggerWarn,
-  info: mockLoggerInfo,
-}));
+const mockLogger = vi.hoisted(() => ({ error: mockLoggerError, warn: mockLoggerWarn, info: mockLoggerInfo }));
 
 vi.mock('@/auth', () => ({ auth: mockAuth }));
 vi.mock('@/lib/admin-auth', () => ({

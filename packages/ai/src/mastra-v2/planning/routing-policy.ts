@@ -4,12 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
-import {
-  ALL_SYMBOLS,
-  extractSymbolsFromText,
-  isKnownSymbol,
-  normalizeSymbol,
-} from '@kestrel/shared';
+import { extractSymbolsFromText } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import {

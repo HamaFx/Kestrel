@@ -56,10 +56,11 @@ export function setup() {
 
     // Warm model config PUT path (may 400 if model not in spec — still primes JIT)
     expectOk(
-      putJson('/api/settings/chat-model', 'warmup', {
-        providerId: 'google',
-        modelId: 'gemini-2.5-pro',
-      }),
+      putJson(
+        '/api/settings/chat-model',
+        'warmup',
+        { providerId: 'google', modelId: 'gemini-2.5-pro' },
+      ),
     );
   }
 

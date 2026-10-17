@@ -34,8 +34,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { getDb, schema } from '@kestrel/db/client';
 import { desc, gte } from 'drizzle-orm';
+
+import { getDb, schema } from '@kestrel/db/client';
 
 import {
   compareEvalBaseline,
@@ -43,7 +44,11 @@ import {
   serializeEvalBaseline,
   type EvalBaselineArtifact,
 } from '../src/eval/baseline';
-import { getKestrelMastra, listScoresForRun, recordsToGateObserved } from '../src/mastra-v2/index';
+import {
+  getKestrelMastra,
+  listScoresForRun,
+  recordsToGateObserved,
+} from '../src/mastra-v2/index';
 
 const DEFAULT_BASELINE_PATH = fileURLToPath(
   new URL('../../../docs/archive/audit-v2/eval-baseline.json', import.meta.url),

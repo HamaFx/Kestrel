@@ -16,8 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { xauusdFundamentalContextTool } from '../src/mastra-v2/agents/xauusd/tools';
 import { XauusdFundamentalContextInputSchema } from '../src/mastra-v2/agents/xauusd/tools/fundamental-context-tool';
+import { xauusdFundamentalContextTool } from '../src/mastra-v2/agents/xauusd/tools';
 
 const mocks = vi.hoisted(() => ({
   fetchXauusdMacroData: vi.fn(),

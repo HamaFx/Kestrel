@@ -19,7 +19,6 @@ import { randomUUID } from 'node:crypto';
 import { getCandlesWithMeta, getPriceWithMeta } from '@kestrel/data';
 import { computeIndicator } from '@kestrel/indicators';
 import {
-  ALL_SYMBOLS,
   CandleSchema,
   extractSymbolsFromText,
   IndicatorRequestSchema,
