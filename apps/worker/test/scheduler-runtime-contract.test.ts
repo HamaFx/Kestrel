@@ -6,9 +6,9 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(resolve(process.cwd(), 'src/scheduler.ts'), 'utf8');
 
 describe('scheduler runtime reliability', () => {
-  it('retries lock acquisition before proceeding without the guard', () => {
+  it('retries lock acquisition before failing closed', () => {
     expect(source).toContain('retrying once');
-    expect(source).toContain('proceeding without idempotency guard');
+    expect(source).toContain('failing closed to prevent duplicate execution');
   });
 
   it('does not release the overlap guard while an uncooperative job is running', () => {

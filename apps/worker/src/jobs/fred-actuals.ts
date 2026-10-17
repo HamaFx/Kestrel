@@ -109,6 +109,7 @@ export async function runFredActuals(ctx: JobContext): Promise<JobResult> {
         seriesId: meta.seriesId,
         start,
         end,
+        signal: ctx.signal,
       });
       if (obs.length === 0) continue;
 
