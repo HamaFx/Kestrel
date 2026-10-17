@@ -45,6 +45,8 @@ export interface ProviderFetchOptions {
 export interface ProviderPriceSnapshot {
   price: number;
   provider: string;
+  /** Exact observation timestamp (ms epoch) reported by the upstream provider. */
+  observedAt?: number;
   /** ms since the upstream observed the value. null for REST providers that don't report quote age. */
   ageMs?: number | null;
   /** Market session state ('open' | 'closed') when reported by the provider. */

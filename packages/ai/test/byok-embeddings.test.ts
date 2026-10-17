@@ -17,8 +17,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildByokEmbeddingModel } from '../src/byok-providers';
-import { resolveEmbeddingModelDetails } from '../src/model-embedding';
 import { kestrelMemoryOptions } from '../src/mastra-v2/memory';
+import { resolveEmbeddingModelDetails } from '../src/model-embedding';
 
 vi.mock('@kestrel/shared/encryption', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@kestrel/shared/encryption')>();

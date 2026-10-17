@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import {
   IconCheck,
   IconCircleCheck,
@@ -619,9 +618,7 @@ export function AdminPlatformConfig() {
                         : `Paste ${p.displayName} API key...`
                     }
                     value={draftVal}
-                    onChange={(e) =>
-                      setKeyDrafts((prev) => ({ ...prev, [p.id]: e.target.value }))
-                    }
+                    onChange={(e) => setKeyDrafts((prev) => ({ ...prev, [p.id]: e.target.value }))}
                   />
                   <Button
                     type="button"
@@ -664,7 +661,9 @@ export function AdminPlatformConfig() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-fg text-xs font-semibold">Vision / Chart Screenshot Model</label>
+              <label className="text-fg text-xs font-semibold">
+                Vision / Chart Screenshot Model
+              </label>
               <select
                 value={visionModel}
                 onChange={(e) => setVisionModel(e.target.value)}

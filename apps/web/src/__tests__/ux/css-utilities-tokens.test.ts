@@ -19,9 +19,9 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
 
 import { colors, radii } from '@kestrel/config/tailwind/tokens';
+import { describe, expect, it } from 'vitest';
 
 const globalsCssPath = path.resolve(__dirname, '../../app/globals.css');
 const layoutTsxPath = path.resolve(__dirname, '../../app/layout.tsx');
@@ -64,7 +64,9 @@ describe('Tier 1: CSS Utility & Design Token Contracts', () => {
     });
 
     it('ensures micro-press displacement is strictly positive 0.5px downward depression in tactile utilities', () => {
-      const tactileMatch = globalsCss.match(/@utility\s+(?:tactile|chip)-press\s*\{[^}]*&:active\s*\{[^}]*transform:\s*translateY\(([^)]+)\);/g);
+      const tactileMatch = globalsCss.match(
+        /@utility\s+(?:tactile|chip)-press\s*\{[^}]*&:active\s*\{[^}]*transform:\s*translateY\(([^)]+)\);/g,
+      );
       expect(tactileMatch).not.toBeNull();
       expect(tactileMatch!.length).toBe(2);
       for (const block of tactileMatch!) {
@@ -177,7 +179,9 @@ describe('Tier 2: Boundary & Corner Cases in CSS and Viewports', () => {
   });
 
   it('guarantees no fractional pixel borders (0.5px, 0.714px) remain in any surface utility', () => {
-    const surfaceBlockMatch = globalsCss.match(/Tactile & Neo-Skeuomorphic Surface Utilities[\s\S]*?@utility border-chip-edge/);
+    const surfaceBlockMatch = globalsCss.match(
+      /Tactile & Neo-Skeuomorphic Surface Utilities[\s\S]*?@utility border-chip-edge/,
+    );
     expect(surfaceBlockMatch).not.toBeNull();
     const block = surfaceBlockMatch![0];
     expect(block).not.toContain('0.5px solid');

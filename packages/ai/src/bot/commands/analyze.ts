@@ -74,9 +74,7 @@ export const analyzeCommand: BotCommand = {
 
     // Support "/analyze XAUUSD full" or "/analyze XAUUSD 1h full"
     const parsedMode =
-      parseTelegramAnalysisMode(args[1]) ??
-      parseTelegramAnalysisMode(args[2]) ??
-      'single';
+      parseTelegramAnalysisMode(args[1]) ?? parseTelegramAnalysisMode(args[2]) ?? 'single';
 
     // Rate limit: 10 analyses per minute per user
     const rateLimit = await withRateLimit(ctx.userId, 'bot_analyze', 10);

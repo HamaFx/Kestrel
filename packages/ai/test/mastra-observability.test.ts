@@ -205,7 +205,8 @@ describe('mastra observability — telemetry helpers', () => {
   });
 
   it('recovers committee failure detail (strict failure + verifier findings) from the snapshot', () => {
-    const findings = 'Fusion verification failed after repair: number 2142.60 not grounded; date 2026-10-12 not grounded';
+    const findings =
+      'Fusion verification failed after repair: number 2142.60 not grounded; date 2026-10-12 not grounded';
     const snapshot = {
       status: 'failed',
       steps: {
@@ -218,14 +219,16 @@ describe('mastra observability — telemetry helpers', () => {
           status: 'failed',
           error: {
             name: 'MastraModeStrictFailureError',
-            message: 'Mastra analysis could not complete. Failed agents: fusion. No partial answer was returned — please retry.',
+            message:
+              'Mastra analysis could not complete. Failed agents: fusion. No partial answer was returned — please retry.',
             cause: { name: 'Error', message: findings },
           },
         },
       },
       error: {
         name: 'MastraModeStrictFailureError',
-        message: 'Mastra analysis could not complete. Failed agents: fusion. No partial answer was returned — please retry.',
+        message:
+          'Mastra analysis could not complete. Failed agents: fusion. No partial answer was returned — please retry.',
         cause: { name: 'Error', message: findings },
       },
     } as never;
@@ -251,7 +254,10 @@ describe('mastra observability — telemetry helpers', () => {
         input: { symbol: 'XAUUSD' },
         fusion: {
           status: 'failed',
-          error: { name: 'Error', message: 'Committee analysis timed out during fusion — please retry.' },
+          error: {
+            name: 'Error',
+            message: 'Committee analysis timed out during fusion — please retry.',
+          },
         },
       },
       error: { name: 'Error', message: 'workflow crashed' },

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+import type { XauusdResearchPacket } from '../../../packets/research-types';
 import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
 import { verifyXauusdReport } from './report-verifier';
-import type { XauusdResearchPacket } from '../../../packets/research-types';
 
 const TIMEFRAME_CONFLICT_FINDING =
   'The report did not disclose a conflict between timeframe trend signals.';

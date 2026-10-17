@@ -22,7 +22,7 @@ import { padFront } from './util';
 
 export function atr(candles: Candle[], period = 14): (number | null)[] {
   if (period < 1) throw new Error('atr: period must be >= 1');
-  if (candles.length <= period) return Array(candles.length).fill(null);
+  if (candles.length < period) return Array(candles.length).fill(null);
 
   // True Range[i] = max(high - low, |high - prevClose|, |low - prevClose|)
   // TR[0] is undefined — we use range as a fallback.

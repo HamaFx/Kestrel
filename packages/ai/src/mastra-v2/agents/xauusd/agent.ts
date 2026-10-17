@@ -22,14 +22,14 @@ import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
+import type { XauusdResearchPacket } from '../../packets/research-types';
+import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../shared/types';
 import {
   MODEL_CONTEXT_CANDLE_LIMIT,
   MODEL_CONTEXT_INDICATOR_LIMIT,
   serializeXauusdModelEvidenceContext,
 } from './model-context';
-import type { XauusdResearchPacket } from '../../packets/research-types';
 import { xauusdMastraTools } from './tools';
-import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../shared/types';
 
 const alog = createCategorizedLogger('ai', {
   component: 'mastra-xauusd-agent',

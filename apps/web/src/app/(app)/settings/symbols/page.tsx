@@ -66,6 +66,5 @@ export default async function SymbolsSettingsPage() {
 
       <SymbolsForm initialSymbols={symbols} catalog={catalog} />
     </div>
-
   );
 }

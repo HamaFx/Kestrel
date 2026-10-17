@@ -51,10 +51,10 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         <p className="text-fg-muted max-w-sm text-sm">A stop-loss kicked in. Please try again.</p>
         {(errorMessage || error?.digest) && (
           <details className="text-fg-muted bg-bg/50 border-border/50 mt-2 max-w-md rounded border px-3 py-2 text-left font-mono text-xs">
-            <summary className="cursor-pointer select-none text-[11px] opacity-75 hover:opacity-100">
+            <summary className="cursor-pointer text-[11px] opacity-75 select-none hover:opacity-100">
               Technical details {error?.digest ? `(ID: ${error.digest})` : ''}
             </summary>
-            <div className="mt-2 break-words text-[11px]">
+            <div className="mt-2 text-[11px] break-words">
               {errorMessage && <p className="text-danger/90">{errorMessage}</p>}
               {error?.digest && <p className="text-fg-subtle mt-1">Digest: {error.digest}</p>}
             </div>

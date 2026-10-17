@@ -48,11 +48,17 @@ export async function runSnapshots(ctx: JobContext): Promise<JobResult> {
 
   for (const symbol of ALL_SYMBOLS) {
     if (ctx.signal?.aborted) {
-      log.warn('snapshots aborted mid-loop', { processed, remaining: ALL_SYMBOLS.length - processed });
+      log.warn('snapshots aborted mid-loop', {
+        processed,
+        remaining: ALL_SYMBOLS.length - processed,
+      });
       break;
     }
     try {
-      const candles = await getCandles(symbol, SOURCE_TF, { count: SOURCE_COUNT });
+      const candles = await getCandles(symbol, SOURCE_TF, {
+        count: SOURCE_COUNT,
+        signal: ctx.signal,
+      });
       const data = computeDailySnapshot({ candles, asOf });
       await upsertSnapshot({ symbol, kind: 'daily', asOf, data });
       processed += 1;

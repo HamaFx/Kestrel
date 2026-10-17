@@ -463,12 +463,45 @@ export const SYMBOL_MAP: ReadonlyMap<string, SymbolDefinition> = new Proxy(SYMBO
   },
 });
 
-/** Canonicalize user/provider input without accepting unsupported aliases. */
+const SYMBOL_ALIAS_MAP: Readonly<Record<string, string>> = {
+  GOLD: 'XAUUSD',
+  XAU: 'XAUUSD',
+  SPOTGOLD: 'XAUUSD',
+  CABLE: 'GBPUSD',
+  FIBRE: 'EURUSD',
+  FIBER: 'EURUSD',
+  BTC: 'BTCUSDT',
+  BTCUSD: 'BTCUSDT',
+  XBTUSD: 'BTCUSDT',
+  XBTUSDT: 'BTCUSDT',
+  BITCOIN: 'BTCUSDT',
+  ETH: 'ETHUSDT',
+  ETHUSD: 'ETHUSDT',
+  ETHEREUM: 'ETHUSDT',
+  SOL: 'SOLUSDT',
+  SOLUSD: 'SOLUSDT',
+  SOLANA: 'SOLUSDT',
+  BNB: 'BNBUSDT',
+  BNBUSD: 'BNBUSDT',
+  XRP: 'XRPUSDT',
+  XRPUSD: 'XRPUSDT',
+  RIPPLE: 'XRPUSDT',
+  ADA: 'ADAUSDT',
+  ADAUSD: 'ADAUSDT',
+  CARDANO: 'ADAUSDT',
+};
+
+/** Canonicalize user/provider input and resolve common exchange/natural-language aliases. */
 export function normalizeSymbol(symbol: string): string {
-  return symbol.trim().toUpperCase();
+  const cleaned = symbol
+    .trim()
+    .toUpperCase()
+    .replace(/^(?:OANDA|BINANCE|FOREX|CRYPTO|FX|SPOT):/, '')
+    .replace(/[\s/_-]+/g, '');
+  return SYMBOL_ALIAS_MAP[cleaned] ?? cleaned;
 }
 
-/** Check if a string is a known canonical symbol. */
+/** Check if a string is a known canonical symbol (or known alias). */
 export function isKnownSymbol(symbol: string): boolean {
   return SYMBOL_MAP.has(normalizeSymbol(symbol));
 }
@@ -559,4 +592,66 @@ export function symbolsByCategory(category: SymbolCategory): string[] {
 /** Category for a symbol, or null for an unsupported input. */
 export function symbolCategory(symbol: string): SymbolCategory | null {
   return tryGetSymbolDefinition(symbol)?.category ?? null;
+}
+
+/**
+ * Patterns matching natural-language asset names and nicknames to their canonical internal symbols.
+ */
+export const PROMPT_SYMBOL_PATTERNS: ReadonlyArray<{
+  readonly regex: RegExp;
+  readonly canonical: string;
+}> = [
+  { regex: /\bgold\b/i, canonical: 'XAUUSD' },
+  { regex: /\b(?:bitcoin|btc)\b/i, canonical: 'BTCUSDT' },
+  { regex: /\b(?:ethereum|ether|eth)\b/i, canonical: 'ETHUSDT' },
+  { regex: /\b(?:solana|sol)\b/i, canonical: 'SOLUSDT' },
+  { regex: /\bcable\b/i, canonical: 'GBPUSD' },
+  { regex: /\b(?:fiber|fibre)\b/i, canonical: 'EURUSD' },
+];
+
+/**
+ * Extract all recognized symbols mentioned in a natural-language text.
+ * Handles canonical tickers, slashed pairs (EUR/USD, BTC/USDT), exchange prefixes (BINANCE:BTCUSDT),
+ * and common natural language aliases (Bitcoin, Gold, Cable, Fiber).
+ */
+export function extractSymbolsFromText(text: string): string[] {
+  const matched = new Set<string>();
+
+  // 1. Natural language aliases & nicknames
+  for (const { regex, canonical } of PROMPT_SYMBOL_PATTERNS) {
+    if (regex.test(text)) {
+      matched.add(canonical);
+    }
+  }
+
+  // 2. Slashed pairs (e.g. EUR/USD, BTC/USD, BTC/USDT)
+  const slashedMatches = text.matchAll(/\b([A-Za-z]{3,6})\s*\/\s*([A-Za-z]{3,6})\b/g);
+  for (const m of slashedMatches) {
+    const raw = `${m[1]}${m[2]}`;
+    const norm = normalizeSymbol(raw);
+    if (isKnownSymbol(norm)) {
+      matched.add(norm);
+    }
+  }
+
+  // 3. Word tokens (canonical tickers, uppercase aliases, exchange:ticker)
+  const wordMatches = text.matchAll(/\b([A-Za-z0-9_:]+)\b/g);
+  for (const m of wordMatches) {
+    const token = m[1];
+    if (!token) continue;
+    const upper = token.toUpperCase();
+    if (SYMBOL_ALIAS_MAP[upper] || BUILTIN_SYMBOLS.some((s) => s.internal === upper)) {
+      const norm = normalizeSymbol(token);
+      if (isKnownSymbol(norm)) {
+        matched.add(norm);
+      }
+    } else if (token.includes(':') || token.includes('_')) {
+      const norm = normalizeSymbol(token);
+      if (isKnownSymbol(norm)) {
+        matched.add(norm);
+      }
+    }
+  }
+
+  return [...matched];
 }

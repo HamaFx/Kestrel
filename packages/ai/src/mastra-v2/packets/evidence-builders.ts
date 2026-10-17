@@ -17,7 +17,6 @@
 import type { CandlesResult, PriceResult } from '@kestrel/data';
 import type { IndicatorRequest, Timeframe } from '@kestrel/shared';
 
-import { createEvidenceId, freshnessFromAge, qualityFromWarnings } from './evidence';
 import {
   XAUUSD,
   XauusdCandlesEvidenceSchema,
@@ -27,6 +26,7 @@ import {
   type XauusdIndicatorsEvidence,
   type XauusdPriceEvidence,
 } from '../shared/types';
+import { createEvidenceId, freshnessFromAge, qualityFromWarnings } from './evidence';
 import { computeIndicatorMemo } from './symbol-research';
 
 function iso(ms: number): string {
@@ -62,7 +62,7 @@ export function buildCandlesEvidence(
   timeframe: Timeframe,
   requestedCount: number,
   result: CandlesResult,
-  maxOutput = 200,
+  maxOutput = 30,
 ): XauusdCandlesEvidence {
   const candles = result.candles.slice(-maxOutput);
   const latestCandle = candles.at(-1);

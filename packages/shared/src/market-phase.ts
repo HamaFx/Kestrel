@@ -74,29 +74,56 @@ export function isForexWeekend(now: Date = new Date()): boolean {
 }
 
 /**
+ * Helper to get weekday (0=Sun..6=Sat) and hour (0..23) in America/New_York.
+ */
+function getEasternTimeParts(date: Date): { day: number; hour: number; minute: number } {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'short',
+    hour: 'numeric',
+    minute: 'numeric',
+    hourCycle: 'h23',
+  });
+  const parts = formatter.formatToParts(date);
+  let weekdayStr = '';
+  let hour = 0;
+  let minute = 0;
+  for (const p of parts) {
+    if (p.type === 'weekday') weekdayStr = p.value;
+    else if (p.type === 'hour') hour = parseInt(p.value, 10);
+    else if (p.type === 'minute') minute = parseInt(p.value, 10);
+  }
+  const days: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  return { day: days[weekdayStr] ?? 0, hour: hour % 24, minute };
+}
+
+/**
  * Check if COMEX is open for gold trading.
- * COMEX (Globex) hours for gold futures (approximate, CME schedule):
- *   Opens Sunday 18:00 UTC, closes Friday 17:00 UTC.
- *   Daily pause: 17:00 – 18:00 UTC (maintenance).
- *
- * Note: COMEX opens at 18:00 UTC on Sunday, which is BEFORE the
- * forex market reopens at 22:00 UTC. So we do NOT use isForexWeekend
- * for the Sunday check — COMEX has its own schedule.
+ * COMEX (Globex) hours for gold futures (CME schedule):
+ *   Opens Sunday 18:00 America/New_York, closes Friday 17:00 America/New_York.
+ *   Daily maintenance pause: 17:00 – 18:00 America/New_York (Mon-Thu).
  */
 export function isComexOpen(now: Date = new Date()): boolean {
-  const day = now.getUTCDay();
-  const hour = now.getUTCHours();
+  const { day, hour } = getEasternTimeParts(now);
 
   // Saturday — COMEX is closed.
   if (day === 6) return false;
 
-  // Sunday — closed until 18:00 UTC.
+  // Sunday — closed until 18:00 ET.
   if (day === 0 && hour < 18) return false;
 
-  // Friday — closes at 17:00 UTC (maintenance starts).
+  // Friday — closes at 17:00 ET for the weekend.
   if (day === 5 && hour >= 17) return false;
 
-  // Daily maintenance pause 17:00 – 18:00 UTC.
+  // Daily maintenance pause 17:00 – 18:00 ET (Mon-Thu).
   if (hour === 17) return false;
 
   return true;
@@ -259,7 +286,7 @@ export function getMarketPhase(now: Date = new Date()): MarketPhaseContext {
  */
 export function describeMarketPhase(phase: MarketPhaseContext): string {
   if (!phase.isOpen) {
-    return 'Market is CLOSED (weekend). No active forex trading.';
+    return 'Market is CLOSED (weekend). No active forex trading. Note: Crypto markets (e.g. BTC, ETH, SOL) trade 24/7; FX and precious metals quotes reflect Friday close.';
   }
 
   const sessionNames: Record<ForexSession, string> = {

@@ -9,9 +9,7 @@ test.describe('Alerts CRUD Flow', () => {
 
     await expect(page.getByRole('heading', { name: 'Alerts', exact: true })).toBeVisible();
 
-    const openBtn = page
-      .getByRole('button', { name: /create alert|new alert/i })
-      .first();
+    const openBtn = page.getByRole('button', { name: /create alert|new alert/i }).first();
     await openBtn.click();
 
     await expect(page.getByRole('dialog')).toBeVisible();
@@ -31,7 +29,10 @@ test.describe('Alerts CRUD Flow', () => {
     await pauseBtn.click();
     await expect(page.getByRole('button', { name: /re-arm alert/i }).first()).toBeVisible();
 
-    await page.getByRole('button', { name: /delete alert/i }).first().click();
+    await page
+      .getByRole('button', { name: /delete alert/i })
+      .first()
+      .click();
     await page.getByRole('button', { name: 'Delete', exact: true }).click();
   });
 });

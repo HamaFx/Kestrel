@@ -194,13 +194,18 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
     },
   });
 
-  const { value } = await runWithFailover(attempts);
+  const { value } = await runWithFailover(
+    attempts,
+    opts.signal ? { signal: opts.signal } : undefined,
+  );
 
   // Optional symbol filter applied AFTER mapping so we still benefit from
   // dedupe across symbols within a single fetch.
   if (opts.symbol) {
     return value.filter(
-      (a) => a.symbols.includes(opts.symbol as Symbol) || a.symbols.includes('XAU'),
+      (a) =>
+        a.symbols.includes(opts.symbol as Symbol) ||
+        (opts.symbol === 'XAUUSD' && a.symbols.includes('XAU')),
     );
   }
   return value;
@@ -212,22 +217,40 @@ export async function fetchNews(opts: FetchNewsOptions = {}): Promise<NewsArticl
 
 /** Keywords that map to our supported symbols/currencies. */
 const SYMBOL_KEYWORDS: Array<[RegExp, SymbolOrCurrencyTag]> = [
-  [/\b(XAU|gold|XAUUSD)\b/i, 'XAUUSD'],
-  [/\b(EUR\/USD|EURUSD|euro)\b/i, 'EURUSD'],
-  [/\b(GBP\/USD|GBPUSD|sterling|pound)\b/i, 'GBPUSD'],
-  [/\b(USD\/JPY|USDJPY|yen)\b/i, 'USDJPY'],
+  [/\b(XAU|gold|spot\s+gold|XAUUSD)\b/i, 'XAUUSD'],
+  [/\b(EUR\/USD|EURUSD)\b/i, 'EURUSD'],
+  [/\b(GBP\/USD|GBPUSD|cable)\b/i, 'GBPUSD'],
+  [/\b(USD\/JPY|USDJPY|gopher)\b/i, 'USDJPY'],
   [/\b(AUD\/USD|AUDUSD|aussie)\b/i, 'AUDUSD'],
   [/\b(USD\/CAD|USDCAD|loonie)\b/i, 'USDCAD'],
   [/\b(NZD\/USD|NZDUSD|kiwi)\b/i, 'NZDUSD'],
-  [/\b(USD\/CHF|USDCHF|swissy|franc)\b/i, 'USDCHF'],
-  [/\b(BTC|bitcoin|BTCUSDT)\b/i, 'BTCUSDT'],
-  [/\b(ETH|ethereum|ETHUSDT)\b/i, 'ETHUSDT'],
+  [/\b(USD\/CHF|USDCHF|swissy)\b/i, 'USDCHF'],
+  [/\b(EUR\/GBP|EURGBP)\b/i, 'EURGBP'],
+  [/\b(EUR\/JPY|EURJPY)\b/i, 'EURJPY'],
+  [/\b(GBP\/JPY|GBPJPY|guppy|dragon)\b/i, 'GBPJPY'],
+  [/\b(AUD\/JPY|AUDJPY)\b/i, 'AUDJPY'],
+  [/\b(BTC|bitcoin|BTCUSDT|BTCUSD)\b/i, 'BTCUSDT'],
+  [/\b(ETH|ethereum|ether|ETHUSDT|ETHUSD)\b/i, 'ETHUSDT'],
+  [/\b(SOL|solana|SOLUSDT|SOLUSD)\b/i, 'SOLUSDT'],
+  [/\b(BNB|binance\s+coin|BNBUSDT|BNBUSD)\b/i, 'BNBUSDT'],
+  [/\b(XRP|ripple|XRPUSDT|XRPUSD)\b/i, 'XRPUSDT'],
+  [/\b(ADA|cardano|ADAUSDT|ADAUSD)\b/i, 'ADAUSDT'],
   [/\b(USD|dollar|greenback|DXY)\b/i, 'USD'],
   [/\b(EUR|euro)\b/i, 'EUR'],
   [/\b(GBP|pound|sterling)\b/i, 'GBP'],
+  [/\b(JPY|yen)\b/i, 'JPY'],
+  [/\b(AUD)\b/i, 'AUD'],
+  [/\b(CAD)\b/i, 'CAD'],
+  [/\b(NZD)\b/i, 'NZD'],
+  [/\b(CHF|franc)\b/i, 'CHF'],
   [/\b(Fed|FOMC|NFP|CPI|PCE)\b/i, 'USD'],
   [/\b(ECB)\b/i, 'EUR'],
   [/\b(BoE|BOE)\b/i, 'GBP'],
+  [/\b(BoJ|BOJ)\b/i, 'JPY'],
+  [/\b(RBA)\b/i, 'AUD'],
+  [/\b(BoC|BOC)\b/i, 'CAD'],
+  [/\b(RBNZ)\b/i, 'NZD'],
+  [/\b(SNB)\b/i, 'CHF'],
 ];
 
 function extractSymbolsFromText(

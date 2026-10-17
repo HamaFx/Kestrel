@@ -87,8 +87,8 @@ export function CalendarToolbar({
               className={cn(
                 'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all active:translate-y-[0.5px]',
                 active
-                  ? 'bg-fg border-transparent text-black font-bold shadow-sm'
-                  : 'surface-chip border-white/10 text-fg-muted hover:text-fg hover:border-white/20',
+                  ? 'bg-fg border-transparent font-bold text-black shadow-sm'
+                  : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
               )}
             >
               <span aria-hidden className={active ? '' : opt.tone}>
@@ -121,8 +121,8 @@ export function CalendarToolbar({
                 className={cn(
                   'text-body-sm inline-flex h-10 shrink-0 items-center rounded-lg border px-3 font-semibold uppercase tabular-nums transition-all active:translate-y-[0.5px]',
                   active
-                    ? 'bg-fg border-transparent text-black font-bold shadow-sm'
-                    : 'surface-chip border-white/10 text-fg-muted hover:text-fg hover:border-white/20',
+                    ? 'bg-fg border-transparent font-bold text-black shadow-sm'
+                    : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
                 )}
               >
                 {c.label}
@@ -138,8 +138,8 @@ export function CalendarToolbar({
           className={cn(
             'text-body-sm inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 font-semibold transition-all active:translate-y-[0.5px]',
             showPast
-              ? 'surface-panel border-white/20 text-fg'
-              : 'surface-chip border-white/10 text-fg-muted hover:text-fg hover:border-white/20',
+              ? 'surface-panel text-fg border-white/20'
+              : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
           )}
         >
           {showPast ? 'Hide past' : 'Show past'}

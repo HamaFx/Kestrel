@@ -132,10 +132,15 @@ describe('get_price — Phase 0.10', () => {
     expect(schema.safeParse({ symbols: [...canonicalSymbols, 'XAUUSD'] }).success).toBe(false);
   });
 
-  it('rejects unknown symbols', () => {
-    const schema = getPriceTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
-    expect(schema.safeParse({ symbols: ['BTCUSD'] }).success).toBe(false);
+  it('rejects unknown symbols and normalizes valid aliases', () => {
+    const schema = getPriceTool.inputSchema as {
+      safeParse: (v: unknown) => { success: boolean; data?: { symbols: string[] } };
+    };
+    const parsedAlias = schema.safeParse({ symbols: ['BTCUSD'] });
+    expect(parsedAlias.success).toBe(true);
+    expect(parsedAlias.data?.symbols).toEqual(['BTCUSDT']);
     expect(schema.safeParse({ symbols: ['INVALID'] }).success).toBe(false);
+    expect(schema.safeParse({ symbols: ['UNKNOWN'] }).success).toBe(false);
   });
 
   it('calls getPrice for each symbol in parallel', async () => {

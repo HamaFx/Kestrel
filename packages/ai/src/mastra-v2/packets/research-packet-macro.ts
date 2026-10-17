@@ -23,9 +23,9 @@ import {
   type NewsArticle,
 } from '@kestrel/shared';
 
+import { XAUUSD, XauusdMacroEvidenceSchema, type XauusdMacroEvidence } from '../shared/types';
 import { createEvidenceId, qualityFromWarnings } from './evidence';
 import { quarantineExternalText } from './external-content';
-import { XAUUSD, XauusdMacroEvidenceSchema, type XauusdMacroEvidence } from '../shared/types';
 
 const MACRO_WINDOW_DAYS = 30;
 const CALENDAR_WINDOW_DAYS = 7;

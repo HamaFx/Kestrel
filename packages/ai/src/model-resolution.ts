@@ -22,8 +22,8 @@ import type { ProviderId } from '@kestrel/shared/encryption';
 import { z } from 'zod';
 
 import { type ModelDomain } from './byok-providers';
-import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
 import type { ResolveModelEnv } from './env-model-factory';
+import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
 
 export type { ChatModelResolution } from './model-chat';
 

@@ -21,10 +21,10 @@ import { z } from 'zod';
 
 import { computeTechnicalReading, deterministicSummary } from '../../../../tools/analyze-technical';
 import { createEvidenceId } from '../../../packets/evidence';
-import { candleEvidenceMetadata, type CandleEvidenceMetadata } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD } from '../../../shared/types';
+import { candleEvidenceMetadata, type CandleEvidenceMetadata } from '../legacy-tool-adapter';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const CANDLE_COUNT = 200;
 

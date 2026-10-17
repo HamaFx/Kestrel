@@ -70,16 +70,20 @@ describe('isComexOpen', () => {
     expect(isComexOpen(utcDate(6, 12))).toBe(false);
   });
 
-  it('returns false on Sunday before 18:00 UTC', () => {
-    expect(isComexOpen(utcDate(0, 17))).toBe(false);
+  it('returns false on Sunday before 18:00 ET (e.g. 21:00 UTC in EDT)', () => {
+    expect(isComexOpen(utcDate(0, 21))).toBe(false);
   });
 
-  it('returns true on Sunday at/after 18:00 UTC', () => {
-    expect(isComexOpen(utcDate(0, 19))).toBe(true);
+  it('returns true on Sunday at/after 18:00 ET (e.g. 22:30 UTC in EDT)', () => {
+    expect(isComexOpen(utcDate(0, 22, 30))).toBe(true);
   });
 
-  it('returns false during daily maintenance pause (17:00 UTC)', () => {
-    expect(isComexOpen(utcDate(1, 17))).toBe(false);
+  it('returns false during daily maintenance pause 17:00-18:00 ET (21:30 UTC in EDT)', () => {
+    expect(isComexOpen(utcDate(1, 21, 30))).toBe(false);
+  });
+
+  it('returns true during 17:00-18:00 UTC peak NY trading hours (13:00-14:00 ET in EDT)', () => {
+    expect(isComexOpen(utcDate(1, 17))).toBe(true);
   });
 
   it('returns true during normal trading hours', () => {
@@ -174,7 +178,7 @@ describe('getMarketPhase — goldSpecific', () => {
   });
 
   it('sets comexOpen to false during maintenance pause', () => {
-    const phase = getMarketPhase(utcDate(1, 17));
+    const phase = getMarketPhase(utcDate(1, 21, 30));
     expect(phase.goldSpecific!.comexOpen).toBe(false);
   });
 });

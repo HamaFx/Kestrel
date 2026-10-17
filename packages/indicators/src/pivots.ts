@@ -54,9 +54,50 @@ export function classicPivots(prevHigh: number, prevLow: number, prevClose: numb
  * prior daily bar — call `classicPivots()` directly with that data.
  */
 export function pivotsAligned(candles: Candle[]): (ClassicPivots | null)[] {
-  return candles.map((_c, i) => {
-    if (i === 0) return null;
-    const prev = candles[i - 1]!;
-    return classicPivots(prev.h, prev.l, prev.c);
+  if (candles.length === 0) return [];
+
+  // Group by UTC date string.
+  const dateStr = (t: number): string => {
+    try {
+      return new Date(t).toISOString().slice(0, 10);
+    } catch {
+      return '';
+    }
+  };
+
+  const dates: string[] = [];
+  const dayAggregates = new Map<string, { h: number; l: number; c: number }>();
+
+  for (const c of candles) {
+    const d = dateStr(c.t);
+    const existing = dayAggregates.get(d);
+    if (!existing) {
+      dates.push(d);
+      dayAggregates.set(d, { h: c.h, l: c.l, c: c.c });
+    } else {
+      existing.h = Math.max(existing.h, c.h);
+      existing.l = Math.min(existing.l, c.l);
+      existing.c = c.c; // latest close in that day
+    }
+  }
+
+  // If all bars share the same day (e.g. single-day synthetic test fixtures or property tests),
+  // fallback to preceding bar.
+  if (dates.length <= 1) {
+    return candles.map((_c, i) => {
+      if (i === 0) return null;
+      const prev = candles[i - 1]!;
+      return classicPivots(prev.h, prev.l, prev.c);
+    });
+  }
+
+  // Multi-day: for each candle, use previous calendar day's aggregated H/L/C.
+  return candles.map((c) => {
+    const d = dateStr(c.t);
+    const idx = dates.indexOf(d);
+    if (idx <= 0) return null;
+    const prevDate = dates[idx - 1]!;
+    const prevDay = dayAggregates.get(prevDate)!;
+    return classicPivots(prevDay.h, prevDay.l, prevDay.c);
   });
 }

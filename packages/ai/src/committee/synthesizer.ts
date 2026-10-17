@@ -26,19 +26,22 @@
  * per Q12).
  */
 
+import { readFeatureFlag } from '@kestrel/shared';
 import type { AgentMemoryOption } from '@mastra/core/agent';
 import type { MastraScorers } from '@mastra/core/evals';
 import type { MastraMemory } from '@mastra/core/memory';
 import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
-import { readFeatureFlag } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { estimateCostUsd } from '../cost';
 import type { GenerationLedger } from '../generation-ledger';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
-import { getMastraGenerationStats, type MastraGenerationStats } from '../mastra-v2/shared/telemetry';
+import {
+  getMastraGenerationStats,
+  type MastraGenerationStats,
+} from '../mastra-v2/shared/telemetry';
 import { fusionRepairPrompt, verifyFusionAnswer } from './fusion-verifier';
 import { fusionInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, FUSION_AGENT_ID } from './specialists';
@@ -152,7 +155,17 @@ export interface CommitteeSynthesisResult {
 export async function synthesizeCommitteeAnswer(
   args: CommitteeSynthesisArgs,
 ): Promise<CommitteeSynthesisResult> {
-  const { mode, prompt, packet, opinions, critiques, executionStats, requestContext, signal, deps } = args;
+  const {
+    mode,
+    prompt,
+    packet,
+    opinions,
+    critiques,
+    executionStats,
+    requestContext,
+    signal,
+    deps,
+  } = args;
 
   if (mode === 'single') {
     const finalText = opinions[0]
@@ -171,20 +184,20 @@ export async function synthesizeCommitteeAnswer(
   }
 
   // §3.1: the fusion agent may use its own user-picked top-tier model.
-  const fusionModel =
-    deps.resolveModelForAgent?.('fusion') ?? {
-      model: deps.model,
-      modelId: deps.modelId,
-      providerId: deps.providerId,
-    };
+  const fusionModel = deps.resolveModelForAgent?.('fusion') ?? {
+    model: deps.model,
+    modelId: deps.modelId,
+    providerId: deps.providerId,
+  };
   // §2.2: the fusion agent reads the packet and the typed opinions from the
   // request context (injected on every generate call below) instead of
   // JSON-joining them into the prompt at build time.
   const fusionAgent = createCommitteeAgent(
     fusionModel.model,
     FUSION_AGENT_ID,
-    (ctx: { requestContext: Parameters<typeof fusionInstructionsForRequest>[0]['requestContext'] }) =>
-      fusionInstructionsForRequest({ requestContext: ctx.requestContext }),
+    (ctx: {
+      requestContext: Parameters<typeof fusionInstructionsForRequest>[0]['requestContext'];
+    }) => fusionInstructionsForRequest({ requestContext: ctx.requestContext }),
     deps.memory,
     deps.inputProcessors,
     deps.scorers,

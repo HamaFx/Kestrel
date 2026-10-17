@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { XAUUSD } from '../shared/types';
 import { buildIndicatorsEvidence } from './evidence-builders';
 import {
   RESEARCH_CANDLE_OUTPUT,
@@ -28,7 +29,6 @@ import {
   warningForResearchFailure,
 } from './research-packet-stages';
 import type { XauusdResearchPacket } from './research-types';
-import { XAUUSD } from '../shared/types';
 
 export function collectIndicatorEvidence(
   packetId: string,

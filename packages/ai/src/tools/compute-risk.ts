@@ -57,14 +57,20 @@ export const computeRiskTool = tool({
     const target = input.target ?? null;
 
     const definition = getSymbolDefinition(symbol);
-    if (definition.quoteCurrency !== 'USD' && definition.quoteCurrency !== 'USDT') {
-      throw new Error('Risk sizing currently requires a USD- or USDT-quoted symbol');
+    if (
+      definition.quoteCurrency !== 'USD' &&
+      definition.quoteCurrency !== 'USDT' &&
+      definition.baseCurrency !== 'USD'
+    ) {
+      throw new Error(
+        'Risk sizing currently requires a USD- or USDT-quoted symbol or USD-base pair',
+      );
     }
     const distanceUnit = definition.capabilities.priceDistanceUnit;
     const distanceStep = distanceUnit === 'price' ? 1 : pipSize(symbol);
     const distanceToStop = Math.abs(entry - stop) / distanceStep;
     const distanceToTarget = target !== null ? Math.abs(entry - target) / distanceStep : null;
-    const valuePerDistanceUnit = valuePerDistanceUnitFor(symbol);
+    const valuePerDistanceUnit = valuePerDistanceUnitFor(symbol, entry);
 
     const riskUsd = accountUsd * (riskPct / 100);
     // Total value at risk across the catalog distance unit per lot/coin.
@@ -121,13 +127,18 @@ export const computeRiskTool = tool({
 // helpers
 // ---------------------------------------------------------------------------
 
-function valuePerDistanceUnitFor(symbol: Symbol): number {
+function valuePerDistanceUnitFor(symbol: Symbol, entry?: number): number {
   const definition = getSymbolDefinition(symbol);
   // USD/USDT-quoted catalog instruments have a simple settlement value:
   // contract size × one configured distance step. For crypto the distance
   // step is one raw price unit and the result is the contract size (1 coin).
   if (definition.capabilities.priceDistanceUnit === 'price') {
     return definition.capabilities.contractSize;
+  }
+  if (definition.baseCurrency === 'USD') {
+    return (
+      (definition.capabilities.contractSize * definition.pipSize) / (entry && entry > 0 ? entry : 1)
+    );
   }
   return definition.capabilities.contractSize * definition.pipSize;
 }

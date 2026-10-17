@@ -21,7 +21,12 @@
 // the prompt and the model can't accidentally hallucinate over noisy bars.
 
 import { getCandles } from '@kestrel/data';
-import { SymbolSchema, TimeframeSchema, type GetCandlesOutput } from '@kestrel/shared';
+import {
+  SymbolSchema,
+  TimeframeSchema,
+  type CandlePeriodSummary,
+  type GetCandlesOutput,
+} from '@kestrel/shared';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -40,13 +45,54 @@ declare module '@kestrel/shared' {
   }
 }
 
+const TAIL_BARS = 30;
+
 export const getCandlesTool = tool({
   description:
-    'Fetch OHLC candles for one symbol at one timeframe (e.g. XAUUSD 1h). Use to confirm a recent swing high/low or to feed a pattern read. For RSI/MACD/EMA/etc. prefer get_indicators.',
+    'Fetch OHLC candles for one symbol at one timeframe (e.g. XAUUSD 1h). Returns a comprehensive period summary plus the most recent 30 candles to minimize token overhead. For RSI/MACD/EMA/etc. prefer get_indicators.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count }, options?: { abortSignal?: AbortSignal }): Promise<GetCandlesOutput> => {
+  execute: async (
+    { symbol, tf, count },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetCandlesOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
-    return { symbol, tf, candles };
+
+    let summary: CandlePeriodSummary | null = null;
+    if (candles.length > 0) {
+      const first = candles[0]!;
+      const last = candles[candles.length - 1]!;
+      let highBar = first;
+      let lowBar = first;
+      let totalRange = 0;
+      let totalVolume = 0;
+      for (const c of candles) {
+        if (c.h > highBar.h) highBar = c;
+        if (c.l < lowBar.l) lowBar = c;
+        totalRange += c.h - c.l;
+        totalVolume += c.v ?? 0;
+      }
+      summary = {
+        fromIso: new Date(first.t).toISOString(),
+        toIso: new Date(last.t).toISOString(),
+        open: first.o,
+        high: highBar.h,
+        highAtIso: new Date(highBar.t).toISOString(),
+        low: lowBar.l,
+        lowAtIso: new Date(lowBar.t).toISOString(),
+        close: last.c,
+        change: Number((last.c - first.o).toFixed(5)),
+        changePct: first.o !== 0 ? Number((((last.c - first.o) / first.o) * 100).toFixed(3)) : 0,
+        avgBarRange: Number((totalRange / candles.length).toFixed(5)),
+        totalVolume: Number(totalVolume.toFixed(2)),
+      };
+    }
+
+    return {
+      symbol,
+      tf,
+      candles: candles.slice(-TAIL_BARS),
+      summary,
+    };
   },
 });

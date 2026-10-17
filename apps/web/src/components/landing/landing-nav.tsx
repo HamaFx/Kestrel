@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import { useState, useEffect } from 'react';
-import { Link } from 'next-view-transitions';
 import { IconMenu2, IconX } from '@tabler/icons-react';
-import { Button } from '@/components/ui/button';
-import { TacticalFlameButton } from '@/components/landing/landing-button';
+import { Link } from 'next-view-transitions';
+import { useEffect, useState } from 'react';
+
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import { TacticalFlameButton } from '@/components/landing/landing-button';
+import { Button } from '@/components/ui/button';
 
 export interface LandingNavProps {
   isAuthenticated?: boolean;
@@ -49,8 +49,8 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
           <KestrelBrand variant="lockup" href="/landing" label="Kestrel" />
 
           <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 lg:flex">
-            <span className="size-2 rounded-full bg-bull animate-pulse shadow-[0_0_8px_rgba(63,158,61,0.6)]" />
-            <span className="font-mono text-[11px] font-semibold tracking-wider text-fg-subtle uppercase">
+            <span className="bg-bull size-2 animate-pulse rounded-full shadow-[0_0_8px_rgba(63,158,61,0.6)]" />
+            <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
               XAU/USD · LIVE
             </span>
           </div>
@@ -60,40 +60,40 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
         <nav className="hidden items-center gap-8 md:flex">
           <a
             href="#desks"
-            className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
+            className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
           >
             Specialist Desks
           </a>
           <a
             href="#simulator"
-            className="font-sans text-sm font-medium text-brand transition-colors hover:text-brand"
+            className="text-brand hover:text-brand font-sans text-sm font-medium transition-colors"
           >
             Live Simulator
           </a>
           <a
             href="#stepper"
-            className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
+            className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
           >
             How It Works
           </a>
           <a
             href="#architecture"
-            className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
+            className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
           >
             System Stack
           </a>
           <a
             href="#faq"
-            className="font-sans text-sm font-medium text-fg-muted transition-colors hover:text-fg"
+            className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
           >
             FAQ
           </a>
           {isAuthenticated && (
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 font-mono text-xs text-brand font-semibold px-2.5 py-1 rounded-md bg-brand/10 border border-brand/25 transition-colors hover:bg-brand/20"
+              className="text-brand bg-brand/10 border-brand/25 hover:bg-brand/20 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-xs font-semibold transition-colors"
             >
-              <span className="size-1.5 rounded-full bg-brand animate-pulse" />
+              <span className="bg-brand size-1.5 animate-pulse rounded-full" />
               <span>Dashboard</span>
             </Link>
           )}
@@ -102,15 +102,27 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
         {/* Action CTAs & Mobile Toggle */}
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
-            <TacticalFlameButton href="/dashboard" label="Open Dashboard" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
+            <TacticalFlameButton
+              href="/dashboard"
+              label="Open Dashboard"
+              className="py-[0.5em] pr-[2.8em] pl-[1em] text-xs"
+            />
           ) : (
             <>
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-fg-muted hover:text-fg">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-fg-muted hover:text-fg hidden sm:inline-flex"
+                >
                   Sign In
                 </Button>
               </Link>
-              <TacticalFlameButton href="/register" label="Get Started" className="text-xs py-[0.5em] pr-[2.8em] pl-[1em]" />
+              <TacticalFlameButton
+                href="/register"
+                label="Get Started"
+                className="py-[0.5em] pr-[2.8em] pl-[1em] text-xs"
+              />
             </>
           )}
 
@@ -120,7 +132,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex size-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-fg md:hidden"
+            className="text-fg flex size-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 md:hidden"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <IconX className="size-5" /> : <IconMenu2 className="size-5" />}
@@ -167,7 +179,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
             >
               FAQ
             </a>
-            <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
+            <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
               {isAuthenticated ? (
                 <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="tactical" size="md" className="w-full">

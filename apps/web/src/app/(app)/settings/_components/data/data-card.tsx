@@ -324,7 +324,7 @@ export function DataCard() {
       />
 
       {/* Delete account Danger Zone */}
-      <div className="surface-well mt-2 flex flex-col gap-3 rounded-xl border border-danger/25 p-4 shadow-inner">
+      <div className="surface-well border-danger/25 mt-2 flex flex-col gap-3 rounded-xl border p-4 shadow-inner">
         <div className="flex items-center gap-2">
           <IconUserX className="text-danger size-4" />
           <h3 className="text-danger font-mono text-xs font-bold tracking-wider uppercase">
@@ -332,11 +332,15 @@ export function DataCard() {
           </h3>
         </div>
         <p className="text-fg-subtle text-xs">
-          Permanently purge your account, journal entries, conversations, alerts, and settings. This action is immediate and non-reversible.
+          Permanently purge your account, journal entries, conversations, alerts, and settings. This
+          action is immediate and non-reversible.
         </p>
         <div className="flex flex-wrap items-end gap-2 pt-1">
           <div className="flex max-w-64 flex-1 flex-col gap-1">
-            <label htmlFor="delete-pwd" className="text-caption text-fg-muted font-mono text-[11px]">
+            <label
+              htmlFor="delete-pwd"
+              className="text-caption text-fg-muted font-mono text-[11px]"
+            >
               Account password
             </label>
             <div className="relative">
@@ -364,7 +368,10 @@ export function DataCard() {
             </div>
           </div>
           <div className="flex w-32 flex-col gap-1">
-            <label htmlFor="delete-totp" className="text-caption text-fg-muted font-mono text-[11px]">
+            <label
+              htmlFor="delete-totp"
+              className="text-caption text-fg-muted font-mono text-[11px]"
+            >
               2FA code (if active)
             </label>
             <Input
@@ -374,7 +381,7 @@ export function DataCard() {
               maxLength={6}
               value={deleteTotpCode}
               onChange={(e) => setDeleteTotpCode(e.target.value.replace(/\D/g, ''))}
-              className="text-xs font-mono"
+              className="font-mono text-xs"
             />
           </div>
           <Button
@@ -393,6 +400,5 @@ export function DataCard() {
 
       {confirmEl}
     </section>
-
   );
 }

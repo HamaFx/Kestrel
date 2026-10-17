@@ -24,16 +24,11 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('service worker generator', () => {
-
   it('precaches the expected shell URLs', () => {
-    execFileSync(
-      'node',
-      [join(process.cwd(), 'scripts/generate-sw.mjs')],
-      {
-        env: { ...process.env, NEXT_PUBLIC_BUILD_ID: 'test-build-id' },
-        stdio: 'ignore',
-      },
-    );
+    execFileSync('node', [join(process.cwd(), 'scripts/generate-sw.mjs')], {
+      env: { ...process.env, NEXT_PUBLIC_BUILD_ID: 'test-build-id' },
+      stdio: 'ignore',
+    });
 
     const precache = JSON.parse(
       readFileSync(join(process.cwd(), 'public/sw-precache.json'), 'utf8'),

@@ -31,12 +31,9 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import { pickAiEnv, readFeatureFlag } from '@kestrel/shared';
 import { RequestContext } from '@mastra/core/request-context';
 
-import { getDb } from '../../db';
-import { createToolContext, withToolContext } from '../../tool-context';
-
 import {
-  MastraModeStrictFailureError,
   COMMITTEE_DEADLINE_MS,
+  MastraModeStrictFailureError,
   REQUEST_CONTEXT_SCHEMA,
   SPECIALISTS_BY_MODE,
   type CommitteeCritique,
@@ -45,26 +42,28 @@ import {
   type MastraSpecialistName,
 } from '../../committee/types';
 import { CommitteeWorkflowInputSchema, createCommitteeWorkflow } from '../../committee/workflow';
+import { getDb } from '../../db';
+import type { ResolveModelEnv } from '../../env-model-factory';
 import { createGenerationLedger, type GenerationLedger } from '../../generation-ledger';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '../../model';
+import { createToolContext, withToolContext } from '../../tool-context';
 import { getKestrelMastra } from '../instance';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../logger';
 import { kestrelMemoryOptions } from '../memory';
-import { prepareResearchRunContext } from '../research-context';
-import { runTracingOptions } from '../telemetry';
-import { resolveMastraExecutionModel, type ChatModelResolution } from '../../model';
-import type { ResolveModelEnv } from '../../env-model-factory';
-import {
-  assertExecutionPlanRoute,
-  requireExecutionPlanModel,
-  type ExecutionPlan,
-} from './execution-plan';
 import type { SymbolResearchPacket } from '../packets/symbol-research';
+import { prepareResearchRunContext } from '../research-context';
 import {
   beginMastraRun,
   finishMastraRun,
   mastraOutcomeForError,
   type MastraGenerationStats,
 } from '../shared/telemetry';
+import { runTracingOptions } from '../telemetry';
+import {
+  assertExecutionPlanRoute,
+  requireExecutionPlanModel,
+  type ExecutionPlan,
+} from './execution-plan';
 
 export type {
   MastraAnalysisMode,
@@ -217,7 +216,9 @@ export function committeeModelResolver(
     }
   }
 
-  const pickFor = (agent: 'technical' | 'fundamental' | 'risk' | 'sentiment' | 'fusion'): string | undefined => {
+  const pickFor = (
+    agent: 'technical' | 'fundamental' | 'risk' | 'sentiment' | 'fusion',
+  ): string | undefined => {
     const key = agent === 'fusion' ? 'decision' : agent;
     return settings.agentModelOverrides?.[key] ?? envOverrides[key];
   };
@@ -328,7 +329,10 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       signal: args.signal ?? null,
       budget: {
         spent: 0,
-        max: (args.settings as UserSettingsRow).maxDailyUsd ?? (args.env as { MAX_DAILY_USD?: number }).MAX_DAILY_USD ?? 10,
+        max:
+          (args.settings as UserSettingsRow).maxDailyUsd ??
+          (args.env as { MAX_DAILY_USD?: number }).MAX_DAILY_USD ??
+          10,
       },
       userSettings: args.settings as UserSettingsRow,
       db: toolDb,

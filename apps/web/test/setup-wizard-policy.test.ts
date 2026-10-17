@@ -296,7 +296,10 @@ describe('secret template — single source of truth', () => {
 
   it('lists every template key in the generate-env.mjs section layout', () => {
     const source = readFileSync(resolve(root, 'scripts/setup/lib/generate-env.mjs'), 'utf8');
-    for (const key of [...Object.keys(template), ...Object.keys(loadObservabilitySecretTemplate())]) {
+    for (const key of [
+      ...Object.keys(template),
+      ...Object.keys(loadObservabilitySecretTemplate()),
+    ]) {
       expect(source, `generate-env.mjs must render ${key}`).toContain(`'${key}'`);
     }
   });

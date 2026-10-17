@@ -21,7 +21,7 @@
 // expose 4h, so we request 1h and synthesise 4h client-side (4-bar
 // aggregation: first open, last close, max high, min low, summed volume).
 
-import type { Symbol, Timeframe } from '@kestrel/shared';
+import { msPerTimeframe, type Symbol, type Timeframe } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { noteBackoff, tryReserve, type ThrottleConfig } from '../../cache/throttle';
@@ -94,6 +94,7 @@ async function call<T>(
   try {
     res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
   } catch (cause) {
+    if (opts.signal?.aborted) throw opts.signal.reason ?? cause;
     const isAbort = (cause as Error)?.name === 'AbortError';
     throw new ProviderError(
       isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
@@ -153,6 +154,8 @@ export interface FetchCandlesArgs extends CallOptions {
   tf: Timeframe;
   /** Number of bars to return. */
   count: number;
+  includeOpenBar?: boolean;
+  now?: number;
 }
 
 /**
@@ -169,14 +172,19 @@ export async function fetchCandles(args: FetchCandlesArgs): Promise<FinnhubCandl
 
 async function fetchNative(args: FetchCandlesArgs): Promise<FinnhubCandle[]> {
   const resolution = toFinnhubResolution(args.tf);
-  const range = secondsForCount(args.tf, args.count);
-  const nowSec = Math.floor(Date.now() / 1000);
+  const tfMs = msPerTimeframe(args.tf);
+  const reqCount = args.includeOpenBar ? args.count : args.count + 1;
+  const range = secondsForCount(args.tf, reqCount);
+  const nowMs = args.now ?? Date.now();
+  const nowSec = Math.floor(nowMs / 1000);
   const fromSec = nowSec - range;
+  const fhSymbol = toFinnhubSymbol(args.symbol);
+  const endpoint = fhSymbol.startsWith('BINANCE:') ? '/crypto/candle' : '/forex/candle';
 
   const raw = await call(
-    '/forex/candle',
+    endpoint,
     {
-      symbol: toFinnhubSymbol(args.symbol),
+      symbol: fhSymbol,
       resolution,
       from: String(fromSec),
       to: String(nowSec),
@@ -191,8 +199,13 @@ async function fetchNative(args: FetchCandlesArgs): Promise<FinnhubCandle[]> {
 
   const out: FinnhubCandle[] = [];
   for (let i = 0; i < raw.t.length; i += 1) {
+    const tMs = raw.t[i]! * 1000;
+    const barCloseMs = tMs + tfMs;
+    if (!args.includeOpenBar && barCloseMs > nowMs) {
+      continue;
+    }
     out.push({
-      t: raw.t[i]! * 1000,
+      t: tMs,
       o: raw.o![i]!,
       h: raw.h![i]!,
       l: raw.l![i]!,
@@ -205,8 +218,19 @@ async function fetchNative(args: FetchCandlesArgs): Promise<FinnhubCandle[]> {
 
 async function fetch4hSynthesised(args: FetchCandlesArgs): Promise<FinnhubCandle[]> {
   // Pull enough 1h bars to assemble `count` 4h bars after aggregation.
-  const oneH = await fetchNative({ ...args, tf: '1h', count: args.count * 4 + 4 });
-  return synth4HFrom1H(oneH).slice(-args.count);
+  const reqCount = args.includeOpenBar ? args.count : args.count + 1;
+  const oneH = await fetchNative({
+    ...args,
+    tf: '1h',
+    count: reqCount * 4 + 4,
+    includeOpenBar: true,
+  });
+  const synthesized = synth4HFrom1H(oneH);
+  const nowMs = args.now ?? Date.now();
+  const filtered = args.includeOpenBar
+    ? synthesized
+    : synthesized.filter((b) => b.t + 4 * 3600_000 <= nowMs);
+  return filtered.slice(-args.count);
 }
 
 /**

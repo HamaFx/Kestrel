@@ -49,6 +49,7 @@ export async function runCoT(ctx: JobContext): Promise<JobResult> {
       const rows = await fetchLatestRows({
         commodityName: toCftcName(symbol as Symbol),
         weeks: WEEKS,
+        signal: ctx.signal,
       });
       for (const row of rows) {
         const date = parseReportDate(row.report_date_as_yyyy_mm_dd);

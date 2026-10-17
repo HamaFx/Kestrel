@@ -90,7 +90,6 @@ vi.mock('@/lib/logger', () => ({
   createCategorizedLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-
 vi.mock('@/lib/services/mastra-chat', () => ({
   runMastraXauusdChat: mockRunMastraXauusdChat,
 }));
@@ -134,7 +133,13 @@ vi.mock('@/lib/services/api-boundary', () => ({
       .map((part) => part.text ?? '')
       .join('\n'),
   extractMastraSymbol: (text: string) =>
-    /xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : /gbpusd/i.test(text) ? 'GBPUSD' : null,
+    /xauusd|gold/i.test(text)
+      ? 'XAUUSD'
+      : /eurusd/i.test(text)
+        ? 'EURUSD'
+        : /gbpusd/i.test(text)
+          ? 'GBPUSD'
+          : null,
   extractMastraSymbols: (text: string) => {
     const symbols: string[] = [];
     if (/xauusd|gold/i.test(text)) symbols.push('XAUUSD');
@@ -148,32 +153,33 @@ vi.mock('@/lib/services/api-boundary', () => ({
   getUserWithSettings: mockGetUserWithSettings,
   // §1.1: the unified router classifies in one pass; mirror the plan the
   // createExecutionPlan mock below already builds.
-  routeUnified: vi.fn(async (input: {
-    userMessage: { parts: Array<{ type?: string; text?: string }> };
-    mode: string;
-  }) => {
-    const text = input.userMessage.parts
-      .map((part) => part.text ?? '')
-      .join(' ');
-    const symbol = /xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : null;
-    return {
-      domain: 'technical',
-      planRequired: false,
-      symbol,
-      xauusdChatKind: symbol === 'XAUUSD' ? 'research' : null,
-      injection: { blocked: /ignore previous instructions|system:|developer:/i.test(text) },
-      mutationKind: null,
-      highConfidenceMutationIntent: /\bbuy\b|\bsell\b/i.test(text),
-      capabilityId: symbol ? (symbol === 'XAUUSD' ? 'xauusd-research' : 'symbol-research') : null,
-      route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat',
-      modelPurpose: 'canonical-chat',
-      rationale: 'test',
-      decision: { route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat' },
-      routing: { domain: 'technical', planRequired: false, rationale: 'test' },
-    };
-  }),
+  routeUnified: vi.fn(
+    async (input: {
+      userMessage: { parts: Array<{ type?: string; text?: string }> };
+      mode: string;
+    }) => {
+      const text = input.userMessage.parts.map((part) => part.text ?? '').join(' ');
+      const symbol = /xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : null;
+      return {
+        domain: 'technical',
+        planRequired: false,
+        symbol,
+        xauusdChatKind: symbol === 'XAUUSD' ? 'research' : null,
+        injection: { blocked: /ignore previous instructions|system:|developer:/i.test(text) },
+        mutationKind: null,
+        highConfidenceMutationIntent: /\bbuy\b|\bsell\b/i.test(text),
+        capabilityId: symbol ? (symbol === 'XAUUSD' ? 'xauusd-research' : 'symbol-research') : null,
+        route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat',
+        modelPurpose: 'canonical-chat',
+        rationale: 'test',
+        decision: { route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat' },
+        routing: { domain: 'technical', planRequired: false, rationale: 'test' },
+      };
+    },
+  ),
   isBudgetEnforced: () => false,
-  isInjectionAttempt: (prompt: string) => /ignore previous instructions|system:|developer:/i.test(prompt),
+  isInjectionAttempt: (prompt: string) =>
+    /ignore previous instructions|system:|developer:/i.test(prompt),
   isHighConfidenceMutationIntent: (prompt: string) => /\bbuy\b|\bsell\b/i.test(prompt),
   enqueueFullAnalysis: mockEnqueueFullAnalysis,
   traceIdStorage: { getStore: () => 'trace-route-1' },

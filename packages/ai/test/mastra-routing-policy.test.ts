@@ -88,9 +88,7 @@ describe('resolveMode', () => {
     // Audit plan §4.6 (Q8): `quick`/`standard` no longer normalize to
     // single/full — schema-less callers get a clear error, never a guess.
     expect(() => resolveMode('quick' as never, 'should i buy gold')).toThrow(/single" or "full/);
-    expect(() => resolveMode('standard' as never, 'should i buy gold')).toThrow(
-      /single" or "full/,
-    );
+    expect(() => resolveMode('standard' as never, 'should i buy gold')).toThrow(/single" or "full/);
   });
 
   it('fails closed on auto instead of re-detecting (Q8 shim removal)', () => {
@@ -171,4 +169,3 @@ describe('extractMastraSymbols (P2-01)', () => {
     expect(others).not.toContain('XAUUSD');
   });
 });
-

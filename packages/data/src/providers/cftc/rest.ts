@@ -26,7 +26,7 @@
 
 import { z } from 'zod';
 
-import { tryReserve, type ThrottleConfig } from '../../cache/throttle';
+import { noteBackoff, tryReserve, type ThrottleConfig } from '../../cache/throttle';
 import { ProviderError } from '../../errors';
 
 const PROVIDER = 'cftc';
@@ -90,6 +90,9 @@ export async function fetchLatestRows(args: FetchLatestArgs): Promise<CftcRow[]>
   try {
     res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
   } catch (cause) {
+    if (args.signal?.aborted) {
+      throw args.signal.reason ?? cause;
+    }
     const isAbort = (cause as Error)?.name === 'AbortError';
     throw new ProviderError(
       isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
@@ -102,6 +105,9 @@ export async function fetchLatestRows(args: FetchLatestArgs): Promise<CftcRow[]>
   }
 
   if (!res.ok) {
+    if (res.status === 429) {
+      await noteBackoff(PROVIDER, THROTTLE);
+    }
     throw new ProviderError(
       res.status === 429 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
       PROVIDER,

@@ -60,7 +60,7 @@ const _activeControllers = new Set<AbortController>();
 // retries. The job is already idempotent per-article (query filters for
 // `embedding IS NULL`), so removing the daily lock lets each 6-hour
 // timer firing run independently and self-heal within the same day.
-const SKIP_DAILY_LOCK = new Set<keyof typeof JOBS>([
+export const SKIP_DAILY_LOCK = new Set<keyof typeof JOBS>([
   'alerts',
   'briefings',
   'embedding-backfill',
@@ -258,13 +258,16 @@ async function runJobSafely(name: keyof typeof JOBS, log: Logger, env?: WorkerEn
           return;
         }
       } catch (retryErr) {
-        // Both attempts failed — proceed without the lock.
-        jobLog.warn(
-          'Failed to acquire cron lock after retry, proceeding without idempotency guard',
+        // Both attempts failed — fail closed to prevent concurrent duplicate execution.
+        jobLog.error(
+          'Failed to acquire cron lock after retry — failing closed to prevent duplicate execution',
           {
             err: String(retryErr),
           },
         );
+        _runningJobs.delete(name);
+        _jobStartedAt.delete(name);
+        return;
       }
     }
   }

@@ -67,12 +67,15 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
       as="section"
       layout
       initial={false}
-      className={cn('surface-panel rounded-xl overflow-hidden border border-border p-0', failed && 'border-danger/30')}
+      className={cn(
+        'surface-panel border-border overflow-hidden rounded-xl border p-0',
+        failed && 'border-danger/30',
+      )}
     >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="border-divider flex min-h-10 w-full items-center justify-between gap-2 border-b px-3.5 py-2 text-left text-xs sm:text-sm tactile-press"
+        className="border-divider tactile-press flex min-h-10 w-full items-center justify-between gap-2 border-b px-3.5 py-2 text-left text-xs sm:text-sm"
         aria-expanded={expanded}
         aria-controls={contentId}
       >

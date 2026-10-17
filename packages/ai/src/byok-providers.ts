@@ -1,3 +1,8 @@
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import type { ProviderId } from '@kestrel/shared/byok';
+import type { EmbeddingModel } from 'ai';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -50,11 +55,6 @@ export {
   lookupModelRate,
   buildCatalogRateTable,
 } from './_providers/registry';
-
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { ProviderId } from '@kestrel/shared/byok';
-import type { EmbeddingModel } from 'ai';
 
 export interface ProviderCapability {
   supportsVision: boolean;

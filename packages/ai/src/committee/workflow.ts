@@ -41,25 +41,28 @@ import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
 import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
-import type { MastraGenerationStats } from '../mastra-v2/shared/stats';
-import { collectSymbolResearchPacketCached, SymbolResearchPacketSchema } from '../mastra-v2/packets/packet-cache';
-import type { ToolContext } from '../tool-context';
 import {
-  readCritiqueStepResult,
-  readDebateStepResult,
-  runCritiqueGeneration,
-  runDebateRevision,
-  CritiqueStepOutputSchema,
-  DebateStepOutputSchema,
-  type CritiqueStepResult,
-  type DebateStepResult,
-} from './critique';
+  collectSymbolResearchPacketCached,
+  SymbolResearchPacketSchema,
+} from '../mastra-v2/packets/packet-cache';
+import type { MastraGenerationStats } from '../mastra-v2/shared/stats';
+import type { ToolContext } from '../tool-context';
 import {
   combineRunSignal,
   deadlineSignalFor,
   isDeadlineAbort,
   type DeadlineSignals,
 } from '../utils/timeout';
+import {
+  CritiqueStepOutputSchema,
+  DebateStepOutputSchema,
+  readCritiqueStepResult,
+  readDebateStepResult,
+  runCritiqueGeneration,
+  runDebateRevision,
+  type CritiqueStepResult,
+  type DebateStepResult,
+} from './critique';
 import {
   readCollectPacketResult,
   readSpecialistStepResult,
@@ -70,10 +73,10 @@ import { recordCommitteeStepSpan } from './step-spans';
 import { synthesizeCommitteeAnswer } from './synthesizer';
 import {
   CollectPacketOutputSchema,
+  CommitteeCritiqueSchema,
   committeeModelMetadata,
   committeeModePolicy,
   committeeProgressStages,
-  CommitteeCritiqueSchema,
   MastraAnalysisModeSchema,
   MastraModeOpinionSchema,
   MastraModeStrictFailureError,

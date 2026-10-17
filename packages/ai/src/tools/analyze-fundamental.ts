@@ -28,6 +28,7 @@
 import { schema } from '@kestrel/db';
 import {
   AnalyzeFundamentalInputSchema,
+  getSymbolDefinition,
   type AnalyzeFundamentalOutput,
   type EconomicEvent,
   type EventCurrency,
@@ -53,12 +54,20 @@ declare module '@kestrel/shared' {
   }
 }
 
-/** Map from symbol to the relevant currency tags used by the calendar + news. */
-const CURRENCIES_BY_SYMBOL: Record<Symbol, EventCurrency[]> = {
-  XAUUSD: ['USD'],
-  EURUSD: ['EUR', 'USD'],
-  GBPUSD: ['GBP', 'USD'],
-};
+function getCurrenciesForSymbol(symbol: Symbol): EventCurrency[] {
+  try {
+    const def = getSymbolDefinition(symbol);
+    if (def.category === 'forex') {
+      return [def.baseCurrency, def.quoteCurrency] as EventCurrency[];
+    }
+    const filtered = def.currencies.filter((c) =>
+      (['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF'] as string[]).includes(c),
+    );
+    return (filtered.length > 0 ? filtered : ['USD']) as EventCurrency[];
+  } catch {
+    return ['USD'];
+  }
+}
 
 /** Per-currency news cap so a noisy Marketaux day can't drown one currency. */
 const NEWS_PER_CURRENCY = 5;
@@ -71,7 +80,7 @@ export const analyzeFundamentalTool = tool({
     "Aggregate the upcoming high/medium-impact macro events for a symbol's currencies plus the most recent news, with a sentiment chip strip. Use for any 'what's the fundamental backdrop on X' or 'are there any catalysts in the next N hours' prompt. Window is `horizonHours` (default 24h). Sentiment buckets are read from news_articles.sentiment; no inference. Sets `pipelinePending: true` when both events and headlines are empty.",
   inputSchema: InputSchema,
   execute: async ({ symbol, horizonHours }): Promise<AnalyzeFundamentalOutput> => {
-    const currencies = CURRENCIES_BY_SYMBOL[symbol] || ['USD'];
+    const currencies = getCurrenciesForSymbol(symbol);
     const now = Date.now();
     const windowToMs = now + horizonHours * 60 * 60 * 1000;
 
@@ -180,10 +189,10 @@ async function fetchHeadlinesForCurrencies(args: HeadlineQuery): Promise<ToolNew
     out.push({
       id: r.id,
       title: quarantineExternalText(r.title, 240).text || '[filtered]',
-      summary: r.summary ? (quarantineExternalText(r.summary, 420).text || null) : null,
+      summary: r.summary ? quarantineExternalText(r.summary, 420).text || null : null,
       url: r.url,
       source: quarantineExternalText(r.source, 80).text || 'unknown',
-      publisher: r.publisher ? (quarantineExternalText(r.publisher, 80).text || null) : null,
+      publisher: r.publisher ? quarantineExternalText(r.publisher, 80).text || null : null,
       publishedAt: r.publishedAt.getTime(),
       sentiment: (r.sentiment as NewsSentiment | null) ?? null,
       sentimentScore: r.sentimentScore,

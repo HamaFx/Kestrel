@@ -58,8 +58,13 @@ export interface ProviderAttempt<T> {
   run(): Promise<T>;
 }
 
+export interface RunWithFailoverOptions {
+  signal?: AbortSignal | undefined;
+}
+
 export async function runWithFailover<T>(
   attempts: ProviderAttempt<T>[],
+  options?: RunWithFailoverOptions,
 ): Promise<{ value: T; provider: string }> {
   if (attempts.length === 0) {
     throw new ProviderError(
@@ -91,11 +96,23 @@ export async function runWithFailover<T>(
   // are less actionable; other codes go last.
   let bestError: ProviderError | null = null;
   for (const a of ordered) {
+    if (options?.signal?.aborted) {
+      throw options.signal.reason ?? new DOMException('Aborted', 'AbortError');
+    }
     try {
       const value = await a.run();
       recordSuccess(a.name);
       return { value, provider: a.name };
     } catch (err) {
+      if (options?.signal?.aborted) {
+        throw options.signal.reason ?? err;
+      }
+      if (
+        (err instanceof DOMException && err.name === 'AbortError') ||
+        (err instanceof Error && err.name === 'AbortError')
+      ) {
+        throw err;
+      }
       if (err instanceof ProviderEmptyError) {
         // Empty != failure. The provider has nothing to offer right
         // now — try the next one without dinging its health score.

@@ -46,7 +46,6 @@ import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research'
 import { getMastraGenerationStats } from '../mastra-v2/shared/telemetry';
 import { critiqueInstructionsForRequest, debateRevisionInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, SPECIALIST_DEFINITIONS } from './specialists';
-import { verifyMastraOpinion } from './verifier';
 import {
   CommitteeCritiqueSchema,
   contextWithPacket,
@@ -60,6 +59,7 @@ import {
   type MastraSpecialistName,
   type ModeRequestContext,
 } from './types';
+import { verifyMastraOpinion } from './verifier';
 
 /** Typed output of the critique step (mirrors the specialist marker shape). */
 export const CritiqueStepResultSchema = z.object({
@@ -112,14 +112,22 @@ export interface RunCritiqueGenerationArgs {
 export async function runCritiqueGeneration(
   args: RunCritiqueGenerationArgs,
 ): Promise<CritiqueStepResult> {
-  const { name, prompt, packet, ownOpinion, peerOpinions, requestContext, signal, startedAt, deps } =
-    args;
-  const agentModel =
-    deps.resolveModelForAgent?.(name) ?? {
-      model: deps.model,
-      modelId: deps.modelId,
-      providerId: deps.providerId,
-    };
+  const {
+    name,
+    prompt,
+    packet,
+    ownOpinion,
+    peerOpinions,
+    requestContext,
+    signal,
+    startedAt,
+    deps,
+  } = args;
+  const agentModel = deps.resolveModelForAgent?.(name) ?? {
+    model: deps.model,
+    modelId: deps.modelId,
+    providerId: deps.providerId,
+  };
   try {
     const agent = createCommitteeAgent(
       agentModel.model,
@@ -230,17 +238,14 @@ export interface RunDebateRevisionArgs {
   deps: CritiqueRunnerDeps;
 }
 
-export async function runDebateRevision(
-  args: RunDebateRevisionArgs,
-): Promise<DebateStepResult> {
+export async function runDebateRevision(args: RunDebateRevisionArgs): Promise<DebateStepResult> {
   const { name, prompt, packet, ownOpinion, critiques, requestContext, signal, startedAt, deps } =
     args;
-  const agentModel =
-    deps.resolveModelForAgent?.(name) ?? {
-      model: deps.model,
-      modelId: deps.modelId,
-      providerId: deps.providerId,
-    };
+  const agentModel = deps.resolveModelForAgent?.(name) ?? {
+    model: deps.model,
+    modelId: deps.modelId,
+    providerId: deps.providerId,
+  };
   const latencyMs = Date.now() - startedAt;
   try {
     const agent = createCommitteeAgent(

@@ -16,8 +16,11 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  extractSymbolFromPrompt,
+  isSafeSymbolResearchPrompt,
+} from '../src/mastra-v2/packets/symbol-research';
 import { MastraModeStrictFailureError, runMastraMode } from '../src/mastra-v2/planning/mode-runner';
-import { extractSymbolFromPrompt, isSafeSymbolResearchPrompt } from '../src/mastra-v2/packets/symbol-research';
 
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
@@ -40,7 +43,9 @@ vi.mock('../src/model', () => ({
   resolveEmbeddingModel: mocks.resolveEmbeddingModel,
 }));
 vi.mock('../src/mastra-v2/packets/symbol-research', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('../src/mastra-v2/packets/symbol-research');
+  const actual = await vi.importActual<Record<string, unknown>>(
+    '../src/mastra-v2/packets/symbol-research',
+  );
   return { ...actual, collectSymbolResearchPacket: mocks.collectSymbolResearchPacket };
 });
 vi.mock('../src/mastra-v2/shared/telemetry', () => ({
@@ -160,6 +165,10 @@ describe('generalized Mastra symbol routing', () => {
   it('extracts one canonical symbol and rejects mixed or mutating prompts', () => {
     expect(extractSymbolFromPrompt('Analyse EURUSD 1H')).toBe('EURUSD');
     expect(extractSymbolFromPrompt('Analyse gold')).toBe('XAUUSD');
+    expect(extractSymbolFromPrompt('Analyse Bitcoin 1H')).toBe('BTCUSDT');
+    expect(extractSymbolFromPrompt('What is BTC/USD doing?')).toBe('BTCUSDT');
+    expect(extractSymbolFromPrompt('Run committee on Cable')).toBe('GBPUSD');
+    expect(extractSymbolFromPrompt('Check EUR/USD on 4h')).toBe('EURUSD');
     expect(extractSymbolFromPrompt('Compare EURUSD and GBPUSD')).toBeNull();
     expect(extractSymbolFromPrompt('Compare gold and EURUSD')).toBeNull();
     expect(extractSymbolFromPrompt('Analyse my default market', 'BTCUSDT')).toBe('BTCUSDT');

@@ -50,7 +50,10 @@ export const computePositionHealthTool = tool({
   description:
     'For each currently-open journal entry, compute live P/L in pips and R-multiples plus distance to stop and target. Use when the user asks "how are my open trades", "anything close to stopping out", or wants a live P/L pulse. Skips closed trades; sets `empty: true` when no positions are open and `partial: true` when at least one row was dropped due to a price-fetch failure.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, limit }, options?: { abortSignal?: AbortSignal }): Promise<ComputePositionHealthOutput> => {
+  execute: async (
+    { symbol, limit },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<ComputePositionHealthOutput> => {
     const ctx = getToolContext();
     const signal = options?.abortSignal ?? ctx.signal ?? undefined;
     const all = await listEntries(ctx.userId, {

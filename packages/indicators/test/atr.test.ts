@@ -33,4 +33,13 @@ describe('atr', () => {
     expect(last).not.toBeNull();
     expect(last!).toBeGreaterThan(0);
   });
+
+  it('produces first ATR value at index period-1 on exactly period bars (F-13)', () => {
+    const closes = Array.from({ length: 14 }, (_, i) => 100 + i);
+    const out = atr(makeCandles(closes), 14);
+    expect(out).toHaveLength(14);
+    expect(out.slice(0, 13).every((v) => v === null)).toBe(true);
+    expect(out[13]).not.toBeNull();
+    expect(out[13]!).toBeGreaterThan(0);
+  });
 });

@@ -51,13 +51,16 @@ declare module '@kestrel/shared' {
   }
 }
 
-const TAIL_POINTS = 30;
+const TAIL_POINTS = 15;
 
 export const getIndicatorsTool = tool({
   description:
-    'Compute indicators (sma, ema, rsi, macd, atr, bollinger, pivots) on a (symbol, timeframe) window. Returns the last 30 points of each series — enough for "current value + recent slope" reasoning.',
+    'Compute indicators (sma, ema, rsi, macd, atr, bollinger, pivots) on a (symbol, timeframe) window. Returns the last 15 points of each series — enough for "current value + recent slope" reasoning while minimizing token overhead.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count, indicators }, options?: { abortSignal?: AbortSignal }): Promise<GetIndicatorsOutput> => {
+  execute: async (
+    { symbol, tf, count, indicators },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetIndicatorsOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
     const results = indicators.map(({ kind, params }) => {

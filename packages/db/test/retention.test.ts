@@ -120,7 +120,9 @@ describe('retention cleanup', () => {
     };
     const OM_DELETE = 'DELETE FROM "mastra"."mastra_observational_memory"';
     execute.mockImplementation(async (query: unknown) =>
-      statementText(query).includes('information_schema.tables') ? [{ exists: true }] : { count: 2 },
+      statementText(query).includes('information_schema.tables')
+        ? [{ exists: true }]
+        : { count: 2 },
     );
 
     const result = await runRetentionCleanup({ observationalMemoryRetentionDays: 30 });

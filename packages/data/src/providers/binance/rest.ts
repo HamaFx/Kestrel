@@ -32,6 +32,11 @@ interface CallOptions {
   skipThrottle?: boolean;
 }
 
+export interface BinanceFetchCandlesOptions extends CallOptions {
+  includeOpenBar?: boolean;
+  now?: number;
+}
+
 async function klinesCall(
   query: Record<string, string>,
   opts: CallOptions,
@@ -59,6 +64,9 @@ async function klinesCall(
   try {
     res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
   } catch (cause) {
+    if (opts?.signal?.aborted) {
+      throw opts.signal.reason ?? cause;
+    }
     const isAbort = (cause as Error)?.name === 'AbortError';
     throw new ProviderError(
       isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
@@ -71,9 +79,9 @@ async function klinesCall(
   }
 
   if (!res.ok) {
-    if (res.status === 429) await noteBackoff(PROVIDER, THROTTLE);
+    if (res.status === 429 || res.status === 418) await noteBackoff(PROVIDER, THROTTLE);
     throw new ProviderError(
-      res.status === 429 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
+      res.status === 429 || res.status === 418 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
       PROVIDER,
       `HTTP ${res.status} ${res.statusText}`,
       { status: res.status },
@@ -98,6 +106,7 @@ async function klinesCall(
       l: Number.parseFloat(k.low),
       c: Number.parseFloat(k.close),
       v: Number.parseFloat(k.volume),
+      closeTime: k.closeTime,
     });
   }
 
@@ -113,7 +122,7 @@ export async function fetchCandles(
   symbol: Symbol,
   tf: Timeframe,
   count: number,
-  opts: CallOptions = {},
+  opts: BinanceFetchCandlesOptions = {},
 ): Promise<NormalizedBinanceCandle[]> {
   const canonical = symbol.trim().toUpperCase();
   if (!isCryptoSymbol(canonical)) {
@@ -125,12 +134,20 @@ export async function fetchCandles(
   }
 
   const interval = toBinanceInterval(tf);
-  const limit = Math.min(count, 1000);
+  const reqCount = opts.includeOpenBar ? count : count + 1;
+  const limit = Math.min(reqCount, 1000);
 
-  return klinesCall(
+  const raw = await klinesCall(
     { symbol: getSymbolDefinition(canonical).binance!, interval, limit: String(limit) },
     opts,
   );
+
+  const nowMs = opts.now ?? Date.now();
+  const filtered = opts.includeOpenBar
+    ? raw
+    : raw.filter((c) => c.closeTime !== undefined && c.closeTime <= nowMs);
+
+  return filtered.slice(-count);
 }
 
 /** GET /api/v3/ticker/price?symbol=BTCUSDT — lightweight current price fetch. */
@@ -150,6 +167,15 @@ export async function fetchTickerPrice(
   const url = new URL(`${BASE_URL}/api/v3/ticker/price`);
   url.searchParams.set('symbol', getSymbolDefinition(canonical).binance!);
 
+  const allowed = await tryReserve(PROVIDER, THROTTLE);
+  if (!allowed) {
+    throw new ProviderError(
+      'PROVIDER_QUOTA_EXCEEDED',
+      PROVIDER,
+      'binance self-throttle exhausted (600/min)',
+    );
+  }
+
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
   if (opts?.signal) {
@@ -162,6 +188,9 @@ export async function fetchTickerPrice(
   try {
     res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
   } catch (cause) {
+    if (opts?.signal?.aborted) {
+      throw opts.signal.reason ?? cause;
+    }
     const isAbort = (cause as Error)?.name === 'AbortError';
     throw new ProviderError(
       isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
@@ -174,8 +203,9 @@ export async function fetchTickerPrice(
   }
 
   if (!res.ok) {
+    if (res.status === 429 || res.status === 418) await noteBackoff(PROVIDER, THROTTLE);
     throw new ProviderError(
-      'PROVIDER_HTTP_ERROR',
+      res.status === 429 || res.status === 418 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
       PROVIDER,
       `HTTP ${res.status} ${res.statusText}`,
       { status: res.status },

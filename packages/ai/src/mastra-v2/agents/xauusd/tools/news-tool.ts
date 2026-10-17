@@ -25,10 +25,10 @@ import {
   quarantineExternalText,
   toUntrustedExternalEvidence,
 } from '../../../packets/external-content';
-import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD } from '../../../shared/types';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),

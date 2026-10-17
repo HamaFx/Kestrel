@@ -108,6 +108,12 @@ export function priceDecimals(symbol: string): number {
   return 5;
 }
 
+/** Number of units per standard lot or coin — delegates to SymbolDefinition. */
+export function lotUnits(symbol: string): number {
+  const def = tryGetSymbolDefinition(symbol);
+  return def?.capabilities.contractSize ?? 100_000;
+}
+
 /** Format a price delta using the instrument's configured distance unit. */
 export function formatPips(symbol: string, delta: number): string {
   const def = tryGetSymbolDefinition(symbol);

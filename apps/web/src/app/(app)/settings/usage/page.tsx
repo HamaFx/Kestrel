@@ -16,12 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  computeUsage,
-  listTelemetry,
-  type DayBucket,
-  type UsageStats,
-} from '@kestrel/ai';
+import { computeUsage, listTelemetry, type DayBucket, type UsageStats } from '@kestrel/ai';
 import { listMtdAgentOpinions } from '@kestrel/db';
 import { IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
@@ -107,10 +102,16 @@ function ActivitySummaryCard({ stats }: { stats: UsageStats }) {
         </span>
       </header>
 
-      <dl className="surface-well grid grid-cols-3 gap-3 rounded-xl border border-white/5 p-3.5 shadow-inner text-xs tabular-nums">
+      <dl className="surface-well grid grid-cols-3 gap-3 rounded-xl border border-white/5 p-3.5 text-xs tabular-nums shadow-inner">
         <Stat label="Today" value={`${todayTurns} ${todayTurns === 1 ? 'analysis' : 'analyses'}`} />
-        <Stat label="Last 7 Days" value={`${sevenDayTurns} ${sevenDayTurns === 1 ? 'session' : 'sessions'}`} />
-        <Stat label="Last 30 Days" value={`${stats.thirtyDayTurns} ${stats.thirtyDayTurns === 1 ? 'session' : 'sessions'}`} />
+        <Stat
+          label="Last 7 Days"
+          value={`${sevenDayTurns} ${sevenDayTurns === 1 ? 'session' : 'sessions'}`}
+        />
+        <Stat
+          label="Last 30 Days"
+          value={`${stats.thirtyDayTurns} ${stats.thirtyDayTurns === 1 ? 'session' : 'sessions'}`}
+        />
       </dl>
     </section>
   );
@@ -153,21 +154,23 @@ function DailyActivityChart({ daily7 }: { daily7: DayBucket[] }) {
               key={d.date}
               className="text-body-sm grid grid-cols-[auto_1fr_auto] items-center gap-3 text-xs"
             >
-              <span className="text-fg-subtle w-14 font-mono text-xs tabular-nums">{shortDate(d.date)}</span>
+              <span className="text-fg-subtle w-14 font-mono text-xs tabular-nums">
+                {shortDate(d.date)}
+              </span>
               <div
                 role="progressbar"
                 aria-valuenow={Math.round(pct)}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-label={`${d.turns} analyses`}
-                className="surface-well h-2 rounded-full border border-white/5 overflow-hidden"
+                className="surface-well h-2 overflow-hidden rounded-full border border-white/5"
               >
                 <div
                   className="bg-brand h-full rounded-full transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <span className="text-fg-muted w-24 text-right font-mono text-xs tabular-nums font-medium">
+              <span className="text-fg-muted w-24 text-right font-mono text-xs font-medium tabular-nums">
                 {d.turns} {d.turns === 1 ? 'analysis' : 'analyses'}
               </span>
             </li>
@@ -205,17 +208,18 @@ function RecentTurnsCard({ rows }: { rows: Awaited<ReturnType<typeof listTelemet
         {rows.map((r) => (
           <li
             key={r.id}
-            className="surface-well flex items-center justify-between rounded-xl border border-white/5 p-3 text-xs tabular-nums hover:border-white/15 transition-all"
+            className="surface-well flex items-center justify-between rounded-xl border border-white/5 p-3 text-xs tabular-nums transition-all hover:border-white/15"
           >
             <div className="flex min-w-0 flex-col">
               <span className="text-fg truncate font-sans text-xs font-semibold">
-                AI Market Analysis ({r.toolCalls} {r.toolCalls === 1 ? 'data check' : 'data checks'})
+                AI Market Analysis ({r.toolCalls} {r.toolCalls === 1 ? 'data check' : 'data checks'}
+                )
               </span>
               <span className="text-fg-subtle text-caption font-mono text-[11px]">
                 {formatRelative(r.createdAt)} · Completed in {Math.round(r.ms / 100) / 10}s
               </span>
             </div>
-            <span className="text-bull font-mono text-xs font-semibold text-right">Verified</span>
+            <span className="text-bull text-right font-mono text-xs font-semibold">Verified</span>
           </li>
         ))}
       </ul>
@@ -250,7 +254,12 @@ function AgentUsageCard({
     byMode.set(r.analysisMode, existing);
   }
   const modeRows = [...byMode.entries()].map(([mode, v]) => ({
-    mode: mode === 'full' ? 'Full Committee (4 Desks)' : mode === 'single' ? 'Quick Read (1 Desk)' : mode,
+    mode:
+      mode === 'full'
+        ? 'Full Committee (4 Desks)'
+        : mode === 'single'
+          ? 'Quick Read (1 Desk)'
+          : mode,
     turns: v.turns,
   }));
 
@@ -288,7 +297,8 @@ function AgentUsageCard({
             >
               <span className="text-fg font-medium">{AGENT_LABELS[r.name] ?? r.name}</span>
               <span className="text-fg-subtle font-mono text-[11px]">
-                {r.turns} {r.turns === 1 ? 'report' : 'reports'} · {Math.round(r.avgMs / 100) / 10}s avg
+                {r.turns} {r.turns === 1 ? 'report' : 'reports'} · {Math.round(r.avgMs / 100) / 10}s
+                avg
               </span>
             </li>
           ))}

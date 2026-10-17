@@ -19,7 +19,7 @@ import { z } from 'zod';
 import { CurrencyTagSchema, SymbolSchema } from '../symbols';
 
 /** Articles can be tagged with either an instrument symbol or a raw currency. */
-export const SymbolOrCurrencyTagSchema = z.union([SymbolSchema, CurrencyTagSchema]);
+export const SymbolOrCurrencyTagSchema = z.union([CurrencyTagSchema, SymbolSchema]);
 export type SymbolOrCurrencyTag = z.infer<typeof SymbolOrCurrencyTagSchema>;
 
 export const NewsSentimentSchema = z.enum(['positive', 'negative', 'neutral']);

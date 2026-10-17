@@ -96,7 +96,10 @@ export const getSessionLevelsTool = tool({
   description:
     "Compute today's (and optionally yesterday's) Asia / London / NY session OHLC levels for one symbol. Use when the user asks 'where did Asia top out', 'show the London open', 'NY range', or wants intraday session context. Returns per-session open / high / low / close + a `forming` flag when the session is still in progress.",
   inputSchema: InputSchema,
-  execute: async ({ symbol, includePrior }, options?: { abortSignal?: AbortSignal }): Promise<GetSessionLevelsOutput> => {
+  execute: async (
+    { symbol, includePrior },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetSessionLevelsOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     // 48h of 1H bars covers today + yesterday including the final NY close.
     const candles = await getCandles(symbol, '1h', { count: 60, ...(signal ? { signal } : {}) });

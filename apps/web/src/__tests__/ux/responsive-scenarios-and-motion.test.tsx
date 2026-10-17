@@ -19,9 +19,12 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+
 import { cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+import { MotionRoot } from '@/components/ui/motion-config';
 
 afterEach(cleanup);
 
@@ -54,8 +57,6 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
 }));
 
-import { MotionRoot } from '@/components/ui/motion-config';
-
 describe('Tier 4: Responsive Parity & Zero Horizontal Clipping (>=5 tests)', () => {
   const globalsCssPath = path.resolve(__dirname, '../../app/globals.css');
   const globalsCss = fs.readFileSync(globalsCssPath, 'utf8');
@@ -79,7 +80,7 @@ describe('Tier 4: Responsive Parity & Zero Horizontal Clipping (>=5 tests)', () 
               <button
                 key={cat}
                 type="button"
-                className="h-10 min-w-[44px] shrink-0 rounded-md px-3 text-xs tactile-press"
+                className="tactile-press h-10 min-w-[44px] shrink-0 rounded-md px-3 text-xs"
               >
                 {cat}
               </button>

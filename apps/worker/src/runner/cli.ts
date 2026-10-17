@@ -27,10 +27,12 @@
 
 import { closeDb } from '@kestrel/db';
 
+import { acquireCronLock, type CronLock } from '../cron-lock.js';
 import { loadEnv } from '../env.js';
 import { ping, withHeartbeat } from '../healthchecks.js';
 import { JOBS, type JobName } from '../jobs/index.js';
 import { createLogger } from '../log.js';
+import { SKIP_DAILY_LOCK } from '../scheduler.js';
 import { tenantRouter } from '../tenant-router.js';
 
 function isKnownJob(name: string): name is JobName {
@@ -49,22 +51,7 @@ function resolveHcUuid(env: ReturnType<typeof loadEnv>, name: JobName): string |
   return typeof value === 'string' ? value : undefined;
 }
 
-async function main(): Promise<number> {
-  const argv = process.argv.slice(2);
-  const jobName = argv[0];
-
-  if (!jobName) {
-    process.stderr.write(
-      `usage: runner <job-name>\n  available: ${Object.keys(JOBS).join(', ')}\n`,
-    );
-    return 1;
-  }
-
-  if (!isKnownJob(jobName)) {
-    process.stderr.write(`unknown job: ${jobName}\n  available: ${Object.keys(JOBS).join(', ')}\n`);
-    return 1;
-  }
-
+export async function runJob(jobName: JobName): Promise<number> {
   const { loadSecretsFromVault } = await import('@kestrel/shared/vault');
   await loadSecretsFromVault();
 
@@ -83,8 +70,15 @@ async function main(): Promise<number> {
   const job = JOBS[jobName];
   const hcUuid = resolveHcUuid(env, jobName);
 
-  // SIGTERM from systemd → AbortSignal so jobs can short-circuit cleanly.
+  const timeoutMs = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
   const ac = new AbortController();
+  const timer = setTimeout(() => {
+    log.warn('Job timed out — aborting', { timeoutMs });
+    ac.abort(new Error(`Job timed out after ${timeoutMs}ms`));
+  }, timeoutMs);
+  timer.unref();
+
+  // SIGTERM from systemd → AbortSignal so jobs can short-circuit cleanly.
   const sigtermHandler = (): void => {
     log.warn('SIGTERM received — aborting job');
     ac.abort(new Error('SIGTERM'));
@@ -92,22 +86,44 @@ async function main(): Promise<number> {
   process.on('SIGTERM', sigtermHandler);
   process.on('SIGINT', sigtermHandler);
 
+  let lock: CronLock | null = null;
+  const useLock = !SKIP_DAILY_LOCK.has(jobName);
+  if (useLock) {
+    try {
+      const { getDb } = await import('@kestrel/ai');
+      lock = await acquireCronLock(jobName, getDb());
+      if (!lock) {
+        log.info('Job skipped — already ran today (idempotency guard)');
+        clearTimeout(timer);
+        return 0;
+      }
+    } catch (lockErr) {
+      log.error('Failed to acquire cron lock in CLI runner — failing closed', {
+        err: String(lockErr),
+      });
+      clearTimeout(timer);
+      return 1;
+    }
+  }
+
   try {
     const result = await withHeartbeat(hcUuid, async () => {
       const r = await job.run({ log, signal: ac.signal, tenantRouter });
       return r;
     });
+    if (lock) await lock.done(result.note);
     log.info('job completed', { processed: result.processed, note: result.note });
     return 0;
   } catch (err) {
+    if (lock) await lock.fail(err);
     const stack = err instanceof Error && typeof err.stack === 'string' ? err.stack : String(err);
     log.error('job failed', { err: String(err), stack });
     return 2;
   } finally {
+    clearTimeout(timer);
     try {
-      const { flushMastraObservability, getKestrelMastra, closeKestrelMastra } = await import(
-        '@kestrel/ai/mastra'
-      );
+      const { flushMastraObservability, getKestrelMastra, closeKestrelMastra } =
+        await import('@kestrel/ai/mastra');
       await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
       await shutdownLangfuse();
       await closeKestrelMastra();
@@ -118,6 +134,25 @@ async function main(): Promise<number> {
     process.removeListener('SIGTERM', sigtermHandler);
     process.removeListener('SIGINT', sigtermHandler);
   }
+}
+
+async function main(): Promise<number> {
+  const argv = process.argv.slice(2);
+  const jobName = argv[0];
+
+  if (!jobName) {
+    process.stderr.write(
+      `usage: runner <job-name>\n  available: ${Object.keys(JOBS).join(', ')}\n`,
+    );
+    return 1;
+  }
+
+  if (!isKnownJob(jobName)) {
+    process.stderr.write(`unknown job: ${jobName}\n  available: ${Object.keys(JOBS).join(', ')}\n`);
+    return 1;
+  }
+
+  return runJob(jobName);
 }
 
 // Entry-point detection so vitest can import without running.

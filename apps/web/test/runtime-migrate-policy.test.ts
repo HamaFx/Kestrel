@@ -47,9 +47,7 @@ describe('runtime migration multi-user policy', () => {
     const clientIndex = runtimeMigrator.indexOf('const sql = postgres(');
 
     expect(runtimeMigrator).toContain('!multiUserEnabled || !rlsEnabled');
-    expect(runtimeMigrator).toContain(
-      'MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1 are required',
-    );
+    expect(runtimeMigrator).toContain('MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1 are required');
     expect(preflightIndex).toBeGreaterThan(-1);
     expect(clientIndex).toBeGreaterThan(-1);
     expect(preflightIndex).toBeLessThan(clientIndex);

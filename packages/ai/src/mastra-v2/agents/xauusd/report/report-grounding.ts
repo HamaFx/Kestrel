@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import type { XauusdResearchReport } from './report-types';
 import type { XauusdResearchPacket } from '../../../packets/research-types';
+import type { XauusdResearchReport } from './report-types';
 
 export function availableEvidenceIds(packet: XauusdResearchPacket): Set<string> {
   return new Set([
@@ -204,9 +204,7 @@ export function extractNarrativeNumberTokens(text: string): NarrativeNumberToken
   for (const match of text.matchAll(NARRATIVE_NUMBER_PATTERN)) {
     const start = match.index ?? 0;
     const end = start + match[0].length;
-    if (
-      structuralRanges.some(([rangeStart, rangeEnd]) => start >= rangeStart && end <= rangeEnd)
-    ) {
+    if (structuralRanges.some(([rangeStart, rangeEnd]) => start >= rangeStart && end <= rangeEnd)) {
       continue;
     }
     const value = Number(match[0].replaceAll(',', ''));

@@ -4,7 +4,12 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
-import { ALL_SYMBOLS, isKnownSymbol, normalizeSymbol } from '@kestrel/shared';
+import {
+  ALL_SYMBOLS,
+  extractSymbolsFromText,
+  isKnownSymbol,
+  normalizeSymbol,
+} from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import {
@@ -89,19 +94,7 @@ export function messageText(message: UIMessage): string {
  * pinned symbol when it never mentions the pin (P2-01).
  */
 export function extractMastraSymbols(prompt: string): string[] {
-  const matched = new Set<string>();
-  if (/\bgold\b/i.test(prompt)) matched.add('XAUUSD');
-  const upper = prompt.toUpperCase();
-  for (const symbol of ALL_SYMBOLS) {
-    if (upper.includes(symbol)) matched.add(symbol);
-  }
-  const matches = [...prompt.matchAll(new RegExp(`\\b(?:${ALL_SYMBOLS.join('|')})\\b`, 'gi'))].map(
-    (match) => normalizeSymbol(match[0] ?? ''),
-  );
-  for (const m of matches) {
-    if (isKnownSymbol(m)) matched.add(m);
-  }
-  return [...matched];
+  return extractSymbolsFromText(prompt);
 }
 
 export function extractMastraSymbol(prompt: string): string | null {

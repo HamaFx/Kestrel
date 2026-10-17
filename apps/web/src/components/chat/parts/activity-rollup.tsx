@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { IconChevronDown, IconClock } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useState, type ReactNode } from 'react';
@@ -54,13 +53,13 @@ export function ActivityRollup({
     : `Market research (${parts.join(', ')})`;
 
   return (
-    <div className="w-full my-1 select-none">
+    <div className="my-1 w-full select-none">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className={cn(
-          'group text-fg-subtle hover:text-fg flex items-center gap-2 rounded-md py-1 pr-2 text-left text-body transition-colors active:translate-y-[0.5px]',
+          'group text-fg-subtle hover:text-fg text-body flex items-center gap-2 rounded-md py-1 pr-2 text-left transition-colors active:translate-y-[0.5px]',
           isRunning && 'text-fg',
         )}
       >
@@ -68,11 +67,11 @@ export function ActivityRollup({
           {isRunning ? (
             <span className="border-brand/30 border-t-brand size-3 animate-spin rounded-full border-[1.5px]" />
           ) : (
-            <IconClock className="size-3.5 text-fg-subtle group-hover:text-fg" />
+            <IconClock className="text-fg-subtle group-hover:text-fg size-3.5" />
           )}
         </span>
 
-        <span className="font-mono text-caption text-fg-muted font-medium">{label}</span>
+        <span className="text-caption text-fg-muted font-mono font-medium">{label}</span>
 
         <IconChevronDown
           className={cn(

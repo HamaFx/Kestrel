@@ -37,6 +37,7 @@ import type { Cache, CacheEntryMeta, CacheFetchOptions } from './types';
 interface RedisValue<T> {
   v: T;
   p: number; // producedAt (ms epoch)
+  e?: number; // softExpiresAt (ms epoch)
   h: number; // hardExpiresAt (ms epoch) — soft TTL + maxStaleSeconds
   t: string[]; // tags
 }
@@ -136,27 +137,31 @@ export class RedisCache implements Cache {
     const ttlMs = options.ttlSeconds * 1000;
     const swrMs = (options.maxStaleSeconds ?? 0) * 1000;
 
+    let staleEntry: RedisValue<T> | null = null;
+
     // Try cache hit.
     try {
       const raw = await client.get(lKey);
       if (raw) {
         const entry = JSON.parse(raw) as RedisValue<T>;
-        if (entry.p + ttlMs > now) {
+        const softExp = entry.e ?? entry.p + ttlMs;
+        if (softExp > now) {
           // Fresh hit within soft TTL.
           return { value: entry.v, meta: { producedAt: entry.p, stale: false } };
         }
         if (swrMs > 0 && entry.h > now) {
-          // Stale-while-error window — return stale value but mark it.
-          return { value: entry.v, meta: { producedAt: entry.p, stale: true } };
+          // Stale-while-error window — keep for fallback ONLY if producer() fails.
+          staleEntry = entry;
+        } else {
+          // Entry expired even past hard ceiling; remove it.
+          await client.del(lKey).catch(() => {});
         }
-        // Entry expired even past hard ceiling; remove it.
-        await client.del(lKey).catch(() => {});
       }
     } catch {
       // Redis read error — fall through to producer.
     }
 
-    // Cache miss or expired — call producer.
+    // Cache miss or soft expired — call producer.
     try {
       const value = await producer();
       const producedAt = Date.now();
@@ -165,12 +170,14 @@ export class RedisCache implements Cache {
       const envelope: RedisValue<T> = {
         v: value,
         p: producedAt,
+        e: producedAt + ttlMs,
         h: hardExpiresAt,
         t: options.tags ?? [],
       };
 
-      // Best-effort write to Redis.
-      client.set(lKey, JSON.stringify(envelope)).catch(() => {});
+      // Best-effort write to Redis with PX auto-expiration.
+      const pxTtl = Math.max(1, hardExpiresAt - producedAt);
+      client.set(lKey, JSON.stringify(envelope), { PX: pxTtl }).catch(() => {});
 
       // Best-effort tag index.
       if (options.tags && options.tags.length > 0) {
@@ -182,11 +189,14 @@ export class RedisCache implements Cache {
       return { value, meta: { producedAt, stale: false } };
     } catch (err) {
       // Producer failed — check for stale-while-error fallback.
+      if (staleEntry && staleEntry.h > Date.now()) {
+        return { value: staleEntry.v, meta: { producedAt: staleEntry.p, stale: true } };
+      }
       try {
         const raw = await client.get(lKey);
         if (raw) {
           const entry = JSON.parse(raw) as RedisValue<T>;
-          if (swrMs > 0 && entry.h > now) {
+          if (swrMs > 0 && entry.h > Date.now()) {
             return { value: entry.v, meta: { producedAt: entry.p, stale: true } };
           }
         }
@@ -214,7 +224,8 @@ export class RedisCache implements Cache {
         await client.del(lKey).catch(() => {});
         return null;
       }
-      return { value: entry.v, meta: { producedAt: entry.p, stale: false } };
+      const isStale = (entry.e ?? entry.p) <= now;
+      return { value: entry.v, meta: { producedAt: entry.p, stale: isStale } };
     } catch {
       return null;
     }
@@ -235,10 +246,12 @@ export class RedisCache implements Cache {
     const envelope: RedisValue<T> = {
       v: value,
       p: now,
+      e: now + ttlMs,
       h: hardExpiresAt,
       t: options.tags ?? [],
     };
-    await client.set(lKey, JSON.stringify(envelope)).catch(() => {});
+    const pxTtl = Math.max(1, hardExpiresAt - now);
+    await client.set(lKey, JSON.stringify(envelope), { PX: pxTtl }).catch(() => {});
     if (options.tags && options.tags.length > 0) {
       for (const tag of options.tags) {
         client.sAdd(this.tagKey(tag), lKey).catch(() => {});

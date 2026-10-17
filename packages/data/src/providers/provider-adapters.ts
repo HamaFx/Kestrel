@@ -62,7 +62,7 @@ const liveTicksProvider: MarketDataProvider = {
   pinned: true,
   async fetchPrice(symbol: Symbol, _opts?: ProviderFetchOptions) {
     const r = await fetchLiveTick({ symbol });
-    return { price: r.price, provider: r.provider, ageMs: r.ageMs };
+    return { price: r.price, provider: r.provider, ageMs: r.ageMs, observedAt: r.ts };
   },
   async fetchCandles(
     symbol: Symbol,
@@ -122,9 +122,22 @@ const biquoteProvider: MarketDataProvider = {
     const out = new Map<Symbol, ProviderPriceSnapshot>();
     for (const tick of ticks) {
       const mid = tick.mid ?? (tick.bid + tick.ask) / 2;
+      const parsedObserved = tick.lastQuoteAt
+        ? Date.parse(tick.lastQuoteAt)
+        : tick.timestamp
+          ? Date.parse(tick.timestamp)
+          : tick.quoteAgeSeconds != null
+            ? Date.now() - tick.quoteAgeSeconds * 1000
+            : undefined;
+      const observedAt =
+        parsedObserved !== undefined && Number.isFinite(parsedObserved)
+          ? parsedObserved
+          : undefined;
+
       out.set(tick.symbol, {
         price: mid,
         provider: 'biquote',
+        ...(observedAt !== undefined ? { observedAt } : {}),
         ageMs: tick.quoteAgeSeconds != null ? tick.quoteAgeSeconds * 1000 : null,
         ...(tick.marketState ? { marketState: tick.marketState } : {}),
         quoteAgeSeconds: tick.quoteAgeSeconds ?? null,
@@ -205,13 +218,14 @@ function createFinnhubProvider(): MarketDataProvider {
         tf,
         count,
         apiKey: key,
+        ...(opts?.includeOpenBar !== undefined ? { includeOpenBar: opts.includeOpenBar } : {}),
         ...(opts?.signal ? { signal: opts.signal } : {}),
       });
       const fetchedAt = Date.now();
       return raw.map((bar) => toCandle(bar, { symbol, tf, source: 'finnhub', fetchedAt }));
     },
     supports(_symbol: Symbol, _tf?: Timeframe): boolean {
-      return true;
+      return Boolean(process.env.FINNHUB_API_KEY);
     },
     async testConnection(opts?: ProviderFetchOptions): Promise<{ ok: boolean; error?: string }> {
       try {
@@ -227,6 +241,9 @@ function createFinnhubProvider(): MarketDataProvider {
     },
   };
 }
+
+export const finnhubProvider = createFinnhubProvider();
+export { liveTicksProvider, biquoteProvider, binanceProvider };
 
 /** Wraps the Binance REST provider for crypto. */
 const binanceProvider: MarketDataProvider = {
@@ -256,6 +273,7 @@ const binanceProvider: MarketDataProvider = {
     const def = getSymbolDefinition(symbol);
     if (!def?.binance) return null;
     const raw = await binance.fetchCandles(def.binance, tf, count, {
+      ...(opts?.includeOpenBar !== undefined ? { includeOpenBar: opts.includeOpenBar } : {}),
       ...(opts?.signal ? { signal: opts.signal } : {}),
     });
     const fetchedAt = Date.now();
@@ -282,7 +300,7 @@ function buildProviderList(): MarketDataProvider[] {
   if (process.env.KESTREL_OFFLINE_MODE === '1' || process.env.KESTREL_OFFLINE_MODE === 'true') {
     return [offlineMarketDataProvider];
   }
-  return [liveTicksProvider, biquoteProvider, binanceProvider, createFinnhubProvider()];
+  return [liveTicksProvider, biquoteProvider, binanceProvider, finnhubProvider];
 }
 
 let _bootstrapped = false;

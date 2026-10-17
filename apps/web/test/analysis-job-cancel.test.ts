@@ -55,9 +55,12 @@ describe('analysis-jobs/[jobId] route', () => {
 
     it('returns 404 when job is not found', async () => {
       mockGetFullAnalysisRun.mockResolvedValueOnce(null);
-      const res = await GET(new Request('http://localhost/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890'), {
-        params: Promise.resolve({ jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
-      } as never);
+      const res = await GET(
+        new Request('http://localhost/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
+        {
+          params: Promise.resolve({ jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
+        } as never,
+      );
       expect(res.status).toBe(404);
       const json = await res.json();
       expect(json.error.code).toBe('NOT_FOUND');
@@ -74,9 +77,12 @@ describe('analysis-jobs/[jobId] route', () => {
         completedAt: null,
       });
 
-      const res = await GET(new Request('http://localhost/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890'), {
-        params: Promise.resolve({ jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
-      } as never);
+      const res = await GET(
+        new Request('http://localhost/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
+        {
+          params: Promise.resolve({ jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
+        } as never,
+      );
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.id).toBe('a1b2c3d4-e5f6-7890-abcd-ef1234567890');
@@ -86,9 +92,12 @@ describe('analysis-jobs/[jobId] route', () => {
 
   describe('DELETE', () => {
     it('returns 400 for invalid jobId', async () => {
-      const res = await DELETE(new Request('http://localhost/api/chat/analysis-jobs/bad!id', { method: 'DELETE' }), {
-        params: Promise.resolve({ jobId: 'bad!id' }),
-      } as never);
+      const res = await DELETE(
+        new Request('http://localhost/api/chat/analysis-jobs/bad!id', { method: 'DELETE' }),
+        {
+          params: Promise.resolve({ jobId: 'bad!id' }),
+        } as never,
+      );
       expect(res.status).toBe(400);
       const json = await res.json();
       expect(json.error.code).toBe('VALIDATION');
@@ -96,9 +105,15 @@ describe('analysis-jobs/[jobId] route', () => {
 
     it('returns 404 when job cannot be found or cancelled', async () => {
       mockCancelFullAnalysisRun.mockResolvedValueOnce(null);
-      const res = await DELETE(new Request('http://localhost/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890', { method: 'DELETE' }), {
-        params: Promise.resolve({ jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
-      } as never);
+      const res = await DELETE(
+        new Request(
+          'http://localhost/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          { method: 'DELETE' },
+        ),
+        {
+          params: Promise.resolve({ jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
+        } as never,
+      );
       expect(res.status).toBe(404);
       const json = await res.json();
       expect(json.error.code).toBe('NOT_FOUND');
@@ -115,15 +130,24 @@ describe('analysis-jobs/[jobId] route', () => {
         completedAt: '2026-10-15T00:01:00.000Z',
       });
 
-      const res = await DELETE(new Request('http://localhost/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890', { method: 'DELETE' }), {
-        params: Promise.resolve({ jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
-      } as never);
+      const res = await DELETE(
+        new Request(
+          'http://localhost/api/chat/analysis-jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          { method: 'DELETE' },
+        ),
+        {
+          params: Promise.resolve({ jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
+        } as never,
+      );
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.id).toBe('a1b2c3d4-e5f6-7890-abcd-ef1234567890');
       expect(json.status).toBe('cancelled');
       expect(json.cancelled).toBe(true);
-      expect(mockCancelFullAnalysisRun).toHaveBeenCalledWith('user-1', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890');
+      expect(mockCancelFullAnalysisRun).toHaveBeenCalledWith(
+        'user-1',
+        'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      );
     });
   });
 });

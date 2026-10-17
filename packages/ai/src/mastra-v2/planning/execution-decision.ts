@@ -7,13 +7,13 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { UIMessage } from 'ai';
 
+import type { ResolveModelEnv } from '../../env-model-factory';
 import {
   resolveMastraExecutionModel,
   type MastraModelPurpose,
   type MastraResolvedModel,
 } from '../../model';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../routing';
-import type { ResolveModelEnv } from '../../env-model-factory';
 import {
   evaluateMastraCapability,
   getMastraCapability,

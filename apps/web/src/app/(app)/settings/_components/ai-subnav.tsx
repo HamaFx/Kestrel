@@ -24,7 +24,12 @@ import { cn } from '@/lib/cn';
 const AI_TABS = [
   { href: '/settings/api-keys', label: 'API Keys & Health', shortLabel: 'API Keys', icon: IconKey },
   { href: '/settings/models', label: 'Models & Routing', shortLabel: 'Models', icon: IconCpu },
-  { href: '/settings/agent', label: 'Agent Tools & Overrides', shortLabel: 'Agent Tools', icon: IconRobot },
+  {
+    href: '/settings/agent',
+    label: 'Agent Tools & Overrides',
+    shortLabel: 'Agent Tools',
+    icon: IconRobot,
+  },
 ];
 
 export function AISubNav() {
@@ -33,7 +38,7 @@ export function AISubNav() {
   return (
     <nav
       aria-label="AI & Intelligence Sections"
-      className="surface-well flex flex-row gap-1 overflow-x-auto rounded-xl border border-white/5 p-1 scrollbar-none"
+      className="surface-well flex scrollbar-none flex-row gap-1 overflow-x-auto rounded-xl border border-white/5 p-1"
     >
       {AI_TABS.map((tab) => {
         const active = pathname === tab.href;
@@ -45,9 +50,9 @@ export function AISubNav() {
             href={tab.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all tactile-press active:translate-y-[0.5px]',
+              'tactile-press flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all active:translate-y-[0.5px]',
               active
-                ? 'surface-chip bg-bg-elev-2 text-fg shadow-xs font-semibold'
+                ? 'surface-chip bg-bg-elev-2 text-fg font-semibold shadow-xs'
                 : 'text-fg-subtle hover:text-fg hover:bg-bg-elev-1/50',
             )}
           >

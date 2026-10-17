@@ -262,8 +262,8 @@ export const annotateChartTool = tool({
       symbol,
       tf,
       asOf: Date.now(),
-      markers,
-      priceLines,
+      markers: markers.slice(-30),
+      priceLines: priceLines.slice(-15),
       countsByKind,
     };
   },

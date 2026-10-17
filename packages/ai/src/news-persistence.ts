@@ -49,10 +49,10 @@ export async function upsertArticles(
   const rows = articles.map((a) => ({
     id: a.id,
     title: quarantineExternalText(a.title, 240).text || '[filtered]',
-    summary: a.summary ? (quarantineExternalText(a.summary, 420).text || null) : null,
+    summary: a.summary ? quarantineExternalText(a.summary, 420).text || null : null,
     url: a.url,
     source: quarantineExternalText(a.source, 80).text || 'unknown',
-    publisher: a.publisher ? (quarantineExternalText(a.publisher, 80).text || null) : null,
+    publisher: a.publisher ? quarantineExternalText(a.publisher, 80).text || null : null,
     publishedAt: new Date(a.publishedAt),
     symbols: a.symbols as string[],
     sentiment: a.sentiment,

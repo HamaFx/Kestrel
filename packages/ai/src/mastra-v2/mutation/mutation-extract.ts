@@ -30,12 +30,8 @@ import { AlertChannelSchema, AlertRuleSchema, RunSystemActionInputSchema } from 
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
-import {
-  MutationInputSchema,
-  type MutationInput,
-  type MutationKind,
-} from '../workflows/mutation';
 import { runMastraStructured } from '../agents/xauusd/text-runner';
+import { MutationInputSchema, type MutationInput, type MutationKind } from '../workflows/mutation';
 
 export class MutationExtractionError extends Error {
   readonly kind: MutationKind;

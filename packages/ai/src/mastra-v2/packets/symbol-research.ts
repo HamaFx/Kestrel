@@ -16,19 +16,19 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from './research-packet-macro';
-
 import { getCandlesWithMeta, getPriceWithMeta } from '@kestrel/data';
 import { computeIndicator } from '@kestrel/indicators';
 import {
   ALL_SYMBOLS,
   CandleSchema,
-  type Candle,
+  extractSymbolsFromText,
   IndicatorRequestSchema,
   IndicatorResultSchema,
+  priceDecimals,
   SymbolSchema,
   TickSchema,
   TimeframeSchema,
+  type Candle,
   type IndicatorRequest,
   type Symbol,
   type Timeframe,
@@ -36,6 +36,7 @@ import {
 import { z } from 'zod';
 
 import { INJECTION_TERMS, isHighConfidenceMutationIntent } from '../../routing-keywords';
+import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from './research-packet-macro';
 
 const RESEARCH_TIMEFRAMES: readonly { timeframe: Timeframe; count: number }[] = [
   { timeframe: '1d', count: 120 },
@@ -182,6 +183,7 @@ function unique(values: readonly string[]): string[] {
 
 function computeMarketStructureSummary(
   timeframes: readonly SymbolResearchEvidence[],
+  symbol?: string,
 ): z.infer<typeof MarketStructureSummarySchema> | undefined {
   const preferred =
     timeframes.find((tf) => tf.timeframe === '1h' && tf.candles.length > 0) ??
@@ -195,10 +197,11 @@ function computeMarketStructureSummary(
     if (c.l < recentSwingLow) recentSwingLow = c.l;
   }
   if (!Number.isFinite(recentSwingHigh) || !Number.isFinite(recentSwingLow)) return undefined;
+  const dec = symbol ? priceDecimals(symbol) : 5;
   return {
     recentSwingHigh,
     recentSwingLow,
-    rangeSize: Number((recentSwingHigh - recentSwingLow).toFixed(5)),
+    rangeSize: Number((recentSwingHigh - recentSwingLow).toFixed(dec)),
   };
 }
 
@@ -219,8 +222,12 @@ async function collectXauusdExtension(
     const data = evidence.data;
     return {
       evidenceId: evidence.evidenceId,
-      dollarIndex: data.dollarIndex.slice(-10).map((item) => ({ asOf: item.date, value: item.value })),
-      realYields: data.realYields.slice(-10).map((item) => ({ asOf: item.date, value: item.value })),
+      dollarIndex: data.dollarIndex
+        .slice(-10)
+        .map((item) => ({ asOf: item.date, value: item.value })),
+      realYields: data.realYields
+        .slice(-10)
+        .map((item) => ({ asOf: item.date, value: item.value })),
       breakevenInflation: data.breakevenInflation
         .slice(-10)
         .map((item) => ({ asOf: item.date, value: item.value })),
@@ -372,7 +379,7 @@ export async function collectSymbolResearchPacket(
           : 'complete';
 
   const macro = macroExtension;
-  const marketStructure = computeMarketStructureSummary(timeframes);
+  const marketStructure = computeMarketStructureSummary(timeframes, symbol);
 
   return SymbolResearchPacketSchema.parse({
     packetId,
@@ -413,21 +420,11 @@ export function serializeSymbolResearchPacket(packet: SymbolResearchPacket): str
 export const SymbolResearchInputSchema = z.object({ symbol: SymbolSchema });
 export const SymbolResearchIndicatorRequestSchema = IndicatorRequestSchema;
 
-const SYMBOL_PATTERN = new RegExp(`\\b(?:${ALL_SYMBOLS.join('|')})\\b`, 'gi');
-
 /** Extract one canonical symbol from a prompt, using the fallback only when no symbol is named. */
 export function extractSymbolFromPrompt(prompt: string, fallback?: string): string | null {
-  const matched = new Set<string>();
-  if (/\bgold\b/i.test(prompt)) matched.add('XAUUSD');
-  const explicitSymbols = ALL_SYMBOLS.filter((symbol) => prompt.toUpperCase().includes(symbol));
-  for (const s of explicitSymbols) matched.add(s);
-  const matches = [...prompt.matchAll(SYMBOL_PATTERN)].map((match) => match[0]!.toUpperCase());
-  for (const m of matches) {
-    const parsed = SymbolSchema.safeParse(m);
-    if (parsed.success) matched.add(parsed.data);
-  }
-  if (matched.size > 1) return null;
-  if (matched.size === 1) return matched.values().next().value ?? null;
+  const matched = extractSymbolsFromText(prompt);
+  if (matched.length > 1) return null;
+  if (matched.length === 1) return matched[0] ?? null;
   if (fallback === undefined) return null;
   const parsed = SymbolSchema.safeParse(fallback);
   return parsed.success ? parsed.data : null;

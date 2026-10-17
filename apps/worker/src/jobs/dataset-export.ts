@@ -97,11 +97,7 @@ async function loadLatestEvalReports(dir: string, count: number): Promise<EvalRe
 }
 
 /** Upload a directory to `kestrel:<bucket>/datasets/<version>` with rclone (in-memory remote). */
-async function uploadToB2(
-  sourceDir: string,
-  version: string,
-  signal?: AbortSignal,
-): Promise<void> {
+async function uploadToB2(sourceDir: string, version: string, signal?: AbortSignal): Promise<void> {
   const bucket = process.env.B2_BUCKET ?? '';
   const keyId = process.env.B2_KEY_ID ?? '';
   const appKey = process.env.B2_APPLICATION_KEY ?? '';
