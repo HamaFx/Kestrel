@@ -162,7 +162,7 @@ export async function getPriceWithMeta(
         attempts.sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
       }
 
-      const { value } = await runWithFailover(attempts, { signal: opts.signal });
+      const { value } = await runWithFailover(attempts, opts.signal ? { signal: opts.signal } : undefined);
       const fetchedAt = Date.now();
       const tick = snapshotToTick(symbol, value, fetchedAt);
       return { tick, ageMs: value.ageMs ?? null };

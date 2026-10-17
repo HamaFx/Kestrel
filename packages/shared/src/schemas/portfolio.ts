@@ -171,9 +171,6 @@ export function getContractSize(symbol: string): number {
   return CONTRACT_SIZES[symbol.toUpperCase()] ?? 100_000;
 }
 
-/** Lot units alias for contract size. */
-export const lotUnits = getContractSize;
-
 /** Pip value per standard lot in USD. */
 export function getPipValue(symbol: string, lotSize: number): number {
   const pip = pipSize(symbol);

@@ -72,9 +72,9 @@ describe('upstream throttling and backoff (F-06, F-07)', () => {
 
   it('finnhubProvider supports() returns false when FINNHUB_API_KEY is unset', () => {
     delete process.env.FINNHUB_API_KEY;
-    expect(finnhubProvider.supports('XAUUSD', '1h')).toBe(false);
+    expect(finnhubProvider.supports?.('XAUUSD', '1h')).toBe(false);
 
     process.env.FINNHUB_API_KEY = 'test-key';
-    expect(finnhubProvider.supports('XAUUSD', '1h')).toBe(true);
+    expect(finnhubProvider.supports?.('XAUUSD', '1h')).toBe(true);
   });
 });

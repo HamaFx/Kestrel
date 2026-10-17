@@ -74,9 +74,10 @@ describe('cross-asset risk sizing and P&L (F-03)', () => {
       openedAt: Date.now(),
       closedAt: null,
       closePrice: null,
-      realizedPnlUsd: null,
       notes: null,
-      source: 'manual',
+      linkedSignalId: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
 
     const result = computePnL(btcPosition, 65_100);
@@ -101,9 +102,10 @@ describe('cross-asset risk sizing and P&L (F-03)', () => {
       openedAt: Date.now(),
       closedAt: null,
       closePrice: null,
-      realizedPnlUsd: null,
       notes: null,
-      source: 'manual',
+      linkedSignalId: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
 
     // 100 pips move (1.00 JPY) at 151.00 current price

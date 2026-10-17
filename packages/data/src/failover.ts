@@ -59,7 +59,7 @@ export interface ProviderAttempt<T> {
 }
 
 export interface RunWithFailoverOptions {
-  signal?: AbortSignal;
+  signal?: AbortSignal | undefined;
 }
 
 export async function runWithFailover<T>(

@@ -523,12 +523,12 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     execute: async ({ inputData }) => inputData,
   });
 
-  return new Workflow({
+  return (new Workflow({
     id: `mutation-${mutation}`,
     inputSchema: MutationInputSchema,
     outputSchema: MutationOutputSchema,
     ...(deps.mastra ? { mastra: deps.mastra } : {}),
-  })
+  }) as any)
     .then(draftStep)
     .then(executeStep)
     .then(notifyStep)
