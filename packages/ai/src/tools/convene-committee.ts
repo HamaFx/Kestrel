@@ -21,6 +21,7 @@
 // canonical chat and return the structured `ConveneCommitteeOutput` card
 // rendered by `ConveneCommitteePart` (`apps/web/src/components/chat/parts/convene-committee.tsx`).
 
+import type { UserSettingsRow } from '@kestrel/db/schema';
 import {
   ConveneCommitteeInputSchema,
   ConveneCommitteeOutputSchema,
@@ -28,7 +29,6 @@ import {
   type CommitteeVerdict,
   type ConveneCommitteeOutput,
 } from '@kestrel/shared';
-import type { UserSettingsRow } from '@kestrel/db/schema';
 import { tool } from 'ai';
 import type { z } from 'zod';
 
@@ -71,10 +71,7 @@ function opinionToVerdict(
     verdict: opinion.bias,
     confidence: Math.max(1, Math.min(10, Math.round(opinion.confidence * 10))),
     keyPoints: keyPoints.length > 0 ? keyPoints : [opinion.reasoning.slice(0, 200)],
-    risk:
-      missingEvidence[0] ??
-      assumptions[0] ??
-      fallback.risk,
+    risk: missingEvidence[0] ?? assumptions[0] ?? fallback.risk,
     recommendation: sentences[sentences.length - 1] ?? fallback.recommendation,
   };
 }
@@ -123,8 +120,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
           : 'neutral'
       : 'neutral';
   const techAligned =
-    (side === 'long' && techBias === 'bullish') ||
-    (side === 'short' && techBias === 'bearish');
+    (side === 'long' && techBias === 'bullish') || (side === 'short' && techBias === 'bearish');
 
   const stopDistance = stop !== undefined ? Math.abs(entry - stop) : null;
   const rewardDistance = target !== undefined ? Math.abs(target - entry) : null;
@@ -134,11 +130,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
       : null;
 
   const stopGeometryValid =
-    stop === undefined
-      ? false
-      : side === 'long'
-        ? stop < entry
-        : stop > entry;
+    stop === undefined ? false : side === 'long' ? stop < entry : stop > entry;
 
   const riskVerdict: CommitteeVerdict['verdict'] =
     stopGeometryValid && (rrRatio === null || rrRatio >= 1.5)
@@ -148,8 +140,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
       : 'neutral';
 
   const macroEventsCount = packet.xauusdExtension?.events?.length ?? 0;
-  const econVerdict: CommitteeVerdict['verdict'] =
-    macroEventsCount > 2 ? 'neutral' : techBias;
+  const econVerdict: CommitteeVerdict['verdict'] = macroEventsCount > 2 ? 'neutral' : techBias;
 
   const candles = primaryEvidence?.candles ?? [];
   const openPrice = candles[0]?.o ?? liveMid;
@@ -230,8 +221,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
           ? `${macroEventsCount} scheduled macro event(s) can still reprice positioning before the setup resolves.`
           : 'No scheduled macro events are queued to reprice positioning near-term.',
       ],
-      risk:
-        'Crowded one-way positioning can amplify a countertrend squeeze around key levels.',
+      risk: 'Crowded one-way positioning can amplify a countertrend squeeze around key levels.',
       recommendation:
         'Treat sentiment as neutral and require price confirmation plus strict risk limits.',
     },
@@ -251,8 +241,7 @@ function computeGradeAndGoNoGo(args: {
   const opposedCount = verdicts.filter(
     (v) => v.verdict !== 'neutral' && v.verdict !== desiredVerdict,
   ).length;
-  const validStop =
-    stop !== undefined && (side === 'long' ? stop < entry : stop > entry);
+  const validStop = stop !== undefined && (side === 'long' ? stop < entry : stop > entry);
   const rr =
     validStop && target !== undefined && Math.abs(entry - stop) > 0
       ? Math.abs(target - entry) / Math.abs(entry - stop)

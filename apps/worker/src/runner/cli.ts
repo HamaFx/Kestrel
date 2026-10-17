@@ -98,7 +98,9 @@ export async function runJob(jobName: JobName): Promise<number> {
         return 0;
       }
     } catch (lockErr) {
-      log.error('Failed to acquire cron lock in CLI runner — failing closed', { err: String(lockErr) });
+      log.error('Failed to acquire cron lock in CLI runner — failing closed', {
+        err: String(lockErr),
+      });
       clearTimeout(timer);
       return 1;
     }
@@ -120,9 +122,8 @@ export async function runJob(jobName: JobName): Promise<number> {
   } finally {
     clearTimeout(timer);
     try {
-      const { flushMastraObservability, getKestrelMastra, closeKestrelMastra } = await import(
-        '@kestrel/ai/mastra'
-      );
+      const { flushMastraObservability, getKestrelMastra, closeKestrelMastra } =
+        await import('@kestrel/ai/mastra');
       await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
       await shutdownLangfuse();
       await closeKestrelMastra();

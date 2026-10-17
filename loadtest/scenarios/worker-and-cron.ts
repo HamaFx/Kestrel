@@ -36,17 +36,13 @@ export function workerAndCron(_ctx?: SessionCtx): void {
 
   // 2. Cron dispatch endpoint
   const cronSecret = env.cronSecret || 'abcdef0123456789abcdef0123456789';
-  const cronRes = http.post(
-    `${env.baseUrl}/api/cron/warm-cache`,
-    null,
-    {
-      headers: {
-        Authorization: `Bearer ${cronSecret}`,
-      },
-      tags: { group: 'cron_dispatch' },
-      timeout: '10s',
+  const cronRes = http.post(`${env.baseUrl}/api/cron/warm-cache`, null, {
+    headers: {
+      Authorization: `Bearer ${cronSecret}`,
     },
-  );
+    tags: { group: 'cron_dispatch' },
+    timeout: '10s',
+  });
   check(cronRes, {
     'cron dispatch returns 2xx or 401 if disabled': (r) => r.status === 200 || r.status === 401,
   });

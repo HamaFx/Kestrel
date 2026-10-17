@@ -50,10 +50,7 @@ export default async function OnboardingPage() {
     .select()
     .from(schema.symbolCatalog)
     .where(
-      and(
-        eq(schema.symbolCatalog.isActive, true),
-        eq(schema.symbolCatalog.tenantId, '__system__'),
-      ),
+      and(eq(schema.symbolCatalog.isActive, true), eq(schema.symbolCatalog.tenantId, '__system__')),
     )
     .orderBy(schema.symbolCatalog.sortOrder);
 
@@ -68,7 +65,8 @@ export default async function OnboardingPage() {
           Welcome to Kestrel
         </h1>
         <p className="text-fg-muted max-w-md leading-relaxed">
-          Customize your profile, trading style, and watchlist so your 4-desk AI committee is tailored to how you trade.
+          Customize your profile, trading style, and watchlist so your 4-desk AI committee is
+          tailored to how you trade.
         </p>
       </div>
       <OnboardingWizard

@@ -1,23 +1,17 @@
 // context imports
-import type { RunXauusdMastraArgs, XauusdMastraSettings } from './run';
-import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
-
-import {
-  requireExecutionPlanModel,
-  type ExecutionPlan,
-} from '../../planning/execution-plan';
-
-import type { ResolveModelEnv } from '../../../env-model-factory';
-
 import { RequestContext } from '@mastra/core/request-context';
 
-import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../shared/types';
-
-import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../../packets/research-types';
-
-import type { XauusdResearchReport } from './report/report-types';
-
+import type { ResolveModelEnv } from '../../../env-model-factory';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
+import {
+  XauusdResearchPacketSchema,
+  type XauusdResearchPacket,
+} from '../../packets/research-types';
+import { requireExecutionPlanModel, type ExecutionPlan } from '../../planning/execution-plan';
 import type { MastraGenerationStats } from '../../shared/stats';
+import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../shared/types';
+import type { XauusdResearchReport } from './report/report-types';
+import type { RunXauusdMastraArgs, XauusdMastraSettings } from './run';
 
 /**
  * Copyright 2026 Kestrel

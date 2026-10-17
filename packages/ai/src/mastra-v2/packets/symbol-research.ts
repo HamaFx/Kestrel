@@ -16,21 +16,19 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from './research-packet-macro';
-
 import { getCandlesWithMeta, getPriceWithMeta } from '@kestrel/data';
 import { computeIndicator } from '@kestrel/indicators';
 import {
   ALL_SYMBOLS,
   CandleSchema,
   extractSymbolsFromText,
-  priceDecimals,
-  type Candle,
   IndicatorRequestSchema,
   IndicatorResultSchema,
+  priceDecimals,
   SymbolSchema,
   TickSchema,
   TimeframeSchema,
+  type Candle,
   type IndicatorRequest,
   type Symbol,
   type Timeframe,
@@ -38,6 +36,7 @@ import {
 import { z } from 'zod';
 
 import { INJECTION_TERMS, isHighConfidenceMutationIntent } from '../../routing-keywords';
+import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from './research-packet-macro';
 
 const RESEARCH_TIMEFRAMES: readonly { timeframe: Timeframe; count: number }[] = [
   { timeframe: '1d', count: 120 },
@@ -223,8 +222,12 @@ async function collectXauusdExtension(
     const data = evidence.data;
     return {
       evidenceId: evidence.evidenceId,
-      dollarIndex: data.dollarIndex.slice(-10).map((item) => ({ asOf: item.date, value: item.value })),
-      realYields: data.realYields.slice(-10).map((item) => ({ asOf: item.date, value: item.value })),
+      dollarIndex: data.dollarIndex
+        .slice(-10)
+        .map((item) => ({ asOf: item.date, value: item.value })),
+      realYields: data.realYields
+        .slice(-10)
+        .map((item) => ({ asOf: item.date, value: item.value })),
       breakevenInflation: data.breakevenInflation
         .slice(-10)
         .map((item) => ({ asOf: item.date, value: item.value })),

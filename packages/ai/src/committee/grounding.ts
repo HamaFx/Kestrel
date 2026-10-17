@@ -111,7 +111,9 @@ export function packetEvidenceValues(
 }
 
 export function isSupportedByEvidence(value: number, evidenceValues: readonly number[]): boolean {
-  return evidenceValues.some((evidenceValue) => Math.abs(evidenceValue - value) <= EVIDENCE_TOLERANCE);
+  return evidenceValues.some(
+    (evidenceValue) => Math.abs(evidenceValue - value) <= EVIDENCE_TOLERANCE,
+  );
 }
 
 /**

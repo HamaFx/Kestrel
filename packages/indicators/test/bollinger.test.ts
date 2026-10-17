@@ -50,4 +50,3 @@ describe('bollinger', () => {
     expect(last.lower).toBe(1); // 5 - 2*2
   });
 });
-

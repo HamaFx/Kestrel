@@ -21,6 +21,7 @@
 ```
 
 The design language balances two deliberate forces:
+
 1. **Classical Sovereign Authority:** Monolithic headings, Spartan discipline, Greek/Egyptian mythological undertones, and intentional typography contrast.
 2. **Tactile Cyber-Industrial Hardware:** Recessed data wells, chamfered chip edges, sub-pixel top specular highlights (`inset 0 1px 0 rgba(255,255,255,0.12)`), bottom-up ember heat gradients (`#FF3616`), and tabular monospace telemetry figures.
 
@@ -30,13 +31,13 @@ The design language balances two deliberate forces:
 
 The typography system uses five specialized typefaces, each serving an architectural role:
 
-| Font Family | CSS Variable / Utility | Optical Weight / Style | Purpose & Usage |
-| :--- | :--- | :--- | :--- |
-| **Funnel Display** | `font-display` / `--font-display` | Regular 400 (tight `-0.03em`) | Monumental section headlines, hero titles, committee banners |
-| **Funnel Sans** | `font-sans` / `--font-sans` | Regular 400, Medium 500 | Interface prose, body descriptions, navigation labels |
-| **Redaction (35, 50, 70)** | `font-redaction-35` / `font-redaction` | Italic | Intentional organic contrast: 1–2 highlighted words per title |
-| **Geist Mono** | `font-mono` / `--font-mono` | Medium 500, Bold 700 | Currency prices, spreads, latencies, code blocks, tabular badges |
-| **Bebas Neue** | `font-bebas` / `--font-bebas` | Regular 400 | Monumental watermark displays in footer and hero backgrounds |
+| Font Family                | CSS Variable / Utility                 | Optical Weight / Style        | Purpose & Usage                                                  |
+| :------------------------- | :------------------------------------- | :---------------------------- | :--------------------------------------------------------------- |
+| **Funnel Display**         | `font-display` / `--font-display`      | Regular 400 (tight `-0.03em`) | Monumental section headlines, hero titles, committee banners     |
+| **Funnel Sans**            | `font-sans` / `--font-sans`            | Regular 400, Medium 500       | Interface prose, body descriptions, navigation labels            |
+| **Redaction (35, 50, 70)** | `font-redaction-35` / `font-redaction` | Italic                        | Intentional organic contrast: 1–2 highlighted words per title    |
+| **Geist Mono**             | `font-mono` / `--font-mono`            | Medium 500, Bold 700          | Currency prices, spreads, latencies, code blocks, tabular badges |
+| **Bebas Neue**             | `font-bebas` / `--font-bebas`          | Regular 400                   | Monumental watermark displays in footer and hero backgrounds     |
 
 All fonts are self-hosted as modern `.woff2` files in `apps/web/public/fonts/` with `<link rel="preload">` tags configured in `apps/web/src/app/layout.tsx`.
 
@@ -47,6 +48,7 @@ All fonts are self-hosted as modern `.woff2` files in `apps/web/public/fonts/` w
 Located in `apps/web/src/app/globals.css`, the Hoplite surface token system replaces flat borders with physical depth:
 
 ### Color Palette
+
 - **Deep Ground:** `#101112` (Obsidian canvas)
 - **Panel Elevation:** `#141516` (Primary container surface)
 - **Elevated Chip:** `#161718` (Chamfered interactive tiles)
@@ -61,8 +63,9 @@ Located in `apps/web/src/app/globals.css`, the Hoplite surface token system repl
 .surface-chip {
   background: #161718;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12),
-              0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Recessed instrument data well */
@@ -76,8 +79,9 @@ Located in `apps/web/src/app/globals.css`, the Hoplite surface token system repl
 .surface-panel {
   background: #141516;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 24px 64px -16px rgba(0, 0, 0, 0.8),
-              inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 24px 64px -16px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 ```
 
@@ -133,6 +137,7 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 ```
 
 ### Component Breakdown
+
 1. **`LandingNav` (`landing-nav.tsx`):** Sticky frosted header (`backdrop-blur-2xl bg-[#101112]/90 border-b border-white/10`) with live XAU/USD status pill, `Live Simulator` anchor, `TacticalFlameButton` launch CTA, and responsive mobile navigation drawer.
 2. **`LandingHero` (`landing-hero.tsx`):**
    - **Horus Falcon Masterpiece:** Neoclassical predatory raptor on temple pediment blended into the obsidian canvas with radial vignette masking.
@@ -150,16 +155,17 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 
 ## 5. Neoclassical Cyber-Art Masterworks & Visual Identity
 
-| Masterpiece | Asset Location | Aesthetic Rationale |
-| :--- | :--- | :--- |
-| **Sovereign Falcon of Horus** | `/landing/kestrel-horus-statue.webp` | Forged in titanium, bronze, and obsidian with glowing circuit wings perched atop a classical Greek temple pediment with holographic financial telemetry. Represents Kestrel's apex surveillance over currency and bullion flows. |
-| **Cybernetic Hoplite Spartan Bust** | `/landing/hoplite-spartan-bust.webp` | Classical Greek bronze sculpture fused with glowing molten ember-orange optical circuits and Greek key armor engravings. Symbolizes the unbreakable algorithmic phalanx of the 4 specialist desks. |
+| Masterpiece                         | Asset Location                       | Aesthetic Rationale                                                                                                                                                                                                              |
+| :---------------------------------- | :----------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sovereign Falcon of Horus**       | `/landing/kestrel-horus-statue.webp` | Forged in titanium, bronze, and obsidian with glowing circuit wings perched atop a classical Greek temple pediment with holographic financial telemetry. Represents Kestrel's apex surveillance over currency and bullion flows. |
+| **Cybernetic Hoplite Spartan Bust** | `/landing/hoplite-spartan-bust.webp` | Classical Greek bronze sculpture fused with glowing molten ember-orange optical circuits and Greek key armor engravings. Symbolizes the unbreakable algorithmic phalanx of the 4 specialist desks.                               |
 
 ---
 
 ## 6. Motion & Spring Physics Architecture (`motion/react`)
 
 Kestrel utilizes Framer Motion / Motion One (`motion/react`) for institutional-grade micro-interactions:
+
 - **Gliding Indicator Tabs (`layoutId`):** Active states seamlessly glide between buttons without layout jumps using spring physics (`stiffness: 450, damping: 32`).
 - **Directional State Transitions (`AnimatePresence mode="wait"`):** Seamless fading and vertical translation when switching active symbols, desks, or stepper tabs.
 - **Auto-Height Accordion:** FAQs dynamically compute content height with spring easing (`[0.16, 1, 0.3, 1]`) preventing abrupt content pop-in.

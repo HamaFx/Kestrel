@@ -80,7 +80,9 @@ function PortfolioContent({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Portfolio & Risk Engine</h2>
-        <p className="text-fg-subtle text-sm">Open positions, live mark-to-market P&amp;L, and account exposure controls.</p>
+        <p className="text-fg-subtle text-sm">
+          Open positions, live mark-to-market P&amp;L, and account exposure controls.
+        </p>
       </div>
 
       {/* Risk Summary Cards */}
@@ -112,16 +114,21 @@ function PortfolioContent({
 
       {/* Alerts */}
       {riskReport.alerts.length > 0 && (
-        <div className="surface-well rounded-xl border border-warn/30 bg-warn/5 p-4 shadow-inner">
+        <div className="surface-well border-warn/30 bg-warn/5 rounded-xl border p-4 shadow-inner">
           <div className="mb-2 flex items-center gap-2">
             <IconAlertTriangle className="text-warn size-4" />
-            <h3 className="text-warn text-sm font-semibold tracking-tight">Risk & Drawdown Alerts</h3>
+            <h3 className="text-warn text-sm font-semibold tracking-tight">
+              Risk & Drawdown Alerts
+            </h3>
           </div>
           <ul className="space-y-1">
             {riskReport.alerts.map((alert, i) => (
               <li
                 key={i}
-                className={cn('text-xs font-mono', alert.level === 'danger' ? 'text-bear' : 'text-warn')}
+                className={cn(
+                  'font-mono text-xs',
+                  alert.level === 'danger' ? 'text-bear' : 'text-warn',
+                )}
               >
                 • {alert.message}
               </li>
@@ -142,7 +149,7 @@ function PortfolioContent({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="surface-well border-b border-white/5 font-mono text-[11px] uppercase tracking-wider text-fg-muted">
+                <tr className="surface-well text-fg-muted border-b border-white/5 font-mono text-[11px] tracking-wider uppercase">
                   <th className="px-4 py-2.5 text-left font-medium">Symbol</th>
                   <th className="px-4 py-2.5 text-left font-medium">Side</th>
                   <th className="px-4 py-2.5 text-right font-medium">Lots</th>
@@ -155,22 +162,28 @@ function PortfolioContent({
               </thead>
               <tbody className="divide-y divide-white/5">
                 {positions.map((p) => (
-                  <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="text-fg px-4 py-3 font-mono text-xs font-semibold">{p.symbol}</td>
+                  <tr key={p.id} className="transition-colors hover:bg-white/[0.02]">
+                    <td className="text-fg px-4 py-3 font-mono text-xs font-semibold">
+                      {p.symbol}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
                           'rounded-md px-2 py-0.5 font-mono text-[11px] font-medium uppercase',
                           p.direction === 'long'
-                            ? 'border border-bull/30 bg-bull/10 text-bull'
-                            : 'border border-bear/30 bg-bear/10 text-bear',
+                            ? 'border-bull/30 bg-bull/10 text-bull border'
+                            : 'border-bear/30 bg-bear/10 text-bear border',
                         )}
                       >
                         {p.direction.toUpperCase()}
                       </span>
                     </td>
-                    <td className="text-fg px-4 py-3 text-right font-mono text-xs">{p.lotSize.toFixed(2)}</td>
-                    <td className="text-fg px-4 py-3 text-right font-mono text-xs">{p.entryPrice.toFixed(2)}</td>
+                    <td className="text-fg px-4 py-3 text-right font-mono text-xs">
+                      {p.lotSize.toFixed(2)}
+                    </td>
+                    <td className="text-fg px-4 py-3 text-right font-mono text-xs">
+                      {p.entryPrice.toFixed(2)}
+                    </td>
                     <td className="text-fg px-4 py-3 text-right font-mono text-xs">
                       {p.stale ? (
                         <span className="text-fg-muted italic">stale</span>
@@ -229,10 +242,13 @@ function PortfolioContent({
           <div className="space-y-3 pt-1">
             {riskReport.concentration.map((c) => (
               <div key={c.symbol} className="flex items-center gap-3">
-                <span className="text-fg font-mono text-xs font-semibold w-20">{c.symbol}</span>
+                <span className="text-fg w-20 font-mono text-xs font-semibold">{c.symbol}</span>
                 <div className="surface-well h-2.5 flex-1 overflow-hidden rounded-full border border-white/5">
                   <div
-                    className={cn('h-full rounded-full transition-all', c.alert ? 'bg-warn' : 'bg-cyan-500')}
+                    className={cn(
+                      'h-full rounded-full transition-all',
+                      c.alert ? 'bg-warn' : 'bg-cyan-500',
+                    )}
                     style={{ width: `${Math.min(c.pct, 100)}%` }}
                   />
                 </div>
@@ -254,7 +270,9 @@ function PortfolioContent({
       <div className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
         <div className="flex items-center justify-between border-b border-white/5 pb-3">
           <div>
-            <h3 className="text-fg text-sm font-semibold tracking-tight">Account Limits & Equity</h3>
+            <h3 className="text-fg text-sm font-semibold tracking-tight">
+              Account Limits & Equity
+            </h3>
             <p className="text-fg-subtle text-xs">
               Baseline equity, margin currency, and drawdown thresholds
             </p>
@@ -276,11 +294,15 @@ function PortfolioContent({
           </div>
           <div className="surface-well flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 shadow-inner">
             <dt className="text-fg-muted font-mono text-[11px] uppercase">Max Risk / Trade</dt>
-            <dd className="text-fg font-mono text-base font-bold">{settings.maxRiskPerTradePct}%</dd>
+            <dd className="text-fg font-mono text-base font-bold">
+              {settings.maxRiskPerTradePct}%
+            </dd>
           </div>
           <div className="surface-well flex flex-col gap-1 rounded-xl border border-white/5 p-3.5 shadow-inner">
             <dt className="text-fg-muted font-mono text-[11px] uppercase">Max Total Exposure</dt>
-            <dd className="text-fg font-mono text-base font-bold">{settings.maxTotalExposurePct}%</dd>
+            <dd className="text-fg font-mono text-base font-bold">
+              {settings.maxTotalExposurePct}%
+            </dd>
           </div>
         </dl>
       </div>
@@ -310,10 +332,11 @@ function StatCard({
         </div>
       </div>
       <div className="mt-3">
-        <p className={cn('text-fg font-mono text-2xl font-bold tracking-tight', valueClass)}>{value}</p>
+        <p className={cn('text-fg font-mono text-2xl font-bold tracking-tight', valueClass)}>
+          {value}
+        </p>
         {subValue && <p className="text-fg-subtle mt-0.5 font-mono text-[11px]">{subValue}</p>}
       </div>
     </div>
   );
 }
-

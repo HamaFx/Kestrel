@@ -41,9 +41,7 @@ describe('structured fusion (§3.3)', () => {
   it('validates the structured answer shape', () => {
     expect(FusionAnswerSchema.safeParse(validAnswer).success).toBe(true);
     expect(FusionAnswerSchema.safeParse({ ...validAnswer, risks: [] }).success).toBe(false);
-    expect(FusionAnswerSchema.safeParse({ ...validAnswer, scenarioTable: [] }).success).toBe(
-      false,
-    );
+    expect(FusionAnswerSchema.safeParse({ ...validAnswer, scenarioTable: [] }).success).toBe(false);
   });
 
   it('renders deterministic markdown with a scenario table', () => {

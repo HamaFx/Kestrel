@@ -78,6 +78,7 @@ import type { z } from 'zod';
 import { AnalyzeFundamentalPart } from './analyze-fundamental';
 import { AnalyzeTechnicalPart } from './analyze-technical';
 import { AnnotateChartPart } from './annotate-chart';
+import { CompactTelemetryRow } from './compact-telemetry-row';
 import { GetCalendarPart } from './get-calendar';
 import { GetCandlesPart } from './get-candles';
 import { GetIndicatorsPart } from './get-indicators';
@@ -92,7 +93,6 @@ import { SearchKnowledgePart } from './search-knowledge';
 import { SetAlertPart } from './set-alert';
 import { ShareSnapshotPart } from './share-snapshot';
 import { SummarizeThreadPart } from './summarize-thread';
-import { CompactTelemetryRow } from './compact-telemetry-row';
 import { VerifyCallPart } from './verify-call';
 
 function PartSkeletonFallback() {

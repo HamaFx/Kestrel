@@ -122,9 +122,7 @@ export function applyAuth(ctx: SessionCtx): { csrfHeader: Record<string, string>
     jar.set(env.baseUrl, name, value);
   }
 
-  const csrfHeader: Record<string, string> = ctx.csrfToken
-    ? { 'x-csrf-token': ctx.csrfToken }
-    : {};
+  const csrfHeader: Record<string, string> = ctx.csrfToken ? { 'x-csrf-token': ctx.csrfToken } : {};
   setCsrfHeader(csrfHeader);
   return { csrfHeader };
 }

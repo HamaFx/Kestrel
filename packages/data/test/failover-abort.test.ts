@@ -16,9 +16,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { _resetHealth, getScore } from '../src/health';
-import { runWithFailover } from '../src/failover';
 import { ProviderError } from '../src/errors';
+import { runWithFailover } from '../src/failover';
+import { _resetHealth, getScore } from '../src/health';
 
 describe('failover caller AbortSignal handling (F-05)', () => {
   beforeEach(() => {

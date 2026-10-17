@@ -21,6 +21,10 @@ import { cleanup, render } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { Badge } from '../badge';
+import { StatCard } from '../stat-card';
+import { Toaster } from '../toaster';
+
 afterEach(cleanup);
 
 beforeAll(() => {
@@ -38,10 +42,6 @@ beforeAll(() => {
     })),
   });
 });
-
-import { Badge } from '../badge';
-import { StatCard } from '../stat-card';
-import { Toaster } from '../toaster';
 
 describe('Tier 1: StatCard Cyber-Industrial Tokens (>=5 tests)', () => {
   it('standardizes StatCard corner radius to rounded-xl', () => {

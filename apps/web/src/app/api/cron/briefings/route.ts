@@ -31,7 +31,6 @@
 // Each emit is idempotent at the (eventId, kind) primary key on
 // `briefings_emitted`.
 
-
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {

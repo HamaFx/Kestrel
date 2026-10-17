@@ -18,12 +18,12 @@ import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as ReportGenerationModule from '../src/mastra-v2/agents/xauusd/report/report-generation';
-import type { ExecutionPlan } from '../src/mastra-v2/planning/execution-plan';
 import {
   resolveXauusdMastraModel,
   runXauusdMastra,
   runXauusdMastraConversation,
 } from '../src/mastra-v2/agents/xauusd/run';
+import type { ExecutionPlan } from '../src/mastra-v2/planning/execution-plan';
 
 const mocks = vi.hoisted(() => {
   class FakeVerificationError extends Error {}

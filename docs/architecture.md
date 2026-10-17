@@ -168,9 +168,9 @@ A typical chat request follows this path:
 3. The web service loads user/thread context.
 4. The AI runtime selects a mode and model.
 5. Mastra invokes typed tools through the AI package.
-7. Tools call validated data/database services.
-8. Budget, loop, safety, and citation checks are applied.
-9. The response streams to the browser and persistence/telemetry paths record permitted metadata.
+6. Tools call validated data/database services.
+7. Budget, loop, safety, and citation checks are applied.
+8. The response streams to the browser and persistence/telemetry paths record permitted metadata.
 
 No provider result should be presented as live or verified without the appropriate tool result and citation behavior.
 

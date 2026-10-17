@@ -49,6 +49,7 @@ import type { Mastra } from '@mastra/core';
 import { createStep, Workflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 
+import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../logger';
 import {
   assertMastraMutationAllowed,
   assertMastraMutationDraftAllowed,
@@ -59,7 +60,6 @@ import {
   verifyMutationConfirmationToken,
   type SystemActionId,
 } from '../mutation/mutation-policy';
-import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../logger';
 import { runTracingOptions } from '../telemetry';
 
 // --- schemas ---------------------------------------------------------------
@@ -523,12 +523,14 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     execute: async ({ inputData }) => inputData,
   });
 
-  return (new Workflow({
-    id: `mutation-${mutation}`,
-    inputSchema: MutationInputSchema,
-    outputSchema: MutationOutputSchema,
-    ...(deps.mastra ? { mastra: deps.mastra } : {}),
-  }) as any)
+  return (
+    new Workflow({
+      id: `mutation-${mutation}`,
+      inputSchema: MutationInputSchema,
+      outputSchema: MutationOutputSchema,
+      ...(deps.mastra ? { mastra: deps.mastra } : {}),
+    }) as any
+  )
     .then(draftStep)
     .then(executeStep)
     .then(notifyStep)

@@ -56,8 +56,6 @@ describe('assertProductionSecurity', () => {
   it('rejects production authentication without a signing secret', () => {
     delete process.env.AUTH_SECRET;
 
-    expect(() => assertProductionSecurity()).toThrow(
-      /AUTH_SECRET must be set in production/,
-    );
+    expect(() => assertProductionSecurity()).toThrow(/AUTH_SECRET must be set in production/);
   });
 });

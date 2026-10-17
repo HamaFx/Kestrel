@@ -189,10 +189,10 @@ async function fetchHeadlinesForCurrencies(args: HeadlineQuery): Promise<ToolNew
     out.push({
       id: r.id,
       title: quarantineExternalText(r.title, 240).text || '[filtered]',
-      summary: r.summary ? (quarantineExternalText(r.summary, 420).text || null) : null,
+      summary: r.summary ? quarantineExternalText(r.summary, 420).text || null : null,
       url: r.url,
       source: quarantineExternalText(r.source, 80).text || 'unknown',
-      publisher: r.publisher ? (quarantineExternalText(r.publisher, 80).text || null) : null,
+      publisher: r.publisher ? quarantineExternalText(r.publisher, 80).text || null : null,
       publishedAt: r.publishedAt.getTime(),
       sentiment: (r.sentiment as NewsSentiment | null) ?? null,
       sentimentScore: r.sentimentScore,

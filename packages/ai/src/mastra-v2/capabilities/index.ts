@@ -16,6 +16,13 @@
 
 import { ALL_SYMBOLS, TOOL_NAMES, type ToolName } from '@kestrel/shared';
 
+import {
+  mastraCotTool,
+  mastraKnowledgeTool,
+  mastraResonanceTool,
+  mastraSeasonalityTool,
+  mastraWebSearchTool,
+} from '../agents/xauusd/read-only-tools';
 // Audit plan §1.11 / P1-21 — the integrity check below resolves every
 // declared Mastra tool id against the actual `createTool` registrations,
 // so a phantom (never-registered) id fails loudly instead of passing
@@ -33,13 +40,6 @@ import { xauusdSessionLevelsTool } from '../agents/xauusd/tools/session-levels-t
 import { xauusdSocialSentimentTool } from '../agents/xauusd/tools/social-sentiment-tool';
 import { xauusdTechnicalAnalysisTool } from '../agents/xauusd/tools/technical-tool';
 import { xauusdVolatilityTool } from '../agents/xauusd/tools/volatility-tool';
-import {
-  mastraCotTool,
-  mastraKnowledgeTool,
-  mastraResonanceTool,
-  mastraSeasonalityTool,
-  mastraWebSearchTool,
-} from '../agents/xauusd/read-only-tools';
 import { xauusdResearchPacketTool } from '../packets/research-packet-tool';
 
 /** Q2 decision: exactly two analysis modes. */
@@ -117,10 +117,7 @@ const LEGACY_DOMAIN_TOOL_NAMES = {
     'get_portfolio_snapshot',
     'convene_committee',
   ],
-} as const satisfies Record<
-  'summary' | 'vision' | 'fundamental' | 'technical',
-  readonly string[]
->;
+} as const satisfies Record<'summary' | 'vision' | 'fundamental' | 'technical', readonly string[]>;
 
 /** Explicit public read-only boundary for canonical chat (Decision Q11 includes convene_committee). */
 const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
@@ -621,9 +618,7 @@ export function assertCapabilityManifestIntegrity(
   capabilities: Record<string, MastraCapability> = MASTRA_CAPABILITIES,
 ): void {
   const knownLegacyTools = new Set<string>(TOOL_NAMES);
-  const registeredMastraToolIds = new Set<string>(
-    REGISTERED_MASTRA_TOOLS.map((tool) => tool.id),
-  );
+  const registeredMastraToolIds = new Set<string>(REGISTERED_MASTRA_TOOLS.map((tool) => tool.id));
   const resolvesToRegisteredTool = (tool: string): boolean => {
     if (registeredMastraToolIds.has(tool)) return true;
     const aliasedTarget = ALIASED_MASTRA_TOOL_IDS.get(tool);

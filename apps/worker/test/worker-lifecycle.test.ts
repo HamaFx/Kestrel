@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import * as candlesPersistence from '../src/persistence/candles-1m.js';
 import { runWorker } from '../src/index.js';
 import { createLogger } from '../src/log.js';
+import * as candlesPersistence from '../src/persistence/candles-1m.js';
 import type { MinimalHubConnection } from '../src/signalr/consumer.js';
 
 vi.mock('@kestrel/ai', async (importOriginal) => {
@@ -63,12 +63,10 @@ describe('worker lifecycle contracts', () => {
       resolveCandleFlush = r;
     });
 
-    const spy = vi
-      .spyOn(candlesPersistence, 'flushClosedCandle')
-      .mockImplementation(async () => {
-        flushStarted = true;
-        await candleFlushGate;
-      });
+    const spy = vi.spyOn(candlesPersistence, 'flushClosedCandle').mockImplementation(async () => {
+      flushStarted = true;
+      await candleFlushGate;
+    });
 
     let receiveTick: ((raw: unknown) => void) | null = null;
     const fakeConn: MinimalHubConnection = {

@@ -35,11 +35,11 @@
 import {
   CitationWarningPartSchema,
   FallbackPartSchema,
+  MemoryDegradedPartSchema,
   MutationDraftPayloadSchema,
   StreamToolPartSchema,
   UserPlanPartSchema,
   VerifyWarningPartSchema,
-  MemoryDegradedPartSchema,
   type CitationWarningPart,
   type FallbackPart,
   type StreamToolState,
@@ -69,10 +69,10 @@ import { ActivityRollup } from './parts/activity-rollup';
 import { CitationWarningPartView } from './parts/citation-warning';
 import { FallbackPartView } from './parts/fallback';
 import { MastraReportPart } from './parts/mastra-report';
+import { MemoryDegradedPartView } from './parts/memory-degraded';
 import { MutationConfirmationCard } from './parts/mutation-confirmation';
 import { PlanPart } from './parts/plan';
 import { ChatToolPart, type ToolPartState } from './parts/registry';
-import { MemoryDegradedPartView } from './parts/memory-degraded';
 import { TextPart } from './parts/text';
 
 interface MessageProps {
@@ -277,16 +277,14 @@ function MessageImpl({
             )}
           >
             {isUser && formattedTime ? (
-              <span className="text-fg-subtle pointer-events-none absolute -left-14 bottom-2 text-[10px] font-mono opacity-0 transition-opacity duration-150 group-hover/bubble:opacity-100 select-none">
+              <span className="text-fg-subtle pointer-events-none absolute bottom-2 -left-14 font-mono text-[10px] opacity-0 transition-opacity duration-150 select-none group-hover/bubble:opacity-100">
                 {formattedTime}
               </span>
             ) : null}
             {/* Phase 1.3 — streamed assistant text is announced by the
                 debounced sr-only <StreamingLiveRegion> in message-list.tsx;
                 a live region here would re-announce the entire history. */}
-            <div>
-              {renderMessageParts(message.parts, isStreaming, message.role)}
-            </div>
+            <div>{renderMessageParts(message.parts, isStreaming, message.role)}</div>
           </div>
 
           {/* Phase 1.3 — trust footer on assistant messages (model, time,

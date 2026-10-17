@@ -48,7 +48,9 @@ const SSE_HEADERS = {
 } as const;
 
 function encodeSse(event: unknown): Uint8Array {
-  return new TextEncoder().encode(`data: ${JSON.stringify(ChatStreamEventSchema.parse(event))}\n\n`);
+  return new TextEncoder().encode(
+    `data: ${JSON.stringify(ChatStreamEventSchema.parse(event))}\n\n`,
+  );
 }
 
 export interface RunMastraModeChatInput {
@@ -183,12 +185,7 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
         emit({ type: 'text-delta', id: messageId, delta: result.finalText });
         emit({
           type: 'data-agent-progress',
-          data: committeeProgressSnapshot(
-            input.mode,
-            'fusion',
-            'complete',
-            result.agentOpinions,
-          ),
+          data: committeeProgressSnapshot(input.mode, 'fusion', 'complete', result.agentOpinions),
         });
         emit({
           type: 'data-multi-agent-meta',

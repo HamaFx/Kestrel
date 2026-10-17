@@ -52,9 +52,7 @@ export const committeeCommand: BotCommand = {
 
     const symbol = symbolStr.toUpperCase();
     const chosenMode =
-      parseTelegramAnalysisMode(args[1]) ??
-      parseTelegramAnalysisMode(args[2]) ??
-      'full';
+      parseTelegramAnalysisMode(args[1]) ?? parseTelegramAnalysisMode(args[2]) ?? 'full';
 
     // Aggressive rate limit: 3 per hour per user
     const rateLimit = checkRateLimit(ctx.userId, 'bot_committee', 3);

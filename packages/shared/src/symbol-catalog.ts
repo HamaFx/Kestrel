@@ -597,7 +597,10 @@ export function symbolCategory(symbol: string): SymbolCategory | null {
 /**
  * Patterns matching natural-language asset names and nicknames to their canonical internal symbols.
  */
-export const PROMPT_SYMBOL_PATTERNS: ReadonlyArray<{ readonly regex: RegExp; readonly canonical: string }> = [
+export const PROMPT_SYMBOL_PATTERNS: ReadonlyArray<{
+  readonly regex: RegExp;
+  readonly canonical: string;
+}> = [
   { regex: /\bgold\b/i, canonical: 'XAUUSD' },
   { regex: /\b(?:bitcoin|btc)\b/i, canonical: 'BTCUSDT' },
   { regex: /\b(?:ethereum|ether|eth)\b/i, canonical: 'ETHUSDT' },
@@ -652,4 +655,3 @@ export function extractSymbolsFromText(text: string): string[] {
 
   return [...matched];
 }
-

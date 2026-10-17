@@ -47,16 +47,19 @@ import {
 } from '../agents/xauusd/report/report-generation';
 import { patchTimeframeConflictDisclosure } from '../agents/xauusd/report/report-repair';
 import { blockedXauusdResearchText } from '../agents/xauusd/report/report-text';
-import { XauusdResearchReportSchema, type XauusdResearchReport } from '../agents/xauusd/report/report-types';
+import {
+  XauusdResearchReportSchema,
+  type XauusdResearchReport,
+} from '../agents/xauusd/report/report-types';
 import {
   requireVerifiedXauusdReport,
   XauusdReportVerificationError,
 } from '../agents/xauusd/report/report-verifier';
+import type { xauusdMastraTools } from '../agents/xauusd/tools';
 import { collectXauusdResearchPacket } from '../packets/research-packet';
 import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../packets/research-types';
 import type { MastraGenerationResultLike } from '../shared/stats';
 import { getMastraGenerationStats, type MastraGenerationStats } from '../shared/telemetry';
-import type { xauusdMastraTools } from '../agents/xauusd/tools';
 import { XauusdRequestContextSchema, type XauusdRequestContext } from '../shared/types';
 
 const StatsSchema = z.object({

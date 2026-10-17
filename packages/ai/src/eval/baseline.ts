@@ -48,11 +48,7 @@ export interface EvalBaselineComparison {
   failures: string[];
 }
 
-function relativeDropFailure(
-  metric: string,
-  baseline: number,
-  current: number,
-): string | null {
+function relativeDropFailure(metric: string, baseline: number, current: number): string | null {
   if (!Number.isFinite(baseline) || baseline <= 0) return null;
   const drop = (baseline - current) / baseline;
   if (drop > EVAL_BASELINE_RELATIVE_DROP_LIMIT) {
@@ -78,10 +74,7 @@ export function compareEvalBaseline(
     observed.overallPassRate,
   );
   if (passRateFailure) failures.push(passRateFailure);
-  if (
-    baseline.observed.averageCitationScore !== null &&
-    observed.averageCitationScore !== null
-  ) {
+  if (baseline.observed.averageCitationScore !== null && observed.averageCitationScore !== null) {
     const citationFailure = relativeDropFailure(
       'averageCitationScore',
       baseline.observed.averageCitationScore,
@@ -93,9 +86,7 @@ export function compareEvalBaseline(
 }
 
 /** Serialize an artifact; throws on malformed input so bad writes fail loudly. */
-export function serializeEvalBaseline(
-  artifact: EvalBaselineArtifact,
-): string {
+export function serializeEvalBaseline(artifact: EvalBaselineArtifact): string {
   if (artifact.schemaVersion !== 'kestrel.eval-baseline.v1') {
     throw new Error(`Unsupported eval baseline schema: ${String(artifact.schemaVersion)}`);
   }

@@ -51,7 +51,10 @@ export const getCandlesTool = tool({
   description:
     'Fetch OHLC candles for one symbol at one timeframe (e.g. XAUUSD 1h). Returns a comprehensive period summary plus the most recent 30 candles to minimize token overhead. For RSI/MACD/EMA/etc. prefer get_indicators.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count }, options?: { abortSignal?: AbortSignal }): Promise<GetCandlesOutput> => {
+  execute: async (
+    { symbol, tf, count },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetCandlesOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
 

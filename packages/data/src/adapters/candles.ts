@@ -29,7 +29,9 @@ import { SymbolSchema, type Candle, type Symbol, type Timeframe } from '@kestrel
 import { cacheKey, cacheTag, candleTtl, getDefaultCache } from '../cache';
 import { ProviderError } from '../errors';
 import { runWithFailover, type ProviderAttempt } from '../failover';
+
 import '../providers/provider-adapters'; // side-effect: register providers
+
 import { marketDataProviders } from '../providers/provider-registry';
 
 export interface GetCandlesOptions {
@@ -96,8 +98,7 @@ export async function getCandlesWithMeta(
   );
   const policy = candleTtl(tf, !isHistoricalClosedWindow);
 
-  const rangeSuffix =
-    opts.from || opts.to ? `:f${opts.from ?? ''}:t${opts.to ?? ''}` : '';
+  const rangeSuffix = opts.from || opts.to ? `:f${opts.from ?? ''}:t${opts.to ?? ''}` : '';
   const openSuffix = opts.includeOpenBar ? ':open1' : '';
 
   const cache = await getDefaultCache();
@@ -127,9 +128,7 @@ export async function getCandlesWithMeta(
               ...(opts.signal ? { signal: opts.signal } : {}),
               ...(opts.from ? { from: opts.from } : {}),
               ...(opts.to ? { to: opts.to } : {}),
-              ...(opts.includeOpenBar !== undefined
-                ? { includeOpenBar: opts.includeOpenBar }
-                : {}),
+              ...(opts.includeOpenBar !== undefined ? { includeOpenBar: opts.includeOpenBar } : {}),
               apiKey: keys.finnhub,
               baseUrl: keys.biquoteBaseUrl,
             });
@@ -162,7 +161,10 @@ export async function getCandlesWithMeta(
         attempts.sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
       }
 
-      const { value } = await runWithFailover(attempts, opts.signal ? { signal: opts.signal } : undefined);
+      const { value } = await runWithFailover(
+        attempts,
+        opts.signal ? { signal: opts.signal } : undefined,
+      );
       return value;
     },
     { ttlSeconds: policy.ttlSeconds, maxStaleSeconds: policy.maxStaleSeconds, tags },

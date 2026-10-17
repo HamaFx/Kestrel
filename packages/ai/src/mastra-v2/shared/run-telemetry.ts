@@ -22,9 +22,9 @@ import { estimateKnownCostUsd } from '../../cost';
 import { completeStep, recordError, recordStep } from '../../diagnostics';
 import { flushLangfuse } from '../../instrumentation';
 import { recordModelFailure, recordModelSuccess } from '../../model-circuit-breaker';
+import { recordTelemetry } from '../../persistence';
 import { getKestrelMastra } from '../instance';
 import { flushMastraObservability } from '../telemetry';
-import { recordTelemetry } from '../../persistence';
 import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';
 import type { MastraAnswerOutcome, MastraRunOutcome } from './stats';
 

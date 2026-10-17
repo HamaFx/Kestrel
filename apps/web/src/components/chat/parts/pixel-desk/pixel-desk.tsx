@@ -249,7 +249,7 @@ export function PixelDeskStandby({
       role="region"
       aria-label="4-Desk AI Research Committee"
       className={cn(
-        'border-border bg-bg-elev-1 flex w-full max-w-2xl flex-col rounded-xl border text-left shadow-sm overflow-hidden',
+        'border-border bg-bg-elev-1 flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border text-left shadow-sm',
         className,
       )}
     >
@@ -348,7 +348,7 @@ export function PixelDeskStandby({
                 <button
                   type="button"
                   onClick={() => setActiveDesk('all')}
-                  className="text-brand hover:underline cursor-pointer text-xs font-medium"
+                  className="text-brand cursor-pointer text-xs font-medium hover:underline"
                 >
                   Show all 4 desks
                 </button>
@@ -439,7 +439,9 @@ export function PixelDeskThinking({
           </span>
         </div>
         <span className="text-fg-muted font-mono text-xs tabular-nums">
-          {liveAgents.length > 0 ? `${doneCount}/${liveAgents.length} desks ready` : `${progressPercent}%`}
+          {liveAgents.length > 0
+            ? `${doneCount}/${liveAgents.length} desks ready`
+            : `${progressPercent}%`}
         </span>
       </div>
 
@@ -449,8 +451,7 @@ export function PixelDeskThinking({
           const profile = CHARACTER_PROFILES[deskId]!;
           const liveAgent = liveAgents.find((a) => a.agentName === deskId);
           const status =
-            liveAgent?.status ??
-            (idx < stepIdx ? 'done' : idx === stepIdx ? 'running' : 'pending');
+            liveAgent?.status ?? (idx < stepIdx ? 'done' : idx === stepIdx ? 'running' : 'pending');
 
           return (
             <div

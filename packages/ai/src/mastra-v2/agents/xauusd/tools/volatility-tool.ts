@@ -20,10 +20,10 @@ import { z } from 'zod';
 
 import { forecastVolatilityTool } from '../../../../tools/forecast-volatility';
 import { createEvidenceId } from '../../../packets/evidence';
-import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD } from '../../../shared/types';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = ForecastVolatilityInputSchema.extend({
   symbol: XauusdSymbolSchema,

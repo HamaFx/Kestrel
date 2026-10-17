@@ -1,8 +1,13 @@
+import { RequestContext } from '@mastra/core/request-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RequestContext } from '@mastra/core/request-context';
-
+import { specialistInstructionsForRequest } from '../src/committee/prompts';
+import type { ModeRequestContext } from '../src/committee/types';
 import type * as SymbolResearchModule from '../src/mastra-v2/packets/symbol-research';
+import {
+  serializeSymbolResearchPacket,
+  type SymbolResearchPacket,
+} from '../src/mastra-v2/packets/symbol-research';
 
 // Audit plan §2.3 — the packet string must be serialized once per packet
 // object and reused across every desk and retry in the run. Spy on the
@@ -14,11 +19,6 @@ vi.mock('../src/mastra-v2/packets/symbol-research', async (importOriginal) => {
     serializeSymbolResearchPacket: vi.fn(actual.serializeSymbolResearchPacket),
   };
 });
-
-import { serializeSymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
-import { specialistInstructionsForRequest } from '../src/committee/prompts';
-import type { ModeRequestContext } from '../src/committee/types';
-import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
 
 function contextWith(entries: Array<[string, unknown]>): RequestContext<ModeRequestContext> {
   return new RequestContext(entries as never) as RequestContext<ModeRequestContext>;

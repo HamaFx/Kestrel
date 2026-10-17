@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import type { UIMessage } from 'ai';
 import { useMemo } from 'react';
 
@@ -35,11 +34,7 @@ interface ThreadTocRailProps {
  * Shows turn-by-turn navigation dots along the chat edge when a thread
  * contains multiple user turns. Hovering previews the user prompt.
  */
-export function ThreadTocRail({
-  messages,
-  onScrollToTurn,
-  activeTurnIndex,
-}: ThreadTocRailProps) {
+export function ThreadTocRail({ messages, onScrollToTurn, activeTurnIndex }: ThreadTocRailProps) {
   const userTurns = useMemo(() => {
     return messages
       .map((msg, index) => {
@@ -62,19 +57,14 @@ export function ThreadTocRail({
   return (
     <nav
       aria-label="Conversation turns"
-      className="fixed right-3 top-1/2 z-20 hidden -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-white/10 bg-black/40 px-1 py-2 backdrop-blur-md transition-opacity duration-200 xl:flex hover:bg-black/60"
+      className="fixed top-1/2 right-3 z-20 hidden -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-white/10 bg-black/40 px-1 py-2 backdrop-blur-md transition-opacity duration-200 hover:bg-black/60 xl:flex"
     >
       {userTurns.map((turn, turnIdx) => {
         const isActive = activeTurnIndex === turn.index;
-        const preview =
-          turn.text.length > 45 ? `${turn.text.slice(0, 45)}…` : turn.text;
+        const preview = turn.text.length > 45 ? `${turn.text.slice(0, 45)}…` : turn.text;
 
         return (
-          <Tooltip
-            key={turn.id}
-            label={`#${turnIdx + 1}: ${preview}`}
-            side="top"
-          >
+          <Tooltip key={turn.id} label={`#${turnIdx + 1}: ${preview}`} side="top">
             <button
               type="button"
               onClick={() => onScrollToTurn(turn.index)}
@@ -88,7 +78,7 @@ export function ThreadTocRail({
                 className={cn(
                   'rounded-full transition-all duration-150',
                   isActive
-                    ? 'size-2 bg-brand shadow-[0_0_6px_var(--color-brand)]'
+                    ? 'bg-brand size-2 shadow-[0_0_6px_var(--color-brand)]'
                     : 'size-1.5 bg-white/25 group-hover:size-2 group-hover:bg-white/80',
                 )}
               />

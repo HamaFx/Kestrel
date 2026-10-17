@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PortfolioPosition } from '@kestrel/shared';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { computePnL } from '../src/portfolio/risk-service';
 import { computeRiskTool } from '../src/tools/compute-risk';

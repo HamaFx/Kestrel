@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { useEffect, useRef } from 'react';
 
 interface Point {
@@ -254,7 +253,7 @@ export function HangingPendant({ className }: { className?: string }) {
       <canvas
         ref={canvasRef}
         style={{ width: 64, height: 130 }}
-        className="cursor-grab active:cursor-grabbing select-none"
+        className="cursor-grab select-none active:cursor-grabbing"
       />
     </div>
   );

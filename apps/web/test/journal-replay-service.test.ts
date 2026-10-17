@@ -47,7 +47,12 @@ describe('computeReplayWindow & getTradeSetupReplayService', () => {
   it('pads 48h when the warmup window crosses a weekend', () => {
     const mondayMorning = Date.parse('2026-08-10T02:00:00Z'); // Monday 02:00 UTC
     const mondayAfternoon = Date.parse('2026-08-10T10:00:00Z');
-    const win = computeReplayWindow(mondayMorning, mondayAfternoon, '15m', mondayAfternoon + 3600_000);
+    const win = computeReplayWindow(
+      mondayMorning,
+      mondayAfternoon,
+      '15m',
+      mondayAfternoon + 3600_000,
+    );
     // 55 * 15m = 825m (13.75h) + 48h weekend pad
     expect(Date.parse(win.from)).toBe(mondayMorning - 55 * 15 * 60_000 - 48 * 3_600_000);
   });

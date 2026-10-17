@@ -62,7 +62,9 @@ export const computeRiskTool = tool({
       definition.quoteCurrency !== 'USDT' &&
       definition.baseCurrency !== 'USD'
     ) {
-      throw new Error('Risk sizing currently requires a USD- or USDT-quoted symbol or USD-base pair');
+      throw new Error(
+        'Risk sizing currently requires a USD- or USDT-quoted symbol or USD-base pair',
+      );
     }
     const distanceUnit = definition.capabilities.priceDistanceUnit;
     const distanceStep = distanceUnit === 'price' ? 1 : pipSize(symbol);
@@ -135,8 +137,7 @@ function valuePerDistanceUnitFor(symbol: Symbol, entry?: number): number {
   }
   if (definition.baseCurrency === 'USD') {
     return (
-      (definition.capabilities.contractSize * definition.pipSize) /
-      (entry && entry > 0 ? entry : 1)
+      (definition.capabilities.contractSize * definition.pipSize) / (entry && entry > 0 ? entry : 1)
     );
   }
   return definition.capabilities.contractSize * definition.pipSize;

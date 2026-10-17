@@ -18,11 +18,7 @@
 // Deduplicates fallback chains and provider priority checks into a single function.
 
 import { PROVIDER_IDS } from '@kestrel/shared/byok';
-import {
-  configuredProviders,
-  type ByokPayload,
-  type ProviderId,
-} from '@kestrel/shared/encryption';
+import { configuredProviders, type ByokPayload, type ProviderId } from '@kestrel/shared/encryption';
 import type { LanguageModel } from 'ai';
 
 import { BYOK_PROVIDERS, type ModelDomain } from './byok-providers';
@@ -33,12 +29,14 @@ import { envFallbackKeys, parsePickedModelId, PROVIDER_PRIORITY } from './model-
 export type ModelRole = 'chat' | 'title' | 'planner' | 'embedding' | 'vision';
 
 export interface ResolveRoleOptions {
-  userSettings?: {
-    chatModel?: string | null | undefined;
-    embeddingModel?: string | null | undefined;
-    visionModel?: string | null | undefined;
-    aiFallbackChain?: readonly string[] | string[] | null | undefined;
-  } | undefined;
+  userSettings?:
+    | {
+        chatModel?: string | null | undefined;
+        embeddingModel?: string | null | undefined;
+        visionModel?: string | null | undefined;
+        aiFallbackChain?: readonly string[] | string[] | null | undefined;
+      }
+    | undefined;
   domain?: ModelDomain | undefined;
 }
 
@@ -104,8 +102,13 @@ export function resolveModelForRole(
     // 2. Operator-set env fallback
     if (envFallback.AI_EMBEDDING_MODEL) {
       const slash = envFallback.AI_EMBEDDING_MODEL.indexOf('/');
-      const providerId = (slash > 0 ? envFallback.AI_EMBEDDING_MODEL.slice(0, slash) : 'openai') as ProviderId;
-      const bareModelId = slash > 0 ? envFallback.AI_EMBEDDING_MODEL.slice(slash + 1) : envFallback.AI_EMBEDDING_MODEL;
+      const providerId = (
+        slash > 0 ? envFallback.AI_EMBEDDING_MODEL.slice(0, slash) : 'openai'
+      ) as ProviderId;
+      const bareModelId =
+        slash > 0
+          ? envFallback.AI_EMBEDDING_MODEL.slice(slash + 1)
+          : envFallback.AI_EMBEDDING_MODEL;
       return {
         providerId,
         bareModelId,

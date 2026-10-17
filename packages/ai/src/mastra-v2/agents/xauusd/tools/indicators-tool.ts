@@ -19,8 +19,8 @@ import { createTool } from '@mastra/core/tools';
 
 import { buildIndicatorsEvidence } from '../../../packets/evidence-builders';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdIndicatorsInputSchema } from '../tool-schemas';
 import { XauusdIndicatorsEvidenceSchema } from '../../../shared/types';
+import { XauusdIndicatorsInputSchema } from '../tool-schemas';
 
 export const xauusdIndicatorsTool = createTool({
   id: 'get-xauusd-indicators',

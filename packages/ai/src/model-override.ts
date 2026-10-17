@@ -25,8 +25,8 @@ import { decryptByok, type ByokPayload, type ProviderId } from '@kestrel/shared/
 import type { LanguageModel } from 'ai';
 
 import { BYOK_PROVIDERS } from './byok-providers';
-import { envFallbackKeys } from './model-helpers';
 import type { ResolveModelEnv } from './env-model-factory';
+import { envFallbackKeys } from './model-helpers';
 
 // -----------------------------------------------------------------------
 // Phase B — UX_UPGRADE_PLAN.md item 8.

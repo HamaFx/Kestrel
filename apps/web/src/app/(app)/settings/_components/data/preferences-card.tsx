@@ -16,7 +16,12 @@
  * limitations under the License.
  */
 import { DEFAULT_WATCHLIST_SYMBOLS, isKnownSymbol, type Symbol } from '@kestrel/shared';
-import { IconAdjustmentsHorizontal, IconBolt, IconClock, IconTrendingUp } from '@tabler/icons-react';
+import {
+  IconAdjustmentsHorizontal,
+  IconBolt,
+  IconClock,
+  IconTrendingUp,
+} from '@tabler/icons-react';
 import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -127,7 +132,9 @@ export function PreferencesCard({
             <h2 id="prefs-heading" className="text-fg text-sm font-semibold tracking-tight">
               Interface & Behavior
             </h2>
-            <p className="text-fg-subtle text-xs">Default instrument, timestamps, and motion controls</p>
+            <p className="text-fg-subtle text-xs">
+              Default instrument, timestamps, and motion controls
+            </p>
           </div>
         </div>
         <span className="surface-chip text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] font-medium tracking-wider uppercase">

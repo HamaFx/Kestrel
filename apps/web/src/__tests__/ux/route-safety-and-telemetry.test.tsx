@@ -19,9 +19,12 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+
 import { cleanup, render } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { TopBar } from '@/components/layout/top-bar';
 
 afterEach(cleanup);
 
@@ -44,8 +47,6 @@ vi.mock('next/navigation', () => ({
     throw error;
   },
 }));
-
-import { TopBar } from '@/components/layout/top-bar';
 
 describe('Tier 1 & Tier 3: Route Fallback & Safety (/chart -> /chart/XAUUSD) (>=5 tests)', () => {
   const chartSymbolDir = path.resolve(__dirname, '../../app/(app)/chart/[symbol]');
@@ -85,7 +86,10 @@ describe('Tier 1 & Tier 3: Route Fallback & Safety (/chart -> /chart/XAUUSD) (>=
       expect(pageCode).toMatch(/redirect\(['"]\/chart\/XAUUSD['"]\)/);
     } else {
       // Contract test: PROJECT.md Feature 7 mandates redirect to /chart/XAUUSD
-      const projectMdPath = path.resolve(__dirname, '../../../../../.agents/teamwork_preview_orchestrator_2/PROJECT.md');
+      const projectMdPath = path.resolve(
+        __dirname,
+        '../../../../../.agents/teamwork_preview_orchestrator_2/PROJECT.md',
+      );
       const projectMd = fs.readFileSync(projectMdPath, 'utf8');
       expect(projectMd).toContain('Route Fallback');
       expect(projectMd).toContain('/chart/XAUUSD');
