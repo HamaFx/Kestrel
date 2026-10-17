@@ -62,7 +62,7 @@ export function buildCandlesEvidence(
   timeframe: Timeframe,
   requestedCount: number,
   result: CandlesResult,
-  maxOutput = 200,
+  maxOutput = 30,
 ): XauusdCandlesEvidence {
   const candles = result.candles.slice(-maxOutput);
   const latestCandle = candles.at(-1);

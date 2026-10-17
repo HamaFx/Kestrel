@@ -103,7 +103,8 @@ describe('AI → Data integration', () => {
       for (const sym of valid) {
         expect(SymbolSchema.safeParse(sym).success).toBe(true);
       }
-      expect(SymbolSchema.safeParse('BTCUSD').success).toBe(false);
+      expect(SymbolSchema.safeParse('INVALIDXYZ').success).toBe(false);
+      expect(SymbolSchema.safeParse('BTCUSD').data).toBe('BTCUSDT');
     });
   });
 

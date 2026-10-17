@@ -87,7 +87,7 @@ export const replaySetupTool = tool({
       tf,
       asOf: Date.now(),
       ruleLabel,
-      trades,
+      trades: trades.slice(-20),
       count: trades.length,
       wins,
       losses,

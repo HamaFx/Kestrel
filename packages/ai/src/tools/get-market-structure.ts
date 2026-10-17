@@ -58,7 +58,7 @@ declare module '@kestrel/shared' {
   }
 }
 
-const TAIL = 30;
+const TAIL = 15;
 
 export interface MarketStructureComputationArgs {
   symbol: z.infer<typeof SymbolSchema>;
