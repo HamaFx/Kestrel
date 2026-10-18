@@ -29,8 +29,9 @@ jobs:
           path: |
             .turbo
             apps/web/.next/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          key: ${{ runner.os }}-turbo-build-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-turbo-build-
             ${{ runner.os }}-turbo-
       - run: pnpm check:route-security
       - run: pnpm check:env-contract
@@ -72,14 +73,16 @@ jobs:
           node-version: 22.23.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Cache Turborepo and Next.js build cache
+      - name: Cache Turborepo cache (test results)
         uses: actions/cache@v4
         with:
-          path: |
-            .turbo
-            apps/web/.next/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          # The unit-tests job never runs Next, so it only needs .turbo; the
+          # build job above owns apps/web/.next/cache (identical immutable
+          # cache keys across jobs made one of them a write-only no-op).
+          path: .turbo
+          key: ${{ runner.os }}-turbo-test-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-turbo-test-
             ${{ runner.os }}-turbo-
       - run: pnpm turbo run test -- --coverage
         env:
@@ -92,10 +95,15 @@ jobs:
           RUN_AI_QUEUE_POSTGRES_TESTS: '1'
       - name: Test File Guard
         run: pnpm test:empty-guard
+      # The report action hard-requires coverage/coverage-summary.json at the
+      # repo root; derive it from the per-workspace istanbul output.
+      - name: Merge coverage summaries
+        run: node scripts/merge-coverage-summary.mjs
       - name: Report Coverage
         uses: davelosert/vitest-coverage-report-action@8b157684c6a6b259b97d45e72b44242865c0f6a5 # v2
         with:
           vite-config-path: vitest.config.ts
+          file-coverage-mode: none
 
   required-status:
     name: Required CI Status

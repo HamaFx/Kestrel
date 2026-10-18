@@ -1,12 +1,13 @@
 // Bundle the worker into self-contained ESM files. Workspace packages
 // (`@kestrel/shared`, `@kestrel/db`, `@kestrel/data`, `@kestrel/ai`,
-// `@kestrel/indicators`) export TypeScript source directly via
-// `package.json#main = "./src/index.ts"`, which Node can't load
-// natively. Bundling into one file per entrypoint is the standard fix
-// — same pattern as deploying TypeScript Node services anywhere.
-//
-// We do NOT bundle native modules / Node built-ins; everything is
-// `external` except the workspace packages and their direct deps.
+// `@kestrel/indicators`) publish built JavaScript via their `import`
+// condition (`dist/*.js`), so this build REQUIRES `packages/*/dist` to exist
+// (turbo's `^build` guarantees that in CI/Docker; a bare
+// `pnpm --filter @kestrel/worker build` on a clean checkout needs
+// `pnpm build:packages` first). Everything in `dependencies` except the
+// workspace packages, OpenTelemetry and `ws` stays external and is resolved
+// from node_modules at runtime; the rest is inlined into one file per
+// entrypoint.
 //
 // Two entrypoints:
 //   - dist/index.js       — long-running worker (BiQuote SignalR + flush loop)
@@ -14,7 +15,7 @@
 //
 // Run from the package root: `pnpm --filter @kestrel/worker build`.
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,6 +23,10 @@ import { build } from 'esbuild';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
+
+// esbuild never deletes orphaned outputs (e.g. sourcemaps from an older
+// build), so clean the output tree first.
+rmSync(resolve(root, 'dist'), { recursive: true, force: true });
 
 // Read the worker's own package.json to figure out which deps stay
 // external (anything from `dependencies` other than @kestrel/* gets
@@ -110,7 +115,13 @@ const common = {
   format: 'esm',
   platform: 'node',
   target: 'node22',
-  sourcemap: true,
+  // Sourcemaps are opt-in: production images shipped ~100 MB of .map files
+  // for a ~25 MB bundle. Set WORKER_SOURCEMAPS=1 for a debuggable local build.
+  sourcemap: process.env.WORKER_SOURCEMAPS === '1',
+  // The bundle only ever runs in production-shaped contexts (Docker, VM,
+  // Botkeep); pin NODE_ENV so inlined libraries drop development branches.
+  define: { 'process.env.NODE_ENV': '"production"' },
+  legalComments: 'none',
   external,
   nodePaths: [resolve(monorepoRoot, 'node_modules')],
   plugins: [pnpmResolver, serverOnlyPlugin],
