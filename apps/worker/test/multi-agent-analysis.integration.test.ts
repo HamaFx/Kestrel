@@ -18,7 +18,10 @@ import type * as sharedModule from '@kestrel/shared';
 import type * as sharedLoggerModule from '@kestrel/shared/logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runMultiAgentAnalysis } from '../src/jobs/multi-agent-analysis';
+import {
+  _resetFullAnalysisSweepThrottles,
+  runMultiAgentAnalysis,
+} from '../src/jobs/multi-agent-analysis';
 
 const {
   mockClaimNextFullAnalysisRun,
@@ -219,6 +222,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetFullAnalysisSweepThrottles();
     process.env.DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/kestrel_test';
     mockClaimNextFullAnalysisRun.mockResolvedValueOnce(claimed).mockResolvedValueOnce(null);
     mockRecoverStaleRuns.mockResolvedValue({ requeued: 0, failed: 0 });
@@ -483,6 +487,13 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
 
     expect(mockRecoverStaleRuns).toHaveBeenCalledWith(expect.any(Date), 3);
     expect(mockPurgeOldRuns).toHaveBeenCalledWith(expect.any(Date));
+
+    // Sub-minute polls skip the sweeps (single query, one throttle).
+    mockRecoverStaleRuns.mockClear();
+    mockPurgeOldRuns.mockClear();
+    await runMultiAgentAnalysis(context());
+    expect(mockRecoverStaleRuns).not.toHaveBeenCalled();
+    expect(mockPurgeOldRuns).not.toHaveBeenCalled();
   });
 
   it('awaits maybeGenerateThreadTitle before recording observedCost and completing the run', async () => {

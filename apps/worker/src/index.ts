@@ -130,6 +130,9 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   let pendingTicks: NormalizedTick[] = [];
   let batchTimer: NodeJS.Timeout | null = null;
   const BATCH_MS = 50;
+  // Fail-safe bound: an event-loop stall plus a feed replay must not grow the
+  // pending batch without limit before the 50ms timer can fire.
+  const MAX_PENDING_TICKS = 5_000;
 
   const flushBatch = () => {
     if (pendingTicks.length === 0) return;
@@ -147,6 +150,12 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
   const handleIncomingTick = (tick: NormalizedTick) => {
     pendingTicks.push(tick);
+    if (pendingTicks.length >= MAX_PENDING_TICKS) {
+      // Flush synchronously at the cap; the pending timer (if any) will find
+      // an empty buffer and no-op.
+      flushBatch();
+      return;
+    }
     if (!batchTimer) {
       batchTimer = setTimeout(() => {
         batchTimer = null;
@@ -413,9 +422,13 @@ export async function main(): Promise<void> {
     tickStreamEnabled,
   });
 
+  // The scheduler stop handle is registered LAST (cleanups run in reverse
+  // registration order), so in-flight jobs are aborted BEFORE the DB pool is
+  // closed — otherwise a long-running job keeps issuing queries against a
+  // torn-down pool during shutdown.
+  let stopScheduler: (() => void) | null = null;
   if (env.WORKER_MODE === 'docker') {
-    const stopScheduler = startScheduler(log, env);
-    onShutdown(stopScheduler);
+    stopScheduler = startScheduler(log, env);
   }
 
   process.on('unhandledRejection', (reason) => {
@@ -520,16 +533,20 @@ export async function main(): Promise<void> {
       });
     }
 
-    onShutdown(() => {
-      healthServer!.close();
-      proxyServer?.close();
-      return worker.stop();
-    });
     onShutdown(() => shutdownLangfuse());
     onShutdown(async () => {
       const { flushMastraObservability, getKestrelMastra } = await import('@kestrel/ai/mastra');
       await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
     });
+    // Cleanups run in reverse registration order. Registering the producers
+    // (scheduler + feeds) AFTER the observability flushes means: abort jobs →
+    // stop feeds/servers → flush observability → close the DB pool last.
+    onShutdown(() => {
+      healthServer!.close();
+      proxyServer?.close();
+      return worker.stop();
+    });
+    if (stopScheduler) onShutdown(stopScheduler);
   } catch (err) {
     log.error('post-startup initialisation failed — tearing down worker', { err: String(err) });
     healthServer?.close();

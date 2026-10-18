@@ -101,23 +101,51 @@ function consecutiveFailures(st: State): number {
 export function recordSuccess(provider: string): void {
   const now = Date.now();
   const st = s(provider);
+  const last = st.samples[st.samples.length - 1];
+  const wasFailing = last !== undefined && !last.ok;
   st.samples.push({ t: now, ok: true });
   trim(st, now);
 
-  // H1 — reset the cross-instance failure counter in the DB.
-  // Fire-and-forget: a caller never blocks on health telemetry.
-  void dbRecordSuccess(provider);
+  // H1 — reset the cross-instance failure counter in the DB. Transition-only:
+  // a success with no recorded failure streak has nothing to reset, so the
+  // steady state performs zero DB writes per fetch (previously: one UPSERT
+  // per provider call).
+  if (wasFailing) {
+    void dbRecordSuccess(provider);
+  }
+
+  // Keep the local DB cache consistent with the write so getScore() does not
+  // read a stale failure count for the remainder of the 10s TTL.
+  const cached = dbCache.get(provider);
+  if (cached) {
+    dbCache.set(provider, { ...cached, consecutiveFailures: 0 });
+  }
 }
 
 export function recordFailure(provider: string): void {
   const now = Date.now();
   const st = s(provider);
+  const last = st.samples[st.samples.length - 1];
+  const wasFailing = last !== undefined && !last.ok;
   st.samples.push({ t: now, ok: false });
   trim(st, now);
 
-  // H1 — bump the cross-instance failure counter in the DB.
-  // Fire-and-forget: a caller never blocks on health telemetry.
-  void dbRecordFailure(provider);
+  // H1 — bump the cross-instance failure counter in the DB. Transition-only:
+  // the first failure of a streak is the signal other instances need;
+  // subsequent failures in the same streak do not change the degraded state
+  // (local scoring still weights every failure).
+  if (!wasFailing) {
+    void dbRecordFailure(provider);
+  }
+
+  const cached = dbCache.get(provider);
+  if (cached) {
+    dbCache.set(provider, {
+      ...cached,
+      consecutiveFailures: cached.consecutiveFailures + 1,
+      lastFailureAt: now,
+    });
+  }
 }
 
 // ── H1 DB-backed cross-instance state ────────────────────────────────────
@@ -216,6 +244,33 @@ async function populateDbCache(provider: string, readAt: number): Promise<void> 
   } catch {
     // Best-effort — cache stays stale until next attempt.
   }
+}
+
+/**
+ * Soft-circuit predicate used by failover ordering: true when the provider
+ * has at least `minConsecutive` trailing failures and the most recent one is
+ * within `withinMs`. A provider that trips this is demoted below providers
+ * whose failures are older (or which have no recent failures), so a
+ * hard-down upstream is not attempted ahead of a plausible one — while
+ * still remaining eligible as a last resort (fail-open).
+ *
+ * Uses per-instance samples only: cross-instance DB state is deliberately
+ * excluded because it cannot express "recent" with the same granularity,
+ * and skipping on stale shared data would be worse than one extra attempt.
+ */
+export function isHardDown(
+  provider: string,
+  options: { minConsecutive?: number; withinMs?: number } = {},
+): boolean {
+  const minConsecutive = options.minConsecutive ?? 2;
+  const withinMs = options.withinMs ?? 60_000;
+  const st = s(provider);
+  const now = Date.now();
+  trim(st, now);
+  if (consecutiveFailures(st) < minConsecutive) return false;
+  const last = st.samples[st.samples.length - 1];
+  if (!last || last.ok) return false;
+  return now - last.t <= withinMs;
 }
 
 // ── Public API ───────────────────────────────────────────────────────────

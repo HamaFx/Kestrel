@@ -28,7 +28,12 @@
 // ranges so briefings aren't permanently missed during worker downtime.
 // The `wasEmitted` idempotency guard prevents duplicates.
 
-import { emitPostEvent, emitPreEvent, findHighImpactEventsInWindow } from '@kestrel/ai';
+import {
+  emitPostEvent,
+  emitPreEvent,
+  findHighImpactEventsInWindow,
+  listEmittedEventIds,
+} from '@kestrel/ai';
 import { getActiveUserIds } from '@kestrel/db';
 
 import type { JobContext, JobResult } from './types.js';
@@ -60,6 +65,20 @@ export async function runBriefings(ctx: JobContext): Promise<JobResult> {
   });
 
   let preEmitted = 0;
+  const preEventIds = preCandidates.map((c) => c.id);
+  // One idempotency query per user per phase instead of one per (event,
+  // user) pair on every tick. A failed prefetch falls back to empty sets —
+  // the per-pair guard inside emitPreEvent still prevents duplicates.
+  const preEmittedByUser = new Map<string, Set<string>>();
+  for (const userId of userIds) {
+    try {
+      preEmittedByUser.set(userId, await listEmittedEventIds(userId, preEventIds, 'pre'));
+    } catch (err) {
+      log.warn('briefings pre-idempotency prefetch failed', { userId, err: String(err) });
+      preEmittedByUser.set(userId, new Set());
+    }
+  }
+
   for (const c of preCandidates) {
     if (ctx.signal?.aborted) {
       log.warn('briefings aborted', { phase: 'pre' });
@@ -67,6 +86,7 @@ export async function runBriefings(ctx: JobContext): Promise<JobResult> {
     }
     for (const userId of userIds) {
       if (ctx.signal?.aborted) break;
+      if (preEmittedByUser.get(userId)?.has(c.id)) continue;
       try {
         const r = await emitPreEvent(userId, c.id);
         if (r.emitted) preEmitted += 1;
@@ -87,6 +107,17 @@ export async function runBriefings(ctx: JobContext): Promise<JobResult> {
   });
 
   let postEmitted = 0;
+  const postEventIds = postCandidates.map((c) => c.id);
+  const postEmittedByUser = new Map<string, Set<string>>();
+  for (const userId of userIds) {
+    try {
+      postEmittedByUser.set(userId, await listEmittedEventIds(userId, postEventIds, 'post'));
+    } catch (err) {
+      log.warn('briefings post-idempotency prefetch failed', { userId, err: String(err) });
+      postEmittedByUser.set(userId, new Set());
+    }
+  }
+
   for (const c of postCandidates) {
     if (ctx.signal?.aborted) {
       log.warn('briefings aborted', { phase: 'post' });
@@ -94,6 +125,7 @@ export async function runBriefings(ctx: JobContext): Promise<JobResult> {
     }
     for (const userId of userIds) {
       if (ctx.signal?.aborted) break;
+      if (postEmittedByUser.get(userId)?.has(c.id)) continue;
       try {
         const r = await emitPostEvent(userId, c.id);
         if (r.emitted) postEmitted += 1;

@@ -115,12 +115,24 @@ export abstract class BaseWsConsumer {
     this.ws.on('open', () => {
       this.reconnectAttempt = 0;
       this.startHeartbeat();
-      this.onOpen();
+      try {
+        this.onOpen();
+      } catch (err) {
+        // A throwing handler must not become an uncaughtException (the
+        // worker exits on those); close so the reconnect ladder recovers.
+        this.log.error(this.constructor.name + ' onOpen handler failed', { err: String(err) });
+        this.ws?.close();
+      }
     });
 
     this.ws.on('message', (data: WebSocket.Data) => {
       this.onActivity?.();
-      this.handleMessage(data);
+      try {
+        this.handleMessage(data);
+      } catch (err) {
+        // One malformed/replayed message must not kill the stream.
+        this.log.error(this.constructor.name + ' message handler failed', { err: String(err) });
+      }
     });
 
     this.ws.on('error', (err: Error) => {

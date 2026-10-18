@@ -101,9 +101,16 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
       continue;
     }
     tasks.push(
-      cron.schedule(job.schedule, () => {
-        void runJobSafely(name, log, env);
-      }),
+      // All job schedules are documented in UTC; pin the timezone explicitly
+      // instead of relying on the host's TZ (Docker defaults to UTC today,
+      // but nothing enforces it).
+      cron.schedule(
+        job.schedule,
+        () => {
+          void runJobSafely(name, log, env);
+        },
+        { timezone: 'UTC' },
+      ),
     );
     log.info(`Scheduled job ${name} at "${job.schedule}"`);
   }

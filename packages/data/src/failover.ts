@@ -42,7 +42,7 @@
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { ProviderEmptyError, ProviderError } from './errors';
-import { getScore, recordFailure, recordSuccess } from './health';
+import { getScore, isHardDown, recordFailure, recordSuccess } from './health';
 
 const flog = createCategorizedLogger('market_data', { component: 'failover' });
 
@@ -87,7 +87,19 @@ export async function runWithFailover<T>(
     }
   });
   dynamic.sort((x, y) => y.score - x.score || x.i - y.i);
-  const ordered: ProviderAttempt<T>[] = [...pinned, ...dynamic.map((s) => s.a)];
+
+  // Hard-down tier: providers with recent consecutive failures are demoted
+  // below providers whose failures are older, even when both score 0 (a
+  // score tie used to fall back to caller order, which could put the
+  // still-broken primary ahead of a recovering alternative). They remain in
+  // the list as a last resort, so failover depth is unchanged.
+  const healthy: ProviderAttempt<T>[] = [];
+  const hardDown: ProviderAttempt<T>[] = [];
+  for (const entry of dynamic) {
+    if (isHardDown(entry.a.name)) hardDown.push(entry.a);
+    else healthy.push(entry.a);
+  }
+  const ordered: ProviderAttempt<T>[] = [...pinned, ...healthy, ...hardDown];
 
   let firstError: ProviderError | null = null;
   // Phase 3 hardening §16 — re-throw the most-actionable error rather
