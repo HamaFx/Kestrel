@@ -139,6 +139,10 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
   opinions: z.unknown().optional(),
   /** Cross-critique records injected for the fusion call (§3.2). */
   critiques: z.unknown().optional(),
+  /** F-01: symbols whose packet was blocked and excluded from the comparison. */
+  blockedSymbols: z.unknown().optional(),
+  /** F-01: the blocked packets' `missingData` lines for the fusion disclosure. */
+  blockedMissingData: z.unknown().optional(),
 });
 
 export type ModeRequestContext = z.infer<typeof REQUEST_CONTEXT_SCHEMA>;
@@ -309,8 +313,17 @@ export const CollectPacketOutputSchema = z.object({
   /**
    * A-01: per-symbol packets for `multi-symbol-research` runs. Absent for
    * ordinary single-symbol committee runs (the `packet` field is primary).
+   * F-01: comparison runs forward only the healthy (ready) packets here.
    */
   packets: z.record(z.string(), SymbolResearchPacketSchema).optional(),
+  /**
+   * F-01 — symbols whose packet came back `blocked`. The comparison runs the
+   * healthy subset and the fusion must disclose these gaps; only an
+   * all-blocked collection fails closed.
+   */
+  blockedSymbols: z.array(z.string()).optional(),
+  /** F-01: the blocked packets' `missingData` lines, for the fusion disclosure. */
+  blockedMissingData: z.array(z.string()).optional(),
   prompt: z.string().min(1),
   mode: MastraAnalysisModeSchema,
 });
@@ -338,12 +351,15 @@ export function contextWithPacket(
 /**
  * A-01 — comparison-run context: every per-symbol packet is injected under
  * `packets` (the primary packet stays under `packet` for compatibility with
- * the shared specialist context).
+ * the shared specialist context). F-01: blocked symbols are injected under
+ * `blockedSymbols` so the comparison fusion prompt discloses the gap.
  */
 export function contextWithPackets(
   base: RequestContext<ModeRequestContext>,
   packets: readonly SymbolResearchPacket[],
   opinions?: MastraModeOpinion[],
+  blockedSymbols?: readonly string[],
+  blockedMissingData?: readonly string[],
 ): RequestContext<ModeRequestContext> {
   const primary = packets[0];
   if (!primary) throw new Error('Comparison context requires at least one packet.');
@@ -358,6 +374,10 @@ export function contextWithPackets(
     ['packets', packetRecord],
   ];
   if (opinions) entries.push(['opinions', opinions]);
+  if (blockedSymbols && blockedSymbols.length > 0) entries.push(['blockedSymbols', blockedSymbols]);
+  if (blockedMissingData && blockedMissingData.length > 0) {
+    entries.push(['blockedMissingData', blockedMissingData]);
+  }
   return new RequestContext<ModeRequestContext>(entries as never);
 }
 

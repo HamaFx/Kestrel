@@ -612,21 +612,61 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
     expect(output.finalText).toBe('Synthesized read.');
   });
 
-  it('fails the comparison closed when any symbol packet is blocked', async () => {
+  it('runs the comparison on the healthy subset and discloses a blocked symbol (F-01)', async () => {
     mocks.collectSymbolResearchPacket.mockImplementation(async (symbol: string) =>
       symbol === 'XAUUSD'
-        ? { ...blockedPacket, symbol }
+        ? { ...blockedPacket, symbol, missingData: ['Current XAUUSD price is unavailable.'] }
         : { ...readyPacket, packetId: `packet-${symbol}`, symbol },
     );
 
-    const result = await startComparison('wf-compare-blocked');
+    const result = await startComparison('wf-compare-partial');
 
     expect(result.status).toBe('success');
-    const output = result.result as { status: string; blockedText?: string; packets?: unknown };
+    const output = result.result as {
+      status: string;
+      finalText: string;
+      opinions: Array<{ agentName: string; symbol?: string }>;
+      packets?: Record<string, { packetId: string }>;
+      blockedSymbols?: string[];
+    };
+    expect(output.status).toBe('ready');
+    // Only the healthy symbol keeps a packet/desk opinion…
+    expect(Object.keys(output.packets ?? {})).toEqual(['EURUSD']);
+    expect(output.opinions).toHaveLength(1);
+    expect(output.opinions[0]?.symbol).toBe('EURUSD');
+    // …the blocked symbol is disclosed instead of failing the whole turn…
+    expect(output.blockedSymbols).toEqual(['XAUUSD']);
+    // …and the fusion prompt carries the gap explicitly.
+    const decisionCall = mocks.generateCalls.find((call) => call.id.includes('decision'));
+    const requestContext = decisionCall?.options?.['requestContext'] as
+      | { get?: (key: string) => unknown }
+      | undefined;
+    expect(requestContext?.get?.('blockedSymbols')).toEqual(['XAUUSD']);
+    expect(requestContext?.get?.('blockedMissingData')).toEqual([
+      'Current XAUUSD price is unavailable.',
+    ]);
+    // The blocked desk never ran; only EURUSD's technical pass did.
+    expect(mocks.generateCalls.filter((call) => call.id.includes('technical'))).toHaveLength(1);
+    expect(output.finalText).toBe('Synthesized read.');
+  });
+
+  it('fails the comparison closed only when every symbol packet is blocked (F-01)', async () => {
+    mocks.collectSymbolResearchPacket.mockImplementation(async (symbol: string) => ({
+      ...blockedPacket,
+      symbol,
+      missingData: [`Current ${symbol} price is unavailable.`],
+    }));
+
+    const result = await startComparison('wf-compare-all-blocked');
+
+    expect(result.status).toBe('success');
+    const output = result.result as { status: string; blockedText?: string };
     expect(output.status).toBe('blocked');
-    expect(output.blockedText).toContain('XAUUSD');
-    // Both packets are still reported for downstream UI/telemetry.
-    expect(Object.keys(output.packets ?? {}).sort()).toEqual(['EURUSD', 'XAUUSD']);
+    expect(output.blockedText).toContain('every requested symbol');
+    expect(output.blockedText).toContain('Current EURUSD price is unavailable.');
+    expect(output.blockedText).toContain('Current XAUUSD price is unavailable.');
+    // No desk ran at all.
+    expect(mocks.generateCalls.filter((call) => call.id.includes('technical'))).toHaveLength(0);
   });
 
   it('fails the comparison terminally when a desk pass fails (strict all-or-nothing)', async () => {

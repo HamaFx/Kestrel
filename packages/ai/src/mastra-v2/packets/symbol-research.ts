@@ -155,10 +155,20 @@ export function computeIndicatorMemo(args: {
    * computation as if it were fresh after a provider failover.
    */
   stale?: boolean;
+  /**
+   * I-01 (audit 2026-10-18) — data-fetch production time. Two collects within
+   * an open candle can share length and last candle timestamp while the
+   * candle's close (and therefore every indicator value) has moved; without
+   * `producedAt` the memo returns the earlier computation. `producedAt`
+   * changes whenever a new candle payload was actually produced, so the key
+   * is exact for the same-length/same-bar case without hashing candle bodies.
+   */
+  producedAt?: number;
 }): ReturnType<typeof computeIndicator> {
   const lastT = args.candles.at(-1)?.t ?? 0;
   const staleBit = args.stale ? 's' : 'f';
-  const key = `${args.symbol}:${args.tf}:${String(args.kind)}:${JSON.stringify(args.params)}:${args.candles.length}:${lastT}:${staleBit}`;
+  const producedAtBit = args.producedAt ?? 0;
+  const key = `${args.symbol}:${args.tf}:${String(args.kind)}:${JSON.stringify(args.params)}:${args.candles.length}:${lastT}:${staleBit}:${producedAtBit}`;
   const memoized = indicatorMemo.get(key);
   if (memoized) {
     indicatorMemo.delete(key);
@@ -348,6 +358,7 @@ export async function collectSymbolResearchPacket(
             params: request.params,
             candles,
             stale: result.value.stale,
+            producedAt: result.value.producedAt,
           });
           return { ...computed, values: computed.values.slice(-8) };
         })
