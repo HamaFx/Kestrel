@@ -111,9 +111,10 @@ const BIAS_TOKEN: Record<AgentOpinion['bias'], string> = {
 
 function formatPlainModeLabel(mode: string, comparisonSymbols?: string[]): string {
   if (comparisonSymbols && comparisonSymbols.length >= 2) {
-    // M-01 (audit 2026-10-18): comparison runs are one desk per symbol plus
-    // a cross-symbol synthesis — never "N committees".
-    return `Comparison — one technical desk per symbol (${comparisonSymbols.join(', ')}) + cross-symbol synthesis`;
+    // M-01 (audit 2026-10-18): comparison runs are per-symbol desk passes
+    // (technical + risk when enabled) plus a cross-symbol synthesis — never
+    // "N committees".
+    return `Comparison — per-symbol desk passes (${comparisonSymbols.join(', ')}) + cross-symbol synthesis`;
   }
   const normalized = mode.toLowerCase();
   if (normalized === 'single') {

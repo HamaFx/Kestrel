@@ -137,10 +137,10 @@ export async function runResearchWorkflow(input: ResearchWorkflowInput): Promise
   }
 
   // A-01 (B-01/B-08): a bounded cross-symbol comparison executes the
-  // comparison graph — one cached packet and one technical desk pass per
-  // symbol, then a cross-symbol fusion. v1 keeps the data layer single-desk
-  // even when the user selected Full (the durable queue never carries a
-  // comparison), so `mode` is pinned to `single` here.
+  // comparison graph — one cached packet and per-symbol desk passes
+  // (technical + risk by default, P1-04; `ENABLE_COMPARISON_RISK_DESK=0`
+  // keeps technical only) — then a cross-symbol fusion. The durable queue
+  // never carries a comparison, so `mode` is pinned to `single` here.
   if (input.plan.route === 'multi-symbol-research') {
     const symbols = input.plan.symbols.length >= 2 ? input.plan.symbols : (input.symbols ?? []);
     if (symbols.length < 2) {

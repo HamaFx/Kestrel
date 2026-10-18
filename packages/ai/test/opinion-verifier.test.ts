@@ -117,3 +117,52 @@ describe('Mastra opinion verifier numeric grounding (P0-2 & Audit v3 Phase 4)', 
     expect(SPECIALIST_DEFINITIONS.risk.toolNames).toContain('compute_risk');
   });
 });
+
+describe('Mastra opinion verifier temporal disclosure (P1-01)', () => {
+  const degradedPacket = {
+    symbol: 'XAUUSD',
+    status: 'ready',
+    dataQuality: 'degraded',
+    warnings: ['Candles were served from stale-while-error cache'],
+    missingData: [],
+    timeframes: [],
+    price: { tick: { bid: 2648.2, ask: 2648.4, mid: 2648.3 } },
+  } as never;
+
+  it('rejects a non-disclosing opinion over a degraded packet', () => {
+    const verification = verifyMastraOpinion(
+      { ...opinion, reasoning: 'Structure remains constructive.' } as never,
+      degradedPacket,
+    );
+    expect(verification.ok).toBe(false);
+    expect(verification.findings.join(' ')).toContain('does not disclose');
+  });
+
+  it('accepts a reasoning that discloses the degraded data', () => {
+    expect(
+      verifyMastraOpinion(
+        {
+          ...opinion,
+          reasoning: 'Structure remains constructive, though candle data is stale.',
+        } as never,
+        degradedPacket,
+      ),
+    ).toEqual({ ok: true, findings: [] });
+  });
+
+  it('accepts an explicit rawData.missingEvidence list instead of a reasoning sentence', () => {
+    expect(
+      verifyMastraOpinion(
+        {
+          ...opinion,
+          rawData: { missingEvidence: ['Candles are stale after a provider failover.'] },
+        } as never,
+        degradedPacket,
+      ),
+    ).toEqual({ ok: true, findings: [] });
+  });
+
+  it('leaves complete, warning-free packets unchanged', () => {
+    expect(verifyMastraOpinion(opinion, packet)).toEqual({ ok: true, findings: [] });
+  });
+});
