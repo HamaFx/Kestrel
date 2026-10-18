@@ -409,6 +409,9 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     env: args.env,
     strategy: args.executionPlan?.guardrail.strategy ?? 'block',
     mode: args.executionPlan?.guardrail.mode ?? 'strict',
+    // P2-03: the turn's model is already resolved — reuse it for the
+    // injection detector instead of resolving the fast tier again.
+    model: resolution.model,
   });
   metrics.observe('mastra_setup_latency_ms', Date.now() - guardrailStartedAt, {
     tags: { phase: 'guardrail' },

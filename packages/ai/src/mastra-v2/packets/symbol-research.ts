@@ -16,7 +16,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { getCandlesWithMeta, getPriceWithMeta } from '@kestrel/data';
+import { getPriceWithMeta } from '@kestrel/data';
 import { computeIndicator } from '@kestrel/indicators';
 import {
   CandleSchema,
@@ -36,6 +36,7 @@ import {
 import { z } from 'zod';
 
 import { INJECTION_TERMS, isHighConfidenceMutationIntent } from '../../routing-keywords';
+import { fetchPacketCandles } from './candle-fetcher';
 import {
   assembleGenericMacroExtension,
   assembleXauusdMacroEvidence,
@@ -313,22 +314,15 @@ export async function collectSymbolResearchPacket(
     symbol !== 'XAUUSD' &&
     options?.includeMacro === true &&
     readFeatureFlag('ENABLE_GENERIC_MACRO');
-  const [technicalSettled, macroExtension, genericMacroFetched] = await Promise.all([
-    Promise.allSettled([
-      getPriceWithMeta(symbol, signal ? { signal } : {}),
-      ...RESEARCH_TIMEFRAMES.map(({ timeframe, count }) =>
-        getCandlesWithMeta(symbol, timeframe, {
-          count,
-          ...(signal ? { signal } : {}),
-        }),
-      ),
-    ]),
+  const [priceSettled, candleResults, macroExtension, genericMacroFetched] = await Promise.all([
+    Promise.allSettled([getPriceWithMeta(symbol, signal ? { signal } : {})]),
+    fetchPacketCandles(symbol, RESEARCH_TIMEFRAMES, signal),
     wantsMacro ? collectXauusdExtension(packetId, generatedAt, signal) : null,
     wantsGenericMacro
       ? fetchGenericMacroData(symbol, signal).catch((): GenericMacroFetchResult | null => null)
       : null,
   ]);
-  const [priceResult, ...candleResults] = technicalSettled;
+  const priceResult = priceSettled[0];
 
   if (signal?.aborted) throw signal.reason ?? abortError();
 
@@ -369,9 +363,8 @@ export async function collectSymbolResearchPacket(
   }
 
   const timeframes: SymbolResearchEvidence[] = [];
-  for (let index = 0; index < RESEARCH_TIMEFRAMES.length; index += 1) {
-    const requested = RESEARCH_TIMEFRAMES[index]!;
-    const result = candleResults[index];
+  for (const requested of RESEARCH_TIMEFRAMES) {
+    const result = candleResults.get(requested.timeframe);
     if (!result || result.status === 'rejected') {
       missingData.push(`${symbol} ${requested.timeframe} candles are unavailable.`);
       warnings.push(`${symbol} ${requested.timeframe} candle collection failed.`);

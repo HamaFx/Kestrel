@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-import { getCandlesWithMeta, getPriceWithMeta } from '@kestrel/data';
+import { getPriceWithMeta } from '@kestrel/data';
 
 import { XAUUSD } from '../shared/types';
+import { fetchPacketCandles, type PacketCandleResult } from './candle-fetcher';
 import { XAUUSD_RESEARCH_WINDOWS } from './research-config';
 import { fetchXauusdMacroData, type XauusdMacroFetchResult } from './research-packet-macro';
 
 export interface XauusdResearchFetchResult {
   price: PromiseSettledResult<Awaited<ReturnType<typeof getPriceWithMeta>>>;
-  candles: readonly PromiseSettledResult<Awaited<ReturnType<typeof getCandlesWithMeta>>>[];
+  candles: readonly PromiseSettledResult<PacketCandleResult>[];
   macro: XauusdMacroFetchResult;
 }
 
@@ -32,33 +33,41 @@ function abortError(): Error {
   return error;
 }
 
-/** Fetch technical and optional macro evidence concurrently. */
+/**
+ * Fetch technical and optional macro evidence concurrently.
+ *
+ * P2-02: candles ride the shared `fetchPacketCandles` call site (same helper
+ * as the committee packet); the window table stays in `research-config.ts`.
+ */
 export async function fetchXauusdResearchData(
   signal?: AbortSignal,
 ): Promise<XauusdResearchFetchResult> {
   if (signal?.aborted) throw signal.reason ?? abortError();
 
-  const [technicalResults, macro] = await Promise.all([
-    Promise.allSettled([
-      getPriceWithMeta(XAUUSD, signal ? { signal } : {}),
-      ...XAUUSD_RESEARCH_WINDOWS.map(({ timeframe, candleCount }) =>
-        getCandlesWithMeta(XAUUSD, timeframe, {
-          count: candleCount,
-          ...(signal ? { signal } : {}),
-        }),
-      ),
-    ]),
+  const [priceResults, candleResults, macro] = await Promise.all([
+    Promise.allSettled([getPriceWithMeta(XAUUSD, signal ? { signal } : {})]),
+    fetchPacketCandles(
+      XAUUSD,
+      XAUUSD_RESEARCH_WINDOWS.map(({ timeframe, candleCount }) => ({
+        timeframe,
+        count: candleCount,
+      })),
+      signal,
+    ),
     fetchXauusdMacroData(signal),
   ]);
 
   if (signal?.aborted) throw signal.reason ?? abortError();
 
-  const [price, ...candles] = technicalResults;
+  const price = priceResults[0];
   if (!price) throw new Error('XAUUSD research price fetch did not produce a result');
 
   return {
     price: price as XauusdResearchFetchResult['price'],
-    candles: candles as XauusdResearchFetchResult['candles'],
+    // Index order matches XAUUSD_RESEARCH_WINDOWS, which the assembler zips.
+    candles: XAUUSD_RESEARCH_WINDOWS.map(
+      ({ timeframe }) => candleResults.get(timeframe)!,
+    ) as XauusdResearchFetchResult['candles'],
     macro,
   };
 }
