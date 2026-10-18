@@ -155,6 +155,7 @@ mastra-v2/
   guardrails.ts
   index.ts
   instance.ts
+  langfuse-link.ts
   logger.ts
   memory.ts
   observability-view.ts
