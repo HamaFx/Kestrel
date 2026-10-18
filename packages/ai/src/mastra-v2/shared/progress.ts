@@ -25,6 +25,13 @@ export interface CommitteeProgressSnapshot {
   agents: CommitteeAgentProgress[];
   mode: string;
   status?: 'complete' | 'failed' | 'retrying';
+  /**
+   * M-01 (audit 2026-10-18) — for a multi-symbol comparison this carries the
+   * requested symbols so the UI labels the run honestly: "one desk per
+   * symbol + cross-symbol synthesis", never "N committees". Absent for
+   * ordinary single-symbol runs.
+   */
+  comparisonSymbols?: string[];
 }
 
 /**
@@ -46,6 +53,7 @@ export function committeeProgressSnapshot(
     confidence: number;
     reasoning: string;
   }>,
+  comparisonSymbols?: readonly string[],
 ): CommitteeProgressSnapshot {
   const specialists = committeeProgressStages(mode).filter(
     (stage): stage is MastraSpecialistName =>
@@ -91,5 +99,8 @@ export function committeeProgressSnapshot(
     }),
     mode,
     ...(terminalStatus ? { status: terminalStatus } : {}),
+    ...(comparisonSymbols && comparisonSymbols.length >= 2
+      ? { comparisonSymbols: [...comparisonSymbols] }
+      : {}),
   };
 }

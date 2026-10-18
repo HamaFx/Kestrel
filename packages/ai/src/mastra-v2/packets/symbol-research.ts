@@ -24,6 +24,7 @@ import {
   IndicatorRequestSchema,
   IndicatorResultSchema,
   priceDecimals,
+  readFeatureFlag,
   SymbolSchema,
   TickSchema,
   TimeframeSchema,
@@ -35,7 +36,20 @@ import {
 import { z } from 'zod';
 
 import { INJECTION_TERMS, isHighConfidenceMutationIntent } from '../../routing-keywords';
-import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from './research-packet-macro';
+import {
+  assembleGenericMacroExtension,
+  assembleXauusdMacroEvidence,
+  fetchGenericMacroData,
+  fetchXauusdMacroData,
+  GenericMacroExtensionSchema,
+  type GenericMacroExtension,
+  type GenericMacroFetchResult,
+} from './research-packet-macro';
+
+// M-02 — the generic macro extension is defined with the macro fetchers (no
+// import cycle) and re-exported here alongside the packet type for callers.
+export { GenericMacroExtensionSchema };
+export type { GenericMacroExtension };
 
 const RESEARCH_TIMEFRAMES: readonly { timeframe: Timeframe; count: number }[] = [
   { timeframe: '1d', count: 120 },
@@ -124,6 +138,14 @@ export const SymbolResearchPacketSchema = z.object({
   timeframes: z.array(EvidenceSchema),
   marketStructure: MarketStructureSummarySchema.optional(),
   xauusdExtension: XauusdExtensionSchema.optional(),
+  /**
+   * M-02 (audit 2026-10-18) — generic macro evidence (news, upcoming
+   * calendar releases for the symbol's currencies, CFTC positioning where
+   * supported) attached to non-XAUUSD packets when `ENABLE_GENERIC_MACRO`
+   * is on. Gated by `optionalContext`; never set for XAUUSD (which keeps
+   * `xauusdExtension`).
+   */
+  genericMacro: GenericMacroExtensionSchema.optional(),
   optionalContext: z.object({
     available: z.boolean(),
     reason: z.string().min(1),
@@ -223,6 +245,12 @@ function computeMarketStructureSummary(
 }
 
 export interface CollectSymbolResearchPacketOptions {
+  /**
+   * Request macro context. For XAUUSD this means the verified macro
+   * extension (dollar index, real yields, USD events, news). For other
+   * symbols it requests the M-02 generic extension (news, calendar, COT) and
+   * is additionally gated by `ENABLE_GENERIC_MACRO`.
+   */
   includeMacro?: boolean;
 }
 
@@ -278,7 +306,14 @@ export async function collectSymbolResearchPacket(
   const generatedAt = new Date().toISOString();
   const packetId = `symbol-research-${symbol}-${randomUUID()}`;
   const wantsMacro = symbol === 'XAUUSD' && options?.includeMacro === true;
-  const [technicalSettled, macroExtension] = await Promise.all([
+  // M-02: non-gold symbols can request the generic macro extension
+  // (news + calendar + COT). Rollout-gated; a failed fetch can never fail the
+  // packet (`fetchGenericMacroData` settles internally).
+  const wantsGenericMacro =
+    symbol !== 'XAUUSD' &&
+    options?.includeMacro === true &&
+    readFeatureFlag('ENABLE_GENERIC_MACRO');
+  const [technicalSettled, macroExtension, genericMacroFetched] = await Promise.all([
     Promise.allSettled([
       getPriceWithMeta(symbol, signal ? { signal } : {}),
       ...RESEARCH_TIMEFRAMES.map(({ timeframe, count }) =>
@@ -289,6 +324,9 @@ export async function collectSymbolResearchPacket(
       ),
     ]),
     wantsMacro ? collectXauusdExtension(packetId, generatedAt, signal) : null,
+    wantsGenericMacro
+      ? fetchGenericMacroData(symbol, signal).catch((): GenericMacroFetchResult | null => null)
+      : null,
   ]);
   const [priceResult, ...candleResults] = technicalSettled;
 
@@ -388,6 +426,19 @@ export async function collectSymbolResearchPacket(
     ),
   );
   const status = price !== null && requiredTimeframesReady ? 'ready' : 'blocked';
+
+  // M-02: assemble the generic macro extension after the technical evidence.
+  // A completely unavailable macro fetch adds one packet-level warning (so
+  // the desks and the UI disclose it); a partial fetch keeps its warnings
+  // inside the extension, mirroring the XAUUSD macro contract.
+  const genericMacroResult = genericMacroFetched
+    ? assembleGenericMacroExtension(symbol, genericMacroFetched)
+    : null;
+  const genericMacro: GenericMacroExtension | undefined = genericMacroResult?.extension ?? undefined;
+  if (genericMacroResult && !genericMacroResult.extension) {
+    warnings.push(...genericMacroResult.warnings);
+  }
+
   const dataQuality =
     status === 'blocked'
       ? 'degraded'
@@ -411,15 +462,22 @@ export async function collectSymbolResearchPacket(
     timeframes,
     ...(marketStructure ? { marketStructure } : {}),
     ...(macro ? { xauusdExtension: macro } : {}),
+    ...(genericMacro ? { genericMacro } : {}),
     optionalContext: {
-      available: Boolean(macro),
+      available: Boolean(macro) || Boolean(genericMacro),
       reason: macro
         ? 'XAUUSD macro context (dollar index, real yields, USD events, news) is attached as the packet extension.'
-        : wantsMacro
-          ? // B-05: the macro extension was requested but could not be collected
-            // for this run — never imply it was checked.
-            'XAUUSD macro context (dollar index, real yields, USD events, news) was requested but could not be collected for this run.'
-          : `Fundamental context is not part of the generalized ${symbol} packet; use the XAUUSD fundamental workflow where applicable.`,
+        : genericMacro
+          ? `Generic ${symbol} macro context (news, economic calendar, COT where available) is attached as the packet extension.`
+          : wantsMacro
+            ? // B-05: the macro extension was requested but could not be collected
+              // for this run — never imply it was checked.
+              'XAUUSD macro context (dollar index, real yields, USD events, news) was requested but could not be collected for this run.'
+            : wantsGenericMacro
+              ? // M-02/B-05: the generic macro extension was requested but every
+                // provider failed — never imply fundamental context was checked.
+                `Generic ${symbol} macro context (news, economic calendar, COT) was requested but could not be collected for this run.`
+              : `Fundamental context is not part of the generalized ${symbol} packet; use the XAUUSD fundamental workflow where applicable.`,
     },
     missingData: unique(missingData),
     warnings: unique(warnings),

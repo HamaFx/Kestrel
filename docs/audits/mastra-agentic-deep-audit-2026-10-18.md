@@ -328,8 +328,8 @@ Status: ⬜ pending · 🟨 in progress · ✅ done (linked to the fixing commit
 | Phase | Scope | Status | Commit |
 |---|---|---|---|
 | 0 | Scaffolding: `ENABLE_GENERIC_MACRO`, audit-to-git, architecture.md reference | ✅ | `c2690239` |
-| 1 | B-02, I-01, N-01, F-01 | 🟨 | — |
-| 2 | M-01 (comparison scope copy), M-02 (generic macro packet) | ⬜ | — |
+| 1 | B-02, I-01, N-01, F-01 | ✅ | `fc700e1c` |
+| 2 | M-01 (comparison scope copy), M-02 (generic macro packet) | 🟨 | — |
 | 3 | P1-01 (committee opinion verifier), P1-04 (comparison risk desk) | ⬜ | — |
 | 4 | P2-02 (shared candle fetcher), P2-03 (guardrail model reuse), god-workflow split | ⬜ | — |
 | 5 | P2-05 (heuristic consensus), P2-06 (log↔trace join), P2-01 (tool shims) | ⬜ | — |

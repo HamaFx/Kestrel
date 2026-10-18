@@ -58,6 +58,12 @@ export interface AgentProgress {
   mode: string;
   status?: 'complete' | 'failed' | 'retrying';
   error?: string;
+  /**
+   * M-01 (audit 2026-10-18): requested symbols for a multi-symbol comparison;
+   * the deliberation header labels the run as one desk per symbol plus a
+   * cross-symbol synthesis.
+   */
+  comparisonSymbols?: string[];
 }
 
 export interface KestrelChatTransportOptions {

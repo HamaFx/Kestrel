@@ -186,6 +186,9 @@ export function ThreadViewsDock({
                 mode={agentProgress.mode}
                 status={agentProgress.status}
                 error={agentProgress.error}
+                {...(agentProgress.comparisonSymbols
+                  ? { comparisonSymbols: agentProgress.comparisonSymbols }
+                  : {})}
               />
             ) : (
               <div className="flex min-h-[300px] flex-col items-center justify-center gap-2 text-center">

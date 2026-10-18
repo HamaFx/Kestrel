@@ -131,9 +131,11 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
               onProgress: (step) => {
                 // §2.3: live committee progress — the UI renders the desk
                 // pipeline while the specialists run instead of a spinner.
+                // M-01: comparison runs carry their symbols so the panel can
+                // label the scope honestly (one desk per symbol + synthesis).
                 emit({
                   type: 'data-agent-progress',
-                  data: committeeProgressSnapshot(input.mode, step),
+                  data: committeeProgressSnapshot(input.mode, step, undefined, undefined, input.symbols),
                 });
               },
             });
@@ -192,7 +194,13 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
         emit({ type: 'text-delta', id: messageId, delta: result.finalText });
         emit({
           type: 'data-agent-progress',
-          data: committeeProgressSnapshot(input.mode, 'fusion', 'complete', result.agentOpinions),
+          data: committeeProgressSnapshot(
+            input.mode,
+            'fusion',
+            'complete',
+            result.agentOpinions,
+            input.symbols,
+          ),
         });
         emit({
           type: 'data-multi-agent-meta',

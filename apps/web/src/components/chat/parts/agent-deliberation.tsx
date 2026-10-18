@@ -53,6 +53,11 @@ interface AgentDeliberationProps {
   mode: string;
   status?: 'complete' | 'failed' | 'retrying';
   error?: string;
+  /**
+   * M-01: requested symbols for a multi-symbol comparison; the header labels
+   * the run as one desk per symbol + cross-symbol synthesis.
+   */
+  comparisonSymbols?: string[];
 }
 
 const AGENT_META: Record<
@@ -104,7 +109,12 @@ const BIAS_TOKEN: Record<AgentOpinion['bias'], string> = {
   neutral: 'text-fg-muted',
 };
 
-function formatPlainModeLabel(mode: string): string {
+function formatPlainModeLabel(mode: string, comparisonSymbols?: string[]): string {
+  if (comparisonSymbols && comparisonSymbols.length >= 2) {
+    // M-01 (audit 2026-10-18): comparison runs are one desk per symbol plus
+    // a cross-symbol synthesis — never "N committees".
+    return `Comparison — one technical desk per symbol (${comparisonSymbols.join(', ')}) + cross-symbol synthesis`;
+  }
   const normalized = mode.toLowerCase();
   if (normalized === 'single') {
     return 'Single-desk analysis (1 specialist desk)';
@@ -115,7 +125,13 @@ function formatPlainModeLabel(mode: string): string {
   return `Committee Analysis · ${mode}`;
 }
 
-export function AgentDeliberation({ agents, mode, status, error }: AgentDeliberationProps) {
+export function AgentDeliberation({
+  agents,
+  mode,
+  status,
+  error,
+  comparisonSymbols,
+}: AgentDeliberationProps) {
   if (!Array.isArray(agents) || agents.length === 0) return null;
   const hasDone = agents.some((a) => a.status === 'done');
   const isFailed = status === 'failed';
@@ -151,7 +167,7 @@ export function AgentDeliberation({ agents, mode, status, error }: AgentDelibera
       <div className="border-border/60 flex items-center justify-between gap-2 border-b pb-2.5">
         <div className="text-fg flex items-center gap-2 text-xs font-semibold">
           <IconCpu className="text-brand size-3.5" />
-          <span>{formatPlainModeLabel(mode)}</span>
+          <span>{formatPlainModeLabel(mode, comparisonSymbols)}</span>
         </div>
 
         {!allDone && (

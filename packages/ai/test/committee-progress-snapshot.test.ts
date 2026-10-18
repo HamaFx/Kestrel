@@ -57,4 +57,19 @@ describe('committeeProgressSnapshot', () => {
     });
     expect(snapshot.agents[1]?.opinion?.bias).toBe('neutral');
   });
+
+  it('labels a multi-symbol comparison run with its symbols and omits the field otherwise (M-01)', () => {
+    const comparison = committeeProgressSnapshot('single', 'technical', undefined, undefined, [
+      'EURUSD',
+      'XAUUSD',
+    ]);
+    expect(comparison.comparisonSymbols).toEqual(['EURUSD', 'XAUUSD']);
+
+    // A single symbol is an ordinary single-desk run, not a comparison.
+    const single = committeeProgressSnapshot('single', 'technical', undefined, undefined, ['EURUSD']);
+    expect(single).not.toHaveProperty('comparisonSymbols');
+
+    const full = committeeProgressSnapshot('full', 'technical');
+    expect(full).not.toHaveProperty('comparisonSymbols');
+  });
 });

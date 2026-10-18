@@ -318,9 +318,8 @@ const RuntimeEnv = z.object({
     .transform((v) => v === '1' || v === 'true'),
   /**
    * M-02 (audit 2026-10-18, Phase 0/2) — generic macro packet for
-   * non-XAUUSD symbols (news + calendar + COT). Defaults on in dev/test and
-   * off in production until the operator opts in; `0` is the instant
-   * rollback to the prior candle-only packet.
+   * non-XAUUSD symbols (news + calendar + COT). ON by default since M-02
+   * landed; `0` is the instant rollback to the prior candle-only packet.
    */
   ENABLE_GENERIC_MACRO: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])

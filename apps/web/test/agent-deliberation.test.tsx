@@ -161,6 +161,21 @@ describe('AgentDeliberation', () => {
       render(<AgentDeliberation agents={allPending()} mode="standard" />);
       expect(screen.getByText(/standard/i)).toBeTruthy();
     });
+
+    it('labels a comparison run as one desk per symbol plus synthesis (M-01)', () => {
+      render(
+        <AgentDeliberation
+          agents={allPending()}
+          mode="single"
+          comparisonSymbols={['EURUSD', 'XAUUSD']}
+        />,
+      );
+      expect(
+        screen.getByText(
+          /Comparison — one technical desk per symbol \(EURUSD, XAUUSD\) \+ cross-symbol synthesis/i,
+        ),
+      ).toBeTruthy();
+    });
   });
 
   describe('initial state — all pending', () => {

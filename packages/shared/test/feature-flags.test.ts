@@ -18,20 +18,15 @@ afterEach(() => {
 });
 
 describe('readFeatureFlag — ENABLE_GENERIC_MACRO rollout gate', () => {
-  it('defaults on outside production so dev/test exercise the generic macro packet', () => {
+  it('defaults on in every environment now that M-02 has landed', () => {
     process.env.NODE_ENV = 'development';
     expect(readFeatureFlag('ENABLE_GENERIC_MACRO')).toBe(true);
-  });
-
-  it('defaults off in production until the operator opts in', () => {
     process.env.NODE_ENV = 'production';
-    expect(readFeatureFlag('ENABLE_GENERIC_MACRO')).toBe(false);
-    process.env.ENABLE_GENERIC_MACRO = '1';
     expect(readFeatureFlag('ENABLE_GENERIC_MACRO')).toBe(true);
   });
 
   it('lets an explicit 0 roll the packet back in every environment', () => {
-    process.env.NODE_ENV = 'development';
+    process.env.NODE_ENV = 'production';
     process.env.ENABLE_GENERIC_MACRO = '0';
     expect(readFeatureFlag('ENABLE_GENERIC_MACRO')).toBe(false);
   });
