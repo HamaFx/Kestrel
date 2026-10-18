@@ -18,7 +18,7 @@
 
 // Full-screen chat experience.
 import { useChat } from '@ai-sdk/react';
-import type { Symbol, Timeframe } from '@kestrel/shared';
+import type { Symbol } from '@kestrel/shared';
 import { IconArrowBackUp, IconArrowDown, IconX } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
 import { AnimatePresence, m } from 'motion/react';

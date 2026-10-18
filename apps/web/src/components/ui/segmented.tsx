@@ -32,7 +32,6 @@
 // keeps URL state). Pass `as="link"` + `hrefFor` to opt into Link mode.
 import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
-import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { useShellRoute } from '@/components/layout/shell-route-context';
