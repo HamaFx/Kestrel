@@ -44,10 +44,11 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts'],
       thresholds: {
-        statements: 38,
-        branches: 70,
-        functions: 74,
-        lines: 38,
+        // Recalibrated for the Vitest 4+ AST-aware V8 remapping.
+        statements: 50,
+        branches: 48,
+        functions: 47,
+        lines: 50,
       },
     },
     alias: {

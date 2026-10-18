@@ -133,7 +133,6 @@ for pattern in \
   '^pnpm-lock.yaml$' \
   '^Dockerfile.worker$' \
   '^turbo.json$' \
-  '^tsconfig.base.json$' \
   '^\.npmrc$' \
   '^package.json$'; do
   if echo "$CHANGED_FILES" | grep -qE "$pattern"; then

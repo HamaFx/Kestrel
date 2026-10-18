@@ -46,15 +46,17 @@ describe('useVoiceInput — with SpeechRecognition', () => {
       stop: vi.fn(),
       abort: vi.fn(),
     };
-    SpeechRecognitionCtor = vi.fn(() => ({
-      lang: '',
-      interimResults: false,
-      continuous: false,
-      onresult: null,
-      onend: null,
-      onerror: null,
-      ...mockRecognition,
-    }));
+    SpeechRecognitionCtor = vi.fn(function () {
+      return {
+        lang: '',
+        interimResults: false,
+        continuous: false,
+        onresult: null,
+        onend: null,
+        onerror: null,
+        ...mockRecognition,
+      };
+    });
     vi.stubGlobal('window', {
       SpeechRecognition: SpeechRecognitionCtor,
       webkitSpeechRecognition: undefined,

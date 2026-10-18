@@ -1,6 +1,5 @@
 {
   "globalDependencies": [
-    "tsconfig.base.json",
     "packages/config/typescript/*.json",
     "packages/config/eslint/*.js"
   ],

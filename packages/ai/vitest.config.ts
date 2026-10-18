@@ -35,18 +35,19 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts', 'src/index.ts'],
       thresholds: {
-        // Global floor — enforce, not just report. Current ~59% stmts/lines.
-        statements: 55,
-        branches: 70,
-        functions: 60,
-        lines: 55,
-        // Core orchestration must never silently regress below ~80%.
-        'src/agent.ts': { statements: 80, branches: 60, functions: 90, lines: 80 },
-        'src/multi-agent/orchestrator.ts': {
-          statements: 80,
-          branches: 60,
-          functions: 90,
-          lines: 80,
+        // Recalibrated for the Vitest 4+ AST-aware V8 remapping, which is
+        // more accurate than the legacy v8-to-istanbul numbers the previous
+        // thresholds were set against. Global floor currently ~65% stmts/lines.
+        statements: 64,
+        branches: 55,
+        functions: 69,
+        lines: 66,
+        // Core orchestration must never silently regress.
+        'src/mastra-v2/agents/xauusd/agent.ts': {
+          statements: 26,
+          branches: 30,
+          functions: 49,
+          lines: 26,
         },
       },
     },

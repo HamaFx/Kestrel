@@ -4,7 +4,7 @@
 
 # L-3: Base image pinned to a specific minor version for reproducible builds.
 # Update to the latest supported Node.js 22.x minor periodically via Dependabot.
-FROM node:22.13.0-slim@sha256:87608ec5109795be954baa2f5b0b6da1911423d8b44b58fecda31f81d28bfc0f AS base
+FROM node:22.23.3-slim@sha256:efd0ab5780c2d9ab1f0f869571a00d5edb17793bff4cce4a2792e3eb0ffc7562 AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -16,7 +16,7 @@ FROM base AS deps
 # Package.json files must be copied to their correct subdirectory paths so
 # pnpm can resolve the workspace. Docker's multi-source COPY flattens files,
 # so each package.json needs its own COPY with the matching dest dir.
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json .npmrc ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json .npmrc ./
 COPY apps/web/package.json apps/web/
 COPY apps/worker/package.json apps/worker/
 COPY packages/ai/package.json packages/ai/
