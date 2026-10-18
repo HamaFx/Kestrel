@@ -133,7 +133,7 @@ function compileNarrative(
   const roundedYield = yieldPct !== null ? `${yieldPct.toFixed(2)}%` : 'N/A';
   const roundedInf = inflationPct !== null ? `${inflationPct.toFixed(2)}%` : 'N/A';
 
-  let desc = '';
+  let desc: string;
   if (regime === 'divergent_hedging') {
     desc = `Gold is trading at a significant premium (${roundedDiv} SD) relative to its historical real-yield baseline. This highlights high institutional safe-haven demand, central bank accumulation, or geopolitical hedging premium overrides.`;
   } else if (regime === 'divergent_discount') {

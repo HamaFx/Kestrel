@@ -53,7 +53,7 @@ export const getPriceTool = tool({
           return await (signal ? getPrice(s, { signal }) : getPrice(s));
         } catch (err) {
           if (err instanceof ProviderError) {
-            throw new Error(`Couldn't price ${s}: ${err.message}`);
+            throw new Error(`Couldn't price ${s}: ${err.message}`, { cause: err });
           }
           throw err;
         }

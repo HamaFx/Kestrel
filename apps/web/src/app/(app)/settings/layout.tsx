@@ -24,7 +24,7 @@ import { getServerEnv } from '@/lib/env';
 import { SettingsNav } from './_components/settings-nav';
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
-  let billingEnabled = false;
+  let billingEnabled: boolean;
   try {
     billingEnabled = Boolean(getServerEnv().BILLING_ENABLED);
   } catch {

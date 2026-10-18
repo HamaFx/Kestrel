@@ -177,8 +177,8 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
 
     const processRun = async () => {
       let budget: BudgetHandle | null = null;
-      let modeResult: Awaited<ReturnType<typeof runMastraMode>> | null = null;
-      let observedCost = 0;
+      let modeResult: Awaited<ReturnType<typeof runMastraMode>>;
+      let observedCost: number;
       let lifecycle: ReturnType<typeof createExecutionLifecycle> | null = null;
       let coordinator: ReturnType<typeof createFullAnalysisCoordinator> | null = null;
       const ledger = payload.ledgerSnapshot
@@ -401,7 +401,6 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           if (coordinator) {
             await coordinator.settleOnError(error);
           }
-          budget = null;
           throw error;
         }
         retryLedgerSnapshot = ledger.snapshot();
@@ -417,7 +416,6 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
           if (decision.action !== 'requeue' && !leaseLost) {
             if (coordinator) await coordinator.settleOnError(error);
           }
-          budget = null;
         }
         throw error;
       }

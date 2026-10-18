@@ -700,7 +700,6 @@ export async function checkBudgetAlertsAndThresholds(
     if (totalSpend >= limit) {
       if (!state.alerted100) {
         state.alerted100 = true;
-        stateChanged = true;
         await triggerSpendAlert(userId, '100%', totalSpend, limit, alertsConfig);
       }
       return {
@@ -733,7 +732,6 @@ export async function checkBudgetAlertsAndThresholds(
       if (providerSpend >= providerLimit) {
         if (!state.providerAlerted.includes(activeProviderId)) {
           state.providerAlerted.push(activeProviderId);
-          stateChanged = true;
           await triggerProviderAlert(
             userId,
             activeProviderId,

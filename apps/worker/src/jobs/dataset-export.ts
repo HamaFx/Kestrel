@@ -259,7 +259,7 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
   // 8 — Langfuse dataset publish (fail-open: disabled without LANGFUSE_* env).
   // Uses a stable dataset name — Langfuse versions items on every add, so a
   // nightly publish appends a new dataset version rather than replacing one.
-  let langfuseStatus = 'skipped';
+  let langfuseStatus: string;
   try {
     const publishResult = await publishTrainingDatasetToLangfuse(assembled, {
       datasetName: 'kestrel-training',

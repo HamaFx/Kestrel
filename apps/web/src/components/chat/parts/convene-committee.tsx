@@ -17,6 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { CommitteeVerdict, ConveneCommitteeOutput } from '@kestrel/shared';
+import type { ReactNode } from 'react';
 import {
   IconAlertTriangle,
   IconBriefcase,
@@ -46,8 +47,8 @@ function GradeBadge({
   grade: ConveneCommitteeOutput['grade'];
   goNoGo: ConveneCommitteeOutput['goNoGo'];
 }) {
-  let bgTone = 'bg-bg-elev-2 text-fg-muted border-border';
-  let icon = null;
+  let bgTone: string;
+  let icon: ReactNode;
 
   if (goNoGo === 'go') {
     bgTone = 'bg-bull/10 text-bull border-bull/30';

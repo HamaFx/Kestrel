@@ -72,7 +72,7 @@ export async function authorizeCredentials(credentials: Record<string, unknown> 
     throw new AuthError('ACCOUNT_LOCKED');
   }
 
-  let passwordValid = false;
+  let passwordValid: boolean;
   try {
     passwordValid = await bcrypt.compare(password, user.hashedPassword);
   } catch (err) {

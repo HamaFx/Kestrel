@@ -87,7 +87,7 @@ async function countAppliedMigrations(db: ReturnType<typeof getDb>): Promise<num
 export const GET = withAuth<void>(async () => {
   const expectedMigrations = getExpectedMigrationCount();
 
-  let connectivity: DbHealthResult['connectivity'] = { ok: false };
+  let connectivity: DbHealthResult['connectivity'];
   const start = Date.now();
   try {
     const db = getDb();
@@ -101,13 +101,7 @@ export const GET = withAuth<void>(async () => {
     };
   }
 
-  let migrations: DbHealthResult['migrations'] = {
-    ok: false,
-    expected: expectedMigrations ?? 0,
-    ...(expectedMigrations === null
-      ? { message: 'migration journal unavailable in deployment' }
-      : {}),
-  };
+  let migrations: DbHealthResult['migrations'];
   try {
     const db = getDb();
     const actual = await countAppliedMigrations(db);

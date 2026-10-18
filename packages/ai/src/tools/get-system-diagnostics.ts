@@ -47,7 +47,7 @@ export const getSystemDiagnosticsTool = tool({
 
     const dbStart = Date.now();
     let dbStatus: 'connected' | 'error' = 'connected';
-    let latencyMs = 0;
+    let latencyMs: number;
 
     let journalEntriesCount = 0;
     let snapshotsCount = 0;

@@ -141,7 +141,7 @@ export async function runResonanceSync(ctx: JobContext): Promise<JobResult> {
 
   const denominator = n * sumXX - sumX * sumX;
   let b = 0;
-  let a = 0;
+  let a: number;
   if (denominator !== 0) {
     b = (n * sumXY - sumX * sumY) / denominator;
     a = (sumY - b * sumX) / n;

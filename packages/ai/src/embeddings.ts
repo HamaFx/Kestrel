@@ -82,7 +82,7 @@ export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
   //   2. resolveEmbeddingModelDetails(userSettings, env) — Phase D2 user pick
   //   3. env.AI_EMBEDDING_MODEL (legacy operator fallback)
   //   4. DEFAULT_MODEL
-  let model: EmbeddingModel<string> | string = DEFAULT_MODEL;
+  let model: EmbeddingModel<string> | string;
   let modelId = DEFAULT_MODEL;
 
   if (args.model) {
