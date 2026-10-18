@@ -86,13 +86,17 @@ describe('MastraReportCard', () => {
     expect(screen.getAllByText(/partial/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Risk Notes & Signal Conflicts|Warnings and limitations/)).toBeTruthy();
 
-    expect(screen.getByText(/Market Data Sources & Timestamps|Sources and timestamps/)).toBeTruthy();
+    expect(
+      screen.getByText(/Market Data Sources & Timestamps|Sources and timestamps/),
+    ).toBeTruthy();
   });
 
   it('shows a clear fail-closed message when research is blocked', () => {
     render(<MastraReportCard meta={{ ...baseMeta, researchStatus: 'blocked', report: null }} />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/live market feed data was (?:temporarily )?unavailable/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /live market feed data was (?:temporarily )?unavailable/i,
+    );
     expect(screen.queryByText('Bullish continuation')).toBeNull();
   });
 

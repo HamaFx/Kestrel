@@ -38,10 +38,9 @@
 // increment `consecutive_failures`, a failure after the window expired
 // starts a fresh window at 1, and a success resets the row to 0.
 
-import { sql } from 'drizzle-orm';
-
 import { schema } from '@kestrel/db';
 import { metrics } from '@kestrel/shared';
+import { sql } from 'drizzle-orm';
 
 import { getDb } from './db';
 

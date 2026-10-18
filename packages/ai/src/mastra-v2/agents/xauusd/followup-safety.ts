@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import type { XauusdResearchReport } from './report/report-types';
 import type { XauusdResearchPacket } from '../../packets/research-types';
 import { extractNarrativeNumbers } from './report/report-grounding';
+import type { XauusdResearchReport } from './report/report-types';
 
 /**
  * Market-context terms. A number only counts as a market claim when it sits

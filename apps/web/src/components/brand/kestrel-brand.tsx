@@ -58,29 +58,29 @@ export function KestrelBrand({
   const isDecorative = decorative && !href;
   const image =
     variant === 'mark' ? (
-      <span className="surface-chip flex items-center justify-center rounded-md p-1.5 bg-bg-elev-2 border border-edge/60 text-brand">
+      <span className="surface-chip bg-bg-elev-2 border-edge/60 text-brand flex items-center justify-center rounded-md border p-1.5">
         <img
           src="/brand/kestrel-falcon.svg"
           alt={isDecorative ? '' : 'Kestrel'}
           aria-hidden={isDecorative || undefined}
           width={24}
           height={24}
-          className={cn('shrink-0 text-brand', markSize === 'xs' ? 'size-3.5' : 'size-5')}
+          className={cn('text-brand shrink-0', markSize === 'xs' ? 'size-3.5' : 'size-5')}
         />
       </span>
     ) : (
       <div className="flex items-center gap-2.5">
-        <span className="surface-chip flex items-center justify-center rounded-md p-1.5 bg-bg-elev-2 border border-edge/60 text-brand shadow-sm">
+        <span className="surface-chip bg-bg-elev-2 border-edge/60 text-brand flex items-center justify-center rounded-md border p-1.5 shadow-sm">
           <img
             src="/brand/kestrel-falcon.svg"
             alt={isDecorative ? '' : 'Kestrel'}
             aria-hidden={isDecorative || undefined}
             width={26}
             height={26}
-            className="size-6 text-brand"
+            className="text-brand size-6"
           />
         </span>
-        <span className="font-display text-[18px] tracking-[-0.02em] font-normal text-fg">
+        <span className="font-display text-fg text-[18px] font-normal tracking-[-0.02em]">
           {label}
         </span>
       </div>
@@ -90,7 +90,9 @@ export function KestrelBrand({
     variant === 'mark' && showName ? (
       <span className="inline-flex items-center gap-2">
         {image}
-        <span className="font-display text-[15px] font-normal tracking-[-0.02em] text-fg">{label}</span>
+        <span className="font-display text-fg text-[15px] font-normal tracking-[-0.02em]">
+          {label}
+        </span>
       </span>
     ) : (
       image

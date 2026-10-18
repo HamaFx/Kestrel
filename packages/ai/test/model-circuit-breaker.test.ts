@@ -29,6 +29,14 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { finishMastraRun, type MastraRunObservation } from '../src/mastra-v2/shared/run-telemetry';
+import {
+  _resetCircuits,
+  isCircuitOpen,
+  recordModelFailure,
+  recordModelSuccess,
+} from '../src/model-circuit-breaker';
+
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
   insert: vi.fn(),
@@ -69,14 +77,6 @@ vi.mock('@kestrel/shared/metrics-export', () => ({
   flushMetrics: vi.fn(async () => {}),
 }));
 
-import {
-  _resetCircuits,
-  isCircuitOpen,
-  recordModelFailure,
-  recordModelSuccess,
-} from '../src/model-circuit-breaker';
-import { finishMastraRun, type MastraRunObservation } from '../src/mastra-v2/shared/run-telemetry';
-
 interface FakeRow {
   consecutiveFailures: number;
   openedAt: Date | null;
@@ -108,10 +108,7 @@ function sqlParams(sqlArg: unknown): unknown[] {
   const chunks = (sqlArg as { queryChunks?: unknown[] } | null | undefined)?.queryChunks ?? [];
   const params: unknown[] = [];
   for (const chunk of chunks) {
-    if (
-      chunk instanceof Date ||
-      ['string', 'number', 'boolean', 'bigint'].includes(typeof chunk)
-    ) {
+    if (chunk instanceof Date || ['string', 'number', 'boolean', 'bigint'].includes(typeof chunk)) {
       params.push(chunk);
     } else if (
       chunk !== null &&

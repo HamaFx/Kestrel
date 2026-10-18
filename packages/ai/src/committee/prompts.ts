@@ -47,8 +47,7 @@ export const SPECIALIST_GOALS: Record<MastraSpecialistName, string> = {
     'Identify the market regime, multi-timeframe trend alignment (1D, 4H, 1H, 15M), institutional liquidity zones (swing highs/lows and Asian/London/NY session levels), indicator confluence, and exact price invalidation levels.',
   fundamental:
     'Evaluate central bank policy divergence, real and nominal bond yields (DFII10, DGS10), USD strength (DTWEXBGS), upcoming high-impact economic calendar releases (CPI, NFP, FOMC, ECB, BoE), and macro news catalysts.',
-  risk:
-    'Quantify the volatility regime, ATR-based stop-loss distances, event-blackout windows (upcoming high-impact releases), cross-asset correlation exposure, and strict trade invalidation criteria.',
+  risk: 'Quantify the volatility regime, ATR-based stop-loss distances, event-blackout windows (upcoming high-impact releases), cross-asset correlation exposure, and strict trade invalidation criteria.',
   sentiment:
     'Diagnose institutional vs. retail positioning extremes, Commitment of Traders (COT) net non-commercial flows, historical seasonality, news tone skew, and crowded-trade squeeze risk.',
 };

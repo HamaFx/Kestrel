@@ -69,9 +69,7 @@ export function WizardStepReview({
         </li>
         <li>
           AI Analyst Committee:{' '}
-          <span className="text-bull font-medium">
-            Ready (All 4 Specialist Desks Active)
-          </span>
+          <span className="text-bull font-medium">Ready (All 4 Specialist Desks Active)</span>
         </li>
       </ul>
 
@@ -82,7 +80,8 @@ export function WizardStepReview({
         </summary>
         <div className="mt-3 flex flex-col gap-3">
           <p className="text-fg-subtle text-xs">
-            A quick example of Kestrel&apos;s market analysis. You can ask about any symbol on your watchlist immediately after finishing setup.
+            A quick example of Kestrel&apos;s market analysis. You can ask about any symbol on your
+            watchlist immediately after finishing setup.
           </p>
           <div className="bg-bg-elev-2 flex flex-col gap-2 rounded-lg p-3">
             <div className="flex items-start gap-2">
@@ -97,18 +96,20 @@ export function WizardStepReview({
               </div>
               <div className="text-fg flex-1 space-y-1 text-xs leading-[1.4]">
                 <p>
-                  <span className="text-bull font-medium">XAUUSD</span> is holding above key 1H demand:
+                  <span className="text-bull font-medium">XAUUSD</span> is holding above key 1H
+                  demand:
                 </p>
                 <ul className="text-fg-subtle list-inside list-disc">
                   <li>
-                    Price consolidating above <span className="text-fg tabular-nums">$2,846.50</span>{' '}
-                    support
+                    Price consolidating above{' '}
+                    <span className="text-fg tabular-nums">$2,846.50</span> support
                   </li>
                   <li>RSI (14) at 58 — constructive bullish momentum</li>
                   <li>US 10Y yields softening (-4 bps), supporting gold upside</li>
                 </ul>
                 <p>
-                  Bias: <span className="text-bull font-medium">Bullish above $2,846.50</span> · First target at <span className="tabular-nums">$2,884.00</span>
+                  Bias: <span className="text-bull font-medium">Bullish above $2,846.50</span> ·
+                  First target at <span className="tabular-nums">$2,884.00</span>
                 </p>
               </div>
             </div>

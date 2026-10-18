@@ -155,7 +155,7 @@ const ArticleCardInner = memo(
           <a
             href={`/chat?prompt=${askPrompt}`}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-elev-2 text-fg-muted hover:text-fg inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 text-xs font-medium transition-colors tactile-press active:translate-y-[0.5px]"
+            className="bg-bg-elev-2 text-fg-muted hover:text-fg tactile-press inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 text-xs font-medium transition-colors active:translate-y-[0.5px]"
           >
             <IconBolt className="size-3.5" />
             Ask AI
@@ -171,7 +171,7 @@ const ArticleCardInner = memo(
               aria-label={saved ? 'Remove bookmark' : 'Bookmark article'}
               aria-pressed={saved}
               className={cn(
-                'inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]',
+                'tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]',
                 saved ? 'text-fg bg-bg-elev-2' : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2',
               )}
             >
@@ -183,7 +183,7 @@ const ArticleCardInner = memo(
               rel="noopener noreferrer"
               aria-label="Open article in new tab"
               onClick={(e) => e.stopPropagation()}
-              className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]"
+              className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]"
             >
               <IconExternalLink className="size-4" />
             </a>

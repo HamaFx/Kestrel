@@ -132,7 +132,7 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
         </h2>
         <span
           className={cn(
-            'text-[11px] inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono font-bold tracking-wide uppercase ring-1',
+            'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-[11px] font-bold tracking-wide uppercase ring-1',
             allReady
               ? 'bg-success/10 text-success ring-success/30'
               : 'bg-warn/10 text-warn ring-warn/30',
@@ -154,7 +154,10 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
 
       <ul className="flex flex-col gap-2.5">
         {channels.map((c) => (
-          <li key={c.label} className="surface-well flex items-center gap-3 rounded-xl border border-white/5 p-2.5">
+          <li
+            key={c.label}
+            className="surface-well flex items-center gap-3 rounded-xl border border-white/5 p-2.5"
+          >
             <span
               aria-hidden="true"
               className={cn(
@@ -170,11 +173,11 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
             </span>
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="text-fg text-sm font-semibold">{c.label}</span>
-              <span className="text-fg-subtle text-xs truncate tabular-nums">{c.detail}</span>
+              <span className="text-fg-subtle truncate text-xs tabular-nums">{c.detail}</span>
             </div>
             <span
               className={cn(
-                'text-[11px] rounded-md px-2 py-0.5 font-mono font-bold uppercase tabular-nums ring-1',
+                'rounded-md px-2 py-0.5 font-mono text-[11px] font-bold uppercase tabular-nums ring-1',
                 c.ready
                   ? 'bg-success/10 text-success ring-success/30'
                   : 'bg-bg-elev-2 text-fg-muted ring-divider',
@@ -241,7 +244,7 @@ export async function SystemStatusCard({ userId }: { userId: string }) {
           </div>
           <span
             className={cn(
-              'text-[11px] rounded-md px-2 py-0.5 font-mono font-bold uppercase tabular-nums ring-1',
+              'rounded-md px-2 py-0.5 font-mono text-[11px] font-bold uppercase tabular-nums ring-1',
               marketPhase.isOpen
                 ? marketPhase.liquidity === 'high'
                   ? 'bg-success/10 text-success ring-success/30'

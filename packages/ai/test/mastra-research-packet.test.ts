@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
+import type * as IndicatorsModule from '@kestrel/indicators';
 import { metrics } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import type * as IndicatorsModule from '@kestrel/indicators';
 
 import { buildPriceEvidence } from '../src/mastra-v2/packets/evidence-builders';
 import { _resetPacketCache } from '../src/mastra-v2/packets/packet-cache';
@@ -246,9 +245,7 @@ describe('bounded XAUUSD research packet', () => {
         timeframe,
         count: candleCount,
       })),
-    ).toEqual(
-      SYMBOL_RESEARCH_TIMEFRAMES.map(({ timeframe, count }) => ({ timeframe, count })),
-    );
+    ).toEqual(SYMBOL_RESEARCH_TIMEFRAMES.map(({ timeframe, count }) => ({ timeframe, count })));
   });
 
   it('collects with the unified windows so both pipelines hit the same data-layer cache entries (§2.1/P1-10)', async () => {

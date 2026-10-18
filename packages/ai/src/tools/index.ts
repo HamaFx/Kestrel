@@ -33,11 +33,10 @@
 // Audit plan §4.3 (P2-5) — no import side effects. Category modules export
 // explicit register functions; call `registerAllTools()` exactly once at
 // boot (mastra-v2 instance init) instead of relying on import order.
-import { toolRegistry, type ToolRegistry } from './registry';
-
-import { registerMarketTools } from './market';
 import { registerAnalysisTools } from './analysis';
 import { registerJournalTools } from './journal';
+import { registerMarketTools } from './market';
+import { toolRegistry, type ToolRegistry } from './registry';
 import { registerSystemTools } from './system';
 import { registerWebTools } from './web';
 

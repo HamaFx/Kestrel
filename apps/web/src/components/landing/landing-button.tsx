@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { Link } from 'next-view-transitions';
+
 import { cn } from '@/lib/cn';
 
 interface TacticalFlameButtonProps {
@@ -55,7 +55,7 @@ export function TacticalFlameButton({
       <svg
         viewBox="0 0 12 12"
         xmlns="http://www.w3.org/2000/svg"
-        className="pointer-events-none absolute top-1/2 right-[0.9em] size-[0.85em] -translate-y-1/2 text-white z-10"
+        className="pointer-events-none absolute top-1/2 right-[0.9em] z-10 size-[0.85em] -translate-y-1/2 text-white"
         aria-hidden="true"
       >
         <rect

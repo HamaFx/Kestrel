@@ -21,7 +21,10 @@ import './services';
 // Public barrel for @kestrel/ai. The route handler imports from here.
 export * from './workflow-status';
 export * from './mastra-v2/shared/telemetry-startup';
-export { isMastraTelemetryDegraded, resetMastraTelemetryHealth } from './mastra-v2/shared/telemetry';
+export {
+  isMastraTelemetryDegraded,
+  resetMastraTelemetryHealth,
+} from './mastra-v2/shared/telemetry';
 
 export {
   acquireBudget,

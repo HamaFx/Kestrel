@@ -38,7 +38,7 @@
     "dompurify": "^3.4.17",
     "drizzle-orm": "^0.45.4",
     "lightweight-charts": "^5.2.1",
-    "motion": "^12.40.0",
+    "motion": "^14.3.0",
     "next": "^16.4.2",
     "next-auth": "5.0.0-beta.32",
     "next-view-transitions": "^0.3.5",
@@ -52,7 +52,7 @@
     "server-only": "^0.0.1",
     "shiki": "^4.5.0",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^2.6.0",
+    "tailwind-merge": "^3.7.0",
     "three": "^0.186.1",
     "vaul": "^1.1.2",
     "zod": "^4.6.7"

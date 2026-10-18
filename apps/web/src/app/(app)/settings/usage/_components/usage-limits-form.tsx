@@ -72,7 +72,9 @@ export function UsageLimitsForm({
             <IconAlertTriangle className="size-4" />
           </div>
           <div>
-            <h2 className="text-fg text-sm font-semibold tracking-tight">Budget Controls & Threshold Alerts</h2>
+            <h2 className="text-fg text-sm font-semibold tracking-tight">
+              Budget Controls & Threshold Alerts
+            </h2>
             <p className="text-caption text-fg-subtle mt-0.5 text-xs">
               Configure monthly spend caps, set thresholds per provider, and select alert channels.
             </p>
@@ -98,10 +100,11 @@ export function UsageLimitsForm({
           min="0"
           placeholder="No monthly limit"
           defaultValue={initialMonthlyLimit ?? ''}
-          className="surface-well border-white/10 h-10 max-w-[220px] rounded-lg font-mono text-sm"
+          className="surface-well h-10 max-w-[220px] rounded-lg border-white/10 font-mono text-sm"
         />
         <p className="text-caption text-fg-subtle text-xs">
-          Hard circuit-breaker spend cap for the active calendar month. LLM inferences will halt when triggered.
+          Hard circuit-breaker spend cap for the active calendar month. LLM inferences will halt
+          when triggered.
         </p>
       </div>
 
@@ -111,34 +114,38 @@ export function UsageLimitsForm({
           Alert Channels (50%, 80%, 100% thresholds)
         </span>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="surface-well hover:border-white/20 flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 p-3.5 transition-all select-none">
+          <label className="surface-well flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 p-3.5 transition-all select-none hover:border-white/20">
             <input
               type="checkbox"
               name="emailAlert"
               defaultChecked={!!initialAlertConfig.email}
-              className="border-white/15 bg-bg-elev-2 text-cyan-400 focus:ring-cyan-500/20 size-4 cursor-pointer rounded-md"
+              className="bg-bg-elev-2 size-4 cursor-pointer rounded-md border-white/15 text-cyan-400 focus:ring-cyan-500/20"
             />
             <div className="flex items-center gap-2.5">
-              <IconMail className="text-cyan-400 size-4" />
+              <IconMail className="size-4 text-cyan-400" />
               <div className="flex flex-col">
                 <span className="text-fg text-xs font-semibold">Email Alerts</span>
-                <span className="text-fg-subtle text-[11px]">System notifications via configured SMTP / Resend</span>
+                <span className="text-fg-subtle text-[11px]">
+                  System notifications via configured SMTP / Resend
+                </span>
               </div>
             </div>
           </label>
 
-          <label className="surface-well hover:border-white/20 flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 p-3.5 transition-all select-none">
+          <label className="surface-well flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 p-3.5 transition-all select-none hover:border-white/20">
             <input
               type="checkbox"
               name="telegramAlert"
               defaultChecked={!!initialAlertConfig.telegram}
-              className="border-white/15 bg-bg-elev-2 text-cyan-400 focus:ring-cyan-500/20 size-4 cursor-pointer rounded-md"
+              className="bg-bg-elev-2 size-4 cursor-pointer rounded-md border-white/15 text-cyan-400 focus:ring-cyan-500/20"
             />
             <div className="flex items-center gap-2.5">
-              <IconBrandTelegram className="text-cyan-400 size-4" />
+              <IconBrandTelegram className="size-4 text-cyan-400" />
               <div className="flex flex-col">
                 <span className="text-fg text-xs font-semibold">Telegram Alerts</span>
-                <span className="text-fg-subtle text-[11px]">Instant dispatch via Kestrel Telegram bot</span>
+                <span className="text-fg-subtle text-[11px]">
+                  Instant dispatch via Kestrel Telegram bot
+                </span>
               </div>
             </div>
           </label>
@@ -151,7 +158,7 @@ export function UsageLimitsForm({
           Per-Provider Monthly Spending Thresholds
         </span>
         <div className="surface-well divide-y divide-white/5 overflow-hidden rounded-xl border border-white/10 shadow-inner">
-          <div className="border-b border-white/10 bg-white/[0.03] text-fg-muted grid grid-cols-[1.5fr_1fr_1.2fr] items-center gap-2 px-4 py-2.5 font-mono text-[11px] font-bold tracking-wider uppercase">
+          <div className="text-fg-muted grid grid-cols-[1.5fr_1fr_1.2fr] items-center gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-2.5 font-mono text-[11px] font-bold tracking-wider uppercase">
             <span>Provider</span>
             <span className="text-right">Spend (MTD)</span>
             <span className="text-right">Threshold (USD)</span>
@@ -163,7 +170,7 @@ export function UsageLimitsForm({
             return (
               <div
                 key={p.id}
-                className="hover:bg-white/[0.02] grid grid-cols-[1.5fr_1fr_1.2fr] items-center gap-2 px-4 py-3 text-xs transition-colors"
+                className="grid grid-cols-[1.5fr_1fr_1.2fr] items-center gap-2 px-4 py-3 text-xs transition-colors hover:bg-white/[0.02]"
               >
                 <div className="flex flex-col">
                   <span className="text-fg font-medium">{p.displayName}</span>
@@ -187,7 +194,7 @@ export function UsageLimitsForm({
                       placeholder="None"
                       defaultValue={p.threshold ?? ''}
                       aria-label={`Spending threshold for ${p.displayName}`}
-                      className="surface-well border-white/10 h-8 pr-2 pl-6 text-right font-mono text-xs rounded-lg"
+                      className="surface-well h-8 rounded-lg border-white/10 pr-2 pl-6 text-right font-mono text-xs"
                     />
                   </div>
                 </div>
@@ -197,12 +204,11 @@ export function UsageLimitsForm({
         </div>
       </div>
 
-      <div className="border-t border-white/5 flex justify-end pt-4">
-        <Button type="submit" loading={pending} className="min-w-[130px] rounded-lg tactile-press">
+      <div className="flex justify-end border-t border-white/5 pt-4">
+        <Button type="submit" loading={pending} className="tactile-press min-w-[130px] rounded-lg">
           Save Changes
         </Button>
       </div>
     </form>
   );
 }
-

@@ -28,8 +28,8 @@ import { checkIsAdmin } from '@/lib/admin-check';
 import { buildCatalogForUser } from '@/lib/catalog-server';
 import { formatRelative } from '@/lib/format';
 
-import { updateApiKeysAction } from '../actions';
 import { AISubNav } from '../_components/ai-subnav';
+import { updateApiKeysAction } from '../actions';
 import { ApiKeyCard } from './_components/api-key-card';
 import { ApiKeysLandingBanner } from './_components/api-keys-landing-banner';
 import { BulkTestButton } from './_components/bulk-test-button';
@@ -148,7 +148,8 @@ export default async function ApiKeysSettingsPage({
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">AI & Intelligence</h2>
         <p className="text-fg-subtle text-sm">
-          Admin Platform AI & Market Feeds — Provider keys and market data adapters configured here power all subscriber accounts across Kestrel (encrypted with AES-256-GCM).
+          Admin Platform AI & Market Feeds — Provider keys and market data adapters configured here
+          power all subscriber accounts across Kestrel (encrypted with AES-256-GCM).
         </p>
       </div>
 

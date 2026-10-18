@@ -438,4 +438,3 @@ function UsageBadge({ usage }: { usage?: { turns: number; costUsd: number } | un
     </span>
   );
 }
-

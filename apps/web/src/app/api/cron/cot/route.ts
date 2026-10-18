@@ -25,7 +25,6 @@
 // Idempotent: each `(symbol, report_date)` row is keyed by a deterministic
 // `cftc:<symbol>:<YYYY-MM-DD>` PK and upserted with ON CONFLICT DO UPDATE.
 
-
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
@@ -78,7 +77,7 @@ export async function GET(req: Request): Promise<Response> {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         errors.push({ symbol, message });
-                log.errorContext(err, 'fetchCot', { symbol, message });
+        log.errorContext(err, 'fetchCot', { symbol, message });
       }
     }
 

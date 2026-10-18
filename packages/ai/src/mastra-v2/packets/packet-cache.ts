@@ -234,9 +234,12 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
           : undefined,
       )
       .catch((error: unknown) => {
-        pclog.warn('Packet cache Redis mirror write failed; the in-process LRU still serves the packet', {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        pclog.warn(
+          'Packet cache Redis mirror write failed; the in-process LRU still serves the packet',
+          {
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
       });
   }
 

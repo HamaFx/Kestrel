@@ -49,20 +49,12 @@ export function setup() {
 
     // Warm the compute-heavy POST endpoints to prime server caches and
     // JIT compilation before the broader read-mix VU iterations run.
-    postJson(
-      '/api/market/indicators',
-      'warmup',
-      {
-        symbol: 'XAUUSD',
-        tf: '1h',
-        indicators: [{ kind: 'sma', params: { period: 20 } }],
-      },
-    );
-    postJson(
-      '/api/market/structure',
-      'warmup',
-      { symbol: 'XAUUSD', tf: '1h' },
-    );
+    postJson('/api/market/indicators', 'warmup', {
+      symbol: 'XAUUSD',
+      tf: '1h',
+      indicators: [{ kind: 'sma', params: { period: 20 } }],
+    });
+    postJson('/api/market/structure', 'warmup', { symbol: 'XAUUSD', tf: '1h' });
   }
 
   return ctxs;

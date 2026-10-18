@@ -32,19 +32,21 @@ describe('eval baseline artifact (audit plan §5.1)', () => {
     expect(() => parseEvalBaseline('{"schemaVersion":"kestrel.eval-baseline.v2"}')).toThrow(
       /schema/,
     );
-    expect(() =>
-      serializeEvalBaseline({ ...baseline, schemaVersion: 'other' as never }),
-    ).toThrow(/schema/);
+    expect(() => serializeEvalBaseline({ ...baseline, schemaVersion: 'other' as never })).toThrow(
+      /schema/,
+    );
   });
 });
 
 describe('compareEvalBaseline relative-drop rule', () => {
   it('fails only when the drop exceeds 5% of the baseline value', () => {
     // 0.95 baseline → floor is 0.9025.
-    expect(compareEvalBaseline(baseline, {
-      overallPassRate: 0.93,
-      averageCitationScore: 0.92,
-    }).ok).toBe(true);
+    expect(
+      compareEvalBaseline(baseline, {
+        overallPassRate: 0.93,
+        averageCitationScore: 0.92,
+      }).ok,
+    ).toBe(true);
     const regressed = compareEvalBaseline(baseline, {
       overallPassRate: 0.9,
       averageCitationScore: 0.92,
@@ -69,9 +71,9 @@ describe('compareEvalBaseline relative-drop rule', () => {
   });
 
   it('never fails on improvements or zero baselines', () => {
-    expect(
-      compareEvalBaseline(baseline, { overallPassRate: 1, averageCitationScore: 1 }).ok,
-    ).toBe(true);
+    expect(compareEvalBaseline(baseline, { overallPassRate: 1, averageCitationScore: 1 }).ok).toBe(
+      true,
+    );
     expect(
       compareEvalBaseline(
         { ...baseline, observed: { overallPassRate: 0, averageCitationScore: null } },

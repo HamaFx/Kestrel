@@ -88,8 +88,10 @@ export function AlertsWidget({ alerts, limit = 5 }: AlertsWidgetProps) {
               </div>
               <span
                 className={cn(
-                  'shrink-0 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider',
-                  a.active ? 'bg-success/10 text-success border border-success/30' : 'bg-fg-muted/10 text-fg-muted border border-white/5',
+                  'shrink-0 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold tracking-wider uppercase',
+                  a.active
+                    ? 'bg-success/10 text-success border-success/30 border'
+                    : 'bg-fg-muted/10 text-fg-muted border border-white/5',
                 )}
               >
                 {a.active ? 'Armed' : 'Paused'}

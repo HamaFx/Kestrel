@@ -33,7 +33,6 @@
 //   - Hobby: external scheduler (Fly.io worker, GitHub Actions, etc.) hits
 //     this URL with `Authorization: Bearer ${CRON_SECRET}`.
 
-
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext, type CategorizedLogger } from '@/lib/logger';
 import { fetchNews, latestArticleTimestampMs, upsertArticles } from '@/lib/services/api-boundary';
@@ -98,7 +97,7 @@ export async function GET(req: Request): Promise<Response> {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-            log.errorContext(err, 'fetchNews', { message });
+      log.errorContext(err, 'fetchNews', { message });
       throw new Error(`news fetch failed: ${message}`, { cause: err });
     }
   });

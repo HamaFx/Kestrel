@@ -130,7 +130,9 @@ const biquoteProvider: MarketDataProvider = {
             ? Date.now() - tick.quoteAgeSeconds * 1000
             : undefined;
       const observedAt =
-        parsedObserved !== undefined && Number.isFinite(parsedObserved) ? parsedObserved : undefined;
+        parsedObserved !== undefined && Number.isFinite(parsedObserved)
+          ? parsedObserved
+          : undefined;
 
       out.set(tick.symbol, {
         price: mid,

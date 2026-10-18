@@ -23,12 +23,12 @@ import { describe, expect, it } from 'vitest';
 
 import { FUSION_AGENT_ID, SPECIALIST_DEFINITIONS } from '../src/committee/specialists';
 import { MODE_POLICY, SPECIALISTS_BY_MODE } from '../src/committee/types';
+import { adaptLegacyReadOnlyTools } from '../src/mastra-v2/agents/xauusd/legacy-tool-adapter';
 import {
   MASTRA_CAPABILITIES,
   SENSITIVE_USER_READ_TOOL_NAMES,
   type MastraCapabilityId,
 } from '../src/mastra-v2/capabilities';
-import { adaptLegacyReadOnlyTools } from '../src/mastra-v2/agents/xauusd/legacy-tool-adapter';
 
 const MUTATION_CAPABILITY_ID = 'mutation-workflows' as const;
 const MUTATION_TOOL_NAMES: readonly string[] = MASTRA_CAPABILITIES[MUTATION_CAPABILITY_ID]!.tools;

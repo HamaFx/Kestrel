@@ -92,6 +92,9 @@ export async function GET() {
   }
 
   return NextResponse.redirect(
-    new URL('/chat', process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+    new URL(
+      '/chat',
+      process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    ),
   );
 }

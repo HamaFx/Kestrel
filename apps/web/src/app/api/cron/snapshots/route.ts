@@ -32,7 +32,6 @@
 // (so the OHLC math has real bars) but coarse enough that 240 bars fit
 // comfortably in the data layer's free-tier quotas.
 
-
 import { withCronAuth } from '@/lib/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {

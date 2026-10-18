@@ -17,7 +17,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { CommitteeVerdict, ConveneCommitteeOutput } from '@kestrel/shared';
-import type { ReactNode } from 'react';
 import {
   IconAlertTriangle,
   IconBriefcase,
@@ -30,6 +29,7 @@ import {
   IconLink as LinkIcon,
   type Icon,
 } from '@tabler/icons-react';
+import type { ReactNode } from 'react';
 
 import type { ToolPartProps } from './registry';
 

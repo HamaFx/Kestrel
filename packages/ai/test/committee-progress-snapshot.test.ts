@@ -14,22 +14,14 @@ describe('committeeProgressSnapshot', () => {
       'risk',
       'sentiment',
     ]);
-    expect(snapshot.agents.map((a) => a.status)).toEqual([
-      'done',
-      'running',
-      'pending',
-      'pending',
-    ]);
+    expect(snapshot.agents.map((a) => a.status)).toEqual(['done', 'running', 'pending', 'pending']);
     expect(snapshot).not.toHaveProperty('step');
   });
 
   it('keeps specialists pending during collect-packet and marks them done on complete', () => {
-    expect(committeeProgressSnapshot('full', 'collect-packet').agents.map((a) => a.status)).toEqual([
-      'pending',
-      'pending',
-      'pending',
-      'pending',
-    ]);
+    expect(committeeProgressSnapshot('full', 'collect-packet').agents.map((a) => a.status)).toEqual(
+      ['pending', 'pending', 'pending', 'pending'],
+    );
     expect(committeeProgressSnapshot('single', 'technical', 'complete')).toMatchObject({
       status: 'complete',
       agents: [{ agentName: 'technical', status: 'done' }],
