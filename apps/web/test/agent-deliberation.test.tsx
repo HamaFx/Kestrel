@@ -162,7 +162,7 @@ describe('AgentDeliberation', () => {
       expect(screen.getByText(/standard/i)).toBeTruthy();
     });
 
-    it('labels a comparison run as one desk per symbol plus synthesis (M-01)', () => {
+    it('labels a comparison run as per-symbol desk passes plus synthesis (M-01)', () => {
       render(
         <AgentDeliberation
           agents={allPending()}
@@ -172,7 +172,7 @@ describe('AgentDeliberation', () => {
       );
       expect(
         screen.getByText(
-          /Comparison — one technical desk per symbol \(EURUSD, XAUUSD\) \+ cross-symbol synthesis/i,
+          /Comparison — per-symbol desk passes \(EURUSD, XAUUSD\) \+ cross-symbol synthesis/i,
         ),
       ).toBeTruthy();
     });

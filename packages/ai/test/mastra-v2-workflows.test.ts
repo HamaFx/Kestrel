@@ -38,8 +38,13 @@ const mocks = vi.hoisted(() => ({
   failTechnical: false,
   /** Number of transient 429s before succeeding. */
   rateLimitFailures: 0,
-  /** Captured agent.generate() calls: { id, options } for memory assertions. */
-  generateCalls: [] as Array<{ id: string; options?: Record<string, unknown> }>,
+  /**
+   * P1-01: number of first technical-desk calls that return an ungrounded
+   * numeric claim (deterministic verification must reject + retry once).
+   */
+  ungroundedTechnicalAttempts: 0,
+  /** Captured agent.generate() calls: { id, prompt, options } for assertions. */
+  generateCalls: [] as Array<{ id: string; prompt?: string; options?: Record<string, unknown> }>,
   /** When true, specialists hang until their abort signal fires (deadline test). */
   hangSpecialists: false,
 }));
@@ -59,7 +64,11 @@ vi.mock('@mastra/core/agent', () => ({
     }
 
     async generate(_prompt?: unknown, options?: Record<string, unknown>): Promise<unknown> {
-      mocks.generateCalls.push({ id: this.id, ...(options ? { options } : {}) });
+      mocks.generateCalls.push({
+        id: this.id,
+        ...(typeof _prompt === 'string' ? { prompt: _prompt } : {}),
+        ...(options ? { options } : {}),
+      });
       if (this.id.includes('-critique')) {
         return {
           object: {
@@ -94,6 +103,25 @@ vi.mock('@mastra/core/agent', () => ({
         // Comparison runs run one technical desk per symbol; a permanent
         // failure on any desk is terminal (strict verify).
         throw Object.assign(new Error('technical data unavailable'), { statusCode: 400 });
+      }
+      if (
+        mocks.ungroundedTechnicalAttempts > 0 &&
+        this.id.includes('technical') &&
+        !this.id.includes('decision')
+      ) {
+        // P1-01: an ungrounded price claim must be rejected by deterministic
+        // verification, retried once, and (if it persists) fail the desk.
+        mocks.ungroundedTechnicalAttempts -= 1;
+        return {
+          object: {
+            bias: 'bullish',
+            confidence: 0.8,
+            reasoning: 'Support sits at 9999.1 and holds.',
+            details: { source: 'packet' },
+          },
+          usage: { inputTokens: 10, outputTokens: 5 },
+          steps: [{}],
+        };
       }
       if (mocks.rateLimitFailures > 0 && !this.id.includes('decision')) {
         mocks.rateLimitFailures -= 1;
@@ -182,6 +210,7 @@ beforeEach(() => {
   mocks.failTechnical = false;
   mocks.hangSpecialists = false;
   mocks.rateLimitFailures = 0;
+  mocks.ungroundedTechnicalAttempts = 0;
   mocks.generateCalls.length = 0;
   mocks.collectSymbolResearchPacket.mockReset().mockResolvedValue(readyPacket);
 });
@@ -261,6 +290,43 @@ describe('committee workflow', () => {
       'sentiment',
       'technical',
     ]);
+  });
+
+  it('retries a specialist once when its opinion fails grounding verification, then succeeds (P1-01)', async () => {
+    mocks.ungroundedTechnicalAttempts = 1;
+
+    const workflow = createCommitteeWorkflow(deps, 'single');
+    const result = await startWorkflow(workflow, 'wf-verify-retry', {
+      prompt: 'Single technical read',
+      symbol: 'EURUSD',
+      mode: 'single',
+    });
+
+    expect(result.status).toBe('success');
+    const output = result.result as { status: string; finalText: string };
+    expect(output.status).toBe('ready');
+    const technicalCalls = mocks.generateCalls.filter((call) => call.id.includes('technical'));
+    // First attempt rejected, one bounded retry produced the grounded read.
+    expect(technicalCalls).toHaveLength(2);
+    expect(technicalCalls[1]?.prompt).toContain('Verification findings to fix');
+    expect(technicalCalls[1]?.prompt).toContain('9999.1');
+    expect(output.finalText).not.toContain('9999.1');
+  });
+
+  it('marks the specialist failed after the retry stays ungrounded (P1-01)', async () => {
+    mocks.ungroundedTechnicalAttempts = 2;
+
+    const workflow = createCommitteeWorkflow(deps, 'single');
+    const result = await startWorkflow(workflow, 'wf-verify-fail', {
+      prompt: 'Single technical read',
+      symbol: 'EURUSD',
+      mode: 'single',
+    });
+
+    expect(result.status).toBe('failed');
+    expect(result.error?.message ?? '').toContain('Failed agents: technical');
+    // Exactly one retry — never an unbounded normalization loop.
+    expect(mocks.generateCalls.filter((call) => call.id.includes('technical'))).toHaveLength(2);
   });
 
   it('restarts from a persisted snapshot without rerunning completed steps', async () => {
@@ -589,7 +655,7 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
     });
   }
 
-  it('collects one packet per symbol and runs one desk pass per symbol, then fusion', async () => {
+  it('collects one packet per symbol and runs the technical + risk desks per symbol (P1-04)', async () => {
     comparisonSymbolsMock();
 
     const result = await startComparison('wf-compare-ready');
@@ -605,11 +671,41 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
     expect(output.status).toBe('ready');
     expect(Object.keys(output.packets ?? {}).sort()).toEqual(['EURUSD', 'XAUUSD']);
     expect(output.packets?.['XAUUSD']?.packetId).toBe('packet-XAUUSD');
-    expect(output.opinions).toHaveLength(2);
-    expect(output.opinions.map((opinion) => opinion.symbol).sort()).toEqual(['EURUSD', 'XAUUSD']);
+    // P1-04: technical + risk per symbol.
+    expect(output.opinions).toHaveLength(4);
+    expect(output.opinions.map((opinion) => `${opinion.agentName}:${opinion.symbol}`).sort()).toEqual(
+      ['risk:EURUSD', 'risk:XAUUSD', 'technical:EURUSD', 'technical:XAUUSD'],
+    );
+    // The risk desk's read reaches the fusion prompt alongside the technical one.
+    const decisionCall = mocks.generateCalls.find((call) => call.id.includes('decision'));
+    const fusionOpinions = (
+      decisionCall?.options?.['requestContext'] as { get?: (key: string) => unknown } | undefined
+    )?.get?.('opinions') as Array<{ agentName: string; symbol?: string }> | undefined;
+    expect(fusionOpinions?.map((opinion) => `${opinion.agentName}:${opinion.symbol}`).sort()).toEqual(
+      ['risk:EURUSD', 'risk:XAUUSD', 'technical:EURUSD', 'technical:XAUUSD'],
+    );
     // The fusion synthesis is the decision agent's text (mock), not a single
     // desk read — a comparison always runs one fusion pass.
     expect(output.finalText).toBe('Synthesized read.');
+  });
+
+  it('keeps the cheaper single-desk comparison with ENABLE_COMPARISON_RISK_DESK=0 (P1-04 rollback)', async () => {
+    process.env.ENABLE_COMPARISON_RISK_DESK = '0';
+    try {
+      comparisonSymbolsMock();
+      const result = await startComparison('wf-compare-single-desk');
+
+      expect(result.status).toBe('success');
+      const output = result.result as {
+        status: string;
+        opinions: Array<{ agentName: string; symbol?: string }>;
+      };
+      expect(output.status).toBe('ready');
+      expect(output.opinions).toHaveLength(2);
+      expect(output.opinions.map((opinion) => opinion.agentName)).toEqual(['technical', 'technical']);
+    } finally {
+      delete process.env.ENABLE_COMPARISON_RISK_DESK;
+    }
   });
 
   it('runs the comparison on the healthy subset and discloses a blocked symbol (F-01)', async () => {
@@ -630,10 +726,10 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
       blockedSymbols?: string[];
     };
     expect(output.status).toBe('ready');
-    // Only the healthy symbol keeps a packet/desk opinion…
+    // Only the healthy symbol keeps a packet/desk opinions…
     expect(Object.keys(output.packets ?? {})).toEqual(['EURUSD']);
-    expect(output.opinions).toHaveLength(1);
-    expect(output.opinions[0]?.symbol).toBe('EURUSD');
+    expect(output.opinions).toHaveLength(2);
+    expect([...new Set(output.opinions.map((opinion) => opinion.symbol))]).toEqual(['EURUSD']);
     // …the blocked symbol is disclosed instead of failing the whole turn…
     expect(output.blockedSymbols).toEqual(['XAUUSD']);
     // …and the fusion prompt carries the gap explicitly.
@@ -645,8 +741,9 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
     expect(requestContext?.get?.('blockedMissingData')).toEqual([
       'Current XAUUSD price is unavailable.',
     ]);
-    // The blocked desk never ran; only EURUSD's technical pass did.
+    // The blocked symbol's desks never ran; EURUSD ran both of its desks.
     expect(mocks.generateCalls.filter((call) => call.id.includes('technical'))).toHaveLength(1);
+    expect(mocks.generateCalls.filter((call) => call.id.includes('risk'))).toHaveLength(1);
     expect(output.finalText).toBe('Synthesized read.');
   });
 
@@ -667,6 +764,7 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
     expect(output.blockedText).toContain('Current XAUUSD price is unavailable.');
     // No desk ran at all.
     expect(mocks.generateCalls.filter((call) => call.id.includes('technical'))).toHaveLength(0);
+    expect(mocks.generateCalls.filter((call) => call.id.includes('risk'))).toHaveLength(0);
   });
 
   it('fails the comparison terminally when a desk pass fails (strict all-or-nothing)', async () => {

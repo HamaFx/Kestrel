@@ -17,9 +17,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee opinion verifier (Phase 6 + Audit v3 Phase 4). Moved out of the
- * workflow file so verification is a reusable, testable committee stage shared
- * by every mode.
+ * Committee opinion verifier (Phase 6 + Audit v3 Phase 4 + P1-01 audit
+ * 2026-10-18). Moved out of the workflow file so verification is a reusable,
+ * testable committee stage shared by every mode. P1-01 adds the
+ * temporal/degraded disclosure check: an opinion over a packet with warnings,
+ * missing data, or non-complete quality must say so.
  */
 
 import { metrics } from '@kestrel/shared';
@@ -105,6 +107,41 @@ export function verifyMastraOpinion(
   }
   if (packet.symbol.length === 0) findings.push('packet symbol is missing');
 
+  // P1-01 (audit 2026-10-18) — temporal/degraded disclosure. When the packet
+  // carries warnings, missing data, or a non-complete quality, the opinion
+  // must say so (reasoning disclosure or an explicit missingEvidence list);
+  // otherwise fusion can present a degraded read as complete.
+  if (packet.status === 'ready' && packetNeedsDisclosure(packet)) {
+    const reason = opinion.reasoning;
+    const missingEvidence = opinion.rawData?.missingEvidence;
+    const disclosedInReasoning = DISCLOSURE_TERMS.test(reason);
+    const disclosedInRawData = Array.isArray(missingEvidence) && missingEvidence.length > 0;
+    if (!disclosedInReasoning && !disclosedInRawData) {
+      findings.push(
+        'packet data is stale, missing, or degraded but the opinion does not disclose it',
+      );
+    }
+  }
+
   emitVerificationMetrics(findings.length === 0, findings);
   return { ok: findings.length === 0, findings };
 }
+
+/**
+ * True when the packet's own metadata demands a disclosure sentence.
+ * Defensive against injected/test packets that predate these fields.
+ */
+function packetNeedsDisclosure(packet: SymbolResearchPacket): boolean {
+  const warnings = Array.isArray(packet.warnings) ? packet.warnings : [];
+  const missingData = Array.isArray(packet.missingData) ? packet.missingData : [];
+  const dataQuality = (packet as { dataQuality?: string }).dataQuality;
+  return (
+    warnings.length > 0 ||
+    missingData.length > 0 ||
+    (dataQuality !== undefined && dataQuality !== 'complete')
+  );
+}
+
+/** Words that count as a disclosure of degraded/missing packet context. */
+const DISCLOSURE_TERMS =
+  /\b(?:stale|missing|unavailable|incomplete|degraded|partial|outdated|delayed|limited|provisional)\b/i;

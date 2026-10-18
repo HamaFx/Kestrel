@@ -122,6 +122,20 @@ export interface RunSpecialistGenerationArgs {
   deps: SpecialistRunnerDeps;
 }
 
+/**
+ * P1-01 (audit 2026-10-18) — one bounded normalization retry. A specialist
+ * whose opinion fails deterministic verification gets exactly one more
+ * generation with the findings restated; the workflow's strict verify step
+ * still fails the run when the retry cannot produce a grounded opinion.
+ */
+function verificationRetryFragment(findings: readonly string[]): string {
+  return [
+    'Your previous structured opinion failed deterministic grounding verification.',
+    'Rewrite the opinion: keep every numeric claim tied to the packet evidence or your tool outputs, disclose stale/missing/degraded packet data, and populate details.missingEvidence when the packet quality is not complete.',
+    `Verification findings to fix:\n${findings.map((finding) => `- ${finding}`).join('\n')}`,
+  ].join('\n');
+}
+
 export async function runSpecialistGeneration(
   args: RunSpecialistGenerationArgs,
 ): Promise<SpecialistStepResult> {
@@ -156,86 +170,112 @@ export async function runSpecialistGeneration(
     );
     const effectiveMaxSteps = Math.max(deps.maxSteps, 3);
     const toolCtx = deps.toolContext ?? maybeGetToolContext();
-    const generateFn = () =>
-      agent.generate(prompt, {
-        requestContext: packetContext,
-        // Specialists never persist their internal opinions; the fusion/output
-        // layer owns user-visible assistant writes (Phase 6).
-        ...(deps.specialistCallOptions
-          ? { memory: readOnlyMemoryOptions(deps.specialistCallOptions) }
-          : {}),
-        toolChoice: 'auto',
-        maxSteps: effectiveMaxSteps,
-        structuredOutput: {
-          schema: OpinionSchema,
-          jsonPromptInjection: 'auto',
-          instructions:
-            'Return a complete opinion object. Keep numeric claims tied to packet evidence or your tool outputs and mention packet quality when it is not complete.',
-        },
-        ...(signal ? { abortSignal: signal } : {}),
-      });
-    const result = toolCtx
-      ? await withToolContext(toolCtx, () => withRetry(generateFn, { maxAttempts: 2, signal }))
-      : await withRetry(generateFn, { maxAttempts: 2, signal });
-    const stats = getMastraGenerationStats(result);
-    const rawOpinion = OpinionSchema.parse(result.object);
-    const capturedToolParts = extractToolPartsFromMessages(
-      (result as unknown as { response?: { messages?: readonly unknown[] } }).response?.messages,
-      toolPartsBuffer,
-    );
-    const toolEvidenceValues: number[] = [];
-    const toolsCalled: string[] = [];
-    for (const tp of capturedToolParts) {
-      toolsCalled.push(tp.toolName);
-      if (tp.state === 'output-available' && tp.output !== undefined) {
-        toolEvidenceValues.push(...extractNumbersFromToolOutput(tp.output));
+
+    /** Build one verified candidate opinion from one generation attempt. */
+    const attempt = async (attemptPrompt: string) => {
+      const generateFn = () =>
+        agent.generate(attemptPrompt, {
+          requestContext: packetContext,
+          // Specialists never persist their internal opinions; the fusion/output
+          // layer owns user-visible assistant writes (Phase 6).
+          ...(deps.specialistCallOptions
+            ? { memory: readOnlyMemoryOptions(deps.specialistCallOptions) }
+            : {}),
+          toolChoice: 'auto',
+          maxSteps: effectiveMaxSteps,
+          structuredOutput: {
+            schema: OpinionSchema,
+            jsonPromptInjection: 'auto',
+            instructions:
+              'Return a complete opinion object. Keep numeric claims tied to packet evidence or your tool outputs and mention packet quality when it is not complete.',
+          },
+          ...(signal ? { abortSignal: signal } : {}),
+        });
+      const result = toolCtx
+        ? await withToolContext(toolCtx, () => withRetry(generateFn, { maxAttempts: 2, signal }))
+        : await withRetry(generateFn, { maxAttempts: 2, signal });
+      const stats = getMastraGenerationStats(result);
+      const rawOpinion = OpinionSchema.parse(result.object);
+      const capturedToolParts = extractToolPartsFromMessages(
+        (result as unknown as { response?: { messages?: readonly unknown[] } }).response?.messages,
+        toolPartsBuffer,
+      );
+      const toolEvidenceValues: number[] = [];
+      const toolsCalled: string[] = [];
+      for (const tp of capturedToolParts) {
+        toolsCalled.push(tp.toolName);
+        if (tp.state === 'output-available' && tp.output !== undefined) {
+          toolEvidenceValues.push(...extractNumbersFromToolOutput(tp.output));
+        }
       }
-    }
-    const enrichedDetails = {
-      ...rawOpinion.details,
-      ...(toolsCalled.length > 0 ? { toolsCalled: [...new Set(toolsCalled)] } : {}),
-      ...(toolEvidenceValues.length > 0
-        ? { toolEvidenceValues: [...new Set(toolEvidenceValues)] }
-        : {}),
-    };
-    const opinion = {
-      ...rawOpinion,
-      details: enrichedDetails,
-    };
-    const candidateOpinion: MastraModeOpinion = {
-      agentName: name,
-      ...(args.symbol ? { symbol: args.symbol } : {}),
-      bias: opinion.bias,
-      confidence: opinion.confidence,
-      reasoning: opinion.reasoning,
-      rawData: opinion.details,
-      ...committeeModelMetadata(
-        agentModel.modelId,
-        agentModel.providerId,
-        stats,
-        0,
-        Date.now() - startedAt,
-      ),
-    };
-    const opinionVerification = verifyMastraOpinion(candidateOpinion, packet);
-    if (!opinionVerification.ok) {
-      return {
-        ok: false,
-        agentName: name,
-        error: `Opinion verification failed: ${opinionVerification.findings.join('; ')}`,
-        latencyMs: Date.now() - startedAt,
+      const enrichedDetails = {
+        ...rawOpinion.details,
+        ...(toolsCalled.length > 0 ? { toolsCalled: [...new Set(toolsCalled)] } : {}),
+        ...(toolEvidenceValues.length > 0
+          ? { toolEvidenceValues: [...new Set(toolEvidenceValues)] }
+          : {}),
       };
+      const opinion = {
+        ...rawOpinion,
+        details: enrichedDetails,
+      };
+      const candidateOpinion: MastraModeOpinion = {
+        agentName: name,
+        ...(args.symbol ? { symbol: args.symbol } : {}),
+        bias: opinion.bias,
+        confidence: opinion.confidence,
+        reasoning: opinion.reasoning,
+        rawData: opinion.details,
+        ...committeeModelMetadata(
+          agentModel.modelId,
+          agentModel.providerId,
+          stats,
+          0,
+          Date.now() - startedAt,
+        ),
+      };
+      const costUsd = estimateCostUsd(
+        agentModel.modelId,
+        stats.inputTokens,
+        stats.outputTokens,
+      );
+      return { opinion, candidateOpinion, stats, costUsd };
+    };
+
+    // P1-01: max one verification-driven retry; the spend of every attempt is
+    // folded into the single idempotent ledger entry.
+    const maxAttempts = 2;
+    let totalCostUsd = 0;
+    let lastFindings: string[] = [];
+    for (let attemptIndex = 1; attemptIndex <= maxAttempts; attemptIndex += 1) {
+      const attemptPrompt =
+        attemptIndex === 1 ? prompt : `${prompt}\n\n${verificationRetryFragment(lastFindings)}`;
+      const { opinion, candidateOpinion, stats, costUsd } = await attempt(attemptPrompt);
+      totalCostUsd += costUsd;
+      const opinionVerification = verifyMastraOpinion(candidateOpinion, packet);
+      if (opinionVerification.ok) {
+        deps.ledger.recordCost(`specialist:${name}`, 'specialist', totalCostUsd);
+        return {
+          ok: true,
+          agentName: name,
+          opinion,
+          stats,
+          model: agentModel.modelId,
+          providerId: agentModel.providerId,
+          costUsd: totalCostUsd,
+          latencyMs: Date.now() - startedAt,
+        };
+      }
+      lastFindings = opinionVerification.findings;
     }
-    const costUsd = estimateCostUsd(agentModel.modelId, stats.inputTokens, stats.outputTokens);
-    deps.ledger.recordCost(`specialist:${name}`, 'specialist', costUsd);
+
+    // Both attempts failed verification: bill the spend and mark the desk
+    // failed (the strict verify step turns this into a terminal failure).
+    deps.ledger.recordCost(`specialist:${name}`, 'specialist', totalCostUsd);
     return {
-      ok: true,
+      ok: false,
       agentName: name,
-      opinion,
-      stats,
-      model: agentModel.modelId,
-      providerId: agentModel.providerId,
-      costUsd,
+      error: `Opinion verification failed after retry: ${lastFindings.join('; ')}`,
       latencyMs: Date.now() - startedAt,
     };
   } catch (error) {

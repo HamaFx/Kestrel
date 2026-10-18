@@ -242,20 +242,31 @@ export function createCommitteeWorkflow(
 
   /**
    * A-01 (B-01/B-08) — bounded cross-symbol comparison graph. Each symbol
-   * gets its own cached packet and its own single-desk (technical) pass in
-   * parallel; verify is strict all-or-nothing for real desk failures; fusion
-   * compares the collected packets. This deliberately does not double the
-   * committee size in v1.
+   * gets its own cached packet and its own desk pass(es) in parallel; verify
+   * is strict all-or-nothing for real desk failures; fusion compares the
+   * collected packets. This deliberately does not double the committee size
+   * in v1.
    *
    * F-01 (audit 2026-10-18) — a blocked packet excludes only its own symbol:
    * the healthy subset is compared and the fusion discloses the gap. The
    * comparison fails closed only when every requested symbol is blocked.
+   *
+   * P1-04 (audit 2026-10-18) — the comparison runs a technical desk plus a
+   * risk desk per symbol by default (`ENABLE_COMPARISON_RISK_DESK`), because
+   * risk is the highest-leverage second read for comparable instruments;
+   * `=0` keeps the cheaper single-desk comparison.
    */
   const comparisonSymbols = [...new Set(deps.comparisonSymbols ?? [])];
   if (comparisonSymbols.length >= 2) {
     const collectComparisonPackets: CollectComparisonPacketsFn =
       deps.collectComparisonPackets ?? collectMultiSymbolPackets;
-    const comparisonStepId = (symbol: string) => `technical-${symbol.toLowerCase()}`;
+    const comparisonDeskNames: readonly MastraSpecialistName[] = readFeatureFlag(
+      'ENABLE_COMPARISON_RISK_DESK',
+    )
+      ? ['technical', 'risk']
+      : ['technical'];
+    const comparisonStepId = (desk: MastraSpecialistName, symbol: string) =>
+      `${desk}-${symbol.toLowerCase()}`;
 
     const comparisonSpecialistDeps = {
       model: deps.model,
@@ -338,78 +349,80 @@ export function createCommitteeWorkflow(
       },
     });
 
-    const comparisonSpecialistSteps = comparisonSymbols.map((symbol) =>
-      createStep({
-        id: comparisonStepId(symbol),
-        inputSchema: ComparisonSpecialistStepInputSchema,
-        outputSchema: SpecialistStepResultSchema,
-        retries: 1,
-        execute: async ({ inputData, requestContext, abortSignal }) => {
-          const packet = inputData.packets?.[symbol];
-          if (!packet) {
-            // F-01: the symbol's packet was blocked and excluded by the
-            // collect step. The desk is skipped (not failed); the fusion
-            // discloses the missing symbol.
-            return {
-              ok: false,
-              agentName: 'technical' as const,
-              error: 'data-unavailable',
-            };
-          }
-          await deps.onProgress?.('technical');
-          const startedAt = Date.now();
-          const signal = runSignal ?? abortSignal;
-          let result: Awaited<ReturnType<typeof runSpecialistGeneration>>;
-          try {
-            result = await runSpecialistGeneration({
-              name: 'technical',
-              prompt: inputData.prompt,
-              packet,
-              symbol,
-              requestContext: requestContext as RequestContext<ModeRequestContext>,
-              signal,
-              startedAt,
-              deps: comparisonSpecialistDeps,
-            });
-          } catch (error) {
-            if (isDeadlineAbort(runSignals)) {
-              recordCommitteeStepSpan({
-                step: 'technical',
-                runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
-                symbol,
-                mode,
-                packetId: packet.packetId,
-                latencyMs: Date.now() - startedAt,
-                ok: false,
-                error: 'deadline',
-              });
+    const comparisonSpecialistSteps = comparisonSymbols.flatMap((symbol) =>
+      comparisonDeskNames.map((desk) =>
+        createStep({
+          id: comparisonStepId(desk, symbol),
+          inputSchema: ComparisonSpecialistStepInputSchema,
+          outputSchema: SpecialistStepResultSchema,
+          retries: 1,
+          execute: async ({ inputData, requestContext, abortSignal }) => {
+            const packet = inputData.packets?.[symbol];
+            if (!packet) {
+              // F-01: the symbol's packet was blocked and excluded by the
+              // collect step. The desk is skipped (not failed); the fusion
+              // discloses the missing symbol.
               return {
                 ok: false,
-                agentName: 'technical' as const,
-                error: 'deadline',
-                latencyMs: Date.now() - startedAt,
+                agentName: desk,
+                error: 'data-unavailable',
               };
             }
-            throw error;
-          }
-          recordCommitteeStepSpan({
-            step: 'technical',
-            runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
-            symbol,
-            mode,
-            packetId: packet.packetId,
-            ...(result.model ? { modelId: result.model } : {}),
-            ...(result.latencyMs !== undefined ? { latencyMs: result.latencyMs } : {}),
-            ...(result.costUsd !== undefined ? { tokenCostUsd: result.costUsd } : {}),
-            ...(result.stats
-              ? { inputTokens: result.stats.inputTokens, outputTokens: result.stats.outputTokens }
-              : {}),
-            ok: result.ok,
-            ...(result.error ? { error: result.error } : {}),
-          });
-          return result;
-        },
-      }),
+            await deps.onProgress?.(desk);
+            const startedAt = Date.now();
+            const signal = runSignal ?? abortSignal;
+            let result: Awaited<ReturnType<typeof runSpecialistGeneration>>;
+            try {
+              result = await runSpecialistGeneration({
+                name: desk,
+                prompt: inputData.prompt,
+                packet,
+                symbol,
+                requestContext: requestContext as RequestContext<ModeRequestContext>,
+                signal,
+                startedAt,
+                deps: comparisonSpecialistDeps,
+              });
+            } catch (error) {
+              if (isDeadlineAbort(runSignals)) {
+                recordCommitteeStepSpan({
+                  step: desk,
+                  runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+                  symbol,
+                  mode,
+                  packetId: packet.packetId,
+                  latencyMs: Date.now() - startedAt,
+                  ok: false,
+                  error: 'deadline',
+                });
+                return {
+                  ok: false,
+                  agentName: desk,
+                  error: 'deadline',
+                  latencyMs: Date.now() - startedAt,
+                };
+              }
+              throw error;
+            }
+            recordCommitteeStepSpan({
+              step: desk,
+              runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+              symbol,
+              mode,
+              packetId: packet.packetId,
+              ...(result.model ? { modelId: result.model } : {}),
+              ...(result.latencyMs !== undefined ? { latencyMs: result.latencyMs } : {}),
+              ...(result.costUsd !== undefined ? { tokenCostUsd: result.costUsd } : {}),
+              ...(result.stats
+                ? { inputTokens: result.stats.inputTokens, outputTokens: result.stats.outputTokens }
+                : {}),
+              ok: result.ok,
+              ...(result.error ? { error: result.error } : {}),
+            });
+            return result;
+          },
+        }),
+      ),
     );
 
     const comparisonVerifyStep = createStep({
@@ -418,15 +431,19 @@ export function createCommitteeWorkflow(
       outputSchema: VerifyOutputSchema,
       execute: async ({ requestContext, getStepResult }) => {
         await deps.onProgress?.('verify');
-        const failedSymbols: string[] = [];
+        const failedDesks = new Set<MastraSpecialistName>();
+        const failedLabels: string[] = [];
         let sawDeadline = false;
         for (const symbol of comparisonSymbols) {
-          const marker = readSpecialistStepResultById(getStepResult, comparisonStepId(symbol));
-          // F-01: `data-unavailable` is the skip marker for a blocked symbol
-          // — the fusion discloses it; only real desk failures are terminal.
-          if (marker?.ok === false && marker.error !== 'data-unavailable') {
-            failedSymbols.push(symbol);
-            if (marker.error === 'deadline') sawDeadline = true;
+          for (const desk of comparisonDeskNames) {
+            const marker = readSpecialistStepResultById(getStepResult, comparisonStepId(desk, symbol));
+            // F-01: `data-unavailable` is the skip marker for a blocked symbol
+            // — the fusion discloses it; only real desk failures are terminal.
+            if (marker?.ok === false && marker.error !== 'data-unavailable') {
+              failedDesks.add(desk);
+              failedLabels.push(`${desk} desk on ${symbol}`);
+              if (marker.error === 'deadline') sawDeadline = true;
+            }
           }
         }
         recordCommitteeStepSpan({
@@ -434,16 +451,16 @@ export function createCommitteeWorkflow(
           runId: (requestContext?.get('runId') as string | undefined) ?? 'unknown',
           symbol: comparisonSymbols.join('/'),
           mode,
-          ok: failedSymbols.length === 0,
-          ...(failedSymbols.length > 0 ? { error: failedSymbols.join(',') } : {}),
+          ok: failedLabels.length === 0,
+          ...(failedLabels.length > 0 ? { error: failedLabels.join(', ') } : {}),
         });
-        if (failedSymbols.length > 0) {
+        if (failedLabels.length > 0) {
           throw new MastraModeStrictFailureError(
-            ['technical'],
+            [...failedDesks],
             undefined,
             sawDeadline
-              ? `Comparison analysis timed out (${failedSymbols.join(', ')} did not complete) — please retry. No partial answer was returned.`
-              : `Comparison analysis could not complete for ${failedSymbols.join(', ')}. No partial answer was returned — please retry.`,
+              ? `Comparison analysis timed out (${failedLabels.join(', ')} did not complete) — please retry. No partial answer was returned.`
+              : `Comparison analysis could not complete (${failedLabels.join(', ')}). No partial answer was returned — please retry.`,
           );
         }
         return { failedAgents: [] };
@@ -474,24 +491,29 @@ export function createCommitteeWorkflow(
         const opinions: MastraModeOpinion[] = [];
         const executionStats: MastraGenerationStats[] = [];
         for (const symbol of comparisonSymbols) {
-          const marker = readSpecialistStepResultById(getStepResult, comparisonStepId(symbol));
-          if (!marker?.ok || !marker.opinion || !marker.stats) continue;
-          opinions.push({
-            agentName: 'technical',
-            symbol,
-            bias: marker.opinion.bias,
-            confidence: marker.opinion.confidence,
-            reasoning: marker.opinion.reasoning,
-            rawData: marker.opinion.details,
-            ...committeeModelMetadata(
-              marker.model ?? deps.modelId,
-              marker.providerId ?? deps.providerId,
-              marker.stats,
-              marker.costUsd ?? 0,
-              marker.latencyMs ?? 0,
-            ),
-          });
-          executionStats.push(marker.stats);
+          for (const desk of comparisonDeskNames) {
+            const marker = readSpecialistStepResultById(
+              getStepResult,
+              comparisonStepId(desk, symbol),
+            );
+            if (!marker?.ok || !marker.opinion || !marker.stats) continue;
+            opinions.push({
+              agentName: desk,
+              symbol,
+              bias: marker.opinion.bias,
+              confidence: marker.opinion.confidence,
+              reasoning: marker.opinion.reasoning,
+              rawData: marker.opinion.details,
+              ...committeeModelMetadata(
+                marker.model ?? deps.modelId,
+                marker.providerId ?? deps.providerId,
+                marker.stats,
+                marker.costUsd ?? 0,
+                marker.latencyMs ?? 0,
+              ),
+            });
+            executionStats.push(marker.stats);
+          }
         }
 
         let synthesis: Awaited<ReturnType<typeof synthesizeComparisonAnswer>>;
