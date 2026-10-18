@@ -19,7 +19,9 @@ export type FeatureFlagName =
   | 'ENABLE_COMMITTEE_CRITIQUE'
   | 'PHASE3_STRUCTURED_FUSION'
   | 'ENABLE_COMMITTEE_DEBATE'
-  | 'ENFORCE_BUDGET';
+  | 'ENFORCE_BUDGET'
+  | 'ENABLE_GENERIC_MACRO'
+  | 'ENABLE_COMPARISON_RISK_DESK';
 
 /** Documented defaults (Q12: PHASE3_STRUCTURED_FUSION enabled by default). */
 const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
@@ -29,7 +31,24 @@ const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
   PHASE3_STRUCTURED_FUSION: true,
   ENABLE_COMMITTEE_DEBATE: false,
   ENFORCE_BUDGET: false,
+  ENABLE_GENERIC_MACRO: true,
+  ENABLE_COMPARISON_RISK_DESK: true,
 };
+
+/**
+ * M-02 rollout gate (audit 2026-10-18, Phase 0): the generic macro packet is
+ * exercised in development and tests immediately, but stays off in
+ * production until the operator opts in with `ENABLE_GENERIC_MACRO=1` (the
+ * flag flips to on-by-default everywhere once the packet lands as the
+ * documented default). An explicit env value always wins, so `=0` is the
+ * rollback in every environment.
+ */
+function defaultFor(name: FeatureFlagName): boolean {
+  if (name === 'ENABLE_GENERIC_MACRO' && process.env.NODE_ENV === 'production') {
+    return false;
+  }
+  return FLAG_DEFAULTS[name];
+}
 
 /**
  * Read one flag with the documented semantics. No caching: tests mutate
@@ -39,5 +58,5 @@ export function readFeatureFlag(name: FeatureFlagName): boolean {
   const raw = process.env[name];
   if (raw === '0' || raw === 'false') return false;
   if (raw === '1' || raw === 'true') return true;
-  return FLAG_DEFAULTS[name];
+  return defaultFor(name);
 }
