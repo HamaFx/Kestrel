@@ -64,6 +64,7 @@ PostgreSQL is required in every environment; provide `DATABASE_URL` or `POSTGRES
 | `PHASE3_STRUCTURED_FUSION`    | `0`                       | Structured fusion output for Full mode (§3.3)                      |
 | `ENABLE_GENERIC_MACRO`        | `1`                       | Generic macro packet for non-XAUUSD symbols (M-02; `0` rollback)   |
 | `ENABLE_COMPARISON_RISK_DESK` | `1`                       | Technical + risk desks per symbol in comparisons (P1-04)           |
+| `PHASE_TOOLS_SHIMS`           | `1`                       | Legacy tool shims registered; `0` proves the native path (P2-01)   |
 | `REDIS_URL`                   | _(unset)_                 | Optional shared Redis for the packet cache (§2.1)                  |
 | `MASTRA_COMMITTEE_MODELS`     | _(unset)_                 | Optional JSON of per-specialist model picks (§3.1, top-tier only)  |
 | `MASTRA_XAUUSD_MODEL`         | _(unset)_                 | Pin the XAUUSD verified-report model (`provider:model`)            |

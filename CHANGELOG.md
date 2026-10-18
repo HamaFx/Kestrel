@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Audit 2026-10-18 remediation (Phases 0–5, `docs/audits/mastra-agentic-deep-audit-2026-10-18.md`):** packet-cache freshness is now TTL-bound on every path (B-02), the indicator memo keys on data production time (I-01), abort/deadline cancellations no longer count as diagnostic errors (N-01), a blocked comparison symbol no longer fails the whole comparison (F-01); non-XAUUSD packets carry a generic macro extension (news + calendar + COT, `ENABLE_GENERIC_MACRO`; M-02) and comparisons honestly label themselves as per-symbol desk passes plus synthesis (M-01); committee opinions require a degraded-data disclosure and one bounded grounding retry (P1-01), and comparisons run a risk desk per symbol (P1-04, `ENABLE_COMPARISON_RISK_DESK`); the packet pipeline shares one candle fetcher (P2-02), guardrails reuse the turn's resolved model (P2-03), and the committee workflow is split into dispatcher + per-graph modules (Phase 4).
+
+### Deprecated
+
+- **Legacy `packages/ai/src/tools/` AI SDK shims — removal target 2026-12-15 (audit 2026-10-18, P2-01).** The seven tools that already have native Mastra registrations (`get_price`, `get_candles`, `get_indicators`, `get_market_structure`, `get_news`, `get_cot`, `search_knowledge`) keep their AI SDK wrappers for one release of wire compatibility. Operators can verify the native path today with `PHASE_TOOLS_SHIMS=0` (the shims are then not registered; internal consumers resolve the native registrations). The shim modules and their sub-path exports are deleted on the removal target date; see `docs/configuration.md` for the flag.
+
 - **Dependency refresh (2026-10):** every workspace dependency moved to its latest release, including the coupled majors:
   - Next.js 16.4, React 19.3, Zod 4, AI SDK 7 (`@ai-sdk/*` 4.x), Mastra 1.78, Langfuse SDK 6
   - Test tooling: Vitest 5 + Vite 8, jsdom 30, MSW 3, Testing Library updates; `vitest.workspace.ts` replaced by `test.projects`, coverage thresholds recalibrated for the AST-aware V8 remapper

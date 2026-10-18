@@ -135,6 +135,7 @@ interface CommitteeResult {
   verdicts: CommitteeVerdict[];
   grade: string;
   goNoGo: string;
+  consensus: string;
 }
 
 describe('convene_committee tool', () => {
@@ -220,6 +221,9 @@ describe('convene_committee tool', () => {
     // the scaled thresholds.
     expect(result.grade).toBe('B');
     expect(result.goNoGo).toBe('go');
+    // P2-05: when the LLM committee could not run, the card is explicitly a
+    // heuristic review rather than implied model-verified output.
+    expect(result.consensus.startsWith('Heuristic review (no LLM) — ')).toBe(true);
     expect(mockRunMastraMode).toHaveBeenCalledTimes(1);
     expect(mockRunMastraMode).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -254,6 +258,50 @@ describe('convene_committee tool', () => {
       'risk_manager',
       'sentiment',
     ]);
+    // P2-05: no tool context means no LLM committee — the consensus must say
+    // the review is heuristic.
+    expect(result.consensus.startsWith('Heuristic review (no LLM) — ')).toBe(true);
     expect(mockRunMastraMode).not.toHaveBeenCalled();
+  });
+
+  it('keeps the LLM consensus text unprefixed when the committee actually ran (P2-05)', async () => {
+    vi.spyOn(
+      await import('../src/mastra-v2/packets/packet-cache'),
+      'collectSymbolResearchPacketCached',
+    ).mockResolvedValueOnce(readyPacket());
+    mockRunMastraMode.mockResolvedValueOnce({
+      agentOpinions: [
+        {
+          agentName: 'technical',
+          bias: 'bullish',
+          confidence: 0.7,
+          reasoning: 'Structure holds above the 1h EMA stack.',
+          rawData: {},
+        },
+      ],
+      finalText: 'The committee leans mildly bullish on structure.',
+    });
+
+    const ctx = createToolContext({
+      userId: '11111111-1111-1111-1111-111111111111',
+      threadId: 'thread-test',
+    });
+    const result = (await withToolContext(ctx, () =>
+      Promise.resolve(
+        conveneCommitteeTool.execute!(
+          {
+            symbol: 'XAUUSD',
+            side: 'long',
+            entry: 2650.2,
+            stop: 2638.2,
+            target: 2674.2,
+          },
+          TOOL_CALL_OPTIONS,
+        ),
+      ),
+    )) as unknown as CommitteeResult;
+
+    expect(result.consensus).toBe('The committee leans mildly bullish on structure.');
+    expect(result.consensus).not.toContain('Heuristic review');
   });
 });

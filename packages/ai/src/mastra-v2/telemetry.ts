@@ -38,7 +38,7 @@
  * AI result, so construction and flush failures degrade silently.
  */
 
-import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { createCategorizedLogger, traceIdStorage } from '@kestrel/shared/logger';
 import type { Mastra } from '@mastra/core';
 import type { TracingOptions } from '@mastra/core/observability';
 import { LangfuseExporter } from '@mastra/langfuse';
@@ -49,15 +49,16 @@ import {
 } from '@mastra/observability';
 
 import { capabilityTelemetryLabels } from './capabilities';
+// P2-06 (audit 2026-10-18): the Langfuse link helpers live in a leaf module
+// (`langfuse-link.ts`) to avoid a capability→tool→diagnostics→persistence→
+// telemetry→capability import cycle. Re-exported here and in the barrels so
+// existing import sites are unchanged.
+import { isLangfuseConfigured } from './langfuse-link';
 
 export { capabilityTelemetryLabels } from './capabilities';
+export { isLangfuseConfigured, langfuseBaseUrl, langfuseTraceUrl } from './langfuse-link';
 
 const tlog = createCategorizedLogger('ai', { component: 'mastra:telemetry' });
-
-/** Env keys that gate Langfuse export (same set as `instrumentation.ts`). */
-export function isLangfuseConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(env.LANGFUSE_PUBLIC_KEY && env.LANGFUSE_SECRET_KEY && env.LANGFUSE_BASE_URL);
-}
 
 /**
  * Build the Mastra `Observability` entrypoint with Langfuse export.
@@ -159,9 +160,15 @@ export interface MastraRunTraceIdentity {
  */
 export function runTracingOptions(identity: MastraRunTraceIdentity): TracingOptions {
   const env = process.env;
+  // P2-06 (audit 2026-10-18) — log↔trace join. The run's diagnostic trace id
+  // (AsyncLocalStorage) rides the trace root metadata next to runId, so an
+  // admin can go from a `diagnosticTraces` row to this Langfuse trace and
+  // back without a second lookup by hand.
+  const traceId = traceIdStorage.getStore();
   return {
     metadata: {
       runId: identity.runId,
+      ...(traceId ? { traceId } : {}),
       userId: identity.userId,
       threadId: identity.threadId,
       kind: identity.kind,
@@ -173,23 +180,6 @@ export function runTracingOptions(identity: MastraRunTraceIdentity): TracingOpti
     },
     tags: [...mastraTraceTags(env), identity.kind, ...(identity.tags ?? [])],
   } as TracingOptions;
-}
-
-/** Langfuse base URL without trailing slash, for deep links. */
-export function langfuseBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
-  return (env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com').replace(/\/+$/, '');
-}
-
-/**
- * Deep link to a Langfuse trace by its trace id. Returns `null` when Langfuse
- * is not configured — callers hide the link instead of showing a dead one.
- */
-export function langfuseTraceUrl(
-  traceId: string,
-  env: NodeJS.ProcessEnv = process.env,
-): string | null {
-  if (!isLangfuseConfigured(env)) return null;
-  return `${langfuseBaseUrl(env)}/trace/${encodeURIComponent(traceId)}`;
 }
 
 interface Flushable {

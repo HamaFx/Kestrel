@@ -26,11 +26,12 @@ const mocks = vi.hoisted(() => ({
   calendarExecute: vi.fn(),
 }));
 
-vi.mock('../src/tools/get-news', () => ({
-  getNewsTool: { execute: mocks.newsExecute },
-}));
 vi.mock('../src/tools/get-calendar', () => ({
   getCalendarTool: { execute: mocks.calendarExecute },
+}));
+// P2-01: the news adapter consumes the native execute core directly.
+vi.mock('../src/mastra-v2/tools/canonical/news', () => ({
+  executeCanonicalNews: mocks.newsExecute,
 }));
 vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: vi.fn((_name: string, _context: unknown, fn: () => Promise<unknown>) => fn()),
@@ -88,7 +89,8 @@ describe('Mastra XAUUSD news and calendar adapters', () => {
     ) => Promise<unknown>;
     const output = await execute({ symbol: 'XAUUSD', limit: 8 }, context);
 
-    expect(mocks.newsExecute).toHaveBeenCalledWith({ symbol: 'XAUUSD', limit: 8 }, {});
+    // P2-01: the native news core takes only the input (no AI SDK options).
+    expect(mocks.newsExecute).toHaveBeenCalledWith({ symbol: 'XAUUSD', limit: 8 });
     expect(output).toMatchObject({
       symbol: 'XAUUSD',
       source: 'kestrel-news-cache',

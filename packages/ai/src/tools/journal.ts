@@ -18,10 +18,13 @@
 // Imported by tools/index.ts for self-registration and also exposed
 // as a sub-path export: @kestrel/ai/tools/journal
 
+import { readFeatureFlag } from '@kestrel/shared';
+
 import { getCalendarTool } from './get-calendar';
 import { getJournalStatsTool } from './get-journal-stats';
 import { getNewsTool } from './get-news';
 import { logJournalTool } from './log-journal';
+import { isNativeMigratedTool } from './native-migrated';
 import { toolRegistry } from './registry';
 import { searchKnowledgeTool } from './search-knowledge';
 import { setAlertTool } from './set-alert';
@@ -43,7 +46,11 @@ const journalTools = [
  * no longer mutates the singleton registry.
  */
 export function registerJournalTools(registry: typeof toolRegistry = toolRegistry): void {
+  // P2-01: get_news and search_knowledge are natively migrated; with the
+  // shim flag off they are not registered from their legacy wrappers.
+  const legacyShimsEnabled = readFeatureFlag('PHASE_TOOLS_SHIMS');
   for (const [name, tool] of journalTools) {
+    if (!legacyShimsEnabled && isNativeMigratedTool(name)) continue;
     registry.register(name, tool);
   }
 }
