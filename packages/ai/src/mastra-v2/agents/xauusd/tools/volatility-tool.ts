@@ -20,10 +20,10 @@ import { z } from 'zod';
 
 import { forecastVolatilityTool } from '../../../../tools/forecast-volatility';
 import { createEvidenceId } from '../../../packets/evidence';
-import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD } from '../../../shared/types';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = ForecastVolatilityInputSchema.extend({
   symbol: XauusdSymbolSchema,
@@ -32,8 +32,8 @@ const OutputSchema = z.object({
   evidenceId: z.string().min(1),
   symbol: z.literal(XAUUSD),
   source: z.literal('kestrel-deterministic-volatility'),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.literal('unknown'),
   quality: z.literal('degraded'),
   warnings: z.array(z.string()),

@@ -58,7 +58,7 @@ export const UserPlanPartSchema = z.object({
   rationale: z.string(),
   /** Model id that produced this plan (empty when fallback). */
   modelId: z.string(),
-  createdAt: z.number().int(),
+  createdAt: z.int(),
 });
 export type UserPlanPart = z.infer<typeof UserPlanPartSchema>;
 
@@ -81,7 +81,7 @@ export const CitationWarningPartSchema = z.object({
    * as a tone-warning row. The enforcer always emits 'soft' today.
    */
   stance: z.enum(['soft', 'strict']),
-  createdAt: z.number().int(),
+  createdAt: z.int(),
   /**
    * Phase B — UX_UPGRADE_PLAN.md item 9.
    * Structured per-claim findings. Optional for backward
@@ -113,7 +113,7 @@ export const VerifyWarningPartSchema = z.object({
   symbol: SymbolSchema,
   side: z.enum(['long', 'short']),
   caveats: z.array(z.string()).max(6),
-  createdAt: z.number().int(),
+  createdAt: z.int(),
 });
 export type VerifyWarningPart = z.infer<typeof VerifyWarningPartSchema>;
 
@@ -142,7 +142,7 @@ export const CommitteeReportPartSchema = z.object({
   grade: z.enum(['A', 'B', 'C', 'D', 'F']),
   goNoGo: z.enum(['go', 'caution', 'no-go']),
   consensus: z.string(),
-  createdAt: z.number().int(),
+  createdAt: z.int(),
 });
 export type CommitteeReportPart = z.infer<typeof CommitteeReportPartSchema>;
 
@@ -168,7 +168,7 @@ export const MemoryDegradedPartSchema = z.object({
   type: z.literal('data-memory-degraded'),
   /** Short operator-facing reason (already redacted; no raw errors). */
   reason: z.string().max(200),
-  createdAt: z.number().int(),
+  createdAt: z.int(),
 });
 export type MemoryDegradedPart = z.infer<typeof MemoryDegradedPartSchema>;
 
@@ -211,8 +211,8 @@ export type CiteSourcesPart = z.infer<typeof CiteSourcesPartSchema>;
 // ---------------------------------------------------------------------------
 
 export const UsageMetaSchema = z.object({
-  promptTokens: z.number().int(),
-  completionTokens: z.number().int(),
+  promptTokens: z.int(),
+  completionTokens: z.int(),
   cost: z.number().optional(),
 });
 export type UsageMeta = z.infer<typeof UsageMetaSchema>;

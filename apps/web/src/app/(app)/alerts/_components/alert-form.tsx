@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { SYMBOLS, TIMEFRAMES, type Symbol, type Timeframe } from '@kestrel/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -151,7 +150,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
     });
     if (!validation.success) {
       setTesting(false);
-      setError(validation.error.errors[0]?.message ?? 'Invalid input');
+      setError(validation.error.issues[0]?.message ?? 'Invalid input');
       return;
     }
     try {
@@ -206,7 +205,7 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
 
     if (!validation.success) {
       setSubmitting(false);
-      setError(validation.error.errors[0]?.message ?? 'Invalid input');
+      setError(validation.error.issues[0]?.message ?? 'Invalid input');
       return;
     }
 
@@ -571,8 +570,9 @@ function PreviewCallout(props: PreviewCalloutProps) {
         <p>No historical triggers in the last 90 days for this level.</p>
       ) : (
         <p>
-          Would have triggered <span className="text-fg font-semibold tabular-nums">{state.count}</span>{' '}
-          time{state.count === 1 ? '' : 's'} in the last 90 days.
+          Would have triggered{' '}
+          <span className="text-fg font-semibold tabular-nums">{state.count}</span> time
+          {state.count === 1 ? '' : 's'} in the last 90 days.
           {state.avgHoldMs > 0 ? (
             <>
               {' '}

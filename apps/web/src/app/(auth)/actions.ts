@@ -26,7 +26,6 @@ import {
   userExistsByEmail,
   withRateLimit,
 } from '@kestrel/db';
-import { logActionError, withServerActionLogging } from '@/lib/action-errors';
 import bcrypt from 'bcryptjs';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { AuthError } from 'next-auth';
@@ -35,6 +34,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { signIn } from '@/auth';
+import { logActionError, withServerActionLogging } from '@/lib/action-errors';
 import { recordAuthEvent } from '@/lib/auth-anomaly';
 import { generateToken, hashToken } from '@/lib/auth-tokens';
 import { isFailedSignIn } from '@/lib/auth/sign-in-result';
@@ -84,7 +84,7 @@ export async function sanitizeNext(next: string | undefined | null): Promise<str
 }
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
   next: z.string().optional(),
 });
@@ -97,7 +97,7 @@ export async function loginAction(
     const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
     const parsed = loginSchema.safeParse(raw);
     if (!parsed.success) {
-      return { error: parsed.error.errors[0]?.message ?? 'Validation failed' };
+      return { error: parsed.error.issues[0]?.message ?? 'Validation failed' };
     }
 
     const { email, password, next } = parsed.data;
@@ -188,7 +188,7 @@ export async function loginAction(
         }
         if (message === 'AUTH_SYSTEM_ERROR' || message === 'SESSION_SYSTEM_ERROR') {
           logActionError(error, 'loginAction');
-      return { error: 'Unable to sign in right now. Please try again.' };
+          return { error: 'Unable to sign in right now. Please try again.' };
         }
         return invalidCredentialsState();
       }
@@ -206,7 +206,7 @@ export async function loginAction(
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
+  email: z.email('Invalid email address'),
   password: passwordSchema,
 });
 
@@ -218,7 +218,7 @@ export async function registerAction(
     const raw = formData instanceof FormData ? Object.fromEntries(formData) : (formData ?? {});
     const parsed = registerSchema.safeParse(raw);
     if (!parsed.success) {
-      return { error: parsed.error.errors[0]?.message ?? 'Validation failed' };
+      return { error: parsed.error.issues[0]?.message ?? 'Validation failed' };
     }
 
     const { name, email, password } = parsed.data;
@@ -506,7 +506,7 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
     const parsed = z.object({ password: passwordSchema }).safeParse({ password });
 
     if (!parsed.success) {
-      return { error: parsed.error.errors[0]?.message ?? 'Invalid password' };
+      return { error: parsed.error.issues[0]?.message ?? 'Invalid password' };
     }
 
     const db = getDb();

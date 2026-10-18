@@ -19,7 +19,7 @@
 import { z } from 'zod';
 
 export const GetPortfolioSnapshotOutputSchema = z.object({
-  asOf: z.number().int(),
+  asOf: z.int(),
   positions: z.array(
     z.object({
       symbol: z.string(),
@@ -39,7 +39,7 @@ export const GetPortfolioSnapshotOutputSchema = z.object({
       totalExposurePct: z.number(),
       totalRiskUsd: z.number(),
       totalRiskPct: z.number(),
-      openPositionCount: z.number().int(),
+      openPositionCount: z.int(),
       alerts: z.array(
         z.object({
           level: z.enum(['warning', 'danger']),

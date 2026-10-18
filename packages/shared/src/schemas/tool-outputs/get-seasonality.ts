@@ -43,11 +43,11 @@ export const SeasonalityBucketSchema = z.object({
    *  - `weekday`: 0..6  (Sun = 0)
    *  - `hour`:    0..23
    */
-  key: z.number().int(),
+  key: z.int(),
   /** Human-readable label, e.g. "Mar", "Mon", "13:00 UTC". */
   label: z.string(),
   /** Number of samples in the bucket. */
-  count: z.number().int(),
+  count: z.int(),
   /** Median percent return across samples. */
   medianReturnPct: z.number(),
   /** 25th percentile percent return. */
@@ -62,10 +62,10 @@ export type SeasonalityBucket = z.infer<typeof SeasonalityBucketSchema>;
 export const GetSeasonalityOutputSchema = z.object({
   symbol: SymbolSchema,
   granularity: SeasonalityGranularitySchema,
-  asOf: z.number().int(),
+  asOf: z.int(),
   buckets: z.array(SeasonalityBucketSchema),
   /** Number of bars used to derive the buckets. */
-  sampleSize: z.number().int(),
+  sampleSize: z.int(),
   /** True when fewer than 30 samples were available — buckets are noisy. */
   thin: z.boolean(),
 });

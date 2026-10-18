@@ -62,51 +62,48 @@ export const FULL_ANALYSIS_TURN_ESTIMATE_USD = 0.05;
 export const FULL_ANALYSIS_ESTIMATE_USD =
   FULL_ANALYSIS_TURN_ESTIMATE_USD + observationalMemoryAllowanceUsd(1);
 
-export const FullAnalysisPayloadSchema = z
-  .object({
-    kind: z.literal('full-analysis'),
-    version: z.literal(1),
-    userId: z.string().min(1),
-    threadId: z.string().min(1),
-    userMessageText: z.string(),
-    userMessageParts: UserMessagePartsSchema,
-    idempotencyKey: z.string().min(1),
-    traceId: z.string().min(1).optional(),
-    attemptCount: z.number().int().nonnegative(),
-    createdAt: z.string().datetime(),
-    workerRunId: z.string().min(1).optional(),
-    startedAt: z.string().datetime().optional(),
-    budgetReservationId: z.string().uuid().optional(),
-    executionPlan: ExecutionPlanSchema.optional(),
-    ledgerSnapshot: z
-      .object({
-        entries: z.array(
-          z.object({
-            id: z.string().min(1),
-            kind: z.enum([
-              'primary',
-              'auxiliary',
-              'specialist',
-              'fusion',
-              'title',
-              'semantic-routing',
-            ]),
-            costUsd: z.number().nonnegative(),
-          }),
-        ),
-        totalCostUsd: z.number().nonnegative(),
-      })
-      .optional(),
-    modelSnapshot: z
-      .object({
-        modelId: z.string().min(1),
-        providerId: z.string().min(1),
-        bareModelId: z.string().min(1),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
+export const FullAnalysisPayloadSchema = z.strictObject({
+  kind: z.literal('full-analysis'),
+  version: z.literal(1),
+  userId: z.string().min(1),
+  threadId: z.string().min(1),
+  userMessageText: z.string(),
+  userMessageParts: UserMessagePartsSchema,
+  idempotencyKey: z.string().min(1),
+  traceId: z.string().min(1).optional(),
+  attemptCount: z.int().nonnegative(),
+  createdAt: z.iso.datetime(),
+  workerRunId: z.string().min(1).optional(),
+  startedAt: z.iso.datetime().optional(),
+  budgetReservationId: z.uuid().optional(),
+  executionPlan: ExecutionPlanSchema.optional(),
+  ledgerSnapshot: z
+    .object({
+      entries: z.array(
+        z.object({
+          id: z.string().min(1),
+          kind: z.enum([
+            'primary',
+            'auxiliary',
+            'specialist',
+            'fusion',
+            'title',
+            'semantic-routing',
+          ]),
+          costUsd: z.number().nonnegative(),
+        }),
+      ),
+      totalCostUsd: z.number().nonnegative(),
+    })
+    .optional(),
+  modelSnapshot: z
+    .strictObject({
+      modelId: z.string().min(1),
+      providerId: z.string().min(1),
+      bareModelId: z.string().min(1),
+    })
+    .optional(),
+});
 
 export type FullAnalysisPayload = z.infer<typeof FullAnalysisPayloadSchema>;
 

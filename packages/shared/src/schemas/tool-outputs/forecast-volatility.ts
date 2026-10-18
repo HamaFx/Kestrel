@@ -32,15 +32,15 @@ export const ForecastVolatilityInputSchema = z.object({
   /** Bar timeframe ATR is computed against. */
   tf: TimeframeSchema.default('1h'),
   /** Forward-looking horizon in hours. */
-  horizonHours: z.number().int().min(1).max(168).default(24),
+  horizonHours: z.int().min(1).max(168).default(24),
 });
 export type ForecastVolatilityInput = z.infer<typeof ForecastVolatilityInputSchema>;
 
 export const ForecastVolatilityOutputSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
-  horizonHours: z.number().int(),
-  asOf: z.number().int(),
+  horizonHours: z.int(),
+  asOf: z.int(),
   /** ATR(14) on the chosen timeframe, in pips. */
   atrPips: z.number(),
   /** ATR(14) over a 30-day baseline window for context. */

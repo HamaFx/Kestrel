@@ -112,31 +112,29 @@ export function isObservabilityTerminalStatus(value: string): value is Observabi
  * span envelopes enforceable so web, worker, durable diagnostics, and trace
  * adapters cannot silently drift apart.
  */
-const observabilityCorrelationSchema = z
-  .object({
-    traceId: z.string().optional(),
-    requestId: z.string().optional(),
-    runId: z.string().optional(),
-    jobId: z.string().optional(),
-    threadId: z.string().optional(),
-    messageId: z.string().optional(),
-    userId: z.string().optional(),
-  })
-  .passthrough();
+const observabilityCorrelationSchema = z.looseObject({
+  traceId: z.string().optional(),
+  requestId: z.string().optional(),
+  runId: z.string().optional(),
+  jobId: z.string().optional(),
+  threadId: z.string().optional(),
+  messageId: z.string().optional(),
+  userId: z.string().optional(),
+});
 
 /** Runtime-validated event envelope (matches `ObservabilityEvent`). */
 export const observabilityEventSchema = z.object({
   name: z.enum(OBSERVABILITY_EVENTS),
-  timestamp: z.number().int().nonnegative(),
+  timestamp: z.int().nonnegative(),
   correlation: observabilityCorrelationSchema,
   status: z.enum(OBSERVABILITY_TERMINAL_STATUSES).optional(),
   operation: z.string().optional(),
   errorCode: z.string().optional(),
-  attempt: z.number().int().nonnegative().optional(),
+  attempt: z.int().nonnegative().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
   agentName: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ObservabilityEventParsed = z.infer<typeof observabilityEventSchema>;
@@ -165,7 +163,7 @@ export const observabilitySpanSchema = z.object({
   durationMs: z.number().nonnegative().optional(),
   status: z.enum(OBSERVABILITY_TERMINAL_STATUSES).optional(),
   errorCode: z.string().optional(),
-  attributes: z.record(z.unknown()).optional(),
+  attributes: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ObservabilitySpan = z.infer<typeof observabilitySpanSchema>;

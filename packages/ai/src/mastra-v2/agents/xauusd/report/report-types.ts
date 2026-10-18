@@ -32,7 +32,7 @@ const ScenarioSchema = z.object({
 const SourceSchema = z.object({
   evidenceId: z.string().min(1),
   source: z.string().min(1),
-  dataAsOf: z.string().datetime(),
+  dataAsOf: z.iso.datetime(),
 });
 
 /**
@@ -66,7 +66,7 @@ const NumericClaimSchema = z.object({
 
 export const XauusdResearchReportSchema = z.object({
   symbol: z.literal('XAUUSD'),
-  asOf: z.string().datetime(),
+  asOf: z.iso.datetime(),
   dataQuality: EvidenceQualitySchema,
   bias: z.enum(['bullish', 'bearish', 'neutral', 'unclear']),
   confidence: z.number().min(0).max(1),

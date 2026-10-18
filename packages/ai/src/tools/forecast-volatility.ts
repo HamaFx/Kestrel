@@ -36,7 +36,7 @@ import {
   type Symbol,
   type Timeframe,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { and, asc, gte, inArray, lte } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -72,7 +72,10 @@ function getCurrenciesForSymbol(symbol: Symbol): EventCurrency[] {
   }
 }
 
-export const forecastVolatilityTool = tool({
+export const forecastVolatilityTool: Tool<
+  z.infer<typeof InputSchema>,
+  ForecastVolatilityOutput
+> = tool({
   description:
     'ATR-based forward-vol estimate for a (symbol, horizonHours) window. Returns the expected move in pips, a projected price range from the live mid, and an event multiplier when a high-impact macro event lands inside the window. Use for "expected range over next N hours", "how much could it move ahead of CPI", or sizing decisions for time-bound trades.',
   inputSchema: InputSchema,

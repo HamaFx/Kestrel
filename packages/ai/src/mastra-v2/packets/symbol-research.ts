@@ -57,8 +57,8 @@ const EvidenceSchema = z.object({
   symbol: SymbolSchema,
   timeframe: TimeframeSchema,
   source: z.string().min(1),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.enum(['fresh', 'stale', 'unknown']),
   quality: z.enum(['complete', 'partial', 'degraded']),
   warnings: z.array(z.string()),
@@ -87,7 +87,7 @@ export const XauusdExtensionSchema = z.object({
       }),
     )
     .max(10),
-  newsCount: z.number().int().nonnegative(),
+  newsCount: z.int().nonnegative(),
   newsHeadlines: z
     .array(
       z.object({
@@ -105,7 +105,7 @@ export const SymbolResearchPacketSchema = z.object({
   packetId: z.string().min(1),
   kind: z.literal('symbol_research_packet'),
   symbol: SymbolSchema,
-  generatedAt: z.string().datetime(),
+  generatedAt: z.iso.datetime(),
   status: z.enum(['ready', 'blocked']),
   dataQuality: z.enum(['complete', 'partial', 'degraded']),
   price: z
@@ -113,8 +113,8 @@ export const SymbolResearchPacketSchema = z.object({
       evidenceId: z.string().min(1),
       symbol: SymbolSchema,
       source: z.string().min(1),
-      fetchedAt: z.string().datetime(),
-      dataAsOf: z.string().datetime(),
+      fetchedAt: z.iso.datetime(),
+      dataAsOf: z.iso.datetime(),
       freshness: z.enum(['fresh', 'stale', 'unknown']),
       quality: z.enum(['complete', 'partial', 'degraded']),
       warnings: z.array(z.string()),

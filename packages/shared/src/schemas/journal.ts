@@ -25,12 +25,12 @@ export const TradeOutcomeSchema = z.enum(['win', 'loss', 'breakeven', 'open']);
 export type TradeOutcome = z.infer<typeof TradeOutcomeSchema>;
 
 export const JournalEntrySchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   symbol: SymbolSchema,
   side: TradeSideSchema,
   /** Trade open time, ms epoch UTC. */
-  openedAt: z.number().int(),
-  closedAt: z.number().int().nullable(),
+  openedAt: z.int(),
+  closedAt: z.int().nullable(),
   entry: z.number(),
   stop: z.number().nullable(),
   target: z.number().nullable(),
@@ -46,18 +46,18 @@ export const JournalEntrySchema = z.object({
   screenshotUrl: z.string().nullable().optional(),
   /** Free-form attachments (Supabase Storage paths). */
   attachments: z.array(z.string()).default([]),
-  createdAt: z.number().int(),
-  updatedAt: z.number().int(),
+  createdAt: z.int(),
+  updatedAt: z.int(),
 });
 
 export type JournalEntry = z.infer<typeof JournalEntrySchema>;
 
 export const JournalStatsSchema = z.object({
-  count: z.number().int(),
-  wins: z.number().int(),
-  losses: z.number().int(),
-  breakevens: z.number().int(),
-  open: z.number().int(),
+  count: z.int(),
+  wins: z.int(),
+  losses: z.int(),
+  breakevens: z.int(),
+  open: z.int(),
   winRate: z.number().min(0).max(1),
   avgR: z.number(),
   totalR: z.number(),
@@ -68,8 +68,8 @@ export const JournalStatsSchema = z.object({
    * gracefully (renders — instead of a value).
    */
   maxDrawdown: z.number().optional(),
-  longestWinStreak: z.number().int().optional(),
-  longestLossStreak: z.number().int().optional(),
+  longestWinStreak: z.int().optional(),
+  longestLossStreak: z.int().optional(),
   profitFactor: z.number().nullable().optional(),
   avgHoldMs: z.number().optional(),
   perDayOfWeek: z
@@ -86,12 +86,12 @@ export const JournalStatsSchema = z.object({
   // Phase 2 — rich journal analytics suite.
   avgWinR: z.number().optional(),
   avgLossR: z.number().optional(),
-  maxWinStreak: z.number().int().optional(),
-  maxLossStreak: z.number().int().optional(),
+  maxWinStreak: z.int().optional(),
+  maxLossStreak: z.int().optional(),
   currentStreak: z
     .object({
       type: z.enum(['win', 'loss', 'none']),
-      count: z.number().int(),
+      count: z.int(),
     })
     .optional(),
   recoveryFactor: z.number().optional(),
@@ -99,7 +99,7 @@ export const JournalStatsSchema = z.object({
     .array(
       z.object({
         bucket: z.string(),
-        count: z.number().int(),
+        count: z.int(),
       }),
     )
     .optional(),
@@ -107,7 +107,7 @@ export const JournalStatsSchema = z.object({
     .array(
       z.object({
         symbol: z.string(),
-        trades: z.number().int(),
+        trades: z.int(),
         winRate: z.number(),
         totalR: z.number(),
         expectancy: z.number(),
@@ -118,7 +118,7 @@ export const JournalStatsSchema = z.object({
     .array(
       z.object({
         session: z.string(),
-        trades: z.number().int(),
+        trades: z.int(),
         winRate: z.number(),
         totalR: z.number(),
       }),
@@ -127,8 +127,8 @@ export const JournalStatsSchema = z.object({
   byHour: z
     .array(
       z.object({
-        hour: z.number().int(),
-        trades: z.number().int(),
+        hour: z.int(),
+        trades: z.int(),
         winRate: z.number(),
         totalR: z.number(),
       }),
@@ -138,7 +138,7 @@ export const JournalStatsSchema = z.object({
     .array(
       z.object({
         day: z.string(),
-        trades: z.number().int(),
+        trades: z.int(),
         winRate: z.number(),
         totalR: z.number(),
       }),
@@ -148,7 +148,7 @@ export const JournalStatsSchema = z.object({
     .array(
       z.object({
         tag: z.string(),
-        trades: z.number().int(),
+        trades: z.int(),
         winRate: z.number(),
         totalR: z.number(),
         expectancy: z.number(),

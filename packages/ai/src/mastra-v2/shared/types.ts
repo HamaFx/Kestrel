@@ -92,7 +92,7 @@ export const XauusdCandlesEvidenceSchema = EvidenceMetadataSchema.extend({
   data: z.object({
     candles: z.array(CandleSchema),
     stale: z.boolean(),
-    count: z.number().int().nonnegative(),
+    count: z.int().nonnegative(),
   }),
 });
 
@@ -102,7 +102,7 @@ export const XauusdIndicatorsEvidenceSchema = EvidenceMetadataSchema.extend({
   timeframe: TimeframeSchema,
   data: z.object({
     results: z.array(IndicatorResultSchema),
-    candleCount: z.number().int().nonnegative(),
+    candleCount: z.int().nonnegative(),
     stale: z.boolean(),
   }),
 });

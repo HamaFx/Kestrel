@@ -38,7 +38,7 @@ describe('ScriptedLlmClient', () => {
 
   it('executes a scripted tool call and exposes the tool result in onFinish', async () => {
     const execute = vi.fn().mockResolvedValue({ ticks: [{ symbol: 'XAUUSD', mid: 2400 }] });
-    const onFinish = vi.fn();
+    const onEnd = vi.fn();
     const scripted = createScriptedLlmClient([
       {
         type: 'tool',
@@ -51,14 +51,14 @@ describe('ScriptedLlmClient', () => {
     await scripted.client.streamText({
       model: scriptedModel(),
       tools: { get_price: { execute } },
-      onFinish,
+      onEnd,
     });
 
     expect(execute).toHaveBeenCalledWith(
       { symbols: ['XAUUSD'] },
       expect.objectContaining({ toolCallId: 'scripted-call-get_price' }),
     );
-    expect(onFinish).toHaveBeenCalledWith(
+    expect(onEnd).toHaveBeenCalledWith(
       expect.objectContaining({
         finishReason: 'stop',
         response: expect.objectContaining({

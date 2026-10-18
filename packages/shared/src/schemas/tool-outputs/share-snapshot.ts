@@ -41,14 +41,14 @@ export const ShareSnapshotInputSchema = z.object({
   symbol: SymbolSchema.optional(),
   tf: TimeframeSchema.optional(),
   /** Minutes from now until the share link stops working. */
-  ttlMinutes: z.number().int().min(5).max(MAX_TTL_MINUTES).default(DEFAULT_TTL_MINUTES),
+  ttlMinutes: z.int().min(5).max(MAX_TTL_MINUTES).default(DEFAULT_TTL_MINUTES),
 });
 export type ShareSnapshotInput = z.infer<typeof ShareSnapshotInputSchema>;
 
 export const ShareSnapshotOutputSchema = z.object({
-  id: z.string().uuid(),
-  url: z.string().url(),
+  id: z.uuid(),
+  url: z.url(),
   /** ms epoch UTC at which the share link expires. */
-  expiresAt: z.number().int(),
+  expiresAt: z.int(),
 });
 export type ShareSnapshotOutput = z.infer<typeof ShareSnapshotOutputSchema>;

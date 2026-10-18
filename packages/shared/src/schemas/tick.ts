@@ -25,7 +25,7 @@ export const TickSchema = z.object({
   ask: z.number(),
   mid: z.number(),
   /** Tick timestamp, ms epoch UTC. */
-  ts: z.number().int(),
+  ts: z.int(),
   source: z.string(),
   /** Market state reported by upstream ('open' | 'closed'). Optional for providers that do not report it. */
   marketState: BiquoteMarketStateSchema.optional(),

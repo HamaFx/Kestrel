@@ -46,8 +46,8 @@ describe('telemetryConfig', () => {
           functionId: 'agent.technical',
           metadata: { attempt: 2 },
         });
-        if (!('experimental_telemetry' in config)) throw new Error('telemetry was not enabled');
-        const settings = config.experimental_telemetry;
+        if (!('telemetry' in config)) throw new Error('telemetry was not enabled');
+        const settings = config.telemetry;
 
         expect(settings.isEnabled).toBe(true);
         expect(settings.functionId).toBe('agent.technical');
@@ -74,8 +74,8 @@ describe('telemetryConfig', () => {
     vi.stubEnv('LANGFUSE_RECORD_IO', 'true');
 
     const config = telemetryConfig();
-    if (!('experimental_telemetry' in config)) throw new Error('telemetry was not enabled');
-    const settings = config.experimental_telemetry;
+    if (!('telemetry' in config)) throw new Error('telemetry was not enabled');
+    const settings = config.telemetry;
     expect(settings.recordInputs).toBe(true);
     expect(settings.recordOutputs).toBe(true);
   });

@@ -30,7 +30,7 @@ export const AlertCreateSchema = z.object({
   rule: AlertRuleSchema,
   channels: z.array(AlertChannelSchema).min(1).default(['email']),
   note: z.string().max(280).nullable().default(null),
-  snoozeHours: z.number().int().min(0).max(168).default(0),
+  snoozeHours: z.int().min(0).max(168).default(0),
 });
 
 export const AlertPatchSchema = z.object({
@@ -38,12 +38,12 @@ export const AlertPatchSchema = z.object({
   channels: z.array(AlertChannelSchema).optional(),
   note: z.string().max(280).nullable().optional(),
   active: z.boolean().optional(),
-  firedAt: z.number().int().nullable().optional(),
+  firedAt: z.int().nullable().optional(),
 });
 
 export const AlertPreviewBodySchema = z.object({
   rule: AlertRuleSchema,
-  lookbackDays: z.number().int().min(1).max(365).default(90),
+  lookbackDays: z.int().min(1).max(365).default(90),
 });
 
 export type AlertCreateInput = z.infer<typeof AlertCreateSchema>;

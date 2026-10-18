@@ -29,21 +29,21 @@ import { SymbolSchema } from '../../symbols';
 
 export const GetCoTInputSchema = z.object({
   symbol: SymbolSchema.optional(),
-  weeks: z.number().int().min(1).max(52).default(8),
+  weeks: z.int().min(1).max(52).default(8),
 });
 export type GetCoTInput = z.infer<typeof GetCoTInputSchema>;
 
 export const CoTSampleSchema = z.object({
   /** ms epoch UTC of the report date. */
-  reportDate: z.number().int(),
-  dealerLong: z.number().int().nullable(),
-  dealerShort: z.number().int().nullable(),
-  assetLong: z.number().int().nullable(),
-  assetShort: z.number().int().nullable(),
-  leveragedLong: z.number().int().nullable(),
-  leveragedShort: z.number().int().nullable(),
-  otherLong: z.number().int().nullable(),
-  otherShort: z.number().int().nullable(),
+  reportDate: z.int(),
+  dealerLong: z.int().nullable(),
+  dealerShort: z.int().nullable(),
+  assetLong: z.int().nullable(),
+  assetShort: z.int().nullable(),
+  leveragedLong: z.int().nullable(),
+  leveragedShort: z.int().nullable(),
+  otherLong: z.int().nullable(),
+  otherShort: z.int().nullable(),
 });
 export type CoTSample = z.infer<typeof CoTSampleSchema>;
 

@@ -26,7 +26,7 @@ import { checkMarketRateLimit, getCandlesService } from '@/lib/services/market';
 const QuerySchema = z.object({
   symbol: z.string(),
   tf: z.string().default('1h'),
-  count: z.coerce.number().int().min(1).max(5000).default(300),
+  count: z.coerce.number().int().min(1).max(5000).prefault(300),
 });
 
 export const runtime = 'nodejs';

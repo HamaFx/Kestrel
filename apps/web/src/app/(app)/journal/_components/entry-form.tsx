@@ -47,7 +47,9 @@ const entrySchema = z.object({
   symbol: z.string().min(1, 'Symbol is required'),
   side: z.enum(['long', 'short']),
   entry: z
-    .number({ invalid_type_error: 'Entry price must be a number' })
+    .number({
+      error: (issue) => (issue.input === undefined ? undefined : 'Entry price must be a number'),
+    })
     .positive('Entry price must be positive'),
   stop: z.number().positive('Stop loss must be positive').nullable().optional(),
   target: z.number().positive('Target must be positive').nullable().optional(),
@@ -150,7 +152,7 @@ export function EntryForm({ onCreated }: EntryFormProps) {
     const validation = entrySchema.safeParse(parsed);
     if (!validation.success) {
       setBusy(false);
-      setError(validation.error.errors[0]?.message ?? 'Invalid input');
+      setError(validation.error.issues[0]?.message ?? 'Invalid input');
       return;
     }
 

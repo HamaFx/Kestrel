@@ -27,7 +27,7 @@ export const CandleSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
   /** Open time, ms epoch UTC. */
-  t: z.number().int(),
+  t: z.int(),
   o: z.number(),
   h: z.number(),
   l: z.number(),
@@ -37,7 +37,7 @@ export const CandleSchema = z.object({
   /** Provider that produced this candle, e.g. "twelve-data". */
   source: z.string(),
   /** When we fetched it, ms epoch UTC — drives freshness UI. */
-  fetchedAt: z.number().int(),
+  fetchedAt: z.int(),
 });
 
 export type Candle = z.infer<typeof CandleSchema>;

@@ -27,7 +27,7 @@ import { listFeaturesService, upsertFeaturesService } from '@/lib/services/admin
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const toggleSchema = z.record(z.boolean());
+const toggleSchema = z.record(z.string(), z.boolean());
 
 export const GET = withAdminAuth(async () => {
   const result = await listFeaturesService();

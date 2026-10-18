@@ -20,18 +20,14 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { z } from 'zod';
 
 import { acquireBudget } from '../budget';
-import {
-  DEFAULT_MAX_DAILY_USD,
-  estimateKnownCostUsd,
-  releaseBudgetReservation,
-} from '../cost';
+import { DEFAULT_MAX_DAILY_USD, estimateKnownCostUsd, releaseBudgetReservation } from '../cost';
 import * as textRunner from '../mastra-v2/agents/xauusd/text-runner';
+import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
   beginMastraRun,
   finishMastraRun,
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
-import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { resolveChatModel } from '../model';
 import { computeStats, listEntries } from './persistence';
 
@@ -212,7 +208,7 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       const structuredResult = await textRunner.runMastraStructured({
         task: 'journal-review',
         model,
-        system: COACH_SYSTEM_PROMPT,
+        instructions: COACH_SYSTEM_PROMPT,
         prompt: userPrompt,
         schema: CoachInsightsOutputSchema,
         userId,
@@ -231,7 +227,7 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       const textResult = await textRunner.runMastraText({
         task: 'journal-review',
         model,
-        system: COACH_SYSTEM_PROMPT,
+        instructions: COACH_SYSTEM_PROMPT,
         prompt: userPrompt,
         userId,
         threadId,

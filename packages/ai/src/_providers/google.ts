@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGoogle } from '@ai-sdk/google';
 
 import { CAPS_FULL, defineProvider } from './helpers';
 
@@ -152,7 +152,7 @@ export const GOOGLE = defineProvider({
     },
   ],
   factory: (apiKey) => {
-    const provider = createGoogleGenerativeAI({ apiKey });
+    const provider = createGoogle({ apiKey });
     return (modelId) => provider(modelId);
   },
 });

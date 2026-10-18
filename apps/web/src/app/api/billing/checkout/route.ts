@@ -41,7 +41,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const CheckoutSchema = z.object({
-  planId: z.string().uuid('Invalid plan ID'),
+  planId: z.uuid('Invalid plan ID'),
 });
 
 const IDEMPOTENCY_KEY_MAX_LENGTH = 200;

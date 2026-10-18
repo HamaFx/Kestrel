@@ -62,6 +62,15 @@ import {
 } from '../mutation/mutation-policy';
 import { runTracingOptions } from '../telemetry';
 
+/**
+ * Mastra 1.78 types `Workflow.then()` with free type parameters that resolve
+ * to `unknown` when checked under `exactOptionalPropertyTypes`, so steps whose
+ * schemas contain optional properties fail the inferred comparison even though
+ * the shapes line up. Bridge with the parameter type the method actually
+ * accepts; the step schemas are still validated at creation above.
+ */
+type ChainStep = Parameters<Workflow['then']>[0];
+
 // --- schemas ---------------------------------------------------------------
 
 export const MutationKindSchema = z.enum([
@@ -79,13 +88,13 @@ export const MutationInputSchema = z.discriminatedUnion('kind', [
     rule: AlertRuleSchema,
     channels: z.array(AlertChannelSchema).optional(),
     note: z.string().nullable().optional(),
-    snoozeHours: z.number().int().min(0).max(168).optional(),
+    snoozeHours: z.int().min(0).max(168).optional(),
   }),
   z.object({
     kind: z.literal('log_journal'),
     symbol: SymbolSchema,
     side: z.enum(['long', 'short']),
-    openedAt: z.number().int(),
+    openedAt: z.int(),
     entry: z.number(),
     stop: z.number().nullable().optional(),
     target: z.number().nullable().optional(),
@@ -104,7 +113,6 @@ export const MutationInputSchema = z.discriminatedUnion('kind', [
     tf: z.string().optional(),
     /** Minutes until the share link expires (5 min .. 30 days). */
     ttlMinutes: z
-      .number()
       .int()
       .min(5)
       .max(30 * 24 * 60)
@@ -113,7 +121,7 @@ export const MutationInputSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('run_system_action'),
     action: RunSystemActionInputSchema.shape.action,
-    params: z.record(z.unknown()).optional(),
+    params: z.record(z.string(), z.unknown()).optional(),
   }),
 ]);
 export type MutationInput = z.infer<typeof MutationInputSchema>;
@@ -124,7 +132,7 @@ export const MutationSuspendPayloadSchema = z.object({
   summary: z.string(),
   runId: z.string(),
   /** ms epoch UTC — the confirmation expires. */
-  expiresAt: z.number().int(),
+  expiresAt: z.int(),
   /**
    * Single-use bearer token the client presents on resume. The server keeps
    * only its HMAC digest in the run snapshot — the raw token exists only in
@@ -292,8 +300,30 @@ const MutationRunContextSchema = z.object({
   inputDigest: z.string().regex(/^[a-f0-9]{64}$/),
   confirmation: z.object({
     digest: z.string().min(1),
-    expiresAt: z.number().int(),
+    expiresAt: z.int(),
     inputDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  }),
+});
+
+/**
+ * Workflow-level state schema — looser than the persisted run context because
+ * the confirmation digest/exchange fields are only populated mid-run. Shared
+ * by the draft step and the workflow itself so Mastra's step/workflow state
+ * generics stay aligned.
+ */
+const MutationWorkflowStateSchema = z.object({
+  userId: z.string(),
+  threadId: z.string(),
+  mutation: MutationKindSchema,
+  inputDigest: z.string(),
+  systemAction: SystemActionIdSchema.optional(),
+  confirmation: z.object({
+    digest: z.string(),
+    expiresAt: z.int(),
+    inputDigest: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
   }),
 });
 
@@ -356,21 +386,7 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     outputSchema: ConfirmedInputSchema,
     resumeSchema: MutationResumeSchema,
     suspendSchema: MutationSuspendPayloadSchema,
-    stateSchema: z.object({
-      userId: z.string(),
-      threadId: z.string(),
-      mutation: MutationKindSchema,
-      inputDigest: z.string(),
-      systemAction: SystemActionIdSchema.optional(),
-      confirmation: z.object({
-        digest: z.string(),
-        expiresAt: z.number().int(),
-        inputDigest: z
-          .string()
-          .regex(/^[a-f0-9]{64}$/)
-          .optional(),
-      }),
-    }),
+    stateSchema: MutationWorkflowStateSchema,
     execute: async ({ inputData, resumeData, suspend, state, setState, runId }) => {
       // First pass — validate + dry-run + issue token + suspend.
       if (!resumeData) {
@@ -542,9 +558,9 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
     outputSchema: MutationOutputSchema,
     ...(deps.mastra ? { mastra: deps.mastra } : {}),
   })
-    .then(draftStep)
-    .then(executeStep)
-    .then(notifyStep)
+    .then(draftStep as unknown as ChainStep)
+    .then(executeStep as unknown as ChainStep)
+    .then(notifyStep as unknown as ChainStep)
     .commit() as unknown as Workflow;
 }
 

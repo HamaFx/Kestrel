@@ -34,16 +34,16 @@ import { getSeasonalityTool } from '../../../tools/get-seasonality';
 import { searchKnowledgeTool } from '../../../tools/search-knowledge';
 import { webSearchTool } from '../../../tools/web-search';
 import { createEvidenceId } from '../../packets/evidence';
-import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
 import { executeMastraTool } from '../../shared/telemetry';
+import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
 
-const ResearchEnvelope = <TSchema extends z.ZodTypeAny>(schema: TSchema) =>
+const ResearchEnvelope = <TSchema extends z.ZodType>(schema: TSchema) =>
   z.object({
     evidenceId: z.string().min(1),
     symbol: SymbolSchema,
     source: z.string().min(1),
-    fetchedAt: z.string().datetime(),
-    dataAsOf: z.string().datetime(),
+    fetchedAt: z.iso.datetime(),
+    dataAsOf: z.iso.datetime(),
     freshness: z.enum(['fresh', 'stale', 'unknown']),
     quality: z.enum(['complete', 'partial', 'degraded']),
     warnings: z.array(z.string()),
@@ -57,8 +57,8 @@ const WebOutputSchema = z.object({
   evidenceId: z.string().min(1),
   symbol: SymbolSchema.nullable(),
   source: z.literal('web-search'),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.enum(['fresh', 'stale', 'unknown']),
   quality: z.enum(['complete', 'partial', 'degraded']),
   warnings: z.array(z.string()),
@@ -69,8 +69,8 @@ const KnowledgeOutputSchema = z.object({
   evidenceId: z.string().min(1),
   symbol: SymbolSchema.nullable(),
   source: z.literal('kestrel-knowledge-index'),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.enum(['fresh', 'stale', 'unknown']),
   quality: z.enum(['complete', 'partial', 'degraded']),
   warnings: z.array(z.string()),
@@ -185,8 +185,8 @@ const WebSearchInputSchema = z.object({
   topic: z
     .enum(['macro', 'central_bank', 'geopolitics', 'commodities', 'forex', 'crypto', 'general'])
     .default('macro'),
-  recencyDays: z.number().int().min(1).max(30).default(7),
-  maxResults: z.number().int().min(1).max(10).default(6),
+  recencyDays: z.int().min(1).max(30).default(7),
+  maxResults: z.int().min(1).max(10).default(6),
   domains: z.array(z.string().trim().min(3).max(120)).max(5).optional(),
 });
 
@@ -230,9 +230,9 @@ export const mastraWebSearchTool = createTool({
 
 const KnowledgeInputSchema = z.object({
   query: z.string().min(2).max(500),
-  since: z.number().int().optional(),
+  since: z.int().optional(),
   symbol: SymbolSchema.optional(),
-  limit: z.number().int().min(1).max(10).default(5),
+  limit: z.int().min(1).max(10).default(5),
 });
 
 export const mastraKnowledgeTool = createTool({

@@ -23,7 +23,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ProgressSchema = z.object({
-  step: z.number().int().min(1).max(5),
+  step: z.int().min(1).max(5),
   name: z.string().optional(),
   timezone: z.string().optional(),
   defaultSymbol: z.string().optional(),

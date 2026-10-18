@@ -60,7 +60,7 @@ export const askCommand: BotCommand = {
         threadId,
         userMessage,
         prompt: question,
-        system:
+        instructions:
           'You are Kestrel answering a trader on Telegram. Explain clearly in simple, everyday language with zero technical jargon. Use only supplied or freshly retrieved market data, keep it concise, and never place trades.',
         ...(ctx.signal ? { signal: ctx.signal } : {}),
       });

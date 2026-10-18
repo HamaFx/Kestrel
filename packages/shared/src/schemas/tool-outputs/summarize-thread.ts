@@ -33,7 +33,7 @@ export const SummarizeThreadInputSchema = z.object({
    * Older messages outside this window contribute through the rolling
    * thread summary already prepended to the system prompt.
    */
-  messageWindow: z.number().int().min(4).max(60).default(30),
+  messageWindow: z.int().min(4).max(60).default(30),
   /** When true, the synopsis is also embedded into `memory_embeddings`. */
   remember: z.boolean().default(true),
 });
@@ -48,8 +48,8 @@ export const ThreadInsightSchema = z.object({
 export type ThreadInsight = z.infer<typeof ThreadInsightSchema>;
 
 export const SummarizeThreadOutputSchema = z.object({
-  threadId: z.string().uuid(),
-  asOf: z.number().int(),
+  threadId: z.uuid(),
+  asOf: z.int(),
   /** One-paragraph synopsis suitable as a retrieval payload. */
   synopsis: z.string(),
   insights: z.array(ThreadInsightSchema),

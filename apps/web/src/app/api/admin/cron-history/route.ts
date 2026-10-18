@@ -26,7 +26,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const querySchema = z.object({
-  days: z.coerce.number().int().min(1).max(90).default(7),
+  days: z.coerce.number().int().min(1).max(90).prefault(7),
   jobName: z.string().optional(),
 });
 

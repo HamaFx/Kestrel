@@ -146,11 +146,9 @@ export function withAuth<T>(
       // connection, then keep all downstream repository and AI calls inside the
       // tenant transaction. There is no unscoped path.
       const tenantId = await requireTenantIdForUser(user.userId);
-      return await withTenantDbFresh(
-        tenantId,
-        () => handler(req, { params: ctx.params, user }),
-        { userId: user.userId },
-      );
+      return await withTenantDbFresh(tenantId, () => handler(req, { params: ctx.params, user }), {
+        userId: user.userId,
+      });
     } catch (err) {
       return errorResponse(err, req);
     }
@@ -241,7 +239,7 @@ export function errorResponse(err: unknown, req?: Request): Response {
 }
 
 /** Parse `URLSearchParams` against a zod schema, throwing on invalid input. */
-export function parseSearchParams<S extends z.ZodTypeAny>(req: Request, schema: S): z.infer<S> {
+export function parseSearchParams<S extends z.ZodType>(req: Request, schema: S): z.infer<S> {
   const url = new URL(req.url);
   const params: Record<string, string> = {};
   for (const [k, v] of url.searchParams.entries()) params[k] = v;
@@ -351,7 +349,7 @@ export function authMiddleware<T>(): Middleware<T, { user: RequestUser }> {
   };
 }
 
-export async function parseJsonBody<S extends z.ZodTypeAny>(
+export async function parseJsonBody<S extends z.ZodType>(
   req: Request,
   schema: S,
 ): Promise<z.infer<S>> {

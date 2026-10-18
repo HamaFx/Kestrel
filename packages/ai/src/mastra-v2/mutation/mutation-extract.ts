@@ -30,12 +30,8 @@ import { AlertChannelSchema, AlertRuleSchema, RunSystemActionInputSchema } from 
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
-import {
-  MutationInputSchema,
-  type MutationInput,
-  type MutationKind,
-} from '../workflows/mutation';
 import { runMastraStructured } from '../agents/xauusd/text-runner';
+import { MutationInputSchema, type MutationInput, type MutationKind } from '../workflows/mutation';
 
 export class MutationExtractionError extends Error {
   readonly kind: MutationKind;
@@ -75,7 +71,7 @@ const SHARE_EXTRACTION_SCHEMA = z.object({
 });
 const ACTION_EXTRACTION_SCHEMA = z.object({
   action: RunSystemActionInputSchema.shape.action.describe('The registered operator action to run'),
-  params: z.record(z.unknown()).default({}),
+  params: z.record(z.string(), z.unknown()).default({}),
 });
 
 export const MUTATION_EXTRACTION_SCHEMAS: Record<
@@ -185,7 +181,7 @@ export function buildMutationInput(kind: MutationKind, raw: unknown): MutationIn
   return validated.data;
 }
 
-function parseStrict<T>(schema: z.ZodTypeAny, raw: unknown, kind: MutationKind): T {
+function parseStrict<T>(schema: z.ZodType, raw: unknown, kind: MutationKind): T {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     throw new MutationExtractionError(
@@ -211,7 +207,7 @@ export async function extractMutationInput(args: ExtractMutationInputArgs): Prom
     const result = await runMastraStructured({
       task: `mutation-extract-${kind}`,
       model: args.model,
-      system: SYSTEM_PROMPTS[kind],
+      instructions: SYSTEM_PROMPTS[kind],
       prompt: text.slice(0, 4000),
       schema: mutationExtractionSchemaFor(kind),
       ...(args.userId ? { userId: args.userId } : {}),

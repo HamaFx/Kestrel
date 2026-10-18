@@ -30,11 +30,11 @@ export const GetSocialSentimentOutputSchema = z.object({
       sentiment: z.enum(['very_bullish', 'bullish', 'neutral', 'bearish', 'very_bearish']),
       score: z.number().min(-1).max(1),
       retailLongPct: z.number().nullable(),
-      sampleSize: z.number().int(),
+      sampleSize: z.int(),
       available: z.boolean(),
     }),
   ),
-  fetchedAt: z.number().int(),
+  fetchedAt: z.int(),
   available: z.boolean(),
 });
 

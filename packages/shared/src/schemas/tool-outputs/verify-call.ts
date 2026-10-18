@@ -51,7 +51,7 @@ export const VerifyCallInputSchema = z.object({
   /** Bar timeframe used for the structure scan. */
   tf: TimeframeSchema.default('1h'),
   /** Lookback in bars for the structure scan. */
-  lookbackBars: z.number().int().min(50).max(1000).default(300),
+  lookbackBars: z.int().min(50).max(1000).default(300),
 });
 export type VerifyCallInput = z.infer<typeof VerifyCallInputSchema>;
 
@@ -72,7 +72,7 @@ export type VerifyCallCaveat = z.infer<typeof VerifyCallCaveatSchema>;
 
 export const VerifyCallOutputSchema = z.object({
   symbol: SymbolSchema,
-  asOf: z.number().int(),
+  asOf: z.int(),
   side: VerifyCallDirectionSchema,
   entry: z.number(),
   stop: z.number(),
@@ -97,7 +97,7 @@ export const VerifyCallOutputSchema = z.object({
     .object({
       price: z.number(),
       kind: z.enum(['swing_high', 'swing_low']),
-      barsAgo: z.number().int(),
+      barsAgo: z.int(),
     })
     .nullable(),
   /** Templated one-paragraph rationale the chat part displays. */

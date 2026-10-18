@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
 const querySchema = z.object({
   threadId: z.string().optional(),
   ok: z.enum(['true', 'false']).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
+  limit: z.coerce.number().int().min(1).max(100).prefault(50),
 });
 
 export const GET = withAdminAuth(async (req) => {

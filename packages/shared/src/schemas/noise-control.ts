@@ -78,8 +78,8 @@ export const QuietHoursSchema = z
   .nullable();
 
 export const NoiseConfigSchema = z.object({
-  dedupTtlSeconds: z.number().int().min(0).max(86_400).default(300),
-  cooldownSeconds: z.number().int().min(0).max(86_400).default(60),
+  dedupTtlSeconds: z.int().min(0).max(86_400).default(300),
+  cooldownSeconds: z.int().min(0).max(86_400).default(60),
   quietHours: QuietHoursSchema.default(null),
   timezone: z.string().default('UTC'),
   minSeverity: SeveritySchema.default('info'),
@@ -109,8 +109,8 @@ export type RouteConfig = z.infer<typeof RouteConfigSchema>;
 export const NoiseStateEntrySchema = z.object({
   dedupKey: z.string(),
   routeType: RouteTypeSchema,
-  lastSentAt: z.number().int(),
-  expiresAt: z.number().int(),
+  lastSentAt: z.int(),
+  expiresAt: z.int(),
 });
 export type NoiseStateEntry = z.infer<typeof NoiseStateEntrySchema>;
 

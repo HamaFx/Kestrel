@@ -22,19 +22,17 @@ import type { ProviderId } from '@kestrel/shared/encryption';
 import { z } from 'zod';
 
 import { type ModelDomain } from './byok-providers';
-import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
 import type { ResolveModelEnv } from './env-model-factory';
+import { resolveChatModel, resolveModelForProvider, type ChatModelResolution } from './model-chat';
 
 export type { ChatModelResolution } from './model-chat';
 
 export type MastraModelPurpose = 'canonical-chat' | 'mode' | 'xauusd' | 'worker';
 
-export const MastraModelSnapshotSchema = z
-  .object({
-    providerId: z.string().min(1),
-    bareModelId: z.string().min(1),
-  })
-  .strict();
+export const MastraModelSnapshotSchema = z.strictObject({
+  providerId: z.string().min(1),
+  bareModelId: z.string().min(1),
+});
 
 export interface MastraModelSnapshot {
   readonly providerId: string;

@@ -44,8 +44,8 @@ export const ComputeRiskInputSchema = z
     riskPct: z.number().positive().max(10).default(1),
   })
   .refine((v) => v.entry !== v.stop, {
-    message: 'entry and stop cannot be equal',
     path: ['stop'],
+    error: 'entry and stop cannot be equal',
   })
   .refine(
     (v) => {
@@ -53,8 +53,8 @@ export const ComputeRiskInputSchema = z
       return definition.quoteCurrency === 'USD' || definition.quoteCurrency === 'USDT';
     },
     {
-      message: 'Risk sizing currently requires a USD- or USDT-quoted symbol',
       path: ['symbol'],
+      error: 'Risk sizing currently requires a USD- or USDT-quoted symbol',
     },
   );
 export type ComputeRiskInput = z.infer<typeof ComputeRiskInputSchema>;

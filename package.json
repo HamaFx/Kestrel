@@ -58,7 +58,6 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "eventsource-parser@3.0.8": "patches/eventsource-parser@3.0.8.patch",
       "eventsource-parser@3.1.1": "patches/eventsource-parser@3.1.1.patch"
     }
   }

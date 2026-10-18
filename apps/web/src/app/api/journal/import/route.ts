@@ -30,7 +30,7 @@ const ImportRowSchema = z.object({
     .string()
     .transform((value) => value.trim().toUpperCase())
     .refine((value) => ALL_SYMBOLS.includes(value), {
-      message: 'Unsupported symbol',
+      error: 'Unsupported symbol',
     }),
   side: z.enum(['long', 'short']),
   // M-11: Add sensible bounds for forex price/date values to
@@ -40,8 +40,8 @@ const ImportRowSchema = z.object({
   target: z.number().min(0.1).max(5000).nullable().optional(),
   exit: z.number().min(0.1).max(5000).nullable().optional(),
   size: z.number().min(0.01).max(1000).nullable().optional(),
-  openedAt: z.number().int().min(946684800000).max(4102444800000), // 2000-2100
-  closedAt: z.number().int().min(946684800000).max(4102444800000).nullable().optional(),
+  openedAt: z.int().min(946684800000).max(4102444800000), // 2000-2100
+  closedAt: z.int().min(946684800000).max(4102444800000).nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
 });
 

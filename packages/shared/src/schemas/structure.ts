@@ -39,14 +39,14 @@ export type SwingType = z.infer<typeof SwingTypeSchema>;
 
 export const SwingPointSchema = z.object({
   /** Index into the candle window. */
-  index: z.number().int().min(0),
+  index: z.int().min(0),
   /** Open time of the bar at `index`, ms epoch UTC. */
-  time: z.number().int(),
+  time: z.int(),
   /** The pivot price — high for swing-high, low for swing-low. */
   price: z.number(),
   type: SwingTypeSchema,
   /** Lookback used to qualify the pivot (k bars on each side). */
-  lookback: z.number().int().positive(),
+  lookback: z.int().positive(),
 });
 export type SwingPoint = z.infer<typeof SwingPointSchema>;
 
@@ -66,13 +66,13 @@ export const StructureEventSchema = z.object({
   kind: StructureEventKindSchema,
   direction: StructureDirectionSchema,
   /** Candle index where the break confirmed (close beyond `level`). */
-  brokenAt: z.number().int().min(0),
+  brokenAt: z.int().min(0),
   /** ms epoch UTC of `brokenAt`. */
-  time: z.number().int(),
+  time: z.int(),
   /** The swing-point price that was broken. */
   level: z.number(),
   /** Index of the swing-point in the source `swings` array. */
-  swingIndex: z.number().int().min(0),
+  swingIndex: z.int().min(0),
 });
 export type StructureEvent = z.infer<typeof StructureEventSchema>;
 
@@ -85,11 +85,11 @@ export type StructureEvent = z.infer<typeof StructureEventSchema>;
 export const FvgZoneSchema = z.object({
   side: StructureDirectionSchema,
   /** Index of the FIRST bar in the 3-bar pattern. */
-  startIndex: z.number().int().min(0),
+  startIndex: z.int().min(0),
   /** Index of the THIRD bar (where the gap was confirmed). */
-  endIndex: z.number().int().min(0),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  endIndex: z.int().min(0),
+  startTime: z.int(),
+  endTime: z.int(),
   /** Top of the gap (always > bottom). */
   top: z.number(),
   bottom: z.number(),
@@ -112,8 +112,8 @@ export type FvgZone = z.infer<typeof FvgZoneSchema>;
 export const OrderBlockSchema = z.object({
   side: StructureDirectionSchema,
   /** Index of the OB candle itself. */
-  index: z.number().int().min(0),
-  time: z.number().int(),
+  index: z.int().min(0),
+  time: z.int(),
   /** Top/bottom = high/low of the OB candle. */
   top: z.number(),
   bottom: z.number(),
@@ -133,8 +133,8 @@ export const LiquiditySweepSchema = z.object({
   /** "high" = wick swept a swing-high (stops above); "low" = swept a swing-low. */
   side: SwingTypeSchema,
   /** Candle index of the sweeping bar. */
-  index: z.number().int().min(0),
-  time: z.number().int(),
+  index: z.int().min(0),
+  time: z.int(),
   /** The swing level that was swept. */
   level: z.number(),
   /** The actual extreme (wick) that swept the level. */
@@ -163,12 +163,12 @@ export const StructureResultSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
   /** Number of candles the result was computed against. */
-  bars: z.number().int().nonnegative(),
+  bars: z.int().nonnegative(),
   swings: z.array(SwingPointSchema).optional(),
   events: z.array(StructureEventSchema).optional(),
   fvg: z.array(FvgZoneSchema).optional(),
   orderBlocks: z.array(OrderBlockSchema).optional(),
   liquidity: z.array(LiquiditySweepSchema).optional(),
-  fetchedAt: z.number().int(),
+  fetchedAt: z.int(),
 });
 export type StructureResult = z.infer<typeof StructureResultSchema>;

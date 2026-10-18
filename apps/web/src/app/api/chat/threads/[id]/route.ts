@@ -37,7 +37,7 @@ const PatchBodySchema = z
     analysisMode: z.enum(['single', 'full']).nullable().optional(),
   })
   .refine((body) => body.pinnedSymbol !== undefined || body.analysisMode !== undefined, {
-    message: 'At least one thread setting is required',
+    error: 'At least one thread setting is required',
   });
 
 export const runtime = 'nodejs';

@@ -61,7 +61,7 @@ import { z } from 'zod';
 export const JournalCreateSchema = z.object({
   symbol: SymbolSchema,
   side: TradeSideSchema,
-  openedAt: z.number().int(),
+  openedAt: z.int(),
   entry: z.number(),
   stop: z.number().nullable().optional(),
   target: z.number().nullable().optional(),
@@ -72,7 +72,7 @@ export const JournalCreateSchema = z.object({
 });
 
 export const JournalPatchSchema = z.object({
-  closedAt: z.number().int().nullable().optional(),
+  closedAt: z.int().nullable().optional(),
   exit: z.number().nullable().optional(),
   stop: z.number().nullable().optional(),
   target: z.number().nullable().optional(),

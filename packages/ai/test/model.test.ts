@@ -55,7 +55,7 @@ vi.mock('@kestrel/shared/encryption', () => ({
 const mockLanguageModel = vi.fn(() => ({ modelId: 'mock-model' }));
 vi.mock('@ai-sdk/google', () => ({
   google: vi.fn(() => mockLanguageModel()),
-  createGoogleGenerativeAI: vi.fn(() => (modelId: string) => ({ modelId })),
+  createGoogle: vi.fn(() => (modelId: string) => ({ modelId })),
 }));
 
 vi.mock('@ai-sdk/anthropic', () => ({

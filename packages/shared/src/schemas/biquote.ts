@@ -120,9 +120,9 @@ export const BiquoteSignalRTickSchema = z.object({
    * milliseconds since epoch (number) or an ISO string. Accept both so
    * a future server-side change doesn't trip the consumer.
    */
-  timestamp: z.union([z.number().int().nonnegative(), z.string().min(1)]),
+  timestamp: z.union([z.int().nonnegative(), z.string().min(1)]),
   /** Numeric enum or string — accept either. */
-  source: z.union([z.number().int(), z.string().min(1)]),
+  source: z.union([z.int(), z.string().min(1)]),
   // Extras BiQuote forwards. We accept anything that's a finite number /
   // string / null / missing — the consumer never reads them, but failing
   // to validate them would drop every tick.
@@ -154,8 +154,8 @@ export const BiquoteOhlcBarSchema = z.object({
   high: z.number().finite(),
   low: z.number().finite(),
   close: z.number().finite(),
-  volume: z.number().int().nonnegative(),
-  tickVolume: z.number().int().nonnegative(),
+  volume: z.int().nonnegative(),
+  tickVolume: z.int().nonnegative(),
   isOpen: z.boolean(),
 });
 
@@ -203,12 +203,12 @@ export const BiquoteCalendarEventSchema = z.object({
   sector: z.string().nullable().optional(),
   unit: z.string().nullable().optional(),
   multiplier: z.string().nullable().optional(),
-  digits: z.number().int().nullable().optional(),
+  digits: z.int().nullable().optional(),
   actual: z.number().finite().nullable().optional().default(null),
   forecast: z.number().finite().nullable().optional().default(null),
   previous: z.number().finite().nullable().optional().default(null),
   revisedPrevious: z.number().finite().nullable().optional().default(null),
-  revision: z.number().int().nullable().optional(),
+  revision: z.int().nullable().optional(),
   timeMode: z.string().nullable().optional(),
   sourceUrl: z.string().nullable().optional(),
   source: z.string().nullable().optional(),
@@ -222,7 +222,7 @@ export type BiquoteCalendarEvent = z.infer<typeof BiquoteCalendarEventSchema>;
 export const BiquoteNewsArticleSchema = z.object({
   title: z.string().min(1),
   description: z.string().nullable().optional().default(null),
-  url: z.string().url(),
+  url: z.url(),
   publisher: z.string().nullable().optional().default(null),
   publishedDate: z.string().min(1),
   imageUrl: z.string().nullable().optional().default(null),

@@ -17,7 +17,7 @@
 import { fred } from '@kestrel/data';
 import { schema } from '@kestrel/db';
 import { forbidden, RunSystemActionInputSchema, type RunSystemActionOutput } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { and, eq, gte, lte, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -45,7 +45,7 @@ async function assertOperatorRole(userId: string): Promise<void> {
   }
 }
 
-export const runSystemActionTool = tool({
+export const runSystemActionTool: Tool<z.infer<typeof InputSchema>, RunSystemActionOutput> = tool({
   description:
     'Trigger the operator-only FRED resonance historical sync. This tool is only for explicit user requests to run the resonance backfill/sync and is unavailable for canned cache or migration theatrics.',
   inputSchema: InputSchema,

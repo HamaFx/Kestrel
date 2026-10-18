@@ -29,7 +29,7 @@ import { envFallbackKeys } from './model-helpers';
 import { resolveModelForRole } from './model-role';
 
 export interface EmbeddingModelResolutionDetails {
-  model: EmbeddingModel<string> | string;
+  model: EmbeddingModel | string;
   modelId: string;
 }
 

@@ -35,8 +35,8 @@ export type EvidenceQuality = z.infer<typeof EvidenceQualitySchema>;
 /** Shared provenance required for every evidence item passed across agent boundaries. */
 export const EvidenceProvenanceSchema = z.object({
   source: z.string().min(1),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: EvidenceFreshnessSchema,
   quality: EvidenceQualitySchema,
   warnings: z.array(z.string()),
@@ -52,7 +52,7 @@ export const UserMemoryEvidenceSchema = z.object({
   trust: z.literal('user-memory'),
   memoryId: z.string().min(1),
   text: z.string().max(8_000),
-  createdAt: z.string().datetime().optional(),
+  createdAt: z.iso.datetime().optional(),
 });
 export type UserMemoryEvidence = z.infer<typeof UserMemoryEvidenceSchema>;
 
@@ -60,7 +60,7 @@ export const UntrustedExternalEvidenceSchema = EvidenceProvenanceSchema.extend({
   evidenceId: z.string().min(1),
   trust: z.literal('untrusted-external'),
   provenance: z.object({
-    url: z.string().url().optional(),
+    url: z.url().optional(),
     publisher: z.string().min(1).optional(),
     provider: z.string().min(1).optional(),
   }),
@@ -79,7 +79,7 @@ export const ModelGeneratedEvidenceSchema = z.object({
   claimId: z.string().min(1),
   claim: z.string().min(1).max(8_000),
   sourceEvidenceIds: z.array(z.string()).max(50).default([]),
-  generatedAt: z.string().datetime(),
+  generatedAt: z.iso.datetime(),
 });
 export type ModelGeneratedEvidence = z.infer<typeof ModelGeneratedEvidenceSchema>;
 

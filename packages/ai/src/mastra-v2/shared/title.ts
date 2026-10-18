@@ -140,7 +140,7 @@ export async function generateThreadTitle(
     const result = await runMastraText({
       task: 'title',
       model,
-      system: SYSTEM_PROMPT,
+      instructions: SYSTEM_PROMPT,
       prompt: userPrompt,
       userId: args.userId,
       threadId: args.threadId,

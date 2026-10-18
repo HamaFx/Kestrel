@@ -31,7 +31,7 @@ import {
   type ReplaySetupOutput,
   type ReplayTrade,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 import { maybeGetToolContext } from '../tool-context';
@@ -44,7 +44,7 @@ declare module '@kestrel/shared' {
   }
 }
 
-export const replaySetupTool = tool({
+export const replaySetupTool: Tool<z.infer<typeof InputSchema>, ReplaySetupOutput> = tool({
   description:
     "Replay a closed-set rule over recent candles and return per-trade entries/exits + win-rate / avg R / total R. Two rule kinds: `ema_cross` (fast/slow EMA crossover) and `rsi_threshold` (RSI crossing a level). Stop and target are ATR multiples (default 1.5 / 2 RR) or fixed pips. Use when the user describes a setup ('does an EMA50 cross with RSI > 60 actually work on EURUSD 1H'). Returns thin=true when fewer than 5 trades fired.",
   inputSchema: InputSchema,

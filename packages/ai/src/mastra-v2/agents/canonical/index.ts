@@ -18,12 +18,21 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import { container, getMessageText, metrics, pickAiEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { Agent, type AgentMemoryOption } from '@mastra/core/agent';
+import type { MastraModelConfig } from '@mastra/core/llm';
 import type { MastraMemory } from '@mastra/core/memory';
 import { RequestContext } from '@mastra/core/request-context';
 import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
 import { estimateCostUsd } from '../../../cost';
 import { createGenerationLedger, type GenerationLedger } from '../../../generation-ledger';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
+import { withRetry } from '../../../retry';
+import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../../routing';
+import type { SemanticRoutingAccounting } from '../../../semantic-routing';
+import { DB } from '../../../tokens';
+import { withToolContext, type ToolContext } from '../../../tool-context';
+import { domainToolFilter } from '../../../tools/by-domain';
+import { manifestForCapability, manifestToolNames } from '../../capabilities';
 import { prepareKestrelMemory } from '../../context';
 import { buildConversationScorers, type BuiltScorers } from '../../evals/scorers';
 import { buildGuardrailInputProcessors } from '../../guardrails';
@@ -33,31 +42,11 @@ import {
   kestrelMemoryOptions,
   type CreateKestrelMemoryArgs,
 } from '../../memory';
-import { runTracingOptions } from '../../telemetry';
-import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
-import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../../routing';
-import type { SemanticRoutingAccounting } from '../../../semantic-routing';
-import { withRetry } from '../../../retry';
-import { DB } from '../../../tokens';
-import { withToolContext, type ToolContext } from '../../../tool-context';
-import { domainToolFilter } from '../../../tools/by-domain';
-import {
-  assertCanonicalEvidence,
-  checkCanonicalEvidence,
-  type CanonicalToolEvidence,
-} from './evidence';
-import { manifestForCapability, manifestToolNames } from '../../capabilities';
 import {
   assertExecutionPlanRoute,
   requireExecutionPlanModel,
   type ExecutionPlan,
 } from '../../planning/execution-plan';
-import {
-  adaptLegacyReadOnlyTool,
-  extractToolPartsFromMessages,
-  type MastraToolInvocationPart,
-  type MastraToolStreamEvent,
-} from '../xauusd/legacy-tool-adapter';
 import {
   beginMastraRun,
   createMastraRunFinalizer,
@@ -66,6 +55,18 @@ import {
   mastraOutcomeForError,
   type MastraGenerationStats,
 } from '../../shared/telemetry';
+import { runTracingOptions } from '../../telemetry';
+import {
+  adaptLegacyReadOnlyTool,
+  extractToolPartsFromMessages,
+  type MastraToolInvocationPart,
+  type MastraToolStreamEvent,
+} from '../xauusd/legacy-tool-adapter';
+import {
+  assertCanonicalEvidence,
+  checkCanonicalEvidence,
+  type CanonicalToolEvidence,
+} from './evidence';
 
 const mlog = createCategorizedLogger('ai', { component: 'mastra-canonical-chat' });
 
@@ -144,7 +145,7 @@ function resolveCanonicalModel(
   });
 }
 
-function messageHistory(history: UIMessage[], latest: UIMessage): ModelMessage[] {
+async function messageHistory(history: UIMessage[], latest: UIMessage): Promise<ModelMessage[]> {
   const source = history.some((message) => message.id === latest.id)
     ? history
     : [...history, latest];
@@ -160,7 +161,7 @@ function messageHistory(history: UIMessage[], latest: UIMessage): ModelMessage[]
     totalChars += charCount;
     bounded.unshift(msg);
   }
-  return convertToModelMessages(
+  return await convertToModelMessages(
     bounded.map((message) => ({
       id: message.id,
       role: message.role,
@@ -170,8 +171,8 @@ function messageHistory(history: UIMessage[], latest: UIMessage): ModelMessage[]
 }
 
 /** The new user turn only — used when native Mastra memory loads history. */
-function latestUserModelMessages(latest: UIMessage): ModelMessage[] {
-  return convertToModelMessages([
+async function latestUserModelMessages(latest: UIMessage): Promise<ModelMessage[]> {
+  return await convertToModelMessages([
     {
       role: latest.role,
       parts: latest.parts,
@@ -391,7 +392,7 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     id: 'kestrel-mastra-canonical-chat',
     name: 'Kestrel Mastra Canonical Chat',
     description: 'Canonical read-only Kestrel conversational research agent.',
-    model: resolution.model,
+    model: resolution.model as unknown as MastraModelConfig,
     instructions: systemInstructions(
       routing,
       args.customInstructions,
@@ -428,8 +429,8 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     toolPartsBuffer,
     context,
     messages: callMemory
-      ? latestUserModelMessages(args.userMessage)
-      : messageHistory(args.history, args.userMessage),
+      ? await latestUserModelMessages(args.userMessage)
+      : await messageHistory(args.history, args.userMessage),
     scorers: builtScorers,
     memoryDegraded,
     memoryBackfill,

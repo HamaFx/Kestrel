@@ -21,7 +21,7 @@ import {
   GetSystemDiagnosticsOutputSchema,
   type GetSystemDiagnosticsOutput,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -36,7 +36,10 @@ declare module '@kestrel/shared' {
   }
 }
 
-export const getSystemDiagnosticsTool = tool({
+export const getSystemDiagnosticsTool: Tool<
+  z.infer<typeof InputSchema>,
+  GetSystemDiagnosticsOutput
+> = tool({
   description:
     'Query the real-time operational health, connection latency, database record volumes, active synchronized files status, remaining daily budget, and verified environment variables in the Copilot system.',
   inputSchema: InputSchema,

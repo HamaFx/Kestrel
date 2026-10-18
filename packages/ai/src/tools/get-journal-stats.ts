@@ -26,7 +26,7 @@ import {
   type GetJournalStatsOutput,
   type StatBreakdown,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { and, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -42,7 +42,7 @@ declare module '@kestrel/shared' {
   }
 }
 
-export const getJournalStatsTool = tool({
+export const getJournalStatsTool: Tool<z.infer<typeof InputSchema>, GetJournalStatsOutput> = tool({
   description:
     "Compute journal stats — count, win rate, average R-multiple, total R — globally and broken down by symbol and by tag. Optional filters: time window (`sinceMs`/`untilMs`, ms epoch), `symbol`, `side`. Use for any 'how am I doing on X' or 'win rate this month' prompt. Returns top breakdowns sorted by trade count.",
   inputSchema: InputSchema,

@@ -42,7 +42,7 @@ import {
   AnalyzeChartImageOutputSchema,
   type AnalyzeChartImageOutput,
 } from '@kestrel/shared';
-import { tool, type ModelMessage } from 'ai';
+import { tool, type ModelMessage, type Tool } from 'ai';
 import { and, desc, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -96,7 +96,10 @@ const NO_IMAGE: AnalyzeChartImageOutput = {
   sourceImageRef: '',
 };
 
-export const analyzeChartImageTool = tool({
+export const analyzeChartImageTool: Tool<
+  z.infer<typeof InputSchema>,
+  AnalyzeChartImageOutput
+> = tool({
   description:
     "Run a structured technical readout on the most recent chart screenshot the user attached this turn. Returns a typed observation: identified symbol/timeframe, trend, bias, labelled price levels, and an English observation paragraph. Use whenever the user attaches an image and asks anything chart-shaped. Returns observed='no image attached' if there's no image to analyse.",
   inputSchema: InputSchema,
@@ -164,7 +167,7 @@ export const analyzeChartImageTool = tool({
       const result = await runMastraText({
         task: 'chart-image-analysis',
         model: vision.model,
-        system: SYSTEM_PROMPT,
+        instructions: SYSTEM_PROMPT,
         messages,
         ...(ctx?.userId ? { userId: ctx.userId } : {}),
         threadId,
@@ -258,18 +261,26 @@ function sourceRefFor(part: ImagePartShape): string {
   return `sha256:${createHash('sha256').update(probe).digest('hex').slice(0, 32)}`;
 }
 
-function asContentImagePart(part: ImagePartShape): { type: 'image'; image: string } {
+function asContentImagePart(part: ImagePartShape): {
+  type: 'file';
+  data: string;
+  mediaType: string;
+} {
   // The AI SDK accepts either a URL string (data URL or http/s) or a
   // Buffer/ArrayBuffer; we store data URLs in the parts JSON, so the
   // string form is the right shape here.
   const value = (part.data ?? part.url ?? '').toString();
-  return { type: 'image', image: value };
+  return {
+    type: 'file',
+    data: value,
+    mediaType: 'image',
+  };
 }
 
 function tryParseStructured(text: string): AnalyzeChartImageOutput | null {
   // Strip code fences and try to JSON-parse the first object literal.
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const raw = (jsonMatch && jsonMatch[1]) ? jsonMatch[1].trim() : text.trim();
+  const raw = jsonMatch && jsonMatch[1] ? jsonMatch[1].trim() : text.trim();
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);

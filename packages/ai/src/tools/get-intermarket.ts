@@ -29,7 +29,7 @@ import {
   type RiskRegime,
   type Symbol,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 const InputSchema = GetIntermarketInputSchema;
@@ -44,7 +44,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const DXY_FORMULA =
   'DXY proxy = 100 / (EURUSD^0.5 * GBPUSD^0.5). Two-leg approximation; not a true DXY.';
 
-export const getIntermarketTool = tool({
+export const getIntermarketTool: Tool<z.infer<typeof InputSchema>, GetIntermarketOutput> = tool({
   description:
     "Cross-asset pulse for the legacy CFTC/intermarket trio: USD-strength proxy + 24h change, gold's 24h percent change, and XAU↔DXY-proxy correlation in the chosen window. This intentionally narrow feature does not limit the broader gold, forex, and crypto catalog. Flags `regimeBreak` when the typical XAU↔DXY anti-correlation has flipped. Use for any 'what's the dollar doing', 'is gold tracking the dollar today', or 'risk on or off' prompt — captures the macro pulse the agent needs to stop guessing.",
   inputSchema: InputSchema,

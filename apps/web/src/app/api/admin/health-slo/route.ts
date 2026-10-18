@@ -33,7 +33,7 @@ export const dynamic = 'force-dynamic';
 
 const querySchema = z.object({
   /** Window in hours for SLI computation. Default 24. Max 720 (30 days). */
-  hours: z.coerce.number().int().min(1).max(720).default(24),
+  hours: z.coerce.number().int().min(1).max(720).prefault(24),
 });
 
 export const GET = withAdminAuth(async (req) => {

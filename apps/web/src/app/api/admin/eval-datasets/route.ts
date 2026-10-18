@@ -26,8 +26,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const querySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(50),
-  offset: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(100).prefault(50),
+  offset: z.coerce.number().int().min(0).prefault(0),
   status: z.enum(['draft', 'in_review', 'approved', 'archived']).optional(),
 });
 
@@ -39,9 +39,9 @@ const bodySchema = z.object({
     .max(120)
     .regex(/^[a-zA-Z0-9._-]+$/),
   contentSha256: z.string().regex(/^[a-f0-9]{64}$/i),
-  recordCount: z.number().int().min(0).max(10_000_000),
+  recordCount: z.int().min(0).max(10_000_000),
   source: z.string().trim().min(1).max(200),
-  provenance: z.record(z.unknown()).default({}),
+  provenance: z.record(z.string(), z.unknown()).default({}),
 });
 
 export const GET = withAdminAuth(async (req) => {

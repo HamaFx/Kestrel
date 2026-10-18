@@ -67,7 +67,7 @@ interface CallOptions {
 async function call<T>(
   path: string,
   query: Record<string, string>,
-  schema: z.ZodSchema<T>,
+  schema: z.ZodType<T>,
   opts: CallOptions,
 ): Promise<T> {
   if (!opts.skipThrottle && !(await tryReserve(PROVIDER, THROTTLE))) {
@@ -219,7 +219,12 @@ async function fetchNative(args: FetchCandlesArgs): Promise<FinnhubCandle[]> {
 async function fetch4hSynthesised(args: FetchCandlesArgs): Promise<FinnhubCandle[]> {
   // Pull enough 1h bars to assemble `count` 4h bars after aggregation.
   const reqCount = args.includeOpenBar ? args.count : args.count + 1;
-  const oneH = await fetchNative({ ...args, tf: '1h', count: reqCount * 4 + 4, includeOpenBar: true });
+  const oneH = await fetchNative({
+    ...args,
+    tf: '1h',
+    count: reqCount * 4 + 4,
+    includeOpenBar: true,
+  });
   const synthesized = synth4HFrom1H(oneH);
   const nowMs = args.now ?? Date.now();
   const filtered = args.includeOpenBar
@@ -313,7 +318,7 @@ const FhNewsArticleSchema = z.object({
   related: z.string().optional(), // comma-separated tickers
   source: z.string(),
   summary: z.string(),
-  url: z.string().url(),
+  url: z.url(),
 });
 
 export type FinnhubNewsArticle = z.infer<typeof FhNewsArticleSchema>;

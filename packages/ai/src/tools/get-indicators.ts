@@ -30,7 +30,7 @@ import {
   type GetIndicatorsOutput,
   type IndicatorResult,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { maybeGetToolContext } from '../tool-context';
@@ -38,7 +38,7 @@ import { maybeGetToolContext } from '../tool-context';
 const InputSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
-  count: z.number().int().min(20).max(500).default(200),
+  count: z.int().min(20).max(500).default(200),
   indicators: z
     .array(z.object({ kind: IndicatorKindSchema, params: IndicatorParamsSchema.default({}) }))
     .min(1)
@@ -53,11 +53,14 @@ declare module '@kestrel/shared' {
 
 const TAIL_POINTS = 15;
 
-export const getIndicatorsTool = tool({
+export const getIndicatorsTool: Tool<z.infer<typeof InputSchema>, GetIndicatorsOutput> = tool({
   description:
     'Compute indicators (sma, ema, rsi, macd, atr, bollinger, pivots) on a (symbol, timeframe) window. Returns the last 15 points of each series — enough for "current value + recent slope" reasoning while minimizing token overhead.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count, indicators }, options?: { abortSignal?: AbortSignal }): Promise<GetIndicatorsOutput> => {
+  execute: async (
+    { symbol, tf, count, indicators },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetIndicatorsOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
     const results = indicators.map(({ kind, params }) => {

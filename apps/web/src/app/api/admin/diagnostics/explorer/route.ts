@@ -32,7 +32,7 @@ const querySchema = z.object({
   jobId: z.string().trim().min(1).max(200).optional(),
   threadId: z.string().trim().min(1).max(200).optional(),
   messageId: z.string().trim().min(1).max(200).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(100),
+  limit: z.coerce.number().int().min(1).max(100).prefault(100),
 });
 
 export const GET = withAdminAuth(async (req) => {

@@ -52,9 +52,7 @@ export const committeeCommand: BotCommand = {
 
     const symbol = symbolStr.toUpperCase();
     const chosenMode =
-      parseTelegramAnalysisMode(args[1]) ??
-      parseTelegramAnalysisMode(args[2]) ??
-      'full';
+      parseTelegramAnalysisMode(args[1]) ?? parseTelegramAnalysisMode(args[2]) ?? 'full';
 
     // Aggressive rate limit: 3 per hour per user
     const rateLimit = checkRateLimit(ctx.userId, 'bot_committee', 3);
@@ -95,7 +93,7 @@ export const committeeCommand: BotCommand = {
           threadId,
           userMessage,
           prompt: `Run a ${chosenMode === 'full' ? '4-expert team' : 'quick'} analysis of ${symbol} in plain, everyday trader English. Cover where experts agree or disagree, key price levels, main risks, and when this idea is wrong.`,
-          system:
+          instructions:
             'You are Kestrel coordinating a plain-English expert team summary for a trader on Telegram. Use only verified market data, avoid internal technical jargon, use scenario language, and never place trades.',
           ...(ctx.signal ? { signal: ctx.signal } : {}),
         });

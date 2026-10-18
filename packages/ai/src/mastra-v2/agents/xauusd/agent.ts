@@ -17,19 +17,20 @@
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { Agent } from '@mastra/core/agent';
 import type { MastraScorers } from '@mastra/core/evals';
+import type { MastraModelConfig } from '@mastra/core/llm';
 import type { MastraMemory } from '@mastra/core/memory';
 import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
+import type { XauusdResearchPacket } from '../../packets/research-types';
+import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../shared/types';
 import {
   MODEL_CONTEXT_CANDLE_LIMIT,
   MODEL_CONTEXT_INDICATOR_LIMIT,
   serializeXauusdModelEvidenceContext,
 } from './model-context';
-import type { XauusdResearchPacket } from '../../packets/research-types';
 import { xauusdMastraTools } from './tools';
-import { XauusdRequestContextSchema, type XauusdRequestContext } from '../../shared/types';
 
 const alog = createCategorizedLogger('ai', {
   component: 'mastra-xauusd-agent',
@@ -115,7 +116,7 @@ export function createXauusdMastraAgent({
     id: 'kestrel-xauusd-research-poc',
     name: 'Kestrel XAUUSD Research',
     description: 'Read-only XAUUSD research using Kestrel market-data tools.',
-    model,
+    model: model as unknown as MastraModelConfig,
     instructions: instructionsForRequest,
     tools: xauusdMastraTools,
     requestContextSchema: XauusdRequestContextSchema,

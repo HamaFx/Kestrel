@@ -25,7 +25,7 @@ export type WebSearchProvider = z.infer<typeof WebSearchProviderSchema>;
 export const WebSearchSourceSchema = z.object({
   id: z.string(),
   title: z.string(),
-  url: z.string().url(),
+  url: z.url(),
   domain: z.string(),
   snippet: z.string(),
   content: z.string().optional(),
@@ -44,20 +44,18 @@ export const WebSearchOutputSchema = z.object({
   /** Human-readable operational status; never contains provider secrets. */
   message: z.string().optional(),
   /** Metadata for consumers that need to disclose cached external research. */
-  cachedAt: z.string().datetime().optional(),
-  expiresAt: z.string().datetime().optional(),
-  cacheAgeSeconds: z.number().int().nonnegative().optional(),
+  cachedAt: z.iso.datetime().optional(),
+  expiresAt: z.iso.datetime().optional(),
+  cacheAgeSeconds: z.int().nonnegative().optional(),
   /** Safe provider-attempt summary; error text is sanitized and bounded. */
   providerAttempts: z
     .array(
-      z
-        .object({
-          provider: WebSearchProviderSchema,
-          status: z.enum(['success', 'empty', 'failed']),
-          latencyMs: z.number().int().nonnegative(),
-          error: z.string().max(180).optional(),
-        })
-        .strict(),
+      z.strictObject({
+        provider: WebSearchProviderSchema,
+        status: z.enum(['success', 'empty', 'failed']),
+        latencyMs: z.int().nonnegative(),
+        error: z.string().max(180).optional(),
+      }),
     )
     .max(3)
     .optional(),

@@ -43,13 +43,13 @@ export const XauusdResearchPacketInputSchema = z.object({
 export const XauusdCandlesInputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),
   timeframe: TimeframeSchema,
-  count: z.number().int().min(10).max(MAX_CANDLE_OUTPUT).default(120),
+  count: z.int().min(10).max(MAX_CANDLE_OUTPUT).default(120),
 });
 
 export const XauusdIndicatorsInputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),
   timeframe: TimeframeSchema,
-  count: z.number().int().min(20).max(MAX_CANDLE_OUTPUT).default(200),
+  count: z.int().min(20).max(MAX_CANDLE_OUTPUT).default(200),
   indicators: z
     .array(
       z.object({

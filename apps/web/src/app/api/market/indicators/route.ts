@@ -26,9 +26,9 @@ import { checkMarketRateLimit, getIndicatorsService } from '@/lib/services/marke
 const BodySchema = z.object({
   symbol: z.string(),
   tf: z.string().default('1h'),
-  count: z.number().int().min(1).max(5000).default(300),
+  count: z.int().min(1).max(5000).default(300),
   indicators: z
-    .array(z.object({ kind: z.string(), params: z.record(z.unknown()).default({}) }))
+    .array(z.object({ kind: z.string(), params: z.record(z.string(), z.unknown()).default({}) }))
     .min(1)
     .max(10),
 });

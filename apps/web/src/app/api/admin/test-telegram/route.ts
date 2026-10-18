@@ -88,7 +88,7 @@ export const POST = withAdminAuth(async (req, { user }) => {
       headers['Retry-After'] = String(rateLimit.retryAfter);
     }
     return Response.json(
-      { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please wait a moment.' } },
+      { error: { code: 'RATE_LIMITED', error: 'Too many requests. Please wait a moment.' } },
       { status: 429, headers },
     );
   }

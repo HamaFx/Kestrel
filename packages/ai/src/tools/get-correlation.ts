@@ -34,7 +34,7 @@ import {
   type Symbol,
   type Timeframe,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 const InputSchema = GetCorrelationInputSchema;
@@ -53,7 +53,7 @@ void _FX_PAIRS_FOR_DXY;
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-export const getCorrelationTool = tool({
+export const getCorrelationTool: Tool<z.infer<typeof InputSchema>, GetCorrelationOutput> = tool({
   description:
     "Pearson correlation matrix over close-to-close returns for the legacy CFTC/intermarket trio XAUUSD/EURUSD/GBPUSD at the given timeframe + window, plus a USD-strength proxy ('DXY proxy') computed from EURUSD and GBPUSD with 50/50 weights. This intentionally narrow feature does not limit the broader product catalog. Use for any 'are EUR and GBP both selling off' / 'how correlated is gold to the dollar' / 'what's the dollar doing today' prompt. Returns the formula verbatim so you can cite it.",
   inputSchema: InputSchema,

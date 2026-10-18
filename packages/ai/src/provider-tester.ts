@@ -49,7 +49,8 @@ export function validateProviderConfig(
   if (providerId === 'vertex' || providerId === 'google-vertex') {
     return {
       ok: false,
-      reason: 'Google Vertex AI has been removed. Use direct Google Gemini (google) with an API key instead.',
+      reason:
+        'Google Vertex AI has been removed. Use direct Google Gemini (google) with an API key instead.',
     };
   }
 
@@ -126,7 +127,7 @@ export async function testProviderKey(
     const signal = AbortSignal.timeout(5_000);
     await generateText({
       model,
-      system: 'Respond with a single short confirmation.',
+      instructions: 'Respond with a single short confirmation.',
       prompt: 'ping',
       abortSignal: signal,
       maxOutputTokens: 1,

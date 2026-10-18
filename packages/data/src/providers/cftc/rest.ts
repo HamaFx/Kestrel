@@ -38,20 +38,18 @@ const THROTTLE: ThrottleConfig = { limit: 30, windowMs: 60_000 };
  * Subset of the CFTC row we map into `cot_reports`. The full row has 100+
  * fields; we keep the schema permissive and pluck out the ones we need.
  */
-const CftcRowSchema = z
-  .object({
-    report_date_as_yyyy_mm_dd: z.string(),
-    market_and_exchange_names: z.string(),
-    dealer_positions_long_all: z.string().optional(),
-    dealer_positions_short_all: z.string().optional(),
-    asset_mgr_positions_long_all: z.string().optional(),
-    asset_mgr_positions_short_all: z.string().optional(),
-    lev_money_positions_long_all: z.string().optional(),
-    lev_money_positions_short_all: z.string().optional(),
-    other_rept_positions_long_all: z.string().optional(),
-    other_rept_positions_short_all: z.string().optional(),
-  })
-  .passthrough();
+const CftcRowSchema = z.looseObject({
+  report_date_as_yyyy_mm_dd: z.string(),
+  market_and_exchange_names: z.string(),
+  dealer_positions_long_all: z.string().optional(),
+  dealer_positions_short_all: z.string().optional(),
+  asset_mgr_positions_long_all: z.string().optional(),
+  asset_mgr_positions_short_all: z.string().optional(),
+  lev_money_positions_long_all: z.string().optional(),
+  lev_money_positions_short_all: z.string().optional(),
+  other_rept_positions_long_all: z.string().optional(),
+  other_rept_positions_short_all: z.string().optional(),
+});
 
 export type CftcRow = z.infer<typeof CftcRowSchema>;
 

@@ -32,7 +32,7 @@ export const ToolCalendarItemSchema = z.object({
   currency: z.string().nullable(),
   importance: ImportanceSchema,
   /** Scheduled time, ms epoch UTC. */
-  date: z.number().int(),
+  date: z.int(),
   actual: z.number().nullable(),
   forecast: z.number().nullable(),
   previous: z.number().nullable(),
