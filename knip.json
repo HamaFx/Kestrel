@@ -78,5 +78,5 @@
   "vitest": false,
   "playwright": false,
   "drizzle": false,
-  "ignoreDependencies": ["@vitest/coverage-v8", "@vitejs/plugin-react"]
+  "ignoreDependencies": ["@vitest/coverage-v8", "@vitejs/plugin-react", "vite"]
 }

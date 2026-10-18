@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "The Self-Hosted Multi-User BYOK AI Trading Platform",
   "license": "Apache-2.0",
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@12.14.0",
   "engines": {
     "node": ">=22.22.2",
-    "pnpm": ">=9.0"
+    "pnpm": ">=12.0"
   },
   "scripts": {
     "build": "turbo run build",
@@ -55,10 +55,5 @@
     "turbo": "^2.11.9",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "eventsource-parser@3.1.1": "patches/eventsource-parser@3.1.1.patch"
-    }
   }
 }
