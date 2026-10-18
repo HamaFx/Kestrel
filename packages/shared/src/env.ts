@@ -317,6 +317,25 @@ const RuntimeEnv = z.object({
     .default('0')
     .transform((v) => v === '1' || v === 'true'),
   /**
+   * M-02 (audit 2026-10-18, Phase 0/2) — generic macro packet for
+   * non-XAUUSD symbols (news + calendar + COT). Defaults on in dev/test and
+   * off in production until the operator opts in; `0` is the instant
+   * rollback to the prior candle-only packet.
+   */
+  ENABLE_GENERIC_MACRO: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('1')
+    .transform((v) => v === '1' || v === 'true'),
+  /**
+   * P1-04 (audit 2026-10-18, Phase 3) — run a second (risk) desk per symbol
+   * in comparison runs. ON by default; `0` keeps the cheaper single-desk
+   * comparison where cost matters.
+   */
+  ENABLE_COMPARISON_RISK_DESK: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('1')
+    .transform((v) => v === '1' || v === 'true'),
+  /**
    * Audit plan v2 §5.3 (Q4) — non-blocking admin alert threshold: when a
    * user's daily (UTC) reserved+reconciled ledger spend reaches this many
    * dollars, the admin System Health dashboard surfaces an anomaly.

@@ -134,7 +134,8 @@ release of wire compatibility — it logs a one-time deprecation warning outside
 tests and re-exports `mastra-v2` for the `@kestrel/ai/mastra` subpath. New
 code imports `@kestrel/ai/mastra-v2`. Committee orchestration stays in
 `packages/ai/src/committee/` (specialists, cross-critique, fusion) and is
-consumed by the mode runner.
+consumed by the mode runner. The 2026-10-18 deep agentic audit and its phased
+remediation plan live in `docs/audits/mastra-agentic-deep-audit-2026-10-18.md`.
 
 The tree below is asserted in CI by `scripts/check-architecture-tree.mjs` —
 editing this list and `packages/ai/src/mastra-v2/` must happen together:
