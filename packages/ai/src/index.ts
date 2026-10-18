@@ -232,6 +232,7 @@ export {
   getOrCreateBriefingsThread,
   wasEmitted,
   recordEmitted,
+  listEmittedEventIds,
   findHighImpactEventsInWindow,
   // Phase 1.7 — dashboard surface
   getLatestBriefing,

@@ -80,6 +80,7 @@ vi.mock('@kestrel/shared/metrics-export', () => ({
 interface FakeRow {
   consecutiveFailures: number;
   openedAt: Date | null;
+  updatedAt: Date;
 }
 
 function fakeDbWithRow(row: FakeRow | null): void {
@@ -177,6 +178,26 @@ describe('model circuit breaker (§1.6)', () => {
     }
   });
 
+  it('measures the open window from the trip, not from the first failure', () => {
+    vi.useFakeTimers();
+    try {
+      recordModelFailure('provider/model'); // t=0 — first failure starts the window
+      vi.advanceTimersByTime(20_000); // t=20s — still inside the 60s window
+      recordModelFailure('provider/model');
+      vi.advanceTimersByTime(20_000); // t=40s — third failure trips the circuit here
+      expect(recordModelFailure('provider/model')).toBe(true);
+      // Pre-fix the breaker compared against the window start (t=0), so the
+      // circuit reported "closed" immediately after tripping.
+      expect(isCircuitOpen('provider/model')).toBe(true);
+      vi.advanceTimersByTime(29_000); // t=69s — 29s since the trip
+      expect(isCircuitOpen('provider/model')).toBe(true);
+      vi.advanceTimersByTime(2_000); // t=71s — 31s since the trip
+      expect(isCircuitOpen('provider/model')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('resets immediately on success', () => {
     recordModelFailure('provider/model');
     recordModelFailure('provider/model');
@@ -191,13 +212,20 @@ describe('model circuit breaker (§1.6)', () => {
     expect(mocks.execute.mock.calls[0]?.[0]).toBeDefined();
   });
 
-  it('writes success resets through to provider_circuit_state', async () => {
+  it('writes success resets through to provider_circuit_state after a failure streak', async () => {
+    recordModelFailure('provider/model');
+    await vi.waitFor(() => expect(mocks.execute).toHaveBeenCalled());
     recordModelSuccess('provider/model');
     await vi.waitFor(() => expect(mocks.insert).toHaveBeenCalled());
   });
 
+  it('skips the success write when no failure state exists (transition-only write)', () => {
+    recordModelSuccess('provider/model');
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
   it('converges cross-isolate open state into the L1 cache', async () => {
-    fakeDbWithRow({ consecutiveFailures: 5, openedAt: new Date() });
+    fakeDbWithRow({ consecutiveFailures: 5, openedAt: new Date(), updatedAt: new Date() });
     // First read triggers the throttled background refresh.
     expect(isCircuitOpen('provider/model')).toBe(false);
     await vi.waitFor(() => expect(mocks.select).toHaveBeenCalled());

@@ -20,7 +20,7 @@
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { getMessageText } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 import { getDb } from '../db';
 import { getDiagnosticContext } from '../diagnostics/run-context';
@@ -42,6 +42,15 @@ export interface DbMessage {
   idempotencyKey?: string | null;
 }
 
+/**
+ * List the most recent `limit` messages for a thread, returned in
+ * chronological (oldest-first) order.
+ *
+ * The query selects the newest `limit` rows via a descending scan and
+ * reverses them in memory — an ascending LIMIT would silently return the
+ * OLDEST messages of a long thread, which is wrong for every caller
+ * (model history, thread view, export, summary).
+ */
 export async function listMessages(
   userId: string,
   threadId: string,
@@ -72,9 +81,9 @@ export async function listMessages(
         eq(schema.chatThreads.tenantId, tenantId),
       ),
     )
-    .orderBy(asc(schema.chatMessages.createdAt))
+    .orderBy(desc(schema.chatMessages.createdAt))
     .limit(limit);
-  return rows.map((r) => ({
+  return rows.reverse().map((r) => ({
     id: r.id,
     threadId: r.threadId,
     role: r.role as DbMessage['role'],

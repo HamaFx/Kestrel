@@ -58,6 +58,7 @@ import {
   listJournalEntries,
   updateJournalEntry,
 } from '../src/queries/journal';
+import { listMessages } from '../src/queries/threads';
 import {
   addUserSymbol,
   countUserSymbols,
@@ -491,5 +492,46 @@ describe.skipIf(!enabled || !adminUrl)('query layer — real PostgreSQL integrat
     await removeUserSymbol(USER_ID, 'XAUUSD');
     expect(await countUserSymbols(USER_ID)).toBe(2);
     await expect(listUserSymbols(OTHER_USER_ID)).resolves.toEqual([]);
+  });
+
+  it('listMessages returns the NEWEST window of a long thread in chronological order', async () => {
+    const threadId = randomUUID();
+    await db!.insert(schema.chatThreads).values({
+      id: threadId,
+      userId: USER_ID,
+      tenantId: TENANT_ID,
+    });
+
+    // Five messages with distinct createdAt values, oldest first.
+    const base = Date.now() - 5 * 60_000;
+    for (let i = 0; i < 5; i += 1) {
+      await db!.insert(schema.chatMessages).values({
+        id: randomUUID(),
+        threadId,
+        tenantId: TENANT_ID,
+        role: i % 2 === 0 ? 'user' : 'assistant',
+        content: `message-${i}`,
+        createdAt: new Date(base + i * 60_000),
+      });
+    }
+
+    // A limit of 2 must return the two NEWEST messages (ascending), not the
+    // two oldest — the pre-fix query was ASC + LIMIT and returned the first
+    // rows of the thread, which is wrong for every caller (model history,
+    // thread view, export).
+    const recent = await listMessages(USER_ID, threadId, 2);
+    expect(recent.map((m) => m.content)).toEqual(['message-3', 'message-4']);
+
+    const all = await listMessages(USER_ID, threadId, 50);
+    expect(all.map((m) => m.content)).toEqual([
+      'message-0',
+      'message-1',
+      'message-2',
+      'message-3',
+      'message-4',
+    ]);
+
+    // Ownership predicate still applies to the newest window.
+    await expect(listMessages(OTHER_USER_ID, threadId, 2)).resolves.toEqual([]);
   });
 });

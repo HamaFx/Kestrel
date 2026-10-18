@@ -356,12 +356,14 @@ export async function searchMemory(args: SearchMemoryArgs): Promise<MemoryRow[]>
   const userClause = sql`AND user_id = ${args.userId}`;
   const modelClause = args.model ? sql`AND model = ${args.model}` : sql``;
 
-  const result = await withTenantDb(tenantId, async (db) => {
-    await db.execute(sql`SET LOCAL hnsw.ef_search = 100`);
-    await db.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order'`);
-    await db.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000`);
+  const result = await withTenantDb(
+    tenantId,
+    async (db) => {
+      await db.execute(sql`SET LOCAL hnsw.ef_search = 100`);
+      await db.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order'`);
+      await db.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000`);
 
-    return db.execute(sql`
+      return db.execute(sql`
       SELECT
         id,
         kind,
@@ -383,7 +385,9 @@ export async function searchMemory(args: SearchMemoryArgs): Promise<MemoryRow[]>
       ORDER BY embedding <=> ${vec}::vector
       LIMIT ${limit}
     `);
-  });
+    },
+    { userId: args.userId },
+  );
 
   // db.execute() returns a RowList in drizzle-orm v0.40+.
   // Cast through unknown to access the underlying postgres-js result rows.

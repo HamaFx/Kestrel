@@ -225,10 +225,13 @@ export async function claimAlertDelivery(
   id: string,
   claimedAt = new Date(),
   leaseMs = 30 * 60_000,
+  tenantId?: string,
 ): Promise<boolean> {
   const staleBefore = new Date(claimedAt.getTime() - leaseMs);
   const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
+  // Resolved once per tick by the evaluator; the fallback keeps other
+  // callers unchanged.
+  const tenant = tenantId ?? (await requireTenantIdForUser(userId, db));
   const claimed = await db
     .update(schema.alerts)
     .set({ deliveryClaimedAt: claimedAt })
@@ -236,7 +239,7 @@ export async function claimAlertDelivery(
       and(
         eq(schema.alerts.id, id),
         eq(schema.alerts.userId, userId),
-        eq(schema.alerts.tenantId, tenantId),
+        eq(schema.alerts.tenantId, tenant),
         eq(schema.alerts.active, true),
         isNull(schema.alerts.firedAt),
         or(
@@ -373,6 +376,7 @@ export async function setRulePreviousValue(
   id: string,
   rule: AlertRule,
   value: number,
+  tenantId?: string,
 ): Promise<void> {
   if (rule.type !== 'indicatorCross') return;
   const next = { ...rule, previousValue: value };
@@ -381,7 +385,9 @@ export async function setRulePreviousValue(
   // shapes from landing in the DB.
   const validated = AlertRuleSchema.parse(next);
   const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
+  // Callers that evaluate many alerts per tick resolve the membership once
+  // and pass it in; the fallback keeps every other caller unchanged.
+  const tenant = tenantId ?? (await requireTenantIdForUser(userId, db));
   await db
     .update(schema.alerts)
     .set({ rule: validated })
@@ -389,7 +395,7 @@ export async function setRulePreviousValue(
       and(
         eq(schema.alerts.id, id),
         eq(schema.alerts.userId, userId),
-        eq(schema.alerts.tenantId, tenantId),
+        eq(schema.alerts.tenantId, tenant),
       ),
     );
 }

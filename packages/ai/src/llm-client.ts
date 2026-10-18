@@ -102,15 +102,24 @@ export class VercelLlmClient implements LlmClient {
     const result = await (aiGenerateText as any)(callArgs);
     const raw = result as {
       text: string;
-      usage?: { promptTokens?: number; completionTokens?: number };
+      usage?: {
+        // AI SDK 7 field names.
+        inputTokens?: number;
+        outputTokens?: number;
+        // AI SDK v4 names, kept defensively for older SDK instances.
+        promptTokens?: number;
+        completionTokens?: number;
+      };
     };
+    const inputTokens = raw.usage?.inputTokens ?? raw.usage?.promptTokens;
+    const outputTokens = raw.usage?.outputTokens ?? raw.usage?.completionTokens;
     return {
       text: raw.text,
       ...(raw.usage
         ? {
             usage: {
-              inputTokens: raw.usage.promptTokens ?? 0,
-              outputTokens: raw.usage.completionTokens ?? 0,
+              inputTokens: inputTokens ?? 0,
+              outputTokens: outputTokens ?? 0,
             },
           }
         : {}),
