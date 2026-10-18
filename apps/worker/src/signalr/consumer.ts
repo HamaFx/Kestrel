@@ -163,7 +163,20 @@ export class SignalRConsumer {
       symbols,
     });
     await conn.start();
-    await this.subscribe(symbols);
+    try {
+      await this.subscribe(symbols);
+    } catch (err) {
+      // A failed Subscribe must not orphan a started connection: rebuild()
+      // nulls this.connection before the next attempt, and stop() is the
+      // only path that can close it, so close it here before rethrowing.
+      try {
+        await conn.stop();
+      } catch {
+        // best-effort cleanup — the rebuild ladder continues regardless
+      }
+      this.connection = null;
+      throw err;
+    }
     this.started = true;
     this.opts.log.info('signalr subscribed', { symbols });
   }

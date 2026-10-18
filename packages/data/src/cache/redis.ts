@@ -53,17 +53,28 @@ interface RedisValue<T> {
  *     cleanup sweeps expired envelopes lazily.
  *   - Tags are stored in a Redis Set `cache:tag:{tagName}` for tag-based
  *     invalidation via `invalidateTag()`.
- *   - Single-flighting is NOT done at the Redis level — the caller's
- *     `getDefaultCache()` tenant isolation provides single-flight per
- *     process. For worker processes, MemoryCache is preferred anyway.
- *     In multi-instance Vercel, single-flight across instances is a
- *     nice-to-have that can be added later.
+ *   - Single-flighting IS provided per process: concurrent callers that miss
+ *     the same key share one producer call (`inflight` below). Cross-instance
+ *     coalescing (a SETNX lock) is intentionally not implemented — the
+ *     per-process guarantee covers the common burst case.
+ *   - Every RedisCache instance with the same URL shares ONE connection via
+ *     the module-level pool, so per-tenant cache instances (up to 500) do
+ *     not multiply sockets.
  */
+interface SharedRedisConnection {
+  client: RedisClientType | null;
+  connectPromise: Promise<void> | null;
+}
+
+/** One connection per URL across all RedisCache instances (tenant caches). */
+const sharedConnections = new Map<string, SharedRedisConnection>();
+
 export class RedisCache implements Cache {
   private client: RedisClientType | null = null;
   private readonly url: string;
   private readonly keyPrefix: string;
-  private connectPromise: Promise<void> | null = null;
+  /** In-process single-flight: concurrent misses share one producer call. */
+  private readonly inflight = new Map<string, Promise<unknown>>();
 
   constructor(opts?: { url?: string; keyPrefix?: string }) {
     this.url = opts?.url ?? process.env.REDIS_URL ?? 'redis://localhost:6379';
@@ -77,27 +88,37 @@ export class RedisCache implements Cache {
    */
   private async ensureConnected(): Promise<void> {
     if (this.client?.isOpen) return;
-    if (this.connectPromise) return this.connectPromise;
 
-    this.connectPromise = (async () => {
-      const options: RedisClientOptions = { url: this.url };
-      // socketTimeoutMs prevents operations from hanging on a
-      // partitioned Redis node. 5s is generous for data reads.
-      options.socket = { connectTimeout: 5_000, reconnectStrategy: false };
-      const c = createClient(options) as RedisClientType;
-      c.on('error', (err: unknown) => {
-        console.error('[RedisCache] connection error:', String(err));
-      });
-      await c.connect();
-      this.client = c;
-    })();
-
-    try {
-      await this.connectPromise;
-    } catch (err) {
-      this.connectPromise = null;
-      throw err;
+    let shared = sharedConnections.get(this.url);
+    if (!shared) {
+      shared = { client: null, connectPromise: null };
+      sharedConnections.set(this.url, shared);
     }
+    if (shared.client?.isOpen) {
+      this.client = shared.client;
+      return;
+    }
+    if (!shared.connectPromise) {
+      shared.connectPromise = (async () => {
+        const options: RedisClientOptions = { url: this.url };
+        // socketTimeoutMs prevents operations from hanging on a
+        // partitioned Redis node. 5s is generous for data reads.
+        options.socket = { connectTimeout: 5_000, reconnectStrategy: false };
+        const c = createClient(options) as RedisClientType;
+        c.on('error', (err: unknown) => {
+          console.error('[RedisCache] connection error:', String(err));
+        });
+        await c.connect();
+        shared!.client = c;
+      })().catch((err: unknown) => {
+        // Allow the next caller to retry the connection.
+        shared!.connectPromise = null;
+        throw err;
+      });
+    }
+
+    await shared.connectPromise;
+    this.client = shared.client;
   }
 
   private ledgerKey(key: string): string {
@@ -161,49 +182,65 @@ export class RedisCache implements Cache {
       // Redis read error — fall through to producer.
     }
 
-    // Cache miss or soft expired — call producer.
-    try {
-      const value = await producer();
-      const producedAt = Date.now();
-      const hardExpiresAt = producedAt + ttlMs + swrMs;
+    // Cache miss or soft expired. In-process single-flight: concurrent
+    // callers that all miss this key share the first caller's producer call
+    // instead of stampeding the upstream provider.
+    const existing = this.inflight.get(lKey);
+    if (existing) {
+      return existing as Promise<{ value: T; meta: CacheEntryMeta }>;
+    }
 
-      const envelope: RedisValue<T> = {
-        v: value,
-        p: producedAt,
-        e: producedAt + ttlMs,
-        h: hardExpiresAt,
-        t: options.tags ?? [],
-      };
-
-      // Best-effort write to Redis with PX auto-expiration.
-      const pxTtl = Math.max(1, hardExpiresAt - producedAt);
-      client.set(lKey, JSON.stringify(envelope), { PX: pxTtl }).catch(() => {});
-
-      // Best-effort tag index.
-      if (options.tags && options.tags.length > 0) {
-        for (const tag of options.tags) {
-          client.sAdd(this.tagKey(tag), lKey).catch(() => {});
-        }
-      }
-
-      return { value, meta: { producedAt, stale: false } };
-    } catch (err) {
-      // Producer failed — check for stale-while-error fallback.
-      if (staleEntry && staleEntry.h > Date.now()) {
-        return { value: staleEntry.v, meta: { producedAt: staleEntry.p, stale: true } };
-      }
+    const work = (async (): Promise<{ value: T; meta: CacheEntryMeta }> => {
+      // Cache miss or soft expired — call producer.
       try {
-        const raw = await client.get(lKey);
-        if (raw) {
-          const entry = JSON.parse(raw) as RedisValue<T>;
-          if (swrMs > 0 && entry.h > Date.now()) {
-            return { value: entry.v, meta: { producedAt: entry.p, stale: true } };
+        const value = await producer();
+        const producedAt = Date.now();
+        const hardExpiresAt = producedAt + ttlMs + swrMs;
+
+        const envelope: RedisValue<T> = {
+          v: value,
+          p: producedAt,
+          e: producedAt + ttlMs,
+          h: hardExpiresAt,
+          t: options.tags ?? [],
+        };
+
+        // Best-effort write to Redis with PX auto-expiration.
+        const pxTtl = Math.max(1, hardExpiresAt - producedAt);
+        client.set(lKey, JSON.stringify(envelope), { PX: pxTtl }).catch(() => {});
+
+        // Best-effort tag index.
+        if (options.tags && options.tags.length > 0) {
+          for (const tag of options.tags) {
+            client.sAdd(this.tagKey(tag), lKey).catch(() => {});
           }
         }
-      } catch {
-        // Fallback read failed too — throw original error.
+
+        return { value, meta: { producedAt, stale: false } };
+      } catch (err) {
+        // Producer failed — check for stale-while-error fallback.
+        if (staleEntry && staleEntry.h > Date.now()) {
+          return { value: staleEntry.v, meta: { producedAt: staleEntry.p, stale: true } };
+        }
+        try {
+          const raw = await client.get(lKey);
+          if (raw) {
+            const entry = JSON.parse(raw) as RedisValue<T>;
+            if (swrMs > 0 && entry.h > Date.now()) {
+              return { value: entry.v, meta: { producedAt: entry.p, stale: true } };
+            }
+          }
+        } catch {
+          // Fallback read failed too — throw original error.
+        }
+        throw err;
       }
-      throw err;
+    })();
+    this.inflight.set(lKey, work);
+    try {
+      return await work;
+    } finally {
+      this.inflight.delete(lKey);
     }
   }
 

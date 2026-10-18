@@ -172,7 +172,7 @@ export async function fetchTickerPrice(
     throw new ProviderError(
       'PROVIDER_QUOTA_EXCEEDED',
       PROVIDER,
-      'binance self-throttle exhausted (600/min)',
+      `binance self-throttle exhausted (${THROTTLE.limit} requests / ${THROTTLE.windowMs / 1000}s)`,
     );
   }
 

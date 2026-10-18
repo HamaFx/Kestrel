@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-import { emitPostEvent, emitPreEvent, findHighImpactEventsInWindow } from '@kestrel/ai';
+import {
+  emitPostEvent,
+  emitPreEvent,
+  findHighImpactEventsInWindow,
+  listEmittedEventIds,
+} from '@kestrel/ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runBriefings } from '../src/jobs/briefings';
@@ -25,6 +30,7 @@ vi.mock('@kestrel/ai', () => ({
   emitPreEvent: vi.fn(),
   emitPostEvent: vi.fn(),
   findHighImpactEventsInWindow: vi.fn(),
+  listEmittedEventIds: vi.fn(),
 }));
 
 // One user — matches the per-user loop in the new multi-user source.
@@ -46,6 +52,8 @@ beforeEach(() => {
   vi.mocked(emitPreEvent).mockReset();
   vi.mocked(emitPostEvent).mockReset();
   vi.mocked(findHighImpactEventsInWindow).mockReset();
+  vi.mocked(listEmittedEventIds).mockReset();
+  vi.mocked(listEmittedEventIds).mockResolvedValue(new Set());
 });
 
 describe('runBriefings', () => {
@@ -81,6 +89,26 @@ describe('runBriefings', () => {
     });
     // Both candidates were considered, even though one failed.
     expect(r.processed).toBe(2);
+    expect(r.note).toMatch(/pre=1\/2/);
+  });
+
+  it('skips already-emitted pairs via the batch idempotency prefetch', async () => {
+    vi.mocked(findHighImpactEventsInWindow)
+      .mockResolvedValueOnce([{ id: 'e1' }, { id: 'e2' }])
+      .mockResolvedValueOnce([]);
+    // e1 was already emitted for the user earlier; the batch lookup returns
+    // it so the (event × user) emit is skipped without a per-pair query.
+    vi.mocked(listEmittedEventIds).mockResolvedValue(new Set(['e1']));
+    vi.mocked(emitPreEvent).mockResolvedValue({ emitted: true });
+
+    const r = await runBriefings({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
+
+    expect(emitPreEvent).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(emitPreEvent).mock.calls[0]?.[1]).toBe('e2');
     expect(r.note).toMatch(/pre=1\/2/);
   });
 

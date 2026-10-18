@@ -76,6 +76,19 @@ const MAX_ANALYSIS_ATTEMPTS = 3;
 // queue lease is FULL_ANALYSIS_LEASE_MS (90s), so 15s keeps a 6× safety margin.
 const HEARTBEAT_MS = 15_000;
 const RETENTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+// The poll fires every ~3s; recovery and retention are set-based sweeps that
+// do not need that cadence — without a throttle they scan the queue
+// ~57k times/day. Recovery: once a minute; retention: once an hour.
+const RECOVERY_INTERVAL_MS = 60_000;
+const RETENTION_INTERVAL_MS = 60 * 60 * 1000;
+let lastRecoveryAt = 0;
+let lastRetentionAt = 0;
+
+/** Test helper: clear the sweep throttle timestamps. */
+export function _resetFullAnalysisSweepThrottles(): void {
+  lastRecoveryAt = 0;
+  lastRetentionAt = 0;
+}
 
 function isBudgetExceededError(error: unknown): error is { spent: number; max: number } {
   return (
@@ -472,22 +485,29 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
     }
   }
 
-  const staleCutoff = new Date(Date.now() - STALE_JOB_TIMEOUT_MS);
-  const staleRecovery = await recoverStaleFullAnalysisRuns(staleCutoff, MAX_ANALYSIS_ATTEMPTS);
-  if (staleRecovery.requeued > 0 || staleRecovery.failed > 0) {
-    ctx.log.warn('Recovered stale full-analysis runs', {
-      requeued: staleRecovery.requeued,
-      failed: staleRecovery.failed,
-      maxAttempts: MAX_ANALYSIS_ATTEMPTS,
-    });
+  const now = Date.now();
+  if (now - lastRecoveryAt >= RECOVERY_INTERVAL_MS) {
+    lastRecoveryAt = now;
+    const staleCutoff = new Date(now - STALE_JOB_TIMEOUT_MS);
+    const staleRecovery = await recoverStaleFullAnalysisRuns(staleCutoff, MAX_ANALYSIS_ATTEMPTS);
+    if (staleRecovery.requeued > 0 || staleRecovery.failed > 0) {
+      ctx.log.warn('Recovered stale full-analysis runs', {
+        requeued: staleRecovery.requeued,
+        failed: staleRecovery.failed,
+        maxAttempts: MAX_ANALYSIS_ATTEMPTS,
+      });
+    }
   }
 
-  const retentionCutoff = new Date(Date.now() - RETENTION_WINDOW_MS);
-  try {
-    const purged = await purgeOldFullAnalysisRuns(retentionCutoff);
-    if (purged > 0) ctx.log.info('Purged old full-analysis runs', { purged });
-  } catch (error) {
-    ctx.log.warn('Full-analysis run retention cleanup failed', { err: String(error) });
+  if (now - lastRetentionAt >= RETENTION_INTERVAL_MS) {
+    lastRetentionAt = now;
+    const retentionCutoff = new Date(now - RETENTION_WINDOW_MS);
+    try {
+      const purged = await purgeOldFullAnalysisRuns(retentionCutoff);
+      if (purged > 0) ctx.log.info('Purged old full-analysis runs', { purged });
+    } catch (error) {
+      ctx.log.warn('Full-analysis run retention cleanup failed', { err: String(error) });
+    }
   }
 
   ctx.log.info('Full-analysis poll complete', { processed });
