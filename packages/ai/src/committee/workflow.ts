@@ -118,6 +118,11 @@ export const CommitteeWorkflowOutputSchema = z.object({
   packet: SymbolResearchPacketSchema,
   /** A-01: per-symbol packets for comparison runs. */
   packets: z.record(z.string(), SymbolResearchPacketSchema).optional(),
+  /**
+   * F-01: symbols excluded from a comparison because their packet was
+   * blocked; the fusion discloses them and compares the healthy subset.
+   */
+  blockedSymbols: z.array(z.string()).optional(),
   stats: z.object({
     inputTokens: z.number(),
     outputTokens: z.number(),
@@ -238,8 +243,13 @@ export function createCommitteeWorkflow(
   /**
    * A-01 (B-01/B-08) — bounded cross-symbol comparison graph. Each symbol
    * gets its own cached packet and its own single-desk (technical) pass in
-   * parallel; verify is strict all-or-nothing; fusion compares the collected
-   * packets. This deliberately does not double the committee size in v1.
+   * parallel; verify is strict all-or-nothing for real desk failures; fusion
+   * compares the collected packets. This deliberately does not double the
+   * committee size in v1.
+   *
+   * F-01 (audit 2026-10-18) — a blocked packet excludes only its own symbol:
+   * the healthy subset is compared and the fusion discloses the gap. The
+   * comparison fails closed only when every requested symbol is blocked.
    */
   const comparisonSymbols = [...new Set(deps.comparisonSymbols ?? [])];
   if (comparisonSymbols.length >= 2) {
@@ -277,7 +287,6 @@ export function createCommitteeWorkflow(
         const symbols: readonly Symbol[] = inputData.symbols ?? comparisonSymbols;
         const packets = await collectComparisonPackets(symbols, signal);
         const entries = [...packets.entries()];
-        const blocked = entries.find(([, packet]) => packet.status === 'blocked');
         for (const [entrySymbol, packet] of entries) {
           recordCommitteeStepSpan({
             step: 'collect-packet',
@@ -288,10 +297,17 @@ export function createCommitteeWorkflow(
             ok: packet.status === 'ready',
           });
         }
-        const primary = packets.get(comparisonSymbols[0]!) ?? entries[0]?.[1];
+        // F-01: one blocked symbol must not fail the whole comparison. Only a
+        // fully blocked collection is terminal; otherwise the healthy subset
+        // is compared and the fusion discloses the excluded symbols.
+        const healthy = entries.filter(([, packet]) => packet.status === 'ready');
+        const blocked = entries.filter(([, packet]) => packet.status !== 'ready');
+        const primary = healthy[0]?.[1] ?? entries[0]?.[1];
         if (!primary) throw new Error('Comparison packet collection returned no packets.');
-        if (blocked) {
-          const text = `I could not complete the comparison because required market data for ${blocked[0]} is unavailable.\n\n${blocked[1].missingData.join('\n')}`;
+        if (healthy.length === 0) {
+          const text = `I could not complete the comparison because required market data is unavailable for every requested symbol.\n\n${blocked
+            .flatMap(([, packet]) => packet.missingData)
+            .join('\n')}`;
           return bail({
             status: 'blocked' as const,
             blockedText: text,
@@ -299,6 +315,7 @@ export function createCommitteeWorkflow(
             critiques: [],
             packet: primary,
             packets: Object.fromEntries(entries),
+            blockedSymbols: blocked.map(([entrySymbol]) => entrySymbol),
             stats: zeroStats(),
             failedAgents: [],
             totalCostUsd: 0,
@@ -306,7 +323,13 @@ export function createCommitteeWorkflow(
         }
         return {
           packet: primary,
-          packets: Object.fromEntries(entries),
+          packets: Object.fromEntries(healthy),
+          ...(blocked.length > 0
+            ? {
+                blockedSymbols: blocked.map(([entrySymbol]) => entrySymbol),
+                blockedMissingData: blocked.flatMap(([, packet]) => packet.missingData),
+              }
+            : {}),
           prompt: inputData.prompt,
           // Comparison v1 always runs the one-desk read per symbol; the
           // durable full-committee queue never carries a comparison.
@@ -322,10 +345,20 @@ export function createCommitteeWorkflow(
         outputSchema: SpecialistStepResultSchema,
         retries: 1,
         execute: async ({ inputData, requestContext, abortSignal }) => {
+          const packet = inputData.packets?.[symbol];
+          if (!packet) {
+            // F-01: the symbol's packet was blocked and excluded by the
+            // collect step. The desk is skipped (not failed); the fusion
+            // discloses the missing symbol.
+            return {
+              ok: false,
+              agentName: 'technical' as const,
+              error: 'data-unavailable',
+            };
+          }
           await deps.onProgress?.('technical');
           const startedAt = Date.now();
           const signal = runSignal ?? abortSignal;
-          const packet = inputData.packets?.[symbol] ?? inputData.packet;
           let result: Awaited<ReturnType<typeof runSpecialistGeneration>>;
           try {
             result = await runSpecialistGeneration({
@@ -389,7 +422,9 @@ export function createCommitteeWorkflow(
         let sawDeadline = false;
         for (const symbol of comparisonSymbols) {
           const marker = readSpecialistStepResultById(getStepResult, comparisonStepId(symbol));
-          if (marker?.ok === false) {
+          // F-01: `data-unavailable` is the skip marker for a blocked symbol
+          // — the fusion discloses it; only real desk failures are terminal.
+          if (marker?.ok === false && marker.error !== 'data-unavailable') {
             failedSymbols.push(symbol);
             if (marker.error === 'deadline') sawDeadline = true;
           }
@@ -429,9 +464,13 @@ export function createCommitteeWorkflow(
           throw new Error('Comparison workflow is missing collect-packet output.');
         }
         const packetRecord = collect.packets;
+        // F-01: `collect.packets` holds only the healthy packets; the
+        // blocked symbols reach the fusion prompt as an explicit disclosure.
         const packets = comparisonSymbols
           .map((symbol) => packetRecord[symbol])
           .filter((packet): packet is NonNullable<typeof packet> => Boolean(packet));
+        const blockedSymbols = collect.blockedSymbols ?? [];
+        const blockedMissingData = collect.blockedMissingData ?? [];
         const opinions: MastraModeOpinion[] = [];
         const executionStats: MastraGenerationStats[] = [];
         for (const symbol of comparisonSymbols) {
@@ -462,6 +501,7 @@ export function createCommitteeWorkflow(
             packets,
             opinions,
             executionStats,
+            ...(blockedSymbols.length > 0 ? { blockedSymbols, blockedMissingData } : {}),
             requestContext: requestContext as RequestContext<ModeRequestContext>,
             signal,
             deps: {
@@ -508,6 +548,7 @@ export function createCommitteeWorkflow(
           critiques: [],
           packet: collect.packet,
           packets: packetRecord,
+          ...(blockedSymbols.length > 0 ? { blockedSymbols } : {}),
           stats: synthesis.stats,
           failedAgents: [],
           totalCostUsd: generationLedger.total(),

@@ -302,6 +302,14 @@ export interface CommitteeComparisonSynthesisArgs {
   packets: SymbolResearchPacket[];
   opinions: MastraModeOpinion[];
   executionStats: MastraGenerationStats[];
+  /**
+   * F-01: symbols excluded from the comparison because their packet was
+   * blocked. The fusion prompt discloses them and compares the healthy
+   * subset instead of failing the whole turn.
+   */
+  blockedSymbols?: readonly string[];
+  /** F-01: the blocked packets' `missingData` lines for the disclosure. */
+  blockedMissingData?: readonly string[];
   requestContext: RequestContext<ModeRequestContext>;
   signal?: AbortSignal;
   deps: CommitteeSynthesisDeps;
@@ -313,15 +321,28 @@ export interface CommitteeComparisonSynthesisArgs {
  * synthesis over the per-symbol packets and desk opinions ("compare these N
  * packets …"), then verifies the answer against the union of the packets'
  * evidence with the same single bounded repair as full-mode fusion.
+ *
+ * F-01 — at least one healthy packet is required; blocked symbols are
+ * disclosed in the prompt and compared against the healthy subset.
  */
 export async function synthesizeComparisonAnswer(
   args: CommitteeComparisonSynthesisArgs,
 ): Promise<CommitteeSynthesisResult> {
-  const { prompt, packets, opinions, executionStats, requestContext, signal, deps } = args;
-  if (packets.length < 2) {
+  const {
+    prompt,
+    packets,
+    opinions,
+    executionStats,
+    blockedSymbols,
+    blockedMissingData,
+    requestContext,
+    signal,
+    deps,
+  } = args;
+  if (packets.length === 0) {
     throw new MastraModeStrictFailureError(
       ['fusion'],
-      new Error('Comparison synthesis requires at least two packets.'),
+      new Error('Comparison synthesis requires at least one collected packet.'),
     );
   }
   const fusionModel = deps.resolveModelForAgent?.('fusion') ?? {
@@ -344,7 +365,13 @@ export async function synthesizeComparisonAnswer(
 
   const runFusion = async (fusionPrompt: string) =>
     fusionAgent.generate(fusionPrompt, {
-      requestContext: contextWithPackets(requestContext, packets, opinions),
+      requestContext: contextWithPackets(
+        requestContext,
+        packets,
+        opinions,
+        blockedSymbols,
+        blockedMissingData,
+      ),
       ...(deps.fusionCallOptions ? { memory: deps.fusionCallOptions } : {}),
       toolChoice: 'none' as const,
       maxSteps: deps.maxSteps,

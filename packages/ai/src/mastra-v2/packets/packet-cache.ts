@@ -36,6 +36,11 @@
  * namespace but the same TTL, LRU, in-flight dedup, Redis mirror, and
  * `PHASE2_PACKET_CACHE` rollback semantics.
  *
+ * Freshness contract (B-02, audit 2026-10-18): `PACKET_CACHE_TTL_MS` is the
+ * only freshness gate on every path. Bucket keys (current + next at write,
+ * current + previous at read) decide reachability only; an entry older than
+ * the TTL is never served, from the LRU or the Redis mirror.
+ *
  * P2 (Redis mirror off the request path) — mirror **writes** are
  * fire-and-forget: they are kicked off inside a detached promise with their
  * own error handling and are never awaited by a caller, so an unreachable or
@@ -68,18 +73,32 @@ const MAX_ENTRIES = 10_000;
 const CACHE_BUCKET_MS = 15_000;
 
 /**
- * B-04 (audit 2026-10-18) — number of buckets a live entry can occupy. With a
- * 30s TTL and 15s buckets, an entry stored at the end of bucket `n` is still
- * within TTL when the clock reaches bucket `n+2` (age < 30s), so reads must
- * probe `current, current-1, current-2` instead of only the two newest
- * buckets. Probing one bucket short created an unnecessary re-collection
- * burst at every second bucket rollover.
+ * B-02 (audit 2026-10-18) — probe depth 2: current bucket + previous bucket.
+ *
+ * The invariant is **freshness is TTL, not bucket**. Bucket probing only
+ * decides *reachability*; `PACKET_CACHE_TTL_MS` decides freshness on every
+ * path (local LRU reads and Redis-mirror revives alike). An entry is
+ * therefore never served once it is older than the TTL, and the read path
+ * performs at most two mirror probes.
+ *
+ * Because a 15s write bucket can sit anywhere inside the 30s TTL, `set`
+ * mirrors each entry under its own bucket AND the next bucket. That keeps a
+ * packet written early in a bucket reachable — without early re-collection —
+ * until its TTL expires (B-04), while depth 2 still guarantees no probe can
+ * reach past `storedAt + TTL` (B-02).
  */
-const CACHE_PROBE_DEPTH = 3;
+const CACHE_PROBE_DEPTH = 2;
+
+/** Redis EX ceiling for mirrored entries — never longer than the TTL. */
+const CACHE_MIRROR_TTL_SECONDS = Math.ceil(PACKET_CACHE_TTL_MS / 1000);
 
 interface CacheEntry<T> {
   packet: T;
   storedAt: number;
+}
+
+function bucketStartedAt(bucket: number): number {
+  return bucket * CACHE_BUCKET_MS;
 }
 
 /** Redis mirror handle — populated lazily when REDIS_URL is set. */
@@ -174,13 +193,14 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
   const inflight = new Map<string, Promise<T>>();
 
   function keyFor(id: string, bucket: number): string {
-    // 15s bucket keys keep lookups stable within the 30s TTL window. An entry
-    // stored near a bucket's end can still be within TTL in bucket +2, so
-    // reads probe CACHE_PROBE_DEPTH buckets (B-04).
     return `${opts.namespace}:${id}:${bucket}`;
   }
 
-  /** Bucket keys to probe newest-first: current, current-1, current-2. */
+  /**
+   * Reachability keys, newest first. Depth 2 (B-02): the current bucket and
+   * the previous one. Entries are *written* under their current and next
+   * bucket (see `set`), so this probe set still spans the full 30s TTL.
+   */
   function probeKeys(id: string, bucket: number): string[] {
     const keys: string[] = [];
     for (let offset = 0; offset < CACHE_PROBE_DEPTH; offset += 1) {
@@ -209,6 +229,35 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
     return entry;
   }
 
+  /**
+   * Revive one mirrored payload. New payloads are `{ storedAt, packet }`
+   * envelopes so the consume path can enforce the TTL on the true write time
+   * (B-02); payloads written by a pre-envelope deploy fall back to the
+   * bucket start, a conservative lower bound on the write time — the derived
+   * age is never underestimated, so a legacy entry can expire earlier, never
+   * later, than its true TTL.
+   */
+  function reviveMirrorEntry(raw: string, keyBucket: number): CacheEntry<T> | null {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    if (parsed !== null && typeof parsed === 'object' && 'packet' in parsed) {
+      const envelope = parsed as { storedAt?: unknown; packet: unknown };
+      const packet = opts.revive(JSON.stringify(envelope.packet));
+      if (!packet) return null;
+      const storedAt =
+        typeof envelope.storedAt === 'number' && Number.isFinite(envelope.storedAt)
+          ? envelope.storedAt
+          : bucketStartedAt(keyBucket);
+      return { packet, storedAt };
+    }
+    const packet = opts.revive(raw);
+    return packet ? { packet, storedAt: bucketStartedAt(keyBucket) } : null;
+  }
+
   async function get(id: string): Promise<T | null> {
     const lookupStartedAt = Date.now();
     const bucket = currentBucket();
@@ -227,18 +276,23 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
     const mirror = await getRedisMirror();
     if (mirror) {
       try {
-        for (const key of probeKeys(id, bucket)) {
+        const keys = probeKeys(id, bucket);
+        for (let offset = 0; offset < keys.length; offset += 1) {
+          const key = keys[offset]!;
           const raw = await mirror.get(key);
           if (!raw) continue;
-          const revived = opts.revive(raw);
-          if (revived) {
-            metrics.increment('packet_cache_hit_total');
-            lruSet(key, { packet: revived, storedAt: Date.now() });
-            metrics.observe('mastra_setup_latency_ms', Date.now() - lookupStartedAt, {
-              tags: { phase: 'packet', cached: 'true' },
-            });
-            return revived;
-          }
+          const entry = reviveMirrorEntry(raw, bucket - offset);
+          if (!entry) continue;
+          // B-02: TTL is the only freshness gate. A mirrored entry older than
+          // the TTL is discarded even when its Redis key is still alive and
+          // its bucket is still probe-reachable.
+          if (Date.now() - entry.storedAt > PACKET_CACHE_TTL_MS) continue;
+          metrics.increment('packet_cache_hit_total');
+          lruSet(key, entry);
+          metrics.observe('mastra_setup_latency_ms', Date.now() - lookupStartedAt, {
+            tags: { phase: 'packet', cached: 'true' },
+          });
+          return entry.packet;
         }
       } catch {
         // Redis read failures fall through to a fresh collection.
@@ -250,8 +304,14 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
 
   function set(id: string, packet: T): void {
     if (!opts.isCacheable(packet)) return;
-    const key = keyFor(id, currentBucket());
-    lruSet(key, { packet, storedAt: Date.now() });
+    const bucket = currentBucket();
+    const entry: CacheEntry<T> = { packet, storedAt: Date.now() };
+    // B-02/B-04 balance: the entry is mirrored under its own bucket and the
+    // next bucket, so the depth-2 probe still reaches it for its whole TTL
+    // (no early re-collection), while no probe sequence can reach an entry
+    // more than a TTL after `storedAt`.
+    const keys = [keyFor(id, bucket), keyFor(id, bucket + 1)];
+    for (const key of keys) lruSet(key, entry);
     // P2 (mirror off the request path): the write is fire-and-forget.
     // Everything mirror-related — including handle acquisition — happens
     // inside a detached promise with its own error handling, so a rejected
@@ -260,7 +320,16 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
     void getRedisMirror()
       .then((mirror) =>
         mirror
-          ? mirror.set(key, JSON.stringify(packet), 'EX', Math.ceil(PACKET_CACHE_TTL_MS / 1000))
+          ? Promise.all(
+              keys.map((key) =>
+                mirror.set(
+                  key,
+                  JSON.stringify({ storedAt: entry.storedAt, packet }),
+                  'EX',
+                  CACHE_MIRROR_TTL_SECONDS,
+                ),
+              ),
+            )
           : undefined,
       )
       .catch((error: unknown) => {

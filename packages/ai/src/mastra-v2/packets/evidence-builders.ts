@@ -107,6 +107,10 @@ export function buildIndicatorsEvidence(
       kind,
       params,
       candles,
+      // B-06/I-01: the memo's staleness + production bits apply on this
+      // path too (the caller has both on the candles result).
+      stale: result.stale,
+      producedAt: result.producedAt,
     });
     return { ...computed, values: computed.values.slice(-maxIndicatorOutput) };
   });

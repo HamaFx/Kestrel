@@ -305,6 +305,47 @@ describe('recordError — edge cases', () => {
   });
 });
 
+describe('withDiagnostics — abort classification (N-01)', () => {
+  it('records an AbortError as a terminal outcome, not a diagnostic error', async () => {
+    const abortError = new DOMException('Aborted', 'AbortError');
+    await withDiagnostics('user-1', 'thread-1', async () => {
+      throw abortError;
+    }).catch(() => undefined);
+
+    const attached = (
+      abortError as DOMException & {
+        diagnosticContext?: { errors: unknown[]; errorCount: number; status: string };
+      }
+    ).diagnosticContext;
+    // Before N-01 the catch block recorded the abort, producing errorCount 1
+    // and inflating abort counts in admin error telemetry.
+    expect(attached?.errorCount).toBe(0);
+    expect(attached?.errors).toEqual([]);
+    expect(attached?.status).toBe('failed');
+  });
+
+  it('records a deadline TimeoutError as a terminal outcome too', async () => {
+    const timeout = new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+    await withDiagnostics('user-1', 'thread-1', async () => {
+      throw timeout;
+    }).catch(() => undefined);
+
+    const attached = (timeout as DOMException & { diagnosticContext?: { errorCount: number } })
+      .diagnosticContext;
+    expect(attached?.errorCount).toBe(0);
+  });
+
+  it('still records genuine failures as diagnostic errors', async () => {
+    const failure = new Error('provider exploded');
+    await withDiagnostics('user-1', 'thread-1', async () => {
+      throw failure;
+    }).catch(() => undefined);
+
+    const attached = failure as Error & { diagnosticContext?: { errorCount: number } };
+    expect(attached.diagnosticContext?.errorCount).toBe(1);
+  });
+});
+
 describe('exportDiagnosticContext — serialization', () => {
   it('exports the full context with redaction', async () => {
     await withDiagnostics('user-1', 'thread-1', async () => {

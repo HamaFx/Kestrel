@@ -355,7 +355,9 @@ Hard rules:
  * A-01 (B-01/B-08) — instructions function for the multi-symbol comparison
  * fusion: reads every per-symbol packet and the per-desk opinions from the
  * request context, and asks the synthesizer to compare the collected packets
- * and explicitly note divergences.
+ * and explicitly note divergences. F-01: blocked symbols are restated here so
+ * the synthesizer discloses the gap instead of implying the symbol was
+ * analysed.
  */
 export function comparisonFusionInstructionsForRequest({
   requestContext,
@@ -366,7 +368,12 @@ export function comparisonFusionInstructionsForRequest({
     (requestContext.get('packets') as Record<string, SymbolResearchPacket> | undefined) ?? {};
   const packets = Object.values(packetRecord);
   const opinions = (requestContext.get('opinions') as MastraModeOpinion[] | undefined) ?? [];
-  const symbols = packets.map((packet) => packet.symbol);
+  const blockedSymbols =
+    (requestContext.get('blockedSymbols') as string[] | undefined)?.filter(Boolean) ?? [];
+  const blockedMissingData =
+    (requestContext.get('blockedMissingData') as string[] | undefined)?.filter(Boolean) ?? [];
+  const availableSymbols = packets.map((packet) => packet.symbol);
+  const symbols = [...availableSymbols, ...blockedSymbols];
   const packetBlock = packets
     .map((packet) => `### ${packet.symbol}\n${serializedPacket(packet)}\n${optionalContextBlock(packet)}`)
     .join('\n\n');
@@ -381,16 +388,24 @@ export function comparisonFusionInstructionsForRequest({
       ].join('\n'),
     )
     .join('\n\n');
+  const blockedBlock =
+    blockedSymbols.length > 0
+      ? `\n\nDATA UNAVAILABLE (blocked during collection; compare only the symbols whose packets are present and state this gap explicitly):\nData unavailable for: ${blockedSymbols.join(', ')}${
+          blockedMissingData.length > 0
+            ? `\nReasons:\n${blockedMissingData.map((line) => `- ${line}`).join('\n')}`
+            : ''
+        }`
+      : '';
 
   return `You are Kestrel's lead market synthesizer comparing ${symbols.join(' vs ') || 'the requested symbols'}.
 
-Compare the collected packets and note divergences. Use only the trusted packets and specialist opinions below. Write in clear, simple, everyday trader language. For each symbol give its bias and the evidence behind it, then compare them directly: relative strength, trend alignment or divergence, volatility, and what each symbol's key level or invalidation says about the other. Where the desks agree, say so; where they diverge, explain the divergence. Disclose missing or degraded data per symbol. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing answer with a bottom line per symbol, the comparison, key risks, and the price level where each idea is wrong (invalidation).
+Compare the collected packets and note divergences. Use only the trusted packets and specialist opinions below. Write in clear, simple, everyday trader language. For each available symbol give its bias and the evidence behind it, then compare them directly: relative strength, trend alignment or divergence, volatility, and what each symbol's key level or invalidation says about the other. Where the desks agree, say so; where they diverge, explain the divergence. Disclose missing or degraded data per symbol, including any symbol whose data could not be collected at all. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing answer with a bottom line per available symbol, the comparison, key risks, and the price level where each idea is wrong (invalidation).
 
 PACKETS:
 ${packetBlock}
 
 SPECIALIST OPINIONS:
-${opinionBlock}`;
+${opinionBlock}${blockedBlock}`;
 }
 
 /** @deprecated Build-time fusion prompt retained for one release (§2.2). */

@@ -293,6 +293,46 @@ describe('packet cache (§2.1, Q5)', () => {
     expect(computeIndicatorMemo({ ...base, stale: false })).toBe(fresh);
   });
 
+  it('recomputes when a re-produced candle payload shares length/last-t but not closes (I-01)', () => {
+    // A realistic open-bar series: the last candle's close moves within the
+    // bar while its open timestamp (and the bar count) stays identical.
+    const candles = Array.from({ length: 24 }, (_, index) => {
+      const c = 2600 + Math.round(Math.sin(index / 3) * 30) + (index % 2);
+      return {
+        symbol: 'XAUUSD' as const,
+        tf: '1h' as const,
+        t: 1_760_000_000_000 - (23 - index) * 3_600_000,
+        o: c - 1,
+        h: c + 2,
+        l: c - 2,
+        c,
+        v: 100,
+        source: 'biquote',
+        fetchedAt: 1_760_000_000_000,
+      };
+    });
+    const base = {
+      symbol: 'XAUUSD' as const,
+      tf: '1h' as const,
+      kind: 'rsi' as const,
+      params: { period: 14 },
+      stale: false,
+    };
+
+    const first = computeIndicatorMemo({ ...base, candles, producedAt: 1_000 });
+    // Before I-01 the memo key ignored the re-production and returned the
+    // earlier computation, shipping stale indicator values for the whole bar.
+    const reProduced = computeIndicatorMemo({
+      ...base,
+      candles: [...candles.slice(0, -1), { ...candles.at(-1)!, c: candles.at(-1)!.c + 5 }],
+      producedAt: 2_000,
+    });
+    expect(reProduced.values).not.toEqual(first.values);
+
+    // Identical candles with the same production time still memoize.
+    expect(computeIndicatorMemo({ ...base, candles, producedAt: 1_000 })).toBe(first);
+  });
+
   it('requests the §4.2 XAUUSD macro extension for gold committee packets', async () => {
     mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
     await collectSymbolResearchPacketCached('XAUUSD');

@@ -93,6 +93,20 @@ const diagnosticStore = new AsyncLocalStorage<RunDiagnosticContext>();
 const dlog = createCategorizedLogger('ai', { component: 'diagnostics' });
 
 /**
+ * N-01 (audit 2026-10-18) — aborts are lifecycle outcomes, not failures. A
+ * user/lease cancel surfaces as `AbortError`; the sync deadline
+ * (`AbortSignal.timeout`) surfaces as a `TimeoutError` DOMException. Both are
+ * already converted into explicit terminal outcomes by their callers
+ * (`MastraModeStrictFailureError` detail or a `cancelled` run outcome), so
+ * recording them here double-counted aborts in error telemetry.
+ */
+function isAbortLike(err: unknown): boolean {
+  if (err === null || typeof err !== 'object') return false;
+  const name = (err as { name?: unknown }).name;
+  return name === 'AbortError' || name === 'TimeoutError';
+}
+
+/**
  * Wrap an async function in a diagnostic context. All code inside `fn`
  * (including downstream async calls) can use `recordStep`, `recordError`,
  * and `getDiagnosticContext` to add to the trace.
@@ -139,7 +153,9 @@ export function withDiagnostics<T>(
         if (!options.deferCompletion) await maybePersistTrace(ctx);
         return result;
       } catch (err) {
-        recordError(err);
+        // N-01: aborts/deadline timeouts are terminal lifecycle outcomes that
+        // the caller already surfaces; only genuine failures are error events.
+        if (!isAbortLike(err)) recordError(err);
         await maybePersistTrace(ctx, 'failed');
         if (err instanceof Error) {
           try {
