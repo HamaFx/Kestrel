@@ -106,7 +106,7 @@ describe('eval offline — Phase 0.7', () => {
   let promptsPath: string;
 
   beforeAll(async () => {
-    server.listen({ onUnhandledRequest: 'error' });
+    server.listen({ onUnhandledFrame: 'error' });
     tmpDir = await mkdtemp(join(tmpdir(), 'hfx-eval-'));
     promptsPath = join(tmpDir, 'cases.json');
     await writeFile(

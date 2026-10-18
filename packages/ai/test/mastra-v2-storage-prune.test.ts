@@ -19,9 +19,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mockPostgresPrune = vi.fn();
-const MockPostgresStore = vi.fn().mockImplementation(() => ({
-  prune: mockPostgresPrune,
-}));
+const MockPostgresStore = vi.fn(function () {
+  return { prune: mockPostgresPrune };
+});
 
 vi.mock('@mastra/pg', () => ({
   PostgresStore: MockPostgresStore,
@@ -29,9 +29,10 @@ vi.mock('@mastra/pg', () => ({
 }));
 
 vi.mock('@mastra/libsql', () => ({
-  LibSQLStore: vi.fn().mockImplementation(() => ({
+  LibSQLStore: vi.fn(function () {
     // LibSQL store does not expose prune() — tests the "not available" path.
-  })),
+    return {};
+  }),
   LibSQLVector: vi.fn(),
 }));
 

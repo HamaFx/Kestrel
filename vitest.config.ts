@@ -23,6 +23,17 @@ export default defineConfig({
     target: 'esnext',
   },
   test: {
+    // Vitest 4 replaced `vitest.workspace.ts` with `test.projects`.
+    projects: [
+      'packages/ai/vitest.config.ts',
+      'packages/data/vitest.config.ts',
+      'packages/db/vitest.config.ts',
+      'packages/indicators/vitest.config.ts',
+      'packages/shared/vitest.config.ts',
+      'packages/test-utils/vitest.config.ts',
+      'apps/web/vitest.config.ts',
+      'apps/worker/vitest.config.ts',
+    ],
     server: {
       deps: {
         inline: ['server-only'],

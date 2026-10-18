@@ -22,7 +22,7 @@
 
 import { execFileSync, execSync } from 'node:child_process';
 
-// I6: Align with package.json engines (node >=22.13.0). A looser check here
+// I6: Align with package.json engines (node >=22.22.2). A looser check here
 // would let users on Node 20/21 pass the wizard and then hit a hard engines
 // failure later.
 export const MIN_NODE_MAJOR = 22;
