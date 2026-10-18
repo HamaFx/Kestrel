@@ -71,7 +71,7 @@ export function resolveSemanticRoutingConfig(
   if (!SEMANTIC_ROUTING_ENABLED) return null;
   const modelId = derivePlannerModel(userSettings, env);
   if (!modelId) return null;
-  let resolvedModel: LanguageModel | null = null;
+  let resolvedModel: LanguageModel | null;
   try {
     resolvedModel = resolveChatModel(userSettings, env, 'summary').model;
   } catch {

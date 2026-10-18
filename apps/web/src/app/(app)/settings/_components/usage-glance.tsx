@@ -23,7 +23,7 @@ import { Link } from 'next-view-transitions';
 export async function UsageGlance({ userId }: { userId?: string }) {
   if (!userId) return null;
 
-  let stats: Awaited<ReturnType<typeof computeUsage>> | null = null;
+  let stats: Awaited<ReturnType<typeof computeUsage>>;
   try {
     stats = await computeUsage(userId);
   } catch {

@@ -218,7 +218,7 @@ async function performThreadHistoryBackfill(args: {
 }): Promise<number> {
   const { memory, userId, threadId, excludeMessageIdempotencyKey } = args;
   let durableClaim = false;
-  let durableStateBeforeClaim: Awaited<ReturnType<typeof getMemoryBackfillState>> = null;
+  let durableStateBeforeClaim: Awaited<ReturnType<typeof getMemoryBackfillState>>;
   try {
     // Read the marker before claiming so an already-populated native thread
     // remains untouched on first migration use, while an interrupted durable

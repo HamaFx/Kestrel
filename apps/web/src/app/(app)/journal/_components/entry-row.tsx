@@ -148,7 +148,7 @@ export function EntryRow({
     const stopPrice = entry.stop;
     const targetPrice = entry.target;
 
-    let percentage = 0;
+    let percentage: number;
 
     if (entry.side === 'long') {
       const range = targetPrice - stopPrice;

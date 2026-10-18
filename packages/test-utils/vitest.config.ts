@@ -25,6 +25,10 @@ export default defineConfig({
     conditions: ['source'],
   },
   test: {
+    // Vitest 5 shares one filesystem module cache per workspace by default;
+    // turbo runs every package's suite in parallel, so keep the cache
+    // package-local to avoid concurrent-cache races.
+    fsModuleCachePath: 'node_modules/.vitest-cache',
     pool: 'forks',
     maxWorkers,
     deps: {

@@ -171,7 +171,7 @@ export function renderThreadToMarkdown(
     const role = m.role.charAt(0).toUpperCase() + m.role.slice(1);
     const heading = `## ${role} · ${ts}\n\n`;
 
-    let inner = '';
+    let inner: string;
     if (!m.parts || m.parts.length === 0) {
       const fallback = (m.content ?? '').trim();
       inner = fallback ? `${escapeInline(fallback)}\n` : '_(empty)_\n';

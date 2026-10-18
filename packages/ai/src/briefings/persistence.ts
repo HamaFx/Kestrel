@@ -245,7 +245,7 @@ export interface LatestBriefing {
  */
 export async function getLatestBriefing(userId: string): Promise<LatestBriefing | null> {
   // 1. Locate the user's briefings thread.
-  let thread: Awaited<ReturnType<typeof getOrCreateBriefingsThread>> | null = null;
+  let thread: Awaited<ReturnType<typeof getOrCreateBriefingsThread>>;
   try {
     thread = await getOrCreateBriefingsThread(userId);
   } catch {

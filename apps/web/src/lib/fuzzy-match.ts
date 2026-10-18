@@ -103,7 +103,7 @@ export function fuzzyMatch(query: string, target: string): FuzzyMatch | null {
   }
 
   // Determine final score based on match type
-  let score = 0;
+  let score: number;
   if (q === t) {
     score = 1000;
   } else if (t.startsWith(q)) {

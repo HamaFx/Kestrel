@@ -63,7 +63,7 @@ export const runSystemActionTool = tool({
     consoleLogs.push('[devops] Caller role verified: admin');
 
     let status: 'success' | 'error' = 'success';
-    let message = '';
+    let message: string;
 
     try {
       const apiKey = process.env['FRED_API_KEY'];

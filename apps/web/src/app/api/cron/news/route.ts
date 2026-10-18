@@ -99,7 +99,7 @@ export async function GET(req: Request): Promise<Response> {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
             log.errorContext(err, 'fetchNews', { message });
-      throw new Error(`news fetch failed: ${message}`);
+      throw new Error(`news fetch failed: ${message}`, { cause: err });
     }
   });
 }

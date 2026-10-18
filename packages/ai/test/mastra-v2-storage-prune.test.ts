@@ -19,7 +19,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mockPostgresPrune = vi.fn();
-const MockPostgresStore = vi.fn(function () {
+const MockPostgresStore = vi.fn(function (_options?: unknown) {
   return { prune: mockPostgresPrune };
 });
 

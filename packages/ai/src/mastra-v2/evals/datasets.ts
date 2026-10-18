@@ -145,7 +145,7 @@ export async function migrateLegacyEvalCasesToDatasets(
       continue;
     }
 
-    let existing: Awaited<ReturnType<typeof instance.datasets.get>> | null = null;
+    let existing: Awaited<ReturnType<typeof instance.datasets.get>> | null;
     try {
       existing = await instance.datasets.get({ id });
     } catch {

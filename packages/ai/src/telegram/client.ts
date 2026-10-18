@@ -285,7 +285,7 @@ export function chunkText(text: string, maxLen: number): string[] {
   let remaining = text;
 
   while (remaining.length > maxLen) {
-    let splitIndex = -1;
+    let splitIndex: number;
     let skipChar = 1;
 
     // Try to split on a newline within the last 500 chars of the chunk

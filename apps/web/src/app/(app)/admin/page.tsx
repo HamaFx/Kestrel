@@ -229,7 +229,7 @@ export default function AdminPage() {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>) => {
       const currentIndex = TABS.findIndex((t) => t.id === activeTab);
-      let nextIndex = currentIndex;
+      let nextIndex: number;
 
       switch (event.key) {
         case 'ArrowRight':
