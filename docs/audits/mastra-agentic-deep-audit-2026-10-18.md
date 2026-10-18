@@ -333,7 +333,7 @@ Status: ⬜ pending · 🟨 in progress · ✅ done (linked to the fixing commit
 | 3 | P1-01 (committee opinion verifier), P1-04 (comparison risk desk) | ✅ | `3b9c2f6b` |
 | 4 | P2-02 (shared candle fetcher), P2-03 (guardrail model reuse), god-workflow split | ✅ | `e699bf76` |
 | 5 | P2-05 (heuristic consensus), P2-06 (log↔trace join), P2-01 (tool shims) | ✅ | `19e39748` |
-| 6 | Verification: coverage floors, knip, route security, Studio smoke | ✅ | — |
+| 6 | Verification: coverage floors, knip, route security, Studio smoke | ✅ | `68accdc5` |
 
 ### Phase 6 verification results (2026-10-18)
 
