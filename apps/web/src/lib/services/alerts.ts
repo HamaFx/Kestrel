@@ -65,9 +65,9 @@ export interface AlertDTO {
   note: string | null;
   snoozeHours: number;
   active: boolean;
+  /** One-shot fired marker (null after re-arm). */
   firedAt: number | null;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface PreviewResultDTO {
@@ -101,9 +101,10 @@ function toAlertDTO(a: Alert): AlertDTO {
     note: a.note,
     snoozeHours: a.snoozeHours,
     active: a.active,
-    firedAt: a.lastFiredAt ?? a.firedAt ?? null,
+    // Only the one-shot fired marker — `lastFiredAt` belongs to snooze
+    // re-arm bookkeeping and made re-armed alerts render as triggered.
+    firedAt: a.firedAt ?? null,
     createdAt: new Date(a.createdAt),
-    updatedAt: new Date(a.createdAt),
   };
 }
 

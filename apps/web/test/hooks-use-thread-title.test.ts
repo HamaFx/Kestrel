@@ -68,7 +68,9 @@ describe('useThreadTitle', () => {
 
     // Wait for the fetch to be called
     await vi.waitFor(() => {
-      expect(apiFetchMock).toHaveBeenCalledWith('/api/chat/threads/thread-2', { skipCsrf: true });
+      expect(apiFetchMock).toHaveBeenCalledWith('/api/chat/threads/thread-2?fields=thread', {
+        skipCsrf: true,
+      });
     });
 
     // Resolve the JSON promise

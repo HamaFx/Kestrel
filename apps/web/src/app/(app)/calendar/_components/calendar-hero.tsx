@@ -29,7 +29,7 @@ import { Link } from 'next-view-transitions';
 
 import { useTime } from '@/components/providers/time-provider';
 import { cn } from '@/lib/cn';
-import { startOfDay } from '@/lib/datetime';
+import { startOfDay, startOfDayOffset } from '@/lib/datetime';
 
 interface CalendarHeroProps {
   events?: readonly EconomicEvent[];
@@ -55,7 +55,7 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
 
   // Today's events — counted from local-day start.
   const today0 = startOfDay(now);
-  const todayEnd = today0 + 24 * 60 * 60_000;
+  const todayEnd = startOfDayOffset(now, 1);
   const todayCount = events.filter((e) => e.date >= today0 && e.date < todayEnd).length;
 
   return (

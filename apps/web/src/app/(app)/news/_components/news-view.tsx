@@ -43,7 +43,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
-import { startOfDay } from '@/lib/datetime';
+import { startOfDay, startOfDayOffset } from '@/lib/datetime';
 import { formatRelative } from '@/lib/format';
 
 import { NewsToolbar } from './news-toolbar';
@@ -291,11 +291,10 @@ function bucketByTime(articles: readonly NewsArticle[]): Bucket[] {
   if (articles.length === 0) return [];
   const now = Date.now();
   const HOUR = 60 * 60_000;
-  const DAY = 24 * HOUR;
 
   const today0 = startOfDay(now);
-  const yesterday0 = today0 - DAY;
-  const weekAgo = today0 - 6 * DAY;
+  const yesterday0 = startOfDayOffset(now, -1);
+  const weekAgo = startOfDayOffset(now, -6);
 
   const hour: NewsArticle[] = [];
   const today: NewsArticle[] = [];

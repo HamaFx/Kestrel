@@ -51,6 +51,19 @@ const { auth } = NextAuth(authConfig);
 
 // ── C-3: CSP nonce helpers ──────────────────────────────────────────
 
+/** Build the per-request CSP with the nonce (single source for request + response). */
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' https://s3.tradingview.com https://d3js.org`,
+    "style-src 'self' 'unsafe-inline' https://s3.tradingview.com",
+    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://s3.tradingview.com https://api.dicebear.com",
+    "font-src 'self' data:",
+    "connect-src 'self' wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.nowpayments.io https://*.tradingview.com https://api.dicebear.com",
+    "frame-src 'self' https://*.tradingview.com https://*.s3.tradingview.com https://s.tradingview.com",
+  ].join('; ');
+}
+
 /**
  * Set the Content-Security-Policy header on a NextResponse with a
  * per-request cryptographic nonce. The nonce enables script tags with
@@ -58,18 +71,7 @@ const { auth } = NextAuth(authConfig);
  * propagates that trust to dynamically loaded scripts.
  */
 function setCspHeader(response: NextResponse, nonce: string): void {
-  response.headers.set(
-    'Content-Security-Policy',
-    [
-      "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' https://s3.tradingview.com https://d3js.org`,
-      "style-src 'self' 'unsafe-inline' https://s3.tradingview.com",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://s3.tradingview.com https://api.dicebear.com",
-      "font-src 'self' data:",
-      "connect-src 'self' wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.nowpayments.io https://*.tradingview.com https://api.dicebear.com",
-      "frame-src 'self' https://*.tradingview.com https://*.s3.tradingview.com https://s.tradingview.com",
-    ].join('; '),
-  );
+  response.headers.set('Content-Security-Policy', buildCsp(nonce));
 }
 
 // NB: explicit `any` annotation prevents a Next.js build error with
@@ -128,6 +130,11 @@ const proxy: any = auth(async (req) => {
   headers.delete(USER_ID_SIG_HEADER);
   // C-3: Pass CSP nonce to downstream request handlers.
   headers.set('x-csp-nonce', cspNonce);
+  // Next.js only attaches the nonce to its inline bootstrap/flight scripts
+  // when the REQUEST carries the CSP header (it parses the nonce from
+  // `content-security-policy` request headers) — setting it on the response
+  // alone leaves the nonce directive inert. Keep `x-csp-nonce` for app code.
+  headers.set('Content-Security-Policy', buildCsp(cspNonce));
   if (userId) {
     headers.set(USER_ID_HEADER, userId);
   } else {

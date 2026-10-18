@@ -31,7 +31,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
-import { startOfDay } from '@/lib/datetime';
+import { startOfDay, startOfDayOffset } from '@/lib/datetime';
 import { formatRelative } from '@/lib/format';
 
 import { CalendarToolbar } from './calendar-toolbar';
@@ -198,9 +198,9 @@ function bucket(events: readonly EconomicEvent[]): Section[] {
   if (events.length === 0) return [];
   const now = Date.now();
   const today0 = startOfDay(now);
-  const tomorrow0 = today0 + 24 * 60 * 60_000;
-  const dayAfter0 = tomorrow0 + 24 * 60 * 60_000;
-  const weekEnd = today0 + 7 * 24 * 60 * 60_000;
+  const tomorrow0 = startOfDayOffset(now, 1);
+  const dayAfter0 = startOfDayOffset(now, 2);
+  const weekEnd = startOfDayOffset(now, 7);
 
   const past: EconomicEvent[] = [];
   const today: EconomicEvent[] = [];

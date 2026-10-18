@@ -29,6 +29,18 @@ export function startOfDay(ms: number): number {
 }
 
 /**
+ * Local midnight `days` calendar days after `ms` (negative = before).
+ * Uses calendar arithmetic instead of `ms + days * 86_400_000` so DST
+ * transition days don't shift the day boundary by an hour.
+ */
+export function startOfDayOffset(ms: number, days: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + days);
+  return d.getTime();
+}
+
+/**
  * Human-readable countdown: "5m 30s", "1h 2m", or "0s".
  */
 export function formatCountdown(ms: number): string {

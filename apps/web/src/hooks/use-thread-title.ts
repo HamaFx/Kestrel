@@ -53,7 +53,7 @@ export function useThreadTitle({
       try {
         const json = await apiFetch<{
           thread?: { title: string | null; titleSource: string | null };
-        }>(`/api/chat/threads/${threadId}`, { skipCsrf: true });
+        }>(`/api/chat/threads/${threadId}?fields=thread`, { skipCsrf: true });
         if (cancelled) return;
         const t = json.thread;
         if (t?.titleSource === 'llm' && t.title && !cancelled) {

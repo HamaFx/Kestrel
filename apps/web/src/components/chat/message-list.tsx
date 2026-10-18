@@ -20,7 +20,7 @@
 // large threads efficiently, rendering only the visible messages in the DOM.
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { UIMessage } from 'ai';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 import type { AgentProgress } from '@/lib/chat-transport';
 
@@ -56,6 +56,12 @@ interface MessageListProps {
   onRegenerate?: (opts?: { modelOverride?: string }) => void;
   onEdit?: (messageId: string, newText: string) => void;
   onFollowUpSelect?: (prompt: string) => void;
+  /**
+   * Populated with a `scrollToIndex` function so parents (e.g. the TOC rail)
+   * can jump to rows that are not mounted — the virtualizer only renders the
+   * visible window plus overscan, so DOM queries cannot reach distant rows.
+   */
+  scrollToIndexRef?: RefObject<((index: number) => void) | null>;
 }
 
 export const MessageList = memo(function MessageList({
@@ -70,6 +76,7 @@ export const MessageList = memo(function MessageList({
   onRegenerate,
   onEdit,
   onFollowUpSelect,
+  scrollToIndexRef,
 }: MessageListProps) {
   const hasLiveDeliberation = Boolean(
     agentProgress && Array.isArray(agentProgress.agents) && agentProgress.agents.length > 0,
@@ -97,6 +104,18 @@ export const MessageList = memo(function MessageList({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const totalSize = rowVirtualizer.getTotalSize();
+
+  // Expose the virtualizer's scrollToIndex to the parent (TOC rail) so
+  // "jump to turn" works for rows the virtualizer has not mounted.
+  useEffect(() => {
+    if (!scrollToIndexRef) return;
+    scrollToIndexRef.current = (index: number) => {
+      rowVirtualizer.scrollToIndex(index, { align: 'start' });
+    };
+    return () => {
+      scrollToIndexRef.current = null;
+    };
+  }, [scrollToIndexRef, rowVirtualizer]);
 
   useEffect(() => {
     if (containerRef.current) {

@@ -17,13 +17,21 @@
  */
 import { IconBuildingBank, IconChartCandle, IconRadar, IconScale } from '@tabler/icons-react';
 import { m } from 'motion/react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useState } from 'react';
 
-import { Landing3DHologram } from '@/components/landing/landing-3d-hologram';
 import { TacticalFlameButton } from '@/components/landing/landing-button';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
+
+// The hologram pulls in three.js (~154 KB gzip). It already defers rendering
+// via IntersectionObserver, so keep it out of the synchronous landing bundle
+// and load it only when the client hydrates.
+const Landing3DHologram = dynamic(
+  () => import('@/components/landing/landing-3d-hologram').then((m) => m.Landing3DHologram),
+  { ssr: false },
+);
 
 interface SymbolTelemetry {
   symbol: string;

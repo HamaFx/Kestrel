@@ -159,6 +159,17 @@ export function searchSymbolsService(query: string, limit: number): SearchResult
 
 const INDICATOR_CACHE_TTL = 30;
 
+/**
+ * Deterministic serialization of one indicator's params for cache keys.
+ * Omitting params made `rsi(14)` and `rsi(200)` collide on the same key.
+ */
+function stableIndicatorParams(params: Record<string, unknown>): string {
+  return Object.entries(params ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v)}`)
+    .join('&');
+}
+
 export async function getIndicatorsService(
   userId: string,
   symbol: string,
@@ -168,10 +179,18 @@ export async function getIndicatorsService(
 ): Promise<IndicatorResultDTO> {
   const { finnhubKey, marketDataProvider } = await loadUserMarketPrefs(userId);
 
-  // Build a stable cache key from the full request signature.
-  const key = ['indicator', symbol, tf, String(count), ...indicatorList.map((i) => i.kind)].join(
-    ':',
-  );
+  // Build a stable cache key from the full request signature: kind AND params
+  // (previously params were omitted) plus the owning user — the candles inside
+  // were fetched with the caller's provider/BYOK key, so a shared entry would
+  // leak one user's provider selection into another user's response.
+  const key = [
+    'indicator',
+    userId,
+    symbol,
+    tf,
+    String(count),
+    ...indicatorList.map((i) => `${i.kind}:${stableIndicatorParams(i.params)}`),
+  ].join(':');
   const cache = await getDefaultCache();
 
   const { value } = await cache.fetchWithMeta<{ candles: Candle[]; results: IndicatorResult[] }>(

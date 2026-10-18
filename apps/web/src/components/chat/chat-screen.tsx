@@ -80,6 +80,8 @@ export function ChatScreen({
   const lastUserTextRef = useRef<string>('');
   const autoSubmittedRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Populated by MessageList — lets the TOC rail jump to virtualized rows.
+  const scrollToMessageIndexRef = useRef<((index: number) => void) | null>(null);
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
   const router = useRouter();
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>(initialAnalysisMode);
@@ -463,6 +465,7 @@ export function ChatScreen({
                     lastUserTextRef.current = text;
                     void sendMessage({ text });
                   }}
+                  scrollToIndexRef={scrollToMessageIndexRef}
                 />
               )}
 
@@ -531,6 +534,13 @@ export function ChatScreen({
               <ThreadTocRail
                 messages={messages}
                 onScrollToTurn={(idx) => {
+                  // The list is virtualized — only the visible window (plus
+                  // overscan) exists in the DOM, so jump through the
+                  // virtualizer when it is mounted.
+                  if (scrollToMessageIndexRef.current) {
+                    scrollToMessageIndexRef.current(idx);
+                    return;
+                  }
                   const target = scrollElement?.querySelector(`[data-index="${idx}"]`);
                   if (target) {
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
