@@ -15,56 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import {
-  IconBell,
-  IconChartLine,
-  IconLayoutDashboard,
-  IconMenu2,
-  IconMessageCircle,
-} from '@tabler/icons-react';
+import { IconMenu2 } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 
 import { cn } from '@/lib/cn';
 
 import { useNavDrawer } from './nav-drawer-context';
+import { isNavItemActive, PRIMARY_NAV_ITEMS } from './nav-items';
+import { useShellRoute } from './shell-route-context';
 
-interface BottomNavItem {
-  href: string;
-  label: string;
-  icon: typeof IconLayoutDashboard;
-  match?: readonly string[];
-}
-
-const ITEMS: readonly BottomNavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
-  { href: '/chat', label: 'Chat', icon: IconMessageCircle },
-  { href: '/chart/XAUUSD', label: 'Chart', icon: IconChartLine, match: ['/chart'] },
-  { href: '/alerts', label: 'Alerts', icon: IconBell },
-];
+const BOTTOM_ITEMS = PRIMARY_NAV_ITEMS.filter((item) =>
+  ['/chat', '/dashboard', '/journal', '/alerts'].includes(item.href),
+);
 
 export function MobileBottomNav() {
   const pathname = usePathname() ?? '';
+  const { isChat } = useShellRoute();
   const { setOpen } = useNavDrawer();
 
   // Hide on /chat routes so the full-screen sticky chat composer has maximum vertical space
-  if (pathname === '/chat' || pathname.startsWith('/chat/')) {
+  if (isChat) {
     return null;
-  }
-
-  function isActive(item: BottomNavItem): boolean {
-    const candidates = item.match ?? [item.href];
-    return candidates.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }
 
   return (
     <nav
       aria-label="Mobile primary navigation"
-      className="border-border/80 bg-bg-elev-1/95 pb-safe fixed inset-x-0 bottom-0 z-30 flex h-14 items-center justify-around border-t backdrop-blur-md lg:hidden"
+      className="border-border/80 bg-bg-elev-1 pb-safe fixed inset-x-0 bottom-0 z-30 flex h-14 items-center justify-around border-t lg:hidden"
     >
-      {ITEMS.map((item) => {
-        const active = isActive(item);
+      {BOTTOM_ITEMS.map((item) => {
+        const active = isNavItemActive(item, pathname);
         const Icon = item.icon;
         return (
           <Link

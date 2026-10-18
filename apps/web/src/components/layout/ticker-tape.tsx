@@ -29,6 +29,8 @@ import { useEffect, useReducer, useRef } from 'react';
 import { usePrices } from '@/hooks/use-prices';
 import { cn } from '@/lib/cn';
 
+import { useShellRoute } from './shell-route-context';
+
 const TAPE_SYMBOLS: Symbol[] = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT'];
 
 function pctChange(prev: number, cur: number): string {
@@ -38,7 +40,8 @@ function pctChange(prev: number, cur: number): string {
 }
 
 export function TickerTape() {
-  const tickQuery = usePrices(TAPE_SYMBOLS);
+  const { isChat } = useShellRoute();
+  const tickQuery = usePrices(TAPE_SYMBOLS, { enabled: !isChat });
   const data = tickQuery.data;
   const currentPricesRef = useRef<Map<Symbol, number>>(new Map());
   const prevPricesRef = useRef<Map<Symbol, number>>(new Map());
@@ -87,11 +90,14 @@ export function TickerTape() {
     ]);
     return (
       <div
-        className="border-border/80 bg-well/80 relative h-7 overflow-hidden border-b shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]"
+        className="bg-well/80 relative h-7 overflow-hidden shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]"
         aria-label="Market ticker tape — awaiting data"
         role="marquee"
       >
-        <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap" aria-hidden="true">
+        <div
+          className="ticker-track font-mono text-xs leading-7 whitespace-nowrap"
+          aria-hidden="true"
+        >
           {fallback}
           {fallback}
         </div>
@@ -116,7 +122,7 @@ export function TickerTape() {
       ) : (
         <span
           className={cn(
-            'text-xs font-semibold tabular-nums px-1 rounded-xs',
+            'rounded-xs px-1 text-xs font-semibold tabular-nums',
             item.isBull ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10',
           )}
         >
@@ -129,11 +135,16 @@ export function TickerTape() {
 
   return (
     <div
-      className="border-border/80 bg-well/80 relative h-7 overflow-hidden border-b shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]"
+      className="bg-well/80 relative h-7 overflow-hidden shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]"
       aria-label="Market ticker tape"
       role="marquee"
     >
-      <div className="ticker-track font-mono text-xs leading-7 whitespace-nowrap" aria-hidden="true">{content}</div>
+      <div
+        className="ticker-track font-mono text-xs leading-7 whitespace-nowrap"
+        aria-hidden="true"
+      >
+        {content}
+      </div>
     </div>
   );
 }

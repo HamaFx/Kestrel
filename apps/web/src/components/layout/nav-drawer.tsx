@@ -19,18 +19,7 @@
 // <NavDrawer> — left-side slide-in nav. Single global instance, controlled
 // via <NavDrawerProvider> context. See nav-drawer-context.tsx for the
 // rationale.
-import {
-  IconBell,
-  IconBook,
-  IconCalendar,
-  IconChartLine,
-  IconLayoutDashboard,
-  IconLogout,
-  IconMessageCircle,
-  IconNews,
-  IconSettings,
-  IconShield,
-} from '@tabler/icons-react';
+import { IconLogout } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
@@ -43,58 +32,13 @@ import { clearKestrelClientState } from '@/lib/cache-isolation';
 import { cn } from '@/lib/cn';
 
 import { useNavDrawer } from './nav-drawer-context';
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: typeof IconMessageCircle;
-  description?: string;
-  match?: readonly string[];
-}
-
-const PRIMARY: readonly NavItem[] = [
-  {
-    href: '/dashboard',
-    label: 'Dashboard',
-    icon: IconLayoutDashboard,
-    description: 'Briefing & performance overview',
-  },
-  {
-    href: '/chat',
-    label: 'Chat',
-    icon: IconMessageCircle,
-    description: 'Ask your 4-desk AI committee',
-  },
-  {
-    href: '/chart/XAUUSD',
-    label: 'Chart',
-    icon: IconChartLine,
-    match: ['/chart'],
-    description: 'Live candles + structure',
-  },
-  {
-    href: '/news',
-    label: 'News',
-    icon: IconNews,
-    description: 'Market headlines & sentiment',
-  },
-  {
-    href: '/calendar',
-    label: 'Calendar',
-    icon: IconCalendar,
-    description: 'Upcoming economic events',
-  },
-];
-
-const SECONDARY: readonly NavItem[] = [
-  { href: '/alerts', label: 'Alerts', icon: IconBell, description: 'Price & indicator triggers' },
-  { href: '/journal', label: 'Journal', icon: IconBook, description: 'Trades & R-multiples' },
-  { href: '/settings', label: 'Settings', icon: IconSettings, description: 'Subscription, risk & alerts' },
-];
-
-const ADMIN: readonly NavItem[] = [
-  { href: '/admin', label: 'Admin', icon: IconShield, description: 'Platform controls & health' },
-];
+import {
+  ADMIN_NAV_ITEMS,
+  isNavItemActive,
+  PRIMARY_NAV_ITEMS,
+  SECONDARY_NAV_ITEMS,
+  type NavItem,
+} from './nav-items';
 
 export function NavDrawer({
   userName,
@@ -110,15 +54,9 @@ export function NavDrawer({
   const { open, setOpen } = useNavDrawer();
   const pathname = usePathname();
 
-  // Auto-close on route change.
   useEffect(() => {
     setOpen(false);
   }, [pathname, setOpen]);
-
-  function isActive(item: NavItem): boolean {
-    const candidates = item.match ?? [item.href];
-    return candidates.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  }
 
   async function logout() {
     try {
@@ -180,22 +118,34 @@ export function NavDrawer({
           </DrawerPrimitive.Description>
 
           <nav aria-label="Primary" className="scrollbar-hide flex-1 overflow-y-auto px-3 pb-4">
-            <Section label="Markets">
-              {PRIMARY.map((item) => (
-                <NavLink key={item.href} item={item} active={isActive(item)} />
+            <Section label="Navigation">
+              {PRIMARY_NAV_ITEMS.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isNavItemActive(item, pathname ?? '')}
+                />
               ))}
             </Section>
 
-            <Section label="Workspace">
-              {SECONDARY.map((item) => (
-                <NavLink key={item.href} item={item} active={isActive(item)} />
+            <Section label="Preferences">
+              {SECONDARY_NAV_ITEMS.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isNavItemActive(item, pathname ?? '')}
+                />
               ))}
             </Section>
 
             {isAdmin ? (
               <Section label="Administration">
-                {ADMIN.map((item) => (
-                  <NavLink key={item.href} item={item} active={isActive(item)} />
+                {ADMIN_NAV_ITEMS.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    active={isNavItemActive(item, pathname ?? '')}
+                  />
                 ))}
               </Section>
             ) : null}
@@ -245,17 +195,25 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         prefetch={true}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'group/nav focus-visible:ring-brand relative flex min-h-[56px] items-center gap-3 rounded-sm px-3 transition-all focus-visible:ring-2 focus-visible:outline-none',
+          'group/nav focus-visible:ring-brand relative flex min-h-[56px] items-center gap-3 rounded-md px-3 transition-all focus-visible:ring-2 focus-visible:outline-none',
           active
-            ? 'bg-brand/8 ring-brand/22 text-brand ring-1'
-            : 'text-fg-muted hover:bg-bg-elev-2 hover:text-fg',
+            ? 'bg-bg-elev-2 text-fg surface-chip border-brand/40 shadow-sm'
+            : 'text-fg-muted hover:bg-bg-elev-2/50 hover:text-fg border border-transparent',
         )}
       >
+        {active && (
+          <span
+            aria-hidden="true"
+            className="bg-brand absolute left-1 h-3.5 w-1 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.6)]"
+          />
+        )}
         <span
           aria-hidden="true"
           className={cn(
             'inline-flex size-9 items-center justify-center rounded-sm transition-colors',
-            active ? 'bg-bg-elev-3 text-fg' : 'bg-bg-elev-2 text-fg-muted group-hover/nav:text-fg',
+            active
+              ? 'bg-bg-elev-3 text-brand'
+              : 'bg-bg-elev-2 text-fg-muted group-hover/nav:text-fg',
           )}
         >
           <Icon className="size-5" strokeWidth={active ? 2 : 1.75} />

@@ -18,25 +18,27 @@
 import { DEFAULT_WATCHLIST_SYMBOLS, type Symbol, type Timeframe } from '@kestrel/shared';
 import { IconMessageCircle } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
-import { useRouter } from 'next/navigation';
 
+// UI chart surface is exclusively TradingView Pro. Lightweight chart code remains for agent/background consumers — do not mount it here.
+import { TradingViewWidget } from '@/components/chart';
 import { SymbolPicker } from '@/components/chart/symbol-picker';
 import { TimeframePicker } from '@/components/chart/timeframe-picker';
+import { useTimeframe } from '@/hooks/use-tf';
 
-import { TradingViewWidget } from './tradingview-widget';
+export function ProChartView({ symbol, tf: initialTf }: { symbol: Symbol; tf: Timeframe }) {
+  const [urlTf, setTf] = useTimeframe();
+  const currentTf = urlTf ?? initialTf;
 
-export function ProChartView({ symbol, tf }: { symbol: Symbol; tf: Timeframe }) {
-  const router = useRouter();
   const watchlist = (DEFAULT_WATCHLIST_SYMBOLS as readonly string[]).includes(symbol)
     ? [...DEFAULT_WATCHLIST_SYMBOLS]
     : [symbol, ...DEFAULT_WATCHLIST_SYMBOLS];
 
-  const prompt = `Analyze ${symbol} on the ${tf} timeframe and give me key support/resistance levels and trade setups.`;
+  const prompt = `Analyze ${symbol} on the ${currentTf} timeframe and give me key support/resistance levels and trade setups.`;
 
   return (
     <div className="animate-in fade-in flex flex-col gap-3 duration-300">
       {/* Interactive Chart Control Bar */}
-      <div className="surface-panel border-border/80 bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-3 shadow-xs">
+      <div className="surface-card border-border/80 flex flex-col gap-3 rounded-[16px] border p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <SymbolPicker active={symbol} watchlist={watchlist} />
@@ -54,15 +56,15 @@ export function ProChartView({ symbol, tf }: { symbol: Symbol; tf: Timeframe }) 
         <div className="border-border/50 flex flex-wrap items-center justify-between gap-2 border-t pt-2.5">
           <span className="text-fg-subtle font-mono text-xs uppercase">Timeframe</span>
           <TimeframePicker
-            value={tf}
+            value={currentTf}
             onChange={(nextTf) => {
-              router.push(`/chart/${symbol}?tf=${nextTf}`);
+              setTf(nextTf);
             }}
           />
         </div>
       </div>
 
-      <TradingViewWidget symbol={symbol} tf={tf} theme="dark" />
+      <TradingViewWidget symbol={symbol} tf={currentTf} theme="dark" />
     </div>
   );
 }

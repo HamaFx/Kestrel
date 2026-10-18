@@ -64,12 +64,12 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-fg mt-3 mb-1.5 text-sm font-semibold tracking-tight sm:text-base">
+            <h2 className="font-display text-fg mt-3 mb-1.5 text-sm font-semibold tracking-tight sm:text-base">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-brand mt-2.5 mb-1 text-xs font-semibold tracking-wider uppercase sm:text-sm">
+            <h3 className="text-brand mt-4 mb-1 text-xs font-semibold tracking-wider uppercase sm:text-sm">
               {children}
             </h3>
           ),
@@ -103,28 +103,26 @@ export function TextPart({ text, role, isStreaming }: TextPartProps) {
             </a>
           ),
           table: ({ children }) => (
-            <div className="border-divider my-3 overflow-x-auto rounded-sm border">
-              <table className="border-divider w-full table-auto text-right font-mono text-xs sm:text-sm">
+            <div className="border-border/60 bg-well/40 my-3 overflow-x-auto rounded-[6px] border-[0.5px]">
+              <table className="w-full table-auto text-right font-mono text-xs sm:text-sm">
                 {children}
               </table>
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-bg-elev-2 border-border border-b">{children}</thead>
+            <thead className="bg-well/80 border-border/60 border-b-[0.5px]">{children}</thead>
           ),
-          tbody: ({ children }) => <tbody className="divide-divider divide-y">{children}</tbody>,
-          tr: ({ children }) => (
-            <tr className="border-divider hover:bg-bg-elev-1 transition-colors">{children}</tr>
+          tbody: ({ children }) => (
+            <tbody className="divide-border/40 divide-y-[0.5px]">{children}</tbody>
           ),
+          tr: ({ children }) => <tr className="transition-colors">{children}</tr>,
           th: ({ children }) => (
-            <th className="text-fg-subtle border-divider border-r px-3 py-2 text-left font-semibold tracking-wider uppercase last:border-r-0">
+            <th className="text-fg-subtle px-3 py-2 text-left font-mono font-medium tracking-wider uppercase">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="text-fg border-divider border-r px-3 py-2 tabular-nums last:border-r-0">
-              {children}
-            </td>
+            <td className="text-fg px-3 py-2 font-mono tabular-nums">{children}</td>
           ),
           code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');

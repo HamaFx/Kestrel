@@ -18,16 +18,9 @@
  * limitations under the License.
  */
 import {
-  IconBell,
-  IconBook,
-  IconCalendar,
-  IconChartLine,
   IconChevronLeft,
   IconChevronRight,
-  IconLayoutDashboard,
   IconLogout,
-  IconMessageCircle,
-  IconNews,
   IconPlus,
   IconSettings,
   IconShield,
@@ -40,24 +33,8 @@ import { toast } from 'sonner';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { cn } from '@/lib/cn';
 
+import { isNavItemActive, PRIMARY_NAV_ITEMS } from './nav-items';
 import { useSidebarState } from './sidebar-state-context';
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: typeof IconMessageCircle;
-  match?: readonly string[];
-}
-
-const PRIMARY_ITEMS: readonly NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
-  { href: '/chat', label: 'Chat', icon: IconMessageCircle },
-  { href: '/chart/XAUUSD', label: 'Chart', icon: IconChartLine, match: ['/chart'] },
-  { href: '/news', label: 'News', icon: IconNews },
-  { href: '/calendar', label: 'Calendar', icon: IconCalendar },
-  { href: '/alerts', label: 'Alerts', icon: IconBell },
-  { href: '/journal', label: 'Journal', icon: IconBook },
-];
 
 export function DesktopSidebar({
   userName,
@@ -70,11 +47,6 @@ export function DesktopSidebar({
 }) {
   const { collapsed, toggle: toggleCollapsed } = useSidebarState();
   const pathname = usePathname() ?? '';
-
-  function isActive(item: NavItem): boolean {
-    const candidates = item.match ?? [item.href];
-    return candidates.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  }
 
   async function handleLogout() {
     try {
@@ -91,7 +63,7 @@ export function DesktopSidebar({
       aria-label="Desktop navigation sidebar"
       className={cn(
         'fixed top-0 bottom-0 left-0 z-40 hidden flex-col justify-between lg:flex',
-        'border-border/80 bg-bg-elev-1 surface-well-deep border-r transition-all duration-200 select-none shadow-[inset_-1px_0_0_rgba(255,255,255,0.05)]',
+        'bg-card border-r border-white/[0.08] transition-all duration-200 select-none',
         collapsed ? 'w-16' : 'w-56',
       )}
       style={{
@@ -129,8 +101,8 @@ export function DesktopSidebar({
           prefetch={true}
           aria-label="New thread"
           className={cn(
-            'border-chip-edge group relative flex items-center justify-center gap-2 rounded-[10px] border px-3 py-2 text-xs font-mono font-medium text-fg shadow-(--shadow-chip) transition-all',
-            'bg-gradient-to-r from-brand/20 via-brand/10 to-transparent hover:border-brand/50 active:translate-y-[0.5px]',
+            'border-chip-edge group text-fg relative flex items-center justify-center gap-2 rounded-[10px] border px-3 py-2 font-mono text-xs font-medium shadow-(--shadow-chip) transition-all',
+            'from-brand/20 via-brand/10 hover:border-brand/50 bg-gradient-to-r to-transparent active:translate-y-[0.5px]',
             collapsed ? 'mx-auto size-10 p-0' : 'w-full',
           )}
           title={collapsed ? 'New thread' : undefined}
@@ -141,8 +113,8 @@ export function DesktopSidebar({
 
         {/* Primary Nav List */}
         <nav className="flex flex-col gap-1" aria-label="Main Navigation">
-          {PRIMARY_ITEMS.map((item) => {
-            const active = isActive(item);
+          {PRIMARY_NAV_ITEMS.map((item) => {
+            const active = isNavItemActive(item, pathname);
             const Icon = item.icon;
             return (
               <Link
@@ -162,7 +134,7 @@ export function DesktopSidebar({
                 {active && (
                   <span
                     aria-hidden="true"
-                    className="absolute left-1 h-3.5 w-1 rounded-full bg-brand shadow-[0_0_8px_rgba(255,54,22,0.6)]"
+                    className="bg-brand absolute left-1 h-3.5 w-1 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.6)]"
                   />
                 )}
                 <Icon
@@ -203,7 +175,7 @@ export function DesktopSidebar({
             {pathname.startsWith('/admin') && (
               <span
                 aria-hidden="true"
-                className="absolute left-1 h-3.5 w-1 rounded-full bg-brand shadow-[0_0_8px_rgba(255,54,22,0.6)]"
+                className="bg-brand absolute left-1 h-3.5 w-1 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.6)]"
               />
             )}
             <IconShield
@@ -234,7 +206,7 @@ export function DesktopSidebar({
           {pathname.startsWith('/settings') && (
             <span
               aria-hidden="true"
-              className="absolute left-1 h-3.5 w-1 rounded-full bg-brand shadow-[0_0_8px_rgba(255,54,22,0.6)]"
+              className="bg-brand absolute left-1 h-3.5 w-1 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.6)]"
             />
           )}
           <IconSettings
@@ -258,10 +230,12 @@ export function DesktopSidebar({
             </div>
             {!collapsed && (
               <div className="flex min-w-0 flex-col">
-                <span className="text-fg truncate text-xs font-medium font-sans">
+                <span className="text-fg truncate font-sans text-xs font-medium">
                   {userName || 'Trader'}
                 </span>
-                <span className="text-fg-subtle text-caption truncate font-mono">{userEmail || ''}</span>
+                <span className="text-fg-subtle text-caption truncate font-mono">
+                  {userEmail || ''}
+                </span>
               </div>
             )}
           </div>
