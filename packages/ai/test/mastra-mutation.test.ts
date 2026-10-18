@@ -23,6 +23,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createKestrelMastra, initializeKestrelMastra } from '../src/mastra-v2';
 import {
+  issueMutationConfirmationToken,
+  storedConfirmationForToken,
+  verifyMutationConfirmationToken,
+  type StoredMutationConfirmation,
+} from '../src/mastra-v2/mutation/mutation-policy';
+import {
   cancelMutationWorkflow,
   createMutationWorkflow,
   mutationInputDigest,
@@ -30,12 +36,6 @@ import {
   runMutationWorkflow,
   type MutationInput,
 } from '../src/mastra-v2/workflows/mutation';
-import {
-  issueMutationConfirmationToken,
-  storedConfirmationForToken,
-  verifyMutationConfirmationToken,
-  type StoredMutationConfirmation,
-} from '../src/mastra-v2/mutation/mutation-policy';
 
 const SECRET = 'x'.repeat(64);
 

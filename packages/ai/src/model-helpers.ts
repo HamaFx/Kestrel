@@ -20,9 +20,9 @@
 // Dependency: none (leaf module — no imports from other model-* files).
 
 import { metrics } from '@kestrel/shared';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { PROVIDER_IDS } from '@kestrel/shared/byok';
 import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { BYOK_PROVIDERS } from './byok-providers';
 import type { ResolveModelEnv } from './env-model-factory';

@@ -16,9 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type * as TelemetryPersistenceModule from '../src/persistence/telemetry-persistence';
-
 import { replayPersistenceFailures } from '../src/persistence-recovery';
+import type * as TelemetryPersistenceModule from '../src/persistence/telemetry-persistence';
 
 const {
   mockDbExecute,

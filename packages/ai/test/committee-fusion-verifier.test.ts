@@ -18,7 +18,7 @@
 // grounded against the packet + verified opinions; a hallucinated number
 // triggers one bounded repair, and a second failure is terminal (Q3 strict).
 
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fusionRepairPrompt, verifyFusionAnswer } from '../src/committee/fusion-verifier';
 import {
@@ -54,7 +54,8 @@ beforeEach(() => {
   mocks.fusionObjects = [];
   mocks.generate.mockReset().mockImplementation(async () => {
     const text = mocks.fusionTexts.length > 1 ? mocks.fusionTexts.shift() : mocks.fusionTexts[0];
-    const object = mocks.fusionObjects.length > 1 ? mocks.fusionObjects.shift() : mocks.fusionObjects[0];
+    const object =
+      mocks.fusionObjects.length > 1 ? mocks.fusionObjects.shift() : mocks.fusionObjects[0];
     return {
       text,
       ...(mocks.fusionObjects.length > 0 ? { object } : {}),
@@ -80,7 +81,14 @@ const packet = {
     freshness: 'fresh' as const,
     quality: 'complete' as const,
     warnings: [],
-    tick: { symbol: 'XAUUSD', bid: 2648.2, ask: 2648.4, mid: 2648.3, ts: 1760000000000, source: 'biquote' },
+    tick: {
+      symbol: 'XAUUSD',
+      bid: 2648.2,
+      ask: 2648.4,
+      mid: 2648.3,
+      ts: 1760000000000,
+      source: 'biquote',
+    },
   },
   timeframes: [
     {
@@ -181,10 +189,10 @@ describe('verifyFusionAnswer (§1.4)', () => {
   });
 
   it('rejects numeric answers when the packet is blocked', () => {
-    const verification = verifyFusionAnswer(
-      'Price is 2600 today.',
-      { ...packet, status: 'blocked' },
-    );
+    const verification = verifyFusionAnswer('Price is 2600 today.', {
+      ...packet,
+      status: 'blocked',
+    });
     expect(verification.ok).toBe(false);
     expect(verification.findings[0]).toContain('packet data is unavailable');
   });

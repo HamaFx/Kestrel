@@ -18,10 +18,10 @@
 // failure: fall back to the explicit-history path, mark the run degraded, and
 // still return the answer instead of a naked 502.
 
+import { container } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { container } from '@kestrel/shared';
-
+import { runMastraCanonicalChat } from '../src/mastra-v2/agents/canonical';
 import { DB } from '../src/tokens';
 
 // ToolContext resolves the DB lazily; no tool calls run in these tests, so a
@@ -78,8 +78,6 @@ vi.mock('@mastra/core/agent', () => ({
     }
   },
 }));
-
-import { runMastraCanonicalChat } from '../src/mastra-v2/agents/canonical';
 
 const settings = {
   aiApiKeys: null,

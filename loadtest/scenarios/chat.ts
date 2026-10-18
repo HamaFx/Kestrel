@@ -18,10 +18,10 @@
 // Guarded by K6_ENABLE_CHAT=true to prevent accidental LLM cost.
 import { sleep } from 'k6';
 
-import { uuidv4 } from '../lib/utils.js';
 import type { SessionCtx } from '../config/environments.js';
 import { chatStreamBytes, chatStreamEvents, chatTtfb } from '../lib/metrics.js';
 import { postSseStream } from '../lib/sse.js';
+import { uuidv4 } from '../lib/utils.js';
 
 export function chatTurn(ctx: SessionCtx): void {
   // Guard: skip if no threadId is available for this user

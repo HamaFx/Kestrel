@@ -278,7 +278,8 @@ export class RedisCache implements Cache {
       // WARNING: this clears ALL keys with the configured prefix.
       // Use with caution in production if multiple apps share the
       // same Redis instance.
-      let cursor = 0;
+      // node-redis v5+ types the SCAN cursor as a string.
+      let cursor = '0';
       do {
         const result = await this.client!.scan(cursor, {
           MATCH: `${this.keyPrefix}*`,
@@ -288,7 +289,7 @@ export class RedisCache implements Cache {
         if (result.keys.length > 0) {
           await this.client!.del(result.keys);
         }
-      } while (cursor !== 0);
+      } while (cursor !== '0');
     } catch {
       // Best-effort clear.
     }

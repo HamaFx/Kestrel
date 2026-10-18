@@ -37,7 +37,7 @@ export async function UsageGlance({ userId }: { userId?: string }) {
     <Link
       href="/settings/usage"
       aria-label="Open activity and quota breakdown"
-      className="surface-panel group flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)] transition-all hover:border-brand/30 hover:bg-bg-elev-2/60 tactile-press active:translate-y-[0.5px]"
+      className="surface-panel group hover:border-brand/30 hover:bg-bg-elev-2/60 tactile-press flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)] transition-all active:translate-y-[0.5px]"
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
@@ -50,11 +50,17 @@ export async function UsageGlance({ userId }: { userId?: string }) {
 
       <dl className="grid grid-cols-3 gap-3 text-xs tabular-nums">
         <Stat label="Today" value={`${todayTurns} ${todayTurns === 1 ? 'analysis' : 'analyses'}`} />
-        <Stat label="Last 7 Days" value={`${sevenDayTurns} ${sevenDayTurns === 1 ? 'session' : 'sessions'}`} />
-        <Stat label="Last 30 Days" value={`${stats.thirtyDayTurns} ${stats.thirtyDayTurns === 1 ? 'session' : 'sessions'}`} />
+        <Stat
+          label="Last 7 Days"
+          value={`${sevenDayTurns} ${sevenDayTurns === 1 ? 'session' : 'sessions'}`}
+        />
+        <Stat
+          label="Last 30 Days"
+          value={`${stats.thirtyDayTurns} ${stats.thirtyDayTurns === 1 ? 'session' : 'sessions'}`}
+        />
       </dl>
 
-      <div className="text-fg-muted flex items-center justify-between gap-2 text-xs font-medium pt-1 border-t border-white/5">
+      <div className="text-fg-muted flex items-center justify-between gap-2 border-t border-white/5 pt-1 text-xs font-medium">
         <span>View specialist desk activity</span>
         <IconChevronRight className="text-fg-subtle size-4 transition-transform group-hover:translate-x-0.5" />
       </div>

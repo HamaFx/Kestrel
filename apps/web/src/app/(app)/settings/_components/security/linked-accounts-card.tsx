@@ -41,7 +41,7 @@ export function LinkedAccountsCard({ googleLinked }: LinkedAccountsCardProps) {
       aria-labelledby="linked-accounts-heading"
       className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
     >
-      <header className="flex items-center gap-3 pb-1 border-b border-white/5">
+      <header className="flex items-center gap-3 border-b border-white/5 pb-1">
         <h3 id="linked-accounts-heading" className="text-fg text-base font-semibold tracking-tight">
           Connected accounts
         </h3>

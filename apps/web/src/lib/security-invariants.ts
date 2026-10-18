@@ -13,10 +13,7 @@
  * and Node auth callbacks can share exactly the same policy.
  */
 export function assertProductionSecurity(): void {
-  if (
-    process.env.NODE_ENV === 'production' &&
-    !process.env.AUTH_SECRET
-  ) {
+  if (process.env.NODE_ENV === 'production' && !process.env.AUTH_SECRET) {
     throw new Error(
       '[SECURITY] AUTH_SECRET must be set in production. ' +
         'Generate: node -e "console.log(crypto.randomBytes(32).toString(\'hex\'))"',

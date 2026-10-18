@@ -5,6 +5,7 @@
 **Goal:** Implement comprehensive remediations for all 16 technical findings (F-01 through F-16) identified in the Phase 4 Technical Audit across `@kestrel/shared`, `@kestrel/data`, `@kestrel/indicators`, `@kestrel/ai`, and `apps/worker`.
 
 **Architecture:** Fixes are rolled out in three strictly ordered waves:
+
 1. **Wave 1 (P0-Critical)**: Redis cache SWR fix & TTL expiration, quote timestamp integrity, natural language symbol/timeframe normalizers, multi-asset portfolio & risk calculations, and LLM candle/indicator token bloat reduction.
 2. **Wave 2 (P1-High)**: Prompt symbol extraction across router/worker, abort signal propagation in failover, Binance/CFTC throttle & 429 backoff, Finnhub routing & supports check, CME Globex NY market hours, worker cron locks, and indicator math (ATR, Pivots, Bollinger) + unclosed candle filtering.
 3. **Wave 3 (P2-Medium & P3-Low)**: News filtering & 18-symbol coverage expansion in fundamental/calendar tools, batched quote fan-out, and precision formatting.
@@ -14,12 +15,14 @@
 **Spec:** [`docs/audits/phase-04-market-data-and-indicators.md`](file:///home/ubuntu/Kestrel/docs/audits/phase-04-market-data-and-indicators.md)
 
 ## Global Constraints
+
 - Preserve full backward compatibility for existing UI component schemas (`apps/web/src/components/chat/parts/`).
 - No regressions on existing test suites (`pnpm --filter @kestrel/shared test`, `pnpm --filter @kestrel/indicators test`, `pnpm --filter @kestrel/data test`, `pnpm --filter @kestrel/ai test`).
 - All 18 supported instruments in `BUILTIN_SYMBOLS` (Gold, 11 FX pairs, 6 Crypto pairs) must be first-class citizens.
 - Exact symbol matching and UTF-16LE parameter rules where applicable.
 
 ## Review Focus
+
 1. `RedisCache.fetchWithMeta`: Calling with soft-expired entry must attempt producer first, and only return stale entry if producer throws.
 2. `SymbolSchema` & `TimeframeSchema`: Must accept `"Gold"`, `"BTC"`, `"BTC/USD"`, `"1D"`, `"4H"`, `"H4"` without Zod errors.
 3. Crypto & JPY Risk Math: 1 lot `BTCUSDT` position exposure must be $65k (not $6.5B), and `USDJPY` P&L must be converted to USD.
@@ -31,10 +34,12 @@
 ### Task 1: Fix Redis SWR Soft-TTL & Expiration (Finding F-09, P0)
 
 **Files:**
+
 - Modify: `packages/data/src/cache/redis.ts:135-245`
 - Test: `packages/data/test/cache-redis.test.ts`
 
 **Interfaces:**
+
 - Consumes: `RedisCache.fetchWithMeta()`, `getWithMeta()`, `set()`
 - Produces: Correct stale-while-error fallback (producer invoked first on soft expiry; stale entry served only on error), accurate `stale` metadata, Redis `PX` auto-expiration.
 
@@ -45,8 +50,8 @@
   - Test 4: `client.set` passes `{ PX: ttlMs + swrMs }`.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/data test test/cache-redis.test.ts`
-  Expected: FAIL on soft-TTL refresh behavior.
+      Run: `pnpm --filter @kestrel/data test test/cache-redis.test.ts`
+      Expected: FAIL on soft-TTL refresh behavior.
 
 - [ ] **Step 3: Implement SWR fix in `packages/data/src/cache/redis.ts`**
   - In `fetchWithMeta()`, when `entry.p + ttlMs <= now` and `entry.h > now`, store `staleEntry = entry` instead of returning immediately. Call `producer()`. If `producer()` succeeds, save & return new value. In `catch (err)`, if `staleEntry` exists and `staleEntry.h > Date.now()`, return `{ value: staleEntry.v, meta: { producedAt: staleEntry.p, stale: true } }`.
@@ -54,8 +59,8 @@
   - In `set()` and `fetchWithMeta()`, pass `{ PX: ttlMs + swrMs }` to `client.set`.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/data test test/cache-redis.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/data test test/cache-redis.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -68,6 +73,7 @@
 ### Task 2: Preserve Quote Timestamps & Propagate Metadata (Finding F-10, P0)
 
 **Files:**
+
 - Modify: `packages/data/src/providers/provider-registry.ts:45-56`
 - Modify: `packages/data/src/providers/provider-adapters.ts:60-135`
 - Modify: `packages/data/src/adapters/price.ts:80-92, 160-260`
@@ -77,6 +83,7 @@
 - Test: `packages/ai/test/get-price-metadata.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ProviderPriceSnapshot.observedAt`, `Tick.ts`, `getPriceWithMeta()`, `getPricesWithMeta()`, `getCandlesWithMeta()`
 - Produces: Ticks with accurate observation timestamps `ts = observedAt ?? fetchedAt`, tools returning freshness metadata.
 
@@ -86,8 +93,8 @@
   - Verify `live-ticks` adapter passes `r.ts` as `observedAt`.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/data test test/price-timestamp.test.ts`
-  Expected: FAIL
+      Run: `pnpm --filter @kestrel/data test test/price-timestamp.test.ts`
+      Expected: FAIL
 
 - [ ] **Step 3: Implement timestamp preservation and tool metadata**
   - Add optional `observedAt?: number` to `ProviderPriceSnapshot`.
@@ -97,8 +104,8 @@
   - In `packages/ai/src/tools/get-candles.ts`, use `getCandlesWithMeta(symbol, tf, { count, signal })`.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/data test test/price-timestamp.test.ts && pnpm --filter @kestrel/ai test test/get-price-metadata.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/data test test/price-timestamp.test.ts && pnpm --filter @kestrel/ai test test/get-price-metadata.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -111,12 +118,14 @@
 ### Task 3: Comprehensive Symbol & Timeframe Normalization (Finding F-01, P0)
 
 **Files:**
+
 - Modify: `packages/shared/src/symbol-catalog.ts:466-475`
 - Modify: `packages/shared/src/symbols.ts:65-75`
 - Modify: `packages/shared/src/timeframes.ts:19-35`
 - Test: `packages/shared/test/normalization.test.ts`
 
 **Interfaces:**
+
 - Consumes: `normalizeSymbol()`, `SymbolSchema`, `normalizeTimeframe()`, `TimeframeSchema`
 - Produces: Normalization of slashed (`"EUR/USD"`, `"BTC/USD"`), prefixed (`"BINANCE:BTCUSDT"`, `"OANDA:XAU_USD"`), natural language (`"Gold"`, `"Bitcoin"`, `"Cable"`, `"Fibre"`), and timeframe variants (`"1D"`, `"4H"`, `"1H"`, `"15MIN"`, `"daily"`, `"weekly"`).
 
@@ -125,8 +134,8 @@
   - Test `TimeframeSchema.parse` on `"1D"`, `"4H"`, `"1H"`, `"15M"`, `"D1"`, `"H4"`, `"daily"`, `"weekly"`.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/shared test test/normalization.test.ts`
-  Expected: FAIL on aliases.
+      Run: `pnpm --filter @kestrel/shared test test/normalization.test.ts`
+      Expected: FAIL on aliases.
 
 - [ ] **Step 3: Implement alias maps and normalizers**
   - Add `SYMBOL_ALIAS_MAP` in `symbol-catalog.ts` mapping `GOLD`, `XAU`, `BTC`, `BTCUSD`, `BITCOIN`, `ETH`, `ETHUSD`, `ETHEREUM`, `SOL`, `SOLUSD`, `SOLANA`, `BNB`, `XRP`, `ADA`, `CABLE`, `FIBRE`, `FIBER` to canonical symbols.
@@ -134,8 +143,8 @@
   - Add `normalizeTimeframe` and update `TimeframeSchema` with `.transform(normalizeTimeframe)` supporting MT4/TV/case-insensitive strings.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/shared test test/normalization.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/shared test test/normalization.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -148,6 +157,7 @@
 ### Task 4: Fix Cross-Asset Contract Size, Portfolio P&L, Pip Floors, and Formatting (Finding F-03, P0)
 
 **Files:**
+
 - Modify: `packages/shared/src/schemas/portfolio.ts:162-178`
 - Modify: `packages/shared/src/symbols.ts:90-120`
 - Modify: `packages/ai/src/portfolio/risk-service.ts:40-95, 110-120`
@@ -158,6 +168,7 @@
 - Test: `packages/ai/test/risk-sizing.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getContractSize()`, `lotUnits()`, `priceDecimals()`, `pipSize()`, `computePnL()`
 - Produces: Correct lot sizes across Gold (100), FX (100,000), Crypto (1); USD-converted P&L for USD-base pairs; canonical volatility and pip floors in `verify_call`; symbol-aware decimal formatting in `convene_committee`.
 
@@ -169,8 +180,8 @@
   - Verify `verify_call` uses `priceDecimals` and canonical crypto keys `BTCUSDT`, `ETHUSDT`.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/shared test test/portfolio-sizing.test.ts && pnpm --filter @kestrel/ai test test/risk-sizing.test.ts`
-  Expected: FAIL on contract size and non-USD quote sizing.
+      Run: `pnpm --filter @kestrel/shared test test/portfolio-sizing.test.ts && pnpm --filter @kestrel/ai test test/risk-sizing.test.ts`
+      Expected: FAIL on contract size and non-USD quote sizing.
 
 - [ ] **Step 3: Implement contract sizing and multi-asset P&L**
   - In `packages/shared/src/schemas/portfolio.ts`, implement `getContractSize()` delegating to `definition.capabilities.contractSize`. Export `lotUnits` alias.
@@ -180,8 +191,8 @@
   - In `packages/ai/src/tools/convene-committee.ts`, format `ema20`, `ema50`, `liveMid` with `priceDecimals(symbol)` and `atr14` with `Math.max(2, priceDecimals(symbol))`.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/shared test test/portfolio-sizing.test.ts && pnpm --filter @kestrel/ai test test/risk-sizing.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/shared test test/portfolio-sizing.test.ts && pnpm --filter @kestrel/ai test test/risk-sizing.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -194,6 +205,7 @@
 ### Task 5: Prevent LLM Context Token Bloat (Finding F-15, P0)
 
 **Files:**
+
 - Modify: `packages/shared/src/schemas/tool-outputs/get-candles.ts:25-32`
 - Modify: `packages/ai/src/tools/get-candles.ts:30-55`
 - Modify: `packages/ai/src/mastra-v2/packets/evidence-builders.ts:60-95`
@@ -205,6 +217,7 @@
 - Test: `packages/ai/test/tool-token-caps.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getCandlesTool`, `xauusdCandlesTool`, `getXauusdResearchPacket`, `getIndicatorsTool`
 - Produces: Compact summary objects and bounded tail windows while keeping `candles` array shape compatible with web UI components.
 
@@ -214,8 +227,8 @@
   - Verify `get_indicators` caps returned tail points.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/ai test test/tool-token-caps.test.ts`
-  Expected: FAIL
+      Run: `pnpm --filter @kestrel/ai test test/tool-token-caps.test.ts`
+      Expected: FAIL
 
 - [ ] **Step 3: Implement token bloat caps**
   - In `packages/shared/src/schemas/tool-outputs/get-candles.ts`, add optional `summary` to `GetCandlesOutputSchema`.
@@ -224,8 +237,8 @@
   - In `get_indicators.ts` and `get_market-structure.ts`, bound tails to the most recent 15 bars.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/ai test test/tool-token-caps.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/ai test test/tool-token-caps.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -238,6 +251,7 @@
 ### Task 6: Unified Prompt Symbol Extraction (Finding F-02, P1)
 
 **Files:**
+
 - Modify: `packages/shared/src/symbol-catalog.ts:500-563`
 - Modify: `packages/ai/src/mastra-v2/planning/routing-policy.ts:90-110`
 - Modify: `packages/ai/src/mastra-v2/packets/symbol-research.ts:415-435`
@@ -245,6 +259,7 @@
 - Test: `packages/shared/test/prompt-symbol-extractor.test.ts`
 
 **Interfaces:**
+
 - Consumes: `extractSymbolsFromText(text: string): Symbol[]`
 - Produces: Accurate detection of natural-language tickers (`"Bitcoin"`, `"BTC"`, `"BTCUSD"`, `"EUR/USD"`, `"Cable"`) across chat routing and worker committee jobs.
 
@@ -253,8 +268,8 @@
   - Verify detected symbol is `BTCUSDT`, `EURUSD`, `GBPUSD` respectively (not falling back to `XAUUSD`).
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/shared test test/prompt-symbol-extractor.test.ts`
-  Expected: FAIL
+      Run: `pnpm --filter @kestrel/shared test test/prompt-symbol-extractor.test.ts`
+      Expected: FAIL
 
 - [ ] **Step 3: Implement `extractSymbolsFromText` and integrate**
   - In `packages/shared/src/symbol-catalog.ts`, implement `PROMPT_SYMBOL_PATTERNS` and `extractSymbolsFromText(text)`.
@@ -263,8 +278,8 @@
   - In `apps/worker/src/jobs/multi-agent-analysis.ts`, use `extractSymbolFromPrompt` with the new patterns so worker doesn't silently fall back to `XAUUSD`.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/shared test test/prompt-symbol-extractor.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/shared test test/prompt-symbol-extractor.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -277,6 +292,7 @@
 ### Task 7: AbortSignal Handling, Binance/CFTC Backoff, and Finnhub Routing (Findings F-05, F-06, F-07, P1)
 
 **Files:**
+
 - Modify: `packages/data/src/failover.ts:90-125`
 - Modify: `packages/data/src/providers/biquote/rest.ts:135-145`
 - Modify: `packages/data/src/providers/binance/rest.ts:60-70, 140-199`
@@ -287,6 +303,7 @@
 - Test: `packages/data/test/binance-backoff.test.ts`
 
 **Interfaces:**
+
 - Consumes: `opts.signal`, `tryReserve`, `noteBackoff`, `runWithFailover()`
 - Produces: Clean cancellation without health ding, Binance ticker throttling & 429 backoff, Finnhub API key check & crypto routing.
 
@@ -297,8 +314,8 @@
   - Verify Finnhub crypto symbols route to `/crypto/candle`.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/data test test/failover-abort.test.ts test/binance-backoff.test.ts`
-  Expected: FAIL
+      Run: `pnpm --filter @kestrel/data test test/failover-abort.test.ts test/binance-backoff.test.ts`
+      Expected: FAIL
 
 - [ ] **Step 3: Implement abort handling and provider hardening**
   - In `packages/data/src/failover.ts`, check `opts?.signal?.aborted` before each attempt and in `catch`; rethrow without recording failure.
@@ -308,8 +325,8 @@
   - In `finnhub/rest.ts`, route `BINANCE:*` symbols to `/crypto/candle`.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/data test test/failover-abort.test.ts test/binance-backoff.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/data test test/failover-abort.test.ts test/binance-backoff.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -322,6 +339,7 @@
 ### Task 8: Market-Hours & Session Awareness (Finding F-11, P1)
 
 **Files:**
+
 - Modify: `packages/shared/src/market-phase.ts:60-105`
 - Modify: `packages/shared/test/market-phase.test.ts:68-90`
 - Modify: `packages/ai/src/context.ts:70-85, 190-205`
@@ -330,6 +348,7 @@
 - Test: `packages/shared/test/market-phase.test.ts`
 
 **Interfaces:**
+
 - Consumes: `isComexOpen()`, `describeMarketPhase()`, `fetchCandles1m`
 - Produces: True CME Globex schedule in Eastern Time; crypto-aware weekend session labels; weekend-tolerant 1m candle age checks.
 
@@ -338,8 +357,8 @@
   - Verify COMEX is open during 17:00-18:00 UTC on weekdays (1:00-2:00 PM NY).
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/shared test test/market-phase.test.ts`
-  Expected: FAIL
+      Run: `pnpm --filter @kestrel/shared test test/market-phase.test.ts`
+      Expected: FAIL
 
 - [ ] **Step 3: Implement Eastern Time conversion and crypto awareness**
   - In `packages/shared/src/market-phase.ts`, evaluate `isComexOpen` using `Intl.DateTimeFormat` with `timeZone: 'America/New_York'`.
@@ -348,8 +367,8 @@
   - In `apps/worker/src/index.ts`, skip weekend failure alert when market is closed for FX/Gold.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/shared test test/market-phase.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/shared test test/market-phase.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -362,6 +381,7 @@
 ### Task 9: Worker CLI Runner Locks, Timeouts & Job Signal Propagation (Finding F-12, P1)
 
 **Files:**
+
 - Modify: `apps/worker/src/runner/cli.ts:50-125`
 - Modify: `apps/worker/src/scheduler.ts:255-275`
 - Modify: `apps/worker/src/jobs/snapshots.ts:50-65`
@@ -370,6 +390,7 @@
 - Test: `apps/worker/test/runner-lock.test.ts`
 
 **Interfaces:**
+
 - Consumes: `acquireCronLock()`, `completeCronLock()`, `signal: ctx.signal`
 - Produces: Distributed cron lock safety and timeout guard in CLI runner; abort signal propagation in worker background jobs.
 
@@ -378,8 +399,8 @@
   - Verify job timeout is enforced.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/worker test test/runner-lock.test.ts`
-  Expected: FAIL
+      Run: `pnpm --filter @kestrel/worker test test/runner-lock.test.ts`
+      Expected: FAIL
 
 - [ ] **Step 3: Implement cron lock and timeout in `runner/cli.ts`**
   - Wrap job execution in `runner/cli.ts` with `acquireCronLock` / `completeCronLock`.
@@ -388,8 +409,8 @@
   - In `snapshots.ts`, `cot.ts`, and `fred-actuals.ts`, pass `signal: ctx.signal` to upstream provider calls.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/worker test test/runner-lock.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/worker test test/runner-lock.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -402,6 +423,7 @@
 ### Task 10: Indicator Accuracy (ATR, Pivots, Bollinger) & Unclosed Candle Filtering (Findings F-13, F-14, P1)
 
 **Files:**
+
 - Modify: `packages/indicators/src/atr.ts:20-30`
 - Modify: `packages/indicators/src/pivots.ts:50-63`
 - Modify: `packages/indicators/src/bollinger.ts:35-48`
@@ -414,6 +436,7 @@
 - Test: `packages/data/test/closed-candles.test.ts`
 
 **Interfaces:**
+
 - Consumes: `atr()`, `pivotsAligned()`, `bollinger()`, `fetchCandles()`
 - Produces: Length-invariant ATR, daily-aggregated intraday pivots, population-stdev Bollinger Bands, and strictly closed candle series from Binance & Finnhub.
 
@@ -424,8 +447,8 @@
   - Verify Binance and Finnhub `fetchCandles` omit currently forming in-progress candles when `includeOpenBar` is false.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/indicators test && pnpm --filter @kestrel/data test test/closed-candles.test.ts`
-  Expected: FAIL
+      Run: `pnpm --filter @kestrel/indicators test && pnpm --filter @kestrel/data test test/closed-candles.test.ts`
+      Expected: FAIL
 
 - [ ] **Step 3: Implement indicator fixes and closed candle filtering**
   - In `packages/indicators/src/atr.ts`, change `if (candles.length <= period)` to `if (candles.length < period)`.
@@ -434,8 +457,8 @@
   - In `packages/data/src/providers/binance/rest.ts` and `finnhub/rest.ts`, filter out open bars (`k.closeTime > Date.now()` / `t + msPerTimeframe > Date.now()`) unless `includeOpenBar` is true.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/indicators test && pnpm --filter @kestrel/data test test/closed-candles.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/indicators test && pnpm --filter @kestrel/data test test/closed-candles.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -448,6 +471,7 @@
 ### Task 11: News Filtering, Batched Quotes & Precision Hardening (Findings F-04, F-08, F-16, P2/P3)
 
 **Files:**
+
 - Modify: `packages/data/src/adapters/news.ts:200-235`
 - Modify: `packages/data/src/providers/marketaux/map.ts:30-50`
 - Modify: `packages/ai/src/tools/analyze-fundamental.ts:55-65`
@@ -459,6 +483,7 @@
 - Test: `packages/ai/test/fundamental-currencies.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getNews()`, `analyzeFundamentalTool`, `getCalendarTool`, `getPricesWithMeta`
 - Produces: Correct news filtering without Gold article leaking, 18-symbol support across all fundamental tools, batched quote fetching in portfolio service.
 
@@ -469,8 +494,8 @@
   - Verify `getOpenPositionsWithPnL` uses batched `getPricesWithMeta`.
 
 - [ ] **Step 2: Run test to verify it fails**
-  Run: `pnpm --filter @kestrel/data test test/news-filter.test.ts && pnpm --filter @kestrel/ai test test/fundamental-currencies.test.ts`
-  Expected: FAIL
+      Run: `pnpm --filter @kestrel/data test test/news-filter.test.ts && pnpm --filter @kestrel/ai test test/fundamental-currencies.test.ts`
+      Expected: FAIL
 
 - [ ] **Step 3: Implement fixes**
   - In `packages/data/src/adapters/news.ts`, fix line 203: `a.symbols.includes(opts.symbol as Symbol) || (opts.symbol === 'XAUUSD' && a.symbols.includes('XAU'))`. Expand `SYMBOL_KEYWORDS`.
@@ -480,8 +505,8 @@
   - In `packages/ai/src/mastra-v2/packets/symbol-research.ts`, round `rangeSize` using `priceDecimals(symbol)`.
 
 - [ ] **Step 4: Run test to verify it passes**
-  Run: `pnpm --filter @kestrel/data test test/news-filter.test.ts && pnpm --filter @kestrel/ai test test/fundamental-currencies.test.ts`
-  Expected: PASS
+      Run: `pnpm --filter @kestrel/data test test/news-filter.test.ts && pnpm --filter @kestrel/ai test test/fundamental-currencies.test.ts`
+      Expected: PASS
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -494,19 +519,20 @@
 ### Task 12: End-to-End Verification & Full Test Suite Pass
 
 **Files:**
+
 - Test: All packages (`@kestrel/shared`, `@kestrel/indicators`, `@kestrel/data`, `@kestrel/ai`, `apps/worker`)
 
 - [ ] **Step 1: Run typechecks across workspace**
-  Run: `pnpm typecheck`
-  Expected: Zero TypeScript errors.
+      Run: `pnpm typecheck`
+      Expected: Zero TypeScript errors.
 
 - [ ] **Step 2: Run test suites across all packages**
-  Run: `pnpm test`
-  Expected: All tests pass.
+      Run: `pnpm test`
+      Expected: All tests pass.
 
 - [ ] **Step 3: Run format check and linters**
-  Run: `pnpm format:check && pnpm lint`
-  Expected: Clean pass.
+      Run: `pnpm format:check && pnpm lint`
+      Expected: Clean pass.
 
 - [ ] **Step 4: Final commit and branch review**
   ```bash

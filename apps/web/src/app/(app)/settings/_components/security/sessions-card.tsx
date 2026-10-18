@@ -120,11 +120,11 @@ export function SessionsCard() {
       className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
       aria-labelledby="active-sessions-heading"
     >
-      <div className="flex items-center gap-3 pb-1 border-b border-white/5">
+      <div className="flex items-center gap-3 border-b border-white/5 pb-1">
         <h3 id="active-sessions-heading" className="text-fg text-base font-semibold tracking-tight">
           Active sessions
         </h3>
-        <span className="text-fg-subtle font-mono text-[11px] ml-auto tracking-wider uppercase">
+        <span className="text-fg-subtle ml-auto font-mono text-[11px] tracking-wider uppercase">
           {sessions.length} session{sessions.length !== 1 ? 's' : ''}
         </span>
       </div>

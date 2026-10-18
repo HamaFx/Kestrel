@@ -20,11 +20,7 @@
 // Dependency: model-helpers.ts (PROVIDER_PRIORITY, envFallbackKeys).
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import {
-  decryptByok,
-  type ByokPayload,
-  type ProviderId,
-} from '@kestrel/shared/encryption';
+import { decryptByok, type ByokPayload, type ProviderId } from '@kestrel/shared/encryption';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { LanguageModel } from 'ai';
 

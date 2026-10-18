@@ -36,12 +36,26 @@ describe('cross-asset fundamental currencies & calendar (F-04)', () => {
   });
 
   it('symbol catalog resolves currencies for cross pairs, crypto, and metals', () => {
-    expect(getSymbolDefinition('EURJPY').currencies).toEqual(expect.arrayContaining(['EUR', 'JPY']));
-    expect(getSymbolDefinition('GBPJPY').currencies).toEqual(expect.arrayContaining(['GBP', 'JPY']));
-    expect(getSymbolDefinition('AUDJPY').currencies).toEqual(expect.arrayContaining(['AUD', 'JPY']));
-    expect(getSymbolDefinition('EURGBP').currencies).toEqual(expect.arrayContaining(['EUR', 'GBP']));
-    expect(getSymbolDefinition('BTCUSDT').currencies).toEqual(expect.arrayContaining(['USD', 'USDT', 'BTC']));
-    expect(getSymbolDefinition('ETHUSDT').currencies).toEqual(expect.arrayContaining(['USD', 'USDT', 'ETH']));
-    expect(getSymbolDefinition('XAUUSD').currencies).toEqual(expect.arrayContaining(['USD', 'XAU']));
+    expect(getSymbolDefinition('EURJPY').currencies).toEqual(
+      expect.arrayContaining(['EUR', 'JPY']),
+    );
+    expect(getSymbolDefinition('GBPJPY').currencies).toEqual(
+      expect.arrayContaining(['GBP', 'JPY']),
+    );
+    expect(getSymbolDefinition('AUDJPY').currencies).toEqual(
+      expect.arrayContaining(['AUD', 'JPY']),
+    );
+    expect(getSymbolDefinition('EURGBP').currencies).toEqual(
+      expect.arrayContaining(['EUR', 'GBP']),
+    );
+    expect(getSymbolDefinition('BTCUSDT').currencies).toEqual(
+      expect.arrayContaining(['USD', 'USDT', 'BTC']),
+    );
+    expect(getSymbolDefinition('ETHUSDT').currencies).toEqual(
+      expect.arrayContaining(['USD', 'USDT', 'ETH']),
+    );
+    expect(getSymbolDefinition('XAUUSD').currencies).toEqual(
+      expect.arrayContaining(['USD', 'XAU']),
+    );
   });
 });

@@ -17,7 +17,6 @@
  */
 
 // SPDX-License-Identifier: Apache-2.0
-
 import type { Symbol } from '@kestrel/shared';
 import {
   IconBell,
@@ -59,13 +58,7 @@ export interface AlertCardProps {
  * AlertCard — Cyber-industrial neo-skeuomorphic card for price & indicator alerts.
  * Features 40px touch targets, tactile micro-press feedback, and accessible ARIA labels.
  */
-export function AlertCard({
-  alert,
-  onAcknowledge,
-  onMute,
-  onDelete,
-  className,
-}: AlertCardProps) {
+export function AlertCard({ alert, onAcknowledge, onMute, onDelete, className }: AlertCardProps) {
   const isTriggered = !!alert.firedAt;
   const isMuted = !!alert.muted;
 
@@ -91,7 +84,7 @@ export function AlertCard({
           <span
             aria-hidden="true"
             className={cn(
-              'inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-md border text-xs font-mono',
+              'inline-flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-md border font-mono text-xs',
               alert.active
                 ? 'border-brand/40 bg-brand/10 text-brand'
                 : isTriggered
@@ -111,24 +104,22 @@ export function AlertCard({
                 {alert.ruleType}
               </span>
             </div>
-            <p className="text-fg-subtle mt-0.5 text-xs font-mono">
+            <p className="text-fg-subtle mt-0.5 font-mono text-xs">
               {alert.condition} {alert.targetValue}
             </p>
-            {alert.note && (
-              <p className="text-fg-muted mt-1 text-xs">{alert.note}</p>
-            )}
+            {alert.note && <p className="text-fg-muted mt-1 text-xs">{alert.note}</p>}
           </div>
         </div>
 
         {/* Action button cluster — 40px touch targets with tactile-press */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex shrink-0 items-center gap-1.5">
           {onAcknowledge && (
             <Tooltip label={isTriggered ? 'Acknowledge alert' : 'Re-arm alert'}>
               <button
                 type="button"
                 onClick={() => onAcknowledge(alert.id)}
                 aria-label={`Acknowledge alert for ${alert.symbol}`}
-                className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]"
+                className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]"
               >
                 <IconCheck className="size-4" />
               </button>
@@ -141,7 +132,7 @@ export function AlertCard({
                 type="button"
                 onClick={() => onMute(alert.id)}
                 aria-label={`Mute alert for ${alert.symbol}`}
-                className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]"
+                className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]"
               >
                 <IconVolumeOff className="size-4" />
               </button>
@@ -154,7 +145,7 @@ export function AlertCard({
                 type="button"
                 onClick={() => onDelete(alert.id)}
                 aria-label={`Delete alert for ${alert.symbol}`}
-                className="text-danger/70 hover:text-danger hover:bg-danger/10 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]"
+                className="text-danger/70 hover:text-danger hover:bg-danger/10 tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]"
               >
                 <IconTrash className="size-4" />
               </button>
@@ -164,20 +155,14 @@ export function AlertCard({
       </div>
 
       {/* Channel indicators & Status line */}
-      <div className="border-edge/60 flex items-center justify-between border-t pt-2 text-[11px] font-mono text-fg-subtle">
-        <span>
-          {isTriggered
-            ? 'Triggered'
-            : alert.active
-              ? 'Monitoring active'
-              : 'Paused'}
-        </span>
+      <div className="border-edge/60 text-fg-subtle flex items-center justify-between border-t pt-2 font-mono text-[11px]">
+        <span>{isTriggered ? 'Triggered' : alert.active ? 'Monitoring active' : 'Paused'}</span>
         <div className="flex items-center gap-1.5">
           {alert.channels?.includes('email') && (
-            <IconMail className="size-3.5 text-fg-subtle" aria-label="Email enabled" />
+            <IconMail className="text-fg-subtle size-3.5" aria-label="Email enabled" />
           )}
           {alert.channels?.includes('telegram') && (
-            <IconSend className="size-3.5 text-fg-subtle" aria-label="Telegram enabled" />
+            <IconSend className="text-fg-subtle size-3.5" aria-label="Telegram enabled" />
           )}
         </div>
       </div>

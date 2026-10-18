@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Candle } from '@kestrel/shared';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getCandlesTool } from '../src/tools/get-candles';
 import { getIndicatorsTool } from '../src/tools/get-indicators';

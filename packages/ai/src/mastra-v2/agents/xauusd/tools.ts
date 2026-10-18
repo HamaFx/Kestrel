@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 
-import { xauusdCalendarTool } from './tools/calendar-tool';
-import { xauusdCandlesTool } from './tools/candles-tool';
 import { manifestToolNames } from '../../capabilities';
-import { xauusdCorrelationTool } from './tools/correlation-tool';
-import { xauusdFundamentalContextTool } from './tools/fundamental-context-tool';
-import { xauusdIndicatorsTool } from './tools/indicators-tool';
-import { xauusdIntermarketTool } from './tools/intermarket-tool';
-import { xauusdMarketStructureTool } from './tools/market-structure-tool';
-import { xauusdNewsTool } from './tools/news-tool';
-import { xauusdPriceTool } from './tools/price-tool';
+import { xauusdResearchPacketTool } from '../../packets/research-packet-tool';
 import {
   mastraCotTool,
   mastraKnowledgeTool,
@@ -31,7 +23,15 @@ import {
   mastraSeasonalityTool,
   mastraWebSearchTool,
 } from './read-only-tools';
-import { xauusdResearchPacketTool } from '../../packets/research-packet-tool';
+import { xauusdCalendarTool } from './tools/calendar-tool';
+import { xauusdCandlesTool } from './tools/candles-tool';
+import { xauusdCorrelationTool } from './tools/correlation-tool';
+import { xauusdFundamentalContextTool } from './tools/fundamental-context-tool';
+import { xauusdIndicatorsTool } from './tools/indicators-tool';
+import { xauusdIntermarketTool } from './tools/intermarket-tool';
+import { xauusdMarketStructureTool } from './tools/market-structure-tool';
+import { xauusdNewsTool } from './tools/news-tool';
+import { xauusdPriceTool } from './tools/price-tool';
 import { xauusdSessionLevelsTool } from './tools/session-levels-tool';
 import { xauusdSocialSentimentTool } from './tools/social-sentiment-tool';
 import { xauusdTechnicalAnalysisTool } from './tools/technical-tool';

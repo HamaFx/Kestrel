@@ -21,9 +21,9 @@ import { cleanup, fireEvent, render } from '@testing-library/react';
 import React, { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-afterEach(cleanup);
-
 import { Button } from '../button';
+
+afterEach(cleanup);
 
 describe('Tier 1: Button Touch Targets & Tactile Micro-Press (>=5 tests)', () => {
   it('ensures size="sm" satisfies the touch-accessible minimum standard (h-10 / 40px)', () => {
@@ -62,11 +62,14 @@ describe('Tier 1: Button Touch Targets & Tactile Micro-Press (>=5 tests)', () =>
     ['ghost', 'active:translate-y-[0.5px]'],
     ['danger', 'active:translate-y-[0.5px]'],
     ['success', 'active:translate-y-[0.5px]'],
-  ] as const)('applies tactile micro-press travel active:translate-y-[0.5px] to variant "%s"', (variant, expectedClass) => {
-    const { container } = render(<Button variant={variant}>Press Me</Button>);
-    const button = container.querySelector('button')!;
-    expect(button.className).toContain(expectedClass);
-  });
+  ] as const)(
+    'applies tactile micro-press travel active:translate-y-[0.5px] to variant "%s"',
+    (variant, expectedClass) => {
+      const { container } = render(<Button variant={variant}>Press Me</Button>);
+      const button = container.querySelector('button')!;
+      expect(button.className).toContain(expectedClass);
+    },
+  );
 });
 
 describe('Tier 2: Button Boundary & Corner Cases (>=5 tests)', () => {
@@ -108,7 +111,7 @@ describe('Tier 2: Button Boundary & Corner Cases (>=5 tests)', () => {
 
   it('safely merges custom className without breaking base interactive styles', () => {
     const { container } = render(
-      <Button className="w-full uppercase tracking-wider" size="md">
+      <Button className="w-full tracking-wider uppercase" size="md">
         Full Width Button
       </Button>,
     );

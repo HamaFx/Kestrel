@@ -16,7 +16,10 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { resolveSpecialistDeskTools, SPECIALIST_DESK_TOOL_NAMES } from '../src/committee/specialists';
+import {
+  resolveSpecialistDeskTools,
+  SPECIALIST_DESK_TOOL_NAMES,
+} from '../src/committee/specialists';
 import { getAvailableProviders } from '../src/model-role';
 
 describe('resolveSpecialistDeskTools tool filtering (P1-04)', () => {

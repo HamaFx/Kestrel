@@ -6,12 +6,12 @@ upgrade plan (phases 0-5)" — the v1 upgrade the v2 audit re-verifies).
 
 ## Reference points
 
-| Snapshot | Test files | Tests | Source |
-|---|---|---|---|
-| Pre-v1 (2026-10-10) | 161 | 1357 green | `docs/archive/audit-2026-q1/baseline.md` |
-| Post-v1 / pre-v2 (`bb2cb51e`) | 170+ | 1400+ green | `docs/plans/decisions.log.md` 2026-10-11 verification entry |
-| v2 start-of-work (`packages/ai`) | 171 | 1440 total (1417 pass, 22 skip) | `/tmp/baseline-ai-test.log` (see caveat) |
-| v2 start-of-work typecheck (`packages/ai`) | — | `tsc --noEmit` exit 0 | `/tmp/baseline-ai-tsc.log` |
+| Snapshot                                   | Test files | Tests                           | Source                                                      |
+| ------------------------------------------ | ---------- | ------------------------------- | ----------------------------------------------------------- |
+| Pre-v1 (2026-10-10)                        | 161        | 1357 green                      | `docs/archive/audit-2026-q1/baseline.md`                    |
+| Post-v1 / pre-v2 (`bb2cb51e`)              | 170+       | 1400+ green                     | `docs/plans/decisions.log.md` 2026-10-11 verification entry |
+| v2 start-of-work (`packages/ai`)           | 171        | 1440 total (1417 pass, 22 skip) | `/tmp/baseline-ai-test.log` (see caveat)                    |
+| v2 start-of-work typecheck (`packages/ai`) | —          | `tsc --noEmit` exit 0           | `/tmp/baseline-ai-tsc.log`                                  |
 
 Caveat on the v2 start-of-work row: the log was captured while Phase 1 task
 1.2 (committee numeric grounding) was mid-implementation, so it shows one

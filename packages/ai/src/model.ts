@@ -34,7 +34,11 @@
 export { resolveModel, type ResolveModelEnv } from './env-model-factory';
 
 // ── Provider key tester & validator ──────────────────────────────────
-export { testProviderKey, validateProviderConfig, type ProviderValidationResult } from './provider-tester';
+export {
+  testProviderKey,
+  validateProviderConfig,
+  type ProviderValidationResult,
+} from './provider-tester';
 
 // ── BYOK registry re-exports ─────────────────────────────────────────
 export {
@@ -80,7 +84,6 @@ export type {
   ResolveMastraModelInput,
   MastraResolvedModel,
 } from './model-resolution';
-
 
 // ── Vision model resolution ──────────────────────────────────────────
 export { resolveVisionModel } from './model-vision';

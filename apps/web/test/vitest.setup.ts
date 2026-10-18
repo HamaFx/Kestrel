@@ -19,12 +19,17 @@
 import '@testing-library/jest-dom/vitest';
 
 import { webcrypto } from 'node:crypto';
+
 import React from 'react';
 import { vi } from 'vitest';
 
 vi.mock('next-view-transitions', () => ({
   Link: ({ children, href, ...props }: any) =>
-    React.createElement('a', { href: typeof href === 'string' ? href : undefined, ...props }, children),
+    React.createElement(
+      'a',
+      { href: typeof href === 'string' ? href : undefined, ...props },
+      children,
+    ),
   useTransitionRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),

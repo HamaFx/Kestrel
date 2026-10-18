@@ -80,7 +80,9 @@ export function verifyMastraOpinion(
   if (packet.status === 'ready') {
     const evidenceValues = packetEvidenceValues(packet, [opinion]);
     for (const value of ungroundedNarrativeNumbers(opinion.reasoning, evidenceValues)) {
-      findings.push(`reasoning cites unsupported numeric value ${value} not found in packet evidence`);
+      findings.push(
+        `reasoning cites unsupported numeric value ${value} not found in packet evidence`,
+      );
     }
     // Audit v3 P1-5: verify support/resistance keyLevels in rawData so
     // ungrounded levels cannot bypass specialist verification and poison fusion.

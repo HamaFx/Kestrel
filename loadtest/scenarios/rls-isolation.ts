@@ -31,8 +31,7 @@ export function rlsIsolation(ctxA: SessionCtx, ctxB?: SessionCtx): void {
     });
 
     const blocked = check(res, {
-      'cross tenant thread read blocked (403 or 404)': (r) =>
-        r.status === 403 || r.status === 404,
+      'cross tenant thread read blocked (403 or 404)': (r) => r.status === 403 || r.status === 404,
     });
 
     if (!blocked && res.status === 200) {

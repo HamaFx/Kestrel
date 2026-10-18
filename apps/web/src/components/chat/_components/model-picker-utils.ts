@@ -48,7 +48,6 @@ export function modelSelectionMatches(
     toQualifiedModelId(providerId, modelId),
   ]);
 
-
   // Before slash-containing model ids were preserved, the settings endpoint
   // stripped the first segment. Recognize that old value only as a UI alias;
   // new writes always use the exact model id above.

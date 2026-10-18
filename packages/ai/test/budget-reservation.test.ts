@@ -23,8 +23,12 @@
 import { metrics } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { _resetBudgetEnforcementCache, UNCAPPED_DAILY_USD } from '../src/budget';
-import { reserveTurnBudget, type BudgetHandle } from '../src/budget';
+import {
+  _resetBudgetEnforcementCache,
+  reserveTurnBudget,
+  UNCAPPED_DAILY_USD,
+  type BudgetHandle,
+} from '../src/budget';
 
 vi.mock('server-only', () => ({}));
 

@@ -18,9 +18,9 @@ import { metrics } from '@kestrel/shared';
 import { RequestContext } from '@mastra/core/request-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createXauusdReportWorkflow } from '../src/mastra-v2/workflows/xauusd-report';
 import { patchTimeframeConflictDisclosure } from '../src/mastra-v2/agents/xauusd/report/report-repair';
 import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
+import { createXauusdReportWorkflow } from '../src/mastra-v2/workflows/xauusd-report';
 
 const mocks = vi.hoisted(() => {
   class FakeVerificationError extends Error {

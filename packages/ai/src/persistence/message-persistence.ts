@@ -254,11 +254,7 @@ export async function appendAssistantMessage(
 // Parts stripping
 // ---------------------------------------------------------------------------
 
-const STRIP_FIELDS: ReadonlySet<string> = new Set([
-  'imageDataUrl',
-  'image',
-  'rawResponse',
-]);
+const STRIP_FIELDS: ReadonlySet<string> = new Set(['imageDataUrl', 'image', 'rawResponse']);
 
 const MAX_STORED_CANDLES = 60;
 
@@ -271,8 +267,7 @@ function stripPartsForStorage(parts: unknown): unknown {
     const isToolPart =
       part.type === 'tool-result' ||
       (typeof part.type === 'string' && part.type.startsWith('tool-'));
-    if (!isToolPart || typeof part.output !== 'object' || part.output === null)
-      return p;
+    if (!isToolPart || typeof part.output !== 'object' || part.output === null) return p;
     const output = part.output as Record<string, unknown>;
     let modified = false;
     const next: Record<string, unknown> = {};

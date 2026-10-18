@@ -19,8 +19,8 @@ import { createTool } from '@mastra/core/tools';
 
 import { buildPriceEvidence } from '../../../packets/evidence-builders';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdPriceInputSchema } from '../tool-schemas';
 import { XauusdPriceEvidenceSchema } from '../../../shared/types';
+import { XauusdPriceInputSchema } from '../tool-schemas';
 
 export const xauusdPriceTool = createTool({
   id: 'get-xauusd-price',

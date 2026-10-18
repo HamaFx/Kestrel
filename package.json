@@ -50,7 +50,7 @@
     "knip": "^6.41.0",
     "lighthouse": "^13.5.0",
     "prettier": "^3.9.10",
-    "prettier-plugin-tailwindcss": "^0.6.11",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tsx": "^4.23.15",
     "turbo": "^2.11.9",
     "typescript": "^7.0.2",

@@ -16,6 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { RedisCache } from '../src/cache/redis';
+
 const mockStore = new Map<string, string>();
 const mockTags = new Map<string, Set<string>>();
 
@@ -49,8 +51,6 @@ vi.mock('redis', () => ({
   createClient: vi.fn(() => mockRedisClient),
 }));
 
-import { RedisCache } from '../src/cache/redis';
-
 describe('RedisCache — SWR soft-TTL and key expiration (F-09)', () => {
   let cache: RedisCache;
 
@@ -68,13 +68,19 @@ describe('RedisCache — SWR soft-TTL and key expiration (F-09)', () => {
       return 'val-1';
     };
 
-    const first = await cache.fetchWithMeta('k1', producer, { ttlSeconds: 10, maxStaleSeconds: 30 });
+    const first = await cache.fetchWithMeta('k1', producer, {
+      ttlSeconds: 10,
+      maxStaleSeconds: 30,
+    });
     expect(first.value).toBe('val-1');
     expect(first.meta.stale).toBe(false);
     expect(producerCalls).toBe(1);
 
     // Second call within soft TTL
-    const second = await cache.fetchWithMeta('k1', producer, { ttlSeconds: 10, maxStaleSeconds: 30 });
+    const second = await cache.fetchWithMeta('k1', producer, {
+      ttlSeconds: 10,
+      maxStaleSeconds: 30,
+    });
     expect(second.value).toBe('val-1');
     expect(second.meta.stale).toBe(false);
     expect(producerCalls).toBe(1);
