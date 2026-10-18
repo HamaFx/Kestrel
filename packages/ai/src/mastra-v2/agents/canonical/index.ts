@@ -33,11 +33,16 @@ import { DB } from '@ai/tokens';
 import { withToolContext, type ToolContext } from '@ai/tool-context';
 import { registerAllTools, toolRegistry } from '@ai/tools';
 import { domainToolFilter } from '@ai/tools/by-domain';
-import { manifestForCapability, manifestToolNames } from '../../capabilities';
+import {
+  manifestForCapability,
+  manifestToolNames,
+  manifestToolsForDomain,
+  type MastraRoutingDomain,
+} from '../../capabilities';
 import { prepareKestrelMemory } from '../../context';
 import { buildConversationScorers, buildScorersForExecutionPlan, type BuiltScorers } from '../../evals/scorers';
 import { buildGuardrailInputProcessors } from '../../guardrails';
-import { resolveNativeCanonicalTool } from '../../tools/canonical';
+import { NATIVE_CANONICAL_TOOLS, resolveNativeCanonicalTool } from '../../tools/canonical';
 import {
   createKestrelMemory,
   KESTREL_MEMORY_LAST_MESSAGES,
@@ -88,10 +93,17 @@ export const CANONICAL_READ_ONLY_TOOL_NAMES: readonly string[] = Object.freeze([
 
 const READ_ONLY_TOOL_NAMES = new Set<string>(CANONICAL_READ_ONLY_TOOL_NAMES);
 
-/** Fail at module init when the manifest names a tool the registry cannot resolve. */
+/**
+ * Fail at module init when the manifest names a tool that neither the legacy
+ * registry nor a native canonical registration can resolve. P2-01: with the
+ * legacy shims disabled (`PHASE_TOOLS_SHIMS=0`) the natively-migrated names
+ * are absent from the registry, but the allowlist is still satisfied.
+ */
 export function assertCanonicalToolAllowlist(): void {
   registerAllTools(toolRegistry);
-  const missing = CANONICAL_READ_ONLY_TOOL_NAMES.filter((name) => !toolRegistry.has(name));
+  const missing = CANONICAL_READ_ONLY_TOOL_NAMES.filter(
+    (name) => !toolRegistry.has(name) && !resolveNativeCanonicalTool(name),
+  );
   if (missing.length > 0) {
     throw new Error(
       `Canonical read-only allowlist references unregistered tools: ${missing.join(', ')}`,
@@ -367,13 +379,33 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
   // `createTool` counterpart; the remaining names still flow through the
   // legacy adapter. Both share one lifecycle wrapper, so the tool surface
   // (names, events, parts, telemetry) is identical.
+  //
+  // P2-01: candidate names come from the domain's legacy entries plus the
+  // native canonical registrations the manifest allows, so the seven
+  // migrated tools keep working when their legacy shims are disabled
+  // (`PHASE_TOOLS_SHIMS=0`) and would already be missing from the registry.
+  const domainAllowed =
+    routing.domain === 'generic'
+      ? null
+      : new Set<string>(manifestToolsForDomain(routing.domain as MastraRoutingDomain));
+  const candidateNames = [
+    ...new Set([
+      ...Object.keys(legacyTools),
+      ...Object.keys(NATIVE_CANONICAL_TOOLS).filter(
+        (name) => domainAllowed === null || domainAllowed.has(name),
+      ),
+    ]),
+  ];
   const registeredTools = Object.fromEntries(
-    Object.entries(legacyTools)
-      .filter(([name]) => READ_ONLY_TOOL_NAMES.has(name) && !disabledTools.has(name))
-      .map(([name, legacyTool]) => [
-        name,
-        resolveNativeCanonicalTool(name) ?? adaptLegacyReadOnlyTool(name, legacyTool),
-      ]),
+    candidateNames
+      .filter((name) => READ_ONLY_TOOL_NAMES.has(name) && !disabledTools.has(name))
+      .map((name): [string, unknown] | null => {
+        const native = resolveNativeCanonicalTool(name);
+        if (native) return [name, native];
+        const legacyTool = legacyTools[name];
+        return legacyTool ? [name, adaptLegacyReadOnlyTool(name, legacyTool)] : null;
+      })
+      .filter((entry): entry is [string, unknown] => entry !== null),
   );
 
   // §2.4: the memory promise started alongside routeTurn; await it now.

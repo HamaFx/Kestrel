@@ -28,11 +28,11 @@ import {
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getCoTTool } from '@ai/tools/get-cot';
 import { getIntermarketResonanceTool } from '@ai/tools/get-intermarket-resonance';
 import { getSeasonalityTool } from '@ai/tools/get-seasonality';
-import { searchKnowledgeTool } from '@ai/tools/search-knowledge';
 import { webSearchTool } from '@ai/tools/web-search';
+import { executeCanonicalCoT } from '@ai/mastra-v2/tools/canonical/cot';
+import { executeCanonicalKnowledge } from '@ai/mastra-v2/tools/canonical/knowledge';
 import { createEvidenceId } from '../../packets/evidence';
 import { executeMastraTool } from '../../shared/telemetry';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';
@@ -117,11 +117,10 @@ export const mastraCotTool = createTool({
   outputSchema: CotOutputSchema,
   execute: async (input, context) =>
     executeMastraTool('get-symbol-cot', context, async () => {
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof GetCoTOutputSchema>>(
-        getCoTTool,
-        input,
-        context.abortSignal,
-      );
+      // P2-01: consume the native execute core directly (the legacy
+      // get_cot shim is one-release compat and flag-disabled at the end of
+      // its window); the CoT core is a database read with no signal contract.
+      const data = await executeCanonicalCoT(input);
       const fetchedAt = new Date().toISOString();
       const latest = data.samples.at(-1)?.reportDate ?? Date.now();
       return CotOutputSchema.parse({
@@ -243,11 +242,7 @@ export const mastraKnowledgeTool = createTool({
   outputSchema: KnowledgeOutputSchema,
   execute: async (input, context) =>
     executeMastraTool('search-untrusted-knowledge', context, async () => {
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof SearchKnowledgeOutputSchema>>(
-        searchKnowledgeTool,
-        { ...input, kinds: ['news'] },
-        context.abortSignal,
-      );
+      const data = await executeCanonicalKnowledge({ ...input, kinds: ['news'] });
       const fetchedAt = new Date().toISOString();
       const latest = data.items.map((item) => item.publishedAt).sort((a, b) => b - a)[0];
       return KnowledgeOutputSchema.parse({

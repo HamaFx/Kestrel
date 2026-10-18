@@ -20,6 +20,7 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { traceIdStorage } from '@kestrel/shared/logger';
 import { LibSQLStore } from '@mastra/libsql';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -155,6 +156,27 @@ describe('mastra observability — telemetry helpers', () => {
       process.env.LANGFUSE_SECRET_KEY = prev.secret;
       process.env.LANGFUSE_BASE_URL = prev.base;
     }
+  });
+
+  it('carries the diagnostic traceId into the trace metadata for the log↔trace join (P2-06)', () => {
+    const options = traceIdStorage.run('trace-abc', () =>
+      runTracingOptions({
+        runId: 'run-12',
+        userId: 'user-12',
+        threadId: 'thread-12',
+        kind: 'mastra_mode',
+      }),
+    );
+    expect(options.metadata).toMatchObject({ runId: 'run-12', traceId: 'trace-abc' });
+
+    // Outside a diagnostic scope no traceId is fabricated.
+    const without = runTracingOptions({
+      runId: 'run-13',
+      userId: 'user-13',
+      threadId: 'thread-13',
+      kind: 'mastra_mode',
+    });
+    expect(without.metadata).not.toHaveProperty('traceId');
   });
 
   it('createMastraObservability is undefined without Langfuse and an entrypoint with it', async () => {

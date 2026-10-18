@@ -18,7 +18,7 @@ import { GetNewsOutputSchema } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getNewsTool } from '@ai/tools/get-news';
+import { executeCanonicalNews } from '@ai/mastra-v2/tools/canonical/news';
 import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
 import {
   EXTERNAL_CONTENT_TRUST_WARNING,
@@ -27,7 +27,6 @@ import {
 } from '@ai/mastra-v2/packets/external-content';
 import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
 import { XAUUSD } from '@ai/mastra-v2/shared/types';
-import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({
@@ -59,16 +58,14 @@ export const xauusdNewsTool = createTool({
   execute: async ({ symbol, since, limit, minSentiment }, context) =>
     executeMastraTool('get-xauusd-news', context, async () => {
       const fetchedAt = new Date().toISOString();
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof GetNewsOutputSchema>>(
-        getNewsTool,
-        {
-          symbol,
-          ...(since === undefined ? {} : { since }),
-          limit,
-          ...(minSentiment === undefined ? {} : { minSentiment }),
-        },
-        context.abortSignal,
-      );
+      // P2-01: consume the native execute core directly instead of the
+      // one-release get_news shim.
+      const data = await executeCanonicalNews({
+        symbol,
+        ...(since === undefined ? {} : { since }),
+        limit,
+        ...(minSentiment === undefined ? {} : { minSentiment }),
+      });
       const latestPublication = data.items.reduce<number | null>(
         (latest, item) =>
           latest === null || item.publishedAt > latest ? item.publishedAt : latest,

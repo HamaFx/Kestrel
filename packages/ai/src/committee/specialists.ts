@@ -31,7 +31,8 @@ import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
-import { adaptLegacyReadOnlyTools } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
+import { adaptLegacyReadOnlyTool } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
+import { resolveNativeCanonicalTool } from '../mastra-v2/tools/canonical';
 import { registerAllTools, toolRegistry } from '../tools';
 import {
   SPECIALIST_DESK_TOOL_NAMES,
@@ -98,6 +99,11 @@ export { SPECIALIST_DESK_TOOL_NAMES };
 /**
  * Resolve and adapt the dedicated read-only Mastra toolset for a specialist
  * desk (Audit v3 Phase 4, Owner Decision Q8).
+ *
+ * P2-01 (audit 2026-10-18) — each name prefers its native Mastra
+ * registration; unmigrated names keep the legacy registry + adapter path.
+ * This keeps the desks intact when the legacy shims are disabled
+ * (`PHASE_TOOLS_SHIMS=0`) and matches how canonical-chat resolves tools.
  */
 export function resolveSpecialistDeskTools(
   name: MastraSpecialistName,
@@ -106,8 +112,18 @@ export function resolveSpecialistDeskTools(
   registerAllTools(toolRegistry);
   const disabled = new Set(disabledTools ?? []);
   const toolNames = SPECIALIST_DESK_TOOL_NAMES[name].filter((t) => !disabled.has(t));
-  const rawTools = toolRegistry.resolve([...toolNames]);
-  return adaptLegacyReadOnlyTools(rawTools);
+  const legacyTools = toolRegistry.resolve([...toolNames]);
+  const resolved: Record<string, unknown> = {};
+  for (const toolName of toolNames) {
+    const native = resolveNativeCanonicalTool(toolName);
+    if (native) {
+      resolved[toolName] = native;
+      continue;
+    }
+    const legacyTool = legacyTools[toolName];
+    if (legacyTool) resolved[toolName] = adaptLegacyReadOnlyTool(toolName, legacyTool);
+  }
+  return resolved;
 }
 
 /** Sole write-capable committee layer: the decision synthesizer. */

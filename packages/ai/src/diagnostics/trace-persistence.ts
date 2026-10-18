@@ -21,6 +21,7 @@ import { schema } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { getDb } from '../db';
+import { langfuseTraceUrl } from '../mastra-v2/langfuse-link';
 import { enqueuePersistenceFailure } from '../persistence-outbox';
 
 const log = createCategorizedLogger('ai', { component: 'trace-persistence' });
@@ -35,6 +36,19 @@ export interface PersistedTrace {
   errorCount: number;
   status: 'completed' | 'failed';
   trace: Record<string, unknown>;
+}
+
+/**
+ * P2-06 (audit 2026-10-18) — log↔trace join. The persisted trace document
+ * carries the Langfuse deep link for the run when Langfuse is configured, so
+ * the admin trace viewer links to the Mastra trace (which carries the same
+ * runId) without a manual second lookup. Omitted entirely when Langfuse is
+ * unconfigured so no dead link is stored.
+ */
+function traceDocumentWithDeepLinks(trace: PersistedTrace): Record<string, unknown> {
+  const runId = typeof trace.trace['runId'] === 'string' ? trace.trace['runId'] : '';
+  const langfuseUrl = runId.length > 0 ? langfuseTraceUrl(runId) : null;
+  return langfuseUrl ? { ...trace.trace, langfuseTraceUrl: langfuseUrl } : trace.trace;
 }
 
 /**
@@ -64,6 +78,7 @@ export async function persistTrace(trace: PersistedTrace): Promise<void> {
 async function persistToDb(trace: PersistedTrace): Promise<void> {
   try {
     const db = getDb();
+    const document = traceDocumentWithDeepLinks(trace);
     await db
       .insert(schema.diagnosticTraces)
       .values({
@@ -75,7 +90,7 @@ async function persistToDb(trace: PersistedTrace): Promise<void> {
         stepCount: trace.stepCount,
         errorCount: trace.errorCount,
         status: trace.status,
-        trace: trace.trace,
+        trace: document,
       })
       .onConflictDoUpdate({
         target: schema.diagnosticTraces.id,
@@ -84,7 +99,7 @@ async function persistToDb(trace: PersistedTrace): Promise<void> {
           stepCount: trace.stepCount,
           errorCount: trace.errorCount,
           status: trace.status,
-          trace: trace.trace,
+          trace: document,
         },
       });
   } catch (err) {
@@ -106,5 +121,5 @@ async function persistToFile(trace: PersistedTrace): Promise<void> {
   if (!dir) return;
 
   const filePath = path.join(dir, `${trace.traceId}.json`);
-  await writeFile(filePath, JSON.stringify(trace.trace, null, 2));
+  await writeFile(filePath, JSON.stringify(traceDocumentWithDeepLinks(trace), null, 2));
 }

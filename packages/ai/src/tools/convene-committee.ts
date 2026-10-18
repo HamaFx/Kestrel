@@ -295,6 +295,13 @@ export const conveneCommitteeTool: Tool<z.infer<typeof InputSchema>, ConveneComm
 
       let verdicts: CommitteeVerdict[] = fallbackVerdicts;
       let consensusText = '';
+      /**
+       * P2-05 (audit 2026-10-18) — whether the LLM committee actually ran and
+       * produced opinions. When it did not (no tool context, no BYOK key, or
+       * a failed run), the card is the deterministic packet-grounded
+       * heuristic and must say so in the consensus text.
+       */
+      let llmVerdictsUsed = false;
 
       // The LLM committee requires a per-turn ToolContext: without it there is
       // no attributable user, thread, or budget ledger, and unattributable model
@@ -357,6 +364,7 @@ export const conveneCommitteeTool: Tool<z.infer<typeof InputSchema>, ConveneComm
               opinionToVerdict('sentiment', sentOp, fallbackVerdicts[3]!),
             ];
             consensusText = modeResult.finalText ?? '';
+            llmVerdictsUsed = true;
           }
         } catch (err) {
           if (signal?.aborted) throw err;
@@ -384,7 +392,11 @@ export const conveneCommitteeTool: Tool<z.infer<typeof InputSchema>, ConveneComm
         const verdictSummary = verdicts
           .map((v) => `${v.persona.replace('_', ' ')}: ${v.verdict} (${v.confidence}/10)`)
           .join(', ');
-        consensusText = `Team grade ${grade} (${goNoGo.toUpperCase()}) for ${side.toUpperCase()} ${symbol} at ${entry}${stop !== undefined ? `, stop ${stop}` : ''}${target !== undefined ? `, target ${target}` : ''}. Breakdown — ${verdictSummary}.`;
+        // P2-05/F-02: the deterministic packet-grounded review is a heuristic
+        // (no LLM ran), not a verified committee verdict — say so, so a card
+        // rendered without a model can never read as model-reviewed.
+        const heuristicPrefix = llmVerdictsUsed ? '' : 'Heuristic review (no LLM) — ';
+        consensusText = `${heuristicPrefix}Team grade ${grade} (${goNoGo.toUpperCase()}) for ${side.toUpperCase()} ${symbol} at ${entry}${stop !== undefined ? `, stop ${stop}` : ''}${target !== undefined ? `, target ${target}` : ''}. Breakdown — ${verdictSummary}.`;
       }
 
       return ConveneCommitteeOutputSchema.parse({

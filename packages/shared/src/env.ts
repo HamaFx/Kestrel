@@ -335,6 +335,16 @@ const RuntimeEnv = z.object({
     .default('1')
     .transform((v) => v === '1' || v === 'true'),
   /**
+   * P2-01 (audit 2026-10-18, Phase 5) — legacy `src/tools/` AI SDK shims for
+   * tools that already have native Mastra registrations. ON for one release;
+   * set `0` to stop registering the shims and prove the native path serves
+   * every internal consumer before the dated deletion (see CHANGELOG).
+   */
+  PHASE_TOOLS_SHIMS: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('1')
+    .transform((v) => v === '1' || v === 'true'),
+  /**
    * Audit plan v2 §5.3 (Q4) — non-blocking admin alert threshold: when a
    * user's daily (UTC) reserved+reconciled ledger spend reaches this many
    * dollars, the admin System Health dashboard surfaces an anomaly.

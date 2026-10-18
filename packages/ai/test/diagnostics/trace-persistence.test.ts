@@ -147,4 +147,35 @@ describe('persistTrace', () => {
     expect(inserted.startedAt).toBeInstanceOf(Date);
     expect((inserted.startedAt as Date).getTime()).toBe(now);
   });
+
+  it('stores the Langfuse deep link for the run when Langfuse is configured (P2-06)', async () => {
+    vi.stubEnv('LANGFUSE_PUBLIC_KEY', 'pk');
+    vi.stubEnv('LANGFUSE_SECRET_KEY', 'sk');
+    vi.stubEnv('LANGFUSE_BASE_URL', 'https://langfuse.example.com/');
+
+    await persistTrace({
+      ...baseTrace,
+      trace: { ...baseTrace.trace, runId: 'run-9' },
+    });
+
+    const valuesFn = mockInsert.mock.results[0]!.value as { values: ReturnType<typeof vi.fn> };
+    const inserted = valuesFn.values.mock.calls[0]![0] as { trace: Record<string, unknown> };
+    expect(inserted.trace.langfuseTraceUrl).toBe('https://langfuse.example.com/trace/run-9');
+  });
+
+  it('stores no Langfuse deep link without Langfuse config or a run id (P2-06)', async () => {
+    await persistTrace({ ...baseTrace, trace: { ...baseTrace.trace, runId: 'run-9' } });
+    let valuesFn = mockInsert.mock.results[0]!.value as { values: ReturnType<typeof vi.fn> };
+    let inserted = valuesFn.values.mock.calls[0]![0] as { trace: Record<string, unknown> };
+    expect(inserted.trace).not.toHaveProperty('langfuseTraceUrl');
+
+    mockInsert.mockClear();
+    vi.stubEnv('LANGFUSE_PUBLIC_KEY', 'pk');
+    vi.stubEnv('LANGFUSE_SECRET_KEY', 'sk');
+    vi.stubEnv('LANGFUSE_BASE_URL', 'https://langfuse.example.com');
+    await persistTrace(baseTrace);
+    valuesFn = mockInsert.mock.results[0]!.value as { values: ReturnType<typeof vi.fn> };
+    inserted = valuesFn.values.mock.calls[0]![0] as { trace: Record<string, unknown> };
+    expect(inserted.trace).not.toHaveProperty('langfuseTraceUrl');
+  });
 });
