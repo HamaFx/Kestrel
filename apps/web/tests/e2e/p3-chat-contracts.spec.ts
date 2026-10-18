@@ -90,4 +90,58 @@ test.describe('P3 chat contracts', () => {
     await expect(page.getByText('P3 Full analysis completed.')).toBeVisible({ timeout: 20_000 });
     expect(polls).toBeGreaterThanOrEqual(2);
   });
+
+  test('renders a bounded multi-symbol comparison response (A-01)', async ({ authedPage }) => {
+    const page = authedPage;
+    await page.route(/\/api\/chat(?:\?.*)?$/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: [
+          'data: {"type":"data-agent-progress","data":{"agents":[],"mode":"single"}}',
+          '',
+          'data: {"type":"text-start","id":"p3-compare"}',
+          '',
+          'data: {"type":"text-delta","id":"p3-compare","delta":"XAUUSD remains bid while EURUSD fades."}',
+          '',
+          'data: {"type":"data-multi-agent-meta","id":"p3-compare","data":{"engine":"mastra","mode":"single","symbol":"XAUUSD","symbols":["XAUUSD","EURUSD"],"packetId":"packet-xauusd","comparisonPacketIds":["packet-xauusd","packet-eurusd"]}}',
+          '',
+          'data: {"type":"text-end","id":"p3-compare"}',
+          '',
+          'data: {"type":"turn-complete","id":"p3-compare","status":"persisted"}',
+          '',
+        ].join('\n'),
+      }),
+    );
+
+    const input = page.getByRole('textbox');
+    await input.fill('Compare XAUUSD and EURUSD');
+    await input.press('Enter');
+    await expect(page.getByText('XAUUSD remains bid while EURUSD fades.')).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(input).toBeEnabled();
+  });
+
+  test('surfaces the disambiguation error for over-cap comparisons (A-01)', async ({
+    authedPage,
+  }) => {
+    const page = authedPage;
+    await page.route(/\/api\/chat(?:\?.*)?$/, (route) =>
+      route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: {
+            code: 'MULTI_SYMBOL_LIMIT',
+            message: 'I can compare up to 3 symbols — which ones should I include?',
+          },
+        }),
+      }),
+    );
+
+    await page.getByRole('textbox').fill('compare XAUUSD, EURUSD, GBPUSD and USDJPY');
+    await page.getByRole('textbox').press('Enter');
+    await expect(page.getByText(/can compare up to 3 symbols/i)).toBeVisible({ timeout: 15_000 });
+  });
 });

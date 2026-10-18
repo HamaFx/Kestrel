@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
-import { EVIDENCE_TOLERANCE } from '../../../committee/grounding';
+import { EVIDENCE_TOLERANCE } from '@ai/committee/grounding';
 import {
   extractNarrativeNumbers,
   extractNarrativeNumberTokens,

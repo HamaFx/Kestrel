@@ -16,7 +16,7 @@
 
 import { z } from 'zod';
 
-import { EvidenceQualitySchema } from '../../../shared/types';
+import { EvidenceQualitySchema } from '@ai/mastra-v2/shared/types';
 
 const ScenarioSchema = z.object({
   name: z.string().min(1),

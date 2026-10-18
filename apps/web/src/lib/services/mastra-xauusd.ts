@@ -42,7 +42,7 @@ export interface RunMastraXauusdResearchInput {
   signal?: AbortSignal;
   /** Prevent native memory backfill from duplicating this persisted request. */
   backfillExcludeMessageIdempotencyKey?: string;
-  telemetryKind?: 'mastra_xauusd_poc';
+  telemetryKind?: 'mastra_xauusd_research';
   /** Explicit turn mode (Phase 7): `followup` answers from the saved report. */
   turnMode?: XauusdTurnMode;
   priorReport?: XauusdResearchReport | null;

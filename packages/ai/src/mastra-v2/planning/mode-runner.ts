@@ -28,7 +28,7 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import { readFeatureFlag } from '@kestrel/shared';
+import { assetClassForSymbol, metrics, readFeatureFlag } from '@kestrel/shared';
 import { RequestContext } from '@mastra/core/request-context';
 
 import {
@@ -89,6 +89,12 @@ export interface MastraModeSettings extends Pick<UserSettingsRow, 'aiApiKeys' | 
 export interface RunMastraModeArgs {
   prompt: string;
   symbol: string;
+  /**
+   * A-01 — bounded comparison symbols (2–3). When present the run executes
+   * the cross-symbol comparison graph (one packet + one desk pass per symbol,
+   * then a cross-symbol fusion) instead of the single-symbol committee.
+   */
+  symbols?: readonly string[];
   userId: string;
   threadId: string;
   runId: string;
@@ -122,6 +128,10 @@ export interface MastraModeResult {
   mode: MastraAnalysisMode;
   symbol: string;
   packet: SymbolResearchPacket;
+  /** A-01: compared symbols (2–3) for comparison runs. */
+  symbols?: string[];
+  /** A-01: one packet per compared symbol, prompt order (comparison runs). */
+  comparisonPackets?: SymbolResearchPacket[];
   modelId: string;
   providerId: string;
   stats: MastraGenerationStats;
@@ -246,7 +256,22 @@ export function committeeModelResolver(
 }
 
 export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraModeResult> {
-  if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'symbol-research');
+  const comparisonSymbols = [...new Set(args.symbols ?? [])];
+  const isComparison = comparisonSymbols.length >= 2;
+  // C-02 (audit 2026-10-18) — per-asset-class telemetry so committee cost and
+  // latency are attributable per asset class instead of XAUUSD-only.
+  const assetClass = isComparison
+    ? 'multi-symbol'
+    : (assetClassForSymbol(args.symbol) ?? 'unknown');
+  if (args.executionPlan) {
+    assertExecutionPlanRoute(
+      args.executionPlan,
+      isComparison ? 'multi-symbol-research' : 'symbol-research',
+    );
+  }
+  metrics.increment('committee_execution_total', {
+    tags: { assetClass, mode: args.mode, route: isComparison ? 'comparison' : 'symbol' },
+  });
   const startedAt = Date.now();
   const generationLedger = args.ledger ?? createGenerationLedger();
   const resolution = resolveMastraModeModel(
@@ -360,12 +385,14 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         mastra: getKestrelMastra().instance,
         toolContext,
         disabledTools: (args.settings as UserSettingsRow)?.disabledTools,
+        // A-01: comparison runs execute the cross-symbol graph.
+        ...(isComparison ? { comparisonSymbols } : {}),
         // Audit plan §1.7: synchronous web runs get a 45s committee deadline
         // (strict failure on timeout); the durable worker is lease-governed.
         ...(args.telemetryKind === 'mastra_full_job' ? {} : { deadlineMs: COMMITTEE_DEADLINE_MS }),
       },
       args.mode,
-      args.workflowId ?? 'symbol-research',
+      args.workflowId ?? (isComparison ? 'multi-symbol-research' : 'symbol-research'),
     );
     const run = await workflow.createRun({ runId: args.runId, resourceId: args.userId });
     const tracingOptions = runTracingOptions({
@@ -373,11 +400,17 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       userId: args.userId,
       threadId: args.threadId,
       kind: args.telemetryKind ?? 'mastra_mode',
-      tags: ['research', args.mode],
+      assetClass,
+      tags: isComparison ? ['research', args.mode, 'comparison'] : ['research', args.mode],
       memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
       memoryBackfill: prepared.backfillAttempted,
     });
-    const inputData = { prompt: args.prompt, symbol: args.symbol, mode: args.mode };
+    const inputData = {
+      prompt: args.prompt,
+      symbol: args.symbol,
+      mode: args.mode,
+      ...(isComparison ? { symbols: comparisonSymbols } : {}),
+    };
     const persisted = args.resumeExisting
       ? await workflow.getWorkflowRunById(args.runId, {
           fields: [
@@ -478,9 +511,22 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       opinions: MastraModeOpinion[];
       critiques?: CommitteeCritique[];
       packet: SymbolResearchPacket;
+      packets?: Record<string, SymbolResearchPacket>;
       stats: MastraGenerationStats;
       totalCostUsd?: number;
     };
+    // A-01: comparison runs return one packet per compared symbol in prompt order.
+    const comparisonPackets = isComparison
+      ? comparisonSymbols
+          .map((symbol) => output.packets?.[symbol])
+          .filter((packet): packet is SymbolResearchPacket => Boolean(packet))
+      : undefined;
+    const comparisonFields = isComparison
+      ? {
+          symbols: comparisonSymbols,
+          ...(comparisonPackets && comparisonPackets.length > 0 ? { comparisonPackets } : {}),
+        }
+      : {};
 
     if (output.status === 'blocked' || !output.finalText) {
       const stats = output.stats ?? { inputTokens: 0, outputTokens: 0, toolCalls: 0, steps: 0 };
@@ -507,6 +553,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
         mode: args.mode,
         symbol: output.packet.symbol,
         packet: output.packet,
+        ...comparisonFields,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
         stats,
@@ -548,6 +595,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       mode: args.mode,
       symbol: output.packet.symbol,
       packet: output.packet,
+      ...comparisonFields,
       modelId: resolution.modelId,
       providerId: resolution.providerId,
       stats: output.stats,

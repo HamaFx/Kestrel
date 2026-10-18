@@ -146,6 +146,25 @@ function serializedPacket(packet: SymbolResearchPacket): string {
   return serialized;
 }
 
+/**
+ * C-01 (audit 2026-10-18, B-05) — optional-context disclosure. Every desk and
+ * the synthesizer must be told explicitly whether the fundamental/macro
+ * extension was attached for this symbol, so a non-XAUUSD read can never
+ * imply macro context was checked when it was not collected.
+ */
+function optionalContextBlock(packet: SymbolResearchPacket): string {
+  const optional = packet.optionalContext as
+    | { available?: boolean; reason?: string }
+    | undefined;
+  // Injected/test packets may predate the optionalContext field; disclose
+  // nothing rather than crashing the desk prompt.
+  if (!optional || typeof optional.reason !== 'string') return '';
+  const { available, reason } = optional;
+  return available
+    ? `OPTIONAL CONTEXT: attached — ${reason}`
+    : `OPTIONAL CONTEXT: unavailable — ${reason}\nIf macro/fundamental context matters to your read, state explicitly that it was not checked for this symbol; never imply it was.`;
+}
+
 /** Static specialist instructions (no packet body — §2.2 zero-copy). */
 export function specialistInstructions(name: MastraSpecialistName): string {
   return `You are Kestrel's ${name} specialist.
@@ -178,7 +197,9 @@ export function specialistInstructionsForRequest({
   return `${specialistInstructions(name)}
 
 PACKET:
-${serializedPacket(packet)}`;
+${serializedPacket(packet)}
+
+${optionalContextBlock(packet)}`;
 }
 
 /**
@@ -220,7 +241,7 @@ export function fusionInstructionsForRequest({
 
 Use only the trusted packet and specialist opinions below. Write in clear, simple, everyday trader language that is easy for non-technical traders to scan. State where the experts agree and where they disagree, and when peer reviews are present, explain how the experts responded to each other's arguments (e.g. "3 of 4 experts lean bullish after peer review"). Disclose missing or degraded data, and use scenario language. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing answer with a clear bottom line, why the team agrees or disagrees, bull/base/bear scenarios, key risks, and the price level where this idea is wrong (invalidation).
 
-${packet ? `PACKET:\n${serializedPacket(packet)}\n\n` : ''}SPECIALIST OPINIONS:
+${packet ? `PACKET:\n${serializedPacket(packet)}\n\n${optionalContextBlock(packet)}\n\n` : ''}SPECIALIST OPINIONS:
 ${opinionBlock}${critiqueBlock ? `\n\nSPECIALIST PEER REVIEWS:\n${critiqueBlock}` : ''}`;
 }
 
@@ -328,6 +349,48 @@ Hard rules:
 - Ground any number you cite in the packet; your final reasoning is verified against the packet exactly like the first round.
 - Revising is optional: if the critiques do not change your view, reaffirm your position (possibly with a clearer rationale).
 - Return only the requested structured opinion.`;
+}
+
+/**
+ * A-01 (B-01/B-08) — instructions function for the multi-symbol comparison
+ * fusion: reads every per-symbol packet and the per-desk opinions from the
+ * request context, and asks the synthesizer to compare the collected packets
+ * and explicitly note divergences.
+ */
+export function comparisonFusionInstructionsForRequest({
+  requestContext,
+}: {
+  requestContext: RequestContext<ModeRequestContext>;
+}): string {
+  const packetRecord =
+    (requestContext.get('packets') as Record<string, SymbolResearchPacket> | undefined) ?? {};
+  const packets = Object.values(packetRecord);
+  const opinions = (requestContext.get('opinions') as MastraModeOpinion[] | undefined) ?? [];
+  const symbols = packets.map((packet) => packet.symbol);
+  const packetBlock = packets
+    .map((packet) => `### ${packet.symbol}\n${serializedPacket(packet)}\n${optionalContextBlock(packet)}`)
+    .join('\n\n');
+  const opinionBlock = opinions
+    .map((opinion) =>
+      [
+        `### ${opinion.agentName}${opinion.symbol ? ` (${opinion.symbol})` : ''}`,
+        `bias: ${opinion.bias}`,
+        `confidence: ${opinion.confidence}`,
+        `reasoning: ${opinion.reasoning}`,
+        `details: ${JSON.stringify(opinion.rawData)}`,
+      ].join('\n'),
+    )
+    .join('\n\n');
+
+  return `You are Kestrel's lead market synthesizer comparing ${symbols.join(' vs ') || 'the requested symbols'}.
+
+Compare the collected packets and note divergences. Use only the trusted packets and specialist opinions below. Write in clear, simple, everyday trader language. For each symbol give its bias and the evidence behind it, then compare them directly: relative strength, trend alignment or divergence, volatility, and what each symbol's key level or invalidation says about the other. Where the desks agree, say so; where they diverge, explain the divergence. Disclose missing or degraded data per symbol. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing answer with a bottom line per symbol, the comparison, key risks, and the price level where each idea is wrong (invalidation).
+
+PACKETS:
+${packetBlock}
+
+SPECIALIST OPINIONS:
+${opinionBlock}`;
 }
 
 /** @deprecated Build-time fusion prompt retained for one release (§2.2). */

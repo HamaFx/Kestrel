@@ -114,6 +114,86 @@ interface LegacyToolWithExecute {
   ) => Promise<unknown> | unknown;
 }
 
+/** Context Mastra hands to a read-only tool execute function. */
+export interface MastraReadOnlyToolContext {
+  toolCallId?: string;
+  messages?: unknown[];
+  abortSignal?: AbortSignal;
+  requestContext?: { get: (key: string) => unknown };
+  observe?: ToolObserve;
+}
+
+/**
+ * B-01 (audit 2026-10-18): the single lifecycle wrapper for every read-only
+ * canonical tool — legacy adapter and Mastra-native registrations alike.
+ * Emits live tool UI events, captures tool parts for the streamed response,
+ * and records metrics/DB telemetry without logging inputs or outputs.
+ */
+export function createReadOnlyToolExecute<TInput, TOutput>(
+  fullToolId: string,
+  uiToolName: string,
+  run: (input: TInput, context: MastraReadOnlyToolContext) => Promise<TOutput>,
+): (input: TInput, context: MastraReadOnlyToolContext) => Promise<TOutput> {
+  return async (input: TInput, context: MastraReadOnlyToolContext) => {
+    const toolCallId = context.toolCallId ?? `call-${uiToolName}-${crypto.randomUUID()}`;
+    const onToolEvent = context.requestContext?.get('onToolEvent') as
+      ((event: MastraToolStreamEvent) => void) | undefined;
+    const toolParts = context.requestContext?.get('toolParts') as
+      MastraToolInvocationPart[] | undefined;
+
+    if (typeof onToolEvent === 'function') {
+      try {
+        onToolEvent({ type: 'tool-input-start', toolCallId, toolName: uiToolName });
+        onToolEvent({ type: 'tool-input-available', toolCallId, toolName: uiToolName, input });
+      } catch {
+        // Tool event listeners must never break tool execution.
+      }
+    }
+
+    try {
+      const output = await executeMastraTool(fullToolId, context, () => run(input, context));
+      if (typeof onToolEvent === 'function') {
+        try {
+          onToolEvent({ type: 'tool-output-available', toolCallId, output });
+        } catch {
+          // Ignore listener errors.
+        }
+      }
+      if (Array.isArray(toolParts)) {
+        toolParts.push({
+          type: `tool-${uiToolName}`,
+          toolCallId,
+          toolName: uiToolName,
+          state: 'output-available',
+          input,
+          output,
+        });
+      }
+      return output;
+    } catch (err) {
+      const errorText = err instanceof Error ? err.message : String(err);
+      if (typeof onToolEvent === 'function') {
+        try {
+          onToolEvent({ type: 'tool-output-error', toolCallId, errorText });
+        } catch {
+          // Ignore listener errors.
+        }
+      }
+      if (Array.isArray(toolParts)) {
+        toolParts.push({
+          type: `tool-${uiToolName}`,
+          toolCallId,
+          toolName: uiToolName,
+          state: 'output-error',
+          input,
+          errorText,
+        });
+      }
+      throw err;
+    }
+  };
+}
+
 export interface CandleEvidenceMetadata {
   source: string;
   fetchedAt: string;
@@ -176,6 +256,11 @@ export async function executeLegacyReadOnlyTool<TOutput>(
  * of the existing tool implementations, while Mastra owns the agent/tool
  * loop. The adapter forwards the authenticated AsyncLocalStorage context and
  * cancellation signal; it never exposes mutation tools.
+ *
+ * B-01 (audit 2026-10-18): `get_price`, `get_candles`, `get_indicators`, and
+ * `search_knowledge` no longer flow through this adapter in the canonical
+ * chat — they are registered from `mastra-v2/tools/canonical/*` as native
+ * tools that share the same `createReadOnlyToolExecute` lifecycle wrapper.
  */
 export function adaptLegacyReadOnlyTool(name: string, legacyTool: Tool) {
   if (MastraMutationNameSchema.safeParse(name).success) {
@@ -193,79 +278,13 @@ export function adaptLegacyReadOnlyTool(name: string, legacyTool: Tool) {
     id: `kestrel-${name}`,
     description: source.description ?? `Read-only Kestrel tool: ${name}`,
     ...(source.inputSchema ? { inputSchema: source.inputSchema as never } : {}),
-    execute: async (
-      input: unknown,
-      context: {
-        toolCallId?: string;
-        messages?: unknown[];
-        abortSignal?: AbortSignal;
-        requestContext?: { get: (key: string) => unknown };
-        observe?: ToolObserve;
-      },
-    ) => {
-      const toolCallId = context.toolCallId ?? `call-${uiToolName}-${crypto.randomUUID()}`;
-      const onToolEvent = context.requestContext?.get('onToolEvent') as
-        ((event: MastraToolStreamEvent) => void) | undefined;
-      const toolParts = context.requestContext?.get('toolParts') as
-        MastraToolInvocationPart[] | undefined;
-
-      if (typeof onToolEvent === 'function') {
-        try {
-          onToolEvent({ type: 'tool-input-start', toolCallId, toolName: uiToolName });
-          onToolEvent({ type: 'tool-input-available', toolCallId, toolName: uiToolName, input });
-        } catch {
-          // Tool event listeners must never break tool execution.
-        }
-      }
-
-      try {
-        const output = await executeMastraTool(`kestrel-${name}`, context, async () =>
-          source.execute!(input, {
-            ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
-            ...(context.messages ? { messages: context.messages } : {}),
-            ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-          }),
-        );
-        if (typeof onToolEvent === 'function') {
-          try {
-            onToolEvent({ type: 'tool-output-available', toolCallId, output });
-          } catch {
-            // Ignore listener errors.
-          }
-        }
-        if (Array.isArray(toolParts)) {
-          toolParts.push({
-            type: `tool-${uiToolName}`,
-            toolCallId,
-            toolName: uiToolName,
-            state: 'output-available',
-            input,
-            output,
-          });
-        }
-        return output;
-      } catch (err) {
-        const errorText = err instanceof Error ? err.message : String(err);
-        if (typeof onToolEvent === 'function') {
-          try {
-            onToolEvent({ type: 'tool-output-error', toolCallId, errorText });
-          } catch {
-            // Ignore listener errors.
-          }
-        }
-        if (Array.isArray(toolParts)) {
-          toolParts.push({
-            type: `tool-${uiToolName}`,
-            toolCallId,
-            toolName: uiToolName,
-            state: 'output-error',
-            input,
-            errorText,
-          });
-        }
-        throw err;
-      }
-    },
+    execute: createReadOnlyToolExecute(`kestrel-${name}`, uiToolName, async (input, context) =>
+      source.execute!(input, {
+        ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
+        ...(context.messages ? { messages: context.messages } : {}),
+        ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+      }),
+    ),
   } as never);
 }
 

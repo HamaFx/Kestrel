@@ -17,7 +17,7 @@
 import { RequestContext } from '@mastra/core/request-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { xauusdPriceTool } from '../src/mastra-v2/agents/xauusd/tools';
+import { xauusdPriceTool } from '../src/mastra-v2/agents/xauusd/tools/price-tool';
 
 const mocks = vi.hoisted(() => ({
   getPriceWithMeta: vi.fn(),

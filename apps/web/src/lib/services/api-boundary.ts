@@ -55,6 +55,8 @@ export {
   decideMastraExecution,
   extractMastraSymbol,
   extractMastraSymbols,
+  mastraComparisonScope,
+  MAX_COMPARISON_SYMBOLS,
   routeUnified,
   isInjectionAttempt,
   isHighConfidenceMutationIntent,

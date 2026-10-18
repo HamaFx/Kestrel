@@ -43,7 +43,7 @@ import { hashLogValue } from '../diagnostics/redact';
 import type { ResolveModelEnv } from '../env-model-factory';
 import { resolveChatModel } from '../model';
 
-const glog = createCategorizedLogger('ai', { component: 'mastra-guardrails' });
+const glog = createCategorizedLogger('ai', { component: 'mastra:guardrails' });
 
 export type GuardrailStrategy = 'block' | 'rewrite';
 

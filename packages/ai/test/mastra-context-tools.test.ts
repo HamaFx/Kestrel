@@ -16,11 +16,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  xauusdCorrelationTool,
-  xauusdIntermarketTool,
-  xauusdVolatilityTool,
-} from '../src/mastra-v2/agents/xauusd/tools';
+import { xauusdCorrelationTool } from '../src/mastra-v2/agents/xauusd/tools/correlation-tool';
+import { xauusdIntermarketTool } from '../src/mastra-v2/agents/xauusd/tools/intermarket-tool';
+import { xauusdVolatilityTool } from '../src/mastra-v2/agents/xauusd/tools/volatility-tool';
 import { XauusdVolatilityInputSchema } from '../src/mastra-v2/agents/xauusd/tools/volatility-tool';
 
 const mocks = vi.hoisted(() => ({

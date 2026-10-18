@@ -145,8 +145,20 @@ vi.mock('@/lib/services/api-boundary', () => ({
     if (/xauusd|gold/i.test(text)) symbols.push('XAUUSD');
     if (/eurusd/i.test(text)) symbols.push('EURUSD');
     if (/gbpusd/i.test(text)) symbols.push('GBPUSD');
+    if (/usdjpy/i.test(text)) symbols.push('USDJPY');
     return symbols;
   },
+  // A-01: mirror the planner's comparison scope (cap 3, overflow beyond).
+  mastraComparisonScope: (text: string) => {
+    const mentioned: string[] = [];
+    if (/xauusd|gold/i.test(text)) mentioned.push('XAUUSD');
+    if (/eurusd/i.test(text)) mentioned.push('EURUSD');
+    if (/gbpusd/i.test(text)) mentioned.push('GBPUSD');
+    if (/usdjpy/i.test(text)) mentioned.push('USDJPY');
+    if (mentioned.length < 2) return { symbols: [], overflow: false };
+    return { symbols: mentioned.slice(0, 3), overflow: mentioned.length > 3 };
+  },
+  MAX_COMPARISON_SYMBOLS: 3,
   getThread: mockGetThread,
   listMessages: vi.fn().mockResolvedValue([]),
   resolveMode: (mode: string) => (mode === 'auto' ? 'single' : mode),
@@ -196,22 +208,38 @@ vi.mock('@/lib/services/api-boundary', () => ({
       .filter((part: { type?: string; text?: string }) => part.type === 'text')
       .map((part: { text?: string }) => part.text ?? '')
       .join(' ');
+    const mentioned: string[] = [];
+    if (/xauusd|gold/i.test(text)) mentioned.push('XAUUSD');
+    if (/eurusd/i.test(text)) mentioned.push('EURUSD');
+    if (/gbpusd/i.test(text)) mentioned.push('GBPUSD');
+    if (/usdjpy/i.test(text)) mentioned.push('USDJPY');
+    const comparisonActive = mentioned.length >= 2;
     const plannedSymbol =
-      symbol ?? (/xauusd|gold/i.test(text) ? 'XAUUSD' : /eurusd/i.test(text) ? 'EURUSD' : null);
+      symbol ??
+      (mentioned.length === 1
+        ? mentioned[0]!
+        : /xauusd|gold/i.test(text)
+          ? 'XAUUSD'
+          : /eurusd/i.test(text)
+            ? 'EURUSD'
+            : null);
     return {
       version: 1,
       route:
-        mode === 'full'
-          ? 'full-analysis'
-          : plannedSymbol === 'XAUUSD'
-            ? 'xauusd-research'
-            : plannedSymbol
-              ? 'symbol-research'
-              : 'canonical-chat',
+        comparisonActive
+          ? 'multi-symbol-research'
+          : mode === 'full'
+            ? 'full-analysis'
+            : plannedSymbol === 'XAUUSD'
+              ? 'xauusd-research'
+              : plannedSymbol
+                ? 'symbol-research'
+                : 'canonical-chat',
       capabilityId:
         plannedSymbol === 'XAUUSD' ? 'xauusd-research' : plannedSymbol ? 'symbol-research' : null,
       capabilityVersion: 'test',
-      symbol: plannedSymbol,
+      symbol: comparisonActive ? null : plannedSymbol,
+      symbols: comparisonActive ? mentioned.slice(0, 3) : [],
       mode,
       model: modelOverride
         ? { providerId: 'google', bareModelId: modelOverride.split(':')[1] ?? modelOverride }
@@ -372,6 +400,59 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(mockRunMastraModeChatStream).toHaveBeenCalledWith(
       expect.objectContaining({ symbol: 'EURUSD', mode: 'single' }),
     );
+  });
+
+  it('routes bounded multi-symbol comparisons to the comparison graph (A-01)', async () => {
+    const response = await POST(
+      request(
+        body({
+          analysisMode: 'single',
+          messages: [
+            {
+              id: 'user-message-compare',
+              role: 'user',
+              content: 'Compare XAUUSD and EURUSD',
+              parts: [{ type: 'text', text: 'Compare XAUUSD and EURUSD' }],
+            },
+          ],
+        }),
+      ),
+      { params: Promise.resolve(undefined) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockRunMastraModeChatStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        symbol: 'XAUUSD',
+        symbols: ['XAUUSD', 'EURUSD'],
+        mode: 'single',
+      }),
+    );
+  });
+
+  it('returns a 422 disambiguation for over-cap comparisons (A-01)', async () => {
+    const response = await POST(
+      request(
+        body({
+          analysisMode: 'single',
+          messages: [
+            {
+              id: 'user-message-overflow',
+              role: 'user',
+              content: 'Compare XAUUSD, EURUSD, GBPUSD and USDJPY',
+              parts: [{ type: 'text', text: 'Compare XAUUSD, EURUSD, GBPUSD and USDJPY' }],
+            },
+          ],
+        }),
+      ),
+      { params: Promise.resolve(undefined) },
+    );
+
+    expect(response.status).toBe(422);
+    const payload = (await response.json()) as { error?: { code?: string; message?: string } };
+    expect(payload.error?.code).toBe('MULTI_SYMBOL_LIMIT');
+    expect(payload.error?.message).toContain('up to 3 symbols');
+    expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
   });
 
   it('queues Full mode for the Mastra worker with authoritative-history semantics', async () => {

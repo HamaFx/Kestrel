@@ -42,7 +42,7 @@ import type { BaseLogMessage, IMastraLogger, LoggerTransport, LogLevel } from '@
  * shared AsyncLocalStorage when a diagnostic scope is active (Phase 8).
  */
 export class MastraPinoLogger implements IMastraLogger {
-  private readonly log = createCategorizedLogger('ai', { component: 'mastra' });
+  private readonly log = createCategorizedLogger('ai', { component: 'mastra:core' });
 
   debug(message: string, ...args: unknown[]): void {
     this.log.debug(message, this.argsToMeta(args));
@@ -151,7 +151,7 @@ export interface RunStepLogIdentity {
  * run identity.
  */
 export function createRunLogger(identity: RunStepLogIdentity): CategorizedLogger {
-  const context: Record<string, unknown> = { component: 'mastra-run', runId: identity.runId };
+  const context: Record<string, unknown> = { component: 'mastra:run', runId: identity.runId };
   if (identity.workflowId) context['workflowId'] = identity.workflowId;
   if (identity.agentId) context['agentId'] = identity.agentId;
   if (identity.stepId) context['stepId'] = identity.stepId;

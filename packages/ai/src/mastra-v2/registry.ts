@@ -51,8 +51,11 @@ export interface MastraComponentRegistration {
   kind: 'agent' | 'workflow';
   /** Registration key on the Mastra instance (`agents` / `workflows` record key). */
   key: string;
-  /** Build phase that registers the component (documentation / test gate). */
-  phase: 0 | 2 | 4 | 7;
+  /**
+   * C-03 (audit 2026-10-18): date the registration became stable. Replaces
+   * the historical build-phase numbers, which gated no runtime behaviour.
+   */
+  stableSince: string;
 }
 
 /**
@@ -61,12 +64,12 @@ export interface MastraComponentRegistration {
  * registry integrity test.
  */
 export const MASTRA_COMPONENT_REGISTRY: Record<MastraCapabilityId, MastraComponentRegistration> = {
-  'canonical-chat': { kind: 'agent', key: 'canonicalChat', phase: 4 },
-  'xauusd-research': { kind: 'workflow', key: 'xauusdResearch', phase: 2 },
-  'xauusd-conversation': { kind: 'agent', key: 'xauusdConversation', phase: 4 },
-  'symbol-research': { kind: 'workflow', key: 'symbolResearch', phase: 2 },
-  'mutation-workflows': { kind: 'workflow', key: 'mutationWorkflows', phase: 7 },
-  'sensitive-user-read': { kind: 'agent', key: 'sensitiveUserRead', phase: 4 },
+  'canonical-chat': { kind: 'agent', key: 'canonicalChat', stableSince: '2026-10-18' },
+  'xauusd-research': { kind: 'workflow', key: 'xauusdResearch', stableSince: '2026-10-18' },
+  'xauusd-conversation': { kind: 'agent', key: 'xauusdConversation', stableSince: '2026-10-18' },
+  'symbol-research': { kind: 'workflow', key: 'symbolResearch', stableSince: '2026-10-18' },
+  'mutation-workflows': { kind: 'workflow', key: 'mutationWorkflows', stableSince: '2026-10-18' },
+  'sensitive-user-read': { kind: 'agent', key: 'sensitiveUserRead', stableSince: '2026-10-18' },
 };
 
 export type MastraCapabilityRegistrationId = keyof typeof MASTRA_COMPONENT_REGISTRY;
@@ -78,7 +81,7 @@ export class MastraComponentNotRegisteredError extends Error {
   constructor(capabilityId: string, registration: MastraComponentRegistration) {
     super(
       `Mastra component for capability "${capabilityId}" (${registration.kind} "${registration.key}") ` +
-        `is not registered yet — expected in build phase ${registration.phase}.`,
+        `is not registered on this instance (stable since ${registration.stableSince}).`,
     );
     this.name = 'MastraComponentNotRegisteredError';
     this.capabilityId = capabilityId;

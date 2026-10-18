@@ -39,15 +39,22 @@ import { runEvals, type MastraScorer } from '@mastra/core/evals';
 import { z } from 'zod';
 
 import casesJson from '../../eval/cases.json';
+import canonicalGroundingJson from '../../eval/canonical-grounding.json';
+import multiSymbolComparisonJson from '../../eval/multi-symbol-comparison.json';
 import promptsJson from '../../eval/prompts.json';
 import regressionCasesJson from '../../eval/regression-cases.json';
 
-const dlog = createCategorizedLogger('ai', { component: 'mastra-evals-datasets' });
+const dlog = createCategorizedLogger('ai', { component: 'mastra:evals-datasets' });
 
 export const DATASET_IDS = {
   cases: 'kestrel-eval-cases',
   prompts: 'kestrel-eval-prompts',
   regression: 'kestrel-eval-regression',
+  // I-05 (audit 2026-10-18) — parity suites for the gaps the audit found:
+  // bounded multi-symbol comparisons (B-01/B-08) and canonical-chat grounding
+  // drift on non-XAUUSD symbols.
+  multiSymbolComparison: 'kestrel-eval-multi-symbol',
+  canonicalGrounding: 'kestrel-eval-canonical-grounding',
 } as const;
 
 export type EvalDatasetId = (typeof DATASET_IDS)[keyof typeof DATASET_IDS];
@@ -83,6 +90,8 @@ const CASES_BY_DATASET: Record<EvalDatasetId, unknown[]> = {
   [DATASET_IDS.cases]: casesJson as unknown[],
   [DATASET_IDS.prompts]: promptsJson as unknown[],
   [DATASET_IDS.regression]: regressionCasesJson as unknown[],
+  [DATASET_IDS.multiSymbolComparison]: multiSymbolComparisonJson as unknown[],
+  [DATASET_IDS.canonicalGrounding]: canonicalGroundingJson as unknown[],
 };
 
 /** Human-readable label per dataset id. */
@@ -90,6 +99,8 @@ export const DATASET_LABELS: Record<EvalDatasetId, string> = {
   [DATASET_IDS.cases]: 'Kestrel acceptance cases',
   [DATASET_IDS.prompts]: 'Kestrel chat transport prompts',
   [DATASET_IDS.regression]: 'Kestrel regression cases',
+  [DATASET_IDS.multiSymbolComparison]: 'Kestrel multi-symbol comparison cases',
+  [DATASET_IDS.canonicalGrounding]: 'Kestrel canonical-chat grounding cases',
 };
 
 /**

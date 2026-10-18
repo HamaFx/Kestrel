@@ -52,7 +52,7 @@ import { capabilityTelemetryLabels } from './capabilities';
 
 export { capabilityTelemetryLabels } from './capabilities';
 
-const tlog = createCategorizedLogger('ai', { component: 'mastra-telemetry' });
+const tlog = createCategorizedLogger('ai', { component: 'mastra:telemetry' });
 
 /** Env keys that gate Langfuse export (same set as `instrumentation.ts`). */
 export function isLangfuseConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -133,6 +133,12 @@ export interface MastraRunTraceIdentity {
   kind: string;
   /** Optional manifest capability identity for policy-aware telemetry. */
   capabilityId?: Parameters<typeof capabilityTelemetryLabels>[0];
+  /**
+   * C-02 (audit 2026-10-18) — coarse asset class of the analysed symbol
+   * (`precious`, `fx-majors`, `crypto`), so Langfuse traces are filterable
+   * per asset class instead of XAUUSD-skewed.
+   */
+  assetClass?: string;
   /** Extra non-sensitive tags (e.g. ['full'], ['experiment-v2']). */
   tags?: string[];
   /** Memory configuration: 'working' | 'last_turns' | 'disabled'. */
@@ -161,6 +167,7 @@ export function runTracingOptions(identity: MastraRunTraceIdentity): TracingOpti
       kind: identity.kind,
       service: 'kestrel-ai',
       ...(identity.capabilityId ? capabilityTelemetryLabels(identity.capabilityId) : {}),
+      ...(identity.assetClass ? { assetClass: identity.assetClass } : {}),
       ...(identity.memoryMode ? { memoryMode: identity.memoryMode } : {}),
       ...(identity.memoryBackfill !== undefined ? { memoryBackfill: identity.memoryBackfill } : {}),
     },

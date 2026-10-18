@@ -50,7 +50,7 @@ export const MODE_LABELS: Record<AnalysisMode, string> = {
 };
 
 export const MODE_DESCRIPTIONS: Record<AnalysisMode, string> = {
-  single: 'Fast 1-desk technical check (~5s)',
+  single: 'Single-desk analysis — one technical desk. Use Full for the 4-desk committee.',
   full: 'All 4 specialist desks + trade plan',
 };
 

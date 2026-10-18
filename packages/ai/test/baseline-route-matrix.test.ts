@@ -120,7 +120,9 @@ const ROUTE_MATRIX: MatrixCell[] = [
     prompt: 'Explain how RSI works',
     expected: {
       route: 'canonical-chat',
-      capabilityId: null,
+      // B-03 (audit 2026-10-18): canonical plans resolve the manifest
+      // capability for their policy instead of an implicit literal.
+      capabilityId: 'canonical-chat',
       streaming: true,
       readOnly: true,
       memoryMode: 'native',
@@ -175,6 +177,24 @@ const ROUTE_MATRIX: MatrixCell[] = [
       memoryRequired: false,
       symbol: null,
       bareModelId: null,
+    },
+  },
+  {
+    // A-01 (B-01/B-08): a prompt naming 2–3 symbols is a bounded comparison —
+    // it must never collapse to canonical chat or a single-symbol run.
+    name: 'bounded multi-symbol comparison (two symbols)',
+    mode: 'single',
+    prompt: 'Compare XAUUSD and EURUSD',
+    credentials: true,
+    expected: {
+      route: 'multi-symbol-research',
+      capabilityId: 'symbol-research',
+      streaming: false,
+      readOnly: true,
+      memoryMode: 'native',
+      memoryRequired: true,
+      symbol: null,
+      bareModelId: 'gemini-2.5-flash',
     },
   },
   {

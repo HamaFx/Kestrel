@@ -121,6 +121,14 @@ export const FUSION_AGENT_ID = 'kestrel-mastra-decision';
 export type CommitteeInstructions =
   string | ((args: { requestContext: RequestContext<ModeRequestContext> }) => string);
 
+/**
+ * P-01 (audit 2026-10-18) — Mastra's Agent generics cannot infer the runtime
+ * tool record; this helper is the single documented cast for that slot.
+ */
+function agentToolsArg(tools: Record<string, unknown>): never {
+  return tools as never;
+}
+
 export function createCommitteeAgent(
   model: LanguageModel,
   id: string,
@@ -137,7 +145,7 @@ export function createCommitteeAgent(
     model: model as unknown as MastraModelConfig,
     instructions,
     requestContextSchema: REQUEST_CONTEXT_SCHEMA,
-    ...(tools && Object.keys(tools).length > 0 ? { tools: tools as never } : {}),
+    ...(tools && Object.keys(tools).length > 0 ? { tools: agentToolsArg(tools) } : {}),
     ...(inputProcessors && inputProcessors.length > 0 ? { inputProcessors } : {}),
     ...(memory ? { memory } : {}),
     ...(scorers && Object.keys(scorers).length > 0 ? { scorers } : {}),

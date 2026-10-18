@@ -51,6 +51,7 @@ import {
   maybeGenerateThreadTitle,
   parseExecutionPlan,
   purgeOldFullAnalysisRuns,
+  reconcileFullAnalysisSnapshots,
   recoverStaleFullAnalysisRuns,
   requeueFullAnalysisRun,
   runMastraMode,
@@ -496,6 +497,19 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
         failed: staleRecovery.failed,
         maxAttempts: MAX_ANALYSIS_ATTEMPTS,
       });
+    }
+    // B-07 (audit 2026-10-18): backfill Mastra snapshots for terminal rows
+    // whose projection never landed (crash window or storage outage). Runs on
+    // the same sweep cadence so a worker restart reconciles immediately.
+    try {
+      const repaired = await reconcileFullAnalysisSnapshots({
+        since: new Date(now - RETENTION_WINDOW_MS),
+      });
+      if (repaired > 0) {
+        ctx.log.info('Reconciled full-analysis Mastra snapshots', { repaired });
+      }
+    } catch (error) {
+      ctx.log.warn('Full-analysis snapshot reconciliation failed', { err: String(error) });
     }
   }
 

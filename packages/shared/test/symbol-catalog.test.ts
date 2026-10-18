@@ -18,6 +18,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ALL_SYMBOLS,
+  assetClassForSymbol,
   BUILTIN_SYMBOLS,
   CFTC_SUPPORTED_SYMBOLS,
   DEFAULT_STREAM_SYMBOLS,
@@ -39,6 +40,18 @@ describe('canonical symbol catalog', () => {
     expect(new Set(ALL_SYMBOLS).size).toBe(ALL_SYMBOLS.length);
     expect(BUILTIN_SYMBOLS.map((symbol) => symbol.internal)).toEqual([...ALL_SYMBOLS]);
     expect(ALL_SYMBOLS.every((symbol) => symbol === symbol.trim().toUpperCase())).toBe(true);
+  });
+
+  it('maps every symbol to a coarse asset class for cross-asset telemetry (C-02)', () => {
+    expect(assetClassForSymbol('XAUUSD')).toBe('precious');
+    expect(assetClassForSymbol('EURUSD')).toBe('fx-majors');
+    expect(assetClassForSymbol('BTCUSDT')).toBe('crypto');
+    // Every supported symbol must resolve — an unmapped symbol would produce
+    // an 'unknown' telemetry tag for real traffic.
+    for (const symbol of ALL_SYMBOLS) {
+      expect(assetClassForSymbol(symbol), `missing asset class for ${symbol}`).not.toBeNull();
+    }
+    expect(assetClassForSymbol('NOT-A-SYMBOL')).toBeNull();
   });
 
   it('has complete provider and capability metadata for every instrument', () => {

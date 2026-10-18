@@ -57,8 +57,11 @@ export const SPECIALISTS_BY_MODE: Record<MastraAnalysisMode, readonly MastraSpec
  * Committee deadline for synchronous runs (audit plan §1.7). Leaves ~10s of
  * headroom under the chat route's 55s window so a deadline surfaces as an
  * explicit strict failure instead of an opaque route abort.
+ *
+ * P-05 (audit 2026-10-18): the value is defined in `mastra-v2/shared/constants`
+ * and re-exported here for existing importers.
  */
-export const COMMITTEE_DEADLINE_MS = 45_000;
+export { COMMITTEE_DEADLINE_MS } from '../mastra-v2/shared/constants';
 
 /** One logical workflow stage, emitted as progress exactly once per run. */
 export type CommitteeStepId =
@@ -130,6 +133,8 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
   threadId: z.string().min(1),
   symbol: z.string().min(1),
   packet: z.unknown().optional(),
+  /** A-01: per-symbol packets injected for the comparison fusion call. */
+  packets: z.unknown().optional(),
   /** Typed committee opinions injected for the fusion call (§2.2). */
   opinions: z.unknown().optional(),
   /** Cross-critique records injected for the fusion call (§3.2). */
@@ -208,6 +213,8 @@ export const CommitteeCritiqueSchema = z.object({
 /** Full opinion shape the workflow emits so callers can persist metadata. */
 export interface MastraModeOpinion {
   agentName: MastraSpecialistName;
+  /** A-01: symbol the opinion is about (present for comparison runs). */
+  symbol?: string | undefined;
   bias: 'bullish' | 'bearish' | 'neutral';
   confidence: number;
   reasoning: string;
@@ -222,6 +229,7 @@ export interface MastraModeOpinion {
 
 export const MastraModeOpinionSchema = z.object({
   agentName: MastraSpecialistNameSchema,
+  symbol: z.string().min(1).optional(),
   bias: z.enum(['bullish', 'bearish', 'neutral']),
   confidence: z.number().min(0).max(1),
   reasoning: z.string().min(1),
@@ -286,9 +294,23 @@ export type CollectPacketFn = (
   signal?: AbortSignal,
 ) => Promise<SymbolResearchPacket>;
 
+/**
+ * A-01 — deterministic multi-symbol packet collector injected into the
+ * comparison graph; defaults to the cached `collectMultiSymbolPackets`.
+ */
+export type CollectComparisonPacketsFn = (
+  symbols: readonly Symbol[],
+  signal?: AbortSignal,
+) => Promise<Map<Symbol, SymbolResearchPacket>>;
+
 /** Typed output of the collect-packet stage. */
 export const CollectPacketOutputSchema = z.object({
   packet: SymbolResearchPacketSchema,
+  /**
+   * A-01: per-symbol packets for `multi-symbol-research` runs. Absent for
+   * ordinary single-symbol committee runs (the `packet` field is primary).
+   */
+  packets: z.record(z.string(), SymbolResearchPacketSchema).optional(),
   prompt: z.string().min(1),
   mode: MastraAnalysisModeSchema,
 });
@@ -310,6 +332,32 @@ export function contextWithPacket(
   ];
   if (opinions) entries.push(['opinions', opinions]);
   if (critiques) entries.push(['critiques', critiques]);
+  return new RequestContext<ModeRequestContext>(entries as never);
+}
+
+/**
+ * A-01 — comparison-run context: every per-symbol packet is injected under
+ * `packets` (the primary packet stays under `packet` for compatibility with
+ * the shared specialist context).
+ */
+export function contextWithPackets(
+  base: RequestContext<ModeRequestContext>,
+  packets: readonly SymbolResearchPacket[],
+  opinions?: MastraModeOpinion[],
+): RequestContext<ModeRequestContext> {
+  const primary = packets[0];
+  if (!primary) throw new Error('Comparison context requires at least one packet.');
+  const packetRecord: Record<string, SymbolResearchPacket> = {};
+  for (const packet of packets) packetRecord[packet.symbol] = packet;
+  const entries: [string, unknown][] = [
+    ['userId', base.get('userId') as string],
+    ['runId', base.get('runId') as string],
+    ['threadId', base.get('threadId') as string],
+    ['symbol', packets.map((packet) => packet.symbol).join('/')],
+    ['packet', primary],
+    ['packets', packetRecord],
+  ];
+  if (opinions) entries.push(['opinions', opinions]);
   return new RequestContext<ModeRequestContext>(entries as never);
 }
 

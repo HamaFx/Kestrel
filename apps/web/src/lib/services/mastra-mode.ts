@@ -59,6 +59,8 @@ export interface RunMastraModeChatInput {
   userMessage: UIMessage;
   prompt: string;
   symbol: string;
+  /** A-01 — bounded comparison symbols (2–3) for `multi-symbol-research` plans. */
+  symbols?: string[];
   mode: MastraAnalysisMode;
   modelOverride?: string | null;
   signal?: AbortSignal;
@@ -113,6 +115,7 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
             const result = await runMastraMode({
               prompt: input.prompt,
               symbol: input.symbol,
+              ...(input.symbols ? { symbols: input.symbols } : {}),
               userId: input.userId,
               threadId: input.threadId,
               runId,
@@ -160,6 +163,10 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
                     runId,
                     mode: result.mode,
                     symbol: result.symbol,
+                    ...(result.symbols ? { symbols: result.symbols } : {}),
+                    ...(result.comparisonPackets
+                      ? { comparisonPacketIds: result.comparisonPackets.map((p) => p.packetId) }
+                      : {}),
                     packetId: result.packet.packetId,
                     dataQuality: result.packet.dataQuality,
                     totalCostUsd: result.totalCostUsd,
@@ -196,6 +203,10 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
             runId,
             mode: result.mode,
             symbol: result.symbol,
+            ...(result.symbols ? { symbols: result.symbols } : {}),
+            ...(result.comparisonPackets
+              ? { comparisonPacketIds: result.comparisonPackets.map((p) => p.packetId) }
+              : {}),
             packetId: result.packet.packetId,
             dataQuality: result.packet.dataQuality,
             observedCost: execution.observedCost,

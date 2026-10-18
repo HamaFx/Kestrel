@@ -30,7 +30,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { Mastra } from '@mastra/core';
 import type { ScoreRowData } from '@mastra/core/evals';
 
-const slog = createCategorizedLogger('ai', { component: 'mastra-evals-scores' });
+const slog = createCategorizedLogger('ai', { component: 'mastra:evals-scores' });
 
 /** Kestrel's projection of a Mastra score row. */
 export interface ScoreRecord {

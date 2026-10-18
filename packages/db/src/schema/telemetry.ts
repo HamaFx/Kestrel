@@ -71,6 +71,10 @@ export type ChatTelemetryKind =
   | 'multi_specialist_sentiment_failed'
   | 'multi_specialist_decision'
   | 'multi_agent_turn'
+  // P-03 (audit 2026-10-18): neutral name; `*_poc` values stay valid for one
+  // release so historical rows and old clients keep parsing.
+  | 'mastra_xauusd_research'
+  | 'mastra_xauusd_research_failed'
   | 'mastra_xauusd_poc'
   | 'mastra_xauusd_poc_failed'
   | 'mastra_xauusd_shadow'

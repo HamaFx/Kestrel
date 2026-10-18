@@ -23,10 +23,10 @@ import {
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { computeMarketStructureOutput } from '../../../../tools/get-market-structure';
-import { createEvidenceId } from '../../../packets/evidence';
-import { executeMastraTool } from '../../../shared/telemetry';
-import { XAUUSD } from '../../../shared/types';
+import { computeMarketStructureOutput } from '@ai/mastra-v2/tools/canonical/market-structure';
+import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
+import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
+import { XAUUSD } from '@ai/mastra-v2/shared/types';
 import { candleEvidenceMetadata } from '../legacy-tool-adapter';
 import { XauusdSymbolSchema } from '../tool-schemas';
 

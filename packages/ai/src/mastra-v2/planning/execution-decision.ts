@@ -26,6 +26,7 @@ import {
   isMastraSymbolCandidate,
   isMastraXauusdCandidate,
   isMastraXauusdFollowupCandidate,
+  mastraComparisonScope,
   mastraXauusdChatKind,
   messageText,
 } from './routing-policy';
@@ -33,6 +34,7 @@ import {
 export type MastraExecutionRoute =
   | 'mutation'
   | 'full-analysis-queue'
+  | 'multi-symbol-research'
   | 'xauusd-conversation'
   | 'xauusd-research'
   | 'symbol-research'
@@ -59,6 +61,11 @@ export interface MastraExecutionDecision {
   model: MastraResolvedModel | null;
   modelPurpose: MastraModelPurpose | null;
   symbol: string | null;
+  /**
+   * A-01 — bounded comparison symbols (2–3, prompt order) when the turn is a
+   * cross-symbol comparison; empty otherwise.
+   */
+  symbols: string[];
   xauusdChatKind: 'research' | 'conversation' | null;
   reportFollowup: boolean;
   symbolCandidate: boolean;
@@ -85,10 +92,14 @@ export async function decideMastraExecution(
   const reportFollowup = priorReportAvailable && isMastraXauusdFollowupCandidate(promptText);
   const symbol =
     input.symbol ?? extractMastraSymbol(promptText) ?? (reportFollowup ? 'XAUUSD' : null);
+  // A-01 (B-01/B-08): a prompt naming 2–3 symbols is a bounded comparison —
+  // it must not collapse to canonical chat through the single-symbol extractor.
+  const comparison = mastraComparisonScope(promptText);
+  const comparisonActive = comparison.symbols.length >= 2;
   const xauusdCandidate = isMastraXauusdCandidate(promptText);
   const symbolCandidate = isMastraSymbolCandidate(promptText);
   const detectedXauusdChatKind =
-    symbol === 'XAUUSD' && (xauusdCandidate || reportFollowup)
+    !comparisonActive && symbol === 'XAUUSD' && (xauusdCandidate || reportFollowup)
       ? mastraXauusdChatKind(promptText, priorReportAvailable)
       : null;
   // Mutation classification belongs to the planner boundary. Callers may
@@ -97,7 +108,14 @@ export async function decideMastraExecution(
   const mutationRequested = input.mutationRequested ?? classifyMutationRequest(promptText) !== null;
   const capabilityId =
     input.capabilityId ??
-    capabilityFor(input.mode, symbol, mutationRequested, reportFollowup, detectedXauusdChatKind);
+    capabilityFor(
+      input.mode,
+      symbol,
+      mutationRequested,
+      reportFollowup,
+      detectedXauusdChatKind,
+      comparisonActive,
+    );
   const plannedXauusdChatKind =
     capabilityId === 'xauusd-research'
       ? reportFollowup
@@ -109,7 +127,7 @@ export async function decideMastraExecution(
   const capability = capabilityId
     ? evaluateMastraCapability({
         capabilityId,
-        symbol: symbol ?? 'XAUUSD',
+        symbol: comparison.symbols[0] ?? symbol ?? 'XAUUSD',
         mode: input.mode,
         hasModelOverride: Boolean(input.modelOverride),
         mutationRequested,
@@ -124,6 +142,7 @@ export async function decideMastraExecution(
     xauusdCandidate,
     symbolCandidate,
     plannedXauusdChatKind,
+    comparisonActive,
   );
   if (
     capability &&
@@ -158,6 +177,7 @@ export async function decideMastraExecution(
     model,
     modelPurpose: purpose,
     symbol,
+    symbols: comparison.symbols,
     xauusdChatKind: plannedXauusdChatKind,
     reportFollowup,
     symbolCandidate,
@@ -171,8 +191,12 @@ function capabilityFor(
   mutationRequested = false,
   reportFollowup = false,
   xauusdChatKind: 'research' | 'conversation' | null = null,
+  comparisonActive = false,
 ): MastraCapabilityId | null {
   if (mutationRequested) return 'mutation-workflows';
+  // A-01: bounded comparisons run through the generic symbol capability; each
+  // symbol still gets its own packet + desk pass inside the comparison graph.
+  if (comparisonActive) return 'symbol-research';
   if (symbol === 'XAUUSD' && mode === 'single') {
     if (reportFollowup || xauusdChatKind === 'research') return 'xauusd-research';
     if (xauusdChatKind === 'conversation') return 'xauusd-conversation';
@@ -193,8 +217,13 @@ function routeFor(
   xauusdCandidate: boolean,
   symbolCandidate: boolean,
   xauusdChatKind: 'research' | 'conversation' | null,
+  comparisonActive = false,
 ): MastraExecutionRoute {
   if (mutationRequested || capabilityId === 'mutation-workflows') return 'mutation';
+  // A-01 (B-01): comparisons take precedence over the single-symbol paths in
+  // both modes — a multi-symbol prompt must never be silently answered as one
+  // symbol's research or as symbol-free canonical chat.
+  if (comparisonActive) return 'multi-symbol-research';
   if (mode === 'full') return 'full-analysis-queue';
   if (
     symbol === 'XAUUSD' &&
@@ -221,6 +250,8 @@ function purposeFor(route: MastraExecutionRoute): MastraModelPurpose | null {
       return null;
     case 'full-analysis-queue':
       return 'worker';
+    case 'multi-symbol-research':
+      return 'mode';
     case 'xauusd-conversation':
       return 'xauusd';
     case 'xauusd-research':
@@ -236,6 +267,8 @@ export function capabilityForRoute(route: MastraExecutionRoute): MastraCapabilit
   switch (route) {
     case 'mutation':
       return 'mutation-workflows';
+    case 'multi-symbol-research':
+      return 'symbol-research';
     case 'xauusd-conversation':
       return 'xauusd-conversation';
     case 'xauusd-research':

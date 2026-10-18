@@ -29,7 +29,7 @@ import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants
 import type { MastraAnswerOutcome, MastraRunOutcome } from './stats';
 
 const mlog = createCategorizedLogger('ai', {
-  component: 'mastra-xauusd-run',
+  component: 'mastra:xauusd-run',
   agent: MASTRA_XAUUSD_AGENT_ID,
   agentVersion: MASTRA_XAUUSD_AGENT_VERSION,
 });
@@ -74,12 +74,24 @@ export interface MastraRunObservation {
   modelSnapshot?: { providerId: string; bareModelId: string };
   /** Identifies the run type for telemetry breakdown. */
   telemetryKind?:
+    | 'mastra_xauusd_research'
     | 'mastra_xauusd_poc'
     | 'mastra_mode'
     | 'mastra_full_job'
     | 'mastra_worker_task'
     | 'mastra_canonical_chat';
   error?: unknown;
+}
+
+/**
+ * P-03 (audit 2026-10-18) — normalize legacy telemetry kinds to their
+ * footprint-neutral names. `mastra_xauusd_poc` is accepted for one release
+ * (old clients / queued payloads) and written as `mastra_xauusd_research`.
+ */
+function canonicalTelemetryKind(
+  kind: MastraRunObservation['telemetryKind'],
+): NonNullable<MastraRunObservation['telemetryKind']> {
+  return kind === 'mastra_xauusd_poc' || kind === undefined ? 'mastra_xauusd_research' : kind;
 }
 
 export function beginMastraRun(
@@ -198,7 +210,7 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
       idempotencyKey: `mastra.run:${args.runId}`,
       kind:
         args.outcome === 'success'
-          ? (args.telemetryKind ?? 'mastra_xauusd_poc')
+          ? canonicalTelemetryKind(args.telemetryKind)
           : args.telemetryKind === 'mastra_mode'
             ? 'mastra_mode_failed'
             : args.telemetryKind === 'mastra_full_job'
@@ -207,7 +219,7 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
                 ? 'mastra_worker_task_failed'
                 : args.telemetryKind === 'mastra_canonical_chat'
                   ? 'mastra_canonical_chat_failed'
-                  : 'mastra_xauusd_poc_failed',
+                  : 'mastra_xauusd_research_failed',
     });
   } catch (error) {
     telemetryDegraded = true;

@@ -40,12 +40,15 @@ import type { MastraCompositeStore } from '@mastra/core/storage';
 
 import { registerAllTools } from '../tools';
 import { MastraPinoLogger } from './logger';
+import { MASTRA_DEFAULT_PORT } from './shared/constants';
 import { createMastraStorage, initializeMastraStorage, type MastraStorageKind } from './storage';
 import { createMastraObservability } from './telemetry';
 
-const ilog = createCategorizedLogger('ai', { component: 'mastra-instance' });
+const ilog = createCategorizedLogger('ai', { component: 'mastra:instance' });
 
-export const MASTRA_DEFAULT_PORT = 4111;
+/** P-05 (audit 2026-10-18): defined in `shared/constants.ts`, re-exported here. */
+export { MASTRA_DEFAULT_PORT };
+
 export const MASTRA_DEFAULT_HOST = '0.0.0.0';
 
 export interface KestrelMastraOptions {

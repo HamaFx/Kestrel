@@ -41,7 +41,7 @@ import { computeCitationScore } from '../../eval/citation-oracle';
 import { verifyXauusdReport } from '../agents/xauusd/report/report-verifier';
 import type { XauusdResearchPacket } from '../packets/research-types';
 
-const clog = createCategorizedLogger('ai', { component: 'mastra-evals-custom' });
+const clog = createCategorizedLogger('ai', { component: 'mastra:evals-custom' });
 
 export interface GroundingScorerRunInput {
   /** Candidate report to verify (already parsed by the workflow). */

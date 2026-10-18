@@ -28,11 +28,11 @@ import {
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getCoTTool } from '../../../tools/get-cot';
-import { getIntermarketResonanceTool } from '../../../tools/get-intermarket-resonance';
-import { getSeasonalityTool } from '../../../tools/get-seasonality';
-import { searchKnowledgeTool } from '../../../tools/search-knowledge';
-import { webSearchTool } from '../../../tools/web-search';
+import { getCoTTool } from '@ai/tools/get-cot';
+import { getIntermarketResonanceTool } from '@ai/tools/get-intermarket-resonance';
+import { getSeasonalityTool } from '@ai/tools/get-seasonality';
+import { searchKnowledgeTool } from '@ai/tools/search-knowledge';
+import { webSearchTool } from '@ai/tools/web-search';
 import { createEvidenceId } from '../../packets/evidence';
 import { executeMastraTool } from '../../shared/telemetry';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';

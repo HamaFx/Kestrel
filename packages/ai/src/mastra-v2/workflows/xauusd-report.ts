@@ -107,7 +107,8 @@ export const XauusdReportWorkflowOutputSchema = z.object({
 export interface XauusdReportWorkflowDeps {
   /** The XAUUSD research agent (BYOK model + memory already bound). */
   agent: Agent<string, typeof xauusdMastraTools, undefined, XauusdRequestContext>;
-  callOptions: AgentMemoryOption;
+  /** P-01 (audit 2026-10-18): optional so view-only registrations (Studio) can build the graph without BYOK memory. */
+  callOptions?: AgentMemoryOption;
   providerId: string;
   signal?: AbortSignal;
   /** Shared Mastra instance for run-snapshot persistence (optional; in-memory when absent). */

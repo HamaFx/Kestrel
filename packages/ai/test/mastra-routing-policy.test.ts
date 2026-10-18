@@ -24,8 +24,16 @@ import {
   extractMastraSymbol,
   extractMastraSymbols,
   isInjectionAttempt,
+  isMastraXauusdCandidate,
+  mastraComparisonScope,
+  MAX_COMPARISON_SYMBOLS,
   resolveMode,
 } from '../src/mastra-v2/planning/routing-policy';
+import {
+  OTHER_SYMBOL_TERMS,
+  ROUTING_KEYWORD_REGISTRY,
+  XAUUSD_TERMS,
+} from '../src/routing-keywords';
 
 describe('autoDetectMode', () => {
   it('returns single for greetings and thanks', () => {
@@ -167,5 +175,59 @@ describe('extractMastraSymbols (P2-01)', () => {
     const others = extractMastraSymbols('Compare EURUSD and GBPUSD');
     expect(others).toEqual(['EURUSD', 'GBPUSD']);
     expect(others).not.toContain('XAUUSD');
+  });
+});
+
+describe('mastraComparisonScope (A-01 / B-01)', () => {
+  it('treats a two-symbol prompt as a bounded comparison', () => {
+    expect(mastraComparisonScope('Compare XAUUSD and EURUSD')).toEqual({
+      symbols: ['XAUUSD', 'EURUSD'],
+      overflow: false,
+    });
+  });
+
+  it('caps comparisons at MAX_COMPARISON_SYMBOLS and flags overflow beyond it', () => {
+    expect(MAX_COMPARISON_SYMBOLS).toBe(3);
+    const atCap = mastraComparisonScope('compare gold, EURUSD and GBPUSD');
+    expect(atCap.symbols).toEqual(['XAUUSD', 'EURUSD', 'GBPUSD']);
+    expect(atCap.overflow).toBe(false);
+    const overCap = mastraComparisonScope('compare XAUUSD, EURUSD, GBPUSD and USDJPY');
+    expect(overCap.overflow).toBe(true);
+    expect(overCap.symbols).toHaveLength(MAX_COMPARISON_SYMBOLS);
+  });
+
+  it('stays quiet for single-symbol and symbol-free prompts', () => {
+    expect(mastraComparisonScope('analyze XAUUSD')).toEqual({ symbols: [], overflow: false });
+    expect(mastraComparisonScope('what is RSI?')).toEqual({ symbols: [], overflow: false });
+  });
+});
+
+describe('routing keyword boundaries (A-03 / B-12)', () => {
+  it('keeps XAUUSD terms word-bounded — "golden" is not gold', () => {
+    expect(XAUUSD_TERMS.test('golden cross appears on the chart')).toBe(false);
+    expect(XAUUSD_TERMS.test('gold outlook')).toBe(true);
+    expect(XAUUSD_TERMS.test('xau/usd levels')).toBe(true);
+    // B-12: bare "bullion" is a gold synonym and must match on boundaries.
+    expect(XAUUSD_TERMS.test('bullion demand')).toBe(true);
+    expect(isMastraXauusdCandidate('bullion outlook')).toBe(true);
+  });
+
+  it('keeps disambiguating symbol terms word-bounded', () => {
+    expect(OTHER_SYMBOL_TERMS.test('eurusd levels')).toBe(true);
+    expect(OTHER_SYMBOL_TERMS.test('bitcoin vs gold')).toBe(true);
+    // "ethereal" must not match the 'eth' alias.
+    expect(OTHER_SYMBOL_TERMS.test('ethereal concepts')).toBe(false);
+    // A hardened term still disambiguates a gold prompt away from XAUUSD.
+    expect(isMastraXauusdCandidate('gold vs bitcoin')).toBe(false);
+  });
+
+  it('exposes every vocabulary through one canonical registry (C-04)', () => {
+    expect(ROUTING_KEYWORD_REGISTRY.symbols.xauusd).toBe(XAUUSD_TERMS);
+    expect(ROUTING_KEYWORD_REGISTRY.symbols.other).toBe(OTHER_SYMBOL_TERMS);
+    expect(ROUTING_KEYWORD_REGISTRY.domains.fundamental.length).toBeGreaterThan(0);
+    expect(ROUTING_KEYWORD_REGISTRY.domains.technical).toBeDefined();
+    expect(ROUTING_KEYWORD_REGISTRY.domains.summary).toBeDefined();
+    expect(ROUTING_KEYWORD_REGISTRY.intents.injection).toBeDefined();
+    expect(ROUTING_KEYWORD_REGISTRY.intents.broadMutation).toBeDefined();
   });
 });

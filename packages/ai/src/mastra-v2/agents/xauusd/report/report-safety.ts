@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { XauusdResearchPacket } from '../../../packets/research-types';
+import type { XauusdResearchPacket } from '@ai/mastra-v2/packets/research-types';
 import type { XauusdResearchReport } from './report-types';
 
 function latestNumeric(

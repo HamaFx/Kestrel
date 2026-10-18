@@ -23,11 +23,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   _resetPacketCache,
+  collectMultiSymbolPackets,
   collectSymbolResearchPacketCached,
   isFreshCacheablePacket,
   PACKET_CACHE_TTL_MS,
 } from '../src/mastra-v2/packets/packet-cache';
 import {
+  computeIndicatorMemo,
   SymbolResearchPacketSchema,
   XauusdExtensionSchema,
   type SymbolResearchPacket,
@@ -229,6 +231,68 @@ describe('packet cache (§2.1, Q5)', () => {
     }
   });
 
+  it('serves a cached packet across two bucket rollovers (B-04)', async () => {
+    vi.useFakeTimers();
+    try {
+      // Store near the end of the first 15s bucket…
+      vi.setSystemTime(14_900);
+      mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
+      await collectSymbolResearchPacketCached('XAUUSD');
+
+      // …and read at 30.1s: the entry (bucket 0) is 15.2s old — inside the
+      // 30s TTL but two bucket rollovers back — so it must still be served.
+      vi.setSystemTime(30_100);
+      const second = await collectSymbolResearchPacketCached('XAUUSD');
+
+      expect(second.packetId).toBe('packet-fresh');
+      expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledTimes(1);
+      expect(metrics.snapshot().counters['packet_cache_hit_total']).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('still expires entries beyond the 30s TTL after a rollover (B-04)', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(14_900);
+      mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
+      await collectSymbolResearchPacketCached('XAUUSD');
+
+      // 30.001s of age: the extra probe must not resurrect expired entries.
+      vi.setSystemTime(44_901);
+      await collectSymbolResearchPacketCached('XAUUSD');
+
+      expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('memoizes indicator computations per staleness bit (B-06)', () => {
+    const candle = freshPacket.timeframes[0]!.candles[0]!;
+    const candles = [
+      { ...candle, t: candle.t - 3_600_000, fetchedAt: candle.fetchedAt - 3_600_000 },
+      candle,
+    ];
+    const base = {
+      symbol: 'XAUUSD' as const,
+      tf: '1h' as const,
+      kind: 'rsi' as const,
+      params: { period: 14 },
+      candles,
+    };
+
+    const fresh = computeIndicatorMemo({ ...base, stale: false });
+    // Same length + last timestamp, different staleness → a distinct entry,
+    // so a stale computation is never reused as fresh after a failover.
+    const stale = computeIndicatorMemo({ ...base, stale: true });
+    expect(stale).not.toBe(fresh);
+
+    // The fresh entry is still memoized for identical fresh calls.
+    expect(computeIndicatorMemo({ ...base, stale: false })).toBe(fresh);
+  });
+
   it('requests the §4.2 XAUUSD macro extension for gold committee packets', async () => {
     mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
     await collectSymbolResearchPacketCached('XAUUSD');
@@ -357,5 +421,49 @@ describe('packet cache (§2.1, Q5)', () => {
     expect(collected.packetId).toBe('packet-fresh');
     expect(mirrorMocks.get).not.toHaveBeenCalled();
     expect(mirrorMocks.set).not.toHaveBeenCalled();
+  });
+});
+
+describe('collectMultiSymbolPackets (A-01 / B-01)', () => {
+  it('returns one cached packet per compared symbol, in prompt order', async () => {
+    mocks.collectSymbolResearchPacket.mockImplementation(async (symbol: string) => ({
+      ...freshPacket,
+      packetId: `packet-${symbol}`,
+      symbol,
+    }));
+
+    const packets = await collectMultiSymbolPackets(['XAUUSD', 'EURUSD']);
+
+    expect([...packets.keys()]).toEqual(['XAUUSD', 'EURUSD']);
+    expect(packets.get('XAUUSD')?.packetId).toBe('packet-XAUUSD');
+    expect(packets.get('EURUSD')?.packetId).toBe('packet-EURUSD');
+    expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledTimes(2);
+
+    // A second call within the 30s TTL is served entirely from the cache.
+    mocks.collectSymbolResearchPacket.mockClear();
+    const cached = await collectMultiSymbolPackets(['XAUUSD', 'EURUSD']);
+    expect([...cached.keys()]).toEqual(['XAUUSD', 'EURUSD']);
+    expect(mocks.collectSymbolResearchPacket).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates repeated symbols before collecting', async () => {
+    mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
+
+    const packets = await collectMultiSymbolPackets(['XAUUSD', 'XAUUSD']);
+
+    expect([...packets.keys()]).toEqual(['XAUUSD']);
+    expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed on an unbounded comparison fan-out', async () => {
+    await expect(
+      collectMultiSymbolPackets(['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY']),
+    ).rejects.toThrow(/more than 3 symbols/);
+    expect(mocks.collectSymbolResearchPacket).not.toHaveBeenCalled();
+  });
+
+  it('rejects empty comparison inputs', async () => {
+    await expect(collectMultiSymbolPackets([])).rejects.toThrow(/at least one symbol/);
+    expect(mocks.collectSymbolResearchPacket).not.toHaveBeenCalled();
   });
 });

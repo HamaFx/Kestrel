@@ -10,8 +10,7 @@ import type { MastraResolvedModel } from '../../model';
 import {
   getMastraCapability,
   guardrailPolicyForCapability,
-  type MastraCapability,
-  type MastraCapabilityMode,
+  type MastraCapabilityId,
 } from '../capabilities';
 import { classifyMutationRequest } from '../mutation/mutation-detect';
 import { decideMastraExecution, type MastraExecutionDecisionInput } from './execution-decision';
@@ -21,6 +20,7 @@ export const ExecutionRouteSchema = z.enum([
   'xauusd-conversation',
   'xauusd-research',
   'symbol-research',
+  'multi-symbol-research',
   'full-analysis',
   'mutation-draft',
 ]);
@@ -43,6 +43,12 @@ export const ExecutionPlanSchema = z.strictObject({
   capabilityId: z.string().min(1).nullable(),
   capabilityVersion: z.string().min(1).nullable(),
   symbol: z.string().min(1).nullable(),
+  /**
+   * A-01 (B-01/B-08) — bounded comparison symbols (2–3, prompt order) for
+   * `multi-symbol-research` plans; empty for every other route. Defaulted so
+   * plans serialized before this audit still parse.
+   */
+  symbols: z.array(z.string().min(1)).default([]),
   mode: ExecutionModeSchema,
   model: z
     .object({
@@ -116,30 +122,28 @@ function routeForDecision(
   }
 }
 
-function fallbackPolicy(
-  route: ExecutionPlan['route'],
-  mode: MastraCapabilityMode,
-): MastraCapability {
-  return {
-    id: `${route}-implicit`,
-    version: '1',
-    route,
-    component: `mastra-${route}`,
-    allowedSymbols: [],
-    allowedModes: [mode],
-    scope: route === 'canonical-chat' ? 'read-only' : 'read-only',
-    readOnly: true,
-    tools: [],
-    toolMetadata: [],
-    requiresConfirmation: false,
-    supportsStreaming: route !== 'full-analysis' && route !== 'mutation-draft',
-    supportsAbort: true,
-    maxSteps: route === 'canonical-chat' ? 6 : 1,
-    maxDurationMs: 55_000,
-    evidencePolicy: route === 'canonical-chat' ? 'optional' : 'required',
-    externalData: route !== 'mutation-draft',
-    contentTrust: route === 'canonical-chat' ? 'untrusted' : 'untrusted',
-  };
+/**
+ * B-03 (audit 2026-10-18) — the capability manifest entry implementing each
+ * plan route. Every route resolves here; a route without a manifest entry
+ * fails the plan closed instead of falling back to a synthesized policy
+ * literal (which previously hardcoded `maxSteps` and silently ignored
+ * manifest changes — e.g. a capability that raised its own step limit).
+ */
+function planCapabilityId(route: ExecutionPlan['route']): MastraCapabilityId {
+  switch (route) {
+    case 'canonical-chat':
+      return 'canonical-chat';
+    case 'mutation-draft':
+      return 'mutation-workflows';
+    case 'full-analysis':
+    case 'symbol-research':
+    case 'multi-symbol-research':
+      return 'symbol-research';
+    case 'xauusd-conversation':
+      return 'xauusd-conversation';
+    case 'xauusd-research':
+      return 'xauusd-research';
+  }
 }
 
 /** Build the one immutable, serializable plan used by downstream execution. */
@@ -159,13 +163,16 @@ export async function createExecutionPlan(input: CreateExecutionPlanInput): Prom
     input.routingDecision ?? (await decideMastraExecution({ ...input, mutationRequested }));
   const route = routeForDecision(decision.route);
   const capability =
-    decision.capability?.capability ??
-    (decision.route === 'canonical-chat'
-      ? null
-      : decision.route === 'full-analysis-queue'
-        ? getMastraCapability('symbol-research')
-        : getMastraCapability(decision.route));
-  const policy = capability ?? fallbackPolicy(route, input.mode);
+    decision.capability?.capability ?? getMastraCapability(planCapabilityId(route));
+  // B-03 (audit 2026-10-18): fail closed. `maxSteps`/`maxDurationMs` and every
+  // other policy value derive solely from the active capability manifest — a
+  // route whose capability cannot be resolved must never execute.
+  if (!capability) {
+    throw new Error(
+      `Execution plan route ${route} has no capability manifest entry; refusing to build an implicit policy.`,
+    );
+  }
+  const policy = capability;
   const model: ExecutionPlan['model'] = decision.model
     ? { providerId: decision.model.providerId, bareModelId: decision.model.bareModelId }
     : null;
@@ -192,6 +199,7 @@ export async function createExecutionPlan(input: CreateExecutionPlanInput): Prom
     capabilityId: capability?.id ?? null,
     capabilityVersion: capability?.version ?? null,
     symbol: decision.symbol,
+    symbols: decision.symbols,
     mode: input.mode,
     model,
     toolPolicy: {

@@ -35,7 +35,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import type { CommitteeStepId } from './types';
 
-const slog = createCategorizedLogger('ai', { component: 'committee-span' });
+const slog = createCategorizedLogger('ai', { component: 'mastra:committee-span' });
 
 export interface CommitteeStepSpan {
   step: CommitteeStepId;

@@ -42,6 +42,8 @@ import {
   isInjectionAttempt,
   isMastraMutationEnabled,
   listMessages,
+  mastraComparisonScope,
+  MAX_COMPARISON_SYMBOLS,
   MutationExtractionError,
   PresentationPreferencesSchema,
   resolveMastraModeModel,
@@ -319,6 +321,17 @@ export const POST = withAuth<void>(async (req, { user }) => {
   }
 
   try {
+    // A-01 (B-01/B-08): a prompt naming more symbols than the comparison cap
+    // is disambiguated at the boundary — never silently collapsed into a
+    // single-symbol run (same DX as the mutation confirmation flow).
+    if (mastraComparisonScope(userText).overflow) {
+      return errorJson(
+        'MULTI_SYMBOL_LIMIT',
+        `I can compare up to ${MAX_COMPARISON_SYMBOLS} symbols — which ones should I include?`,
+        422,
+      );
+    }
+
     // Full mode remains durable: the web request enqueues a Mastra workflow
     // run (pending snapshot) and the worker claims it. Q7 decision: the
     // user's model override is serialized onto the queue payload through
@@ -423,6 +436,28 @@ export const POST = withAuth<void>(async (req, { user }) => {
       return executionPlan.route === 'xauusd-conversation'
         ? await runConversationalTurn(sharedInput)
         : await runResearchWorkflow({ ...sharedInput, symbol: symbol ?? 'XAUUSD' });
+    }
+
+    // A-01: bounded cross-symbol comparisons run the comparison graph —
+    // evidence for every named symbol, then a cross-symbol fusion. This
+    // takes precedence over both single-symbol paths in every mode.
+    if (executionPlan?.route === 'multi-symbol-research') {
+      const symbols = executionPlan.symbols;
+      if (symbols.length < 2) {
+        return errorJson('VALIDATION', 'A comparison needs at least two symbols.', 422);
+      }
+      return await runResearchWorkflow({
+        plan: executionPlan,
+        userId: user.userId,
+        threadId: body.threadId,
+        userMessage,
+        prompt: userText,
+        symbol: symbols[0]!,
+        symbols,
+        modelOverride: body.modelOverride ?? null,
+        signal,
+        backfillExcludeMessageIdempotencyKey: `mastra-mode:${body.threadId}:${userMessage.id}:user`,
+      });
     }
 
     // Quick and Standard modes use the bounded shared-packet Mastra mode

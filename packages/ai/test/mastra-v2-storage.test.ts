@@ -20,7 +20,7 @@ import { join } from 'node:path';
 
 import { LibSQLStore } from '@mastra/libsql';
 import { PostgresStore } from '@mastra/pg';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMastraStorage,
@@ -28,6 +28,45 @@ import {
   mastraRuntimeConnectionString,
   mastraSslOptions,
 } from '../src/mastra-v2';
+
+/**
+ * Audit 2026-10-18: the connection helpers intentionally fall back to
+ * `process.env` after the explicit env object, so these assertions must run
+ * with a clean ambient DB environment — otherwise the CI matrix entry
+ * `MASTRA_STORAGE=postgres` (which sets DATABASE_URL for the whole job) would
+ * flip every "no connection configured" case.
+ */
+const DB_ENV_KEYS = [
+  'MASTRA_STORAGE',
+  'MASTRA_DATABASE_URL',
+  'MASTRA_LIBSQL_URL',
+  'DIRECT_URL',
+  'POSTGRES_URL_NON_POOLING',
+  'POSTGRES_PRISMA_URL',
+  'DATABASE_URL',
+  'POSTGRES_URL',
+  'DB_DISABLE_SSL',
+  'KESTREL_LOCAL_DOCKER',
+  'SUPABASE_CA_CERT',
+] as const;
+
+const savedDbEnv = new Map<string, string | undefined>();
+
+beforeEach(() => {
+  for (const key of DB_ENV_KEYS) {
+    savedDbEnv.set(key, process.env[key]);
+    delete process.env[key];
+  }
+});
+
+afterEach(() => {
+  for (const key of DB_ENV_KEYS) {
+    const value = savedDbEnv.get(key);
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  savedDbEnv.clear();
+});
 
 // NOTE: libsql `:memory:` databases are per-connection (the domain store and
 // the store's own client would see different databases), so tests use a

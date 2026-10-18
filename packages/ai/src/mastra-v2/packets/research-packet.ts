@@ -27,7 +27,7 @@ import { startResearchStage } from './research-packet-stages';
 import { XauusdResearchPacketSchema, type XauusdResearchPacket } from './research-types';
 
 const rlog = createCategorizedLogger('ai', {
-  component: 'mastra-xauusd-research-packet',
+  component: 'mastra:xauusd-research-packet',
 });
 
 /**

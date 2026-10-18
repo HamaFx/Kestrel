@@ -71,6 +71,7 @@ function fullPlan(overrides: Partial<ExecutionPlan> = {}): ExecutionPlan {
     capabilityId: 'symbol-research',
     capabilityVersion: 'mode-2',
     symbol: 'XAUUSD',
+    symbols: [],
     mode: 'full',
     model: { providerId: 'google', bareModelId: 'gemini-2.5-flash' },
     toolPolicy: {

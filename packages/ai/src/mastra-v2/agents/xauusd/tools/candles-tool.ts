@@ -17,9 +17,9 @@
 import { getCandlesWithMeta } from '@kestrel/data';
 import { createTool } from '@mastra/core/tools';
 
-import { buildCandlesEvidence } from '../../../packets/evidence-builders';
-import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdCandlesEvidenceSchema } from '../../../shared/types';
+import { buildCandlesEvidence } from '@ai/mastra-v2/packets/evidence-builders';
+import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
+import { XauusdCandlesEvidenceSchema } from '@ai/mastra-v2/shared/types';
 import { XauusdCandlesInputSchema } from '../tool-schemas';
 
 export const xauusdCandlesTool = createTool({

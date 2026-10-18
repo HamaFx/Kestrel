@@ -33,7 +33,7 @@ import {
 import { xauusdMastraTools } from './tools';
 
 const alog = createCategorizedLogger('ai', {
-  component: 'mastra-xauusd-agent',
+  component: 'mastra:xauusd-agent',
 });
 
 const XAUUSD_RESEARCH_INSTRUCTIONS = `You are Kestrel's XAUUSD research agent.

@@ -47,6 +47,16 @@ export interface ConversationalTurnInput extends PlannedExecutionInput {
 
 export interface ResearchWorkflowInput extends PlannedExecutionInput {
   symbol: string;
+  /** A-01 — bounded comparison symbols (2–3) for `multi-symbol-research` plans. */
+  symbols?: string[];
+}
+
+/**
+ * C-05 (audit 2026-10-18) — one conditional-signal spread for every runner
+ * call instead of repeating `...(signal ? { signal } : {})` at each site.
+ */
+function withSignal(signal: AbortSignal | undefined): { signal?: AbortSignal } {
+  return signal ? { signal } : {};
 }
 
 /** Execute a planned conversational turn and return the established stream response. */
@@ -62,7 +72,7 @@ export function runConversationalTurn(input: ConversationalTurnInput): Promise<R
         ...(input.responseStyle ? { responseStyle: input.responseStyle } : {}),
         ...(input.citeSources !== undefined ? { citeSources: input.citeSources } : {}),
         ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-        ...(input.signal ? { signal: input.signal } : {}),
+        ...withSignal(input.signal),
       });
     case 'xauusd-conversation':
       if (input.plan.xauusdChatKind !== 'conversation' || input.plan.reportFollowup) {
@@ -76,7 +86,7 @@ export function runConversationalTurn(input: ConversationalTurnInput): Promise<R
         prompt: input.prompt,
         turnMode: 'conversation',
         ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-        ...(input.signal ? { signal: input.signal } : {}),
+        ...withSignal(input.signal),
         ...(input.backfillExcludeMessageIdempotencyKey
           ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
           : {}),
@@ -98,7 +108,7 @@ export async function runResearchWorkflow(input: ResearchWorkflowInput): Promise
       kind: 'research',
       turnMode: input.plan.reportFollowup ? 'followup' : 'research',
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-      ...(input.signal ? { signal: input.signal } : {}),
+      ...withSignal(input.signal),
       ...(input.priorReport ? { priorReport: input.priorReport } : {}),
       ...(input.backfillExcludeMessageIdempotencyKey
         ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
@@ -122,8 +132,35 @@ export async function runResearchWorkflow(input: ResearchWorkflowInput): Promise
     });
   }
 
-  if (input.plan.route !== 'symbol-research') {
+  if (input.plan.route !== 'symbol-research' && input.plan.route !== 'multi-symbol-research') {
     throw new Error(`Research runner cannot execute ${input.plan.route}.`);
+  }
+
+  // A-01 (B-01/B-08): a bounded cross-symbol comparison executes the
+  // comparison graph — one cached packet and one technical desk pass per
+  // symbol, then a cross-symbol fusion. v1 keeps the data layer single-desk
+  // even when the user selected Full (the durable queue never carries a
+  // comparison), so `mode` is pinned to `single` here.
+  if (input.plan.route === 'multi-symbol-research') {
+    const symbols = input.plan.symbols.length >= 2 ? input.plan.symbols : (input.symbols ?? []);
+    if (symbols.length < 2) {
+      throw new Error('Comparison runner requires at least two symbols.');
+    }
+    return runMastraModeChatStream({
+      executionPlan: input.plan,
+      userId: input.userId,
+      threadId: input.threadId,
+      userMessage: input.userMessage,
+      prompt: input.prompt,
+      symbol: symbols[0]!,
+      symbols,
+      mode: 'single',
+      ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
+      ...withSignal(input.signal),
+      ...(input.backfillExcludeMessageIdempotencyKey
+        ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
+        : {}),
+    });
   }
   // §2.3: synchronous committee runs stream live desk progress
   // (data-agent-progress) to the browser while the workflow advances.
@@ -138,7 +175,7 @@ export async function runResearchWorkflow(input: ResearchWorkflowInput): Promise
     // route only carries `single` (full goes through the durable queue).
     mode: input.plan.mode === 'full' ? 'full' : 'single',
     ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-    ...(input.signal ? { signal: input.signal } : {}),
+    ...withSignal(input.signal),
     ...(input.backfillExcludeMessageIdempotencyKey
       ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
       : {}),

@@ -43,7 +43,7 @@ import type { WorkflowRunState } from '@mastra/core/workflows';
 import { listScoresForRun, type ScoreRecord } from './evals/scores';
 import { langfuseTraceUrl } from './telemetry';
 
-const vlog = createCategorizedLogger('ai', { component: 'mastra-runs-view' });
+const vlog = createCategorizedLogger('ai', { component: 'mastra:runs-view' });
 
 /** Minimal projection of a `chat_telemetry` row used by the runs viewer. */
 export interface RunTelemetryRow {

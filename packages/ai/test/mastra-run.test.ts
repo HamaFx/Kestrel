@@ -120,6 +120,7 @@ function planFor(route: 'xauusd-conversation' | 'xauusd-research'): ExecutionPla
     capabilityId: route,
     capabilityVersion: 'poc-5',
     symbol: 'XAUUSD',
+    symbols: [],
     mode: 'single',
     model: { providerId: 'google', bareModelId: 'gemini-2.5-flash' },
     toolPolicy: { capabilityId: route, tools: [], readOnly: true, requiresConfirmation: false },

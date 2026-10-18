@@ -26,7 +26,9 @@ describe('Phase 2 execution plan', () => {
     expect(plan).toMatchObject({
       version: 1,
       route: 'canonical-chat',
-      capabilityId: null,
+      // B-03 (audit 2026-10-18): the policy now derives from the canonical-chat
+      // manifest capability — no synthesized fallback policy literal.
+      capabilityId: 'canonical-chat',
       symbol: null,
       mode: 'single',
       streaming: true,
@@ -68,6 +70,43 @@ describe('Phase 2 execution plan', () => {
     expect(plan.mutationRequested).toBe(true);
     expect(plan.memoryPolicy.mode).toBe('disabled');
     expect(plan.streaming).toBe(false);
+  });
+
+  it('creates a bounded comparison plan for a two-symbol prompt (A-01)', async () => {
+    const plan = await createExecutionPlan({
+      userMessage: message('Compare XAUUSD and EURUSD'),
+      mode: 'single',
+      // Comparison runs resolve the one-desk model; provide a credential so
+      // model resolution can complete.
+      settings: { aiApiKeys: null, chatModel: 'google:gemini-2.5-flash' } as never,
+      env: { GOOGLE_GENERATIVE_AI_API_KEY: 'test-key' } as never,
+    });
+
+    expect(plan.route).toBe('multi-symbol-research');
+    expect(plan.symbols).toEqual(['XAUUSD', 'EURUSD']);
+    expect(plan.capabilityId).toBe('symbol-research');
+    expect(plan.evidencePolicy.required).toBe(true);
+    // Serialized comparison plans round-trip with their symbol list intact.
+    expect(parseExecutionPlan(serializeExecutionPlan(plan)).symbols).toEqual(['XAUUSD', 'EURUSD']);
+  });
+
+  it('derives steps, duration, and recall from the active capability manifest (B-04)', async () => {
+    // An explicit capability override must flow straight from the manifest —
+    // the removed fallback literal hardcoded canonical-chat:6 / other:1 and
+    // silently ignored manifest values like these.
+    const plan = await createExecutionPlan({
+      userMessage: message('Show my journal stats'),
+      mode: 'single',
+      capabilityId: 'sensitive-user-read',
+      settings,
+      env,
+    });
+
+    expect(plan.capabilityId).toBe('sensitive-user-read');
+    expect(plan.maxSteps).toBe(3);
+    expect(plan.maxDurationMs).toBe(55_000);
+    // sensitive-user-read opts out of cross-thread semantic recall.
+    expect(plan.memoryPolicy.semanticRecall).toBe(false);
   });
 
   it('round-trips through strict serialization', async () => {

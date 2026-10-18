@@ -109,7 +109,7 @@ export const SUMMARY_PATTERNS: RoutingKeywordPattern[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** XAUUSD-specific terms (gold). */
-export const XAUUSD_TERMS = /\b(?:xauusd|xau\/usd|gold)\b/i;
+export const XAUUSD_TERMS = /\b(?:xauusd|xau\/usd|gold|bullion)\b/i;
 
 /** Other canonical symbols that disambiguate away from a pure XAUUSD prompt. */
 export const OTHER_SYMBOL_TERMS =
@@ -194,3 +194,42 @@ export function isHighConfidenceMutationIntent(prompt: string): boolean {
   if (EXECUTION_VERBS.test(prompt) && !isReadOnlyContext(prompt)) return true;
   return false;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canonical keyword registry (A-03 / C-04).
+//
+// Every routing vocabulary this module exports — domain scoring patterns,
+// symbol-scope terms, and intent gates — is indexed here by policy dimension
+// so routing, planning, and the web boundary consume one canonical map
+// instead of parallel hand-maintained lists. The named exports above remain
+// the definition sites; this registry is the lookup surface (add a term once,
+// and every layer that reads the registry sees it).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ROUTING_KEYWORD_REGISTRY = {
+  /** Domain scoring patterns consumed by `routing.ts` (weighted). */
+  domains: {
+    fundamental: FUNDAMENTAL_PATTERNS,
+    technical: TECHNICAL_PATTERNS,
+    summary: SUMMARY_PATTERNS,
+  },
+  /** Symbol-scope terms consumed by `mastra-v2/planning/routing-policy.ts`. */
+  symbols: {
+    xauusd: XAUUSD_TERMS,
+    other: OTHER_SYMBOL_TERMS,
+  },
+  /** Intent / gate regexes shared by the planner, the router, and the boundary. */
+  intents: {
+    injection: INJECTION_TERMS,
+    deepResearch: DEEP_RESEARCH_TERMS,
+    followup: FOLLOWUP_TERMS,
+    forbiddenFollowup: FORBIDDEN_FOLLOWUP_TERMS,
+    broadMutation: BROAD_MUTATION_TERMS,
+    executionVerbs: EXECUTION_VERBS,
+    executionPhrases: EXECUTION_PHRASES,
+    alwaysUnsafe: ALWAYS_UNSAFE,
+    mutationCommands: MUTATION_COMMANDS,
+    negativeReadOnly: NEGATIVE_READONLY_PATTERNS,
+    questionStarters: QUESTION_STARTERS,
+  },
+} as const;
