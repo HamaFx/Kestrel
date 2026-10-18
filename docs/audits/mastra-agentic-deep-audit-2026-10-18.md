@@ -332,8 +332,16 @@ Status: ⬜ pending · 🟨 in progress · ✅ done (linked to the fixing commit
 | 2 | M-01 (comparison scope copy), M-02 (generic macro packet) | ✅ | `6fabe290` |
 | 3 | P1-01 (committee opinion verifier), P1-04 (comparison risk desk) | ✅ | `3b9c2f6b` |
 | 4 | P2-02 (shared candle fetcher), P2-03 (guardrail model reuse), god-workflow split | ✅ | `e699bf76` |
-| 5 | P2-05 (heuristic consensus), P2-06 (log↔trace join), P2-01 (tool shims) | 🟨 | — |
-| 6 | Verification: coverage floors, knip, route security, Studio smoke | ⬜ | — |
+| 5 | P2-05 (heuristic consensus), P2-06 (log↔trace join), P2-01 (tool shims) | ✅ | `19e39748` |
+| 6 | Verification: coverage floors, knip, route security, Studio smoke | ✅ | — |
+
+### Phase 6 verification results (2026-10-18)
+
+- `pnpm test:coverage`: 9/9 turbo tasks green; `@kestrel/ai` global line coverage 66.65% (floor 65%), 173 test files; `@kestrel/web` 123 files green; no threshold failures.
+- `pnpm typecheck` 15/15 tasks; `pnpm lint` 9/9 tasks with 0 errors.
+- `pnpm knip`: exit 0 (only pre-existing configuration hints, no unused/undeclared findings).
+- `check:route-security`: passed (112 routes); `check:architecture-tree`: mastra-v2 tree matches (22 entries; `langfuse-link.ts` added); `check:env-contract`: passed.
+- Studio smoke: `MASTRA_STORAGE=libsql node --conditions=react-server packages/ai/dist/mastra-v2/studio-server.js` boots and serves HTTP 200 on `/` and `/api/agents` at `http://localhost:4111`. The DB-backed component registry (agents/workflows lists) legitimately requires `DATABASE_URL`, and a full single-vs-comparison LLM run requires operator BYOK keys — left as the operator acceptance step. The comparison output contract changed by P1-04 (technical + risk opinions per symbol plus cross-symbol fusion) is covered end-to-end by `mastra-v2-workflows.test.ts`.
 
 ### Phase 0 — Scaffolding (0.5 day)
 
