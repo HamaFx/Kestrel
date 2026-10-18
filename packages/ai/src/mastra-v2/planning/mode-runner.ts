@@ -326,6 +326,9 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       includeResearchPolicies: true,
       // Audit plan §1.2: guardrail mode from the capability manifest.
       guardrailMode: args.executionPlan?.guardrail.mode ?? 'strict',
+      // P2-03: reuse the resolved run model for the injection detector
+      // instead of resolving the user's model a second time.
+      guardrailModel: resolution.model,
       ...(memoryOptions ? { memoryOptions } : {}),
       ...(args.backfillExcludeMessageIdempotencyKey
         ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }

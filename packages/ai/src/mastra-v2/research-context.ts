@@ -32,6 +32,7 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import { metrics } from '@kestrel/shared';
 import type { MemoryConfigInternal } from '@mastra/core/memory';
 import type { Memory } from '@mastra/memory';
+import type { LanguageModel } from 'ai';
 
 import type { ResolveModelEnv } from '../env-model-factory';
 import { prepareKestrelMemory, type PreparedKestrelMemory } from './context';
@@ -83,6 +84,12 @@ export interface PrepareResearchRunContextArgs {
    * preserving `guardrailMode` for research-only callers.
    */
   guardrailPolicy?: { strategy: GuardrailStrategy; mode: GuardrailMode };
+  /**
+   * P2-03 (audit 2026-10-18) — the model the caller already resolved for
+   * this turn; the injection detector reuses it instead of resolving the
+   * fast-tier model twice. Omit to keep the legacy env resolution.
+   */
+  guardrailModel?: LanguageModel;
 }
 
 export interface PreparedResearchRunContext {
@@ -154,6 +161,7 @@ export async function prepareResearchRunContext(
             env: args.env,
             strategy: guardrailPolicy.strategy,
             mode: guardrailPolicy.mode,
+            ...(args.guardrailModel ? { model: args.guardrailModel } : {}),
           }),
           scorers: buildConversationScorers(guardrailSettings, args.env),
         }
@@ -172,6 +180,7 @@ export async function prepareResearchRunContext(
             env: args.env,
             strategy: guardrailPolicy.strategy,
             mode: guardrailPolicy.mode,
+            ...(args.guardrailModel ? { model: args.guardrailModel } : {}),
           }),
           scorers: buildResearchScorers(guardrailSettings, args.env),
         }

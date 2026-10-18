@@ -60,6 +60,14 @@ export interface GuardrailOptions {
   /** Environment for model resolution. */
   env: ResolveModelEnv;
   /**
+   * P2-03 (audit 2026-10-18) — a model the caller already resolved for this
+   * turn. When provided, the detector reuses it instead of resolving the
+   * fast-tier model a second time (mode-runner/canonical pass the run's
+   * resolved model). Paths without a pre-resolved model keep the env
+   * fallback resolution below.
+   */
+  model?: LanguageModel;
+  /**
    * Injection-handling strategy:
    * - `block`: reject the turn (research paths — no partial answer)
    * - `rewrite`: neutralize the injection while preserving intent (conversation)
@@ -99,27 +107,32 @@ export function buildGuardrailInputProcessors(options: GuardrailOptions): {
     trim: true,
   });
 
-  let resolution: { model: LanguageModel } | null = null;
-  try {
-    // Resolve the user's fast-tier model for the injection detector. Fall
-    // back to the operator's default if no BYOK key is configured.
-    resolution = resolveChatModel(
-      { aiApiKeys: options.settings.aiApiKeys, chatModel: options.settings.chatModel },
-      options.env,
-      'technical',
-    );
-  } catch (error) {
-    metrics.increment('guardrail_degraded_total', { tags: { mode, cause: 'resolve_failed' } });
-    glog.warn('PromptInjectionDetector: no model available', {
-      error: error instanceof Error ? error.message : String(error),
-      mode,
-    });
-    if (mode === 'strict') {
-      throw new GuardrailUnavailableError(
-        'Prompt-injection detector model is unavailable and guardrail mode is strict.',
+  let resolution: { model: LanguageModel } | null = options.model
+    ? { model: options.model }
+    : null;
+  if (!resolution) {
+    try {
+      // Resolve the user's fast-tier model for the injection detector. Fall
+      // back to the operator's default if no BYOK key is configured. Only
+      // reached when the caller did not already resolve a model (P2-03).
+      resolution = resolveChatModel(
+        { aiApiKeys: options.settings.aiApiKeys, chatModel: options.settings.chatModel },
+        options.env,
+        'technical',
       );
+    } catch (error) {
+      metrics.increment('guardrail_degraded_total', { tags: { mode, cause: 'resolve_failed' } });
+      glog.warn('PromptInjectionDetector: no model available', {
+        error: error instanceof Error ? error.message : String(error),
+        mode,
+      });
+      if (mode === 'strict') {
+        throw new GuardrailUnavailableError(
+          'Prompt-injection detector model is unavailable and guardrail mode is strict.',
+        );
+      }
+      warnings.push('PromptInjectionDetector: no model available; injection detection disabled');
     }
-    warnings.push('PromptInjectionDetector: no model available; injection detection disabled');
   }
 
   if (!resolution) {

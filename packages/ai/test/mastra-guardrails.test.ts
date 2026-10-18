@@ -109,6 +109,27 @@ describe('mastra guardrails', () => {
     });
     expect(processors.length).toBe(2);
   });
+
+  it('reuses a caller-provided model instead of resolving the fast tier again (P2-03)', () => {
+    // Even with no resolvable BYOK model — which would make strict mode
+    // throw — a pre-resolved model must be enough to build the detector.
+    mocks.resolveChatModel.mockImplementation(() => {
+      throw new Error('No AI API keys configured');
+    });
+    const { processors } = buildGuardrailInputProcessors({
+      settings: settings as never,
+      env: env as never,
+      strategy: 'block',
+      mode: 'strict',
+      model: { id: 'run-model' } as never,
+    });
+    expect(processors.map((p) => p.id)).toEqual([
+      'unicode-normalizer',
+      'prompt-injection-detector',
+    ]);
+    // The second resolution (the P2-03 waste) never happened.
+    expect(mocks.resolveChatModel).not.toHaveBeenCalled();
+  });
 });
 
 describe('guardrail policy from the manifest (§1.2)', () => {
