@@ -40,7 +40,7 @@ import {
   type Timeframe,
 } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 import { maybeGetToolContext } from '../tool-context';
@@ -62,24 +62,31 @@ declare module '@kestrel/shared' {
   // (re-declared to keep the per-file `ToolIOMap` augmentation pattern)
 }
 
-export const analyzeTechnicalTool = tool({
-  description:
-    'Multi-timeframe technical readout (trend, bias, momentum, structure, levels) for a symbol. Use for any "top-down" / "what does this look like across timeframes" prompt — replaces 8+ atomic tool calls with one deterministic projection. Returns per-timeframe readings plus a templated one-paragraph summary; sets `partial: true` if a fetch failed for any requested timeframe.',
-  inputSchema: InputSchema,
-  execute: async ({ symbol, timeframes }, options?: { abortSignal?: AbortSignal }): Promise<AnalyzeTechnicalOutput> => {
-    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
-    const readings = await Promise.all(timeframes.map((tf) => readOneTimeframe(symbol, tf, signal)));
-    const perTimeframe = readings.filter((r): r is PerTimeframeReading => r !== null);
-    const partial = perTimeframe.length < timeframes.length;
-    return {
-      symbol,
-      asOf: Date.now(),
-      perTimeframe,
-      summary: deterministicSummary({ symbol, perTimeframe, partial }),
-      partial,
-    };
+export const analyzeTechnicalTool: Tool<z.infer<typeof InputSchema>, AnalyzeTechnicalOutput> = tool(
+  {
+    description:
+      'Multi-timeframe technical readout (trend, bias, momentum, structure, levels) for a symbol. Use for any "top-down" / "what does this look like across timeframes" prompt — replaces 8+ atomic tool calls with one deterministic projection. Returns per-timeframe readings plus a templated one-paragraph summary; sets `partial: true` if a fetch failed for any requested timeframe.',
+    inputSchema: InputSchema,
+    execute: async (
+      { symbol, timeframes },
+      options?: { abortSignal?: AbortSignal },
+    ): Promise<AnalyzeTechnicalOutput> => {
+      const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
+      const readings = await Promise.all(
+        timeframes.map((tf) => readOneTimeframe(symbol, tf, signal)),
+      );
+      const perTimeframe = readings.filter((r): r is PerTimeframeReading => r !== null);
+      const partial = perTimeframe.length < timeframes.length;
+      return {
+        symbol,
+        asOf: Date.now(),
+        perTimeframe,
+        summary: deterministicSummary({ symbol, perTimeframe, partial }),
+        partial,
+      };
+    },
   },
-});
+);
 
 // ---------------------------------------------------------------------------
 // Per-timeframe orchestrator

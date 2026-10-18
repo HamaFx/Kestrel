@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-import type { ToolCallOptions } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
 import { createToolContext, withToolContext } from '../src/tool-context';
 import { conveneCommitteeTool } from '../src/tools/convene-committee';
 
-const TOOL_CALL_OPTIONS: ToolCallOptions = { toolCallId: 'test-call', messages: [] };
+// Options the SDK passes to the tool's execute; derived from the tool itself
+// so the test stays aligned with the (context-aware) AI SDK v7 signature.
+type ConveneToolOptions = Parameters<NonNullable<typeof conveneCommitteeTool.execute>>[1];
+const TOOL_CALL_OPTIONS = {
+  toolCallId: 'test-call',
+  messages: [],
+} as unknown as ConveneToolOptions;
 
 const { mockRunMastraMode } = vi.hoisted(() => ({ mockRunMastraMode: vi.fn() }));
 vi.mock('../src/mastra-v2/planning/mode-runner', () => ({ runMastraMode: mockRunMastraMode }));

@@ -21,6 +21,7 @@
 // canonical chat and return the structured `ConveneCommitteeOutput` card
 // rendered by `ConveneCommitteePart` (`apps/web/src/components/chat/parts/convene-committee.tsx`).
 
+import type { UserSettingsRow } from '@kestrel/db/schema';
 import {
   ConveneCommitteeInputSchema,
   ConveneCommitteeOutputSchema,
@@ -28,8 +29,7 @@ import {
   type CommitteeVerdict,
   type ConveneCommitteeOutput,
 } from '@kestrel/shared';
-import type { UserSettingsRow } from '@kestrel/db/schema';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 import type { MastraModeOpinion } from '../committee/types';
@@ -71,10 +71,7 @@ function opinionToVerdict(
     verdict: opinion.bias,
     confidence: Math.max(1, Math.min(10, Math.round(opinion.confidence * 10))),
     keyPoints: keyPoints.length > 0 ? keyPoints : [opinion.reasoning.slice(0, 200)],
-    risk:
-      missingEvidence[0] ??
-      assumptions[0] ??
-      fallback.risk,
+    risk: missingEvidence[0] ?? assumptions[0] ?? fallback.risk,
     recommendation: sentences[sentences.length - 1] ?? fallback.recommendation,
   };
 }
@@ -123,8 +120,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
           : 'neutral'
       : 'neutral';
   const techAligned =
-    (side === 'long' && techBias === 'bullish') ||
-    (side === 'short' && techBias === 'bearish');
+    (side === 'long' && techBias === 'bullish') || (side === 'short' && techBias === 'bearish');
 
   const stopDistance = stop !== undefined ? Math.abs(entry - stop) : null;
   const rewardDistance = target !== undefined ? Math.abs(target - entry) : null;
@@ -134,11 +130,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
       : null;
 
   const stopGeometryValid =
-    stop === undefined
-      ? false
-      : side === 'long'
-        ? stop < entry
-        : stop > entry;
+    stop === undefined ? false : side === 'long' ? stop < entry : stop > entry;
 
   const riskVerdict: CommitteeVerdict['verdict'] =
     stopGeometryValid && (rrRatio === null || rrRatio >= 1.5)
@@ -148,8 +140,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
       : 'neutral';
 
   const macroEventsCount = packet.xauusdExtension?.events?.length ?? 0;
-  const econVerdict: CommitteeVerdict['verdict'] =
-    macroEventsCount > 2 ? 'neutral' : techBias;
+  const econVerdict: CommitteeVerdict['verdict'] = macroEventsCount > 2 ? 'neutral' : techBias;
 
   const candles = primaryEvidence?.candles ?? [];
   const openPrice = candles[0]?.o ?? liveMid;
@@ -230,8 +221,7 @@ function buildPacketGroundedFallbackVerdicts(args: {
           ? `${macroEventsCount} scheduled macro event(s) can still reprice positioning before the setup resolves.`
           : 'No scheduled macro events are queued to reprice positioning near-term.',
       ],
-      risk:
-        'Crowded one-way positioning can amplify a countertrend squeeze around key levels.',
+      risk: 'Crowded one-way positioning can amplify a countertrend squeeze around key levels.',
       recommendation:
         'Treat sentiment as neutral and require price confirmation plus strict risk limits.',
     },
@@ -251,8 +241,7 @@ function computeGradeAndGoNoGo(args: {
   const opposedCount = verdicts.filter(
     (v) => v.verdict !== 'neutral' && v.verdict !== desiredVerdict,
   ).length;
-  const validStop =
-    stop !== undefined && (side === 'long' ? stop < entry : stop > entry);
+  const validStop = stop !== undefined && (side === 'long' ? stop < entry : stop > entry);
   const rr =
     validStop && target !== undefined && Math.abs(entry - stop) > 0
       ? Math.abs(target - entry) / Math.abs(entry - stop)
@@ -278,135 +267,137 @@ function computeGradeAndGoNoGo(args: {
   return { grade: 'D', goNoGo: 'no-go' };
 }
 
-export const conveneCommitteeTool = tool({
-  description:
-    'Convene the Kestrel 4-Expert Committee (Technical, Macro & News, Risk Manager, and Sentiment) to evaluate a specific trade setup (symbol, side, entry, stop, target) and return a graded Go/Caution/No-Go verdict card.',
-  inputSchema: InputSchema,
-  execute: async (
-    { symbol, side, entry, stop, target, notes },
-    options?: { abortSignal?: AbortSignal },
-  ): Promise<ConveneCommitteeOutput> => {
-    const ctx = maybeGetToolContext();
-    const signal = options?.abortSignal ?? ctx?.signal ?? undefined;
-    const packet = await collectSymbolResearchPacketCached(symbol, signal);
-    if (packet.status === 'blocked' || !packet.price?.tick) {
-      throw new Error(
-        `Market data unavailable for ${symbol} (${packet.warnings.join(', ') || 'missing live price'}). Cannot convene committee without verified market data.`,
-      );
-    }
-    const fallbackVerdicts = buildPacketGroundedFallbackVerdicts({
-      symbol,
-      side,
-      entry,
-      ...(stop !== undefined ? { stop } : {}),
-      ...(target !== undefined ? { target } : {}),
-      packet,
-    });
+export const conveneCommitteeTool: Tool<z.infer<typeof InputSchema>, ConveneCommitteeOutput> = tool(
+  {
+    description:
+      'Convene the Kestrel 4-Expert Committee (Technical, Macro & News, Risk Manager, and Sentiment) to evaluate a specific trade setup (symbol, side, entry, stop, target) and return a graded Go/Caution/No-Go verdict card.',
+    inputSchema: InputSchema,
+    execute: async (
+      { symbol, side, entry, stop, target, notes },
+      options?: { abortSignal?: AbortSignal },
+    ): Promise<ConveneCommitteeOutput> => {
+      const ctx = maybeGetToolContext();
+      const signal = options?.abortSignal ?? ctx?.signal ?? undefined;
+      const packet = await collectSymbolResearchPacketCached(symbol, signal);
+      if (packet.status === 'blocked' || !packet.price?.tick) {
+        throw new Error(
+          `Market data unavailable for ${symbol} (${packet.warnings.join(', ') || 'missing live price'}). Cannot convene committee without verified market data.`,
+        );
+      }
+      const fallbackVerdicts = buildPacketGroundedFallbackVerdicts({
+        symbol,
+        side,
+        entry,
+        ...(stop !== undefined ? { stop } : {}),
+        ...(target !== undefined ? { target } : {}),
+        packet,
+      });
 
-    let verdicts: CommitteeVerdict[] = fallbackVerdicts;
-    let consensusText = '';
+      let verdicts: CommitteeVerdict[] = fallbackVerdicts;
+      let consensusText = '';
 
-    // The LLM committee requires a per-turn ToolContext: without it there is
-    // no attributable user, thread, or budget ledger, and unattributable model
-    // spend must never be created. Direct callers outside chat get the
-    // deterministic packet-grounded verdicts below.
-    if (ctx) {
-      const runId = crypto.randomUUID();
-      // The nested committee run gets its own ledger: committee entry ids
-      // (`specialist:*`, `critique:*`, `fusion`) are not namespaced, so a
-      // shared ledger would silently drop the spend of a second committee call
-      // in the same turn. The run's total is folded into the caller's turn
-      // ledger below, where the budget reservation settles it.
-      const committeeLedger = createGenerationLedger();
-      try {
-        const sanitizedNotes = notes ? sanitizeExternalText(notes, 300) : '';
-        const prompt = [
-          `Evaluate this proposed ${side.toUpperCase()} setup on ${symbol}:`,
-          `- Entry: ${entry}`,
-          stop !== undefined ? `- Stop: ${stop}` : '- Stop: not specified',
-          target !== undefined ? `- Target: ${target}` : '- Target: not specified',
-          sanitizedNotes ? `- Trader notes: ${sanitizedNotes}` : '',
-        ]
-          .filter(Boolean)
-          .join('\n');
+      // The LLM committee requires a per-turn ToolContext: without it there is
+      // no attributable user, thread, or budget ledger, and unattributable model
+      // spend must never be created. Direct callers outside chat get the
+      // deterministic packet-grounded verdicts below.
+      if (ctx) {
+        const runId = crypto.randomUUID();
+        // The nested committee run gets its own ledger: committee entry ids
+        // (`specialist:*`, `critique:*`, `fusion`) are not namespaced, so a
+        // shared ledger would silently drop the spend of a second committee call
+        // in the same turn. The run's total is folded into the caller's turn
+        // ledger below, where the budget reservation settles it.
+        const committeeLedger = createGenerationLedger();
+        try {
+          const sanitizedNotes = notes ? sanitizeExternalText(notes, 300) : '';
+          const prompt = [
+            `Evaluate this proposed ${side.toUpperCase()} setup on ${symbol}:`,
+            `- Entry: ${entry}`,
+            stop !== undefined ? `- Stop: ${stop}` : '- Stop: not specified',
+            target !== undefined ? `- Target: ${target}` : '- Target: not specified',
+            sanitizedNotes ? `- Trader notes: ${sanitizedNotes}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n');
 
-        const modeResult = await runMastraMode({
-          prompt,
-          symbol,
-          userId: ctx.userId,
-          threadId: ctx.threadId,
-          runId,
-          mode: 'full',
-          ...(signal ? { signal } : {}),
-          ledger: committeeLedger,
-          settings: {
-            chatModel:
-              ctx.userSettings?.chatModel ??
-              (process.env.AI_DEFAULT_MODEL as UserSettingsRow['chatModel']) ??
-              'google:gemini-2.5-flash',
-            aiApiKeys: (ctx.userSettings?.aiApiKeys as string | null) ?? null,
-            embeddingModel: ctx.userSettings?.embeddingModel ?? null,
-            agentModelOverrides: ctx.userSettings?.agentModelOverrides ?? null,
-          },
-          env: {
-            AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
-            GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-          },
-        });
+          const modeResult = await runMastraMode({
+            prompt,
+            symbol,
+            userId: ctx.userId,
+            threadId: ctx.threadId,
+            runId,
+            mode: 'full',
+            ...(signal ? { signal } : {}),
+            ledger: committeeLedger,
+            settings: {
+              chatModel:
+                ctx.userSettings?.chatModel ??
+                (process.env.AI_DEFAULT_MODEL as UserSettingsRow['chatModel']) ??
+                'google:gemini-2.5-flash',
+              aiApiKeys: (ctx.userSettings?.aiApiKeys as string | null) ?? null,
+              embeddingModel: ctx.userSettings?.embeddingModel ?? null,
+              agentModelOverrides: ctx.userSettings?.agentModelOverrides ?? null,
+            },
+            env: {
+              AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
+              GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+            },
+          });
 
-        if (modeResult.agentOpinions && modeResult.agentOpinions.length > 0) {
-          const opinions = modeResult.agentOpinions;
-          const fundOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'fundamental');
-          const techOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'technical');
-          const riskOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'risk');
-          const sentOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'sentiment');
-          verdicts = [
-            opinionToVerdict('economist', fundOp, fallbackVerdicts[0]!),
-            opinionToVerdict('technician', techOp, fallbackVerdicts[1]!),
-            opinionToVerdict('risk_manager', riskOp, fallbackVerdicts[2]!),
-            opinionToVerdict('sentiment', sentOp, fallbackVerdicts[3]!),
-          ];
-          consensusText = modeResult.finalText ?? '';
-        }
-      } catch (err) {
-        if (signal?.aborted) throw err;
-        // Gracefully use deterministic packet-grounded verdicts when no LLM key is configured or on timeout.
-      } finally {
-        // Bill the nested committee run into the caller's turn ledger, including
-        // partial spend on aborted or failed runs, so the settlement at the end
-        // of the parent turn covers it.
-        const committeeCost = committeeLedger.total();
-        if (committeeCost > 0) {
-          ctx.ledger?.recordCost(`committee:${runId}`, 'specialist', committeeCost);
+          if (modeResult.agentOpinions && modeResult.agentOpinions.length > 0) {
+            const opinions = modeResult.agentOpinions;
+            const fundOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'fundamental');
+            const techOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'technical');
+            const riskOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'risk');
+            const sentOp = opinions.find((o: MastraModeOpinion) => o.agentName === 'sentiment');
+            verdicts = [
+              opinionToVerdict('economist', fundOp, fallbackVerdicts[0]!),
+              opinionToVerdict('technician', techOp, fallbackVerdicts[1]!),
+              opinionToVerdict('risk_manager', riskOp, fallbackVerdicts[2]!),
+              opinionToVerdict('sentiment', sentOp, fallbackVerdicts[3]!),
+            ];
+            consensusText = modeResult.finalText ?? '';
+          }
+        } catch (err) {
+          if (signal?.aborted) throw err;
+          // Gracefully use deterministic packet-grounded verdicts when no LLM key is configured or on timeout.
+        } finally {
+          // Bill the nested committee run into the caller's turn ledger, including
+          // partial spend on aborted or failed runs, so the settlement at the end
+          // of the parent turn covers it.
+          const committeeCost = committeeLedger.total();
+          if (committeeCost > 0) {
+            ctx.ledger?.recordCost(`committee:${runId}`, 'specialist', committeeCost);
+          }
         }
       }
-    }
 
-    const { grade, goNoGo } = computeGradeAndGoNoGo({
-      side,
-      entry,
-      ...(stop !== undefined ? { stop } : {}),
-      ...(target !== undefined ? { target } : {}),
-      verdicts,
-    });
+      const { grade, goNoGo } = computeGradeAndGoNoGo({
+        side,
+        entry,
+        ...(stop !== undefined ? { stop } : {}),
+        ...(target !== undefined ? { target } : {}),
+        verdicts,
+      });
 
-    if (!consensusText) {
-      const verdictSummary = verdicts
-        .map((v) => `${v.persona.replace('_', ' ')}: ${v.verdict} (${v.confidence}/10)`)
-        .join(', ');
-      consensusText = `Team grade ${grade} (${goNoGo.toUpperCase()}) for ${side.toUpperCase()} ${symbol} at ${entry}${stop !== undefined ? `, stop ${stop}` : ''}${target !== undefined ? `, target ${target}` : ''}. Breakdown — ${verdictSummary}.`;
-    }
+      if (!consensusText) {
+        const verdictSummary = verdicts
+          .map((v) => `${v.persona.replace('_', ' ')}: ${v.verdict} (${v.confidence}/10)`)
+          .join(', ');
+        consensusText = `Team grade ${grade} (${goNoGo.toUpperCase()}) for ${side.toUpperCase()} ${symbol} at ${entry}${stop !== undefined ? `, stop ${stop}` : ''}${target !== undefined ? `, target ${target}` : ''}. Breakdown — ${verdictSummary}.`;
+      }
 
-    return ConveneCommitteeOutputSchema.parse({
-      symbol,
-      side,
-      entry,
-      ...(stop !== undefined ? { stop } : {}),
-      ...(target !== undefined ? { target } : {}),
-      verdicts,
-      grade,
-      goNoGo,
-      consensus: consensusText,
-    });
+      return ConveneCommitteeOutputSchema.parse({
+        symbol,
+        side,
+        entry,
+        ...(stop !== undefined ? { stop } : {}),
+        ...(target !== undefined ? { target } : {}),
+        verdicts,
+        grade,
+        goNoGo,
+        consensus: consensusText,
+      });
+    },
   },
-});
+);

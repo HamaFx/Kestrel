@@ -20,7 +20,7 @@
 // directly so the tool input is the same shape the DB row stores.
 
 import { AlertChannelSchema, AlertRuleSchema, type SetAlertOutput } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { createAlert } from '../alerts/persistence';
@@ -47,7 +47,7 @@ function describeRule(rule: z.infer<typeof AlertRuleSchema>): string {
   return alertRuleRegistry.get(rule.type).describe(rule as any);
 }
 
-export const setAlertTool = tool({
+export const setAlertTool: Tool<z.infer<typeof InputSchema>, SetAlertOutput> = tool({
   description:
     'Create a one-shot price / indicator / candle-close alert. Fires when the rule first matches and then deactivates. The user can resend by editing the alert in /alerts.',
   inputSchema: InputSchema,

@@ -53,7 +53,7 @@ export interface EmbedTextsArgs {
    * Explicit model override (takes precedence over userSettings +
    * env). Accepts either an instantiated EmbeddingModel or a string ID.
    */
-  model?: EmbeddingModel<string> | string;
+  model?: EmbeddingModel | string;
   /**
    * Phase D2 — user's embedding model from
    * /settings/models → Advanced. When provided, the resolver picks
@@ -82,7 +82,7 @@ export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
   //   2. resolveEmbeddingModelDetails(userSettings, env) — Phase D2 user pick
   //   3. env.AI_EMBEDDING_MODEL (legacy operator fallback)
   //   4. DEFAULT_MODEL
-  let model: EmbeddingModel<string> | string;
+  let model: EmbeddingModel | string;
   let modelId = DEFAULT_MODEL;
 
   if (args.model) {
@@ -92,7 +92,7 @@ export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
       const providerId = (slash > 0 ? modelId.slice(0, slash) : 'openai') as ProviderId;
       const keys = {
         ...envFallbackKeys(args.env ?? {}),
-        ...(args.userSettings ? decryptByok(args.userSettings.aiApiKeys) ?? {} : {}),
+        ...(args.userSettings ? (decryptByok(args.userSettings.aiApiKeys) ?? {}) : {}),
       };
       const apiKey = keys[providerId];
       if (apiKey && providerCapabilities[providerId]?.supportsEmbedding) {

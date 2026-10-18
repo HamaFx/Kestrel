@@ -22,7 +22,7 @@
 // the agent to log something directly.
 
 import { SymbolSchema, TradeSideSchema, type LogJournalOutput } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { createEntry } from '../journal/persistence';
@@ -33,7 +33,7 @@ const InputSchema = z.object({
   symbol: SymbolSchema,
   side: TradeSideSchema,
   /** ms epoch UTC; defaults to "now" so the agent can omit it. */
-  openedAtMs: z.number().int().optional(),
+  openedAtMs: z.int().optional(),
   entry: z.number(),
   stop: z.number().nullable().optional(),
   target: z.number().nullable().optional(),
@@ -48,7 +48,7 @@ declare module '@kestrel/shared' {
   }
 }
 
-export const logJournalTool = tool({
+export const logJournalTool: Tool<z.infer<typeof InputSchema>, LogJournalOutput> = tool({
   description:
     'Record a trade entry in the journal. Returns the new entry id + a summary line. Status is "open" until the user later marks it closed in /journal or via a follow-up tool call.',
   inputSchema: InputSchema,

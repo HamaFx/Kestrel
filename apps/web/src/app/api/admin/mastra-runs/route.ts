@@ -33,8 +33,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const querySchema = z.object({
-  hours: z.coerce.number().int().min(1).max(720).default(72),
-  limit: z.coerce.number().int().min(1).max(500).default(100),
+  hours: z.coerce.number().int().min(1).max(720).prefault(72),
+  limit: z.coerce.number().int().min(1).max(500).prefault(100),
   /** Optional kind filter, e.g. `mastra_mode` or `mastra_full_job` (prefix match). */
   kind: z.string().min(2).max(64).optional(),
 });

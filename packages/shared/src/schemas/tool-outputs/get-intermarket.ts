@@ -35,14 +35,14 @@ export const GetIntermarketInputSchema = z.object({
   /** Bar timeframe used for the correlation + change windows. */
   tf: TimeframeSchema.default('1h'),
   /** Window length in bars. */
-  windowBars: z.number().int().min(20).max(500).default(100),
+  windowBars: z.int().min(20).max(500).default(100),
 });
 export type GetIntermarketInput = z.infer<typeof GetIntermarketInputSchema>;
 
 export const GetIntermarketOutputSchema = z.object({
-  asOf: z.number().int(),
+  asOf: z.int(),
   tf: TimeframeSchema,
-  windowBars: z.number().int(),
+  windowBars: z.int(),
   /** USD-strength proxy snapshot — same formula as `get_correlation`. */
   dxyProxy: z.object({
     value: z.number(),

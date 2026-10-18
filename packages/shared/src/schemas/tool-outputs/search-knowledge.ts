@@ -28,10 +28,10 @@ import { ToolNewsItemSchema } from './get-news';
 export const SearchKnowledgeInputSchema = z.object({
   query: z.string().min(2).max(500),
   /** ms epoch lower bound on `publishedAt`. Omit for unbounded. */
-  since: z.number().int().optional(),
+  since: z.int().optional(),
   /** Filter to articles tagged with this symbol. */
   symbol: SymbolSchema.optional(),
-  limit: z.number().int().min(1).max(10).default(5),
+  limit: z.int().min(1).max(10).default(5),
 });
 export type SearchKnowledgeInput = z.infer<typeof SearchKnowledgeInputSchema>;
 

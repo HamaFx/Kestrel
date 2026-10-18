@@ -21,10 +21,10 @@ import { z } from 'zod';
 
 import { computeSessionLevels } from '../../../../tools/get-session-levels';
 import { createEvidenceId } from '../../../packets/evidence';
-import { candleEvidenceMetadata } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD } from '../../../shared/types';
+import { candleEvidenceMetadata } from '../legacy-tool-adapter';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const CANDLE_COUNT = 60;
 
@@ -36,8 +36,8 @@ const OutputSchema = z.object({
   evidenceId: z.string().min(1),
   symbol: z.literal(XAUUSD),
   source: z.string().min(1),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.enum(['fresh', 'stale', 'unknown']),
   quality: z.enum(['complete', 'partial', 'degraded']),
   warnings: z.array(z.string()),

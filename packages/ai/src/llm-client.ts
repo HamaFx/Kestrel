@@ -32,7 +32,7 @@ import { generateText as aiGenerateText, streamText as aiStreamText, type Langua
 /** Options for a generateText call. */
 export interface GenerateTextOpts {
   model: LanguageModel;
-  system?: string;
+  instructions?: string;
   messages?: readonly { role: string; content: string }[];
   prompt?: string;
   maxOutputTokens?: number;
@@ -49,14 +49,14 @@ export interface GenerateTextResult {
 /** Options for a streamText call. */
 export interface StreamTextOpts {
   model: LanguageModel;
-  system?: string;
+  instructions?: string;
   messages?: readonly unknown[];
   tools?: Record<string, unknown>;
   stopWhen?: (step: { stepCount: number }) => boolean;
   abortSignal?: AbortSignal;
   telemetry?: Record<string, unknown>;
   providerOptions?: Record<string, unknown>;
-  onFinish?: (event: {
+  onEnd?: (event: {
     usage?: { inputTokens: number; outputTokens: number };
     finishReason: string;
     response: { messages: readonly unknown[]; headers?: Record<string, string> };
@@ -91,7 +91,7 @@ export interface LlmClient {
 export class VercelLlmClient implements LlmClient {
   async generateText(opts: GenerateTextOpts): Promise<GenerateTextResult> {
     const callArgs: Record<string, unknown> = { model: opts.model };
-    if (opts.system) callArgs.system = opts.system;
+    if (opts.instructions) callArgs.instructions = opts.instructions;
     if (opts.messages) callArgs.messages = opts.messages;
     if (opts.prompt) callArgs.prompt = opts.prompt;
     if (opts.maxOutputTokens) callArgs.maxOutputTokens = opts.maxOutputTokens;
@@ -119,14 +119,14 @@ export class VercelLlmClient implements LlmClient {
 
   async streamText(opts: StreamTextOpts): Promise<StreamTextResult> {
     const callArgs: Record<string, unknown> = { model: opts.model };
-    if (opts.system) callArgs.system = opts.system;
+    if (opts.instructions) callArgs.instructions = opts.instructions;
     if (opts.messages) callArgs.messages = opts.messages;
     if (opts.tools) callArgs.tools = opts.tools;
     if (opts.stopWhen) callArgs.stopWhen = opts.stopWhen;
     if (opts.abortSignal) callArgs.abortSignal = opts.abortSignal;
     if (opts.telemetry) Object.assign(callArgs, opts.telemetry);
     if (opts.providerOptions) callArgs.providerOptions = opts.providerOptions;
-    if (opts.onFinish) callArgs.onFinish = opts.onFinish;
+    if (opts.onEnd) callArgs.onEnd = opts.onEnd;
     if (opts.onError) callArgs.onError = opts.onError;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

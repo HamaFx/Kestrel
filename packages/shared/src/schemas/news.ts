@@ -30,12 +30,12 @@ export const NewsArticleSchema = z.object({
   id: z.string(),
   title: z.string(),
   summary: z.string().nullable(),
-  url: z.string().url(),
+  url: z.url(),
   /** Provider that delivered the article. */
   source: z.string(),
   publisher: z.string().nullable(),
   /** Publication time, ms epoch UTC. */
-  publishedAt: z.number().int(),
+  publishedAt: z.int(),
   symbols: z.array(SymbolOrCurrencyTagSchema),
   sentiment: NewsSentimentSchema.nullable(),
   /** -1..1; nullable when provider doesn't supply one. */

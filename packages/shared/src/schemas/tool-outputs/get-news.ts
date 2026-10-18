@@ -33,7 +33,7 @@ export const ToolNewsItemSchema = z.object({
   source: z.string(),
   publisher: z.string().nullable(),
   /** Publication time, ms epoch UTC. */
-  publishedAt: z.number().int(),
+  publishedAt: z.int(),
   sentiment: NewsSentimentSchema.nullable(),
   /** -1..1; nullable when provider doesn't supply one. */
   sentimentScore: z.number().nullable(),

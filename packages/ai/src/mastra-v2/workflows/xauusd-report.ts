@@ -47,16 +47,19 @@ import {
 } from '../agents/xauusd/report/report-generation';
 import { patchTimeframeConflictDisclosure } from '../agents/xauusd/report/report-repair';
 import { blockedXauusdResearchText } from '../agents/xauusd/report/report-text';
-import { XauusdResearchReportSchema, type XauusdResearchReport } from '../agents/xauusd/report/report-types';
+import {
+  XauusdResearchReportSchema,
+  type XauusdResearchReport,
+} from '../agents/xauusd/report/report-types';
 import {
   requireVerifiedXauusdReport,
   XauusdReportVerificationError,
 } from '../agents/xauusd/report/report-verifier';
+import type { xauusdMastraTools } from '../agents/xauusd/tools';
 import { collectXauusdResearchPacket } from '../packets/research-packet';
 import { XauusdResearchPacketSchema, type XauusdResearchPacket } from '../packets/research-types';
 import type { MastraGenerationResultLike } from '../shared/stats';
 import { getMastraGenerationStats, type MastraGenerationStats } from '../shared/telemetry';
-import type { xauusdMastraTools } from '../agents/xauusd/tools';
 import { XauusdRequestContextSchema, type XauusdRequestContext } from '../shared/types';
 
 const StatsSchema = z.object({
@@ -87,7 +90,7 @@ const GenerationStepOutputSchema = z.object({
   report: XauusdResearchReportSchema.nullable(),
   result: z.unknown(),
   findings: z.array(z.string()),
-  attempt: z.number().int().positive(),
+  attempt: z.int().positive(),
   stats: StatsSchema,
 });
 
@@ -97,7 +100,7 @@ export const XauusdReportWorkflowOutputSchema = z.object({
   report: XauusdResearchReportSchema.nullable().optional(),
   result: z.unknown().optional(),
   packet: XauusdResearchPacketSchema,
-  attempts: z.number().int().nonnegative().optional(),
+  attempts: z.int().nonnegative().optional(),
   stats: StatsSchema,
 });
 

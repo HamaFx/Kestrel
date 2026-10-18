@@ -22,8 +22,8 @@ import { getSentimentService } from '../../../../sentiment';
 import { createEvidenceId, freshnessFromAge } from '../../../packets/evidence';
 import { EXTERNAL_CONTENT_TRUST_WARNING } from '../../../packets/external-content';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD } from '../../../shared/types';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),
@@ -33,8 +33,8 @@ const OutputSchema = z.object({
   evidenceId: z.string().min(1),
   symbol: z.literal(XAUUSD),
   source: z.literal('kestrel-social-sentiment-service'),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.enum(['fresh', 'stale', 'unknown']),
   quality: z.enum(['complete', 'partial', 'degraded']),
   warnings: z.array(z.string()),

@@ -37,7 +37,7 @@ export const LiveTickSchema = z.object({
   /** mid = (bid + ask) / 2; computed in the consumer, not stored as derived. */
   mid: z.number().finite(),
   /** Tick wall-clock time, ms epoch UTC. */
-  ts: z.number().int().nonnegative(),
+  ts: z.int().nonnegative(),
   /**
    * Where this tick came from. Stable strings, not an enum, because we want
    * to add new sources without a schema migration:

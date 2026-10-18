@@ -32,7 +32,7 @@ import {
   type GetMarketStructureOutput,
   type StructureResult,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { maybeGetToolContext } from '../tool-context';
@@ -41,7 +41,7 @@ const InputSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
   /** Bars to scan. 300 covers ~12 days on 1h, 12 weeks on 4h. */
-  count: z.number().int().min(50).max(1000).default(300),
+  count: z.int().min(50).max(1000).default(300),
   /**
    * Which kinds to compute. Skip the ones you don't need to keep the
    * payload small in the chat history.
@@ -49,7 +49,7 @@ const InputSchema = z.object({
    */
   kinds: z.array(StructureKindSchema).optional(),
   /** How many most recent events per kind to return. Default 5. */
-  lookback: z.number().int().min(2).max(10).default(5),
+  lookback: z.int().min(2).max(10).default(5),
 });
 
 declare module '@kestrel/shared' {
@@ -100,11 +100,17 @@ export function computeMarketStructureOutput({
   };
 }
 
-export const getMarketStructureTool = tool({
+export const getMarketStructureTool: Tool<
+  z.infer<typeof InputSchema>,
+  GetMarketStructureOutput
+> = tool({
   description:
     'Detect SMC market structure on a (symbol, timeframe) window: swing pivots, break-of-structure / change-of-character events, fair value gaps, order blocks, and liquidity sweeps. Use when the user asks about trend bias, structural breaks, FVGs, OBs, or where stops likely got swept.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count, kinds, lookback }, options?: { abortSignal?: AbortSignal }): Promise<GetMarketStructureOutput> => {
+  execute: async (
+    { symbol, tf, count, kinds, lookback },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetMarketStructureOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
     return computeMarketStructureOutput({

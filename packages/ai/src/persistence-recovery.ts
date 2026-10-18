@@ -56,47 +56,39 @@ function resultRows<T>(result: unknown): T[] {
   return [];
 }
 
-const StoredMessageSchema = z
-  .object({
-    id: z.string().min(1),
-    role: z.enum(['user', 'assistant', 'system', 'tool']),
-    parts: z.array(z.unknown()).max(100),
-  })
-  .strict();
+const StoredMessageSchema = z.strictObject({
+  id: z.string().min(1),
+  role: z.enum(['user', 'assistant', 'system', 'tool']),
+  parts: z.array(z.unknown()).max(100),
+});
 
-const MessageReplaySchema = z
-  .object({
-    userId: z.string().min(1),
-    threadId: z.string().min(1),
-    message: StoredMessageSchema,
-    idempotencyKey: z.string().min(1),
-  })
-  .strict();
+const MessageReplaySchema = z.strictObject({
+  userId: z.string().min(1),
+  threadId: z.string().min(1),
+  message: StoredMessageSchema,
+  idempotencyKey: z.string().min(1),
+});
 
-const OpinionsReplaySchema = z
-  .object({
-    userId: z.string().min(1),
-    threadId: z.string().min(1),
-    messageId: z.string().min(1),
-    analysisMode: z.string().min(1),
-    opinions: z
-      .array(
-        z
-          .object({
-            agentName: z.string().min(1),
-            bias: z.string(),
-            confidence: z.number().finite(),
-            reasoning: z.string(),
-            rawData: z.record(z.unknown()),
-            model: z.string().min(1),
-            costUsd: z.number().finite().nonnegative(),
-            latencyMs: z.number().finite().nonnegative(),
-          })
-          .strict(),
-      )
-      .max(20),
-  })
-  .strict();
+const OpinionsReplaySchema = z.strictObject({
+  userId: z.string().min(1),
+  threadId: z.string().min(1),
+  messageId: z.string().min(1),
+  analysisMode: z.string().min(1),
+  opinions: z
+    .array(
+      z.strictObject({
+        agentName: z.string().min(1),
+        bias: z.string(),
+        confidence: z.number().finite(),
+        reasoning: z.string(),
+        rawData: z.record(z.string(), z.unknown()),
+        model: z.string().min(1),
+        costUsd: z.number().finite().nonnegative(),
+        latencyMs: z.number().finite().nonnegative(),
+      }),
+    )
+    .max(20),
+});
 
 // Audit v2 §4.5 — the replay schema deliberately accepts a SUPERSET of the
 // emitted vocabulary (`TELEMETRY_KINDS`): it is `.strict()`, so kinds that
@@ -110,58 +102,52 @@ const TelemetryKindSchema = z.enum([
   ...TELEMETRY_KINDS,
 ]);
 
-const TelemetryReplaySchema = z
-  .object({
-    threadId: z.string().min(1),
-    userId: z.string().nullable(),
-    messageId: z.string().nullable(),
-    traceId: z.string().nullable().default(null),
-    runId: z.string().nullable().default(null),
-    jobId: z.string().nullable().default(null),
-    idempotencyKey: z.string().nullable().default(null),
-    model: z.string().min(1),
-    inputTokens: z.number().int().nonnegative(),
-    outputTokens: z.number().int().nonnegative(),
-    toolCalls: z.number().int().nonnegative(),
-    ms: z.number().int().nonnegative(),
-    // Audit v2 §4.5 — `usageKnown` has no `chat_telemetry` column and is no
-    // longer forwarded on replay. The field stays in this `.strict()` schema
-    // so historical queued payloads carrying it still parse.
-    usageKnown: z.boolean().optional().default(true),
-    kind: TelemetryKindSchema.nullable().default(null),
-  })
-  .strict();
+const TelemetryReplaySchema = z.strictObject({
+  threadId: z.string().min(1),
+  userId: z.string().nullable(),
+  messageId: z.string().nullable(),
+  traceId: z.string().nullable().default(null),
+  runId: z.string().nullable().default(null),
+  jobId: z.string().nullable().default(null),
+  idempotencyKey: z.string().nullable().default(null),
+  model: z.string().min(1),
+  inputTokens: z.int().nonnegative(),
+  outputTokens: z.int().nonnegative(),
+  toolCalls: z.int().nonnegative(),
+  ms: z.int().nonnegative(),
+  // Audit v2 §4.5 — `usageKnown` has no `chat_telemetry` column and is no
+  // longer forwarded on replay. The field stays in this `.strict()` schema
+  // so historical queued payloads carrying it still parse.
+  usageKnown: z.boolean().optional().default(true),
+  kind: TelemetryKindSchema.nullable().default(null),
+});
 
-const ToolTelemetryReplaySchema = z
-  .object({
-    threadId: z.string().nullable(),
-    userId: z.string().nullable(),
-    messageId: z.string().nullable(),
-    traceId: z.string().nullable().default(null),
-    runId: z.string().nullable().default(null),
-    jobId: z.string().nullable().default(null),
-    idempotencyKey: z.string().nullable().default(null),
-    tool: z.string().min(1),
-    ms: z.number().int().nonnegative(),
-    ok: z.boolean(),
-    errorCode: z.string().nullable(),
-    outputChars: z.number().int().nonnegative().nullable(),
-  })
-  .strict();
+const ToolTelemetryReplaySchema = z.strictObject({
+  threadId: z.string().nullable(),
+  userId: z.string().nullable(),
+  messageId: z.string().nullable(),
+  traceId: z.string().nullable().default(null),
+  runId: z.string().nullable().default(null),
+  jobId: z.string().nullable().default(null),
+  idempotencyKey: z.string().nullable().default(null),
+  tool: z.string().min(1),
+  ms: z.int().nonnegative(),
+  ok: z.boolean(),
+  errorCode: z.string().nullable(),
+  outputChars: z.int().nonnegative().nullable(),
+});
 
-const TraceReplaySchema = z
-  .object({
-    traceId: z.string().min(1),
-    userId: z.string().min(1),
-    threadId: z.string().min(1),
-    startedAt: z.number().finite(),
-    durationMs: z.number().finite().nonnegative(),
-    stepCount: z.number().int().nonnegative(),
-    errorCount: z.number().int().nonnegative(),
-    status: z.enum(['completed', 'failed']),
-    trace: z.record(z.unknown()),
-  })
-  .strict();
+const TraceReplaySchema = z.strictObject({
+  traceId: z.string().min(1),
+  userId: z.string().min(1),
+  threadId: z.string().min(1),
+  startedAt: z.number().finite(),
+  durationMs: z.number().finite().nonnegative(),
+  stepCount: z.int().nonnegative(),
+  errorCount: z.int().nonnegative(),
+  status: z.enum(['completed', 'failed']),
+  trace: z.record(z.string(), z.unknown()),
+});
 
 function parseReplay<T>(schema: z.ZodType<T>, payload: unknown, operation: string): T {
   const parsed = schema.safeParse(payload);
@@ -304,9 +290,7 @@ async function replayOne(item: ClaimedFailure): Promise<void> {
         // legacy queued row may carry a historical kind the live writers no
         // longer emit; replay restores it verbatim — the `chat_telemetry`
         // column still accepts the stored vocabulary.
-        ...(input.kind
-          ? { kind: input.kind as NonNullable<TelemetryInput['kind']> }
-          : {}),
+        ...(input.kind ? { kind: input.kind as NonNullable<TelemetryInput['kind']> } : {}),
       });
       return;
     }

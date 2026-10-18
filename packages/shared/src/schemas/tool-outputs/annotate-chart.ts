@@ -44,9 +44,9 @@ export const AnnotateChartInputSchema = z.object({
   tf: TimeframeSchema,
   kinds: z.array(AnnotateChartKindSchema).min(1),
   /** Swing detection lookback bars. Defaults to 3. */
-  lookback: z.number().int().min(1).max(20).default(3),
+  lookback: z.int().min(1).max(20).default(3),
   /** Number of recent candles to scan. Defaults to 300. */
-  count: z.number().int().min(50).max(1000).default(300),
+  count: z.int().min(50).max(1000).default(300),
 });
 export type AnnotateChartInput = z.infer<typeof AnnotateChartInputSchema>;
 
@@ -56,7 +56,7 @@ export type AnnotateChartInput = z.infer<typeof AnnotateChartInputSchema>;
  * not ms — matches `MarkerPrimitive` in apps/web/src/components/chart/overlays.ts.
  */
 export const ChartMarkerSchema = z.object({
-  time: z.number().int(),
+  time: z.int(),
   position: z.union([z.literal('aboveBar'), z.literal('belowBar'), z.literal('inBar')]),
   color: z.string(),
   shape: z.union([
@@ -95,10 +95,10 @@ export type ChartPriceLine = z.infer<typeof ChartPriceLineSchema>;
 export const AnnotateChartOutputSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
-  asOf: z.number().int(),
+  asOf: z.int(),
   markers: z.array(ChartMarkerSchema),
   priceLines: z.array(ChartPriceLineSchema),
   /** Counts per requested kind so the chat part can show a one-line header. */
-  countsByKind: z.record(AnnotateChartKindSchema, z.number().int()),
+  countsByKind: z.record(AnnotateChartKindSchema, z.int()),
 });
 export type AnnotateChartOutput = z.infer<typeof AnnotateChartOutputSchema>;

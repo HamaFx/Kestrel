@@ -98,7 +98,7 @@ export function createScriptedLlmClient(initialScenarios: ScriptedLlmScenario[])
       inputTokens: scenario.inputTokens ?? 100,
       outputTokens: scenario.outputTokens ?? Math.max(1, scenario.text.length),
     };
-    await opts.onFinish?.({
+    await opts.onEnd?.({
       usage,
       finishReason: scenario.finishReason ?? 'stop',
       response: { messages: responseMessages },

@@ -28,7 +28,7 @@ import {
   type SeasonalityBucket,
   type SeasonalityGranularity,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 import { maybeGetToolContext } from '../tool-context';
@@ -57,11 +57,14 @@ const MONTH_LABELS = [
 ] as const;
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
-export const getSeasonalityTool = tool({
+export const getSeasonalityTool: Tool<z.infer<typeof InputSchema>, GetSeasonalityOutput> = tool({
   description:
     "Per-month / per-weekday / per-hour return seasonality for a symbol. Returns median percent return, IQR, win rate, and sample count per bucket. Use for 'is January typically strong for gold', 'what's the best weekday for EURUSD', 'when does GBPUSD usually trend during the day'. Sets `thin: true` when fewer than 30 samples per bucket are available.",
   inputSchema: InputSchema,
-  execute: async ({ symbol, granularity }, options?: { abortSignal?: AbortSignal }): Promise<GetSeasonalityOutput> => {
+  execute: async (
+    { symbol, granularity },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetSeasonalityOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const tf = granularity === 'hour' ? '1h' : '1d';
     const count = granularity === 'hour' ? 2160 : 1100; // ~90d on 1H, ~3yrs on 1D.

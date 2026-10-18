@@ -33,7 +33,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const BodySchema = z.object({
-  endpoint: z.string().url(),
+  endpoint: z.url(),
 });
 
 export const POST = withAuth<void>(async (req, { user }) => {

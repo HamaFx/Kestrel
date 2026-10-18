@@ -26,8 +26,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const querySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(25),
-  offset: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(100).prefault(25),
+  offset: z.coerce.number().int().min(0).prefault(0),
   status: z.enum(['unreviewed', 'in_review', 'reviewed', 'rejected']).optional(),
 });
 

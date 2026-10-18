@@ -61,9 +61,9 @@ export const SocialSentimentSchema = z.object({
   /** Percentage of retail traders long (contrarian indicator). */
   retailLongPct: z.number().min(0).max(100).nullable(),
   /** Number of data points sampled. */
-  sampleSize: z.number().int(),
+  sampleSize: z.int(),
   /** Epoch ms when the data was fetched. */
-  fetchedAt: z.number().int(),
+  fetchedAt: z.int(),
   /** Whether the sentiment source is available (API key configured). */
   available: z.boolean(),
 });
@@ -80,7 +80,7 @@ export const AggregatedSentimentSchema = z.object({
   sources: z.array(SocialSentimentSchema),
   contrarianSignal: z.boolean(),
   contrarianNote: z.string().nullable(),
-  fetchedAt: z.number().int(),
+  fetchedAt: z.int(),
 });
 export type AggregatedSentiment = z.infer<typeof AggregatedSentimentSchema>;
 

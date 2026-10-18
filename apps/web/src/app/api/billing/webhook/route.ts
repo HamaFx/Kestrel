@@ -51,29 +51,27 @@ const optionalProviderIdentifier = z.preprocess(
   z.string().min(1).nullable().optional(),
 );
 
-export const IpnPayloadSchema = z
-  .object({
-    payment_id: providerIdentifier,
-    invoice_id: optionalProviderIdentifier.transform((value) => value ?? undefined),
-    payment_status: z.enum([
-      'waiting',
-      'confirming',
-      'confirmed',
-      'sending',
-      'finished',
-      'failed',
-      'expired',
-      'refunded',
-    ]),
-    pay_amount: z.string().optional(),
-    pay_currency: z.string().optional(),
-    price_amount: z.number().optional(),
-    price_currency: z.string().optional(),
-    order_id: z.string().optional(),
-    order_description: z.string().optional(),
-    txid: z.string().optional(),
-  })
-  .passthrough();
+export const IpnPayloadSchema = z.looseObject({
+  payment_id: providerIdentifier,
+  invoice_id: optionalProviderIdentifier.transform((value) => value ?? undefined),
+  payment_status: z.enum([
+    'waiting',
+    'confirming',
+    'confirmed',
+    'sending',
+    'finished',
+    'failed',
+    'expired',
+    'refunded',
+  ]),
+  pay_amount: z.string().optional(),
+  pay_currency: z.string().optional(),
+  price_amount: z.number().optional(),
+  price_currency: z.string().optional(),
+  order_id: z.string().optional(),
+  order_description: z.string().optional(),
+  txid: z.string().optional(),
+});
 
 export interface IpnPayload {
   payment_id: string;

@@ -28,7 +28,7 @@ export const TextDeltaEventSchema = baseEvent.extend({
 export const TextEndEventSchema = baseEvent.extend({ type: z.literal('text-end') });
 export const MultiAgentMetaEventSchema = baseEvent.extend({
   type: z.literal('data-multi-agent-meta'),
-  data: z.record(z.unknown()),
+  data: z.record(z.string(), z.unknown()),
   transient: z.boolean().optional(),
 });
 export const AgentProgressEventSchema = z.object({
@@ -78,7 +78,7 @@ export const MemoryDegradedStreamEventSchema = z.object({
   type: z.literal('data-memory-degraded'),
   id: z.string().optional(),
   reason: z.string().max(200),
-  createdAt: z.number().int(),
+  createdAt: z.int(),
 });
 export const ErrorEventSchema = z.object({
   type: z.literal('error'),
@@ -97,7 +97,7 @@ export const UserMessageTextPartSchema = z.object({
 });
 export const UserMessageFilePartSchema = z.object({
   type: z.literal('file'),
-  url: z.string().url().max(2_048),
+  url: z.url().max(2_048),
   mediaType: z
     .string()
     .regex(/^[a-z]+\/[a-z0-9.+-]+$/i)
@@ -125,7 +125,7 @@ export const MutationDraftPayloadSchema = z.object({
   mutation: z.enum(['set_alert', 'log_journal', 'share_snapshot', 'run_system_action']),
   summary: z.string(),
   runId: z.string(),
-  expiresAt: z.number().int(),
+  expiresAt: z.int(),
   confirmationToken: z.string(),
   confirmLabel: z.string().optional(),
   cancelLabel: z.string().optional(),

@@ -71,7 +71,7 @@ export type PerTimeframeReading = z.infer<typeof PerTimeframeReadingSchema>;
 export const AnalyzeTechnicalOutputSchema = z.object({
   symbol: SymbolSchema,
   /** ms epoch UTC at which the analysis was computed. */
-  asOf: z.number().int(),
+  asOf: z.int(),
   perTimeframe: z.array(PerTimeframeReadingSchema),
   summary: z.string(),
   /** True if at least one requested timeframe was dropped due to fetch failure. */

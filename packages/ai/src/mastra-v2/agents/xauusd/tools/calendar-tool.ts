@@ -25,13 +25,13 @@ import {
   quarantineExternalText,
   toUntrustedExternalEvidence,
 } from '../../../packets/external-content';
-import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
 import { XAUUSD } from '../../../shared/types';
+import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 
 const InputSchema = z.object({
-  from: z.number().int().optional(),
-  to: z.number().int().optional(),
+  from: z.int().optional(),
+  to: z.int().optional(),
   currencies: z.array(z.literal('USD')).min(1).max(1).default(['USD']),
   minImportance: z.enum(['low', 'medium', 'high']).default('medium'),
 });
@@ -40,8 +40,8 @@ const OutputSchema = z.object({
   evidenceId: z.string().min(1),
   symbol: z.literal(XAUUSD),
   source: z.literal('kestrel-economic-calendar-cache'),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.literal('unknown'),
   quality: z.literal('degraded'),
   warnings: z.array(z.string()),

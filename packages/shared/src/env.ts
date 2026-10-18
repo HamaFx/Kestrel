@@ -56,22 +56,22 @@ const AuthEnv = z.object({
 // POSTGRES_URL_NON_POOLING for migrations, backups, and other session-bound tasks.
 const DbEnv = z
   .object({
-    DATABASE_URL: z.string().url().optional(),
-    POSTGRES_URL: z.string().url().optional(),
-    DIRECT_URL: z.string().url().optional(),
-    POSTGRES_URL_NON_POOLING: z.string().url().optional(),
+    DATABASE_URL: z.url().optional(),
+    POSTGRES_URL: z.url().optional(),
+    DIRECT_URL: z.url().optional(),
+    POSTGRES_URL_NON_POOLING: z.url().optional(),
     /** PF-15: Read-only replica URL for read-heavy queries. */
-    DATABASE_URL_REPLICA: z.string().url().optional(),
+    DATABASE_URL_REPLICA: z.url().optional(),
     SUPABASE_CA_CERT: z.string().optional(),
-    SUPABASE_URL: z.string().url().optional(),
+    SUPABASE_URL: z.url().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
     SUPABASE_SECRET_KEY: z.string().optional(),
     /** Separate non-superuser connection for cross-tenant worker/cron jobs. */
-    ADMIN_DATABASE_URL: z.string().url().optional(),
+    ADMIN_DATABASE_URL: z.url().optional(),
   })
   .refine((v) => Boolean(v.DATABASE_URL || v.POSTGRES_URL), {
-    message: 'Either DATABASE_URL or POSTGRES_URL must be set',
     path: ['DATABASE_URL'],
+    error: 'Either DATABASE_URL or POSTGRES_URL must be set',
   });
 
 // AI provider env. We support two transports:
@@ -113,7 +113,7 @@ const AiEnv = z.object({
 //
 // See docs/04-data-layer.md § "Cache layer" and packages/data/src/cache/.
 const CacheEnv = z.object({
-  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_URL: z.url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 });
 
@@ -128,7 +128,7 @@ const ProvidersEnv = z.object({
    * no API key; this var only overrides the base URL (e.g. for staging or a
    * local mock during tests). Default: https://biquote.io.
    */
-  BIQUOTE_BASE_URL: z.string().url().optional(),
+  BIQUOTE_BASE_URL: z.url().optional(),
   /** Server-only web research providers. Never expose these to the browser. */
   EXA_API_KEY: z.string().min(1).optional(),
   TAVILY_API_KEY: z.string().min(1).optional(),
@@ -140,8 +140,8 @@ const NotifyEnv = z.object({
   TELEGRAM_CHAT_ID: z.string().optional(),
   TELEGRAM_SECRET_TOKEN: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
-  ALERT_FROM_EMAIL: z.string().email().optional(),
-  ALERT_TO_EMAIL: z.string().email().optional(),
+  ALERT_FROM_EMAIL: z.email().optional(),
+  ALERT_TO_EMAIL: z.email().optional(),
   /**
    * Web Push (RFC 8030 + VAPID). All optional — when missing, the
    * `web-push` alert channel returns "not configured" and skips delivery.
@@ -175,7 +175,7 @@ const NotifyEnv = z.object({
 const BillingEnv = z.object({
   NOWPAYMENTS_API_KEY: z.string().min(1).optional(),
   NOWPAYMENTS_IPN_SECRET: z.string().min(1).optional(),
-  NOWPAYMENTS_API_BASE: z.string().url().default('https://api-sandbox.nowpayments.io'),
+  NOWPAYMENTS_API_BASE: z.url().default('https://api-sandbox.nowpayments.io'),
   /** Billing stays disabled unless explicitly opted in. */
   BILLING_ENABLED: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
@@ -184,7 +184,7 @@ const BillingEnv = z.object({
 });
 
 const PublicEnv = z.object({
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
+  NEXT_PUBLIC_APP_URL: z.url().default('http://localhost:3000'),
   /** Browser-readable VAPID public key. MUST equal `VAPID_PUBLIC_KEY`. */
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
 });
@@ -192,9 +192,9 @@ const PublicEnv = z.object({
 const RuntimeEnv = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   /** Daily AI cost ceiling in USD. When crossed, /api/chat returns 503. */
-  MAX_DAILY_USD: z.coerce.number().positive().default(5),
+  MAX_DAILY_USD: z.coerce.number().positive().prefault(5),
   /** Hard cap on tool-loop iterations per chat turn. */
-  MAX_TOOL_ITERATIONS: z.coerce.number().int().positive().default(6),
+  MAX_TOOL_ITERATIONS: z.coerce.number().int().positive().prefault(6),
   /** Q5 — enable semantic routing via cheap LLM classifier before keyword scoring. */
   AI_SEMANTIC_ROUTING_ENABLED: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
@@ -207,7 +207,7 @@ const RuntimeEnv = z.object({
   /** Langfuse LLM observability. Optional — omitted = tracing disabled. */
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_SECRET_KEY: z.string().optional(),
-  LANGFUSE_BASE_URL: z.string().url().optional(),
+  LANGFUSE_BASE_URL: z.url().optional(),
   /** Optional release/environment labels used by Langfuse dashboards. */
   LANGFUSE_RELEASE: z.string().min(1).optional(),
   LANGFUSE_TRACING_ENVIRONMENT: z.string().min(1).optional(),
@@ -221,10 +221,10 @@ const RuntimeEnv = z.object({
     .transform((v) => v === '1' || v === 'true'),
   WEB_SEARCH_PROVIDER: z.enum(['exa', 'tavily', 'brave']).default('exa'),
   WEB_SEARCH_FALLBACK_PROVIDERS: z.string().default('tavily,brave'),
-  WEB_SEARCH_MAX_RESULTS: z.coerce.number().int().min(1).max(10).default(6),
-  WEB_SEARCH_MAX_CALLS_PER_TURN: z.coerce.number().int().min(1).max(4).default(2),
-  WEB_SEARCH_CACHE_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(600),
-  WEB_SEARCH_TIMEOUT_MS: z.coerce.number().int().min(2000).max(20000).default(8000),
+  WEB_SEARCH_MAX_RESULTS: z.coerce.number().int().min(1).max(10).prefault(6),
+  WEB_SEARCH_MAX_CALLS_PER_TURN: z.coerce.number().int().min(1).max(4).prefault(2),
+  WEB_SEARCH_CACHE_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).prefault(600),
+  WEB_SEARCH_TIMEOUT_MS: z.coerce.number().int().min(2000).max(20000).prefault(8000),
 
   /** Deterministic no-network market-data mode for local development. */
   KESTREL_OFFLINE_MODE: z
@@ -237,19 +237,19 @@ const RuntimeEnv = z.object({
     .default('0')
     .transform((v) => v === '1' || v === 'true'),
   /** Window used by the bearer-authenticated health alert endpoint. */
-  ALERT_WINDOW_HOURS: z.coerce.number().int().min(1).max(24).default(1),
+  ALERT_WINDOW_HOURS: z.coerce.number().int().min(1).max(24).prefault(1),
 
   // Retention values are consumed by the shared web/worker cleanup path.
-  TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
-  TRACE_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
-  RATE_LIMIT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).default(2),
-  PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(3),
-  CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
-  ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(7),
-  BILLING_WEBHOOK_DLQ_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
-  AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
-  PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
-  BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
+  TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
+  TRACE_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
+  RATE_LIMIT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).prefault(2),
+  PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(3),
+  CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
+  ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(7),
+  BILLING_WEBHOOK_DLQ_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
+  AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
+  PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
+  BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
 
   // Feature Flags
   /**
@@ -322,9 +322,9 @@ const RuntimeEnv = z.object({
    * dollars, the admin System Health dashboard surfaces an anomaly.
    * Informational only — the daily ledger is never capped per Q4.
    */
-  ADMIN_SPEND_ALERT_USD: z.coerce.number().positive().default(25),
+  ADMIN_SPEND_ALERT_USD: z.coerce.number().positive().prefault(25),
   /** Optional Redis URL for the shared packet cache (Phase 2.1). */
-  REDIS_URL: z.string().url().optional(),
+  REDIS_URL: z.url().optional(),
 });
 
 // `merge()` doesn't compose ZodEffects (refines). Both DbEnv and AiEnv are
@@ -337,12 +337,12 @@ const RuntimeEnv = z.object({
 export const ServerEnvSchema = z
   .intersection(
     z.intersection(DbEnv, AiEnv),
-    AuthEnv.merge(CacheEnv)
-      .merge(ProvidersEnv)
-      .merge(NotifyEnv)
-      .merge(BillingEnv)
-      .merge(PublicEnv)
-      .merge(RuntimeEnv),
+    AuthEnv.extend(CacheEnv.shape)
+      .extend(ProvidersEnv.shape)
+      .extend(NotifyEnv.shape)
+      .extend(BillingEnv.shape)
+      .extend(PublicEnv.shape)
+      .extend(RuntimeEnv.shape),
   )
   .refine(
     (env) =>
@@ -356,16 +356,16 @@ export const ServerEnvSchema = z
     },
   )
   .refine((env) => !env.MULTI_USER_ENABLED || env.KESTREL_ENABLE_RLS, {
-    message:
-      'MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS=true. Multi-user PostgreSQL deployments must fail closed instead of running without database tenant isolation.',
     path: ['KESTREL_ENABLE_RLS'],
+    error:
+      'MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS=true. Multi-user PostgreSQL deployments must fail closed instead of running without database tenant isolation.',
   })
   .refine(
     (env) => env.REGISTRATION_MODE !== 'open' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS),
     {
-      message:
-        'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
       path: ['REGISTRATION_MODE'],
+      error:
+        'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
     },
   );
 // NOTE: `REGISTRATION_MODE=owner-first` is rejected by the enum in RuntimeEnv

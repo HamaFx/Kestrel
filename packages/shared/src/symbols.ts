@@ -67,12 +67,9 @@ export const SymbolSchema = z
   .min(2)
   .max(20)
   .transform(normalizeSymbol)
-  .refine(
-    (symbol) => isKnownSymbol(symbol),
-    (symbol) => ({
-      message: `Unknown symbol: ${symbol}`,
-    }),
-  );
+  .refine((symbol) => isKnownSymbol(symbol), {
+    error: (issue) => `Unknown symbol: ${issue.input}`,
+  });
 
 /**
  * Loose symbol schema — accepts any reasonable string.

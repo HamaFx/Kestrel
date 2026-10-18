@@ -22,10 +22,13 @@ import { z } from 'zod';
 
 import { getSentimentService } from '../../../../sentiment';
 import { createEvidenceId } from '../../../packets/evidence';
-import { assembleXauusdMacroEvidence, fetchXauusdMacroData } from '../../../packets/research-packet-macro';
+import {
+  assembleXauusdMacroEvidence,
+  fetchXauusdMacroData,
+} from '../../../packets/research-packet-macro';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD, XauusdMacroEvidenceSchema } from '../../../shared/types';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),
@@ -35,8 +38,8 @@ const OutputSchema = z.object({
   evidenceId: z.string().min(1),
   symbol: z.literal(XAUUSD),
   source: z.literal('finnhub/marketaux/fred/social-sentiment'),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.enum(['fresh', 'stale', 'unknown']),
   quality: z.enum(['complete', 'partial', 'degraded']),
   warnings: z.array(z.string()),

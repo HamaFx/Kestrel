@@ -30,7 +30,7 @@ const coerceEmptyToUndefined = z
   .string()
   .optional()
   .transform((v) => (v === '' ? undefined : v));
-const optionalUrl = z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional());
+const optionalUrl = z.preprocess((v) => (v === '' ? undefined : v), z.url().optional());
 const optionalNonEmpty = z.preprocess(
   (v) => (v === '' ? undefined : v),
   z.string().min(1).optional(),
@@ -66,11 +66,11 @@ const WorkerEnvSchema = z.object({
   /** Bind address for the worker HTTP listener; keep private by default. */
   WORKER_HTTP_HOST: optionalNonEmpty,
   /** Port for the worker health listener. */
-  WORKER_HTTP_PORT: z.coerce.number().int().min(1).max(65535).default(8081),
+  WORKER_HTTP_PORT: z.coerce.number().int().min(1).max(65535).prefault(8081),
   /** Port for the optional BiQuote proxy listener. */
-  WORKER_PROXY_PORT: z.coerce.number().int().min(1).max(65535).default(8082),
+  WORKER_PROXY_PORT: z.coerce.number().int().min(1).max(65535).prefault(8082),
   /** SignalR hub URL. Defaults to BiQuote's documented endpoint. */
-  BIQUOTE_HUB_URL: z.string().url().default('https://biquote.io/hubs/tick'),
+  BIQUOTE_HUB_URL: z.url().default('https://biquote.io/hubs/tick'),
 
   /**
    * healthchecks.io UUIDs. Optional — when missing, healthchecks become
@@ -109,17 +109,19 @@ const WorkerEnvSchema = z.object({
   ),
 
   // Retention values are validated by @kestrel/db with bounded safe defaults.
-  TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
-  TRACE_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
-  RATE_LIMIT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).default(2),
-  PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(3),
-  CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
-  ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(7),
-  BILLING_WEBHOOK_DLQ_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
-  AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
-  PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
-  BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
+  TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
+  TRACE_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
+  RATE_LIMIT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).prefault(2),
+  PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(3),
+  CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
+  ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(7),
+  BILLING_WEBHOOK_DLQ_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
+  AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
+  PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
+  BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
 
+  // `.default` (not `.prefault`) keeps the inferred output a narrow `string`;
+  // both behave identically for this pipe (the fallback is re-validated).
   DEPLOYED_SHA: coerceEmptyToUndefined.pipe(z.string().min(1).optional()).default('unknown'),
 
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -130,7 +132,7 @@ const WorkerEnvSchema = z.object({
    */
   WORKER_MODE: z.enum(['systemd', 'docker']).default('systemd'),
 
-  JOB_TIMEOUT_MS: z.coerce.number().int().min(1000).max(3_600_000).default(120_000),
+  JOB_TIMEOUT_MS: z.coerce.number().int().min(1000).max(3_600_000).prefault(120_000),
   WORKER_PARTITION: z.preprocess(
     (v) => (v === '' ? undefined : v),
     z.coerce.number().int().min(0).optional(),
@@ -148,7 +150,9 @@ const WorkerEnvSchema = z.object({
 
 export type WorkerEnv = z.infer<typeof WorkerEnvSchema>;
 
-export function isWorkerTickStreamEnabled(env: Pick<WorkerEnv, 'WORKER_ENABLE_TICK_STREAM'>): boolean {
+export function isWorkerTickStreamEnabled(
+  env: Pick<WorkerEnv, 'WORKER_ENABLE_TICK_STREAM'>,
+): boolean {
   return env.WORKER_ENABLE_TICK_STREAM === '1' || env.WORKER_ENABLE_TICK_STREAM === 'true';
 }
 
@@ -172,7 +176,9 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
     isWorkerTickStreamEnabled(result.data) &&
     !result.data.BIQUOTE_PROXY_TOKEN
   ) {
-    throw new Error('BIQUOTE_PROXY_TOKEN must be set in production when WORKER_ENABLE_TICK_STREAM=1');
+    throw new Error(
+      'BIQUOTE_PROXY_TOKEN must be set in production when WORKER_ENABLE_TICK_STREAM=1',
+    );
   }
   if (result.data.NODE_ENV === 'production' && !result.data.ENCRYPTION_SECRET) {
     throw new Error('ENCRYPTION_SECRET must be set in production');

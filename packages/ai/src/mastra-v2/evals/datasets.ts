@@ -72,7 +72,7 @@ const EvalCaseInputSchema = z.object({
     .optional(),
   analysisMode: z.string().optional(),
   expectedAgents: z.array(z.string()).optional(),
-  expectedAgentStatuses: z.record(z.string()).optional(),
+  expectedAgentStatuses: z.record(z.string(), z.string()).optional(),
   expectedTerminalStatus: z.string().optional(),
   expectedToolOutputs: z.array(z.unknown()).optional(),
 });

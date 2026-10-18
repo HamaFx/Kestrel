@@ -52,7 +52,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ForkSchema = z.object({
-  sourceThreadId: z.string().uuid(),
+  sourceThreadId: z.uuid(),
   // Not a UUID — see the comment above. Bounded to keep the query safe.
   atMessageId: z.string().min(1).max(200),
   // Same cap as the composer (composer-helpers.MAX_TEXT_CHARS).

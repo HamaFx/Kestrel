@@ -27,7 +27,7 @@ const ScenarioSchema = z.object({
 
 const ReportSchema = z.object({
   symbol: z.literal('XAUUSD'),
-  asOf: z.string().datetime(),
+  asOf: z.iso.datetime(),
   dataQuality: z.enum(['complete', 'partial', 'degraded']),
   bias: z.enum(['bullish', 'bearish', 'neutral', 'unclear']),
   confidence: z.number().min(0).max(1),
@@ -43,7 +43,7 @@ const ReportSchema = z.object({
       z.object({
         evidenceId: z.string().min(1),
         source: z.string().min(1),
-        dataAsOf: z.string().datetime(),
+        dataAsOf: z.iso.datetime(),
       }),
     )
     .min(1),

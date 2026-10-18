@@ -38,7 +38,7 @@ import {
   type SymbolOrCurrencyTag,
   type ToolNewsItem,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { and, desc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -69,7 +69,10 @@ const NEWS_PER_CURRENCY = 5;
 void or;
 void eq;
 
-export const analyzeFundamentalTool = tool({
+export const analyzeFundamentalTool: Tool<
+  z.infer<typeof InputSchema>,
+  AnalyzeFundamentalOutput
+> = tool({
   description:
     "Aggregate the upcoming high/medium-impact macro events for a symbol's currencies plus the most recent news, with a sentiment chip strip. Use for any 'what's the fundamental backdrop on X' or 'are there any catalysts in the next N hours' prompt. Window is `horizonHours` (default 24h). Sentiment buckets are read from news_articles.sentiment; no inference. Sets `pipelinePending: true` when both events and headlines are empty.",
   inputSchema: InputSchema,
@@ -183,10 +186,10 @@ async function fetchHeadlinesForCurrencies(args: HeadlineQuery): Promise<ToolNew
     out.push({
       id: r.id,
       title: quarantineExternalText(r.title, 240).text || '[filtered]',
-      summary: r.summary ? (quarantineExternalText(r.summary, 420).text || null) : null,
+      summary: r.summary ? quarantineExternalText(r.summary, 420).text || null : null,
       url: r.url,
       source: quarantineExternalText(r.source, 80).text || 'unknown',
-      publisher: r.publisher ? (quarantineExternalText(r.publisher, 80).text || null) : null,
+      publisher: r.publisher ? quarantineExternalText(r.publisher, 80).text || null : null,
       publishedAt: r.publishedAt.getTime(),
       sentiment: (r.sentiment as NewsSentiment | null) ?? null,
       sentimentScore: r.sentimentScore,

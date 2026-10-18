@@ -42,7 +42,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const BodySchema = z.object({
-  endpoint: z.string().url(),
+  endpoint: z.url(),
   keys: z.object({
     p256dh: z.string().min(1),
     auth: z.string().min(1),

@@ -25,6 +25,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import type { MastraScorers } from '@mastra/core/evals';
+import type { MastraModelConfig } from '@mastra/core/llm';
 import type { MastraMemory } from '@mastra/core/memory';
 import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
@@ -37,7 +38,11 @@ import {
   SPECIALIST_GOALS,
   SPECIALIST_SKILL_PLAYBOOKS,
 } from './prompts';
-import { REQUEST_CONTEXT_SCHEMA, type MastraSpecialistName, type ModeRequestContext } from './types';
+import {
+  REQUEST_CONTEXT_SCHEMA,
+  type MastraSpecialistName,
+  type ModeRequestContext,
+} from './types';
 
 export interface SpecialistDefinition {
   readonly name: MastraSpecialistName;
@@ -114,8 +119,7 @@ export const FUSION_AGENT_ID = 'kestrel-mastra-decision';
  * single injected context instead of pre-serialized strings.
  */
 export type CommitteeInstructions =
-  | string
-  | ((args: { requestContext: RequestContext<ModeRequestContext> }) => string);
+  string | ((args: { requestContext: RequestContext<ModeRequestContext> }) => string);
 
 export function createCommitteeAgent(
   model: LanguageModel,
@@ -130,7 +134,7 @@ export function createCommitteeAgent(
     id,
     name: id,
     description: 'Read-only Mastra market research agent.',
-    model,
+    model: model as unknown as MastraModelConfig,
     instructions,
     requestContextSchema: REQUEST_CONTEXT_SCHEMA,
     ...(tools && Object.keys(tools).length > 0 ? { tools: tools as never } : {}),

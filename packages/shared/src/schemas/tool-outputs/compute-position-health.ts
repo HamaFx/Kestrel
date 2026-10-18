@@ -32,16 +32,16 @@ export const ComputePositionHealthInputSchema = z.object({
   /** Optional symbol filter; omit for all open positions. */
   symbol: SymbolSchema.optional(),
   /** Cap on rows returned. */
-  limit: z.number().int().min(1).max(50).default(20),
+  limit: z.int().min(1).max(50).default(20),
 });
 export type ComputePositionHealthInput = z.infer<typeof ComputePositionHealthInputSchema>;
 
 export const PositionHealthRowSchema = z.object({
-  entryId: z.string().uuid(),
+  entryId: z.uuid(),
   symbol: SymbolSchema,
   side: TradeSideSchema,
   /** Trade open time, ms epoch UTC. */
-  openedAtMs: z.number().int(),
+  openedAtMs: z.int(),
   entry: z.number(),
   stop: z.number().nullable(),
   target: z.number().nullable(),
@@ -61,7 +61,7 @@ export const PositionHealthRowSchema = z.object({
 export type PositionHealthRow = z.infer<typeof PositionHealthRowSchema>;
 
 export const ComputePositionHealthOutputSchema = z.object({
-  asOf: z.number().int(),
+  asOf: z.int(),
   rows: z.array(PositionHealthRowSchema),
   /** True when at least one open trade was skipped due to a price-fetch failure. */
   partial: z.boolean(),

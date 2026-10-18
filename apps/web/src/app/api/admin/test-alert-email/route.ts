@@ -53,7 +53,7 @@ export const dynamic = 'force-dynamic';
 const BodySchema = z
   .object({
     /** Optional recipient override; only honoured when override mode is enabled. */
-    to: z.string().email().optional(),
+    to: z.email().optional(),
   })
   .default({});
 
@@ -86,7 +86,7 @@ export const POST = withAdminAuth(async (req, { user }) => {
       headers['Retry-After'] = String(rateLimit.retryAfter);
     }
     return Response.json(
-      { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please wait a moment.' } },
+      { error: { code: 'RATE_LIMITED', error: 'Too many requests. Please wait a moment.' } },
       { status: 429, headers },
     );
   }

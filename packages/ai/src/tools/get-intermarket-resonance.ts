@@ -23,7 +23,7 @@ import {
   type ResonanceObservation,
   type Symbol,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { desc } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -38,7 +38,10 @@ declare module '@kestrel/shared' {
   }
 }
 
-export const getIntermarketResonanceTool = tool({
+export const getIntermarketResonanceTool: Tool<
+  z.infer<typeof InputSchema>,
+  GetIntermarketResonanceOutput
+> = tool({
   description:
     "Evaluate Gold (XAUUSD) or major currencies' intermarket divergence against US 10-Year Real Yields (Opportunity Cost) and inflation expectations. Calculates z-score 'Hedging Premium' divergence index. Use when the user asks 'Are yields matching gold price' or 'Analyze institutional safe-haven premium'.",
   inputSchema: InputSchema,
@@ -127,9 +130,7 @@ function compileNarrative(
   regime: GetIntermarketResonanceOutput['regime'],
 ): string {
   const roundedDiv =
-    divergence !== null
-      ? `${divergence >= 0 ? '+' : ''}${divergence.toFixed(2)}`
-      : 'N/A';
+    divergence !== null ? `${divergence >= 0 ? '+' : ''}${divergence.toFixed(2)}` : 'N/A';
   const roundedYield = yieldPct !== null ? `${yieldPct.toFixed(2)}%` : 'N/A';
   const roundedInf = inflationPct !== null ? `${inflationPct.toFixed(2)}%` : 'N/A';
 

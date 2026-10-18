@@ -30,7 +30,7 @@ export const XauusdResearchPacketSchema = z.object({
   packetId: z.string().min(1),
   kind: z.literal('research_packet'),
   symbol: z.literal(XAUUSD),
-  generatedAt: z.string().datetime(),
+  generatedAt: z.iso.datetime(),
   status: z.enum(['succeeded', 'blocked']).or(z.literal('ready')),
   dataQuality: EvidenceQualitySchema,
   timeframes: z.array(TimeframeSchema),

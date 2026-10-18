@@ -74,9 +74,7 @@ export const analyzeCommand: BotCommand = {
 
     // Support "/analyze XAUUSD full" or "/analyze XAUUSD 1h full"
     const parsedMode =
-      parseTelegramAnalysisMode(args[1]) ??
-      parseTelegramAnalysisMode(args[2]) ??
-      'single';
+      parseTelegramAnalysisMode(args[1]) ?? parseTelegramAnalysisMode(args[2]) ?? 'single';
 
     // Rate limit: 10 analyses per minute per user
     const rateLimit = await withRateLimit(ctx.userId, 'bot_analyze', 10);
@@ -120,7 +118,7 @@ export const analyzeCommand: BotCommand = {
           threadId,
           userMessage,
           prompt: `Provide a ${parsedMode === 'full' ? 'full 4-expert' : 'quick'} market analysis of ${symbol} in simple, everyday trader language. Include the bottom line, key price levels, and main risks.`,
-          system:
+          instructions:
             'You are Kestrel helping a trader on Telegram. Use only verified market data, write in simple non-technical English, use scenario language, and never place trades.',
           ...(ctx.signal ? { signal: ctx.signal } : {}),
         });

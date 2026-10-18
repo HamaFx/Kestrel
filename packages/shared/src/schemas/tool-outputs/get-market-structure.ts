@@ -36,7 +36,7 @@ export const GetMarketStructureOutputSchema = z.object({
   symbol: z.string(),
   tf: z.string(),
   /** Number of candles the result was computed against. */
-  bars: z.number().int().nonnegative(),
+  bars: z.int().nonnegative(),
   swings: z.array(SwingPointSchema).optional(),
   events: z.array(StructureEventSchema).optional(),
   fvg: z.array(FvgZoneSchema).optional(),

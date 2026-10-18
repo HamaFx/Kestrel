@@ -24,7 +24,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema, tryGetSymbolDefinition, pipSize } from '../symbols';
+import { pipSize, SymbolSchema, tryGetSymbolDefinition } from '../symbols';
 
 // ---------------------------------------------------------------------------
 // Position
@@ -37,7 +37,7 @@ export const PositionStatusSchema = z.enum(['open', 'closed']);
 export type PositionStatus = z.infer<typeof PositionStatusSchema>;
 
 export const PortfolioPositionSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   userId: z.string(),
   symbol: SymbolSchema,
   direction: PositionDirectionSchema,
@@ -45,14 +45,14 @@ export const PortfolioPositionSchema = z.object({
   entryPrice: z.number().positive(),
   stopLoss: z.number().nullable(),
   takeProfit: z.number().nullable(),
-  openedAt: z.number().int(),
-  closedAt: z.number().int().nullable(),
+  openedAt: z.int(),
+  closedAt: z.int().nullable(),
   closePrice: z.number().nullable(),
   status: PositionStatusSchema,
   notes: z.string().nullable(),
-  linkedSignalId: z.string().uuid().nullable().optional(),
-  createdAt: z.number().int(),
-  updatedAt: z.number().int(),
+  linkedSignalId: z.uuid().nullable().optional(),
+  createdAt: z.int(),
+  updatedAt: z.int(),
 });
 export type PortfolioPosition = z.infer<typeof PortfolioPositionSchema>;
 
@@ -82,7 +82,7 @@ export const PortfolioSettingsSchema = z.object({
   baseCurrency: z.string().default('USD'),
   maxRiskPerTradePct: z.number().min(0).max(100).default(2.0),
   maxTotalExposurePct: z.number().min(0).max(100).default(10.0),
-  updatedAt: z.number().int(),
+  updatedAt: z.int(),
 });
 export type PortfolioSettings = z.infer<typeof PortfolioSettingsSchema>;
 
@@ -127,7 +127,7 @@ export const PortfolioRiskReportSchema = z.object({
   correlationRisk: z.array(CorrelationRiskItemSchema),
   positionsNearStop: z.array(PositionNearStopSchema),
   alerts: z.array(RiskAlertSchema),
-  openPositionCount: z.number().int(),
+  openPositionCount: z.int(),
 });
 export type PortfolioRiskReport = z.infer<typeof PortfolioRiskReportSchema>;
 
@@ -142,15 +142,15 @@ export const CreatePositionInputSchema = z.object({
   entryPrice: z.number().positive(),
   stopLoss: z.number().optional().nullable(),
   takeProfit: z.number().optional().nullable(),
-  openedAt: z.number().int().optional(),
+  openedAt: z.int().optional(),
   notes: z.string().optional().nullable(),
-  linkedSignalId: z.string().uuid().optional().nullable(),
+  linkedSignalId: z.uuid().optional().nullable(),
 });
 export type CreatePositionInput = z.infer<typeof CreatePositionInputSchema>;
 
 export const ClosePositionInputSchema = z.object({
   closePrice: z.number().positive(),
-  closedAt: z.number().int().optional(),
+  closedAt: z.int().optional(),
 });
 export type ClosePositionInput = z.infer<typeof ClosePositionInputSchema>;
 

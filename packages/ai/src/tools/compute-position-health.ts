@@ -30,7 +30,7 @@ import {
   type Symbol,
   type TradeSide,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 import { listEntries } from '../journal/persistence';
@@ -46,11 +46,17 @@ declare module '@kestrel/shared' {
 
 const NEAR_HIT_PIPS = 5;
 
-export const computePositionHealthTool = tool({
+export const computePositionHealthTool: Tool<
+  z.infer<typeof InputSchema>,
+  ComputePositionHealthOutput
+> = tool({
   description:
     'For each currently-open journal entry, compute live P/L in pips and R-multiples plus distance to stop and target. Use when the user asks "how are my open trades", "anything close to stopping out", or wants a live P/L pulse. Skips closed trades; sets `empty: true` when no positions are open and `partial: true` when at least one row was dropped due to a price-fetch failure.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, limit }, options?: { abortSignal?: AbortSignal }): Promise<ComputePositionHealthOutput> => {
+  execute: async (
+    { symbol, limit },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<ComputePositionHealthOutput> => {
     const ctx = getToolContext();
     const signal = options?.abortSignal ?? ctx.signal ?? undefined;
     const all = await listEntries(ctx.userId, {

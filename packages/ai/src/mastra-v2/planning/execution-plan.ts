@@ -13,8 +13,8 @@ import {
   type MastraCapability,
   type MastraCapabilityMode,
 } from '../capabilities';
-import { decideMastraExecution, type MastraExecutionDecisionInput } from './execution-decision';
 import { classifyMutationRequest } from '../mutation/mutation-detect';
+import { decideMastraExecution, type MastraExecutionDecisionInput } from './execution-decision';
 
 export const ExecutionRouteSchema = z.enum([
   'canonical-chat',
@@ -33,60 +33,58 @@ export const ExecutionRouteSchema = z.enum([
  * with the clear message below and are terminally rejected by the worker.
  */
 export const ExecutionModeSchema = z.enum(['single', 'full'], {
-  message:
+  error:
     "analysis mode must be 'single' or 'full' (legacy quick/standard/auto values are no longer accepted)",
 });
 
-export const ExecutionPlanSchema = z
-  .object({
-    version: z.literal(1),
-    route: ExecutionRouteSchema,
+export const ExecutionPlanSchema = z.strictObject({
+  version: z.literal(1),
+  route: ExecutionRouteSchema,
+  capabilityId: z.string().min(1).nullable(),
+  capabilityVersion: z.string().min(1).nullable(),
+  symbol: z.string().min(1).nullable(),
+  mode: ExecutionModeSchema,
+  model: z
+    .object({
+      providerId: z.string().min(1),
+      bareModelId: z.string().min(1),
+    })
+    .nullable(),
+  toolPolicy: z.object({
     capabilityId: z.string().min(1).nullable(),
-    capabilityVersion: z.string().min(1).nullable(),
-    symbol: z.string().min(1).nullable(),
-    mode: ExecutionModeSchema,
-    model: z
-      .object({
-        providerId: z.string().min(1),
-        bareModelId: z.string().min(1),
-      })
-      .nullable(),
-    toolPolicy: z.object({
-      capabilityId: z.string().min(1).nullable(),
-      tools: z.array(z.string()),
-      readOnly: z.boolean(),
-      requiresConfirmation: z.boolean(),
-    }),
-    evidencePolicy: z.object({
-      required: z.boolean(),
-      externalData: z.boolean(),
-      contentTrust: z.enum(['trusted', 'untrusted']).nullable(),
-    }),
-    memoryPolicy: z.object({
-      mode: z.enum(['native', 'disabled']),
-      required: z.boolean(),
-      scope: z.enum(['user-thread', 'none']),
-      semanticRecall: z.boolean().default(true),
-    }),
-    /**
-     * Audit plan §1.2 — guardrail policy derived from the capability
-     * manifest's trust level (never from NODE_ENV).
-     */
-    guardrail: z.object({
-      mode: z.enum(['strict', 'availability']),
-      strategy: z.enum(['block', 'rewrite']),
-    }),
-    maxSteps: z.number().int().positive(),
-    maxDurationMs: z.number().int().positive(),
-    streaming: z.boolean(),
-    mutationRequested: z.boolean(),
-    tenantId: z.string().min(1).nullable(),
-    xauusdChatKind: z.enum(['research', 'conversation']).nullable(),
-    reportFollowup: z.boolean(),
-    symbolCandidate: z.boolean(),
-    xauusdCandidate: z.boolean(),
-  })
-  .strict();
+    tools: z.array(z.string()),
+    readOnly: z.boolean(),
+    requiresConfirmation: z.boolean(),
+  }),
+  evidencePolicy: z.object({
+    required: z.boolean(),
+    externalData: z.boolean(),
+    contentTrust: z.enum(['trusted', 'untrusted']).nullable(),
+  }),
+  memoryPolicy: z.object({
+    mode: z.enum(['native', 'disabled']),
+    required: z.boolean(),
+    scope: z.enum(['user-thread', 'none']),
+    semanticRecall: z.boolean().default(true),
+  }),
+  /**
+   * Audit plan §1.2 — guardrail policy derived from the capability
+   * manifest's trust level (never from NODE_ENV).
+   */
+  guardrail: z.object({
+    mode: z.enum(['strict', 'availability']),
+    strategy: z.enum(['block', 'rewrite']),
+  }),
+  maxSteps: z.int().positive(),
+  maxDurationMs: z.int().positive(),
+  streaming: z.boolean(),
+  mutationRequested: z.boolean(),
+  tenantId: z.string().min(1).nullable(),
+  xauusdChatKind: z.enum(['research', 'conversation']).nullable(),
+  reportFollowup: z.boolean(),
+  symbolCandidate: z.boolean(),
+  xauusdCandidate: z.boolean(),
+});
 
 export type ExecutionPlan = z.infer<typeof ExecutionPlanSchema>;
 

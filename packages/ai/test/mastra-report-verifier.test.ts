@@ -16,7 +16,10 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { requireVerifiedXauusdReport, verifyXauusdReport } from '../src/mastra-v2/agents/xauusd/report/report-verifier';
+import {
+  requireVerifiedXauusdReport,
+  verifyXauusdReport,
+} from '../src/mastra-v2/agents/xauusd/report/report-verifier';
 import { XauusdResearchPacketSchema } from '../src/mastra-v2/packets/research-types';
 
 const evidenceId = 'kestrel-price-xauusd-fixture';
@@ -514,7 +517,7 @@ describe('XAUUSD report verifier', () => {
     expect(result.ok).toBe(false);
     expect(result.findings).toEqual(
       expect.arrayContaining([
-        'scenarios.0.invalidation: String must contain at least 1 character(s)',
+        'scenarios.0.invalidation: Too small: expected string to have >=1 characters',
       ]),
     );
   });

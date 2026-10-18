@@ -34,7 +34,7 @@ import {
   type ChartMarker,
   type ChartPriceLine,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 const InputSchema = AnnotateChartInputSchema;
@@ -60,7 +60,7 @@ const PALETTE = {
 
 void PALETTE;
 
-export const annotateChartTool = tool({
+export const annotateChartTool: Tool<z.infer<typeof InputSchema>, AnnotateChartOutput> = tool({
   description:
     "Compute chart annotations (swings, BOS/CHoCH, FVG, order blocks, liquidity sweeps, previous-day high/low, Asian session range) for a symbol/timeframe. Use when the user asks to 'mark', 'show', or 'annotate' something on the chart. The chat part renders a summary card with counts per kind and a deep link to open the Pro chart at this symbol/timeframe.",
   inputSchema: InputSchema,

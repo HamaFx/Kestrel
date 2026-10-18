@@ -44,8 +44,8 @@ export type GetSessionLevelsInput = z.infer<typeof GetSessionLevelsInputSchema>;
 export const SessionRangeSchema = z.object({
   session: SessionTagSchema,
   /** Session window start, ms epoch UTC. */
-  fromMs: z.number().int(),
-  toMs: z.number().int(),
+  fromMs: z.int(),
+  toMs: z.int(),
   /** Opening print of the session — first bar's open. */
   open: z.number().nullable(),
   /** Highest high in window; null when the session window has no bars yet. */
@@ -60,7 +60,7 @@ export type SessionRange = z.infer<typeof SessionRangeSchema>;
 
 export const GetSessionLevelsOutputSchema = z.object({
   symbol: SymbolSchema,
-  asOf: z.number().int(),
+  asOf: z.int(),
   /** Today's three sessions, ordered chronologically (asia → london → ny). */
   today: z.array(SessionRangeSchema),
   /** Prior trading day's sessions, when `includePrior=true`. */

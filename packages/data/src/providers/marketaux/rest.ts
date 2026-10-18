@@ -42,23 +42,21 @@ const THROTTLE: ThrottleConfig = { limit: 4, windowMs: 60_000 };
 export const DEFAULT_SEARCH =
   'XAU OR gold OR "EUR/USD" OR EURUSD OR "GBP/USD" OR GBPUSD OR Fed OR FOMC OR ECB OR BoE OR NFP OR "non-farm" OR CPI OR PCE';
 
-const EntitySchema = z
-  .object({
-    symbol: z.string().optional(),
-    name: z.string().optional(),
-    type: z.string().optional(),
-    industry: z.string().optional(),
-    match_score: z.number().optional(),
-    sentiment_score: z.number().optional(),
-  })
-  .passthrough();
+const EntitySchema = z.looseObject({
+  symbol: z.string().optional(),
+  name: z.string().optional(),
+  type: z.string().optional(),
+  industry: z.string().optional(),
+  match_score: z.number().optional(),
+  sentiment_score: z.number().optional(),
+});
 
 const ArticleSchema = z.object({
   uuid: z.string(),
   title: z.string(),
   description: z.string().nullable().optional(),
   snippet: z.string().nullable().optional(),
-  url: z.string().url(),
+  url: z.url(),
   source: z.string().optional(),
   published_at: z.string(),
   entities: z.array(EntitySchema).default([]),

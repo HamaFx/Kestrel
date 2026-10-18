@@ -27,9 +27,9 @@ import { JournalStatsSchema, TradeSideSchema } from '../journal';
 
 export const GetJournalStatsInputSchema = z.object({
   /** ms epoch lower bound on `openedAt`. */
-  sinceMs: z.number().int().optional(),
+  sinceMs: z.int().optional(),
   /** ms epoch upper bound on `openedAt`. */
-  untilMs: z.number().int().optional(),
+  untilMs: z.int().optional(),
   symbol: SymbolSchema.optional(),
   side: TradeSideSchema.optional(),
 });
@@ -38,7 +38,7 @@ export type GetJournalStatsInput = z.infer<typeof GetJournalStatsInputSchema>;
 export const StatBreakdownSchema = z.object({
   /** The bucket key — symbol code or tag string. */
   key: z.string(),
-  count: z.number().int().min(0),
+  count: z.int().min(0),
   /** [0, 1]; closed trades only. 0 when count is 0. */
   winRate: z.number().min(0).max(1),
   avgR: z.number(),

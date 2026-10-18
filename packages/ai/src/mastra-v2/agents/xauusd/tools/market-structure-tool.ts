@@ -25,17 +25,17 @@ import { z } from 'zod';
 
 import { computeMarketStructureOutput } from '../../../../tools/get-market-structure';
 import { createEvidenceId } from '../../../packets/evidence';
-import { candleEvidenceMetadata } from '../legacy-tool-adapter';
 import { executeMastraTool } from '../../../shared/telemetry';
-import { XauusdSymbolSchema } from '../tool-schemas';
 import { XAUUSD } from '../../../shared/types';
+import { candleEvidenceMetadata } from '../legacy-tool-adapter';
+import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({
   symbol: XauusdSymbolSchema.default(XAUUSD),
   timeframe: TimeframeSchema,
-  count: z.number().int().min(50).max(300).default(200),
+  count: z.int().min(50).max(300).default(200),
   kinds: z.array(StructureKindSchema).min(1).max(5).optional(),
-  lookback: z.number().int().min(2).max(10).default(3),
+  lookback: z.int().min(2).max(10).default(3),
 });
 
 const OutputSchema = z.object({
@@ -43,8 +43,8 @@ const OutputSchema = z.object({
   symbol: z.literal(XAUUSD),
   timeframe: TimeframeSchema,
   source: z.string().min(1),
-  fetchedAt: z.string().datetime(),
-  dataAsOf: z.string().datetime(),
+  fetchedAt: z.iso.datetime(),
+  dataAsOf: z.iso.datetime(),
   freshness: z.enum(['fresh', 'stale', 'unknown']),
   quality: z.enum(['complete', 'partial', 'degraded']),
   warnings: z.array(z.string()),

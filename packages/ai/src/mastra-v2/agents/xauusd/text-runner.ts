@@ -15,6 +15,7 @@
  */
 
 import { Agent } from '@mastra/core/agent';
+import type { MastraModelConfig } from '@mastra/core/llm';
 import {
   PromptInjectionDetector,
   UnicodeNormalizer,
@@ -24,8 +25,8 @@ import { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel, ModelMessage } from 'ai';
 import type { z } from 'zod';
 
-import { runTracingOptions } from '../../telemetry';
 import { getMastraGenerationStats } from '../../shared/telemetry';
+import { runTracingOptions } from '../../telemetry';
 
 /** Shared Unicode normalizer applied to every text-runner agent. */
 const NORMALIZER = new UnicodeNormalizer({
@@ -67,7 +68,7 @@ function buildInputProcessors(
 export interface MastraTextRunArgs {
   task: string;
   model: LanguageModel;
-  system: string;
+  instructions: string;
   prompt?: string;
   messages?: ModelMessage[];
   userId?: string;
@@ -117,8 +118,8 @@ export async function runMastraText(args: MastraTextRunArgs): Promise<MastraText
     id: `kestrel-mastra-${args.task.replace(/[^a-z0-9-]/gi, '-')}`,
     name: `Kestrel Mastra ${args.task}`,
     description: 'Bounded Kestrel generation executed through Mastra.',
-    model: args.model,
-    instructions: args.system,
+    model: args.model as unknown as MastraModelConfig,
+    instructions: args.instructions,
     inputProcessors: buildInputProcessors(args.model, args.skipInputGuardrails),
     ...(args.tools ? { tools: args.tools } : {}),
   } as never;
@@ -163,8 +164,8 @@ export async function runMastraStructured<TOutput>(
     id: `kestrel-mastra-${args.task.replace(/[^a-z0-9-]/gi, '-')}`,
     name: `Kestrel Mastra ${args.task}`,
     description: 'Bounded structured Kestrel generation executed through Mastra.',
-    model: args.model,
-    instructions: args.system,
+    model: args.model as unknown as MastraModelConfig,
+    instructions: args.instructions,
     inputProcessors: buildInputProcessors(args.model, args.skipInputGuardrails),
   });
   const result = await agent.generate(args.prompt, {

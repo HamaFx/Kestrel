@@ -37,7 +37,7 @@ import {
   type ComputeRiskOutput,
   type Symbol,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 const InputSchema = ComputeRiskInputSchema;
@@ -48,7 +48,7 @@ declare module '@kestrel/shared' {
   }
 }
 
-export const computeRiskTool = tool({
+export const computeRiskTool: Tool<z.infer<typeof InputSchema>, ComputeRiskOutput> = tool({
   description:
     "Compute position size, USD risk/reward, and catalog distance-to-stop/target from a (symbol, side, entry, stop, target?, accountUsd, riskPct) tuple. Pure-function — no provider calls. Forex and gold distances use pips; crypto distances use raw price units. Use when the user asks 'how big should I be on this trade' or 'what size for X% risk'. Reward + RR are null when no target is supplied. Sets `invalidDirection: true` when stop is on the wrong side of entry for the given direction.",
   inputSchema: InputSchema,
@@ -62,7 +62,9 @@ export const computeRiskTool = tool({
       definition.quoteCurrency !== 'USDT' &&
       definition.baseCurrency !== 'USD'
     ) {
-      throw new Error('Risk sizing currently requires a USD- or USDT-quoted symbol or USD-base pair');
+      throw new Error(
+        'Risk sizing currently requires a USD- or USDT-quoted symbol or USD-base pair',
+      );
     }
     const distanceUnit = definition.capabilities.priceDistanceUnit;
     const distanceStep = distanceUnit === 'price' ? 1 : pipSize(symbol);
@@ -135,8 +137,7 @@ function valuePerDistanceUnitFor(symbol: Symbol, entry?: number): number {
   }
   if (definition.baseCurrency === 'USD') {
     return (
-      (definition.capabilities.contractSize * definition.pipSize) /
-      (entry && entry > 0 ? entry : 1)
+      (definition.capabilities.contractSize * definition.pipSize) / (entry && entry > 0 ? entry : 1)
     );
   }
   return definition.capabilities.contractSize * definition.pipSize;

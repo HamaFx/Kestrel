@@ -36,10 +36,10 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const TelegramUpdateSchema = z.object({
-  update_id: z.number().int(),
+  update_id: z.int(),
   message: z
     .object({
-      message_id: z.number().int(),
+      message_id: z.int(),
       chat: z.object({
         id: z.number(),
         first_name: z.string().optional(),
@@ -69,7 +69,7 @@ const TelegramUpdateSchema = z.object({
         .optional(),
       message: z
         .object({
-          message_id: z.number().int(),
+          message_id: z.int(),
           chat: z.object({ id: z.number() }),
         })
         .optional(),
@@ -77,7 +77,7 @@ const TelegramUpdateSchema = z.object({
     .optional(),
   edited_message: z
     .object({
-      message_id: z.number().int(),
+      message_id: z.int(),
       chat: z.object({ id: z.number() }),
       text: z.string().optional(),
     })

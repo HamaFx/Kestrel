@@ -34,13 +34,13 @@ export type ChatTitleSource = z.infer<typeof ChatTitleSourceSchema>;
  * Persisted chat thread metadata. Messages live in a separate table.
  */
 export const ChatThreadSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   title: z.string().nullable(),
   titleSource: ChatTitleSourceSchema,
   pinnedSymbol: SymbolSchema.nullable(),
   modelOverride: z.string().nullable(),
-  createdAt: z.number().int(),
-  updatedAt: z.number().int(),
+  createdAt: z.int(),
+  updatedAt: z.int(),
 });
 export type ChatThread = z.infer<typeof ChatThreadSchema>;
 
@@ -49,12 +49,12 @@ export type ChatThread = z.infer<typeof ChatThreadSchema>;
  * tool-call data lives in `parts` so the UI can re-hydrate rich tool cards.
  */
 export const ChatMessageSchema = z.object({
-  id: z.string().uuid(),
-  threadId: z.string().uuid(),
+  id: z.uuid(),
+  threadId: z.uuid(),
   role: ChatRoleSchema,
   content: z.string(),
   /** Provider-agnostic JSON for tool calls / results / attachments. */
   parts: z.unknown().nullable(),
-  createdAt: z.number().int(),
+  createdAt: z.int(),
 });
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;

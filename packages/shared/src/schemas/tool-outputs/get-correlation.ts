@@ -31,7 +31,7 @@ import { TimeframeSchema } from '../../timeframes';
 
 export const GetCorrelationInputSchema = z.object({
   tf: TimeframeSchema.default('1h'),
-  windowBars: z.number().int().min(20).max(500).default(100),
+  windowBars: z.int().min(20).max(500).default(100),
 });
 export type GetCorrelationInput = z.infer<typeof GetCorrelationInputSchema>;
 
@@ -45,8 +45,8 @@ export type CorrelationCell = z.infer<typeof CorrelationCellSchema>;
 
 export const GetCorrelationOutputSchema = z.object({
   tf: TimeframeSchema,
-  windowBars: z.number().int(),
-  asOf: z.number().int(),
+  windowBars: z.int(),
+  asOf: z.int(),
   matrix: z.array(CorrelationCellSchema),
   dxyProxy: z.object({
     /** Synthetic USD-strength index. Typically near 100 with the chosen formula. */
@@ -54,7 +54,7 @@ export const GetCorrelationOutputSchema = z.object({
     /** Percent change of the proxy across the most recent 24 hours of bars. */
     change24h: z.number(),
     /** Bars used to compute the value. */
-    samples: z.number().int(),
+    samples: z.int(),
     /** Verbatim formula + weights so the agent can cite it. */
     formula: z.string(),
   }),

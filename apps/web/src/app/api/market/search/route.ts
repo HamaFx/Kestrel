@@ -25,7 +25,7 @@ import { checkMarketRateLimit, searchSymbolsService } from '@/lib/services/marke
 
 const QuerySchema = z.object({
   q: z.string().min(1).max(50),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  limit: z.coerce.number().int().min(1).max(50).prefault(20),
 });
 
 export const runtime = 'nodejs';

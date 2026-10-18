@@ -29,7 +29,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ReviewSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 });
 
 export const POST = withAuth<void>(async (req, { user }) => {

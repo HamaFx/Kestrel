@@ -32,8 +32,11 @@ import type { AgentMemoryOption } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
 import { z } from 'zod';
 
+import {
+  SymbolResearchPacketSchema,
+  type SymbolResearchPacket,
+} from '../mastra-v2/packets/symbol-research';
 import type { MastraGenerationStats } from '../mastra-v2/shared/stats';
-import { SymbolResearchPacketSchema, type SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 
 export type MastraAnalysisMode = 'single' | 'full';
 export type MastraSpecialistName = 'technical' | 'fundamental' | 'risk' | 'sentiment';
@@ -59,12 +62,7 @@ export const COMMITTEE_DEADLINE_MS = 45_000;
 
 /** One logical workflow stage, emitted as progress exactly once per run. */
 export type CommitteeStepId =
-  | MastraSpecialistName
-  | 'collect-packet'
-  | 'critique'
-  | 'debate'
-  | 'verify'
-  | 'fusion';
+  MastraSpecialistName | 'collect-packet' | 'critique' | 'debate' | 'verify' | 'fusion';
 
 /** Ordered progress stages for a mode (stable across runs and snapshots). */
 export function committeeProgressStages(mode: MastraAnalysisMode): readonly CommitteeStepId[] {
@@ -227,7 +225,7 @@ export const MastraModeOpinionSchema = z.object({
   bias: z.enum(['bullish', 'bearish', 'neutral']),
   confidence: z.number().min(0).max(1),
   reasoning: z.string().min(1),
-  rawData: z.record(z.unknown()),
+  rawData: z.record(z.string(), z.unknown()),
   model: z.string(),
   providerId: z.string(),
   inputTokens: z.number(),

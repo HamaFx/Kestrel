@@ -27,7 +27,7 @@ import {
   type CandlePeriodSummary,
   type GetCandlesOutput,
 } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { maybeGetToolContext } from '../tool-context';
@@ -36,7 +36,7 @@ const InputSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
   /** Bars to fetch. Cap kept tight — the model rarely benefits from >200. */
-  count: z.number().int().min(10).max(500).default(120),
+  count: z.int().min(10).max(500).default(120),
 });
 
 declare module '@kestrel/shared' {
@@ -47,11 +47,14 @@ declare module '@kestrel/shared' {
 
 const TAIL_BARS = 30;
 
-export const getCandlesTool = tool({
+export const getCandlesTool: Tool<z.infer<typeof InputSchema>, GetCandlesOutput> = tool({
   description:
     'Fetch OHLC candles for one symbol at one timeframe (e.g. XAUUSD 1h). Returns a comprehensive period summary plus the most recent 30 candles to minimize token overhead. For RSI/MACD/EMA/etc. prefer get_indicators.',
   inputSchema: InputSchema,
-  execute: async ({ symbol, tf, count }, options?: { abortSignal?: AbortSignal }): Promise<GetCandlesOutput> => {
+  execute: async (
+    { symbol, tf, count },
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetCandlesOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
 

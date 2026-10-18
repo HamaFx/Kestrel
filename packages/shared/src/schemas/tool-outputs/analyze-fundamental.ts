@@ -30,22 +30,22 @@ import { ToolNewsItemSchema } from './get-news';
 export const AnalyzeFundamentalInputSchema = z.object({
   symbol: SymbolSchema,
   /** Look-ahead window in hours for the calendar query. Defaults to 24h. */
-  horizonHours: z.number().int().min(1).max(168).default(24),
+  horizonHours: z.int().min(1).max(168).default(24),
 });
 export type AnalyzeFundamentalInput = z.infer<typeof AnalyzeFundamentalInputSchema>;
 
 export const AnalyzeFundamentalOutputSchema = z.object({
   symbol: SymbolSchema,
-  windowFromMs: z.number().int(),
-  windowToMs: z.number().int(),
+  windowFromMs: z.int(),
+  windowToMs: z.int(),
   /** Currencies derived from the symbol (USD, EUR, GBP). */
   currencies: z.array(z.string()),
   events: z.array(EconomicEventSchema),
   headlines: z.array(ToolNewsItemSchema),
   sentiment: z.object({
-    positive: z.number().int().min(0),
-    negative: z.number().int().min(0),
-    neutral: z.number().int().min(0),
+    positive: z.int().min(0),
+    negative: z.int().min(0),
+    neutral: z.int().min(0),
   }),
   summary: z.string(),
   /** True when both events and headlines are empty (pipelines haven't run). */

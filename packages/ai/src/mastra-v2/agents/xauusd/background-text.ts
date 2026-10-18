@@ -16,14 +16,15 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { Agent } from '@mastra/core/agent';
+import type { MastraModelConfig } from '@mastra/core/llm';
 import { RequestContext } from '@mastra/core/request-context';
 
 import { reserveTurnBudget } from '../../../budget';
 import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } from '../../../cost';
+import type { ResolveModelEnv } from '../../../env-model-factory';
 import { createGenerationLedger, type GenerationLedger } from '../../../generation-ledger';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
 import { telemetryConfig } from '../../../telemetry';
-import type { ResolveModelEnv } from '../../../env-model-factory';
 import { manifestForCapability } from '../../capabilities';
 import { buildGuardrailInputProcessors } from '../../guardrails';
 import {
@@ -38,7 +39,7 @@ export interface RunMastraBackgroundTextArgs {
   threadId: string;
   task: 'briefing' | 'weekly_review' | 'title' | 'journal_review' | 'bot';
   prompt: string;
-  system: string;
+  instructions: string;
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel' | 'maxDailyUsd'>;
   env: ResolveModelEnv;
   signal?: AbortSignal;
@@ -113,8 +114,8 @@ export async function runMastraBackgroundText(
       id: `kestrel-mastra-worker-${args.task}`,
       name: `Kestrel Mastra ${args.task}`,
       description: 'Bounded read-only background generation for Kestrel.',
-      model: resolution.model,
-      instructions: args.system,
+      model: resolution.model as unknown as MastraModelConfig,
+      instructions: args.instructions,
       ...(guardrails.length > 0 ? { inputProcessors: guardrails } : {}),
     });
     const requestContext = new RequestContext([

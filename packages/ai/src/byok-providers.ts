@@ -1,3 +1,8 @@
+import { createGoogle } from '@ai-sdk/google';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import type { ProviderId } from '@kestrel/shared/byok';
+import type { EmbeddingModel } from 'ai';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -50,11 +55,6 @@ export {
   lookupModelRate,
   buildCatalogRateTable,
 } from './_providers/registry';
-
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { ProviderId } from '@kestrel/shared/byok';
-import type { EmbeddingModel } from 'ai';
 
 export interface ProviderCapability {
   supportsVision: boolean;
@@ -138,23 +138,23 @@ export function buildByokEmbeddingModel(
   provider: ProviderId,
   modelId: string,
   apiKey: string,
-): EmbeddingModel<string> {
+): EmbeddingModel {
   const bareModelId = modelId.includes('/') ? modelId.split('/').slice(1).join('/') : modelId;
   switch (provider) {
     case 'google':
-      return createGoogleGenerativeAI({ apiKey }).textEmbeddingModel(bareModelId);
+      return createGoogle({ apiKey }).embeddingModel(bareModelId);
     case 'openai':
       return createOpenAICompatible({
         name: 'openai',
         baseURL: 'https://api.openai.com/v1',
         apiKey,
-      }).textEmbeddingModel(bareModelId);
+      }).embeddingModel(bareModelId);
     case 'mistral':
       return createOpenAICompatible({
         name: 'mistral',
         baseURL: 'https://api.mistral.ai/v1',
         apiKey,
-      }).textEmbeddingModel(bareModelId);
+      }).embeddingModel(bareModelId);
     default:
       throw new Error(`Provider "${provider}" does not support direct text embeddings.`);
   }

@@ -159,7 +159,7 @@ async function composeEventSummary(
       threadId,
       task: 'briefing',
       prompt: buildEventPrompt(event, kind),
-      system:
+      instructions:
         'You are Kestrel writing a concise economic-event briefing. Use only the supplied event facts. Do not invent market data, promise outcomes, or issue trade instructions. Return at most six short bullets.',
       settings,
       env,
@@ -318,7 +318,7 @@ async function composeWeeklyReviewSummary(
       threadId,
       task: 'weekly_review',
       prompt: `Stats:\n${det}\n\nWrite the weekly review.`,
-      system:
+      instructions:
         'You are Kestrel writing a concise weekly trading review. Use only the supplied deterministic statistics. Do not invent trades, prices, or performance. Return at most five short bullets.',
       settings,
       env,

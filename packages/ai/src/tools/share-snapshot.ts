@@ -24,7 +24,7 @@
 // in middleware; gated instead by the token signature + expiry.
 
 import { ShareSnapshotInputSchema, type ShareSnapshotOutput } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 import { createSnapshot } from '../share/persistence';
@@ -40,7 +40,7 @@ declare module '@kestrel/shared' {
   }
 }
 
-export const shareSnapshotTool = tool({
+export const shareSnapshotTool: Tool<z.infer<typeof InputSchema>, ShareSnapshotOutput> = tool({
   description:
     "Persist a one-off analysis snapshot (title + body + optional chart overlay) and return a signed share URL the user can paste into Telegram/iMessage/etc. The link is valid for `ttlMinutes` (default 7 days). Use when the user says 'share this analysis' or 'send me a link to this'. The link bypasses the password gate but verifies an HMAC token, so the password is never exposed.",
   inputSchema: InputSchema,

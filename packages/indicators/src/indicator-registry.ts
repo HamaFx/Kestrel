@@ -49,7 +49,7 @@ export interface IndicatorPlugin {
   /** Unique indicator kind (e.g. 'sma', 'ema', 'rsi'). */
   kind: IndicatorKind;
   /** Zod schema for params. Used by parseIndicatorParams(). */
-  paramsSchema: z.ZodTypeAny;
+  paramsSchema: z.ZodType;
   /**
    * Compute the indicator values from candles + parsed params.
    * Returns the raw value array — the registry wraps it into
@@ -139,7 +139,7 @@ export const indicatorRegistry = new IndicatorRegistry();
 
 // --- Per-kind parameter schemas (moved from registry.ts) -----------------
 
-const PeriodOnly = z.object({ period: z.number().int().min(1).max(500) });
+const PeriodOnly = z.object({ period: z.int().min(1).max(500) });
 
 indicatorRegistry.register({
   kind: 'sma',
@@ -173,9 +173,9 @@ indicatorRegistry.register({
   kind: 'macd',
   paramsSchema: z
     .object({
-      fast: z.number().int().min(1).max(200).default(12),
-      slow: z.number().int().min(1).max(500).default(26),
-      signal: z.number().int().min(1).max(200).default(9),
+      fast: z.int().min(1).max(200).default(12),
+      slow: z.int().min(1).max(500).default(26),
+      signal: z.int().min(1).max(200).default(9),
     })
     .default({ fast: 12, slow: 26, signal: 9 }),
   compute: (candles, params) =>
@@ -191,7 +191,7 @@ indicatorRegistry.register({
   kind: 'bollinger',
   paramsSchema: z
     .object({
-      period: z.number().int().min(2).max(500).default(20),
+      period: z.int().min(2).max(500).default(20),
       multiplier: z.number().min(0.1).max(10).default(2),
     })
     .default({ period: 20, multiplier: 2 }),

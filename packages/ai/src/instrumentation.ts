@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-// Langfuse + OpenTelemetry instrumentation for the Vercel AI SDK v5.
+// Langfuse + OpenTelemetry instrumentation for the Vercel AI SDK v7.
 //
 // Import once at process start (Next.js instrumentation and the worker entry
 // point). AI SDK telemetry is opt-in per call; `telemetryConfig()` provides
-// that call-level setting. This module only owns exporter lifecycle.
+// that call-level setting. This module owns exporter lifecycle and the
+// `@ai-sdk/otel` bridge that forwards AI SDK spans into OpenTelemetry.
 
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { registerTelemetry } from 'ai';
 
 import { redactSecrets } from './diagnostics/redact';
 
@@ -83,6 +86,9 @@ export function initLangfuse(options: { service?: LangfuseService } = {}): void 
   try {
     const nextSdk = new NodeSDK({ spanProcessors: [nextProcessor] });
     nextSdk.start();
+    // AI SDK v7 moved span collection out of the core package; register the
+    // OpenTelemetry bridge so model/tool spans reach the Langfuse processor.
+    registerTelemetry(new OpenTelemetry());
     processor = nextProcessor;
     sdk = nextSdk;
     started = true;

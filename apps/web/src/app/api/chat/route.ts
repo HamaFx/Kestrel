@@ -65,7 +65,7 @@ const ROUTE_TIMEOUT_MS = 55_000;
 const CHAT_RATE_LIMIT = Number(process.env.AI_CHAT_RATE_LIMIT ?? '30');
 
 const BodySchema = z.object({
-  threadId: z.string().uuid(),
+  threadId: z.uuid(),
   modelOverride: z.string().min(1).max(120).nullable().optional(),
   // Q2 decision: exactly two analysis modes; anything else fails validation.
   analysisMode: z.enum(['single', 'full']).optional(),
@@ -332,7 +332,12 @@ export const POST = withAuth<void>(async (req, { user }) => {
       }
       let resolvedModel: ReturnType<typeof resolveMastraModeModel>;
       try {
-        resolvedModel = resolveMastraModeModel(settings, serverEnv, body.modelOverride ?? null, executionPlan);
+        resolvedModel = resolveMastraModeModel(
+          settings,
+          serverEnv,
+          body.modelOverride ?? null,
+          executionPlan,
+        );
       } catch {
         return errorJson(
           'MODEL_OVERRIDE_UNAVAILABLE',

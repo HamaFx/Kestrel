@@ -21,7 +21,7 @@
 // a thin read with a templated summary string.
 
 import { GetCoTInputSchema, type CoTSample, type GetCoTOutput, type Symbol } from '@kestrel/shared';
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 import { countCoTRows, listCoTSamples } from '../cot/persistence';
@@ -34,7 +34,7 @@ declare module '@kestrel/shared' {
   }
 }
 
-export const getCoTTool = tool({
+export const getCoTTool: Tool<z.infer<typeof InputSchema>, GetCoTOutput> = tool({
   description:
     "Last N weeks of CFTC Commitment-of-Traders rows for one symbol (default XAUUSD). Use to answer 'how is leveraged-fund net positioning changing on gold' or 'are dealers net long the dollar'. Returns 4-bucket long/short positions per week (dealer / asset / leveraged / other). Computes net = long - short on the agent side.",
   inputSchema: InputSchema,

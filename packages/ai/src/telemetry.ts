@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Vercel AI SDK v5 telemetry is opt-in per generateText/streamText call.
+// Vercel AI SDK v7 telemetry is opt-in per generateText/streamText call.
 // This helper keeps every call consistent and attaches Kestrel correlation
 // fields without recording prompts or outputs by default.
 
@@ -39,7 +39,7 @@ type TelemetrySettings = {
   metadata: Record<string, AttributeValue>;
 };
 
-type TelemetryConfig = { experimental_telemetry: TelemetrySettings };
+type TelemetryConfig = { telemetry: TelemetrySettings };
 
 function isLangfuseConfigured(): boolean {
   return Boolean(
@@ -92,7 +92,7 @@ export function telemetryConfig(
   };
 
   return {
-    experimental_telemetry: {
+    telemetry: {
       isEnabled: true,
       // Prompts, tool inputs, and outputs may contain user/private market
       // context. Capture them only when the operator explicitly opts in.

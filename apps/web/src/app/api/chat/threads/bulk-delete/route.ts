@@ -37,7 +37,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const BodySchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(50),
+  ids: z.array(z.uuid()).min(1).max(50),
 });
 
 // Bulk delete is a destructive batch action — rate-limit it more
