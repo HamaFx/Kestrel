@@ -87,6 +87,53 @@ export function verifyFusionAnswer(
 }
 
 /**
+ * A-01 (B-01/B-08) — comparison fusion verification. Every numeric value in
+ * the cross-symbol answer must be supported by *some* symbol's packet
+ * evidence (plus the desks' verified tool outputs); the union keeps each
+ * packet's numbers groundable while still rejecting invented ones.
+ */
+export function verifyComparisonFusionAnswer(
+  text: string,
+  packets: readonly SymbolResearchPacket[],
+  opinions?: readonly Pick<MastraModeOpinion, 'rawData'>[],
+): FusionVerification {
+  const findings: string[] = [];
+
+  if (!text || !text.trim()) {
+    findings.push('fusion answer is empty');
+    emitVerificationMetrics(false, findings);
+    return { ok: false, findings };
+  }
+
+  if (packets.length === 0) {
+    findings.push('comparison fusion has no packets to verify against');
+    emitVerificationMetrics(false, findings);
+    return { ok: false, findings };
+  }
+
+  // Only when every symbol's packet is unavailable are numeric claims
+  // categorically rejected (mirrors the single-packet blocked path).
+  const allBlocked = packets.every((packet) => packet.status !== 'ready');
+  if (allBlocked) {
+    if (/\d/.test(text)) {
+      findings.push('numeric claims are not allowed when packet data is unavailable');
+    }
+    emitVerificationMetrics(findings.length === 0, findings);
+    return { ok: findings.length === 0, findings };
+  }
+
+  const evidenceValues = packets.flatMap((packet) => packetEvidenceValues(packet, opinions));
+  for (const value of ungroundedNarrativeNumbers(text, evidenceValues)) {
+    findings.push(
+      `fusion answer contains unsupported numeric value ${value}; it must come from the packets or be labeled as a scenario projection`,
+    );
+  }
+
+  emitVerificationMetrics(findings.length === 0, findings);
+  return { ok: findings.length === 0, findings };
+}
+
+/**
  * Repair prompt for the single bounded fusion regeneration (audit plan
  * §1.4). Mirrors `repairPrompt` from the XAUUSD report path.
  */

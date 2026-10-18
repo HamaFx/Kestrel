@@ -92,9 +92,10 @@ export interface SpecialistRunnerDeps {
     modelId: string;
     providerId: string;
   } | null;
-  memory: MastraMemory;
+  /** P-01: optional so view-only canonical registrations (Studio) can run without BYOK memory. */
+  memory?: MastraMemory | undefined;
   /** Read thread context; read-only is enforced by default inside the runner. */
-  specialistCallOptions: AgentMemoryOption;
+  specialistCallOptions?: AgentMemoryOption | undefined;
   inputProcessors?: Array<InputProcessorOrWorkflow>;
   researchInputProcessors?: Array<InputProcessorOrWorkflow>;
   scorers?: MastraScorers;
@@ -113,6 +114,11 @@ export interface RunSpecialistGenerationArgs {
   signal?: AbortSignal;
   /** Step start time; reused so failure markers report the full step latency. */
   startedAt: number;
+  /**
+   * A-01 — symbol label for comparison runs. When set, the emitted opinion
+   * carries the symbol so fusion and persistence can attribute the desk read.
+   */
+  symbol?: string;
   deps: SpecialistRunnerDeps;
 }
 
@@ -155,7 +161,9 @@ export async function runSpecialistGeneration(
         requestContext: packetContext,
         // Specialists never persist their internal opinions; the fusion/output
         // layer owns user-visible assistant writes (Phase 6).
-        memory: readOnlyMemoryOptions(deps.specialistCallOptions),
+        ...(deps.specialistCallOptions
+          ? { memory: readOnlyMemoryOptions(deps.specialistCallOptions) }
+          : {}),
         toolChoice: 'auto',
         maxSteps: effectiveMaxSteps,
         structuredOutput: {
@@ -196,6 +204,7 @@ export async function runSpecialistGeneration(
     };
     const candidateOpinion: MastraModeOpinion = {
       agentName: name,
+      ...(args.symbol ? { symbol: args.symbol } : {}),
       bias: opinion.bias,
       confidence: opinion.confidence,
       reasoning: opinion.reasoning,
@@ -251,6 +260,18 @@ export function readSpecialistStepResult(
   name: MastraSpecialistName,
 ): SpecialistStepResult | undefined {
   return readStepResult(getStepResult, name, SpecialistStepResultSchema);
+}
+
+/**
+ * A-01 — read a specialist step result by an explicit step id. Comparison
+ * runs register one technical step per symbol (`technical-xauusd`, …), so
+ * the fixed `MastraSpecialistName` ids no longer describe every step.
+ */
+export function readSpecialistStepResultById(
+  getStepResult: (stepId: string) => unknown,
+  stepId: string,
+): SpecialistStepResult | undefined {
+  return readStepResult(getStepResult, stepId, SpecialistStepResultSchema);
 }
 
 /** Read the collect-packet stage output through its typed schema. */

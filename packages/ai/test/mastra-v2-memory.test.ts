@@ -68,7 +68,24 @@ describe('mastra-v2 vector store', () => {
   });
 
   it('throws for postgres without a connection string', () => {
-    expect(() => createKestrelVectorStore('postgres', {})).toThrow(/DIRECT_URL/);
+    // Audit 2026-10-18: the vector store falls back to process.env after the
+    // explicit env object; isolate the ambient DB env so the CI
+    // MASTRA_STORAGE=postgres matrix entry cannot mask this assertion.
+    const keys = ['DIRECT_URL', 'POSTGRES_URL_NON_POOLING', 'DATABASE_URL', 'POSTGRES_URL'] as const;
+    const saved = new Map<string, string | undefined>();
+    for (const key of keys) {
+      saved.set(key, process.env[key]);
+      delete process.env[key];
+    }
+    try {
+      expect(() => createKestrelVectorStore('postgres', {})).toThrow(/DIRECT_URL/);
+    } finally {
+      for (const key of keys) {
+        const value = saved.get(key);
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
   });
 
   it('returns a cached singleton from getKestrelVectorStore', () => {

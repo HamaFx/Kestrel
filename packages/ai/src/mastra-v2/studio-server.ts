@@ -119,6 +119,11 @@ main().catch((err: unknown) => {
  * models resolved from env; the per-request BYOK factories in the web/worker
  * paths remain the production entry points.
  *
+ * B-10 / F-12 (audit 2026-10-18): registration uses the public
+ * `mastra.addAgent()` / `mastra.addWorkflow()` APIs instead of the private
+ * `__registerFs*` internals, so a Mastra minor bump cannot silently break
+ * Studio.
+ *
  * Best-effort: if model resolution or registration fails, the server still
  * starts — Studio just shows an empty agents/workflows list.
  */
@@ -129,8 +134,9 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
     const { createCommitteeWorkflow } = await import('../committee/workflow');
     const { createXauusdReportWorkflow } = await import('./workflows/xauusd-report');
     const { createMutationWorkflow } = await import('./workflows/mutation');
-
-    const env = process.env as never;
+    // P-01 (audit 2026-10-18): typed env instead of `process.env as never`.
+    const { parseServerEnv, pickAiEnv } = await import('@kestrel/shared');
+    const env = pickAiEnv(parseServerEnv(process.env));
     const resolution = resolveChatModel(
       { aiApiKeys: null, chatModel: process.env.AI_DEFAULT_MODEL ?? null },
       env,
@@ -139,34 +145,27 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
 
     // Canonical XAUUSD conversation agent.
     const agent = createXauusdMastraAgent({ model: resolution.model });
-    (
-      instance as unknown as { __registerFsAgents: (agents: Record<string, unknown>) => void }
-    ).__registerFsAgents({ xauusdConversation: agent });
+    instance.addAgent(agent, 'xauusdConversation');
 
-    // Canonical workflows (non-BYOK, for Studio visibility only).
+    // Canonical workflows (non-BYOK, for Studio visibility only). Studio has
+    // no thread memory, so the committee deps omit memory/call options (P-01).
     const mastra = instance;
     const symbolResearch = createCommitteeWorkflow(
       {
         model: resolution.model,
         modelId: resolution.modelId,
         providerId: resolution.providerId,
-        memory: undefined as never,
-        specialistCallOptions: {} as never,
-        fusionCallOptions: {} as never,
         mastra,
       },
       'full',
     );
     const xauusdReport = createXauusdReportWorkflow({
-      agent: agent as never,
-      callOptions: {} as never,
+      agent,
       providerId: resolution.providerId,
       mastra,
     });
-    const workflows: Record<string, unknown> = {
-      symbolResearch,
-      xauusdResearch: xauusdReport,
-    };
+    instance.addWorkflow(symbolResearch, 'symbolResearch');
+    instance.addWorkflow(xauusdReport, 'xauusdResearch');
     for (const kind of [
       'set_alert',
       'log_journal',
@@ -183,11 +182,8 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
         writeAudit: async () => {},
         mastra,
       });
-      workflows[`mutationWorkflows-${kind}`] = mutationWf;
+      instance.addWorkflow(mutationWf, `mutationWorkflows-${kind}`);
     }
-    (
-      instance as unknown as { __registerFsWorkflows: (wfs: Record<string, unknown>) => void }
-    ).__registerFsWorkflows(workflows);
 
     log.info('registered canonical agents + workflows');
   } catch (err) {

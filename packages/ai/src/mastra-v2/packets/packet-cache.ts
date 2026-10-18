@@ -43,9 +43,10 @@
  * stay on the request path; reads are the point of the mirror.
  */
 
-import { metrics, readFeatureFlag, type Symbol } from '@kestrel/shared';
+import { metrics, readFeatureFlag, SymbolSchema, type Symbol } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
+import { MAX_COMPARISON_SYMBOLS, PACKET_CACHE_TTL_MS } from '../shared/constants';
 import {
   collectSymbolResearchPacket,
   SymbolResearchPacketSchema,
@@ -55,16 +56,26 @@ import {
 
 export { SymbolResearchPacketSchema } from './symbol-research';
 
-const pclog = createCategorizedLogger('ai', { component: 'packet-cache' });
+const pclog = createCategorizedLogger('ai', { component: 'mastra:packet-cache' });
 
-/** Q5 decision: 30s TTL, fresh-only. */
-export const PACKET_CACHE_TTL_MS = 30_000;
+/** Q5 decision: 30s TTL, fresh-only. Defined in shared constants (P-05). */
+export { PACKET_CACHE_TTL_MS };
 
 /** Entry-budget for the in-process LRU (symbols × recent windows). */
 const MAX_ENTRIES = 10_000;
 
 /** 15s bucket keys keep lookups stable within the 30s TTL window. */
 const CACHE_BUCKET_MS = 15_000;
+
+/**
+ * B-04 (audit 2026-10-18) — number of buckets a live entry can occupy. With a
+ * 30s TTL and 15s buckets, an entry stored at the end of bucket `n` is still
+ * within TTL when the clock reaches bucket `n+2` (age < 30s), so reads must
+ * probe `current, current-1, current-2` instead of only the two newest
+ * buckets. Probing one bucket short created an unnecessary re-collection
+ * burst at every second bucket rollover.
+ */
+const CACHE_PROBE_DEPTH = 3;
 
 interface CacheEntry<T> {
   packet: T;
@@ -163,9 +174,19 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
   const inflight = new Map<string, Promise<T>>();
 
   function keyFor(id: string, bucket: number): string {
-    // 15s bucket keys keep lookups stable within the 30s TTL window: at most
-    // the current and previous bucket can hold a live entry.
+    // 15s bucket keys keep lookups stable within the 30s TTL window. An entry
+    // stored near a bucket's end can still be within TTL in bucket +2, so
+    // reads probe CACHE_PROBE_DEPTH buckets (B-04).
     return `${opts.namespace}:${id}:${bucket}`;
+  }
+
+  /** Bucket keys to probe newest-first: current, current-1, current-2. */
+  function probeKeys(id: string, bucket: number): string[] {
+    const keys: string[] = [];
+    for (let offset = 0; offset < CACHE_PROBE_DEPTH; offset += 1) {
+      keys.push(keyFor(id, bucket - offset));
+    }
+    return keys;
   }
 
   function lruSet(key: string, entry: CacheEntry<T>): void {
@@ -189,24 +210,33 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
   }
 
   async function get(id: string): Promise<T | null> {
+    const lookupStartedAt = Date.now();
     const bucket = currentBucket();
-    for (const key of [keyFor(id, bucket), keyFor(id, bucket - 1)]) {
+    for (const key of probeKeys(id, bucket)) {
       const entry = lruGet(key);
       if (entry) {
         metrics.increment('packet_cache_hit_total');
+        // I-06 (audit 2026-10-18): the hit-rate is visible from setup latency
+        // alone — `phase=packet, cached=true` without chasing Redis logs.
+        metrics.observe('mastra_setup_latency_ms', Date.now() - lookupStartedAt, {
+          tags: { phase: 'packet', cached: 'true' },
+        });
         return entry.packet;
       }
     }
     const mirror = await getRedisMirror();
     if (mirror) {
       try {
-        for (const key of [keyFor(id, bucket), keyFor(id, bucket - 1)]) {
+        for (const key of probeKeys(id, bucket)) {
           const raw = await mirror.get(key);
           if (!raw) continue;
           const revived = opts.revive(raw);
           if (revived) {
             metrics.increment('packet_cache_hit_total');
             lruSet(key, { packet: revived, storedAt: Date.now() });
+            metrics.observe('mastra_setup_latency_ms', Date.now() - lookupStartedAt, {
+              tags: { phase: 'packet', cached: 'true' },
+            });
             return revived;
           }
         }
@@ -259,9 +289,15 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
     const existing = inflight.get(id);
     if (existing) return existing;
 
+    const collectionStartedAt = Date.now();
     const collection = collect(signal)
       .then((packet) => {
         set(id, packet);
+        // I-06: fresh collections are tagged `cached=false` so the packet
+        // hit-rate is computable from one metric family.
+        metrics.observe('mastra_setup_latency_ms', Date.now() - collectionStartedAt, {
+          tags: { phase: 'packet', cached: 'false' },
+        });
         return packet;
       })
       .finally(() => {
@@ -314,6 +350,34 @@ export async function collectSymbolResearchPacketCached(
     (sig) => collectSymbolResearchPacket(symbol, sig, macroOptions(symbol)),
     signal,
   );
+}
+
+/**
+ * A-01 (audit 2026-10-18, B-01/B-08) — bounded cross-symbol comparison
+ * collection. Every symbol resolves through the same 30s fresh-only cache
+ * (`collectSymbolResearchPacketCached`), so a comparison adds no new
+ * concurrency primitive and burst-deduplicates per symbol like any other run.
+ *
+ * The comparison cap is enforced here as well as at the routing boundary: the
+ * collector is the fail-closed backstop against an unbounded fan-out.
+ */
+export async function collectMultiSymbolPackets(
+  symbols: readonly Symbol[],
+  signal?: AbortSignal,
+): Promise<Map<Symbol, SymbolResearchPacket>> {
+  const unique = [...new Set(symbols.map((symbol) => SymbolSchema.parse(symbol)))];
+  if (unique.length === 0) {
+    throw new Error('Multi-symbol collection requires at least one symbol.');
+  }
+  if (unique.length > MAX_COMPARISON_SYMBOLS) {
+    throw new Error(
+      `Cannot compare more than ${MAX_COMPARISON_SYMBOLS} symbols in one run; received ${unique.length}.`,
+    );
+  }
+  const packets = await Promise.all(
+    unique.map((symbol) => collectSymbolResearchPacketCached(symbol, signal)),
+  );
+  return new Map(unique.map((symbol, index) => [symbol, packets[index]!]));
 }
 
 /** Test helper — clear the in-process LRU. */

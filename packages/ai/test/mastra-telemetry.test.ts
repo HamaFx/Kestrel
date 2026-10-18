@@ -179,7 +179,8 @@ describe('Mastra telemetry boundaries', () => {
         outputTokens: 40,
         toolCalls: 3,
         idempotencyKey: 'mastra.run:run-3',
-        kind: 'mastra_xauusd_poc',
+        // P-03 (audit 2026-10-18): footprint-neutral kind by default.
+        kind: 'mastra_xauusd_research',
       }),
     );
     expect(mocks.flushLangfuse).toHaveBeenCalledOnce();
@@ -278,6 +279,10 @@ describe('telemetry vocabulary (audit v2 §4.5)', () => {
     // reconciled through the parent turn's ledger). They remain readable as
     // legacy DB values but are no longer part of the emitted vocabulary.
     expect(TELEMETRY_KINDS.filter((kind) => kind.startsWith('title_'))).toEqual([]);
+    // P-03: the neutral names are live; the *_poc aliases stay readable for
+    // one release so historical dashboards keep resolving.
+    expect([...TELEMETRY_KINDS]).toContain('mastra_xauusd_research');
+    expect([...TELEMETRY_KINDS]).toContain('mastra_xauusd_research_failed');
     expect([...TELEMETRY_KINDS]).toContain('mastra_xauusd_poc');
     expect([...TELEMETRY_KINDS]).toContain('mastra_canonical_chat_failed');
     expect([...TELEMETRY_KINDS]).toContain('turn_failed');
@@ -297,6 +302,7 @@ describe('telemetry vocabulary (audit v2 §4.5)', () => {
     };
     const telemetryKinds = [
       undefined,
+      'mastra_xauusd_research',
       'mastra_xauusd_poc',
       'mastra_mode',
       'mastra_full_job',
@@ -322,6 +328,12 @@ describe('telemetry vocabulary (audit v2 §4.5)', () => {
         // Every emitted kind is part of the documented set.
         expect([...TELEMETRY_KINDS]).toContain(recorded.kind);
         expect(String(recorded.kind).startsWith('title_')).toBe(false);
+        // P-03: new writes never emit the legacy *_poc names — they are
+        // normalized to the neutral vocabulary on write.
+        if (outcome === 'success') {
+          expect(recorded.kind).not.toBe('mastra_xauusd_poc');
+        }
+        expect(recorded.kind).not.toBe('mastra_xauusd_poc_failed');
       }
     }
   });

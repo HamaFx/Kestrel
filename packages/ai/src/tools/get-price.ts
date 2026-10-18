@@ -16,20 +16,22 @@
 
 // Tool: get_price.
 //
-// Fetches the latest mid price for one or more supported symbols.
-// Calls into `packages/data` so the cache + provider failover apply
-// transparently — the AI never talks to a provider directly.
+// B-01 (audit 2026-10-18, I-03) — the implementation moved to the native
+// Mastra registration in `mastra-v2/tools/canonical/price.ts`. This module is
+// now the AI SDK shim for non-Mastra consumers for one release: it re-exports
+// the same schemas/description and delegates to the shared execute core, so
+// both paths always produce identical output.
 
-import { getPrice, ProviderError } from '@kestrel/data';
-import { ALL_SYMBOLS, SymbolSchema, type GetPriceOutput } from '@kestrel/shared';
+import type { GetPriceOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
-import { z } from 'zod';
 
+import {
+  CANONICAL_PRICE_DESCRIPTION,
+  CanonicalPriceInputSchema,
+  executeCanonicalPrice,
+  type CanonicalPriceInput,
+} from '../mastra-v2/tools/canonical/price';
 import { maybeGetToolContext } from '../tool-context';
-
-const InputSchema = z.object({
-  symbols: z.array(SymbolSchema).min(1).max(ALL_SYMBOLS.length),
-});
 
 // Module-augment the shared ToolIOMap so consumers get strongly-typed inputs
 // by tool name. Outputs are sourced centrally from `ToolOutputMap` in
@@ -37,31 +39,13 @@ const InputSchema = z.object({
 // `@shared/schemas/tool-outputs/`), so we don't redeclare them here.
 declare module '@kestrel/shared' {
   interface ToolIOMap {
-    get_price: { input: z.infer<typeof InputSchema> };
+    get_price: { input: CanonicalPriceInput };
   }
 }
 
-export const getPriceTool: Tool<z.infer<typeof InputSchema>, GetPriceOutput> = tool({
-  description:
-    'Fetch the most recent mid price for one or more symbols supported by the canonical gold, forex, and crypto catalog. Use only when the LIVE_SNAPSHOT in the system prompt is missing the symbol or older than 10 seconds.',
-  inputSchema: InputSchema,
-  execute: async (
-    { symbols },
-    options?: { abortSignal?: AbortSignal },
-  ): Promise<GetPriceOutput> => {
-    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
-    const ticks = await Promise.all(
-      symbols.map(async (s) => {
-        try {
-          return await (signal ? getPrice(s, { signal }) : getPrice(s));
-        } catch (err) {
-          if (err instanceof ProviderError) {
-            throw new Error(`Couldn't price ${s}: ${err.message}`, { cause: err });
-          }
-          throw err;
-        }
-      }),
-    );
-    return { ticks, asOf: new Date().toISOString() };
-  },
+export const getPriceTool: Tool<CanonicalPriceInput, GetPriceOutput> = tool({
+  description: CANONICAL_PRICE_DESCRIPTION,
+  inputSchema: CanonicalPriceInputSchema,
+  execute: async (input, options?: { abortSignal?: AbortSignal }): Promise<GetPriceOutput> =>
+    executeCanonicalPrice(input, options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined),
 });

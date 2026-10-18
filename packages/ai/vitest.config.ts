@@ -33,6 +33,11 @@ export default defineConfig({
     pool: 'forks',
     maxWorkers,
     environment: 'node',
+    // B-09 / P-07 (audit 2026-10-18): this package keeps process-global test
+    // singletons (`globalForMastraInstance`, `globalForMastraStorage`). Test
+    // files must not share module state, so file isolation is a hard
+    // requirement here — do NOT enable `isolate: false` for speed.
+    isolate: true,
     include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
     coverage: {
       provider: 'v8',

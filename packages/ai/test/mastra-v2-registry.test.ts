@@ -45,22 +45,22 @@ describe('mastra-v2 capability registry', () => {
     expect(MASTRA_COMPONENT_REGISTRY['xauusd-research']).toEqual({
       kind: 'workflow',
       key: 'xauusdResearch',
-      phase: 2,
+      stableSince: '2026-10-18',
     });
     expect(MASTRA_COMPONENT_REGISTRY['xauusd-conversation']).toEqual({
       kind: 'agent',
       key: 'xauusdConversation',
-      phase: 4,
+      stableSince: '2026-10-18',
     });
     expect(MASTRA_COMPONENT_REGISTRY['symbol-research']).toEqual({
       kind: 'workflow',
       key: 'symbolResearch',
-      phase: 2,
+      stableSince: '2026-10-18',
     });
     expect(MASTRA_COMPONENT_REGISTRY['mutation-workflows']).toEqual({
       kind: 'workflow',
       key: 'mutationWorkflows',
-      phase: 7,
+      stableSince: '2026-10-18',
     });
   });
 
@@ -93,5 +93,20 @@ describe('mastra-v2 capability registry', () => {
 
   it('rejects unknown capability ids', () => {
     expect(mastraRegistrationFor('not-a-capability')).toBeNull();
+  });
+
+  it('fails closed when a capability has no component registry entry (B-04)', () => {
+    // Simulate adding a capability to the manifest without a component
+    // mapping: the integrity check is the only thing between a manifest edit
+    // and a silently unroutable capability.
+    const registry = MASTRA_COMPONENT_REGISTRY as Record<string, unknown>;
+    const saved = registry['symbol-research'];
+    delete registry['symbol-research'];
+    try {
+      expect(() => assertMastraRegistryComplete()).toThrow(/missing=symbol-research/);
+    } finally {
+      registry['symbol-research'] = saved;
+    }
+    expect(() => assertMastraRegistryComplete()).not.toThrow();
   });
 });

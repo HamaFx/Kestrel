@@ -18,10 +18,10 @@ import { GetIntermarketInputSchema, GetIntermarketOutputSchema } from '@kestrel/
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getIntermarketTool } from '../../../../tools/get-intermarket';
-import { createEvidenceId } from '../../../packets/evidence';
-import { executeMastraTool } from '../../../shared/telemetry';
-import { XAUUSD } from '../../../shared/types';
+import { getIntermarketTool } from '@ai/tools/get-intermarket';
+import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
+import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
+import { XAUUSD } from '@ai/mastra-v2/shared/types';
 import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 
 const InputSchema = GetIntermarketInputSchema;

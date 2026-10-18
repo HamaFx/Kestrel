@@ -68,15 +68,30 @@ describe('mastra evals — datasets migration', () => {
     expect(loadLegacyEvalCases(DATASET_IDS.regression).length).toBeGreaterThan(0);
   });
 
+  it('loads the I-05 parity suites (multi-symbol + canonical grounding)', () => {
+    const multiSymbol = loadLegacyEvalCases(DATASET_IDS.multiSymbolComparison);
+    expect(multiSymbol.length).toBeGreaterThanOrEqual(4);
+    expect(multiSymbol.map((c) => c.prompt).join(' ')).toContain('Compare');
+
+    const canonical = loadLegacyEvalCases(DATASET_IDS.canonicalGrounding);
+    expect(canonical.length).toBeGreaterThanOrEqual(4);
+    // Every canonical-grounding case is about a non-XAUUSD symbol so the
+    // suite actually covers the audit's grounding-drift finding.
+    const prompts = canonical.map((c) => c.prompt).join(' ');
+    expect(prompts).toMatch(/EURUSD|BTCUSDT|GBPUSD|USDJPY/);
+    expect(prompts).not.toMatch(/XAUUSD|gold/i);
+  });
+
   it('creates datasets and inserts items (idempotent on re-run)', async () => {
     const instance = await buildInstance();
     const first = await migrateLegacyEvalCasesToDatasets(instance);
-    expect(first.created.length).toBe(3);
+    // Three legacy datasets + the two I-05 parity suites.
+    expect(first.created.length).toBe(5);
     expect(first.skipped).toEqual([]);
 
     const second = await migrateLegacyEvalCasesToDatasets(instance);
     expect(second.created).toEqual([]);
-    expect(second.skipped.length).toBe(3);
+    expect(second.skipped.length).toBe(5);
   });
 
   it('regression dataset retains its external case ids', async () => {

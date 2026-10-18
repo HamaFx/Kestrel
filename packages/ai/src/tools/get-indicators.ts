@@ -16,60 +16,35 @@
 
 // Tool: get_indicators.
 //
-// Computes one or more indicators against the same candle window in a
-// single call. Mirrors the /api/market/indicators route handler so the
-// chart UI and the AI agent always see identical numbers.
+// B-01 (audit 2026-10-18, I-03) — the implementation moved to the native
+// Mastra registration in `mastra-v2/tools/canonical/indicators.ts`. This
+// module is now the AI SDK shim for non-Mastra consumers for one release: it
+// re-exports the same schemas/description and delegates to the shared execute
+// core, so both paths always produce identical output.
 
-import { getCandles } from '@kestrel/data';
-import { computeIndicator } from '@kestrel/indicators';
-import {
-  IndicatorKindSchema,
-  IndicatorParamsSchema,
-  SymbolSchema,
-  TimeframeSchema,
-  type GetIndicatorsOutput,
-  type IndicatorResult,
-} from '@kestrel/shared';
+import type { GetIndicatorsOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
-import { z } from 'zod';
 
+import {
+  CANONICAL_INDICATORS_DESCRIPTION,
+  CanonicalIndicatorsInputSchema,
+  executeCanonicalIndicators,
+  type CanonicalIndicatorsInput,
+} from '../mastra-v2/tools/canonical/indicators';
 import { maybeGetToolContext } from '../tool-context';
-
-const InputSchema = z.object({
-  symbol: SymbolSchema,
-  tf: TimeframeSchema,
-  count: z.int().min(20).max(500).default(200),
-  indicators: z
-    .array(z.object({ kind: IndicatorKindSchema, params: IndicatorParamsSchema.default({}) }))
-    .min(1)
-    .max(6),
-});
 
 declare module '@kestrel/shared' {
   interface ToolIOMap {
-    get_indicators: { input: z.infer<typeof InputSchema> };
+    get_indicators: { input: CanonicalIndicatorsInput };
   }
 }
 
-const TAIL_POINTS = 15;
-
-export const getIndicatorsTool: Tool<z.infer<typeof InputSchema>, GetIndicatorsOutput> = tool({
-  description:
-    'Compute indicators (sma, ema, rsi, macd, atr, bollinger, pivots) on a (symbol, timeframe) window. Returns the last 15 points of each series — enough for "current value + recent slope" reasoning while minimizing token overhead.',
-  inputSchema: InputSchema,
-  execute: async (
-    { symbol, tf, count, indicators },
-    options?: { abortSignal?: AbortSignal },
-  ): Promise<GetIndicatorsOutput> => {
-    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
-    const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
-    const results = indicators.map(({ kind, params }) => {
-      const full = computeIndicator({ symbol, tf, kind, params, candles });
-      return {
-        ...full,
-        values: full.values.slice(-TAIL_POINTS) as IndicatorResult['values'],
-      };
-    });
-    return { symbol, tf, results };
-  },
+export const getIndicatorsTool: Tool<CanonicalIndicatorsInput, GetIndicatorsOutput> = tool({
+  description: CANONICAL_INDICATORS_DESCRIPTION,
+  inputSchema: CanonicalIndicatorsInputSchema,
+  execute: async (input, options?: { abortSignal?: AbortSignal }): Promise<GetIndicatorsOutput> =>
+    executeCanonicalIndicators(
+      input,
+      options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined,
+    ),
 });

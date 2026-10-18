@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+// D-03 (audit 2026-10-18): one aggregate surface (`xauusdMastraTools`,
+// `xauusdMastraConversationToolNames`) instead of per-tool re-export
+// indirection. Consumers import each tool from its definition file
+// (`./tools/price-tool`, …) — the redundant re-export block removed here had
+// no consumers of its own.
+
 import { manifestToolNames } from '../../capabilities';
 import { xauusdResearchPacketTool } from '../../packets/research-packet-tool';
 import {
@@ -36,28 +42,6 @@ import { xauusdSessionLevelsTool } from './tools/session-levels-tool';
 import { xauusdSocialSentimentTool } from './tools/social-sentiment-tool';
 import { xauusdTechnicalAnalysisTool } from './tools/technical-tool';
 import { xauusdVolatilityTool } from './tools/volatility-tool';
-
-export { xauusdCalendarTool } from './tools/calendar-tool';
-export { xauusdResearchPacketTool } from '../../packets/research-packet-tool';
-export { xauusdPriceTool } from './tools/price-tool';
-export { xauusdCandlesTool } from './tools/candles-tool';
-export { xauusdFundamentalContextTool } from './tools/fundamental-context-tool';
-export { xauusdIndicatorsTool } from './tools/indicators-tool';
-export { xauusdMarketStructureTool } from './tools/market-structure-tool';
-export { xauusdSessionLevelsTool } from './tools/session-levels-tool';
-export { xauusdTechnicalAnalysisTool } from './tools/technical-tool';
-export { xauusdCorrelationTool } from './tools/correlation-tool';
-export { xauusdIntermarketTool } from './tools/intermarket-tool';
-export { xauusdVolatilityTool } from './tools/volatility-tool';
-export { xauusdNewsTool } from './tools/news-tool';
-export { xauusdSocialSentimentTool } from './tools/social-sentiment-tool';
-export {
-  mastraCotTool,
-  mastraKnowledgeTool,
-  mastraResonanceTool,
-  mastraSeasonalityTool,
-  mastraWebSearchTool,
-} from './read-only-tools';
 
 export const xauusdMastraTools = {
   getXauusdResearchPacket: xauusdResearchPacketTool,

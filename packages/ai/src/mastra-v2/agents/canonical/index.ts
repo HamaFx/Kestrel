@@ -23,19 +23,21 @@ import type { MastraMemory } from '@mastra/core/memory';
 import { RequestContext } from '@mastra/core/request-context';
 import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
-import { estimateCostUsd } from '../../../cost';
-import { createGenerationLedger, type GenerationLedger } from '../../../generation-ledger';
-import { resolveMastraExecutionModel, type ChatModelResolution } from '../../../model';
-import { withRetry } from '../../../retry';
-import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../../routing';
-import type { SemanticRoutingAccounting } from '../../../semantic-routing';
-import { DB } from '../../../tokens';
-import { withToolContext, type ToolContext } from '../../../tool-context';
-import { domainToolFilter } from '../../../tools/by-domain';
+import { estimateCostUsd } from '@ai/cost';
+import { createGenerationLedger, type GenerationLedger } from '@ai/generation-ledger';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/model';
+import { withRetry } from '@ai/retry';
+import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '@ai/routing';
+import type { SemanticRoutingAccounting } from '@ai/semantic-routing';
+import { DB } from '@ai/tokens';
+import { withToolContext, type ToolContext } from '@ai/tool-context';
+import { registerAllTools, toolRegistry } from '@ai/tools';
+import { domainToolFilter } from '@ai/tools/by-domain';
 import { manifestForCapability, manifestToolNames } from '../../capabilities';
 import { prepareKestrelMemory } from '../../context';
-import { buildConversationScorers, type BuiltScorers } from '../../evals/scorers';
+import { buildConversationScorers, buildScorersForExecutionPlan, type BuiltScorers } from '../../evals/scorers';
 import { buildGuardrailInputProcessors } from '../../guardrails';
+import { resolveNativeCanonicalTool } from '../../tools/canonical';
 import {
   createKestrelMemory,
   KESTREL_MEMORY_LAST_MESSAGES,
@@ -68,15 +70,36 @@ import {
   type CanonicalToolEvidence,
 } from './evidence';
 
-const mlog = createCategorizedLogger('ai', { component: 'mastra-canonical-chat' });
+const mlog = createCategorizedLogger('ai', { component: 'mastra:canonical-chat' });
 
 /**
  * The canonical chat agent receives an explicit read-only allowlist rather
  * than the whole legacy registry with a few names removed. This is fail-closed
  * as new tools are added: a new tool cannot become reachable from Mastra until
  * it is reviewed and classified here.
+ *
+ * B-11 (audit 2026-10-18) — frozen at module init and asserted against the
+ * legacy tool registry below, so a manifest typo fails at import time instead
+ * of on the first call that happens to hit the missing name.
  */
-const READ_ONLY_TOOL_NAMES = new Set<string>(manifestToolNames('canonical-chat'));
+export const CANONICAL_READ_ONLY_TOOL_NAMES: readonly string[] = Object.freeze([
+  ...manifestToolNames('canonical-chat'),
+]);
+
+const READ_ONLY_TOOL_NAMES = new Set<string>(CANONICAL_READ_ONLY_TOOL_NAMES);
+
+/** Fail at module init when the manifest names a tool the registry cannot resolve. */
+export function assertCanonicalToolAllowlist(): void {
+  registerAllTools(toolRegistry);
+  const missing = CANONICAL_READ_ONLY_TOOL_NAMES.filter((name) => !toolRegistry.has(name));
+  if (missing.length > 0) {
+    throw new Error(
+      `Canonical read-only allowlist references unregistered tools: ${missing.join(', ')}`,
+    );
+  }
+}
+
+assertCanonicalToolAllowlist();
 
 export interface RunMastraCanonicalChatArgs {
   userId: string;
@@ -340,10 +363,17 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     args.plan && ['free', 'pro', 'enterprise'].includes(args.plan) ? args.plan : 'free';
   const legacyTools = domainToolFilter(routing.domain, effectivePlan);
   const disabledTools = new Set(args.settings?.disabledTools ?? []);
+  // B-01 (audit 2026-10-18, I-03): migrated names register the native
+  // `createTool` counterpart; the remaining names still flow through the
+  // legacy adapter. Both share one lifecycle wrapper, so the tool surface
+  // (names, events, parts, telemetry) is identical.
   const registeredTools = Object.fromEntries(
     Object.entries(legacyTools)
       .filter(([name]) => READ_ONLY_TOOL_NAMES.has(name) && !disabledTools.has(name))
-      .map(([name, legacyTool]) => [name, adaptLegacyReadOnlyTool(name, legacyTool)]),
+      .map(([name, legacyTool]) => [
+        name,
+        resolveNativeCanonicalTool(name) ?? adaptLegacyReadOnlyTool(name, legacyTool),
+      ]),
   );
 
   // §2.4: the memory promise started alongside routeTurn; await it now.
@@ -384,10 +414,16 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     tags: { phase: 'guardrail' },
   });
   // Phase 6 evals: sampled live scoring on conversation turns (5% ratio).
-  const builtScorers = buildConversationScorers(
-    { aiApiKeys: args.settings.aiApiKeys, chatModel: args.settings.chatModel },
-    args.env,
-  );
+  // I-04 (audit 2026-10-18): when the planner decision is available, the
+  // scorer profile derives from the execution plan's evidence policy instead
+  // of being chosen by hand.
+  const scorerSettings = {
+    aiApiKeys: args.settings.aiApiKeys,
+    chatModel: args.settings.chatModel,
+  };
+  const builtScorers = args.executionPlan
+    ? buildScorersForExecutionPlan(args.executionPlan, scorerSettings, args.env)
+    : buildConversationScorers(scorerSettings, args.env);
   const agent = new Agent({
     id: 'kestrel-mastra-canonical-chat',
     name: 'Kestrel Mastra Canonical Chat',

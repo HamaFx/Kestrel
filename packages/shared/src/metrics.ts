@@ -102,6 +102,9 @@ export const METRIC_NAMES = [
   // Audit plan v2 §5.3 (Q4) — non-blocking per-user daily spend-threshold
   // crossings surfaced on the admin System Health dashboard.
   'admin_spend_threshold_total',
+  // Audit 2026-10-18 C-02 — committee executions tagged by asset class so
+  // cost/latency are attributable per asset instead of XAUUSD-only.
+  'committee_execution_total',
 ] as const;
 
 export type MetricName = (typeof METRIC_NAMES)[number];

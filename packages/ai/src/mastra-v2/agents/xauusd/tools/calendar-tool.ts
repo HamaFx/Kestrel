@@ -18,15 +18,15 @@ import { GetCalendarOutputSchema } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getCalendarTool } from '../../../../tools/get-calendar';
-import { createEvidenceId } from '../../../packets/evidence';
+import { getCalendarTool } from '@ai/tools/get-calendar';
+import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
 import {
   EXTERNAL_CONTENT_TRUST_WARNING,
   quarantineExternalText,
   toUntrustedExternalEvidence,
-} from '../../../packets/external-content';
-import { executeMastraTool } from '../../../shared/telemetry';
-import { XAUUSD } from '../../../shared/types';
+} from '@ai/mastra-v2/packets/external-content';
+import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
+import { XAUUSD } from '@ai/mastra-v2/shared/types';
 import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 
 const InputSchema = z.object({

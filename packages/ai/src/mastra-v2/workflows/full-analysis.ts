@@ -28,7 +28,7 @@ import { UserMessagePartsSchema } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { WorkflowsStorage } from '@mastra/core/storage';
 import type { WorkflowRunState } from '@mastra/core/workflows';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { reserveTurnBudget } from '../../budget';
@@ -43,12 +43,14 @@ import {
 import { getKestrelMastra } from '../instance';
 import { observationalMemoryAllowanceUsd } from '../memory';
 import { ExecutionPlanSchema, type ExecutionPlan } from '../planning/execution-plan';
+import { FULL_ANALYSIS_LEASE_MS } from '../shared/constants';
 import { committeeProgressSnapshot } from '../shared/progress';
 
-const flog = createCategorizedLogger('ai', { component: 'mastra-full-analysis' });
+export { FULL_ANALYSIS_LEASE_MS };
+
+const flog = createCategorizedLogger('ai', { component: 'mastra:full-analysis' });
 
 export const FULL_ANALYSIS_WORKFLOW_ID = 'full-analysis';
-export const FULL_ANALYSIS_LEASE_MS = 90_000;
 
 /** Expected visible-turn cost for a Full-mode run (specialists + fusion + synthesis). */
 export const FULL_ANALYSIS_TURN_ESTIMATE_USD = 0.05;
@@ -597,6 +599,14 @@ export async function completeFullAnalysisRun(
   result: Record<string, unknown>,
 ): Promise<void> {
   try {
+    // B-07 (audit 2026-10-18): project the terminal snapshot BEFORE the Drizzle
+    // completion. The previous order completed the queue row first, so a crash
+    // between the two writes left a completed-but-invisible run (admin runs
+    // viewer showed nothing). With the snapshot first, the worst crash window
+    // leaves a visible-but-not-yet-completed run, which the worker retry
+    // completes — and `reconcileFullAnalysisSnapshots()` backfills the inverse
+    // crash window (completed row, missing/partial snapshot) on the sweep.
+    await projectTerminalSnapshot(runId, result);
     await projectQueueRow(
       await completeFullAnalysisQueue({ runId, workerRunId, result, db: getDb() }),
     );
@@ -605,6 +615,94 @@ export async function completeFullAnalysisRun(
     if (isLeaseError(error)) throw new FullAnalysisLeaseLostError();
     throw error;
   }
+}
+
+/**
+ * B-07 — persist a terminal `success` snapshot for a run before the queue row
+ * transition lands. Reads the current row (owner-agnostic) and projects it
+ * with the terminal result; a missing row or unavailable store is a no-op
+ * (the authoritative projection still happens after the queue transition).
+ */
+async function projectTerminalSnapshot(
+  runId: string,
+  result: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const row = await getFullAnalysisQueueRow(runId, undefined, getDb());
+    if (!row) return;
+    await projectQueueRow({
+      ...row,
+      status: 'succeeded',
+      result,
+      error: null,
+      completedAt: new Date(),
+    });
+  } catch (error) {
+    flog.warn('Full-analysis terminal snapshot pre-projection failed', {
+      runId,
+      error: serializeError(error),
+    });
+  }
+}
+
+/**
+ * B-07 (audit 2026-10-18) — reconcile terminal queue rows whose Mastra
+ * snapshot never landed (crash between the queue completion and the snapshot
+ * projection, or storage temporarily unavailable). Scans the recent terminal
+ * window and re-projects any completed row whose snapshot is missing or still
+ * reports a non-terminal status. Safe to run repeatedly; returns the number
+ * of rows re-projected.
+ */
+export async function reconcileFullAnalysisSnapshots(options?: {
+  since?: Date;
+  limit?: number;
+}): Promise<number> {
+  const store = await workflowsStore();
+  // Nothing to reconcile without a durable Mastra store — the queue row is
+  // still the source of truth and the next sweep will retry.
+  if (!store) return 0;
+  const since = options?.since ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const limit = options?.limit ?? 50;
+  const db = getDb();
+  let repaired = 0;
+  try {
+    const rows = await db
+      .select()
+      .from(schema.fullAnalysisQueue)
+      .where(
+        and(
+          isNotNull(schema.fullAnalysisQueue.completedAt),
+          inArray(schema.fullAnalysisQueue.status, ['succeeded', 'failed', 'cancelled', 'blocked']),
+          gte(schema.fullAnalysisQueue.completedAt, since),
+        ),
+      )
+      .orderBy(desc(schema.fullAnalysisQueue.completedAt))
+      .limit(limit);
+    for (const row of rows) {
+      try {
+        const terminalStatus = toMastraWorkflowStatus(normalizeWorkflowStatus(row.status));
+        const existing = await store.getWorkflowRunById({
+          runId: row.runId,
+          workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+        });
+        const snapshot = parseSnapshot(existing?.snapshot);
+        if (snapshot && snapshot.status === terminalStatus) continue;
+        await projectQueueRow(row);
+        repaired += 1;
+      } catch (error) {
+        flog.warn('Full-analysis snapshot reconciliation failed for a run', {
+          runId: row.runId,
+          error: serializeError(error),
+        });
+      }
+    }
+  } catch (error) {
+    flog.warn('Full-analysis snapshot reconciliation scan failed', {
+      error: serializeError(error),
+    });
+  }
+  if (repaired > 0) flog.info('Reconciled full-analysis snapshots', { repaired });
+  return repaired;
 }
 
 export async function requeueFullAnalysisRun(

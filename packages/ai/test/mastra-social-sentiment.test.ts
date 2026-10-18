@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { xauusdSocialSentimentTool } from '../src/mastra-v2/agents/xauusd/tools';
+import { xauusdSocialSentimentTool } from '../src/mastra-v2/agents/xauusd/tools/social-sentiment-tool';
 import { XauusdSocialSentimentInputSchema } from '../src/mastra-v2/agents/xauusd/tools/social-sentiment-tool';
 
 const mocks = vi.hoisted(() => ({

@@ -30,7 +30,9 @@ export {
   mastraDirectConnectionString,
   mastraRuntimeConnectionString,
   mastraSslOptions,
-  getSharedMastraStorage,
+  // D-01/C-01 (audit 2026-10-18): `getSharedMastraStorage` is intentionally
+  // NOT re-exported — the Mastra instance owns storage; the helper is
+  // internal to maintenance paths.
   _resetMastraStorageCache,
   pruneMastraStorage,
   closeMastraStorage,
@@ -150,9 +152,12 @@ export {
   buildCustomScorers,
   buildPrebuiltScorers,
   buildResearchScorers,
+  buildScorersForExecutionPlan,
   createDeterministicScorer,
   resolveJudgeModel,
+  AGENT_SCORER_PROFILES,
   PREBUILT_SCORER_IDS,
+  type AgentScorerProfile,
   type BuiltScorers,
   type BuildScorersOptions,
   type ScorerId,

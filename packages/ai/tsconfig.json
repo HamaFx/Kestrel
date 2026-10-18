@@ -1,4 +1,13 @@
 {
   "extends": "@kestrel/config/typescript/base",
+  "compilerOptions": {
+    "paths": {
+      // P-02 (audit 2026-10-18) — intra-package alias so deep relative
+      // imports (`../../../tool-context`) can become `@ai/tool-context`.
+      // `scripts/rewrite-dist-imports.mjs` rewrites `@ai/*` back to relative
+      // specifiers when publishing, and vitest.config.ts aliases it for tests.
+      "@ai/*": ["./src/*"]
+    }
+  },
   "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"]
 }

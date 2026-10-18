@@ -1,0 +1,52 @@
+[
+  {
+    "id": "cg-01",
+    "prompt": "What is the current price of EURUSD?",
+    "expectedTools": ["get_price"],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["EURUSD"],
+    "quality": {
+      "requireNumericToolSupport": true
+    }
+  },
+  {
+    "id": "cg-02",
+    "prompt": "What is BTCUSDT trading at right now?",
+    "expectedTools": ["get_price"],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["BTCUSDT"],
+    "quality": {
+      "requireNumericToolSupport": true
+    }
+  },
+  {
+    "id": "cg-03",
+    "prompt": "Give me a quick GBPUSD technical read: trend and key levels.",
+    "expectedTools": ["get_candles", "get_indicators"],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["GBPUSD"],
+    "quality": {
+      "requireNumericToolSupport": true
+    }
+  },
+  {
+    "id": "cg-04",
+    "prompt": "What does USDJPY volatility look like over the last week?",
+    "expectedTools": ["get_indicators"],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["USDJPY"],
+    "quality": {
+      "requireNumericToolSupport": true
+    }
+  },
+  {
+    "id": "cg-05",
+    "prompt": "Summarize what the news has said about EURUSD recently.",
+    "expectedTools": ["search_knowledge"],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["EURUSD"],
+    "quality": {
+      "forbiddenOutputSubstrings": ["no data available at all"]
+    }
+  }
+]

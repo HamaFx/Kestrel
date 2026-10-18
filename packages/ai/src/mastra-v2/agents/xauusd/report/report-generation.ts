@@ -17,11 +17,11 @@
 import type { Agent, AgentMemoryOption } from '@mastra/core/agent';
 import type { RequestContext } from '@mastra/core/request-context';
 
-import { telemetryConfig } from '../../../../telemetry';
-import { manifestForCapability } from '../../../capabilities';
-import type { XauusdResearchPacket } from '../../../packets/research-types';
-import type { MastraGenerationResultLike } from '../../../shared/stats';
-import type { XauusdRequestContext } from '../../../shared/types';
+import { telemetryConfig } from '@ai/telemetry';
+import { manifestForCapability } from '@ai/mastra-v2/capabilities';
+import type { XauusdResearchPacket } from '@ai/mastra-v2/packets/research-types';
+import type { MastraGenerationResultLike } from '@ai/mastra-v2/shared/stats';
+import type { XauusdRequestContext } from '@ai/mastra-v2/shared/types';
 import { guardXauusdFollowupText } from '../followup-safety';
 import type { xauusdMastraTools } from '../tools';
 import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';

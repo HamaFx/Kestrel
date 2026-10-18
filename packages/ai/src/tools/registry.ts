@@ -161,6 +161,11 @@ export class ToolRegistry {
 
   /**
    * Check if a tool is registered.
+   *
+   * B-11 (audit 2026-10-18) — the membership check for fail-closed allowlist
+   * assertions. `resolve()` intentionally drops unknown names; callers that
+   * must not silently lose a tool (capability manifests, agent allowlists)
+   * assert with `has()` instead.
    */
   has(name: string): boolean {
     return this.tools.has(name);

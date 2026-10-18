@@ -51,7 +51,7 @@ import type { Memory } from '@mastra/memory';
 
 import { listMessages } from '../persistence';
 
-const mlog = createCategorizedLogger('ai', { component: 'mastra-memory-context' });
+const mlog = createCategorizedLogger('ai', { component: 'mastra:memory-context' });
 
 /** Recent Drizzle history copied into Mastra storage on first use per thread. */
 const BACKFILL_LIMIT = 40;

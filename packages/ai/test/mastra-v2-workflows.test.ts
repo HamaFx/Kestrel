@@ -34,6 +34,8 @@ const mocks = vi.hoisted(() => ({
   failRisk: false,
   /** Hard 4xx error thrown for the fundamental specialist (permanent → marker). */
   failFundamental: false,
+  /** Hard 4xx error thrown for the technical desk (comparison strict verify). */
+  failTechnical: false,
   /** Number of transient 429s before succeeding. */
   rateLimitFailures: 0,
   /** Captured agent.generate() calls: { id, options } for memory assertions. */
@@ -87,6 +89,11 @@ vi.mock('@mastra/core/agent', () => ({
       if (mocks.failFundamental && this.id.includes('fundamental')) {
         // Also permanent: Standard continues without this specialist.
         throw Object.assign(new Error('fundamental data unavailable'), { statusCode: 400 });
+      }
+      if (mocks.failTechnical && this.id.includes('technical') && !this.id.includes('decision')) {
+        // Comparison runs run one technical desk per symbol; a permanent
+        // failure on any desk is terminal (strict verify).
+        throw Object.assign(new Error('technical data unavailable'), { statusCode: 400 });
       }
       if (mocks.rateLimitFailures > 0 && !this.id.includes('decision')) {
         mocks.rateLimitFailures -= 1;
@@ -159,7 +166,7 @@ type RunResult = { status: string; result?: unknown; error?: { message?: string 
 async function startWorkflow(
   workflow: ReturnType<typeof createCommitteeWorkflow>,
   runId: string,
-  inputData: { prompt: string; symbol: string; mode: string },
+  inputData: { prompt: string; symbol: string; mode: string; symbols?: string[] },
 ): Promise<RunResult> {
   const run = await workflow.createRun({ runId });
   return (await run.start({
@@ -172,6 +179,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.failRisk = false;
   mocks.failFundamental = false;
+  mocks.failTechnical = false;
   mocks.hangSpecialists = false;
   mocks.rateLimitFailures = 0;
   mocks.generateCalls.length = 0;
@@ -555,5 +563,79 @@ describe('committee workflow', () => {
     } finally {
       delete process.env.ENABLE_COMMITTEE_CRITIQUE;
     }
+  });
+});
+
+describe('committee comparison workflow (A-01 / B-01)', () => {
+  function comparisonSymbolsMock(): void {
+    mocks.collectSymbolResearchPacket.mockImplementation(async (symbol: string) => ({
+      ...readyPacket,
+      packetId: `packet-${symbol}`,
+      symbol,
+    }));
+  }
+
+  function startComparison(runId: string) {
+    const workflow = createCommitteeWorkflow(
+      { ...deps, comparisonSymbols: ['EURUSD', 'XAUUSD'] },
+      'single',
+      'multi-symbol-research',
+    );
+    return startWorkflow(workflow, runId, {
+      prompt: 'Compare EURUSD and XAUUSD',
+      symbol: 'EURUSD',
+      mode: 'single',
+      symbols: ['EURUSD', 'XAUUSD'],
+    });
+  }
+
+  it('collects one packet per symbol and runs one desk pass per symbol, then fusion', async () => {
+    comparisonSymbolsMock();
+
+    const result = await startComparison('wf-compare-ready');
+
+    expect(result.status).toBe('success');
+    const output = result.result as {
+      status: string;
+      finalText: string;
+      opinions: Array<{ agentName: string; symbol?: string }>;
+      packets?: Record<string, { packetId: string }>;
+      stats: { inputTokens: number };
+    };
+    expect(output.status).toBe('ready');
+    expect(Object.keys(output.packets ?? {}).sort()).toEqual(['EURUSD', 'XAUUSD']);
+    expect(output.packets?.['XAUUSD']?.packetId).toBe('packet-XAUUSD');
+    expect(output.opinions).toHaveLength(2);
+    expect(output.opinions.map((opinion) => opinion.symbol).sort()).toEqual(['EURUSD', 'XAUUSD']);
+    // The fusion synthesis is the decision agent's text (mock), not a single
+    // desk read — a comparison always runs one fusion pass.
+    expect(output.finalText).toBe('Synthesized read.');
+  });
+
+  it('fails the comparison closed when any symbol packet is blocked', async () => {
+    mocks.collectSymbolResearchPacket.mockImplementation(async (symbol: string) =>
+      symbol === 'XAUUSD'
+        ? { ...blockedPacket, symbol }
+        : { ...readyPacket, packetId: `packet-${symbol}`, symbol },
+    );
+
+    const result = await startComparison('wf-compare-blocked');
+
+    expect(result.status).toBe('success');
+    const output = result.result as { status: string; blockedText?: string; packets?: unknown };
+    expect(output.status).toBe('blocked');
+    expect(output.blockedText).toContain('XAUUSD');
+    // Both packets are still reported for downstream UI/telemetry.
+    expect(Object.keys(output.packets ?? {}).sort()).toEqual(['EURUSD', 'XAUUSD']);
+  });
+
+  it('fails the comparison terminally when a desk pass fails (strict all-or-nothing)', async () => {
+    comparisonSymbolsMock();
+    mocks.failTechnical = true;
+
+    const result = await startComparison('wf-compare-strict');
+
+    expect(result.status).toBe('failed');
+    expect(result.error?.message ?? '').toContain('Comparison analysis could not complete');
   });
 });

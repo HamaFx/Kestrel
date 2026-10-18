@@ -101,6 +101,20 @@ describe('unified router (§1.1)', () => {
     expect(decision.modelPurpose).toBe('worker');
   });
 
+  it('routes bounded multi-symbol comparisons to the comparison graph (A-01)', async () => {
+    const decision = await route('Compare XAUUSD and EURUSD');
+    expect(decision.route).toBe('multi-symbol-research');
+    expect(decision.capabilityId).toBe('symbol-research');
+    expect(decision.decision.symbols).toEqual(['XAUUSD', 'EURUSD']);
+  });
+
+  it('routes comparisons ahead of the durable full queue in full mode (A-01)', async () => {
+    // A multi-symbol prompt must not collapse into a single-symbol queue row.
+    const decision = await route('compare gold vs EURUSD and GBPUSD', 'full');
+    expect(decision.route).toBe('multi-symbol-research');
+    expect(decision.decision.symbols).toEqual(['XAUUSD', 'EURUSD', 'GBPUSD']);
+  });
+
   it('classifies model-detectable mutation kinds in the same pass', async () => {
     const decision = await route('set an alert for gold at 2100');
     expect(decision.mutationKind).toBe('set_alert');

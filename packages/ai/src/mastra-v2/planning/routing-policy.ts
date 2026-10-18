@@ -17,6 +17,9 @@ import {
   OTHER_SYMBOL_TERMS,
   XAUUSD_TERMS,
 } from '../../routing-keywords';
+import { MAX_COMPARISON_SYMBOLS } from '../shared/constants';
+
+export { MAX_COMPARISON_SYMBOLS };
 
 /**
  * Q2 decision (docs/plans/decisions.log.md): exactly two analysis modes exist
@@ -95,6 +98,34 @@ export function extractMastraSymbols(prompt: string): string[] {
 export function extractMastraSymbol(prompt: string): string | null {
   const matched = extractMastraSymbols(prompt);
   return matched.length === 1 ? (matched[0] ?? null) : null;
+}
+
+export interface MastraComparisonScope {
+  /** Symbols to compare, in prompt order (empty when the prompt is not a comparison). */
+  symbols: string[];
+  /** True when the prompt names more symbols than the comparison cap allows. */
+  overflow: boolean;
+}
+
+/**
+ * A-01 (audit 2026-10-18, B-01/B-08) — classify a prompt's symbol scope.
+ *
+ * A prompt naming 2–3 supported symbols is a bounded cross-symbol comparison
+ * (each symbol gets its own packet + desk read); a prompt naming more than
+ * `MAX_COMPARISON_SYMBOLS` is an overflow the chat boundary must disambiguate
+ * instead of silently collapsing to canonical chat.
+ *
+ * This helper is the single source for the cap so routing, the execution
+ * plan, and the web boundary cannot disagree about what counts as a
+ * comparison.
+ */
+export function mastraComparisonScope(prompt: string): MastraComparisonScope {
+  const mentioned = extractMastraSymbols(prompt);
+  if (mentioned.length < 2) return { symbols: [], overflow: false };
+  return {
+    symbols: mentioned.slice(0, MAX_COMPARISON_SYMBOLS),
+    overflow: mentioned.length > MAX_COMPARISON_SYMBOLS,
+  };
 }
 
 export function isInjectionAttempt(prompt: string): boolean {

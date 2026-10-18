@@ -107,7 +107,7 @@ const BIAS_TOKEN: Record<AgentOpinion['bias'], string> = {
 function formatPlainModeLabel(mode: string): string {
   const normalized = mode.toLowerCase();
   if (normalized === 'single') {
-    return 'Quick Read (1 Specialist Desk)';
+    return 'Single-desk analysis (1 specialist desk)';
   }
   if (normalized === 'full') {
     return 'Full Committee (4 Specialist Desks)';

@@ -99,6 +99,26 @@ describe('mastra observability — telemetry helpers', () => {
     expect(options.tags).toContain('full');
   });
 
+  it('carries the asset class into trace metadata for cross-asset filtering (C-02)', () => {
+    const options = runTracingOptions({
+      runId: 'run-10',
+      userId: 'user-10',
+      threadId: 'thread-10',
+      kind: 'mastra_mode',
+      assetClass: 'fx-majors',
+      tags: ['research', 'single'],
+    });
+    expect(options.metadata).toMatchObject({ assetClass: 'fx-majors' });
+    // Absent when the caller does not resolve one (canonical chat, mutation).
+    const without = runTracingOptions({
+      runId: 'run-11',
+      userId: 'user-11',
+      threadId: 'thread-11',
+      kind: 'mastra_canonical_chat',
+    });
+    expect(without.metadata).not.toHaveProperty('assetClass');
+  });
+
   it('langfuse sampling defaults to 1 and respects a valid override', () => {
     const prev = process.env.MASTRA_OBSERVABILITY_SAMPLING;
     try {
@@ -175,6 +195,9 @@ describe('mastra observability — telemetry helpers', () => {
     expect(workflowIdForKind('mastra_mode_failed')).toBe('symbol-research');
     expect(workflowIdForKind('mastra_full_job')).toBe('full-analysis');
     expect(workflowIdForKind('mastra_full_job_failed')).toBe('full-analysis');
+    // P-03: both the neutral name and the one-release legacy alias resolve.
+    expect(workflowIdForKind('mastra_xauusd_research')).toBe('xauusd-report');
+    expect(workflowIdForKind('mastra_xauusd_research_failed')).toBe('xauusd-report');
     expect(workflowIdForKind('mastra_xauusd_poc')).toBe('xauusd-report');
     expect(workflowIdForKind('mastra_canonical_chat')).toBeNull();
     expect(workflowIdForKind(null)).toBeNull();

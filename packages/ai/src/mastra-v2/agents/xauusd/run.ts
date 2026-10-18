@@ -17,12 +17,12 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { LanguageModel } from 'ai';
 
-import { estimateCostUsd } from '../../../cost';
-import { getDiagnosticContext, withDiagnostics } from '../../../diagnostics';
-import type { ResolveModelEnv } from '../../../env-model-factory';
-import { createGenerationLedger, type GenerationLedger } from '../../../generation-ledger';
-import type { ChatModelResolution } from '../../../model';
-import { telemetryConfig } from '../../../telemetry';
+import { estimateCostUsd } from '@ai/cost';
+import { getDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
+import type { ResolveModelEnv } from '@ai/env-model-factory';
+import { createGenerationLedger, type GenerationLedger } from '@ai/generation-ledger';
+import type { ChatModelResolution } from '@ai/model';
+import { telemetryConfig } from '@ai/telemetry';
 import { manifestForCapability } from '../../capabilities';
 import { getKestrelMastra } from '../../instance';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../../logger';
@@ -82,7 +82,7 @@ export interface RunXauusdMastraArgs {
   /** Idempotency key of the current user message already stored in Drizzle. */
   backfillExcludeMessageIdempotencyKey?: string;
   /** Telemetry kind for the run. */
-  telemetryKind?: 'mastra_xauusd_poc';
+  telemetryKind?: 'mastra_xauusd_research';
   /**
    * Explicit turn mode (Phase 7). `followup` answers from the saved verified
    * report instead of creating a new report and requires `priorReport`.
@@ -283,7 +283,7 @@ async function executeXauusdMastraRun(args: RunXauusdMastraArgs): Promise<Xauusd
         runId: args.runId,
         userId: args.userId,
         threadId: args.threadId,
-        kind: args.telemetryKind ?? 'mastra_xauusd_poc',
+        kind: args.telemetryKind ?? 'mastra_xauusd_research',
         capabilityId: 'xauusd-research',
         tags: ['xauusd-report'],
         memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
@@ -558,7 +558,7 @@ async function executeXauusdMastraConversationRun(
         runId: args.runId,
         userId: args.userId,
         threadId: args.threadId,
-        kind: args.telemetryKind ?? 'mastra_xauusd_poc',
+        kind: args.telemetryKind ?? 'mastra_xauusd_research',
         capabilityId: 'xauusd-conversation',
         tags: ['xauusd-conversation'],
         memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
@@ -812,7 +812,7 @@ export async function runXauusdMastraConversationStream(
           runId: args.runId,
           userId: args.userId,
           threadId: args.threadId,
-          kind: args.telemetryKind ?? 'mastra_xauusd_poc',
+          kind: args.telemetryKind ?? 'mastra_xauusd_research',
           capabilityId: 'xauusd-conversation',
           tags: ['xauusd-conversation'],
           memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',

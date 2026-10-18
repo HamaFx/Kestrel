@@ -18,15 +18,15 @@ import { GetNewsOutputSchema } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getNewsTool } from '../../../../tools/get-news';
-import { createEvidenceId } from '../../../packets/evidence';
+import { getNewsTool } from '@ai/tools/get-news';
+import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
 import {
   EXTERNAL_CONTENT_TRUST_WARNING,
   quarantineExternalText,
   toUntrustedExternalEvidence,
-} from '../../../packets/external-content';
-import { executeMastraTool } from '../../../shared/telemetry';
-import { XAUUSD } from '../../../shared/types';
+} from '@ai/mastra-v2/packets/external-content';
+import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
+import { XAUUSD } from '@ai/mastra-v2/shared/types';
 import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { XauusdSymbolSchema } from '../tool-schemas';
 

@@ -1,0 +1,55 @@
+[
+  {
+    "id": "cmp-01",
+    "prompt": "Compare XAUUSD and EURUSD for me.",
+    "expectedTools": [],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["XAUUSD", "EURUSD"],
+    "quality": {
+      "requiredOutputSubstrings": ["XAUUSD", "EURUSD"],
+      "forbiddenOutputSubstrings": ["canonical", "I can't compare"]
+    }
+  },
+  {
+    "id": "cmp-02",
+    "prompt": "Compare gold vs bitcoin right now.",
+    "expectedTools": [],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["XAUUSD", "BTCUSDT"],
+    "quality": {
+      "requiredOutputSubstrings": ["XAUUSD", "BTCUSDT"]
+    }
+  },
+  {
+    "id": "cmp-03",
+    "prompt": "Compare EURUSD, GBPUSD and USDJPY.",
+    "expectedTools": [],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["EURUSD", "GBPUSD", "USDJPY"],
+    "quality": {
+      "requiredOutputSubstrings": ["EURUSD", "GBPUSD", "USDJPY"]
+    }
+  },
+  {
+    "id": "cmp-04",
+    "prompt": "Which is stronger right now, XAUUSD or EURUSD: compare their trends and volatility.",
+    "expectedTools": [],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["XAUUSD", "EURUSD"],
+    "quality": {
+      "requiredOutputSubstrings": ["XAUUSD", "EURUSD"],
+      "forbiddenOutputSubstrings": ["cannot compare"]
+    }
+  },
+  {
+    "id": "cmp-05",
+    "prompt": "Compare XAUUSD, EURUSD, GBPUSD and USDJPY.",
+    "expectedTools": [],
+    "forbiddenTools": [],
+    "mustContainSubstrings": ["3"],
+    "quality": {
+      "requiredOutputSubstrings": ["3"],
+      "forbiddenOutputSubstrings": ["XAUUSD and EURUSD only"]
+    }
+  }
+]

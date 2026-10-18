@@ -148,9 +148,17 @@ export function computeIndicatorMemo(args: {
   kind: IndicatorRequest['kind'];
   params: IndicatorRequest['params'];
   candles: Candle[];
+  /**
+   * B-06 (audit 2026-10-18) — staleness bit. Two collects can share length and
+   * last candle timestamp but differ in whether the candles were served from
+   * the stale-while-error cache; without this bit the memo would reuse a stale
+   * computation as if it were fresh after a provider failover.
+   */
+  stale?: boolean;
 }): ReturnType<typeof computeIndicator> {
   const lastT = args.candles.at(-1)?.t ?? 0;
-  const key = `${args.symbol}:${args.tf}:${String(args.kind)}:${JSON.stringify(args.params)}:${args.candles.length}:${lastT}`;
+  const staleBit = args.stale ? 's' : 'f';
+  const key = `${args.symbol}:${args.tf}:${String(args.kind)}:${JSON.stringify(args.params)}:${args.candles.length}:${lastT}:${staleBit}`;
   const memoized = indicatorMemo.get(key);
   if (memoized) {
     indicatorMemo.delete(key);
@@ -339,6 +347,7 @@ export async function collectSymbolResearchPacket(
             kind: request.kind,
             params: request.params,
             candles,
+            stale: result.value.stale,
           });
           return { ...computed, values: computed.values.slice(-8) };
         })
@@ -395,7 +404,11 @@ export async function collectSymbolResearchPacket(
       available: Boolean(macro),
       reason: macro
         ? 'XAUUSD macro context (dollar index, real yields, USD events, news) is attached as the packet extension.'
-        : `Fundamental context is not part of the generalized ${symbol} packet; use the XAUUSD fundamental workflow where applicable.`,
+        : wantsMacro
+          ? // B-05: the macro extension was requested but could not be collected
+            // for this run — never imply it was checked.
+            'XAUUSD macro context (dollar index, real yields, USD events, news) was requested but could not be collected for this run.'
+          : `Fundamental context is not part of the generalized ${symbol} packet; use the XAUUSD fundamental workflow where applicable.`,
     },
     missingData: unique(missingData),
     warnings: unique(warnings),

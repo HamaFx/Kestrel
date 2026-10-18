@@ -16,134 +16,41 @@
 
 // Tool: get_market_structure.
 //
-// Lets the agent ask "what does structure look like on EURUSD 1h?" and
-// get back swings, BOS/CHoCH events, fair-value gaps, order blocks, and
-// liquidity sweeps in one round-trip. Outputs are sparse events (not
-// per-candle scalars) so they live in their own envelope alongside the
-// existing get_indicators tool.
+// I-03 (audit 2026-10-18) — the implementation moved to the native Mastra
+// registration in `mastra-v2/tools/canonical/market-structure.ts`. This module
+// is now the AI SDK shim for non-Mastra consumers for one release: it
+// re-exports the same schema/description/pure projection and delegates to the
+// shared execute core, so both paths always produce identical output.
 
-import { getCandles } from '@kestrel/data';
-import { computeStructure } from '@kestrel/indicators';
-import {
-  StructureKindSchema,
-  SymbolSchema,
-  TimeframeSchema,
-  type Candle,
-  type GetMarketStructureOutput,
-  type StructureResult,
-} from '@kestrel/shared';
+import type { GetMarketStructureOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
-import { z } from 'zod';
+import type { z } from 'zod';
 
-import { maybeGetToolContext } from '../tool-context';
+import {
+  CANONICAL_MARKET_STRUCTURE_DESCRIPTION,
+  CanonicalMarketStructureInputSchema,
+  executeCanonicalMarketStructure,
+} from '../mastra-v2/tools/canonical/market-structure';
 
-const InputSchema = z.object({
-  symbol: SymbolSchema,
-  tf: TimeframeSchema,
-  /** Bars to scan. 300 covers ~12 days on 1h, 12 weeks on 4h. */
-  count: z.int().min(50).max(1000).default(300),
-  /**
-   * Which kinds to compute. Skip the ones you don't need to keep the
-   * payload small in the chat history.
-   * Default: all 5 structure kinds.
-   */
-  kinds: z.array(StructureKindSchema).optional(),
-  /** How many most recent events per kind to return. Default 5. */
-  lookback: z.int().min(2).max(10).default(5),
-});
+// One-release compatibility re-export: the XAUUSD market-structure tool and
+// other consumers import the pure projection from this historical path.
+export { computeMarketStructureOutput } from '../mastra-v2/tools/canonical/market-structure';
 
 declare module '@kestrel/shared' {
   interface ToolIOMap {
-    get_market_structure: { input: z.infer<typeof InputSchema> };
+    get_market_structure: { input: z.infer<typeof CanonicalMarketStructureInputSchema> };
   }
-}
-
-const TAIL = 15;
-
-export interface MarketStructureComputationArgs {
-  symbol: z.infer<typeof SymbolSchema>;
-  tf: z.infer<typeof TimeframeSchema>;
-  count: number;
-  kinds?: z.infer<typeof StructureKindSchema>[];
-  lookback: number;
-  candles: Candle[];
-}
-
-/** Pure projection shared by the legacy AI SDK tool and Mastra adapter. */
-export function computeMarketStructureOutput({
-  symbol,
-  tf,
-  kinds,
-  lookback,
-  candles,
-}: MarketStructureComputationArgs): GetMarketStructureOutput {
-  const r = computeStructure({
-    symbol,
-    tf,
-    candles,
-    ...(kinds ? { kinds } : {}),
-    swings: { lookback },
-  });
-
-  return {
-    symbol,
-    tf,
-    bars: r.bars,
-    ...(r.swings ? { swings: r.swings.slice(-TAIL) } : {}),
-    ...(r.events ? { events: r.events.slice(-TAIL) } : {}),
-    ...(r.fvg ? { fvg: r.fvg.filter((z) => !z.mitigated).slice(-TAIL) } : {}),
-    ...(r.orderBlocks
-      ? { orderBlocks: r.orderBlocks.filter((o) => !o.mitigated).slice(-TAIL) }
-      : {}),
-    ...(r.liquidity ? { liquidity: r.liquidity.slice(-TAIL) } : {}),
-    summary: summarize(r),
-  };
 }
 
 export const getMarketStructureTool: Tool<
-  z.infer<typeof InputSchema>,
+  z.infer<typeof CanonicalMarketStructureInputSchema>,
   GetMarketStructureOutput
 > = tool({
-  description:
-    'Detect SMC market structure on a (symbol, timeframe) window: swing pivots, break-of-structure / change-of-character events, fair value gaps, order blocks, and liquidity sweeps. Use when the user asks about trend bias, structural breaks, FVGs, OBs, or where stops likely got swept.',
-  inputSchema: InputSchema,
+  description: CANONICAL_MARKET_STRUCTURE_DESCRIPTION,
+  inputSchema: CanonicalMarketStructureInputSchema,
   execute: async (
-    { symbol, tf, count, kinds, lookback },
+    input,
     options?: { abortSignal?: AbortSignal },
-  ): Promise<GetMarketStructureOutput> => {
-    const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
-    const candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
-    return computeMarketStructureOutput({
-      symbol,
-      tf,
-      count,
-      ...(kinds ? { kinds } : {}),
-      lookback,
-      candles,
-    });
-  },
+  ): Promise<GetMarketStructureOutput> =>
+    executeCanonicalMarketStructure(input, options?.abortSignal),
 });
-
-/** Compact human-readable summary the model can echo without big-array reasoning. */
-function summarize(r: StructureResult): string {
-  const parts: string[] = [];
-  if (r.swings) parts.push(`${r.swings.length} swings`);
-  if (r.events && r.events.length > 0) {
-    const lastEvent = r.events[r.events.length - 1]!;
-    parts.push(
-      `last structure: ${lastEvent.kind.toUpperCase()} ${lastEvent.direction} @ ${lastEvent.level}`,
-    );
-  } else if (r.events) {
-    parts.push('no structure breaks');
-  }
-  if (r.fvg) {
-    const open = r.fvg.filter((z) => !z.mitigated).length;
-    parts.push(`${open}/${r.fvg.length} unmitigated FVGs`);
-  }
-  if (r.orderBlocks) {
-    const open = r.orderBlocks.filter((o) => !o.mitigated).length;
-    parts.push(`${open}/${r.orderBlocks.length} unmitigated OBs`);
-  }
-  if (r.liquidity) parts.push(`${r.liquidity.length} liquidity sweeps`);
-  return parts.join(' · ');
-}

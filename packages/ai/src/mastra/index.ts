@@ -14,6 +14,20 @@
  * limitations under the License.
  */
 
+// D-02 (audit 2026-10-18) — DEPRECATED BARREL.
+//
+// This module is a thin re-export of `@kestrel/ai/mastra-v2` kept for one
+// release of wire compatibility. New code must import from
+// `@kestrel/ai/mastra-v2` (or the relevant subpath); this barrel is
+// scheduled for deletion in the next minor. Module scope runs once per
+// process, so the notice fires once; it is suppressed in tests and via
+// KESTREL_SILENCE_DEPRECATIONS=1.
+if (process.env.NODE_ENV !== 'test' && process.env.KESTREL_SILENCE_DEPRECATIONS !== '1') {
+  console.warn(
+    '[kestrel] @kestrel/ai/mastra is deprecated — import from @kestrel/ai/mastra-v2 instead; this barrel is scheduled for removal in the next minor.',
+  );
+}
+
 export {
   createExecutionPlan,
   parseExecutionPlan,
@@ -35,8 +49,11 @@ export {
   isMastraXauusdCandidate,
   isMastraXauusdFollowupCandidate,
   isMutationIntent,
+  mastraComparisonScope,
   mastraXauusdChatKind,
+  MAX_COMPARISON_SYMBOLS,
   messageText,
+  type MastraComparisonScope,
 } from '../mastra-v2/planning/routing-policy';
 export {
   routeUnified,
@@ -139,6 +156,7 @@ export {
   getFullAnalysisQueueHealth,
   getFullAnalysisRun,
   purgeOldFullAnalysisRuns,
+  reconcileFullAnalysisSnapshots,
   recoverStaleFullAnalysisRuns,
   FullAnalysisPayloadSchema,
   FULL_ANALYSIS_ESTIMATE_USD,
@@ -204,23 +222,25 @@ export {
   type XauusdTurnMode,
 } from '../mastra-v2/agents/xauusd/run';
 export {
-  xauusdCalendarTool,
-  xauusdCandlesTool,
-  xauusdCorrelationTool,
-  xauusdFundamentalContextTool,
-  xauusdIndicatorsTool,
-  xauusdIntermarketTool,
   xauusdMastraConversationToolNames,
   xauusdMastraTools,
-  xauusdMarketStructureTool,
-  xauusdPriceTool,
-  xauusdResearchPacketTool,
-  xauusdSessionLevelsTool,
-  xauusdTechnicalAnalysisTool,
-  xauusdVolatilityTool,
-  xauusdNewsTool,
-  xauusdSocialSentimentTool,
 } from '../mastra-v2/agents/xauusd/tools';
+// D-03 (audit 2026-10-18): individual tools re-export from their definition
+// files (the `tools.ts` re-export hop was removed).
+export { xauusdPriceTool } from '../mastra-v2/agents/xauusd/tools/price-tool';
+export { xauusdCandlesTool } from '../mastra-v2/agents/xauusd/tools/candles-tool';
+export { xauusdIndicatorsTool } from '../mastra-v2/agents/xauusd/tools/indicators-tool';
+export { xauusdMarketStructureTool } from '../mastra-v2/agents/xauusd/tools/market-structure-tool';
+export { xauusdSessionLevelsTool } from '../mastra-v2/agents/xauusd/tools/session-levels-tool';
+export { xauusdTechnicalAnalysisTool } from '../mastra-v2/agents/xauusd/tools/technical-tool';
+export { xauusdCorrelationTool } from '../mastra-v2/agents/xauusd/tools/correlation-tool';
+export { xauusdIntermarketTool } from '../mastra-v2/agents/xauusd/tools/intermarket-tool';
+export { xauusdVolatilityTool } from '../mastra-v2/agents/xauusd/tools/volatility-tool';
+export { xauusdNewsTool } from '../mastra-v2/agents/xauusd/tools/news-tool';
+export { xauusdCalendarTool } from '../mastra-v2/agents/xauusd/tools/calendar-tool';
+export { xauusdSocialSentimentTool } from '../mastra-v2/agents/xauusd/tools/social-sentiment-tool';
+export { xauusdFundamentalContextTool } from '../mastra-v2/agents/xauusd/tools/fundamental-context-tool';
+export { xauusdResearchPacketTool } from '../mastra-v2/packets/research-packet-tool';
 export { collectXauusdResearchPacket } from '../mastra-v2/packets/research-packet';
 export {
   runMastraBackgroundText,
@@ -258,7 +278,8 @@ export {
   type KestrelMastra,
 } from '../mastra-v2/instance';
 export {
-  getSharedMastraStorage,
+  // D-01/C-01 (audit 2026-10-18): `getSharedMastraStorage` is internal —
+  // the Mastra instance owns storage.
   _resetMastraStorageCache,
   pruneMastraStorage,
   closeMastraStorage,

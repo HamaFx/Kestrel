@@ -16,11 +16,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  xauusdMarketStructureTool,
-  xauusdSessionLevelsTool,
-  xauusdTechnicalAnalysisTool,
-} from '../src/mastra-v2/agents/xauusd/tools';
+import { xauusdMarketStructureTool } from '../src/mastra-v2/agents/xauusd/tools/market-structure-tool';
+import { xauusdSessionLevelsTool } from '../src/mastra-v2/agents/xauusd/tools/session-levels-tool';
+import { xauusdTechnicalAnalysisTool } from '../src/mastra-v2/agents/xauusd/tools/technical-tool';
 
 const mocks = vi.hoisted(() => ({
   getCandlesWithMeta: vi.fn(),

@@ -24,7 +24,7 @@ import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants
 import { errorCodeForMastra, outputLength } from './stats';
 
 const mlog = createCategorizedLogger('ai', {
-  component: 'mastra-xauusd-tool',
+  component: 'mastra:xauusd-tool',
   agent: MASTRA_XAUUSD_AGENT_ID,
   agentVersion: MASTRA_XAUUSD_AGENT_VERSION,
 });

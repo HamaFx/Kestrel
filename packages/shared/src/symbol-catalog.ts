@@ -595,6 +595,28 @@ export function symbolCategory(symbol: string): SymbolCategory | null {
 }
 
 /**
+ * C-02 (audit 2026-10-18) — coarse asset-class label for cross-asset
+ * telemetry (Langfuse trace metadata, committee execution metrics). The
+ * canonical catalog category (`gold` | `forex` | `crypto`) is too coarse to
+ * filter by in dashboards, so this maps it onto a stable operator-facing
+ * vocabulary.
+ */
+export type SymbolAssetClass = 'precious' | 'fx-majors' | 'crypto';
+
+export function assetClassForSymbol(symbol: string): SymbolAssetClass | null {
+  switch (symbolCategory(symbol)) {
+    case 'gold':
+      return 'precious';
+    case 'forex':
+      return 'fx-majors';
+    case 'crypto':
+      return 'crypto';
+    default:
+      return null;
+  }
+}
+
+/**
  * Patterns matching natural-language asset names and nicknames to their canonical internal symbols.
  */
 export const PROMPT_SYMBOL_PATTERNS: ReadonlyArray<{

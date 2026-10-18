@@ -128,31 +128,54 @@ The AI package contains:
 
 All Mastra orchestration lives under `packages/ai/src/mastra-v2/` (the former
 `mastra/` generation was atomically migrated in 2026-10; the audit v2 cleanup
-deleted the 70 per-module re-export shims — `src/mastra/index.ts` is now the
-only file there, a thin public barrel that re-exports `mastra-v2` directly for
-the `@kestrel/ai/mastra` subpath):
+deleted the 70 per-module re-export shims). `src/mastra/index.ts` is now the
+only file under `src/mastra/`: a **deprecated** thin barrel kept for one
+release of wire compatibility — it logs a one-time deprecation warning outside
+tests and re-exports `mastra-v2` for the `@kestrel/ai/mastra` subpath. New
+code imports `@kestrel/ai/mastra-v2`. Committee orchestration stays in
+`packages/ai/src/committee/` (specialists, cross-critique, fusion) and is
+consumed by the mode runner.
+
+The tree below is asserted in CI by `scripts/check-architecture-tree.mjs` —
+editing this list and `packages/ai/src/mastra-v2/` must happen together:
 
 ```text
 mastra-v2/
-  agents/canonical/     canonical conversational agent + evidence checks
-  agents/xauusd/        XAUUSD research/conversation agents, run + context,
-                        report verification, and read-only tool adapters
-  packets/              deterministic evidence packets (symbol research,
-                        XAUUSD macro, §2.1 30s fresh-only cache)
-  capabilities/         capability manifest + policy (guardrail derivation)
-  planning/             unified router, execution plan/decision, mode runner
-  committee/            (src/committee) specialists, cross-critique, fusion
-  workflows/            durable full-analysis, XAUUSD report, mutation
-  mutation/             mutation detection/extraction/policy
-  shared/               telemetry, titles, tool telemetry, foundation types
-  guardrails.ts, storage.ts, memory.ts, instance.ts, evals/
+  agents/
+  capabilities/
+  evals/
+  mutation/
+  packets/
+  planning/
+  shared/
+  tools/
+  workflows/
+  context.ts
+  guardrails.ts
+  index.ts
+  instance.ts
+  logger.ts
+  memory.ts
+  observability-view.ts
+  registry.ts
+  research-context.ts
+  storage.ts
+  studio-server.ts
+  telemetry.ts
 ```
 
 AI tool structure is:
 
 ```text
-input schema → module augmentation → execute → typed output → registry
+input schema → execute core → native createTool registration (mastra-v2/tools/)
+             ↘ legacy AI SDK shim (src/tools/, one release) → typed output → registry
 ```
+
+The core market-data tools (`get_price`, `get_candles`, `get_indicators`,
+`search_knowledge`) are native Mastra registrations in
+`mastra-v2/tools/canonical/`; their `src/tools/` modules are one-release
+shims over the same execute cores. Remaining legacy tools migrate file by
+file and keep the identical output shape until then.
 
 Tools register explicitly via `registerAllTools()` at instance build time —
 importing a tool module no longer mutates the singleton registry.

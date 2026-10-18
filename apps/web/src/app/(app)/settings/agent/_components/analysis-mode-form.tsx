@@ -36,8 +36,8 @@ const MODE_OPTIONS: Array<{
 }> = [
   {
     value: 'single',
-    label: 'Single',
-    description: 'Fast one-desk technical read',
+    label: 'Single-desk',
+    description: 'One technical desk. Use Full for the 4-desk committee.',
     latencyS: 2,
     costMultiplier: 1,
   },

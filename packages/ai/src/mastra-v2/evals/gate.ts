@@ -39,7 +39,7 @@ import {
 } from '../../eval/quality-gate';
 import type { ScoreRecord } from './scores';
 
-const glog = createCategorizedLogger('ai', { component: 'mastra-evals-gate' });
+const glog = createCategorizedLogger('ai', { component: 'mastra:evals-gate' });
 
 export interface MastraGateScoreInput {
   /** Score rows recorded for the run/batch being gated. */

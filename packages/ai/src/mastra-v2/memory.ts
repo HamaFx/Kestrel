@@ -60,7 +60,7 @@ import {
   type MastraStorageKind,
 } from './storage';
 
-const mlog = createCategorizedLogger('ai', { component: 'mastra-memory' });
+const mlog = createCategorizedLogger('ai', { component: 'mastra:memory' });
 
 export const KESTREL_MEMORY_LAST_MESSAGES = 20;
 export const KESTREL_MEMORY_SEMANTIC_TOP_K = 4;

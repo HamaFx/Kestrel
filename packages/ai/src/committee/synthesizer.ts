@@ -42,11 +42,16 @@ import {
   getMastraGenerationStats,
   type MastraGenerationStats,
 } from '../mastra-v2/shared/telemetry';
-import { fusionRepairPrompt, verifyFusionAnswer } from './fusion-verifier';
-import { fusionInstructionsForRequest } from './prompts';
+import {
+  fusionRepairPrompt,
+  verifyComparisonFusionAnswer,
+  verifyFusionAnswer,
+} from './fusion-verifier';
+import { comparisonFusionInstructionsForRequest, fusionInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, FUSION_AGENT_ID } from './specialists';
 import {
   contextWithPacket,
+  contextWithPackets,
   MastraModeStrictFailureError,
   type CommitteeCritique,
   type MastraAnalysisMode,
@@ -118,9 +123,10 @@ export interface CommitteeSynthesisDeps {
     modelId: string;
     providerId: string;
   } | null;
-  memory: MastraMemory;
+  /** P-01: optional so view-only canonical registrations (Studio) can run without BYOK memory. */
+  memory?: MastraMemory | undefined;
   /** The fusion agent owns writes to the conversation thread. */
-  fusionCallOptions: AgentMemoryOption;
+  fusionCallOptions?: AgentMemoryOption | undefined;
   inputProcessors?: Array<InputProcessorOrWorkflow>;
   scorers?: MastraScorers;
   ledger: GenerationLedger;
@@ -212,7 +218,7 @@ export async function synthesizeCommitteeAnswer(
     // the thread with the caller's fusion call options.
     const baseOptions = {
       requestContext: contextWithPacket(requestContext, packet, opinions, critiques),
-      memory: deps.fusionCallOptions,
+      ...(deps.fusionCallOptions ? { memory: deps.fusionCallOptions } : {}),
       toolChoice: 'none' as const,
       maxSteps: deps.maxSteps,
       ...(signal ? { abortSignal: signal } : {}),
@@ -287,5 +293,100 @@ function aggregateStats(stats: MastraGenerationStats[]): MastraGenerationStats {
     outputTokens: stats.reduce((sum, s) => sum + s.outputTokens, 0),
     toolCalls: stats.reduce((sum, s) => sum + s.toolCalls, 0),
     steps: stats.reduce((sum, s) => sum + s.steps, 0),
+  };
+}
+
+export interface CommitteeComparisonSynthesisArgs {
+  prompt: string;
+  /** One ready packet per compared symbol (prompt order). */
+  packets: SymbolResearchPacket[];
+  opinions: MastraModeOpinion[];
+  executionStats: MastraGenerationStats[];
+  requestContext: RequestContext<ModeRequestContext>;
+  signal?: AbortSignal;
+  deps: CommitteeSynthesisDeps;
+}
+
+/**
+ * A-01 (B-01/B-08) — cross-symbol comparison fusion. Unlike single mode's
+ * deterministic desk read, a comparison always runs one bounded LLM
+ * synthesis over the per-symbol packets and desk opinions ("compare these N
+ * packets …"), then verifies the answer against the union of the packets'
+ * evidence with the same single bounded repair as full-mode fusion.
+ */
+export async function synthesizeComparisonAnswer(
+  args: CommitteeComparisonSynthesisArgs,
+): Promise<CommitteeSynthesisResult> {
+  const { prompt, packets, opinions, executionStats, requestContext, signal, deps } = args;
+  if (packets.length < 2) {
+    throw new MastraModeStrictFailureError(
+      ['fusion'],
+      new Error('Comparison synthesis requires at least two packets.'),
+    );
+  }
+  const fusionModel = deps.resolveModelForAgent?.('fusion') ?? {
+    model: deps.model,
+    modelId: deps.modelId,
+    providerId: deps.providerId,
+  };
+  const fusionAgent = createCommitteeAgent(
+    fusionModel.model,
+    FUSION_AGENT_ID,
+    (ctx: {
+      requestContext: Parameters<
+        typeof comparisonFusionInstructionsForRequest
+      >[0]['requestContext'];
+    }) => comparisonFusionInstructionsForRequest({ requestContext: ctx.requestContext }),
+    deps.memory,
+    deps.inputProcessors,
+    deps.scorers,
+  );
+
+  const runFusion = async (fusionPrompt: string) =>
+    fusionAgent.generate(fusionPrompt, {
+      requestContext: contextWithPackets(requestContext, packets, opinions),
+      ...(deps.fusionCallOptions ? { memory: deps.fusionCallOptions } : {}),
+      toolChoice: 'none' as const,
+      maxSteps: deps.maxSteps,
+      ...(signal ? { abortSignal: signal } : {}),
+    });
+
+  const fusionResult = await runFusion(prompt);
+  let finalText = fusionResult.text;
+  let generationStats: MastraGenerationStats[] = [getMastraGenerationStats(fusionResult)];
+  let fusionCostUsd = estimateCostUsd(
+    fusionModel.modelId,
+    generationStats[0]!.inputTokens,
+    generationStats[0]!.outputTokens,
+  );
+
+  const firstVerification = verifyComparisonFusionAnswer(finalText, packets, opinions);
+  if (!firstVerification.ok) {
+    const repairResult = await runFusion(fusionRepairPrompt(prompt, firstVerification.findings));
+    const repairStats = getMastraGenerationStats(repairResult);
+    generationStats = [...generationStats, repairStats];
+    fusionCostUsd += estimateCostUsd(
+      fusionModel.modelId,
+      repairStats.inputTokens,
+      repairStats.outputTokens,
+    );
+    finalText = repairResult.text;
+    const repairVerification = verifyComparisonFusionAnswer(finalText, packets, opinions);
+    if (!repairVerification.ok) {
+      throw new MastraModeStrictFailureError(
+        ['fusion'],
+        new Error(
+          `Comparison fusion verification failed after repair: ${[...firstVerification.findings, ...repairVerification.findings].join('; ')}`,
+        ),
+      );
+    }
+  }
+
+  deps.ledger.recordCost('fusion', 'fusion', fusionCostUsd);
+  return {
+    finalText,
+    stats: aggregateStats([...executionStats, ...generationStats]),
+    fusionModelId: fusionModel.modelId,
+    fusionProviderId: fusionModel.providerId,
   };
 }

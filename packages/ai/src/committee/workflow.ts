@@ -29,7 +29,7 @@
  *     → fusion (LLM synthesis, grounded by the fusion verifier)
  */
 
-import { readFeatureFlag } from '@kestrel/shared';
+import { readFeatureFlag, type Symbol } from '@kestrel/shared';
 import type { Mastra } from '@mastra/core';
 import type { AgentMemoryOption } from '@mastra/core/agent';
 import type { MastraScorers } from '@mastra/core/evals';
@@ -42,6 +42,7 @@ import { z } from 'zod';
 
 import { createGenerationLedger, type GenerationLedger } from '../generation-ledger';
 import {
+  collectMultiSymbolPackets,
   collectSymbolResearchPacketCached,
   SymbolResearchPacketSchema,
 } from '../mastra-v2/packets/packet-cache';
@@ -66,11 +67,12 @@ import {
 import {
   readCollectPacketResult,
   readSpecialistStepResult,
+  readSpecialistStepResultById,
   runSpecialistGeneration,
   SpecialistStepResultSchema,
 } from './specialist-runner';
 import { recordCommitteeStepSpan } from './step-spans';
-import { synthesizeCommitteeAnswer } from './synthesizer';
+import { synthesizeCommitteeAnswer, synthesizeComparisonAnswer } from './synthesizer';
 import {
   CollectPacketOutputSchema,
   CommitteeCritiqueSchema,
@@ -83,6 +85,7 @@ import {
   MastraSpecialistNameSchema,
   REQUEST_CONTEXT_SCHEMA,
   zeroStats,
+  type CollectComparisonPacketsFn,
   type CollectPacketFn,
   type CommitteeAgentId,
   type CommitteeCritique,
@@ -97,6 +100,12 @@ export const CommitteeWorkflowInputSchema = z.object({
   prompt: z.string().min(1),
   symbol: SymbolResearchPacketSchema.shape.symbol,
   mode: MastraAnalysisModeSchema,
+  /**
+   * A-01 — comparison symbols (2–3, prompt order). When present the workflow
+   * runs the per-symbol comparison graph instead of the single-symbol
+   * committee; `symbol` stays the primary (first) symbol.
+   */
+  symbols: z.array(SymbolResearchPacketSchema.shape.symbol).min(2).max(3).optional(),
 });
 
 export const CommitteeWorkflowOutputSchema = z.object({
@@ -107,6 +116,8 @@ export const CommitteeWorkflowOutputSchema = z.object({
   /** §3.2 cross-critique records (Q6: ON by default for full). */
   critiques: z.array(CommitteeCritiqueSchema),
   packet: SymbolResearchPacketSchema,
+  /** A-01: per-symbol packets for comparison runs. */
+  packets: z.record(z.string(), SymbolResearchPacketSchema).optional(),
   stats: z.object({
     inputTokens: z.number(),
     outputTokens: z.number(),
@@ -122,6 +133,16 @@ const SpecialistStepInputSchema = z.object({
   prompt: z.string(),
 });
 
+/**
+ * A-01 — comparison specialist step input: the collect step's per-symbol
+ * packet record plus the primary packet (kept for schema compatibility).
+ */
+const ComparisonSpecialistStepInputSchema = z.object({
+  packet: SymbolResearchPacketSchema,
+  packets: z.record(z.string(), SymbolResearchPacketSchema).optional(),
+  prompt: z.string(),
+});
+
 const VerifyOutputSchema = z.object({
   failedAgents: z.array(MastraSpecialistNameSchema),
 });
@@ -130,11 +151,15 @@ export interface CommitteeWorkflowDeps {
   model: LanguageModel;
   modelId: string;
   providerId: string;
-  memory: MastraMemory;
+  /**
+   * Thread memory. P-01 (audit 2026-10-18): optional so view-only canonical
+   * registrations (Studio) can build the graph without a BYOK memory handle.
+   */
+  memory?: MastraMemory | undefined;
   /** Read thread context; the specialist runner enforces read-only by default. */
-  specialistCallOptions: AgentMemoryOption;
+  specialistCallOptions?: AgentMemoryOption | undefined;
   /** The fusion/output layer owns writes to the conversation thread. */
-  fusionCallOptions: AgentMemoryOption;
+  fusionCallOptions?: AgentMemoryOption | undefined;
   signal?: AbortSignal;
   /**
    * Audit plan §3.1 (Q1: quality always) — optional per-agent top-tier model
@@ -162,6 +187,15 @@ export interface CommitteeWorkflowDeps {
   /** Deterministic evidence packet collector; defaults to symbol-research. */
   collectPacket?: CollectPacketFn;
   /**
+   * A-01 (B-01/B-08) — when two or three symbols are present, the workflow
+   * runs the comparison graph: one cached packet per symbol (parallel), one
+   * technical desk pass per symbol (parallel), strict verify, then a
+   * cross-symbol fusion that compares the packets.
+   */
+  comparisonSymbols?: readonly Symbol[];
+  /** Comparison packet collector; defaults to `collectMultiSymbolPackets`. */
+  collectComparisonPackets?: CollectComparisonPacketsFn;
+  /**
    * Committee deadline (audit plan §1.7, Q3). When set, a deadline abort is
    * converted into an explicit failure marker / strict error instead of an
    * opaque route abort. Sync web runs pass 45s; durable worker runs omit it.
@@ -171,13 +205,21 @@ export interface CommitteeWorkflowDeps {
   disabledTools?: readonly string[] | null;
 }
 
+/**
+ * P-01 (audit 2026-10-18) — the single documented cast for Mastra's fluent
+ * `.parallel()` builder: it requires a tuple of homogeneous step types that
+ * cannot be inferred from mapped step arrays. One helper, one contract.
+ */
+function asParallelSteps<T>(steps: readonly T[]): never {
+  return steps as never;
+}
+
 export function createCommitteeWorkflow(
   deps: CommitteeWorkflowDeps,
   mode: MastraAnalysisMode,
   workflowId: string = 'symbol-research',
 ): Workflow {
-  const policy = committeeModePolicy(mode);
-  const specialists = policy.specialists;
+  const policy = committeeModePolicy(mode);  const specialists = policy.specialists;
   const strict = policy.strict;
   const progressStages = committeeProgressStages(mode);
   const generationLedger = deps.ledger ?? createGenerationLedger();
@@ -192,6 +234,303 @@ export function createCommitteeWorkflow(
     ...(deadlineSignal ? { deadlineSignal } : {}),
   };
   const runSignal = combineRunSignal(runSignals);
+
+  /**
+   * A-01 (B-01/B-08) — bounded cross-symbol comparison graph. Each symbol
+   * gets its own cached packet and its own single-desk (technical) pass in
+   * parallel; verify is strict all-or-nothing; fusion compares the collected
+   * packets. This deliberately does not double the committee size in v1.
+   */
+  const comparisonSymbols = [...new Set(deps.comparisonSymbols ?? [])];
+  if (comparisonSymbols.length >= 2) {
+    const collectComparisonPackets: CollectComparisonPacketsFn =
+      deps.collectComparisonPackets ?? collectMultiSymbolPackets;
+    const comparisonStepId = (symbol: string) => `technical-${symbol.toLowerCase()}`;
+
+    const comparisonSpecialistDeps = {
+      model: deps.model,
+      modelId: deps.modelId,
+      providerId: deps.providerId,
+      ...(deps.resolveModelForAgent ? { resolveModelForAgent: deps.resolveModelForAgent } : {}),
+      memory: deps.memory,
+      specialistCallOptions: deps.specialistCallOptions,
+      ...(deps.researchInputProcessors
+        ? { researchInputProcessors: deps.researchInputProcessors }
+        : {}),
+      ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors } : {}),
+      ...(deps.scorers ? { scorers: deps.scorers } : {}),
+      ledger: generationLedger,
+      maxSteps,
+      ...(deps.toolContext ? { toolContext: deps.toolContext } : {}),
+      ...(deps.disabledTools ? { disabledTools: deps.disabledTools } : {}),
+    };
+
+    const comparisonCollectStep = createStep({
+      id: 'collect-packet',
+      inputSchema: CommitteeWorkflowInputSchema,
+      outputSchema: CollectPacketOutputSchema,
+      execute: async ({ inputData, requestContext, abortSignal, bail }) => {
+        const signal = runSignal ?? abortSignal;
+        await deps.onProgress?.(progressStages[0]!);
+        // P-01: the input schema already validates each symbol, so the typed
+        // list needs no cast at the collector boundary.
+        const symbols: readonly Symbol[] = inputData.symbols ?? comparisonSymbols;
+        const packets = await collectComparisonPackets(symbols, signal);
+        const entries = [...packets.entries()];
+        const blocked = entries.find(([, packet]) => packet.status === 'blocked');
+        for (const [entrySymbol, packet] of entries) {
+          recordCommitteeStepSpan({
+            step: 'collect-packet',
+            runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+            symbol: entrySymbol,
+            mode: inputData.mode,
+            packetId: packet.packetId,
+            ok: packet.status === 'ready',
+          });
+        }
+        const primary = packets.get(comparisonSymbols[0]!) ?? entries[0]?.[1];
+        if (!primary) throw new Error('Comparison packet collection returned no packets.');
+        if (blocked) {
+          const text = `I could not complete the comparison because required market data for ${blocked[0]} is unavailable.\n\n${blocked[1].missingData.join('\n')}`;
+          return bail({
+            status: 'blocked' as const,
+            blockedText: text,
+            opinions: [],
+            critiques: [],
+            packet: primary,
+            packets: Object.fromEntries(entries),
+            stats: zeroStats(),
+            failedAgents: [],
+            totalCostUsd: 0,
+          });
+        }
+        return {
+          packet: primary,
+          packets: Object.fromEntries(entries),
+          prompt: inputData.prompt,
+          // Comparison v1 always runs the one-desk read per symbol; the
+          // durable full-committee queue never carries a comparison.
+          mode: 'single' as const,
+        };
+      },
+    });
+
+    const comparisonSpecialistSteps = comparisonSymbols.map((symbol) =>
+      createStep({
+        id: comparisonStepId(symbol),
+        inputSchema: ComparisonSpecialistStepInputSchema,
+        outputSchema: SpecialistStepResultSchema,
+        retries: 1,
+        execute: async ({ inputData, requestContext, abortSignal }) => {
+          await deps.onProgress?.('technical');
+          const startedAt = Date.now();
+          const signal = runSignal ?? abortSignal;
+          const packet = inputData.packets?.[symbol] ?? inputData.packet;
+          let result: Awaited<ReturnType<typeof runSpecialistGeneration>>;
+          try {
+            result = await runSpecialistGeneration({
+              name: 'technical',
+              prompt: inputData.prompt,
+              packet,
+              symbol,
+              requestContext: requestContext as RequestContext<ModeRequestContext>,
+              signal,
+              startedAt,
+              deps: comparisonSpecialistDeps,
+            });
+          } catch (error) {
+            if (isDeadlineAbort(runSignals)) {
+              recordCommitteeStepSpan({
+                step: 'technical',
+                runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+                symbol,
+                mode,
+                packetId: packet.packetId,
+                latencyMs: Date.now() - startedAt,
+                ok: false,
+                error: 'deadline',
+              });
+              return {
+                ok: false,
+                agentName: 'technical' as const,
+                error: 'deadline',
+                latencyMs: Date.now() - startedAt,
+              };
+            }
+            throw error;
+          }
+          recordCommitteeStepSpan({
+            step: 'technical',
+            runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+            symbol,
+            mode,
+            packetId: packet.packetId,
+            ...(result.model ? { modelId: result.model } : {}),
+            ...(result.latencyMs !== undefined ? { latencyMs: result.latencyMs } : {}),
+            ...(result.costUsd !== undefined ? { tokenCostUsd: result.costUsd } : {}),
+            ...(result.stats
+              ? { inputTokens: result.stats.inputTokens, outputTokens: result.stats.outputTokens }
+              : {}),
+            ok: result.ok,
+            ...(result.error ? { error: result.error } : {}),
+          });
+          return result;
+        },
+      }),
+    );
+
+    const comparisonVerifyStep = createStep({
+      id: 'verify',
+      inputSchema: z.unknown(),
+      outputSchema: VerifyOutputSchema,
+      execute: async ({ requestContext, getStepResult }) => {
+        await deps.onProgress?.('verify');
+        const failedSymbols: string[] = [];
+        let sawDeadline = false;
+        for (const symbol of comparisonSymbols) {
+          const marker = readSpecialistStepResultById(getStepResult, comparisonStepId(symbol));
+          if (marker?.ok === false) {
+            failedSymbols.push(symbol);
+            if (marker.error === 'deadline') sawDeadline = true;
+          }
+        }
+        recordCommitteeStepSpan({
+          step: 'verify',
+          runId: (requestContext?.get('runId') as string | undefined) ?? 'unknown',
+          symbol: comparisonSymbols.join('/'),
+          mode,
+          ok: failedSymbols.length === 0,
+          ...(failedSymbols.length > 0 ? { error: failedSymbols.join(',') } : {}),
+        });
+        if (failedSymbols.length > 0) {
+          throw new MastraModeStrictFailureError(
+            ['technical'],
+            undefined,
+            sawDeadline
+              ? `Comparison analysis timed out (${failedSymbols.join(', ')} did not complete) — please retry. No partial answer was returned.`
+              : `Comparison analysis could not complete for ${failedSymbols.join(', ')}. No partial answer was returned — please retry.`,
+          );
+        }
+        return { failedAgents: [] };
+      },
+    });
+
+    const comparisonFusionStep = createStep({
+      id: 'fusion',
+      inputSchema: z.unknown(),
+      outputSchema: CommitteeWorkflowOutputSchema,
+      retries: 1,
+      execute: async ({ requestContext, getStepResult, abortSignal }) => {
+        const fusionStartedAt = Date.now();
+        const signal = runSignal ?? abortSignal;
+        await deps.onProgress?.('fusion');
+        const collect = readCollectPacketResult(getStepResult);
+        if (!collect?.packets) {
+          throw new Error('Comparison workflow is missing collect-packet output.');
+        }
+        const packetRecord = collect.packets;
+        const packets = comparisonSymbols
+          .map((symbol) => packetRecord[symbol])
+          .filter((packet): packet is NonNullable<typeof packet> => Boolean(packet));
+        const opinions: MastraModeOpinion[] = [];
+        const executionStats: MastraGenerationStats[] = [];
+        for (const symbol of comparisonSymbols) {
+          const marker = readSpecialistStepResultById(getStepResult, comparisonStepId(symbol));
+          if (!marker?.ok || !marker.opinion || !marker.stats) continue;
+          opinions.push({
+            agentName: 'technical',
+            symbol,
+            bias: marker.opinion.bias,
+            confidence: marker.opinion.confidence,
+            reasoning: marker.opinion.reasoning,
+            rawData: marker.opinion.details,
+            ...committeeModelMetadata(
+              marker.model ?? deps.modelId,
+              marker.providerId ?? deps.providerId,
+              marker.stats,
+              marker.costUsd ?? 0,
+              marker.latencyMs ?? 0,
+            ),
+          });
+          executionStats.push(marker.stats);
+        }
+
+        let synthesis: Awaited<ReturnType<typeof synthesizeComparisonAnswer>>;
+        try {
+          synthesis = await synthesizeComparisonAnswer({
+            prompt: collect.prompt,
+            packets,
+            opinions,
+            executionStats,
+            requestContext: requestContext as RequestContext<ModeRequestContext>,
+            signal,
+            deps: {
+              model: deps.model,
+              modelId: deps.modelId,
+              providerId: deps.providerId,
+              ...(deps.resolveModelForAgent
+                ? { resolveModelForAgent: deps.resolveModelForAgent }
+                : {}),
+              memory: deps.memory,
+              fusionCallOptions: deps.fusionCallOptions,
+              ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors } : {}),
+              ...(deps.scorers ? { scorers: deps.scorers } : {}),
+              ledger: generationLedger,
+              maxSteps,
+            },
+          });
+        } catch (error) {
+          if (isDeadlineAbort(runSignals)) {
+            throw new MastraModeStrictFailureError(
+              ['fusion'],
+              new Error('Comparison analysis timed out during fusion — please retry.'),
+            );
+          }
+          throw error;
+        }
+
+        recordCommitteeStepSpan({
+          step: 'fusion',
+          runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
+          symbol: comparisonSymbols.join('/'),
+          mode,
+          latencyMs: Date.now() - fusionStartedAt,
+          modelId: synthesis.fusionModelId ?? deps.modelId,
+          tokenCostUsd: generationLedger.total(),
+          inputTokens: synthesis.stats.inputTokens,
+          outputTokens: synthesis.stats.outputTokens,
+          ok: true,
+        });
+        return {
+          status: 'ready' as const,
+          finalText: synthesis.finalText,
+          opinions,
+          critiques: [],
+          packet: collect.packet,
+          packets: packetRecord,
+          stats: synthesis.stats,
+          failedAgents: [],
+          totalCostUsd: generationLedger.total(),
+        };
+      },
+    });
+
+    const comparisonWorkflow = new Workflow({
+      id: workflowId,
+      inputSchema: CommitteeWorkflowInputSchema,
+      outputSchema: CommitteeWorkflowOutputSchema,
+      requestContextSchema: REQUEST_CONTEXT_SCHEMA,
+      retryConfig: { attempts: 2, delay: 2_000 },
+      ...(deps.mastra ? { mastra: deps.mastra } : {}),
+    })
+      .then(comparisonCollectStep)
+      .parallel(asParallelSteps(comparisonSpecialistSteps))
+      .then(comparisonVerifyStep)
+      .then(comparisonFusionStep)
+      .commit() as unknown as Workflow;
+
+    return comparisonWorkflow;
+  }
 
   const collectPacketStep = createStep({
     id: 'collect-packet',
@@ -364,9 +703,9 @@ export function createCommitteeWorkflow(
               memory: deps.memory,
               specialistCallOptions: deps.specialistCallOptions,
               ...(deps.researchInputProcessors
-                ? { inputProcessors: deps.researchInputProcessors as never }
+                ? { inputProcessors: deps.researchInputProcessors }
                 : {}),
-              ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors as never } : {}),
+              ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors } : {}),
               ...(deps.scorers ? { scorers: deps.scorers } : {}),
               ledger: generationLedger,
               maxSteps,
@@ -462,9 +801,9 @@ export function createCommitteeWorkflow(
               memory: deps.memory,
               specialistCallOptions: deps.specialistCallOptions,
               ...(deps.researchInputProcessors
-                ? { inputProcessors: deps.researchInputProcessors as never }
+                ? { inputProcessors: deps.researchInputProcessors }
                 : {}),
-              ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors as never } : {}),
+              ...(deps.inputProcessors ? { inputProcessors: deps.inputProcessors } : {}),
               ...(deps.scorers ? { scorers: deps.scorers } : {}),
               ledger: generationLedger,
               maxSteps,
@@ -685,7 +1024,7 @@ export function createCommitteeWorkflow(
     ...(deps.mastra ? { mastra: deps.mastra } : {}),
   })
     .then(collectPacketStep)
-    .parallel(specialistSteps as never)
+    .parallel(asParallelSteps(specialistSteps))
     .then(critiqueStep)
     .then(debateStep)
     .then(verifyStep)

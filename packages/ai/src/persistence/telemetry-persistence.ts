@@ -64,6 +64,11 @@ export const TELEMETRY_KINDS = [
   'multi_specialist_sentiment_failed',
   'multi_specialist_decision',
   'multi_agent_turn',
+  // P-03 (audit 2026-10-18): footprint-neutral name; the `mastra_xauusd_poc`
+  // values remain accepted (and are normalized to these on write) for one
+  // release so existing dashboards keep resolving historical rows.
+  'mastra_xauusd_research',
+  'mastra_xauusd_research_failed',
   'mastra_xauusd_poc',
   'mastra_xauusd_poc_failed',
   'mastra_mode',

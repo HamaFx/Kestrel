@@ -16,7 +16,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { xauusdCalendarTool, xauusdNewsTool } from '../src/mastra-v2/agents/xauusd/tools';
+import { xauusdCalendarTool } from '../src/mastra-v2/agents/xauusd/tools/calendar-tool';
+import { xauusdNewsTool } from '../src/mastra-v2/agents/xauusd/tools/news-tool';
 import { XauusdCalendarInputSchema } from '../src/mastra-v2/agents/xauusd/tools/calendar-tool';
 import { XauusdNewsInputSchema } from '../src/mastra-v2/agents/xauusd/tools/news-tool';
 

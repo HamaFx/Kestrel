@@ -87,8 +87,9 @@ export interface CritiqueRunnerDeps {
     modelId: string;
     providerId: string;
   } | null;
-  memory: MastraMemory;
-  specialistCallOptions: AgentMemoryOption;
+  /** P-01: optional so view-only canonical registrations (Studio) can run without BYOK memory. */
+  memory?: MastraMemory | undefined;
+  specialistCallOptions?: AgentMemoryOption | undefined;
   inputProcessors?: Array<InputProcessorOrWorkflow>;
   scorers?: MastraScorers;
   ledger: GenerationLedger;
@@ -145,7 +146,9 @@ export async function runCritiqueGeneration(
     );
     const result = await agent.generate(prompt, {
       requestContext: contextWithPacket(requestContext, packet),
-      memory: readOnlyMemoryOptions(deps.specialistCallOptions),
+      ...(deps.specialistCallOptions
+        ? { memory: readOnlyMemoryOptions(deps.specialistCallOptions) }
+        : {}),
       toolChoice: 'none',
       maxSteps: deps.maxSteps,
       structuredOutput: {
@@ -264,7 +267,9 @@ export async function runDebateRevision(args: RunDebateRevisionArgs): Promise<De
     );
     const result = await agent.generate(prompt, {
       requestContext: contextWithPacket(requestContext, packet),
-      memory: readOnlyMemoryOptions(deps.specialistCallOptions),
+      ...(deps.specialistCallOptions
+        ? { memory: readOnlyMemoryOptions(deps.specialistCallOptions) }
+        : {}),
       toolChoice: 'none',
       maxSteps: deps.maxSteps,
       structuredOutput: {

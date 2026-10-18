@@ -46,9 +46,9 @@ import type { LanguageModel } from 'ai';
 
 import type { ResolveModelEnv } from '../../env-model-factory';
 import { resolveChatModel } from '../../model';
+import type { ExecutionPlan } from '../planning/execution-plan';
 import { createCitationScorer, createGroundingScorer } from './custom';
-
-const slog = createCategorizedLogger('ai', { component: 'mastra-evals-scorers' });
+const slog = createCategorizedLogger('ai', { component: 'mastra:evals-scorers' });
 
 export type ScorerId = 'faithfulness' | 'hallucination' | 'answer-relevancy' | 'bias' | 'toxicity';
 
@@ -257,20 +257,39 @@ function mergeScorers(a: BuiltScorers, b: BuiltScorers): BuiltScorers {
 }
 
 /**
- * Convenience — conversation-capable scorer set (faithfulness + answer
- * relevancy + toxicity) at the default 5% sampling, plus the always-on
- * deterministic custom scorers (grounding + citation).
+ * I-04 (audit 2026-10-18) — one implementation for every agent scorer set.
+ * The two historic convenience builders differed only in which prebuilt ids
+ * and default sampling they picked; the profile table below is now the single
+ * source for those differences.
  */
-export function buildConversationScorers(
+export interface AgentScorerProfile {
+  readonly enabled: readonly ScorerId[];
+  readonly sampling: ScorerSampling;
+}
+
+export const AGENT_SCORER_PROFILES = {
+  /** Conversation-capable set (faithfulness + answer relevancy + toxicity). */
+  conversation: {
+    enabled: ['faithfulness', 'answer-relevancy', 'toxicity'],
+    sampling: { type: 'ratio', rate: 0.05 },
+  },
+  /** Research/report set (hallucination + bias + toxicity). */
+  research: {
+    enabled: ['hallucination', 'bias', 'toxicity'],
+    sampling: { type: 'ratio', rate: 0.1 },
+  },
+} as const satisfies Record<string, AgentScorerProfile>;
+
+function buildAgentScorers(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
-  sampling: ScorerSampling = { type: 'ratio', rate: 0.05 },
+  profile: AgentScorerProfile,
 ): BuiltScorers {
   const prebuilt = buildPrebuiltScorers({
     settings,
     env,
-    enabled: ['faithfulness', 'answer-relevancy', 'toxicity'],
-    sampling,
+    enabled: profile.enabled,
+    sampling: profile.sampling,
   });
   // The grounding scorer requires a report + packet input and is therefore
   // not attached to a generic agent run (where Mastra supplies prompt/output
@@ -279,24 +298,51 @@ export function buildConversationScorers(
 }
 
 /**
- * Convenience — research/report scorer set (hallucination + bias + toxicity)
- * at the default 10% sampling, plus the always-on deterministic custom
- * scorers (grounding + citation).
+ * I-04 — build the scorer set that matches an execution plan: plans that
+ * require evidence (research/report routes) get the research profile; every
+ * other route gets the conversation profile. Call sites that already hold a
+ * plan should use this instead of choosing a profile by hand.
+ */
+export function buildScorersForExecutionPlan(
+  plan: Pick<ExecutionPlan, 'evidencePolicy'>,
+  settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
+  env: ResolveModelEnv,
+): BuiltScorers {
+  return buildAgentScorers(
+    settings,
+    env,
+    plan.evidencePolicy.required ? AGENT_SCORER_PROFILES.research : AGENT_SCORER_PROFILES.conversation,
+  );
+}
+
+/**
+ * Convenience — conversation-capable scorer set at the default 5% sampling,
+ * plus the always-on deterministic custom scorers.
+ */
+export function buildConversationScorers(
+  settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
+  env: ResolveModelEnv,
+  sampling: ScorerSampling = AGENT_SCORER_PROFILES.conversation.sampling,
+): BuiltScorers {
+  return buildAgentScorers(settings, env, {
+    enabled: AGENT_SCORER_PROFILES.conversation.enabled,
+    sampling,
+  });
+}
+
+/**
+ * Convenience — research/report scorer set at the default 10% sampling, plus
+ * the always-on deterministic custom scorers.
  */
 export function buildResearchScorers(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
-  sampling: ScorerSampling = { type: 'ratio', rate: 0.1 },
+  sampling: ScorerSampling = AGENT_SCORER_PROFILES.research.sampling,
 ): BuiltScorers {
-  const prebuilt = buildPrebuiltScorers({
-    settings,
-    env,
-    enabled: ['hallucination', 'bias', 'toxicity'],
+  return buildAgentScorers(settings, env, {
+    enabled: AGENT_SCORER_PROFILES.research.enabled,
     sampling,
   });
-  // Report grounding is kept out of the generic agent scorer map because its
-  // packet is available to the verifier, not to an arbitrary scorer callback.
-  return mergeScorers(prebuilt, buildCitationScorers());
 }
 
 /**
