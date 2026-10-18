@@ -47,7 +47,7 @@
     "@types/node": "^22.20.5",
     "@vitest/coverage-v8": "^5.0.5",
     "chrome-launcher": "^1.2.2",
-    "knip": "^6.41.0",
+    "knip": "^6.42.0",
     "lighthouse": "^13.5.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",

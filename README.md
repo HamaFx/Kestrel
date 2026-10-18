@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/HamaFx/Kestrel/actions/workflows/ci-fast.yml"><img src="https://img.shields.io/github/actions/workflow/status/HamaFx/Kestrel/ci-fast.yml?branch=main&style=for-the-badge&label=CI%20Build" alt="CI status"></a>
-  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.13%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js version"></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.22%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js version"></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.0%20(React%2019)-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js"></a>
   <a href="https://pnpm.io/"><img src="https://img.shields.io/badge/pnpm-9.15%2B-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm"></a>
   <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Ready"></a>
@@ -59,7 +59,7 @@ Get running on your machine with 1-click Docker or local development:
 ### Prerequisites
 
 - **Docker Desktop** (or Docker Engine)
-- **Node.js 22.13+** and **pnpm 9+** (for local development)
+- **Node.js 22.22+** and **pnpm 12+** (for local development)
 
 ---
 

@@ -33,7 +33,7 @@ Keep ports `8081` and `8082` private. Health uses `8081`; the optional BiQuote p
 
 ### `pnpm setup` cannot start
 
-Confirm Node.js is at least 22.13 and pnpm is installed:
+Confirm Node.js is at least 22.22 and pnpm 12 is installed:
 
 ```bash
 node --version

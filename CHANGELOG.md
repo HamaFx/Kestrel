@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dependency refresh (2026-10):** every workspace dependency moved to its latest release, including the coupled majors:
+  - Next.js 16.4, React 19.3, Zod 4, AI SDK 7 (`@ai-sdk/*` 4.x), Mastra 1.78, Langfuse SDK 6
+  - Test tooling: Vitest 5 + Vite 8, jsdom 30, MSW 3, Testing Library updates; `vitest.workspace.ts` replaced by `test.projects`, coverage thresholds recalibrated for the AST-aware V8 remapper
+  - Linting: ESLint 10 with the new `no-useless-assignment` / `preserve-caught-error` rules applied
+  - Toolchain: pnpm 12 (workspace `overrides` from `pnpm-workspace.yaml` are now actually applied; `allowBuilds` covers esbuild/protobufjs/sharp), Node 22.23.3 pins (CI, Docker, nvmrc), with `minimumReleaseAge` disabled intentionally because this repo tracks same-day releases
+  - Remaining `pnpm audit` findings are two upstream transitives with no patched release (`braces`, `sprintf-js`); CI's critical-level gate passes
+
 - **Private self-host debloat:**
   - Removed deprecated `NEXTAUTH_SECRET` grace alias in favor of canonical `AUTH_SECRET`.
   - Development secrets are now stored exclusively in `.kestrel/dev-secrets.json` (migrated from legacy dev paths).
