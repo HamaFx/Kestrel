@@ -333,7 +333,7 @@ describe('packet cache (§2.1, Q5)', () => {
     expect(computeIndicatorMemo({ ...base, candles, producedAt: 1_000 })).toBe(first);
   });
 
-  it('requests the §4.2 XAUUSD macro extension for gold committee packets', async () => {
+  it('requests the §4.2 XAUUSD macro extension and the M-02 generic macro for other symbols', async () => {
     mocks.collectSymbolResearchPacket.mockResolvedValue(freshPacket);
     await collectSymbolResearchPacketCached('XAUUSD');
     expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledWith(
@@ -341,19 +341,30 @@ describe('packet cache (§2.1, Q5)', () => {
       undefined,
       expect.objectContaining({ includeMacro: true }),
     );
-    // Non-gold symbols skip the macro fetch entirely.
+
+    // M-02: with the rollout flag on, non-gold committee packets request the
+    // generic macro extension too.
     mocks.collectSymbolResearchPacket.mockClear();
     await collectSymbolResearchPacketCached('EURUSD');
     expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledWith(
       'EURUSD',
       undefined,
-      expect.objectContaining({}),
-    );
-    expect(mocks.collectSymbolResearchPacket).not.toHaveBeenCalledWith(
-      'EURUSD',
-      undefined,
       expect.objectContaining({ includeMacro: true }),
     );
+
+    // ENABLE_GENERIC_MACRO=0 restores the candle-only request.
+    process.env.ENABLE_GENERIC_MACRO = '0';
+    try {
+      mocks.collectSymbolResearchPacket.mockClear();
+      await collectSymbolResearchPacketCached('EURUSD');
+      expect(mocks.collectSymbolResearchPacket).not.toHaveBeenCalledWith(
+        'EURUSD',
+        undefined,
+        expect.objectContaining({ includeMacro: true }),
+      );
+    } finally {
+      delete process.env.ENABLE_GENERIC_MACRO;
+    }
   });
 
   it('accepts the xauusdExtension on the packet schema (§4.2)', () => {
@@ -397,10 +408,11 @@ describe('packet cache (§2.1, Q5)', () => {
       expect.objectContaining({ includeMacro: true }),
     );
 
-    // Non-gold symbols still skip the macro fetch on the rollback path.
+    // M-02: the non-gold request mirrors the cached path exactly on the
+    // rollback path too (same flag, same includeMacro semantics).
     mocks.collectSymbolResearchPacket.mockClear();
     await collectSymbolResearchPacketCached('EURUSD');
-    expect(mocks.collectSymbolResearchPacket).not.toHaveBeenCalledWith(
+    expect(mocks.collectSymbolResearchPacket).toHaveBeenCalledWith(
       'EURUSD',
       undefined,
       expect.objectContaining({ includeMacro: true }),

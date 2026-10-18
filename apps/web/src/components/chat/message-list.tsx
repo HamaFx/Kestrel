@@ -171,6 +171,9 @@ export const MessageList = memo(function MessageList({
                       mode={agentProgress.mode}
                       status={agentProgress.status}
                       error={agentProgress.error}
+                      {...(agentProgress.comparisonSymbols
+                        ? { comparisonSymbols: agentProgress.comparisonSymbols }
+                        : {})}
                     />
                   </div>
                 ) : (

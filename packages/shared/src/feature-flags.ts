@@ -36,17 +36,14 @@ const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
 };
 
 /**
- * M-02 rollout gate (audit 2026-10-18, Phase 0): the generic macro packet is
- * exercised in development and tests immediately, but stays off in
- * production until the operator opts in with `ENABLE_GENERIC_MACRO=1` (the
- * flag flips to on-by-default everywhere once the packet lands as the
- * documented default). An explicit env value always wins, so `=0` is the
- * rollback in every environment.
+ * M-02 rollout gate (audit 2026-10-18, Phases 0/2): while the generic macro
+ * packet was being landed the default stayed off in production so the merge
+ * could not change prod behavior; M-02 has landed (contract test:
+ * `generic-macro-packet.test.ts`), so the packet is on by default everywhere.
+ * An explicit `ENABLE_GENERIC_MACRO=0` is the instant rollback to the
+ * candle-only packet in any environment.
  */
 function defaultFor(name: FeatureFlagName): boolean {
-  if (name === 'ENABLE_GENERIC_MACRO' && process.env.NODE_ENV === 'production') {
-    return false;
-  }
   return FLAG_DEFAULTS[name];
 }
 

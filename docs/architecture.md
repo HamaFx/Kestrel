@@ -178,6 +178,28 @@ The core market-data tools (`get_price`, `get_candles`, `get_indicators`,
 shims over the same execute cores. Remaining legacy tools migrate file by
 file and keep the identical output shape until then.
 
+The deterministic evidence packet both the committee and the verified XAUUSD
+report consume is bounded and typed:
+
+```text
+symbol_research_packet {
+  packetId, symbol, generatedAt, status, dataQuality
+  price { tick, freshness, quality, warnings }
+  timeframes[4]                    # 1d, 4h, 1h, 15m — candles + 5 indicators
+  marketStructure { recentSwingHigh, recentSwingLow, rangeSize }
+  xauusdExtension | genericMacro   # macro context (mutually exclusive)
+  optionalContext { available, reason }
+  missingData[], warnings[]
+}
+```
+
+`xauusdExtension` carries the gold macro evidence (dollar index, real yields,
+USD events, news). `genericMacro` is the M-02 extension for other symbols
+(news, upcoming releases for the symbol's currencies, CFTC positioning where
+supported), gated by `ENABLE_GENERIC_MACRO`; `optionalContext` always states
+whether macro context was attached or requested-but-unavailable, so a
+candle-only read can never imply a macro check that did not happen.
+
 Tools register explicitly via `registerAllTools()` at instance build time —
 importing a tool module no longer mutates the singleton registry.
 

@@ -396,12 +396,15 @@ const symbolPacketCache = createPacketCache<SymbolResearchPacket>({
 
 /**
  * §4.2: XAUUSD committee packets carry the macro extension (the bridge that
- * used to require the XAUUSD-only packet). Other symbols skip it. Shared by
- * the cached path and the `PHASE2_PACKET_CACHE=0` rollback path so the flag
- * can never silently change what a packet contains (P1-9).
+ * used to require the XAUUSD-only packet). M-02: non-gold symbols request the
+ * generic macro extension when `ENABLE_GENERIC_MACRO` is on; `=0` restores
+ * the candle-only packet for them. Shared by the cached path and the
+ * `PHASE2_PACKET_CACHE=0` rollback path so the flag can never silently change
+ * what a packet contains (P1-9).
  */
 function macroOptions(symbol: Symbol): CollectSymbolResearchPacketOptions {
-  return symbol === 'XAUUSD' ? { includeMacro: true } : {};
+  if (symbol === 'XAUUSD') return { includeMacro: true };
+  return readFeatureFlag('ENABLE_GENERIC_MACRO') ? { includeMacro: true } : {};
 }
 
 /**
