@@ -311,11 +311,11 @@ Today `chat-screen.tsx:562-576` toggles `ThreadViewsDock` via `splitMode` / `doc
 
 **Verification checklist for the consolidation PR(s):**
 
-- [ ] `apps/web/src/app/(app)/chart/[symbol]/page.tsx` renders only `ProChartView` which renders only `TradingViewWidget` (no lightweight mount, no tab).
-- [ ] `lightweight-charts` stays in `package.json`; `PerformanceChart` and `useChartData` / `useCandles` continue to build; `bun run build` + `bun run typecheck` green.
-- [ ] `tradingview-widget.tsx` no longer uses `<Script>` per-instance; `ensureTv()` singleton guards `tv.js` load; `containerId` stable per `symbol/tf` (or at least per-component stable via `useRef`).
-- [ ] Navigating `Chat → Chart → Chat` reuses the cached `tv.js` without full-remount flash; `state === 'loading'` shows well-styled skeleton without border-color jump.
-- [ ] `Chart` deep links still work; no nav regression on mobile bottom sheet.
+- [x] `apps/web/src/app/(app)/chart/[symbol]/page.tsx` renders only `ProChartView` which renders only `TradingViewWidget` (no lightweight mount, no tab).
+- [x] `lightweight-charts` stays in `package.json`; `PerformanceChart` and `useChartData` / `useCandles` continue to build; `bun run build` + `bun run typecheck` green.
+- [x] `tradingview-widget.tsx` no longer uses `<Script>` per-instance; `ensureTv()` singleton guards `tv.js` load; `containerId` stable per `symbol/tf` (or at least per-component stable via `useRef`).
+- [x] Navigating `Chat → Chart → Chat` reuses the cached `tv.js` without full-remount flash; `state === 'loading'` shows well-styled skeleton without border-color jump.
+- [x] `Chart` deep links still work; no nav regression on mobile bottom sheet.
 
 ---
 
