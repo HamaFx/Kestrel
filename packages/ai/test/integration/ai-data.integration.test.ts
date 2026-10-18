@@ -27,7 +27,7 @@ import { computeIndicator, computeStructure } from '@kestrel/indicators';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Cross-package test fixture: the deterministic candle factory lives with the
-// indicator tests it feeds (see test_audit_plan.md §4.3, DO NOT DELETE).
+// indicator tests it feeds (shared fixture — DO NOT DELETE).
 // eslint-disable-next-line no-restricted-imports -- cross-package test fixture, not production code
 import { makeCandles } from '../../../indicators/test/fixtures';
 import { getIndicatorsTool } from '../../src/tools/get-indicators';
