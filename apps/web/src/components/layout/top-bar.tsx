@@ -26,12 +26,11 @@
 // usePathname makes this a client component, but the cost is one
 // useState read per navigation — negligible, and well worth the
 // simplicity vs. a route-group restructure.
-import { usePathname } from 'next/navigation';
-
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { cn } from '@/lib/cn';
 
 import { NavTrigger } from './nav-trigger';
+import { useShellRoute } from './shell-route-context';
 
 interface TopBarProps {
   title?: string;
@@ -42,17 +41,17 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, right }: TopBarProps) {
-  const pathname = usePathname() ?? '';
+  const { isChat } = useShellRoute();
 
   // Chat brings its own top bar (ChatTopBar). Returning null here is the
   // simplest way to suppress the global one without restructuring routes.
-  if (pathname === '/chat' || pathname.startsWith('/chat/')) return null;
+  if (isChat) return null;
 
   return (
     <header
       className={cn(
         'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full items-center justify-between',
-        'border-border/80 bg-bg/95 pt-safe border-b px-3.5 backdrop-blur-md shadow-[0_1px_0_rgba(255,255,255,0.03)]',
+        'border-border/80 bg-bg pt-safe border-b px-3.5 shadow-[0_1px_0_rgba(255,255,255,0.03)]',
       )}
     >
       <div className="flex items-center gap-2">

@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { UserPlanPartSchema, type Symbol, type Timeframe } from '@kestrel/shared';
 import {
   IconChartCandle,
@@ -31,8 +30,9 @@ import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 import { useMemo } from 'react';
 
-import { TradingViewWidget } from '@/app/(app)/chart/[symbol]/_components/tradingview-widget';
+import { TradingViewWidget } from '@/components/chart';
 import { Segmented } from '@/components/ui/segmented';
+import { useTimeframe } from '@/hooks/use-tf';
 import type { AgentProgress } from '@/lib/chat-transport';
 import { cn } from '@/lib/cn';
 
@@ -47,8 +47,8 @@ interface ThreadViewsDockProps {
   activeTab: DockTab;
   onTabChange: (tab: DockTab) => void;
   symbol: Symbol;
-  timeframe: Timeframe;
-  onTimeframeChange: (tf: Timeframe) => void;
+  timeframe?: Timeframe;
+  onTimeframeChange?: (tf: Timeframe) => void;
   agentProgress?: AgentProgress | null;
   messages?: UIMessage[];
 }
@@ -59,18 +59,24 @@ export function ThreadViewsDock({
   activeTab,
   onTabChange,
   symbol,
-  timeframe,
+  timeframe: propTimeframe,
   onTimeframeChange,
   agentProgress,
   messages = [],
 }: ThreadViewsDockProps) {
+  const [urlTf, setUrlTf] = useTimeframe();
+  const activeTf = propTimeframe ?? urlTf ?? '15m';
+
+  const handleTimeframeChange = (nextTf: Timeframe) => {
+    setUrlTf(nextTf);
+    onTimeframeChange?.(nextTf);
+  };
   const latestPlan = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
       if (!msg) continue;
       const rawPlan = (msg.parts ?? []).find(
-        (p) =>
-          p !== null && typeof p === 'object' && (p as { type?: string }).type === 'data-plan',
+        (p) => p !== null && typeof p === 'object' && (p as { type?: string }).type === 'data-plan',
       );
       if (rawPlan) {
         const parsed = UserPlanPartSchema.safeParse(rawPlan);
@@ -80,17 +86,18 @@ export function ThreadViewsDock({
     return null;
   }, [messages]);
 
-  const tabs: Array<{ id: DockTab; label: string; icon: typeof IconChartCandle; badge?: number }> = [
-    { id: 'chart', label: 'Chart', icon: IconChartCandle },
-    {
-      id: 'opinions',
-      label: '4-Desk',
-      icon: IconUsers,
-      badge: Array.isArray(agentProgress?.agents) ? agentProgress.agents.length : undefined,
-    },
-    { id: 'plan', label: 'Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
-    { id: 'terminal', label: 'Context', icon: IconTerminal2 },
-  ];
+  const tabs: Array<{ id: DockTab; label: string; icon: typeof IconChartCandle; badge?: number }> =
+    [
+      { id: 'chart', label: 'Chart', icon: IconChartCandle },
+      {
+        id: 'opinions',
+        label: '4-Desk',
+        icon: IconUsers,
+        badge: Array.isArray(agentProgress?.agents) ? agentProgress.agents.length : undefined,
+      },
+      { id: 'plan', label: 'Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
+      { id: 'terminal', label: 'Context', icon: IconTerminal2 },
+    ];
 
   if (!isOpen) return null;
 
@@ -154,7 +161,7 @@ export function ThreadViewsDock({
               </div>
               <Segmented
                 size="sm"
-                value={timeframe}
+                value={activeTf}
                 options={[
                   { value: '5m', label: '5M' },
                   { value: '15m', label: '15M' },
@@ -162,11 +169,11 @@ export function ThreadViewsDock({
                   { value: '4h', label: '4H' },
                   { value: '1d', label: '1D' },
                 ]}
-                onChange={(tf) => onTimeframeChange(tf as Timeframe)}
+                onChange={(tf) => handleTimeframeChange(tf as Timeframe)}
               />
             </div>
             <div className="relative min-h-0 w-full flex-1">
-              <TradingViewWidget symbol={symbol} tf={timeframe} theme="dark" />
+              <TradingViewWidget symbol={symbol} tf={activeTf} theme="dark" />
             </div>
           </div>
         )}
@@ -185,7 +192,8 @@ export function ThreadViewsDock({
                 <IconUsers className="text-fg-subtle size-8 stroke-1" />
                 <p className="text-fg-muted text-sm font-medium">4-Desk Committee Ready</p>
                 <p className="text-fg-subtle max-w-xs text-xs">
-                  Opinions from the Technical, Macro, Risk, and Sentiment desks appear here during analysis.
+                  Opinions from the Technical, Macro, Risk, and Sentiment desks appear here during
+                  analysis.
                 </p>
               </div>
             )}
@@ -201,7 +209,8 @@ export function ThreadViewsDock({
                 <IconListCheck className="text-fg-subtle size-8 stroke-1" />
                 <p className="text-fg-muted text-sm font-medium">No Active Action Plan</p>
                 <p className="text-fg-subtle max-w-xs text-xs">
-                  Run a Full Committee analysis to generate a step-by-step trade checklist, key price levels, and risk milestones here.
+                  Run a Full Committee analysis to generate a step-by-step trade checklist, key
+                  price levels, and risk milestones here.
                 </p>
               </div>
             )}
@@ -225,7 +234,7 @@ export function ThreadViewsDock({
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Chart Timeframe</span>
-                  <span className="text-fg uppercase">{timeframe}</span>
+                  <span className="text-fg uppercase">{activeTf}</span>
                 </div>
               </div>
 
@@ -251,8 +260,8 @@ export function ThreadViewsDock({
 
               <div className="border-border/70 mt-4 border-t pt-3">
                 <Link
-                  href={`/chart/${symbol}?tf=${timeframe}`}
-                  className="text-brand hover:underline inline-flex items-center gap-1 text-xs font-semibold"
+                  href={`/chart/${symbol}?tf=${activeTf}`}
+                  className="text-brand inline-flex items-center gap-1 text-xs font-semibold hover:underline"
                 >
                   Open full-screen {symbol} Pro Chart
                 </Link>

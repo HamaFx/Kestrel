@@ -21,7 +21,7 @@ import { redirect } from 'next/navigation';
 import { cache, Suspense } from 'react';
 
 import { auth } from '@/auth';
-import { AppShellContainer } from '@/components/layout/app-shell-container';
+import { AppShellContainer, AppShellMain } from '@/components/layout/app-shell-container';
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
 import { CommandPalette, InstallNudge } from '@/components/layout/lazy-chrome';
 import { MarketSessionBar } from '@/components/layout/market-session-bar';
@@ -29,6 +29,7 @@ import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { NavDrawer } from '@/components/layout/nav-drawer';
 import { NavDrawerProvider } from '@/components/layout/nav-drawer-context';
 import { OfflineBanner } from '@/components/layout/offline-banner';
+import { ShellRouteProvider } from '@/components/layout/shell-route-context';
 import { SidebarStateProvider } from '@/components/layout/sidebar-state-context';
 import { SkipToContent } from '@/components/layout/skip-to-content';
 import { TickerTape } from '@/components/layout/ticker-tape';
@@ -85,50 +86,45 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <MotionRoot>
       <SidebarStateProvider>
         <NavDrawerProvider>
-          <div className="bg-bg text-fg relative min-h-svh">
-            <DesktopSidebar
-              {...(userName !== undefined ? { userName } : {})}
-              {...(userEmail !== undefined ? { userEmail } : {})}
-              isAdmin={isAdmin}
-            />
-            <AppShellContainer>
-              <SkipToContent />
-              <TopBar />
-              <AmbientTelemetry>
-                <TickerTape />
-                <MarketSessionBar />
-              </AmbientTelemetry>
-              <main
-                id="main-content"
-                tabIndex={-1}
-                className="mx-auto w-full max-w-2xl px-4 pt-4 pb-20 focus:outline-none md:max-w-4xl lg:max-w-5xl lg:pb-6 xl:max-w-7xl xl:px-6"
-                style={{
-                  viewTransitionName: 'main-content',
-                }}
-              >
-                <InstallNudge />
-                <Suspense
-                  fallback={
-                    <div className="flex min-h-[40svh] items-center justify-center">
-                      <div className="shimmer h-32 w-full max-w-md rounded-sm" />
-                    </div>
-                  }
-                >
-                  {children}
-                </Suspense>
-              </main>
-            </AppShellContainer>
-            <MobileBottomNav />
-            <NavDrawer
-              {...(userName !== undefined ? { userName } : {})}
-              {...(userEmail !== undefined ? { userEmail } : {})}
-              {...(userId !== undefined ? { userId } : {})}
-              isAdmin={isAdmin}
-            />
-            <OfflineBanner />
-            <CommandPalette />
-            <Toaster />
-          </div>
+          <ShellRouteProvider>
+            <div className="bg-bg text-fg relative min-h-svh">
+              <DesktopSidebar
+                {...(userName !== undefined ? { userName } : {})}
+                {...(userEmail !== undefined ? { userEmail } : {})}
+                isAdmin={isAdmin}
+              />
+              <AppShellContainer>
+                <SkipToContent />
+                <TopBar />
+                <AmbientTelemetry>
+                  <TickerTape />
+                  <MarketSessionBar />
+                </AmbientTelemetry>
+                <AppShellMain>
+                  <InstallNudge />
+                  <Suspense
+                    fallback={
+                      <div className="flex min-h-[40svh] items-center justify-center">
+                        <div className="shimmer h-32 w-full max-w-md rounded-sm" />
+                      </div>
+                    }
+                  >
+                    {children}
+                  </Suspense>
+                </AppShellMain>
+              </AppShellContainer>
+              <MobileBottomNav />
+              <NavDrawer
+                {...(userName !== undefined ? { userName } : {})}
+                {...(userEmail !== undefined ? { userEmail } : {})}
+                {...(userId !== undefined ? { userId } : {})}
+                isAdmin={isAdmin}
+              />
+              <OfflineBanner />
+              <CommandPalette />
+              <Toaster />
+            </div>
+          </ShellRouteProvider>
         </NavDrawerProvider>
       </SidebarStateProvider>
     </MotionRoot>

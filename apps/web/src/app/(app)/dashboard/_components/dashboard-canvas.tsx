@@ -221,7 +221,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-fg font-display text-2xl sm:text-3xl font-normal tracking-[-0.03em]">
+            <h1 className="text-fg font-display text-2xl font-normal tracking-[-0.03em] sm:text-3xl">
               Dashboard
             </h1>
             <PreSessionChecklistDrawer />
@@ -245,7 +245,12 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
               />
             ) : null}
             {editMode ? (
-              <Button variant="ghost" size="sm" onClick={handleReset} className="font-mono text-xs active:translate-y-[0.5px]">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                className="font-mono text-xs active:translate-y-[0.5px]"
+              >
                 <IconRotate className="size-4" />
                 Reset
               </Button>
@@ -265,12 +270,12 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
 
         {/* Role Presets Bar when in Edit Mode */}
         {editMode && (
-          <div className="surface-panel border border-brand/30 bg-[#141516]/95 backdrop-blur-md flex flex-col gap-2 rounded-xl p-3.5 shadow-md duration-200">
+          <div className="surface-card border-brand/30 bg-well flex flex-col gap-2 rounded-xl border p-3.5 shadow-md duration-200">
             <div className="flex items-center justify-between">
               <span className="text-brand font-mono text-xs font-bold tracking-wider uppercase">
                 Role Layout Presets
               </span>
-              <span className="text-fg-subtle text-xs font-sans">
+              <span className="text-fg-subtle font-sans text-xs">
                 Click a preset to instantly restructure your workspace
               </span>
             </div>
@@ -284,7 +289,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
                     onClick={() => {
                       persistLayout(preset.layout);
                     }}
-                    className="surface-chip border border-white/10 hover:border-brand/40 text-fg hover:text-white inline-flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono font-medium transition-all active:translate-y-[0.5px]"
+                    className="surface-chip hover:border-brand/40 text-fg inline-flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 font-mono text-xs font-medium transition-all hover:text-white active:translate-y-[0.5px]"
                     title={preset.description}
                   >
                     <span>{preset.name}</span>
@@ -299,7 +304,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
       {/* Phase 5.6 — Error banner for failed data fetches */}
       {props.hasAnyError ? (
         <div
-          className="border border-warn/30 bg-warn/5 flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm"
+          className="border-warn/30 bg-warn/5 flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm"
           role="alert"
         >
           <IconAlertTriangle className="text-warn size-4 shrink-0" />
@@ -318,7 +323,18 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
                 (
                 {Object.entries(props.fetchErrors)
                   .filter(([, v]) => v)
-                  .map(([k]) => ({ alerts: 'Price Alerts', events: 'Economic Calendar', entries: 'Trade Journal', news: 'Market News', briefing: 'AI Briefing', risk: 'Risk Metrics', settings: 'Settings' }[k] ?? k))
+                  .map(
+                    ([k]) =>
+                      ({
+                        alerts: 'Price Alerts',
+                        events: 'Economic Calendar',
+                        entries: 'Trade Journal',
+                        news: 'Market News',
+                        briefing: 'AI Briefing',
+                        risk: 'Risk Metrics',
+                        settings: 'Settings',
+                      })[k] ?? k,
+                  )
                   .join(', ')}
                 )
               </span>
@@ -390,11 +406,11 @@ function SortableWidget({
       )}
     >
       {editMode ? (
-        <div className="surface-chip border border-white/10 mb-1.5 flex items-center justify-between gap-2 rounded-xl px-3 py-2 shadow-sm">
+        <div className="surface-chip mb-1.5 flex items-center justify-between gap-2 rounded-xl border border-white/10 px-3 py-2 shadow-sm">
           <button
             type="button"
             aria-label={`Drag ${WIDGET_LABELS[widget.type]} widget`}
-            className="text-fg-subtle hover:text-fg cursor-grab touch-none active:cursor-grabbing inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press"
+            className="text-fg-subtle hover:text-fg tactile-press inline-flex size-10 min-h-10 min-w-10 cursor-grab touch-none items-center justify-center rounded-md transition-colors active:cursor-grabbing"
             {...attributes}
             {...listeners}
           >
@@ -408,7 +424,7 @@ function SortableWidget({
               type="button"
               aria-label={`Toggle span for ${WIDGET_LABELS[widget.type]}`}
               onClick={onToggleSpan}
-              className="text-fg-subtle hover:text-fg bg-black/40 border border-white/10 rounded-md min-h-10 px-3 py-2 font-mono text-xs inline-flex items-center justify-center transition-colors tactile-press active:translate-y-[0.5px]"
+              className="text-fg-subtle hover:text-fg tactile-press inline-flex min-h-10 items-center justify-center rounded-md border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs transition-colors active:translate-y-[0.5px]"
               title={`Current span: ${widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'}umns (click to cycle)`}
             >
               {widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'}
@@ -417,7 +433,7 @@ function SortableWidget({
               type="button"
               aria-label={`Remove ${WIDGET_LABELS[widget.type]}`}
               onClick={onRemove}
-              className="text-fg-subtle hover:text-bear hover:bg-bear/10 inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors tactile-press active:translate-y-[0.5px]"
+              className="text-fg-subtle hover:text-bear hover:bg-bear/10 tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]"
             >
               <IconX className="size-4" />
             </button>
@@ -504,19 +520,19 @@ function AddWidgetMenu({
   return (
     <details ref={ref} className="relative">
       <summary
-        className="surface-chip border border-white/10 hover:border-white/20 text-fg inline-flex min-h-[34px] cursor-pointer list-none items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-mono font-medium active:translate-y-[0.5px] transition-all"
+        className="surface-chip text-fg inline-flex min-h-[34px] cursor-pointer list-none items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1 font-mono text-xs font-medium transition-all hover:border-white/20 active:translate-y-[0.5px]"
         aria-label="Add widget"
       >
-        <IconPlus className="size-4 text-brand" />
+        <IconPlus className="text-brand size-4" />
         Add widget
       </summary>
-      <div className="surface-panel border border-white/15 bg-[#141516]/98 absolute right-0 z-20 mt-1.5 flex min-w-[200px] flex-col rounded-xl p-1.5 shadow-2xl backdrop-blur-xl">
+      <div className="surface-panel absolute right-0 z-20 mt-1.5 flex min-w-[200px] flex-col rounded-xl border border-white/15 bg-[#141516]/98 p-1.5 shadow-2xl backdrop-blur-xl">
         {hidden.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => onAdd(t)}
-            className="text-fg-muted hover:text-fg hover:bg-white/5 rounded-lg px-3 py-2 text-left text-xs font-sans transition-colors active:translate-y-[0.5px]"
+            className="text-fg-muted hover:text-fg rounded-lg px-3 py-2 text-left font-sans text-xs transition-colors hover:bg-white/5 active:translate-y-[0.5px]"
           >
             {WIDGET_LABELS[t]}
           </button>

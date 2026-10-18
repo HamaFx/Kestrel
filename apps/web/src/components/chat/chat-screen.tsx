@@ -26,7 +26,6 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { useSidebarState } from '@/components/layout/sidebar-state-context';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useThreadTitle } from '@/hooks/use-thread-title';
@@ -42,7 +41,7 @@ import { getCsrfToken } from '@/lib/csrf';
 
 import { ThreadSummaryHeader } from './_components/thread-summary-header';
 import { ChatTopBar, type AnalysisMode, type ThreadSummary } from './chat-top-bar';
-import { Composer } from './composer';
+import { Composer, type ComposerImage } from './composer';
 import { MessageList } from './message-list';
 import { PixelDeskStandby } from './parts/pixel-desk/pixel-desk';
 import { ThreadTocRail } from './thread-toc-rail';
@@ -78,7 +77,6 @@ export function ChatScreen({
   initialCustomInstructions,
   autoSubmitPrompt,
 }: ChatScreenProps) {
-  const { collapsed } = useSidebarState();
   const lastUserTextRef = useRef<string>('');
   const autoSubmittedRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -108,7 +106,6 @@ export function ChatScreen({
   } | null>(null);
 
   const [splitMode, setSplitMode] = useState(false);
-  const [splitTf, setSplitTf] = useState<Timeframe>('15m');
   const [dockTab, setDockTab] = useState<DockTab>('chart');
   const activeChartSymbol = pinnedSymbol ?? 'XAUUSD';
 
@@ -366,13 +363,41 @@ export function ChatScreen({
     return undefined;
   }, [messages]);
 
+  const handleSubmit = useCallback(
+    (text: string, images: ComposerImage[]) => {
+      lastUserTextRef.current = text;
+      if (analysisModeRef.current !== 'single' && images.length > 0) {
+        toast('Chart image analysis runs in Quick Read mode for this message.');
+        singleTurnOverrideRef.current = 'single';
+      }
+      if (images.length === 0) {
+        void sendMessage({ text });
+      } else {
+        void sendMessage({
+          text,
+          files: images.map((img) => ({
+            type: 'file' as const,
+            mediaType: img.mediaType,
+            url: img.url,
+            filename: img.name,
+          })),
+        });
+      }
+    },
+    [sendMessage],
+  );
+
+  const handleStop = useCallback(() => {
+    stop();
+  }, [stop]);
+
+  const composerPlaceholder = useMemo(
+    () => (pinnedSymbol ? `Ask about ${pinnedSymbol}…` : 'Ask about XAU, EUR, GBP…'),
+    [pinnedSymbol],
+  );
+
   return (
-    <div
-      className={cn(
-        'bg-bg paint-isolated fixed inset-0 z-30 flex flex-col transition-[left] duration-200 ease-in-out',
-        collapsed ? 'lg:left-16' : 'lg:left-56',
-      )}
-    >
+    <div className="bg-bg paint-isolated relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <ChatTopBar
         threadId={threadId}
         title={title}
@@ -526,34 +551,11 @@ export function ChatScreen({
               onAnalysisModeChange={handleAnalysisModeChange}
               chatModel={chatModel}
               onChatModelChange={handleChatModelChange}
-              onSubmit={(text, images) => {
-                lastUserTextRef.current = text;
-                if (analysisMode !== 'single' && images.length > 0) {
-                  toast('Chart image analysis runs in Quick Read mode for this message.');
-                  singleTurnOverrideRef.current = 'single';
-                }
-                if (images.length === 0) {
-                  void sendMessage({ text });
-                } else {
-                  void sendMessage({
-                    text,
-                    files: images.map((img) => ({
-                      type: 'file' as const,
-                      mediaType: img.mediaType,
-                      url: img.url,
-                      filename: img.name,
-                    })),
-                  });
-                }
-              }}
-              onStop={() => {
-                stop();
-              }}
+              onSubmit={handleSubmit}
+              onStop={handleStop}
               isStreaming={isStreaming}
               disabled={isStreaming || modelSelectionPending}
-              placeholder={
-                pinnedSymbol ? `Ask about ${pinnedSymbol}…` : 'Ask about XAU, EUR, GBP…'
-              }
+              placeholder={composerPlaceholder}
             />
           </div>
         </div>
@@ -567,8 +569,6 @@ export function ChatScreen({
               activeTab={dockTab}
               onTabChange={setDockTab}
               symbol={activeChartSymbol}
-              timeframe={splitTf}
-              onTimeframeChange={setSplitTf}
               agentProgress={agentProgress}
               messages={messages}
             />
@@ -590,6 +590,15 @@ interface EmptyChatStateProps {
 }
 
 function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProps) {
+  const examplePrompts = useMemo(() => {
+    const sym = pinnedSymbol ?? 'XAUUSD';
+    return [
+      `Analyze ${sym} 4H structure`,
+      'Compare EURUSD vs GBPUSD',
+      `Key liquidation levels for ${sym}`,
+    ];
+  }, [pinnedSymbol]);
+
   return (
     <div className="flex min-h-[64svh] flex-col items-center justify-center gap-5 px-2 py-6">
       <div className="flex w-full max-w-2xl flex-col items-start gap-1 text-left">
@@ -599,6 +608,22 @@ function EmptyChatState({ pinnedSymbol, disabled, onSelect }: EmptyChatStateProp
         <p className="text-fg-muted text-xs sm:text-sm">
           Select an instrument to run a 4-desk consensus review or ask a direct question below.
         </p>
+      </div>
+
+      {/* Quick Prompt Starters */}
+      <div className="flex w-full max-w-2xl flex-wrap items-center gap-2">
+        {examplePrompts.map((prompt) => (
+          <button
+            key={prompt}
+            type="button"
+            disabled={disabled}
+            onClick={() => onSelect(prompt)}
+            className="surface-button text-fg-muted hover:text-fg flex items-center gap-1.5 rounded-[12px] px-3 py-1.5 font-mono text-xs transition-all active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-50"
+          >
+            <span className="text-brand select-none">›</span>
+            <span>{prompt}</span>
+          </button>
+        ))}
       </div>
 
       <div className="flex w-full max-w-2xl justify-center">

@@ -74,7 +74,7 @@ export function MarketSessionBar() {
   return (
     <div
       aria-label="Global market trading sessions"
-      className="border-border/50 bg-bg-elev-1/60 flex items-center justify-between border-b px-3 py-1 font-mono text-xs"
+      className="bg-bg-elev-1/60 flex h-6 items-center justify-between px-3 font-mono text-[11px]"
     >
       <div className="scrollbar-hide flex items-center gap-3 overflow-x-auto py-0.5">
         <div className="text-fg-subtle flex shrink-0 items-center gap-1.5">

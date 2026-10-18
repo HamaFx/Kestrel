@@ -31,6 +31,8 @@ import {
   RiskKnightSprite,
 } from './pixel-sprites';
 
+import './pixel-desk-animations.css';
+
 const QUANT_STATUS_STEPS = [
   'Reading 15m, 1h & 4h market structure…',
   'Evaluating macro catalysts, real yields & DXY…',

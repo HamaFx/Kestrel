@@ -35,6 +35,7 @@ import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 
+import { useShellRoute } from '@/components/layout/shell-route-context';
 import { cn } from '@/lib/cn';
 
 export type SegmentedVariant = 'accent' | 'solid' | 'tone';
@@ -272,7 +273,7 @@ function toneClass(tone: SegmentedTone | undefined): string {
  * on /chat routes to eliminate invisible phantom polling and timer overhead underneath ChatScreen.
  */
 export function AmbientTelemetry({ children }: { children?: React.ReactNode }) {
-  const pathname = usePathname() ?? '';
-  if (pathname === '/chat' || pathname.startsWith('/chat/')) return null;
+  const { isChat } = useShellRoute();
+  if (isChat) return null;
   return children ? <>{children}</> : null;
 }

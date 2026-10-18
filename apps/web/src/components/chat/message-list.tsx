@@ -20,7 +20,7 @@
 // large threads efficiently, rendering only the visible messages in the DOM.
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { UIMessage } from 'ai';
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AgentProgress } from '@/lib/chat-transport';
 
@@ -95,13 +95,37 @@ export const MessageList = memo(function MessageList({
     overscan: 5,
   });
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const totalSize = rowVirtualizer.getTotalSize();
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.height = `${totalSize}px`;
+    }
+  }, [totalSize]);
+
+  // Single live region for active streaming output (last assistant message only)
+  const streamingText = useMemo(() => {
+    if (!isStreaming || !lastAssistantId) return '';
+    const lastMsg = messages.find((m) => m.id === lastAssistantId);
+    if (!lastMsg || lastMsg.role !== 'assistant') return '';
+    return (
+      lastMsg.parts
+        ?.filter((p) => p.type === 'text')
+        .map((p) => ('text' in p ? p.text : ''))
+        .join('') ?? ''
+    );
+  }, [isStreaming, lastAssistantId, messages]);
+
   return (
     <div
+      ref={containerRef}
       className="relative w-full px-4 py-4"
       style={{
-        height: `${rowVirtualizer.getTotalSize()}px`,
+        height: `${totalSize}px`,
       }}
     >
+      {isStreaming && streamingText ? <StreamingLiveRegion text={streamingText} /> : null}
       {rowVirtualizer.getVirtualItems().map((virtualRow) => {
         const isFooterRow = virtualRow.index === messages.length;
 
@@ -142,6 +166,7 @@ export const MessageList = memo(function MessageList({
         if (!m) return null;
 
         const isLastAssistant = m.id === lastAssistantId;
+        const isRowStreaming = Boolean(isStreaming && isLastAssistant);
 
         return (
           <div
@@ -159,7 +184,7 @@ export const MessageList = memo(function MessageList({
             <Message
               threadId={threadId}
               message={m}
-              isStreaming={isStreaming}
+              isStreaming={isRowStreaming}
               isLastAssistant={isLastAssistant}
               onCopy={onCopy}
               onRegenerate={
@@ -168,16 +193,6 @@ export const MessageList = memo(function MessageList({
               onEdit={onEdit}
               onFollowUpSelect={onFollowUpSelect}
             />
-            {isStreaming && m.role === 'assistant' && (
-              <StreamingLiveRegion
-                text={
-                  m.parts
-                    ?.filter((p) => p.type === 'text')
-                    .map((p) => ('text' in p ? p.text : ''))
-                    .join('') ?? ''
-                }
-              />
-            )}
           </div>
         );
       })}

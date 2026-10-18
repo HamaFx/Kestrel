@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import type { Symbol } from '@kestrel/shared';
 import {
   IconDots,
@@ -37,8 +36,8 @@ import { useConfirm } from '@/components/ui/confirm-drawer';
 import { SymbolChip } from '@/components/ui/symbol-chip';
 import { Tooltip } from '@/components/ui/tooltip';
 import { usePopupMenu } from '@/hooks/use-popup-menu';
-import { apiMutate } from '@/lib/api-client';
 import type { AnalysisMode } from '@/lib/analysis-mode';
+import { apiMutate } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
 
 import { ThreadSwitcher } from './_components/thread-switcher';
@@ -182,7 +181,7 @@ export function ChatTopBar({
     <header
       className={cn(
         'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full shrink-0 items-center justify-between gap-2',
-        'border-border bg-bg/95 pt-safe border-b px-3 backdrop-blur-md sm:px-4',
+        'border-border bg-bg pt-safe border-b px-3 sm:px-4',
       )}
     >
       {/* Left: Mobile Nav + Thread Title & Active Symbol */}
@@ -271,7 +270,7 @@ export function ChatTopBar({
           {overflowMenu.open ? (
             <div
               {...overflowMenu.menuProps}
-              className="surface-elevated text-body-sm absolute top-11 right-0 z-50 w-56 overflow-hidden rounded-lg border border-border shadow-lg"
+              className="surface-elevated text-body-sm border-border absolute top-11 right-0 z-50 w-56 overflow-hidden rounded-lg border shadow-lg"
             >
               <button
                 role="menuitem"

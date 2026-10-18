@@ -36,7 +36,7 @@ export function Card({ as = 'div', className, ...props }: CardProps) {
   return createElement(as, {
     ...props,
     className: cn(
-      'border-border bg-bg-elev-1 surface-panel flex flex-col gap-3 rounded-xl border p-4 shadow-[var(--shadow-chip)] backdrop-blur-md transition-all',
+      'border-border bg-bg-elev-1 surface-card flex flex-col gap-3 rounded-xl border p-4 shadow-sm transition-all',
       className,
     ),
   });
