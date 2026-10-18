@@ -169,7 +169,6 @@
     "@ai-sdk/google": "^4.0.99",
     "@ai-sdk/openai-compatible": "^3.0.71",
     "@ai-sdk/otel": "^1.0.143",
-    "@ai-sdk/provider": "^4.0.29",
     "@ai-sdk/provider-utils": "^5.0.62",
     "@kestrel/data": "workspace:*",
     "@kestrel/db": "workspace:*",
