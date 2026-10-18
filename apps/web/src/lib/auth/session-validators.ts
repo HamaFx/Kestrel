@@ -29,6 +29,46 @@ const TV_CHECK_INTERVAL_SECONDS = 60;
 const LAST_ACTIVE_INTERVAL_SECONDS = 900;
 const SESSION_AGE_LIMIT_SECONDS = 86400;
 
+/**
+ * In-process throttle ledger.
+ *
+ * `token.tvCheckedAt` / `token.lastActiveUpdate` only survive when NextAuth
+ * re-encodes the cookie (the /api/auth/session HTTP path). RSC `auth()`
+ * calls discard the mutation, so without this ledger every navigation
+ * re-ran the session SELECT and the last_active UPDATE forever — the
+ * throttles below are the designed semantics, this map is what makes them
+ * actually hold. Entries carry the same intervals, so revocation latency
+ * is unchanged (<= 60s for tokenVersion/session checks).
+ */
+const throttles = new Map<string, { tvCheckedAt: number; lastActiveUpdate: number }>();
+
+/** Test helper: clear the in-process throttle ledger. */
+export function _resetSessionThrottles(): void {
+  throttles.clear();
+}
+
+function readThrottle(key: string | null): { tvCheckedAt: number; lastActiveUpdate: number } {
+  if (!key) return { tvCheckedAt: 0, lastActiveUpdate: 0 };
+  const entry = throttles.get(key);
+  return entry ?? { tvCheckedAt: 0, lastActiveUpdate: 0 };
+}
+
+function writeThrottle(
+  key: string | null,
+  patch: Partial<{ tvCheckedAt: number; lastActiveUpdate: number }>,
+): void {
+  if (!key) return;
+  const current = readThrottle(key);
+  throttles.set(key, { ...current, ...patch });
+  // Bound the map: prune entries whose newest throttle has fully expired.
+  if (throttles.size > 10_000) {
+    const cutoff = Date.now() / 1000 - SESSION_AGE_LIMIT_SECONDS;
+    for (const [k, v] of throttles) {
+      if (v.tvCheckedAt < cutoff && v.lastActiveUpdate < cutoff) throttles.delete(k);
+    }
+  }
+}
+
 export interface SessionToken {
   id?: string | null;
   tokenVersion?: number | null;
@@ -81,8 +121,14 @@ export async function validateSession(
     return invalidatedSession(session);
   }
 
-  const lastChecked = token.tvCheckedAt;
-  if (!lastChecked || nowSeconds - lastChecked > TV_CHECK_INTERVAL_SECONDS) {
+  // The in-process ledger extends the token fields; the effective values are
+  // the max of both so an HTTP-path re-encoded cookie and RSC calls agree.
+  const throttleKey = token.sessionId ? `${token.sessionId}:${userId}` : null;
+  const ledger = readThrottle(throttleKey);
+  const effectiveTvCheckedAt = Math.max(token.tvCheckedAt ?? 0, ledger.tvCheckedAt);
+  const effectiveLastActive = Math.max(token.lastActiveUpdate ?? 0, ledger.lastActiveUpdate);
+
+  if (!effectiveTvCheckedAt || nowSeconds - effectiveTvCheckedAt > TV_CHECK_INTERVAL_SECONDS) {
     try {
       const sessionId = token.sessionId;
 
@@ -112,6 +158,7 @@ export async function validateSession(
       }
 
       token.tvCheckedAt = nowSeconds;
+      writeThrottle(throttleKey, { tvCheckedAt: nowSeconds });
     } catch (err) {
       logErrorContext(err, 'auth/session_validation', {}, 'auth');
       if (failClosed) {
@@ -123,11 +170,10 @@ export async function validateSession(
   // FEAT-02: Track last active time every 15 min. Under the selected
   // fail-closed policy, this write is part of the session-security check:
   // if it cannot complete, do not keep serving an unchecked session.
-  const lastActiveUpdate = token.lastActiveUpdate;
   const sessionId = token.sessionId;
   if (
     sessionId &&
-    (!lastActiveUpdate || nowSeconds - lastActiveUpdate > LAST_ACTIVE_INTERVAL_SECONDS)
+    (!effectiveLastActive || nowSeconds - effectiveLastActive > LAST_ACTIVE_INTERVAL_SECONDS)
   ) {
     try {
       await db
@@ -135,6 +181,7 @@ export async function validateSession(
         .set({ lastActiveAt: new Date() })
         .where(and(eq(schema.userSessions.id, sessionId), eq(schema.userSessions.userId, userId)));
       token.lastActiveUpdate = nowSeconds;
+      writeThrottle(throttleKey, { lastActiveUpdate: nowSeconds });
     } catch (err) {
       logErrorContext(err, 'auth/last_active_update', {}, 'auth');
       if (failClosed) {

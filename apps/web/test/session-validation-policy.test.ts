@@ -17,9 +17,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { DbClient } from '@kestrel/db';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { validateSession, type SessionToken } from '../src/lib/auth/session-validators';
+import {
+  _resetSessionThrottles,
+  validateSession,
+  type SessionToken,
+} from '../src/lib/auth/session-validators';
+
+// The validator keeps an in-process throttle ledger (the token fields do not
+// survive the RSC path); reset it so tests do not inherit another test's
+// throttle timestamps.
+beforeEach(() => {
+  _resetSessionThrottles();
+});
 
 function token(overrides: Partial<SessionToken> = {}): SessionToken {
   return {

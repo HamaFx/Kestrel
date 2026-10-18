@@ -27,37 +27,43 @@ import { describe, expect, it } from 'vitest';
 const WEB_DIR = join(import.meta.dirname, '..', 'src');
 
 /**
- * The proxy matcher regex from proxy.ts.
- * Next.js applies this against the pathname WITHOUT a leading `/`.
- * Keep in sync with proxy.ts `config.matcher`.
+ * Derive the matcher and exclusion list from proxy.ts itself so this test
+ * can never drift from the real security boundary. (The previous version
+ * hand-copied the regex and was already missing `offline` and
+ * `api/health/alerts`.)
  */
-const MATCHER_REGEX =
-  /^((?!auth|share|api\/auth|api\/dev\/login|api\/cron|api\/telegram|api\/billing\/webhook|api\/health\/public|debug|sw\.js|sw-precache\.json|_next\/static|_next\/image|favicon\.ico|manifest\.webmanifest|icons|brand|landing|fonts|robots\.txt|sitemap\.xml).)*$/;
+const PROXY_SOURCE = readFileSync(join(WEB_DIR, 'proxy.ts'), 'utf-8');
 
-/** Exclusion prefixes — routes intentionally NOT covered by middleware. */
-const EXCLUDED_PREFIXES = [
-  'auth',
-  'share',
-  'api/auth',
-  'api/dev/login',
-  'api/cron',
-  'api/telegram',
-  'api/billing/webhook',
-  'api/health/public',
-  'debug',
-  'sw.js',
-  'sw-precache.json',
-  '_next/static',
-  '_next/image',
-  'favicon.ico',
-  'manifest.webmanifest',
-  'icons',
-  'brand',
-  'landing',
-  'fonts',
-  'robots.txt',
-  'sitemap.xml',
-];
+function extractMatcherLiteral(source: string): string {
+  const match = source.match(/matcher:\s*\[\s*'((?:[^'\\]|\\.)+)'/);
+  if (!match?.[1]) {
+    throw new Error('Could not locate config.matcher in proxy.ts — update this test.');
+  }
+  return match[1];
+}
+
+/** The matcher literal escapes backslashes for the string; the regex sees one. */
+function toRegexPattern(literal: string): string {
+  const unescaped = literal.replace(/\\\\/g, '\\');
+  // Next matches the pathname without a leading slash; anchor the full path
+  // so the negative lookahead is evaluated from position 0 only.
+  const withoutLeadingSlash = unescaped.startsWith('/') ? unescaped.slice(1) : unescaped;
+  return `^${withoutLeadingSlash}$`;
+}
+
+const MATCHER_REGEX = new RegExp(toRegexPattern(extractMatcherLiteral(PROXY_SOURCE)));
+
+/** Exclusion prefixes — parsed from the matcher's negative lookahead. */
+const EXCLUDED_PREFIXES = (() => {
+  const lookahead = extractMatcherLiteral(PROXY_SOURCE).match(/\(\?!([^)]*)\)/);
+  if (!lookahead?.[1]) {
+    throw new Error('Could not parse the matcher negative lookahead in proxy.ts.');
+  }
+  return lookahead[1]
+    .split('|')
+    .map((part) => part.replace(/\\\\/g, '\\').replace(/\\\./g, '.').replace(/\\/g, ''))
+    .filter(Boolean);
+})();
 
 /** Find all route.ts files recursively. */
 function findRouteFiles(dir: string): string[] {
@@ -103,10 +109,13 @@ describe('middleware matcher coverage (SEC-1)', () => {
     expect(protectedRoutes.length).toBeGreaterThan(0);
   });
 
-  it('excludes the unauthenticated public health endpoint', () => {
-    const publicHealthPath = 'api/health/public';
-    expect(EXCLUDED_PREFIXES).toContain(publicHealthPath);
-    expect(MATCHER_REGEX.test(publicHealthPath)).toBe(false);
+  it('excludes the unauthenticated public health endpoints', () => {
+    // These MUST stay outside the auth gate; if the exclusion is removed in
+    // proxy.ts these assertions fail (the discovery used to be silent).
+    for (const path of ['api/health/public', 'api/health/alerts', 'offline']) {
+      expect(EXCLUDED_PREFIXES, `"${path}" must stay an intentional exclusion`).toContain(path);
+      expect(MATCHER_REGEX.test(path)).toBe(false);
+    }
   });
 
   for (const routeFile of protectedRoutes) {

@@ -77,6 +77,10 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
     }
 
     let cancelled = false;
+    // Owned by the effect (not the import().then chain): the cleanup returned
+    // from the `.then` callback is discarded, so the observer used to leak on
+    // every open/close cycle.
+    let resizeObserver: ResizeObserver | null = null;
 
     void import('lightweight-charts').then((lc) => {
       if (cancelled || !chartContainerRef.current) return;
@@ -216,7 +220,7 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
       chart.timeScale().fitContent();
 
       // Handle Resize
-      const resizeObserver = new ResizeObserver((entriesList) => {
+      resizeObserver = new ResizeObserver((entriesList) => {
         for (const item of entriesList) {
           if (item.contentRect.width > 0 && chartRef.current) {
             chartRef.current.applyOptions({ width: item.contentRect.width });
@@ -225,14 +229,12 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
       });
 
       resizeObserver.observe(el);
-
-      return () => {
-        resizeObserver.disconnect();
-      };
     });
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
+      resizeObserver = null;
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;

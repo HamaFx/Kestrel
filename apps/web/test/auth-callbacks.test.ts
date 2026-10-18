@@ -25,6 +25,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleJwtCallback, handleSessionCallback } from '../src/lib/auth/callbacks';
+import { _resetSessionThrottles } from '../src/lib/auth/session-validators';
+
+// The validator keeps an in-process throttle ledger (the token fields do not
+// survive the RSC path); reset it so tests do not inherit another test's
+// throttle timestamps.
+beforeEach(() => {
+  _resetSessionThrottles();
+});
 
 const mockCreateUserSession = vi.fn();
 const mockGetDb = vi.fn();

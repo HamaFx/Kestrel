@@ -64,7 +64,6 @@ const mockAlert = {
   active: true,
   firedAt: null,
   createdAt: createdAtStr,
-  updatedAt: createdAtStr,
 };
 
 const validCreatePayload = {
