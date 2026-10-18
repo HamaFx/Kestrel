@@ -59,6 +59,11 @@ const isCI = !!process.env.CI;
 // Build the webServer command with the correct ENCRYPTION_SECRET from
 // .env.production.local (since .env.local has an empty override).
 function buildWebServerCommand(): string {
+  // Explicit override lets CI build once (packages + web) in a dedicated step
+  // and start the production server here, instead of rebuilding inside the
+  // webServer readiness window (a cold Next build exceeds any sane timeout).
+  const override = process.env.PLAYWRIGHT_WEBSERVER_COMMAND;
+  if (override) return override;
   // Next.js 16 uses Turbopack by default; no bundler flag is needed. The
   // security-critical values are supplied through webServer.env below so
   // they do not appear in the child process command line.
@@ -186,7 +191,8 @@ export default defineConfig({
     // Next's first compile can exceed 30s on the repository's network-backed
     // workspace (and far more on slow local filesystems). Keep local runs
     // deterministic instead of failing before the browser suite starts; CI
-    // retains the stricter production-like timeout.
-    timeout: isCI ? 120_000 : 180_000,
+    // builds in a dedicated step and only boots `next start` here, so 180s
+    // is generous headroom on cold runners.
+    timeout: 180_000,
   },
 });

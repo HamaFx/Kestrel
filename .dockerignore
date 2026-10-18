@@ -19,6 +19,16 @@
 **/.next
 **/.vercel
 
+# Local build artifacts — images build from source, so these only bust the
+# Docker build cache and leak host state into images (host dist/, tsc
+# incremental state, coverage, Playwright blob reports).
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/blob-report
+.kestrel
+**/.mastra
+
 # Tests, docs, and fixtures (not needed at runtime)
 **/test
 **/tests

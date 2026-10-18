@@ -42,6 +42,17 @@ RUN pnpm --filter=@kestrel/db deploy --prod /runtime/db
 
 # ── Builder ───────────────────────────────────────────────
 FROM base AS builder
+# Build-time public env: Next inlines NEXT_PUBLIC_* into client bundles, so
+# these must arrive as BUILD ARGS — runtime environment has no effect. The
+# defaults keep a plain `docker build` working without any args.
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+ARG NEXT_PUBLIC_GOOGLE_ENABLED=false
+ARG NEXT_PUBLIC_ENABLE_DEV_LOGIN=false
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
+    NEXT_PUBLIC_GOOGLE_ENABLED=$NEXT_PUBLIC_GOOGLE_ENABLED \
+    NEXT_PUBLIC_ENABLE_DEV_LOGIN=$NEXT_PUBLIC_ENABLE_DEV_LOGIN
 # OPT-3: --link creates node_modules as a separate reusable layer instead of
 # copying files into the builder's layer. This avoids the 68s copy seen with
 # a plain COPY --from=deps.

@@ -48,18 +48,28 @@
         "REGISTRATION_MODE",
         "NEXT_PUBLIC_APP_URL",
         "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+        "NEXT_PUBLIC_GOOGLE_ENABLED",
+        "NEXT_PUBLIC_ENABLE_DEV_LOGIN",
         "COOKIE_SECURE_MODE",
         "KESTREL_FORCE_EPOCH_BUILD_ID",
         "ANALYZE"
       ],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", ".build-id", ".env.production.local"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "!.next/dev/**",
+        "public/sw.js",
+        "public/sw-precache.json",
+        "dist/**",
+        ".build-id",
+        ".env.production.local"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^build"],
       "outputs": []
     },
     "typecheck": {
