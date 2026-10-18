@@ -398,15 +398,21 @@ export async function withTenantDbFresh<T>(
 /**
  * Run work inside a tenant transaction, reusing an active same-tenant scope
  * when one exists. Use withTenantDbFresh for independent stream lifecycles.
+ *
+ * `opts.userId` is forwarded into the fresh scope so repository calls inside
+ * `work` short-circuit their membership lookup (see getTenantIdForUser) — a
+ * request that calls five repositories would otherwise repeat the
+ * organization_member join five times.
  */
 export async function withTenantDb<T>(
   tenantId: string,
   work: (db: DbClient) => Promise<T>,
+  opts?: { userId?: string },
 ): Promise<T> {
   assertTenantIsolationConfig();
   const current = tenantDbScope.getStore();
   if (current?.tenantId === tenantId) return work(current.db);
-  return withTenantDbFresh(tenantId, work);
+  return withTenantDbFresh(tenantId, work, opts);
 }
 
 /**
@@ -513,7 +519,10 @@ export async function withDbRetry<T>(
         }
       }
 
-      const delay = baseDelayMs * Math.pow(2, attempt);
+      // Full jitter (mirrors packages/ai/src/retry.ts): aligned exponential
+      // delays across instances turn a recovering Postgres into a
+      // reconnect storm.
+      const delay = Math.random() * baseDelayMs * Math.pow(2, attempt);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }

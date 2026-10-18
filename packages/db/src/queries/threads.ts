@@ -217,7 +217,10 @@ export async function batchDeleteThreads(userId: string, ids: string[]): Promise
 // ── Message queries ────────────────────────────────────────────────────
 
 /**
- * List messages for a thread, oldest first. The user predicate is required
+ * List the most recent `limit` messages for a thread, in chronological
+ * (oldest-first) order. Selecting newest-first and reversing keeps the
+ * "recent window" semantics correct for long threads; an ascending LIMIT
+ * would return the oldest messages instead. The user predicate is required
  * because this legacy repository API is also imported by server callers.
  */
 export async function listMessages(
@@ -227,7 +230,7 @@ export async function listMessages(
 ): Promise<MessageRow[]> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  return db
+  const rows = await db
     .select({
       id: schema.chatMessages.id,
       threadId: schema.chatMessages.threadId,
@@ -246,8 +249,9 @@ export async function listMessages(
         eq(schema.chatThreads.tenantId, tenantId),
       ),
     )
-    .orderBy(schema.chatMessages.createdAt)
+    .orderBy(desc(schema.chatMessages.createdAt))
     .limit(limit);
+  return rows.reverse();
 }
 
 /**

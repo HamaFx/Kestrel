@@ -36,7 +36,10 @@
 // `isCircuitOpen(modelId)` for the specific model they would use. The DB
 // row mirrors the L1 window semantics: failures inside the 60s window
 // increment `consecutive_failures`, a failure after the window expired
-// starts a fresh window at 1, and a success resets the row to 0.
+// starts a fresh window at 1, a success resets the row to 0, and
+// `opened_at` holds the circuit TRIP time (NULL until the threshold is
+// reached) so the open duration is measured from the trip — not from the
+// first failure, which could be up to a window earlier.
 
 import { schema } from '@kestrel/db';
 import { metrics } from '@kestrel/shared';
@@ -46,7 +49,10 @@ import { getDb } from './db';
 
 interface CircuitState {
   consecutiveFailures: number;
-  openedAt: number;
+  /** Start of the failure-counting window (ms epoch). */
+  windowStart: number;
+  /** When the circuit tripped (ms epoch); null while below threshold. */
+  openedAt: number | null;
 }
 
 const circuits = new Map<string, CircuitState>();
@@ -71,7 +77,11 @@ const refreshing = new Set<string>();
 
 let dbWriteBroken = false;
 
-async function writeThrough(operation: 'failure' | 'success', modelId: string): Promise<void> {
+async function writeThrough(
+  operation: 'failure' | 'success',
+  modelId: string,
+  options?: { tripped?: boolean },
+): Promise<void> {
   try {
     const db = getDb();
     if (operation === 'success') {
@@ -84,15 +94,18 @@ async function writeThrough(operation: 'failure' | 'success', modelId: string): 
         });
     } else {
       const openedAt = new Date();
+      const tripped = options?.tripped === true;
       // Audit plan §1.4 (P0-4) — mirror the L1 window semantics in the
       // shared row: failures inside the 60s window increment the counter
-      // while keeping the window start in `opened_at`; a failure after the
-      // window expired starts a fresh window at 1. A success write (above)
-      // resets the row to 0, exactly like the L1 Map.
+      // while keeping the window start in `updated_at`; a failure after the
+      // window expired starts a fresh window at 1. `opened_at` stores the
+      // TRIP time once the threshold is reached (NULL before), so readers
+      // measure the open duration from the trip like L1 does. A success
+      // write (above) resets the row to 0.
       const windowStart = new Date(openedAt.getTime() - WINDOW_MS);
       await db.execute(sql`
         INSERT INTO provider_circuit_state (model_id, consecutive_failures, opened_at, updated_at)
-        VALUES (${modelId}, 1, ${openedAt}, ${openedAt})
+        VALUES (${modelId}, 1, ${tripped ? openedAt : null}, ${openedAt})
         ON CONFLICT (model_id) DO UPDATE
           SET consecutive_failures =
                 CASE
@@ -103,8 +116,14 @@ async function writeThrough(operation: 'failure' | 'success', modelId: string): 
               opened_at =
                 CASE
                   WHEN provider_circuit_state.updated_at >= ${windowStart}
+                    AND provider_circuit_state.opened_at IS NOT NULL
                     THEN provider_circuit_state.opened_at
-                  ELSE ${openedAt}
+                  WHEN provider_circuit_state.updated_at >= ${windowStart}
+                    AND provider_circuit_state.consecutive_failures + 1 >= ${FAILURE_THRESHOLD}
+                    THEN ${openedAt}
+                  WHEN ${tripped}
+                    THEN ${openedAt}
+                  ELSE NULL
                 END,
               updated_at = ${openedAt}
       `);
@@ -130,6 +149,7 @@ async function refreshFromDb(modelId: string): Promise<void> {
       .select({
         consecutiveFailures: schema.providerCircuitState.consecutiveFailures,
         openedAt: schema.providerCircuitState.openedAt,
+        updatedAt: schema.providerCircuitState.updatedAt,
       })
       .from(schema.providerCircuitState)
       .where(sql`${schema.providerCircuitState.modelId} = ${modelId}`)
@@ -138,7 +158,8 @@ async function refreshFromDb(modelId: string): Promise<void> {
     if (row) {
       circuits.set(modelId, {
         consecutiveFailures: row.consecutiveFailures,
-        openedAt: row.openedAt ? row.openedAt.getTime() : Date.now(),
+        windowStart: row.updatedAt ? row.updatedAt.getTime() : Date.now(),
+        openedAt: row.openedAt ? row.openedAt.getTime() : null,
       });
     }
     lastDbRefresh.set(modelId, Date.now());
@@ -158,53 +179,65 @@ function maybeRefreshFromDb(modelId: string): void {
 
 /**
  * Record a successful model call. Resets the circuit immediately.
+ *
+ * Transition-only write: a success with no recorded failure streak has
+ * nothing to reset in the shared row, so the happy path (every normal
+ * model call) performs zero DB writes.
  */
 export function recordModelSuccess(modelId: string): void {
-  circuits.delete(modelId);
-  // Defer any DB refresh for one TTL window so the async success write can
-  // land before a refresh could resurrect a stale open state from the table.
-  lastDbRefresh.set(modelId, Date.now());
-  void writeThrough('success', modelId);
+  const hadState = circuits.delete(modelId);
+  if (hadState) {
+    // Defer any DB refresh for one TTL window so the async success write can
+    // land before a refresh could resurrect a stale open state from the table.
+    lastDbRefresh.set(modelId, Date.now());
+    void writeThrough('success', modelId);
+  }
 }
 
 /**
- * Record a failed model call. Returns true if the circuit is now open
+ * Record a failed model call. Returns true if the circuit is open
  * and the model should be skipped for subsequent calls.
  */
 export function recordModelFailure(modelId: string): boolean {
   const now = Date.now();
   let state = circuits.get(modelId);
 
-  if (!state || now - state.openedAt > WINDOW_MS) {
-    // Fresh state or old state expired — start a new window.
-    state = { consecutiveFailures: 1, openedAt: now };
+  if (!state || now - state.windowStart > WINDOW_MS) {
+    // Fresh state or old window expired — start a new window. Any previous
+    // trip is discarded with the window.
+    state = { consecutiveFailures: 1, windowStart: now, openedAt: null };
     circuits.set(modelId, state);
-    void writeThrough('failure', modelId);
+    void writeThrough('failure', modelId, { tripped: false });
     return false;
   }
 
   state.consecutiveFailures += 1;
-  void writeThrough('failure', modelId);
-
-  if (state.consecutiveFailures >= FAILURE_THRESHOLD) {
-    // Circuit opens — the caller should skip this model.
-    metrics.increment('circuit_open_total', { tags: { model: modelId } });
-    return true;
+  const tripped = state.consecutiveFailures >= FAILURE_THRESHOLD;
+  const firstTrip = tripped && state.openedAt === null;
+  if (firstTrip) {
+    // The open duration is measured from here — the trip — not from the
+    // first failure of the window (which can be up to 60s earlier).
+    state.openedAt = now;
   }
+  circuits.set(modelId, state);
+  void writeThrough('failure', modelId, { tripped: state.openedAt !== null });
 
-  return false;
+  if (firstTrip) {
+    metrics.increment('circuit_open_total', { tags: { model: modelId } });
+  }
+  return tripped;
 }
 
 /**
  * Check whether a model's circuit is currently open (should be skipped).
- * Auto-closes if the open duration has elapsed. Cross-isolate state
- * converges into the L1 cache via a throttled background DB refresh.
+ * Auto-closes if the open duration has elapsed since the TRIP. Cross-isolate
+ * state converges into the L1 cache via a throttled background DB refresh.
  */
 export function isCircuitOpen(modelId: string): boolean {
   maybeRefreshFromDb(modelId);
   const state = circuits.get(modelId);
   if (!state) return false;
-  if (state.consecutiveFailures < FAILURE_THRESHOLD) return false;
+  if (state.openedAt === null || state.consecutiveFailures < FAILURE_THRESHOLD) return false;
 
   const now = Date.now();
   if (now - state.openedAt > OPEN_DURATION_MS) {

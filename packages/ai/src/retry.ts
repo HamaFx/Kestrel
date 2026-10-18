@@ -172,7 +172,17 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
       onRetry?.(err, attempt, delayMs);
 
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, delayMs);
+        const onAbort = () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        };
+        const timer = setTimeout(() => {
+          // Remove the abort listener on the success path: a long-lived
+          // signal would otherwise accumulate one listener per retry sleep
+          // and trip Node's max-listeners warning.
+          signal?.removeEventListener('abort', onAbort);
+          resolve();
+        }, delayMs);
         // STAB-22: Defensive abort check BEFORE adding the listener.
         // If the signal was already aborted between the top-of-loop check
         // and this Promise, the listener would never fire and the sleep
@@ -184,14 +194,7 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
           reject(new DOMException('Aborted', 'AbortError'));
           return;
         }
-        signal?.addEventListener(
-          'abort',
-          () => {
-            clearTimeout(timer);
-            reject(new DOMException('Aborted', 'AbortError'));
-          },
-          { once: true },
-        );
+        signal?.addEventListener('abort', onAbort, { once: true });
       });
     }
   }

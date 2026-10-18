@@ -31,7 +31,7 @@
 // the next cron tick.
 
 import { getCandles, getPrice } from '@kestrel/data';
-import { schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { computeIndicator } from '@kestrel/indicators';
 import {
   msPerTimeframe,
@@ -339,6 +339,24 @@ export async function evaluateAlerts(
   const userIds = Array.from(new Set(alerts.map((a) => a.userId)));
   const userEnvMap = new Map<string, EvaluatorEnv>();
 
+  // Resolve each user's tenant at most once per tick. Without this, every
+  // per-alert write helper repeats the membership join (an N+1 across the
+  // whole alert list).
+  const tenantByUser = new Map<string, string>();
+  const tenantFor = async (userId: string): Promise<string | undefined> => {
+    const known = tenantByUser.get(userId);
+    if (known) return known;
+    try {
+      const tenantId = await requireTenantIdForUser(userId);
+      tenantByUser.set(userId, tenantId);
+      return tenantId;
+    } catch {
+      // Fall through undefined so the persistence helper resolves (and
+      // fails) on its own path with its own error surface.
+      return undefined;
+    }
+  };
+
   if (userIds.length > 0) {
     const userRows = await db
       .select({
@@ -413,7 +431,13 @@ export async function evaluateAlerts(
         // anchor. Best-effort: failures here just mean the next tick
         // re-seeds.
         try {
-          await setRulePreviousValue(alert.userId, alert.id, alert.rule, reading.value);
+          await setRulePreviousValue(
+            alert.userId,
+            alert.id,
+            alert.rule,
+            reading.value,
+            await tenantFor(alert.userId),
+          );
         } catch (err) {
           elog.warn('setRulePreviousValue failed', { id: alert.id, err: String(err) });
         }
@@ -429,7 +453,13 @@ export async function evaluateAlerts(
       // lease for an alert at a time. A failed delivery releases it; a
       // crashed runner leaves a lease that a later tick can reclaim.
       const claimAt = new Date();
-      const claimed = await claimAlertDelivery(alert.userId, alert.id, claimAt);
+      const claimed = await claimAlertDelivery(
+        alert.userId,
+        alert.id,
+        claimAt,
+        undefined,
+        await tenantFor(alert.userId),
+      );
       if (!claimed) {
         skipped += 1;
         continue;

@@ -74,17 +74,33 @@ export function isForexWeekend(now: Date = new Date()): boolean {
 }
 
 /**
+ * Module-scope formatter: constructing an Intl.DateTimeFormat costs ~0.14ms
+ * and this runs on every AI context build / status command; the formatter
+ * holds no per-date state so it is safe to reuse.
+ */
+const EASTERN_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  weekday: 'short',
+  hour: 'numeric',
+  minute: 'numeric',
+  hourCycle: 'h23',
+});
+
+const EASTERN_WEEKDAYS: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+/**
  * Helper to get weekday (0=Sun..6=Sat) and hour (0..23) in America/New_York.
  */
 function getEasternTimeParts(date: Date): { day: number; hour: number; minute: number } {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    weekday: 'short',
-    hour: 'numeric',
-    minute: 'numeric',
-    hourCycle: 'h23',
-  });
-  const parts = formatter.formatToParts(date);
+  const parts = EASTERN_TIME_FORMATTER.formatToParts(date);
   let weekdayStr = '';
   let hour = 0;
   let minute = 0;
@@ -93,16 +109,7 @@ function getEasternTimeParts(date: Date): { day: number; hour: number; minute: n
     else if (p.type === 'hour') hour = parseInt(p.value, 10);
     else if (p.type === 'minute') minute = parseInt(p.value, 10);
   }
-  const days: Record<string, number> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-  };
-  return { day: days[weekdayStr] ?? 0, hour: hour % 24, minute };
+  return { day: EASTERN_WEEKDAYS[weekdayStr] ?? 0, hour: hour % 24, minute };
 }
 
 /**

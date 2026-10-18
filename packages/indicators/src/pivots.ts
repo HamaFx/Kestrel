@@ -66,12 +66,20 @@ export function pivotsAligned(candles: Candle[]): (ClassicPivots | null)[] {
   };
 
   const dates: string[] = [];
+  const dayIndex = new Map<string, number>();
   const dayAggregates = new Map<string, { h: number; l: number; c: number }>();
+  // Per-bar UTC day key, populated in the same pass as the aggregation so the
+  // second pass never re-derives it (or linear-scans for its index — this was
+  // O(n × distinct days) before).
+  const dayKeys: string[] = new Array<string>(candles.length);
 
-  for (const c of candles) {
+  for (let i = 0; i < candles.length; i += 1) {
+    const c = candles[i]!;
     const d = dateStr(c.t);
+    dayKeys[i] = d;
     const existing = dayAggregates.get(d);
     if (!existing) {
+      dayIndex.set(d, dates.length);
       dates.push(d);
       dayAggregates.set(d, { h: c.h, l: c.l, c: c.c });
     } else {
@@ -92,9 +100,8 @@ export function pivotsAligned(candles: Candle[]): (ClassicPivots | null)[] {
   }
 
   // Multi-day: for each candle, use previous calendar day's aggregated H/L/C.
-  return candles.map((c) => {
-    const d = dateStr(c.t);
-    const idx = dates.indexOf(d);
+  return candles.map((_c, i) => {
+    const idx = dayIndex.get(dayKeys[i]!)!;
     if (idx <= 0) return null;
     const prevDate = dates[idx - 1]!;
     const prevDay = dayAggregates.get(prevDate)!;

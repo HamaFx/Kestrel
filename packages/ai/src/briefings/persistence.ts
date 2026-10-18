@@ -25,7 +25,15 @@
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { Symbol } from '@kestrel/shared';
-import { and, desc, gte as dgte, isNotNull as disNotNull, lte as dlte, eq } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  gte as dgte,
+  isNotNull as disNotNull,
+  lte as dlte,
+  eq,
+  inArray,
+} from 'drizzle-orm';
 
 import { getDb } from '../db';
 import type { DbThread } from '../persistence';
@@ -128,6 +136,34 @@ export async function wasEmitted(
     )
     .limit(1);
   return rows.length > 0;
+}
+
+/**
+ * Batch idempotency lookup for the cron fan-out: returns the subset of
+ * `eventIds` for which `(userId, eventId, kind)` has already been emitted.
+ * One query per user replaces the per-(event, user) `wasEmitted` probe that
+ * otherwise repeats for every pair on every tick.
+ */
+export async function listEmittedEventIds(
+  userId: string,
+  eventIds: string[],
+  kind: 'pre' | 'post' | 'weekly_review',
+): Promise<Set<string>> {
+  if (eventIds.length === 0) return new Set();
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
+    .select({ eventId: schema.briefingsEmitted.eventId })
+    .from(schema.briefingsEmitted)
+    .where(
+      and(
+        eq(schema.briefingsEmitted.userId, userId),
+        eq(schema.briefingsEmitted.tenantId, tenantId),
+        inArray(schema.briefingsEmitted.eventId, eventIds),
+        eq(schema.briefingsEmitted.kind, kind),
+      ),
+    );
+  return new Set(rows.map((r) => r.eventId));
 }
 
 /**
