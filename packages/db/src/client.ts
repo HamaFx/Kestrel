@@ -119,49 +119,6 @@ const DEFAULT_WORKER_STATEMENT_TIMEOUT = 30000;
 
 export type DbClient = ReturnType<typeof drizzle>;
 
-/**
- * Temporary diagnostic: when DB_QUERY_LOG=true, log only queries that bind a
- * Date parameter. Dates bound to text/uuid columns crash postgres-js during
- * parameter encoding before the query reaches the server, so this is the only
- * way to identify the offending statement without exposing parameter values.
- */
-const dbQueryLogger = {
-  logQuery(query: string, params: unknown[]): void {
-    if (process.env.DB_QUERY_LOG !== 'true') return;
-    if (!params.some((value) => value instanceof Date)) return;
-    console.error(
-      '[db-query-date]',
-      query.slice(0, 800),
-      params.map((value, index) => (value instanceof Date ? `${index}:Date` : `${index}:${typeof value}`)),
-    );
-  },
-};
-
-/**
- * postgres-js debug hook: runs before parameter serialization, so it can name
- * the statement that is about to bind a Date to a non-date column.
- */
-const dbDebugLogger = (
-  _connection: number,
-  query: string,
-  params: unknown[],
-): void => {
-  if (process.env.DB_QUERY_LOG !== 'true') return;
-  console.error(
-    '[pg-query]',
-    query.slice(0, 300),
-    params?.map((value, index) =>
-      value instanceof Date ? `${index}:Date` : `${index}:${typeof value}`,
-    ),
-  );
-  if (!params?.some((value) => value instanceof Date)) return;
-  console.error(
-    '[pg-date-param]',
-    query.slice(0, 800),
-    params.map((value, index) => (value instanceof Date ? `${index}:Date` : `${index}:${typeof value}`)),
-  );
-};
-
 function resolveStatementTimeout(): number {
   if (process.env.NODE_ENV === 'test') return 30000;
   const isWorker = process.env.KESTREL_RUNTIME === 'worker';
@@ -202,10 +159,9 @@ export function getDbRO(): DbClient {
     connection: {
       statement_timeout: resolveStatementTimeout(),
     },
-    debug: dbDebugLogger,
   });
 
-  pools.replicaClient = drizzle(pools.replicaSql, { schema, logger: dbQueryLogger });
+  pools.replicaClient = drizzle(pools.replicaSql, { schema });
   return pools.replicaClient;
 }
 
@@ -327,10 +283,9 @@ export function getPrimaryDb(): DbClient {
     connection: {
       statement_timeout: resolveStatementTimeout(),
     },
-    debug: dbDebugLogger,
   });
 
-  pools.primaryClient = drizzle(pools.primarySql, { schema, logger: dbQueryLogger });
+  pools.primaryClient = drizzle(pools.primarySql, { schema });
   return pools.primaryClient;
 }
 
@@ -634,10 +589,9 @@ export function getAdminDb(): DbClient {
     connection: {
       statement_timeout: resolveStatementTimeout(),
     },
-    debug: dbDebugLogger,
   });
 
-  pools.adminClient = drizzle(pools.adminSql, { schema, logger: dbQueryLogger });
+  pools.adminClient = drizzle(pools.adminSql, { schema });
   return pools.adminClient;
 }
 
