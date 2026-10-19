@@ -114,7 +114,6 @@ export async function prepareResearchRunContext(
   // Audit plan §2.4: per-phase setup latency for the XAUUSD paths, matching
   // the canonical chat instrumentation (memory + guardrail phases).
   const memoryStartedAt = Date.now();
-  console.error('[chat-stage] memory-create:start');
   const memory = createKestrelMemory({
     settings: {
       aiApiKeys: args.settings.aiApiKeys,
@@ -123,8 +122,6 @@ export async function prepareResearchRunContext(
     env: args.env,
     ...(args.memoryOptions ? { options: args.memoryOptions } : {}),
   });
-  console.error('[chat-stage] memory-create:end');
-  console.error('[chat-stage] memory-prepare:start');
   const prepared = await prepareKestrelMemory({
     memory,
     userId: args.userId,
@@ -139,7 +136,6 @@ export async function prepareResearchRunContext(
       ? { excludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
       : {}),
   });
-  console.error('[chat-stage] memory-prepare:end');
   metrics.observe('mastra_setup_latency_ms', Date.now() - memoryStartedAt, {
     tags: { phase: 'memory' },
   });

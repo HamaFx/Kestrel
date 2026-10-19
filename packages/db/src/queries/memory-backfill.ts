@@ -26,6 +26,10 @@ export async function claimMemoryBackfill(
   const tenantId = await requireTenantIdForUser(userId, db);
   const now = new Date();
   const leaseUntil = new Date(now.getTime() + LEASE_MS);
+  // postgres-js types Date parameters inside a raw Drizzle `sql` fragment as
+  // text, then crashes in Buffer.byteLength. Bind the lease comparison as an
+  // ISO string; Postgres coerces it to timestamptz in the comparison.
+  const nowIso = now.toISOString();
   const rows = await db
     .insert(schema.memoryBackfillState)
     .values({
@@ -40,7 +44,7 @@ export async function claimMemoryBackfill(
       set: { status: 'running', updatedAt: leaseUntil, lastError: null },
       where: sql`(
         ${schema.memoryBackfillState.status} IN ('pending', 'failed')
-        OR (${schema.memoryBackfillState.status} = 'running' AND ${schema.memoryBackfillState.updatedAt} < ${now})
+        OR (${schema.memoryBackfillState.status} = 'running' AND ${schema.memoryBackfillState.updatedAt} < ${nowIso})
       )`,
     })
     .returning({ userId: schema.memoryBackfillState.userId });
