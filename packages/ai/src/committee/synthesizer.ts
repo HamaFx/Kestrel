@@ -58,6 +58,7 @@ import {
   type MastraModeOpinion,
   type ModeRequestContext,
 } from './types';
+import { jsonPromptInjectionForModel } from './structured-output';
 
 /**
  * Audit plan §3.3 + Audit v3 Q12 — structured fusion answer (enabled by default
@@ -228,7 +229,7 @@ export async function synthesizeCommitteeAnswer(
           ...baseOptions,
           structuredOutput: {
             schema: FusionAnswerSchema,
-            jsonPromptInjection: 'auto' as const,
+            jsonPromptInjection: jsonPromptInjectionForModel(fusionModel.model),
             instructions:
               'Return the complete structured answer: bottom line, evidence-aware reasoning, at least one risk, invalidation conditions, and a scenario table.',
           },

@@ -59,6 +59,7 @@ import {
   type MastraSpecialistName,
   type ModeRequestContext,
 } from './types';
+import { jsonPromptInjectionForModel } from './structured-output';
 import { verifyMastraOpinion } from './verifier';
 
 /** Typed output of the critique step (mirrors the specialist marker shape). */
@@ -153,7 +154,7 @@ export async function runCritiqueGeneration(
       maxSteps: deps.maxSteps,
       structuredOutput: {
         schema: CritiqueSchema,
-        jsonPromptInjection: 'auto',
+        jsonPromptInjection: jsonPromptInjectionForModel(agentModel.model),
         instructions:
           'Return a complete critique object referencing the peer desks by name and your own desk by name.',
       },
@@ -274,7 +275,7 @@ export async function runDebateRevision(args: RunDebateRevisionArgs): Promise<De
       maxSteps: deps.maxSteps,
       structuredOutput: {
         schema: OpinionSchema,
-        jsonPromptInjection: 'auto',
+        jsonPromptInjection: jsonPromptInjectionForModel(agentModel.model),
         instructions:
           'Return your final complete opinion object (bias, confidence, reasoning, details) for the debate round.',
       },
