@@ -138,12 +138,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
       {/* ── Neoclassical Cyber-Art Backdrop (Horus / Kestrel Falcon Masterpiece) ── */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-0 z-0 h-[80%] w-full -translate-y-1/2 opacity-25 mix-blend-screen select-none lg:w-[62%] lg:opacity-35"
-        style={{
-          maskImage: 'radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%)',
-          WebkitMaskImage:
-            'radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%)',
-        }}
+        className="hero-backdrop-mask pointer-events-none absolute top-16 right-0 z-0 h-[360px] w-full opacity-25 mix-blend-screen select-none sm:top-20 sm:h-[480px] lg:top-1/2 lg:right-0 lg:h-[80%] lg:w-[62%] lg:-translate-y-1/2 lg:opacity-35"
       >
         <Image
           src="/landing/kestrel-horus-statue.webp"
@@ -151,7 +146,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
           fill
           priority
           sizes="(max-width: 1024px) 100vw, 62vw"
-          className="object-contain object-right"
+          className="object-contain object-center lg:object-right"
         />
       </div>
 
@@ -199,9 +194,9 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
           </div>
         </div>
 
-        <div className="grid gap-12 lg:grid-cols-12 lg:items-center lg:gap-8">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center lg:gap-8">
           {/* Left Column: Monumental Headline & Value Prop */}
-          <div className="flex flex-col items-start gap-6 lg:col-span-7">
+          <div className="flex min-w-0 max-w-full flex-col items-start gap-6 lg:col-span-7">
             {/* Predator Badge */}
             <div className="border-brand/30 bg-brand/10 inline-flex items-center gap-2.5 rounded-full border px-3.5 py-1.5 shadow-[0_0_16px_rgba(255,54,22,0.15)]">
               <Image
@@ -263,24 +258,30 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
             </div>
 
             {/* Social Proof / Metrics strip */}
-            <div className="grid w-full max-w-lg grid-cols-3 gap-6 border-t border-white/10 pt-6">
-              <div>
-                <div className="text-fg font-mono text-2xl font-bold tracking-tight tabular-nums">
+            <div className="grid w-full max-w-lg grid-cols-3 gap-3 border-t border-white/10 pt-6 sm:gap-6">
+              <div className="min-w-0">
+                <div className="text-fg font-mono text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
                   1 or 4 Desks
                 </div>
-                <div className="text-fg-subtle font-sans text-xs">Quick Read or Full Committee</div>
+                <div className="text-fg-subtle font-sans text-[11px] leading-tight sm:text-xs">
+                  Quick Read or Full Committee
+                </div>
               </div>
-              <div>
-                <div className="text-brand font-mono text-2xl font-bold tracking-tight tabular-nums">
+              <div className="min-w-0">
+                <div className="text-brand font-mono text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
                   1:3+ R:R
                 </div>
-                <div className="text-fg-subtle font-sans text-xs">Asymmetric Target Floor</div>
+                <div className="text-fg-subtle font-sans text-[11px] leading-tight sm:text-xs">
+                  Asymmetric Target Floor
+                </div>
               </div>
-              <div>
-                <div className="text-fg font-mono text-2xl font-bold tracking-tight tabular-nums">
+              <div className="min-w-0">
+                <div className="text-fg font-mono text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
                   Zero Setup
                 </div>
-                <div className="text-fg-subtle font-sans text-xs">All AI & Feeds Included</div>
+                <div className="text-fg-subtle font-sans text-[11px] leading-tight sm:text-xs">
+                  All AI & Feeds Included
+                </div>
               </div>
             </div>
           </div>

@@ -197,7 +197,9 @@ export function Landing3DHologram({ className }: Props) {
       prevPointerY = e.clientY;
       velocityX = 0;
       velocityY = 0;
-      container.setPointerCapture?.(e.pointerId);
+      if (e.pointerType !== 'touch') {
+        container.setPointerCapture?.(e.pointerId);
+      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -223,7 +225,9 @@ export function Landing3DHologram({ className }: Props) {
       if (isDragging) {
         isDragging = false;
         try {
-          container.releasePointerCapture?.(e.pointerId);
+          if (e.pointerType !== 'touch') {
+            container.releasePointerCapture?.(e.pointerId);
+          }
         } catch {
           // ignore
         }
@@ -250,7 +254,7 @@ export function Landing3DHologram({ className }: Props) {
 
     // 5. Animation Loop with IntersectionObserver & Inertia Decay
     let animationId: number | null = null;
-    const clock = new THREE.Clock();
+    const startTime = performance.now();
     let isVisible = true;
     const motionMediaQuery =
       typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -266,7 +270,7 @@ export function Landing3DHologram({ className }: Props) {
     const animate = () => {
       if (!isVisible) return;
       animationId = requestAnimationFrame(animate);
-      const elapsed = clock.getElapsedTime() * speedMultiplier;
+      const elapsed = (performance.now() - startTime) * 0.001 * speedMultiplier;
 
       // Inner Gimbal & Core Multi-Speed Rotations
       coreMesh.rotation.y += 0.006 * speedMultiplier;
@@ -317,7 +321,6 @@ export function Landing3DHologram({ className }: Props) {
         isVisible = entry.isIntersecting;
         if (isVisible) {
           if (!animationId) {
-            clock.start();
             animate();
           }
         } else if (animationId) {
@@ -372,7 +375,7 @@ export function Landing3DHologram({ className }: Props) {
     <div
       ref={containerRef}
       className={cn(
-        'relative mx-auto aspect-square w-full max-w-[420px] cursor-grab touch-none select-none active:cursor-grabbing',
+        'relative mx-auto aspect-square w-full max-w-[420px] cursor-grab touch-pan-y select-none active:cursor-grabbing',
         className,
       )}
     />

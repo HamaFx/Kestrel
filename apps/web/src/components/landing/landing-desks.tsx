@@ -181,12 +181,7 @@ export function LandingDesks() {
       {/* ── Neoclassical Cybernetic Hoplite Bust Artwork ── */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-0 z-0 h-[85%] w-full -translate-y-1/2 opacity-20 mix-blend-screen select-none lg:w-[48%] lg:opacity-25"
-        style={{
-          maskImage: 'radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%)',
-          WebkitMaskImage:
-            'radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%)',
-        }}
+        className="desks-backdrop-mask pointer-events-none absolute top-4 left-0 z-0 h-[360px] w-full opacity-20 mix-blend-screen select-none sm:top-8 sm:h-[480px] lg:top-1/2 lg:h-[85%] lg:w-[48%] lg:-translate-y-1/2 lg:opacity-25"
       >
         <Image
           src="/landing/hoplite-spartan-bust.webp"
@@ -194,7 +189,7 @@ export function LandingDesks() {
           fill
           unoptimized
           sizes="(max-width: 1024px) 100vw, 50vw"
-          className="object-cover object-center"
+          className="object-contain object-top lg:object-cover lg:object-center"
         />
       </div>
 
