@@ -63,6 +63,7 @@ import {
   type MastraSpecialistName,
   type ModeRequestContext,
 } from './types';
+import { jsonPromptInjectionForModel } from './structured-output';
 import { verifyMastraOpinion } from './verifier';
 
 /** Typed output of one specialist step (replaces broad `unknown` casts). */
@@ -185,7 +186,7 @@ export async function runSpecialistGeneration(
           maxSteps: effectiveMaxSteps,
           structuredOutput: {
             schema: OpinionSchema,
-            jsonPromptInjection: 'auto',
+            jsonPromptInjection: jsonPromptInjectionForModel(agentModel.model),
             instructions:
               'Return a complete opinion object. Keep numeric claims tied to packet evidence or your tool outputs and mention packet quality when it is not complete.',
           },
