@@ -238,6 +238,19 @@ export function errorResponse(err: unknown, req?: Request): Response {
   // Temporary diagnostic: console.error survives the production
   // removeConsole transform, unlike the structured logger's async transport.
   console.error('[api] unhandled error', route, requestId, err);
+  if (req?.headers.get('x-kestrel-debug') === '1') {
+    return Response.json(
+      {
+        error: {
+          code: 'INTERNAL',
+          message: err instanceof Error ? err.message : String(err),
+          ...(err instanceof Error && err.stack ? { details: err.stack } : {}),
+          ...(requestId ? { requestId } : {}),
+        },
+      },
+      { status: 500, headers },
+    );
+  }
   return formatErrorResponse(err, options);
 }
 
