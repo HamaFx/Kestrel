@@ -158,14 +158,24 @@ describe('mastra-v2 memory options', () => {
     }
   });
 
-  it('honors the capability semanticRecall override over the global gate', () => {
+  it('makes the operator gate a hard off switch for capability overrides', () => {
     const previous = process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
     process.env.ENABLE_MASTRA_SEMANTIC_RECALL = 'false';
     try {
-      const on = kestrelMemoryOptions({ env: NO_KEYS_ENV, semanticRecall: true });
-      expect(on.semanticRecall).toMatchObject({ topK: 4, scope: 'thread' });
-      const off = kestrelMemoryOptions({ env: NO_KEYS_ENV, semanticRecall: false });
-      expect(off.semanticRecall).toBe(false);
+      const options = kestrelMemoryOptions({ env: NO_KEYS_ENV, semanticRecall: true });
+      expect(options.semanticRecall).toBe(false);
+    } finally {
+      if (previous === undefined) delete process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
+      else process.env.ENABLE_MASTRA_SEMANTIC_RECALL = previous;
+    }
+  });
+
+  it('lets a capability opt out when the operator gate is on', () => {
+    const previous = process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
+    delete process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
+    try {
+      const options = kestrelMemoryOptions({ env: NO_KEYS_ENV, semanticRecall: false });
+      expect(options.semanticRecall).toBe(false);
     } finally {
       if (previous === undefined) delete process.env.ENABLE_MASTRA_SEMANTIC_RECALL;
       else process.env.ENABLE_MASTRA_SEMANTIC_RECALL = previous;

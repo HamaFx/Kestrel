@@ -201,11 +201,6 @@ export interface KestrelEmbedderArgs {
 export function createKestrelEmbedder(args: KestrelEmbedderArgs): MastraEmbeddingModel<string> {
   const modelId = resolveEmbeddingModel(args.settings, args.env);
   const provider = modelId.split('/')[0] ?? 'kestrel-byok';
-  console.error('[kestrel-embedder] created', {
-    modelId,
-    embeddingModelSetting: args.settings.embeddingModel ?? null,
-    hasStoredKeys: Boolean(args.settings.aiApiKeys),
-  });
   return {
     specificationVersion: 'v2',
     provider,
@@ -213,38 +208,18 @@ export function createKestrelEmbedder(args: KestrelEmbedderArgs): MastraEmbeddin
     maxEmbeddingsPerCall: 256,
     supportsParallelCalls: false,
     async doEmbed({ values, abortSignal }) {
-      console.error('[kestrel-embedder] probe/embed start', {
-        modelId,
-        valueCount: values.length,
-        hasEmbeddingOverride: Boolean(args.settings.embeddingModel),
+      const result = await embedTexts({
+        texts: values,
+        userSettings: args.settings,
+        ...(args.env.AI_EMBEDDING_MODEL
+          ? { env: { AI_EMBEDDING_MODEL: args.env.AI_EMBEDDING_MODEL } }
+          : {}),
+        ...(abortSignal ? { signal: abortSignal } : {}),
       });
-      try {
-        const result = await embedTexts({
-          texts: values,
-          userSettings: args.settings,
-          ...(args.env.AI_EMBEDDING_MODEL
-            ? { env: { AI_EMBEDDING_MODEL: args.env.AI_EMBEDDING_MODEL } }
-            : {}),
-          ...(abortSignal ? { signal: abortSignal } : {}),
-        });
-        console.error('[kestrel-embedder] probe/embed result', {
-          modelId,
-          embeddingCount: result.embeddings.length,
-          dimension: result.embeddings[0]?.length,
-        });
-        return {
-          embeddings: result.embeddings,
-          ...(result.inputTokens > 0 ? { usage: { tokens: result.inputTokens } } : {}),
-        };
-      } catch (err) {
-        console.error(
-          '[kestrel-embedder] probe/embed failed',
-          modelId,
-          err instanceof Error ? err.message : String(err),
-          (err as { cause?: unknown })?.cause,
-        );
-        throw err;
-      }
+      return {
+        embeddings: result.embeddings,
+        ...(result.inputTokens > 0 ? { usage: { tokens: result.inputTokens } } : {}),
+      };
     },
   };
 }
@@ -263,9 +238,9 @@ export interface KestrelMemoryOptionsArgs {
   forceObservationalMemory?: boolean;
   /**
    * Capability-specific semantic recall override (Phase 9). When provided it
-   * wins over the global `ENABLE_MASTRA_SEMANTIC_RECALL` gate; the execution
-   * plan's memoryPolicy carries the value resolved from the capability
-   * manifest.
+   * is ANDed with the global `ENABLE_MASTRA_SEMANTIC_RECALL` gate: an
+   * operator setting that gate to `false` is a hard kill switch for every
+   * path, while a capability may still opt out when the gate is on.
    */
   semanticRecall?: boolean;
 }
@@ -278,14 +253,16 @@ export interface KestrelMemoryOptionsArgs {
  *   Drizzle; agent-maintained afterwards).
  * - semanticRecall: on by default; scope 'thread' so recall is strictly bounded
  *   to the current conversation thread, avoiding cross-thread setup bleed.
- *   Per-capability overrides come through `semanticRecall`; otherwise the global
- *   gate `ENABLE_MASTRA_SEMANTIC_RECALL` applies (default on).
+ *   Per-capability overrides come through `semanticRecall`; the global gate
+ *   `ENABLE_MASTRA_SEMANTIC_RECALL` defaults to on but is a hard off switch:
+ *   setting it to `false` disables recall even when a capability asks for it.
  * - observationalMemory: off by default; enable with
  *   `ENABLE_MASTRA_OBSERVATIONAL_MEMORY=true` on long-lived paths (thread-scoped).
  */
 export function kestrelMemoryOptions(args: KestrelMemoryOptionsArgs): MemoryConfigInternal {
-  const recallEnabled =
-    args.semanticRecall ?? (process.env.ENABLE_MASTRA_SEMANTIC_RECALL ?? 'true') !== 'false';
+  const operatorRecallEnabled =
+    (process.env.ENABLE_MASTRA_SEMANTIC_RECALL ?? 'true') !== 'false';
+  const recallEnabled = operatorRecallEnabled && (args.semanticRecall ?? true);
   const semanticRecall = recallEnabled
     ? {
         topK: KESTREL_MEMORY_SEMANTIC_TOP_K,
