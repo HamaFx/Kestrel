@@ -255,6 +255,19 @@ export function committeeModelResolver(
   };
 }
 
+/**
+ * Map the requested analysis mode to the execution-plan route the runner is
+ * allowed to consume. Durable Full jobs are enqueued with `full-analysis`,
+ * while mode/symbol runs use the symbol-research routes.
+ */
+export function expectedModeExecutionPlanRoute(
+  mode: MastraAnalysisMode,
+  comparison: boolean,
+): ExecutionPlan['route'] {
+  if (mode === 'full') return 'full-analysis';
+  return comparison ? 'multi-symbol-research' : 'symbol-research';
+}
+
 export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraModeResult> {
   const comparisonSymbols = [...new Set(args.symbols ?? [])];
   const isComparison = comparisonSymbols.length >= 2;
@@ -266,7 +279,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
   if (args.executionPlan) {
     assertExecutionPlanRoute(
       args.executionPlan,
-      isComparison ? 'multi-symbol-research' : 'symbol-research',
+      expectedModeExecutionPlanRoute(args.mode, isComparison),
     );
   }
   metrics.increment('committee_execution_total', {
