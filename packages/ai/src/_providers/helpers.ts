@@ -429,6 +429,7 @@ export function openaiCompatibleFactory(
   baseURL: string,
   headers?: Record<string, string>,
   fetch?: FetchFunction,
+  options?: { supportsStructuredOutputs?: boolean },
 ): ByokProviderSpec['factory'] {
   return (apiKey) => {
     const provider = createOpenAICompatible({
@@ -437,6 +438,7 @@ export function openaiCompatibleFactory(
       baseURL,
       ...(headers ? { headers } : {}),
       ...(fetch ? { fetch } : {}),
+      ...(options?.supportsStructuredOutputs ? { supportsStructuredOutputs: true } : {}),
     });
     return (modelId) => provider(modelId);
   };
