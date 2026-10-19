@@ -116,6 +116,12 @@ export const providerCapabilities: Record<ProviderId, ProviderCapability> = {
     supportsToolCalling: true,
     modelPrefix: 'deepseek/',
   },
+  dphn: {
+    supportsVision: false,
+    supportsEmbedding: false,
+    supportsToolCalling: true,
+    modelPrefix: 'dphn/',
+  },
   iamhc: {
     supportsVision: true,
     supportsEmbedding: false,
