@@ -33,10 +33,25 @@ export function SwRegister(): null {
       navigator.serviceWorker
         .register('/sw.js', { scope: '/' })
         .then((reg) => {
+          // Proactively check for updates on mount
+          reg.update().catch(() => {});
+
           reg.addEventListener('updatefound', () => {
             const newWorker = reg.installing;
             newWorker?.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // In standalone PWA mode (e.g. iOS Home Screen), auto-activate and refresh
+                // so users without an address bar / refresh button get latest updates
+                const isStandalone =
+                  window.matchMedia('(display-mode: standalone)').matches ||
+                  Boolean((navigator as unknown as { standalone?: boolean }).standalone);
+
+                if (isStandalone) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  window.location.reload();
+                  return;
+                }
+
                 toast.info('Update available', {
                   action: {
                     label: 'Reload',
@@ -56,17 +71,42 @@ export function SwRegister(): null {
         });
     };
 
+    // Check for updates when user returns to app (e.g. switching back to iOS Home Screen app)
+    const handleVisibilityChange = (): void => {
+      if (document.visibilityState === 'visible') {
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          reg?.update().catch(() => {});
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Auto-reload in standalone PWA when controller changes
+    const handleControllerChange = (): void => {
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        Boolean((navigator as unknown as { standalone?: boolean }).standalone);
+      if (isStandalone) {
+        window.location.reload();
+      }
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
     if (typeof window.requestIdleCallback === 'function') {
       const id = window.requestIdleCallback(register);
       return () => {
         if (typeof window.cancelIdleCallback === 'function') {
           window.cancelIdleCallback(id);
         }
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
       };
     }
     const t = window.setTimeout(register, 200);
     return () => {
       window.clearTimeout(t);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
   return null;
