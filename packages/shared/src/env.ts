@@ -93,6 +93,8 @@ const DbEnv = z
 const AiEnv = z.object({
   AI_GATEWAY_API_KEY: z.string().min(1).optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
+  /** Dolphin Inference Network key (OpenAI-compatible DeepSeek endpoint). */
+  DPHN_API_KEY: z.string().min(1).optional(),
   AI_DEFAULT_MODEL: z.string().default('google/gemini-2.5-flash'),
   /**
    * Auto-title generator (first-turn thread title) and operator-set
@@ -479,6 +481,7 @@ export function resolveMigrationDatabaseUrl(
 export type AiEnvKeys =
   | 'AI_GATEWAY_API_KEY'
   | 'GOOGLE_GENERATIVE_AI_API_KEY'
+  | 'DPHN_API_KEY'
   | 'AI_DEFAULT_MODEL'
   | 'AI_TITLE_MODEL'
   | 'AI_EMBEDDING_MODEL'
@@ -501,6 +504,7 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
   return {
     AI_GATEWAY_API_KEY: env.AI_GATEWAY_API_KEY,
     GOOGLE_GENERATIVE_AI_API_KEY: env.GOOGLE_GENERATIVE_AI_API_KEY,
+    DPHN_API_KEY: env.DPHN_API_KEY,
     AI_DEFAULT_MODEL: env.AI_DEFAULT_MODEL,
     AI_TITLE_MODEL: env.AI_TITLE_MODEL,
     AI_EMBEDDING_MODEL: env.AI_EMBEDDING_MODEL,

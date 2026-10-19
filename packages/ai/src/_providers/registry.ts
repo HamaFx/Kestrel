@@ -20,6 +20,7 @@
 import { PROVIDER_IDS, type ProviderId } from '@kestrel/shared/byok';
 
 import { ANTHROPIC } from './anthropic';
+import { DPHN } from './dphn';
 import { GOOGLE } from './google';
 import { GROQ, MISTRAL, OPENROUTER } from './groq-mistral-openrouter';
 import { OPENAI } from './openai';
@@ -35,6 +36,7 @@ export const BYOK_PROVIDERS: Record<ProviderId, ByokProviderSpec> = {
   openrouter: OPENROUTER,
   xai: XAI,
   deepseek: DEEPSEEK,
+  dphn: DPHN,
   iamhc: IAMHC,
   hcnsec: HCNSEC,
 };

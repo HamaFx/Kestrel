@@ -42,6 +42,7 @@ export const PROVIDER_IDS = [
   'openrouter',
   'xai',
   'deepseek',
+  'dphn',
   'iamhc',
   'hcnsec',
 ] as const;
@@ -65,6 +66,8 @@ export interface ByokPayload {
   openrouter?: string;
   xai?: string;
   deepseek?: string;
+  /** Dolphin Inference Network (OpenAI-compatible DeepSeek endpoint). */
+  dphn?: string;
   finnhub?: string;
   iamhc?: string;
   /** HCNSEC OpenAI-compatible gateway API key. */

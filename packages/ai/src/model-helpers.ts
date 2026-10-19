@@ -42,6 +42,7 @@ export const PROVIDER_PRIORITY: ProviderId[] = [
   'mistral',
   'groq',
   'deepseek',
+  'dphn',
   'iamhc',
   'hcnsec',
 ];
@@ -89,6 +90,7 @@ export function envFallbackKeys(env: ResolveModelEnv): ByokPayload {
       ['openrouter', 'OPENROUTER_API_KEY'],
       ['xai', 'XAI_API_KEY'],
       ['deepseek', 'DEEPSEEK_API_KEY'],
+      ['dphn', 'DPHN_API_KEY'],
       ['iamhc', 'IAMHC_API_KEY'],
       ['hcnsec', 'HCNSEC_API_KEY'],
     ];
