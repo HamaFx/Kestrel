@@ -208,18 +208,38 @@ export function createKestrelEmbedder(args: KestrelEmbedderArgs): MastraEmbeddin
     maxEmbeddingsPerCall: 256,
     supportsParallelCalls: false,
     async doEmbed({ values, abortSignal }) {
-      const result = await embedTexts({
-        texts: values,
-        userSettings: args.settings,
-        ...(args.env.AI_EMBEDDING_MODEL
-          ? { env: { AI_EMBEDDING_MODEL: args.env.AI_EMBEDDING_MODEL } }
-          : {}),
-        ...(abortSignal ? { signal: abortSignal } : {}),
+      console.log('[kestrel-embedder] probe/embed start', {
+        modelId,
+        valueCount: values.length,
+        hasEmbeddingOverride: Boolean(args.settings.embeddingModel),
       });
-      return {
-        embeddings: result.embeddings,
-        ...(result.inputTokens > 0 ? { usage: { tokens: result.inputTokens } } : {}),
-      };
+      try {
+        const result = await embedTexts({
+          texts: values,
+          userSettings: args.settings,
+          ...(args.env.AI_EMBEDDING_MODEL
+            ? { env: { AI_EMBEDDING_MODEL: args.env.AI_EMBEDDING_MODEL } }
+            : {}),
+          ...(abortSignal ? { signal: abortSignal } : {}),
+        });
+        console.log('[kestrel-embedder] probe/embed result', {
+          modelId,
+          embeddingCount: result.embeddings.length,
+          dimension: result.embeddings[0]?.length,
+        });
+        return {
+          embeddings: result.embeddings,
+          ...(result.inputTokens > 0 ? { usage: { tokens: result.inputTokens } } : {}),
+        };
+      } catch (err) {
+        console.error(
+          '[kestrel-embedder] probe/embed failed',
+          modelId,
+          err instanceof Error ? err.message : String(err),
+          (err as { cause?: unknown })?.cause,
+        );
+        throw err;
+      }
     },
   };
 }
