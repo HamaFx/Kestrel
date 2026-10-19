@@ -178,17 +178,17 @@ export function LandingDesks() {
       onMouseLeave={() => setIsPaused(false)}
       className="relative overflow-hidden border-t border-white/5 bg-[#101112] py-28 lg:py-36"
     >
-      {/* ── Neoclassical Cybernetic Hoplite Bust Artwork ── */}
+      {/* ── Neoclassical Cybernetic 4-Strategist Council Artwork ── */}
       <div
         aria-hidden="true"
-        className="desks-backdrop-mask pointer-events-none absolute top-4 left-0 z-0 h-[360px] w-full opacity-20 mix-blend-screen select-none sm:top-8 sm:h-[480px] lg:top-1/2 lg:h-[85%] lg:w-[48%] lg:-translate-y-1/2 lg:opacity-25"
+        className="desks-backdrop-mask pointer-events-none absolute top-4 left-0 z-0 h-[360px] w-full opacity-20 mix-blend-screen select-none sm:top-8 sm:h-[480px] lg:top-1/2 lg:h-[85%] lg:w-[52%] lg:-translate-y-1/2 lg:opacity-25"
       >
         <Image
-          src="/landing/hoplite-spartan-bust.webp"
-          alt="Cybernetic Spartan Hoplite Sculpture"
+          src="/landing/desks-council-strategists.webp"
+          alt="The Four Specialist Desks Neoclassical Strategist Council"
           fill
           unoptimized
-          sizes="(max-width: 1024px) 100vw, 50vw"
+          sizes="(max-width: 1024px) 100vw, 52vw"
           className="object-contain object-top lg:object-cover lg:object-center"
         />
       </div>
