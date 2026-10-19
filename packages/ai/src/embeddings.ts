@@ -30,6 +30,7 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ServerEnv } from '@kestrel/shared';
 import { decryptByok, type ProviderId } from '@kestrel/shared/encryption';
+import { logErrorContext } from '@kestrel/shared/logger';
 import { embedMany, type EmbeddingModel } from 'ai';
 
 import { buildByokEmbeddingModel, providerCapabilities } from './byok-providers';
@@ -164,7 +165,18 @@ export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
   };
   if (args.signal) callArgs.abortSignal = args.signal;
 
-  const result = await embedMany(callArgs);
+  let result: Awaited<ReturnType<typeof embedMany>>;
+  try {
+    result = await embedMany(callArgs);
+  } catch (err) {
+    logErrorContext(
+      err,
+      'embeddings/embed_failed',
+      { modelId, dimensions: EXPECTED_EMBEDDING_DIMENSIONS },
+      'ai',
+    );
+    throw err;
+  }
 
   const embeddings = result.embeddings as number[][];
   for (const vec of embeddings) {
