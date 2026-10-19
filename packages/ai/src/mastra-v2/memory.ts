@@ -201,6 +201,11 @@ export interface KestrelEmbedderArgs {
 export function createKestrelEmbedder(args: KestrelEmbedderArgs): MastraEmbeddingModel<string> {
   const modelId = resolveEmbeddingModel(args.settings, args.env);
   const provider = modelId.split('/')[0] ?? 'kestrel-byok';
+  console.error('[kestrel-embedder] created', {
+    modelId,
+    embeddingModelSetting: args.settings.embeddingModel ?? null,
+    hasStoredKeys: Boolean(args.settings.aiApiKeys),
+  });
   return {
     specificationVersion: 'v2',
     provider,
@@ -208,7 +213,7 @@ export function createKestrelEmbedder(args: KestrelEmbedderArgs): MastraEmbeddin
     maxEmbeddingsPerCall: 256,
     supportsParallelCalls: false,
     async doEmbed({ values, abortSignal }) {
-      console.log('[kestrel-embedder] probe/embed start', {
+      console.error('[kestrel-embedder] probe/embed start', {
         modelId,
         valueCount: values.length,
         hasEmbeddingOverride: Boolean(args.settings.embeddingModel),
@@ -222,7 +227,7 @@ export function createKestrelEmbedder(args: KestrelEmbedderArgs): MastraEmbeddin
             : {}),
           ...(abortSignal ? { signal: abortSignal } : {}),
         });
-        console.log('[kestrel-embedder] probe/embed result', {
+        console.error('[kestrel-embedder] probe/embed result', {
           modelId,
           embeddingCount: result.embeddings.length,
           dimension: result.embeddings[0]?.length,
