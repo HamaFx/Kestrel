@@ -22,6 +22,7 @@ import type { Symbol } from '@kestrel/shared';
 import { IconArrowBackUp, IconArrowDown, IconX } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
 import { AnimatePresence, m } from 'motion/react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -556,6 +557,7 @@ export function ChatScreen({
               splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-3xl xl:max-w-4xl',
             )}
           >
+            {error && <ChatErrorBanner error={error} />}
             <Composer
               analysisMode={analysisMode}
               onAnalysisModeChange={handleAnalysisModeChange}
@@ -587,6 +589,48 @@ export function ChatScreen({
       </div>
 
       {confirmEl}
+    </div>
+  );
+}
+
+/**
+ * Billing/route errors are returned as `{ error: { code, message } }`. The AI
+ * SDK exposes the raw body on `error.message`; decode it for a useful banner,
+ * especially the 402 credit/upgrade paths.
+ */
+function ChatErrorBanner({ error }: { error: Error }) {
+  let code: string | null = null;
+  let message = error.message || 'The request failed. Please try again.';
+  try {
+    const parsed = JSON.parse(message) as { error?: { code?: string; message?: string } };
+    if (parsed?.error) {
+      code = parsed.error.code ?? null;
+      message = parsed.error.message ?? message;
+    }
+  } catch {
+    // Plain-text error — keep the message.
+  }
+
+  const billing = code === 'INSUFFICIENT_CREDITS' || code === 'UPGRADE_REQUIRED';
+  return (
+    <div
+      role="alert"
+      className={cn(
+        'mb-2 flex flex-wrap items-center justify-between gap-2 rounded-sm border px-3 py-2 text-xs',
+        billing
+          ? 'border-warn/30 bg-warn/10 text-warn'
+          : 'border-danger/30 bg-danger/10 text-danger',
+      )}
+    >
+      <span>{message}</span>
+      {billing && (
+        <Link
+          href="/settings/billing"
+          className="border-warn/30 text-warn rounded-sm border px-2 py-1 font-semibold hover:bg-warn/10"
+        >
+          View plans & credits
+        </Link>
+      )}
     </div>
   );
 }

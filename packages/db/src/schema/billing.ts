@@ -29,6 +29,7 @@
 
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -83,8 +84,21 @@ export const plans = pgTable(
     interval: planInterval('interval').notNull().default('monthly'),
     /** Feature flags gated by this plan (JSON array of feature keys) */
     features: jsonb('features').$type<string[]>().default([]),
-    /** AI token/credit monthly cap (null = unlimited) */
+    /** AI token/credit monthly cap (null = unlimited). Derived from monthlyCredits. */
     monthlyTokenCap: integer('monthly_token_cap'),
+    /** Credits granted per billing cycle. 1 credit = $0.001. */
+    monthlyCredits: bigint('monthly_credits', { mode: 'number' }).notNull().default(0),
+    /** Allow pay-as-you-go top-ups beyond the plan allowance. */
+    overageCredits: boolean('overage_credits').notNull().default(false),
+    seatsIncluded: integer('seats_included').notNull().default(1),
+    /** Stripe recurring Price.id (null for Free / NOWPayments-only). */
+    stripePriceId: text('stripe_price_id'),
+    stripePriceIdYearly: text('stripe_price_id_yearly'),
+    visible: boolean('visible').notNull().default(true),
+    sortOrder: integer('sort_order').notNull().default(0),
+    trialDays: integer('trial_days').notNull().default(0),
+    /** Stripe Tax behaviour for this price: 'exclusive' | 'inclusive' | 'none'. */
+    stripeTaxBehavior: text('stripe_tax_behavior').default('exclusive'),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -112,8 +126,18 @@ export const subscriptions = pgTable(
     nowpaymentsRecurringId: text('nowpayments_recurring_id'),
     /** NOWPayments invoice ID for the most recent payment */
     nowpaymentsInvoiceId: text('nowpayments_invoice_id'),
+    /** Stripe subscription object id. */
+    stripeSubscriptionId: text('stripe_subscription_id'),
+    /** Stripe Price.id currently attached to the subscription. */
+    stripePriceId: text('stripe_price_id'),
+    /** When the current billing period starts (Stripe anchor / UTC month). */
+    currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
     /** When the current billing period ends */
     currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+    /** True when Stripe will cancel at period end (status stays active). */
+    cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+    /** Audit trail for trial → active fallback. */
+    trialEndPrev: timestamp('trial_end_prev', { withTimezone: true }),
     /** When the trial ends (if trialing) */
     trialEnd: timestamp('trial_end', { withTimezone: true }),
     /** Whether the user canceled (vs. system expiration) */
@@ -131,6 +155,9 @@ export const subscriptions = pgTable(
     uniqueIndex('subscriptions_tenant_active_idx')
       .on(t.tenantId)
       .where(sql`status IN ('active', 'trialing')`),
+    uniqueIndex('subscriptions_stripe_subscription_uk')
+      .on(t.stripeSubscriptionId)
+      .where(sql`${t.stripeSubscriptionId} IS NOT NULL`),
   ],
 );
 
@@ -149,6 +176,8 @@ export const payments = pgTable(
       .notNull()
       .default(sql`current_setting('app.current_tenant', true)`)
       .references(() => organization.id, { onDelete: 'cascade' }),
+    /** Payment provider: nowpayments | stripe | manual | promo. */
+    provider: text('provider').notNull().default('nowpayments'),
     /** NOWPayments payment ID, populated by the first IPN (invoice creation returns an invoice ID). */
     nowpaymentsPaymentId: text('nowpayments_payment_id'),
     /** NOWPayments invoice ID — the stable pre-payment idempotency key. */
@@ -161,7 +190,15 @@ export const payments = pgTable(
     usdAmountCents: integer('usd_amount_cents'),
     /** Crypto transaction hash (for on-chain verification) */
     txHash: text('tx_hash'),
-    /** Raw IPN payload (for audit trail) */
+    /** Stripe PaymentIntent id (top-ups and one-time charges). */
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
+    /** Stripe Invoice id (subscription renewals). */
+    stripeInvoiceId: text('stripe_invoice_id'),
+    /** How many credits this payment granted. */
+    creditsGranted: bigint('credits_granted', { mode: 'number' }),
+    /** Stripe billing_reason (subscription_create, subscription_cycle, …). */
+    billingReason: text('billing_reason'),
+    /** Raw IPN / provider webhook payload (for audit trail) */
     ipnPayload: jsonb('ipn_payload'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -174,6 +211,12 @@ export const payments = pgTable(
     // constraints) so `drizzle-kit generate` produces no drift.
     uniqueIndex('payments_nowpayments_payment_id_idx').on(t.nowpaymentsPaymentId),
     uniqueIndex('payments_nowpayments_invoice_id_idx').on(t.nowpaymentsInvoiceId),
+    uniqueIndex('payments_stripe_payment_intent_uk')
+      .on(t.stripePaymentIntentId)
+      .where(sql`${t.stripePaymentIntentId} IS NOT NULL`),
+    uniqueIndex('payments_stripe_invoice_uk')
+      .on(t.stripeInvoiceId)
+      .where(sql`${t.stripeInvoiceId} IS NOT NULL`),
   ],
 );
 

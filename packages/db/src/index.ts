@@ -272,11 +272,65 @@ export {
   getUserPayments,
   upsertSubscription,
   createPayment,
+  createTopupPayment,
   claimCheckoutAttempt,
   saveCheckoutInvoice,
   completeCheckoutAttempt,
   failCheckoutAttempt,
 } from './queries/billing-extras';
+// Subscription + credit billing.
+export {
+  getWallet,
+  getWalletWithGrant,
+  ensureWallet,
+  grantCredits,
+  addCredits,
+  consumeCredits,
+  expireCredits,
+  reserveCredits,
+  reconcileCreditReservation,
+  releaseCreditReservation,
+  ensureMonthlyGrant,
+  expireUnusedSubscriptionGrant,
+  reclaimStaleCreditReservations,
+  listStaleCreditReservations,
+  type CreditWallet,
+  type CreditMutationResult,
+  type CreditReservationResult,
+  type ReconcileResult,
+} from './queries/credit-wallet';
+export {
+  listLedger,
+  getCreditUsageDaily,
+  getLedgerByIdempotency,
+  type LedgerPage,
+  type CreditDayBucket,
+} from './queries/credit-ledger';
+export { listActiveTopupProducts, getTopupProduct } from './queries/credit-topups';
+export {
+  getEntitlementSnapshot,
+  assertEntitlement,
+  assertCredits,
+  isCreditsEnforcementEnabled,
+  isCreditsShadowLogEnabled,
+  FREE_FEATURES,
+  type EntitlementSnapshot,
+  type EntitlementResult,
+  type CreditGateResult,
+} from './queries/entitlement';
+export {
+  getBillingCustomer,
+  getBillingCustomerByStripeId,
+  getBillingUserIdForTenant,
+  ensureBillingCustomer,
+} from './queries/billing-customers';
+export {
+  claimBillingEvent,
+  markBillingEventProcessed,
+  markBillingEventFailed,
+  countBillingEventsSince,
+  type ClaimBillingEventResult,
+} from './queries/billing-events';
 export {
   getUserByEmail,
   userExistsByEmail,

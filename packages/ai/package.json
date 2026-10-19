@@ -118,6 +118,11 @@
       "types": "./dist/usage.d.ts",
       "import": "./dist/usage.js"
     },
+    "./credits": {
+      "source": "./src/credits.ts",
+      "types": "./dist/credits.d.ts",
+      "import": "./dist/credits.js"
+    },
     "./instrumentation": {
       "source": "./src/instrumentation.ts",
       "types": "./dist/instrumentation.d.ts",

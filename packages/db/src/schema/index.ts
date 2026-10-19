@@ -73,6 +73,13 @@ export * from './bot-links';
 export * from './provider-daily-quota';
 // Phase B — Billing (NOWPayments / crypto)
 export * from './billing';
+// Subscription + credit billing (Stripe + credits)
+export * from './credit-wallets';
+export * from './credit-ledger';
+export * from './credit-reservations';
+export * from './credit-topup-products';
+export * from './billing-customers';
+export * from './billing-events';
 // Durable user feedback and reviewer annotations
 export * from './ai-feedback';
 export * from './ai-regression-cases';

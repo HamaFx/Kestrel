@@ -31,14 +31,18 @@ interface Plan {
   interval: string;
   features: string[] | null;
   monthlyTokenCap: number | null;
+  monthlyCredits?: number;
+  stripePriceId?: string | null;
 }
 
 export function BillingPlans({
   plans,
   currentPlanId,
+  provider = 'stripe',
 }: {
   plans: Plan[];
   currentPlanId: string | null;
+  provider?: 'stripe' | 'nowpayments';
 }) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +112,11 @@ export function BillingPlans({
                 )}
               </div>
               <p className="text-fg text-2xl font-bold">{price}</p>
+              {typeof plan.monthlyCredits === 'number' && plan.monthlyCredits > 0 && (
+                <p className="text-fg-subtle -mt-1 text-xs">
+                  {plan.monthlyCredits.toLocaleString()} credits / cycle
+                </p>
+              )}
               <ul className="text-fg-subtle flex flex-col gap-1.5 text-sm">
                 {(plan.features ?? []).map((feat) => (
                   <li key={feat} className="flex items-center gap-2">
@@ -119,11 +128,20 @@ export function BillingPlans({
               {!isCurrent && plan.priceUsdCents > 0 && (
                 <button
                   onClick={() => handleCheckout(plan.id)}
-                  disabled={loading !== null}
+                  disabled={
+                    loading !== null || (provider === 'stripe' && !plan.stripePriceId)
+                  }
                   className="bg-fg hover:bg-fg/90 mt-auto inline-flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                  title={
+                    provider === 'stripe' && !plan.stripePriceId
+                      ? 'Stripe price not configured for this plan'
+                      : undefined
+                  }
                 >
                   {loading === plan.id ? (
                     <IconLoader2 className="size-4 animate-spin" />
+                  ) : provider === 'stripe' && !plan.stripePriceId ? (
+                    'Unavailable'
                   ) : (
                     `Upgrade to ${plan.name}`
                   )}

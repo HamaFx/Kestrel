@@ -32,6 +32,10 @@ const mockSaveCheckoutInvoice = vi.hoisted(() => vi.fn());
 const mockFailCheckoutAttempt = vi.hoisted(() => vi.fn());
 const mockCreateInvoice = vi.hoisted(() => vi.fn());
 const mockVerifyIpnSignature = vi.hoisted(() => vi.fn());
+const mockCreateStripeCheckoutSession = vi.hoisted(() => vi.fn());
+const mockCreateStripeCustomer = vi.hoisted(() => vi.fn());
+const mockGetBillingCustomer = vi.hoisted(() => vi.fn());
+const mockEnsureBillingCustomer = vi.hoisted(() => vi.fn());
 const mockClaimIpnEvent = vi.hoisted(() => vi.fn());
 const mockGetPaymentByNowpaymentsId = vi.hoisted(() => vi.fn());
 const mockMarkIpnProcessed = vi.hoisted(() => vi.fn());
@@ -72,6 +76,10 @@ vi.mock('@/lib/nowpayments', () => ({
   createInvoice: mockCreateInvoice,
   verifyIpnSignature: mockVerifyIpnSignature,
 }));
+vi.mock('@/lib/stripe', () => ({
+  createStripeCheckoutSession: mockCreateStripeCheckoutSession,
+  createStripeCustomer: mockCreateStripeCustomer,
+}));
 vi.mock('@kestrel/db', () => ({
   schema: {},
   claimCheckoutAttempt: mockClaimCheckoutAttempt,
@@ -80,6 +88,12 @@ vi.mock('@kestrel/db', () => ({
   saveCheckoutInvoice: mockSaveCheckoutInvoice,
   failCheckoutAttempt: mockFailCheckoutAttempt,
   getPlan: mockGetPlan,
+  getBillingCustomer: mockGetBillingCustomer,
+  ensureBillingCustomer: mockEnsureBillingCustomer,
+  getUserWithSettings: vi.fn(async () => ({
+    user: { id: 'user-1', email: 'user@example.com', name: 'Test' },
+    settings: {},
+  })),
   upsertSubscription: vi.fn().mockResolvedValue('sub-1'),
   claimIpnEvent: mockClaimIpnEvent,
   getPaymentByNowpaymentsId: mockGetPaymentByNowpaymentsId,
@@ -92,7 +106,13 @@ vi.mock('@kestrel/db', () => ({
   markBillingWebhookReplayed: mockMarkBillingWebhookReplayed,
   releaseBillingWebhookReplay: mockReleaseBillingWebhookReplay,
   countStaleBillingWebhookFailures: mockCountStaleBillingWebhookFailures,
+  recordAdminAudit: vi.fn(),
+  createTopupPayment: vi.fn(async () => null),
+  ensureMonthlyGrant: vi.fn(async () => null),
+  getBillingUserIdForTenant: vi.fn(async () => 'user-1'),
   getAdminDb: vi.fn(() => ({})),
+  getTenantDbScope: () => ({ tenantId: 'tenant-test' }),
+  withRateLimit: vi.fn(async () => ({ allowed: true, count: 1, limit: 10 })),
   requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
   withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
     work({}),
@@ -126,6 +146,8 @@ beforeEach(() => {
     NOWPAYMENTS_API_KEY: 'api-key',
     NOWPAYMENTS_IPN_SECRET: 'ipn-secret',
     BILLING_ENABLED: true,
+    BILLING_PROVIDER: 'nowpayments',
+    BILLING_STRIPE_ENABLED: false,
     NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
   });
   mockGetPlan.mockResolvedValue(PLAN);
@@ -138,6 +160,13 @@ beforeEach(() => {
     id: 'invoice-1',
     invoice_url: 'https://pay.test/invoice-1',
   });
+  mockCreateStripeCheckoutSession.mockResolvedValue({
+    id: 'cs_test_1',
+    url: 'https://checkout.stripe.test/cs_test_1',
+  });
+  mockCreateStripeCustomer.mockResolvedValue({ id: 'cus_test_1' });
+  mockGetBillingCustomer.mockResolvedValue({ stripeCustomerId: 'cus_test_1' });
+  mockEnsureBillingCustomer.mockResolvedValue({ stripeCustomerId: 'cus_test_1' });
   mockVerifyIpnSignature.mockResolvedValue(true);
   mockClaimIpnEvent.mockResolvedValue({ kind: 'claimed', event: { id: 'event-1' } });
   mockGetPaymentByNowpaymentsId.mockResolvedValue({
@@ -195,6 +224,38 @@ describe('billing P1 safety gate', () => {
     expect(response.status).toBe(404);
     expect(mockVerifyIpnSignature).not.toHaveBeenCalled();
   });
+  it('creates a Stripe Checkout session when the plan has a Stripe price', async () => {
+    mockGetServerEnv.mockReturnValue({
+      NOWPAYMENTS_API_KEY: 'api-key',
+      BILLING_ENABLED: true,
+      BILLING_PROVIDER: 'stripe',
+      BILLING_STRIPE_ENABLED: true,
+      STRIPE_SECRET_KEY: 'sk_test_123',
+      NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
+    });
+    mockGetPlan.mockResolvedValueOnce({ ...PLAN, stripePriceId: 'price_test_1' });
+
+    const response = await checkout(
+      new Request('http://localhost/api/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ planId: PLAN.id, provider: 'stripe' }),
+        headers: { 'content-type': 'application/json', 'idempotency-key': 'checkout-stripe-1' },
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      checkoutUrl: 'https://checkout.stripe.test/cs_test_1',
+      sessionId: 'cs_test_1',
+      provider: 'stripe',
+    });
+    expect(mockCreateStripeCheckoutSession).toHaveBeenCalledWith(
+      expect.objectContaining({ priceId: 'price_test_1', mode: 'subscription' }),
+    );
+    expect(mockCreateInvoice).not.toHaveBeenCalled();
+  });
+
   it('requires Idempotency-Key before creating a checkout invoice', async () => {
     const response = await checkout(
       new Request('http://localhost/api/billing/checkout', {

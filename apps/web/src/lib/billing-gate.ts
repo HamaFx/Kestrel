@@ -95,8 +95,15 @@ export async function checkAlertLimit(userId: string): Promise<BillingGateResult
     return { allowed: true, subscription: sub, features };
   }
 
+  const limit = features.includes('alerts_100')
+    ? 100
+    : features.includes('alerts_20')
+      ? 20
+      : features.includes('alerts_5')
+        ? 5
+        : FREE_PLAN_ALERT_LIMIT;
   const activeCount = await countActiveAlerts(userId);
-  if (activeCount >= FREE_PLAN_ALERT_LIMIT) {
+  if (activeCount >= limit) {
     return {
       allowed: false,
       subscription: sub,
@@ -105,7 +112,7 @@ export async function checkAlertLimit(userId: string): Promise<BillingGateResult
         {
           error: {
             code: 'ALERT_LIMIT_REACHED',
-            message: `Free plan allows ${FREE_PLAN_ALERT_LIMIT} active alerts. Upgrade to Pro for unlimited alerts.`,
+            message: `Your plan allows ${limit} active alerts. Upgrade at /settings/billing.`,
           },
         },
         { status: 403 },
@@ -125,7 +132,7 @@ export async function checkJournalLimit(userId: string): Promise<BillingGateResu
   const sub = await getSubscription(userId);
   const features = getEffectiveFeatures(sub);
 
-  if (hasFeature(features, 'journal_full')) {
+  if (hasFeature(features, 'journal_full') || hasFeature(features, 'journal_unlimited')) {
     return { allowed: true, subscription: sub, features };
   }
 

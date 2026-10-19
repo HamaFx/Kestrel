@@ -124,6 +124,15 @@ vi.mock('@/lib/services/api-boundary', () => ({
     spent = 5;
     max = 5;
   },
+  InsufficientCreditsError: class InsufficientCreditsError extends Error {
+    balance = 0;
+    required = 10;
+  },
+  assertEntitlement: async () => ({ ok: true, feature: 'chat_single' }),
+  assertCredits: async () => ({ ok: true, balance: 10_000, required: 10, enforced: false }),
+  estimateCreditsForTurn: () => 10,
+  resolveProviderMode: () => 'managed',
+  isCreditsEnforcementEnabled: () => false,
   CanonicalEvidenceBlockedError: class CanonicalEvidenceBlockedError extends Error {},
   GuardrailUnavailableError: mockGuardrailUnavailableError,
   TripWire: mockTripWire,

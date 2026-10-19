@@ -51,6 +51,9 @@ const DEFAULT_RETENTION: Required<RetentionConfig> = {
   aiEvaluationRetentionDays: 90,
   budgetReservationRetentionDays: 90,
   observationalMemoryRetentionDays: 90,
+  // Billing law/chargeback windows are multi-year. This is deliberately NOT
+  // the 90-day telemetry sweep; see plan §4 invariant 9.
+  creditLedgerRetentionDays: 730,
 };
 
 export interface RetentionConfig {
@@ -79,6 +82,8 @@ export interface RetentionConfig {
    * (audit v2 §4.4). Rows whose last write predates the cutoff are deleted.
    */
   observationalMemoryRetentionDays?: number;
+  /** Retention window for the append-only credit ledger (730d default). */
+  creditLedgerRetentionDays?: number;
 }
 
 export interface RetentionResult {
@@ -98,6 +103,8 @@ export interface RetentionResult {
   sharedSnapshotsDeleted: number;
   notificationNoiseStateDeleted: number;
   mastraObservationalMemoryDeleted: number;
+  creditLedgerDeleted: number;
+  billingEventsDeleted: number;
   note: string;
 }
 
@@ -161,6 +168,10 @@ export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
     observationalMemoryRetentionDays: envDays(
       'OBSERVATIONAL_MEMORY_RETENTION_DAYS',
       DEFAULT_RETENTION.observationalMemoryRetentionDays,
+    ),
+    creditLedgerRetentionDays: envDays(
+      'CREDIT_LEDGER_RETENTION_DAYS',
+      DEFAULT_RETENTION.creditLedgerRetentionDays,
     ),
   };
 }
@@ -303,6 +314,10 @@ export async function runRetentionCleanup(
       config.observationalMemoryRetentionDays,
       DEFAULT_RETENTION.observationalMemoryRetentionDays,
     ),
+    creditLedgerRetentionDays: boundedDays(
+      config.creditLedgerRetentionDays,
+      DEFAULT_RETENTION.creditLedgerRetentionDays,
+    ),
   };
 
   const telemetryCutoff = isoCutoff(now, retention.telemetryRetentionDays * 24 * 60 * 60 * 1_000);
@@ -333,6 +348,10 @@ export async function runRetentionCleanup(
   const observationalMemoryCutoff = isoCutoff(
     now,
     retention.observationalMemoryRetentionDays * 24 * 60 * 60 * 1_000,
+  );
+  const creditLedgerCutoff = isoCutoff(
+    now,
+    retention.creditLedgerRetentionDays * 24 * 60 * 60 * 1_000,
   );
 
   const telemetryDeleted = await deleteBatched(db, 'chat_telemetry', 'created_at', telemetryCutoff);
@@ -404,6 +423,19 @@ export async function runRetentionCleanup(
     'expires_at',
     now.toISOString(),
   );
+  // Billing history intentionally uses its own multi-year window. Never fold
+  // these into `telemetryCutoff` (90d) — tax/chargeback audits need them.
+  const creditLedgerDeleted = await deleteBatched(
+    db,
+    'credit_ledger',
+    'created_at',
+    creditLedgerCutoff,
+  );
+  const billingEventsDeleted = await deleteBatchedWhere(
+    db,
+    'billing_events',
+    `status = 'processed' AND processed_at IS NOT NULL AND processed_at < '${creditLedgerCutoff}'`,
+  );
   // Audit v2 §4.4 (P2-4) — Mastra's observational-memory table is excluded
   // from the storage domain's own retention tables, so prune() can never
   // bound it. Rows whose last write predates the cutoff are dormant
@@ -441,6 +473,8 @@ export async function runRetentionCleanup(
     sharedSnapshotsDeleted,
     notificationNoiseStateDeleted,
     mastraObservationalMemoryDeleted,
+    creditLedgerDeleted,
+    billingEventsDeleted,
   };
 
   return {

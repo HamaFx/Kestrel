@@ -16,7 +16,13 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+'use client';
+
+import { IconExternalLink, IconLoader2 } from '@tabler/icons-react';
+import { useState } from 'react';
+
 import { cn } from '@/lib/cn';
+import { fetchCsrf } from '@/lib/csrf';
 
 interface Subscription {
   id: string;
@@ -24,6 +30,7 @@ interface Subscription {
   currentPeriodEnd: string | null;
   trialEnd: string | null;
   canceledAt: string | null;
+  cancelAtPeriodEnd?: boolean;
   plan: { name: string; priceUsdCents: number } | null;
 }
 
@@ -63,7 +70,7 @@ export function SubscriptionStatus({
 
   return (
     <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <p className="text-fg font-medium">{currentPlan.name} Plan</p>
@@ -75,7 +82,7 @@ export function SubscriptionStatus({
           </div>
           {periodEnd && (
             <p className="text-fg-subtle text-sm">
-              Next billing date:{' '}
+              {subscription.cancelAtPeriodEnd ? 'Access ends' : 'Next billing date'}:{' '}
               {periodEnd.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
@@ -83,12 +90,62 @@ export function SubscriptionStatus({
               })}
             </p>
           )}
+          {subscription.cancelAtPeriodEnd && (
+            <p className="text-warn text-xs">
+              Subscription cancels at the end of this period. Remaining credits stay usable.
+            </p>
+          )}
         </div>
-        <p className="text-fg text-lg font-bold">
-          ${currentPlan.priceUsdCents / 100}
-          <span className="text-fg-subtle text-sm font-normal">/mo</span>
-        </p>
+        <div className="flex flex-col items-end gap-2">
+          <p className="text-fg text-lg font-bold">
+            ${currentPlan.priceUsdCents / 100}
+            <span className="text-fg-subtle text-sm font-normal">/mo</span>
+          </p>
+          <ManageButton />
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ManageButton() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function openPortal() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchCsrf('/api/billing/portal', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError(data?.error?.message ?? 'Could not open billing portal');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not open billing portal');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        onClick={() => void openPortal()}
+        disabled={loading}
+        className="border-border bg-bg-elev-2 text-fg hover:border-brand/40 inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+      >
+        {loading ? (
+          <IconLoader2 className="size-3.5 animate-spin" />
+        ) : (
+          <IconExternalLink className="size-3.5" />
+        )}
+        Manage billing
+      </button>
+      {error && <span className="text-danger text-[11px]">{error}</span>}
     </div>
   );
 }

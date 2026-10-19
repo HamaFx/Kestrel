@@ -39,6 +39,8 @@ vi.mock('@kestrel/ai', () => ({
   appendUserMessage: mocks.appendUserMessage,
   estimateCostUsd: mocks.estimateCostUsd,
   reserveTurnBudget: mocks.reserveTurnBudget,
+  resolveProviderMode: () => 'managed',
+  turnCreditIdempotencyKey: () => 'credit:test-turn',
   createExecutionLifecycle: mocks.createExecutionLifecycle,
   createGenerationLedger: () => ({
     record: vi.fn(() => true),

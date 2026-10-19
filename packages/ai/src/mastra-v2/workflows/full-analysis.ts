@@ -78,6 +78,10 @@ export const FullAnalysisPayloadSchema = z.strictObject({
   workerRunId: z.string().min(1).optional(),
   startedAt: z.iso.datetime().optional(),
   budgetReservationId: z.uuid().optional(),
+  /** Credit pre-authorisation created atomically with queue admission. */
+  creditReservationId: z.uuid().optional(),
+  creditReservedCredits: z.int().nonnegative().optional(),
+  providerMode: z.enum(['byok', 'managed']).optional(),
   executionPlan: ExecutionPlanSchema.optional(),
   ledgerSnapshot: z
     .object({
@@ -138,6 +142,8 @@ export interface FullAnalysisEnqueueInput {
     providerId: string;
     bareModelId: string;
   };
+  /** D1 split — BYOK turns reserve the platform fee only. */
+  providerMode?: 'byok' | 'managed';
   executionPlan?: ExecutionPlan;
   ledgerSnapshot?: GenerationLedgerSnapshot;
 }
@@ -386,6 +392,7 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
       idempotencyKey: input.idempotencyKey,
       ...(input.traceId ? { traceId: input.traceId } : {}),
       modelSnapshot: input.modelSnapshot,
+      providerMode: input.providerMode ?? 'managed',
       ...(input.executionPlan
         ? { executionPlan: ExecutionPlanSchema.parse(input.executionPlan) }
         : {}),
@@ -440,10 +447,33 @@ export async function enqueueFullAnalysis(input: FullAnalysisEnqueueInput): Prom
         correlation: { threadId: input.threadId, runId },
         db: tx,
         tenantId,
+        credit: {
+          modelId: input.modelSnapshot.modelId,
+          providerMode: input.providerMode ?? 'managed',
+          mode: 'full',
+          idempotencyKey: `credit:job:${runId}`,
+          threadId: input.threadId,
+          runId,
+          jobId: runId,
+        },
       });
       const updated = await tx
         .update(schema.fullAnalysisQueue)
-        .set({ payload: { ...payload, budgetReservationId: reservation.reservationId } })
+        .set({
+          payload: {
+            ...payload,
+            ...(reservation.reservationId
+              ? { budgetReservationId: reservation.reservationId }
+              : {}),
+            ...(reservation.credit
+              ? {
+                  creditReservationId: reservation.credit.reservationId,
+                  creditReservedCredits: reservation.credit.reservedCredits,
+                  providerMode: input.providerMode ?? 'managed',
+                }
+              : {}),
+          },
+        })
         .where(eq(schema.fullAnalysisQueue.runId, runId))
         .returning();
       return updated[0] ?? existing;

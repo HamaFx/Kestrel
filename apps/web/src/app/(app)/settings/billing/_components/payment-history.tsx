@@ -18,11 +18,13 @@
 
 interface Payment {
   id: string;
-  nowpaymentsPaymentId: string;
+  nowpaymentsPaymentId: string | null;
+  provider?: string | null;
   status: string;
   payAmount: string | null;
   payCurrency: string | null;
   usdAmountCents: number | null;
+  creditsGranted?: number | null;
   txHash: string | null;
   createdAt: string;
 }
@@ -56,10 +58,11 @@ export function PaymentHistory({ payments }: { payments: Payment[] }) {
           <thead>
             <tr className="border-border text-fg-subtle border-b text-left">
               <th className="pr-4 pb-2 font-medium">Date</th>
+              <th className="pr-4 pb-2 font-medium">Provider</th>
               <th className="pr-4 pb-2 font-medium">Status</th>
               <th className="pr-4 pb-2 font-medium">Amount</th>
-              <th className="pr-4 pb-2 font-medium">Currency</th>
-              <th className="pb-2 font-medium">Tx Hash</th>
+              <th className="pr-4 pb-2 font-medium">Credits</th>
+              <th className="pb-2 font-medium">Reference</th>
             </tr>
           </thead>
           <tbody>
@@ -75,9 +78,18 @@ export function PaymentHistory({ payments }: { payments: Payment[] }) {
                       day: 'numeric',
                     })}
                   </td>
+                  <td className="text-fg-subtle py-2 pr-4 capitalize">
+                    {payment.provider ?? 'nowpayments'}
+                  </td>
                   <td className={`py-2 pr-4 capitalize ${statusColor}`}>{payment.status}</td>
-                  <td className="text-fg py-2 pr-4">{payment.payAmount ?? '—'}</td>
-                  <td className="text-fg py-2 pr-4 uppercase">{payment.payCurrency ?? '—'}</td>
+                  <td className="text-fg py-2 pr-4">
+                    {payment.usdAmountCents != null
+                      ? `$${(payment.usdAmountCents / 100).toFixed(2)}`
+                      : (payment.payAmount ?? '—')}
+                  </td>
+                  <td className="text-fg py-2 pr-4 font-mono">
+                    {payment.creditsGranted?.toLocaleString() ?? '—'}
+                  </td>
                   <td className="text-fg-subtle py-2 font-mono text-xs">
                     {payment.txHash ? `${payment.txHash.slice(0, 12)}…` : '—'}
                   </td>

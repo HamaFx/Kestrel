@@ -189,6 +189,43 @@ const BillingEnv = z.object({
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
     .default('0')
     .transform((v) => v === '1' || v === 'true'),
+  /**
+   * D6 — billing deployment profile. `selfhost` keeps billing opt-in and
+   * hides upsell surfaces; `saas` requires a configured provider and always
+   * exposes the billing UI. Never branch on NODE_ENV for this.
+   */
+  BILLING_MODE: z.enum(['selfhost', 'saas']).default('selfhost'),
+  /** D2 — Stripe is primary; NOWPayments remains available behind the switch. */
+  BILLING_PROVIDER: z.enum(['stripe', 'nowpayments', 'both']).default('stripe'),
+  /** Stripe webhook/checkout master switch (can be flipped before launch). */
+  BILLING_STRIPE_ENABLED: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
+  BILLING_TOPUPS_ENABLED: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('1')
+    .transform((v) => v === '1' || v === 'true'),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_BILLING_PORTAL_RETURN_URL: z.url().optional(),
+  // ── Credits ────────────────────────────────────────────────────────────
+  /** D3 — 1 credit = 1/CREDITS_PER_DOLLAR USD. Default 1000 → $0.001. */
+  CREDITS_PER_DOLLAR: z.coerce.number().int().positive().prefault(1000),
+  /** Estimated credits reserved for one durable Full-analysis turn. */
+  FULL_MODE_CREDIT_ESTIMATE: z.coerce.number().int().nonnegative().prefault(250),
+  /** D1 — flat platform fee per BYOK turn. 0 avoids double-charging. */
+  PLATFORM_FEE_CREDITS: z.coerce.number().int().nonnegative().prefault(0),
+  /** When off, credit reservations are shadow-only and never return 402. */
+  CREDITS_ENFORCEMENT_ENABLED: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
+  /** Emit shadow ledger/reservation rows even when enforcement is off. */
+  CREDITS_SHADOW_LOG: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('1')
+    .transform((v) => v === '1' || v === 'true'),
 });
 
 const PublicEnv = z.object({
@@ -258,6 +295,8 @@ const RuntimeEnv = z.object({
   AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
   PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
   BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
+  /** Tax/chargeback audit requires multi-year billing history (plan §4 #9). */
+  CREDIT_LEDGER_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(730),
 
   // Feature Flags
   /**

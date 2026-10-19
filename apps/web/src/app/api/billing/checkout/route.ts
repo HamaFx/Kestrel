@@ -25,15 +25,21 @@ import { z } from 'zod';
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import { getServerEnv } from '@/lib/env';
 import { createInvoice } from '@/lib/nowpayments';
+import { createStripeCheckoutSession, createStripeCustomer } from '@/lib/stripe';
 import {
   claimCheckoutAttempt,
   completeCheckoutAttempt,
   createPayment,
+  ensureBillingCustomer,
   failCheckoutAttempt,
+  getBillingCustomer,
   getPlan,
   getTenantDbScope,
+  getUserWithSettings,
+  metrics,
   saveCheckoutInvoice,
   upsertSubscription,
+  withRateLimit,
   withTenantDbFresh,
 } from '@/lib/services/api-boundary';
 
@@ -42,12 +48,35 @@ export const dynamic = 'force-dynamic';
 
 const CheckoutSchema = z.object({
   planId: z.uuid('Invalid plan ID'),
+  provider: z.enum(['stripe', 'nowpayments']).optional(),
 });
+
+function defaultProvider(env: ReturnType<typeof getServerEnv>): 'stripe' | 'nowpayments' {
+  if (env.BILLING_PROVIDER === 'nowpayments') return 'nowpayments';
+  if (env.BILLING_PROVIDER === 'both') return 'stripe';
+  return 'stripe';
+}
+
+function providerAllowed(
+  env: ReturnType<typeof getServerEnv>,
+  provider: 'stripe' | 'nowpayments',
+): boolean {
+  if (env.BILLING_PROVIDER === 'both') return true;
+  if (env.BILLING_PROVIDER === 'stripe') return provider === 'stripe';
+  return provider === 'nowpayments';
+}
 
 const IDEMPOTENCY_KEY_MAX_LENGTH = 200;
 
 export const POST = withAuth<void>(async (req, { user }) => {
   try {
+    const rateLimit = await withRateLimit(user.userId, 'billing_checkout', 10);
+    if (!rateLimit.allowed) {
+      return Response.json(
+        { error: { code: 'RATE_LIMITED', message: 'Too many checkout attempts. Try again shortly.' } },
+        { status: 429, headers: { 'Retry-After': '60' } },
+      );
+    }
     const body = await parseJsonBody(req, CheckoutSchema);
     const idempotencyKey = req.headers.get('idempotency-key')?.trim();
     if (!idempotencyKey || idempotencyKey.length > IDEMPOTENCY_KEY_MAX_LENGTH) {
@@ -80,7 +109,27 @@ export const POST = withAuth<void>(async (req, { user }) => {
       );
     }
 
-    if (!env.NOWPAYMENTS_API_KEY) {
+    const provider = body.provider ?? defaultProvider(env);
+    if (!providerAllowed(env, provider)) {
+      return Response.json(
+        { error: { code: 'BAD_REQUEST', message: `Billing provider ${provider} is not enabled` } },
+        { status: 400 },
+      );
+    }
+
+    if (provider === 'stripe' && (!env.BILLING_STRIPE_ENABLED || !env.STRIPE_SECRET_KEY)) {
+      return Response.json(
+        { error: { code: 'NOT_CONFIGURED', message: 'Stripe billing is not configured' } },
+        { status: 503 },
+      );
+    }
+    if (provider === 'stripe' && !plan.stripePriceId) {
+      return Response.json(
+        { error: { code: 'NOT_CONFIGURED', message: 'This plan has no Stripe price configured' } },
+        { status: 503 },
+      );
+    }
+    if (provider === 'nowpayments' && !env.NOWPAYMENTS_API_KEY) {
       return Response.json(
         { error: { code: 'NOT_CONFIGURED', message: 'Billing is not configured' } },
         { status: 503 },
@@ -141,6 +190,82 @@ export const POST = withAuth<void>(async (req, { user }) => {
               invoice_url: claim.attempt.checkoutUrl,
             }
           : null;
+
+      if (provider === 'stripe') {
+        if (!tenantId) throw new Error('Checkout requires an active tenant scope');
+        let session = recoveredInvoice
+          ? { id: recoveredInvoice.id, url: recoveredInvoice.invoice_url }
+          : null;
+
+        if (!session) {
+          const { user: userRow } = await getUserWithSettings(user.userId);
+          let customer = await getBillingCustomer(user.userId);
+          if (!customer?.stripeCustomerId) {
+            const created = await createStripeCustomer({
+              email: userRow?.email ?? null,
+              name: userRow?.name ?? null,
+              metadata: { userId: user.userId, tenantId },
+            });
+            await ensureBillingCustomer(user.userId, {
+              tenantId,
+              stripeCustomerId: created.id,
+            });
+            customer = await getBillingCustomer(user.userId);
+          }
+          if (!customer?.stripeCustomerId) {
+            throw new Error('Stripe customer mapping could not be created');
+          }
+
+          const createdSession = await createStripeCheckoutSession({
+            customerId: customer.stripeCustomerId,
+            priceId: plan.stripePriceId!,
+            mode: 'subscription',
+            successUrl: `${appUrl}/settings/billing?status=success`,
+            cancelUrl: `${appUrl}/settings/billing?status=cancelled`,
+            idempotencyKey: `checkout:${tenantId}:${idempotencyKey}`,
+            metadata: {
+              userId: user.userId,
+              tenantId,
+              planId: plan.id,
+              idempotencyKey,
+            },
+            subscriptionMetadata: {
+              userId: user.userId,
+              tenantId,
+              planId: plan.id,
+            },
+          });
+          if (!createdSession.url) throw new Error('Stripe Checkout returned no URL');
+          session = { id: createdSession.id, url: createdSession.url };
+          await withTenantDbFresh(tenantId, () =>
+            saveCheckoutInvoice({
+              attemptId: claim.attempt.id,
+              invoiceId: createdSession.id,
+              checkoutUrl: createdSession.url!,
+              processingToken: claim.attempt.processingToken!,
+            }),
+          );
+        }
+
+        await withTenantDbFresh(tenantId, () =>
+          completeCheckoutAttempt({
+            attemptId: claim.attempt.id,
+            invoiceId: session!.id,
+            checkoutUrl: session!.url,
+            processingToken: claim.attempt.processingToken!,
+          }),
+        );
+        metrics.increment('checkout_completed_total', {
+          tags: { provider: 'stripe', plan: plan.name },
+        });
+        return Response.json({
+          checkoutUrl: session.url,
+          sessionId: session.id,
+          invoiceId: session.id,
+          provider: 'stripe',
+        });
+      }
+
       const invoice =
         recoveredInvoice ??
         (await createInvoice({
@@ -185,6 +310,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
         });
       });
 
+      metrics.increment('checkout_completed_total', {
+        tags: { provider: 'nowpayments', plan: plan.name },
+      });
       return Response.json({ checkoutUrl: invoice.invoice_url, invoiceId: invoice.id });
     } catch (err) {
       const failureMessage = err instanceof Error ? err.message : String(err);

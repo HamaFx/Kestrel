@@ -687,6 +687,55 @@
       "when": 1787350000013,
       "tag": "0098_phase2_db_audit_remediation",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1792431488995,
+      "tag": "0099_credit_wallets_and_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1792431488996,
+      "tag": "0100_plans_monthly_credits",
+      "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1792431488997,
+      "tag": "0101_extend_subscriptions_and_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1792431488998,
+      "tag": "0102_chat_telemetry_provider_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1792431488999,
+      "tag": "0103_seed_plans_and_topups",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1792432209217,
+      "tag": "0104_backfill_credit_wallets",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1792433561552,
+      "tag": "0105_credit_reservation_shadow",
+      "breakpoints": true
     }
   ]
 }

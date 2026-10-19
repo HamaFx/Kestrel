@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > The release is a private self-hosted multi-user BYOK platform with Postgres Row Level Security.
 
+### Added
+
+- **Subscription + credit billing (2026-10-19, `docs/plans/kestrel-subscription-credit-billing-plan.md`):** exact-integer credit wallets, an append-only `credit_ledger`, reservation/reconcile/release lifecycle, monthly plan grants, top-up packs, Stripe checkout/webhook/portal, NOWPayments top-up parity, wallet/ledger APIs, admin wallet lookup + audited adjustments, billing/credit dashboards, shadow metering (`CREDITS_ENFORCEMENT_ENABLED=0`), 402 entitlement/credit gates, and reconciliation/reclaim crons. BYOK turns remain free; managed turns consume credits at 1 credit = $0.001. Migrations `0099`–`0104` add the tables, Stripe columns, telemetry attribution, seeded catalogue, and wallet backfill.
+
 ### Changed
 
 - **Audit 2026-10-18 remediation (Phases 0–5, `docs/audits/mastra-agentic-deep-audit-2026-10-18.md`):** packet-cache freshness is now TTL-bound on every path (B-02), the indicator memo keys on data production time (I-01), abort/deadline cancellations no longer count as diagnostic errors (N-01), a blocked comparison symbol no longer fails the whole comparison (F-01); non-XAUUSD packets carry a generic macro extension (news + calendar + COT, `ENABLE_GENERIC_MACRO`; M-02) and comparisons honestly label themselves as per-symbol desk passes plus synthesis (M-01); committee opinions require a degraded-data disclosure and one bounded grounding retry (P1-01), and comparisons run a risk desk per symbol (P1-04, `ENABLE_COMPARISON_RISK_DESK`); the packet pipeline shares one candle fetcher (P2-02), guardrails reuse the turn's resolved model (P2-03), and the committee workflow is split into dispatcher + per-graph modules (Phase 4).

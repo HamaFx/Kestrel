@@ -122,10 +122,10 @@ describe('Phase 10 — Migration hash stability guard', () => {
 });
 
 describe('Phase 2 — schema/migration parity', () => {
-  it('registers 0098 as the latest journal entry and keeps files consistent', () => {
+  it('registers 0105 as the latest journal entry and keeps files consistent', () => {
     const plan = buildMigrationPlan(DRIZZLE_DIR);
     expect(() => assertMigrationPlanIsConsistent(plan)).not.toThrow();
-    expect(plan.entries.at(-1)?.tag).toBe('0098_phase2_db_audit_remediation');
+    expect(plan.entries.at(-1)?.tag).toBe('0105_credit_reservation_shadow');
   });
 
   it('defines composite primary keys on the memory state tables', async () => {

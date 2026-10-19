@@ -40,6 +40,13 @@ export const METRIC_NAMES = [
   'budget_reserved_total',
   'budget_release_failed_total',
   'agent_failed_total',
+  // Subscription + credit billing (plan §14).
+  'credits_granted_total',
+  'credits_consumed_total',
+  'credits_rejected_insufficient_total',
+  'checkout_completed_total',
+  'webhook_processed_total',
+  'dlq_size',
   // Audit plan §1.4/§1.6 — fusion verifier and shared circuit breaker.
   'committee_fusion_verification_total',
   'committee_fusion_verification_failed_total',

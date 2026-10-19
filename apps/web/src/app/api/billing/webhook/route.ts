@@ -27,7 +27,19 @@ import { getServerEnv } from '@/lib/env';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { verifyIpnSignature } from '@/lib/nowpayments';
 import { getRequestId } from '@/lib/request-id';
+import { verifyStripeWebhook } from '@/lib/stripe';
+import { processStripeEvent } from '@/lib/services/stripe-billing';
 import {
+  addCredits,
+  createTopupPayment,
+  claimBillingEvent,
+  ensureMonthlyGrant,
+  markBillingEventFailed,
+  markBillingEventProcessed,
+  getBillingUserIdForTenant,
+  getTopupProduct,
+  metrics,
+  requireTenantIdForUser,
   claimIpnEvent,
   getPaymentByNowpaymentsId,
   markIpnFailed,
@@ -102,6 +114,44 @@ export interface IpnPayload {
  */
 export async function processVerifiedIpnPayload(payload: IpnPayload): Promise<void> {
   const { payment_id, payment_status, invoice_id, txid, pay_amount, pay_currency } = payload;
+
+  // One-time top-up invoices carry a synthetic order id because no
+  // subscription/checkout-attempt row exists for them.
+  if (payload.order_id?.startsWith('topup:')) {
+    if (payment_status !== 'finished') {
+      await markIpnProcessed(payment_id, payment_status, null);
+      return;
+    }
+    const [, userId, productId, topupKey] = payload.order_id.split(':');
+    if (!userId || !productId) throw new Error('Malformed top-up order id');
+    const product = await getTopupProduct(productId);
+    if (!product) throw new Error(`Top-up product ${productId} not found`);
+    const tenantId = await requireTenantIdForUser(userId);
+    await withTenantDbFresh(tenantId, async () => {
+      await addCredits({
+        userId,
+        tenantId,
+        amountCredits: product.credits,
+        kind: 'topup_grant',
+        idempotencyKey: `nowpayments:payment:${payment_id}`,
+        referenceType: 'payment',
+        referenceId: payment_id,
+        metadata: { productId: product.id, productName: product.name, topupKey: topupKey ?? null },
+      });
+      await createTopupPayment({
+        userId,
+        provider: 'nowpayments',
+        externalId: payment_id,
+        ...(invoice_id ? { invoiceId: invoice_id } : {}),
+        usdAmountCents: Math.round((payload.price_amount ?? product.priceUsdCents / 100) * 100),
+        creditsGranted: product.credits,
+        payload,
+      });
+    });
+    await markIpnProcessed(payment_id, payment_status, null);
+    return;
+  }
+
   const payment = await getPaymentByNowpaymentsId(payment_id, invoice_id);
 
   if (!payment) {
@@ -131,6 +181,15 @@ export async function processVerifiedIpnPayload(payload: IpnPayload): Promise<vo
       });
     }
 
+    // NOWPayments parity (plan Phase 7): a finished subscription payment
+    // grants the plan's monthly credits exactly once per period.
+    if (mappedStatus === 'finished' && payment.subscriptionId) {
+      const userId = await getBillingUserIdForTenant(payment.tenantId);
+      if (userId) {
+        await ensureMonthlyGrant(userId, { tenantId: payment.tenantId });
+      }
+    }
+
     await markIpnProcessed(payment_id, payment_status, null);
   });
 }
@@ -147,6 +206,67 @@ export async function POST(req: Request): Promise<Response> {
     return new Response('Not Found', { status: 404, headers: responseHeaders });
   }
   const rawBody = await req.text();
+
+  // ── Stripe dispatch (signature header distinguishes the providers) ──────
+  const stripeSignature = req.headers.get('stripe-signature');
+  if (stripeSignature) {
+    if (!env.BILLING_STRIPE_ENABLED) {
+      return new Response('Not Found', { status: 404, headers: responseHeaders });
+    }
+    let event;
+    try {
+      event = verifyStripeWebhook(rawBody, stripeSignature);
+    } catch (err) {
+      logger.warn({ err: String(err) }, 'Invalid Stripe webhook signature');
+      return new Response('Unauthorized', { status: 401, headers: responseHeaders });
+    }
+
+    const claim = await claimBillingEvent({
+      provider: 'stripe',
+      eventId: event.id,
+      eventType: event.type,
+      payload: event as unknown as Record<string, unknown>,
+    });
+    if (claim.kind === 'processed' || claim.kind === 'in_progress') {
+      return new Response('OK', { status: 200, headers: responseHeaders });
+    }
+    if (claim.kind === 'conflict') {
+      return new Response('Conflicting event payload', { status: 409, headers: responseHeaders });
+    }
+
+    try {
+      await processStripeEvent(event);
+      await markBillingEventProcessed(claim.id);
+      metrics.increment('webhook_processed_total', {
+        tags: { provider: 'stripe', event_type: event.type },
+      });
+      logger.info({ eventId: event.id, type: event.type }, 'Stripe webhook processed');
+      return new Response('OK', { status: 200, headers: responseHeaders });
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      logger.error({ err: error, eventId: event.id, type: event.type }, 'Stripe webhook failed');
+      try {
+        await markBillingEventFailed(claim.id, error);
+        await recordBillingWebhookFailure({
+          provider: 'stripe',
+          eventType: event.type,
+          eventId: event.id,
+          payload: event,
+          error,
+        });
+      } catch (dlqError) {
+        logger.error(
+          { err: String(dlqError), eventId: event.id },
+          'Failed to persist Stripe webhook DLQ entry',
+        );
+        return new Response('Internal Server Error', { status: 500, headers: responseHeaders });
+      }
+      // Authenticated and safely recorded for replay; acknowledge so Stripe
+      // does not retry forever.
+      return new Response('OK', { status: 200, headers: responseHeaders });
+    }
+  }
+
   const signature = req.headers.get('x-nowpayments-sig') ?? '';
   const ipnSecret = env.NOWPAYMENTS_IPN_SECRET;
 
@@ -197,6 +317,9 @@ export async function POST(req: Request): Promise<Response> {
 
   try {
     await processVerifiedIpnPayload(payload);
+    metrics.increment('webhook_processed_total', {
+      tags: { provider: 'nowpayments', event_type: payment_status },
+    });
     logger.info({ payment_id, payment_status }, 'IPN processed successfully');
     return new Response('OK', { status: 200 });
   } catch (err) {

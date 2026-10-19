@@ -38,6 +38,7 @@ import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
 import { createMastraChatMeta } from '@/lib/mastra-chat-meta';
+import { buildChatCreditOptions } from '@/lib/services/credit-options';
 import { createMastraStreamFinalizer } from '@/lib/services/mastra-stream-finalizer';
 import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra-thread-title';
@@ -72,6 +73,16 @@ export async function runMastraXauusdConversationStreamChat(
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
     correlation: { threadId: input.threadId, runId },
+    credit: buildChatCreditOptions({
+      settings,
+      threadId: input.threadId,
+      userMessageId: input.userMessage.id,
+      runId,
+      mode: 'single',
+      executionPlan: input.executionPlan,
+      modelOverride: input.modelOverride,
+      defaultModel: env.AI_DEFAULT_MODEL,
+    }),
   });
   let assistantMessageId = runId;
   const ledger = createGenerationLedger();
