@@ -147,6 +147,13 @@ const dbDebugLogger = (
   params: unknown[],
 ): void => {
   if (process.env.DB_QUERY_LOG !== 'true') return;
+  console.error(
+    '[pg-query]',
+    query.slice(0, 300),
+    params?.map((value, index) =>
+      value instanceof Date ? `${index}:Date` : `${index}:${typeof value}`,
+    ),
+  );
   if (!params?.some((value) => value instanceof Date)) return;
   console.error(
     '[pg-date-param]',
