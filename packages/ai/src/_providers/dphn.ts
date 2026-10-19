@@ -58,6 +58,16 @@ export const DPHN = defineProvider({
       capabilities: CAPS_TEXT,
       released: '2026-10',
     },
+    {
+      modelId: 'unsloth/Qwen3.8-27B-NVFP4',
+      label: 'Qwen 3.8 27B (NVFP4)',
+      description:
+        'Dolphin-hosted Qwen 3.8 27B — fast structured outputs and tool calling for committee runs.',
+      tier: 'pro',
+      contextTokens: 262_144,
+      capabilities: CAPS_TEXT,
+      released: '2026-10',
+    },
   ],
   factory: openaiCompatibleFactory(
     'dphn',
