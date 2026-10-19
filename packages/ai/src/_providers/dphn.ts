@@ -59,5 +59,11 @@ export const DPHN = defineProvider({
       released: '2026-10',
     },
   ],
-  factory: openaiCompatibleFactory('dphn', 'https://lighthouse.dphn.ai/run/text-v/v1'),
+  factory: openaiCompatibleFactory(
+    'dphn',
+    'https://lighthouse.dphn.ai/run/text-v/v1',
+    undefined,
+    undefined,
+    { supportsStructuredOutputs: true },
+  ),
 });
