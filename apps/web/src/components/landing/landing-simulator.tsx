@@ -28,6 +28,7 @@ import {
 import { AnimatePresence, m } from 'motion/react';
 import { useState } from 'react';
 
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 
@@ -185,6 +186,21 @@ export function LandingSimulator() {
       id="simulator"
       className="relative overflow-hidden border-t border-white/5 bg-[#0d0e0f] py-28 lg:py-36"
     >
+      {/* ── Neoclassical Cybernetic Astrolabe Artwork ── */}
+      <div
+        aria-hidden="true"
+        className="simulator-backdrop-mask pointer-events-none absolute top-4 right-0 z-0 h-[380px] w-full opacity-20 mix-blend-screen select-none sm:top-8 sm:h-[480px] lg:top-8 lg:right-4 lg:h-[620px] lg:w-[46%] lg:opacity-30"
+      >
+        <Image
+          src="/landing/simulator-astrolabe.webp"
+          alt="Antikythera Celestial Calculation Engine"
+          fill
+          unoptimized
+          sizes="(max-width: 1024px) 100vw, 46vw"
+          className="object-contain object-top lg:object-contain lg:object-right-top"
+        />
+      </div>
+
       {/* Background Radial Ambient Glow */}
       <div
         aria-hidden="true"
