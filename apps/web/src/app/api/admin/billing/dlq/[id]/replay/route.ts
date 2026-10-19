@@ -26,6 +26,7 @@ import {
 } from '@/app/api/billing/webhook/route';
 import { withAdminAuth } from '@/lib/admin-auth';
 import { jsonApiError } from '@/lib/api-errors';
+import { recordAdminAudit } from '@/lib/services/admin';
 import {
   claimBillingWebhookReplay,
   markBillingWebhookReplayed,
@@ -39,7 +40,7 @@ interface Params {
   id: string;
 }
 
-export const POST = withAdminAuth<Params>(async (req, { params }) => {
+export const POST = withAdminAuth<Params>(async (req, { user, params }) => {
   const { id } = await params;
   const entry = await claimBillingWebhookReplay(id);
   if (!entry) {
@@ -50,16 +51,25 @@ export const POST = withAdminAuth<Params>(async (req, { params }) => {
     if (!entry.replayToken) {
       throw new Error('DLQ replay lease is missing');
     }
-    if (entry.provider !== 'nowpayments') {
+    if (entry.provider === 'stripe') {
+      const { processStripeEvent } = await import('@/lib/services/stripe-billing');
+      await processStripeEvent(entry.payload as unknown as Parameters<typeof processStripeEvent>[0]);
+    } else if (entry.provider === 'nowpayments') {
+      const parsed = IpnPayloadSchema.safeParse(entry.payload);
+      if (!parsed.success) {
+        throw new Error('DLQ payload failed billing webhook validation');
+      }
+      const payload = parsed.data as IpnPayload;
+      await processVerifiedIpnPayload(payload);
+    } else {
       throw new Error('Unsupported billing webhook provider');
     }
-    const parsed = IpnPayloadSchema.safeParse(entry.payload);
-    if (!parsed.success) {
-      throw new Error('DLQ payload failed billing webhook validation');
-    }
-    const payload = parsed.data as IpnPayload;
-    await processVerifiedIpnPayload(payload);
     await markBillingWebhookReplayed(id, entry.replayToken);
+    await recordAdminAudit(user.userId, 'billing.dlq.replay', undefined, {
+      dlqId: id,
+      provider: entry.provider,
+      eventId: entry.eventId,
+    });
     return Response.json({ ok: true, id, status: 'replayed' });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

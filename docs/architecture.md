@@ -290,6 +290,42 @@ Tenant isolation is enforced via Postgres Row Level Security (RLS) on all user-d
 
 The operator-managed cloud deployment is an infrastructure choice, not a separate product mode. Its private provider proxies, monitoring, cron, staging, and secret-management details are maintained by the operator.
 
+## Subscription and credit billing
+
+Billing has two orthogonal layers:
+
+- **Subscriptions** (Stripe primary, NOWPayments optional) control feature
+  entitlements and the credits granted each billing cycle.
+- **Credits** are an exact integer meter (`bigint`, 1 credit = $0.001) for
+  platform-paid managed AI usage. BYOK turns remain free but still emit
+  telemetry.
+
+```
+Stripe / NOWPayments webhook
+  └─ billing_events / ipn_events (idempotent claim)
+       └─ subscriptions + payments projection
+            └─ credit_ledger (append-only, idempotency-keyed)
+                 └─ credit_wallets.available_credits  ← atomic UPDATE … RETURNING
+                      └─ credit_reservations (pre-auth, reconcile/release)
+                           └─ chat_telemetry.provider_mode / credits_charged
+```
+
+Invariants:
+
+1. `packages/ai/src/cost.ts` + `buildCatalogRateTable()` remain the only model
+   price source. `packages/ai/src/credits.ts` is the only USD → credit
+   converter.
+2. Wallet writes never go negative; admission uses a guarded single-statement
+   update (or a `FOR UPDATE` lock when a decision needs the balance).
+3. Every grant, reservation, reconcile, release, refund, and adjustment has a
+   stable idempotency key and one ledger row.
+4. Webhooks run in fresh tenant transactions, never the request transaction.
+5. Billing tables use their own multi-year retention window; the 90-day
+   telemetry sweep must not delete them.
+
+See `docs/configuration.md` for the locked decisions (D1–D6) and environment
+variables.
+
 ## Security boundaries
 
 Important boundaries include:

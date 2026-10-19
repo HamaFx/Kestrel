@@ -242,6 +242,8 @@ describe('usage aggregation (real computeUsage)', () => {
         toolCalls: 2,
         ms: 1234,
         estCostUsd: 0.005,
+        creditsCharged: 0,
+        providerMode: null,
         createdAt: Date.parse('2026-05-26T12:00:00Z'),
       },
       {
@@ -257,6 +259,8 @@ describe('usage aggregation (real computeUsage)', () => {
         toolCalls: 0,
         ms: 0,
         estCostUsd: 0.007,
+        creditsCharged: 0,
+        providerMode: null,
         createdAt: Date.parse('2026-05-26T11:00:00Z'),
       },
     ]);

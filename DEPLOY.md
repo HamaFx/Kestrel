@@ -63,3 +63,30 @@ If you prefer running on Google Cloud's **$0/month Always Free** tier (or switch
      --env-file /opt/hamafx/.env \
      up -d --build
    ```
+
+---
+
+## Billing (optional)
+
+Billing is off unless `BILLING_ENABLED=1`. The locked decisions and full
+variable list live in `docs/configuration.md`.
+
+- **Self-host:** keep `BILLING_MODE=selfhost`, provide user BYOK keys, and
+  leave Stripe unset. NOWPayments is optional.
+- **SaaS:** set `BILLING_MODE=saas`, `BILLING_PROVIDER=stripe`, and
+  `BILLING_STRIPE_ENABLED=1`. Provide `STRIPE_SECRET_KEY`,
+  `STRIPE_WEBHOOK_SECRET`, and `ADMIN_DATABASE_URL` (BYPASSRLS — required for
+  cross-tenant webhook customer lookups).
+- Create Stripe products/prices for Starter/Pro/Scale and set
+  `plans.stripe_price_id` (and yearly ids). Create top-up prices and set
+  `credit_topup_products.stripe_price_id`.
+- Point the Stripe webhook at `POST /api/billing/webhook` and enable the
+  events listed in `docs/configuration.md`.
+- Run `pnpm --filter @kestrel/db migrate:apply` before enabling the flag. Apply
+  the seed catalogue with `pnpm --filter @kestrel/db seed:billing` if the
+  migration seed was skipped.
+- Keep `CREDITS_ENFORCEMENT_ENABLED=0` for at least one week of shadow
+  metering, verify `credits_estimated` vs reconciled burn, then enable 402
+  enforcement.
+- Schedule `GET /api/cron/billing-reconcile` (6h) and
+  `GET /api/cron/credit-reclaim` (30m) with `CRON_SECRET`.

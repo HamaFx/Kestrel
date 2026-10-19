@@ -21,8 +21,10 @@ import { randomUUID } from 'node:crypto';
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { eq } from 'drizzle-orm';
 
 import { estimateCostUsd } from '../cost';
+import { platformFeeCredits, resolveProviderMode, usdToCredits } from '../credits';
 import { getDb } from '../db';
 import { getDiagnosticContext } from '../diagnostics/run-context';
 import { enqueuePersistenceFailure } from '../persistence-outbox';
@@ -100,6 +102,11 @@ export interface TelemetryInput {
   toolCalls: number;
   ms: number;
   kind?: TelemetryKind;
+  /** D1 — who paid for the turn. Null for auxiliary/legacy rows. */
+  providerMode?: 'byok' | 'managed' | null;
+  /** Credits actually charged after reconciliation. */
+  creditsCharged?: number;
+  walletBalanceAfter?: number | null;
 }
 
 export async function recordTelemetry(t: TelemetryInput): Promise<void> {
@@ -109,6 +116,27 @@ export async function recordTelemetry(t: TelemetryInput): Promise<void> {
   const tenantId = await requireTenantIdForUser(userId, db);
   const context = getDiagnosticContext();
   const idempotencyKey = t.idempotencyKey ?? `telemetry.turn:${randomUUID()}`;
+  const estCostUsd = estimateCostUsd(t.model, t.inputTokens, t.outputTokens);
+
+  // D1: attribute the turn to BYOK or managed. One indexed PK read; the
+  // result is authoritative for the user's current key set.
+  let providerMode = t.providerMode ?? null;
+  if (!providerMode) {
+    try {
+      const [settingsRow] = await db
+        .select({ aiApiKeys: schema.userSettings.aiApiKeys })
+        .from(schema.userSettings)
+        .where(eq(schema.userSettings.userId, userId))
+        .limit(1);
+      providerMode = resolveProviderMode(settingsRow?.aiApiKeys ?? null, t.model);
+    } catch {
+      providerMode = resolveProviderMode(null, t.model);
+    }
+  }
+  const creditsCharged =
+    t.creditsCharged ??
+    (providerMode === 'byok' ? platformFeeCredits() : usdToCredits(estCostUsd));
+
   try {
     await db
       .insert(schema.chatTelemetry)
@@ -126,8 +154,11 @@ export async function recordTelemetry(t: TelemetryInput): Promise<void> {
         outputTokens: t.outputTokens,
         toolCalls: t.toolCalls,
         ms: t.ms,
-        estCostUsd: estimateCostUsd(t.model, t.inputTokens, t.outputTokens),
+        estCostUsd,
         kind: t.kind ?? null,
+        providerMode,
+        creditsCharged,
+        walletBalanceAfter: t.walletBalanceAfter ?? null,
       })
       .onConflictDoNothing({ target: schema.chatTelemetry.idempotencyKey });
   } catch (err) {

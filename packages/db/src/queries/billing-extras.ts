@@ -288,6 +288,40 @@ export async function failCheckoutAttempt(
   if (!failed) throw new Error('Checkout claim lease was lost before failure persistence');
 }
 
+/** Record a one-time top-up payment (no subscription row). */
+export async function createTopupPayment(data: {
+  userId: string;
+  provider: 'nowpayments' | 'stripe';
+  externalId: string;
+  invoiceId?: string;
+  usdAmountCents: number;
+  creditsGranted: number;
+  payload?: unknown;
+}) {
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(data.userId);
+  const [payment] = await db
+    .insert(schema.payments)
+    .values({
+      tenantId,
+      subscriptionId: null,
+      provider: data.provider,
+      status: 'finished',
+      usdAmountCents: data.usdAmountCents,
+      creditsGranted: data.creditsGranted,
+      ...(data.provider === 'nowpayments'
+        ? {
+            nowpaymentsPaymentId: data.externalId,
+            nowpaymentsInvoiceId: data.invoiceId ?? null,
+          }
+        : { stripePaymentIntentId: data.externalId }),
+      ...(data.payload ? { ipnPayload: data.payload as Record<string, unknown> } : {}),
+    })
+    .onConflictDoNothing()
+    .returning();
+  return payment ?? null;
+}
+
 /**
  * Create a new payment record.
  */

@@ -22,7 +22,9 @@ export type FeatureFlagName =
   | 'ENFORCE_BUDGET'
   | 'ENABLE_GENERIC_MACRO'
   | 'ENABLE_COMPARISON_RISK_DESK'
-  | 'PHASE_TOOLS_SHIMS';
+  | 'PHASE_TOOLS_SHIMS'
+  | 'CREDITS_ENFORCEMENT_ENABLED'
+  | 'CREDITS_SHADOW_LOG';
 
 /** Documented defaults (Q12: PHASE3_STRUCTURED_FUSION enabled by default). */
 const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
@@ -35,6 +37,9 @@ const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
   ENABLE_GENERIC_MACRO: true,
   ENABLE_COMPARISON_RISK_DESK: true,
   PHASE_TOOLS_SHIMS: true,
+  // Plan §15.3 — shadow metering first; enforcement is an explicit opt-in.
+  CREDITS_ENFORCEMENT_ENABLED: false,
+  CREDITS_SHADOW_LOG: true,
 };
 
 /**

@@ -42,15 +42,29 @@ export const PLAN_FEATURES = {
 
 export type FeatureKey =
   | 'chat_basic'
+  | 'chat_single'
+  | 'chat_full'
+  | 'chat_full_unlimited'
   | 'chat_advanced'
   | 'chart_basic'
   | 'chart_advanced'
   | 'journal_basic'
   | 'journal_full'
+  | 'journal_unlimited'
+  | 'alerts_5'
+  | 'alerts_20'
+  | 'alerts_100'
   | 'alerts_unlimited'
+  | 'web_search'
+  | 'telegram_bot'
+  | 'backtesting'
+  | 'priority'
   | 'ai_high_quota'
   | 'ai_unlimited'
-  | 'api_access';
+  | 'api_read'
+  | 'api_access'
+  | 'sso'
+  | 'sla';
 
 /**
  * Check if a plan's feature list includes the given feature.

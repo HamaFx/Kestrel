@@ -183,12 +183,13 @@ export async function recordBillingWebhookFailure(data: {
   eventId: string;
   payload: unknown;
   error: string;
+  provider?: 'nowpayments' | 'stripe';
 }): Promise<void> {
   const db = getDb();
   await db
     .insert(schema.billingWebhookDlq)
     .values({
-      provider: 'nowpayments',
+      provider: data.provider ?? 'nowpayments',
       eventType: data.eventType,
       eventId: data.eventId,
       payload: data.payload,

@@ -67,9 +67,9 @@ describe('retention cleanup', () => {
       observationalMemoryRetentionDays: 1,
     });
 
-    // 15 batched deletes + the observational-memory existence check (the
+    // 17 batched deletes + the observational-memory existence check (the
     // mocked driver result has no rows, so the delete is skipped).
-    expect(execute).toHaveBeenCalledTimes(16);
+    expect(execute).toHaveBeenCalledTimes(18);
     expect(result).toMatchObject({
       telemetryDeleted: 2,
       toolTelemetryDeleted: 2,
@@ -87,6 +87,8 @@ describe('retention cleanup', () => {
       sharedSnapshotsDeleted: 2,
       notificationNoiseStateDeleted: 2,
       mastraObservationalMemoryDeleted: 0,
+      creditLedgerDeleted: 2,
+      billingEventsDeleted: 2,
     });
     expect(result.note).toContain('fullAnalysisQueueDeleted=2');
     expect(result.note).toContain('billingWebhookDlqDeleted=2');
@@ -99,7 +101,7 @@ describe('retention cleanup', () => {
 
     await runRetentionCleanup({ telemetryRetentionDays: 1 });
 
-    expect(execute).toHaveBeenCalledTimes(16);
+    expect(execute).toHaveBeenCalledTimes(18);
   });
 
   it('prunes dormant Mastra observational-memory rows when the table exists (audit v2 §4.4)', async () => {

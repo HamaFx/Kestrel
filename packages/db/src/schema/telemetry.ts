@@ -16,6 +16,7 @@
 
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   doublePrecision,
   index,
   integer,
@@ -126,6 +127,12 @@ export const chatTelemetry = pgTable(
     ms: integer('ms').notNull().default(0),
     /** Estimated cost in USD; computed from per-model rate at insert time. */
     estCostUsd: doublePrecision('est_cost_usd').notNull().default(0),
+    /** Whether the platform or the user's BYOK key paid for this turn. */
+    providerMode: text('provider_mode').$type<'byok' | 'managed' | null>(),
+    /** Credits actually consumed by this turn (0 for BYOK). */
+    creditsCharged: bigint('credits_charged', { mode: 'number' }).notNull().default(0),
+    /** Wallet balance after reconciliation; null for legacy / BYOK rows. */
+    walletBalanceAfter: bigint('wallet_balance_after', { mode: 'number' }),
     /**
      * Row marker. `null` for legacy assistant turns; one of `ChatTelemetryKind`
      * for auxiliary events. Stored as plain text so we can extend the

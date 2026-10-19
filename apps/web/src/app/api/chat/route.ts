@@ -28,16 +28,22 @@ import { getServerEnv } from '@/lib/env';
 import { createRequestLogger } from '@/lib/logger';
 import {
   AnalysisQueuedEventSchema,
+  assertCredits,
+  assertEntitlement,
   BudgetExceededError,
   CanonicalEvidenceBlockedError,
   createExecutionPlan,
   enqueueFullAnalysis,
+  estimateCreditsForTurn,
   extractMastraSymbols,
   extractUserMessageText,
   getThread,
   getUserWithSettings,
   GuardrailUnavailableError,
+  InsufficientCreditsError,
   isBudgetEnforced,
+  isCreditsEnforcementEnabled,
+  resolveProviderMode,
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
   isMastraMutationEnabled,
@@ -261,6 +267,71 @@ export const POST = withAuth<void>(async (req, { user }) => {
       })
     : null;
 
+  // Plan §9.1 — entitlement and credit admission run before any model work.
+  // Entitlement only blocks when enforcement is on; the credit read still
+  // triggers the lazy monthly grant so shadow reservations see a real wallet.
+  if (serverEnv.BILLING_ENABLED && executionPlan && userSettings) {
+    const creditMode: 'single' | 'full' =
+      executionPlan.route === 'full-analysis' ? 'full' : 'single';
+    // Basic conversation is Free-tier; durable/symbol research is `chat_single`;
+    // Full committee runs are `chat_full`.
+    const feature =
+      creditMode === 'full'
+        ? 'chat_full'
+        : executionPlan.route === 'canonical-chat' ||
+            executionPlan.route === 'xauusd-conversation'
+          ? 'chat_basic'
+          : 'chat_single';
+    const modelId = executionPlan.model
+      ? `${executionPlan.model.providerId}/${executionPlan.model.bareModelId}`
+      : (userSettings.chatModel?.replace(':', '/') ?? serverEnv.AI_DEFAULT_MODEL ?? null);
+    const providerMode = resolveProviderMode(userSettings.aiApiKeys, modelId);
+
+    // D5: BYOK single turns stay available on Free. Full mode still requires
+    // the `chat_full` entitlement (risk table: never partially execute Free
+    // full runs), even when the user brings their own key.
+    const entitlementRequired = !(creditMode === 'single' && providerMode === 'byok');
+    const entitlement = entitlementRequired
+      ? await assertEntitlement(user.userId, feature)
+      : ({ ok: true, feature } as const);
+    if (!entitlement.ok && isCreditsEnforcementEnabled()) {
+      return Response.json(
+        {
+          error: {
+            code: 'UPGRADE_REQUIRED',
+            message:
+              creditMode === 'full'
+                ? 'Full analysis requires a paid plan. Upgrade to continue.'
+                : 'This feature requires a paid plan. Upgrade to continue.',
+            feature,
+            ...(entitlement.requiredPlan ? { requiredPlan: entitlement.requiredPlan } : {}),
+          },
+        },
+        { status: 402 },
+      );
+    }
+
+    const estimate = estimateCreditsForTurn({
+      mode: creditMode,
+      providerMode,
+      modelId,
+    });
+    const creditGate = await assertCredits(user.userId, estimate);
+    if (!creditGate.ok) {
+      return Response.json(
+        {
+          error: {
+            code: 'INSUFFICIENT_CREDITS',
+            message: `You need ${creditGate.required} credits for this turn — you have ${creditGate.balance}.`,
+            balance: creditGate.balance,
+            required: creditGate.required,
+          },
+        },
+        { status: 402 },
+      );
+    }
+  }
+
   // Injection/jailbreak attempts are always blocked — no model should
   // process them regardless of mutation capability.
   if (injectionBlocked) {
@@ -377,6 +448,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
                 providerId: resolvedModel.providerId,
                 bareModelId: resolvedModel.bareModelId,
               },
+              providerMode: resolveProviderMode(settings.aiApiKeys, resolvedModel.modelId),
               executionPlan: executionPlan ?? undefined,
             });
             if (!runId) {
@@ -494,6 +566,19 @@ export const POST = withAuth<void>(async (req, { user }) => {
   } catch (error) {
     // Q4 decision: spend is ledger-only — a 429 is possible only when the
     // operator explicitly set ENFORCE_BUDGET=true.
+    if (error instanceof InsufficientCreditsError) {
+      return Response.json(
+        {
+          error: {
+            code: 'INSUFFICIENT_CREDITS',
+            message: `You need ${error.required} credits for this turn — you have ${error.balance}.`,
+            balance: error.balance,
+            required: error.required,
+          },
+        },
+        { status: 402 },
+      );
+    }
     if (error instanceof BudgetExceededError && isBudgetEnforced()) {
       return errorJson(
         'BUDGET_EXCEEDED',

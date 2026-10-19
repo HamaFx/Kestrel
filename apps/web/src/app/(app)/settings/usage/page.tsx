@@ -17,7 +17,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { computeUsage, listTelemetry, type DayBucket, type UsageStats } from '@kestrel/ai';
-import { listMtdAgentOpinions } from '@kestrel/db';
+import {
+  listMtdAgentOpinions,
+  requireTenantIdForUser,
+  withTenantDbRO,
+} from '@kestrel/db';
 import { IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -39,11 +43,14 @@ export default async function UsagePage() {
 
   const startOfMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
 
-  const [stats, recent, agentOpinionRows] = await Promise.all([
-    computeUsage(session.user.id),
-    listTelemetry(session.user.id, 20),
-    listMtdAgentOpinions(session.user.id, startOfMonth),
-  ]);
+  const tenantId = await requireTenantIdForUser(session.user.id);
+  const [stats, recent, agentOpinionRows] = await withTenantDbRO(tenantId, () =>
+    Promise.all([
+      computeUsage(session.user.id),
+      listTelemetry(session.user.id, 20),
+      listMtdAgentOpinions(session.user.id, startOfMonth),
+    ]),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,7 +109,7 @@ function ActivitySummaryCard({ stats }: { stats: UsageStats }) {
         </span>
       </header>
 
-      <dl className="surface-well grid grid-cols-3 gap-3 rounded-xl border border-white/5 p-3.5 text-xs tabular-nums shadow-inner">
+      <dl className="surface-well grid grid-cols-2 gap-3 rounded-xl border border-white/5 p-3.5 text-xs tabular-nums shadow-inner sm:grid-cols-4">
         <Stat label="Today" value={`${todayTurns} ${todayTurns === 1 ? 'analysis' : 'analyses'}`} />
         <Stat
           label="Last 7 Days"
@@ -112,6 +119,7 @@ function ActivitySummaryCard({ stats }: { stats: UsageStats }) {
           label="Last 30 Days"
           value={`${stats.thirtyDayTurns} ${stats.thirtyDayTurns === 1 ? 'session' : 'sessions'}`}
         />
+        <Stat label="30d Credits" value={stats.thirtyDayCredits.toLocaleString()} />
       </dl>
     </section>
   );

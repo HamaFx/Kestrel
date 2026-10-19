@@ -41,6 +41,7 @@
     "migrate:setup-extensions": "node scripts/install-extensions.mjs",
     "inventory:live": "node scripts/supabase-inventory.mjs",
     "seed:plans": "tsx scripts/seed-plans.ts",
+    "seed:billing": "tsx scripts/seed-billing.ts",
     "studio": "drizzle-kit studio"
   },
   "dependencies": {

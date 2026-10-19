@@ -391,6 +391,34 @@
     {
       "tag": "0098_phase2_db_audit_remediation",
       "hash": "ec9edd01033c136090aff65de6503eeb68d1d21f1e222fe633a5a6fd6bcd5313"
+    },
+    {
+      "tag": "0099_credit_wallets_and_ledger",
+      "hash": "5f4604549bab916290996c8400e3210424592522891a23e23039bc32429916d3"
+    },
+    {
+      "tag": "0100_plans_monthly_credits",
+      "hash": "6f0c0f619354df25c555776d78cff605097d8503a09fdb1687d310a8c44ab55e"
+    },
+    {
+      "tag": "0101_extend_subscriptions_and_payments",
+      "hash": "726ef87e6fdaf5c81eb66000120e482c5cad38660db039425d2bfffabb86e6d4"
+    },
+    {
+      "tag": "0102_chat_telemetry_provider_mode",
+      "hash": "765a84f2308dfe27eb3cbf97281f2c8bf8f0a3beb9e01209a8909cd49c0fb51e"
+    },
+    {
+      "tag": "0103_seed_plans_and_topups",
+      "hash": "35511c21b55a8e29b3d6aeefe3c3b03706700cb67d2cfb76478662b1009a9038"
+    },
+    {
+      "tag": "0104_backfill_credit_wallets",
+      "hash": "051ae61b0cdf30454996625ba151313328bbeb9256a54da1784e42211950901a"
+    },
+    {
+      "tag": "0105_credit_reservation_shadow",
+      "hash": "5651c2a80c1ef3dd9d683ffcca03eb6f4bf9e7290f95b48081b2059b241f8629"
     }
   ]
 }

@@ -148,6 +148,7 @@ The overlay starts ClickHouse, Redis, MinIO (S3), Langfuse, and its worker. The 
 | `TRACE_RETENTION_DAYS`         | `30`    | Diagnostic trace retention            |
 | `CRON_RUN_RETENTION_DAYS`      | `30`    | Cron history retention                |
 | `AI_EVALUATION_RETENTION_DAYS` | `90`    | AI evaluation retention               |
+| `CREDIT_LEDGER_RETENTION_DAYS` | `730`   | Billing ledger/audit retention        |
 
 Review privacy, retention, and provider terms before enabling telemetry or prompt/output capture.
 
@@ -155,14 +156,68 @@ Review privacy, retention, and provider terms before enabling telemetry or promp
 
 Billing is disabled unless `BILLING_ENABLED=1` — it is a self-host opt-in and is not part of the normal path.
 
-| Variable                 | Default     | Description                   |
-| ------------------------ | ----------- | ----------------------------- |
-| `BILLING_ENABLED`        | `0`         | Explicit billing feature flag |
-| `NOWPAYMENTS_API_KEY`    | unset       | NOWPayments API credential    |
-| `NOWPAYMENTS_IPN_SECRET` | unset       | Webhook signature secret      |
-| `NOWPAYMENTS_API_BASE`   | Sandbox URL | NOWPayments API endpoint      |
+### Locked billing decisions (plan §1.2)
+
+These decisions are recorded here so implementation and operations share one
+contract. Change them only with a migration + docs update.
+
+| # | Decision | Locked behaviour |
+|---|----------|------------------|
+| D1 | Who pays the LLM bill | **Hybrid.** Credits meter platform-paid (managed) turns only. BYOK turns still emit telemetry but consume `PLATFORM_FEE_CREDITS` (default `0`). |
+| D2 | Currency/provider | **Stripe fiat primary**, NOWPayments crypto retained. `BILLING_PROVIDER=stripe\|nowpayments\|both`. |
+| D3 | Credit unit | Integer credits where **1 credit = $0.001** (`CREDITS_PER_DOLLAR=1000`). Stored as `bigint`, never float. |
+| D4 | Rollover | Subscription grants expire at period end (no rollover). Top-up packs roll over and never expire. Promo grants may expire. |
+| D5 | Grace / overage | **Soft degrade.** At zero credits, BYOK turns still work; managed turns return HTTP 402 with an upsell. Balances never go negative. |
+| D6 | Self-host semantics | `BILLING_ENABLED` remains the kill-switch; `BILLING_MODE=selfhost\|saas` selects the presentation/requirement profile. Never branch billing on `NODE_ENV`. |
+
+### Core billing variables
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `BILLING_ENABLED` | `0` | Explicit billing master switch |
+| `BILLING_MODE` | `selfhost` | `selfhost` or `saas` (UI/requirement profile) |
+| `BILLING_PROVIDER` | `stripe` | `stripe`, `nowpayments`, or `both` |
+| `BILLING_STRIPE_ENABLED` | `0` | Enables Stripe checkout/webhooks |
+| `BILLING_TOPUPS_ENABLED` | `1` | Enables credit top-up packs |
+| `NOWPAYMENTS_API_KEY` | unset | NOWPayments API credential |
+| `NOWPAYMENTS_IPN_SECRET` | unset | Webhook signature secret |
+| `NOWPAYMENTS_API_BASE` | Sandbox URL | NOWPayments API endpoint |
+| `STRIPE_SECRET_KEY` | unset | Stripe API secret (`sk_live_…` / `sk_test_…`) |
+| `STRIPE_WEBHOOK_SECRET` | unset | Stripe webhook signing secret (`whsec_…`) |
+| `STRIPE_BILLING_PORTAL_RETURN_URL` | unset | Return URL after the Stripe customer portal |
+| `CREDITS_PER_DOLLAR` | `1000` | Credits per USD (1 credit = $0.001) |
+| `FULL_MODE_CREDIT_ESTIMATE` | `250` | Credits reserved for one Full-analysis turn |
+| `PLATFORM_FEE_CREDITS` | `0` | Flat fee per BYOK turn |
+| `CREDITS_ENFORCEMENT_ENABLED` | `0` | `0` = shadow metering, `1` = return 402 on insufficient credits |
+| `CREDITS_SHADOW_LOG` | `1` | Write shadow reservations/ledger rows while enforcement is off |
+| `CREDIT_LEDGER_RETENTION_DAYS` | `730` | Ledger/billing audit retention (never swept at 90 days) |
 
 Never enable billing without reviewing webhook safety, legal terms, idempotency, and operator responsibilities.
+
+### Provider guardrails
+
+- A Stripe `sk_test_` key in a production process logs a warning; it never
+  silently takes live money.
+- NOWPayments sandbox in production logs an error; set
+  `NOWPAYMENTS_API_BASE=https://api.nowpayments.io` before real charges.
+- Both webhook paths verify the signature over the **raw** body before any
+  JSON parsing. Stripe uses `Stripe-Signature`; NOWPayments uses
+  `x-nowpayments-sig`.
+- `billing_events` deduplicates Stripe events; `ipn_events` deduplicates
+  NOWPayments `(payment_id, payment_status)`.
+- `credit_ledger` and `billing_*` tables are excluded from the 90-day
+  telemetry sweep and retained for `CREDIT_LEDGER_RETENTION_DAYS`.
+- In shared/SaaS mode, set `ADMIN_DATABASE_URL` (BYPASSRLS). Stripe webhooks
+  resolve the tenant from the Stripe customer before entering a tenant
+  transaction; the cross-tenant lookup cannot run under the RLS app role.
+- Webhook endpoints: `POST /api/billing/webhook` dispatches on
+  `Stripe-Signature` first, then `x-nowpayments-sig`. Configure Stripe to send
+  `checkout.session.completed`, `customer.subscription.created|updated|deleted`,
+  `invoice.paid`, `invoice.payment_failed`, `payment_intent.succeeded`, and
+  `charge.refunded`.
+- Reconciliation crons: `GET /api/cron/billing-reconcile` (every 6h) and
+  `GET /api/cron/credit-reclaim` (every 30m), both protected by
+  `CRON_SECRET` or an admin session.
 
 ## Worker configuration
 

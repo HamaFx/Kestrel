@@ -247,12 +247,30 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
             `Enqueue-time model ${expectedModel} is unavailable; no provider failover is permitted.`,
           );
         }
+        const creditOptions = {
+          modelId: expectedModel,
+          providerMode: payload.providerMode ?? ('managed' as const),
+          mode: 'full' as const,
+          idempotencyKey: `credit:job:${runId}`,
+          threadId: payload.threadId,
+          runId,
+          jobId: runId,
+        };
         if (payload.budgetReservationId) {
           budget = resumeTurnBudget({
             userId: payload.userId,
             reservationId: payload.budgetReservationId,
             estimateUsd: FULL_ANALYSIS_ESTIMATE_USD,
             maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
+            ...(payload.creditReservationId
+              ? {
+                  creditReservationId: payload.creditReservationId,
+                  ...(payload.creditReservedCredits !== undefined
+                    ? { reservedCredits: payload.creditReservedCredits }
+                    : {}),
+                }
+              : {}),
+            credit: creditOptions,
           });
         } else {
           try {
@@ -262,6 +280,7 @@ export async function runMultiAgentAnalysis(ctx: JobContext): Promise<JobResult>
               maxDailyUsd: userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
               correlation: { threadId: payload.threadId, runId },
               tenantId,
+              credit: creditOptions,
             });
           } catch (error) {
             if (isBudgetExceededError(error)) {

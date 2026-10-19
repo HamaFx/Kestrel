@@ -30,7 +30,11 @@ export interface SubscriptionWithPlan {
   status: string;
   nowpaymentsRecurringId: string | null;
   nowpaymentsInvoiceId: string | null;
+  stripeSubscriptionId: string | null;
+  stripePriceId: string | null;
+  currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
   trialEnd: Date | null;
   canceledAt: Date | null;
   createdAt: Date;
@@ -41,6 +45,7 @@ export interface SubscriptionWithPlan {
     priceUsdCents: number;
     features: string[] | null;
     monthlyTokenCap: number | null;
+    monthlyCredits: number;
     interval: string;
   } | null;
 }
@@ -82,7 +87,11 @@ export async function getSubscription(tenantId: string): Promise<SubscriptionWit
     status: sub.status,
     nowpaymentsRecurringId: sub.nowpaymentsRecurringId,
     nowpaymentsInvoiceId: sub.nowpaymentsInvoiceId,
+    stripeSubscriptionId: sub.stripeSubscriptionId,
+    stripePriceId: sub.stripePriceId,
+    currentPeriodStart: sub.currentPeriodStart,
     currentPeriodEnd: sub.currentPeriodEnd,
+    cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
     trialEnd: sub.trialEnd,
     canceledAt: sub.canceledAt,
     createdAt: sub.createdAt,
@@ -126,9 +135,12 @@ export function getEffectiveFeatures(sub: SubscriptionWithPlan | null): string[]
  */
 export function getEffectiveTokenCap(sub: SubscriptionWithPlan | null): number | null {
   if (sub && isSubscriptionActive(sub) && sub.plan) {
+    // Plan credits are authoritative; the token cap remains as a derived
+    // backward-compatible value for legacy callers.
+    if (sub.plan.monthlyCredits > 0) return Math.floor(sub.plan.monthlyCredits * 167);
     return sub.plan.monthlyTokenCap ?? null;
   }
-  // Free tier default: 100K tokens/month
+  // Free tier default: 100K tokens/month (1,000 credits ≈ 167k tokens).
   return 100_000;
 }
 

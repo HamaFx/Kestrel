@@ -20,6 +20,7 @@
 import {
   IconChevronLeft,
   IconChevronRight,
+  IconCoins,
   IconLogout,
   IconPlus,
   IconSettings,
@@ -28,6 +29,7 @@ import {
 import { signOut } from 'next-auth/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
@@ -47,6 +49,22 @@ export function DesktopSidebar({
 }) {
   const { collapsed, toggle: toggleCollapsed } = useSidebarState();
   const pathname = usePathname() ?? '';
+  const [credits, setCredits] = useState<number | null>(null);
+
+  // Credit chip is progressive enhancement: hidden when billing is disabled
+  // (the endpoint returns 404) or the wallet is not ready yet.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/billing/wallet', { headers: { accept: 'application/json' } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { available?: number } | null) => {
+        if (!cancelled && typeof data?.available === 'number') setCredits(data.available);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleLogout() {
     try {
@@ -221,6 +239,23 @@ export function DesktopSidebar({
           />
           {!collapsed && <span className="truncate font-sans">Settings</span>}
         </Link>
+
+        {credits !== null && (
+          <Link
+            href="/settings/billing"
+            prefetch={true}
+            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2/50 mx-1 flex items-center gap-2 rounded-md px-2.5 py-1.5 font-mono text-[11px] transition-colors"
+            title={`${credits.toLocaleString()} credits available`}
+          >
+            <IconCoins className="size-4 shrink-0" aria-hidden="true" />
+            {!collapsed && (
+              <span className="truncate">
+                {credits.toLocaleString()} credits
+                <span className="text-fg-subtle/70 ml-1">≈ ${(credits / 1000).toFixed(2)}</span>
+              </span>
+            )}
+          </Link>
+        )}
 
         {/* User profile & Logout */}
         <div className="mt-1 flex items-center justify-between gap-2 px-2 py-2">
