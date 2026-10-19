@@ -119,6 +119,24 @@ const DEFAULT_WORKER_STATEMENT_TIMEOUT = 30000;
 
 export type DbClient = ReturnType<typeof drizzle>;
 
+/**
+ * Temporary diagnostic: when DB_QUERY_LOG=true, log only queries that bind a
+ * Date parameter. Dates bound to text/uuid columns crash postgres-js during
+ * parameter encoding before the query reaches the server, so this is the only
+ * way to identify the offending statement without exposing parameter values.
+ */
+const dbQueryLogger = {
+  logQuery(query: string, params: unknown[]): void {
+    if (process.env.DB_QUERY_LOG !== 'true') return;
+    if (!params.some((value) => value instanceof Date)) return;
+    console.error(
+      '[db-query-date]',
+      query.slice(0, 800),
+      params.map((value, index) => (value instanceof Date ? `${index}:Date` : `${index}:${typeof value}`)),
+    );
+  },
+};
+
 function resolveStatementTimeout(): number {
   if (process.env.NODE_ENV === 'test') return 30000;
   const isWorker = process.env.KESTREL_RUNTIME === 'worker';
@@ -161,7 +179,7 @@ export function getDbRO(): DbClient {
     },
   });
 
-  pools.replicaClient = drizzle(pools.replicaSql, { schema });
+  pools.replicaClient = drizzle(pools.replicaSql, { schema, logger: dbQueryLogger });
   return pools.replicaClient;
 }
 
@@ -285,7 +303,7 @@ export function getPrimaryDb(): DbClient {
     },
   });
 
-  pools.primaryClient = drizzle(pools.primarySql, { schema });
+  pools.primaryClient = drizzle(pools.primarySql, { schema, logger: dbQueryLogger });
   return pools.primaryClient;
 }
 
@@ -591,7 +609,7 @@ export function getAdminDb(): DbClient {
     },
   });
 
-  pools.adminClient = drizzle(pools.adminSql, { schema });
+  pools.adminClient = drizzle(pools.adminSql, { schema, logger: dbQueryLogger });
   return pools.adminClient;
 }
 
