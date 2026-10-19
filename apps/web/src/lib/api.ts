@@ -235,6 +235,9 @@ export function errorResponse(err: unknown, req?: Request): Response {
     { err: String(err) },
     'unhandled error',
   );
+  // Temporary diagnostic: console.error survives the production
+  // removeConsole transform, unlike the structured logger's async transport.
+  console.error('[api] unhandled error', route, requestId, err);
   return formatErrorResponse(err, options);
 }
 
