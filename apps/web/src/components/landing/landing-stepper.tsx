@@ -25,6 +25,7 @@ import {
 import { AnimatePresence, m } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import Image from 'next/image';
 import { cn } from '@/lib/cn';
 
 interface Step {
@@ -235,6 +236,21 @@ export function LandingStepper() {
       id="stepper"
       className="relative overflow-hidden border-t border-b border-white/5 bg-[#0c0d0e] py-28 lg:py-36"
     >
+      {/* ── Neoclassical Colonnade Stoa Artwork ── */}
+      <div
+        aria-hidden="true"
+        className="stepper-backdrop-mask pointer-events-none absolute top-4 left-0 z-0 h-[380px] w-full opacity-20 mix-blend-screen select-none sm:top-8 sm:h-[480px] lg:top-8 lg:left-4 lg:h-[620px] lg:w-[46%] lg:opacity-28"
+      >
+        <Image
+          src="/landing/stepper-colonnade.webp"
+          alt="Classical Colonnade Stoa Perspective"
+          fill
+          unoptimized
+          sizes="(max-width: 1024px) 100vw, 46vw"
+          className="object-contain object-top lg:object-contain lg:object-left-top"
+        />
+      </div>
+
       {/* Background Ambient Plasma Glow */}
       <div
         aria-hidden="true"

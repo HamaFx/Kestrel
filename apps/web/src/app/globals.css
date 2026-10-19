@@ -1012,3 +1012,19 @@ html[data-reduce-motion='force'] *::after {
     -webkit-mask-image: radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%);
   }
 }
+
+.simulator-backdrop-mask {
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+}
+
+.stepper-backdrop-mask {
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+}
+
+.architecture-backdrop-mask {
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+}
+

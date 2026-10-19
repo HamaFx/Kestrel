@@ -27,6 +27,7 @@ import {
 import { AnimatePresence, m } from 'motion/react';
 import { useState } from 'react';
 
+import Image from 'next/image';
 import { cn } from '@/lib/cn';
 
 interface LayerSpec {
@@ -135,12 +136,20 @@ export function LandingArchitecture() {
       id="architecture"
       className="relative overflow-hidden border-t border-white/5 bg-[#0e0f10] py-28 lg:py-36"
     >
-      {/* Background Halftone Columns & Ambient Light Cone */}
+      {/* ── Neoclassical Titan Foundation Artwork ── */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-contain bg-left bg-no-repeat opacity-15 select-none"
-        style={{ backgroundImage: 'url(/landing/faq-halftone-columns.png)' }}
-      />
+        className="architecture-backdrop-mask pointer-events-none absolute top-8 right-0 z-0 h-[360px] w-full opacity-15 mix-blend-screen select-none sm:top-12 sm:h-[480px] lg:top-1/2 lg:h-[85%] lg:w-[48%] lg:-translate-y-1/2 lg:opacity-20"
+      >
+        <Image
+          src="/landing/architecture-titan.webp"
+          alt="Neoclassical Titan Architectural Foundation"
+          fill
+          unoptimized
+          sizes="(max-width: 1024px) 100vw, 48vw"
+          className="object-contain object-top lg:object-cover lg:object-center"
+        />
+      </div>
       <div
         aria-hidden="true"
         className="bg-brand/5 pointer-events-none absolute right-1/4 -bottom-40 size-[700px] rounded-full blur-[160px] select-none"
