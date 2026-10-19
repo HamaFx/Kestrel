@@ -32,17 +32,23 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setMobileMenuOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [mobileMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#101112]/90 backdrop-blur-2xl transition-all">
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#101112]/90 backdrop-blur-2xl transition-all">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Lockup */}
         <div className="flex items-center gap-6">
@@ -139,11 +145,15 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
           </button>
         </div>
       </div>
+    </header>
 
-      {/* Mobile Drawer */}
+      {/* Full-Viewport Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div id="mobile-nav" className="border-b border-white/10 bg-[#121314] px-4 py-6 md:hidden">
-          <div className="flex flex-col gap-4 font-sans text-base">
+        <div
+          id="mobile-nav"
+          className="fixed inset-x-0 top-16 bottom-0 z-50 flex flex-col justify-between overflow-y-auto bg-[#101112]/95 px-6 py-8 backdrop-blur-2xl md:hidden"
+        >
+          <div className="flex flex-col gap-6 font-sans text-lg">
             <a
               href="#desks"
               onClick={() => setMobileMenuOpen(false)}
@@ -179,31 +189,31 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
             >
               FAQ
             </a>
-            <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
-              {isAuthenticated ? (
-                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="tactical" size="md" className="w-full">
-                    Open Dashboard
+          </div>
+          <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
+            {isAuthenticated ? (
+              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="tactical" size="lg" className="w-full">
+                  Open Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="tactical" size="lg" className="w-full">
+                    Get Started
                   </Button>
                 </Link>
-              ) : (
-                <>
-                  <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="tactical" size="md" className="w-full">
-                      Get Started
-                    </Button>
-                  </Link>
-                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="secondary" size="md" className="w-full">
-                      Sign In
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="secondary" size="lg" className="w-full">
+                    Sign In
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }
