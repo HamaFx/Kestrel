@@ -29,6 +29,8 @@ import { z } from 'zod';
  *     backward compatibility with personal-mode deployments.
  *   - CRON_SECRET: bearer token Vercel uses to invoke /api/cron/*.
  *   - ENCRYPTION_SECRET: 32-byte hex used to encrypt BYOK payloads.
+ *   - AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET: optional Google OAuth client.
+ *     Both must be present for the Google provider to be registered.
  *
  * Development ergonomics: in NODE_ENV !== 'production' the secrets
  * are OPTIONAL. The web app's `getServerEnv()`/`getAuthEnv()` will
@@ -48,6 +50,10 @@ const AuthEnv = z.object({
       'ENCRYPTION_SECRET must be a 64-character hex string (32 bytes, e.g. openssl rand -hex 32)',
     )
     .optional(),
+  // Declared here so parseServerEnv() retains them: Zod strips unknown keys,
+  // and createAuthProviders() reads the parsed object rather than process.env.
+  AUTH_GOOGLE_ID: z.string().min(1).optional(),
+  AUTH_GOOGLE_SECRET: z.string().min(1).optional(),
 });
 
 // We accept either DATABASE_URL or POSTGRES_URL for app traffic — the Supabase

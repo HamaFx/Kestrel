@@ -199,6 +199,25 @@ describe('parseServerEnv — secret length validation', () => {
   });
 });
 
+describe('parseServerEnv — OAuth provider credentials', () => {
+  it('preserves Google OAuth credentials so the provider can be registered', () => {
+    const env = parseServerEnv({
+      ...MINIMAL_ENV,
+      NODE_ENV: 'test',
+      AUTH_GOOGLE_ID: 'client-id.apps.googleusercontent.com',
+      AUTH_GOOGLE_SECRET: 'client-secret',
+    });
+    expect(env.AUTH_GOOGLE_ID).toBe('client-id.apps.googleusercontent.com');
+    expect(env.AUTH_GOOGLE_SECRET).toBe('client-secret');
+  });
+
+  it('omits Google OAuth credentials when they are not configured', () => {
+    const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test' });
+    expect(env.AUTH_GOOGLE_ID).toBeUndefined();
+    expect(env.AUTH_GOOGLE_SECRET).toBeUndefined();
+  });
+});
+
 describe('parseServerEnv — database URL variants', () => {
   it('accepts POSTGRES_URL as alternative to DATABASE_URL', () => {
     const env = parseServerEnv({
