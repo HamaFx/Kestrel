@@ -64,6 +64,7 @@ export async function runBufferedExecution<T>(options: {
   let completed: { result: T; observedCost: number } | null = null;
 
   try {
+    console.error('[chat-stage] user-message:start');
     if (options.userMessageIdempotencyKey) {
       await appendUserMessage(options.userId, options.threadId, options.userMessage, {
         idempotencyKey: options.userMessageIdempotencyKey,
@@ -71,7 +72,10 @@ export async function runBufferedExecution<T>(options: {
     } else {
       await appendUserMessage(options.userId, options.threadId, options.userMessage);
     }
+    console.error('[chat-stage] user-message:end');
+    console.error('[chat-stage] execute:start');
     completed = await options.execute();
+    console.error('[chat-stage] execute:end');
     const persisted = await appendAssistantMessage(
       options.userId,
       options.threadId,

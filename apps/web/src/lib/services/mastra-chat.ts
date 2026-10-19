@@ -70,13 +70,16 @@ export async function runMastraXauusdChat(
 
   const env = getServerEnv();
   const runId = crypto.randomUUID();
+  console.error('[chat-stage] budget:start');
   const budget = await reserveTurnBudget({
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
     correlation: { threadId: input.threadId, runId },
   });
+  console.error('[chat-stage] budget:end');
   const runResearch = input.kind !== 'conversation';
   const ledger = createGenerationLedger();
+  console.error('[chat-stage] buffered:start');
   const execution = await runBufferedExecution<{
     run: XauusdMastraRunResult;
     assistantMessage: UIMessage;
@@ -155,6 +158,7 @@ export async function runMastraXauusdChat(
     buildAssistantMessage: ({ result }) => result.assistantMessage,
     isCancelled: () => input.signal?.aborted === true,
   });
+  console.error('[chat-stage] buffered:end');
 
   const completedRun = execution.result.run;
   const observedCost = execution.observedCost;
