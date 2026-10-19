@@ -156,6 +156,11 @@ export async function embedTexts(args: EmbedTextsArgs): Promise<EmbedResult> {
   const callArgs: Parameters<typeof embedMany>[0] = {
     model,
     values: args.texts,
+    // Pin the output width to the pgvector column size. Google's
+    // gemini-embedding-001 defaults to 3072 dimensions unless the caller
+    // asks for a supported truncated size (the provider maps `dimensions`
+    // to `outputDimensionality`), which would fail the validation below.
+    dimensions: EXPECTED_EMBEDDING_DIMENSIONS,
   };
   if (args.signal) callArgs.abortSignal = args.signal;
 

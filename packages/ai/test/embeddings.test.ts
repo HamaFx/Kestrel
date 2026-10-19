@@ -117,6 +117,19 @@ describe('embedTexts', () => {
     expect(vi.mocked(embedMany).mock.calls[0]?.[0]?.abortSignal).toBe(ac.signal);
   });
 
+  it('requests the pgvector dimension from the embedder', async () => {
+    vi.mocked(embedMany).mockResolvedValueOnce({
+      embeddings: [vec(0.1)],
+      usage: { tokens: 3 },
+    } as never);
+
+    await embedTexts({ texts: ['test'] });
+
+    expect(vi.mocked(embedMany).mock.calls[0]?.[0]?.dimensions).toBe(
+      EXPECTED_EMBEDDING_DIMENSIONS,
+    );
+  });
+
   it('resolves model from userSettings', async () => {
     vi.mocked(embedMany).mockResolvedValueOnce({
       embeddings: [vec(0.1)],
