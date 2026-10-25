@@ -65,7 +65,7 @@ const plugin = definePlugin({
       'Tool allowlist',
       '@mention in chat',
       'MCP bridge',
-      'Adds 6 AI tools',
+      'Adds 7 AI tools',
       'Adds sidebar tab',
     ],
     setupSteps: [],

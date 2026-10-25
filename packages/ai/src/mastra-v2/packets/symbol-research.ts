@@ -147,6 +147,11 @@ export const SymbolResearchPacketSchema = z.object({
    * `xauusdExtension`).
    */
   genericMacro: GenericMacroExtensionSchema.optional(),
+  /**
+   * Per-user enrichment contributed by installed plugins (e.g. open paper
+   * positions for this symbol). Applied after the cache read, never cached.
+   */
+  pluginEnrichment: z.record(z.string(), z.unknown()).optional(),
   optionalContext: z.object({
     available: z.boolean(),
     reason: z.string().min(1),
@@ -427,7 +432,8 @@ export async function collectSymbolResearchPacket(
   const genericMacroResult = genericMacroFetched
     ? assembleGenericMacroExtension(symbol, genericMacroFetched)
     : null;
-  const genericMacro: GenericMacroExtension | undefined = genericMacroResult?.extension ?? undefined;
+  const genericMacro: GenericMacroExtension | undefined =
+    genericMacroResult?.extension ?? undefined;
   if (genericMacroResult && !genericMacroResult.extension) {
     warnings.push(...genericMacroResult.warnings);
   }

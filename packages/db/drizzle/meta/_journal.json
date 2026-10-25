@@ -771,6 +771,27 @@
       "when": 1792895763814,
       "tag": "0110_custom_agents_plugin_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1792900506784,
+      "tag": "0111_custom_agent_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1792900506784,
+      "tag": "0112_backtesting_sweeps",
+      "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1792900506784,
+      "tag": "0113_paper_strategy_runs",
+      "breakpoints": true
     }
   ]
 }

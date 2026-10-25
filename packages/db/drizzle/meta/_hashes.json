@@ -439,6 +439,18 @@
     {
       "tag": "0110_custom_agents_plugin_tables",
       "hash": "9a6baecb1a8b730c5aa88a942f76d4eb4db8a6b9dccc2295c8588e3da9ef5e58"
+    },
+    {
+      "tag": "0111_custom_agent_runs",
+      "hash": "65400b7468e9db6aa41775e317d4ca05455288d404f17db943d6f73968dc0001"
+    },
+    {
+      "tag": "0112_backtesting_sweeps",
+      "hash": "cc44e9af8728d5617de66fcf73d2e241fd2ef99e2cc50bc18f86ecc9c1818c4e"
+    },
+    {
+      "tag": "0113_paper_strategy_runs",
+      "hash": "5c4316f36ef27756ff534e36bba92240767ef83f42552ed78d42c20a1a1cd337"
     }
   ]
 }

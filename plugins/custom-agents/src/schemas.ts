@@ -113,6 +113,28 @@ export const GetAgentOutputSchema = z.object({
   agent: AgentViewSchema,
 });
 
+export const AgentRunSchema = z.object({
+  id: z.string(),
+  runId: z.string(),
+  threadId: z.string().nullable(),
+  status: z.enum(['succeeded', 'failed', 'cancelled']),
+  model: z.string().nullable(),
+  latencyMs: z.number().int(),
+  costUsd: z.number(),
+  toolCalls: z.number().int(),
+  inputChars: z.number().int(),
+  outputChars: z.number().int(),
+  error: z.string().nullable(),
+  createdAt: z.string(),
+});
+
+export type AgentRunView = z.infer<typeof AgentRunSchema>;
+
+export const ListAgentRunsOutputSchema = z.object({
+  runs: z.array(AgentRunSchema),
+  count: z.number().int(),
+});
+
 export const CreateAgentInputSchema = z.object({
   name: z.string().min(1).max(120),
   slug: AgentSlugSchema.optional(),
@@ -189,6 +211,22 @@ export const ValidateSkillOutputSchema = z.object({
   errors: z.array(z.string()),
   warnings: z.array(z.string()),
   skill: CustomSkillSchema.nullable(),
+});
+
+export const ExtractPdfOutputSchema = z.object({
+  text: z.string(),
+  pages: z.number().int().nonnegative(),
+});
+
+export const RunScriptInputSchema = z.object({
+  source: z.string().min(10).max(20_000),
+  input: z.unknown().optional(),
+  timeoutMs: z.number().int().min(100).max(10_000).optional(),
+});
+
+export const RunScriptOutputSchema = z.object({
+  result: z.unknown(),
+  logs: z.array(z.string()),
 });
 
 export const ImportAgentMarkdownInputSchema = z.object({

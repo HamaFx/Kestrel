@@ -366,7 +366,7 @@ export async function placeOrderForUser(args: {
   userId: string;
   input: PlaceOrderInput;
   settings: PaperSettings;
-  source?: 'agent' | 'manual' | 'api';
+  source?: 'agent' | 'manual' | 'api' | 'strategy';
   signal?: AbortSignal;
   now?: Date;
 }): Promise<PlaceOrderOutput> {

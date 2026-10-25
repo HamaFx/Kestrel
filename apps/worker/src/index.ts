@@ -415,9 +415,11 @@ export async function main(): Promise<void> {
   // Durable async jobs. A queue/schema failure must not stop core ingestion;
   // the synchronous backtest path keeps working without it.
   try {
-    const { startBacktestQueueWorker } = await import('./backtest-queue.js');
+    const { startBacktestQueueWorker, startBacktestSweepQueueWorker } =
+      await import('./backtest-queue.js');
     await startBacktestQueueWorker(log);
-    log.info('backtest queue worker registered');
+    await startBacktestSweepQueueWorker(log);
+    log.info('backtest and sweep queue workers registered');
   } catch (err) {
     log.warn(
       'backtest queue worker unavailable; async runs will be unavailable (sync path unaffected)',

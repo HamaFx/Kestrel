@@ -30,13 +30,21 @@ import {
 } from '../src/mastra-v2';
 import type * as persistenceModule from '../src/persistence';
 import { listMessages } from '../src/persistence';
+import type * as messagePersistenceModule from '../src/persistence/message-persistence';
+
+const listMessagesMock = vi.hoisted(() => vi.fn());
 
 // Real module mock: replaces only `listMessages` with a spy so the backfill
-// tests can stub Drizzle history without touching the DB. The rest of the
-// persistence barrel stays intact.
+// tests can stub Drizzle history without touching the DB. The leaf and the
+// barrel share one fn because Vite may resolve a consumer's `../persistence`
+// to either path after transformation.
+vi.mock('../src/persistence/message-persistence', async (importOriginal) => {
+  const actual = await importOriginal<typeof messagePersistenceModule>();
+  return { ...actual, listMessages: listMessagesMock };
+});
 vi.mock('../src/persistence', async (importOriginal) => {
   const actual = await importOriginal<typeof persistenceModule>();
-  return { ...actual, listMessages: vi.fn() };
+  return { ...actual, listMessages: listMessagesMock };
 });
 
 const cleanups: Array<() => void> = [];

@@ -37,7 +37,20 @@ export {
   type BacktestRunResponse,
 } from './services/run-service';
 export { normaliseSettings, type BacktestSettings } from './settings';
-export { RunBacktestInputSchema, RunResultSchema, type RunResult } from './schemas';
+export {
+  executeSweep,
+  getSweepDetail,
+  listSweepViews,
+  runSweepForUser,
+} from './services/sweep-service';
+export {
+  RunBacktestInputSchema,
+  RunResultSchema,
+  SweepInputSchema,
+  SweepQueueJobSchema,
+  type RunResult,
+  type SweepInput,
+} from './schemas';
 
 /** Payload stored in `pgboss` for an async backtest run. */
 export const BacktestQueueJobSchema = z.object({

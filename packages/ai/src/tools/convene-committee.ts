@@ -38,6 +38,7 @@ import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { collectSymbolResearchPacketCached } from '../mastra-v2/packets/packet-cache';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import { runMastraMode } from '../mastra-v2/planning/mode-runner';
+import { enrichPacketForUser } from '../plugins/enrichers';
 import { maybeGetToolContext } from '../tool-context';
 
 const InputSchema = ConveneCommitteeInputSchema;
@@ -278,7 +279,10 @@ export const conveneCommitteeTool: Tool<z.infer<typeof InputSchema>, ConveneComm
     ): Promise<ConveneCommitteeOutput> => {
       const ctx = maybeGetToolContext();
       const signal = options?.abortSignal ?? ctx?.signal ?? undefined;
-      const packet = await collectSymbolResearchPacketCached(symbol, signal);
+      const basePacket = await collectSymbolResearchPacketCached(symbol, signal);
+      const packet = ctx?.userId
+        ? await enrichPacketForUser(basePacket, ctx.userId, signal)
+        : basePacket;
       if (packet.status === 'blocked' || !packet.price?.tick) {
         throw new Error(
           `Market data unavailable for ${symbol} (${packet.warnings.join(', ') || 'missing live price'}). Cannot convene committee without verified market data.`,

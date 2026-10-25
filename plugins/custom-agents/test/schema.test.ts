@@ -19,16 +19,39 @@
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
-import { customAgents } from '../src/db/tables';
+import { customAgentRuns, customAgents } from '../src/db/tables';
 
 describe('custom agents schema', () => {
-  it('prefixes the table and forces tenant RLS', () => {
-    const config = getTableConfig(customAgents);
-    expect(config.name).toBe('plg_custom_agents');
-    expect(config.enableRLS).toBe(true);
-    expect(config.policies.map((policy) => policy.name)).toContain('tenant_isolation');
+  it('prefixes both tables and forces tenant RLS', () => {
+    for (const table of [customAgents, customAgentRuns]) {
+      const config = getTableConfig(table);
+      expect(config.name.startsWith('plg_custom_agents')).toBe(true);
+      expect(config.enableRLS).toBe(true);
+      expect(config.policies.map((policy) => policy.name)).toContain('tenant_isolation');
+      expect(config.columns.map((column) => column.name)).toEqual(
+        expect.arrayContaining(['id', 'tenant_id', 'user_id', 'created_at']),
+      );
+    }
+    expect(getTableConfig(customAgents).columns.map((column) => column.name)).toContain(
+      'updated_at',
+    );
+  });
+
+  it('stores run history against an agent', () => {
+    const config = getTableConfig(customAgentRuns);
+    expect(config.name).toBe('plg_custom_agents_runs');
     expect(config.columns.map((column) => column.name)).toEqual(
-      expect.arrayContaining(['id', 'tenant_id', 'user_id', 'created_at', 'updated_at']),
+      expect.arrayContaining([
+        'agent_id',
+        'run_id',
+        'thread_id',
+        'status',
+        'model',
+        'latency_ms',
+        'cost_usd',
+        'tool_calls',
+        'error',
+      ]),
     );
   });
 

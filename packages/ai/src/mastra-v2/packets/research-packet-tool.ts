@@ -16,6 +16,7 @@
 
 import { createTool } from '@mastra/core/tools';
 
+import { enrichPacketForUser } from '../../plugins/enrichers';
 import { XauusdResearchPacketInputSchema } from '../agents/xauusd/tool-schemas';
 import { executeMastraTool } from '../shared/telemetry';
 import { collectXauusdResearchPacket } from './research-packet';
@@ -28,7 +29,9 @@ export const xauusdResearchPacketTool = createTool({
   inputSchema: XauusdResearchPacketInputSchema,
   outputSchema: XauusdResearchPacketSchema,
   execute: async (_input, context) =>
-    executeMastraTool('get-xauusd-research-packet', context, () =>
-      collectXauusdResearchPacket(context.abortSignal),
-    ),
+    executeMastraTool('get-xauusd-research-packet', context, async () => {
+      const packet = await collectXauusdResearchPacket(context.abortSignal);
+      const userId = context.requestContext?.get('userId') as string | undefined;
+      return userId ? enrichPacketForUser(packet, userId, context.abortSignal) : packet;
+    }),
 });

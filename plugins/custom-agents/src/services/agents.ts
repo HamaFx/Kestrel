@@ -26,6 +26,8 @@ import {
   deleteCustomAgent,
   getCustomAgentById,
   getCustomAgentBySlug,
+  insertCustomAgentRun,
+  listCustomAgentRuns,
   listCustomAgents,
   markCustomAgentRun,
   seedCustomAgent,
@@ -34,6 +36,7 @@ import {
 } from '../db/queries';
 import type { CustomAgentRow, StoredMcpServer } from '../db/tables';
 import type {
+  AgentRunView,
   AgentView,
   CreateAgentInput,
   CustomSkill,
@@ -314,6 +317,31 @@ export async function deleteAgentForUser(userId: string, agentId: string): Promi
   return deleteCustomAgent(userId, agentId);
 }
 
+export async function listAgentRunViews(
+  userId: string,
+  agentId: string,
+  limit = 20,
+): Promise<AgentRunView[]> {
+  const rows = await listCustomAgentRuns(userId, agentId, limit);
+  return rows.map((row) => ({
+    id: row.id,
+    runId: row.runId,
+    threadId: row.threadId,
+    status:
+      row.status === 'failed' || row.status === 'cancelled'
+        ? row.status
+        : 'succeeded',
+    model: row.model,
+    latencyMs: row.latencyMs,
+    costUsd: row.costUsd,
+    toolCalls: row.toolCalls,
+    inputChars: row.inputChars,
+    outputChars: row.outputChars,
+    error: row.error,
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
+
 /** Seed the optional starter templates. Idempotent per handle. */
 export async function seedStarterAgents(
   userId: string,
@@ -339,9 +367,36 @@ export async function deleteAllAgentsForUser(userId: string): Promise<void> {
 export async function recordAgentRun(
   userId: string,
   agentId: string,
-  status: 'succeeded' | 'failed' | 'cancelled',
+  record: {
+    runId: string;
+    threadId: string;
+    status: 'succeeded' | 'failed' | 'cancelled';
+    model: string | null;
+    latencyMs: number;
+    costUsd: number;
+    toolCalls: number;
+    inputChars: number;
+    outputChars: number;
+    error?: string | null;
+  },
 ): Promise<void> {
-  await markCustomAgentRun(userId, agentId, status);
+  await Promise.all([
+    insertCustomAgentRun({
+      userId,
+      agentId,
+      runId: record.runId,
+      threadId: record.threadId,
+      status: record.status,
+      model: record.model,
+      latencyMs: Math.max(0, Math.round(record.latencyMs)),
+      costUsd: record.costUsd,
+      toolCalls: Math.max(0, Math.round(record.toolCalls)),
+      inputChars: Math.max(0, Math.round(record.inputChars)),
+      outputChars: Math.max(0, Math.round(record.outputChars)),
+      error: record.error ?? null,
+    }),
+    markCustomAgentRun(userId, agentId, record.status),
+  ]);
 }
 
 /**

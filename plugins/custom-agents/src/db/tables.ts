@@ -25,6 +25,7 @@ import { schema } from '@kestrel/db';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -97,5 +98,37 @@ export const customAgents = pgTable(
   ],
 ).enableRLS();
 
+export const customAgentRuns = pgTable(
+  'plg_custom_agents_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: tenantColumn(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => customAgents.id, { onDelete: 'cascade' }),
+    runId: text('run_id').notNull(),
+    threadId: text('thread_id'),
+    status: text('status').notNull(),
+    model: text('model'),
+    latencyMs: integer('latency_ms').notNull().default(0),
+    costUsd: doublePrecision('cost_usd').notNull().default(0),
+    toolCalls: integer('tool_calls').notNull().default(0),
+    inputChars: integer('input_chars').notNull().default(0),
+    outputChars: integer('output_chars').notNull().default(0),
+    error: text('error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('plg_custom_agents_runs_tenant_user_idx').on(t.tenantId, t.userId),
+    index('plg_custom_agents_runs_agent_created_idx').on(t.agentId, t.createdAt),
+    tenantIsolation(),
+  ],
+).enableRLS();
+
 export type CustomAgentRow = typeof customAgents.$inferSelect;
 export type CustomAgentInsert = typeof customAgents.$inferInsert;
+export type CustomAgentRunRow = typeof customAgentRuns.$inferSelect;
+export type CustomAgentRunInsert = typeof customAgentRuns.$inferInsert;

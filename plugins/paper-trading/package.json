@@ -31,6 +31,7 @@
   "dependencies": {
     "@kestrel/data": "workspace:*",
     "@kestrel/db": "workspace:*",
+    "@kestrel/plugin-backtesting": "workspace:*",
     "@kestrel/plugin-sdk": "workspace:*",
     "@kestrel/shared": "workspace:*",
     "@tabler/icons-react": "^3.49.0",

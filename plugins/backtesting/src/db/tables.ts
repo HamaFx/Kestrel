@@ -125,7 +125,45 @@ export const backtestStrategies = pgTable(
   ],
 ).enableRLS();
 
+export const backtestSweeps = pgTable(
+  'plg_backtesting_sweeps',
+  {
+    ...baseColumns(),
+    name: text('name').notNull(),
+    strategyId: text('strategy_id'),
+    symbol: text('symbol').notNull(),
+    timeframe: text('timeframe').notNull(),
+    source: text('source').notNull(),
+    baseParams: jsonb('base_params').$type<Record<string, unknown>>().notNull().default({}),
+    parameterSpace: jsonb('parameter_space')
+      .$type<Array<{ name: string; values: Array<string | number | boolean> }>>()
+      .notNull()
+      .default([]),
+    objective: text('objective').notNull(),
+    count: integer('count').notNull().default(1000),
+    initialBalance: doublePrecision('initial_balance').notNull().default(10_000),
+    riskPct: doublePrecision('risk_pct').notNull().default(1),
+    minTrades: integer('min_trades').notNull().default(5),
+    persistRuns: boolean('persist_runs').notNull().default(false),
+    status: text('status').notNull().default('queued'),
+    total: integer('total').notNull().default(0),
+    completed: integer('completed').notNull().default(0),
+    bestParams: jsonb('best_params').$type<Record<string, unknown> | null>(),
+    bestMetrics: jsonb('best_metrics').$type<Record<string, unknown> | null>(),
+    bestScore: doublePrecision('best_score'),
+    results: jsonb('results').$type<Array<Record<string, unknown>>>().notNull().default([]),
+    error: text('error'),
+  },
+  (t) => [
+    index('plg_backtesting_sweeps_tenant_user_idx').on(t.tenantId, t.userId),
+    index('plg_backtesting_sweeps_user_created_idx').on(t.userId, t.createdAt),
+    tenantIsolation(),
+  ],
+).enableRLS();
+
 export type BacktestRunRow = typeof backtestRuns.$inferSelect;
 export type BacktestRunInsert = typeof backtestRuns.$inferInsert;
 export type BacktestStrategyRow = typeof backtestStrategies.$inferSelect;
 export type BacktestStrategyInsert = typeof backtestStrategies.$inferInsert;
+export type BacktestSweepRow = typeof backtestSweeps.$inferSelect;
+export type BacktestSweepInsert = typeof backtestSweeps.$inferInsert;

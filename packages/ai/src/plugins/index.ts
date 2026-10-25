@@ -32,6 +32,7 @@ export {
   type BuildPluginMastraToolsArgs,
 } from './mastra-tools';
 export { syncPluginIndicators } from './indicators';
+export { enrichPacketForUser, type EnrichablePacket } from './enrichers';
 export { buildPluginCoreToolCatalog, syncPluginCoreTools } from './core-tools';
 export {
   buildCustomAgent,

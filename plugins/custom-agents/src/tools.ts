@@ -34,6 +34,8 @@ import {
   GetAgentOutputSchema,
   ListAgentsInputSchema,
   ListAgentsOutputSchema,
+  RunScriptInputSchema,
+  RunScriptOutputSchema,
   UpdateAgentToolInputSchema,
 } from './schemas';
 import {
@@ -43,6 +45,7 @@ import {
   listAgentViews,
   updateAgentForUser,
 } from './services/agents';
+import { runAgentScript } from './services/sandbox';
 import { AGENT_TEMPLATES } from './templates';
 
 async function installedIds(userId: string): Promise<string[]> {
@@ -229,6 +232,27 @@ const templatesTool: PluginToolRegistration<
   }),
 };
 
+const runScriptTool: PluginToolRegistration<
+  z.infer<typeof RunScriptInputSchema>,
+  z.infer<typeof RunScriptOutputSchema>
+> = {
+  name: 'custom_agent_run_script',
+  description:
+    'Run a short deterministic JavaScript calculation in a QuickJS sandbox. The source must define `function run(input) { ... }` and return a JSON-serialisable value. No network, filesystem, database, process or host globals are available; console output is captured. Use it to test formulas, transform data or validate a small strategy helper before saving it.',
+  inputSchema: RunScriptInputSchema,
+  outputSchema: RunScriptOutputSchema,
+  access: 'read-only',
+  attachTo: ['canonical-chat', 'technical', 'risk'],
+  execute: async (input, ctx) => {
+    return runAgentScript({
+      source: input.source,
+      input: input.input ?? {},
+      ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
+      ...(ctx.signal ? { signal: ctx.signal } : {}),
+    });
+  },
+};
+
 export const customAgentTools: readonly PluginToolRegistration[] = [
   listTool,
   getTool,
@@ -236,4 +260,5 @@ export const customAgentTools: readonly PluginToolRegistration[] = [
   updateTool,
   deleteTool,
   templatesTool,
+  runScriptTool,
 ];

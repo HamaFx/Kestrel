@@ -65,8 +65,8 @@ export async function fetchXauusdResearchData(
   return {
     price: price as XauusdResearchFetchResult['price'],
     // Index order matches XAUUSD_RESEARCH_WINDOWS, which the assembler zips.
-    candles: XAUUSD_RESEARCH_WINDOWS.map(
-      ({ timeframe }) => candleResults.get(timeframe)!,
+    candles: XAUUSD_RESEARCH_WINDOWS.map(({ timeframe }) =>
+      candleResults.get(timeframe)!,
     ) as XauusdResearchFetchResult['candles'],
     macro,
   };

@@ -26,18 +26,21 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import type { z } from 'zod';
 
-import type { SummaryOutputSchema } from '../schemas';
+import type { StrategyRunSchema, SummaryOutputSchema } from '../schemas';
 import { AccountCards } from './account-cards';
 import { errorMessage, pluginFetch } from './api';
 import { fmtDate, fmtMoney, fmtMoneyPlain, fmtNumber, fmtQty, toneClass } from './format';
 import { OrdersTable } from './orders-table';
 import { PlaceOrderForm } from './place-order-form';
 import { PositionsTable } from './positions-table';
+import { StrategyRunsTable } from './strategy-runs-table';
 
 type Summary = z.infer<typeof SummaryOutputSchema>;
+type StrategyRun = z.infer<typeof StrategyRunSchema>;
 
 export function PaperTradingPage(_props: PluginPageProps) {
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [strategyRuns, setStrategyRuns] = useState<StrategyRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -46,7 +49,12 @@ export function PaperTradingPage(_props: PluginPageProps) {
     setLoading(true);
     setError(null);
     try {
-      setSummary(await pluginFetch<Summary>('/summary'));
+      const [nextSummary, nextRuns] = await Promise.all([
+        pluginFetch<Summary>('/summary'),
+        pluginFetch<{ runs: StrategyRun[] }>('/strategy-runs'),
+      ]);
+      setSummary(nextSummary);
+      setStrategyRuns(nextRuns.runs);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -119,6 +127,42 @@ export function PaperTradingPage(_props: PluginPageProps) {
     [load],
   );
 
+  const strategyRunAction = useCallback(
+    async (run: StrategyRun, action: 'pause' | 'resume' | 'stop') => {
+      setBusyId(run.id);
+      setError(null);
+      try {
+        await pluginFetch(`/strategy-runs/${encodeURIComponent(run.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ action }),
+        });
+        await load();
+      } catch (err) {
+        setError(errorMessage(err));
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [load],
+  );
+
+  const deleteStrategyRun = useCallback(
+    async (run: StrategyRun) => {
+      if (!window.confirm(`Delete the deployed strategy "${run.name}"?`)) return;
+      setBusyId(run.id);
+      setError(null);
+      try {
+        await pluginFetch(`/strategy-runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' });
+        await load();
+      } catch (err) {
+        setError(errorMessage(err));
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [load],
+  );
+
   if (loading && !summary) {
     return (
       <div className="surface-panel flex items-center gap-2 rounded-xl border border-white/10 p-6 text-sm">
@@ -179,6 +223,20 @@ export function PaperTradingPage(_props: PluginPageProps) {
           accounts={summary?.accounts ?? []}
           busyId={busyId}
           onReset={(account) => void resetAccount(account.id)}
+        />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <IconChartLine className="text-fg-subtle size-4" />
+          <h2 className="text-fg text-sm font-semibold">Deployed strategies</h2>
+          <span className="text-fg-subtle font-mono text-[10px]">{strategyRuns.length}</span>
+        </div>
+        <StrategyRunsTable
+          runs={strategyRuns}
+          busyId={busyId}
+          onAction={(run, action) => void strategyRunAction(run, action)}
+          onDelete={(run) => void deleteStrategyRun(run)}
         />
       </section>
 

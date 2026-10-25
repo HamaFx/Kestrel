@@ -32,6 +32,8 @@ import {
   CancelOrderOutputSchema,
   ClosePositionInputSchema,
   ClosePositionOutputSchema,
+  DeployStrategyRunInputSchema,
+  DeployStrategyRunOutputSchema,
   GetAccountsInputSchema,
   GetAccountsOutputSchema,
   GetPositionInputSchema,
@@ -40,6 +42,7 @@ import {
   ListOrdersOutputSchema,
   ListPositionsInputSchema,
   ListPositionsOutputSchema,
+  ListStrategyRunsOutputSchema,
   ModifyPositionInputSchema,
   ModifyPositionOutputSchema,
   PlaceOrderInputSchema,
@@ -56,6 +59,7 @@ import {
   resolvePaperAccount,
   updateAccountForUser,
 } from './services/accounts';
+import { deployStrategyRunForUser, listStrategyRunViews } from './services/strategy-runs';
 import {
   accountModeForPosition,
   cancelOrderForUser,
@@ -346,6 +350,50 @@ const resetAccountTool: PluginToolRegistration<
   },
 };
 
+const listStrategyRunsTool: PluginToolRegistration<
+  z.infer<typeof GetAccountsInputSchema>,
+  z.infer<typeof ListStrategyRunsOutputSchema>
+> = {
+  name: 'paper_list_strategy_runs',
+  description:
+    'List the user’s deployed backtest strategies in the AI Agent Sandbox with status, last signal, bar time and order counts.',
+  inputSchema: GetAccountsInputSchema,
+  outputSchema: ListStrategyRunsOutputSchema,
+  access: 'read-only',
+  attachTo: ['canonical-chat', 'technical', 'risk'],
+  execute: async (_input, ctx) => {
+    const runs = await listStrategyRunViews(ctx.userId);
+    return { runs, count: runs.length };
+  },
+};
+
+const deployStrategyTool: PluginToolRegistration<
+  z.infer<typeof DeployStrategyRunInputSchema>,
+  z.infer<typeof DeployStrategyRunOutputSchema>
+> = {
+  name: 'paper_deploy_strategy',
+  description: [
+    'Deploy an exact agent-authored or saved backtest strategy to the autonomous AI Agent Sandbox.',
+    'Provide the strategy source and params (snapshot at deploy time), symbol, timeframe and a name.',
+    'The runner evaluates getSignal(ctx) on every new closed bar and places virtual market orders with the signal stop/target; it never places a real trade.',
+    'Use paper_list_strategy_runs to check status, and the Paper Trading page to pause, resume or stop.',
+  ].join(' '),
+  inputSchema: DeployStrategyRunInputSchema,
+  outputSchema: DeployStrategyRunOutputSchema,
+  access: 'write',
+  requiresConfirmation: true,
+  attachTo: ['canonical-chat', 'technical'],
+  execute: async (input, ctx) => {
+    const settings = normaliseSettings(ctx.settings);
+    const run = await deployStrategyRunForUser({ userId: ctx.userId, input, settings });
+    return {
+      ok: true,
+      message: `Deployed ${run.name} to the AI Agent Sandbox.`,
+      run,
+    };
+  },
+};
+
 export const paperTradingTools: readonly PluginToolRegistration[] = [
   getAccountsTool,
   placeOrderTool,
@@ -357,4 +405,6 @@ export const paperTradingTools: readonly PluginToolRegistration[] = [
   modifyPositionTool,
   updateAccountTool,
   resetAccountTool,
+  listStrategyRunsTool,
+  deployStrategyTool,
 ];

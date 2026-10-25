@@ -16,7 +16,13 @@
 
 // Row -> view mappers. The API, tools and UI all consume the view shapes.
 
-import type { PaperAccountRow, PaperFillRow, PaperOrderRow, PaperPositionRow } from '../db/tables';
+import type {
+  PaperAccountRow,
+  PaperFillRow,
+  PaperOrderRow,
+  PaperPositionRow,
+  PaperStrategyRunRow,
+} from '../db/tables';
 import { accountSnapshot, type AccountMode, type PositionSide } from '../domain';
 import {
   isAccountMode,
@@ -24,6 +30,7 @@ import {
   type FillView,
   type OrderView,
   type PositionView,
+  type StrategyRunView,
 } from '../schemas';
 
 function sideOf(row: PaperPositionRow): PositionSide {
@@ -152,6 +159,31 @@ export function orderView(order: PaperOrderRow): OrderView {
     notes: order.notes,
     expiresAt: order.expiresAt ? order.expiresAt.toISOString() : null,
     createdAt: order.createdAt.toISOString(),
+  };
+}
+
+export function strategyRunView(run: PaperStrategyRunRow): StrategyRunView {
+  return {
+    id: run.id,
+    accountId: run.accountId,
+    name: run.name,
+    strategyId: run.strategyId,
+    symbol: run.symbol,
+    timeframe: run.timeframe,
+    riskPct: run.riskPct,
+    status:
+      run.status === 'paused' || run.status === 'stopped' || run.status === 'error'
+        ? run.status
+        : 'active',
+    lastBarTime: run.lastBarTime ? run.lastBarTime.toISOString() : null,
+    lastSignal: run.lastSignal === 'long' || run.lastSignal === 'short' ? run.lastSignal : null,
+    lastSignalAt: run.lastSignalAt ? run.lastSignalAt.toISOString() : null,
+    positionId: run.positionId,
+    signalCount: run.signalCount,
+    orderCount: run.orderCount,
+    lastError: run.lastError,
+    createdAt: run.createdAt.toISOString(),
+    updatedAt: run.updatedAt.toISOString(),
   };
 }
 

@@ -24,6 +24,7 @@ import type { z } from 'zod';
 import {
   CancelOrderInputSchema,
   ClosePositionInputSchema,
+  DeployStrategyRunInputSchema,
   ListFillsQuerySchema,
   ListOrdersInputSchema,
   ListPositionsInputSchema,
@@ -31,6 +32,7 @@ import {
   PlaceOrderInputSchema,
   ResetAccountInputSchema,
   UpdateAccountInputSchema,
+  UpdateStrategyRunInputSchema,
 } from '../schemas';
 import {
   listAccountViews,
@@ -38,6 +40,12 @@ import {
   resolvePaperAccount,
   updateAccountForUser,
 } from '../services/accounts';
+import {
+  deleteStrategyRunForUser,
+  deployStrategyRunForUser,
+  listStrategyRunViews,
+  setStrategyRunStatus,
+} from '../services/strategy-runs';
 import {
   cancelOrderForUser,
   closePositionForUser,
@@ -300,6 +308,46 @@ const resetAccount = wrap(async (ctx) => {
   return json({ ok: true, message: `Reset ${account.name}.`, account });
 }, 400);
 
+const listStrategyRuns = wrap(async (ctx) => {
+  const runs = await listStrategyRunViews(ctx.userId);
+  return json({ runs, count: runs.length });
+});
+
+const deployStrategyRun = wrap(async (ctx) => {
+  const settings = normaliseSettings(ctx.settings);
+  const input = await parseBody(ctx.request, DeployStrategyRunInputSchema);
+  const run = await deployStrategyRunForUser({ userId: ctx.userId, input, settings });
+  return json(
+    {
+      ok: true,
+      message: `Deployed ${run.name} to the AI Agent Sandbox. It will evaluate on each new ${run.timeframe} bar.`,
+      run,
+    },
+    201,
+  );
+}, 400);
+
+const updateStrategyRun = wrap(async (ctx) => {
+  const strategyRunId = ctx.params['strategyRunId'];
+  if (!strategyRunId) {
+    throw new ApiError(400, 'A strategy run id is required.', 'MISSING_STRATEGY_RUN_ID');
+  }
+  const body = await parseBody(ctx.request, UpdateStrategyRunInputSchema);
+  const run = await setStrategyRunStatus(ctx.userId, strategyRunId, body.action);
+  if (!run) throw new ApiError(404, 'Strategy run not found.', 'STRATEGY_RUN_NOT_FOUND');
+  return json({ ok: true, message: `Strategy ${body.action}d.`, run });
+}, 400);
+
+const deleteStrategyRun = wrap(async (ctx) => {
+  const strategyRunId = ctx.params['strategyRunId'];
+  if (!strategyRunId) {
+    throw new ApiError(400, 'A strategy run id is required.', 'MISSING_STRATEGY_RUN_ID');
+  }
+  const deleted = await deleteStrategyRunForUser(ctx.userId, strategyRunId);
+  if (!deleted) throw new ApiError(404, 'Strategy run not found.', 'STRATEGY_RUN_NOT_FOUND');
+  return json({ ok: true, message: 'Strategy deployment deleted.' });
+});
+
 export const paperTradingApiRoutes: Readonly<Record<string, PluginApiRouteHandler>> = {
   '/summary': byMethod({ GET: summary }),
   '/accounts': byMethod({ GET: accounts }),
@@ -311,4 +359,9 @@ export const paperTradingApiRoutes: Readonly<Record<string, PluginApiRouteHandle
   '/orders': byMethod({ GET: orders, POST: createOrder }),
   '/orders/:orderId': byMethod({ DELETE: cancelOrder }),
   '/fills': byMethod({ GET: fills }),
+  '/strategy-runs': byMethod({ GET: listStrategyRuns, POST: deployStrategyRun }),
+  '/strategy-runs/:strategyRunId': byMethod({
+    PATCH: updateStrategyRun,
+    DELETE: deleteStrategyRun,
+  }),
 };

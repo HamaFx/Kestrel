@@ -30,7 +30,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AgentView, CatalogOutput, CustomSkill } from '../schemas';
 import { slugifyAgentName, validateAgentSlug } from '../slugs';
-import { errorMessage, pluginFetch } from './api';
+import { errorMessage, pluginFetch, pluginUpload } from './api';
 import { ModelSelect } from './model-select';
 
 interface McpRow {
@@ -238,7 +238,40 @@ export function AgentEditor({
 
   async function uploadSkill(file: File | null) {
     if (!file) return;
-    setSkillName(slugifyAgentName(file.name.replace(/\.md$/i, '')));
+    setSkillErrors([]);
+    const name = slugifyAgentName(file.name.replace(/\.(md|txt|pdf)$/i, ''));
+    setSkillName(name);
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      setBusy(true);
+      try {
+        const form = new FormData();
+        form.append('file', file, file.name);
+        const extracted = await pluginUpload<{ text: string; pages: number }>(
+          '/skills/extract',
+          form,
+        );
+        const instructions = extracted.text.trim().slice(0, 24_000);
+        if (!instructions) {
+          setSkillErrors(['No text could be extracted from this PDF.']);
+          return;
+        }
+        setSkillContent(
+          [
+            '---',
+            `name: ${name}`,
+            `description: Imported from ${file.name} (${extracted.pages} page${extracted.pages === 1 ? '' : 's'}).`,
+            '---',
+            '',
+            instructions,
+          ].join('\n'),
+        );
+      } catch (err) {
+        setSkillErrors([errorMessage(err)]);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     setSkillContent(await file.text());
   }
 
@@ -498,7 +531,8 @@ export function AgentEditor({
                 </div>
                 {form.skills.length === 0 ? (
                   <p className="text-fg-subtle border-border/50 rounded-md border border-dashed p-3 text-[11px]">
-                    No custom knowledge attached. Upload or paste a SKILL.md below.
+                    No custom knowledge attached. Upload a Markdown/PDF file or paste a SKILL.md
+                    below.
                   </p>
                 ) : (
                   <ul className="flex flex-col gap-1.5">
@@ -543,7 +577,7 @@ export function AgentEditor({
                     <input
                       ref={fileRef}
                       type="file"
-                      accept=".md,text/markdown"
+                      accept=".md,.txt,.pdf,text/markdown,application/pdf"
                       className="hidden"
                       onChange={(event) => {
                         void uploadSkill(event.currentTarget.files?.[0] ?? null);

@@ -169,7 +169,54 @@ export async function deliverAlert({
   return lastAttempt ?? { alertId: alert.id, channel: 'none', ok: false, message: 'no channels' };
 }
 
+/**
+ * Phase 6 migration — a web-created alert that still stores the core
+ * `telegram` channel is delivered through the user's personal Telegram bot
+ * when the Telegram plugin is installed and linked. The shared server bot
+ * remains the fallback for deployments that have not moved to the plugin.
+ */
+async function deliverTelegramViaPlugin(
+  args: DeliverArgs,
+): Promise<AlertChannelDeliveryResult | null> {
+  const runtime = await getInstalledPluginRuntime(args.alert.userId);
+  if (!runtime.tenantId || !runtime.installedPluginIds.includes('telegram-bot')) return null;
+  const settings = runtime.plugins.find((entry) => entry.pluginId === 'telegram-bot')?.settings;
+  if (
+    !settings ||
+    typeof settings['botToken'] !== 'string' ||
+    settings['botToken'].length === 0 ||
+    typeof settings['linkedChatId'] !== 'string' ||
+    settings['linkedChatId'].length === 0
+  ) {
+    return null;
+  }
+  const plugin = pluginHost.getAlertChannel('telegram-bot');
+  if (!plugin) return null;
+  const ctx = createPluginExecutionContext({
+    userId: runtime.userId,
+    tenantId: runtime.tenantId,
+    pluginId: 'telegram-bot',
+    settings,
+  });
+  return plugin.deliver({
+    alert: {
+      id: args.alert.id,
+      userId: args.alert.userId,
+      note: args.alert.note ?? null,
+      channels: args.alert.channels,
+    },
+    reading: { value: args.reading.value, source: args.reading.source },
+    settings: ctx.settings,
+    log: ctx.log,
+  });
+}
+
 async function deliverChannel(ch: string, args: DeliverArgs): Promise<DeliveryResult | null> {
+  if (ch === 'telegram') {
+    const bridged = await deliverTelegramViaPlugin(args);
+    if (bridged) return finalizeDelivery('telegram', bridged, args);
+  }
+
   const core = alertChannelRegistry.get(ch);
   if (core) {
     const result = await core.deliver(args);

@@ -16,7 +16,7 @@
 
 // Tool/API schemas for the Paper Trading broker.
 
-import { SymbolSchema } from '@kestrel/shared';
+import { SymbolSchema, TimeframeSchema } from '@kestrel/shared';
 import { z } from 'zod';
 
 export const AccountModeSchema = z.enum(['confirm', 'autonomous_sandbox']);
@@ -312,6 +312,61 @@ export const ListFillsOutputSchema = z.object({
 
 export const AccountParamsSchema = z.object({
   accountId: z.string().min(1),
+});
+
+// ── Deployed strategy runs ───────────────────────────────────────────────
+
+export const DeployStrategyRunInputSchema = z.object({
+  name: z.string().min(1).max(120),
+  strategyId: z.string().max(120).optional(),
+  symbol: SymbolSchema,
+  timeframe: TimeframeSchema,
+  source: z.string().min(20).max(100_000),
+  params: z.record(z.string(), z.unknown()).default({}),
+  riskPct: z.number().min(0.01).max(20).default(1),
+  /** Deployed strategies always run in the autonomous sandbox. */
+  account: z.literal('sandbox').default('sandbox'),
+});
+
+export type DeployStrategyRunInput = z.infer<typeof DeployStrategyRunInputSchema>;
+
+export const StrategyRunStatusSchema = z.enum(['active', 'paused', 'stopped', 'error']);
+
+export const StrategyRunSchema = z.object({
+  id: z.string(),
+  accountId: z.string(),
+  name: z.string(),
+  strategyId: z.string().nullable(),
+  symbol: z.string(),
+  timeframe: z.string(),
+  riskPct: z.number(),
+  status: StrategyRunStatusSchema,
+  lastBarTime: z.string().nullable(),
+  lastSignal: z.enum(['long', 'short']).nullable(),
+  lastSignalAt: z.string().nullable(),
+  positionId: z.string().nullable(),
+  signalCount: z.number().int(),
+  orderCount: z.number().int(),
+  lastError: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type StrategyRunView = z.infer<typeof StrategyRunSchema>;
+
+export const ListStrategyRunsOutputSchema = z.object({
+  runs: z.array(StrategyRunSchema),
+  count: z.number().int(),
+});
+
+export const UpdateStrategyRunInputSchema = z.object({
+  action: z.enum(['pause', 'resume', 'stop']),
+});
+
+export const DeployStrategyRunOutputSchema = z.object({
+  ok: z.boolean(),
+  message: z.string(),
+  run: StrategyRunSchema,
 });
 
 export function isAccountMode(value: string): value is 'confirm' | 'autonomous_sandbox' {

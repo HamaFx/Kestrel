@@ -19,6 +19,7 @@ import {
   IconBolt,
   IconBrain,
   IconEdit,
+  IconHistory,
   IconLoader2,
   IconMessages,
   IconPlugConnected,
@@ -35,12 +36,14 @@ export function AgentCard({
   onEdit,
   onDelete,
   onChat,
+  onRuns,
 }: {
   agent: AgentView;
   busy: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onChat: () => void;
+  onRuns: () => void;
 }) {
   const initials = agent.name
     .split(/\s+/)
@@ -117,6 +120,15 @@ export function AgentCard({
         >
           <IconEdit className="size-3.5" />
           Edit
+        </button>
+        <button
+          type="button"
+          onClick={onRuns}
+          className="text-fg-subtle hover:text-fg inline-flex h-8 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition-colors"
+          title="View recent runs"
+        >
+          <IconHistory className="size-3.5" />
+          Runs
         </button>
         <button
           type="button"
