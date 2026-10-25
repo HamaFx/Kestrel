@@ -15,9 +15,9 @@
       "import": "./dist/index.js"
     },
     "./ui": {
-      "source": "./src/ui.tsx",
-      "types": "./dist/ui.d.ts",
-      "import": "./dist/ui.js"
+      "source": "./src/ui/index.tsx",
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.js"
     },
     "./settings": {
       "source": "./src/settings.ts",

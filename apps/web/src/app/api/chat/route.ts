@@ -21,194 +21,60 @@
 // agent selection, workflows, tool loops, structured research, and synthesis.
 
 import type { UIMessage } from 'ai';
-import { z } from 'zod';
 
-import { getServerEnv } from '@/lib/env';
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
+import { withAuth } from '@/lib/http/api';
 import { createRequestLogger } from '@/lib/logger';
 import {
-  AnalysisQueuedEventSchema,
-  BudgetExceededError,
-  CanonicalEvidenceBlockedError,
   createExecutionPlan,
-  enqueueFullAnalysis,
   extractMastraSymbols,
   extractUserMessageText,
   getThread,
   getUserWithSettings,
-  GuardrailUnavailableError,
-  isBudgetEnforced,
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
   isMastraMutationEnabled,
   listMessages,
-  mastraComparisonScope,
-  MAX_COMPARISON_SYMBOLS,
-  MutationExtractionError,
-  PresentationPreferencesSchema,
-  resolveMastraModeModel,
   resolveMode,
-  resolveProviderMode,
   routeUnified,
-  traceIdStorage,
-  TripWire,
-  UserMessagePartsSchema,
-  withDiagnostics,
   withRateLimit,
 } from '@/lib/services/api-boundary';
-import {
-  runConversationalTurn,
-  runCustomAgentStreamService,
-  runResearchWorkflow,
-} from '@/lib/services/mastra/chat-orchestrator';
 import { startMutationDraft } from '@/lib/services/mastra/mutation-handler';
 import { extractLatestMastraReport } from '@/lib/services/mastra/xauusd-handler';
+
+import { CHAT_RATE_LIMIT } from './_lib/constants';
+import { dispatchCustomAgent } from './_lib/custom-agent-dispatch';
 import {
-  getInstalledPluginRuntime,
-  hasUserAgentCatalogs,
-  parseCustomAgentMention,
-  resolveUserCustomAgent,
-  stripCustomAgentMention,
-} from '@/lib/services/plugin-custom-agents';
+  chatRateLimitResponse,
+  errorJson,
+  mapChatFailure,
+  mastraFailureResponse,
+  mutationDraftFailureResponse,
+} from './_lib/errors';
+import { parseChatRequest } from './_lib/request-validation';
+import { dispatchMastraRun } from './_lib/run-dispatch';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const ROUTE_TIMEOUT_MS = 55_000;
-const CHAT_RATE_LIMIT = Number(process.env.AI_CHAT_RATE_LIMIT ?? '30');
-
-const BodySchema = z.object({
-  threadId: z.uuid(),
-  modelOverride: z.string().min(1).max(120).nullable().optional(),
-  // Q2 decision: exactly two analysis modes; anything else fails validation.
-  analysisMode: z.enum(['single', 'full']).optional(),
-  /** Explicit standalone agent selection from the composer. */
-  agentSlug: z
-    .string()
-    .min(2)
-    .max(32)
-    .regex(/^[a-z][a-z0-9-]{1,31}$/)
-    .optional(),
-  messages: z
-    .array(
-      z.object({
-        id: z.string().max(200),
-        role: z.enum(['user', 'assistant', 'system']),
-        content: z.string().max(50_000, 'Message too long').default(''),
-        parts: z.array(z.unknown()).max(50, 'Too many message parts').default([]),
-      }),
-    )
-    .min(1)
-    .max(100, 'Too many messages'),
-});
-
-function errorJson(code: string, message: string, status: number): Response {
-  return Response.json({ error: { code, message } }, { status });
-}
-
-/** Only allow presentation preferences into the AI request boundary. */
-function sanitizeCustomInstructions(value: string): string | undefined {
-  const controlCharacters = new RegExp(
-    `[${String.fromCharCode(0)}-${String.fromCharCode(31)}${String.fromCharCode(127)}]`,
-    'g',
-  );
-  const normalized = value
-    .replace(controlCharacters, ' ')
-    .replace(/[<>]/g, '')
-    .trim()
-    .slice(0, 2_000);
-  if (!normalized) return undefined;
-  if (
-    /\b(?:ignore|system|developer|tool|function|execute|mutation|safety|policy|reveal|secret|memory|permission|instruction|jailbreak|override)\b/i.test(
-      normalized,
-    )
-  ) {
-    return undefined;
-  }
-  return normalized;
-}
-
-function mastraFailureResponse(error: unknown): Response {
-  const message =
-    process.env.NODE_ENV === 'production'
-      ? 'Mastra could not complete this request. Please try again.'
-      : error instanceof Error
-        ? error.message
-        : String(error);
-  return errorJson('MASTRA_FAILED', message, 502);
-}
-
 export const POST = withAuth<void>(async (req, { user }) => {
   const log = createRequestLogger(req, user);
   const rateLimit = await withRateLimit(user.userId, 'ai_chat', CHAT_RATE_LIMIT);
   if (!rateLimit.allowed) {
-    return Response.json(
-      {
-        error: {
-          code: 'RATE_LIMITED',
-          message: `Too many chat turns (${rateLimit.count}/${rateLimit.limit} per minute). Slow down.`,
-        },
-      },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': '60',
-          'X-RateLimit-Limit': String(rateLimit.limit),
-          'X-RateLimit-Remaining': '0',
-        },
-      },
-    );
+    return chatRateLimitResponse(rateLimit);
   }
 
-  let body: z.infer<typeof BodySchema>;
-  try {
-    body = await parseJsonBody(req, BodySchema);
-  } catch (error) {
-    return errorResponse(error);
-  }
-
-  const last = body.messages.at(-1);
-  if (!last || last.role !== 'user') {
-    return errorJson('VALIDATION', 'last message must be from the user', 400);
-  }
-  const userParts = UserMessagePartsSchema.safeParse(last.parts);
-  if (!userParts.success) {
-    return errorJson('VALIDATION', 'user message contains unsupported or malformed parts', 400);
-  }
-
-  let serverEnv: ReturnType<typeof getServerEnv>;
-  try {
-    serverEnv = getServerEnv();
-  } catch (error) {
-    return errorResponse(error);
-  }
-
-  const aiPrefsHeader = req.headers.get('X-AI-Prefs');
-  let customInstructions: string | undefined;
-  let responseStyle: 'default' | 'concise' | 'technical' | 'risk-first' = 'default';
-  let citeSources = false;
-  if (aiPrefsHeader) {
-    try {
-      const parsedPrefs = PresentationPreferencesSchema.safeParse(JSON.parse(aiPrefsHeader));
-      if (parsedPrefs.success) {
-        if (typeof parsedPrefs.data.customInstructions === 'string') {
-          customInstructions = sanitizeCustomInstructions(parsedPrefs.data.customInstructions);
-        }
-        responseStyle = parsedPrefs.data.responseStyle ?? 'default';
-        citeSources = parsedPrefs.data.citeSources ?? false;
-      }
-    } catch {
-      // Malformed optional preferences do not invalidate the chat request.
-    }
-  }
+  const parsed = await parseChatRequest(req);
+  if (!parsed.ok) return parsed.response;
+  const { body, serverEnv, userParts, last, customInstructions, responseStyle, citeSources } =
+    parsed.request;
 
   const thread = await getThread(user.userId, body.threadId);
   if (!thread) return errorJson('NOT_FOUND', 'Thread not found', 404);
 
   const rawMode = body.analysisMode ?? (thread.analysisMode === 'full' ? 'full' : 'single');
   const analysisMode: 'single' | 'full' = rawMode === 'full' ? 'full' : 'single';
-  const userMessage = { ...last, parts: userParts.data } as UIMessage;
+  const userMessage = { ...last, parts: userParts } as UIMessage;
   const userText = extractUserMessageText(userMessage);
   const resolvedMode = resolveMode(analysisMode, userText);
   // P2-01: the thread pin is a fallback for prompts that name no symbol, or
@@ -236,62 +102,19 @@ export const POST = withAuth<void>(async (req, { user }) => {
       409,
     );
   }
+
   // ── Standalone custom agents (`@handle` or an explicit composer pick) ──
-  // A user-authored agent is a separate Mastra agent, not a committee route.
-  // It is intercepted before the router so selection is deterministic and
-  // cheap; the normal guards (rate limit, onboarding, injection)
-  // still apply.
-  const agentMention = parseCustomAgentMention(userText);
-  const requestedAgentSlug = agentMention?.slug ?? body.agentSlug ?? null;
-  if (requestedAgentSlug) {
-    const runtime = await getInstalledPluginRuntime(user.userId);
-    const catalogsAvailable = hasUserAgentCatalogs(runtime);
-    if (catalogsAvailable || body.agentSlug) {
-      const descriptor = await resolveUserCustomAgent(runtime, requestedAgentSlug);
-      if (!descriptor) {
-        return errorJson(
-          'AGENT_NOT_FOUND',
-          `No custom agent @${requestedAgentSlug} was found. Open the Agent Studio to create it.`,
-          404,
-        );
-      }
-      if (isInjectionAttempt(userText)) {
-        return errorJson(
-          'READ_ONLY_REQUEST_REQUIRED',
-          'I can help with read-only research, but I cannot process instruction-overriding requests.',
-          422,
-        );
-      }
-
-      const prompt =
-        agentMention?.slug === descriptor.agent.slug
-          ? agentMention.prompt
-          : stripCustomAgentMention(userText, descriptor.agent.slug);
-      if (!prompt.trim()) {
-        return errorJson(
-          'VALIDATION',
-          `Add a question after @${descriptor.agent.slug}, e.g. "@${descriptor.agent.slug} review XAUUSD 15m".`,
-          400,
-        );
-      }
-
-      const timeout = AbortSignal.timeout(ROUTE_TIMEOUT_MS);
-      const signal = req.signal ? AbortSignal.any([req.signal, timeout]) : timeout;
-      return runCustomAgentStreamService({
-        userId: user.userId,
-        threadId: body.threadId,
-        userMessage,
-        prompt,
-        descriptor,
-        runtime,
-        ...(customInstructions ? { customInstructions } : {}),
-        ...(responseStyle !== 'default' ? { responseStyle } : {}),
-        citeSources,
-        ...(body.modelOverride !== undefined ? { modelOverride: body.modelOverride } : {}),
-        signal,
-      });
-    }
-  }
+  const agentResponse = await dispatchCustomAgent({
+    userId: user.userId,
+    threadId: body.threadId,
+    userMessage,
+    userText,
+    agentSlug: body.agentSlug,
+    modelOverride: body.modelOverride,
+    prefs: { customInstructions, responseStyle, citeSources },
+    requestSignal: req.signal,
+  });
+  if (agentResponse) return agentResponse;
 
   const provisionalReport =
     /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(
@@ -365,21 +188,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         });
         return Response.json(draft);
       } catch (error) {
-        if (error instanceof MutationExtractionError) {
-          return errorJson('MUTATION_EXTRACTION_FAILED', error.message, 422);
-        }
-        if (error instanceof Error && error.name === 'MastraMutationPolicyError') {
-          return errorJson('FORBIDDEN', error.message, 403);
-        }
-        log.error(
-          { err: String(error), threadId: body.threadId, mutation: mutationKind },
-          'Mutation draft failed',
-        );
-        return errorJson(
-          'MUTATION_DRAFT_FAILED',
-          'Could not prepare this mutation for confirmation.',
-          502,
-        );
+        return mutationDraftFailureResponse(error, log, body.threadId, mutationKind);
       }
     }
     // Fall through — even when mutations are enabled, if neither the model
@@ -397,209 +206,26 @@ export const POST = withAuth<void>(async (req, { user }) => {
   }
 
   try {
-    // A-01 (B-01/B-08): a prompt naming more symbols than the comparison cap
-    // is disambiguated at the boundary — never silently collapsed into a
-    // single-symbol run (same DX as the mutation confirmation flow).
-    if (mastraComparisonScope(userText).overflow) {
-      return errorJson(
-        'MULTI_SYMBOL_LIMIT',
-        `I can compare up to ${MAX_COMPARISON_SYMBOLS} symbols — which ones should I include?`,
-        422,
-      );
-    }
-
-    // Full mode remains durable: the web request enqueues a Mastra workflow
-    // run (pending snapshot) and the worker claims it. Q7 decision: the
-    // user's model override is serialized onto the queue payload through
-    // the execution plan's immutable model snapshot, and the worker resolves
-    // exactly that model from the row (no failover). If the override cannot
-    // be resolved at enqueue time, fail closed with a clear message.
-    if (executionPlan?.route === 'full-analysis') {
-      const settings = userSettings;
-      if (!settings) {
-        return errorJson('ONBOARDING_REQUIRED', 'User settings not found.', 409);
-      }
-      let resolvedModel: ReturnType<typeof resolveMastraModeModel>;
-      try {
-        resolvedModel = resolveMastraModeModel(
-          settings,
-          serverEnv,
-          body.modelOverride ?? null,
-          executionPlan,
-        );
-      } catch {
-        return errorJson(
-          'MODEL_OVERRIDE_UNAVAILABLE',
-          'The selected model is unavailable for durable Full analysis. Pick another model or run the request as Single instead.',
-          422,
-        );
-      }
-      const requestId = req.headers.get('x-request-id') ?? undefined;
-      return withDiagnostics(
-        user.userId,
-        body.threadId,
-        async () => {
-          try {
-            const runId = await enqueueFullAnalysis({
-              userId: user.userId,
-              threadId: body.threadId,
-              userMessageText: userText,
-              userMessageParts: userParts.data,
-              idempotencyKey: `full:${body.threadId}:${last.id}`,
-              traceId: traceIdStorage.getStore() ?? crypto.randomUUID(),
-              maxDailyUsd: settings.maxDailyUsd ?? serverEnv.MAX_DAILY_USD ?? 5,
-              modelSnapshot: {
-                modelId: resolvedModel.modelId,
-                providerId: resolvedModel.providerId,
-                bareModelId: resolvedModel.bareModelId,
-              },
-              providerMode: resolveProviderMode(settings.aiApiKeys, resolvedModel.modelId),
-              executionPlan: executionPlan ?? undefined,
-            });
-            if (!runId) {
-              log.error({ threadId: body.threadId }, 'Full-analysis queue enqueue failed');
-              return errorJson('INTERNAL', 'Failed to queue analysis job', 500);
-            }
-            return Response.json(
-              AnalysisQueuedEventSchema.parse({
-                type: 'analysis-queued',
-                jobId: runId,
-                status: 'queued',
-              }),
-            );
-          } catch (enqueueError) {
-            log.error(
-              { err: String(enqueueError), threadId: body.threadId },
-              'Full-analysis enqueue threw',
-            );
-            return errorJson('INTERNAL', 'Failed to queue analysis job.', 500);
-          }
-        },
-        requestId ? { requestId } : {},
-      );
-    }
-
-    const timeout = AbortSignal.timeout(ROUTE_TIMEOUT_MS);
-    const signal = req.signal ? AbortSignal.any([req.signal, timeout]) : timeout;
-    const symbol = executionPlan?.symbol ?? null;
-    const priorReport = executionPlan?.reportFollowup
-      ? extractLatestMastraReport(provisionalReport)
-      : null;
-
-    // Deep XAUUSD analysis and verified-report follow-ups retain their
-    // specialized packet/report verifier. This path is always preferred over
-    // generic chat when the request is clearly about XAUUSD.
-    //
-    // Verified reports (kind === 'research') stay buffered until verification
-    // completes. Ordinary XAUUSD conversation (kind === 'conversation') streams
-    // provider tokens immediately.
-    if (
-      executionPlan?.route === 'xauusd-conversation' ||
-      executionPlan?.route === 'xauusd-research'
-    ) {
-      const sharedInput = {
-        plan: executionPlan,
-        userId: user.userId,
-        threadId: body.threadId,
-        userMessage,
-        prompt: userText,
-        modelOverride: body.modelOverride ?? null,
-        signal,
-        backfillExcludeMessageIdempotencyKey: `ui:${userMessage.id}`,
-        ...(priorReport ? { priorReport } : {}),
-      };
-      // Awaited so provider/runner failures are caught by the Mastra failure
-      // boundary below rather than escaping the request as unhandled.
-      return executionPlan.route === 'xauusd-conversation'
-        ? await runConversationalTurn(sharedInput)
-        : await runResearchWorkflow({ ...sharedInput, symbol: symbol ?? 'XAUUSD' });
-    }
-
-    // A-01: bounded cross-symbol comparisons run the comparison graph —
-    // evidence for every named symbol, then a cross-symbol fusion. This
-    // takes precedence over both single-symbol paths in every mode.
-    if (executionPlan?.route === 'multi-symbol-research') {
-      const symbols = executionPlan.symbols;
-      if (symbols.length < 2) {
-        return errorJson('VALIDATION', 'A comparison needs at least two symbols.', 422);
-      }
-      return await runResearchWorkflow({
-        plan: executionPlan,
-        userId: user.userId,
-        threadId: body.threadId,
-        userMessage,
-        prompt: userText,
-        symbol: symbols[0]!,
-        symbols,
-        modelOverride: body.modelOverride ?? null,
-        signal,
-        backfillExcludeMessageIdempotencyKey: `mastra-mode:${body.threadId}:${userMessage.id}:user`,
-      });
-    }
-
-    // Quick and Standard modes use the bounded shared-packet Mastra mode
-    // workflow when the user has explicitly named a supported symbol.
-    // Symbol-free prompts in these modes fall through to canonical chat.
-    if (executionPlan?.route === 'symbol-research' && symbol !== null) {
-      return await runResearchWorkflow({
-        plan: executionPlan,
-        userId: user.userId,
-        threadId: body.threadId,
-        userMessage,
-        prompt: userText,
-        symbol,
-        modelOverride: body.modelOverride ?? null,
-        signal,
-        backfillExcludeMessageIdempotencyKey: `mastra-mode:${body.threadId}:${userMessage.id}:user`,
-      });
-    }
-
-    // Ordinary symbol-free conversation is handled by the streaming canonical
-    // Mastra agent, which owns the reviewed read-only Kestrel tool allowlist.
-    return await runConversationalTurn({
-      plan: executionPlan!,
+    return await dispatchMastraRun({
       userId: user.userId,
       threadId: body.threadId,
       userMessage,
-      prompt: userText,
-      modelOverride: body.modelOverride ?? null,
-      ...(customInstructions ? { customInstructions } : {}),
-      responseStyle,
-      citeSources,
-      signal,
+      userText,
+      userParts,
+      lastMessageId: last.id,
+      provisionalReport,
+      executionPlan,
+      userSettings,
+      serverEnv,
+      modelOverride: body.modelOverride,
+      prefs: { customInstructions, responseStyle, citeSources },
+      requestId: req.headers.get('x-request-id') ?? undefined,
+      log,
+      requestSignal: req.signal,
     });
   } catch (error) {
-    // Q4 decision: spend is ledger-only — a 429 is possible only when the
-    // operator explicitly set ENFORCE_BUDGET=true.
-    if (error instanceof BudgetExceededError && isBudgetEnforced()) {
-      return errorJson(
-        'BUDGET_EXCEEDED',
-        `Daily AI budget exceeded ($${error.spent.toFixed(2)} / $${error.max.toFixed(2)}). Resets at UTC midnight.`,
-        429,
-      );
-    }
-    if (error instanceof CanonicalEvidenceBlockedError) {
-      return errorJson('EVIDENCE_UNVERIFIED', error.message, 422);
-    }
-    // Audit plan §1.9: strict-mode guardrails fail closed when the injection
-    // detector model cannot be loaded — surface that as a retryable 503
-    // instead of a generic 500/502.
-    if (error instanceof GuardrailUnavailableError) {
-      return errorJson(
-        'GUARDRAIL_UNAVAILABLE',
-        'The prompt-injection guardrail is unavailable right now, so this request was rejected. Please try again shortly.',
-        503,
-      );
-    }
-    // Audit plan §1.9: Mastra's LLM injection backstop tripped the tripwire
-    // (guardrail strategy 'block') — a clean 422, not a raw stream error.
-    if (error instanceof TripWire) {
-      return errorJson(
-        'INJECTION_BLOCKED',
-        'I can help with read-only research, but I cannot process instruction-overriding requests. Please ask for a market explanation, analysis, or scenario review.',
-        422,
-      );
-    }
+    const mapped = mapChatFailure(error);
+    if (mapped) return mapped;
     log.error({ err: String(error), threadId: body.threadId }, 'Mastra chat failed');
     return mastraFailureResponse(error);
   }

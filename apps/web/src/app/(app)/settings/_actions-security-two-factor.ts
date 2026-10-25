@@ -1,0 +1,240 @@
+'use server';
+
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// SPDX-License-Identifier: Apache-2.0
+
+// Two-factor authentication actions: TOTP setup, backup-code regeneration,
+// verification, and disable.
+import { randomBytes } from 'node:crypto';
+
+import {
+  createAuditLog,
+  getDb,
+  getTwoFactorSecret,
+  schema,
+  setTwoFactorEnabled,
+  updateTwoFactorSecret,
+  withRateLimit,
+} from '@kestrel/db';
+import { decryptSecret, encryptSecret } from '@kestrel/shared/encryption';
+import bcrypt from 'bcryptjs';
+import { eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { generateSecret, generateURI, verifySync } from 'otplib';
+import QRCode from 'qrcode';
+
+import { auth } from '@/auth';
+import { logActionError } from '@/lib/http/action-errors';
+
+import { type ActionResult } from './_actions-shared';
+
+// Visually distinct alphabet: excludes , O, I, l and ambiguous characters.
+const BACKUP_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+/**
+ * P2-6: generate a fresh set of single-use TOTP backup codes.
+ * Returns { raw, hashed } so the raw codes can be shown once while only
+ * hashes are persisted.
+ */
+async function generateBackupCodes(): Promise<{ raw: string; hashed: string }[]> {
+  const codes: { raw: string; hashed: string }[] = [];
+  for (let i = 0; i < 10; i++) {
+    const bytes = randomBytes(10);
+    let raw = '';
+    for (const byte of bytes) {
+      raw += BACKUP_CODE_ALPHABET[byte % BACKUP_CODE_ALPHABET.length];
+    }
+    const hashed = await bcrypt.hash(raw, 10);
+    codes.push({ raw, hashed });
+  }
+  return codes;
+}
+
+/**
+ * Server action to generate a TOTP secret and return QR code data URL.
+ */
+export async function setupTwoFactorAction(): Promise<
+  ActionResult<{ secret: string; qrDataUrl: string; backupCodes: string[] }>
+> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: 'Unauthorized' };
+  }
+
+  const rl = await withRateLimit(session.user.id, 'settings_2fa_setup', 5);
+  if (!rl.allowed) {
+    return { ok: false, error: 'Too many requests. Try again later.' };
+  }
+
+  try {
+    const secret = generateSecret();
+    const service = 'Kestrel';
+    const otpauth = generateURI({
+      secret,
+      issuer: service,
+      label: session.user.email ?? session.user.id,
+    });
+    const qrDataUrl = await QRCode.toDataURL(otpauth);
+
+    const codes = await generateBackupCodes();
+
+    await updateTwoFactorSecret(session.user.id, encryptSecret(secret));
+    await getDb()
+      .update(schema.users)
+      .set({
+        twoFactorBackupCodes: codes.map((c) => c.hashed),
+        failed2faAttempts: 0,
+        twoFactorLockedUntil: null,
+      })
+      .where(eq(schema.users.id, session.user.id));
+
+    return { ok: true, data: { secret, qrDataUrl, backupCodes: codes.map((c) => c.raw) } };
+  } catch (err) {
+    logActionError(err, 'settings-action');
+    return { ok: false, error: 'Failed to generate 2FA setup' };
+  }
+}
+
+/**
+ * P2-6: Regenerate TOTP backup codes for an existing 2FA-enabled user.
+ * Returns the new raw codes so they can be displayed once.
+ */
+export async function regenerateBackupCodesAction(): Promise<
+  ActionResult<{ backupCodes: string[] }>
+> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: 'Unauthorized' };
+  }
+
+  const rl = await withRateLimit(session.user.id, 'settings_2fa_regenerate', 5);
+  if (!rl.allowed) {
+    return { ok: false, error: 'Too many requests. Try again later.' };
+  }
+
+  try {
+    const codes = await generateBackupCodes();
+    await getDb()
+      .update(schema.users)
+      .set({
+        twoFactorBackupCodes: codes.map((c) => c.hashed),
+        failed2faAttempts: 0,
+        twoFactorLockedUntil: null,
+      })
+      .where(eq(schema.users.id, session.user.id));
+
+    return { ok: true, data: { backupCodes: codes.map((c) => c.raw) } };
+  } catch (err) {
+    logActionError(err, 'settings-action');
+    return { ok: false, error: 'Failed to regenerate backup codes' };
+  }
+}
+
+/**
+ * Server action to verify a TOTP token and enable 2FA.
+ */
+export async function verifyTwoFactorAction(token: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: 'Unauthorized' };
+  }
+
+  const rl = await withRateLimit(session.user.id, 'settings_2fa_verify', 10);
+  if (!rl.allowed) {
+    return { ok: false, error: 'Too many requests. Try again later.' };
+  }
+
+  try {
+    const twoFactorSecret = await getTwoFactorSecret(session.user.id);
+    if (!twoFactorSecret) {
+      return { ok: false, error: 'No 2FA secret found. Start setup first.' };
+    }
+
+    const decryptedSecret = decryptSecret(twoFactorSecret);
+    if (!decryptedSecret) {
+      return { ok: false, error: '2FA secret is corrupted. Please disable and re-enable 2FA.' };
+    }
+
+    const isValid = verifySync({ secret: decryptedSecret, token }).valid;
+
+    if (!isValid) {
+      return { ok: false, error: 'Invalid code. Try again.' };
+    }
+
+    await setTwoFactorEnabled(session.user.id, true);
+
+    revalidatePath('/settings');
+    return { ok: true };
+  } catch (err) {
+    logActionError(err, 'settings-action');
+    return { ok: false, error: 'Failed to verify 2FA code' };
+  }
+}
+
+/**
+ * Server action to disable 2FA (requires current TOTP code).
+ */
+export async function disableTwoFactorAction(token: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: 'Unauthorized' };
+  }
+
+  const rl = await withRateLimit(session.user.id, 'settings_2fa_disable', 5);
+  if (!rl.allowed) {
+    return { ok: false, error: 'Too many requests. Try again later.' };
+  }
+
+  try {
+    const twoFactorSecret = await getTwoFactorSecret(session.user.id);
+    if (!twoFactorSecret) {
+      return { ok: false, error: '2FA is not configured' };
+    }
+
+    const decryptedSecret = decryptSecret(twoFactorSecret);
+    if (!decryptedSecret) {
+      return { ok: false, error: '2FA secret is corrupted. Please disable and re-enable 2FA.' };
+    }
+
+    const isValid = verifySync({ secret: decryptedSecret, token }).valid;
+
+    if (!isValid) {
+      return { ok: false, error: 'Invalid code. Try again.' };
+    }
+
+    await updateTwoFactorSecret(session.user.id, null);
+    await getDb()
+      .update(schema.users)
+      .set({
+        twoFactorBackupCodes: null,
+        failed2faAttempts: 0,
+        twoFactorLockedUntil: null,
+      })
+      .where(eq(schema.users.id, session.user.id));
+    await setTwoFactorEnabled(session.user.id, false);
+
+    // FEAT-03: Audit log for 2FA disabled
+    await createAuditLog(session.user.id, '2fa_disabled');
+
+    revalidatePath('/settings');
+    return { ok: true };
+  } catch (err) {
+    logActionError(err, 'settings-action');
+    return { ok: false, error: 'Failed to disable 2FA' };
+  }
+}

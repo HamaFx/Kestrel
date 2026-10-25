@@ -28,7 +28,7 @@
  *     the level for the matching direction. "above" fires when the
  *     candle's high >= level; "below" fires when the candle's low
  *     <= level. This matches the live evaluator's behavior in
- *     packages/ai/src/alerts/evaluator.ts.
+ *     packages/ai/src/alerts/evaluator/evaluate.ts.
  *   - candleClose: a candle fires if its close satisfies the rule.
  *   - indicatorCross: not supported. The plan marks this as
  *     "best-effort" — the live evaluator needs a baseline value

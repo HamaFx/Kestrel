@@ -43,24 +43,25 @@ export function AnimatedNumber({ value, decimals = 2, className }: AnimatedNumbe
   const reducedMotion = useReducedMotion();
   const [display, setDisplay] = useState(value.toFixed(decimals));
 
+  // Single animation effect:
+  // - push the new value into the spring source,
+  // - under reduced motion, jump straight to the exact display value, and
+  // - otherwise subscribe to spring frames (bailing out when the rounded
+  //   display stops changing).
   useEffect(() => {
     motionValue.set(value);
-  }, [motionValue, value]);
 
-  useEffect(() => {
     if (reducedMotion) {
       setDisplay(value.toFixed(decimals));
+      return;
     }
-  }, [value, decimals, reducedMotion]);
 
-  useEffect(() => {
-    if (reducedMotion) return;
     const unsubscribe = spring.on('change', (latest) => {
       const next = latest.toFixed(decimals);
       setDisplay((prev) => (prev === next ? prev : next));
     });
     return unsubscribe;
-  }, [spring, decimals, reducedMotion]);
+  }, [motionValue, spring, value, decimals, reducedMotion]);
 
   return <span className={className}>{display}</span>;
 }

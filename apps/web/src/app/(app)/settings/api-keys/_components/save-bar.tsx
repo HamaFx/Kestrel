@@ -47,38 +47,38 @@ export function SaveBar({ action, preservedPrompt, children }: SaveBarProps) {
   const lastErrorSeen = useRef<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
-  // Success toast — dedupe so React strict-mode re-renders don't toast twice.
+  // Save outcome toasts + unsaved-changes guard. One effect keeps the
+  // success/error dedupe refs and the dirty flag in lockstep, so a save
+  // that lands while the form is dirty clears the flag and the
+  // beforeunload listener together.
   useEffect(() => {
-    if (!('ok' in state) || !state.ok) return;
-    if (lastSeenAt.current === state.data.at) return;
-    lastSeenAt.current = state.data.at;
-    if (state.data.savedCount === 0 && state.data.clearedCount === 0) {
-      return;
+    if ('ok' in state && state.ok) {
+      // Success toast — dedupe so React strict-mode re-renders don't toast twice.
+      if (lastSeenAt.current !== state.data.at) {
+        lastSeenAt.current = state.data.at;
+        if (state.data.savedCount > 0 || state.data.clearedCount > 0) {
+          if (state.data.savedCount === 0) {
+            toast.success(
+              `Cleared ${state.data.clearedCount} provider${state.data.clearedCount === 1 ? '' : 's'}`,
+            );
+          } else {
+            const clearedSuffix =
+              state.data.clearedCount > 0 ? `, cleared ${state.data.clearedCount}` : '';
+            toast.success(
+              `Saved ${state.data.savedCount} provider${state.data.savedCount === 1 ? '' : 's'}${clearedSuffix}`,
+            );
+          }
+          setIsDirty(false);
+        }
+      }
+    } else if ('ok' in state) {
+      // Error toast.
+      if (lastErrorSeen.current !== state.error) {
+        lastErrorSeen.current = state.error;
+        toast.error(`Save failed: ${state.error}`);
+      }
     }
-    if (state.data.savedCount === 0) {
-      toast.success(
-        `Cleared ${state.data.clearedCount} provider${state.data.clearedCount === 1 ? '' : 's'}`,
-      );
-    } else {
-      const clearedSuffix =
-        state.data.clearedCount > 0 ? `, cleared ${state.data.clearedCount}` : '';
-      toast.success(
-        `Saved ${state.data.savedCount} provider${state.data.savedCount === 1 ? '' : 's'}${clearedSuffix}`,
-      );
-    }
-    setIsDirty(false);
-  }, [state]);
 
-  // Error toast.
-  useEffect(() => {
-    if (!('ok' in state) || state.ok) return;
-    if (lastErrorSeen.current === state.error) return;
-    lastErrorSeen.current = state.error;
-    toast.error(`Save failed: ${state.error}`);
-  }, [state]);
-
-  // Unsaved changes beforeunload warning
-  useEffect(() => {
     if (!isDirty) return;
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -87,7 +87,7 @@ export function SaveBar({ action, preservedPrompt, children }: SaveBarProps) {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isDirty]);
+  }, [state, isDirty]);
 
   const handleFormChange = () => {
     setIsDirty(true);

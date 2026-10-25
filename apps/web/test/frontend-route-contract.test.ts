@@ -25,8 +25,10 @@ import { describe, expect, it } from 'vitest';
 const root = resolve(process.cwd(), '../..');
 const read = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
 
-const navSource = read('apps/web/src/components/layout/nav-drawer.tsx');
-const settingsNavSource = read('apps/web/src/app/(app)/settings/_components/settings-nav.tsx');
+const navSource = read('apps/web/src/components/layout/nav-items.ts');
+const settingsNavSource = read(
+  'apps/web/src/app/(app)/settings/_components/settings-nav/nav-groups.ts',
+);
 const commandsSource = read('apps/web/src/lib/commands.ts');
 const watchlistSource = read(
   'apps/web/src/app/(app)/dashboard/_components/widgets/watchlist-widget.tsx',
