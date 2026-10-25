@@ -23,7 +23,7 @@ import {
   renderThreadToMarkdown,
   type ExportMessage,
   type ExportThread,
-} from '../src/lib/thread-export';
+} from '../src/lib/formatters/thread-export';
 
 const NOW_ISO = '2026-06-20T12:00:00.000Z';
 const NOW = new Date(NOW_ISO);

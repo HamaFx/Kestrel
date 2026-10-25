@@ -27,7 +27,7 @@
 // useState read per navigation — negligible, and well worth the
 // simplicity vs. a route-group restructure.
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import { NavTrigger } from './nav-trigger';
 import { useShellRoute } from './shell-route-context';

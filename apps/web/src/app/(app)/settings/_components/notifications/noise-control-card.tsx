@@ -35,8 +35,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Switch } from '@/components/ui/switch';
-import { apiFetch, apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiFetch, apiMutate } from '@/lib/http/api-client';
 
 const SEVERITY_OPTIONS: { value: Severity; label: string }[] = [
   { value: 'info', label: 'Info' },

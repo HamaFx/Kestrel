@@ -44,7 +44,7 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core';
  *
  *   chatThreads, chatTelemetry, chatToolTelemetry, alerts,
  *   journalEntries, memoryEmbeddings, pushSubscriptions,
- *   sharedSnapshots, userSymbols, agentOpinions, portfolioPositions, portfolioSettings,
+ *   sharedSnapshots, userSymbols, agentOpinions,
  *   notificationNoiseState, botLinks, providerTests, briefingsEmitted,
  *   dailyAiSpend, userSessions, rateLimits, auditLogs, userSettings.
  *

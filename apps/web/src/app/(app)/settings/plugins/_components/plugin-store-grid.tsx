@@ -51,8 +51,8 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { ApiError, apiFetch, apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { ApiError, apiFetch, apiMutate } from '@/lib/http/api-client';
 import {
   PLUGIN_CATEGORY_LABELS,
   PLUGIN_CATEGORY_ORDER,

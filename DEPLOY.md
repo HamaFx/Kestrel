@@ -66,27 +66,13 @@ If you prefer running on Google Cloud's **$0/month Always Free** tier (or switch
 
 ---
 
-## Billing (optional)
+## BYOK and local spend budgets
 
-Billing is off unless `BILLING_ENABLED=1`. The locked decisions and full
-variable list live in `docs/configuration.md`.
+No payment gateway, subscription, or credit wallet is required. Provide user
+BYOK keys through `/settings/models`; model spend is tracked locally in USD.
 
-- **Self-host:** keep `BILLING_MODE=selfhost`, provide user BYOK keys, and
-  leave Stripe unset. NOWPayments is optional.
-- **SaaS:** set `BILLING_MODE=saas`, `BILLING_PROVIDER=stripe`, and
-  `BILLING_STRIPE_ENABLED=1`. Provide `STRIPE_SECRET_KEY`,
-  `STRIPE_WEBHOOK_SECRET`, and `ADMIN_DATABASE_URL` (BYPASSRLS — required for
-  cross-tenant webhook customer lookups).
-- Create Stripe products/prices for Starter/Pro/Scale and set
-  `plans.stripe_price_id` (and yearly ids). Create top-up prices and set
-  `credit_topup_products.stripe_price_id`.
-- Point the Stripe webhook at `POST /api/billing/webhook` and enable the
-  events listed in `docs/configuration.md`.
-- Run `pnpm --filter @kestrel/db migrate:apply` before enabling the flag. Apply
-  the seed catalogue with `pnpm --filter @kestrel/db seed:billing` if the
-  migration seed was skipped.
-- Keep `CREDITS_ENFORCEMENT_ENABLED=0` for at least one week of shadow
-  metering, verify `credits_estimated` vs reconciled burn, then enable 402
-  enforcement.
-- Schedule `GET /api/cron/billing-reconcile` (6h) and
-  `GET /api/cron/credit-reclaim` (30m) with `CRON_SECRET`.
+- Set `MAX_DAILY_USD` for the default per-user daily ceiling.
+- Budget enforcement is off by default (ledger-only). Set
+  `ENFORCE_BUDGET=true` to reject over-cap turns with HTTP 429.
+- `ai_budget_reservations` and `daily_ai_spend` are swept by the standard
+  retention job; no billing cron or webhook is needed.

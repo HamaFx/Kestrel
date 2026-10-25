@@ -188,12 +188,12 @@ try {
     });
   }
 
-  const requiredTables = ['telegram_updates'];
+  const requiredTables = [];
   const tableRows = await sql`
     SELECT table_name
     FROM information_schema.tables
     WHERE table_schema = 'public'
-      AND table_name IN ('telegram_updates')
+      AND table_name IN ('__none__')
   `;
   const existingTables = new Set(tableRows.map((row) => row.table_name));
   const missingTables = requiredTables.filter((name) => !existingTables.has(name));

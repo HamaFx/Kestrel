@@ -26,7 +26,7 @@ import {
   resolveOverrideModel,
   resolveVisionModel,
   testProviderKey,
-} from '../src/model';
+} from '../src/models/model';
 
 vi.mock('server-only', () => ({}));
 

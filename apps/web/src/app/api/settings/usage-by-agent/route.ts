@@ -33,7 +33,7 @@
 
 import { and, eq, gte, sql } from 'drizzle-orm';
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { getDb, requireTenantIdForUser, schema } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

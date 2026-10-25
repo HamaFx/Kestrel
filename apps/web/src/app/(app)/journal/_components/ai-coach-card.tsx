@@ -28,8 +28,8 @@ import {
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/cn';
-import { fetchCsrf } from '@/lib/csrf';
+import { fetchCsrf } from '@/lib/auth/csrf';
+import { cn } from '@/lib/formatters/cn';
 
 interface AiCoachCardProps {
   stats: JournalStats;

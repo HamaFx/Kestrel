@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { cleanTitleForPersistence, deterministicFallbackTitle } from '@kestrel/ai/mastra';
+import { cleanTitleForPersistence, deterministicFallbackTitle } from '@kestrel/ai/mastra-v2';
 import { describe, expect, it } from 'vitest';
 
 describe('deterministicFallbackTitle', () => {

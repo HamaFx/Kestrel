@@ -18,7 +18,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { checkAllUsageAlerts, resetSentAlerts } from '../src/lib/usage-alerts';
+import { checkAllUsageAlerts, resetSentAlerts } from '../src/lib/services/usage-alerts';
 
 const mockGetUserWithSettings = vi.hoisted(() => vi.fn());
 const mockListAllUserSettings = vi.hoisted(() => vi.fn());

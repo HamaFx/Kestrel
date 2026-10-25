@@ -36,9 +36,9 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ServerEnv, Symbol, ThreadInsight } from '@kestrel/shared';
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 
-import { dailySpendUsd } from '../cost';
-import { getDb } from '../db';
-import { embedTexts, vectorLiteral } from '../embeddings';
+import { dailySpendUsd } from '../budget/cost';
+import { embedTexts, vectorLiteral } from '../models/embeddings';
+import { getDb } from '../runtime/db';
 
 export type MemoryKind = 'journal' | 'briefing' | 'thread_synopsis';
 

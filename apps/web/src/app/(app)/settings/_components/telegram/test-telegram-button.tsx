@@ -23,7 +23,7 @@ import { useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { ApiError, apiMutate } from '@/lib/api-client';
+import { ApiError, apiMutate } from '@/lib/http/api-client';
 
 interface SuccessBody {
   id?: string | null;

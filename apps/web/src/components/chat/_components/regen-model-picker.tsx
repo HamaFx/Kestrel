@@ -19,7 +19,7 @@ import type { CatalogResponse } from '@kestrel/shared';
 import { IconCircleCheck, IconLoader2 } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { apiFetch } from '@/lib/api-client';
+import { apiFetch } from '@/lib/http/api-client';
 
 import { modelSelectionMatches, toChatModelValue, toQualifiedModelId } from './model-picker-utils';
 

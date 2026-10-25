@@ -38,7 +38,6 @@ describe('retention cleanup', () => {
     vi.stubEnv('TELEMETRY_RETENTION_DAYS', '-1');
     vi.stubEnv('TRACE_RETENTION_DAYS', '99999');
     vi.stubEnv('RATE_LIMIT_RETENTION_HOURS', '0');
-    vi.stubEnv('BILLING_WEBHOOK_DLQ_RETENTION_DAYS', '-1');
     vi.stubEnv('AI_EVALUATION_RETENTION_DAYS', '-1');
     vi.stubEnv('OBSERVATIONAL_MEMORY_RETENTION_DAYS', '-1');
 
@@ -46,7 +45,6 @@ describe('retention cleanup', () => {
       telemetryRetentionDays: 90,
       traceRetentionDays: 30,
       rateLimitRetentionHours: 2,
-      billingWebhookDlqRetentionDays: 90,
       aiEvaluationRetentionDays: 90,
       observationalMemoryRetentionDays: 90,
     });
@@ -61,15 +59,14 @@ describe('retention cleanup', () => {
       cronRunRetentionDays: 1,
       outboxRetentionDays: 1,
       analysisJobRetentionDays: 1,
-      billingWebhookDlqRetentionDays: 1,
       aiEvaluationRetentionDays: 1,
       budgetReservationRetentionDays: 1,
       observationalMemoryRetentionDays: 1,
     });
 
-    // 17 batched deletes + the observational-memory existence check (the
+    // 13 batched deletes + the observational-memory existence check (the
     // mocked driver result has no rows, so the delete is skipped).
-    expect(execute).toHaveBeenCalledTimes(18);
+    expect(execute).toHaveBeenCalledTimes(14);
     expect(result).toMatchObject({
       telemetryDeleted: 2,
       toolTelemetryDeleted: 2,
@@ -79,19 +76,14 @@ describe('retention cleanup', () => {
       cronRunsDeleted: 2,
       outboxDeleted: 2,
       fullAnalysisQueueDeleted: 2,
-      billingWebhookDlqDeleted: 2,
       aiShadowComparisonsDeleted: 2,
       aiQualityResultsDeleted: 2,
       budgetReservationsDeleted: 2,
-      telegramUpdatesDeleted: 2,
       sharedSnapshotsDeleted: 2,
       notificationNoiseStateDeleted: 2,
       mastraObservationalMemoryDeleted: 0,
-      creditLedgerDeleted: 2,
-      billingEventsDeleted: 2,
     });
     expect(result.note).toContain('fullAnalysisQueueDeleted=2');
-    expect(result.note).toContain('billingWebhookDlqDeleted=2');
     expect(result.note).toContain('aiShadowComparisonsDeleted=2');
     expect(result.note).toContain('aiQualityResultsDeleted=2');
   });
@@ -101,7 +93,7 @@ describe('retention cleanup', () => {
 
     await runRetentionCleanup({ telemetryRetentionDays: 1 });
 
-    expect(execute).toHaveBeenCalledTimes(18);
+    expect(execute).toHaveBeenCalledTimes(14);
   });
 
   it('prunes dormant Mastra observational-memory rows when the table exists (audit v2 §4.4)', async () => {

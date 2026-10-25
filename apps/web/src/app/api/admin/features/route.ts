@@ -20,8 +20,8 @@
 
 import { z } from 'zod';
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { parseJsonBody } from '@/lib/api';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { parseJsonBody } from '@/lib/http/api';
 import { listFeaturesService, upsertFeaturesService } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';

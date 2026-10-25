@@ -28,7 +28,7 @@ import { m } from 'motion/react';
 import { useId, useState } from 'react';
 
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 const MotionCard = m.create(Card);
 

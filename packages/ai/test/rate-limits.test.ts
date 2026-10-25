@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { extractRateLimits, type RateLimitData } from '../src/rate-limits';
+import { extractRateLimits, type RateLimitData } from '../src/budget/rate-limits';
 
 const CASES: Array<{
   label: string;

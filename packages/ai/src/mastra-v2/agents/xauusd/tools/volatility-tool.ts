@@ -18,10 +18,11 @@ import { ForecastVolatilityInputSchema, ForecastVolatilityOutputSchema } from '@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { forecastVolatilityTool } from '@ai/tools/forecast-volatility';
 import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
 import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
 import { XAUUSD } from '@ai/mastra-v2/shared/types';
+import { forecastVolatilityTool } from '@ai/tools/forecast-volatility';
+
 import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 import { XauusdSymbolSchema } from '../tool-schemas';
 

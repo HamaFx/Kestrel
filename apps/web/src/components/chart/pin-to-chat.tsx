@@ -37,7 +37,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Tooltip } from '@/components/ui/tooltip';
-import { apiMutate } from '@/lib/api-client';
+import { apiMutate } from '@/lib/http/api-client';
 
 export interface PinToChatProps {
   symbol: Symbol;

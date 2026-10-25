@@ -29,7 +29,7 @@ import {
   defaultModelFor,
   getProvider,
   providerCapabilities,
-} from '../src/byok-providers';
+} from '../src/models/byok-providers';
 
 describe('BYOK_PROVIDERS', () => {
   it('contains every id from PROVIDER_IDS', () => {

@@ -25,7 +25,7 @@
 // Calls `emitWeeklyReview` exactly once. Idempotent within an ISO week
 // via `briefings_emitted` PK on (`weekly_review:<isoWeek>`, 'weekly_review').
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { emitWeeklyReview, getActiveUserIds } from '@/lib/services/api-boundary';
 

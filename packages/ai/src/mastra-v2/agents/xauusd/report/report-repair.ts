@@ -15,6 +15,7 @@
  */
 
 import type { XauusdResearchPacket } from '@ai/mastra-v2/packets/research-types';
+
 import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-types';
 import { verifyXauusdReport } from './report-verifier';
 

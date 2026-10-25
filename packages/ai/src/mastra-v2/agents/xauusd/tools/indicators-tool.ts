@@ -20,6 +20,7 @@ import { createTool } from '@mastra/core/tools';
 import { buildIndicatorsEvidence } from '@ai/mastra-v2/packets/evidence-builders';
 import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
 import { XauusdIndicatorsEvidenceSchema } from '@ai/mastra-v2/shared/types';
+
 import { XauusdIndicatorsInputSchema } from '../tool-schemas';
 
 export const xauusdIndicatorsTool = createTool({

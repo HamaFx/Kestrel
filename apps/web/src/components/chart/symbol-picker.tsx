@@ -25,7 +25,7 @@ import { useMemo, useState } from 'react';
 
 import { Segmented } from '@/components/ui/segmented';
 import { useTimeframe } from '@/hooks/use-tf';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist: string[] }) {
   const [tf] = useTimeframe();

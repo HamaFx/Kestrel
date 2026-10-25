@@ -24,8 +24,8 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { cn } from '@/lib/cn';
 import { getServerEnv } from '@/lib/env';
+import { cn } from '@/lib/formatters/cn';
 
 import { EnableWebPushButton } from '../_components/notifications/enable-web-push-button';
 import { NoiseControlCard } from '../_components/notifications/noise-control-card';
@@ -33,7 +33,6 @@ import { NotificationPrefsCard } from '../_components/notifications/notification
 import { TestEmailButton } from '../_components/notifications/test-email-button';
 import { RowDivider } from '../_components/row-divider';
 import { SettingsRow } from '../_components/settings-row';
-import { TelegramLinkCard } from '../_components/telegram/telegram-link-card';
 import { TestTelegramButton } from '../_components/telegram/test-telegram-button';
 
 export const metadata: Metadata = {
@@ -133,18 +132,6 @@ export default async function NotificationsPage() {
           stack
           action={<TestTelegramButton />}
         />
-      </section>
-
-      {/* Telegram Bot Linking Card */}
-      <section className="surface-panel space-y-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
-        <div className="flex items-center gap-2">
-          <IconMessageCircle className="text-brand size-5" />
-          <h3 className="text-base font-semibold">Telegram Bot Connection</h3>
-        </div>
-        <p className="text-fg-subtle text-xs">
-          Connect your Telegram account to receive instant price and indicator alerts on your phone.
-        </p>
-        <TelegramLinkCard />
       </section>
 
       <NoiseControlCard initialConfig={noiseConfig ?? null} />

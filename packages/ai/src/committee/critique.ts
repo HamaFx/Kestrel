@@ -39,13 +39,14 @@ import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
-import { estimateCostUsd } from '../cost';
-import { classifyStreamError } from '../fallback';
-import type { GenerationLedger } from '../generation-ledger';
+import { estimateCostUsd } from '../budget/cost';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import { getMastraGenerationStats } from '../mastra-v2/shared/telemetry';
+import { classifyStreamError } from '../models/fallback';
+import type { GenerationLedger } from '../persistence/generation-ledger';
 import { critiqueInstructionsForRequest, debateRevisionInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, SPECIALIST_DEFINITIONS } from './specialists';
+import { jsonPromptInjectionForModel } from './structured-output';
 import {
   CommitteeCritiqueSchema,
   contextWithPacket,
@@ -59,7 +60,6 @@ import {
   type MastraSpecialistName,
   type ModeRequestContext,
 } from './types';
-import { jsonPromptInjectionForModel } from './structured-output';
 import { verifyMastraOpinion } from './verifier';
 
 /** Typed output of the critique step (mirrors the specialist marker shape). */

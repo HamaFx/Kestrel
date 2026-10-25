@@ -22,7 +22,7 @@
 // Renders nothing when fewer than 2 points are available (a flat line is
 // not useful information).
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface SparklineProps {
   values: readonly number[];

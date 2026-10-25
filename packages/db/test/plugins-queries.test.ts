@@ -22,7 +22,7 @@
 import { getTableConfig, text } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
-import { createPluginTable, pluginStorage, userInstalledPlugins } from '../src/schema/plugins';
+import { createPluginTable, pluginStorage, userInstalledPlugins } from '../src/schema/ops/plugins';
 
 describe('plugin schema', () => {
   it('keys installations by (user_id, plugin_id) and enables RLS', () => {

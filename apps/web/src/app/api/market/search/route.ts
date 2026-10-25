@@ -20,7 +20,7 @@
 
 import { z } from 'zod';
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { checkMarketRateLimit, searchSymbolsService } from '@/lib/services/market';
 
 const QuerySchema = z.object({

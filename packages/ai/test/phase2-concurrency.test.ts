@@ -16,9 +16,9 @@ import {
   releaseAlertDeliveryClaim,
 } from '../src/alerts/persistence';
 import { getOrCreateBriefingsThread } from '../src/briefings/persistence';
-import { getDb } from '../src/db';
+import { getDb } from '../src/runtime/db';
 
-vi.mock('../src/db', () => ({
+vi.mock('../src/runtime/db', () => ({
   getDb: vi.fn(),
 }));
 

@@ -41,8 +41,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { usePrices } from '@/hooks/use-prices';
-import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/formatters/cn';
+import { formatRelative } from '@/lib/formatters/format';
 
 interface OpenPositionsWidgetProps {
   entries: readonly JournalEntry[];

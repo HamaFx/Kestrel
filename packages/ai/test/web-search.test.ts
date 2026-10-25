@@ -16,7 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { withToolContext, type ToolContext } from '../src/tool-context';
+import { withToolContext, type ToolContext } from '../src/runtime/tool-context';
 import {
   buildSearchCacheKey,
   normalizeWebSearchResults,

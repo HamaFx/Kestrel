@@ -33,8 +33,8 @@ import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { Input } from '@/components/ui/input';
 import { ProviderInfoDot } from '@/components/ui/provider-info-dot';
-import { apiMutate } from '@/lib/api-client';
-import { formatRelative } from '@/lib/format';
+import { formatRelative } from '@/lib/formatters/format';
+import { apiMutate } from '@/lib/http/api-client';
 
 import { ProviderLogo } from './provider-logo';
 import { SETUP_INSTRUCTIONS } from './provider-setup-instructions';

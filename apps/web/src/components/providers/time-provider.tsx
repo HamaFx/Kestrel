@@ -21,7 +21,7 @@
 // Also exposes a reduced-motion flag for motion-sensitive components.
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { formatRelative } from '@/lib/format';
+import { formatRelative } from '@/lib/formatters/format';
 
 interface TimeContextValue {
   now: number;

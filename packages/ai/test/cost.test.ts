@@ -33,7 +33,7 @@ import {
   resolveModelRate,
   tryReserveBudget,
   UnknownModelPricingError,
-} from '../src/cost';
+} from '../src/budget/cost';
 
 vi.mock('server-only', () => ({}));
 

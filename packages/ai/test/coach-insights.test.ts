@@ -26,7 +26,7 @@ vi.mock('@kestrel/shared/encryption', () => ({
   PROVIDER_IDS: ['google', 'anthropic'],
 }));
 
-vi.mock('../src/cost', () => ({
+vi.mock('../src/budget/cost', () => ({
   DEFAULT_MAX_DAILY_USD: 10,
   DEFAULT_TURN_ESTIMATE_USD: 0.01,
   BudgetExceededError: class BudgetExceededError extends Error {},
@@ -40,7 +40,7 @@ vi.mock('../src/cost', () => ({
   estimateKnownCostUsd: vi.fn().mockReturnValue(0.002),
 }));
 
-vi.mock('../src/model', () => ({
+vi.mock('../src/models/model', () => ({
   resolveChatModel: vi.fn().mockReturnValue({ model: {}, modelId: 'google:gemini-2.5-flash' }),
 }));
 

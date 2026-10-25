@@ -24,7 +24,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deliverAlert } from '../src/alerts/delivery';
 import { markFiredForAlert } from '../src/alerts/persistence';
 import { getNoiseConfig } from '../src/notifications/noise-state';
-import { sendTextMessage } from '../src/telegram/client';
+
+const pluginMocks = vi.hoisted(() => ({
+  deliver: vi.fn(async () => ({ ok: true })),
+  getAlertChannel: vi.fn((id: string) =>
+    id === 'telegram-bot' ? { pluginId: 'telegram-bot', deliver: pluginMocks.deliver } : undefined,
+  ),
+}));
 
 const noiseMocks = vi.hoisted(() => ({
   hasSeen: vi.fn(async (_dedupKey: string, _ttlSeconds: number): Promise<boolean> => false),
@@ -47,8 +53,22 @@ vi.mock('../src/push/send', () => ({
   sendWebPush: vi.fn(async () => ({ ok: true })),
 }));
 
-vi.mock('../src/telegram/client', () => ({
-  sendTextMessage: vi.fn(async () => ({ message_id: 1 })),
+vi.mock('@kestrel/plugin-sdk', async (importOriginal) => {
+  const actual = await importOriginal<object>();
+  return { ...actual, pluginHost: { getAlertChannel: pluginMocks.getAlertChannel } };
+});
+
+vi.mock('../src/plugins', () => ({
+  getInstalledPluginRuntime: vi.fn(async () => ({
+    userId: 'user-1',
+    tenantId: 'tenant-1',
+    installedPluginIds: ['telegram-bot'],
+    plugins: [{ pluginId: 'telegram-bot', settings: { botToken: 'tg-token', linkedChatId: '42' } }],
+  })),
+  createPluginExecutionContext: vi.fn(() => ({
+    settings: {},
+    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  })),
 }));
 
 vi.mock('../src/notifications/noise-state', () => ({
@@ -103,7 +123,8 @@ describe('deliverAlert — noise control (audit plan §1.11 / P1-16)', () => {
     vi.mocked(getNoiseConfig).mockClear();
     vi.mocked(getNoiseConfig).mockResolvedValue({ ...DEFAULT_NOISE_CONFIG });
     vi.mocked(markFiredForAlert).mockClear();
-    vi.mocked(sendTextMessage).mockClear();
+    pluginMocks.deliver.mockClear();
+    pluginMocks.getAlertChannel.mockClear();
   });
 
   afterEach(() => {
@@ -208,7 +229,8 @@ describe('deliverAlert — channel iteration (audit plan §1.11 / P1-17)', () =>
     vi.mocked(getNoiseConfig).mockClear();
     vi.mocked(getNoiseConfig).mockResolvedValue({ ...DEFAULT_NOISE_CONFIG });
     vi.mocked(markFiredForAlert).mockClear();
-    vi.mocked(sendTextMessage).mockClear();
+    pluginMocks.deliver.mockClear();
+    pluginMocks.getAlertChannel.mockClear();
   });
 
   afterEach(() => {
@@ -216,20 +238,18 @@ describe('deliverAlert — channel iteration (audit plan §1.11 / P1-17)', () =>
   });
 
   it('skips an unconfigured channel instead of stopping the loop', async () => {
-    // Email is listed first but not configured; Telegram is. The old
-    // "not configured" short-circuit never reached Telegram.
+    // Email is listed first but not configured; the Telegram plugin channel
+    // is installed and linked. The old "not configured" short-circuit never
+    // reached Telegram.
     const result = await deliverAlert({
       alert: makeAlert(['email', 'telegram']),
       reading: { value: 2_450, source: 'test' },
-      env: {
-        TELEGRAM_BOT_TOKEN: 'tg-token',
-        TELEGRAM_CHAT_ID: '42',
-      },
+      env: {},
     });
 
     expect(result.ok).toBe(true);
     expect(result.channel).toBe('telegram');
-    expect(sendTextMessage).toHaveBeenCalledTimes(1);
+    expect(pluginMocks.deliver).toHaveBeenCalledTimes(1);
     expect(markFiredForAlert).toHaveBeenCalledTimes(1);
   });
 
@@ -245,6 +265,7 @@ describe('deliverAlert — channel iteration (audit plan §1.11 / P1-17)', () =>
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.ok).toBe(true);
     expect(result.channel).toBe('telegram');
+    expect(pluginMocks.deliver).toHaveBeenCalledTimes(1);
   });
 
   it('returns the informative result when every configured channel is missing', async () => {

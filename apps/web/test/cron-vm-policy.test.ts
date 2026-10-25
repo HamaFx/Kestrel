@@ -116,21 +116,18 @@ describe('cron VM operational policy', () => {
     expect(sudoers).toContain('/usr/local/sbin/kestrel-sync-systemd-units');
   });
 
-  it('keeps the billing DLQ and AI evaluation retention defaults in the worker contract', () => {
+  it('keeps AI evaluation retention defaults in the worker contract', () => {
     const workerEnv = read('apps/worker/src/env.ts');
-    expect(workerEnv).toContain('BILLING_WEBHOOK_DLQ_RETENTION_DAYS');
+    expect(workerEnv).not.toContain('BILLING_WEBHOOK_DLQ_RETENTION_DAYS');
     expect(workerEnv).toContain('AI_EVALUATION_RETENTION_DAYS');
     // Zod 4 maps `.default()` on coerced schemas to `.prefault()` (the v3
     // semantics: default the raw input before coercion).
     expect(workerEnv).toContain('.prefault(90)');
   });
 
-  it('provisions the documented billing DLQ timer', () => {
+  it('does not provision the retired billing DLQ timer', () => {
     const provisioner = read('infra/cron-vm/_provision-docker.sh');
-    const unit = read('infra/cron-vm/units/kestrel-billing-dlq.timer');
-
-    expect(provisioner).toContain('kestrel-billing-dlq.timer');
-    expect(unit).toContain('OnCalendar=hourly');
+    expect(provisioner).not.toContain('kestrel-billing-dlq');
   });
 
   it('keeps the VM deployment source free of retired private hostnames', () => {

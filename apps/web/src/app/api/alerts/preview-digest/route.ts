@@ -18,7 +18,7 @@
 
 // PF-22 — /api/alerts/preview-digest — noise config preview (thin controller).
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { previewDigestService } from '@/lib/services/alerts';
 
 export const runtime = 'nodejs';

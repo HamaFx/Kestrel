@@ -38,9 +38,9 @@ import type { RequestContext } from '@mastra/core/request-context';
 import { createStep, Workflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 
-import { createGenerationLedger } from '../generation-ledger';
 import { collectSymbolResearchPacketCached } from '../mastra-v2/packets/packet-cache';
 import type { MastraGenerationStats } from '../mastra-v2/shared/stats';
+import { createGenerationLedger } from '../persistence/generation-ledger';
 import { enrichPacketForUser } from '../plugins/enrichers';
 import { isDeadlineAbort } from '../utils/timeout';
 import { readCritiqueStepResult, readDebateStepResult } from './critique';

@@ -18,7 +18,7 @@
 import type { RunSystemActionOutput } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { withToolContext } from '../src/tool-context';
+import { createToolContext, withToolContext } from '../src/runtime/tool-context';
 import { runSystemActionTool } from '../src/tools/run-system-action';
 
 const mocks = vi.hoisted(() => ({
@@ -75,15 +75,12 @@ vi.mock('@kestrel/data', () => ({
 }));
 
 function makeContext(latestUserMessageText: string) {
-  return {
+  return createToolContext({
     threadId: 'thread-1',
     userId: 'user-1',
     latestUserMessageText,
-    env: {} as any,
-    signal: null,
     budget: { spent: 0.15, max: 10.0 },
-    userSettings: {} as any,
-  };
+  });
 }
 
 describe('run_system_action', () => {

@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export const dynamic = 'force-static';
 

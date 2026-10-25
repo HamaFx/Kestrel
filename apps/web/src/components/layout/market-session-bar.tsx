@@ -20,7 +20,7 @@
 import { IconClock, IconFlame } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface MarketSession {
   id: string;

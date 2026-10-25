@@ -46,9 +46,9 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { errorResponse, parseJsonBody } from '@/lib/api';
-import { buildCatalogForUser } from '@/lib/catalog-server';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { errorResponse, parseJsonBody } from '@/lib/http/api';
+import { buildCatalogForUser } from '@/lib/services/catalog-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -18,7 +18,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { assertProductionSecurity } from '../src/lib/security-invariants';
+import { assertProductionSecurity } from '../src/lib/http/security-invariants';
 
 const originalEnv = {
   NODE_ENV: process.env.NODE_ENV,

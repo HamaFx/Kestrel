@@ -17,7 +17,7 @@
 import { metrics } from '@kestrel/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { envFallbackKeys } from '../src/model-helpers';
+import { envFallbackKeys } from '../src/models/helpers';
 
 const PROCESS_ENV_KEYS = [
   'ANTHROPIC_API_KEY',

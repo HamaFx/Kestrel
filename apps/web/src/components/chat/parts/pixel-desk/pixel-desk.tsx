@@ -20,9 +20,9 @@
 import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { getSessionInfo } from '@/lib/auth/session';
 import type { AgentProgress } from '@/lib/chat-transport';
-import { cn } from '@/lib/cn';
-import { getSessionInfo } from '@/lib/session';
+import { cn } from '@/lib/formatters/cn';
 
 import {
   ChartWizardSprite,

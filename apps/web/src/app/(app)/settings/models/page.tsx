@@ -20,8 +20,8 @@ import { getUserWithSettings } from '@kestrel/db';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { checkIsAdmin } from '@/lib/admin-check';
-import { buildCatalogForUser } from '@/lib/catalog-server';
+import { checkIsAdmin } from '@/lib/auth/admin-check';
+import { buildCatalogForUser } from '@/lib/services/catalog-server';
 
 import { AISubNav } from '../_components/ai-subnav';
 import { FallbackChainPicker } from './_components/fallback-chain-picker';

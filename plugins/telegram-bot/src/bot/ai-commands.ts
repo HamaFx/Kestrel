@@ -154,7 +154,7 @@ export async function analyzeReply(
   const threadId = deterministicThreadId(ctx.userId, `telegram-analyze-${symbol}-${mode}`);
 
   try {
-    const { runMastraMode } = await import('@kestrel/ai/mastra');
+    const { runMastraMode } = await import('@kestrel/ai/mastra-v2');
     const { settings } = await getUserWithSettings(ctx.userId);
     if (!settings) return { text: 'Your Kestrel settings are unavailable right now.' };
 
@@ -229,7 +229,7 @@ export async function askReply(question: string, ctx: TelegramBotContext): Promi
       extractSymbolFromPrompt,
       runMastraBackgroundText,
       serializeSymbolResearchPacket,
-    } = await import('@kestrel/ai/mastra');
+    } = await import('@kestrel/ai/mastra-v2');
     const { settings } = await getUserWithSettings(ctx.userId);
     if (!settings) return { text: 'Your Kestrel settings are unavailable right now.' };
 

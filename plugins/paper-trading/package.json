@@ -19,6 +19,11 @@
       "source": "./src/ui/index.tsx",
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
+    },
+    "./db/tables": {
+      "source": "./src/db/tables.ts",
+      "types": "./dist/db/tables.d.ts",
+      "import": "./dist/db/tables.js"
     }
   },
   "scripts": {

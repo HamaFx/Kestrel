@@ -8,7 +8,7 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
-import type { EvalDatasetStatus } from '../schema/eval-datasets';
+import type { EvalDatasetStatus } from '../schema/ai/eval-datasets';
 
 export interface RegisterEvalDatasetInput {
   version: string;

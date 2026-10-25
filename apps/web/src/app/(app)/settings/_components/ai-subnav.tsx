@@ -19,7 +19,7 @@ import { IconCpu, IconKey, IconRobot } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 const AI_TABS = [
   { href: '/settings/api-keys', label: 'API Keys & Health', shortLabel: 'API Keys', icon: IconKey },

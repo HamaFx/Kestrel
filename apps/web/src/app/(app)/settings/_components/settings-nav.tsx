@@ -20,18 +20,16 @@ import {
   IconArrowLeft,
   IconBell,
   IconChevronRight,
-  IconCreditCard,
   IconList,
   IconPalette,
   IconPuzzle,
   IconSettings,
   IconShield,
-  IconWallet,
 } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface NavItem {
   href: string;
@@ -67,12 +65,6 @@ const BASE_NAV_GROUPS: NavGroup[] = [
         shortLabel: 'Plugins',
         icon: IconPuzzle,
       },
-      {
-        href: '/settings/billing',
-        label: 'Subscription & Billing',
-        shortLabel: 'Billing',
-        icon: IconCreditCard,
-      },
     ],
   },
   {
@@ -85,12 +77,6 @@ const BASE_NAV_GROUPS: NavGroup[] = [
         label: 'Watchlist Symbols',
         shortLabel: 'Symbols',
         icon: IconList,
-      },
-      {
-        href: '/settings/portfolio',
-        label: 'Portfolio & Risk Rules',
-        shortLabel: 'Risk',
-        icon: IconWallet,
       },
     ],
   },
@@ -134,11 +120,7 @@ const BASE_NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-interface SettingsNavProps {
-  billingEnabled?: boolean;
-}
-
-export function SettingsNav(_props: SettingsNavProps) {
+export function SettingsNav() {
   const pathname = usePathname();
   const isSubPage = pathname !== '/settings';
 

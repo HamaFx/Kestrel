@@ -22,9 +22,9 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { pluginIcon } from '@/components/plugins/plugin-icon';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
-import { cn } from '@/lib/cn';
 import { COMMANDS, type CommandGroup, type CommandItem } from '@/lib/commands';
-import { rankByQuery } from '@/lib/fuzzy-match';
+import { cn } from '@/lib/formatters/cn';
+import { rankByQuery } from '@/lib/formatters/fuzzy-match';
 
 import '@/lib/plugins/register-ui';
 

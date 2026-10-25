@@ -28,7 +28,7 @@ import {
   maybeGetToolContext,
   withToolContext,
   type ToolContext,
-} from '../src/tool-context';
+} from '../src/runtime/tool-context';
 
 function makeContext(threadId: string, spent = 0): ToolContext {
   return {

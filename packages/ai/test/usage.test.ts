@@ -23,7 +23,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { computeUsage, listTelemetry } from '../src/usage';
+import { computeUsage, listTelemetry } from '../src/budget/usage';
 
 const mockRequireTenantIdForUser = vi.fn(async (..._args: unknown[]) => 'tenant-1');
 
@@ -46,7 +46,7 @@ vi.mock('@kestrel/db', () => ({
 // Each entry mirrors a `db.select()` call in the order usage.ts issues them.
 let selectQueue: unknown[] = [];
 
-vi.mock('../src/db', () => ({
+vi.mock('../src/runtime/db', () => ({
   getDb: () => ({
     select: () => {
       const chain = selectQueue.shift();

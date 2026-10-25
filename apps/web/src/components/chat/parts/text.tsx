@@ -22,7 +22,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { useCopied } from '@/hooks/use-copied';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface TextPartProps {
   text: string;

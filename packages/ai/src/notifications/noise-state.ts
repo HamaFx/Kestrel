@@ -32,7 +32,7 @@ import {
 } from '@kestrel/shared';
 import { and, eq, lt } from 'drizzle-orm';
 
-import { getDb } from '../db';
+import { getDb } from '../runtime/db';
 import type { NoiseState } from './noise-control';
 
 // ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 
 import { validationError } from '@kestrel/shared';
 
-import { getToolContext } from '../tool-context';
+import { getToolContext } from '../runtime/tool-context';
 
 type MutationToolName = 'set_alert' | 'log_journal' | 'share_snapshot' | 'run_system_action';
 

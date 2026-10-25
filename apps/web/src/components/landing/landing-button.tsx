@@ -17,7 +17,7 @@
  */
 import { Link } from 'next-view-transitions';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface TacticalFlameButtonProps {
   href?: string;

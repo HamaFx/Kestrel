@@ -122,10 +122,10 @@ describe('Phase 10 — Migration hash stability guard', () => {
 });
 
 describe('Phase 2 — schema/migration parity', () => {
-  it('registers 0113 as the latest journal entry and keeps files consistent', () => {
+  it('registers 0116 as the latest journal entry and keeps files consistent', () => {
     const plan = buildMigrationPlan(DRIZZLE_DIR);
     expect(() => assertMigrationPlanIsConsistent(plan)).not.toThrow();
-    expect(plan.entries.at(-1)?.tag).toBe('0113_paper_strategy_runs');
+    expect(plan.entries.at(-1)?.tag).toBe('0116_drop_legacy_portfolio_tables');
   });
 
   it('defines composite primary keys on the memory state tables', async () => {
@@ -145,9 +145,6 @@ describe('Phase 2 — schema/migration parity', () => {
     expect(journalCfg.indexes.map((i) => i.config.name)).toEqual(
       expect.arrayContaining(['journal_entries_deleted_at_idx', 'journal_entries_user_opened_idx']),
     );
-
-    const portfolioCfg = getTableConfig(schema.portfolioPositions);
-    expect(portfolioCfg.checks.map((c) => c.name)).toContain('portfolio_status_closed_consistency');
 
     const alertsCfg = getTableConfig(schema.alerts);
     expect(alertsCfg.checks.map((c) => c.name)).toContain('alerts_snooze_hours_check');

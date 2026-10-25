@@ -30,7 +30,7 @@ vi.mock('../src/persistence', () => ({
 // Mock tool-context to return predictable values.
 // The import in with-telemetry.ts resolves to src/tool-context.ts.
 const mockMaybeGetToolContext = vi.fn();
-vi.mock('../src/tool-context', () => ({
+vi.mock('../src/runtime/tool-context', () => ({
   maybeGetToolContext: () => mockMaybeGetToolContext(),
 }));
 

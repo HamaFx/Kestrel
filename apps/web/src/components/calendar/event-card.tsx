@@ -45,7 +45,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { useTime } from '@/components/providers/time-provider';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface EventCardProps {
   event: EconomicEvent;

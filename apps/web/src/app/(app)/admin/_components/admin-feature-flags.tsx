@@ -24,9 +24,9 @@ import { SettingsSection } from '@/app/(app)/settings/_components/settings-secti
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { apiFetch, apiMutate } from '@/lib/api-client';
+import { apiFetch, apiMutate } from '@/lib/http/api-client';
+import { toastApiError } from '@/lib/http/toast-api-error';
 import type { FeatureFlagsDTO } from '@/lib/services/admin-dtos';
-import { toastApiError } from '@/lib/toast-api-error';
 
 import { AdminErrorBlock } from './admin-error-block';
 

@@ -21,7 +21,7 @@ import type { UIMessage } from 'ai';
 import { useMemo } from 'react';
 
 import { Tooltip } from '@/components/ui/tooltip';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface ThreadTocRailProps {
   messages: UIMessage[];

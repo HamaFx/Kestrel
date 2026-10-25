@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { replayPersistenceFailures } from '../src/persistence-recovery';
+import { replayPersistenceFailures } from '../src/persistence/recovery';
 import type * as TelemetryPersistenceModule from '../src/persistence/telemetry-persistence';
 
 const {
@@ -45,7 +45,7 @@ const mockDb = {
     callback({ execute: mockTxExecute }),
 };
 
-vi.mock('../src/db', () => ({ getDb: () => mockDb }));
+vi.mock('../src/runtime/db', () => ({ getDb: () => mockDb }));
 vi.mock('../src/persistence/telemetry-persistence', async (importOriginal) => {
   // Audit v2 §4.5 — persistence-recovery builds its replay kind enum from
   // the real TELEMETRY_KINDS, so the mock must preserve the module's

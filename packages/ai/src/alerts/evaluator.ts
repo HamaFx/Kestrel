@@ -45,8 +45,8 @@ import {
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { eq, inArray } from 'drizzle-orm';
 
-import { getDb } from '../db';
 import { syncPluginIndicators } from '../plugins/indicators';
+import { getDb } from '../runtime/db';
 import { deliverAlert, type DeliveryResult } from './delivery';
 import {
   claimAlertDelivery,

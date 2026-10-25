@@ -21,8 +21,8 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiMutate } from '@/lib/http/api-client';
 
 interface ParsedTrade {
   symbol: string;

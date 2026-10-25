@@ -23,7 +23,7 @@ const { mockGetFullAnalysisRun, mockCancelFullAnalysisRun } = vi.hoisted(() => (
   mockCancelFullAnalysisRun: vi.fn(),
 }));
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/http/api', () => ({
   withAuth:
     (handler: (req: Request, ctx: unknown) => Promise<Response>) =>
     (req: Request, ctx?: { params?: Promise<unknown> }) =>

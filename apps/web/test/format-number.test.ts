@@ -25,7 +25,7 @@ import {
   formatMs,
   formatNumber,
   formatRelativeTime,
-} from '@/lib/format-number';
+} from '@/lib/formatters/format-number';
 
 // ── formatMs ──────────────────────────────────────────────────────────
 

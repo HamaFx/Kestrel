@@ -21,8 +21,8 @@
 
 import { z } from 'zod';
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import { getServerEnv } from '@/lib/env';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { getEntry, getUserWithSettings, reviewTrade } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

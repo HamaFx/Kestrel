@@ -25,7 +25,7 @@
 // scheduler. The eval is fast (one cached price call per priceCross + one
 // candle call per (symbol, tf) deduped via the data cache).
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { evaluateAlerts } from '@/lib/services/api-boundary';
 

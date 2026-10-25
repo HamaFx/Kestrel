@@ -25,7 +25,7 @@
 // This lets the chat surface pin a "Thread summary" header once a thread is
 // long enough to warrant one.
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { listMessages } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

@@ -17,7 +17,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { parseJsonBody, withAuth } from '@/lib/api';
+import { parseJsonBody, withAuth } from '@/lib/http/api';
 import {
   cancelMutationWorkflow,
   createAuditLog,

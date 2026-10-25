@@ -22,7 +22,7 @@
 // hooks and cache invalidation live in `lib/services/plugin-manage.ts` so this
 // route stays a thin controller.
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { PluginManageRequestSchema } from '@/lib/plugins/manage-schema';
 import {
   buildPluginStoreSnapshot,

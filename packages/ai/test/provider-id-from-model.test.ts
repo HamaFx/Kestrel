@@ -20,7 +20,7 @@ import { describe, expect, it } from 'vitest';
 // directly through the file path so we can run it without a DB
 // (the usage module also pulls in @kestrel/db, which is fine —
 // this test only exercises the pure helpers).
-import { providerIdFromModel } from '../src/usage';
+import { providerIdFromModel } from '../src/budget/usage';
 
 describe('Phase D — providerIdFromModel', () => {
   it('returns the segment before the first slash for prefixed ids', () => {

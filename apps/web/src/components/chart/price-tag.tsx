@@ -28,7 +28,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { usePrice } from '@/hooks/use-prices';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface PriceTagProps {
   symbol: Symbol;

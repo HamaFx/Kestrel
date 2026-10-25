@@ -21,7 +21,7 @@ import { IconChevronDown, IconClock } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface ActivityRollupProps {
   toolCount: number;

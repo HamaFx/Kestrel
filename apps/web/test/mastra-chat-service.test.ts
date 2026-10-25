@@ -18,7 +18,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runMastraXauusdChat } from '@/lib/services/mastra-chat';
+import { runMastraXauusdChat } from '@/lib/services/mastra/chat/mastra-chat';
 
 const mocks = vi.hoisted(() => ({
   getUserWithSettings: vi.fn(),
@@ -40,7 +40,6 @@ vi.mock('@kestrel/ai', () => ({
   estimateCostUsd: mocks.estimateCostUsd,
   reserveTurnBudget: mocks.reserveTurnBudget,
   resolveProviderMode: () => 'managed',
-  turnCreditIdempotencyKey: () => 'credit:test-turn',
   createExecutionLifecycle: mocks.createExecutionLifecycle,
   createGenerationLedger: () => ({
     record: vi.fn(() => true),
@@ -52,16 +51,17 @@ vi.mock('@kestrel/ai', () => ({
 }));
 vi.mock('@kestrel/db', () => ({
   getUserWithSettings: mocks.getUserWithSettings,
+  schema: {},
 }));
 vi.mock('@/lib/env', () => ({
   getServerEnv: mocks.getServerEnv,
 }));
-vi.mock('@/lib/services/mastra-xauusd', () => ({
+vi.mock('@/lib/services/mastra/xauusd/mastra-xauusd', () => ({
   runMastraXauusdResearch: mocks.runMastraXauusdResearch,
   runMastraXauusdConversation: mocks.runMastraXauusdConversation,
 }));
 // Best-effort title generation is fire-and-forget and not under test here.
-vi.mock('@/lib/services/mastra-thread-title', () => ({
+vi.mock('@/lib/services/mastra/chat/mastra-thread-title', () => ({
   maybeGenerateThreadTitle: vi.fn(async () => {}),
 }));
 

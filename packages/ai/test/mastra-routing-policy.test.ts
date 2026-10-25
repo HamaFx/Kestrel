@@ -33,7 +33,7 @@ import {
   OTHER_SYMBOL_TERMS,
   ROUTING_KEYWORD_REGISTRY,
   XAUUSD_TERMS,
-} from '../src/routing-keywords';
+} from '../src/routing/keywords';
 
 describe('autoDetectMode', () => {
   it('returns single for greetings and thanks', () => {

@@ -18,8 +18,8 @@
 
 import { z } from 'zod';
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { errorResponse, parseJsonBody, parseSearchParams } from '@/lib/api';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { errorResponse, parseJsonBody, parseSearchParams } from '@/lib/http/api';
 import { listEvalDatasets, registerEvalDataset } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

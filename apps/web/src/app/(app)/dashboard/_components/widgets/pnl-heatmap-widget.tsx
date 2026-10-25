@@ -42,8 +42,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/formatters/cn';
+import { formatRelative } from '@/lib/formatters/format';
 
 interface PnLHeatmapWidgetProps {
   entries: readonly JournalEntry[];

@@ -28,11 +28,12 @@ import {
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
+import { executeCanonicalCoT } from '@ai/mastra-v2/tools/canonical/cot';
+import { executeCanonicalKnowledge } from '@ai/mastra-v2/tools/canonical/knowledge';
 import { getIntermarketResonanceTool } from '@ai/tools/get-intermarket-resonance';
 import { getSeasonalityTool } from '@ai/tools/get-seasonality';
 import { webSearchTool } from '@ai/tools/web-search';
-import { executeCanonicalCoT } from '@ai/mastra-v2/tools/canonical/cot';
-import { executeCanonicalKnowledge } from '@ai/mastra-v2/tools/canonical/knowledge';
+
 import { createEvidenceId } from '../../packets/evidence';
 import { executeMastraTool } from '../../shared/telemetry';
 import { executeLegacyReadOnlyTool } from './legacy-tool-adapter';

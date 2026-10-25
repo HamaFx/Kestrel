@@ -22,7 +22,7 @@ import type {
   LlmClient,
   StreamTextOpts,
   StreamTextResult,
-} from '../../src/llm-client';
+} from '../../src/routing/llm-client';
 
 export type ScriptedLlmScenario =
   | {

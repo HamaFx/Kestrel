@@ -32,6 +32,7 @@
     "check:compose-images": "node scripts/check-compose-images.mjs",
     "check:route-security": "node scripts/check-route-security.mjs",
     "check:architecture-tree": "node scripts/check-architecture-tree.mjs",
+    "check:maintainability": "node scripts/check-maintainability.mjs",
     "check:env-contract": "node scripts/check-env-contract.mjs",
     "test:postgres-rls": "node scripts/run-postgres-rls-test.mjs",
     "test:ai-postgres-queue": "node scripts/run-ai-postgres-queue-test.mjs",

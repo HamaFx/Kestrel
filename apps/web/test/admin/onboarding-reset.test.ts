@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { POST as resetPost } from '@/app/api/admin/onboarding/reset/route';
 
-vi.mock('@/lib/admin-auth', () => ({
+vi.mock('@/lib/auth/admin-auth', () => ({
   withAdminAuth:
     (handler: (req: Request, ctx: { user: { userId: string } }) => Promise<Response>) =>
     async (req: Request) =>

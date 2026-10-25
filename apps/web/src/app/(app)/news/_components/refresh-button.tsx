@@ -25,7 +25,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { apiFetch } from '@/lib/api-client';
+import { apiFetch } from '@/lib/http/api-client';
 
 interface RefreshButtonProps {
   endpoint: string;

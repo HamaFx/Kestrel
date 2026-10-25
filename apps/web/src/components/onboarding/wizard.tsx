@@ -22,7 +22,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { completeOnboardingAction } from '@/app/onboarding/actions';
-import { apiMutate } from '@/lib/api-client';
+import { apiMutate } from '@/lib/http/api-client';
 
 import { WizardStepProfile } from './_components/wizard-step-profile';
 import { WizardStepReview } from './_components/wizard-step-review';

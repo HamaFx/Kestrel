@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { PERSISTENCE_OWNERSHIP, persistenceOwnerFor } from '../src/mastra';
-import { resolveMastraExecutionModel } from '../src/model';
+import { PERSISTENCE_OWNERSHIP, persistenceOwnerFor } from '../src/mastra-v2';
+import { resolveMastraExecutionModel } from '../src/models/model';
 
 describe('P2 architecture contracts', () => {
   it('exposes explicit Drizzle/Mastra persistence ownership', () => {

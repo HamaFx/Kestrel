@@ -16,9 +16,7 @@ import {
   assembleGenericMacroExtension,
   type GenericMacroFetchResult,
 } from '../src/mastra-v2/packets/research-packet-macro';
-import {
-  collectSymbolResearchPacket,
-} from '../src/mastra-v2/packets/symbol-research';
+import { collectSymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
 
 const mocks = vi.hoisted(() => ({
   getPriceWithMeta: vi.fn(),
@@ -275,9 +273,7 @@ describe('collectSymbolResearchPacket generic macro contract (M-02)', () => {
 
   it('gives the macro desks a compact bullet block and keeps the technical desk structural', async () => {
     const packet = await collectSymbolResearchPacket('EURUSD', undefined, { includeMacro: true });
-    const context = new RequestContext<ModeRequestContext>([
-      ['packet', packet],
-    ] as never);
+    const context = new RequestContext<ModeRequestContext>([['packet', packet]] as never);
 
     const fundamental = specialistInstructionsForRequest({
       name: 'fundamental',

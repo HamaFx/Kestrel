@@ -7,8 +7,8 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import { AuthError } from 'next-auth';
 import { verifySync } from 'otplib';
 
-import { recordAuthEvent } from '@/lib/auth-anomaly';
-import { assertProductionSecurity } from '@/lib/security-invariants';
+import { recordAuthEvent } from '@/lib/auth/auth-anomaly';
+import { assertProductionSecurity } from '@/lib/http/security-invariants';
 
 import { DUMMY_PASSWORD_HASH, normalizeCredential, normalizeEmail } from './credentials';
 

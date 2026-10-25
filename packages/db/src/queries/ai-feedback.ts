@@ -8,7 +8,7 @@
 import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
-import type { FeedbackReviewStatus } from '../schema/ai-feedback';
+import type { FeedbackReviewStatus } from '../schema/ai/ai-feedback';
 import { requireTenantIdForUser } from '../tenant';
 
 export type AiMessageFeedbackRow = typeof schema.aiMessageFeedback.$inferSelect;

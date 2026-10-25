@@ -18,7 +18,7 @@
 
 // §5: Shared form error component with aria-live for screen readers.
 // Used by all auth pages for consistent error presentation.
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface FormErrorProps {
   /** Error message to display. Renders nothing when empty. */

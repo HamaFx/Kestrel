@@ -25,7 +25,7 @@
 // Idempotent: each `(symbol, report_date)` row is keyed by a deterministic
 // `cftc:<symbol>:<YYYY-MM-DD>` PK and upserted with ON CONFLICT DO UPDATE.
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
   CFTC_SUPPORTED_SYMBOLS,

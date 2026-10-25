@@ -86,3 +86,19 @@ const XAUUSD_CONVERSATION_TOOL_IDS = {
 export const xauusdMastraConversationToolNames = manifestToolNames('xauusd-conversation').map(
   (toolName) => XAUUSD_CONVERSATION_TOOL_IDS[toolName as keyof typeof XAUUSD_CONVERSATION_TOOL_IDS],
 );
+
+// Aggregate-barrel compatibility: callers that migrated from the retired
+// `@kestrel/ai/mastra` barrel import individual tools from this module.
+export { xauusdPriceTool } from './tools/price-tool';
+export { xauusdCandlesTool } from './tools/candles-tool';
+export { xauusdIndicatorsTool } from './tools/indicators-tool';
+export { xauusdMarketStructureTool } from './tools/market-structure-tool';
+export { xauusdSessionLevelsTool } from './tools/session-levels-tool';
+export { xauusdTechnicalAnalysisTool } from './tools/technical-tool';
+export { xauusdCorrelationTool } from './tools/correlation-tool';
+export { xauusdIntermarketTool } from './tools/intermarket-tool';
+export { xauusdVolatilityTool } from './tools/volatility-tool';
+export { xauusdNewsTool } from './tools/news-tool';
+export { xauusdCalendarTool } from './tools/calendar-tool';
+export { xauusdSocialSentimentTool } from './tools/social-sentiment-tool';
+export { xauusdFundamentalContextTool } from './tools/fundamental-context-tool';

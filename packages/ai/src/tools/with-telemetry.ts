@@ -49,7 +49,7 @@ import type { Tool } from 'ai';
 
 import { completeStep, recordError, recordStep } from '../diagnostics';
 import { recordToolTelemetry } from '../persistence';
-import { maybeGetToolContext, type BatchedToolTelemetry } from '../tool-context';
+import { maybeGetToolContext, type BatchedToolTelemetry } from '../runtime/tool-context';
 
 /** Custom error class for tool timeout detection. */
 class ToolTimeoutError extends Error {

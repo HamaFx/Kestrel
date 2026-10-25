@@ -41,7 +41,7 @@ vi.mock('../src/persistence', () => ({
 vi.mock('@kestrel/shared/metrics-export', () => ({
   flushMetrics: mocks.flushMetrics,
 }));
-vi.mock('../src/instrumentation', () => ({
+vi.mock('../src/runtime/instrumentation', () => ({
   flushLangfuse: mocks.flushLangfuse,
 }));
 

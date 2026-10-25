@@ -110,7 +110,6 @@ describe('tools registry', () => {
       // System (7 — includes convene_committee per Decision Q11)
       'get_system_diagnostics',
       'run_system_action',
-      'get_portfolio_snapshot',
       'get_social_sentiment',
       'verify_call',
       'replay_setup',
@@ -119,7 +118,7 @@ describe('tools registry', () => {
       'web_search',
     ];
     expect(toolRegistry.listNames()).toEqual(expectedKeys);
-    expect(toolRegistry.listNames().length).toBe(32);
+    expect(toolRegistry.listNames().length).toBe(31);
   });
 
   it('every tool has description, inputSchema, and execute', () => {

@@ -400,8 +400,6 @@ export async function deleteUserAccount(userId: string): Promise<void> {
     await tx.delete(schema.chatThreads).where(eq(schema.chatThreads.userId, userId));
     await tx.delete(schema.alerts).where(eq(schema.alerts.userId, userId));
     await tx.delete(schema.journalEntries).where(eq(schema.journalEntries.userId, userId));
-    await tx.delete(schema.portfolioPositions).where(eq(schema.portfolioPositions.userId, userId));
-    await tx.delete(schema.portfolioSettings).where(eq(schema.portfolioSettings.userId, userId));
     await tx.delete(schema.sharedSnapshots).where(eq(schema.sharedSnapshots.userId, userId));
     await tx.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.userId, userId));
     await tx.delete(schema.providerTests).where(eq(schema.providerTests.userId, userId));
@@ -413,8 +411,7 @@ export async function deleteUserAccount(userId: string): Promise<void> {
     await tx.delete(schema.rateLimits).where(eq(schema.rateLimits.userId, userId));
 
     // Membership is account-owned. The organization itself is retained when
-    // billing/audit rows still reference it, so this does not destroy tenant
-    // financial history.
+    // audit rows still reference it, so this does not destroy tenant history.
     await tx.delete(schema.organizationMember).where(eq(schema.organizationMember.userId, userId));
 
     const now = new Date();

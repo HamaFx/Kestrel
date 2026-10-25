@@ -33,7 +33,7 @@
 //   - Hobby: external scheduler (Fly.io worker, GitHub Actions, etc.) hits
 //     this URL with `Authorization: Bearer ${CRON_SECRET}`.
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext, type CategorizedLogger } from '@/lib/logger';
 import { fetchNews, latestArticleTimestampMs, upsertArticles } from '@/lib/services/api-boundary';
 

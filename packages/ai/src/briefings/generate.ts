@@ -41,12 +41,12 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { UIMessage } from 'ai';
 import { eq } from 'drizzle-orm';
 
-import { getDb } from '../db';
 import { computeStats } from '../journal/persistence';
-import { runMastraBackgroundText } from '../mastra';
+import { runMastraBackgroundText } from '../mastra-v2';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { rememberBriefing } from '../memory/memory-index';
 import { appendAssistantMessage } from '../persistence';
+import { getDb } from '../runtime/db';
 import { getOrCreateBriefingsThread, recordEmitted, wasEmitted } from './persistence';
 
 export interface BriefingsEnv {

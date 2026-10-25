@@ -21,7 +21,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { apiFetch, parseErrorBody } from '@/lib/api-client';
+import { apiFetch, parseErrorBody } from '@/lib/http/api-client';
 
 interface BulkTestButtonProps {
   /** Disable when there are no keys configured. */

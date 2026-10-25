@@ -34,13 +34,13 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { signIn } from '@/auth';
-import { logActionError, withServerActionLogging } from '@/lib/action-errors';
-import { recordAuthEvent } from '@/lib/auth-anomaly';
-import { generateToken, hashToken } from '@/lib/auth-tokens';
+import { recordAuthEvent } from '@/lib/auth/auth-anomaly';
+import { generateToken, hashToken } from '@/lib/auth/auth-tokens';
 import { isFailedSignIn } from '@/lib/auth/sign-in-result';
 import { getServerEnv } from '@/lib/env';
+import { logActionError, withServerActionLogging } from '@/lib/http/action-errors';
+import { passwordSchema } from '@/lib/http/validation';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { passwordSchema } from '@/lib/validation';
 
 const BCRYPT_COST = 12;
 const SYSTEM_USER_ID = '__system__';

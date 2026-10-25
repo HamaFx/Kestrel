@@ -30,7 +30,7 @@ import { SettingsSection } from '@/app/(app)/settings/_components/settings-secti
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 type LogStatus = 'idle' | 'connecting' | 'connected' | 'not_enabled' | 'production' | 'error';
 

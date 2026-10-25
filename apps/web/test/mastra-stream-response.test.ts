@@ -19,7 +19,7 @@
 import type { ChatStreamEvent } from '@kestrel/shared';
 import { describe, expect, it, vi } from 'vitest';
 
-import { mastraStreamResponse } from '@/lib/services/mastra-stream-response';
+import { mastraStreamResponse } from '@/lib/services/mastra/stream-adapter';
 
 describe('mastraStreamResponse onAbort', () => {
   it('calls onAbort when the stream is aborted before completion', async () => {

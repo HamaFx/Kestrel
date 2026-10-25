@@ -18,7 +18,7 @@
 
 // PF-22 — /api/settings/bulk-test — bulk BYOK key testing (thin controller).
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { bulkTestKeysService } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';

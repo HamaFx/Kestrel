@@ -37,7 +37,7 @@ let mockApplyBudgetDelta: ReturnType<typeof vi.fn>;
 let mockReconcileBudgetReservation: ReturnType<typeof vi.fn>;
 let mockReleaseBudgetReservation: ReturnType<typeof vi.fn>;
 
-vi.mock('../src/cost', () => ({
+vi.mock('../src/budget/cost', () => ({
   get tryReserveBudget() {
     return mockTryReserveBudget;
   },
@@ -58,7 +58,7 @@ vi.mock('../src/cost', () => ({
 
 // We need the real BudgetExceededError class for instanceof checks.
 const BudgetExceededErrorActual = (
-  (await vi.importActual('../src/cost')) as unknown as {
+  (await vi.importActual('../src/budget/cost')) as unknown as {
     BudgetExceededError: new (...args: never[]) => Error;
   }
 ).BudgetExceededError;

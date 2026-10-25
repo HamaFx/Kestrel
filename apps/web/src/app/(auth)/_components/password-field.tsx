@@ -22,7 +22,7 @@ import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface PasswordFieldProps {
   id?: string;

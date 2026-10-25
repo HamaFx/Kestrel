@@ -37,8 +37,8 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Segmented } from '@/components/ui/segmented';
-import { apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiFetch } from '@/lib/http/api-client';
 import type { TradeSetupReplayDTO } from '@/lib/services/journal';
 
 interface SetupReplayModalProps {

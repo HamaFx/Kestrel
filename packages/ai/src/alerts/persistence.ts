@@ -29,7 +29,7 @@ import {
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, asc, desc, eq, isNull, lt, or } from 'drizzle-orm';
 
-import { getDb } from '../db';
+import { getDb } from '../runtime/db';
 
 const plog = createCategorizedLogger('ai', { component: 'alerts-persistence' });
 

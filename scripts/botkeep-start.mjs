@@ -29,7 +29,7 @@
  *      (well inside Botkeep Founder Free's 2 GB storage limit).
  *   4. Runs an in-process Light Cron Poker loop for Vercel's `/api/cron/*`
  *      routes (`warm-cache`, `news`, `alerts`, `health-alerts`, `calendar`,
- *      `billing-dlq`, `cleanup-uploads`, `cleanup-tokens`, `cleanup-telemetry`)
+ *      `cleanup-uploads`, `cleanup-tokens`, `cleanup-telemetry`)
  *      so host `systemd` timers and GitHub Actions are not needed.
  */
 
@@ -280,7 +280,6 @@ function startLightCronPoker() {
     { path: '/api/cron/alerts', intervalMs: 5 * 60_000 },
     { path: '/api/cron/health-alerts', intervalMs: 5 * 60_000 },
     { path: '/api/cron/calendar', intervalMs: 15 * 60_000 },
-    { path: '/api/cron/billing-dlq', intervalMs: 60 * 60_000 },
     { path: '/api/cron/cleanup-uploads', intervalMs: 24 * 60 * 60_000 },
     { path: '/api/cron/cleanup-tokens', intervalMs: 24 * 60 * 60_000 },
     { path: '/api/cron/cleanup-telemetry', intervalMs: 24 * 60 * 60_000 },

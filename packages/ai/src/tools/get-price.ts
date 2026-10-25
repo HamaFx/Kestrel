@@ -31,7 +31,7 @@ import {
   executeCanonicalPrice,
   type CanonicalPriceInput,
 } from '../mastra-v2/tools/canonical/price';
-import { maybeGetToolContext } from '../tool-context';
+import { maybeGetToolContext } from '../runtime/tool-context';
 
 // Module-augment the shared ToolIOMap so consumers get strongly-typed inputs
 // by tool name. Outputs are sourced centrally from `ToolOutputMap` in
@@ -47,5 +47,8 @@ export const getPriceTool: Tool<CanonicalPriceInput, GetPriceOutput> = tool({
   description: CANONICAL_PRICE_DESCRIPTION,
   inputSchema: CanonicalPriceInputSchema,
   execute: async (input, options?: { abortSignal?: AbortSignal }): Promise<GetPriceOutput> =>
-    executeCanonicalPrice(input, options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined),
+    executeCanonicalPrice(
+      input,
+      options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined,
+    ),
 });

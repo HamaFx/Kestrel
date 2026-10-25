@@ -20,7 +20,7 @@ import {
   resolveSpecialistDeskTools,
   SPECIALIST_DESK_TOOL_NAMES,
 } from '../src/committee/specialists';
-import { getAvailableProviders } from '../src/model-role';
+import { getAvailableProviders } from '../src/models/role';
 
 describe('resolveSpecialistDeskTools tool filtering (P1-04)', () => {
   it('returns all desk tools when disabledTools is empty or omitted', () => {

@@ -18,7 +18,7 @@
 import type { GetSystemDiagnosticsOutput } from '@kestrel/shared';
 import { describe, expect, it, vi } from 'vitest';
 
-import { withToolContext } from '../src/tool-context';
+import { createToolContext, withToolContext } from '../src/runtime/tool-context';
 import { getSystemDiagnosticsTool } from '../src/tools/get-system-diagnostics';
 
 process.env['FRED_API_KEY'] = 'test-fred-key';
@@ -69,15 +69,12 @@ vi.mock('@kestrel/db', () => ({
 describe('Diagnostics Tools', () => {
   it('correctly reports system diagnostics stats', async () => {
     const result = (await withToolContext(
-      {
+      createToolContext({
         threadId: 'test-thread-id',
         userId: 'test-user',
         latestUserMessageText: 'Show me system diagnostics.',
-        env: {} as any,
-        signal: null,
         budget: { spent: 0.15, max: 10.0 },
-        userSettings: {} as any,
-      },
+      }),
       () =>
         Promise.resolve(
           getSystemDiagnosticsTool.execute!({ verbose: true, forceProbe: false }, {} as any),

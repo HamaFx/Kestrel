@@ -63,7 +63,7 @@ describe('production security boundaries', () => {
   });
 
   it('reports impersonation disabled in production', async () => {
-    vi.doMock('@/lib/admin-auth', () => ({
+    vi.doMock('@/lib/auth/admin-auth', () => ({
       withAdminAuth:
         (handler: (request: Request, context: { user: { userId: string } }) => Promise<Response>) =>
         async (request: Request) =>
@@ -73,7 +73,7 @@ describe('production security boundaries', () => {
       generateImpersonationChallenge: vi.fn(),
       signIn: vi.fn(),
     }));
-    vi.doMock('@/lib/api', () => ({ parseJsonBody: vi.fn() }));
+    vi.doMock('@/lib/http/api', () => ({ parseJsonBody: vi.fn() }));
     vi.doMock('@/lib/services/admin', () => ({ recordAdminAudit: vi.fn() }));
     vi.doMock('@/lib/services/api-boundary', () => ({ getUserById: vi.fn() }));
 
@@ -93,7 +93,7 @@ describe('production security boundaries', () => {
   });
 
   it('reports impersonation disabled in the production probe', async () => {
-    vi.doMock('@/lib/admin-auth', () => ({
+    vi.doMock('@/lib/auth/admin-auth', () => ({
       withAdminAuth: (handler: () => Promise<Response>) => () => handler(),
     }));
 

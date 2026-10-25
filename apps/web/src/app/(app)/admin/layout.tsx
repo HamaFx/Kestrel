@@ -18,7 +18,7 @@
 
 import { redirect } from 'next/navigation';
 
-import { checkIsAdmin } from '@/lib/admin-check';
+import { checkIsAdmin } from '@/lib/auth/admin-check';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const isAdmin = await checkIsAdmin();

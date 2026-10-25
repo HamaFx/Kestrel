@@ -23,7 +23,7 @@ import { useState } from 'react';
 
 import { TacticalFlameButton } from '@/components/landing/landing-button';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 // The hologram pulls in three.js (~154 KB gzip). It already defers rendering
 // via IntersectionObserver, so keep it out of the synchronous landing bundle
@@ -196,7 +196,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
 
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center lg:gap-8">
           {/* Left Column: Monumental Headline & Value Prop */}
-          <div className="flex min-w-0 max-w-full flex-col items-start gap-6 lg:col-span-7">
+          <div className="flex max-w-full min-w-0 flex-col items-start gap-6 lg:col-span-7">
             {/* Predator Badge */}
             <div className="border-brand/30 bg-brand/10 inline-flex items-center gap-2.5 rounded-full border px-3.5 py-1.5 shadow-[0_0_16px_rgba(255,54,22,0.15)]">
               <Image

@@ -8,7 +8,10 @@ import { metrics } from '@kestrel/shared';
 import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 
 import { getDb, schema, type DbClient } from '../client';
-import type { FullAnalysisQueueRow, FullAnalysisQueueStatus } from '../schema/full-analysis-queue';
+import type {
+  FullAnalysisQueueRow,
+  FullAnalysisQueueStatus,
+} from '../schema/ai/full-analysis-queue';
 import { requireTenantIdForUser } from '../tenant';
 
 export interface EnqueueFullAnalysisQueueInput {

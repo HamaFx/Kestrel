@@ -141,7 +141,6 @@ export const AGENT_TEMPLATES: readonly AgentTemplate[] = [
       'get_candles',
       'compute_risk',
       'compute_position_health',
-      'get_portfolio_snapshot',
       'get_journal_stats',
     ],
     skillRefs: [{ pluginId: 'paper-trading', skill: 'paper-trading-desk' }],

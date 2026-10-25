@@ -25,7 +25,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
-import { logActionError } from '@/lib/action-errors';
+import { logActionError } from '@/lib/http/action-errors';
 
 import { NAME_MAX, NAME_MIN, type ActionResult } from './_actions-shared';
 

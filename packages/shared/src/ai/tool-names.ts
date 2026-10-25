@@ -59,8 +59,6 @@ export const TOOL_NAMES = [
   'get_intermarket_resonance',
   'get_system_diagnostics',
   'run_system_action',
-  // F2 — Portfolio Management
-  'get_portfolio_snapshot',
   // F3 — Social Sentiment
   'get_social_sentiment',
   // Web research — exposed only to the Fundamental agent/domain.

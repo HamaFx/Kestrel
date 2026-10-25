@@ -17,8 +17,8 @@
 import { embedMany } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { embedTexts, EXPECTED_EMBEDDING_DIMENSIONS, vectorLiteral } from '../src/embeddings';
-import { resolveEmbeddingModel } from '../src/model';
+import { embedTexts, EXPECTED_EMBEDDING_DIMENSIONS, vectorLiteral } from '../src/models/embeddings';
+import { resolveEmbeddingModel } from '../src/models/model';
 
 /** A valid 1536-dimension vector for the mocked provider. */
 function vec(fill = 0.1): number[] {
@@ -31,7 +31,7 @@ vi.mock('ai', () => ({
 }));
 
 // Mock model resolver
-vi.mock('../src/model', () => ({
+vi.mock('../src/models/model', () => ({
   resolveEmbeddingModel: vi.fn(() => 'mocked-embedding-model'),
 }));
 
@@ -125,9 +125,7 @@ describe('embedTexts', () => {
 
     await embedTexts({ texts: ['test'] });
 
-    expect(vi.mocked(embedMany).mock.calls[0]?.[0]?.dimensions).toBe(
-      EXPECTED_EMBEDDING_DIMENSIONS,
-    );
+    expect(vi.mocked(embedMany).mock.calls[0]?.[0]?.dimensions).toBe(EXPECTED_EMBEDDING_DIMENSIONS);
   });
 
   it('resolves model from userSettings', async () => {

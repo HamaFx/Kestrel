@@ -41,8 +41,9 @@ import type { RequestContext } from '@mastra/core/request-context';
 import type { MastraAgentNetworkStream } from '@mastra/core/stream';
 import type { LanguageModel } from 'ai';
 
-import { adaptLegacyReadOnlyTools } from '../../agents/xauusd/legacy-tool-adapter';
 import { registerAllTools, toolRegistry } from '@ai/tools';
+
+import { adaptLegacyReadOnlyTools } from '../../agents/xauusd/legacy-tool-adapter';
 
 const nlog = createCategorizedLogger('ai', { component: 'mastra:canonical-network' });
 

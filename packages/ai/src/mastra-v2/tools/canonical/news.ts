@@ -30,10 +30,11 @@ import { createTool } from '@mastra/core/tools';
 import { and, desc, gte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { getDb } from '@ai/db';
-import { quarantineExternalText } from '../../packets/external-content';
-import { maybeGetToolContext } from '@ai/tool-context';
+import { getDb } from '@ai/runtime/db';
+import { maybeGetToolContext } from '@ai/runtime/tool-context';
+
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { quarantineExternalText } from '../../packets/external-content';
 
 export const CanonicalNewsInputSchema = z.object({
   /** Optional symbol filter. Omit to get cross-symbol macro coverage. */

@@ -38,7 +38,7 @@ import {
 } from '@kestrel/shared';
 
 import { SERIES_BEAR_HEX, SERIES_BULL_HEX } from '@/components/chart/chart-colors';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface GetCandlesPartProps {
   /** Tool output, or `null` while streaming / before completion. */

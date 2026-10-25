@@ -29,10 +29,10 @@ import { EventCard } from '@/components/calendar/event-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
-import { startOfDay, startOfDayOffset } from '@/lib/datetime';
-import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/formatters/cn';
+import { startOfDay, startOfDayOffset } from '@/lib/formatters/datetime';
+import { formatRelative } from '@/lib/formatters/format';
+import { apiFetch } from '@/lib/http/api-client';
 
 import { CalendarToolbar } from './calendar-toolbar';
 

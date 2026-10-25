@@ -23,7 +23,7 @@ import type {
   ShadowComparisonAgent,
   ShadowComparisonOutcome,
   ShadowOverlap,
-} from '../schema/ai-shadow-comparisons';
+} from '../schema/ai/ai-shadow-comparisons';
 import { requireTenantIdForUser } from '../tenant';
 
 export type AiShadowComparisonRow = typeof schema.aiShadowComparisons.$inferSelect;

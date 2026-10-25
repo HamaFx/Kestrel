@@ -29,9 +29,9 @@ import { IconAlertTriangle, IconBolt, IconClock, IconCompass } from '@tabler/ico
 import Link from 'next/link';
 
 import { useTime } from '@/components/providers/time-provider';
-import { cn } from '@/lib/cn';
-import { formatCountdown } from '@/lib/datetime';
-import { getSessionInfo } from '@/lib/session';
+import { getSessionInfo } from '@/lib/auth/session';
+import { cn } from '@/lib/formatters/cn';
+import { formatCountdown } from '@/lib/formatters/datetime';
 
 interface TodayGlanceWidgetProps {
   events: EconomicEvent[];

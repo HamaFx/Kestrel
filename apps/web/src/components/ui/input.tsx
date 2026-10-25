@@ -18,7 +18,7 @@
 
 import { forwardRef, type InputHTMLAttributes } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;

@@ -26,7 +26,7 @@ import {
   parseJsonBody,
   parseSearchParams,
   withAuth,
-} from '../src/lib/api';
+} from '../src/lib/http/api';
 
 vi.mock('@/auth', () => ({ auth: vi.fn() }));
 

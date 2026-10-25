@@ -24,7 +24,7 @@
 //   - Command selection with cursor placement
 import { useMemo, useState, type RefObject } from 'react';
 
-interface SlashCommand {
+export interface SlashCommand {
   command: string;
   description: string;
   placeholder: string;

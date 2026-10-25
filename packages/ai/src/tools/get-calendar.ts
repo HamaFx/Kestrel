@@ -25,9 +25,9 @@ import { tool, type Tool } from 'ai';
 import { and, asc, gte, inArray, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { getDb } from '../db';
 import { quarantineExternalText } from '../mastra-v2/packets/external-content';
-import { maybeGetToolContext } from '../tool-context';
+import { getDb } from '../runtime/db';
+import { maybeGetToolContext } from '../runtime/tool-context';
 
 const ImportanceSchema = z.enum(['low', 'medium', 'high']);
 const CurrencySchema = z.enum(['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF']);

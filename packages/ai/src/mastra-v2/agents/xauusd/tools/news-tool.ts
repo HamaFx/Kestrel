@@ -18,7 +18,6 @@ import { GetNewsOutputSchema } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { executeCanonicalNews } from '@ai/mastra-v2/tools/canonical/news';
 import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
 import {
   EXTERNAL_CONTENT_TRUST_WARNING,
@@ -27,6 +26,8 @@ import {
 } from '@ai/mastra-v2/packets/external-content';
 import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
 import { XAUUSD } from '@ai/mastra-v2/shared/types';
+import { executeCanonicalNews } from '@ai/mastra-v2/tools/canonical/news';
+
 import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({

@@ -29,7 +29,7 @@ import Link from 'next/link';
 
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface AlertsWidgetProps {
   alerts: readonly Alert[];

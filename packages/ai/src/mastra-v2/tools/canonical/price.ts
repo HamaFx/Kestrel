@@ -30,7 +30,8 @@ import { ALL_SYMBOLS, SymbolSchema, type GetPriceOutput } from '@kestrel/shared'
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { maybeGetToolContext } from '@ai/tool-context';
+import { maybeGetToolContext } from '@ai/runtime/tool-context';
+
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
 
 export const CanonicalPriceInputSchema = z.object({

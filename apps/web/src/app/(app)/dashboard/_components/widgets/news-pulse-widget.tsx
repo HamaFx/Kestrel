@@ -29,7 +29,7 @@ import { IconNews } from '@tabler/icons-react';
 import Link from 'next/link';
 
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface NewsPulseWidgetProps {
   articles: readonly NewsArticle[];

@@ -35,9 +35,9 @@ import Link from 'next/link';
 import { useTime } from '@/components/providers/time-provider';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
-import { formatCountdown } from '@/lib/datetime';
+import { cn } from '@/lib/formatters/cn';
+import { formatCountdown } from '@/lib/formatters/datetime';
+import { apiFetch } from '@/lib/http/api-client';
 
 interface CalendarWidgetProps {
   events: readonly EconomicEvent[];

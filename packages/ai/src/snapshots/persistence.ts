@@ -26,7 +26,7 @@ import { schema } from '@kestrel/db';
 import type { Symbol } from '@kestrel/shared';
 import { and, desc, eq } from 'drizzle-orm';
 
-import { getDb } from '../db';
+import { getDb } from '../runtime/db';
 
 export interface SnapshotRow<TData = Record<string, unknown>> {
   id: string;

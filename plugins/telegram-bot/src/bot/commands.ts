@@ -25,10 +25,12 @@ import {
   countActiveAlerts,
   createAlert,
   getUserWithSettings,
-  listOpenPositions,
   queries,
+  withTenantDb,
 } from '@kestrel/db';
+import { paperPositions } from '@kestrel/plugin-paper-trading/db/tables';
 import { getMarketPhase, isForexWeekend, isKnownSymbol } from '@kestrel/shared';
+import { and, desc, eq } from 'drizzle-orm';
 import { InlineKeyboard } from 'grammy';
 
 import { getLinkedChat, unlinkChat } from './link';
@@ -52,6 +54,39 @@ function formatDayTime(value: Date | number | string): string {
     minute: '2-digit',
     timeZone: 'UTC',
   });
+}
+
+interface TelegramPaperPosition {
+  symbol: string;
+  side: string;
+  quantity: number;
+  entryPrice: number;
+  unrealizedPnl: number;
+}
+
+/**
+ * DEC-03 — the Telegram plugin reads open positions from the canonical
+ * Paper Trading plugin tables inside a tenant-scoped transaction. Kestrel's
+ * legacy core portfolio no longer exists.
+ */
+async function listOpenPaperPositions(ctx: TelegramBotContext): Promise<TelegramPaperPosition[]> {
+  return withTenantDb(
+    ctx.tenantId,
+    async (db) =>
+      db
+        .select({
+          symbol: paperPositions.symbol,
+          side: paperPositions.side,
+          quantity: paperPositions.quantity,
+          entryPrice: paperPositions.entryPrice,
+          unrealizedPnl: paperPositions.unrealizedPnl,
+        })
+        .from(paperPositions)
+        .where(and(eq(paperPositions.userId, ctx.userId), eq(paperPositions.status, 'open')))
+        .orderBy(desc(paperPositions.entryTime))
+        .limit(20),
+    { userId: ctx.userId },
+  );
 }
 
 export async function priceReply(symbolRaw: string | undefined): Promise<BotReply> {
@@ -146,7 +181,7 @@ export async function calendarReply(countRaw: string | undefined): Promise<BotRe
 export async function statusReply(ctx: TelegramBotContext): Promise<BotReply> {
   try {
     const [positions, alerts] = await Promise.all([
-      listOpenPositions(ctx.userId),
+      listOpenPaperPositions(ctx),
       countActiveAlerts(ctx.userId),
     ]);
     const phase = getMarketPhase();
@@ -177,28 +212,22 @@ export async function statusReply(ctx: TelegramBotContext): Promise<BotReply> {
 
 export async function positionsReply(ctx: TelegramBotContext): Promise<BotReply> {
   try {
-    const { getOpenPositionsWithPnL } = await import('@kestrel/ai/portfolio');
-    const positions = await getOpenPositionsWithPnL(ctx.userId);
-    if (positions.length === 0) return { text: '📭 No open positions.' };
+    const positions = await listOpenPaperPositions(ctx);
+    if (positions.length === 0) return { text: '📭 No open paper positions.' };
 
-    const lines = [`📊 Open positions (${positions.length})`, ''];
+    const lines = [`📊 Open paper positions (${positions.length})`, ''];
     for (const position of positions) {
-      const direction = position.direction === 'long' ? '🟢 Long' : '🔴 Short';
-      const pnl =
-        position.unrealizedPnlUsd === null
-          ? 'P&L N/A'
-          : `${position.unrealizedPnlUsd >= 0 ? '🟢' : '🔴'} ${formatMoney(
-              position.unrealizedPnlUsd,
-            )}`;
-      lines.push(`${direction} ${position.symbol} · ${position.lotSize} lots`);
-      lines.push(
-        `   Entry ${position.entryPrice} · ${pnl}${position.stale ? ' · stale price' : ''}`,
-      );
+      const direction = position.side === 'long' ? '🟢 Long' : '🔴 Short';
+      const pnl = `${position.unrealizedPnl >= 0 ? '🟢' : '🔴'} ${formatMoney(
+        position.unrealizedPnl,
+      )}`;
+      lines.push(`${direction} ${position.symbol} · ${position.quantity} units`);
+      lines.push(`   Entry ${position.entryPrice} · ${pnl}`);
     }
     return { text: lines.join('\n') };
   } catch (err) {
     return {
-      text: `Could not load positions: ${err instanceof Error ? err.message : 'unknown error'}`,
+      text: `Could not load paper positions: ${err instanceof Error ? err.message : 'unknown error'}`,
     };
   }
 }
@@ -362,17 +391,13 @@ export async function buildBriefing(ctx: TelegramBotContext): Promise<string> {
 
   if (settings.briefingIncludePositions) {
     try {
-      const { getOpenPositionsWithPnL } = await import('@kestrel/ai/portfolio');
-      const positions = await getOpenPositionsWithPnL(ctx.userId);
-      sections.push('', `💼 Open positions: ${positions.length}`);
+      const positions = await listOpenPaperPositions(ctx);
+      sections.push('', `💼 Open paper positions: ${positions.length}`);
       for (const position of positions.slice(0, 6)) {
-        const pnl =
-          position.unrealizedPnlUsd === null
-            ? 'P&L N/A'
-            : `${position.unrealizedPnlUsd >= 0 ? '+' : ''}${formatMoney(position.unrealizedPnlUsd)}`;
-        sections.push(
-          `• ${position.symbol} ${position.direction} ${position.lotSize} lots · ${pnl}`,
-        );
+        const pnl = `${position.unrealizedPnl >= 0 ? '+' : ''}${formatMoney(
+          position.unrealizedPnl,
+        )}`;
+        sections.push(`• ${position.symbol} ${position.side} ${position.quantity} units · ${pnl}`);
       }
     } catch {
       // ignore

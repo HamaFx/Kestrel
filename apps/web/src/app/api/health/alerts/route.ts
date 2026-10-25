@@ -28,7 +28,7 @@
  * 401 = missing/invalid monitor credential
  */
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { computeHealthSloService } from '@/lib/services/admin-health';
 import { getAdminDb } from '@/lib/services/api-boundary';
 

@@ -18,7 +18,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchCsrf, getCsrfToken, withCsrf } from '../src/lib/csrf';
+import { fetchCsrf, getCsrfToken, withCsrf } from '../src/lib/auth/csrf';
 
 beforeEach(() => {
   let cookieStr = '';

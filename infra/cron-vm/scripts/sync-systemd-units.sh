@@ -26,7 +26,6 @@ readonly MANAGED_UNITS=(
   kestrel-verify-restore.service kestrel-verify-restore.timer
   kestrel-tenant-export.service kestrel-tenant-export.timer
   kestrel-tenant-delete.service kestrel-tenant-delete.timer
-  kestrel-billing-dlq.service kestrel-billing-dlq.timer
   kestrel-disk-check.service kestrel-disk-check.timer
   kestrel-docker-prune.service kestrel-docker-prune.timer
   kestrel-update.service kestrel-update.timer

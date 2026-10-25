@@ -18,11 +18,11 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { apiFetch } from '@/lib/api-client';
+import { apiFetch } from '@/lib/http/api-client';
 
 import { useThreadTitle } from '../src/hooks/use-thread-title';
 
-vi.mock('@/lib/api-client', () => ({ apiFetch: vi.fn(), apiMutate: vi.fn() }));
+vi.mock('@/lib/http/api-client', () => ({ apiFetch: vi.fn(), apiMutate: vi.fn() }));
 
 const apiFetchMock = vi.mocked(apiFetch);
 

@@ -38,8 +38,8 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { TagInput } from '@/components/ui/tag-input';
-import { apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiFetch } from '@/lib/http/api-client';
 
 import { createJournalEntryAction } from '../actions';
 

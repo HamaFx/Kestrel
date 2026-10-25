@@ -16,8 +16,8 @@
 
 import { NextResponse } from 'next/server';
 
-import { errorResponse } from '@/lib/api';
-import { hashToken } from '@/lib/auth-tokens';
+import { hashToken } from '@/lib/auth/auth-tokens';
+import { errorResponse } from '@/lib/http/api';
 import {
   AppError,
   deleteVerificationToken,

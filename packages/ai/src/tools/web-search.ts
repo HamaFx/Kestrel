@@ -35,7 +35,7 @@ import { z } from 'zod';
 
 import { completeStep, recordStep } from '../diagnostics';
 import { quarantineExternalText, sanitizeExternalUrl } from '../mastra-v2/packets/external-content';
-import { maybeGetToolContext } from '../tool-context';
+import { maybeGetToolContext } from '../runtime/tool-context';
 
 const webLog = createCategorizedLogger('ai', { component: 'web-search' });
 

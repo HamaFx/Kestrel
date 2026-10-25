@@ -40,7 +40,7 @@ const mocks = vi.hoisted(() => ({
   rateLimitFailures: 0,
 }));
 
-vi.mock('../src/model', () => ({
+vi.mock('../src/models/model', () => ({
   resolveChatModel: mocks.resolveChatModel,
   resolveMastraModel: mocks.resolveMastraModel,
   resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,

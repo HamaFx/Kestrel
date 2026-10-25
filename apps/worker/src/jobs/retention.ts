@@ -19,7 +19,7 @@
 // diagnostic_traces, provider_daily_quota, Full-analysis queue, and recovery
 // ledgers).
 
-import { getKestrelMastra, pruneMastraStorage } from '@kestrel/ai/mastra';
+import { getKestrelMastra, pruneMastraStorage } from '@kestrel/ai/mastra-v2';
 import { runRetentionCleanup, runVacuumAnalyze } from '@kestrel/db';
 
 import type { JobContext, JobResult } from './types.js';
@@ -42,11 +42,9 @@ export async function runRetention(ctx: JobContext): Promise<JobResult> {
     cronRunsDeleted: result.cronRunsDeleted,
     outboxDeleted: result.outboxDeleted,
     fullAnalysisQueueDeleted: result.fullAnalysisQueueDeleted,
-    billingWebhookDlqDeleted: result.billingWebhookDlqDeleted,
     aiShadowComparisonsDeleted: result.aiShadowComparisonsDeleted,
     aiQualityResultsDeleted: result.aiQualityResultsDeleted,
     budgetReservationsDeleted: result.budgetReservationsDeleted,
-    telegramUpdatesDeleted: result.telegramUpdatesDeleted,
     sharedSnapshotsDeleted: result.sharedSnapshotsDeleted,
     notificationNoiseStateDeleted: result.notificationNoiseStateDeleted,
   });

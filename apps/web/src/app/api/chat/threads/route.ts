@@ -20,7 +20,7 @@
 
 import { z } from 'zod';
 
-import { parseJsonBody, withAuth } from '@/lib/api';
+import { parseJsonBody, withAuth } from '@/lib/http/api';
 import { createThreadService, listThreadsService } from '@/lib/services/chat';
 
 const CreateBodySchema = z.object({ pinnedSymbol: z.string().nullable().optional() }).default({});

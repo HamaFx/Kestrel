@@ -34,8 +34,8 @@ import { Link } from 'next-view-transitions';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { cleanNewsText } from '@/lib/clean-news-text';
-import { formatStamp } from '@/lib/datetime';
+import { cleanNewsText } from '@/lib/formatters/clean-news-text';
+import { formatStamp } from '@/lib/formatters/datetime';
 
 interface GetNewsPartProps {
   /** Tool output, or `null` while streaming / before completion. */

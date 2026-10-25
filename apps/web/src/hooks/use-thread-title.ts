@@ -22,7 +22,7 @@
 // generated title. Caches per threadId to avoid redundant fetches.
 import { useEffect, useRef, useState } from 'react';
 
-import { apiFetch } from '@/lib/api-client';
+import { apiFetch } from '@/lib/http/api-client';
 
 interface UseThreadTitleOptions {
   threadId: string;

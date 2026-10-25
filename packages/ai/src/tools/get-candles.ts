@@ -31,7 +31,7 @@ import {
   executeCanonicalCandles,
   type CanonicalCandlesInput,
 } from '../mastra-v2/tools/canonical/candles';
-import { maybeGetToolContext } from '../tool-context';
+import { maybeGetToolContext } from '../runtime/tool-context';
 
 declare module '@kestrel/shared' {
   interface ToolIOMap {

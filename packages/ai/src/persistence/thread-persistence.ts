@@ -22,7 +22,7 @@ import type { Symbol } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, asc, desc, eq, lt, or, sql } from 'drizzle-orm';
 
-import { getDb } from '../db';
+import { getDb } from '../runtime/db';
 
 const tplog = createCategorizedLogger('ai', { component: 'thread-persistence' });
 

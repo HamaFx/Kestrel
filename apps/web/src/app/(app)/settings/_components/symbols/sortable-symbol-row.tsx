@@ -19,7 +19,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { IconArrowDown, IconArrowUp, IconGripVertical, IconTrash } from '@tabler/icons-react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface SymbolItem {
   symbol: string;

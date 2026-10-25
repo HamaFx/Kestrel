@@ -20,7 +20,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { createExecutionPlan } from '../src/mastra';
+import { createExecutionPlan } from '../src/mastra-v2';
 import type { MastraCapabilityId } from '../src/mastra-v2/capabilities';
 import { ExecutionRouteSchema, type ExecutionPlan } from '../src/mastra-v2/planning/execution-plan';
 

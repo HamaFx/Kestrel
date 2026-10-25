@@ -31,7 +31,7 @@ import {
 import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface CompactTelemetryRowProps {
   name: string;

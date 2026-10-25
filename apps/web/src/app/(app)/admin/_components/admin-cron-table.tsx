@@ -25,10 +25,14 @@ import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { apiFetch } from '@/lib/api-client';
-import { downloadCSV, formatAbsoluteTime, formatRelativeTime } from '@/lib/format-number';
+import {
+  downloadCSV,
+  formatAbsoluteTime,
+  formatRelativeTime,
+} from '@/lib/formatters/format-number';
+import { apiFetch } from '@/lib/http/api-client';
+import { toastApiError } from '@/lib/http/toast-api-error';
 import type { CronRun } from '@/lib/services/admin-dtos';
-import { toastApiError } from '@/lib/toast-api-error';
 
 import { AdminErrorBlock } from './admin-error-block';
 

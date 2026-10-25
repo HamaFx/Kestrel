@@ -26,8 +26,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/cn';
-import { fetchCsrf } from '@/lib/csrf';
+import { fetchCsrf } from '@/lib/auth/csrf';
+import { cn } from '@/lib/formatters/cn';
 
 interface TradeReviewResponse {
   review: {

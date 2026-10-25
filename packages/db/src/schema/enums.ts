@@ -36,7 +36,6 @@ export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 export const journalOutcomeEnum = pgEnum('journal_outcome', ['open', 'win', 'loss', 'breakeven']);
 
 // ── Portfolio position status ───────────────────────────────────────────
-export const portfolioStatusEnum = pgEnum('portfolio_status', ['open', 'closed']);
 
 // ── Briefing kind ───────────────────────────────────────────────────────
 export const briefingKindEnum = pgEnum('briefing_kind', ['pre', 'post', 'weekly_review']);

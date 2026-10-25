@@ -123,7 +123,7 @@ export async function runJob(jobName: JobName): Promise<number> {
     clearTimeout(timer);
     try {
       const { flushMastraObservability, getKestrelMastra, closeKestrelMastra } =
-        await import('@kestrel/ai/mastra');
+        await import('@kestrel/ai/mastra-v2');
       await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
       await shutdownLangfuse();
       await closeKestrelMastra();

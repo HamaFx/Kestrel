@@ -18,8 +18,8 @@
 
 export * from './schema/index';
 export { getTenantIdForUser, requireTenantIdForUser } from './tenant';
-export * from './schema/memory-backfill';
-export * from './schema/memory-projection';
+export * from './schema/ai/memory-backfill';
+export * from './schema/ai/memory-projection';
 // PF-15 — Export `getDbRO` so consumers can route read queries to
 // read replicas. `withTenantDbRO` also uses `getDbRO` internally.
 export {
@@ -56,15 +56,6 @@ export { checkAndIncrementDailyQuota, type DailyQuotaResult } from './provider-q
 // PF-01 — Query/repository layer barrel. Import via `queries` namespace
 // or individual named exports for tree-shaking.
 export {
-  getSubscription,
-  isSubscriptionActive,
-  getEffectiveFeatures,
-  getEffectiveTokenCap,
-  countActiveAlerts,
-  countJournalEntriesThisMonth,
-  type SubscriptionWithPlan,
-} from './queries/billing';
-export {
   getPlatformAdminSettings,
   getPlatformAdminUserId,
   getUserWithSettings,
@@ -97,6 +88,7 @@ export {
   deleteAlert,
   listActiveAlerts,
   markAlertFired,
+  countActiveAlerts,
   type AlertRow,
   type CreateAlertInput,
   type UpdateAlertInput,
@@ -129,19 +121,6 @@ export {
   type CotReportRow,
   type CreateCotReportInput,
 } from './queries/cot';
-export {
-  listOpenPositions,
-  listAllPositions,
-  getPosition,
-  createPosition,
-  closePosition,
-  deletePosition,
-  getPortfolioSettings,
-  upsertPortfolioSettings,
-  type PositionRow,
-  type CreatePositionInput,
-  type PortfolioSettingsRow,
-} from './queries/portfolio';
 export {
   listTelemetry,
   recordTelemetry,
@@ -196,7 +175,10 @@ export {
   type UserWithSettingsRow,
 } from './queries/users';
 export { recordAdminAudit, listAdminAuditLogs } from './queries/admin-audit';
-export type { MutationExecutionRow, MutationExecutionInsert } from './schema/mutation-executions';
+export type {
+  MutationExecutionRow,
+  MutationExecutionInsert,
+} from './schema/ai/mutation-executions';
 export {
   executeMutationOnce,
   getMutationExecution,
@@ -206,12 +188,12 @@ export {
   type ExecuteMutationOnceResult,
   type MutationExecutionBusinessResult,
 } from './queries/mutation-executions';
-export type { AdminAuditLogRow, AdminAuditLogInsert } from './schema/admin-audit';
+export type { AdminAuditLogRow, AdminAuditLogInsert } from './schema/ops/admin-audit';
 export type {
   FullAnalysisQueueRow,
   FullAnalysisQueueInsert,
   FullAnalysisQueueStatus,
-} from './schema/full-analysis-queue';
+} from './schema/ai/full-analysis-queue';
 export {
   enqueueFullAnalysisQueue,
   claimNextFullAnalysisQueue,
@@ -241,7 +223,7 @@ export type {
   FeedbackRating,
   FeedbackReviewStatus,
   FeedbackLabel,
-} from './schema/ai-feedback';
+} from './schema/ai/ai-feedback';
 export {
   registerEvalDataset,
   getEvalDataset,
@@ -254,7 +236,11 @@ export {
   type ReviewedTrainingPair,
   type ListReviewedTrainingPairsOptions,
 } from './queries/training-dataset';
-export type { EvalDatasetRow, EvalDatasetInsert, EvalDatasetStatus } from './schema/eval-datasets';
+export type {
+  EvalDatasetRow,
+  EvalDatasetInsert,
+  EvalDatasetStatus,
+} from './schema/ai/eval-datasets';
 export { listToolTelemetry } from './queries/chat-telemetry';
 export {
   getWatchlistWithCatalog,
@@ -265,72 +251,6 @@ export {
 } from './queries/watchlist';
 export { resetOnboarding, type ResetMode } from './queries/onboarding';
 export { getProviderHealthForUser, getUserApiKeys } from './queries/provider-tests';
-export {
-  listActivePlans,
-  getPlan,
-  getUserSubscription,
-  getUserPayments,
-  upsertSubscription,
-  createPayment,
-  createTopupPayment,
-  claimCheckoutAttempt,
-  saveCheckoutInvoice,
-  completeCheckoutAttempt,
-  failCheckoutAttempt,
-} from './queries/billing-extras';
-// Subscription + credit billing.
-export {
-  getWallet,
-  getWalletWithGrant,
-  ensureWallet,
-  grantCredits,
-  addCredits,
-  consumeCredits,
-  expireCredits,
-  reserveCredits,
-  reconcileCreditReservation,
-  releaseCreditReservation,
-  ensureMonthlyGrant,
-  expireUnusedSubscriptionGrant,
-  reclaimStaleCreditReservations,
-  listStaleCreditReservations,
-  type CreditWallet,
-  type CreditMutationResult,
-  type CreditReservationResult,
-  type ReconcileResult,
-} from './queries/credit-wallet';
-export {
-  listLedger,
-  getCreditUsageDaily,
-  getLedgerByIdempotency,
-  type LedgerPage,
-  type CreditDayBucket,
-} from './queries/credit-ledger';
-export { listActiveTopupProducts, getTopupProduct } from './queries/credit-topups';
-export {
-  getEntitlementSnapshot,
-  assertEntitlement,
-  assertCredits,
-  isCreditsEnforcementEnabled,
-  isCreditsShadowLogEnabled,
-  FREE_FEATURES,
-  type EntitlementSnapshot,
-  type EntitlementResult,
-  type CreditGateResult,
-} from './queries/entitlement';
-export {
-  getBillingCustomer,
-  getBillingCustomerByStripeId,
-  getBillingUserIdForTenant,
-  ensureBillingCustomer,
-} from './queries/billing-customers';
-export {
-  claimBillingEvent,
-  markBillingEventProcessed,
-  markBillingEventFailed,
-  countBillingEventsSince,
-  type ClaimBillingEventResult,
-} from './queries/billing-events';
 export {
   getUserByEmail,
   userExistsByEmail,
@@ -363,22 +283,6 @@ export {
   deleteUserSessions,
   type SessionRow,
 } from './queries/user-sessions';
-export {
-  findIpnEvent,
-  insertIpnEvent,
-  claimIpnEvent,
-  markIpnProcessed,
-  markIpnFailed,
-  recordBillingWebhookFailure,
-  updatePaymentStatus,
-  getPaymentByNowpaymentsId,
-  updateSubscriptionFromPayment,
-  countStaleBillingWebhookFailures,
-  getBillingWebhookFailure,
-  claimBillingWebhookReplay,
-  markBillingWebhookReplayed,
-  releaseBillingWebhookReplay,
-} from './queries/ipn-events';
 export { getRecentCandles, listActiveSymbols, type CandleRow } from './queries/candles';
 export { listMtdAgentOpinions, type AgentOpinionRow } from './queries/agent-opinions';
 export {

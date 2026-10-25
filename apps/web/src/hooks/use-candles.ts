@@ -27,8 +27,8 @@
 import type { Candle, Symbol, Timeframe } from '@kestrel/shared';
 import { useQuery } from '@tanstack/react-query';
 
-import { refetchIntervalFor } from '@/lib/datetime';
-import { fetchCandles } from '@/lib/market-client';
+import { refetchIntervalFor } from '@/lib/formatters/datetime';
+import { fetchCandles } from '@/lib/services/market-client';
 
 export interface UseCandlesOptions {
   /**

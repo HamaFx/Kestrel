@@ -30,9 +30,9 @@ import { toast } from 'sonner';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
-import { apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/formatters/cn';
+import { formatRelative } from '@/lib/formatters/format';
+import { apiMutate } from '@/lib/http/api-client';
 
 import type { ThreadSummary } from '../chat-top-bar';
 

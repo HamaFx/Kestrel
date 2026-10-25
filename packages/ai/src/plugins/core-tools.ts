@@ -60,7 +60,6 @@ const GROUP_BY_TOOL: Readonly<Record<string, ToolGroup>> = {
   web_search: 'research',
   search_knowledge: 'research',
   get_journal_stats: 'journal',
-  get_portfolio_snapshot: 'portfolio',
   convene_committee: 'system',
   get_system_diagnostics: 'system',
 };

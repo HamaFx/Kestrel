@@ -21,7 +21,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface SharedSkeletonCardProps {
   /** Accessible label for the loading state. */

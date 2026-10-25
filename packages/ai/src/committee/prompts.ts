@@ -153,9 +153,7 @@ function serializedPacket(packet: SymbolResearchPacket): string {
  * imply macro context was checked when it was not collected.
  */
 function optionalContextBlock(packet: SymbolResearchPacket): string {
-  const optional = packet.optionalContext as
-    | { available?: boolean; reason?: string }
-    | undefined;
+  const optional = packet.optionalContext as { available?: boolean; reason?: string } | undefined;
   // Injected/test packets may predate the optionalContext field; disclose
   // nothing rather than crashing the desk prompt.
   if (!optional || typeof optional.reason !== 'string') return '';
@@ -421,7 +419,10 @@ export function comparisonFusionInstructionsForRequest({
   const availableSymbols = packets.map((packet) => packet.symbol);
   const symbols = [...availableSymbols, ...blockedSymbols];
   const packetBlock = packets
-    .map((packet) => `### ${packet.symbol}\n${serializedPacket(packet)}\n${optionalContextBlock(packet)}`)
+    .map(
+      (packet) =>
+        `### ${packet.symbol}\n${serializedPacket(packet)}\n${optionalContextBlock(packet)}`,
+    )
     .join('\n\n');
   const opinionBlock = opinions
     .map((opinion) =>

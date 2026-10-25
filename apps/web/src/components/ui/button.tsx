@@ -30,7 +30,7 @@
 import { IconLoader2 } from '@tabler/icons-react';
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'surface' | 'tactical';
 type Size = 'xs' | 'sm' | 'md' | 'lg';

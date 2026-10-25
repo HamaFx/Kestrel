@@ -28,7 +28,7 @@ import { useActionState, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { apiMutate } from '@/lib/api-client';
+import { apiMutate } from '@/lib/http/api-client';
 
 import { updateMarketDataProviderAction } from '../../actions';
 

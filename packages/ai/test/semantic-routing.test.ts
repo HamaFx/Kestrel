@@ -17,15 +17,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runMastraStructured } from '../src/mastra-v2/agents/xauusd/text-runner';
-import { resolveModel } from '../src/model';
-import { classifyTurnLLM } from '../src/semantic-routing';
+import { resolveModel } from '../src/models/model';
+import { classifyTurnLLM } from '../src/routing/semantic';
 
 // Mock dependencies
 vi.mock('../src/mastra-v2/agents/xauusd/text-runner', () => ({
   runMastraStructured: vi.fn(),
 }));
 
-vi.mock('../src/model', () => ({
+vi.mock('../src/models/model', () => ({
   resolveModel: vi.fn(() => ({
     // Return a mock LanguageModel-like object (not a string)
     modelId: 'mock-model',

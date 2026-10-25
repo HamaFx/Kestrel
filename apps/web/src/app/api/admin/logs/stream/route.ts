@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { withAdminAuth } from '@/lib/admin-auth';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { logStreamHub } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

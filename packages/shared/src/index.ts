@@ -42,7 +42,6 @@ export * from './schemas/ai-preferences';
 export * from './schemas/alerts';
 export * from './schemas/journal';
 // F2 — Portfolio Management
-export * from './schemas/portfolio';
 // F3 — Social Sentiment Integration
 export * from './schemas/sentiment';
 // F4 — Notification Noise Control
@@ -84,7 +83,6 @@ export * from './schemas/tool-outputs/get-intermarket-resonance';
 export * from './schemas/tool-outputs/get-system-diagnostics';
 export * from './schemas/tool-outputs/run-system-action';
 // F2 — Portfolio Management
-export * from './schemas/tool-outputs/get-portfolio-snapshot';
 // F3 — Social Sentiment
 export * from './schemas/tool-outputs/get-social-sentiment';
 export * from './schemas/tool-outputs/web-search';
@@ -102,11 +100,9 @@ export { isTextPart, getTextFromParts, getMessageText } from './ai/tool-io';
 export type { UiTextPart } from './ai/tool-io';
 export type { ToolOutputMap, ToolIOMap, ToolOutput, ToolInput } from './ai/tool-io';
 
-// Phase E — Billing feature gating
-export * from './billing';
-
 // Errors & Logging
 export * from './errors';
+export * from './resilience';
 export * from './observability';
 export * from './url-safety';
 export * from './safe-url';

@@ -33,7 +33,7 @@ import { revalidatePath } from 'next/cache';
 import { verifySync } from 'otplib';
 
 import { auth } from '@/auth';
-import { logActionError } from '@/lib/action-errors';
+import { logActionError } from '@/lib/http/action-errors';
 
 import { verifyAccountPassword, type ActionResult, type SaveKeysResult } from './_actions-shared';
 

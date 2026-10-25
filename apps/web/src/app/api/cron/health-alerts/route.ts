@@ -24,7 +24,7 @@
  * existing VM/Vercel cron scheduler and is protected by CRON_SECRET.
  */
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { computeHealthSloService } from '@/lib/services/admin-health';
 import { getDb } from '@/lib/services/api-boundary';

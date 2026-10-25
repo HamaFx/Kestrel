@@ -34,8 +34,8 @@ import {
 } from '@/components/ui/drawer';
 import { Segmented } from '@/components/ui/segmented';
 import { StaleIndicator } from '@/components/ui/stale-indicator';
-import { apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiFetch } from '@/lib/http/api-client';
 
 import { AiCoachCard } from './ai-coach-card';
 import { AiReviewPanel } from './ai-review-panel';

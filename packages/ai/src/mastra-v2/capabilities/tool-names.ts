@@ -48,7 +48,6 @@ export const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
 /** Sensitive user-scoped reads require an explicit capability. */
 export const SENSITIVE_USER_READ_TOOL_NAMES = [
   'get_journal_stats',
-  'get_portfolio_snapshot',
   'compute_position_health',
   'replay_setup',
 ] as const;

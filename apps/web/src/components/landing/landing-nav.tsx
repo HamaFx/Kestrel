@@ -49,103 +49,103 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#101112]/90 backdrop-blur-2xl transition-all">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Brand Lockup */}
-        <div className="flex items-center gap-6">
-          <KestrelBrand variant="lockup" href="/landing" label="Kestrel" />
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Brand Lockup */}
+          <div className="flex items-center gap-6">
+            <KestrelBrand variant="lockup" href="/landing" label="Kestrel" />
 
-          <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 lg:flex">
-            <span className="bg-bull size-2 animate-pulse rounded-full shadow-[0_0_8px_rgba(63,158,61,0.6)]" />
-            <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
-              XAU/USD · LIVE
-            </span>
+            <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 lg:flex">
+              <span className="bg-bull size-2 animate-pulse rounded-full shadow-[0_0_8px_rgba(63,158,61,0.6)]" />
+              <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
+                XAU/USD · LIVE
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden items-center gap-8 md:flex">
-          <a
-            href="#desks"
-            className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
-          >
-            Specialist Desks
-          </a>
-          <a
-            href="#simulator"
-            className="text-brand hover:text-brand font-sans text-sm font-medium transition-colors"
-          >
-            Live Simulator
-          </a>
-          <a
-            href="#stepper"
-            className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
-          >
-            How It Works
-          </a>
-          <a
-            href="#architecture"
-            className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
-          >
-            System Stack
-          </a>
-          <a
-            href="#faq"
-            className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
-          >
-            FAQ
-          </a>
-          {isAuthenticated && (
-            <Link
-              href="/dashboard"
-              className="text-brand bg-brand/10 border-brand/25 hover:bg-brand/20 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-xs font-semibold transition-colors"
+          {/* Desktop Navigation Links */}
+          <nav className="hidden items-center gap-8 md:flex">
+            <a
+              href="#desks"
+              className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
             >
-              <span className="bg-brand size-1.5 animate-pulse rounded-full" />
-              <span>Dashboard</span>
-            </Link>
-          )}
-        </nav>
-
-        {/* Action CTAs & Mobile Toggle */}
-        <div className="flex items-center gap-3">
-          {isAuthenticated ? (
-            <TacticalFlameButton
-              href="/dashboard"
-              label="Open Dashboard"
-              className="py-[0.5em] pr-[2.8em] pl-[1em] text-xs"
-            />
-          ) : (
-            <>
-              <Link href="/login">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-fg-muted hover:text-fg hidden sm:inline-flex"
-                >
-                  Sign In
-                </Button>
+              Specialist Desks
+            </a>
+            <a
+              href="#simulator"
+              className="text-brand hover:text-brand font-sans text-sm font-medium transition-colors"
+            >
+              Live Simulator
+            </a>
+            <a
+              href="#stepper"
+              className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
+            >
+              How It Works
+            </a>
+            <a
+              href="#architecture"
+              className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
+            >
+              System Stack
+            </a>
+            <a
+              href="#faq"
+              className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
+            >
+              FAQ
+            </a>
+            {isAuthenticated && (
+              <Link
+                href="/dashboard"
+                className="text-brand bg-brand/10 border-brand/25 hover:bg-brand/20 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-xs font-semibold transition-colors"
+              >
+                <span className="bg-brand size-1.5 animate-pulse rounded-full" />
+                <span>Dashboard</span>
               </Link>
+            )}
+          </nav>
+
+          {/* Action CTAs & Mobile Toggle */}
+          <div className="flex items-center gap-3">
+            {isAuthenticated ? (
               <TacticalFlameButton
-                href="/register"
-                label="Get Started"
+                href="/dashboard"
+                label="Open Dashboard"
                 className="py-[0.5em] pr-[2.8em] pl-[1em] text-xs"
               />
-            </>
-          )}
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-fg-muted hover:text-fg hidden sm:inline-flex"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <TacticalFlameButton
+                  href="/register"
+                  label="Get Started"
+                  className="py-[0.5em] pr-[2.8em] pl-[1em] text-xs"
+                />
+              </>
+            )}
 
-          {/* Mobile Hamburger Toggle */}
-          <button
-            type="button"
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-nav"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="text-fg flex size-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 md:hidden"
-            aria-label="Toggle navigation menu"
-          >
-            {mobileMenuOpen ? <IconX className="size-5" /> : <IconMenu2 className="size-5" />}
-          </button>
+            {/* Mobile Hamburger Toggle */}
+            <button
+              type="button"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-fg flex size-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 md:hidden"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <IconX className="size-5" /> : <IconMenu2 className="size-5" />}
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
 
       {/* Full-Viewport Mobile Navigation Drawer */}
       {mobileMenuOpen && (

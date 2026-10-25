@@ -42,7 +42,7 @@ const {
   mockRecordAdminAudit: vi.fn(),
 }));
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/http/api', () => ({
   withAuth:
     (handler: (req: Request, ctx: unknown) => Promise<Response>) =>
     (req: Request, ctx?: { params?: Promise<unknown> }) =>
@@ -61,7 +61,7 @@ vi.mock('@/lib/api', () => ({
     Response.json({ error: { code: 'ERROR', message: String(error) } }, { status: 500 }),
 }));
 
-vi.mock('@/lib/admin-auth', () => ({
+vi.mock('@/lib/auth/admin-auth', () => ({
   withAdminAuth:
     (handler: (req: Request, ctx: unknown) => Promise<Response>) =>
     (req: Request, ctx?: { params?: Promise<unknown> }) =>

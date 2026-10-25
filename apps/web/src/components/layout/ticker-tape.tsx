@@ -27,7 +27,7 @@ import { priceDecimals, type Symbol, type Tick } from '@kestrel/shared';
 import { useEffect, useReducer, useRef } from 'react';
 
 import { usePrices } from '@/hooks/use-prices';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import { useShellRoute } from './shell-route-context';
 

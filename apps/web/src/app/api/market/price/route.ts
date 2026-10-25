@@ -20,7 +20,7 @@
 
 import { z } from 'zod';
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { SYMBOLS } from '@/lib/services/api-boundary';
 import { checkMarketRateLimit, getPriceService } from '@/lib/services/market';
 

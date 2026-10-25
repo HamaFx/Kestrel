@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { authMiddleware, compose, errorResponse, type RequestUser } from '@/lib/api';
+import { authMiddleware, compose, errorResponse, type RequestUser } from '@/lib/http/api';
 import { listRecentArticles, withRateLimit } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

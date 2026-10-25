@@ -28,8 +28,8 @@ import { IconAlertCircle, IconCircleCheck } from '@tabler/icons-react';
 import { sql } from 'drizzle-orm';
 import { cache } from 'react';
 
-import { cn } from '@/lib/cn';
 import { getServerEnv } from '@/lib/env';
+import { cn } from '@/lib/formatters/cn';
 
 interface ChannelStatus {
   label: string;

@@ -33,7 +33,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/lib/api-client', () => ({ apiFetch: mockApiFetch }));
+vi.mock('@/lib/http/api-client', () => ({ apiFetch: mockApiFetch }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 describe('AdminDiagnosticTraces', () => {

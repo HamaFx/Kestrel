@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   lastConflictConfig: undefined as Record<string, unknown> | undefined,
 }));
 
-vi.mock('../src/db', () => ({
+vi.mock('../src/runtime/db', () => ({
   getDb: mocks.getDb,
 }));
 

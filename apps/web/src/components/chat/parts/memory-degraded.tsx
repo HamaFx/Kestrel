@@ -19,7 +19,7 @@
 import type { MemoryDegradedPart } from '@kestrel/shared';
 import { IconDatabaseOff } from '@tabler/icons-react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 /**
  * Inline notice shown when a turn answered without loading earlier thread memory.

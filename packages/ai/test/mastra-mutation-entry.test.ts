@@ -19,7 +19,7 @@ import {
   buildMutationInput,
   classifyMutationRequest,
   MutationExtractionError,
-} from '@kestrel/ai/mastra';
+} from '@kestrel/ai/mastra-v2';
 import { describe, expect, it } from 'vitest';
 
 describe('classifyMutationRequest', () => {

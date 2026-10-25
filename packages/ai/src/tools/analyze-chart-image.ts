@@ -46,11 +46,11 @@ import { tool, type ModelMessage, type Tool } from 'ai';
 import { and, desc, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 
-import { estimateCostUsd } from '../cost';
-import { getDb } from '../db';
+import { estimateCostUsd } from '../budget/cost';
 import { runMastraText } from '../mastra-v2/agents/xauusd/text-runner';
-import { resolveModel, resolveVisionModel } from '../model';
-import { maybeGetToolContext, type ToolDb } from '../tool-context';
+import { resolveModel, resolveVisionModel } from '../models/model';
+import { getDb } from '../runtime/db';
+import { maybeGetToolContext, type ToolDb } from '../runtime/tool-context';
 
 const InputSchema = AnalyzeChartImageInputSchema;
 

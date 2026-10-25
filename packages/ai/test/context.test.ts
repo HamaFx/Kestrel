@@ -26,7 +26,7 @@ vi.mock('@kestrel/db', () => ({
   listUserSymbols: vi.fn(),
 }));
 
-vi.mock('../src/db', () => ({
+vi.mock('../src/runtime/db', () => ({
   getDb: vi.fn(() => ({
     select: vi.fn(() => ({
       from: vi.fn(() => ({
@@ -68,7 +68,7 @@ describe('buildLiveSnapshot', () => {
   it('detects London session at Monday 10:00 UTC', async () => {
     // London: hour 7-12. July 20, 2026 is Monday
     vi.setSystemTime(new Date('2026-07-20T10:00:00Z'));
-    const { buildLiveSnapshot } = await import('../src/context');
+    const { buildLiveSnapshot } = await import('../src/runtime/context');
 
     const snapshot = await buildLiveSnapshot({});
     expect(snapshot.session).toBe('london');
@@ -77,7 +77,7 @@ describe('buildLiveSnapshot', () => {
   it('detects NY session at Monday 17:00 UTC', async () => {
     // NY: hour 12-21
     vi.setSystemTime(new Date('2026-07-20T17:00:00Z'));
-    const { buildLiveSnapshot } = await import('../src/context');
+    const { buildLiveSnapshot } = await import('../src/runtime/context');
 
     const snapshot = await buildLiveSnapshot({});
     expect(snapshot.session).toBe('ny');
@@ -86,7 +86,7 @@ describe('buildLiveSnapshot', () => {
   it('detects Asia session at Monday 3:00 UTC', async () => {
     // Asia: hour 0-7
     vi.setSystemTime(new Date('2026-07-20T03:00:00Z'));
-    const { buildLiveSnapshot } = await import('../src/context');
+    const { buildLiveSnapshot } = await import('../src/runtime/context');
 
     const snapshot = await buildLiveSnapshot({});
     expect(snapshot.session).toBe('asia');
@@ -95,7 +95,7 @@ describe('buildLiveSnapshot', () => {
   it('detects off session on Saturday (day 6)', async () => {
     // Saturday: day 6 is always 'off'
     vi.setSystemTime(new Date('2026-07-25T10:00:00Z'));
-    const { buildLiveSnapshot } = await import('../src/context');
+    const { buildLiveSnapshot } = await import('../src/runtime/context');
 
     const snapshot = await buildLiveSnapshot({});
     expect(snapshot.session).toBe('off');
@@ -104,7 +104,7 @@ describe('buildLiveSnapshot', () => {
   it('detects off session on Sunday before 22:00 UTC', async () => {
     // Sunday before 22:00 UTC
     vi.setSystemTime(new Date('2026-07-19T10:00:00Z'));
-    const { buildLiveSnapshot } = await import('../src/context');
+    const { buildLiveSnapshot } = await import('../src/runtime/context');
 
     const snapshot = await buildLiveSnapshot({});
     expect(snapshot.session).toBe('off');
@@ -113,7 +113,7 @@ describe('buildLiveSnapshot', () => {
   it('detects Asia session on Sunday after 22:00 UTC (FX open)', async () => {
     // Sunday after 22:00 UTC → Monday's Asia session starts
     vi.setSystemTime(new Date('2026-07-19T23:00:00Z'));
-    const { buildLiveSnapshot } = await import('../src/context');
+    const { buildLiveSnapshot } = await import('../src/runtime/context');
 
     const snapshot = await buildLiveSnapshot({});
     expect(snapshot.session).toBe('asia');
@@ -121,7 +121,7 @@ describe('buildLiveSnapshot', () => {
 
   it('returns a valid snapshot structure with prices and marketPhase', async () => {
     vi.setSystemTime(new Date('2026-07-20T10:00:00Z'));
-    const { buildLiveSnapshot } = await import('../src/context');
+    const { buildLiveSnapshot } = await import('../src/runtime/context');
 
     const snapshot = await buildLiveSnapshot({});
     expect(snapshot).toHaveProperty('session');
@@ -133,7 +133,7 @@ describe('buildLiveSnapshot', () => {
 
   it('handles optional userId for watchlist', async () => {
     vi.setSystemTime(new Date('2026-07-20T10:00:00Z'));
-    const { buildLiveSnapshot } = await import('../src/context');
+    const { buildLiveSnapshot } = await import('../src/runtime/context');
 
     const snapshot = await buildLiveSnapshot({ userId: 'test-user' });
     expect(snapshot).toBeDefined();

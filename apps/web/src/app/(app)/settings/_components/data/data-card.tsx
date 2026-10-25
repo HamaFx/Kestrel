@@ -37,7 +37,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { Input } from '@/components/ui/input';
-import { migrateLegacyStorageNamespace } from '@/lib/storage';
+import { migrateLegacyStorageNamespace } from '@/lib/http/storage';
 
 import { clearChatHistoryAction, deleteAccountAction, exportDataAction } from '../../actions';
 import { RowDivider } from '../row-divider';

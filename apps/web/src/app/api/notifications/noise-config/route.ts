@@ -20,7 +20,7 @@
 // GET  /api/notifications/noise-config
 // PUT  /api/notifications/noise-config
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {
   getNoiseConfig,
   NoiseConfigSchema,

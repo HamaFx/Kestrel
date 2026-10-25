@@ -64,7 +64,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import '@/lib/plugins/register-ui';
 
@@ -124,10 +124,6 @@ interface DashboardCanvasProps {
   entries: readonly JournalEntry[];
   news: readonly NewsArticle[];
   briefing: BriefingData;
-  /** Portfolio margin usage percentage for the leverage gauge. */
-  marginUsagePct?: number;
-  /** Formatted detail string for the leverage gauge, e.g. "$12,450 / $50,000". */
-  marginDetail?: string | null;
   /** Phase 5.6 — per-source error messages; null means fetch succeeded. */
   fetchErrors?: {
     alerts: string | null;

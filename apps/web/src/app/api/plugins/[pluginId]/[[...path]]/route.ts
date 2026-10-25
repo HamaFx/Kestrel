@@ -22,7 +22,7 @@
 // handlers see decrypted per-user settings and isolated storage. A plugin
 // route is reachable only when the calling user has that plugin installed.
 
-import { withAuth } from '@/lib/api';
+import { withAuth } from '@/lib/http/api';
 import { dispatchPluginApiRequest } from '@/lib/services/plugin-api';
 
 export const runtime = 'nodejs';

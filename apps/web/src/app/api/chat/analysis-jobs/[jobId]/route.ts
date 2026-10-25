@@ -20,7 +20,7 @@
 //
 // Polling endpoint for background multi-agent analysis jobs.
 
-import { withAuth } from '@/lib/api';
+import { withAuth } from '@/lib/http/api';
 import { cancelFullAnalysisRun, getFullAnalysisRun } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

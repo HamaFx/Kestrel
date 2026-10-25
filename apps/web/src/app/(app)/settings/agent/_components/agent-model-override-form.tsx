@@ -21,7 +21,7 @@ import { IconArrowBackUp, IconCheck, IconCpu, IconLoader2 } from '@tabler/icons-
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
-import { apiMutate } from '@/lib/api-client';
+import { apiMutate } from '@/lib/http/api-client';
 
 type AgentName = 'technical' | 'fundamental' | 'risk' | 'sentiment' | 'decision';
 

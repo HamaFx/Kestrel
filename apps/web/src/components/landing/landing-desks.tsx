@@ -26,7 +26,7 @@ import { AnimatePresence, m } from 'motion/react';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface DeskSpec {
   id: string;
@@ -201,7 +201,7 @@ export function LandingDesks() {
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="mb-10 sm:mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="mb-10 flex flex-col gap-4 sm:mb-12 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-2xl flex-col items-start gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
               <span className="bg-brand size-2 animate-pulse rounded-full" />
@@ -214,22 +214,22 @@ export function LandingDesks() {
               THE 4 SPECIALIST DESKS{' '}
               <span className="font-redaction-35 text-brand italic">Deliberating In Sync</span>
             </h2>
-            <p className="text-fg-muted font-sans text-sm sm:text-base leading-relaxed">
-              Unlike single-prompt trading bots that make emotional decisions, Kestrel operates as an
-              institutional multi-desk trading committee. Each specialist evaluates markets from an
-              independent mathematical lens.
+            <p className="text-fg-muted font-sans text-sm leading-relaxed sm:text-base">
+              Unlike single-prompt trading bots that make emotional decisions, Kestrel operates as
+              an institutional multi-desk trading committee. Each specialist evaluates markets from
+              an independent mathematical lens.
             </p>
           </div>
 
           {/* Syndicate Synchronization Telemetry Badge */}
-          <div className="hidden lg:flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.02] px-3.5 py-2 font-mono text-xs text-fg-subtle">
-            <span className="size-2 rounded-full bg-bull animate-pulse" />
+          <div className="text-fg-subtle hidden items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.02] px-3.5 py-2 font-mono text-xs lg:flex">
+            <span className="bg-bull size-2 animate-pulse rounded-full" />
             <span>4/4 DESKS SYNCHRONIZED</span>
           </div>
         </div>
 
         {/* Side-by-Side Cockpit Grid */}
-        <div className="grid gap-6 lg:grid-cols-12 lg:gap-8 lg:items-stretch">
+        <div className="grid gap-6 lg:grid-cols-12 lg:items-stretch lg:gap-8">
           {/* Left Rail: 4 Desk Selector Tabs (Vertical on desktop, 2x2 on mobile) */}
           <div
             role="tablist"
@@ -251,7 +251,7 @@ export function LandingDesks() {
                     setIsPaused(true);
                   }}
                   className={cn(
-                    'group relative flex flex-col justify-between overflow-hidden rounded-xl border p-3.5 sm:p-4 text-left transition-all duration-200 active:translate-y-[0.5px]',
+                    'group relative flex flex-col justify-between overflow-hidden rounded-xl border p-3.5 text-left transition-all duration-200 active:translate-y-[0.5px] sm:p-4',
                     isSelected
                       ? 'surface-chip border-white/25 bg-[#18191a] shadow-[var(--shadow-chip)]'
                       : 'border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]',
@@ -262,16 +262,16 @@ export function LandingDesks() {
                     <>
                       <m.div
                         layoutId="active-desk-tab-indicator-desktop"
-                        className="hidden lg:block bg-brand absolute inset-y-2.5 right-0 w-[3px] rounded-full shadow-[0_0_10px_#ff3616]"
+                        className="bg-brand absolute inset-y-2.5 right-0 hidden w-[3px] rounded-full shadow-[0_0_10px_#ff3616] lg:block"
                         transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                       />
                       <div
                         aria-hidden="true"
-                        className="hidden lg:block absolute -right-1.5 top-1/2 -translate-y-1/2 size-3 rotate-45 border-t border-r border-white/20 bg-[#18191a] z-20"
+                        className="absolute top-1/2 -right-1.5 z-20 hidden size-3 -translate-y-1/2 rotate-45 border-t border-r border-white/20 bg-[#18191a] lg:block"
                       />
                       <m.div
                         layoutId="active-desk-tab-indicator-mobile"
-                        className="lg:hidden bg-brand absolute inset-x-3 bottom-0 h-[2px] rounded-full shadow-[0_0_8px_#ff3616]"
+                        className="bg-brand absolute inset-x-3 bottom-0 h-[2px] rounded-full shadow-[0_0_8px_#ff3616] lg:hidden"
                         transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                       />
                     </>
@@ -279,7 +279,7 @@ export function LandingDesks() {
 
                   {/* Tab Countdown Progress Strip */}
                   {isSelected && !isPaused && (
-                    <div className="absolute inset-x-0 bottom-0 h-[2px] bg-white/5 overflow-hidden">
+                    <div className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden bg-white/5">
                       <div
                         key={desk.id}
                         className="bg-brand/80 landing-cycle-progress h-full origin-left transition-all"
@@ -290,10 +290,10 @@ export function LandingDesks() {
 
                   {/* Responsive Tab Content: Compact stack on mobile, clean row on desktop */}
                   <div className="flex w-full flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
-                    <div className="flex items-center justify-between lg:justify-start lg:gap-3 min-w-0">
+                    <div className="flex min-w-0 items-center justify-between lg:justify-start lg:gap-3">
                       <div
                         className={cn(
-                          'flex size-8 sm:size-9 lg:size-10 shrink-0 items-center justify-center rounded-lg border transition-colors',
+                          'flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors sm:size-9 lg:size-10',
                           isSelected
                             ? 'border-white/20 bg-black/60 shadow-inner'
                             : 'border-white/10 bg-black/40',
@@ -304,7 +304,7 @@ export function LandingDesks() {
                       {/* Mobile Conviction Pill */}
                       <span
                         className={cn(
-                          'lg:hidden shrink-0 rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold transition-colors',
+                          'shrink-0 rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold transition-colors lg:hidden',
                           isSelected
                             ? 'bg-brand/10 border-brand/30 text-brand'
                             : 'text-fg-subtle border-white/5 bg-white/5',
@@ -315,7 +315,7 @@ export function LandingDesks() {
                     </div>
 
                     <div className="min-w-0 text-left lg:flex-1">
-                      <h3 className="font-display text-fg text-xs sm:text-sm lg:text-base font-normal tracking-tight group-hover:text-white truncate">
+                      <h3 className="font-display text-fg truncate text-xs font-normal tracking-tight group-hover:text-white sm:text-sm lg:text-base">
                         {desk.name}
                       </h3>
                       <p className="text-fg-muted truncate font-sans text-[10px] sm:text-[11px] lg:text-xs">
@@ -326,7 +326,7 @@ export function LandingDesks() {
                     {/* Desktop Conviction Pill */}
                     <span
                       className={cn(
-                        'hidden lg:inline-flex shrink-0 rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold transition-colors',
+                        'hidden shrink-0 rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold transition-colors lg:inline-flex',
                         isSelected
                           ? 'bg-brand/10 border-brand/30 text-brand'
                           : 'text-fg-subtle border-white/5 bg-white/5',
@@ -341,7 +341,7 @@ export function LandingDesks() {
           </div>
 
           {/* Right Console: Active Desk Briefing Cockpit */}
-          <div className="lg:col-span-7 flex flex-col">
+          <div className="flex flex-col lg:col-span-7">
             <AnimatePresence mode="wait">
               <m.div
                 key={activeDesk.id}
@@ -352,7 +352,7 @@ export function LandingDesks() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="surface-panel relative flex flex-col justify-between h-full overflow-hidden rounded-2xl border border-white/10 bg-[#141516]/95 p-5 sm:p-7 shadow-2xl backdrop-blur-md"
+                className="surface-panel relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#141516]/95 p-5 shadow-2xl backdrop-blur-md sm:p-7"
               >
                 {/* Panel Top Header Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
@@ -361,12 +361,13 @@ export function LandingDesks() {
                       {activeDesk.badge}
                     </span>
                     <span className="text-fg-muted font-mono text-[11px] sm:text-xs">
-                      Methodology: <strong className="text-fg font-semibold">{activeDesk.methodology}</strong>
+                      Methodology:{' '}
+                      <strong className="text-fg font-semibold">{activeDesk.methodology}</strong>
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="size-2 rounded-full bg-bull animate-pulse" />
+                    <span className="bg-bull size-2 animate-pulse rounded-full" />
                     <span
                       className={cn(
                         'rounded border px-2.5 py-0.5 font-mono text-xs font-bold',
@@ -381,18 +382,18 @@ export function LandingDesks() {
 
                 {/* Desk Identity Title */}
                 <div className="my-4 sm:my-5">
-                  <h3 className="font-display text-fg text-xl sm:text-2xl font-normal tracking-tight">
+                  <h3 className="font-display text-fg text-xl font-normal tracking-tight sm:text-2xl">
                     {activeDesk.name}{' '}
-                    <span className="text-fg-muted font-sans text-sm sm:text-base font-normal">
+                    <span className="text-fg-muted font-sans text-sm font-normal sm:text-base">
                       · {activeDesk.role}
                     </span>
                   </h3>
                 </div>
 
                 {/* Inner 2-Column Split: Capabilities & Deliberation Telemetry */}
-                <div className="grid gap-6 md:grid-cols-12 items-start">
+                <div className="grid items-start gap-6 md:grid-cols-12">
                   {/* Left sub-column: Capabilities (7 cols) */}
-                  <div className="md:col-span-7 flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 md:col-span-7">
                     <div className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
                       Execution Protocol & Scanning
                     </div>
@@ -402,7 +403,7 @@ export function LandingDesks() {
                           <div className="bg-brand/10 border-brand/20 text-brand mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border">
                             <IconCheck className="size-2.5" />
                           </div>
-                          <span className="text-fg-muted font-sans text-xs sm:text-sm leading-relaxed">
+                          <span className="text-fg-muted font-sans text-xs leading-relaxed sm:text-sm">
                             {feat}
                           </span>
                         </div>
@@ -411,7 +412,7 @@ export function LandingDesks() {
                   </div>
 
                   {/* Right sub-column: Deliberation & Telemetry Rig (5 cols) */}
-                  <div className="md:col-span-5 flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 md:col-span-5">
                     <div className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
                       Active Deliberation
                     </div>
@@ -421,7 +422,7 @@ export function LandingDesks() {
                       <div className="text-fg-subtle font-mono text-[10px] uppercase">
                         PRIMARY DECISION METRIC
                       </div>
-                      <div className="text-fg mt-1 font-mono text-xs sm:text-sm font-bold">
+                      <div className="text-fg mt-1 font-mono text-xs font-bold sm:text-sm">
                         {activeDesk.verdict.keyMetric}
                       </div>
                     </div>
@@ -439,7 +440,9 @@ export function LandingDesks() {
                 {/* Bottom: Conviction Progress Bar */}
                 <div className="mt-5 border-t border-white/10 pt-4">
                   <div className="mb-1.5 flex items-center justify-between font-mono text-[11px]">
-                    <span className="text-fg-subtle uppercase tracking-wider">Syndicate Conviction</span>
+                    <span className="text-fg-subtle tracking-wider uppercase">
+                      Syndicate Conviction
+                    </span>
                     <span className="text-fg font-bold tabular-nums">
                       {activeDesk.verdict.conviction} / 100
                     </span>

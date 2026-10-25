@@ -12,16 +12,12 @@ const routes = execFileSync('git', ['ls-files', 'apps/web/src/app/api'], {
   .filter((file) => file.endsWith('/route.ts'));
 
 const intentionalRawBody = new Set([
-  'apps/web/src/app/api/telegram/webhook/route.ts',
-  'apps/web/src/app/api/billing/webhook/route.ts',
 ]);
 
 const intentionalPublic = new Set([
   'apps/web/src/app/api/health/public/route.ts',
   'apps/web/src/app/api/auth/[...nextauth]/route.ts',
   'apps/web/src/app/api/auth/verify-email/route.ts',
-  'apps/web/src/app/api/billing/webhook/route.ts',
-  'apps/web/src/app/api/telegram/webhook/route.ts',
   'apps/web/src/app/api/market/stream/route.ts',
   'apps/web/src/app/api/dev/login/route.ts',
   'apps/web/src/app/api/cron/health-alerts/route.ts',
@@ -50,10 +46,6 @@ for (const relative of routes) {
   const hasCronAuth = /withCronAuth(?:<[^>]+>)?\s*\(/.test(source);
   const hasExplicitAdminWrapper = /withAdminAuth/.test(source);
   const hasExplicitCronWrapper = /withCronAuth/.test(source);
-  const hasWebhookValidation =
-    /verify(?:Hmac|Signature)|signature|WEBHOOK|IPN|Telegram/i.test(source) &&
-    (relative.includes('/webhook/') || relative.includes('/webhook/route.ts'));
-
   if (intentionalPublic.has(relative)) continue;
   if (isAdmin && !hasExplicitAdminWrapper) {
     if (/from ['\"]@\/lib\/admin-auth['\"]/.test(source)) continue;
@@ -65,15 +57,10 @@ for (const relative of routes) {
     failures.push(`${relative}: cron route must use withCronAuth`);
     continue;
   }
-  if (relative.includes('/billing/webhook/') || relative.includes('/telegram/webhook/')) {
-    if (!hasWebhookValidation)
-      failures.push(`${relative}: webhook route lacks recognizable signature validation`);
-    continue;
-  }
   if (!hasAuth && !intentionalPublic.has(relative)) {
     // Static wrappers may be imported through aliases or composed helpers;
     // keep this check focused on routes with no recognizable boundary at all.
-    const hasBoundaryImport = /from ['\"]@\/lib\/(?:api|admin-auth|cron)['\"]/.test(source);
+    const hasBoundaryImport = /from ['\"]@\/lib\/(?:http\/api|auth\/admin-auth|http\/cron)['\"]/.test(source);
     if (!hasBoundaryImport)
       failures.push(
         `${relative}: route is unclassified; use withAuth, compose, or add it to the intentional boundary allowlist`,

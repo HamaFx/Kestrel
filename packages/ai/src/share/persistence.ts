@@ -25,7 +25,7 @@ import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { AnnotateChartOutput, Symbol, Timeframe } from '@kestrel/shared';
 import { eq } from 'drizzle-orm';
 
-import { getDb } from '../db';
+import { getDb } from '../runtime/db';
 
 export interface CreateSnapshotArgs {
   userId: string;

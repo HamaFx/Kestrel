@@ -4,7 +4,7 @@ import {
   normalizeWorkflowStatus,
   toApiWorkflowStatus,
   toMastraWorkflowStatus,
-} from '../src/workflow-status';
+} from '../src/runtime/workflow-status';
 
 describe('workflow status normalization', () => {
   it('normalizes aliases to one domain vocabulary', () => {

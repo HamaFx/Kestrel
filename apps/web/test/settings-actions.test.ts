@@ -34,7 +34,7 @@ import { revalidatePath } from 'next/cache';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { auth } from '@/auth';
-import { logActionError } from '@/lib/action-errors';
+import { logActionError } from '@/lib/http/action-errors';
 
 import {
   addSymbolAction,
@@ -106,7 +106,7 @@ vi.mock('@kestrel/db', () => ({
   schema: schemaProxy,
 }));
 
-vi.mock('@/lib/action-errors', () => ({ logActionError: vi.fn() }));
+vi.mock('@/lib/http/action-errors', () => ({ logActionError: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 vi.mock('@kestrel/ai', async (importOriginal) => {
@@ -486,8 +486,6 @@ describe('exportDataAction', () => {
       [[]], // spend
       [[]], // briefings
       [[]], // audit logs
-      [[]], // portfolio positions
-      [[]], // portfolio settings
       [[]], // provider tests
       [[]], // notification noise state
       [[]], // bot links
@@ -505,8 +503,6 @@ describe('exportDataAction', () => {
       [[{ id: 'trace-a', userId: USER_ID }]],
       [[]], // memory backfill state
       [[]], // memory projection state
-      [[{ id: 'subscription-a', tenantId: 'tenant-test' }]],
-      [[{ id: 'payment-a', tenantId: 'tenant-test' }]],
     ];
     const authDb = mockQueryChain(rows.slice(0, 1));
     const exportDb = mockQueryChain(rows.slice(1));
@@ -520,8 +516,6 @@ describe('exportDataAction', () => {
     expect(serialized).toContain('feedback');
     expect(serialized).toContain('regressionCases');
     expect(serialized).toContain('toolTelemetry');
-    expect(serialized).toContain('subscriptions');
-    expect(serialized).toContain('payments');
     expect(serialized).not.toContain('bcrypt-hash');
     expect(serialized).not.toContain('encrypted-totp');
     expect(serialized).not.toContain('hashed-backup-code');

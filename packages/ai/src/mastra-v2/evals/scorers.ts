@@ -44,10 +44,11 @@ import {
 } from '@mastra/evals/scorers/prebuilt';
 import type { LanguageModel } from 'ai';
 
-import type { ResolveModelEnv } from '../../env-model-factory';
-import { resolveChatModel } from '../../model';
+import type { ResolveModelEnv } from '../../models/env-factory';
+import { resolveChatModel } from '../../models/model';
 import type { ExecutionPlan } from '../planning/execution-plan';
 import { createCitationScorer, createGroundingScorer } from './custom';
+
 const slog = createCategorizedLogger('ai', { component: 'mastra:evals-scorers' });
 
 export type ScorerId = 'faithfulness' | 'hallucination' | 'answer-relevancy' | 'bias' | 'toxicity';
@@ -311,7 +312,9 @@ export function buildScorersForExecutionPlan(
   return buildAgentScorers(
     settings,
     env,
-    plan.evidencePolicy.required ? AGENT_SCORER_PROFILES.research : AGENT_SCORER_PROFILES.conversation,
+    plan.evidencePolicy.required
+      ? AGENT_SCORER_PROFILES.research
+      : AGENT_SCORER_PROFILES.conversation,
   );
 }
 

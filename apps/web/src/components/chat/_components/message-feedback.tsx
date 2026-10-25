@@ -19,7 +19,7 @@ import { IconCheck, IconThumbDown, IconThumbUp } from '@tabler/icons-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { apiMutate } from '@/lib/api-client';
+import { apiMutate } from '@/lib/http/api-client';
 
 interface MessageFeedbackProps {
   threadId: string;

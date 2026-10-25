@@ -23,8 +23,6 @@ import {
   CandleSchema,
   ChatMessageSchema,
   ChatThreadSchema,
-  ClosePositionInputSchema,
-  CreatePositionInputSchema,
   EconomicEventSchema,
   IndicatorRequestSchema,
   IndicatorResultSchema,
@@ -33,9 +31,6 @@ import {
   NewsArticleSchema,
   NoiseConfigSchema,
   NoiseDecisionSchema,
-  PortfolioPositionSchema,
-  PortfolioRiskReportSchema,
-  PortfolioSettingsSchema,
   SocialSentimentSchema,
   StructureResultSchema,
   TickSchema,
@@ -615,137 +610,6 @@ describe('JournalStatsSchema', () => {
   it('rejects winRate out of range', () => {
     expect(() => JournalStatsSchema.parse({ ...valid, winRate: 1.5 })).toThrow();
     expect(() => JournalStatsSchema.parse({ ...valid, winRate: -0.1 })).toThrow();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// PortfolioPositionSchema
-// ---------------------------------------------------------------------------
-describe('PortfolioPositionSchema', () => {
-  const valid = {
-    id: '550e8400-e29b-41d4-a716-446655440008',
-    userId: 'user-1',
-    symbol: 'XAUUSD',
-    direction: 'long' as const,
-    lotSize: 1.0,
-    entryPrice: 2390.0,
-    stopLoss: 2380.0,
-    takeProfit: 2420.0,
-    openedAt: 1748378101000,
-    closedAt: null,
-    closePrice: null,
-    status: 'open' as const,
-    notes: 'Position opened on breakout',
-    linkedSignalId: null,
-    createdAt: 1748378101000,
-    updatedAt: 1748378101000,
-  };
-
-  it('accepts a valid position', () => {
-    expect(() => PortfolioPositionSchema.parse(valid)).not.toThrow();
-  });
-
-  it('accepts closed position with values', () => {
-    const parsed = PortfolioPositionSchema.parse({
-      ...valid,
-      status: 'closed',
-      closedAt: 1748378200000,
-      closePrice: 2410.0,
-    });
-    expect(parsed.status).toBe('closed');
-    expect(parsed.closePrice).toBe(2410.0);
-  });
-
-  it('rejects negative lotSize', () => {
-    expect(() => PortfolioPositionSchema.parse({ ...valid, lotSize: -1 })).toThrow();
-  });
-
-  it('rejects non-positive entryPrice', () => {
-    expect(() => PortfolioPositionSchema.parse({ ...valid, entryPrice: 0 })).toThrow();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// PortfolioSettingsSchema
-// ---------------------------------------------------------------------------
-describe('PortfolioSettingsSchema', () => {
-  it('accepts with defaults', () => {
-    const parsed = PortfolioSettingsSchema.parse({
-      userId: 'user-1',
-      accountBalance: 10000,
-      baseCurrency: 'USD',
-      updatedAt: 1748378101000,
-    });
-    expect(parsed.maxRiskPerTradePct).toBe(2.0);
-    expect(parsed.maxTotalExposurePct).toBe(10.0);
-  });
-
-  it('rejects out-of-range risk percentages', () => {
-    expect(() =>
-      PortfolioSettingsSchema.parse({
-        userId: 'user-1',
-        accountBalance: null,
-        updatedAt: 1,
-        maxRiskPerTradePct: 101,
-      }),
-    ).toThrow();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// PortfolioRiskReportSchema
-// ---------------------------------------------------------------------------
-describe('PortfolioRiskReportSchema', () => {
-  const valid = {
-    totalExposureUsd: 50000,
-    totalExposurePct: 50.0,
-    totalRiskUsd: 2500,
-    totalRiskPct: 2.5,
-    concentration: [{ symbol: 'XAUUSD', pct: 80, alert: true }],
-    correlationRisk: [{ pair: 'XAUUSD/EURUSD', correlation: 0.3, alert: false }],
-    positionsNearStop: [{ symbol: 'XAUUSD', direction: 'long', distancePct: 0.5 }],
-    alerts: [{ level: 'warning', message: 'High concentration in XAUUSD' }],
-    openPositionCount: 3,
-  };
-
-  it('accepts a valid risk report', () => {
-    expect(() => PortfolioRiskReportSchema.parse(valid)).not.toThrow();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// CreatePositionInputSchema / ClosePositionInputSchema
-// ---------------------------------------------------------------------------
-describe('CreatePositionInputSchema', () => {
-  it('accepts valid input', () => {
-    const parsed = CreatePositionInputSchema.parse({
-      symbol: 'EURUSD',
-      direction: 'long',
-      lotSize: 1.5,
-      entryPrice: 1.165,
-    });
-    expect(parsed.symbol).toBe('EURUSD');
-  });
-
-  it('accepts optional fields', () => {
-    const parsed = CreatePositionInputSchema.parse({
-      symbol: 'XAUUSD',
-      direction: 'short',
-      lotSize: 0.5,
-      entryPrice: 2400.0,
-      stopLoss: null,
-      takeProfit: null,
-      notes: null,
-      linkedSignalId: null,
-    });
-    expect(parsed.stopLoss).toBeNull();
-    expect(parsed.notes).toBeNull();
-  });
-});
-
-describe('ClosePositionInputSchema', () => {
-  it('accepts valid close input', () => {
-    expect(() => ClosePositionInputSchema.parse({ closePrice: 2410.0 })).not.toThrow();
   });
 });
 

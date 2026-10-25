@@ -19,8 +19,8 @@
 // /api/journal/coach-insights — generate aggregate AI coaching diagnostics and leak detection.
 // POST /api/journal/coach-insights
 
-import { errorResponse, withAuth } from '@/lib/api';
 import { getServerEnv } from '@/lib/env';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { getUserWithSettings } from '@/lib/services/api-boundary';
 import { getCoachInsightsService } from '@/lib/services/journal';
 

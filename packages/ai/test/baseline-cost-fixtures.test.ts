@@ -22,17 +22,17 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { estimateKnownCostUsd } from '../src/cost';
-import {
-  createGenerationLedger,
-  restoreGenerationLedger,
-  type GenerationKind,
-} from '../src/generation-ledger';
+import { estimateKnownCostUsd } from '../src/budget/cost';
 import { observationalMemoryAllowanceUsd } from '../src/mastra-v2/memory';
 import {
   FULL_ANALYSIS_ESTIMATE_USD,
   FULL_ANALYSIS_TURN_ESTIMATE_USD,
 } from '../src/mastra-v2/workflows/full-analysis';
+import {
+  createGenerationLedger,
+  restoreGenerationLedger,
+  type GenerationKind,
+} from '../src/persistence/generation-ledger';
 
 const FIXTURE_MODEL = 'google/gemini-2.5-flash' as const;
 

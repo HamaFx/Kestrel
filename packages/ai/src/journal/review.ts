@@ -24,7 +24,11 @@ import type { JournalEntry, JournalStats, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { acquireBudget } from '../budget';
-import { DEFAULT_MAX_DAILY_USD, estimateKnownCostUsd, releaseBudgetReservation } from '../cost';
+import {
+  DEFAULT_MAX_DAILY_USD,
+  estimateKnownCostUsd,
+  releaseBudgetReservation,
+} from '../budget/cost';
 import { runMastraText } from '../mastra-v2/agents/xauusd/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
@@ -32,7 +36,7 @@ import {
   finishMastraRun,
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
-import { resolveChatModel } from '../model';
+import { resolveChatModel } from '../models/model';
 import { computeStats } from './persistence';
 
 export interface ReviewTradeArgs {
@@ -176,7 +180,7 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
 
     // Reconcile the durable budget reservation with actual cost.
     if (reservation.reservationId) {
-      const { reconcileBudgetReservation } = await import('../cost');
+      const { reconcileBudgetReservation } = await import('../budget/cost');
       await reconcileBudgetReservation(reservation.reservationId, costUsd);
     }
 
@@ -212,7 +216,7 @@ export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewRes
         await releaseBudgetReservation(reservation.reservationId);
       } else {
         // Legacy reservations without a ledger id are not expected in production.
-        const { applyBudgetDelta } = await import('../cost');
+        const { applyBudgetDelta } = await import('../budget/cost');
         await applyBudgetDelta(userId, -estimatedUsd);
       }
     } catch (releaseErr) {

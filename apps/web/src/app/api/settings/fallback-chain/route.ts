@@ -18,7 +18,7 @@
 
 // PF-22 — /api/settings/fallback-chain — AI provider fallback chain (thin controller).
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {
   FallbackChainPutSchema,
   getFallbackChainService,

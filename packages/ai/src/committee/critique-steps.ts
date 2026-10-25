@@ -32,7 +32,7 @@ import type { RequestContext } from '@mastra/core/request-context';
 import { createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 
-import type { GenerationLedger } from '../generation-ledger';
+import type { GenerationLedger } from '../persistence/generation-ledger';
 import { isDeadlineAbort, type DeadlineSignals } from '../utils/timeout';
 import {
   CritiqueStepOutputSchema,
@@ -67,15 +67,12 @@ export interface CritiqueStepContext {
 }
 
 /** One cross-critique round step (no-op when `enabled` is false). */
-export function createCritiqueStep(
-  ctx: CritiqueStepContext,
-  options: { enabled: boolean },
-) {
+export function createCritiqueStep(ctx: CritiqueStepContext, options: { enabled: boolean }) {
   const { deps, specialists, mode, generationLedger, maxSteps, runSignals, runSignal } = ctx;
   const critiqueEnabled = options.enabled;
   const specialistDeps = specialistRunnerDepsFor(deps, generationLedger, maxSteps);
 
-const critiqueStep = createStep({
+  const critiqueStep = createStep({
     id: 'critique',
     inputSchema: z.unknown(),
     outputSchema: CritiqueStepOutputSchema,
@@ -157,7 +154,6 @@ const critiqueStep = createStep({
     },
   });
 
-  
   return critiqueStep;
 }
 
@@ -167,7 +163,7 @@ export function createDebateStep(ctx: CritiqueStepContext, options: { enabled: b
   const debateEnabled = options.enabled;
   const specialistDeps = specialistRunnerDepsFor(deps, generationLedger, maxSteps);
 
-const debateStep = createStep({
+  const debateStep = createStep({
     id: 'debate',
     inputSchema: z.unknown(),
     outputSchema: DebateStepOutputSchema,

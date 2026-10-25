@@ -15,7 +15,6 @@ We aim to triage and acknowledge security disclosures promptly and provide fixes
 
 `POST /api/billing/webhook` is unauthenticated by session. Stripe deliveries
 must verify `Stripe-Signature` over the raw body with `STRIPE_WEBHOOK_SECRET`;
-NOWPayments deliveries must verify `x-nowpayments-sig` with
 `NOWPAYMENTS_IPN_SECRET`. Never parse or trust the JSON body before signature
 verification. Authenticated events are claimed in `billing_events` /
 `ipn_events`; failures are persisted to `billing_webhook_dlq` and replayed only

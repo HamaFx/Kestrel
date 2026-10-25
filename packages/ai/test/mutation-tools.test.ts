@@ -18,7 +18,7 @@
 import type { LogJournalOutput, SetAlertOutput, ShareSnapshotOutput } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { withToolContext } from '../src/tool-context';
+import { createToolContext, withToolContext } from '../src/runtime/tool-context';
 import { logJournalTool } from '../src/tools/log-journal';
 import { setAlertTool } from '../src/tools/set-alert';
 import { shareSnapshotTool } from '../src/tools/share-snapshot';
@@ -47,15 +47,12 @@ vi.mock('../src/share/sign', () => ({
 }));
 
 function makeContext(latestUserMessageText: string) {
-  return {
+  return createToolContext({
     threadId: 'thread-1',
     userId: 'user-1',
     latestUserMessageText,
-    env: {} as any,
-    signal: null,
     budget: { spent: 0, max: 5 },
-    userSettings: {} as any,
-  };
+  });
 }
 
 describe('mutation tool intent guards', () => {

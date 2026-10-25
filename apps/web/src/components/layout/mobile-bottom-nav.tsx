@@ -19,7 +19,7 @@ import { IconMenu2 } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import { useNavDrawer } from './nav-drawer-context';
 import { isNavItemActive, PRIMARY_NAV_ITEMS } from './nav-items';

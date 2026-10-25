@@ -26,7 +26,6 @@ import {
   IconBook,
   IconCalendar,
   IconChartLine,
-  IconCreditCard,
   IconLayoutDashboard,
   IconMessagePlus,
   IconNews,
@@ -35,7 +34,6 @@ import {
   IconPuzzle,
   IconSettings,
   IconShield,
-  IconWallet,
   type Icon,
 } from '@tabler/icons-react';
 
@@ -135,28 +133,12 @@ export const COMMANDS: readonly CommandItem[] = [
 
   // ── Settings deep links ───────────────────────────────────
   {
-    id: 'set-billing',
-    group: 'settings',
-    label: 'Subscription & Billing',
-    icon: IconCreditCard,
-    href: '/settings/billing',
-    keywords: ['plan', 'upgrade', 'billing', 'subscription'],
-  },
-  {
     id: 'set-plugins',
     group: 'settings',
     label: 'Plugin Store',
     icon: IconPuzzle,
     href: '/settings/plugins',
     keywords: ['plugins', 'install', 'extensions', 'backtesting', 'telegram', 'paper trading'],
-  },
-  {
-    id: 'set-portfolio',
-    group: 'settings',
-    label: 'Portfolio & Risk Rules',
-    icon: IconWallet,
-    href: '/settings/portfolio',
-    keywords: ['risk', 'drawdown', 'equity', 'positions'],
   },
   {
     id: 'set-symbols',

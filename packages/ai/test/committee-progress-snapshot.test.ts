@@ -66,7 +66,9 @@ describe('committeeProgressSnapshot', () => {
     expect(comparison.comparisonSymbols).toEqual(['EURUSD', 'XAUUSD']);
 
     // A single symbol is an ordinary single-desk run, not a comparison.
-    const single = committeeProgressSnapshot('single', 'technical', undefined, undefined, ['EURUSD']);
+    const single = committeeProgressSnapshot('single', 'technical', undefined, undefined, [
+      'EURUSD',
+    ]);
     expect(single).not.toHaveProperty('comparisonSymbols');
 
     const full = committeeProgressSnapshot('full', 'technical');

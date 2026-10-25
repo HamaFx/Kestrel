@@ -16,7 +16,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { sanitizeUserInput } from '../src/message-text';
+import { sanitizeUserInput } from '../src/runtime/message-text';
 
 const mocks = vi.hoisted(() => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },

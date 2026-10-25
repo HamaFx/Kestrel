@@ -18,8 +18,8 @@
 
 import { z } from 'zod';
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { parseSearchParams } from '@/lib/api';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { parseSearchParams } from '@/lib/http/api';
 import { listAiRegressionCases } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

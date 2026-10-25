@@ -21,7 +21,7 @@
 // Returns whether impersonation is currently enabled. The client uses
 // this to decide whether to render the impersonate UI.
 
-import { withAdminAuth } from '@/lib/admin-auth';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

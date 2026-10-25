@@ -28,14 +28,14 @@
 // Auth: same NextAuth session gate as the rest of /api/chat.
 // IDOR: scoped by userId; non-owned threads return 404.
 
-import { errorResponse, withAuth } from '@/lib/api';
-import { getThread, listMessages, withRateLimit } from '@/lib/services/api-boundary';
 import {
   exportFilename,
   renderThreadToMarkdown,
   type ExportMessage,
   type ExportThread,
-} from '@/lib/thread-export';
+} from '@/lib/formatters/thread-export';
+import { errorResponse, withAuth } from '@/lib/http/api';
+import { getThread, listMessages, withRateLimit } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -20,7 +20,7 @@
 // GET  /api/notifications/route-config
 // PUT  /api/notifications/route-config
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {
   getRouteConfig,
   RouteConfigSchema,

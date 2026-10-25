@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { createGenerationLedger, restoreGenerationLedger } from '../src/generation-ledger';
+import {
+  createGenerationLedger,
+  restoreGenerationLedger,
+} from '../src/persistence/generation-ledger';
 
 describe('createGenerationLedger', () => {
   it('aggregates each generation once by id', () => {

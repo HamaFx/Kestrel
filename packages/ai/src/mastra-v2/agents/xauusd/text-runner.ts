@@ -15,8 +15,6 @@
  */
 
 import { Agent } from '@mastra/core/agent';
-
-import { jsonPromptInjectionForModel } from '../../../committee/structured-output';
 import type { MastraModelConfig } from '@mastra/core/llm';
 import {
   PromptInjectionDetector,
@@ -27,6 +25,7 @@ import { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel, ModelMessage } from 'ai';
 import type { z } from 'zod';
 
+import { jsonPromptInjectionForModel } from '../../../committee/structured-output';
 import { getMastraGenerationStats } from '../../shared/telemetry';
 import { runTracingOptions } from '../../telemetry';
 

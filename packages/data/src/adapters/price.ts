@@ -29,10 +29,7 @@ import { SymbolSchema, type Symbol, type Tick } from '@kestrel/shared';
 import { cacheKey, cacheTag, getDefaultCache, PRICE_TTL } from '../cache';
 import { runWithFailover, type ProviderAttempt } from '../failover';
 import { recordFailure, recordSuccess } from '../health';
-
-import '../providers/provider-adapters'; // side-effect: register providers
-
-import { isTickStreamEnabled } from '../providers/provider-adapters';
+import { ensureDataProvidersRegistered, isTickStreamEnabled } from '../providers/provider-adapters';
 import { marketDataProviders, type ProviderPriceSnapshot } from '../providers/provider-registry';
 
 export interface GetPriceOptions {
@@ -108,6 +105,7 @@ export async function getPriceWithMeta(
   symbolInput: Symbol,
   opts: GetPriceOptions = {},
 ): Promise<PriceResult> {
+  ensureDataProvidersRegistered();
   const symbol = SymbolSchema.parse(symbolInput);
   const keys = resolveKeys(opts);
   const ttl = opts.ttlSeconds ?? PRICE_TTL.ttlSeconds;
@@ -192,6 +190,7 @@ export async function getPricesWithMeta(
   symbolsInput: readonly Symbol[],
   opts: GetPriceOptions = {},
 ): Promise<PriceResult[]> {
+  ensureDataProvidersRegistered();
   if (symbolsInput.length === 0) return [];
   const symbols = symbolsInput.map((s) => SymbolSchema.parse(s));
   if (symbols.length === 1) {

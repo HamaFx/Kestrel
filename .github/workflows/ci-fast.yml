@@ -39,6 +39,7 @@ jobs:
       # Audit 2026-10-18 — the docs/architecture.md mastra-v2 tree must match
       # packages/ai/src/mastra-v2/ (docs-drift guard).
       - run: pnpm check:architecture-tree
+      - run: pnpm check:maintainability
       - run: pnpm turbo run lint
       - run: pnpm turbo run typecheck
       # Audit v2 §4.2 — knip is blocking: the workspace is at zero unused

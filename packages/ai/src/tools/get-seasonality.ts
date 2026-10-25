@@ -31,7 +31,7 @@ import {
 import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
-import { maybeGetToolContext } from '../tool-context';
+import { maybeGetToolContext } from '../runtime/tool-context';
 
 const InputSchema = GetSeasonalityInputSchema;
 

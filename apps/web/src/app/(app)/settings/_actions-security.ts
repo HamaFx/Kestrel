@@ -41,8 +41,8 @@ import { generateSecret, generateURI, verifySync } from 'otplib';
 import QRCode from 'qrcode';
 
 import { auth, signOut } from '@/auth';
-import { logActionError } from '@/lib/action-errors';
-import { passwordSchema } from '@/lib/validation';
+import { logActionError } from '@/lib/http/action-errors';
+import { passwordSchema } from '@/lib/http/validation';
 
 import { verifyAccountPassword, type ActionResult } from './_actions-shared';
 

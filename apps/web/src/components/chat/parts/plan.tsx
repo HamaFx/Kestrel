@@ -32,7 +32,7 @@ import { IconChevronDown, IconChevronRight, IconCpu, IconLoader2 } from '@tabler
 import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useId, useRef, useState } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface PlanPartProps {
   plan: UserPlanPart;

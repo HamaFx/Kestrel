@@ -25,7 +25,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { enqueuePersistenceFailure } from '../src/persistence-outbox';
+import { enqueuePersistenceFailure } from '../src/persistence/outbox';
 
 interface CapturedConflict {
   target: unknown[];

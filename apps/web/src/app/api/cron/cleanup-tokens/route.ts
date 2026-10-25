@@ -21,7 +21,7 @@
 //
 // Schedule: daily via the GCE VM systemd timer or Vercel cron.
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { lazyPurgeExpiredTokens } from '@/lib/services/api-boundary';
 

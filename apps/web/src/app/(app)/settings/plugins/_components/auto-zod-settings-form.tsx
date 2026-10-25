@@ -30,7 +30,7 @@ import { useId, useState } from 'react';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export type PluginSettingsValues = Record<string, unknown>;
 

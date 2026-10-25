@@ -792,6 +792,27 @@
       "when": 1792900506784,
       "tag": "0113_paper_strategy_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1793000000000,
+      "tag": "0114_drop_legacy_billing_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1793000001000,
+      "tag": "0115_drop_legacy_telegram_updates",
+      "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1793000002000,
+      "tag": "0116_drop_legacy_portfolio_tables",
+      "breakpoints": true
     }
   ]
 }

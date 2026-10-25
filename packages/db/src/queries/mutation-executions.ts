@@ -7,7 +7,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import { getDb, schema, type DbClient } from '../client';
-import type { MutationExecutionRow } from '../schema/mutation-executions';
+import type { MutationExecutionRow } from '../schema/ai/mutation-executions';
 import { requireTenantIdForUser } from '../tenant';
 
 export interface MutationExecutionBusinessResult {

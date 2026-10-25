@@ -20,10 +20,17 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { loadSecretsFromVault } = await import('@kestrel/shared/vault');
     await loadSecretsFromVault();
+    // RULE-R02 — explicit, idempotent DI/provider bootstrap.
+    const [{ ensureAiBootstrapped }, { ensureDataProvidersRegistered }] = await Promise.all([
+      import('@kestrel/ai'),
+      import('@kestrel/data'),
+    ]);
+    ensureAiBootstrapped();
+    ensureDataProvidersRegistered();
     // Fail closed during the Node server startup path as well as in
     // request callbacks. Vault loading must happen first because it may
     // provide AUTH_SECRET for managed deployments.
-    const { assertProductionSecurity } = await import('./lib/security-invariants');
+    const { assertProductionSecurity } = await import('./lib/http/security-invariants');
     assertProductionSecurity();
     // Register bundled plugin capabilities before any agent turn can resolve
     // them. A broken plugin must not take down the core web runtime.
@@ -42,7 +49,7 @@ export async function register() {
     initLangfuse({ service: 'web' });
     // Eagerly initialize Mastra storage schema so the first chat request
     // doesn't pay the one-time DDL cost. Non-fatal: lazy init retries.
-    const { initializeKestrelMastra } = await import('@kestrel/ai/mastra');
+    const { initializeKestrelMastra } = await import('@kestrel/ai/mastra-v2');
     await initializeKestrelMastra().catch((err: unknown) => {
       console.warn(
         '[instrumentation] Mastra storage init failed (non-fatal; lazy init will retry)',

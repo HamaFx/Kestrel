@@ -20,7 +20,7 @@ import Link from 'next/link';
 
 import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { usePopupMenu } from '@/hooks/use-popup-menu';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export function CustomAgentSelector({
   agents,

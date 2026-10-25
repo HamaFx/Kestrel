@@ -24,7 +24,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { verifySync } from 'otplib';
 
 import { auth } from '@/auth';
-import { logActionError } from '@/lib/action-errors';
+import { logActionError } from '@/lib/http/action-errors';
 
 import { verifyAccountPassword, type ActionResult } from './_actions-shared';
 
@@ -201,8 +201,6 @@ export async function exportDataAction(
       .from(schema.auditLogs)
       .where(and(eq(schema.auditLogs.userId, userId), eq(schema.auditLogs.tenantId, tenantId)));
     const [
-      portfolioPositions,
-      portfolioSettings,
       providerTests,
       notificationNoiseState,
       botLinks,
@@ -220,27 +218,7 @@ export async function exportDataAction(
       traces,
       memoryBackfillState,
       memoryProjectionState,
-      billingSubscriptions,
-      billingPayments,
     ] = await Promise.all([
-      db
-        .select()
-        .from(schema.portfolioPositions)
-        .where(
-          and(
-            eq(schema.portfolioPositions.userId, userId),
-            eq(schema.portfolioPositions.tenantId, tenantId),
-          ),
-        ),
-      db
-        .select()
-        .from(schema.portfolioSettings)
-        .where(
-          and(
-            eq(schema.portfolioSettings.userId, userId),
-            eq(schema.portfolioSettings.tenantId, tenantId),
-          ),
-        ),
       db
         .select()
         .from(schema.providerTests)
@@ -370,8 +348,6 @@ export async function exportDataAction(
             eq(schema.memoryProjectionState.tenantId, tenantId),
           ),
         ),
-      db.select().from(schema.subscriptions).where(eq(schema.subscriptions.tenantId, tenantId)),
-      db.select().from(schema.payments).where(eq(schema.payments.tenantId, tenantId)),
     ]);
 
     // Strip identity and secret material from exported records. OAuth rows,
@@ -414,8 +390,6 @@ export async function exportDataAction(
       spend: spend.map(({ userId: _userId, ...row }) => row),
       budgetReservations: budgetReservations.map(({ userId: _userId, ...row }) => row),
       briefings: briefings.map(({ userId: _userId, ...briefing }) => briefing),
-      portfolioPositions: portfolioPositions.map(({ userId: _userId, ...position }) => position),
-      portfolioSettings: portfolioSettings.map(({ userId: _userId, ...portfolio }) => portfolio),
       providerTests: providerTests.map(({ userId: _userId, ...test }) => test),
       notificationNoiseState: notificationNoiseState.map(({ userId: _userId, ...state }) => state),
       botLinks: botLinks.map(({ userId: _userId, ...link }) => link),
@@ -431,8 +405,6 @@ export async function exportDataAction(
       traces: traces.map(({ userId: _userId, ...trace }) => trace),
       memoryBackfillState: memoryBackfillState.map(({ userId: _userId, ...row }) => row),
       memoryProjectionState: memoryProjectionState.map(({ userId: _userId, ...row }) => row),
-      subscriptions: billingSubscriptions,
-      payments: billingPayments,
       auditLogs: auditLogs.map(({ userId: _userId, ...audit }) => audit),
     };
 

@@ -18,11 +18,11 @@ import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
 import { flushMetrics } from '@kestrel/shared/metrics-export';
 
-import { estimateKnownCostUsd } from '../../cost';
+import { estimateKnownCostUsd } from '../../budget/cost';
 import { completeStep, recordError, recordStep } from '../../diagnostics';
-import { flushLangfuse } from '../../instrumentation';
-import { recordModelFailure, recordModelSuccess } from '../../model-circuit-breaker';
+import { recordModelFailure, recordModelSuccess } from '../../models/circuit-breaker';
 import { recordTelemetry } from '../../persistence';
+import { flushLangfuse } from '../../runtime/instrumentation';
 import { getKestrelMastra } from '../instance';
 import { flushMastraObservability } from '../telemetry';
 import { MASTRA_XAUUSD_AGENT_ID, MASTRA_XAUUSD_AGENT_VERSION } from './constants';

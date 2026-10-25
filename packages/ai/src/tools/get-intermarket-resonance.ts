@@ -27,8 +27,8 @@ import { tool, type Tool } from 'ai';
 import { desc } from 'drizzle-orm';
 import type { z } from 'zod';
 
-import { getDb } from '../db';
-import { maybeGetToolContext } from '../tool-context';
+import { getDb } from '../runtime/db';
+import { maybeGetToolContext } from '../runtime/tool-context';
 
 const InputSchema = GetIntermarketResonanceInputSchema;
 

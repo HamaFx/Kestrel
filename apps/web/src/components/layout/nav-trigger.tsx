@@ -22,7 +22,7 @@
 // only one drawer instance lives in the DOM.
 import { IconMenu2 } from '@tabler/icons-react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import { useNavDrawer } from './nav-drawer-context';
 

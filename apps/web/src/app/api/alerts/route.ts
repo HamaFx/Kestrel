@@ -18,7 +18,7 @@
 
 // PF-22 — /api/alerts — list / create (thin controller).
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { AlertCreateSchema, createAlertService, listAlertsService } from '@/lib/services/alerts';
 
 export const runtime = 'nodejs';
