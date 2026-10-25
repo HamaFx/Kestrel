@@ -16,16 +16,46 @@
 
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
+import { pluginHost } from '@kestrel/plugin-sdk';
 import { z } from 'zod';
 
-export const MastraMutationNameSchema = z.enum([
+/**
+ * Writes implemented by the core workflow. Kept as a strict enum because
+ * these names are routed through the durable confirmation ledger.
+ */
+export const CORE_MUTATION_NAMES = [
   'set_alert',
   'log_journal',
   'share_snapshot',
   'run_system_action',
-]);
+] as const;
 
-export type MastraMutationName = z.infer<typeof MastraMutationNameSchema>;
+export const MastraMutationNameSchema = z.enum(CORE_MUTATION_NAMES);
+
+export type CoreMutationName = z.infer<typeof MastraMutationNameSchema>;
+
+/**
+ * A mutation id is either a core write or a plugin write tool registered on
+ * `pluginHost`. Widening the type does not bypass the closed core enum or the
+ * plugin registry checks below — an arbitrary string still fails closed.
+ */
+export type MastraMutationName = CoreMutationName | (string & {});
+
+export function isCoreMutationName(name: string): name is CoreMutationName {
+  return (CORE_MUTATION_NAMES as readonly string[]).includes(name);
+}
+
+interface PluginWriteTool {
+  pluginId: string;
+  access: 'read-only' | 'sensitive-read' | 'write';
+}
+
+/** Resolve a plugin write tool, if the id belongs to one. */
+function pluginWriteTool(name: string): PluginWriteTool | undefined {
+  const tool = pluginHost.getTool(name);
+  if (!tool || tool.access !== 'write') return undefined;
+  return { pluginId: tool.pluginId, access: tool.access };
+}
 
 /**
  * Closed registry for operator actions. Mutation extraction and confirmation
@@ -93,6 +123,8 @@ export interface MastraMutationRequest {
   isAdmin?: boolean;
   /** Registered system action bound to the approval proof. */
   systemAction?: string;
+  /** Installed plugin ids resolved server-side for this user. */
+  installedPlugins?: readonly string[];
   /** Server-produced approval; a client boolean is intentionally not accepted. */
   approval: VerifiedMutationApproval;
 }
@@ -115,7 +147,9 @@ export type MastraMutationDecision =
         | 'token-expired'
         | 'token-invalid'
         | 'admin-required'
-        | 'unregistered-action';
+        | 'unregistered-action'
+        | 'unregistered-mutation'
+        | 'plugin-not-installed';
     };
 
 /**
@@ -133,12 +167,24 @@ export function evaluateMastraMutation(
   if (process.env.ENABLE_MASTRA_MUTATIONS !== 'true') {
     return { allowed: false, mutation: request.mutation, reason: 'disabled' };
   }
-  if (request.mutation === 'run_system_action') {
-    if (!request.systemAction || !isRegisteredSystemAction(request.systemAction)) {
-      return { allowed: false, mutation: request.mutation, reason: 'unregistered-action' };
+  if (isCoreMutationName(request.mutation)) {
+    if (request.mutation === 'run_system_action') {
+      if (!request.systemAction || !isRegisteredSystemAction(request.systemAction)) {
+        return { allowed: false, mutation: request.mutation, reason: 'unregistered-action' };
+      }
+      if (SYSTEM_ACTION_REGISTRY[request.systemAction].requiresAdmin && request.isAdmin !== true) {
+        return { allowed: false, mutation: request.mutation, reason: 'admin-required' };
+      }
     }
-    if (SYSTEM_ACTION_REGISTRY[request.systemAction].requiresAdmin && request.isAdmin !== true) {
-      return { allowed: false, mutation: request.mutation, reason: 'admin-required' };
+  } else {
+    // Plugin writes are valid only when the capability is registered as a
+    // write tool and the user actually has the owning plugin installed.
+    const pluginTool = pluginWriteTool(request.mutation);
+    if (!pluginTool) {
+      return { allowed: false, mutation: request.mutation, reason: 'unregistered-mutation' };
+    }
+    if (!request.installedPlugins?.includes(pluginTool.pluginId)) {
+      return { allowed: false, mutation: request.mutation, reason: 'plugin-not-installed' };
     }
   }
   const approval = request.approval;
@@ -186,12 +232,20 @@ export function assertMastraMutationDraftAllowed(request: {
   mutation: MastraMutationName;
   userId: string;
   threadId: string;
+  installedPlugins?: readonly string[];
 }): void {
   if (!request.userId || !request.threadId) {
     throw mutationPolicyError('invalid-context');
   }
   if (process.env.ENABLE_MASTRA_MUTATIONS !== 'true') {
     throw mutationPolicyError('disabled');
+  }
+  if (!isCoreMutationName(request.mutation)) {
+    const pluginTool = pluginWriteTool(request.mutation);
+    if (!pluginTool) throw mutationPolicyError('unregistered-mutation');
+    if (!request.installedPlugins?.includes(pluginTool.pluginId)) {
+      throw mutationPolicyError('plugin-not-installed');
+    }
   }
 }
 
@@ -226,7 +280,11 @@ function mutationPolicyError(
               ? 'Administrator authorization is required for this system action.'
               : reason === 'unregistered-action'
                 ? 'The requested system action is not registered.'
-                : 'Mastra mutation context is invalid.',
+                : reason === 'unregistered-mutation'
+                  ? 'The requested mutation is not a registered write tool.'
+                  : reason === 'plugin-not-installed'
+                    ? 'The plugin that owns this mutation is not installed for the user.'
+                    : 'Mastra mutation context is invalid.',
   );
   error.name = 'MastraMutationPolicyError';
   Object.assign(error, {

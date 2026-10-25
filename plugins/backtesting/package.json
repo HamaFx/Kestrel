@@ -1,0 +1,65 @@
+{
+  "name": "@kestrel/plugin-backtesting",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "skills"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./engine": {
+      "source": "./src/engine/public.ts",
+      "types": "./dist/engine/public.d.ts",
+      "import": "./dist/engine/public.js"
+    },
+    "./ui": {
+      "source": "./src/ui/index.tsx",
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.js"
+    },
+    "./server": {
+      "source": "./src/server.ts",
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
+    "clean": "rm -rf node_modules .turbo dist"
+  },
+  "dependencies": {
+    "@kestrel/data": "workspace:*",
+    "@kestrel/db": "workspace:*",
+    "@kestrel/indicators": "workspace:*",
+    "@kestrel/plugin-sdk": "workspace:*",
+    "@kestrel/shared": "workspace:*",
+    "@tabler/icons-react": "^3.49.0",
+    "drizzle-orm": "^0.45.4",
+    "quickjs-emscripten": "^0.32.0",
+    "react": "^19.3.1",
+    "trading-signals": "^8.3.0",
+    "uplot": "^1.6.32",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@kestrel/config": "workspace:*",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "eslint": "^10.13.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "description": "Agent-authored, sandboxed strategy backtesting with SMC and quantitative playbooks.",
+  "license": "Apache-2.0"
+}

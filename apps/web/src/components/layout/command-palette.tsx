@@ -15,21 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
 import { IconCommand, IconSearch } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
+import { pluginIcon } from '@/components/plugins/plugin-icon';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { cn } from '@/lib/cn';
 import { COMMANDS, type CommandGroup, type CommandItem } from '@/lib/commands';
 import { rankByQuery } from '@/lib/fuzzy-match';
 
+import '@/lib/plugins/register-ui';
+
 const GROUP_LABELS: Record<CommandGroup, string> = {
   navigation: 'Navigate',
   create: 'Create',
+  plugins: 'Plugins',
   settings: 'Settings',
 };
-const GROUP_ORDER: CommandGroup[] = ['navigation', 'create', 'settings'];
+const GROUP_ORDER: CommandGroup[] = ['navigation', 'create', 'plugins', 'settings'];
 
 export interface CommandPaletteProps {
   /**
@@ -37,9 +42,11 @@ export interface CommandPaletteProps {
    * falls back to navigating to `/chat?new=1`.
    */
   onNewChat?: () => void;
+  /** Installed plugins whose nav items should appear in the palette. */
+  installedPluginIds?: readonly string[];
 }
 
-export function CommandPalette({ onNewChat }: CommandPaletteProps) {
+export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPaletteProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -97,15 +104,30 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     [router, onNewChat],
   );
 
+  const pluginCommands = useMemo<CommandItem[]>(
+    () =>
+      pluginUiRegistry.listNavItems(installedPluginIds).map(({ pluginId, item }) => ({
+        id: `plugin-${pluginId}-${item.href}`,
+        group: 'plugins',
+        label: item.label,
+        icon: pluginIcon(item.iconName),
+        href: item.href,
+        keywords: [pluginId, ...(item.description ? [item.description] : [])],
+      })),
+    [installedPluginIds],
+  );
+
+  const allCommands = useMemo(() => [...COMMANDS, ...pluginCommands], [pluginCommands]);
+
   const corpus = useMemo(() => {
     type Row = { item: CommandItem; label: string; displayLabel: string };
-    const rows: Row[] = COMMANDS.map((c) => ({
+    const rows: Row[] = allCommands.map((c) => ({
       item: c,
       label: [c.label, ...(c.keywords ?? [])].join(' '),
       displayLabel: c.label,
     }));
     return rows;
-  }, []);
+  }, [allCommands]);
 
   const ranked = useMemo(() => {
     const matches = rankByQuery(query, corpus);
@@ -119,6 +141,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     const out: Record<CommandGroup, Array<{ command: CommandItem; labelIndices: number[] }>> = {
       navigation: [],
       create: [],
+      plugins: [],
       settings: [],
     };
     for (const r of ranked)

@@ -16,7 +16,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getUserWithSettings } from '@kestrel/db';
+import {
+  getInstalledPluginIdsForUser,
+  getUserWithSettings,
+  requireTenantIdForUser,
+  withTenantDb,
+} from '@kestrel/db';
 import { redirect } from 'next/navigation';
 import { cache, Suspense } from 'react';
 
@@ -44,6 +49,20 @@ const getOnboardingStatus = cache(async (userId: string) => {
   return settings?.onboardingCompleted ?? false;
 });
 
+/**
+ * Installed plugins are a shell concern (sidebar / ⌘K / widgets), but a
+ * plugin-table outage must never block the app shell. Fail open to core-only.
+ */
+const getInstalledPlugins = cache(async (userId: string): Promise<string[]> => {
+  try {
+    const tenantId = await requireTenantIdForUser(userId);
+    return await withTenantDb(tenantId, () => getInstalledPluginIdsForUser(userId), { userId });
+  } catch (err) {
+    console.error('[AppLayout] Failed to load installed plugins:', err);
+    return [];
+  }
+});
+
 export const dynamic = 'force-dynamic';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -51,6 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let userEmail: string | undefined;
   let userId: string | undefined;
   let isAdmin = false;
+  let installedPluginIds: string[] = [];
 
   let session = null;
   try {
@@ -68,12 +88,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     userEmail = session.user.email ?? undefined;
     let onboardingCompleted = true;
     try {
-      const [onboarding, admin] = await Promise.all([
+      const [onboarding, admin, plugins] = await Promise.all([
         getOnboardingStatus(session.user.id),
         checkIsAdmin(),
+        getInstalledPlugins(session.user.id),
       ]);
       onboardingCompleted = onboarding;
       isAdmin = admin;
+      installedPluginIds = plugins;
     } catch (err) {
       console.error('[AppLayout] Failed to load onboarding status or admin status:', err);
     }
@@ -92,6 +114,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {...(userName !== undefined ? { userName } : {})}
                 {...(userEmail !== undefined ? { userEmail } : {})}
                 isAdmin={isAdmin}
+                installedPluginIds={installedPluginIds}
               />
               <AppShellContainer>
                 <SkipToContent />
@@ -119,9 +142,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {...(userEmail !== undefined ? { userEmail } : {})}
                 {...(userId !== undefined ? { userId } : {})}
                 isAdmin={isAdmin}
+                installedPluginIds={installedPluginIds}
               />
               <OfflineBanner />
-              <CommandPalette />
+              <CommandPalette installedPluginIds={installedPluginIds} />
               <Toaster />
             </div>
           </ShellRouteProvider>

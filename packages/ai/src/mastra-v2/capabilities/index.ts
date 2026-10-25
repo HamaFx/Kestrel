@@ -41,6 +41,10 @@ import { xauusdSocialSentimentTool } from '../agents/xauusd/tools/social-sentime
 import { xauusdTechnicalAnalysisTool } from '../agents/xauusd/tools/technical-tool';
 import { xauusdVolatilityTool } from '../agents/xauusd/tools/volatility-tool';
 import { xauusdResearchPacketTool } from '../packets/research-packet-tool';
+import {
+  CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+  SENSITIVE_USER_READ_TOOL_NAMES,
+} from './tool-names';
 
 /** Q2 decision: exactly two analysis modes. */
 export type MastraCapabilityMode = 'single' | 'full';
@@ -119,38 +123,10 @@ const LEGACY_DOMAIN_TOOL_NAMES = {
   ],
 } as const satisfies Record<'summary' | 'vision' | 'fundamental' | 'technical', readonly string[]>;
 
-/** Explicit public read-only boundary for canonical chat (Decision Q11 includes convene_committee). */
-const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
-  'get_price',
-  'get_candles',
-  'get_indicators',
-  'get_market_structure',
-  'get_session_levels',
-  'get_news',
-  'get_calendar',
-  'get_cot',
-  'get_seasonality',
-  'get_intermarket',
-  'get_intermarket_resonance',
-  'get_social_sentiment',
-  'get_correlation',
-  'forecast_volatility',
-  'analyze_technical',
-  'analyze_fundamental',
-  'compute_risk',
-  'web_search',
-  'search_knowledge',
-  'verify_call',
-  'convene_committee',
-] as const;
-
-/** Sensitive user-scoped reads require an explicit capability. */
-export const SENSITIVE_USER_READ_TOOL_NAMES = [
-  'get_journal_stats',
-  'get_portfolio_snapshot',
-  'compute_position_health',
-  'replay_setup',
-] as const;
+export {
+  CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+  SENSITIVE_USER_READ_TOOL_NAMES,
+} from './tool-names';
 
 export type MastraRoutingDomain = keyof typeof LEGACY_DOMAIN_TOOL_NAMES;
 
@@ -618,7 +594,16 @@ export function assertCapabilityManifestIntegrity(
   capabilities: Record<string, MastraCapability> = MASTRA_CAPABILITIES,
 ): void {
   const knownLegacyTools = new Set<string>(TOOL_NAMES);
-  const registeredMastraToolIds = new Set<string>(REGISTERED_MASTRA_TOOLS.map((tool) => tool.id));
+  // Some tool modules transitively import this manifest (telemetry → tracing
+  // → capabilities). When this assertion runs during that ESM cycle the tool
+  // bindings can still be uninitialised; defer to the explicit call sites
+  // (tests / boot) instead of reporting a phantom-tool error.
+  const registeredTools = REGISTERED_MASTRA_TOOLS.filter(
+    (tool): tool is (typeof REGISTERED_MASTRA_TOOLS)[number] =>
+      Boolean(tool && typeof (tool as { id?: unknown }).id === 'string'),
+  );
+  if (registeredTools.length !== REGISTERED_MASTRA_TOOLS.length) return;
+  const registeredMastraToolIds = new Set<string>(registeredTools.map((tool) => tool.id));
   const resolvesToRegisteredTool = (tool: string): boolean => {
     if (registeredMastraToolIds.has(tool)) return true;
     const aliasedTarget = ALIASED_MASTRA_TOOL_IDS.get(tool);

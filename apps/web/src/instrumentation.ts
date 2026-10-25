@@ -25,6 +25,17 @@ export async function register() {
     // provide AUTH_SECRET for managed deployments.
     const { assertProductionSecurity } = await import('./lib/security-invariants');
     assertProductionSecurity();
+    // Register bundled plugin capabilities before any agent turn can resolve
+    // them. A broken plugin must not take down the core web runtime.
+    try {
+      const { ensureBundledPluginsRegistered } = await import('@kestrel/plugins');
+      ensureBundledPluginsRegistered();
+      const { syncPluginCoreTools, syncPluginIndicators } = await import('@kestrel/ai/plugins');
+      syncPluginIndicators();
+      await syncPluginCoreTools();
+    } catch (err) {
+      console.error('[instrumentation] Plugin registration failed; core capabilities only', err);
+    }
     // Start Langfuse only in the Node runtime. Never import the exporter in
     // Edge middleware or client bundles because it depends on Node APIs.
     const { initLangfuse } = await import('@kestrel/ai/instrumentation');

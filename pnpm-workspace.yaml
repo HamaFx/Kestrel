@@ -1,6 +1,11 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  # Plugin monorepo: `plugins/` is the discovery barrel package
+  # (@kestrel/plugins) and each `plugins/<id>` directory is an installable
+  # workspace package.
+  - 'plugins'
+  - 'plugins/*'
   - 'loadtest'
 
 # Mastra CLI / @mastra/deployer bundle the config with the `typescript-paths`
@@ -30,6 +35,10 @@ overrides:
   fast-uri: '3.1.8'
   shell-quote: '1.12.0'
   protobufjs: '7.6.6'
+  # pg-boss pulls pg 8.23.1 while @mastra/pg pinned 8.23.0. Drizzle peers on
+  # pg, and two copies split its SQL types across the workspace. One patch
+  # version keeps a single drizzle-orm instance.
+  pg: '8.23.1'
   js-yaml: '4.3.2'
   'gray-matter>js-yaml': '3.15.2'
   'nanoid@3': '3.3.20'

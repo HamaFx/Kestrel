@@ -15,6 +15,14 @@ COPY packages/data/package.json packages/data/
 COPY packages/db/package.json packages/db/
 COPY packages/indicators/package.json packages/indicators/
 COPY packages/shared/package.json packages/shared/
+COPY packages/plugin-sdk/package.json packages/plugin-sdk/
+# @kestrel:plugin-package-json-start
+COPY plugins/package.json plugins/
+COPY plugins/backtesting/package.json plugins/backtesting/
+COPY plugins/custom-agents/package.json plugins/custom-agents/
+COPY plugins/paper-trading/package.json plugins/paper-trading/
+COPY plugins/telegram-bot/package.json plugins/telegram-bot/
+# @kestrel:plugin-package-json-end
 COPY patches/ patches/
 
 # OPT-2: pnpm store cache mount persists across builds.

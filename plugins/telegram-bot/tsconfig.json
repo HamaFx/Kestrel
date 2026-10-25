@@ -1,0 +1,11 @@
+{
+  "extends": "@kestrel/config/typescript/base",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "test/**/*.ts"
+  ]
+}

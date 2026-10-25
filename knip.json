@@ -34,6 +34,10 @@
       "entry": ["src/**/*.ts", "test/**/*.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
+    "packages/plugin-sdk": {
+      "entry": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"],
+      "project": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"]
+    },
     "packages/shared": {
       "entry": [
         "src/index.ts",
@@ -60,6 +64,25 @@
       "entry": ["src/**/*.ts"],
       "project": ["src/**/*.ts"]
     },
+    "plugins": {
+      "project": ["*.ts"]
+    },
+    "plugins/backtesting": {
+      "entry": ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+      "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
+    },
+    "plugins/custom-agents": {
+      "entry": ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+      "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
+    },
+    "plugins/paper-trading": {
+      "entry": ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+      "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
+    },
+    "plugins/telegram-bot": {
+      "entry": ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+      "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
+    },
     "loadtest": {
       "entry": [
         "tests/*.ts",
@@ -78,5 +101,5 @@
   "vitest": false,
   "playwright": false,
   "drizzle": false,
-  "ignoreDependencies": ["@vitest/coverage-v8", "@vitejs/plugin-react", "vite"]
+  "ignoreDependencies": ["@vitest/coverage-v8", "@vitejs/plugin-react", "vite", "pg-boss"]
 }

@@ -153,6 +153,7 @@ export function createCommitteeAgent(
   inputProcessors?: Array<InputProcessorOrWorkflow>,
   scorers?: MastraScorers,
   tools?: Record<string, unknown>,
+  skills?: readonly unknown[],
 ) {
   return new Agent({
     id,
@@ -162,6 +163,7 @@ export function createCommitteeAgent(
     instructions,
     requestContextSchema: REQUEST_CONTEXT_SCHEMA,
     ...(tools && Object.keys(tools).length > 0 ? { tools: agentToolsArg(tools) } : {}),
+    ...(skills && skills.length > 0 ? { skills: skills as never } : {}),
     ...(inputProcessors && inputProcessors.length > 0 ? { inputProcessors } : {}),
     ...(memory ? { memory } : {}),
     ...(scorers && Object.keys(scorers).length > 0 ? { scorers } : {}),

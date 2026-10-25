@@ -17,6 +17,8 @@
     "@kestrel/ai": "workspace:*",
     "@kestrel/data": "workspace:*",
     "@kestrel/db": "workspace:*",
+    "@kestrel/plugin-sdk": "workspace:*",
+    "@kestrel/plugins": "workspace:*",
     "@kestrel/shared": "workspace:*",
     "@microsoft/signalr": "^10.0.11",
     "@opentelemetry/api": "^1.9.1",
@@ -25,7 +27,8 @@
     "node-cron": "^4.6.0",
     "postgres": "^3.4.9",
     "ws": "^8.22.0",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "pg-boss": "^12.38.0"
   },
   "devDependencies": {
     "@kestrel/config": "workspace:*",

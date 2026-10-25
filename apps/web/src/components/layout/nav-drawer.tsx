@@ -19,6 +19,7 @@
 // <NavDrawer> — left-side slide-in nav. Single global instance, controlled
 // via <NavDrawerProvider> context. See nav-drawer-context.tsx for the
 // rationale.
+import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
 import { IconLogout } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
 import { Link } from 'next-view-transitions';
@@ -28,8 +29,11 @@ import { toast } from 'sonner';
 import { Drawer as DrawerPrimitive } from 'vaul';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import { pluginIcon } from '@/components/plugins/plugin-icon';
 import { clearKestrelClientState } from '@/lib/cache-isolation';
 import { cn } from '@/lib/cn';
+
+import '@/lib/plugins/register-ui';
 
 import { useNavDrawer } from './nav-drawer-context';
 import {
@@ -45,14 +49,17 @@ export function NavDrawer({
   userEmail,
   userId: _userId,
   isAdmin,
+  installedPluginIds = [],
 }: {
   userName?: string;
   userEmail?: string;
   userId?: string;
   isAdmin?: boolean;
+  installedPluginIds?: readonly string[];
 }) {
   const { open, setOpen } = useNavDrawer();
   const pathname = usePathname();
+  const pluginNavItems = pluginUiRegistry.listNavItems(installedPluginIds);
 
   useEffect(() => {
     setOpen(false);
@@ -137,6 +144,27 @@ export function NavDrawer({
                 />
               ))}
             </Section>
+
+            {pluginNavItems.length > 0 ? (
+              <Section label="Plugins">
+                {pluginNavItems.map(({ pluginId, item }) => {
+                  const navItem: NavItem = {
+                    href: item.href,
+                    label: item.label,
+                    icon: pluginIcon(item.iconName),
+                    ...(item.description ? { description: item.description } : {}),
+                    ...(item.match ? { match: item.match } : {}),
+                  };
+                  return (
+                    <NavLink
+                      key={`${pluginId}:${item.href}`}
+                      item={navItem}
+                      active={isNavItemActive(navItem, pathname ?? '')}
+                    />
+                  );
+                })}
+              </Section>
+            ) : null}
 
             {isAdmin ? (
               <Section label="Administration">

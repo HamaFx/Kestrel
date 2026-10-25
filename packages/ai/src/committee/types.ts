@@ -143,6 +143,8 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
   blockedSymbols: z.unknown().optional(),
   /** F-01: the blocked packets' `missingData` lines for the fusion disclosure. */
   blockedMissingData: z.unknown().optional(),
+  /** Phase 1 plugins — installed + enabled plugin ids for this request. */
+  installedPlugins: z.array(z.string()).optional(),
 });
 
 export type ModeRequestContext = z.infer<typeof REQUEST_CONTEXT_SCHEMA>;
@@ -343,6 +345,12 @@ export function contextWithPacket(
     ['symbol', packet.symbol],
     ['packet', packet],
   ];
+  // Installed plugin ids travel with the base context; dropping them here
+  // would silently disable plugin tools for every specialist desk.
+  const installedPlugins = base.get('installedPlugins');
+  if (installedPlugins !== undefined) {
+    entries.push(['installedPlugins', installedPlugins]);
+  }
   if (opinions) entries.push(['opinions', opinions]);
   if (critiques) entries.push(['critiques', critiques]);
   return new RequestContext<ModeRequestContext>(entries as never);

@@ -419,6 +419,26 @@
     {
       "tag": "0105_credit_reservation_shadow",
       "hash": "5651c2a80c1ef3dd9d683ffcca03eb6f4bf9e7290f95b48081b2059b241f8629"
+    },
+    {
+      "tag": "0106_gammal_billing",
+      "hash": "af272862a44d4bd4737759cecc1b3f3e9257bfc123246755b2859412da825da0"
+    },
+    {
+      "tag": "0107_plugin_system_tables",
+      "hash": "325ada090f6fb6690d3a00361a3955b148ae2f82ad4515aab4ccd6cf8d9aa2d6"
+    },
+    {
+      "tag": "0108_backtesting_plugin_tables",
+      "hash": "600df55e73f159c8b9afe246ced4254692b741bb8cafece8675b1eb83340d76a"
+    },
+    {
+      "tag": "0109_paper_trading_plugin_tables",
+      "hash": "6393640994c193dfd4dc8c924564cbb466dd013040593defa96290375affcd96"
+    },
+    {
+      "tag": "0110_custom_agents_plugin_tables",
+      "hash": "9a6baecb1a8b730c5aa88a942f76d4eb4db8a6b9dccc2295c8588e3da9ef5e58"
     }
   ]
 }

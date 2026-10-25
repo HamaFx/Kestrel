@@ -130,6 +130,8 @@ export const subscriptions = pgTable(
     stripeSubscriptionId: text('stripe_subscription_id'),
     /** Stripe Price.id currently attached to the subscription. */
     stripePriceId: text('stripe_price_id'),
+    /** Provider that owns this subscription projection (`stripe`, `nowpayments`, `gammal`, `manual`). */
+    provider: text('provider'),
     /** When the current billing period starts (Stripe anchor / UTC month). */
     currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
     /** When the current billing period ends */
@@ -194,6 +196,16 @@ export const payments = pgTable(
     stripePaymentIntentId: text('stripe_payment_intent_id'),
     /** Stripe Invoice id (subscription renewals). */
     stripeInvoiceId: text('stripe_invoice_id'),
+    /** Gammal Tech payment link order reference (local payment UUID). */
+    gammalOrderRef: text('gammal_order_ref'),
+    /** Gammal Tech transaction id (`GT-TXN-...`). */
+    gammalTxn: text('gammal_txn'),
+    /** Gammal Tech refund notice id (`GT-RFD-...`). */
+    gammalRefundTxn: text('gammal_refund_txn'),
+    /** Amount charged by Gammal in the smallest unit of `gammalCurrency`. */
+    gammalAmountCents: integer('gammal_amount_cents'),
+    /** ISO 4217 currency charged by Gammal (USD for Kestrel plans). */
+    gammalCurrency: text('gammal_currency'),
     /** How many credits this payment granted. */
     creditsGranted: bigint('credits_granted', { mode: 'number' }),
     /** Stripe billing_reason (subscription_create, subscription_cycle, …). */
@@ -217,6 +229,12 @@ export const payments = pgTable(
     uniqueIndex('payments_stripe_invoice_uk')
       .on(t.stripeInvoiceId)
       .where(sql`${t.stripeInvoiceId} IS NOT NULL`),
+    uniqueIndex('payments_gammal_txn_uk')
+      .on(t.gammalTxn)
+      .where(sql`${t.gammalTxn} IS NOT NULL`),
+    uniqueIndex('payments_gammal_order_ref_uk')
+      .on(t.gammalOrderRef)
+      .where(sql`${t.gammalOrderRef} IS NOT NULL`),
   ],
 );
 

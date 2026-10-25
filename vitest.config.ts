@@ -27,6 +27,11 @@ export default defineConfig({
     projects: [
       'packages/ai/vitest.config.ts',
       'packages/data/vitest.config.ts',
+      'packages/plugin-sdk/vitest.config.ts',
+      'plugins/backtesting/vitest.config.ts',
+      'plugins/custom-agents/vitest.config.ts',
+      'plugins/paper-trading/vitest.config.ts',
+      'plugins/telegram-bot/vitest.config.ts',
       'packages/db/vitest.config.ts',
       'packages/indicators/vitest.config.ts',
       'packages/shared/vitest.config.ts',

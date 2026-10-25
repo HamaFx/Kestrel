@@ -23,6 +23,7 @@ import {
   IconCreditCard,
   IconList,
   IconPalette,
+  IconPuzzle,
   IconSettings,
   IconShield,
   IconWallet,
@@ -59,6 +60,12 @@ const BASE_NAV_GROUPS: NavGroup[] = [
         shortLabel: 'Overview',
         icon: IconSettings,
         exact: true,
+      },
+      {
+        href: '/settings/plugins',
+        label: 'Plugins',
+        shortLabel: 'Plugins',
+        icon: IconPuzzle,
       },
       {
         href: '/settings/billing',

@@ -23,6 +23,7 @@ import {
   IconInfoCircle,
   IconKey,
   IconPalette,
+  IconPuzzle,
   IconRobot,
   IconShield,
   IconTrendingUp,
@@ -65,6 +66,12 @@ export default async function SettingsPage() {
           Settings Categories
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <QuickLink
+            href="/settings/plugins"
+            icon={<IconPuzzle className="size-4.5" />}
+            title="Plugins"
+            description="Install backtesting, paper trading, Telegram, and custom agents in one click"
+          />
           <QuickLink
             href="/settings/billing"
             icon={<IconCreditCard className="size-4.5" />}

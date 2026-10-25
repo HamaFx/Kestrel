@@ -16,23 +16,36 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { xauusdCalendarTool } from '../src/mastra-v2/agents/xauusd/tools/calendar-tool';
-import { xauusdNewsTool } from '../src/mastra-v2/agents/xauusd/tools/news-tool';
-import { XauusdCalendarInputSchema } from '../src/mastra-v2/agents/xauusd/tools/calendar-tool';
-import { XauusdNewsInputSchema } from '../src/mastra-v2/agents/xauusd/tools/news-tool';
+import {
+  XauusdCalendarInputSchema,
+  xauusdCalendarTool,
+} from '../src/mastra-v2/agents/xauusd/tools/calendar-tool';
+import {
+  XauusdNewsInputSchema,
+  xauusdNewsTool,
+} from '../src/mastra-v2/agents/xauusd/tools/news-tool';
+import type * as CanonicalNewsModule from '../src/mastra-v2/tools/canonical/news';
+import type * as GetCalendarModule from '../src/tools/get-calendar';
 
 const mocks = vi.hoisted(() => ({
   newsExecute: vi.fn(),
   calendarExecute: vi.fn(),
 }));
 
-vi.mock('../src/tools/get-calendar', () => ({
-  getCalendarTool: { execute: mocks.calendarExecute },
-}));
+vi.mock('../src/tools/get-calendar', async (importOriginal) => {
+  const actual = await importOriginal<typeof GetCalendarModule>();
+  return {
+    ...actual,
+    getCalendarTool: { ...actual.getCalendarTool, execute: mocks.calendarExecute },
+  };
+});
 // P2-01: the news adapter consumes the native execute core directly.
-vi.mock('../src/mastra-v2/tools/canonical/news', () => ({
-  executeCanonicalNews: mocks.newsExecute,
-}));
+// Keep the real schema/description exports: the tool registry barrel is
+// evaluated by the Mastra instance in the same process.
+vi.mock('../src/mastra-v2/tools/canonical/news', async (importOriginal) => {
+  const actual = await importOriginal<typeof CanonicalNewsModule>();
+  return { ...actual, executeCanonicalNews: mocks.newsExecute };
+});
 vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: vi.fn((_name: string, _context: unknown, fn: () => Promise<unknown>) => fn()),
 }));

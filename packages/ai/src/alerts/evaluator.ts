@@ -32,7 +32,7 @@
 
 import { getCandles, getPrice } from '@kestrel/data';
 import { requireTenantIdForUser, schema } from '@kestrel/db';
-import { computeIndicator } from '@kestrel/indicators';
+import { computeIndicator, indicatorRegistry } from '@kestrel/indicators';
 import {
   msPerTimeframe,
   type AlertRule,
@@ -46,6 +46,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { eq, inArray } from 'drizzle-orm';
 
 import { getDb } from '../db';
+import { syncPluginIndicators } from '../plugins/indicators';
 import { deliverAlert, type DeliveryResult } from './delivery';
 import {
   claimAlertDelivery,
@@ -78,28 +79,34 @@ export type { RuleReading, CrossContext } from './spec';
 // ---------------------------------------------------------------------------
 
 /**
- * Parse a strict indicator spec into an `(kind, params)` pair.
+ * Build the indicator-spec pattern from the registry at call time.
  *
- *   sma | ema | rsi | atr           → optional `:n`
- *   macd                            → optional `:fast,slow,signal`
- *   bollinger                       → optional `:period,multiplier`
- *   pivots                          → no params
- *
- * Returns null if the input doesn't match the regex above. The previous
- * permissive parser silently dropped trailing junk (e.g. "rsi:14:bogus"
- * became `rsi(14)`), which produced alerts that didn't match the user's
- * stated intent.
+ * The previous hardcoded regex silently ignored plugin indicators even when
+ * they were registered. Reading `indicatorRegistry.listKinds()` means a new
+ * indicator (core or plugin) becomes alert-addressable with no edit here.
  */
-const INDICATOR_SPEC_RE =
-  /^(sma|ema|rsi|atr|macd|bollinger|pivots)(?::([0-9]+(?:,[0-9]+){0,2}))?$/i;
+function indicatorSpecPattern(): RegExp {
+  // Make plugin-declared kinds alert-addressable before reading the registry.
+  syncPluginIndicators();
+  const kinds = indicatorRegistry
+    .listKinds()
+    .map((kind) => String(kind))
+    .filter((kind) => /^[a-z][a-z0-9_]*$/i.test(kind))
+    .sort((a, b) => b.length - a.length)
+    .map((kind) => kind.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  // `(?!)` never matches, so an empty registry fails closed.
+  const alternation = kinds.length > 0 ? kinds.join('|') : '(?!)';
+  return new RegExp(`^(${alternation})(?::([0-9]+(?:,[0-9]+){0,2}))?$`, 'i');
+}
 
 export function parseIndicatorSpec(
   spec: string,
 ): { kind: IndicatorKind; params: Record<string, number> } | null {
   if (typeof spec !== 'string') return null;
-  const m = INDICATOR_SPEC_RE.exec(spec.trim());
+  const m = indicatorSpecPattern().exec(spec.trim());
   if (!m) return null;
   const kind = m[1]!.toLowerCase() as IndicatorKind;
+  if (!indicatorRegistry.has(kind)) return null;
   const nums = (m[2] ?? '')
     .split(',')
     .filter((s) => s.length > 0)

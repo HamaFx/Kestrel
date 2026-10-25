@@ -27,6 +27,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { buildPluginShellContext } from '@/lib/services/plugin-manage';
 
 import { DashboardCanvas } from './_components/dashboard-canvas';
 
@@ -105,6 +106,8 @@ export default async function DashboardPage() {
     }
   }
 
+  const pluginShell = await buildPluginShellContext(userId);
+
   return (
     <DashboardCanvas
       alerts={alerts}
@@ -116,6 +119,8 @@ export default async function DashboardPage() {
       hasAnyError={hasAnyError}
       marginUsagePct={marginUsagePct}
       marginDetail={marginDetail}
+      installedPluginIds={pluginShell.installedPluginIds}
+      pluginSettings={pluginShell.pluginSettings}
     />
   );
 }

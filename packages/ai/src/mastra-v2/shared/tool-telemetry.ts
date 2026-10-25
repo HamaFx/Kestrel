@@ -36,6 +36,11 @@ interface MastraToolContext {
   toolCallId?: string;
 }
 
+export interface ExecuteMastraToolOptions {
+  /** Agent identity for metrics tags. Defaults to the XAUUSD research agent. */
+  agentId?: string;
+}
+
 /**
  * Execute a Mastra tool with one consistent lifecycle boundary. This records
  * metrics and DB telemetry without logging inputs or outputs.
@@ -44,18 +49,20 @@ export async function executeMastraTool<T>(
   toolName: string,
   context: MastraToolContext,
   fn: () => Promise<T>,
+  options: ExecuteMastraToolOptions = {},
 ): Promise<T> {
   const { userId, runId, threadId } = requireXauusdUserContext(context);
+  const agentId = options.agentId ?? MASTRA_XAUUSD_AGENT_ID;
   const startedAt = Date.now();
   const execute = async () => {
     try {
       const output = await fn();
       const durationMs = Math.max(0, Date.now() - startedAt);
       metrics.increment('mastra_tool_call_total', {
-        tags: { agent: MASTRA_XAUUSD_AGENT_ID, tool: toolName, outcome: 'success' },
+        tags: { agent: agentId, tool: toolName, outcome: 'success' },
       });
       metrics.observe('total_latency_ms', durationMs, {
-        tags: { agent: MASTRA_XAUUSD_AGENT_ID, tool: toolName },
+        tags: { agent: agentId, tool: toolName },
       });
       void recordToolTelemetry({
         userId,
@@ -81,10 +88,10 @@ export async function executeMastraTool<T>(
       const durationMs = Math.max(0, Date.now() - startedAt);
       const errorCode = errorCodeForMastra(error);
       metrics.increment('mastra_tool_failed_total', {
-        tags: { agent: MASTRA_XAUUSD_AGENT_ID, tool: toolName, error: errorCode },
+        tags: { agent: agentId, tool: toolName, error: errorCode },
       });
       metrics.increment('mastra_tool_call_total', {
-        tags: { agent: MASTRA_XAUUSD_AGENT_ID, tool: toolName, outcome: 'failed' },
+        tags: { agent: agentId, tool: toolName, outcome: 'failed' },
       });
       void recordToolTelemetry({
         userId,

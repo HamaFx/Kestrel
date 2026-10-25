@@ -190,6 +190,7 @@ async function upsertStripeSubscription(input: {
         .set({
           planId: input.planId,
           status: input.status,
+          provider: 'stripe',
           stripeSubscriptionId: input.stripeSubscriptionId,
           stripePriceId: input.stripePriceId,
           currentPeriodStart: input.currentPeriodStart,
@@ -208,6 +209,7 @@ async function upsertStripeSubscription(input: {
         tenantId: input.tenantId,
         planId: input.planId,
         status: input.status,
+        provider: 'stripe',
         stripeSubscriptionId: input.stripeSubscriptionId,
         stripePriceId: input.stripePriceId,
         currentPeriodStart: input.currentPeriodStart,

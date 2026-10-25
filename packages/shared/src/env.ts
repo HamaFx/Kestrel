@@ -209,6 +209,31 @@ const BillingEnv = z.object({
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
   STRIPE_BILLING_PORTAL_RETURN_URL: z.url().optional(),
+  // ── Gammal Tech (one-time prepaid passes) ─────────────────────────────
+  /**
+   * Gammal has no API key. Enable only after the project's domain and payment
+   * callback URL are configured in the Gammal dashboard.
+   */
+  BILLING_GAMMAL_ENABLED: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
+  /** Public Gammal project id (pid), e.g. 47. Not a secret. */
+  GAMMAL_PROJECT_ID: z.preprocess(
+    (value) => (value === '' || value == null ? undefined : value),
+    z.coerce.number().int().positive().optional(),
+  ),
+  /** API origin used for payment links and the public signing key. */
+  GAMMAL_API_BASE: z.url().default('https://api.gammal.tech'),
+  /** Charge currency. Kestrel plan prices are USD cents; keep USD. */
+  GAMMAL_CURRENCY: z.string().length(3).default('USD'),
+  /** Optional pinned PEM public key; otherwise fetched and cached. */
+  GAMMAL_PUBLIC_KEY_PEM: z.preprocess(
+    (value) => (value === '' || value == null ? undefined : value),
+    z.string().min(1).optional(),
+  ),
+  /** Fallback pass length when a plan interval is unknown. */
+  GAMMAL_PASS_DAYS: z.coerce.number().int().positive().default(30),
   // ── Credits ────────────────────────────────────────────────────────────
   /** D3 — 1 credit = 1/CREDITS_PER_DOLLAR USD. Default 1000 → $0.001. */
   CREDITS_PER_DOLLAR: z.coerce.number().int().positive().prefault(1000),

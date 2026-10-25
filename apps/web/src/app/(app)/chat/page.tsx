@@ -35,7 +35,7 @@ import { createThread, listThreads } from '@/lib/services/api-boundary';
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  searchParams: Promise<{ prompt?: string; new?: string }>;
+  searchParams: Promise<{ prompt?: string; new?: string; agent?: string }>;
 }
 
 export default async function ChatLanding({ searchParams }: PageProps) {
@@ -43,19 +43,22 @@ export default async function ChatLanding({ searchParams }: PageProps) {
   const userId = session?.user?.id;
   if (!userId) redirect('/login');
 
-  const { prompt, new: forceNew } = await searchParams;
+  const { prompt, new: forceNew, agent } = await searchParams;
+  const agentParam = agent ? `agent=${encodeURIComponent(agent)}` : null;
 
   if (prompt && prompt.trim().length > 0) {
     const fresh = await createThread(userId);
-    redirect(`/chat/${fresh.id}?prompt=${encodeURIComponent(prompt)}`);
+    const params = new URLSearchParams({ prompt });
+    if (agent) params.set('agent', agent);
+    redirect(`/chat/${fresh.id}?${params.toString()}`);
   }
 
   if (forceNew === '1') {
     const fresh = await createThread(userId);
-    redirect(`/chat/${fresh.id}`);
+    redirect(`/chat/${fresh.id}${agentParam ? `?${agentParam}` : ''}`);
   }
 
   const { threads } = await listThreads(userId, 1);
   const target = threads[0] ?? (await createThread(userId));
-  redirect(`/chat/${target.id}`);
+  redirect(`/chat/${target.id}${agentParam ? `?${agentParam}` : ''}`);
 }

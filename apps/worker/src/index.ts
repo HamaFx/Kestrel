@@ -46,6 +46,7 @@ import {
 } from './signalr/consumer.js';
 import { TickBuffer } from './signalr/tick-buffer.js';
 import { SymbolManager } from './symbol-manager.js';
+import { createTickBus, type TickBus } from './tick-bus.js';
 
 interface ShutdownState {
   shuttingDown: boolean;
@@ -113,6 +114,8 @@ export interface RunningWorker {
   binanceConsumer: BinanceStreamConsumer;
   buffer: TickBuffer;
   aggregator: Candle1mAggregator;
+  /** Fan-out for plugin tick subscribers (paper fills, live strategies). */
+  tickBus: TickBus;
   /** Returns the epoch ms of the last tick (0 if none received yet). */
   getLastTickAt(): number;
   /** Idempotent. Cleanly tears down timers + the hub. */
@@ -123,6 +126,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   const { env, log } = args;
   const buildConnection = args.buildConnection ?? (await createDefaultBuildConnection());
   const buffer = new TickBuffer();
+  const tickBus = createTickBus(log);
   const db = getDb();
 
   let lastTickAt = 0;
@@ -149,6 +153,10 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   };
 
   const handleIncomingTick = (tick: NormalizedTick) => {
+    // Plugin subscribers see the tick immediately (sub-second paper fills);
+    // core persistence stays on the 50ms batch below and is never blocked
+    // by a slow/failing plugin.
+    tickBus.publish(tick);
     pendingTicks.push(tick);
     if (pendingTicks.length >= MAX_PENDING_TICKS) {
       // Flush synchronously at the cap; the pending timer (if any) will find
@@ -338,6 +346,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
   const stop = async (): Promise<void> => {
     stopping = true;
+    tickBus.stop();
     notifyStopping();
     if (flushTimer) {
       clearTimeout(flushTimer);
@@ -379,7 +388,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
   const getLastTickAt = (): number => lastTickAt;
 
-  return { consumer, binanceConsumer, buffer, aggregator, getLastTickAt, stop };
+  return { consumer, binanceConsumer, buffer, aggregator, tickBus, getLastTickAt, stop };
 }
 
 export async function main(): Promise<void> {
@@ -388,6 +397,35 @@ export async function main(): Promise<void> {
 
   const env = loadEnv();
   const log = createLogger({ service: 'worker', commit: env.DEPLOYED_SHA });
+
+  // Register bundled plugin capabilities before the scheduler/tick bus read
+  // the host. A broken plugin must not take down core ingestion or cron.
+  try {
+    const { ensureBundledPluginsRegistered } = await import('@kestrel/plugins');
+    ensureBundledPluginsRegistered();
+    const { syncPluginCoreTools, syncPluginIndicators } = await import('@kestrel/ai/plugins');
+    syncPluginIndicators();
+    await syncPluginCoreTools();
+  } catch (err) {
+    log.error('plugin registration failed; continuing with core capabilities only', {
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // Durable async jobs. A queue/schema failure must not stop core ingestion;
+  // the synchronous backtest path keeps working without it.
+  try {
+    const { startBacktestQueueWorker } = await import('./backtest-queue.js');
+    await startBacktestQueueWorker(log);
+    log.info('backtest queue worker registered');
+  } catch (err) {
+    log.warn(
+      'backtest queue worker unavailable; async runs will be unavailable (sync path unaffected)',
+      {
+        err: err instanceof Error ? err.message : String(err),
+      },
+    );
+  }
 
   initLangfuse({ service: 'worker' });
 
@@ -502,6 +540,12 @@ export async function main(): Promise<void> {
     });
 
     onShutdown(() => closeDb());
+    // Registered after closeDb so reverse-order shutdown stops the queue
+    // BEFORE the database pool disappears.
+    onShutdown(async () => {
+      const { stopQueue } = await import('@kestrel/db/queue');
+      await stopQueue();
+    });
 
     if (env.BIQUOTE_PROXY_TOKEN) {
       proxyServer = createProxyServer({

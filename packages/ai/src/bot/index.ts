@@ -16,6 +16,10 @@
 
 // F7 — Bot Platform with Commands.
 // Barrel for the bot subsystem.
+//
+// The interactive per-user bot now lives in `@kestrel/plugin-telegram-bot`
+// (Phase 3). This shared-bot implementation remains for deployments that
+// deliver core alerts through the server-wide TELEGRAM_BOT_TOKEN.
 
 export { BotDispatcher, getBotDispatcher } from './dispatcher';
 export { parseCommand } from './types';

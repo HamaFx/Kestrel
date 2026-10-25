@@ -32,6 +32,7 @@ export interface SubscriptionWithPlan {
   nowpaymentsInvoiceId: string | null;
   stripeSubscriptionId: string | null;
   stripePriceId: string | null;
+  provider: string | null;
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
@@ -89,6 +90,7 @@ export async function getSubscription(tenantId: string): Promise<SubscriptionWit
     nowpaymentsInvoiceId: sub.nowpaymentsInvoiceId,
     stripeSubscriptionId: sub.stripeSubscriptionId,
     stripePriceId: sub.stripePriceId,
+    provider: sub.provider,
     currentPeriodStart: sub.currentPeriodStart,
     currentPeriodEnd: sub.currentPeriodEnd,
     cancelAtPeriodEnd: sub.cancelAtPeriodEnd,

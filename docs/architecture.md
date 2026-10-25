@@ -294,14 +294,16 @@ The operator-managed cloud deployment is an infrastructure choice, not a separat
 
 Billing has two orthogonal layers:
 
-- **Subscriptions** (Stripe primary, NOWPayments optional) control feature
-  entitlements and the credits granted each billing cycle.
+- **Subscriptions** (Stripe primary, NOWPayments optional, Gammal one-time
+  prepaid passes) control feature entitlements and the credits granted each
+  billing cycle. Gammal has no auto-renew; its pass expires and the user buys
+  another.
 - **Credits** are an exact integer meter (`bigint`, 1 credit = $0.001) for
   platform-paid managed AI usage. BYOK turns remain free but still emit
   telemetry.
 
 ```
-Stripe / NOWPayments webhook
+Stripe / NOWPayments / Gammal webhook
   └─ billing_events / ipn_events (idempotent claim)
        └─ subscriptions + payments projection
             └─ credit_ledger (append-only, idempotency-keyed)

@@ -94,3 +94,5 @@ export * from './provider-circuit-state';
 // Privacy-safe paired comparison data for AI rollout
 export * from './ai-shadow-comparisons';
 export * from './ai-quality-results';
+// Plugin platform — per-user installs, storage, and helper for plugin tables
+export * from './plugins';

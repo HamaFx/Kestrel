@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-export type WidgetType =
+export type CoreWidgetType =
   | 'today-glance'
   | 'briefing'
   | 'quant-desk'
@@ -28,6 +28,42 @@ export type WidgetType =
   | 'calendar'
   | 'news-pulse'
   | 'stats';
+
+/** Dynamic plugin widget id: `plugin:<pluginId>:<widgetId>`. */
+export type PluginWidgetType = `plugin:${string}:${string}`;
+
+export type WidgetType = CoreWidgetType | PluginWidgetType;
+
+export const CORE_WIDGET_TYPES: readonly CoreWidgetType[] = [
+  'today-glance',
+  'briefing',
+  'quant-desk',
+  'pnl-heatmap',
+  'equity-curve',
+  'watchlist',
+  'open-positions',
+  'alerts',
+  'calendar',
+  'news-pulse',
+  'stats',
+];
+
+export function isPluginWidgetType(type: WidgetType): type is PluginWidgetType {
+  return type.startsWith('plugin:');
+}
+
+export function makePluginWidgetType(pluginId: string, widgetId: string): PluginWidgetType {
+  return `plugin:${pluginId}:${widgetId}`;
+}
+
+export function parsePluginWidgetType(
+  type: WidgetType,
+): { pluginId: string; widgetId: string } | null {
+  if (!isPluginWidgetType(type)) return null;
+  const [, pluginId, ...rest] = type.split(':');
+  if (!pluginId || rest.length === 0) return null;
+  return { pluginId, widgetId: rest.join(':') };
+}
 
 export interface WidgetConfig {
   /** Stable widget id used as the drag-sortable key. */
@@ -56,7 +92,7 @@ export const DEFAULT_LAYOUT: WidgetConfig[] = [
 export const LAYOUT_STORAGE_KEY = 'kestrel:dashboard-layout:v1';
 
 /** Human-readable label rendered on the edit-mode toolbar. */
-export const WIDGET_LABELS: Record<WidgetType, string> = {
+export const WIDGET_LABELS: Record<CoreWidgetType, string> = {
   'today-glance': 'Today at a Glance',
   briefing: 'AI Market Briefing',
   'quant-desk': '4-Desk AI Committee',

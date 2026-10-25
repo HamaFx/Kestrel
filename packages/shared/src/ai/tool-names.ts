@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-// Single source of truth for AI tool identifiers. Each value here:
+// Single source of truth for CORE AI tool identifiers. Each value here:
 //   1. has an implementation in `packages/ai/src/tools/<name>.ts`
 //   2. is exported from the registry in `packages/ai/src/tools/index.ts`
 //   3. is referenced by docs/03-ai-agent.md § "Tool Catalogue"
-// Adding a new entry without all three is a steering violation.
+// Adding a new core entry without all three is a steering violation.
 //
+// Plugin tools are deliberately NOT added here: they are registered at
+// runtime by `@kestrel/plugin-sdk` and resolved per user. Keep this tuple as
+// the compile-time contract for the bespoke UI parts (see
+// apps/web/src/components/chat/parts/registry.tsx).
 export const TOOL_NAMES = [
   'get_price',
   'get_candles',
@@ -63,4 +67,24 @@ export const TOOL_NAMES = [
   'web_search',
 ] as const;
 
-export type ToolName = (typeof TOOL_NAMES)[number];
+export type CoreToolName = (typeof TOOL_NAMES)[number];
+
+/**
+ * Explicit alias for the compile-time core boundary. A copy (not a second
+ * binding of the same value) keeps `knip` from flagging a duplicate export.
+ */
+export const CORE_TOOL_NAMES = [...TOOL_NAMES] as const;
+
+/**
+ * A plugin-provided tool id. The `string & {}` intersection keeps literal
+ * autocomplete for core names while allowing dynamic plugin ids to flow
+ * through shared helpers without casts.
+ */
+export type PluginToolName = string & {};
+
+export type ToolName = CoreToolName | PluginToolName;
+
+/** Type guard for the closed core tool set. */
+export function isCoreToolName(name: string): name is CoreToolName {
+  return (CORE_TOOL_NAMES as readonly string[]).includes(name);
+}

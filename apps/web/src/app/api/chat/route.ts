@@ -43,7 +43,6 @@ import {
   InsufficientCreditsError,
   isBudgetEnforced,
   isCreditsEnforcementEnabled,
-  resolveProviderMode,
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
   isMastraMutationEnabled,
@@ -54,6 +53,7 @@ import {
   PresentationPreferencesSchema,
   resolveMastraModeModel,
   resolveMode,
+  resolveProviderMode,
   routeUnified,
   traceIdStorage,
   TripWire,
@@ -61,9 +61,17 @@ import {
   withDiagnostics,
   withRateLimit,
 } from '@/lib/services/api-boundary';
+import { runCustomAgentStreamService } from '@/lib/services/mastra-custom-agent-stream';
 import { runConversationalTurn, runResearchWorkflow } from '@/lib/services/mastra-execution';
 import { startMutationDraft } from '@/lib/services/mastra-mutation-draft';
 import { extractLatestMastraReport } from '@/lib/services/mastra-report-context';
+import {
+  getInstalledPluginRuntime,
+  hasUserAgentCatalogs,
+  parseCustomAgentMention,
+  resolveUserCustomAgent,
+  stripCustomAgentMention,
+} from '@/lib/services/plugin-custom-agents';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -77,6 +85,13 @@ const BodySchema = z.object({
   modelOverride: z.string().min(1).max(120).nullable().optional(),
   // Q2 decision: exactly two analysis modes; anything else fails validation.
   analysisMode: z.enum(['single', 'full']).optional(),
+  /** Explicit standalone agent selection from the composer. */
+  agentSlug: z
+    .string()
+    .min(2)
+    .max(32)
+    .regex(/^[a-z][a-z0-9-]{1,31}$/)
+    .optional(),
   messages: z
     .array(
       z.object({
@@ -223,6 +238,107 @@ export const POST = withAuth<void>(async (req, { user }) => {
       409,
     );
   }
+  // ── Standalone custom agents (`@handle` or an explicit composer pick) ──
+  // A user-authored agent is a separate Mastra agent, not a committee route.
+  // It is intercepted before the router so selection is deterministic and
+  // cheap; the normal guards (rate limit, onboarding, injection, credits)
+  // still apply.
+  const agentMention = parseCustomAgentMention(userText);
+  const requestedAgentSlug = agentMention?.slug ?? body.agentSlug ?? null;
+  if (requestedAgentSlug) {
+    const runtime = await getInstalledPluginRuntime(user.userId);
+    const catalogsAvailable = hasUserAgentCatalogs(runtime);
+    if (catalogsAvailable || body.agentSlug) {
+      const descriptor = await resolveUserCustomAgent(runtime, requestedAgentSlug);
+      if (!descriptor) {
+        return errorJson(
+          'AGENT_NOT_FOUND',
+          `No custom agent @${requestedAgentSlug} was found. Open the Agent Studio to create it.`,
+          404,
+        );
+      }
+      if (isInjectionAttempt(userText)) {
+        return errorJson(
+          'READ_ONLY_REQUEST_REQUIRED',
+          'I can help with read-only research, but I cannot process instruction-overriding requests.',
+          422,
+        );
+      }
+
+      // Custom agents consume model tokens like any other turn. Keep the
+      // same admission policy as canonical chat (`chat_basic`) so installing
+      // a free plugin never introduces a new plan gate.
+      if (serverEnv.BILLING_ENABLED && userSettings) {
+        const creditModel =
+          descriptor.agent.model?.replace(':', '/') ??
+          userSettings.chatModel?.replace(':', '/') ??
+          serverEnv.AI_DEFAULT_MODEL ??
+          null;
+        const entitlement = await assertEntitlement(user.userId, 'chat_basic');
+        if (!entitlement.ok && isCreditsEnforcementEnabled()) {
+          return Response.json(
+            {
+              error: {
+                code: 'UPGRADE_REQUIRED',
+                message: 'Custom agent turns require an available chat plan.',
+                feature: 'chat_basic',
+                ...(entitlement.requiredPlan ? { requiredPlan: entitlement.requiredPlan } : {}),
+              },
+            },
+            { status: 402 },
+          );
+        }
+        const estimate = estimateCreditsForTurn({
+          mode: 'single',
+          providerMode: resolveProviderMode(userSettings.aiApiKeys, creditModel),
+          modelId: creditModel,
+        });
+        const creditGate = await assertCredits(user.userId, estimate);
+        if (!creditGate.ok) {
+          return Response.json(
+            {
+              error: {
+                code: 'INSUFFICIENT_CREDITS',
+                message: `You need ${creditGate.required} credits for this turn — you have ${creditGate.balance}.`,
+                balance: creditGate.balance,
+                required: creditGate.required,
+              },
+            },
+            { status: 402 },
+          );
+        }
+      }
+
+      const prompt =
+        agentMention?.slug === descriptor.agent.slug
+          ? agentMention.prompt
+          : stripCustomAgentMention(userText, descriptor.agent.slug);
+      if (!prompt.trim()) {
+        return errorJson(
+          'VALIDATION',
+          `Add a question after @${descriptor.agent.slug}, e.g. "@${descriptor.agent.slug} review XAUUSD 15m".`,
+          400,
+        );
+      }
+
+      const timeout = AbortSignal.timeout(ROUTE_TIMEOUT_MS);
+      const signal = req.signal ? AbortSignal.any([req.signal, timeout]) : timeout;
+      return runCustomAgentStreamService({
+        userId: user.userId,
+        threadId: body.threadId,
+        userMessage,
+        prompt,
+        descriptor,
+        runtime,
+        ...(customInstructions ? { customInstructions } : {}),
+        ...(responseStyle !== 'default' ? { responseStyle } : {}),
+        citeSources,
+        ...(body.modelOverride !== undefined ? { modelOverride: body.modelOverride } : {}),
+        signal,
+      });
+    }
+  }
+
   const provisionalReport =
     /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(
       userText,
@@ -278,8 +394,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     const feature =
       creditMode === 'full'
         ? 'chat_full'
-        : executionPlan.route === 'canonical-chat' ||
-            executionPlan.route === 'xauusd-conversation'
+        : executionPlan.route === 'canonical-chat' || executionPlan.route === 'xauusd-conversation'
           ? 'chat_basic'
           : 'chat_single';
     const modelId = executionPlan.model

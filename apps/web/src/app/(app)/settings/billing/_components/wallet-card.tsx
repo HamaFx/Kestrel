@@ -26,6 +26,7 @@ interface WalletCardProps {
   planName: string;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  provider?: string | null;
 }
 
 function formatCredits(value: number): string {
@@ -44,8 +45,10 @@ export function WalletCard({
   planName,
   currentPeriodEnd,
   cancelAtPeriodEnd,
+  provider,
 }: WalletCardProps) {
   const periodEnd = currentPeriodEnd ? new Date(currentPeriodEnd) : null;
+  const isPrepaid = provider === 'gammal';
   return (
     <section className="border-border bg-bg-elev-1 rounded-sm border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -55,12 +58,14 @@ export function WalletCard({
           </p>
           <p className="text-fg mt-1 text-3xl font-bold tracking-tight">
             {formatCredits(available)}
-            <span className="text-fg-subtle ml-2 text-sm font-normal">≈ {formatUsd(available)}</span>
+            <span className="text-fg-subtle ml-2 text-sm font-normal">
+              ≈ {formatUsd(available)}
+            </span>
           </p>
           <p className="text-fg-subtle mt-1 text-sm">
             {planName} plan · {formatCredits(monthlyCredits)} credits / cycle
             {periodEnd
-              ? ` · renews ${periodEnd.toLocaleDateString('en-US', {
+              ? ` · ${isPrepaid ? 'pass ends' : 'renews'} ${periodEnd.toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',
@@ -69,7 +74,9 @@ export function WalletCard({
           </p>
           {cancelAtPeriodEnd && (
             <p className="text-warn mt-1 text-xs">
-              Cancels at period end — credits remain usable until then.
+              {isPrepaid
+                ? 'Prepaid pass — it will not renew. Credits remain usable until the pass ends.'
+                : 'Cancels at period end — credits remain usable until then.'}
             </p>
           )}
         </div>
@@ -89,8 +96,8 @@ export function WalletCard({
         </div>
       </div>
       <p className="text-fg-subtle mt-3 flex items-center gap-1.5 text-[11px]">
-        <IconCoins className="size-3.5" />
-        1 credit = $0.001. Managed AI turns consume credits; BYOK turns are free.
+        <IconCoins className="size-3.5" />1 credit = $0.001. Managed AI turns consume credits; BYOK
+        turns are free.
       </p>
     </section>
   );

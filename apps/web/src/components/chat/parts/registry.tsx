@@ -17,21 +17,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Tool-part registry: dispatches a streamed `tool-<name>` chat part to the
-// matching bespoke renderer (one per `ToolName`), or falls back to the
-// generic `ToolCard` when:
-//   1. the streamed name is not a known `ToolName` (defensive — the chat
-//      route only emits tools we control today, but a future version
-//      mismatch shouldn't crash the UI), or
-//   2. the per-tool zod schema fails to parse the raw `output` payload (the
-//      tool result was malformed — better to show the raw card than a
-//      broken bespoke part).
+// matching bespoke renderer (one per CORE `ToolName`), or falls back to:
+//   1. a registered plugin UI card (`@kestrel/plugin-sdk/ui`), or
+//   2. `AutoPluginToolCard` for plugin tools without custom UI, or
+//   3. the generic `ToolCard` when the name is unknown / the per-tool zod
+//      schema fails to parse.
 //
-// The compile-time guarantee from `partRegistry: { [K in ToolName]: ... }`
-// is the whole point: adding a new entry to `TOOL_NAMES` without wiring a
-// part here is a TypeScript error, so the chat surface can never silently
-// drop a tool.
-//
-// Server component — no state, no events.
+// The compile-time guarantee from `partRegistry: { [K in CoreToolName]: ... }`
+// is the whole point: adding a new CORE tool to `TOOL_NAMES` without wiring a
+// part here is a TypeScript error. Plugin tools are open by design — they
+// never require an edit to this file.
+
+import { pluginHost } from '@kestrel/plugin-sdk';
+import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
+
+import '@/lib/plugins/register-ui';
 
 import {
   AnalyzeChartImageOutputSchema,
@@ -58,6 +58,7 @@ import {
   GetSessionLevelsOutputSchema,
   GetSocialSentimentOutputSchema,
   GetSystemDiagnosticsOutputSchema,
+  isCoreToolName,
   LogJournalOutputSchema,
   ReplaySetupOutputSchema,
   RunSystemActionOutputSchema,
@@ -65,10 +66,9 @@ import {
   SetAlertOutputSchema,
   ShareSnapshotOutputSchema,
   SummarizeThreadOutputSchema,
-  TOOL_NAMES,
   VerifyCallOutputSchema,
   WebSearchOutputSchema,
-  type ToolName,
+  type CoreToolName,
   type ToolOutput,
 } from '@kestrel/shared';
 import dynamic from 'next/dynamic';
@@ -78,6 +78,7 @@ import type { z } from 'zod';
 import { AnalyzeFundamentalPart } from './analyze-fundamental';
 import { AnalyzeTechnicalPart } from './analyze-technical';
 import { AnnotateChartPart } from './annotate-chart';
+import { AutoPluginToolCard } from './auto-plugin-tool-card';
 import { CompactTelemetryRow } from './compact-telemetry-row';
 import { GetCalendarPart } from './get-calendar';
 import { GetCandlesPart } from './get-candles';
@@ -184,7 +185,7 @@ export type ToolPartState = 'loading' | 'done' | 'error';
  * name so `partRegistry` can be a typed map: each entry's `output` is the
  * matching `ToolOutput<K>` (or `null` while loading / on error).
  */
-export interface ToolPartProps<T extends ToolName> {
+export interface ToolPartProps<T extends CoreToolName> {
   /** Tool output, or `null` while streaming / before completion. */
   output: ToolOutput<T> | null;
   state: ToolPartState;
@@ -192,12 +193,13 @@ export interface ToolPartProps<T extends ToolName> {
 }
 
 /**
- * Typed component map, one entry per `ToolName`. The mapped type
- * `{ [K in ToolName]: ComponentType<ToolPartProps<K>> }` enforces totality
- * at compile time — extending `TOOL_NAMES` without adding the matching
- * part here is a TS error.
+ * Typed component map, one entry per CORE `ToolName`. The mapped type
+ * `{ [K in CoreToolName]: ComponentType<ToolPartProps<K>> }` enforces
+ * totality at compile time — extending `TOOL_NAMES` without adding the
+ * matching part here is a TS error. Plugin tools use
+ * `AutoPluginToolCard`/plugin UI instead.
  */
-export const partRegistry: { [K in ToolName]: ComponentType<ToolPartProps<K>> } = {
+export const partRegistry: { [K in CoreToolName]: ComponentType<ToolPartProps<K>> } = {
   get_price: GetPricePart,
   get_candles: GetCandlesPart,
   get_indicators: GetIndicatorsPart,
@@ -238,14 +240,14 @@ export const partRegistry: { [K in ToolName]: ComponentType<ToolPartProps<K>> } 
 };
 
 /**
- * Per-tool zod schemas keyed by `ToolName`. Used to `safeParse` the raw
+ * Per-tool zod schemas keyed by CORE `ToolName`. Used to `safeParse` the raw
  * stream payload before handing it to a bespoke part — a malformed result
  * routes to the generic `ToolCard` fallback rather than crashing the part.
  *
- * The mapped type guarantees one schema per known tool, in lockstep with
- * `partRegistry`.
+ * The mapped type guarantees one schema per known core tool, in lockstep
+ * with `partRegistry`.
  */
-const partSchemas: { [K in ToolName]: z.ZodType<ToolOutput<K>> } = {
+const partSchemas: { [K in CoreToolName]: z.ZodType<ToolOutput<K>> } = {
   get_price: GetPriceOutputSchema,
   get_candles: GetCandlesOutputSchema,
   get_indicators: GetIndicatorsOutputSchema,
@@ -285,9 +287,9 @@ const partSchemas: { [K in ToolName]: z.ZodType<ToolOutput<K>> } = {
   web_search: WebSearchOutputSchema,
 };
 
-/** Type guard: is `s` a known `ToolName`? */
-function isToolName(s: string): s is ToolName {
-  return (TOOL_NAMES as readonly string[]).includes(s);
+/** Type guard: is `s` a known core tool name? */
+function isCoreName(s: string): s is CoreToolName {
+  return isCoreToolName(s);
 }
 
 /**
@@ -306,8 +308,8 @@ function toCardState(
 export interface ChatToolPartProps {
   /**
    * Raw tool name as emitted by the AI stream (without the `tool-` prefix).
-   * Typed `string` rather than `ToolName` so the dispatch can defensively
-   * fall back when an unknown tool somehow makes it into the stream.
+   * Typed `string` so core names dispatch to bespoke parts while plugin tool
+   * ids are accepted without touching this file.
    */
   name: string;
   /** Raw tool result. zod-parsed per-tool before reaching the bespoke part. */
@@ -317,9 +319,11 @@ export interface ChatToolPartProps {
 }
 
 /**
- * Dispatch a streamed `tool-<name>` part to the matching bespoke
- * renderer. Falls back to the generic `ToolCard` when the name is unknown
- * or the per-tool zod parse fails.
+ * Dispatch a streamed `tool-<name>` part.
+ *
+ * Core tools use the bespoke registry. Plugin tools first look for a custom
+ * card registered through `@kestrel/plugin-sdk/ui`; otherwise the
+ * `AutoPluginToolCard` formats the payload with zero plugin React code.
  */
 export function ChatToolPart({
   name,
@@ -327,8 +331,8 @@ export function ChatToolPart({
   state,
   errorMessage,
 }: ChatToolPartProps): ReactElement {
-  if (!isToolName(name)) {
-    return renderFallback(name, output, state, errorMessage);
+  if (!isCoreName(name)) {
+    return renderPluginPart(name, output, state, errorMessage);
   }
 
   const rendered = renderBespoke(name, output, state, errorMessage);
@@ -340,8 +344,55 @@ export function ChatToolPart({
   return renderFallback(name, output, state, errorMessage);
 }
 
+/** Render a plugin-provided card, or the automatic formatter. */
+function renderPluginPart(
+  name: string,
+  output: unknown,
+  state: ToolPartState,
+  errorMessage: string | undefined,
+): ReactElement {
+  const registration = pluginUiRegistry.getToolPart(name);
+  if (registration) {
+    const PluginPart = registration.component;
+    // Validate against the plugin tool's real output schema (or the UI's
+    // explicit override) so a malformed payload never reaches custom code.
+    const schema = registration.schema ?? pluginHost.getTool(name)?.outputSchema;
+    if (state === 'done' && schema) {
+      const parsed = schema.safeParse(output);
+      if (!parsed.success) {
+        return (
+          <AutoPluginToolCard
+            name={name}
+            output={output}
+            state={state}
+            errorMessage={errorMessage}
+          />
+        );
+      }
+      return (
+        <PluginPart
+          output={parsed.data}
+          state={state}
+          {...(errorMessage !== undefined ? { errorMessage } : {})}
+        />
+      );
+    }
+    return (
+      <PluginPart
+        output={output}
+        state={state}
+        {...(errorMessage !== undefined ? { errorMessage } : {})}
+      />
+    );
+  }
+
+  return (
+    <AutoPluginToolCard name={name} output={output} state={state} errorMessage={errorMessage} />
+  );
+}
+
 /**
- * Render a bespoke part for a known tool name. Returns `null` to signal
+ * Render a bespoke part for a known core tool name. Returns `null` to signal
  * the caller should fall back to the generic card (currently only on
  * zod-parse failure when `state === 'done'`).
  *
@@ -349,13 +400,13 @@ export function ChatToolPart({
  * their per-tool typing — the component's `output` prop is exactly
  * `ToolOutput<K> | null`, no casts required.
  */
-function renderBespoke<K extends ToolName>(
+function renderBespoke<K extends CoreToolName>(
   name: K,
   output: unknown,
   state: ToolPartState,
   errorMessage: string | undefined,
 ): ReactElement | null {
-  // The map's declared shape `{ [K in ToolName]: ComponentType<ToolPartProps<K>> }`
+  // The map's declared shape `{ [K in CoreToolName]: ComponentType<ToolPartProps<K>> }`
   // makes this index access soundly typed at the per-tool level, but TS
   // can't narrow `partRegistry[name]` past the union when `K` is generic
   // (well-known mapped-type index-access limitation). The cast restores

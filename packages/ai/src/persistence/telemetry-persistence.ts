@@ -81,6 +81,8 @@ export const TELEMETRY_KINDS = [
   'mastra_worker_task_failed',
   'mastra_canonical_chat',
   'mastra_canonical_chat_failed',
+  'mastra_custom_agent',
+  'mastra_custom_agent_failed',
   'turn_failed',
 ] as const;
 
@@ -134,8 +136,7 @@ export async function recordTelemetry(t: TelemetryInput): Promise<void> {
     }
   }
   const creditsCharged =
-    t.creditsCharged ??
-    (providerMode === 'byok' ? platformFeeCredits() : usdToCredits(estCostUsd));
+    t.creditsCharged ?? (providerMode === 'byok' ? platformFeeCredits() : usdToCredits(estCostUsd));
 
   try {
     await db

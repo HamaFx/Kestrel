@@ -79,7 +79,8 @@ export interface MastraRunObservation {
     | 'mastra_mode'
     | 'mastra_full_job'
     | 'mastra_worker_task'
-    | 'mastra_canonical_chat';
+    | 'mastra_canonical_chat'
+    | 'mastra_custom_agent';
   error?: unknown;
 }
 
@@ -219,7 +220,9 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
                 ? 'mastra_worker_task_failed'
                 : args.telemetryKind === 'mastra_canonical_chat'
                   ? 'mastra_canonical_chat_failed'
-                  : 'mastra_xauusd_research_failed',
+                  : args.telemetryKind === 'mastra_custom_agent'
+                    ? 'mastra_custom_agent_failed'
+                    : 'mastra_xauusd_research_failed',
     });
   } catch (error) {
     telemetryDegraded = true;
