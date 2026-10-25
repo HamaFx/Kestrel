@@ -105,9 +105,14 @@ export const MessageList = memo(function MessageList({
   const containerRef = useRef<HTMLDivElement>(null);
   const totalSize = rowVirtualizer.getTotalSize();
 
-  // Expose the virtualizer's scrollToIndex to the parent (TOC rail) so
-  // "jump to turn" works for rows the virtualizer has not mounted.
+  // Single virtualization/scroll effect:
+  // - keep the container tall enough for the full virtual window, and
+  // - expose `scrollToIndex` to the parent (TOC rail) so "jump to turn"
+  //   works for rows the virtualizer has not mounted.
   useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.height = `${totalSize}px`;
+    }
     if (!scrollToIndexRef) return;
     scrollToIndexRef.current = (index: number) => {
       rowVirtualizer.scrollToIndex(index, { align: 'start' });
@@ -115,13 +120,7 @@ export const MessageList = memo(function MessageList({
     return () => {
       scrollToIndexRef.current = null;
     };
-  }, [scrollToIndexRef, rowVirtualizer]);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.style.height = `${totalSize}px`;
-    }
-  }, [totalSize]);
+  }, [scrollToIndexRef, rowVirtualizer, totalSize]);
 
   // Single live region for active streaming output (last assistant message only)
   const streamingText = useMemo(() => {

@@ -23,374 +23,30 @@
 //
 // When `WORKER_ENABLE_TICK_STREAM=1` is explicitly enabled, `main()` invokes
 // `runWorker()` to start the legacy SignalR + Binance streaming consumers.
+//
+// The bootstrap phases live in `./bootstrap/`: plugin + queue registration
+// (`plugins.ts`), feed/worker startup (`feed-worker.ts`), HTTP servers
+// (`http-servers.ts`), and the shutdown registry (`shutdown.ts`).
 
-import { ensureAiBootstrapped, getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
+import { ensureAiBootstrapped, initLangfuse } from '@kestrel/ai';
 import { ensureDataProvidersRegistered } from '@kestrel/data';
-import { closeDb } from '@kestrel/db';
-import { getCapabilityReport, isForexWeekend } from '@kestrel/shared';
+import { getCapabilityReport } from '@kestrel/shared';
 
-import { Candle1mAggregator, type ClosedCandle } from './aggregator/candle-1m.js';
-import { BinanceStreamConsumer } from './binance/index.js';
-import { isWorkerTickStreamEnabled, loadEnv, type WorkerEnv } from './env.js';
-import { ping } from './healthchecks.js';
-import { createHealthServer, createProxyServer } from './http-server.js';
-import { createLogger, type Logger } from './log.js';
-import { flushClosedCandle } from './persistence/candles-1m.js';
-import { flushLiveTicks } from './persistence/live-ticks.js';
-import { startScheduler } from './scheduler.js';
-import { notifyReady, notifyStatus, notifyStopping, notifyWatchdog } from './sd-notify.js';
+import { startWorkerRuntime } from './bootstrap/feed-worker';
 import {
-  createDefaultBuildConnection,
-  SignalRConsumer,
-  type BuildConnection,
-  type NormalizedTick,
-} from './signalr/consumer.js';
-import { TickBuffer } from './signalr/tick-buffer.js';
-import { SymbolManager } from './symbol-manager.js';
-import { createTickBus, type TickBus } from './tick-bus.js';
+  createWorkerHttpServers,
+  listenWorkerHttpServers,
+  type WorkerHttpServers,
+} from './bootstrap/http-servers';
+import { registerBundledPlugins, startBacktestQueues } from './bootstrap/plugins';
+import { installSignalHandlers, registerPostStartupShutdown } from './bootstrap/shutdown';
+import { isWorkerTickStreamEnabled, loadEnv } from './env.js';
+import { createLogger } from './log.js';
+import { startScheduler } from './scheduler.js';
 
-interface ShutdownState {
-  shuttingDown: boolean;
-  /** Cleanup callbacks run in reverse-registration order on shutdown. */
-  cleanups: Array<() => Promise<void> | void>;
-}
-
-const state: ShutdownState = { shuttingDown: false, cleanups: [] };
-
-function installSignalHandlers(log: Logger): void {
-  const handle = (signal: NodeJS.Signals): void => {
-    if (state.shuttingDown) {
-      log.warn('second signal received — exiting immediately', { signal });
-      process.exit(1);
-      return;
-    }
-    state.shuttingDown = true;
-    log.info('shutdown signal received', { signal });
-
-    void (async () => {
-      // Run cleanups in reverse order so dependencies tear down first.
-      for (let i = state.cleanups.length - 1; i >= 0; i -= 1) {
-        try {
-          await state.cleanups[i]?.();
-        } catch (err) {
-          log.error('cleanup failed', { err: String(err) });
-        }
-      }
-      log.info('shutdown complete');
-      process.exit(0);
-    })();
-  };
-
-  process.on('SIGTERM', () => handle('SIGTERM'));
-  process.on('SIGINT', () => handle('SIGINT'));
-}
-
-/** Register a cleanup callback to run on graceful shutdown. */
-export function onShutdown(fn: () => Promise<void> | void): void {
-  state.cleanups.push(fn);
-}
-
-/**
- * Compose the SignalR consumer + tick buffer + flush loop. Exported for
- * tests so they can drive the same wiring with a stubbed connection.
- */
-export interface RunWorkerArgs {
-  env: WorkerEnv;
-  log: Logger;
-  /** Override the SignalR factory (tests pass a fake builder). */
-  buildConnection?: BuildConnection;
-  /** Override the flush loop interval (tests use a tiny number). */
-  flushIntervalMs?: number;
-  /** Override the heartbeat interval (tests use a tiny number or 0 to disable). */
-  heartbeatIntervalMs?: number;
-  /**
-   * Tap that fires on every validated tick so the candle aggregator can
-   * consume the same validated event without re-walking its schema.
-   */
-  onTick?: (tick: NormalizedTick) => void;
-}
-
-export interface RunningWorker {
-  consumer: SignalRConsumer;
-  binanceConsumer: BinanceStreamConsumer;
-  buffer: TickBuffer;
-  aggregator: Candle1mAggregator;
-  /** Fan-out for plugin tick subscribers (paper fills, live strategies). */
-  tickBus: TickBus;
-  /** Returns the epoch ms of the last tick (0 if none received yet). */
-  getLastTickAt(): number;
-  /** Idempotent. Cleanly tears down timers + the hub. */
-  stop(): Promise<void>;
-}
-
-export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
-  const { env, log } = args;
-  const buildConnection = args.buildConnection ?? (await createDefaultBuildConnection());
-  const buffer = new TickBuffer();
-  const tickBus = createTickBus(log);
-  const db = getDb();
-
-  let lastTickAt = 0;
-
-  let pendingTicks: NormalizedTick[] = [];
-  let batchTimer: NodeJS.Timeout | null = null;
-  const BATCH_MS = 50;
-  // Fail-safe bound: an event-loop stall plus a feed replay must not grow the
-  // pending batch without limit before the 50ms timer can fire.
-  const MAX_PENDING_TICKS = 5_000;
-
-  const flushBatch = () => {
-    if (pendingTicks.length === 0) return;
-    const ticks = pendingTicks;
-    pendingTicks = [];
-    const now = Date.now();
-    for (const tick of ticks) {
-      buffer.push(tick);
-      aggregator.feed(tick);
-    }
-    args.onTick?.(ticks[ticks.length - 1]!);
-    lastTickAt = now;
-    notifyWatchdog();
-  };
-
-  const handleIncomingTick = (tick: NormalizedTick) => {
-    // Plugin subscribers see the tick immediately (sub-second paper fills);
-    // core persistence stays on the 50ms batch below and is never blocked
-    // by a slow/failing plugin.
-    tickBus.publish(tick);
-    pendingTicks.push(tick);
-    if (pendingTicks.length >= MAX_PENDING_TICKS) {
-      // Flush synchronously at the cap; the pending timer (if any) will find
-      // an empty buffer and no-op.
-      flushBatch();
-      return;
-    }
-    if (!batchTimer) {
-      batchTimer = setTimeout(() => {
-        batchTimer = null;
-        flushBatch();
-      }, BATCH_MS);
-    }
-    if (pendingTicks.length === 1) notifyWatchdog();
-  };
-
-  let candleFailureCount = 0;
-  const inFlightCandleFlushes = new Set<Promise<void>>();
-
-  const aggregator = new Candle1mAggregator((bar: ClosedCandle) => {
-    const CANDLE_FLUSH_TIMEOUT_MS = 10_000;
-    const flushController = new AbortController();
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    const flushPromise = (async () => {
-      try {
-        await flushClosedCandle({ db, log, bar, signal: flushController.signal });
-        log.info('candle closed', {
-          symbol: bar.symbol,
-          t: new Date(bar.t).toISOString(),
-          o: bar.o,
-          h: bar.h,
-          l: bar.l,
-          c: bar.c,
-          ticks: bar.tickVolume,
-        });
-        candleFailureCount = 0;
-      } catch (err) {
-        candleFailureCount += 1;
-        log.error('flushClosedCandle failed', {
-          err: String(err),
-          symbol: bar.symbol,
-          consecutiveFailures: candleFailureCount,
-        });
-      } finally {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
-      }
-    })();
-
-    const timeoutPromise = new Promise<void>((resolve) => {
-      timeoutId = setTimeout(() => {
-        timeoutId = null;
-        flushController.abort();
-        log.warn('flushClosedCandle timed out', { symbol: bar.symbol });
-        resolve();
-      }, CANDLE_FLUSH_TIMEOUT_MS);
-      timeoutId.unref();
-    });
-
-    const tracked = Promise.race([flushPromise, timeoutPromise]).finally(() => {
-      inFlightCandleFlushes.delete(tracked);
-    });
-    inFlightCandleFlushes.add(tracked);
-  });
-
-  const consumer = new SignalRConsumer({
-    hubUrl: env.BIQUOTE_HUB_URL,
-    onTick: handleIncomingTick,
-    buildConnection,
-    log: log.with({ module: 'signalr' }),
-    symbols: [],
-  });
-
-  const symbolManager = new SymbolManager(log.with({ module: 'symbol-manager' }));
-
-  symbolManager.on('biquoteChanged', ({ added, removed }) => {
-    if (consumer.isStarted()) {
-      void consumer.updateSubscriptions(added, removed);
-    }
-  });
-  symbolManager.on('binanceChanged', ({ added, removed }) => {
-    if (binanceConsumer) {
-      void binanceConsumer.updateSubscriptions(added, removed);
-    }
-  });
-
-  const cryptoSymbols = (
-    env.BINANCE_CRYPTO_SYMBOLS ?? 'BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT'
-  )
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const binanceConsumer = new BinanceStreamConsumer({
-    symbols: cryptoSymbols,
-    onTick: handleIncomingTick,
-    onActivity: () => notifyWatchdog(),
-    log: log.with({ module: 'binance-ws' }),
-    ...(env.BINANCE_WS_URL ? { wsUrl: env.BINANCE_WS_URL } : {}),
-  });
-
-  await consumer.start(); // BiQuote SignalR
-  await binanceConsumer.start(); // Binance WS
-  await symbolManager.start();
-  notifyReady();
-  notifyStatus('signalr + binance ws connected; tick stream active');
-
-  let tickFlushFailureCount = 0;
-
-  let flushInFlight = false;
-  let activeFlushPromise: Promise<void> | null = null;
-  let stopping = false;
-  let flushTimer: NodeJS.Timeout | null = null;
-  const flushIntervalMs = args.flushIntervalMs ?? 1_000;
-
-  const scheduleFlush = () => {
-    if (stopping) return;
-    if (flushTimer) clearTimeout(flushTimer);
-    flushTimer = setTimeout(() => {
-      flushTimer = null;
-      void runSingleFlush();
-    }, flushIntervalMs);
-    flushTimer.unref();
-  };
-
-  const runSingleFlush = async () => {
-    if (stopping) return;
-    if (flushInFlight) {
-      log.warn('flushLiveTicks skipped — previous flush still in flight');
-      scheduleFlush();
-      return;
-    }
-
-    const drained = buffer.peek();
-    if (drained.length === 0) {
-      scheduleFlush();
-      return;
-    }
-
-    flushInFlight = true;
-    const work = (async () => {
-      try {
-        const r = await flushLiveTicks({ db, buffer, log }, drained);
-        buffer.drain(drained);
-        if (r.written > 0) {
-          log.info('flushed live_ticks', { written: r.written, ticks: r.totalTicks });
-        }
-        tickFlushFailureCount = 0;
-      } catch (err) {
-        tickFlushFailureCount += 1;
-        log.error('flushLiveTicks failed — ticks retained in buffer for next attempt', {
-          err: String(err),
-          consecutiveFailures: tickFlushFailureCount,
-        });
-      } finally {
-        flushInFlight = false;
-        activeFlushPromise = null;
-        scheduleFlush();
-      }
-    })();
-    activeFlushPromise = work;
-    await work;
-  };
-
-  scheduleFlush();
-
-  const heartbeatIntervalMs = args.heartbeatIntervalMs ?? 30_000;
-  let heartbeatTimer: NodeJS.Timeout | null = null;
-  if (heartbeatIntervalMs > 0) {
-    heartbeatTimer = setInterval(() => {
-      const ageMs = Date.now() - lastTickAt;
-      const isWeekend = isForexWeekend();
-      const hasCrypto = cryptoSymbols.length > 0;
-      if (lastTickAt > 0 && ageMs < 60_000) {
-        void ping(env.HC_SIGNALR_UUID, 'success', `last_tick=${ageMs}ms`);
-      } else if (isWeekend && !hasCrypto) {
-        void ping(env.HC_SIGNALR_UUID, 'success', 'market_closed_weekend');
-      } else {
-        void ping(env.HC_SIGNALR_UUID, 'fail', `no_ticks_for=${Math.floor(ageMs / 1000)}s`);
-      }
-    }, heartbeatIntervalMs);
-    heartbeatTimer.unref();
-  }
-
-  const stop = async (): Promise<void> => {
-    stopping = true;
-    tickBus.stop();
-    notifyStopping();
-    if (flushTimer) {
-      clearTimeout(flushTimer);
-      flushTimer = null;
-    }
-    if (heartbeatTimer) {
-      clearInterval(heartbeatTimer);
-      heartbeatTimer = null;
-    }
-    symbolManager.stop();
-
-    await Promise.all([consumer.stop(), binanceConsumer.stop()]);
-
-    if (batchTimer) {
-      clearTimeout(batchTimer);
-      batchTimer = null;
-    }
-    if (pendingTicks.length > 0) flushBatch();
-
-    if (activeFlushPromise) {
-      await activeFlushPromise;
-    }
-
-    try {
-      const drained = buffer.peek();
-      if (drained.length > 0) {
-        await flushLiveTicks({ db, buffer, log }, drained);
-        buffer.drain(drained);
-      }
-    } catch (err) {
-      log.warn('final flush on stop failed', { err: String(err) });
-    }
-
-    aggregator.closeAll();
-    if (inFlightCandleFlushes.size > 0) {
-      await Promise.allSettled([...inFlightCandleFlushes]);
-    }
-  };
-
-  const getLastTickAt = (): number => lastTickAt;
-
-  return { consumer, binanceConsumer, buffer, aggregator, tickBus, getLastTickAt, stop };
-}
+export { onShutdown } from './bootstrap/shutdown';
+export { runWorker } from './bootstrap/feed-worker';
+export type { RunWorkerArgs, RunningWorker } from './bootstrap/feed-worker';
 
 export async function main(): Promise<void> {
   ensureAiBootstrapped();
@@ -403,34 +59,11 @@ export async function main(): Promise<void> {
 
   // Register bundled plugin capabilities before the scheduler/tick bus read
   // the host. A broken plugin must not take down core ingestion or cron.
-  try {
-    const { ensureBundledPluginsRegistered } = await import('@kestrel/plugins');
-    ensureBundledPluginsRegistered();
-    const { syncPluginCoreTools, syncPluginIndicators } = await import('@kestrel/ai/plugins');
-    syncPluginIndicators();
-    await syncPluginCoreTools();
-  } catch (err) {
-    log.error('plugin registration failed; continuing with core capabilities only', {
-      err: err instanceof Error ? err.message : String(err),
-    });
-  }
+  await registerBundledPlugins(log);
 
   // Durable async jobs. A queue/schema failure must not stop core ingestion;
   // the synchronous backtest path keeps working without it.
-  try {
-    const { startBacktestQueueWorker, startBacktestSweepQueueWorker } =
-      await import('./backtest-queue.js');
-    await startBacktestQueueWorker(log);
-    await startBacktestSweepQueueWorker(log);
-    log.info('backtest and sweep queue workers registered');
-  } catch (err) {
-    log.warn(
-      'backtest queue worker unavailable; async runs will be unavailable (sync path unaffected)',
-      {
-        err: err instanceof Error ? err.message : String(err),
-      },
-    );
-  }
+  await startBacktestQueues(log);
 
   initLangfuse({ service: 'worker' });
 
@@ -484,122 +117,29 @@ export async function main(): Promise<void> {
 
   installSignalHandlers(log);
 
-  const worker: Pick<RunningWorker, 'getLastTickAt' | 'stop'> & {
-    isSignalRConnected: () => boolean;
-    isBinanceConnected: () => boolean;
-    getDroppedTicks: () => number;
-  } = tickStreamEnabled
-    ? await (async () => {
-        const running = await runWorker({ env, log });
-        return {
-          getLastTickAt: running.getLastTickAt,
-          stop: running.stop,
-          isSignalRConnected: () => running.consumer.isStarted(),
-          isBinanceConnected: () => running.binanceConsumer.isConnected(),
-          getDroppedTicks: () => running.consumer.droppedTicks(),
-        };
-      })()
-    : (() => {
-        notifyReady();
-        notifyStatus('on-demand REST mode active; tick streaming disabled');
-        return {
-          getLastTickAt: () => 0,
-          stop: async () => {
-            notifyStopping();
-          },
-          isSignalRConnected: () => false,
-          isBinanceConnected: () => false,
-          getDroppedTicks: () => 0,
-        };
-      })();
+  const worker = await startWorkerRuntime({ env, log, tickStreamEnabled });
 
-  let healthServer: ReturnType<typeof createHealthServer> | null = null;
-  let proxyServer: ReturnType<typeof createProxyServer> | null = null;
+  let servers: WorkerHttpServers | null = null;
   try {
-    healthServer = createHealthServer({
+    servers = createWorkerHttpServers({
       log,
-      getLastTickAt: worker.getLastTickAt,
-      isSignalRConnected: worker.isSignalRConnected,
-      isBinanceConnected: worker.isBinanceConnected,
-      isTickStreamEnabled: () => tickStreamEnabled,
-      getDroppedTicks: worker.getDroppedTicks,
-      getRequestId: () => env.DEPLOYED_SHA,
+      env,
+      worker,
+      tickStreamEnabled,
     });
 
-    await new Promise<void>((resolve, reject) => {
-      const onError = (error: Error) => {
-        healthServer?.off('listening', onListening);
-        reject(error);
-      };
-      const onListening = () => {
-        healthServer?.off('error', onError);
-        log.info('Health server listening', {
-          host: env.WORKER_HTTP_HOST ?? '127.0.0.1',
-          port: env.WORKER_HTTP_PORT,
-        });
-        resolve();
-      };
-      healthServer!.once('error', onError);
-      healthServer!.once('listening', onListening);
-      healthServer!.listen(env.WORKER_HTTP_PORT, env.WORKER_HTTP_HOST ?? '127.0.0.1');
-    });
+    await listenWorkerHttpServers(servers, { log, env });
 
-    onShutdown(() => closeDb());
-    // Registered after closeDb so reverse-order shutdown stops the queue
-    // BEFORE the database pool disappears.
-    onShutdown(async () => {
-      const { stopQueue } = await import('@kestrel/db/queue');
-      await stopQueue();
+    registerPostStartupShutdown({
+      healthServer: servers.healthServer,
+      proxyServer: servers.proxyServer,
+      worker,
+      stopScheduler,
     });
-
-    if (env.BIQUOTE_PROXY_TOKEN) {
-      proxyServer = createProxyServer({
-        log,
-        getLastTickAt: worker.getLastTickAt,
-        isSignalRConnected: worker.isSignalRConnected,
-        isBinanceConnected: worker.isBinanceConnected,
-        isTickStreamEnabled: () => tickStreamEnabled,
-        getDroppedTicks: worker.getDroppedTicks,
-        getRequestId: () => env.DEPLOYED_SHA,
-      });
-
-      await new Promise<void>((resolve, reject) => {
-        const onError = (error: Error) => {
-          proxyServer?.off('listening', onListening);
-          reject(error);
-        };
-        const onListening = () => {
-          proxyServer?.off('error', onError);
-          log.info('Proxy server listening', {
-            host: env.WORKER_HTTP_HOST ?? '127.0.0.1',
-            port: env.WORKER_PROXY_PORT,
-          });
-          resolve();
-        };
-        proxyServer!.once('error', onError);
-        proxyServer!.once('listening', onListening);
-        proxyServer!.listen(env.WORKER_PROXY_PORT, env.WORKER_HTTP_HOST ?? '127.0.0.1');
-      });
-    }
-
-    onShutdown(() => shutdownLangfuse());
-    onShutdown(async () => {
-      const { flushMastraObservability, getKestrelMastra } = await import('@kestrel/ai/mastra-v2');
-      await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
-    });
-    // Cleanups run in reverse registration order. Registering the producers
-    // (scheduler + feeds) AFTER the observability flushes means: abort jobs →
-    // stop feeds/servers → flush observability → close the DB pool last.
-    onShutdown(() => {
-      healthServer!.close();
-      proxyServer?.close();
-      return worker.stop();
-    });
-    if (stopScheduler) onShutdown(stopScheduler);
   } catch (err) {
     log.error('post-startup initialisation failed — tearing down worker', { err: String(err) });
-    healthServer?.close();
-    proxyServer?.close();
+    servers?.healthServer.close();
+    servers?.proxyServer?.close();
     await worker.stop();
     throw err;
   }

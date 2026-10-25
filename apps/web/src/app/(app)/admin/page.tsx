@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: Apache-2.0
-
 'use client';
+
+// SPDX-License-Identifier: Apache-2.0
 
 /**
  * Copyright 2026 Kestrel
@@ -17,165 +17,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
-  IconBug,
-  IconCpu,
-  IconDatabase,
-  IconFlag,
-  IconFlask,
-  IconHeartbeat,
-  IconHistory,
-  IconMessageReport,
-  IconRefresh,
-  IconSettingsBolt,
-  IconStethoscope,
-  IconTerminal,
-  IconTool,
-  IconUsers,
-} from '@tabler/icons-react';
-import dynamic from 'next/dynamic';
+
+// Admin console route: resolves the active section from the `tab` query param
+// and renders the section layout.
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  type ComponentType,
-  type KeyboardEvent,
-} from 'react';
+import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 
-import { SkeletonCard } from '@/components/ui/skeleton';
-import { cn } from '@/lib/formatters/cn';
-
-function TabFallback() {
-  return (
-    <div className="border-border overflow-hidden rounded-sm border">
-      <div className="bg-bg-elev-2 flex gap-4 px-4 py-3">
-        <SkeletonCard lines={1} className="flex-1 border-0 bg-transparent p-0" />
-        <SkeletonCard lines={1} className="w-20 border-0 bg-transparent p-0" />
-        <SkeletonCard lines={1} className="w-24 border-0 bg-transparent p-0" />
-        <SkeletonCard lines={1} className="w-16 border-0 bg-transparent p-0" />
-      </div>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="border-border flex gap-4 border-t px-4 py-3">
-          <SkeletonCard lines={1} className="flex-1 border-0 bg-transparent p-0" />
-          <SkeletonCard lines={1} className="w-20 border-0 bg-transparent p-0" />
-          <SkeletonCard lines={1} className="w-24 border-0 bg-transparent p-0" />
-          <SkeletonCard lines={1} className="w-16 border-0 bg-transparent p-0" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const AdminPlatformConfig = dynamic(
-  () => import('./_components/admin-platform-config').then((m) => m.AdminPlatformConfig),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminSystemHealth = dynamic(
-  () => import('./_components/admin-system-health').then((m) => m.AdminSystemHealth),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminOnboardingControl = dynamic(
-  () => import('./_components/admin-onboarding-control').then((m) => m.AdminOnboardingControl),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminCronTable = dynamic(
-  () => import('./_components/admin-cron-table').then((m) => m.AdminCronTable),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminToolTelemetryTable = dynamic(
-  () => import('./_components/admin-tool-telemetry-table').then((m) => m.AdminToolTelemetryTable),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminDiagnosticTraces = dynamic(
-  () => import('./_components/admin-diagnostic-traces').then((m) => m.AdminDiagnosticTraces),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminUserTable = dynamic(
-  () => import('./_components/admin-user-table').then((m) => m.AdminUserTable),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminFeatureFlags = dynamic(
-  () => import('./_components/admin-feature-flags').then((m) => m.AdminFeatureFlags),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminLogViewer = dynamic(
-  () => import('./_components/admin-log-viewer').then((m) => m.AdminLogViewer),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminDevTools = dynamic(
-  () => import('./_components/admin-dev-tools').then((m) => m.AdminDevTools),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminAuditTable = dynamic(
-  () => import('./_components/admin-audit-table').then((m) => m.AdminAuditTable),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminFeedbackReview = dynamic(
-  () => import('./_components/admin-feedback-review').then((m) => m.AdminFeedbackReview),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminDatasetReview = dynamic(
-  () => import('./_components/admin-dataset-review').then((m) => m.AdminDatasetReview),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminRegressionCases = dynamic(
-  () => import('./_components/admin-regression-cases').then((m) => m.AdminRegressionCases),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminAiEval = dynamic(
-  () => import('./_components/admin-ai-eval').then((m) => m.AdminAiEval),
-  { loading: TabFallback },
-) as ComponentType;
-
-const AdminMastraRuns = dynamic(
-  () => import('./_components/admin-mastra-runs').then((m) => m.AdminMastraRuns),
-  { loading: TabFallback },
-) as ComponentType;
-
-const TABS = [
-  { id: 'platform', label: 'AI & Platform', icon: IconCpu, Component: AdminPlatformConfig },
-  { id: 'health', label: 'Health', icon: IconHeartbeat, Component: AdminSystemHealth },
-  { id: 'users', label: 'Users', icon: IconUsers, Component: AdminUserTable },
-  { id: 'features', label: 'Features', icon: IconFlag, Component: AdminFeatureFlags },
-  { id: 'onboarding', label: 'Onboarding', icon: IconRefresh, Component: AdminOnboardingControl },
-  { id: 'cron', label: 'Cron', icon: IconHistory, Component: AdminCronTable },
-  { id: 'telemetry', label: 'Telemetry', icon: IconTool, Component: AdminToolTelemetryTable },
-  { id: 'traces', label: 'Traces', icon: IconStethoscope, Component: AdminDiagnosticTraces },
-  { id: 'logs', label: 'Logs', icon: IconTerminal, Component: AdminLogViewer },
-  { id: 'audit', label: 'Audit', icon: IconHistory, Component: AdminAuditTable },
-  { id: 'feedback', label: 'Feedback', icon: IconMessageReport, Component: AdminFeedbackReview },
-  { id: 'datasets', label: 'Datasets', icon: IconDatabase, Component: AdminDatasetReview },
-  { id: 'regressions', label: 'Regressions', icon: IconBug, Component: AdminRegressionCases },
-  { id: 'ai-eval', label: 'AI Eval', icon: IconFlask, Component: AdminAiEval },
-  { id: 'mastra-runs', label: 'Committee Runs', icon: IconStethoscope, Component: AdminMastraRuns },
-  { id: 'devtools', label: 'Dev Tools', icon: IconSettingsBolt, Component: AdminDevTools },
-] as const;
-
-type TabId = (typeof TABS)[number]['id'];
-
-const TAB_IDS: readonly string[] = TABS.map((t) => t.id);
-const DEFAULT_TAB: TabId = 'platform';
-const TAB_PARAM = 'tab';
-
-function isValidTab(id: string | null): id is TabId {
-  return !!id && TAB_IDS.includes(id);
-}
+import { AdminTabLayout } from './_components/admin-tab-layout';
+import { DEFAULT_TAB, isValidTab, TAB_PARAM, TABS, type TabId } from './_components/admin-tabs';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -265,53 +114,12 @@ export default function AdminPage() {
   const ActiveComponent = tab.Component;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div aria-label="Admin sections" className="w-full" role="tablist">
-        <div className="border-border no-scrollbar flex gap-1 overflow-x-auto border-b pb-3">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                id={`${tab.id}-tab`}
-                role="tab"
-                aria-selected={active}
-                {...(active ? { 'aria-controls': `${tab.id}-panel` } : {})}
-                tabIndex={active ? 0 : -1}
-                ref={(el) => {
-                  tabRefs.current[tab.id] = el;
-                }}
-                type="button"
-                onClick={() => activateTab(tab.id)}
-                onKeyDown={handleKeyDown}
-                className={cn(
-                  'inline-flex min-h-10 items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors',
-                  'border-b-2',
-                  active
-                    ? 'border-brand text-brand'
-                    : 'text-fg-muted hover:text-fg border-transparent',
-                )}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <section
-        id={`${activeTab}-panel`}
-        role="tabpanel"
-        aria-labelledby={`${activeTab}-tab`}
-        tabIndex={0}
-        className="focus-visible:ring-brand/50 min-h-[300px] rounded-sm outline-none focus-visible:ring-2"
-      >
-        <Suspense fallback={<TabFallback />}>
-          <ActiveComponent />
-        </Suspense>
-      </section>
-    </div>
+    <AdminTabLayout
+      activeTab={activeTab}
+      tabRefs={tabRefs}
+      onActivate={activateTab}
+      onKeyDown={handleKeyDown}
+      ActiveComponent={ActiveComponent}
+    />
   );
 }

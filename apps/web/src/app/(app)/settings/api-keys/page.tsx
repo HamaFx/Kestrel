@@ -16,25 +16,26 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { BYOK_PROVIDERS_LIST, computeUsage, type ProviderBreakdown } from '@kestrel/ai';
+import { computeUsage, type ProviderBreakdown } from '@kestrel/ai';
 import { getDb, getUserWithSettings, requireTenantIdForUser, schema } from '@kestrel/db';
-import { decryptByok, type ProviderId } from '@kestrel/shared/encryption';
-import { IconKey } from '@tabler/icons-react';
+import { decryptByok } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { checkIsAdmin } from '@/lib/auth/admin-check';
-import { formatRelative } from '@/lib/formatters/format';
 import { buildCatalogForUser } from '@/lib/services/catalog-server';
 
 import { AISubNav } from '../_components/ai-subnav';
 import { updateApiKeysAction } from '../actions';
-import { ApiKeyCard } from './_components/api-key-card';
+import type { ApiKeyHealth } from './_components/api-key-health';
+import { ApiKeysEmptyState } from './_components/api-keys-empty-state';
 import { ApiKeysLandingBanner } from './_components/api-keys-landing-banner';
-import { BulkTestButton } from './_components/bulk-test-button';
 import { ExportImportKeys } from './_components/export-import-keys';
 import { MarketDataConfig } from './_components/market-data-config';
+import { ProviderCapabilityMatrix } from './_components/provider-capability-matrix';
+import { ProviderHealthPanel } from './_components/provider-health-panel';
+import { ProviderKeySections } from './_components/provider-key-sections';
 import { SaveBar } from './_components/save-bar';
 
 export const dynamic = 'force-dynamic';
@@ -87,7 +88,7 @@ export default async function ApiKeysSettingsPage({
         eq(schema.providerTests.tenantId, tenantId),
       ),
     );
-  const healthByProvider = new Map(
+  const healthByProvider = new Map<string, ApiKeyHealth>(
     healthRows.map((h) => [
       h.providerId,
       {
@@ -156,162 +157,31 @@ export default async function ApiKeysSettingsPage({
       <AISubNav />
 
       {/* Premium Provider Health Dashboard */}
-      <div className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {totalConfigured === 0 ? (
-              <span className="bg-fg-muted/40 size-3 animate-pulse rounded-full" />
-            ) : totalFailed > 0 ? (
-              <span className="bg-danger size-3 animate-pulse rounded-full" />
-            ) : (
-              <span className="bg-success size-3 rounded-full" />
-            )}
-            <div>
-              <h3 className="text-fg text-sm font-semibold">
-                {totalConfigured === 0
-                  ? 'No API Keys Configured'
-                  : totalFailed > 0
-                    ? `${totalFailed} Connection Issues Detected`
-                    : 'All Configured Providers Functional'}
-              </h3>
-              <p className="text-caption text-fg-subtle mt-0.5">
-                {totalConfigured === 0
-                  ? 'Please set up at least one provider to start chatting.'
-                  : lastTestedStr
-                    ? `Last checked: ${formatRelative(lastTestedStr)}`
-                    : 'Test connection below to verify setup.'}
-              </p>
-            </div>
-          </div>
-          <BulkTestButton disabled={totalConfigured === 0} />
-        </div>
-
-        {totalFailed > 0 && (
-          <div className="border-danger/20 bg-danger/5 text-caption text-danger flex flex-col gap-1.5 rounded-sm border p-3">
-            <span className="font-semibold">Failing Connections:</span>
-            <ul className="list-disc space-y-1 pl-4">
-              {configured
-                .filter((p) => {
-                  const health = healthByProvider.get(p.id);
-                  return health && !health.ok;
-                })
-                .map((p) => {
-                  const health = healthByProvider.get(p.id);
-                  return (
-                    <li key={p.id}>
-                      <span className="font-semibold">{p.displayName}</span>:{' '}
-                      {health?.error || 'Unknown error'}
-                    </li>
-                  );
-                })}
-            </ul>
-          </div>
-        )}
-
-        <div className="border-border text-caption grid grid-cols-2 gap-3 border-t pt-4 sm:grid-cols-3">
-          <div className="flex flex-col">
-            <span className="text-fg-muted">Configured</span>
-            <span className="text-fg mt-0.5 text-base font-semibold tabular-nums">
-              {totalConfigured} / {BYOK_PROVIDERS_LIST.length}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-fg-muted">Turns (30d)</span>
-            <span className="text-fg mt-0.5 text-base font-semibold tabular-nums">
-              {totalTurns}
-            </span>
-          </div>
-          <div className="col-span-2 flex flex-col sm:col-span-1">
-            <span className="text-fg-muted">Spent (30d)</span>
-            <span className="text-fg mt-0.5 text-base font-semibold tabular-nums">
-              ${totalCost.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
+      <ProviderHealthPanel
+        configured={configured}
+        totalConfigured={totalConfigured}
+        totalFailed={totalFailed}
+        lastTestedStr={lastTestedStr}
+        healthByProvider={healthByProvider}
+        totalTurns={totalTurns}
+        totalCost={totalCost}
+      />
 
       {/* Empty state when no providers are configured. */}
-      {totalConfigured === 0 ? (
-        <div className="surface-panel flex flex-col items-center gap-3 rounded-xl border border-white/10 p-6 text-center shadow-[var(--shadow-chip)]">
-          <div className="surface-well text-fg-subtle flex size-12 items-center justify-center rounded-xl border border-white/5 shadow-inner">
-            <IconKey className="text-brand size-6" />
-          </div>
-          <div>
-            <h3 className="text-fg text-sm font-semibold">No API keys configured yet</h3>
-            <p className="text-caption text-fg-subtle mt-1 max-w-md">
-              Pick a provider below and paste your API key. The free tier (Google Gemini or Groq) is
-              a good starting point — the chat works as soon as one key is saved.
-            </p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-2">
-            <span className="surface-chip bg-success/15 text-caption text-success rounded-md px-2.5 py-1 font-mono font-medium">
-              Google Gemini · free
-            </span>
-            <span className="surface-chip bg-success/15 text-caption text-success rounded-md px-2.5 py-1 font-mono font-medium">
-              Groq · free
-            </span>
-            <span className="surface-chip bg-bg-elev-2 text-caption text-fg-subtle rounded-md px-2.5 py-1 font-mono font-medium">
-              + 7 paid options
-            </span>
-          </div>
-        </div>
-      ) : null}
+      {totalConfigured === 0 ? <ApiKeysEmptyState /> : null}
 
       <SaveBar
         action={updateApiKeysAction}
         {...(fromChat && preservedPrompt ? { preservedPrompt } : {})}
       >
-        {configured.length > 0 ? (
-          <section className="flex flex-col gap-3" aria-labelledby="configured-providers-heading">
-            <h3
-              id="configured-providers-heading"
-              className="text-fg-subtle text-sm font-medium tracking-wide uppercase"
-            >
-              Configured
-            </h3>
-            {configured.map((p) => {
-              const health = healthByProvider.get(p.id);
-              const u = usageByProvider.get(p.id);
-              const keyUpdatedAt = settings?.aiApiKeysUpdatedAt?.[p.id];
-              return (
-                <ApiKeyCard
-                  key={p.id}
-                  provider={p}
-                  currentValue={decrypted?.[p.id as ProviderId] ?? ''}
-                  keyUpdatedAt={keyUpdatedAt}
-                  {...(health ? { health } : {})}
-                  {...(u ? { usage: u } : {})}
-                />
-              );
-            })}
-          </section>
-        ) : null}
-
-        {available.length > 0 ? (
-          <section className="flex flex-col gap-3" aria-labelledby="add-provider-heading">
-            <h3
-              id="add-provider-heading"
-              className="text-fg-subtle text-sm font-medium tracking-wide uppercase"
-            >
-              {configured.length > 0 ? 'Add another' : 'Pick a provider'}
-            </h3>
-            {available.map((p) => {
-              const health = healthByProvider.get(p.id);
-              const u = usageByProvider.get(p.id);
-              const keyUpdatedAt = settings?.aiApiKeysUpdatedAt?.[p.id];
-              return (
-                <ApiKeyCard
-                  key={p.id}
-                  provider={p}
-                  currentValue=""
-                  keyUpdatedAt={keyUpdatedAt}
-                  {...(health ? { health } : {})}
-                  {...(u ? { usage: u } : {})}
-                />
-              );
-            })}
-          </section>
-        ) : null}
+        <ProviderKeySections
+          configured={configured}
+          available={available}
+          decrypted={decrypted}
+          keyUpdatedAtByProvider={settings?.aiApiKeysUpdatedAt ?? undefined}
+          healthByProvider={healthByProvider}
+          usageByProvider={usageByProvider}
+        />
       </SaveBar>
 
       {/* Market Data Provider Configuration */}
@@ -324,68 +194,7 @@ export default async function ApiKeysSettingsPage({
       <ExportImportKeys />
 
       {/* Collapsible Capability Matrix */}
-      <details className="surface-panel mt-2 overflow-hidden rounded-xl border border-white/10 shadow-[var(--shadow-chip)]">
-        <summary
-          aria-label="Toggle provider capability matrix"
-          className="hover:bg-bg-elev-2/60 flex cursor-pointer items-center justify-between gap-3 px-5 py-3.5 transition-colors select-none"
-        >
-          <div className="flex flex-col">
-            <span className="text-fg text-sm font-medium">Provider Capability Matrix</span>
-            <span className="text-caption text-fg-subtle">
-              Compare capabilities (Vision, Embedding, Free tier) across all supported AI providers.
-            </span>
-          </div>
-          <span className="text-caption text-fg-subtle font-mono">▾</span>
-        </summary>
-        <div className="border-border/50 max-w-full min-w-0 overflow-x-auto border-t p-0">
-          <table className="w-full min-w-[500px] border-collapse text-left">
-            <thead>
-              <tr className="border-border/50 text-caption text-fg-muted bg-bg-elev-2/50 border-b font-semibold">
-                <th className="p-3">Provider</th>
-                <th className="p-3 text-center">Chat</th>
-                <th className="p-3 text-center">Vision</th>
-                <th className="p-3 text-center">Embedding</th>
-                <th className="p-3 text-center">Streaming</th>
-                <th className="p-3 text-center">Tool Calls</th>
-                <th className="p-3 text-center">Free Tier</th>
-              </tr>
-            </thead>
-            <tbody className="divide-border/40 text-caption divide-y">
-              {BYOK_PROVIDERS_LIST.map((p) => (
-                <tr key={p.id} className="hover:bg-bg-elev-2/20">
-                  <td className="text-fg p-3 font-medium">{p.displayName}</td>
-                  <td className="text-success p-3 text-center">✓</td>
-                  <td className="p-3 text-center">
-                    {p.supports.vision ? (
-                      <span className="text-success">✓</span>
-                    ) : (
-                      <span className="text-fg-muted">—</span>
-                    )}
-                  </td>
-                  <td className="p-3 text-center">
-                    {p.supports.embedding ? (
-                      <span className="text-success">✓</span>
-                    ) : (
-                      <span className="text-fg-muted">—</span>
-                    )}
-                  </td>
-                  <td className="text-success p-3 text-center">✓</td>
-                  <td className="text-success p-3 text-center">✓</td>
-                  <td className="p-3 text-center">
-                    {p.pricingTier === 'free' ? (
-                      <span className="surface-chip bg-success/15 text-success rounded-md px-2 py-0.5 font-mono text-xs font-semibold">
-                        Free
-                      </span>
-                    ) : (
-                      <span className="text-fg-muted">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
+      <ProviderCapabilityMatrix />
     </div>
   );
 }

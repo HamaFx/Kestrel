@@ -16,46 +16,27 @@
  * limitations under the License.
  */
 import type { ProviderMeta } from '@kestrel/shared';
-import {
-  IconAlertTriangle,
-  IconCircleCheck,
-  IconCircleX,
-  IconClock,
-  IconCopy,
-  IconEye,
-  IconEyeOff,
-  IconLoader2,
-} from '@tabler/icons-react';
+import { IconCircleCheck, IconLoader2 } from '@tabler/icons-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
-import { Input } from '@/components/ui/input';
 import { ProviderInfoDot } from '@/components/ui/provider-info-dot';
-import { formatRelative } from '@/lib/formatters/format';
 import { apiMutate } from '@/lib/http/api-client';
 
+import { StatusPill, UsageBadge, type TestState } from './api-key-badges';
+import type { ApiKeyHealth } from './api-key-health';
+import { ApiKeyInput } from './api-key-input';
+import { KeyRotationWarning, RateLimitPanel } from './api-key-meta-panels';
 import { ProviderLogo } from './provider-logo';
-import { SETUP_INSTRUCTIONS } from './provider-setup-instructions';
+import { ProviderSetupDetails } from './provider-setup-details';
 
 interface ApiKeyCardProps {
   provider: ProviderMeta;
   currentValue: string;
   keyUpdatedAt?: string | undefined;
-  health?:
-    | {
-        ok: boolean;
-        error: string | null;
-        testedAt: string;
-        rateLimit?: {
-          remainingRequests?: number;
-          remainingTokens?: number;
-          resetRequests?: string;
-          resetTokens?: string;
-        } | null;
-      }
-    | undefined;
+  health?: ApiKeyHealth | undefined;
   usage?:
     | {
         turns: number;
@@ -63,9 +44,6 @@ interface ApiKeyCardProps {
       }
     | undefined;
 }
-
-type TestState =
-  { kind: 'idle' } | { kind: 'pending' } | { kind: 'ok' } | { kind: 'err'; message: string };
 
 export function ApiKeyCard({
   provider,
@@ -139,8 +117,6 @@ export function ApiKeyCard({
     }
   }
 
-  const instructions = SETUP_INSTRUCTIONS[provider.id];
-
   return (
     <div
       tabIndex={0}
@@ -195,146 +171,27 @@ export function ApiKeyCard({
         ) : null}
       </div>
 
-      {keyAgeDays !== null && keyAgeDays >= 90 && (
-        <div className="border-warn/20 bg-warn/5 text-caption text-warn flex items-start gap-2.5 rounded-sm border p-3">
-          <IconAlertTriangle className="mt-0.5 size-4 shrink-0" />
-          <div className="flex flex-col gap-0.5">
-            <span className="text-fg font-semibold">Consider rotating your API key</span>
-            <p className="text-fg-subtle text-xs">
-              This key was last updated {keyAgeDays} days ago. Regular key rotation increases
-              security.
-            </p>
-          </div>
-        </div>
-      )}
+      {keyAgeDays !== null ? <KeyRotationWarning keyAgeDays={keyAgeDays} /> : null}
 
-      {health?.rateLimit && (
-        <div className="border-border bg-bg-elev-2/40 text-caption text-fg-subtle flex flex-col gap-1.5 rounded-sm border p-3 shadow-sm">
-          <div className="text-fg flex items-center gap-1.5 font-semibold">
-            <IconClock className="size-3.5" />
-            <span>API Rate Limits</span>
-          </div>
-          <div className="mt-0.5 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
-            {health.rateLimit.remainingRequests !== undefined && (
-              <div className="flex flex-col gap-0.5">
-                <span className="text-fg-muted font-medium">Requests Remaining</span>
-                <span className="text-fg font-mono text-sm font-semibold tabular-nums">
-                  {health.rateLimit.remainingRequests}
-                </span>
-                {health.rateLimit.resetRequests && (
-                  <span className="text-xs opacity-60">
-                    Resets in {health.rateLimit.resetRequests}
-                  </span>
-                )}
-              </div>
-            )}
-            {health.rateLimit.remainingTokens !== undefined && (
-              <div className="flex flex-col gap-0.5">
-                <span className="text-fg-muted font-medium">Tokens Remaining</span>
-                <span className="text-fg font-mono text-sm font-semibold tabular-nums">
-                  {health.rateLimit.remainingTokens.toLocaleString()}
-                </span>
-                {health.rateLimit.resetTokens && (
-                  <span className="text-xs opacity-60">
-                    Resets in {health.rateLimit.resetTokens}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {health?.rateLimit ? <RateLimitPanel rateLimit={health.rateLimit} /> : null}
 
-      {/* Input area */}
-      <div className="relative">
-        <Input
-          id={`key-${provider.id}`}
-          name={provider.id}
-          type={revealed ? 'text' : 'password'}
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            if (test.kind !== 'idle') setTest({ kind: 'idle' });
-          }}
-          placeholder={provider.keyHint}
-          autoComplete="off"
-          spellCheck={false}
-          className="pr-24 font-mono"
-        />
-        <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-0.5">
-          {isSet && (
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="text-fg-muted hover:text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
-              aria-label="Copy key to clipboard"
-            >
-              <IconCopy className="size-3.5" />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setRevealed((r) => !r)}
-            className="text-fg-muted hover:text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
-            aria-label={revealed ? 'Hide key' : 'Show key'}
-          >
-            {revealed ? <IconEyeOff className="size-3.5" /> : <IconEye className="size-3.5" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Validation / test feedback. */}
-      {test.kind === 'err' ? (
-        <div className="text-danger flex items-start gap-2 text-xs">
-          <IconCircleX className="mt-0.5 size-3.5 shrink-0" />
-          <span className="break-words">{test.message}</span>
-        </div>
-      ) : null}
-      {test.kind === 'ok' && dirty ? (
-        <div className="text-success flex items-center gap-2 text-xs">
-          <IconCircleCheck className="size-3.5 shrink-0" />
-          <span>New value passes validation. Click Save to apply.</span>
-        </div>
-      ) : null}
+      <ApiKeyInput
+        provider={provider}
+        value={value}
+        revealed={revealed}
+        isSet={isSet}
+        dirty={dirty}
+        testState={test}
+        onValueChange={(next) => {
+          setValue(next);
+          if (test.kind !== 'idle') setTest({ kind: 'idle' });
+        }}
+        onToggleReveal={() => setRevealed((r) => !r)}
+        onCopy={handleCopy}
+      />
 
       {/* Expandable setup instructions details. */}
-      {instructions && (
-        <details className="border-divider bg-bg-elev-2/50 overflow-hidden rounded-sm border text-xs">
-          <summary
-            aria-label="Toggle setup instructions and limits"
-            className="text-fg-subtle hover:text-fg flex cursor-pointer items-center justify-between px-3 py-1.5 font-medium transition-colors select-none"
-          >
-            <span>Setup Instructions & Limits</span>
-            <span className="text-xs">▼</span>
-          </summary>
-          <div className="border-divider bg-bg-elev-2/10 flex flex-col gap-2 border-t p-3">
-            <div>
-              <span className="text-fg-muted font-semibold">How to get:</span>{' '}
-              <span className="text-fg-subtle">{instructions.howToGet}</span>
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              <div>
-                <span className="text-fg-muted font-semibold">Free tier:</span>{' '}
-                <span className="text-fg-subtle">{instructions.freeTier}</span>
-              </div>
-              <div>
-                <span className="text-fg-muted font-semibold">Rate limits:</span>{' '}
-                <span className="text-fg-subtle">{instructions.rateLimits}</span>
-              </div>
-            </div>
-            <div className="mt-1">
-              <a
-                href={instructions.dashboardUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-fg inline-flex items-center font-semibold hover:underline"
-              >
-                Go to {provider.displayName} Dashboard →
-              </a>
-            </div>
-          </div>
-        </details>
-      )}
+      <ProviderSetupDetails provider={provider} />
 
       {/* Action row: test button. */}
       <div className="flex items-center justify-between gap-2">
@@ -365,76 +222,5 @@ export function ApiKeyCard({
       </div>
       {confirmNode}
     </div>
-  );
-}
-
-/**
- * StatusPill — single small chip on the right of the provider name
- * summarising: set / not set / last-tested-failed. The bulk-test
- * response updates this via revalidatePath.
- */
-function StatusPill({
-  isSet,
-  health,
-  testState,
-}: {
-  isSet: boolean;
-  health?: { ok: boolean; error: string | null; testedAt: string } | undefined;
-  testState: TestState;
-}) {
-  if (!isSet) {
-    return (
-      <span className="bg-bg-elev-2 text-caption text-fg-subtle rounded-sm px-2 py-0.5 font-medium">
-        Not set
-      </span>
-    );
-  }
-  // Live test result takes precedence over the cached health snapshot.
-  if (testState.kind === 'err') {
-    return (
-      <span className="bg-danger/15 text-caption text-danger rounded-sm px-2 py-0.5 font-medium">
-        Failed
-      </span>
-    );
-  }
-  if (testState.kind === 'ok') {
-    return (
-      <span className="bg-success/15 text-caption text-success rounded-sm px-2 py-0.5 font-medium">
-        OK
-      </span>
-    );
-  }
-  if (!health) {
-    return (
-      <span className="bg-bg-elev-2 text-caption text-fg-subtle rounded-sm px-2 py-0.5 font-medium">
-        Saved (untested)
-      </span>
-    );
-  }
-  if (!health.ok) {
-    return (
-      <span className="bg-danger/15 text-caption text-danger rounded-sm px-2 py-0.5 font-medium">
-        Failed <span className="opacity-60">·</span> {formatRelative(health.testedAt)}
-      </span>
-    );
-  }
-  return (
-    <span className="bg-success/15 text-caption text-success rounded-sm px-2 py-0.5 font-medium">
-      OK <span className="opacity-60">·</span> {formatRelative(health.testedAt)}
-    </span>
-  );
-}
-
-/**
- * UsageBadge — shows the 30-day cost + turn count for this provider
- * when usage is non-zero. Hidden when there's no usage so the card
- * header stays clean for fresh setups.
- */
-function UsageBadge({ usage }: { usage?: { turns: number; costUsd: number } | undefined }) {
-  if (!usage || usage.turns === 0) return null;
-  return (
-    <span className="bg-bg-elev-2 text-caption text-fg rounded-sm px-2 py-0.5 font-medium tabular-nums">
-      {usage.turns} {usage.turns === 1 ? 'turn' : 'turns'} · ${usage.costUsd.toFixed(2)}
-    </span>
   );
 }

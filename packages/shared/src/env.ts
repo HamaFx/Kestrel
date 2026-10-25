@@ -19,47 +19,30 @@
 //
 // Every variable here MUST also appear in `.env.example` at the repo root.
 // Keep this file the single source of truth — never re-validate elsewhere.
+//
+// Split by domain group: the zod groups live in `./env/schema/*`, the DB-URL
+// resolvers in `./env/database-url`, and the AI picker in `./env/ai-env`. This
+// entry keeps the composed `ServerEnvSchema` (and the DB group it composes)
+// plus every re-export, so `@kestrel/shared/env`, `./env` and the barrel keep
+// resolving exactly as before.
 
 import { z } from 'zod';
 
-/**
- * Auth (personal-mode):
- *   - AUTH_SECRET: HMAC secret for Auth.js JWT signing.
- *   - AUTH_COOKIE_SECRET: legacy cookie signer. Optional — kept for
- *     backward compatibility with personal-mode deployments.
- *   - CRON_SECRET: bearer token Vercel uses to invoke /api/cron/*.
- *   - ENCRYPTION_SECRET: 32-byte hex used to encrypt BYOK payloads.
- *   - AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET: optional Google OAuth client.
- *     Both must be present for the Google provider to be registered.
- *
- * Development ergonomics: in NODE_ENV !== 'production' the secrets
- * are OPTIONAL. The web app's `getServerEnv()`/`getAuthEnv()` will
- * auto-generate cryptographically-strong values when missing and
- * persist them to `.kestrel/dev-secrets.json` so encrypted BYOK payloads
- * survive restarts. Production-time enforcement is applied at the
- * ServerEnvSchema refinement below.
- */
-const AuthEnv = z.object({
-  AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 chars').optional(),
-  AUTH_COOKIE_SECRET: z.string().min(32).optional(),
-  CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 chars').optional(),
-  ENCRYPTION_SECRET: z
-    .string()
-    .regex(
-      /^[0-9a-fA-F]{64}$/,
-      'ENCRYPTION_SECRET must be a 64-character hex string (32 bytes, e.g. openssl rand -hex 32)',
-    )
-    .optional(),
-  // Declared here so parseServerEnv() retains them: Zod strips unknown keys,
-  // and createAuthProviders() reads the parsed object rather than process.env.
-  AUTH_GOOGLE_ID: z.string().min(1).optional(),
-  AUTH_GOOGLE_SECRET: z.string().min(1).optional(),
-});
+import { AiEnv } from './env/schema/ai';
+import { AuthEnv } from './env/schema/auth';
+import { CacheEnv, NotifyEnv, ProvidersEnv, PublicEnv } from './env/schema/infra';
+import { RuntimeEnv } from './env/schema/runtime';
 
 // We accept either DATABASE_URL or POSTGRES_URL for app traffic — the Supabase
 // Vercel integration writes POSTGRES_URL (transaction pooler, prepare-statement-safe
 // when the client is configured with `prepare: false`). Phase 3 adds DIRECT_URL /
 // POSTGRES_URL_NON_POOLING for migrations, backups, and other session-bound tasks.
+//
+// Declared in this entry (not in `./env/schema/*`) because the repo's
+// `.env`-contract checker (`scripts/check-env-contract.mjs`) asserts the direct
+// migration URL variables against this file. Direct/session-bound URLs:
+// DIRECT_URL (preferred) or POSTGRES_URL_NON_POOLING; the resolvers that consume
+// them live in `./env/database-url`.
 const DbEnv = z
   .object({
     DATABASE_URL: z.url().optional(),
@@ -79,267 +62,6 @@ const DbEnv = z
     path: ['DATABASE_URL'],
     error: 'Either DATABASE_URL or POSTGRES_URL must be set',
   });
-
-// AI provider env. We support two transports:
-//
-//   1. Direct Google Gemini API:  set `GOOGLE_GENERATIVE_AI_API_KEY`. Pair
-//                                 with a `google/...` model id. Free tier.
-//   2. Vercel AI Gateway:         set `AI_GATEWAY_API_KEY`. Models routed by
-//                                 prefixed id (e.g. `openai/gpt-4.1`).
-//
-// Model routing classifies user turns and picks the model from the matching
-// env var below. All defaults stay safe — if you don't set the new vars,
-// behaviour falls back to AI_DEFAULT_MODEL.
-const AiEnv = z.object({
-  AI_GATEWAY_API_KEY: z.string().min(1).optional(),
-  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
-  /** Dolphin Inference Network key (OpenAI-compatible DeepSeek endpoint). */
-  DPHN_API_KEY: z.string().min(1).optional(),
-  AI_DEFAULT_MODEL: z.string().default('google/gemini-2.5-flash'),
-  /**
-   * Auto-title generator (first-turn thread title) and operator-set
-   * fallback for the planner-style cheap model. Per-user picks come
-   * from `user_settings.chat_model` + `derivePlannerModel` / `deriveTitleModel`.
-   */
-  AI_TITLE_MODEL: z.string().default('google/gemini-2.5-flash-lite'),
-  AI_EMBEDDING_MODEL: z.string().default('openai/text-embedding-3-small'),
-});
-
-// NOTE: Self-hosters use BYOK (Bring Your Own Key) — users add their
-// own AI provider keys via the in-app Settings → API Keys page after
-// registration. The app boots without any server-level AI keys. When a user
-// tries to chat without any keys configured, resolveChatModel() throws a
-// clear error pointing them to Settings → API Keys.
-//
-// Server operators who want to provide a server-wide AI fallback can still set
-// AI_GATEWAY_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY.
-
-// Upstash Redis is intentionally OPTIONAL. Personal-mode caching uses Next.js's
-// built-in Data Cache (`fetch`-cache + `unstable_cache`) which is free, persists
-// across invocations on Vercel, and covers our entire TTL policy. Setting these
-// vars is supported as a future swap-in but no code path requires them today.
-//
-// See docs/04-data-layer.md § "Cache layer" and packages/data/src/cache/.
-const CacheEnv = z.object({
-  UPSTASH_REDIS_REST_URL: z.url().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
-});
-
-const ProvidersEnv = z.object({
-  // BiQuote is the primary; Finnhub is the fallback.
-  FINNHUB_API_KEY: z.string().min(1).optional(),
-  MARKETAUX_API_KEY: z.string().min(1).optional(),
-  FRED_API_KEY: z.string().min(1).optional(),
-  /**
-   * BiQuote (https://biquote.io) — free, no-key REST + SignalR market data.
-   * Phase 8 promotes BiQuote to the primary price/candle source. There is
-   * no API key; this var only overrides the base URL (e.g. for staging or a
-   * local mock during tests). Default: https://biquote.io.
-   */
-  BIQUOTE_BASE_URL: z.url().optional(),
-  /** Server-only web research providers. Never expose these to the browser. */
-  EXA_API_KEY: z.string().min(1).optional(),
-  TAVILY_API_KEY: z.string().min(1).optional(),
-  BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
-});
-
-const NotifyEnv = z.object({
-  TELEGRAM_BOT_TOKEN: z.string().optional(),
-  TELEGRAM_CHAT_ID: z.string().optional(),
-  TELEGRAM_SECRET_TOKEN: z.string().optional(),
-  RESEND_API_KEY: z.string().optional(),
-  ALERT_FROM_EMAIL: z.email().optional(),
-  ALERT_TO_EMAIL: z.email().optional(),
-  /**
-   * Web Push (RFC 8030 + VAPID). All optional — when missing, the
-   * `web-push` alert channel returns "not configured" and skips delivery.
-   *
-   * The public key MUST also be exposed as NEXT_PUBLIC_VAPID_PUBLIC_KEY so
-   * the browser-side `pushManager.subscribe` call can pass it as the
-   * `applicationServerKey`. The two values must match exactly.
-   *
-   * Generate a fresh keypair with:
-   *   node -e "const {generateKeyPairSync} = require('crypto'); \
-   *     const {publicKey, privateKey} = generateKeyPairSync('ec', { namedCurve: 'P-256' }); \
-   *     console.log('PUB',  publicKey.export({format:'jwk'}).x + publicKey.export({format:'jwk'}).y); \
-   *     console.log('PRIV', privateKey.export({format:'jwk'}).d);"
-   */
-  VAPID_PUBLIC_KEY: z.string().optional(),
-  VAPID_PRIVATE_KEY: z.string().optional(),
-  /** Contact email or `mailto:` URL embedded in the VAPID JWT `sub` claim. */
-  VAPID_SUBJECT: z.string().optional(),
-});
-
-const PublicEnv = z.object({
-  NEXT_PUBLIC_APP_URL: z.url().default('http://localhost:3000'),
-  /** Browser-readable VAPID public key. MUST equal `VAPID_PUBLIC_KEY`. */
-  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
-});
-
-const RuntimeEnv = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  /** Daily AI cost ceiling in USD. When crossed, /api/chat returns 503. */
-  MAX_DAILY_USD: z.coerce.number().positive().prefault(5),
-  /** Hard cap on tool-loop iterations per chat turn. */
-  MAX_TOOL_ITERATIONS: z.coerce.number().int().positive().prefault(6),
-  /** Q5 — enable semantic routing via cheap LLM classifier before keyword scoring. */
-  AI_SEMANTIC_ROUTING_ENABLED: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  LOG_PROMPTS: z
-    .union([z.literal('0'), z.literal('1')])
-    .default('0')
-    .transform((v) => v === '1'),
-  /** Langfuse LLM observability. Optional — omitted = tracing disabled. */
-  LANGFUSE_PUBLIC_KEY: z.string().optional(),
-  LANGFUSE_SECRET_KEY: z.string().optional(),
-  LANGFUSE_BASE_URL: z.url().optional(),
-  /** Optional release/environment labels used by Langfuse dashboards. */
-  LANGFUSE_RELEASE: z.string().min(1).optional(),
-  LANGFUSE_TRACING_ENVIRONMENT: z.string().min(1).optional(),
-  /**
-   * Fundamental-agent web search. Disabled by default until a provider key
-   * and an explicit feature flag are configured.
-   */
-  WEB_SEARCH_ENABLED: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  WEB_SEARCH_PROVIDER: z.enum(['exa', 'tavily', 'brave']).default('exa'),
-  WEB_SEARCH_FALLBACK_PROVIDERS: z.string().default('tavily,brave'),
-  WEB_SEARCH_MAX_RESULTS: z.coerce.number().int().min(1).max(10).prefault(6),
-  WEB_SEARCH_MAX_CALLS_PER_TURN: z.coerce.number().int().min(1).max(4).prefault(2),
-  WEB_SEARCH_CACHE_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).prefault(600),
-  WEB_SEARCH_TIMEOUT_MS: z.coerce.number().int().min(2000).max(20000).prefault(8000),
-
-  /** Deterministic no-network market-data mode for local development. */
-  KESTREL_OFFLINE_MODE: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /** Explicit opt-in for exporting prompts and model outputs to Langfuse. */
-  LANGFUSE_RECORD_IO: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /** Window used by the bearer-authenticated health alert endpoint. */
-  ALERT_WINDOW_HOURS: z.coerce.number().int().min(1).max(24).prefault(1),
-
-  // Retention values are consumed by the shared web/worker cleanup path.
-  TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
-  TRACE_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
-  RATE_LIMIT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).prefault(2),
-  PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(3),
-  CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
-  ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(7),
-  AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
-  PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
-  BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
-
-  // Feature Flags
-  /**
-   * Public account creation policy: `open` = anyone who can reach the instance
-   * can register; `disabled` = admin-invite only. `owner-first` was removed —
-   * a stale `.env` pin fails validation with a Zod enum error naming this
-   * variable (see the `REGISTRATION_MODE` refusals below).
-   */
-  REGISTRATION_MODE: z.enum(['open', 'disabled']).default('open'),
-  /**
-   * Row-level security is required for every deployment. Multi-user is the only
-   * supported mode, so this defaults to on; the flag is retained so tests can
-   * stub it and so a misconfigured instance fails closed at boot.
-   */
-  KESTREL_ENABLE_RLS: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-  /** Multi-user is the only supported deployment mode; defaults on. */
-  MULTI_USER_ENABLED: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-
-  // --- Audit upgrade-plan feature flags (docs/plans/kestrel-ai-agentic-audit-v2.md).
-  // Parsed through `readFeatureFlag` in feature-flags.ts; these declarations
-  // validate and document the variables. Flags whose behavior is unconditional
-  // (router, streaming progress, mastra-v2 migration) have no toggle.
-  /** Phase 2.1 — 30s fresh-only symbol-research packet cache (LRU + optional Redis). */
-  PHASE2_PACKET_CACHE: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-  /** Phase 3.1 — per-specialist top-tier model resolution for the committee. */
-  PHASE3_MODEL_DIVERSITY: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /** Phase 3.2 — one round of cross-critique before fusion (Full mode). ON per Q6. */
-  ENABLE_COMMITTEE_CRITIQUE: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-  /** Phase 3.3 — structured fusion output for Full mode. */
-  PHASE3_STRUCTURED_FUSION: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * Audit plan §3.3 — optional bounded debate round for Full: one revision
-   * pass where each desk may update its opinion after reading the critiques.
-   * OFF by default (adds one LLM call per desk per run).
-   */
-  ENABLE_COMMITTEE_DEBATE: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * Q4 decision — daily spend is ledger-only by default; the reservation is
-   * recorded for admin reporting but never blocks a turn with 429. Set true
-   * to restore the legacy hard daily cap.
-   */
-  ENFORCE_BUDGET: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * M-02 (audit 2026-10-18, Phase 0/2) — generic macro packet for
-   * non-XAUUSD symbols (news + calendar + COT). ON by default since M-02
-   * landed; `0` is the instant rollback to the prior candle-only packet.
-   */
-  ENABLE_GENERIC_MACRO: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * P1-04 (audit 2026-10-18, Phase 3) — run a second (risk) desk per symbol
-   * in comparison runs. ON by default; `0` keeps the cheaper single-desk
-   * comparison where cost matters.
-   */
-  ENABLE_COMPARISON_RISK_DESK: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * P2-01 (audit 2026-10-18, Phase 5) — legacy `src/tools/` AI SDK shims for
-   * tools that already have native Mastra registrations. ON for one release;
-   * set `0` to stop registering the shims and prove the native path serves
-   * every internal consumer before the dated deletion (see CHANGELOG).
-   */
-  PHASE_TOOLS_SHIMS: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * Audit plan v2 §5.3 (Q4) — non-blocking admin alert threshold: when a
-   * user's daily (UTC) reserved+reconciled ledger spend reaches this many
-   * dollars, the admin System Health dashboard surfaces an anomaly.
-   * Informational only — the daily ledger is never capped per Q4.
-   */
-  ADMIN_SPEND_ALERT_USD: z.coerce.number().positive().prefault(25),
-  /** Optional Redis URL for the shared packet cache (Phase 2.1). */
-  REDIS_URL: z.url().optional(),
-});
 
 // `merge()` doesn't compose ZodEffects (refines). Both DbEnv and AiEnv are
 // refined, so we intersect them with the rest. `intersection()` preserves
@@ -387,120 +109,6 @@ export const ServerEnvSchema = z
 // the standard `invalid_enum_value` error on the REGISTRATION_MODE path.
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
-/**
- * Resolve the active Postgres connection string for app traffic, preferring DATABASE_URL.
- */
-export function resolveDatabaseUrl(env: Pick<ServerEnv, 'DATABASE_URL' | 'POSTGRES_URL'>): string {
-  const url = env.DATABASE_URL || env.POSTGRES_URL;
-  if (!url) throw new Error('Neither DATABASE_URL nor POSTGRES_URL is set');
-  return url;
-}
-
-/**
- * Resolve the direct/session-mode Postgres connection string for migrations,
- * backups, and other session-bound operations.
- */
-export function resolveDirectDatabaseUrl(
-  env: Pick<ServerEnv, 'DIRECT_URL' | 'POSTGRES_URL_NON_POOLING' | 'DATABASE_URL' | 'POSTGRES_URL'>,
-): string {
-  const url =
-    env.DIRECT_URL || env.POSTGRES_URL_NON_POOLING || env.DATABASE_URL || env.POSTGRES_URL;
-  if (!url) {
-    throw new Error(
-      'Neither DIRECT_URL, POSTGRES_URL_NON_POOLING, DATABASE_URL, nor POSTGRES_URL is set',
-    );
-  }
-  return url;
-}
-
-/** Return true for Supabase/PgBouncer transaction-pooler URLs. */
-export function isTransactionPoolerUrl(value: string): boolean {
-  const parsed = new URL(value);
-  // Supabase's session pooler uses the same `*.pooler.supabase.com` host
-  // family on port 5432 and supports session-bound operations. Only the
-  // transaction-mode endpoint (6543) is unsafe for migrations.
-  return parsed.port === '6543';
-}
-
-/**
- * Resolve the URL allowed for migrations and other session-bound operations.
- * A runtime pooler URL is never accepted because PgBouncer transaction mode
- * can silently discard session-bound DDL.
- */
-export function resolveMigrationDatabaseUrl(
-  env: Pick<ServerEnv, 'DIRECT_URL' | 'POSTGRES_URL_NON_POOLING'>,
-): string {
-  const url = env.DIRECT_URL || env.POSTGRES_URL_NON_POOLING;
-  if (!url) {
-    throw new Error(
-      'DIRECT_URL or POSTGRES_URL_NON_POOLING is required for migrations; runtime pooler URLs are not accepted',
-    );
-  }
-  if (isTransactionPoolerUrl(url)) {
-    throw new Error(
-      'Migration database URL points to a transaction pooler. Use the Supabase direct/session URL on port 5432.',
-    );
-  }
-  return url;
-}
-
-/**
- * P3-11 — Canonical AI env subset for agent / planner / title / tool-context.
- *
- * Extracted from the 5+ places where the same `{ AI_GATEWAY_API_KEY,
- * GOOGLE_*, AI_DEFAULT_MODEL, AI_EMBEDDING_MODEL, ... }` object was
- * hand-built. Returns the full canonical set.
- *
- * The parameter type is a mapped type over AiEnvKeys so callers can
- * pass `Pick<ServerEnv, AiEnvKeys>` (agent.ts) or the full `ServerEnv`
- * (route.ts, telegram/webhook.ts) — both are assignable.
- */
-export type AiEnvKeys =
-  | 'AI_GATEWAY_API_KEY'
-  | 'GOOGLE_GENERATIVE_AI_API_KEY'
-  | 'DPHN_API_KEY'
-  | 'AI_DEFAULT_MODEL'
-  | 'AI_TITLE_MODEL'
-  | 'AI_EMBEDDING_MODEL'
-  | 'MAX_DAILY_USD'
-  | 'MAX_TOOL_ITERATIONS'
-  | 'LOG_PROMPTS'
-  | 'AI_SEMANTIC_ROUTING_ENABLED'
-  | 'EXA_API_KEY'
-  | 'TAVILY_API_KEY'
-  | 'BRAVE_SEARCH_API_KEY'
-  | 'WEB_SEARCH_ENABLED'
-  | 'WEB_SEARCH_PROVIDER'
-  | 'WEB_SEARCH_FALLBACK_PROVIDERS'
-  | 'WEB_SEARCH_MAX_RESULTS'
-  | 'WEB_SEARCH_MAX_CALLS_PER_TURN'
-  | 'WEB_SEARCH_CACHE_TTL_SECONDS'
-  | 'WEB_SEARCH_TIMEOUT_MS';
-
-export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
-  return {
-    AI_GATEWAY_API_KEY: env.AI_GATEWAY_API_KEY,
-    GOOGLE_GENERATIVE_AI_API_KEY: env.GOOGLE_GENERATIVE_AI_API_KEY,
-    DPHN_API_KEY: env.DPHN_API_KEY,
-    AI_DEFAULT_MODEL: env.AI_DEFAULT_MODEL,
-    AI_TITLE_MODEL: env.AI_TITLE_MODEL,
-    AI_EMBEDDING_MODEL: env.AI_EMBEDDING_MODEL,
-    MAX_DAILY_USD: env.MAX_DAILY_USD,
-    MAX_TOOL_ITERATIONS: env.MAX_TOOL_ITERATIONS,
-    LOG_PROMPTS: env.LOG_PROMPTS,
-    AI_SEMANTIC_ROUTING_ENABLED: env.AI_SEMANTIC_ROUTING_ENABLED,
-    EXA_API_KEY: env.EXA_API_KEY,
-    TAVILY_API_KEY: env.TAVILY_API_KEY,
-    BRAVE_SEARCH_API_KEY: env.BRAVE_SEARCH_API_KEY,
-    WEB_SEARCH_ENABLED: env.WEB_SEARCH_ENABLED,
-    WEB_SEARCH_PROVIDER: env.WEB_SEARCH_PROVIDER,
-    WEB_SEARCH_FALLBACK_PROVIDERS: env.WEB_SEARCH_FALLBACK_PROVIDERS,
-    WEB_SEARCH_MAX_RESULTS: env.WEB_SEARCH_MAX_RESULTS,
-    WEB_SEARCH_MAX_CALLS_PER_TURN: env.WEB_SEARCH_MAX_CALLS_PER_TURN,
-    WEB_SEARCH_CACHE_TTL_SECONDS: env.WEB_SEARCH_CACHE_TTL_SECONDS,
-    WEB_SEARCH_TIMEOUT_MS: env.WEB_SEARCH_TIMEOUT_MS,
-  };
-}
 
 /**
  * Read-only upgrade aliases map.
@@ -531,3 +139,11 @@ export function parseServerEnv(input: NodeJS.ProcessEnv = process.env): ServerEn
   }
   return result.data;
 }
+
+export {
+  isTransactionPoolerUrl,
+  resolveDatabaseUrl,
+  resolveDirectDatabaseUrl,
+  resolveMigrationDatabaseUrl,
+} from './env/database-url';
+export { pickAiEnv, type AiEnvKeys } from './env/ai-env';

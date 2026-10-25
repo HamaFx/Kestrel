@@ -28,17 +28,17 @@
 //   3. An optional 5-row tail of the closed bars (timestamp + close) for
 //      quick eyeball context.
 //
-// Server component — no state, no events.
+// Server component — no state, no events. Formatting helpers live in
+// `get-candles-format.ts`; the sparkline and placeholder states are their
+// own files.
 
-import {
-  priceDecimals,
-  pipSize as sharedPipSize,
-  type GetCandlesOutput,
-  type Symbol,
-} from '@kestrel/shared';
+import { priceDecimals, type GetCandlesOutput } from '@kestrel/shared';
 
-import { SERIES_BEAR_HEX, SERIES_BULL_HEX } from '@/components/chart/chart-colors';
 import { cn } from '@/lib/formatters/cn';
+
+import { formatBarTime, pipSize } from './get-candles-format';
+import { CandleSparkline } from './get-candles-sparkline';
+import { CandlesCardError, CandlesCardSkeleton } from './get-candles-states';
 
 interface GetCandlesPartProps {
   /** Tool output, or `null` while streaming / before completion. */
@@ -135,128 +135,4 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: str
       <dd className={cn('text-fg text-sm font-medium', tone)}>{value}</dd>
     </div>
   );
-}
-
-// Phase 1.2a — inline candle sparkline. Pure inline SVG (no chart library,
-// no canvas) so it stays server-renderable. Renders the last N bars
-// normalized to a 0–100 vertical range; bull bars use SERIES_BULL_HEX,
-// bear bars SERIES_BEAR_HEX (canvas-safe hex that mirror the design tokens).
-function CandleSparkline({
-  candles,
-  lastClose,
-}: {
-  candles: GetCandlesOutput['candles'];
-  lastClose: number;
-}) {
-  if (candles.length < 2) return null;
-
-  const W = 100;
-  const H = 40;
-  const pad = 1;
-  const colW = (W - pad * 2) / candles.length;
-
-  const lows = candles.map((c) => c.l);
-  const highs = candles.map((c) => c.h);
-  const min = Math.min(...lows);
-  const max = Math.max(...highs);
-  const range = max - min || 1;
-
-  // Map a price to a 0–H vertical coordinate (inverted: higher price → lower y).
-  const y = (price: number) => pad + (1 - (price - min) / range) * (H - pad * 2);
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      className="mt-2 h-15 w-full"
-      role="img"
-      aria-label={`Candle sparkline: last ${candles.length} bars, closing at ${lastClose}`}
-    >
-      {candles.map((c, i) => {
-        const x = pad + i * colW + colW / 2;
-        const isBull = c.c >= c.o;
-        const color = isBull ? SERIES_BULL_HEX : SERIES_BEAR_HEX;
-        const wickTop = y(c.h);
-        const wickBot = y(c.l);
-        const bodyTop = y(Math.max(c.o, c.c));
-        const bodyBot = y(Math.min(c.o, c.c));
-        const bodyH = Math.max(1, bodyBot - bodyTop);
-        const bodyW = Math.max(0.8, colW * 0.6);
-        return (
-          <g key={c.t}>
-            <line x1={x} y1={wickTop} x2={x} y2={wickBot} stroke={color} strokeWidth={0.5} />
-            <rect
-              x={x - bodyW / 2}
-              y={bodyTop}
-              width={bodyW}
-              height={bodyH}
-              fill={color}
-              stroke={color}
-              strokeWidth={0.3}
-            />
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function CandlesCardSkeleton() {
-  return (
-    <div
-      className="border-border bg-bg-elev-1 rounded-sm border p-3"
-      aria-busy="true"
-      aria-label="Loading candles"
-    >
-      <div className="bg-bg-elev-2 mb-2 h-3 w-40 animate-pulse rounded-sm" />
-      <div className="grid grid-cols-4 gap-2">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex flex-col gap-1">
-            <span className="bg-bg-elev-2 h-2 w-4 animate-pulse rounded-sm" />
-            <span className="bg-bg-elev-2 h-4 w-12 animate-pulse rounded-sm" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CandlesCardError({ message }: { message?: string }) {
-  return (
-    <div
-      role="alert"
-      className="border-danger/30 bg-bg-elev-1 text-danger rounded-sm border p-3 text-sm"
-    >
-      Candles unavailable{message ? ` · ${message}` : ''}
-    </div>
-  );
-}
-
-/**
- * Local pip-size lookup. Mirrors `pipSize` from `@kestrel/shared` and exists
- * here so the rendering logic is self-contained for the chat-part surface
- * (matches the design's "helper `pipSize(symbol)` inline" guideline). We
- * still cross-check against the shared helper at module load — if they ever
- * diverge that's a project-level bug, not a render-time one.
- */
-function pipSize(symbol: Symbol): number {
-  return sharedPipSize(symbol);
-}
-
-// Compile-time guarantee that the local helper agrees with `@kestrel/shared`.
-// If a new symbol is added to `Symbol` and either function forgets to handle
-// it, TypeScript flags this assignment. It's free at runtime.
-const _pipSizeAgrees: typeof sharedPipSize = pipSize;
-void _pipSizeAgrees;
-
-function formatBarTime(ms: number): string {
-  const d = new Date(ms);
-  if (Number.isNaN(d.getTime())) return String(ms);
-  // Short locale time — date is implied by the bar context.
-  return d.toLocaleString(undefined, {
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }

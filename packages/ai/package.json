@@ -84,9 +84,9 @@
       "import": "./dist/models/byok-providers.js"
     },
     "./memory": {
-      "source": "./src/memory/memory-index.ts",
-      "types": "./dist/memory/memory-index.d.ts",
-      "import": "./dist/memory/memory-index.js"
+      "source": "./src/memory/memory-index/index.ts",
+      "types": "./dist/memory/memory-index/index.d.ts",
+      "import": "./dist/memory/memory-index/index.js"
     },
     "./share": {
       "source": "./src/share/persistence.ts",
@@ -99,9 +99,9 @@
       "import": "./dist/models/embeddings.js"
     },
     "./rag": {
-      "source": "./src/models/rag.ts",
-      "types": "./dist/models/rag.d.ts",
-      "import": "./dist/models/rag.js"
+      "source": "./src/models/rag/index.ts",
+      "types": "./dist/models/rag/index.d.ts",
+      "import": "./dist/models/rag/index.js"
     },
     "./usage": {
       "source": "./src/budget/usage.ts",

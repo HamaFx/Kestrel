@@ -61,7 +61,10 @@ export function PerformanceChart({
   // transformation in `performance-chart-data.ts`.
   const { data: chartData, totalR } = useMemo(() => buildEquityCurve(entries), [entries]);
 
-  // Handle Chart Lifecycle
+  // Single chart setup effect: (re)creates the lightweight-charts instance
+  // whenever the data, height, theme, or net R changes. Creation already
+  // applies the current theme + R-signed series colors, so the former
+  // separate color-sync effects are subsumed here.
   useEffect(() => {
     const el = containerRef.current;
     if (!el || chartData.length === 0) return;
@@ -150,27 +153,6 @@ export function PerformanceChart({
       }
     };
   }, [chartData, height, theme, totalR]);
-
-  // Keep colors updated when totalR changes
-  useEffect(() => {
-    const series = seriesRef.current;
-    if (!series) return;
-    series.applyOptions({
-      lineColor: totalR >= 0 ? SERIES_BULL_HEX : SERIES_BEAR_HEX,
-      topColor: totalR >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-    });
-  }, [totalR]);
-
-  // Keep colors updated when theme dynamically changes
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
-    const colors = getPerfChartColors(theme);
-    chart.applyOptions({
-      layout: { textColor: colors.text },
-      grid: { horzLines: { color: colors.grid } },
-    });
-  }, [theme]);
 
   if (chartData.length < 2) {
     return (
